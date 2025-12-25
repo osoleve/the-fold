@@ -179,9 +179,7 @@
 
 ;;; Helper to check if value is a layer record
 (define (layer? obj)
-  (and (record? obj)
-       (eq? (record-type-descriptor obj)
-            (record-type-descriptor (make-layer 'test (make-canvas 1 1))))))
+  (layer%? obj))
 
 ;;; ============================================================
 ;;; Tests: Stack Operations

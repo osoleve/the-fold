@@ -46,10 +46,17 @@
 
 ;;; make-transparent-canvas : Nat × Nat → Canvas
 ;;; Create a canvas filled with transparent cells.
+;;; Works with both layout.ss (chars) and layout-color.ss (cells)
 (define (make-transparent-canvas width height)
   (let* ([size (* width height)]
-         [transparent-cell (make-cell transparent-char color-default color-default)]
-         [cells (make-vector size transparent-cell)])
+         ;; Detect if we're using cells or chars by trying to access cell%-char
+         ;; If default-cell has cell%-char accessor, we're using cells
+         [using-cells? (guard (ex [else #f])
+                         (begin (cell%-char default-cell) #t))]
+         [fill-value (if using-cells?
+                        (make-cell transparent-char color-default color-default)
+                        transparent-char)]
+         [cells (make-vector size fill-value)])
     (make-canvas% width height cells)))
 
 ;;; ============================================================
@@ -213,24 +220,33 @@
 ;;; Transparent cells in source don't overwrite destination.
 ;;;
 ;;; This is the key function that makes layering work.
+;;; Works with both layout.ss (chars) and layout-color.ss (cells)
 (define (composite-transparent dest src pt)
-  (let ([ox (point-x pt)]
-        [oy (point-y pt)]
-        [sw (canvas-width src)]
-        [sh (canvas-height src)])
+  (let* ([ox (point-x pt)]
+         [oy (point-y pt)]
+         [sw (canvas-width src)]
+         [sh (canvas-height src)]
+         ;; Detect if we're using cells by trying to access cell%-char
+         [using-cells? (guard (ex [else #f])
+                         (begin (cell%-char default-cell) #t))])
     (let loop-y ([y 0] [canvas dest])
       (if (>= y sh)
           canvas
           (let loop-x ([x 0] [canvas canvas])
             (if (>= x sw)
                 (loop-y (+ y 1) canvas)
-                (let ([cell (canvas-ref src x y)])
-                  (if (transparent? (cell%-char cell))
+                (let ([elem (canvas-ref src x y)])
+                  ;; Check if transparent - elem is either char or cell
+                  (if (if using-cells?
+                          (transparent? (cell%-char elem))
+                          (transparent? elem))
                       ;; Skip transparent cells
                       (loop-x (+ x 1) canvas)
                       ;; Draw opaque cells
                       (loop-x (+ x 1)
-                              (canvas-set-cell canvas (+ ox x) (+ oy y) cell))))))))))
+                              (if using-cells?
+                                  (canvas-set-cell canvas (+ ox x) (+ oy y) elem)
+                                  (canvas-set canvas (+ ox x) (+ oy y) elem)))))))))))
 
 ;;; ============================================================
 ;;; Layer Flattening
