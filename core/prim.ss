@@ -15,9 +15,11 @@
 ;;;   - Boolean: not, and, or
 ;;;   - Block: make-block, block-tag, block-payload, block-refs, block-ref
 ;;;   - Bytevector: bv-length, bv-ref, bv-make, bv-concat
+;;;   - String: string-length, string-ref, string-append, substring, ...
+;;;   - Character: char->integer, integer->char, char-alphabetic?, ...
 ;;;   - List: cons, car, cdr, null?, pair?, list
 ;;;   - Vector: vec-make, vec-ref, vec-length, vec->list, list->vec
-;;;   - Type predicates: number?, symbol?, string?, bytevector?, block?, vector?
+;;;   - Type predicates: number?, symbol?, string?, char?, bytevector?, block?, vector?
 
 ;;; ============================================================
 ;;; Primitive Dispatcher
@@ -119,6 +121,37 @@
        result)]
 
     ;; --------------------------------------------------------
+    ;; String operations
+    ;; --------------------------------------------------------
+    [(string-length) (string-length (car args))]
+    [(string-ref) (string-ref (car args) (cadr args))]
+    [(string-append) (apply string-append args)]
+    [(substring)
+     ;; (prim 'substring str start end)
+     (substring (car args) (cadr args) (caddr args))]
+    [(string=?) (string=? (car args) (cadr args))]
+    [(string<?) (string<? (car args) (cadr args))]
+    [(string>?) (string>? (car args) (cadr args))]
+    [(make-string) (make-string (car args) (if (null? (cdr args)) #\space (cadr args)))]
+    [(string->list) (string->list (car args))]
+    [(list->string) (list->string (car args))]
+
+    ;; --------------------------------------------------------
+    ;; Character operations
+    ;; --------------------------------------------------------
+    [(char->integer) (char->integer (car args))]
+    [(integer->char) (integer->char (car args))]
+    [(char=?) (char=? (car args) (cadr args))]
+    [(char<?) (char<? (car args) (cadr args))]
+    [(char-alphabetic?) (char-alphabetic? (car args))]
+    [(char-numeric?) (char-numeric? (car args))]
+    [(char-whitespace?) (char-whitespace? (car args))]
+    [(char-upper-case?) (char-upper-case? (car args))]
+    [(char-lower-case?) (char-lower-case? (car args))]
+    [(char-upcase) (char-upcase (car args))]
+    [(char-downcase) (char-downcase (car args))]
+
+    ;; --------------------------------------------------------
     ;; String/Bytevector conversion
     ;; --------------------------------------------------------
     [(string->utf8) (string->utf8 (car args))]
@@ -159,6 +192,7 @@
     [(integer?) (integer? (car args))]
     [(symbol?) (symbol? (car args))]
     [(string?) (string? (car args))]
+    [(char?) (char? (car args))]
     [(bytevector?) (bytevector? (car args))]
     [(block?) (block? (car args))]
     [(vector?) (vector? (car args))]
@@ -191,24 +225,34 @@
     [(neg abs zero? positive? negative? not null? pair?
       block-tag block-payload block-refs block->bytes bytes->block
       bv-length car cdr length reverse list->vec vec->list vec-length
-      number? integer? symbol? string? bytevector? block? vector?
+      number? integer? symbol? string? char? bytevector? block? vector?
       list? boolean? procedure?
       sha256 hash-block hash->hex hex->hash
-      string->utf8 utf8->string symbol->string string->symbol)
+      string->utf8 utf8->string symbol->string string->symbol
+      ;; String (unary)
+      string-length string->list list->string
+      ;; Character (unary)
+      char->integer integer->char
+      char-alphabetic? char-numeric? char-whitespace?
+      char-upper-case? char-lower-case? char-upcase char-downcase)
      1]
     ;; Binary
     [(add sub mul div mod eq? lt? le? gt? ge?
       bitand bitor bitxor shl shr and or
-      cons bv-ref vec-ref list-ref memq assq block-ref)
+      cons bv-ref vec-ref list-ref memq assq block-ref
+      ;; String (binary)
+      string-ref string=? string<? string>?
+      ;; Character (binary)
+      char=? char<?)
      2]
     ;; Ternary
-    [(make-block bv-slice) 3]
+    [(make-block bv-slice substring) 3]
     ;; 5-ary
     [(bv-copy) 5]
     ;; Variadic
-    [(list vec-make bv-concat append) 'variadic]
+    [(list vec-make bv-concat append string-append) 'variadic]
     ;; Optionally 1 or 2
-    [(bv-make bitnot) 'variadic]
+    [(bv-make bitnot make-string) 'variadic]
     ;; Unknown
     [else #f]))
 
@@ -233,6 +277,13 @@
     block->bytes bytes->block
     ;; Bytevector
     bv-length bv-ref bv-make bv-concat bv-copy bv-slice
+    ;; String
+    string-length string-ref string-append substring
+    string=? string<? string>? make-string string->list list->string
+    ;; Character
+    char->integer integer->char char=? char<?
+    char-alphabetic? char-numeric? char-whitespace?
+    char-upper-case? char-lower-case? char-upcase char-downcase
     ;; Conversion
     string->utf8 utf8->string symbol->string string->symbol
     ;; List
@@ -240,7 +291,7 @@
     ;; Vector
     vec-make vec-ref vec-length vec->list list->vec
     ;; Type predicates
-    number? integer? symbol? string? bytevector? block? vector?
+    number? integer? symbol? string? char? bytevector? block? vector?
     list? boolean? procedure?
     ;; Hash
     sha256 hash-block hash->hex hex->hash))

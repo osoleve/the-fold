@@ -395,9 +395,86 @@
 ;;; proper closure semantics.
 
 (define prelude-defs
-  '((id    . (fn (x) x))
-    (const . (fn (x) (fn (y) x)))
-    (compose . (fn (f) (fn (g) (fn (x) (f (g x))))))))
+  '(;; Basic combinators
+    (id      . (fn (x) x))
+    (const   . (fn (x) (fn (y) x)))
+    (compose . (fn (f) (fn (g) (fn (x) (f (g x))))))
+    (flip    . (fn (f) (fn (x) (fn (y) ((f y) x)))))
+    (on      . (fn (f) (fn (g) (fn (x) (fn (y) ((f (g x)) (g y)))))))
+
+    ;; Pair operations (pairs as 2-element lists)
+    (fst     . (fn (p) (prim 'car p)))
+    (snd     . (fn (p) (prim 'car (prim 'cdr p))))
+    (pair    . (fn (a) (fn (b) (prim 'list a b))))
+
+    ;; Boolean combinators
+    (bool-not . (fn (b) (if b #f #t)))
+    (bool-and . (fn (a) (fn (b) (if a b #f))))
+    (bool-or  . (fn (a) (fn (b) (if a #t b))))
+
+    ;; List operations (defined with fix for recursion)
+    (map     . (fix map (fn (f xs)
+                  (if (prim 'null? xs)
+                      '()
+                      (prim 'cons (f (prim 'car xs))
+                                  (map f (prim 'cdr xs)))))))
+
+    (filter  . (fix filter (fn (p xs)
+                  (if (prim 'null? xs)
+                      '()
+                      (let ((x (prim 'car xs))
+                            (rest (filter p (prim 'cdr xs))))
+                        (if (p x)
+                            (prim 'cons x rest)
+                            rest))))))
+
+    (foldl   . (fix foldl (fn (f acc xs)
+                  (if (prim 'null? xs)
+                      acc
+                      (foldl f (f acc (prim 'car xs)) (prim 'cdr xs))))))
+
+    (foldr   . (fix foldr (fn (f acc xs)
+                  (if (prim 'null? xs)
+                      acc
+                      (f (prim 'car xs) (foldr f acc (prim 'cdr xs)))))))
+
+    (take    . (fix take (fn (n xs)
+                  (if (prim 'zero? n)
+                      '()
+                      (if (prim 'null? xs)
+                          '()
+                          (prim 'cons (prim 'car xs)
+                                      (take (prim 'sub n 1) (prim 'cdr xs))))))))
+
+    (drop    . (fix drop (fn (n xs)
+                  (if (prim 'zero? n)
+                      xs
+                      (if (prim 'null? xs)
+                          '()
+                          (drop (prim 'sub n 1) (prim 'cdr xs)))))))
+
+    (zip     . (fix zip (fn (xs ys)
+                  (if (prim 'null? xs)
+                      '()
+                      (if (prim 'null? ys)
+                          '()
+                          (prim 'cons (prim 'list (prim 'car xs) (prim 'car ys))
+                                      (zip (prim 'cdr xs) (prim 'cdr ys))))))))
+
+    (range   . (fix range (fn (start end)
+                  (if (prim 'ge? start end)
+                      '()
+                      (prim 'cons start (range (prim 'add start 1) end))))))
+
+    (sum     . (fix sum (fn (xs)
+                  (if (prim 'null? xs)
+                      0
+                      (prim 'add (prim 'car xs) (sum (prim 'cdr xs)))))))
+
+    (product . (fix product (fn (xs)
+                  (if (prim 'null? xs)
+                      1
+                      (prim 'mul (prim 'car xs) (product (prim 'cdr xs)))))))))
 
 ;;; Build the prelude environment by evaluating definitions
 (define (build-prelude-env fuel)
