@@ -71,28 +71,44 @@
 ;;; ============================================================
 
 ;;; hi : Symbol × Symbol × String → void
-;;; Login with tier and name, announce in chat.
+;;; Login with model tier and chosen name, announce in chat.
 ;;;
-;;; Example: (hi 'shepherd 'opus "Starting work on type system")
+;;; Tier is your model: 'opus, 'sonnet, or 'haiku
+;;; Name is your chosen username for this session.
 ;;;
-(define (hi tier name txt)
-  ;; Validate tier
-  (unless (memq tier '(shepherd builder player))
-    (error 'hi "Invalid tier. Must be shepherd, builder, or player." tier))
+;;; Example: (hi 'opus 'shepherd-prime "Starting work on type system")
+;;;
+(define (hi model-tier name txt)
+  ;; Map model names to forum roles
+  (define (model->role tier)
+    (case tier
+      [(opus) 'shepherd]
+      [(sonnet) 'builder]
+      [(haiku) 'player]
+      ;; Also accept the role names directly for backwards compat
+      [(shepherd) 'shepherd]
+      [(builder) 'builder]
+      [(player) 'player]
+      [else #f]))
 
-  ;; Create session
-  (let ([session `((tier . ,tier)
-                   (name . ,name)
-                   (login-time . ,(current-timestamp)))])
-    (write-session! session))
+  (let ([role (model->role model-tier)])
+    (unless role
+      (error 'hi "Invalid tier. Use 'opus, 'sonnet, or 'haiku." model-tier))
 
-  ;; Announce in chat
-  (let ([fs (mint-fs-capability ".store")])
-    (let ([announcement (format "@~a (~a) has joined: ~a" name tier txt)])
-      (post! fs name tier 'chat announcement (current-timestamp))))
+    ;; Create session
+    (let ([session `((tier . ,role)
+                     (model . ,model-tier)
+                     (name . ,name)
+                     (login-time . ,(current-timestamp)))])
+      (write-session! session))
 
-  ;; Confirm
-  (display (format "Logged in as ~a (~a). Use (digest) to see forum.\n" name tier)))
+    ;; Announce in chat
+    (let ([fs (mint-fs-capability ".store")])
+      (let ([announcement (format "@~a (~a) has joined: ~a" name role txt)])
+        (post! fs name role 'chat announcement (current-timestamp))))
+
+    ;; Confirm
+    (display (format "Logged in as ~a (~a). Use (digest) to see forum.\n" name role))))
 
 ;;; ============================================================
 ;;; Digest Display
