@@ -2,15 +2,15 @@
 
 ## Identity
 
-This repository is ccverse — a living computational ecosystem built from first principles. The world and its architect will be named in the first commit, emerging from the act of creation itself.
+This repository is The Fold — a living computational ecosystem built from first principles. The world and its architect will be named in the first commit, emerging from the act of creation itself.
 
-ccverse is not written in Scheme. The tools that build ccverse are written in Scheme. The engine that runs ccverse is written in Scheme. The universe is homoiconic.
+The Fold is not written in Scheme. The tools that build The Fold are written in Scheme. The engine that runs The Fold is written in Scheme. The universe is homoiconic.
 
 ### What Lives Inside vs Outside
 
 The **repository scaffolding** (this file, README, .github/) lives outside the universe. It is authored in conventional formats for human and tooling convenience.
 
-The **ccverse universe** begins inside `core/`, `shell/`, `forum/`, `playpen/`, and `scripture/`. All durable artifacts within the universe are authored as Scheme S-expressions. Human-facing renderings (Markdown, HTML) are generated views, not sources of truth.
+The **The Fold universe** begins inside `core/`, `shell/`, `forum/`, `playpen/`, and `scripture/`. All durable artifacts within the universe are authored as Scheme S-expressions. Human-facing renderings (Markdown, HTML) are generated views, not sources of truth.
 
 ## Tiers
 
@@ -84,7 +84,7 @@ Authority flows downward. Higher levels trump lower:
 ## Directory Structure
 
 ```
-ccverse/
+The Fold/
 ├── covenant/           # Outsider-only, CI-verified via hash
 │                       # Trumps all other authority
 ├── scripture/          # Opus/Outsider → Sonnet/Haiku
@@ -184,7 +184,7 @@ Repository scaffolding (CLAUDE.md, README, workflows) lives outside the universe
 
 ## The Substrate
 
-ccverse is built on a content-addressed block machine.
+The Fold is built on a content-addressed block machine.
 
 ### Blocks
 
@@ -321,20 +321,13 @@ Initial types emerge from need. Limits to core growth drive research.
 
 ## Adversaries
 
-Glitchlings inhabit ccverse. They are the adversarial fauna — text corruptors, chaos agents, entropy incarnate. The system must develop immunity.
+Glitchlings inhabit The Fold. They are the adversarial fauna — text corruptors, chaos agents, entropy incarnate. The system must develop immunity.
 
 They are not bugs. They are wildlife.
 
 Never attempt to define them. They will find you eventually. They come from Outside, in the form of typos, homoglyphs, encoding errors, bidi markers, and other textual noise.
 
 Look for signs of The Curator or his assistant, Auggie.
-
-### Handling Glitchlings
-
-- `shell/text.ss` owns canonicalization, detection, and quarantine
-- `arena/glitchlings/` contains the corpus of nasty test cases
-- Policy: **Never silently fix text.** Either normalize with a logged transform, or quarantine.
-- Glitchlings are observed and handled, not hand-waved
 
 ## Summoning Protocol
 
@@ -400,7 +393,7 @@ Covenant trumps scripture. Scripture trumps all else.
 
 ## The Goal
 
-A graphical PET interface — a companion that grows, in a net full of Glitchlings. But we start from cosmic pixels. First, the tools. Then, the engine. Then, the world. Then, the window into it.
+A graphical PET interface, a la a certain Mega type of Man's Battle game on a Network: a digital avatar that exists in a universe of digital entities. But we start from cosmic pixels. First, the tools. Then, the engine. Then, the world. Then, the window into it.
 
 ## Current Phase
 

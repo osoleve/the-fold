@@ -1,0 +1,147 @@
+;;; core/normalize.ss — S-expression α-normalization via de Bruijn indices
+;;;
+;;; Converts named variables to positional indices, ensuring that
+;;; α-equivalent expressions produce identical canonical forms.
+;;;
+;;; (fn (x) x)           → (fn (dv 0))
+;;; (fn (x) (fn (y) x))  → (fn (fn (dv 1)))
+;;; (fn (x) (fn (y) y))  → (fn (fn (dv 0)))
+;;;
+;;; Binder forms recognized:
+;;;   (fn (var) body)     - single-argument function
+;;;   (let ((var val)) body) - single binding let
+;;;   (fix (f) body)      - recursive binding
+;;;
+;;; (dv n) represents a de Bruijn variable with index n.
+;;;
+;;; This is Core code: pure, total, assumes perfect input.
+
+;;; ============================================================
+;;; Environment
+;;; ============================================================
+
+;;; An environment is a list of symbols, with the innermost binding first.
+;;; Index 0 refers to (car env), index 1 to (cadr env), etc.
+
+;;; env-empty : Env
+(define env-empty '())
+
+;;; env-extend : Env × Symbol → Env
+(define (env-extend env sym)
+  (cons sym env))
+
+;;; env-lookup : Env × Symbol → (Option Nat)
+;;; Returns the de Bruijn index if found, #f otherwise.
+(define (env-lookup env sym)
+  (let loop ([e env] [i 0])
+    (cond
+      [(null? e) #f]
+      [(eq? (car e) sym) i]
+      [else (loop (cdr e) (+ i 1))])))
+
+;;; ============================================================
+;;; Normalization
+;;; ============================================================
+
+;;; normalize : S-expr → S-expr
+;;; Convert an expression to de Bruijn form.
+(define (normalize expr)
+  (normalize-with-env expr env-empty))
+
+;;; normalize-with-env : S-expr × Env → S-expr
+(define (normalize-with-env expr env)
+  (cond
+    ;; Symbols: look up in environment
+    [(symbol? expr)
+     (let ([idx (env-lookup env expr)])
+       (if idx
+           `(dv ,idx)      ; Bound variable → de Bruijn index
+           expr))]          ; Free variable → keep as symbol
+
+    ;; Non-list atoms pass through
+    [(not (pair? expr)) expr]
+
+    ;; (fn (var) body) → (fn normalized-body)
+    [(and (eq? (car expr) 'fn)
+          (pair? (cdr expr))
+          (pair? (cadr expr))
+          (symbol? (caadr expr)))
+     (let* ([var (caadr expr)]
+            [body (caddr expr)]
+            [new-env (env-extend env var)])
+       `(fn ,(normalize-with-env body new-env)))]
+
+    ;; (let ((var val)) body) → (let (normalized-val) normalized-body)
+    [(and (eq? (car expr) 'let)
+          (pair? (cdr expr))
+          (pair? (cadr expr))
+          (pair? (caadr expr)))
+     (let* ([binding (caadr expr)]
+            [var (car binding)]
+            [val (cadr binding)]
+            [body (caddr expr)]
+            [new-env (env-extend env var)])
+       `(let (,(normalize-with-env val env))
+          ,(normalize-with-env body new-env)))]
+
+    ;; (fix (f) body) → (fix normalized-body)
+    ;; The recursive name is bound in the body
+    [(and (eq? (car expr) 'fix)
+          (pair? (cdr expr))
+          (pair? (cadr expr))
+          (symbol? (caadr expr)))
+     (let* ([f (caadr expr)]
+            [body (caddr expr)]
+            [new-env (env-extend env f)])
+       `(fix ,(normalize-with-env body new-env)))]
+
+    ;; (quote datum) → (quote datum) unchanged
+    [(eq? (car expr) 'quote) expr]
+
+    ;; General list: normalize each element
+    [else
+     (map (lambda (e) (normalize-with-env e env)) expr)]))
+
+;;; ============================================================
+;;; Free Variables
+;;; ============================================================
+
+;;; free-vars : S-expr → (List Symbol)
+;;; Collect free variables in the expression (before normalization).
+(define (free-vars expr)
+  (free-vars-with-env expr env-empty))
+
+(define (free-vars-with-env expr env)
+  (cond
+    [(symbol? expr)
+     (if (env-lookup env expr)
+         '()
+         (list expr))]
+    [(not (pair? expr)) '()]
+    [(eq? (car expr) 'quote) '()]
+    [(eq? (car expr) 'fn)
+     (let* ([var (caadr expr)]
+            [body (caddr expr)])
+       (free-vars-with-env body (env-extend env var)))]
+    [(eq? (car expr) 'let)
+     (let* ([binding (caadr expr)]
+            [var (car binding)]
+            [val (cadr binding)]
+            [body (caddr expr)])
+       (append (free-vars-with-env val env)
+               (free-vars-with-env body (env-extend env var))))]
+    [(eq? (car expr) 'fix)
+     (let* ([f (caadr expr)]
+            [body (caddr expr)])
+       (free-vars-with-env body (env-extend env f)))]
+    [else
+     (apply append (map (lambda (e) (free-vars-with-env e env)) expr))]))
+
+;;; unique : (List Symbol) → (List Symbol)
+;;; Remove duplicates, preserving first occurrence order.
+(define (unique lst)
+  (let loop ([lst lst] [seen '()] [acc '()])
+    (cond
+      [(null? lst) (reverse acc)]
+      [(memq (car lst) seen) (loop (cdr lst) seen acc)]
+      [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
