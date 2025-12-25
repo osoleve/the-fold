@@ -65,10 +65,10 @@
         [cy (point-y center)])
     (let ([c (draw-char-colored canvas center #\o ripple-color color-default)])
       (if (> radius 0)
-          (let ([c (draw-char-colored c (point (- cx 1) cy) #\. ripple-color color-default)]
-                [c (draw-char-colored c (point (+ cx 1) cy) #\. ripple-color color-default)]
-                [c (draw-char-colored c (point cx (- cy 1)) #\. ripple-color color-default)]
-                [c (draw-char-colored c (point cx (+ cy 1)) #\. ripple-color color-default)])
+          (let* ([c (draw-char-colored c (point (- cx 1) cy) #\. ripple-color color-default)]
+                 [c (draw-char-colored c (point (+ cx 1) cy) #\. ripple-color color-default)]
+                 [c (draw-char-colored c (point cx (- cy 1)) #\. ripple-color color-default)]
+                 [c (draw-char-colored c (point cx (+ cy 1)) #\. ripple-color color-default)])
             c)
           c))))
 

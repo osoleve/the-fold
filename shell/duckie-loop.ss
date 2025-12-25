@@ -552,7 +552,7 @@
             ;; Compose all layers into final canvas
             (let* ([stack (make-layer-stack (list bg-layer sprite-layer particle-layer ui-layer))]
                    [final-canvas (flatten-layers stack width height)])
-              final-canvas))))))))
+              final-canvas)))))))
 
 ;;; ============================================================
 ;;; Display — Output to Terminal
@@ -563,7 +563,7 @@
 ;;; Clear the terminal screen.
 ;;; Uses ANSI escape sequence for portability.
 (define (clear-screen)
-  (display "\x1B[2J\x1B[H")
+  (display "\x1B;[2J\x1B;[H")
   (flush-output-port (current-output-port)))
 
 ;;; display-canvas : Canvas → ()

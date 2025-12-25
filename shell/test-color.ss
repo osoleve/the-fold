@@ -72,7 +72,7 @@
 (display " (expected #t)\n")
 
 (display "  Reset code: ")
-(display (equal? ansi-reset "\x1B[0m"))
+(display (equal? ansi-reset "\x1B;[0m"))
 (display " (expected #t)\n")
 
 (display "  ✓ ANSI code generation works\n")
