@@ -519,8 +519,11 @@
              [sprite-layer (layer-set-canvas sprite-layer sprite-canvas)])
 
         ;; Layer 75: Particles (above sprites, below UI)
-        (let* ([particle-layer (layer 'particles 75 #t (point 0 0)
-                                      (make-transparent-canvas width height))]
+        (let* ([particle-layer (make-layer% 'particles
+                                            (make-transparent-canvas width height)
+                                            #t
+                                            75
+                                            (point 0 0))]
                [particles (loop-state-particles state)]
                [particle-canvas (render-particle-system
                                 (make-transparent-canvas width height)

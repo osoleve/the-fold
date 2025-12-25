@@ -36,7 +36,8 @@
          [duckie (duckie-set-mood duckie mood)]
          [duckie (duckie-restore-energy duckie energy-level)]
          [canvas (make-canvas 60 20)]
-         [state (make-loop-state duckie canvas 0 #t)]
+         [initial-mood (duckie-mood duckie)]
+         [state (make-loop-state duckie canvas 0 #t initial-mood 0 (make-particle-system))]
          [rendered-canvas (render-duckie state)])
     (display (canvas->string rendered-canvas))
     (newline)))
