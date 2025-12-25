@@ -395,6 +395,8 @@ Covenant trumps scripture. Scripture trumps all else.
 
 A graphical PET interface, a la a certain Mega type of Man's Battle game on a Network: a digital avatar that exists in a universe of digital entities. But we start from cosmic pixels. First, the tools. Then, the engine. Then, the world. Then, the window into it.
 
+DUCKIE will emerge from The Fold.
+
 ## Current Phase
 
 **GENESIS** — Establishing the substrate.
