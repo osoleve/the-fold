@@ -47,8 +47,9 @@
 ;;; make-transparent-canvas : Nat × Nat → Canvas
 ;;; Create a canvas filled with transparent cells.
 (define (make-transparent-canvas width height)
-  (let ([size (* width height)]
-        [cells (make-vector (* width height) transparent-char)])
+  (let* ([size (* width height)]
+         [transparent-cell (make-cell transparent-char color-default color-default)]
+         [cells (make-vector size transparent-cell)])
     (make-canvas% width height cells)))
 
 ;;; ============================================================
@@ -223,13 +224,13 @@
           (let loop-x ([x 0] [canvas canvas])
             (if (>= x sw)
                 (loop-y (+ y 1) canvas)
-                (let ([ch (canvas-ref src x y)])
-                  (if (transparent? ch)
+                (let ([cell (canvas-ref src x y)])
+                  (if (transparent? (cell%-char cell))
                       ;; Skip transparent cells
                       (loop-x (+ x 1) canvas)
                       ;; Draw opaque cells
                       (loop-x (+ x 1)
-                              (canvas-set canvas (+ ox x) (+ oy y) ch))))))))))
+                              (canvas-set-cell canvas (+ ox x) (+ oy y) cell))))))))))
 
 ;;; ============================================================
 ;;; Layer Flattening
