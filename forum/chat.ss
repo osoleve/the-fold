@@ -42,6 +42,9 @@
 ;;; write-session! : Alist → void
 ;;; Write session metadata to file.
 (define (write-session! session)
+  ;; Delete existing file first if it exists
+  (when (file-exists? *session-file*)
+    (delete-file *session-file*))
   (call-with-output-file *session-file*
     (lambda (port)
       (write session port)
@@ -68,7 +71,7 @@
 ;;; ============================================================
 
 ;;; hi : Symbol × Symbol × String → void
-;;; Login with tier and name, announce in chat, show digest.
+;;; Login with tier and name, announce in chat.
 ;;;
 ;;; Example: (hi 'shepherd 'opus "Starting work on type system")
 ;;;
@@ -86,10 +89,10 @@
   ;; Announce in chat
   (let ([fs (mint-fs-capability ".store")])
     (let ([announcement (format "@~a (~a) has joined: ~a" name tier txt)])
-      (post! fs name tier 'chat announcement (current-timestamp)))
+      (post! fs name tier 'chat announcement (current-timestamp))))
 
-    ;; Display digest
-    (display-digest fs)))
+  ;; Confirm
+  (display (format "Logged in as ~a (~a). Use (digest) to see forum.\n" name tier)))
 
 ;;; ============================================================
 ;;; Digest Display
@@ -346,6 +349,43 @@
       (let ([hash (post! fs author (tier->forum-tier tier) 'chat txt (current-timestamp))])
         (display (format "~a: ~a\n" author txt))
         hash))))
+
+;;; ============================================================
+;;; bug/2 — Report a Bug
+;;; ============================================================
+
+;;; bug : String × String → Bytevector
+;;; Report a bug to the bugs channel.
+;;; Takes a title and description.
+;;;
+;;; Example: (bug "Session file not deleted" "When logging in, the session file...")
+;;;
+(define (bug title description)
+  (let ([session (read-session)])
+    (unless session
+      (error 'bug "No active session. Use (hi tier name txt) first."))
+
+    (let* ([author (cdr (assq 'name session))]
+           [tier (cdr (assq 'tier session))]
+           [fs (mint-fs-capability ".store")]
+           [body (format "## 🐛 ~a\n\n**Reporter:** ~a (~a)\n**Status:** Open\n\n### Description\n~a"
+                        title author tier description)]
+           [full-meta `((author . ,author)
+                        (tier . ,(tier->forum-tier tier))
+                        (timestamp . ,(current-timestamp))
+                        (channel . bugs)
+                        (title . ,title)
+                        (status . open)
+                        (body . ,body))]
+           [prev-head (fs-read-head fs 'bugs)]
+           [refs (if prev-head (list prev-head) '())]
+           [blk (make-post-block full-meta refs)]
+           [hash (fs-store! fs blk)])
+      (fs-write-head! fs 'bugs hash)
+      (fs-pin! fs hash)
+      (display (format "🐛 Bug reported: ~a\n" title))
+      (display (format "Hash: ~a\n" (hash->hex hash)))
+      hash)))
 
 ;;; ============================================================
 ;;; Convenience: bye/0 — Logout

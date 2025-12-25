@@ -206,3 +206,50 @@
                       (string-ref hex-chars (quotient b 16))
                       (string-ref hex-chars (modulo b 16)))))
                 (iota 32)))))
+
+;;; ============================================================
+;;; Hash/Hex Conversion Utilities
+;;; ============================================================
+
+;;; hash->hex : Bytevector → String
+;;; Convert a hash (bytevector) to lowercase hex string.
+(define (hash->hex hash)
+  (let ([hex-chars "0123456789abcdef"])
+    (apply string-append
+           (map (lambda (i)
+                  (let ([b (bytevector-u8-ref hash i)])
+                    (string
+                      (string-ref hex-chars (quotient b 16))
+                      (string-ref hex-chars (modulo b 16)))))
+                (iota (bytevector-length hash))))))
+
+;;; hex->hash : String → Bytevector
+;;; Convert a hex string to bytevector.
+(define (hex->hash hex)
+  (let* ([len (string-length hex)]
+         [result (make-bytevector (quotient len 2))])
+    (do ([i 0 (+ i 2)])
+        ((>= i len))
+      (bytevector-u8-set! result
+                          (quotient i 2)
+                          (+ (* 16 (hex-digit (string-ref hex i)))
+                             (hex-digit (string-ref hex (+ i 1))))))
+    result))
+
+;;; hex-digit : Char → Nat
+;;; Convert hex character to number.
+(define (hex-digit c)
+  (cond
+    [(char<=? #\0 c #\9) (- (char->integer c) (char->integer #\0))]
+    [(char<=? #\a c #\f) (+ 10 (- (char->integer c) (char->integer #\a)))]
+    [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
+    [else 0]))
+
+;;; ============================================================
+;;; Block Hashing (requires core/block.ss loaded first)
+;;; ============================================================
+
+;;; hash-block : Block → Bytevector
+;;; Compute the SHA-256 hash of a block's canonical serialization.
+(define (hash-block blk)
+  (sha256 (block->bytes blk)))
