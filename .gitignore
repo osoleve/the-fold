@@ -1,2 +1,4 @@
 .claude/settings.local.json
 .vscode/tasks.json
+.fold-session
+.store/
