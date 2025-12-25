@@ -146,6 +146,7 @@
     ;; Vector operations
     ;; --------------------------------------------------------
     [(vec-make) (apply vector args)]
+    [(vec-empty) (vector)]
     [(vec-ref) (vector-ref (car args) (cadr args))]
     [(vec-length) (vector-length (car args))]
     [(vec->list) (vector->list (car args))]
