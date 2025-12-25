@@ -152,11 +152,51 @@
 (test "list->vec" (vector 'a 'b) (prim 'list->vec '(a b)))
 
 ;;; ============================================================
+;;; String operations
+;;; ============================================================
+(test-section "String operations")
+(test "string-length" 5 (prim 'string-length "hello"))
+(test "string-length empty" 0 (prim 'string-length ""))
+(test "string-ref" #\e (prim 'string-ref "hello" 1))
+(test "string-append" "helloworld" (prim 'string-append "hello" "world"))
+(test "string-append many" "abcdef" (prim 'string-append "ab" "cd" "ef"))
+(test "substring" "ell" (prim 'substring "hello" 1 4))
+(test "string=?" #t (prim 'string=? "hello" "hello"))
+(test "string=? false" #f (prim 'string=? "hello" "world"))
+(test "string<?" #t (prim 'string<? "abc" "abd"))
+(test "string>?" #t (prim 'string>? "xyz" "abc"))
+(test "make-string" "   " (prim 'make-string 3 #\space))
+(test "string->list" '(#\a #\b #\c) (prim 'string->list "abc"))
+(test "list->string" "abc" (prim 'list->string '(#\a #\b #\c)))
+
+;;; ============================================================
+;;; Character operations
+;;; ============================================================
+(test-section "Character operations")
+(test "char->integer" 65 (prim 'char->integer #\A))
+(test "integer->char" #\A (prim 'integer->char 65))
+(test "char=?" #t (prim 'char=? #\a #\a))
+(test "char=? false" #f (prim 'char=? #\a #\b))
+(test "char<?" #t (prim 'char<? #\a #\b))
+(test "char-alphabetic?" #t (prim 'char-alphabetic? #\a))
+(test "char-alphabetic? digit" #f (prim 'char-alphabetic? #\5))
+(test "char-numeric?" #t (prim 'char-numeric? #\5))
+(test "char-numeric? letter" #f (prim 'char-numeric? #\a))
+(test "char-whitespace?" #t (prim 'char-whitespace? #\space))
+(test "char-whitespace? tab" #t (prim 'char-whitespace? #\tab))
+(test "char-upper-case?" #t (prim 'char-upper-case? #\A))
+(test "char-lower-case?" #t (prim 'char-lower-case? #\a))
+(test "char-upcase" #\A (prim 'char-upcase #\a))
+(test "char-downcase" #\a (prim 'char-downcase #\A))
+
+;;; ============================================================
 ;;; Type predicates
 ;;; ============================================================
 (test-section "Type predicates")
 (test "number?" #t (prim 'number? 42))
 (test "number? string" #f (prim 'number? "42"))
+(test "char?" #t (prim 'char? #\a))
+(test "char? number" #f (prim 'char? 65))
 (test "symbol?" #t (prim 'symbol? 'foo))
 (test "string?" #t (prim 'string? "hello"))
 (test "bytevector?" #t (prim 'bytevector? (make-bytevector 5)))

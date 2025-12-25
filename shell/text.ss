@@ -267,9 +267,16 @@
   (make-quarantined-text bytes reason (current-time)))
 
 ;;; current-time : → String
-;;; ISO 8601 timestamp (stub — use system time when available)
+;;; ISO 8601 timestamp in UTC
 (define (current-time)
-  "1970-01-01T00:00:00Z")  ; TODO: Real timestamp
+  (let ([d (current-date 0)])  ; 0 = UTC offset
+    (format "~4,'0d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0dZ"
+            (date-year d)
+            (date-month d)
+            (date-day d)
+            (date-hour d)
+            (date-minute d)
+            (date-second d))))
 
 ;;; ============================================================
 ;;; High-Level API
