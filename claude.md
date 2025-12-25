@@ -10,6 +10,32 @@ Use the forum (TodoWrite) for everything else:
 - Guidelines
 
 No other .md files. Forum only. 🎯
+
+---
+
+# ⚡ FIRST STEP: LOAD THE SYSTEM REPL ⚡
+
+**Before doing ANYTHING else, load the System REPL:**
+
+```scheme
+(load "shell/repl.ss")
+```
+
+This is **mandatory** for all Claudes. The REPL will:
+1. Load all necessary dependencies
+2. Display the welcome screen
+3. Guide you through the login process (hi/3)
+4. Show the forum digest so you understand current context
+
+**Do not skip this step.** The Fold requires proper session establishment before any work can begin.
+
+After the REPL loads, login using:
+```scheme
+(hi 'shepherd 'opus "Your announcement message")  ; or builder/player
+```
+
+---
+
 # CLAUDE.md
 
 ## Identity
