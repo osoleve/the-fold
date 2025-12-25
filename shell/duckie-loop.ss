@@ -16,8 +16,23 @@
 ;;; From playpen/duckie.ss — The soul
 (load "playpen/duckie.ss")
 
-;;; From shell/layout.ss — The canvas
-(load "shell/layout.ss")
+;;; From playpen/environment.ss — The world
+(load "playpen/environment.ss")
+
+;;; From shell/color.ss — The palette
+(load "shell/color.ss")
+
+;;; From shell/layout-color.ss — The colored canvas
+(load "shell/layout-color.ss")
+
+;;; From shell/layers.ss — The depth system
+(load "shell/layers.ss")
+
+;;; From shell/animation.ss — The motion
+(load "shell/animation.ss")
+
+;;; From shell/particles.ss — The sparkle
+(load "shell/particles.ss")
 
 ;;; From core/parse.ss — The ears
 (load "core/parse.ss")
@@ -26,46 +41,100 @@
 ;;; State Definition
 ;;; ============================================================
 
-;;; LoopState : (× Duckie Canvas Nat Bool)
+;;; LoopState : (× Duckie Canvas Nat Bool Mood Nat ParticleSystem)
 ;;;
 ;;; The complete state of the main loop:
-;;;   - duckie   : The DUCKIE soul from playpen/duckie.ss
-;;;   - canvas   : The drawing surface from shell/layout.ss
-;;;   - frame    : Animation frame counter (increments each tick)
-;;;   - running  : Loop control flag (#t = continue, #f = stop)
-(define (make-loop-state duckie canvas frame running)
-  (list duckie canvas frame running))
+;;;   - duckie             : The DUCKIE soul from playpen/duckie.ss
+;;;   - canvas             : The drawing surface from shell/layout.ss
+;;;   - frame              : Animation frame counter (increments each tick)
+;;;   - running            : Loop control flag (#t = continue, #f = stop)
+;;;   - prev-mood          : Previous mood (for smooth color transitions)
+;;;   - transition-start   : Frame when mood transition started
+;;;   - particles          : Active particle system for visual effects
+(define (make-loop-state duckie canvas frame running prev-mood transition-start particles)
+  (list duckie canvas frame running prev-mood transition-start particles))
 
 ;;; Accessors
-(define (loop-state-duckie state)   (list-ref state 0))
-(define (loop-state-canvas state)   (list-ref state 1))
-(define (loop-state-frame state)    (list-ref state 2))
-(define (loop-state-running state)  (list-ref state 3))
+(define (loop-state-duckie state)           (list-ref state 0))
+(define (loop-state-canvas state)           (list-ref state 1))
+(define (loop-state-frame state)            (list-ref state 2))
+(define (loop-state-running state)          (list-ref state 3))
+(define (loop-state-prev-mood state)        (list-ref state 4))
+(define (loop-state-transition-start state) (list-ref state 5))
+(define (loop-state-particles state)        (list-ref state 6))
 
 ;;; Updaters (functional)
 (define (loop-state-set-duckie state duckie)
   (make-loop-state duckie
                    (loop-state-canvas state)
                    (loop-state-frame state)
-                   (loop-state-running state)))
+                   (loop-state-running state)
+                   (loop-state-prev-mood state)
+                   (loop-state-transition-start state)
+                   (loop-state-particles state)))
 
 (define (loop-state-set-canvas state canvas)
   (make-loop-state (loop-state-duckie state)
                    canvas
                    (loop-state-frame state)
-                   (loop-state-running state)))
+                   (loop-state-running state)
+                   (loop-state-prev-mood state)
+                   (loop-state-transition-start state)
+                   (loop-state-particles state)))
 
 (define (loop-state-set-frame state frame)
   (make-loop-state (loop-state-duckie state)
                    (loop-state-canvas state)
                    frame
-                   (loop-state-running state)))
+                   (loop-state-running state)
+                   (loop-state-prev-mood state)
+                   (loop-state-transition-start state)
+                   (loop-state-particles state)))
 
 (define (loop-state-set-running state running)
   (make-loop-state (loop-state-duckie state)
                    (loop-state-canvas state)
                    (loop-state-frame state)
-                   running))
+                   running
+                   (loop-state-prev-mood state)
+                   (loop-state-transition-start state)
+                   (loop-state-particles state)))
+
+(define (loop-state-set-particles state particles)
+  (make-loop-state (loop-state-duckie state)
+                   (loop-state-canvas state)
+                   (loop-state-frame state)
+                   (loop-state-running state)
+                   (loop-state-prev-mood state)
+                   (loop-state-transition-start state)
+                   particles))
+
+;;; emit-particles-at-duckie : LoopState × Symbol → LoopState
+;;;
+;;; Emit particles at DUCKIE's location based on interaction type.
+(define (emit-particles-at-duckie state interaction)
+  (let* ([duckie (loop-state-duckie state)]
+         [pos (duckie-location duckie)]
+         [new-particles (emit-by-interaction pos interaction)]
+         [particles (loop-state-particles state)]
+         [updated-particles (add-particles particles new-particles)])
+    (loop-state-set-particles state updated-particles)))
+
+;;; begin-mood-transition : LoopState × Mood → LoopState
+;;;
+;;; Start a mood transition by recording the previous mood and transition start frame.
+(define (begin-mood-transition state new-mood)
+  (let ([old-mood (duckie-mood (loop-state-duckie state))]
+        [frame (loop-state-frame state)])
+    (if (eq? old-mood new-mood)
+        state  ; No transition needed
+        (make-loop-state (loop-state-duckie state)
+                        (loop-state-canvas state)
+                        frame
+                        (loop-state-running state)
+                        old-mood      ; Store previous mood
+                        frame
+                        (loop-state-particles state)))))     ; Record transition start
 
 ;;; ============================================================
 ;;; Command Type
@@ -197,12 +266,24 @@
                      (duckie-drain-energy duckie 1)
                      duckie)]
          ;; Mood drift every 100 frames (loneliness creeps in)
-         [duckie (if (zero? (modulo new-frame 100))
+         [result (if (zero? (modulo new-frame 100))
                      (let ([new-mood (mood-after-interaction
                                        (duckie-mood duckie)
                                        'idle)])
-                       (duckie-set-mood duckie new-mood))
-                     duckie)])
+                       (if (not (eq? new-mood (duckie-mood duckie)))
+                           ;; Mood changed — begin transition
+                           (let* ([state (begin-mood-transition state new-mood)]
+                                  [duckie (duckie-set-mood duckie new-mood)])
+                             (list state duckie))
+                           ;; No mood change
+                           (list state duckie)))
+                     ;; No mood drift this frame
+                     (list state duckie))]
+         [state (car result)]
+         [duckie (cadr result)]
+         ;; Update particle system
+         [particles (update-particle-system (loop-state-particles state))]
+         [state (loop-state-set-particles state particles)])
     (loop-state-set-frame
       (loop-state-set-duckie state duckie)
       new-frame)))
@@ -226,6 +307,8 @@
       [(pet)
        ;; Pet the DUCKIE — gentle interaction
        (let* ([new-mood (mood-after-interaction (duckie-mood duckie) 'pet)]
+              [state (begin-mood-transition state new-mood)]
+              [state (emit-particles-at-duckie state 'pet)]  ; Hearts!
               [duckie (duckie-set-mood duckie new-mood)]
               [duckie (duckie-age-once duckie)])
          (begin
@@ -236,7 +319,8 @@
 
       [(feed)
        ;; Feed the DUCKIE — restores energy
-       (let* ([duckie (duckie-restore-energy duckie 20)]
+       (let* ([state (emit-particles-at-duckie state 'feed)]  ; Sparkles!
+              [duckie (duckie-restore-energy duckie 20)]
               [duckie (duckie-age-once duckie)])
          (begin
            (display "You feed DUCKIE. Energy restored!")
@@ -246,6 +330,8 @@
       [(play)
        ;; Play with DUCKIE — makes it playful
        (let* ([new-mood (mood-after-interaction (duckie-mood duckie) 'play)]
+              [state (begin-mood-transition state new-mood)]
+              [state (emit-particles-at-duckie state 'play)]  ; Music notes!
               [duckie (duckie-set-mood duckie new-mood)]
               [duckie (duckie-drain-energy duckie 5)]  ; Playing is tiring!
               [duckie (duckie-age-once duckie)])
@@ -261,6 +347,8 @@
                        ""
                        (car (command-args cmd)))]
               [new-mood (mood-after-interaction (duckie-mood duckie) 'talk)]
+              [state (begin-mood-transition state new-mood)]
+              [state (emit-particles-at-duckie state 'talk)]  ; Bubbles!
               [duckie (duckie-set-mood duckie new-mood)]
               [duckie (duckie-age-once duckie)])
          (begin
@@ -273,7 +361,8 @@
 
       [(sleep)
        ;; DUCKIE goes to sleep — becomes sleepy, restores energy
-       (let* ([duckie (duckie-set-mood duckie 'sleepy)]
+       (let* ([state (begin-mood-transition state 'sleepy)]
+              [duckie (duckie-set-mood duckie 'sleepy)]
               [duckie (duckie-restore-energy duckie 30)])
          (begin
            (display "DUCKIE curls up and falls asleep...")
@@ -282,7 +371,8 @@
 
       [(wake)
        ;; Wake DUCKIE — becomes curious
-       (let* ([duckie (duckie-set-mood duckie 'curious)])
+       (let* ([state (begin-mood-transition state 'curious)]
+              [duckie (duckie-set-mood duckie 'curious)])
          (begin
            (display "DUCKIE wakes up and looks around curiously.")
            (newline)
@@ -318,11 +408,75 @@
 ;;; Rendering — Drawing DUCKIE
 ;;; ============================================================
 
+;;; get-current-mood-color : LoopState → Color
+;;;
+;;; Get the current mood color, interpolating during transitions.
+;;; Transitions last 30 frames with smooth easing.
+(define (get-current-mood-color state)
+  (let* ([current-mood (duckie-mood (loop-state-duckie state))]
+         [prev-mood (loop-state-prev-mood state)]
+         [transition-start (loop-state-transition-start state)]
+         [current-frame (loop-state-frame state)]
+         [transition-duration 30]  ; 30 frames = smooth transition
+         [frames-since-transition (- current-frame transition-start)])
+    (if (or (>= frames-since-transition transition-duration)
+            (eq? prev-mood current-mood))
+        ;; Transition complete or no transition — use current mood color
+        (mood->color current-mood)
+        ;; In transition — interpolate between colors
+        (let* ([t (frame->t frames-since-transition transition-duration)]
+               [prev-color (mood->color prev-mood)]
+               [current-color (mood->color current-mood)])
+          (animate-color smooth t prev-color current-color)))))
+
+;;; draw-energy-bar : Canvas × Nat × Color → Canvas
+;;;
+;;; Draw a visual energy bar showing DUCKIE's energy level (0-100).
+;;; The bar uses color to show energy state (gradient from dark to bright).
+(define (draw-energy-bar canvas energy energy-color)
+  (let* ([bar-width 30]
+         [bar-x 2]
+         [bar-y 1]
+         [filled-width (quotient (* energy bar-width) 100)]
+         ;; Draw bar label
+         [canvas (draw-string-colored canvas
+                                     (point bar-x bar-y)
+                                     "Energy: ["
+                                     color-white
+                                     color-default)]
+         ;; Draw filled portion
+         [canvas (let loop ([i 0] [c canvas])
+                   (if (>= i filled-width)
+                       c
+                       (loop (+ i 1)
+                             (draw-char-colored c
+                                              (point (+ bar-x 9 i) bar-y)
+                                              #\=
+                                              energy-color
+                                              color-default))))]
+         ;; Draw empty portion
+         [canvas (let loop ([i filled-width] [c canvas])
+                   (if (>= i bar-width)
+                       c
+                       (loop (+ i 1)
+                             (draw-char-colored c
+                                              (point (+ bar-x 9 i) bar-y)
+                                              #\-
+                                              color-gray
+                                              color-default))))]
+         ;; Draw closing bracket
+         [canvas (draw-string-colored canvas
+                                     (point (+ bar-x 9 bar-width) bar-y)
+                                     "]"
+                                     color-white
+                                     color-default)])
+    canvas))
+
 ;;; render-duckie : LoopState → Canvas
 ;;;
-;;; Draw DUCKIE's current state to the canvas.
-;;; For now, this is a simple ASCII art duck.
-;;; Future: Select sprite based on mood and animation frame.
+;;; Draw DUCKIE's current state using a layered rendering system.
+;;; Layers are composited in depth order: background → sprite → UI.
+;;; Color expresses DUCKIE's emotional state.
 (define (render-duckie state)
   (let* ([duckie (loop-state-duckie state)]
          [canvas (loop-state-canvas state)]
@@ -332,35 +486,73 @@
          [y (point-y loc)]
          [mood (duckie-mood duckie)]
          [energy (duckie-energy duckie)]
-         [name (duckie-name duckie)])
+         [name (duckie-name duckie)]
+         [width (canvas-width canvas)]
+         [height (canvas-height canvas)]
+         ;; Get mood color with smooth transitions
+         [mood-color (get-current-mood-color state)]
+         [energy-color (energy->color energy)])
 
-    ;; Clear canvas
-    (let ([canvas (make-canvas (canvas-width canvas) (canvas-height canvas))])
+    ;; Layer 0: Background (pond environment with day/night cycle)
+    (let* ([bg-layer (make-background-layer width height)]
+           [env-canvas (render-animated-environment width height frame)]
+           [bg-layer (layer-set-canvas bg-layer env-canvas)])
 
-      ;; Draw box border
-      (let ([canvas (draw-box canvas
-                              (make-rect (point 0 0)
-                                        (canvas-width canvas)
-                                        (canvas-height canvas))
-                              'light)])
+      ;; Layer 50: DUCKIE sprite
+      (let* ([sprite-layer (make-sprite-layer 'duckie 10 6 loc)]
+             [bob (if (< (modulo frame 20) 10) 0 1)]
+             [duck-y bob]
+             ;; Draw DUCKIE sprite on sprite layer canvas
+             [sprite-canvas (make-transparent-canvas 10 6)]
+             [sprite-canvas (draw-string-colored sprite-canvas (point 0 duck-y)
+                                                "   __(o)>"
+                                                mood-color
+                                                color-default)]
+             [sprite-canvas (draw-string-colored sprite-canvas (point 0 (+ duck-y 1))
+                                                "  \\___)  "
+                                                mood-color
+                                                color-default)]
+             [sprite-canvas (draw-string-colored sprite-canvas (point 0 (+ duck-y 3))
+                                                (string-append "~ " name " ~")
+                                                mood-color
+                                                color-default)]
+             [sprite-layer (layer-set-canvas sprite-layer sprite-canvas)])
 
-        ;; Draw DUCKIE sprite (simple ASCII duck for now)
-        ;; Animation: slight bobbing effect using frame counter
-        (let* ([bob (if (< (modulo frame 20) 10) 0 1)]
-               [duck-y (+ y bob)]
-               ;; Draw duck body
-               [canvas (draw-string canvas (point x duck-y) "   __(o)>")]
-               [canvas (draw-string canvas (point x (+ duck-y 1)) "  \\___)  ")]
-               ;; Draw name below
-               [canvas (draw-string canvas (point x (+ duck-y 3))
-                                   (string-append "~ " name " ~"))]
-               ;; Draw status line
-               [status (string-append
-                         "Mood: " (mood->string mood)
-                         " | Energy: " (number->string energy))]
-               [canvas (draw-string canvas (point 2 (- (canvas-height canvas) 2))
-                                   status)])
-          canvas)))))
+        ;; Layer 75: Particles (above sprites, below UI)
+        (let* ([particle-layer (layer 'particles 75 #t (point 0 0)
+                                      (make-transparent-canvas width height))]
+               [particles (loop-state-particles state)]
+               [particle-canvas (render-particle-system
+                                (make-transparent-canvas width height)
+                                particles)]
+               [particle-layer (layer-set-canvas particle-layer particle-canvas)])
+
+          ;; Layer 100: UI (borders, energy bar, status)
+          (let* ([ui-layer (make-ui-layer width height)]
+                 [ui-canvas (make-transparent-canvas width height)]
+                 ;; Draw mood-colored box border
+                 [ui-canvas (draw-box-colored ui-canvas
+                                             (make-rect (point 0 0) width height)
+                                             'light
+                                             mood-color
+                                             color-default)]
+                 ;; Draw energy bar
+                 [ui-canvas (draw-energy-bar ui-canvas energy energy-color)]
+                 ;; Draw status line
+                 [status (string-append
+                           "Mood: " (mood->string mood)
+                           " | Energy: " (number->string energy))]
+                 [ui-canvas (draw-string-colored ui-canvas
+                                                (point 2 (- height 2))
+                                                status
+                                                color-white
+                                                color-default)]
+                 [ui-layer (layer-set-canvas ui-layer ui-canvas)])
+
+            ;; Compose all layers into final canvas
+            (let* ([stack (make-layer-stack (list bg-layer sprite-layer particle-layer ui-layer))]
+                   [final-canvas (flatten-layers stack width height)])
+              final-canvas))))))))
 
 ;;; ============================================================
 ;;; Display — Output to Terminal
@@ -436,7 +628,9 @@
 (define (duckie-start name)
   (let* ([duckie (make-duckie name)]
          [canvas (make-canvas 60 20)]  ; 60x20 character canvas
-         [state (make-loop-state duckie canvas 0 #t)])
+         [initial-mood (duckie-mood duckie)]
+         [particles (make-particle-system)]  ; Start with no particles
+         [state (make-loop-state duckie canvas 0 #t initial-mood 0 particles)])
     (begin
       (clear-screen)
       (display "==============================================")
