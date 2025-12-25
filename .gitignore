@@ -2,3 +2,4 @@
 .vscode/tasks.json
 .fold-session
 .store/
+.fold-repl/
