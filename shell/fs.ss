@@ -68,12 +68,48 @@
         (substring path 0 sep-pos)
         #f)))
 
+;;; find-last-sep : String → Nat | #f
+;;; Find the last path separator (/ or \) in a path.
 (define (find-last-sep path)
   (let loop ([i (- (string-length path) 1)])
     (cond
       [(< i 0) #f]
       [(or (char=? (string-ref path i) #\/)
            (char=? (string-ref path i) #\\)) i]
+      [else (loop (- i 1))])))
+
+;;; path-basename : String → String
+;;; Get filename from path (after last separator).
+(define (path-basename path)
+  (let ([sep-pos (find-last-sep path)])
+    (if sep-pos
+        (substring path (+ sep-pos 1) (string-length path))
+        path)))
+
+;;; path-stem : String → String
+;;; Remove directory and extension from filename.
+(define (path-stem path)
+  (let* ([base (path-basename path)]
+         [dot-pos (string-rindex base #\.)])
+    (if dot-pos
+        (substring base 0 dot-pos)
+        base)))
+
+;;; string-suffix? : String × String → Boolean
+;;; Check if str ends with suffix.
+(define (string-suffix? suffix str)
+  (let ([slen (string-length suffix)]
+        [len (string-length str)])
+    (and (>= len slen)
+         (string=? suffix (substring str (- len slen) len)))))
+
+;;; string-rindex : String × Char → Nat | #f
+;;; Find last occurrence of char in string.
+(define (string-rindex str char)
+  (let loop ([i (- (string-length str) 1)])
+    (cond
+      [(< i 0) #f]
+      [(char=? (string-ref str i) char) i]
       [else (loop (- i 1))])))
 
 ;;; ============================================================

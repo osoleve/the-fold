@@ -130,43 +130,8 @@
                      (directory-list heads-path)))
         '())))
 
-;;; path-stem : String → String
-;;; Remove directory and extension from filename.
-(define (path-stem path)
-  (let* ([base (path-basename path)]
-         [dot-pos (string-rindex base #\.)])
-    (if dot-pos
-        (substring base 0 dot-pos)
-        base)))
-
-;;; path-basename : String → String
-;;; Get filename from path.
-(define (path-basename path)
-  (let ([sep-pos (find-last-sep path)])
-    (if sep-pos
-        (substring path (+ sep-pos 1) (string-length path))
-        path)))
-
-(define (find-last-sep path)
-  (let loop ([i (- (string-length path) 1)])
-    (cond
-      [(< i 0) #f]
-      [(or (char=? (string-ref path i) #\/)
-           (char=? (string-ref path i) #\\)) i]
-      [else (loop (- i 1))])))
-
-(define (string-suffix? suffix str)
-  (let ([slen (string-length suffix)]
-        [len (string-length str)])
-    (and (>= len slen)
-         (string=? suffix (substring str (- len slen) len)))))
-
-(define (string-rindex str char)
-  (let loop ([i (- (string-length str) 1)])
-    (cond
-      [(< i 0) #f]
-      [(char=? (string-ref str i) char) i]
-      [else (loop (- i 1))])))
+;;; Path utilities (path-stem, path-basename, find-last-sep, string-suffix?,
+;;; string-rindex) are now consolidated in shell/fs.ss which is loaded first.
 
 ;;; ============================================================
 ;;; Post Formatting (for display)
@@ -203,11 +168,16 @@
   (post! fs 'opus 'shepherd channel body (current-timestamp)))
 
 ;;; current-timestamp : → String
-;;; Get current time as ISO 8601 string.
-;;; Note: Chez Scheme's (current-time) returns a time object.
+;;; Get current time as ISO 8601 string (YYYY-MM-DDTHH:MM:SS).
 (define (current-timestamp)
-  (let ([t (current-time)])
-    (format "~a" t)))  ; Placeholder — proper formatting TODO
+  (let ([d (current-date)])
+    (format "~4,'0d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0d"
+            (date-year d)
+            (date-month d)
+            (date-day d)
+            (date-hour d)
+            (date-minute d)
+            (date-second d))))
 
 ;;; ============================================================
 ;;; Verification

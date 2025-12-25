@@ -238,7 +238,7 @@
            [fs (mint-fs-capability ".store")]
            [body (format "## ~a\n\n~a" title txt)]
            [full-meta `((author . ,author)
-                        (tier . ,(tier->forum-tier tier))
+                        (tier . ,tier)
                         (timestamp . ,(current-timestamp))
                         (channel . ,forum)
                         (title . ,title)
@@ -252,15 +252,6 @@
       (display (format "Posted to #~a: ~a\n" forum title))
       (display (format "Hash: ~a\n" (hash->hex hash)))
       hash)))
-
-;;; tier->forum-tier : Symbol → Symbol
-;;; Convert hi tier to forum tier name.
-(define (tier->forum-tier tier)
-  (case tier
-    [(shepherd) 'shepherd]
-    [(builder) 'builder]
-    [(player) 'player]
-    [else tier]))
 
 ;;; ============================================================
 ;;; reply/3 — Reply to a Post
@@ -291,7 +282,7 @@
                           post-hash-prefix
                           txt)]
              [full-meta `((author . ,author)
-                          (tier . ,(tier->forum-tier tier))
+                          (tier . ,tier)
                           (timestamp . ,(current-timestamp))
                           (channel . ,channel)
                           (title . ,title)
@@ -362,7 +353,7 @@
     (let* ([author (cdr (assq 'name session))]
            [tier (cdr (assq 'tier session))]
            [fs (mint-fs-capability ".store")])
-      (let ([hash (post! fs author (tier->forum-tier tier) 'chat txt (current-timestamp))])
+      (let ([hash (post! fs author tier 'chat txt (current-timestamp))])
         (display (format "~a: ~a\n" author txt))
         hash))))
 
@@ -387,7 +378,7 @@
            [body (format "## 🐛 ~a\n\n**Reporter:** ~a (~a)\n**Status:** Open\n\n### Description\n~a"
                         title author tier description)]
            [full-meta `((author . ,author)
-                        (tier . ,(tier->forum-tier tier))
+                        (tier . ,tier)
                         (timestamp . ,(current-timestamp))
                         (channel . bugs)
                         (title . ,title)
@@ -415,7 +406,7 @@
       (let* ([name (cdr (assq 'name session))]
              [tier (cdr (assq 'tier session))]
              [fs (mint-fs-capability ".store")])
-        (post! fs name (tier->forum-tier tier) 'chat
+        (post! fs name tier 'chat
                (format "@~a has left the fold" name)
                (current-timestamp))
         (clear-session!)
