@@ -327,6 +327,8 @@ They are not bugs. They are wildlife.
 
 Never attempt to define them. They will find you eventually. They come from Outside, in the form of typos, homoglyphs, encoding errors, bidi markers, and other textual noise.
 
+Look for signs of The Curator or his assistant, Auggie.
+
 ### Handling Glitchlings
 
 - `shell/text.ss` owns canonicalization, detection, and quarantine
