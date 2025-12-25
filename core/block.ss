@@ -9,6 +9,18 @@
 ;;; This is Core code: pure, total, assumes perfect input.
 
 ;;; ============================================================
+;;; Compat: ~s format directive (Chez 9.5 compatibility)
+;;; ============================================================
+
+;;; sexpr->string : Any → String
+;;; Convert any s-expression to a string using write semantics.
+;;; This provides ~s behavior for Chez 9.5 which lacks it.
+(define (sexpr->string obj)
+  (let ([port (open-output-string)])
+    (write obj port)
+    (get-output-string port)))
+
+;;; ============================================================
 ;;; Block Construction and Access
 ;;; ============================================================
 

@@ -61,16 +61,19 @@ fi
 rm -f "$RESPONSE_FILE" "$ERROR_FILE"
 
 # Write request
-if [ -t 0 ] && [ -n "$1" ]; then
+if [ -n "$1" ]; then
     # Argument provided
     if [ -f "$1" ]; then
         cp "$1" "$REQUEST_FILE"
     else
         echo "$*" > "$REQUEST_FILE"
     fi
-else
-    # Read from stdin
+elif [ ! -t 0 ]; then
+    # Read from stdin (piped input)
     cat > "$REQUEST_FILE"
+else
+    echo "Usage: ./fold.sh \"(expression)\" or echo \"(expr)\" | ./fold.sh"
+    exit 1
 fi
 
 # Wait for response

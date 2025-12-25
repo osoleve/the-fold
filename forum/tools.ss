@@ -36,7 +36,7 @@
 ;;; make-post-payload : Alist → Bytevector
 ;;; Serialize post metadata to payload bytes.
 (define (make-post-payload alist)
-  (string->utf8 (format "~s" alist)))
+  (string->utf8 (sexpr->string alist)))
 
 ;;; parse-post-payload : Bytevector → Alist
 ;;; Deserialize post metadata from payload.

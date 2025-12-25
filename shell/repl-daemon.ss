@@ -112,10 +112,10 @@
            (string-append output
                          (if (eq? result (void))
                              ""
-                             (format "\n=> ~s" result)))]
+                             (string-append "\n=> " (format "~a" result))))]
           ;; Only result, no output
           [(not (eq? result (void)))
-           (format "~s" result)]
+           (format "~a" result)]
           ;; Nothing
           [else ""])))))
 
