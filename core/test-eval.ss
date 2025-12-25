@@ -272,22 +272,22 @@
 (test-ok "prelude compose" 7
   (run-prelude '(let ((add1 (fn (x) (prim 'add x 1)))
                       (double (fn (x) (prim 'mul x 2))))
-                  ((((compose) add1) double) 3))
+                  (((compose add1) double) 3))
                200))
 (test-ok "prelude flip" 2
   (run-prelude '(let ((sub (fn (a) (fn (b) (prim 'sub a b)))))
-                  ((((flip) sub) 3) 5))
+                  (((flip sub) 3) 5))
                200))
 
 ;; Pair operations
 (test-ok "prelude fst" 1 (run-prelude '(fst '(1 2)) 100))
 (test-ok "prelude snd" 2 (run-prelude '(snd '(1 2)) 100))
-(test-ok "prelude pair" '(3 4) (run-prelude '(((pair) 3) 4) 200))
+(test-ok "prelude pair" '(3 4) (run-prelude '((pair 3) 4) 200))
 
 ;; Boolean combinators
 (test-ok "prelude bool-not" #f (run-prelude '(bool-not #t) 100))
-(test-ok "prelude bool-and" #t (run-prelude '(((bool-and) #t) #t) 200))
-(test-ok "prelude bool-or" #t (run-prelude '(((bool-or) #f) #t) 200))
+(test-ok "prelude bool-and" #t (run-prelude '((bool-and #t) #t) 200))
+(test-ok "prelude bool-or" #t (run-prelude '((bool-or #f) #t) 200))
 
 ;; List operations
 (test-ok "prelude map" '(2 4 6)
