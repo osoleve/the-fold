@@ -1,0 +1,47 @@
+name: MetaCycle Maintenance
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-forum:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check forum size
+        id: forum
+        run: |
+          SIZE=$(du -sh forum/ 2>/dev/null | cut -f1 || echo "0")
+          COUNT=$(find forum/ -name "*.ss" 2>/dev/null | wc -l || echo "0")
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "📊 Forum stats: $COUNT posts, $SIZE total"
+      
+      - name: Create compression issue if needed
+        if: steps.forum.outputs.count > 100
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Check if there's already an open MetaCycle issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'metacycle',
+              state: 'open'
+            });
+            
+            if (issues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '🌀 MetaCycle Compression Due',
+                body: `The forum has grown to **${{ steps.forum.outputs.count }}** posts (${{ steps.forum.outputs.size }}).\n\nPer The Fold's principles, the forum is compressed every MetaCycle. Consider:\n- Creating a checkpoint\n- Building a skiplist index\n- Unpinning old heads\n- Recording notable events in \`docs/lore/\``,
+                labels: ['maintenance', 'metacycle']
+              });
+              console.log('Created MetaCycle compression issue');
+            } else {
+              console.log('MetaCycle issue already exists, skipping');
+            }

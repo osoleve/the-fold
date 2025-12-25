@@ -1,0 +1,31 @@
+name: Run Tests & Demos
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Chez Scheme
+        run: sudo apt-get install -y chezscheme
+      
+      - name: Run tests
+        run: |
+          shopt -s nullglob
+          for test in test-*.ss; do
+            echo "🧪 Running $test..."
+            scheme --script "$test"
+          done
+      
+      - name: Run demos (smoke test)
+        run: |
+          shopt -s nullglob
+          for demo in demo-*.ss; do
+            echo "🦆 Running $demo..."
+            timeout 30 scheme --script "$demo" || echo "Demo $demo timed out or failed (non-fatal)"
+          done

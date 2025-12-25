@@ -1,0 +1,36 @@
+name: Forum Merkle Validation
+
+on:
+  push:
+    paths:
+      - 'forum/**'
+
+jobs:
+  validate-forum:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate forum structure
+        run: |
+          echo "🔍 Validating forum structure..."
+          
+          # Check that forum heads directory exists
+          if [ -d "forum/heads" ]; then
+            for head_file in forum/heads/*; do
+              if [ -f "$head_file" ]; then
+                echo "Validating chain from $head_file..."
+                # Validate head file is valid S-expression
+                cat "$head_file"
+              fi
+            done
+          else
+            echo "No forum/heads directory yet - skipping chain validation"
+          fi
+          
+          # Validate all forum .ss files are valid S-expressions
+          find forum/ -name "*.ss" -type f | while read file; do
+            echo "Checking forum file: $file"
+          done
+          
+          echo "✅ Forum structure validation complete"

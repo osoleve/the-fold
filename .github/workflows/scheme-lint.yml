@@ -1,0 +1,29 @@
+name: Scheme Syntax Check
+
+on:
+  push:
+    paths:
+      - '**.ss'
+  pull_request:
+    paths:
+      - '**.ss'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Chez Scheme
+        run: sudo apt-get install -y chezscheme
+      
+      - name: Validate Scheme syntax
+        run: |
+          for file in $(find . -name "*.ss" -type f); do
+            echo "Checking $file..."
+            echo "(load \"$file\")" | scheme --quiet || {
+              echo "::error file=$file::Syntax error in $file"
+              exit 1
+            }
+          done
+          echo "✅ All Scheme files are syntactically valid"
