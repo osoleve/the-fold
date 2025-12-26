@@ -40,6 +40,13 @@
     (source-directories (cons core-path (source-directories)))))
 
 ;;; ============================================================
+;;; Load Test Framework
+;;; ============================================================
+
+;;; Load the unified test framework first so all test files can use it
+(load "core/test-framework.ss")
+
+;;; ============================================================
 ;;; Test Runner
 ;;; ============================================================
 
@@ -92,6 +99,12 @@
 ;;; Layer 5: Evaluation
 (run-test-file "test-eval.ss")
 (run-test-file "test-typed-eval.ss")
+
+;;; Layer 6: Compilation Pipeline
+(run-test-file "test-compile.ss")
+
+;;; Layer 7: Error System
+(run-test-file "test-error.ss")
 
 ;;; ============================================================
 ;;; Summary

@@ -18,8 +18,8 @@
         (display actual)))
   (newline))
 
-(define pass-count 0)
-(define fail-count 0)
+;; Note: Removed pass-count/fail-count definitions to avoid
+;; shadowing run-tests.ss variables
 
 (define (test-section name)
   (newline)
