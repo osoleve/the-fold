@@ -588,7 +588,7 @@
                        ;; Process the turn
                        (process-turn! state action-handler event-queue)
 
-                       (loop (+ count 1))))))))]))]))
+                       (loop (+ count 1)))))))))])) ;; Andy was here
 
 ;;; ============================================================
 ;;; Turn State Queries
