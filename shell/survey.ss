@@ -416,15 +416,17 @@
 ;;; run-bye-surveys : → void
 ;;; Run any surveys triggered on logout.
 (define (run-bye-surveys)
-  (let ([bye-surveys (filter (lambda (s)
-                               (eq? (cdr (assq 'trigger s)) 'on-bye))
-                             *surveys*)])
-    (unless (null? bye-surveys)
-      (display "\n  Before you go, a quick survey?\n")
-      (display "  (Enter 'skip to skip)\n")
-      (let ([choice (read)])
-        (unless (eq? choice 'skip)
-          (run-survey (car bye-surveys)))))))
+  ;; Only run surveys in interactive mode (when stdin is a terminal)
+  (when (terminal-port? (current-input-port))
+    (let ([bye-surveys (filter (lambda (s)
+                                 (eq? (cdr (assq 'trigger s)) 'on-bye))
+                               *surveys*)])
+      (unless (null? bye-surveys)
+        (display "\n  Before you go, a quick survey?\n")
+        (display "  (Enter 'skip to skip)\n")
+        (let ([choice (read)])
+          (unless (eq? choice 'skip)
+            (run-survey (car bye-surveys))))))))
 
 ;;; ============================================================
 ;;; Help

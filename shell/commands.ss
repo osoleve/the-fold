@@ -254,6 +254,42 @@
   (display "Content-Addressed Storage and Merkle Log Forum System\n")
   (void))
 
+;;; msg-handler : Symbol × String × String → Bytevector
+(define (msg-handler channel title body)
+  (msg channel title body))
+
+;;; reply-handler : String × String × String → Bytevector
+(define (reply-handler hash-prefix title body)
+  (reply hash-prefix title body))
+
+;;; bug-handler : String × String → Bytevector
+(define (bug-handler title description)
+  (bug title description))
+
+;;; print-latest-handler : Symbol × Number → void
+(define (print-latest-handler channel n)
+  (print-latest (mint-fs-capability ".store") channel n)
+  (void))
+
+;;; forum-summary-handler : → void
+(define (forum-summary-handler)
+  (forum-summary (mint-fs-capability ".store"))
+  (void))
+
+;;; search-posts-handler : Symbol × String → void
+(define (search-posts-handler channel keyword)
+  (search-posts (mint-fs-capability ".store") channel keyword)
+  (void))
+
+;;; list-surveys-handler : → void
+(define (list-surveys-handler)
+  (list-surveys)
+  (void))
+
+;;; take-survey-handler : String → Bytevector | #f
+(define (take-survey-handler survey-id)
+  (take-survey survey-id))
+
 ;;; ============================================================
 ;;; Register Core Commands
 ;;; ============================================================
@@ -293,7 +329,58 @@
    'version
    "Show system version"
    "Display The Fold version information.\n  Usage: (cmd 'version)\n         (version)"
-   version-handler))
+   version-handler)
+
+  ;; Forum posting commands
+  (register-command!
+   'msg
+   "Post to forum"
+   "Post a message to a forum channel.\n  Usage: (cmd 'msg 'channel \"title\" \"body\")\n         (msg 'engineering \"New Feature\" \"Description...\")\n  Requires active session."
+   msg-handler)
+
+  (register-command!
+   'reply
+   "Reply to a post"
+   "Reply to an existing forum post by hash prefix.\n  Usage: (cmd 'reply \"hash-prefix\" \"title\" \"body\")\n         (reply \"a3f2\" \"Re: Feature\" \"Great work!\")\n  Requires active session."
+   reply-handler)
+
+  (register-command!
+   'bug
+   "Report a bug"
+   "Report a bug to the bugs channel.\n  Usage: (cmd 'bug \"title\" \"description\")\n         (bug \"Session error\" \"Cannot login...\")\n  Requires active session."
+   bug-handler)
+
+  ;; Forum reading commands
+  (register-command!
+   'print-latest
+   "Browse channel posts"
+   "Display the latest N posts from a channel.\n  Usage: (cmd 'print-latest 'channel n)\n         (print-latest (fs) 'engineering 5)"
+   print-latest-handler)
+
+  (register-command!
+   'forum-summary
+   "Show forum overview"
+   "Display summary of all channels with post counts.\n  Usage: (cmd 'forum-summary)\n         (forum-summary (fs))"
+   forum-summary-handler)
+
+  (register-command!
+   'search-posts
+   "Search posts"
+   "Search for posts in a channel by keyword.\n  Usage: (cmd 'search-posts 'channel \"keyword\")\n         (search-posts (fs) 'engineering \"type system\")"
+   search-posts-handler)
+
+  ;; Survey commands
+  (register-command!
+   'list-surveys
+   "List available surveys"
+   "Display all registered surveys.\n  Usage: (cmd 'list-surveys)\n         (list-surveys)"
+   list-surveys-handler)
+
+  (register-command!
+   'take-survey
+   "Take a survey"
+   "Interactively complete a survey.\n  Usage: (cmd 'take-survey \"survey-id\")\n         (take-survey \"session-feedback-v1\")\n  Requires active session."
+   take-survey-handler))
 
 ;;; Auto-register core commands on load
 (register-core-commands!)

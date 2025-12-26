@@ -195,7 +195,18 @@
 ;;; display-recent-chat : FS × Nat → void
 (define (display-recent-chat fs n)
   (let* ([posts (collect-channel fs 'chat)]
-         [recent (take (min n (length posts)) posts)])
+         ;; Deduplicate posts by (author, timestamp, body)
+         [deduped (let loop ([ps posts] [seen '()] [result '()])
+                    (if (null? ps)
+                        (reverse result)
+                        (let* ([p (car ps)]
+                               [key (list (cdr (assq 'author p))
+                                         (cdr (assq 'timestamp p))
+                                         (cdr (assq 'body p)))])
+                          (if (member key seen)
+                              (loop (cdr ps) seen result)
+                              (loop (cdr ps) (cons key seen) (cons p result))))))]
+         [recent (take (min n (length deduped)) deduped)])
     (if (null? recent)
         (display "  (no chat messages yet)\n")
         (for-each
@@ -203,8 +214,9 @@
             (let ([author (cdr (assq 'author post))]
                   [tier (cdr (assq 'tier post))]
                   [body (cdr (assq 'body post))]
-                  [time (cdr (assq 'timestamp post))])
-              (display (format "  ~a (~a): ~a\n"
+                  [timestamp (cdr (assq 'timestamp post))])
+              (display (format "  [~a] ~a (~a): ~a\n"
+                              (format-timestamp timestamp)
                               author
                               (tier-badge tier)
                               body))))
@@ -217,6 +229,53 @@
     [(builder) "🔨"]
     [(player) "🎮"]
     [else "?"]))
+
+;;; format-timestamp : String → String
+;;; Extract time portion from ISO 8601 timestamp.
+;;; Example: "2025-12-26T20:20:16" → "20:20"
+(define (format-timestamp timestamp)
+  (if (and (string? timestamp) (> (string-length timestamp) 16))
+      (substring timestamp 11 16)  ; Extract "HH:MM" from "YYYY-MM-DDTHH:MM:SS"
+      timestamp))
+
+;;; extract-mentions : String → (List String)
+;;; Extract @username mentions from text.
+;;; Example: "Hey @alice and @bob" → ("alice" "bob")
+(define (extract-mentions text)
+  (let loop ([chars (string->list text)]
+             [current '()]
+             [in-mention? #f]
+             [mentions '()])
+    (cond
+      [(null? chars)
+       (if (and in-mention? (not (null? current)))
+           (reverse (cons (list->string (reverse current)) mentions))
+           (reverse mentions))]
+      [(char=? (car chars) #\@)
+       (let ([mention (if (and in-mention? (not (null? current)))
+                          (list->string (reverse current))
+                          #f)])
+         (loop (cdr chars) '() #t
+               (if mention (cons mention mentions) mentions)))]
+      [(and in-mention?
+            (or (char-alphabetic? (car chars))
+                (char-numeric? (car chars))
+                (char=? (car chars) #\-)
+                (char=? (car chars) #\_)))
+       (loop (cdr chars) (cons (car chars) current) #t mentions)]
+      [in-mention?
+       (let ([mention (if (not (null? current))
+                          (list->string (reverse current))
+                          #f)])
+         (loop (cdr chars) '() #f
+               (if mention (cons mention mentions) mentions)))]
+      [else
+       (loop (cdr chars) current #f mentions)])))
+
+;;; highlight-mentions : String → String
+;;; Add visual markers to @mentions in text for display.
+(define (highlight-mentions text)
+  text)  ; Simple version - just return text as-is for now
 
 ;;; ============================================================
 ;;; msg/3 — Post to Forum
@@ -268,10 +327,24 @@
     (unless session
       (error 'reply "No active session. Use (hi tier name txt) first."))
 
+    ;; Validate hash prefix
+    (when (or (not (string? post-hash-prefix))
+              (string=? post-hash-prefix "")
+              (= (string-length post-hash-prefix) 0))
+      (display "Error: Hash prefix cannot be empty.\n")
+      (display "Usage: (reply \"hash-prefix\" \"title\" \"message\")\n")
+      (display "Example: (reply \"a3f2\" \"Re: Title\" \"Response text\")\n")
+      (error 'reply "Invalid hash prefix"))
+
     (let* ([fs (mint-fs-capability ".store")]
            [parent-hash (find-post-by-prefix fs post-hash-prefix)])
       (unless parent-hash
-        (error 'reply "Could not find post with hash prefix" post-hash-prefix))
+        (display (format "Error: No post found with hash prefix \"~a\"\n" post-hash-prefix))
+        (display "Try:\n")
+        (display "  - Using a longer prefix (4-8 characters)\n")
+        (display "  - Running (digest) to see recent post hashes\n")
+        (display "  - Running (search-posts (fs) 'channel \"keyword\") to find posts\n")
+        (error 'reply "Post not found"))
 
       (let* ([parent-post (read-post fs parent-hash)]
              [channel (cdr (assq 'channel parent-post))]
@@ -347,10 +420,30 @@
 
     (let* ([author (cdr (assq 'name session))]
            [tier (cdr (assq 'tier session))]
-           [fs (mint-fs-capability ".store")])
-      (let ([hash (post! fs author tier 'chat txt (current-timestamp))])
-        (display (format "~a: ~a\n" author txt))
-        hash))))
+           [fs (mint-fs-capability ".store")]
+           [mentions (extract-mentions txt)]
+           [timestamp (current-timestamp)]
+           ;; Build metadata with mentions if any
+           [full-meta (if (null? mentions)
+                          `((author . ,author)
+                            (tier . ,tier)
+                            (timestamp . ,timestamp)
+                            (channel . chat)
+                            (body . ,txt))
+                          `((author . ,author)
+                            (tier . ,tier)
+                            (timestamp . ,timestamp)
+                            (channel . chat)
+                            (mentions . ,mentions)
+                            (body . ,txt)))]
+           [prev-head (fs-read-head fs 'chat)]
+           [refs (if prev-head (list prev-head) '())]
+           [blk (make-post-block full-meta refs)]
+           [hash (fs-store! fs blk)])
+      (fs-write-head! fs 'chat hash)
+      (fs-pin! fs hash)
+      (display (format "~a: ~a\n" author txt))
+      hash)))
 
 ;;; ============================================================
 ;;; bug/2 — Report a Bug
