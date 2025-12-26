@@ -162,63 +162,83 @@
          [non-chat (filter (lambda (c)
                             (not (memq c '(chat system))))
                           channels)]
+         ;; Collect posts with hashes from all channels
          [all-posts (apply append
                       (map (lambda (c)
-                             (map (lambda (p) (cons (cons 'channel-name c) p))
-                                  (collect-channel fs c)))
+                             (map (lambda (hash-post)
+                                    ;; Add channel-name to the post metadata
+                                    (cons (car hash-post)  ; hash
+                                          (cons (cons 'channel-name c) (cdr hash-post))))
+                                  (collect-channel-with-hash fs c)))
                            non-chat))]
          ;; Sort by timestamp (simple string compare, works for ISO 8601)
          [sorted (list-sort
                    (lambda (a b)
-                     (string>? (cdr (assq 'timestamp a))
-                               (cdr (assq 'timestamp b))))
+                     (string>? (cdr (assq 'timestamp (cdr a)))
+                               (cdr (assq 'timestamp (cdr b)))))
                    all-posts)]
          [recent (take (min n (length sorted)) sorted)])
     (if (null? recent)
         (display "  (no posts yet)\n")
         (for-each
-          (lambda (post)
-            (let ([channel (cdr (assq 'channel-name post))]
-                  [author (cdr (assq 'author post))]
-                  [body (cdr (assq 'body post))]
-                  [title (assq 'title post)])
-              (display (format "  #~a | ~a: ~a\n"
+          (lambda (hash-post)
+            (let* ([hash (car hash-post)]
+                   [post (cdr hash-post)]
+                   [channel (cdr (assq 'channel-name post))]
+                   [author (cdr (assq 'author post))]
+                   [body (cdr (assq 'body post))]
+                   [title (assq 'title post)]
+                   [hash-prefix (substring (hash->hex hash) 0 6)]
+                   [parent-hash (assq 'parent-hash post)]
+                   [is-reply? (and parent-hash (cdr parent-hash))]
+                   [indent (if is-reply? "    ↳ " "  ")])
+              (display (format "~a#~a | ~a [~a]: ~a~a\n"
+                              indent
                               channel
                               author
+                              hash-prefix
                               (truncate-string
                                 (if title
                                     (format "[~a] ~a" (cdr title) body)
                                     body)
-                                50)))))
+                                50)
+                              (if is-reply?
+                                  (format " (→ ~a)" (substring (cdr parent-hash) 0 6))
+                                  "")))))
           recent))))
 
 ;;; display-recent-chat : FS × Nat → void
 (define (display-recent-chat fs n)
-  (let* ([posts (collect-channel fs 'chat)]
+  (let* ([posts-with-hash (collect-channel-with-hash fs 'chat)]
          ;; Deduplicate posts by (author, timestamp, body)
-         [deduped (let loop ([ps posts] [seen '()] [result '()])
+         [deduped (let loop ([ps posts-with-hash] [seen '()] [result '()])
                     (if (null? ps)
                         (reverse result)
-                        (let* ([p (car ps)]
-                               [key (list (cdr (assq 'author p))
-                                         (cdr (assq 'timestamp p))
-                                         (cdr (assq 'body p)))])
+                        (let* ([hash-post (car ps)]
+                               [post (cdr hash-post)]
+                               [key (list (cdr (assq 'author post))
+                                         (cdr (assq 'timestamp post))
+                                         (cdr (assq 'body post)))])
                           (if (member key seen)
                               (loop (cdr ps) seen result)
-                              (loop (cdr ps) (cons key seen) (cons p result))))))]
+                              (loop (cdr ps) (cons key seen) (cons hash-post result))))))]
          [recent (take (min n (length deduped)) deduped)])
     (if (null? recent)
         (display "  (no chat messages yet)\n")
         (for-each
-          (lambda (post)
-            (let ([author (cdr (assq 'author post))]
-                  [tier (cdr (assq 'tier post))]
-                  [body (cdr (assq 'body post))]
-                  [timestamp (cdr (assq 'timestamp post))])
-              (display (format "  [~a] ~a (~a): ~a\n"
+          (lambda (hash-post)
+            (let* ([hash (car hash-post)]
+                   [post (cdr hash-post)]
+                   [author (cdr (assq 'author post))]
+                   [tier (cdr (assq 'tier post))]
+                   [body (cdr (assq 'body post))]
+                   [timestamp (cdr (assq 'timestamp post))]
+                   [hash-prefix (substring (hash->hex hash) 0 6)])
+              (display (format "  [~a] ~a (~a) [~a]: ~a\n"
                               (format-timestamp timestamp)
                               author
                               (tier-badge tier)
+                              hash-prefix
                               body))))
           recent))))
 
@@ -530,3 +550,23 @@
           (display (format "Logged in as: ~a (~a)\n" name tier))
           (display (format "Since: ~a\n" time)))
         (display "No active session. Use (hi tier name txt) to login.\n"))))
+
+;;; ============================================================
+;;; Convenience: Browse Functions
+;;; ============================================================
+
+;;; browse : Symbol [× Nat] → void
+;;; Browse recent posts in a channel (default 5 posts).
+;;; Example: (browse 'engineering)
+;;;          (browse 'design 10)
+(define browse
+  (case-lambda
+    [(channel)
+     (browse channel 5)]
+    [(channel n)
+     (print-latest (mint-fs-capability ".store") channel n)]))
+
+;;; channels : → void
+;;; List all available channels with post counts.
+(define (channels)
+  (forum-summary (mint-fs-capability ".store")))

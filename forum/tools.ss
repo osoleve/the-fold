@@ -114,6 +114,34 @@
         (set! posts (cons post posts))))
     (reverse posts)))
 
+;;; walk-channel-with-hash : FS × Symbol × (Bytevector × Alist → void) → void
+;;; Walk a channel from head to genesis, calling proc with (hash, metadata).
+(define (walk-channel-with-hash fs channel proc)
+  (let ([head (channel-head fs channel)])
+    (when head
+      (walk-from-with-hash fs head proc))))
+
+;;; walk-from-with-hash : FS × Bytevector × (Bytevector × Alist → void) → void
+;;; Walk the chain starting from a specific post, passing hash to proc.
+(define (walk-from-with-hash fs hash proc)
+  (let ([blk (fs-fetch fs hash)])
+    (when blk
+      (let ([metadata (parse-post-payload (block-payload blk))]
+            [refs (block-refs blk)])
+        (proc hash metadata)
+        ;; refs[0] is the previous head
+        (when (> (vector-length refs) 0)
+          (walk-from-with-hash fs (vector-ref refs 0) proc))))))
+
+;;; collect-channel-with-hash : FS × Symbol → (List (Cons Bytevector Alist))
+;;; Collect all posts in a channel with their hashes (newest first).
+(define (collect-channel-with-hash fs channel)
+  (let ([posts '()])
+    (walk-channel-with-hash fs channel
+      (lambda (hash post)
+        (set! posts (cons (cons hash post) posts))))
+    (reverse posts)))
+
 ;;; ============================================================
 ;;; Channel Listing
 ;;; ============================================================

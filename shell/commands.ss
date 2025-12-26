@@ -290,6 +290,17 @@
 (define (take-survey-handler survey-id)
   (take-survey survey-id))
 
+;;; browse-handler : Symbol [× Number] → void
+(define browse-handler
+  (case-lambda
+    [(channel) (browse channel)]
+    [(channel n) (browse channel n)]))
+
+;;; channels-handler : → void
+(define (channels-handler)
+  (channels)
+  (void))
+
 ;;; ============================================================
 ;;; Register Core Commands
 ;;; ============================================================
@@ -380,7 +391,20 @@
    'take-survey
    "Take a survey"
    "Interactively complete a survey.\n  Usage: (cmd 'take-survey \"survey-id\")\n         (take-survey \"session-feedback-v1\")\n  Requires active session."
-   take-survey-handler))
+   take-survey-handler)
+
+  ;; Convenience navigation commands
+  (register-command!
+   'browse
+   "Browse channel posts"
+   "Browse recent posts in a channel (simplified interface).\n  Usage: (cmd 'browse 'channel)\n         (cmd 'browse 'channel n)\n         (browse 'engineering)\n         (browse 'design 10)\n  Default: 5 posts"
+   browse-handler)
+
+  (register-command!
+   'channels
+   "List all channels"
+   "Display all channels with post counts.\n  Usage: (cmd 'channels)\n         (channels)"
+   channels-handler))
 
 ;;; Auto-register core commands on load
 (register-core-commands!)
