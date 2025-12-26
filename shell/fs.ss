@@ -203,6 +203,24 @@
           (directory-list objects-path))
         0)))
 
+;;; fs-all-hashes : FS → (List Bytevector)
+;;; List all object hashes in the store (expensive — scans filesystem).
+;;; Returns a list of hash bytevectors.
+(define (fs-all-hashes fs)
+  (let ([objects-path (string-append (fs-capability-store-path fs) "/objects")])
+    (if (file-exists? objects-path)
+        (apply append
+          (map
+            (lambda (prefix-dir)
+              (let ([prefix-path (string-append objects-path "/" prefix-dir)])
+                (if (file-directory? prefix-path)
+                    (map (lambda (filename)
+                           (hex->hash filename))
+                         (directory-list prefix-path))
+                    '())))
+            (directory-list objects-path)))
+        '())))
+
 ;;; ============================================================
 ;;; Head Pointers (for forum channels)
 ;;; ============================================================
