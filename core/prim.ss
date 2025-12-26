@@ -163,6 +163,8 @@
     [(utf8->string) (utf8->string (car args))]
     [(symbol->string) (symbol->string (car args))]
     [(string->symbol) (string->symbol (car args))]
+    [(number->string) (number->string (car args))]
+    [(string->number) (string->number (car args))]
 
     ;; --------------------------------------------------------
     ;; List operations
@@ -234,6 +236,7 @@
       list? boolean? procedure?
       sha256 hash-block hash->hex hex->hash
       string->utf8 utf8->string symbol->string string->symbol
+      number->string string->number
       ;; String (unary)
       string-length string->list list->string
       ;; Character (unary)
@@ -291,6 +294,7 @@
     char-upper-case? char-lower-case? char-upcase char-downcase
     ;; Conversion
     string->utf8 utf8->string symbol->string string->symbol
+    number->string string->number
     ;; List
     cons car cdr null? pair? list length append reverse list-ref memq assq
     ;; Vector

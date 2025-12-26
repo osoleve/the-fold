@@ -506,7 +506,186 @@
     (product . (fix product (fn (xs)
                   (if (prim 'null? xs)
                       1
-                      (prim 'mul (prim 'car xs) (product (prim 'cdr xs)))))))))
+                      (prim 'mul (prim 'car xs) (product (prim 'cdr xs)))))))
+
+    ;; ================================================================
+    ;; Type Class Method Implementations
+    ;; ================================================================
+    ;; These implement the methods declared in core/resolve.ss
+    ;; Names match those used in instance definitions.
+
+    ;; --- Functor ---
+    ;; list-fmap is 'map' (already defined above)
+    (list-fmap . (fix list-fmap (fn (f xs)
+                   (if (prim 'null? xs)
+                       '()
+                       (prim 'cons (f (prim 'car xs))
+                                   (list-fmap f (prim 'cdr xs)))))))
+
+    ;; option-fmap: Option is (+ (None) (Some a))
+    ;; Represented as 'none or ('some . value)
+    (option-fmap . (fn (f opt)
+                     (if (prim 'eq? opt 'none)
+                         'none
+                         (prim 'cons 'some (f (prim 'cdr opt))))))
+
+    ;; either-fmap: Either is (+ (Left e) (Right a))
+    ;; Represented as ('left . e) or ('right . a)
+    (either-fmap . (fn (f e)
+                     (if (prim 'eq? (prim 'car e) 'left)
+                         e
+                         (prim 'cons 'right (f (prim 'cdr e))))))
+
+    ;; --- Applicative ---
+    (list-pure . (fn (x) (prim 'list x)))
+
+    ;; list-ap: Apply list of functions to list of values
+    (list-ap . (fix list-ap (fn (fs xs)
+                  (if (prim 'null? fs)
+                      '()
+                      (prim 'append
+                            (map (prim 'car fs) xs)
+                            (list-ap (prim 'cdr fs) xs))))))
+
+    (option-pure . (fn (x) (prim 'cons 'some x)))
+
+    (option-ap . (fn (mf mx)
+                   (if (prim 'eq? mf 'none)
+                       'none
+                       (if (prim 'eq? mx 'none)
+                           'none
+                           (prim 'cons 'some
+                                       ((prim 'cdr mf) (prim 'cdr mx)))))))
+
+    ;; --- Monad ---
+    (list-bind . (fix list-bind (fn (xs f)
+                   (if (prim 'null? xs)
+                       '()
+                       (prim 'append (f (prim 'car xs))
+                                     (list-bind (prim 'cdr xs) f))))))
+
+    (list-return . (fn (x) (prim 'list x)))
+
+    (option-bind . (fn (mx f)
+                     (if (prim 'eq? mx 'none)
+                         'none
+                         (f (prim 'cdr mx)))))
+
+    (option-return . (fn (x) (prim 'cons 'some x)))
+
+    (either-bind . (fn (mx f)
+                     (if (prim 'eq? (prim 'car mx) 'left)
+                         mx
+                         (f (prim 'cdr mx)))))
+
+    (either-return . (fn (x) (prim 'cons 'right x)))
+
+    ;; --- Eq ---
+    (nat-eq . (fn (a b) (prim 'eq? a b)))
+    (nat-neq . (fn (a b) (prim 'not (prim 'eq? a b))))
+    (int-eq . (fn (a b) (prim 'eq? a b)))
+    (int-neq . (fn (a b) (prim 'not (prim 'eq? a b))))
+    (bool-eq . (fn (a b) (prim 'eq? a b)))
+    (bool-neq . (fn (a b) (prim 'not (prim 'eq? a b))))
+    (char-eq . (fn (a b) (prim 'char=? a b)))
+    (char-neq . (fn (a b) (prim 'not (prim 'char=? a b))))
+    (string-eq . (fn (a b) (prim 'string=? a b)))
+    (string-neq . (fn (a b) (prim 'not (prim 'string=? a b))))
+    (symbol-eq . (fn (a b) (prim 'eq? a b)))
+    (symbol-neq . (fn (a b) (prim 'not (prim 'eq? a b))))
+
+    ;; list-eq: Requires Eq on elements (recursive)
+    (list-eq . (fix list-eq (fn (xs ys)
+                  (if (prim 'null? xs)
+                      (prim 'null? ys)
+                      (if (prim 'null? ys)
+                          #f
+                          (if (prim 'eq? (prim 'car xs) (prim 'car ys))
+                              (list-eq (prim 'cdr xs) (prim 'cdr ys))
+                              #f))))))
+
+    (list-neq . (fn (xs ys) (prim 'not (list-eq xs ys))))
+
+    ;; option-eq: Requires Eq on element
+    (option-eq . (fn (a b)
+                   (if (prim 'eq? a 'none)
+                       (prim 'eq? b 'none)
+                       (if (prim 'eq? b 'none)
+                           #f
+                           (prim 'eq? (prim 'cdr a) (prim 'cdr b))))))
+
+    ;; --- Ord ---
+    ;; compare returns 'LT, 'EQ, or 'GT
+    (nat-compare . (fn (a b)
+                     (if (prim 'lt? a b) 'LT
+                         (if (prim 'eq? a b) 'EQ 'GT))))
+    (nat-lt . (fn (a b) (prim 'lt? a b)))
+    (nat-lte . (fn (a b) (prim 'le? a b)))
+    (nat-gt . (fn (a b) (prim 'gt? a b)))
+    (nat-gte . (fn (a b) (prim 'ge? a b)))
+
+    (int-compare . (fn (a b)
+                     (if (prim 'lt? a b) 'LT
+                         (if (prim 'eq? a b) 'EQ 'GT))))
+    (int-lt . (fn (a b) (prim 'lt? a b)))
+    (int-lte . (fn (a b) (prim 'le? a b)))
+    (int-gt . (fn (a b) (prim 'gt? a b)))
+    (int-gte . (fn (a b) (prim 'ge? a b)))
+
+    (char-compare . (fn (a b)
+                      (if (prim 'char<? a b) 'LT
+                          (if (prim 'char=? a b) 'EQ 'GT))))
+    (char-lt . (fn (a b) (prim 'char<? a b)))
+    (char-lte . (fn (a b) (prim 'or (prim 'char<? a b) (prim 'char=? a b))))
+    (char-gt . (fn (a b) (prim 'char<? b a)))
+    (char-gte . (fn (a b) (prim 'or (prim 'char<? b a) (prim 'char=? a b))))
+
+    (string-compare . (fn (a b)
+                        (if (prim 'string<? a b) 'LT
+                            (if (prim 'string=? a b) 'EQ 'GT))))
+    (string-lt . (fn (a b) (prim 'string<? a b)))
+    (string-lte . (fn (a b) (prim 'or (prim 'string<? a b) (prim 'string=? a b))))
+    (string-gt . (fn (a b) (prim 'string>? a b)))
+    (string-gte . (fn (a b) (prim 'or (prim 'string>? a b) (prim 'string=? a b))))
+
+    ;; --- Show ---
+    ;; Note: These require number->string which we add to prim.ss
+    (nat-show . (fn (n) (prim 'number->string n)))
+    (int-show . (fn (n) (prim 'number->string n)))
+    (bool-show . (fn (b) (if b "#t" "#f")))
+    (char-show . (fn (c) (prim 'list->string (prim 'list c))))
+    (string-show . (fn (s) s))  ; String shows as itself
+    (symbol-show . (fn (s) (prim 'symbol->string s)))
+
+    ;; list-show: Requires Show on elements
+    (list-show . (fix list-show (fn (xs)
+                   (if (prim 'null? xs)
+                       "()"
+                       (prim 'string-append
+                             "("
+                             (prim 'string-append
+                                   (nat-show (prim 'car xs))
+                                   (prim 'string-append
+                                         (list-show-rest (prim 'cdr xs))
+                                         ")")))))))
+
+    (list-show-rest . (fix list-show-rest (fn (xs)
+                         (if (prim 'null? xs)
+                             ""
+                             (prim 'string-append
+                                   " "
+                                   (prim 'string-append
+                                         (nat-show (prim 'car xs))
+                                         (list-show-rest (prim 'cdr xs))))))))
+
+    ;; --- Semigroup ---
+    (list-append . (fn (xs ys) (prim 'append xs ys)))
+    ;; string-append is already a primitive
+
+    ;; --- Monoid ---
+    (list-empty . '())
+    ;; string-empty would be ""
+    ))
 
 ;;; Build the prelude environment by evaluating definitions
 (define (build-prelude-env fuel)
