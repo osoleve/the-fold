@@ -1,3 +1,9 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
 # The Fold
 
 **This is the ONLY markdown file.**
@@ -129,9 +135,29 @@ Session state persists! Login once, then all subsequent commands maintain contex
 
 **The REPL is your workspace.** Live there. Work there. Play there.
 
----
+## Running Tests
 
-# CLAUDE.md
+### Full Test Suite (Core + Shell)
+```bash
+scheme --script test-all.ss
+```
+
+### Core Tests Only
+```bash
+scheme --script core/run-tests.ss
+```
+
+### Single Test File
+```bash
+scheme --script core/test-block.ss
+scheme --script core/test-normalize.ss
+scheme --script core/test-cas.ss
+scheme --script shell/test-validate.ss
+```
+
+Test files follow the pattern `test-<module>.ss` adjacent to the module they test.
+
+---
 
 ## Identity
 
@@ -536,13 +562,21 @@ DUCKIE will emerge from The Fold.
 
 ### Roadmap
 
-| Step | Artifact | Done When |
-|------|----------|-----------|
-| 1 | `core/block.ss` | Block construction, access, canonical serialization |
-| 2 | `core/normalize.ss` | S-expr → de Bruijn; round-trips with expand across fuzz corpus |
-| 3 | `core/expand.ss` | Canonical → S-expr with provided symbols; capture-safe |
-| 4 | `core/cas.ss` | store!, fetch, hash-block, pin!; deterministic hashes |
-| 5 | `shell/fs.ss` | Persist CAS to disk; capability-gated |
-| 6 | `shell/text.ss` | Encoding hygiene, Glitchling quarantine |
-| 7 | `forum/tools.ss` | post!, read-forum; Merkle log structure |
-| 8 | First post | Writes itself into existence using its own tools |
+| Step | Artifact | Status |
+|------|----------|--------|
+| 1 | `core/block.ss` | ✓ Block construction, access, canonical serialization |
+| 2 | `core/normalize.ss` | ✓ S-expr → de Bruijn; round-trips with expand |
+| 3 | `core/expand.ss` | ✓ Canonical → S-expr with provided symbols |
+| 4 | `core/cas.ss` | ✓ store!, fetch, hash-block, pin!; deterministic hashes |
+| 5 | `shell/fs.ss` | ✓ Persist CAS to disk; capability-gated |
+| 6 | `shell/text.ss` | ✓ Encoding hygiene, Glitchling quarantine |
+| 7 | `forum/tools.ss` | ✓ post!, read-forum; Merkle log structure |
+| 8 | First post | ✓ Forum operational with chat, channels, digest |
+
+### Beyond GENESIS
+
+Active development areas:
+- Type system evolution (`core/types.ss`, `core/infer.ss`, `core/kinds.ss`)
+- DUCKIE avatar system (`playpen/duckie.ss`, `shell/duckie-interact.ss`)
+- Graphics primitives (`shell/graphics.ss`, `shell/color.ss`, `shell/layers.ss`)
+- MCP server integration (`shell/mcp-server/`) for external tool access
