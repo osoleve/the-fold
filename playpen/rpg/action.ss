@@ -1,0 +1,513 @@
+;;; playpen/rpg/action.ss — Action/Command System for RPG SDK
+;;;
+;;; Implements the Command pattern for turn-based gameplay.
+;;; Actions represent discrete game commands that entities can perform,
+;;; with validation, execution results, and turn-based queuing.
+;;;
+;;; Dependencies:
+;;;   - playpen/rpg/core.ss (point utilities, alist utilities)
+;;;
+;;; Exports:
+;;;   Action creation and manipulation
+;;;   Action validation
+;;;   Action results
+;;;   Action queue for turn processing
+
+;;; ============================================================
+;;; Action Types
+;;; ============================================================
+
+;;; ActionType : Symbol
+;;;   The kind of action being performed.
+;;;
+;;; Standard types:
+;;;   'move       - Move to a direction or point
+;;;   'attack     - Attack a target entity
+;;;   'use-item   - Use an item (with optional target)
+;;;   'pickup     - Pick up an item
+;;;   'drop       - Drop an item
+;;;   'open       - Open a door or container
+;;;   'close      - Close a door
+;;;   'wait       - Skip turn
+;;;   'interact   - Generic interaction with entity/point
+;;;   'custom     - Custom game-specific action
+
+(define standard-action-types
+  '(move attack use-item pickup drop open close wait interact custom))
+
+(define (action-type? type)
+  (if (symbol? type) #t #f))
+
+;;; ============================================================
+;;; Action Structure
+;;; ============================================================
+
+;;; Action : Record
+;;;   type     — Symbol, the action type
+;;;   actor-id — Nat, ID of entity performing action
+;;;   target   — Any, varies by action type (point, entity-id, item-id, etc.)
+;;;   cost     — Nat, action points or time units required
+;;;   data     — Alist, additional parameters specific to action type
+
+(define-record-type action%
+  (fields type actor-id target cost data))
+
+;;; make-action : Symbol × Nat × Any × [Nat] × [Alist] -> Action
+;;; Create a new action.
+(define make-action
+  (case-lambda
+    [(type actor-id target)
+     (make-action% type actor-id target 100 '())]
+    [(type actor-id target cost)
+     (make-action% type actor-id target cost '())]
+    [(type actor-id target cost data)
+     (make-action% type actor-id target cost data)]))
+
+;;; Accessors
+(define action-type action%-type)
+(define action-actor-id action%-actor-id)
+(define action-target action%-target)
+(define action-cost action%-cost)
+(define action-data action%-data)
+
+;;; action-get : Action × Symbol × [Any] -> Any
+;;; Get a value from the action's data alist.
+(define action-get
+  (case-lambda
+    [(action key)
+     (alist-ref (action-data action) key)]
+    [(action key default)
+     (alist-ref (action-data action) key default)]))
+
+;;; action-set : Action × Symbol × Any -> Action
+;;; Set a value in the action's data alist (returns new action).
+(define (action-set action key value)
+  (make-action% (action-type action)
+                (action-actor-id action)
+                (action-target action)
+                (action-cost action)
+                (alist-set (action-data action) key value)))
+
+;;; action-set-cost : Action × Nat -> Action
+;;; Set the cost of an action (returns new action).
+(define (action-set-cost action cost)
+  (make-action% (action-type action)
+                (action-actor-id action)
+                (action-target action)
+                cost
+                (action-data action)))
+
+;;; ============================================================
+;;; Action Validation
+;;; ============================================================
+
+;;; ValidationResult : Record
+;;;   valid?  — Bool, whether the action is valid
+;;;   reason  — String | #f, explanation if invalid
+
+(define-record-type validation-result%
+  (fields valid? reason))
+
+;;; make-validation-result : Bool × [String] -> ValidationResult
+(define make-validation-result
+  (case-lambda
+    [(valid?) (make-validation-result% valid? #f)]
+    [(valid? reason) (make-validation-result% valid? reason)]))
+
+;;; Accessors
+(define validation-result-valid? validation-result%-valid?)
+(define validation-result-reason validation-result%-reason)
+
+;;; validation-success : ValidationResult
+(define validation-success
+  (make-validation-result #t #f))
+
+;;; validation-failure : String -> ValidationResult
+;;; Create a failed validation with reason.
+(define (validation-failure reason)
+  (make-validation-result #f reason))
+
+;;; action-valid? : Action × State -> Bool
+;;; Quick check if action can be performed.
+;;; This is a simplified version - games should implement full validation.
+(define (action-valid? action state)
+  (validation-result-valid? (action-validate action state)))
+
+;;; action-validate : Action × State -> ValidationResult
+;;; Validate an action against game state.
+;;; This is a stub - games should provide their own validation logic.
+;;; State is game-specific (world, entities, etc.).
+(define (action-validate action state)
+  ;; Default implementation: always valid
+  ;; Real games should override this with actual validation
+  validation-success)
+
+;;; ============================================================
+;;; Action Results
+;;; ============================================================
+
+;;; ActionResult : Record
+;;;   success?  — Bool, whether action succeeded
+;;;   events    — List, events generated by the action
+;;;   changes   — Alist, state changes to apply
+;;;   message   — String | #f, optional message to display
+
+(define-record-type action-result%
+  (fields success? events changes message))
+
+;;; make-action-result : Bool × [List] × [Alist] × [String] -> ActionResult
+(define make-action-result
+  (case-lambda
+    [(success?)
+     (make-action-result% success? '() '() #f)]
+    [(success? events)
+     (make-action-result% success? events '() #f)]
+    [(success? events changes)
+     (make-action-result% success? events changes #f)]
+    [(success? events changes message)
+     (make-action-result% success? events changes message)]))
+
+;;; Accessors
+(define action-result-success? action-result%-success?)
+(define action-result-events action-result%-events)
+(define action-result-changes action-result%-changes)
+(define action-result-message action-result%-message)
+
+;;; action-result-add-event : ActionResult × Event -> ActionResult
+;;; Add an event to the result (returns new result).
+(define (action-result-add-event result event)
+  (make-action-result% (action-result-success? result)
+                       (cons event (action-result-events result))
+                       (action-result-changes result)
+                       (action-result-message result)))
+
+;;; action-result-add-change : ActionResult × Symbol × Any -> ActionResult
+;;; Add a state change to the result (returns new result).
+(define (action-result-add-change result key value)
+  (make-action-result% (action-result-success? result)
+                       (action-result-events result)
+                       (alist-set (action-result-changes result) key value)
+                       (action-result-message result)))
+
+;;; action-result-set-message : ActionResult × String -> ActionResult
+;;; Set the message for the result (returns new result).
+(define (action-result-set-message result message)
+  (make-action-result% (action-result-success? result)
+                       (action-result-events result)
+                       (action-result-changes result)
+                       message))
+
+;;; Success and failure constructors
+(define (action-success . args)
+  (apply make-action-result (cons #t args)))
+
+(define (action-failure . args)
+  (apply make-action-result (cons #f args)))
+
+;;; ============================================================
+;;; Action Queue
+;;; ============================================================
+
+;;; ActionQueue : Record (mutable)
+;;;   actions — List Action, queue of pending actions (FIFO)
+;;;
+;;; Used for turn-based processing and action scheduling.
+
+(define-record-type action-queue%
+  (fields (mutable actions)))
+
+;;; make-action-queue : -> ActionQueue
+;;; Create an empty action queue.
+(define (make-action-queue)
+  (make-action-queue% '()))
+
+;;; action-queue-actions : ActionQueue -> List Action
+(define action-queue-actions action-queue%-actions)
+
+;;; queue-action! : ActionQueue × Action -> Void
+;;; Add an action to the end of the queue.
+(define (queue-action! queue action)
+  (action-queue%-actions-set! queue
+    (append (action-queue-actions queue) (list action))))
+
+;;; dequeue-action! : ActionQueue -> Action | #f
+;;; Remove and return the next action from the queue.
+;;; Returns #f if queue is empty.
+(define (dequeue-action! queue)
+  (let ([actions (action-queue-actions queue)])
+    (if (null? actions)
+        #f
+        (let ([next (car actions)])
+          (action-queue%-actions-set! queue (cdr actions))
+          next))))
+
+;;; peek-action : ActionQueue -> Action | #f
+;;; Look at the next action without removing it.
+;;; Returns #f if queue is empty.
+(define (peek-action queue)
+  (let ([actions (action-queue-actions queue)])
+    (if (null? actions) #f (car actions))))
+
+;;; action-queue-empty? : ActionQueue -> Bool
+;;; Check if the queue is empty.
+(define (action-queue-empty? queue)
+  (null? (action-queue-actions queue)))
+
+;;; action-queue-clear! : ActionQueue -> Void
+;;; Remove all actions from the queue.
+(define (action-queue-clear! queue)
+  (action-queue%-actions-set! queue '()))
+
+;;; action-queue-length : ActionQueue -> Nat
+;;; Get the number of actions in the queue.
+(define (action-queue-length queue)
+  (length (action-queue-actions queue)))
+
+;;; action-queue-contains? : ActionQueue × (Action -> Bool) -> Bool
+;;; Check if queue contains an action matching predicate.
+(define (action-queue-contains? queue pred)
+  (let loop ([actions (action-queue-actions queue)])
+    (cond
+      [(null? actions) #f]
+      [(pred (car actions)) #t]
+      [else (loop (cdr actions))])))
+
+;;; action-queue-filter! : ActionQueue × (Action -> Bool) -> Void
+;;; Remove all actions that don't match predicate.
+(define (action-queue-filter! queue pred)
+  (action-queue%-actions-set! queue
+    (filter pred (action-queue-actions queue))))
+
+;;; ============================================================
+;;; Convenience Constructors
+;;; ============================================================
+
+;;; make-move-action : Nat × (Direction | Point) × [Nat] -> Action
+;;; Create a move action.
+;;; Target can be a direction symbol or a point (x . y).
+(define make-move-action
+  (case-lambda
+    [(actor-id target)
+     (make-action 'move actor-id target 100)]
+    [(actor-id target cost)
+     (make-action 'move actor-id target cost)]))
+
+;;; make-attack-action : Nat × Nat × [Nat] -> Action
+;;; Create an attack action.
+;;; Target is the entity ID to attack.
+(define make-attack-action
+  (case-lambda
+    [(actor-id target-id)
+     (make-action 'attack actor-id target-id 100)]
+    [(actor-id target-id cost)
+     (make-action 'attack actor-id target-id cost)]))
+
+;;; make-use-item-action : Nat × Any × [Any] × [Nat] -> Action
+;;; Create a use-item action.
+;;; item-id identifies the item, target is optional.
+(define make-use-item-action
+  (case-lambda
+    [(actor-id item-id)
+     (make-action 'use-item actor-id item-id 100)]
+    [(actor-id item-id target)
+     (make-action 'use-item actor-id item-id 100
+                  `((target . ,target)))]
+    [(actor-id item-id target cost)
+     (make-action 'use-item actor-id item-id cost
+                  `((target . ,target)))]))
+
+;;; make-pickup-action : Nat × (Any | Point) × [Nat] -> Action
+;;; Create a pickup action.
+;;; Target can be item ID or point where item is located.
+(define make-pickup-action
+  (case-lambda
+    [(actor-id target)
+     (make-action 'pickup actor-id target 100)]
+    [(actor-id target cost)
+     (make-action 'pickup actor-id target cost)]))
+
+;;; make-drop-action : Nat × Any × [Nat] -> Action
+;;; Create a drop action.
+;;; Target is the item ID to drop.
+(define make-drop-action
+  (case-lambda
+    [(actor-id item-id)
+     (make-action 'drop actor-id item-id 50)]
+    [(actor-id item-id cost)
+     (make-action 'drop actor-id item-id cost)]))
+
+;;; make-open-action : Nat × Point × [Nat] -> Action
+;;; Create an open action (door, container, etc.).
+;;; Target is the point to open.
+(define make-open-action
+  (case-lambda
+    [(actor-id target-point)
+     (make-action 'open actor-id target-point 100)]
+    [(actor-id target-point cost)
+     (make-action 'open actor-id target-point cost)]))
+
+;;; make-close-action : Nat × Point × [Nat] -> Action
+;;; Create a close action (door, etc.).
+;;; Target is the point to close.
+(define make-close-action
+  (case-lambda
+    [(actor-id target-point)
+     (make-action 'close actor-id target-point 100)]
+    [(actor-id target-point cost)
+     (make-action 'close actor-id target-point cost)]))
+
+;;; make-wait-action : Nat × [Nat] -> Action
+;;; Create a wait action (skip turn).
+;;; Target is #f (no target).
+(define make-wait-action
+  (case-lambda
+    [(actor-id)
+     (make-action 'wait actor-id #f 100)]
+    [(actor-id cost)
+     (make-action 'wait actor-id #f cost)]))
+
+;;; make-interact-action : Nat × (Point | Nat) × [Nat] -> Action
+;;; Create an interact action.
+;;; Target can be a point or entity ID.
+(define make-interact-action
+  (case-lambda
+    [(actor-id target)
+     (make-action 'interact actor-id target 100)]
+    [(actor-id target cost)
+     (make-action 'interact actor-id target cost)]))
+
+;;; make-custom-action : Nat × Symbol × Any × [Nat] × [Alist] -> Action
+;;; Create a custom game-specific action.
+;;; subtype identifies the specific custom action.
+(define make-custom-action
+  (case-lambda
+    [(actor-id subtype target)
+     (make-action 'custom actor-id target 100
+                  `((subtype . ,subtype)))]
+    [(actor-id subtype target cost)
+     (make-action 'custom actor-id target cost
+                  `((subtype . ,subtype)))]
+    [(actor-id subtype target cost data)
+     (make-action 'custom actor-id target cost
+                  (alist-set data 'subtype subtype))]))
+
+;;; ============================================================
+;;; Action Predicates
+;;; ============================================================
+
+;;; action-is-type? : Action × Symbol -> Bool
+;;; Check if action is of a specific type.
+(define (action-is-type? action type)
+  (eq? (action-type action) type))
+
+;;; action-move? : Action -> Bool
+(define (action-move? action)
+  (action-is-type? action 'move))
+
+;;; action-attack? : Action -> Bool
+(define (action-attack? action)
+  (action-is-type? action 'attack))
+
+;;; action-wait? : Action -> Bool
+(define (action-wait? action)
+  (action-is-type? action 'wait))
+
+;;; action-interact? : Action -> Bool
+(define (action-interact? action)
+  (action-is-type? action 'interact))
+
+;;; action-uses-target? : Action -> Bool
+;;; Check if action has a meaningful target (not #f or 'wait).
+(define (action-uses-target? action)
+  (and (action-target action) #t))
+
+;;; ============================================================
+;;; Action Formatting
+;;; ============================================================
+
+;;; action->string : Action -> String
+;;; Convert action to human-readable string for debugging.
+(define (action->string action)
+  (string-append
+    (symbol->string (action-type action))
+    " by "
+    (number->string (action-actor-id action))
+    " -> "
+    (if (action-target action)
+        (if (pair? (action-target action))
+            (string-append "("
+                          (number->string (car (action-target action)))
+                          ", "
+                          (number->string (cdr (action-target action)))
+                          ")")
+            (if (number? (action-target action))
+                (number->string (action-target action))
+                (if (symbol? (action-target action))
+                    (symbol->string (action-target action))
+                    "#<target>")))
+        "none")
+    " ["
+    (number->string (action-cost action))
+    " AP]"))
+
+;;; ============================================================
+;;; Action Comparison
+;;; ============================================================
+
+;;; action-equal? : Action × Action -> Bool
+;;; Check if two actions are equivalent.
+(define (action-equal? a1 a2)
+  (and (eq? (action-type a1) (action-type a2))
+       (= (action-actor-id a1) (action-actor-id a2))
+       (equal? (action-target a1) (action-target a2))
+       (= (action-cost a1) (action-cost a2))))
+
+;;; action-same-actor? : Action × Action -> Bool
+;;; Check if two actions are by the same actor.
+(define (action-same-actor? a1 a2)
+  (= (action-actor-id a1) (action-actor-id a2)))
+
+;;; action-same-target? : Action × Action -> Bool
+;;; Check if two actions have the same target.
+(define (action-same-target? a1 a2)
+  (equal? (action-target a1) (action-target a2)))
+
+;;; ============================================================
+;;; Export Summary
+;;; ============================================================
+;;;
+;;; Action Types:
+;;;   standard-action-types, action-type?
+;;;
+;;; Action Structure:
+;;;   make-action, action-type, action-actor-id, action-target
+;;;   action-cost, action-data
+;;;   action-get, action-set, action-set-cost
+;;;
+;;; Action Validation:
+;;;   make-validation-result, validation-result-valid?, validation-result-reason
+;;;   validation-success, validation-failure
+;;;   action-valid?, action-validate
+;;;
+;;; Action Results:
+;;;   make-action-result, action-result-success?, action-result-events
+;;;   action-result-changes, action-result-message
+;;;   action-result-add-event, action-result-add-change, action-result-set-message
+;;;   action-success, action-failure
+;;;
+;;; Action Queue:
+;;;   make-action-queue, queue-action!, dequeue-action!, peek-action
+;;;   action-queue-empty?, action-queue-clear!, action-queue-length
+;;;   action-queue-contains?, action-queue-filter!
+;;;
+;;; Convenience Constructors:
+;;;   make-move-action, make-attack-action, make-use-item-action
+;;;   make-pickup-action, make-drop-action, make-open-action, make-close-action
+;;;   make-wait-action, make-interact-action, make-custom-action
+;;;
+;;; Action Predicates:
+;;;   action-is-type?, action-move?, action-attack?, action-wait?
+;;;   action-interact?, action-uses-target?
+;;;
+;;; Action Utilities:
+;;;   action->string, action-equal?, action-same-actor?, action-same-target?
