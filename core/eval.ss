@@ -93,6 +93,9 @@
                    (cdr names)
                    (cdr values))))
 
+(define (env-extend-alist env alist)
+  (append alist env))
+
 ;;; ============================================================
 ;;; The Evaluator
 ;;; ============================================================
@@ -178,7 +181,7 @@
 (define (eval-let-bindings bindings body env acc fuel)
   (if (null? bindings)
       ;; All bindings evaluated — evaluate body in extended env
-      (eval-expr body (env-extend* env (map car acc) (map cdr acc)) fuel)
+      (eval-expr body (env-extend-alist env (reverse acc)) fuel)
       ;; Evaluate next binding
       (let* ([binding (car bindings)]
              [name (car binding)]
