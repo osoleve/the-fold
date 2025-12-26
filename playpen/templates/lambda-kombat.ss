@@ -207,69 +207,92 @@
           (loop (- i 1)))))
     (vector->list v)))
 
-;;; play-round : State → State | #f
-;;; Play one round, return new state or #f if quit.
-(define (play-round state)
-  (let* ([level (cdr (assq 'level state))]
-         [puzzle (random-puzzle level)]
-         [pattern (car puzzle)]
-         [correct-answer (cadr puzzle)]
-         [wrong-answers (caddr puzzle)]
-         [all-answers (shuffle (cons correct-answer wrong-answers))]
-         [correct-idx (+ 1 (list-index correct-answer all-answers))])
+;;; lk-next : → void
+;;; Display the next puzzle.
+(define (lk-next)
+  (if (not *lk-state*)
+      (begin
+        (display "  No game in progress. Use (lambda-kombat) to start.\n"))
+      (let* ([level (cdr (assq 'level *lk-state*))]
+             [puzzle (random-puzzle level)]
+             [pattern (car puzzle)]
+             [correct-answer (cadr puzzle)]
+             [wrong-answers (caddr puzzle)]
+             [all-answers (shuffle (cons correct-answer wrong-answers))])
 
-    (display-lk-header)
-    (display-lk-stats state)
-    (display-puzzle pattern all-answers)
+        ;; Store current puzzle in state
+        (set! *lk-state* (cons (cons 'current-puzzle (cons pattern all-answers))
+                               (cons (cons 'correct-answer correct-answer)
+                                    *lk-state*)))
 
-    (let ([answer (read)])
-      (cond
-        [(memq answer '(q quit exit))
-         #f]  ; Quit game
+        (display-lk-header)
+        (display-lk-stats *lk-state*)
+        (display-puzzle pattern all-answers)
+        (display "\n  Use: (lk-answer N) where N is 1-4, or (lk-quit) to end.\n"))))
 
-        [(and (number? answer)
-              (>= answer 1)
-              (<= answer (length all-answers)))
-         (let* ([chosen (list-ref all-answers (- answer 1))]
-                [is-correct (equal? chosen correct-answer)]
-                [new-score (+ (cdr (assq 'score state))
-                             (if is-correct
-                                 (* 10 level (+ 1 (cdr (assq 'streak state))))
-                                 0))]
-                [new-streak (if is-correct
-                               (+ 1 (cdr (assq 'streak state)))
-                               0)]
-                [new-best (max new-streak (cdr (assq 'best-streak state)))]
-                [new-rounds (+ 1 (cdr (assq 'rounds state)))]
-                [new-correct (+ (cdr (assq 'correct state))
-                               (if is-correct 1 0))]
-                ;; Level up every 5 correct answers
-                [new-level (min 3 (+ 1 (quotient new-correct 5)))])
+;;; lk-answer : Number → void
+;;; Submit an answer to the current puzzle.
+(define (lk-answer n)
+  (if (not *lk-state*)
+      (display "  No game in progress. Use (lambda-kombat) to start.\n")
+      (let ([puzzle-entry (assq 'current-puzzle *lk-state*)]
+            [correct-entry (assq 'correct-answer *lk-state*)])
+        (if (not puzzle-entry)
+            (begin
+              (display "  No puzzle displayed. Use (lk-next) to get a puzzle.\n"))
+            (let* ([all-answers (cdr (cdr puzzle-entry))]
+                   [correct-answer (cdr correct-entry)]
+                   [level (cdr (assq 'level *lk-state*))])
+              (cond
+                [(not (and (number? n) (>= n 1) (<= n (length all-answers))))
+                 (display (format "  Invalid answer. Enter a number from 1-~a.\n" (length all-answers)))]
 
-           (if is-correct
-               (begin
-                 (display "\n  ✓ CORRECT!\n")
-                 (when (> new-streak 2)
-                   (display (format "  🔥 ~a streak!\n" new-streak))))
-               (begin
-                 (display "\n  ✗ Wrong!\n")
-                 (display (format "  The answer was: ~s\n" correct-answer))))
+                [else
+                 (let* ([chosen (list-ref all-answers (- n 1))]
+                        [is-correct (equal? chosen correct-answer)]
+                        [new-score (+ (cdr (assq 'score *lk-state*))
+                                     (if is-correct
+                                         (* 10 level (+ 1 (cdr (assq 'streak *lk-state*))))
+                                         0))]
+                        [new-streak (if is-correct
+                                       (+ 1 (cdr (assq 'streak *lk-state*)))
+                                       0)]
+                        [new-best (max new-streak (cdr (assq 'best-streak *lk-state*)))]
+                        [new-rounds (+ 1 (cdr (assq 'rounds *lk-state*)))]
+                        [new-correct (+ (cdr (assq 'correct *lk-state*))
+                                       (if is-correct 1 0))]
+                        ;; Level up every 5 correct answers
+                        [new-level (min 3 (+ 1 (quotient new-correct 5)))])
 
-           (display "\n  Press Enter to continue...")
-           (read-line (current-input-port))
+                   (if is-correct
+                       (begin
+                         (display "\n  ✓ CORRECT!\n")
+                         (when (> new-streak 2)
+                           (display (format "  🔥 ~a streak!\n" new-streak))))
+                       (begin
+                         (display "\n  ✗ Wrong!\n")
+                         (display (format "  The answer was: ~s\n" correct-answer))))
 
-           `((mode . pattern-match)
-             (level . ,new-level)
-             (score . ,new-score)
-             (streak . ,new-streak)
-             (best-streak . ,new-best)
-             (rounds . ,new-rounds)
-             (correct . ,new-correct)
-             (start-time . ,(cdr (assq 'start-time state)))))]
+                   ;; Update state (remove puzzle, keep new stats)
+                   (set! *lk-state* `((mode . pattern-match)
+                                      (level . ,new-level)
+                                      (score . ,new-score)
+                                      (streak . ,new-streak)
+                                      (best-streak . ,new-best)
+                                      (rounds . ,new-rounds)
+                                      (correct . ,new-correct)
+                                      (start-time . ,(cdr (assq 'start-time *lk-state*)))))
 
-        [else
-         (display "\n  Invalid input. Enter 1-4 or 'quit'\n")
-         state]))))
+                   (display "\n  Use (lk-next) for next puzzle.\n"))]))))))
+
+;;; lk-quit : → void
+;;; End the current game and show results.
+(define (lk-quit)
+  (if (not *lk-state*)
+      (display "  No game in progress.\n")
+      (begin
+        (end-game *lk-state*)
+        (set! *lk-state* #f))))
 
 ;;; list-index : Any × List → Number | #f
 (define (list-index item lst)
@@ -296,22 +319,11 @@
   (display "║  • Build streaks for bonus points                                ║\n")
   (display "║  • Level up as you progress                                      ║\n")
   (display "║                                                                  ║\n")
-  (display "║  Type 'quit' to end and submit your score.                       ║\n")
-  (display "╚══════════════════════════════════════════════════════════════════╝\n")
-  (display "\n  Press Enter to start...")
-  (read-line (current-input-port))
+  (display "║  Use (lk-answer N) to answer, (lk-quit) to end.                  ║\n")
+  (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
 
   (set! *lk-state* (make-game-state))
-  (game-loop))
-
-;;; game-loop : → void
-(define (game-loop)
-  (let ([new-state (play-round *lk-state*)])
-    (if new-state
-        (begin
-          (set! *lk-state* new-state)
-          (game-loop))
-        (end-game *lk-state*))))
+  (lk-next))
 
 ;;; end-game : State → void
 (define (end-game state)
@@ -336,14 +348,22 @@
                     (make-string (max 0 (- 49 (string-length (number->string best-streak)))) #\space)))
     (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
 
-    (display "  Submit score to leaderboard? (yes/no): ")
-    (let ([answer (read)])
-      (when (memq answer '(yes y #t))
-        (submit-score! score state)))))
+    (display "  Use (lk-submit) to submit your score to the leaderboard.\n")))
 
 ;;; ============================================================
 ;;; Leaderboard
 ;;; ============================================================
+
+;;; lk-submit : → void
+;;; Submit the last game's score to the leaderboard.
+(define (lk-submit)
+  (if (not *lk-state*)
+      (display "  No completed game to submit.\n")
+      (let ([rounds (cdr (assq 'rounds *lk-state*))])
+        (if (= rounds 0)
+            (display "  Play at least one round before submitting!\n")
+            (let ([score (cdr (assq 'score *lk-state*))])
+              (submit-score! score *lk-state*))))))
 
 ;;; submit-score! : Number × State → Bytevector
 ;;; Post score to #arena channel.
@@ -446,6 +466,10 @@
 
   COMMANDS:
     (lambda-kombat)         Start a new game
+    (lk-next)               Get next puzzle
+    (lk-answer N)           Answer with option N (1-4)
+    (lk-quit)               End game and see results
+    (lk-submit)             Submit score to leaderboard
     (lk-leaderboard)        View high scores
     (lk-help)               Show this help
 
@@ -470,4 +494,12 @@
     • _ matches ANYTHING without binding
     • Named captures (?x) must match the same value each time
     • Build streaks for massive point multipliers!
+
+  GAMEPLAY:
+    1. (lambda-kombat)      ; Start game, get first puzzle
+    2. (lk-answer 2)        ; Answer with option 2
+    3. (lk-next)            ; Get next puzzle
+    4. (lk-answer 1)        ; Keep playing...
+    5. (lk-quit)            ; End game
+    6. (lk-submit)          ; Submit to leaderboard
 "))
