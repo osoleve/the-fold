@@ -14,6 +14,10 @@
   (owner opus)
 
   (milestones
+    ((name "M0: Spec Fixes - BLOCKING")
+     (target "2026-01-02")
+     (description "Resolve 4 blocking specification issues from external review"))
+
     ((name "M1: Core Foundation")
      (target "2026-01-09")
      (description "Rust VM with 8 core forms, fuel-based totality"))
@@ -35,6 +39,67 @@
      (description "Performance, validation, Crust cutover")))
 
   ;; ================================================================
+  ;; PHASE 0: SPEC FIXES (3-5 days) - BLOCKING
+  ;; ================================================================
+  ;; External review identified 4 critical issues that MUST be resolved
+  ;; before any Rust implementation begins.
+  ;; See: forum/design/rust-migration-review-findings.ss
+
+  (phase
+    (name "Phase 0: Specification Fixes")
+    (milestone "M0")
+    (estimate "3-5 days")
+    (blocking "ALL subsequent phases depend on Phase 0 completion")
+
+    (task
+      (id "P0-001")
+      (title "Resolve fuel specification ambiguity")
+      (status todo)
+      (estimate "1 day")
+      (assignee opus)
+      (deliverable "Updated core/eval.ss with precise fuel semantics")
+      (notes "Decision: 1 fuel = 1 eval call, primitives = 0 fuel
+              Suspension at eval boundaries only, deterministic
+              Add tests validating fuel consumption"))
+
+    (task
+      (id "P0-002")
+      (title "Document CAS persistence boundary")
+      (status todo)
+      (estimate "0.5 days")
+      (assignee opus)
+      (deliverable "Updated core/cas.ss and shell/fs.ss documentation")
+      (notes "Core CAS: In-memory only (HashMap<Hash, Block>)
+              shell/fs.ss: Optional persistence layer in Shell tier
+              Clarify boundary in architecture docs"))
+
+    (task
+      (id "P0-003")
+      (title "Decide NFC normalization strategy")
+      (status todo)
+      (estimate "1 day")
+      (assignee opus)
+      (deliverable "Decision documented + spec updated + tests")
+      (notes "Option A: Keep NFC, add unicode-normalization crate
+              Option B: Relax to raw UTF-8 bytes (breaks hash stability)
+              Must decide BEFORE any production hashes exist
+              If keep NFC: update approved crates list
+              If relax: update core/block.ss serialization spec"))
+
+    (task
+      (id "P0-004")
+      (title "Add versioned address format to spec")
+      (status todo)
+      (estimate "1-2 days")
+      (assignee opus)
+      (deliverable "Updated core/block.ss and core/cas.ss with versioned addresses")
+      (notes "Address = version:u8 || hash:bytes[32] (33 bytes total)
+              Version 0: Current spec (NFC/raw UTF-8, little-endian, length-prefixed)
+              Update hash-block to return 33 bytes
+              Update CAS store keys to 33-byte addresses
+              Add tests validating version byte handling")))
+
+  ;; ================================================================
   ;; PHASE 1: CORE (Week 1-2)
   ;; ================================================================
 
@@ -49,8 +114,11 @@
       (status todo)
       (estimate "1 hour")
       (assignee opus)
+      (depends-on "P0-001" "P0-002" "P0-003" "P0-004")
       (deliverable "fold-rs/ with src/, tests/, benches/")
-      (notes "cargo new fold-rs --lib"))
+      (notes "⚠️ BLOCKED until Phase 0 complete
+              cargo new fold-rs --lib
+              Directory: core/, mantle/, tools/"))
 
     (task
       (id "C002")
@@ -94,13 +162,17 @@
 
     (task
       (id "C006")
-      (title "Evaluator: quote, fn, if (src/eval.rs)")
+      (title "TRAMPOLINE evaluator: quote, fn, if (src/eval.rs)")
       (status todo)
-      (estimate "4 hours")
+      (estimate "6 hours")
       (assignee opus)
-      (depends-on "C002" "K003" "K004" "K005")
-      (deliverable "eval_expr() handling quote, fn, if")
-      (notes "Simplest forms first, with fuel tracking"))
+      (depends-on "C002" "C003" "C004" "C005")
+      (deliverable "Trampoline loop with eval_step handling quote, fn, if")
+      (notes "⚠️ CRITICAL: Implement trampoline from day 1 (NOT naive tree-walker)
+              enum Trampoline { Done(Value), Continue(Expr, Env, usize) }
+              fn eval_loop() with loop + match
+              Prevents stack overflow on deep recursion
+              Fuel tracking: 1 fuel = 1 eval call"))
 
     (task
       (id "C007")
@@ -352,23 +424,28 @@
 
     (task
       (id "M104")
-      (title "SHA-256 hashing (src/hash.rs)")
+      (title "SHA-256 hashing with versioned addresses (src/hash.rs)")
       (status todo)
-      (estimate "2 hours")
+      (estimate "3 hours")
       (assignee opus)
-      (depends-on "M102")
-      (deliverable "hash_block(block) → [u8; 32]")
-      (notes "Use sha2 crate, or port core/sha256.ss"))
+      (depends-on "M102" "P0-004")
+      (deliverable "hash_block(block) → Address (33 bytes: version || hash)")
+      (notes "⚠️ CRITICAL: Use sha2 crate - NEVER roll your own crypto
+              Address = version:u8 || sha256(canonical_bytes):bytes[32]
+              Version 0: Current spec (per P0-003 NFC decision)
+              Depends on P0-004 versioned address spec"))
 
     (task
       (id "M105")
-      (title "Content-addressed store (src/cas.rs)")
+      (title "Content-addressed store - in-memory only (src/cas.rs)")
       (status todo)
       (estimate "5 hours")
       (assignee opus)
-      (depends-on "M104")
+      (depends-on "M104" "P0-002")
       (deliverable "CAS with store!, fetch, pin!, stored?")
-      (notes "HashMap<Hash, Block> + persistence later"))
+      (notes "Core CAS: In-memory ONLY (HashMap<Address, Block>)
+              shell/fs.ss handles OPTIONAL persistence (Shell tier)
+              Depends on P0-002 CAS boundary clarification"))
 
     (task
       (id "M106")
@@ -471,22 +548,26 @@
 
     (task
       (id "P001")
-      (title "S-expression lexer (src/parser/lexer.rs)")
+      (title "Hand-written S-expression lexer (src/parser/lexer.rs)")
       (status todo)
       (estimate "6 hours")
       (assignee opus)
       (deliverable "Tokenize Scheme source → Token stream")
-      (notes "Handle strings, symbols, numbers, parens, comments"))
+      (notes "Hand-write lexer (NOT nom/pest crate)
+              Handle strings, symbols, numbers, parens, comments
+              ~200-300 LOC total for lexer+parser"))
 
     (task
       (id "P002")
-      (title "S-expression parser (src/parser/sexpr.rs)")
+      (title "Hand-written S-expression parser (src/parser/sexpr.rs)")
       (status todo)
       (estimate "6 hours")
       (assignee opus)
       (depends-on "P001")
       (deliverable "Token stream → SExpr (atoms, lists)")
-      (notes "Use nom crate or hand-write recursive descent"))
+      (notes "Hand-write recursive descent parser (NOT nom/pest)
+              Reviewer consensus: hand-written is simpler for S-exprs
+              ~200-500 LOC total for full parser"))
 
     (task
       (id "P003")
@@ -866,17 +947,22 @@
   ;; ================================================================
 
   (summary
-    (total-tasks 77)
-    (total-estimate "~400 hours")
-    (target-duration "5 weeks")
-    (critical-path "K001→K002→K004→K005→K006→K014→A001→F001→F005→P001→P002→P003→P010→V001→V009→V012")
+    (total-tasks 81)
+    (total-estimate "~420 hours")
+    (target-duration "8-10 weeks realistic (5 weeks aggressive)")
+    (critical-path "P0-001→P0-002→P0-003→P0-004→C001→C002→C004→C005→C006→C014→M001→M101→M104→M105→P001→P002→P003→P010→V001→V009→V012")
     (staffing "1 Opus (primary), Sonnet + Haiku for validation")
+    (blocking-requirements
+      "⚠️ Phase 0 MUST complete before Rust implementation
+       External review identified 4 critical spec issues")
     (risks
+      ((risk "Blocking spec issues not resolved")
+       (mitigation "Phase 0 must complete first - no Rust code until specs fixed"))
       ((risk "Rust learning curve")
        (mitigation "Start simple, iterate, reference existing Scheme code"))
       ((risk "Performance worse than Chez")
        (mitigation "Benchmark early, optimize hotspots, consider bytecode/JIT"))
       ((risk "Semantic bugs in translation")
-       (mitigation "Cross-validation suite, comprehensive tests"))
+       (mitigation "Cross-validation suite, comprehensive tests, differential testing"))
       ((risk "Scope creep")
        (mitigation "Defer type system, debugger, LSP to future")))))
