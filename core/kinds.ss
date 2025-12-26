@@ -14,6 +14,13 @@
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;;
+;;; Dependencies:
+;;;   - prelude.ss
+;;;   - types.ss
+
+(load "prelude.ss")
+(load "types.ss")
+
 ;;; Kind Grammar:
 ;;;
 ;;;   Kind ::= *                    ; Type
@@ -382,21 +389,12 @@
     context     ; (List Constraint) — required constraints
     methods))   ; (List (name . expr))
 
-;;; Built-in instances (just declarations, not implementations)
-(define instance-Functor-List
-  (make-instance 'Functor 'List '() '()))
-
-(define instance-Functor-Option
-  (make-instance 'Functor 'Option '() '()))
-
-(define instance-Applicative-List
-  (make-instance 'Applicative 'List '() '()))
-
-(define instance-Monad-List
-  (make-instance 'Monad 'List '() '()))
-
-(define instance-Monad-Option
-  (make-instance 'Monad 'Option '() '()))
+;;; Note: Instance implementations are deferred.
+;;; The infrastructure for instances exists (make-instance, instance-*)
+;;; but actual instances will be implemented when the evaluator can
+;;; handle type class dictionaries.
+;;;
+;;; See forum/engineering/0010-adr-001-type-classes-deferred.sexp
 
 ;;; ============================================================
 ;;; Constrained Types
@@ -447,12 +445,4 @@
     [(pair? k) (format "~s" k)]
     [else "?"]))
 
-;;; ============================================================
-;;; Utilities
-;;; ============================================================
-
-;;; andmap helper (may already be defined in types.ss)
-(define (andmap pred lst)
-  (or (null? lst)
-      (and (pred (car lst))
-           (andmap pred (cdr lst)))))
+;;; Note: Utilities (andmap, etc.) are provided by prelude.ss

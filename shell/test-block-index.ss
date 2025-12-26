@@ -1,10 +1,12 @@
-;;; core/test-block-index.ss — Tests for Block Index
+;;; shell/test-block-index.ss — Tests for Block Index
 ;;;
-;;; Test the pure indexing primitives.
+;;; Test the indexing primitives (uses mutation).
+;;;
+;;; Run from ccverse root: scheme --script shell/test-block-index.ss
 
-(load "block-index.ss")
+(load "shell/block-index.ss")
 
-(display "Testing block-index.ss...\n")
+(display "Testing shell/block-index.ss...\n")
 
 ;;; Test: Create empty index
 (display "  Creating empty index... ")
@@ -139,4 +141,4 @@
     (assert (= (hashtable-ref counts hash3 0) 0))  ; Not referenced
     (display "✓\n")))
 
-(display "\nAll block-index tests passed! ✓\n")
+(display "\nAll shell/block-index tests passed!\n")

@@ -7,6 +7,13 @@
 ;;; - refs: Vector of hashes (each hash is a 32-byte bytevector)
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
+;;;
+;;; Dependencies:
+;;;   - prelude.ss
+;;;
+;;; See core/MODULES.md for full dependency graph.
+
+(load "prelude.ss")
 
 ;;; ============================================================
 ;;; Compat: ~s format directive (Chez 9.5 compatibility)

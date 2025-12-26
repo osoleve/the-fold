@@ -169,12 +169,10 @@
 (test "display chain" "* ⇒ * ⇒ *" (kind->string '(⇒ * (⇒ * *))))
 
 ;;; ============================================================
-;;; Instances
+;;; Instances (deferred)
 ;;; ============================================================
-(test-section "Instances")
-(test "Functor List class" 'Functor (instance-class instance-Functor-List))
-(test "Functor List type" 'List (instance-type instance-Functor-List))
-(test "Monad Option class" 'Monad (instance-class instance-Monad-Option))
+;;; Note: Instance implementations are deferred.
+;;; See docs/decisions/ADR-001-type-classes-deferred.md
 
 (newline)
 (display "✓ All higher-kinded type tests complete.\n")

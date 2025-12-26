@@ -15,6 +15,11 @@
 ;;; (dv n) represents a de Bruijn variable with index n.
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
+;;;
+;;; Dependencies:
+;;;   - prelude.ss
+
+(load "prelude.ss")
 
 ;;; ============================================================
 ;;; Environment
@@ -137,11 +142,4 @@
     [else
      (apply append (map (lambda (e) (free-vars-with-env e env)) expr))]))
 
-;;; unique : (List Symbol) → (List Symbol)
-;;; Remove duplicates, preserving first occurrence order.
-(define (unique lst)
-  (let loop ([lst lst] [seen '()] [acc '()])
-    (cond
-      [(null? lst) (reverse acc)]
-      [(memq (car lst) seen) (loop (cdr lst) seen acc)]
-      [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
+;;; Note: unique is provided by prelude.ss

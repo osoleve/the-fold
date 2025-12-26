@@ -11,6 +11,11 @@
 ;;; avoid names that appear free in the expression.
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
+;;;
+;;; Dependencies:
+;;;   - prelude.ss
+
+(load "prelude.ss")
 
 ;;; ============================================================
 ;;; Symbol Supply

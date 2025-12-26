@@ -1,21 +1,24 @@
-;;; Test harness for validate.ss
+;;; Test harness for shell/validate.ss
+;;;
+;;; Run from ccverse root: scheme --script shell/test-validate.ss
 
-(load "validate.ss")
+(load "shell/validate.ss")
 
-;;; Helper to test validations
+;;; Helper to test validations (now using Result type)
+;;; Validators return (ok #t) for valid or (error message) for invalid
 (define (test-valid name validator obj expected-valid)
   (display "  ")
   (display name)
   (display ": ")
   (let ([result (validator obj)])
     (cond
-      [(and expected-valid (eq? result #t))
+      [(and expected-valid (ok? result))
        (display "✓")]
-      [(and (not expected-valid) (string? result))
+      [(and (not expected-valid) (error? result))
        (display "✓ (correctly rejected)")]
       [else
        (display "✗\n    expected: ")
-       (display (if expected-valid "valid" "invalid"))
+       (display (if expected-valid "(ok #t)" "(error ...)"))
        (display "\n    got: ")
        (display result)]))
   (newline))
@@ -34,8 +37,8 @@
         (display (pred obj))))
   (newline))
 
-(display "Validation Tests\n")
-(display "================\n\n")
+(display "Validation Tests (shell/validate.ss)\n")
+(display "====================================\n\n")
 
 ;;; ============================================================
 ;;; Hash Validation Tests
@@ -177,7 +180,7 @@
 (define serialized (block->bytes original))
 (display "  serialize then validate: ")
 (let ([valid-result (validate-serialized serialized)])
-  (if (eq? valid-result #t)
+  (if (ok? valid-result)
       (display "✓\n")
       (begin
         (display "✗\n    ")
@@ -187,7 +190,7 @@
 (define deserialized (bytes->block serialized))
 (display "  deserialize then validate: ")
 (let ([valid-result (validate-block deserialized)])
-  (if (eq? valid-result #t)
+  (if (ok? valid-result)
       (display "✓\n")
       (begin
         (display "✗\n    ")
@@ -239,4 +242,4 @@
 (define block-large (make-block 'large large-payload empty-refs))
 (test-valid "block with large payload" validate-block block-large #t)
 
-(display "\n✓ All validation tests complete.\n")
+(display "\n✓ All shell/validate.ss tests complete.\n")

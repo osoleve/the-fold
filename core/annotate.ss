@@ -15,11 +15,17 @@
 ;;; Where Expr may contain nested ann forms.
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
+;;;
+;;; Dependencies:
+;;;   - prelude.ss
+;;;   - types.ss
+;;;   - kinds.ss
+;;;   - infer.ss
 
-;;; Dependencies
-;;; (load "types.ss")
-;;; (load "kinds.ss")
-;;; (load "infer.ss")
+(load "prelude.ss")
+(load "types.ss")
+(load "kinds.ss")
+(load "infer.ss")
 
 ;;; ============================================================
 ;;; Annotated AST

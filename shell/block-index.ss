@@ -1,18 +1,27 @@
-;;; core/block-index.ss — Block Indexing Primitives
+;;; shell/block-index.ss — Block Indexing for Analytics and Navigation
 ;;;
-;;; Pure indexing structures for efficient block queries.
-;;; Supports the analytics and navigation tools in shell/.
+;;; Mutable indexing structures for efficient block queries.
+;;; Supports analytics and navigation tools in shell/.
 ;;;
-;;; This is Core code: pure, functional, assumes perfect input.
+;;; This is Shell code: impure (uses mutation for indexing).
+;;; The index structures use hashtables which are mutated in place.
 ;;;
 ;;; Indices:
 ;;;   - Tag Index: tag → set of hashes
 ;;;   - Reference Index: hash → set of referencing hashes (reverse index)
 ;;;   - Content Index: content substring → set of hashes
 ;;;
-;;; All operations are pure - they return new index structures.
-;;; Shell layer handles mutation and persistence.
+;;; Dependencies:
+;;;   - core/prelude.ss
+;;;   - core/block.ss
+;;;   - core/cas.ss
+;;;
+;;; NOTE: Run from ccverse root directory.
 
+;;; Set up source-directories to find core modules
+(source-directories (cons "core" (source-directories)))
+
+(load "prelude.ss")
 (load "block.ss")
 (load "cas.ss")
 
@@ -25,10 +34,9 @@
 ;;;   - ref-index: hashtable mapping hashes to lists of referencing hashes
 ;;;   - content-index: hashtable mapping content fragments to lists of hashes
 ;;;
-;;; We represent it as a list for purity:
-;;;   (index tag-table ref-table content-table)
+;;; WARNING: Index structures use mutation (hashtable-set!)
 
-;;; make-index : → Index
+;;; make-index : -> Index
 ;;; Create an empty index.
 (define (make-index)
   (list 'index
@@ -36,25 +44,25 @@
         (make-hashtable equal-hash equal?)
         (make-hashtable equal-hash equal?)))
 
-;;; index-tag-table : Index → Hashtable
+;;; index-tag-table : Index -> Hashtable
 (define (index-tag-table idx)
   (list-ref idx 1))
 
-;;; index-ref-table : Index → Hashtable
+;;; index-ref-table : Index -> Hashtable
 (define (index-ref-table idx)
   (list-ref idx 2))
 
-;;; index-content-table : Index → Hashtable
+;;; index-content-table : Index -> Hashtable
 (define (index-content-table idx)
   (list-ref idx 3))
 
 ;;; ============================================================
-;;; Indexing Operations
+;;; Indexing Operations (MUTATING)
 ;;; ============================================================
 
-;;; index-block! : Index × Hash × Block → void
-;;; Add a block to the index (mutates the index tables).
-;;; Note: This is a helper for the shell layer to build indices.
+;;; index-block! : Index x Hash x Block -> void
+;;; Add a block to the index (MUTATES the index tables).
+;;; This is a Shell operation - it uses hashtable-set!
 (define (index-block! idx hash blk)
   (let ([tag-table (index-tag-table idx)]
         [ref-table (index-ref-table idx)]
@@ -88,20 +96,20 @@
                 (hashtable-set! content-table fragment (cons hash existing))))))))))
 
 ;;; ============================================================
-;;; Query Operations
+;;; Query Operations (Pure)
 ;;; ============================================================
 
-;;; find-blocks-by-tag : Index × Symbol → List[Hash]
+;;; find-blocks-by-tag : Index x Symbol -> List[Hash]
 ;;; Find all blocks with the given tag.
 (define (find-blocks-by-tag idx tag)
   (hashtable-ref (index-tag-table idx) tag '()))
 
-;;; find-referencing-blocks : Index × Hash → List[Hash]
+;;; find-referencing-blocks : Index x Hash -> List[Hash]
 ;;; Find all blocks that reference the given hash.
 (define (find-referencing-blocks idx hash)
   (hashtable-ref (index-ref-table idx) hash '()))
 
-;;; find-blocks-by-content : Index × String → List[Hash]
+;;; find-blocks-by-content : Index x String -> List[Hash]
 ;;; Find blocks containing the given content substring.
 ;;; Returns the union of all matching fragments.
 (define (find-blocks-by-content idx query)
@@ -118,10 +126,10 @@
     ))
 
 ;;; ============================================================
-;;; Index Statistics
+;;; Index Statistics (Pure queries)
 ;;; ============================================================
 
-;;; index-stats : Index → Alist
+;;; index-stats : Index -> Alist
 ;;; Return statistics about the index.
 (define (index-stats idx)
   (let ([tag-table (index-tag-table idx)]
@@ -132,14 +140,14 @@
       (cons 'ref-count (hashtable-size ref-table))
       (cons 'content-fragments (hashtable-size content-table)))))
 
-;;; get-all-tags : Index → List[Symbol]
+;;; get-all-tags : Index -> List[Symbol]
 ;;; Return all tags in the index.
 (define (get-all-tags idx)
   (let ((tag-table (index-tag-table idx)))
     (vector->list (hashtable-keys tag-table))))
 
-;;; get-tag-distribution : Index → Alist
-;;; Return tag → count distribution.
+;;; get-tag-distribution : Index -> Alist
+;;; Return tag -> count distribution.
 (define (get-tag-distribution idx)
   (let ((tag-table (index-tag-table idx)))
     (map (lambda (tag)
@@ -147,15 +155,16 @@
          (vector->list (hashtable-keys tag-table)))))
 
 ;;; ============================================================
-;;; Graph Traversal Primitives
+;;; Graph Traversal Primitives (Use mutation for visited set)
 ;;; ============================================================
 
-;;; traverse-refs : (Hash → Block) × Hash × (Block → Bool) × Int → List[Hash]
+;;; traverse-refs : (Hash -> Block) x Hash x (Block -> Bool) x Int -> List[Hash]
 ;;; Traverse block references depth-first, collecting matching hashes.
 ;;; - fetch: function to retrieve blocks by hash
 ;;; - start: starting hash
 ;;; - pred: predicate to test blocks
 ;;; - depth: maximum depth (fuel)
+;;; NOTE: Uses mutation for visited set and results accumulation.
 (define (traverse-refs fetch start pred depth)
   (let ([visited (make-hashtable equal-hash equal?)]
         [results '()])
@@ -172,9 +181,10 @@
     (visit start depth)
     results))
 
-;;; find-path : (Hash → Block) × Hash × Hash × Int → List[Hash] | #f
+;;; find-path : (Hash -> Block) x Hash x Hash x Int -> List[Hash] | #f
 ;;; Find a path from start to target, up to max-depth.
 ;;; Returns the path as a list of hashes, or #f if no path found.
+;;; NOTE: Uses mutation for visited set.
 (define (find-path fetch start target max-depth)
   (let ((visited (make-hashtable equal-hash equal?)))
     (define (search hash depth path)
@@ -199,9 +209,10 @@
                  (loop (+ i 1))))))))
     (search start max-depth '())))
 
-;;; compute-reference-counts : List[Hash] × (Hash → Block) → Hashtable
+;;; compute-reference-counts : List[Hash] x (Hash -> Block) -> Hashtable
 ;;; Count how many times each hash is referenced.
-;;; Returns a hashtable: hash → count
+;;; Returns a hashtable: hash -> count
+;;; NOTE: Uses mutation for counting.
 (define (compute-reference-counts hashes fetch)
   (let ([counts (make-hashtable equal-hash equal?)])
     ;; Initialize all hashes with count 0
@@ -221,9 +232,4 @@
       hashes)
     counts))
 
-;;; ============================================================
-;;; Helper: UTF8 conversion
-;;; ============================================================
-
 ;;; Note: utf8->string and string->utf8 are Chez Scheme built-ins.
-;;; No need to define them here.

@@ -4,3 +4,5 @@
 .fold-repl/
 .claude/agents/fold-builder.md
 .claude/agents/forum-participant.md
+shell/mcp-server/node_modules/
+shell/mcp-server/dist/

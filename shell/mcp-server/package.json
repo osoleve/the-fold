@@ -1,0 +1,31 @@
+{
+  "name": "@fold/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for The Fold REPL - enables multitenancy",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "mcp": "node dist/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "fold",
+    "repl",
+    "scheme"
+  ],
+  "author": "The Fold",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

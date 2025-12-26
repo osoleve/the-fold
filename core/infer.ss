@@ -12,10 +12,15 @@
 ;;;
 ;;; Based on "Complete and Easy Bidirectional Typechecking for
 ;;; Higher-Rank Polymorphism" (Dunfield & Krishnaswami, 2013)
+;;;
+;;; Dependencies:
+;;;   - prelude.ss
+;;;   - types.ss
+;;;   - kinds.ss
 
-;;; Dependencies
-;;; (load "types.ss")
-;;; (load "kinds.ss")
+(load "prelude.ss")
+(load "types.ss")
+(load "kinds.ss")
 
 ;;; ============================================================
 ;;; Type Environment
@@ -185,10 +190,7 @@
          (occurs? var (caddr type)))]
     [else (ormap (lambda (t) (occurs? var t)) (cdr type))]))
 
-(define (ormap pred lst)
-  (and (pair? lst)
-       (or (pred (car lst))
-           (ormap pred (cdr lst)))))
+;;; Note: ormap is provided by prelude.ss
 
 ;;; ============================================================
 ;;; Instantiation
@@ -221,14 +223,7 @@
         type
         `(∀ ,gen-vars ,type))))
 
-;;; unique : (List α) → (List α)
-;;; Remove duplicates, preserving order.
-(define (unique lst)
-  (let loop ([lst lst] [seen '()] [acc '()])
-    (cond
-      [(null? lst) (reverse acc)]
-      [(memq (car lst) seen) (loop (cdr lst) seen acc)]
-      [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
+;;; Note: unique and filter are provided by prelude.ss
 
 ;;; ============================================================
 ;;; Bidirectional Type Inference

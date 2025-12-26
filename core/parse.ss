@@ -16,7 +16,11 @@
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;; Parsers compose via monadic bind, alternative choice, and repetition.
 ;;;
-;;; Dependencies: Uses string primitives from prim.ss (via prim)
+;;; Dependencies:
+;;;   - prelude.ss
+;;;   - prim.ss (string primitives)
+
+(load "prelude.ss")
 
 ;;; ============================================================
 ;;; ParseResult Construction and Destructuring

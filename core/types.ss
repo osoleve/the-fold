@@ -11,6 +11,13 @@
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;;
+;;; Dependencies:
+;;;   - prelude.ss
+;;;
+;;; See core/MODULES.md for full dependency graph.
+
+(load "prelude.ss")
+;;;
 ;;; Type Grammar:
 ;;;
 ;;;   Type ::= BaseType
@@ -104,11 +111,7 @@
        (symbol? (car v))
        (andmap type? (cdr v))))
 
-;;; andmap : (α → Bool) × (List α) → Bool
-(define (andmap pred lst)
-  (or (null? lst)
-      (and (pred (car lst))
-           (andmap pred (cdr lst)))))
+;;; Note: andmap is provided by prelude.ss
 
 ;;; ============================================================
 ;;; Type Constructors

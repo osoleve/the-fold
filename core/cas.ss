@@ -13,8 +13,19 @@
 ;;;   stored? : Bytevector → Boolean
 ;;;
 ;;; Note: The in-memory store uses mutation for the hashtable.
-;;; Shell will add filesystem persistence with capability guards.
+;;; This is acceptable in a bootstrap CAS. Shell provides
+;;; capability-gated filesystem persistence (shell/cas-persist.ss).
+;;;
+;;; This is Core code, but with bootstrap mutation for the store.
+;;;
+;;; Dependencies:
+;;;   - prelude.ss
+;;;   - block.ss
+;;;   - sha256.ss
+;;;
+;;; See core/MODULES.md for full dependency graph.
 
+(load "prelude.ss")
 (load "block.ss")
 (load "sha256.ss")
 

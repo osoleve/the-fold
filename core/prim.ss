@@ -8,6 +8,11 @@
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input from Shell.
 ;;;
+;;; Dependencies:
+;;;   - prelude.ss
+
+(load "prelude.ss")
+
 ;;; Categories:
 ;;;   - Arithmetic: add, sub, mul, div, mod, neg, abs
 ;;;   - Comparison: eq?, lt?, le?, gt?, ge?, zero?, positive?, negative?

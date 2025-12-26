@@ -4,6 +4,10 @@
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;; The implementation follows FIPS 180-4 exactly.
+;;;
+;;; Dependencies: NONE (self-contained cryptographic primitive)
+;;;
+;;; See core/MODULES.md for full dependency graph.
 
 ;;; ============================================================
 ;;; 32-bit Arithmetic (mod 2^32)

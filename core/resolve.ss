@@ -10,10 +10,15 @@
 ;;; the evaluator to dispatch to the correct implementation.
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
+;;;
+;;; Dependencies:
+;;;   - prelude.ss
+;;;   - types.ss
+;;;   - kinds.ss
 
-;;; Dependencies
-;;; (load "types.ss")
-;;; (load "kinds.ss")
+(load "prelude.ss")
+(load "types.ss")
+(load "kinds.ss")
 
 ;;; ============================================================
 ;;; Instance Database

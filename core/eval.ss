@@ -23,10 +23,15 @@
 ;;;   blocks: as produced by make-block
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
+;;;
+;;; Dependencies:
+;;;   - prelude.ss
+;;;   - block.ss
+;;;   - prim.ss
 
-;;; Dependencies
-;;; (load "block.ss")
-;;; (load "prim.ss")
+(load "prelude.ss")
+(load "block.ss")
+(load "prim.ss")
 
 ;;; ============================================================
 ;;; Fuel
@@ -192,6 +197,30 @@
 ;;; ============================================================
 ;;; Fix Evaluation (Recursion)
 ;;; ============================================================
+;;;
+;;; IMPORTANT: MUTATION EXCEPTION
+;;; ============================
+;;; This is the ONLY use of mutation (set-cdr!) in all of core/.
+;;;
+;;; Rationale: Recursive closures require a cyclic structure where
+;;; the closure's environment contains a reference to the closure itself.
+;;; In a purely functional setting, this requires either:
+;;;   1. Lazy evaluation (not our strategy - we use call-by-value)
+;;;   2. Explicit fixed-point combinators (Y combinator - less efficient)
+;;;   3. A single, localized mutation to tie the knot
+;;;
+;;; We chose option 3 because:
+;;;   - It's a single, well-understood pattern
+;;;   - The mutation is localized and not observable from outside
+;;;   - It matches how most Scheme implementations handle letrec
+;;;   - Alternatives are significantly more complex or less efficient
+;;;
+;;; The mutation is semantically pure: the cyclic structure IS the
+;;; fixed point; we're just constructing it directly rather than
+;;; computing it through repeated application.
+;;;
+;;; See forum/engineering/0011-adr-002-eval-mutation-exception.sexp
+;;; ============================================================
 
 (define (eval-fix name fn-expr env fuel)
   (if (out-of-fuel? fuel)
@@ -203,7 +232,7 @@
                  ;; Create a recursive closure by including itself in its env
                  [rec-env (env-extend env name 'placeholder)]
                  [closure (make-closure params body rec-env)])
-            ;; Patch the closure's environment to point to itself
+            ;; MUTATION: Tie the knot - see rationale above
             (set-cdr! (car rec-env) closure)
             `(ok ,closure ,(- fuel 1)))
           `(error fix-requires-fn ,fn-expr))))
