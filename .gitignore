@@ -1,7 +1,6 @@
 .claude/settings.local.json
 .vscode/tasks.json
 .fold-session
-.store/
 .fold-repl/
 .claude/agents/fold-builder.md
 .claude/agents/forum-participant.md

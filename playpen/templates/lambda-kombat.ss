@@ -30,8 +30,16 @@
 ;;; Pattern Matching Engine
 ;;; ============================================================
 
-;;; Patterns use '? as wildcard and '?x as named capture
-;;; e.g., (lambda (? x) (+ ?x 1)) matches (lambda (y) (+ y 1))
+;;; Pattern Matching for S-Expressions
+;;;
+;;; Syntax:
+;;;   _      = wildcard, matches anything (no binding)
+;;;   ?x     = named capture, binds to 'x', must match if repeated
+;;;   (...)  = list, matches element-by-element
+;;;   atom   = literal, must equal exactly
+;;;
+;;; Example: (lambda (?x) (+ ?x 1)) matches (lambda (y) (+ y 1))
+;;;          binding: x → y (and both ?x must match 'y')
 
 ;;; match-pattern : Sexpr × Sexpr → Alist | #f
 ;;; Returns bindings alist if match, #f otherwise.
@@ -40,20 +48,23 @@
 
 (define (match-pattern* pattern expr bindings)
   (cond
-    ;; Wildcard: matches anything
-    [(eq? pattern '?) bindings]
+    ;; Wildcard: _ matches anything
+    [(eq? pattern '_) bindings]
 
     ;; Named capture: ?x, ?y, etc.
     [(and (symbol? pattern)
           (let ([s (symbol->string pattern)])
-            (and (> (string-length s) 1)
+            (and (>= (string-length s) 2)
                  (char=? (string-ref s 0) #\?))))
-     (let* ([name (string->symbol (substring (symbol->string pattern) 1))]
+     (let* ([s (symbol->string pattern)]
+            [name (string->symbol (substring s 1 (string-length s)))]
             [existing (assq name bindings)])
        (if existing
+           ;; Must match same value as before
            (if (equal? (cdr existing) expr)
                bindings
                #f)
+           ;; New binding
            (cons (cons name expr) bindings)))]
 
     ;; Lists: match element-wise
@@ -79,22 +90,22 @@
 ;;; Each puzzle is: (pattern correct-answer (wrong1 wrong2 wrong3))
 (define *level-1-puzzles*
   (list
-    ;; Lambda pattern
-    (list '(lambda (? x) (+ ?x 1))
+    ;; Lambda pattern: ?x captures the parameter, must appear in body
+    (list '(lambda (?x) (+ ?x 1))
           '(lambda (y) (+ y 1))
           '((lambda (x) (* x 2))
             (define x (+ x 1))
             (+ 1 1)))
 
-    ;; Binary op pattern
-    (list '(+ ? ?)
+    ;; Binary op pattern: _ wildcards match anything
+    (list '(+ _ _)
           '(+ 3 5)
           '((+ 3)
             (* 3 5)
             (- 3 5)))
 
-    ;; If pattern
-    (list '(if ? ? ?)
+    ;; If pattern: all wildcards
+    (list '(if _ _ _)
           '(if #t 1 0)
           '((cond (#t 1))
             (when #t 1)
@@ -103,15 +114,15 @@
 ;;; Level 2: Nested patterns
 (define *level-2-puzzles*
   (list
-    ;; Higher-order function pattern
-    (list '(lambda (? f) (lambda (? x) (?f ?x)))
+    ;; Higher-order function: ?f appears twice (in param and application)
+    (list '(lambda (?f) (lambda (?x) (?f ?x)))
           '(lambda (g) (lambda (n) (g n)))
           '((lambda (f x) (f x))
             (lambda (f) (f))
             (define (comp f) f)))
 
     ;; Let binding pattern
-    (list '(let ((? x ?)) ?)
+    (list '(let ((?x _)) _)
           '(let ((a 1)) (+ a a))
           '((let* ((a 1)) a)
             (letrec ((a 1)) a)
@@ -120,12 +131,19 @@
 ;;; Level 3: Complex patterns
 (define *level-3-puzzles*
   (list
-    ;; Map pattern
-    (list '(map ? ?)
+    ;; Map pattern with wildcards
+    (list '(map _ _)
           '(map car pairs)
           '((for-each car pairs)
             (filter car pairs)
-            (apply car pairs)))))
+            (apply car pairs)))
+
+    ;; Function composition: same variable must match
+    (list '(lambda (?x) (?f (?g ?x)))
+          '(lambda (n) (add1 (square n)))
+          '((lambda (n) (add1 n))
+            (lambda (n) (square (add1 n)))
+            (define (comp x) (f (g x)))))))
 
 ;;; get-puzzles-for-level : Number → List
 (define (get-puzzles-for-level level)
@@ -432,15 +450,16 @@
     (lk-help)               Show this help
 
   PATTERN SYNTAX:
-    ?                       Matches anything (wildcard)
-    ?x, ?y, ?name           Named capture (must match same value)
-    (pattern ...)           Matches list with same structure
-    atom                    Matches exact atom (symbol, number, etc.)
+    _                       Wildcard - matches anything
+    ?x, ?y, ?name           Named capture - binds to value
+    (pattern ...)           List - matches element-by-element
+    atom                    Literal - must equal exactly
 
   EXAMPLES:
-    (lambda (? x) ?x)       Matches (lambda (a) a), (lambda (foo) foo), etc.
-    (+ ? ?)                 Matches (+ 1 2), (+ x y), etc.
-    (if ? ? ?)              Matches any 3-branch if expression
+    (lambda (?x) ?x)        Matches (lambda (a) a) - binds x to 'a'
+    (+ _ _)                 Matches (+ 1 2), (+ x y), etc.
+    (if _ _ _)              Matches any 3-branch if expression
+    (lambda (?x) (+ ?x 1))  Matches (lambda (y) (+ y 1)) - ?x binds to 'y'
 
   SCORING:
     • 10 × level × (streak + 1) points per correct answer
@@ -448,7 +467,7 @@
     • Max level: 3
 
   TIPS:
-    • Read patterns carefully - ? matches ANYTHING
+    • _ matches ANYTHING without binding
     • Named captures (?x) must match the same value each time
     • Build streaks for massive point multipliers!
 "))
