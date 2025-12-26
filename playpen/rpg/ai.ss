@@ -228,15 +228,15 @@
     (if ai-comp
         (let ([behavior (ai-behavior ai-comp)])
           (case behavior
-            [(idle) (ai-idle world entity)]
-            [(wander) (ai-wander world entity)]
-            [(wander-8) (ai-wander-8 world entity)]
-            [(guard) (ai-guard world entity)]
-            [(hunt) (ai-hunt world entity)]
-            [(flee) (ai-flee world entity)]
-            [else
+            ((idle) (ai-idle world entity))
+            ((wander) (ai-wander world entity))
+            ((wander-8) (ai-wander-8 world entity))
+            ((guard) (ai-guard world entity))
+            ((hunt) (ai-hunt world entity))
+            ((flee) (ai-flee world entity))
+            (else
              ;; Unknown behavior - default to idle
-             (ai-idle world entity)]))
+             (ai-idle world entity))))
         ;; No AI component - idle
         (ai-idle world entity))))
 

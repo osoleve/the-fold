@@ -553,7 +553,7 @@
                                            (filter (lambda (n)
                                                      (not (point=? (path-node-pos n) neighbor)))
                                                    open)
-                                           open)))))))))))])))]))
+                                           open))))))))))])))]))
 
 ;;; ============================================================
 ;;; Inventory Management (World-Level)
