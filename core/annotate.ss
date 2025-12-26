@@ -130,6 +130,10 @@
     [(eq? (car expr) 'if)
      (annotate-if (cadr expr) (caddr expr) (cadddr expr) env subst)]
 
+    ;; Case: (case scrutinee ((Tag vars...) body) ...)
+    [(eq? (car expr) 'case)
+     (annotate-case (cadr expr) (cddr expr) env subst)]
+
     ;; Prim: (prim 'op args...)
     [(eq? (car expr) 'prim)
      (annotate-prim (cadr expr) (cddr expr) env subst)]
@@ -262,6 +266,64 @@
                                              `(if ,ann-test ,ann-then ,ann-else))
                                        ,s5))
                                 branch-result)))))))))))
+
+;;; ============================================================
+;;; Case Annotation
+;;; ============================================================
+
+;;; (case scrutinee ((Tag vars...) body) ...)
+;;; Pattern variables are bound to Hash type (block refs)
+
+(define (annotate-case scrutinee clauses env subst)
+  (let ([scrut-result (annotate-with scrutinee env subst)])
+    (if (not (eq? (car scrut-result) 'ok))
+        scrut-result
+        (let* ([ann-scrut (cadr scrut-result)]
+               [s1 (caddr scrut-result)])
+          (annotate-case-clauses ann-scrut clauses s1 env '() #f)))))
+
+;;; annotate-case-clauses : AnnScrutinee × (List Clause) × Subst × Env × AnnClauses × Type|#f → Result
+(define (annotate-case-clauses ann-scrut clauses subst env ann-clauses result-type)
+  (if (null? clauses)
+      (if result-type
+          `(ok ,(ann (apply-subst subst result-type)
+                     `(case ,ann-scrut ,@(reverse ann-clauses)))
+               ,subst)
+          `(error no-clauses-in-case))
+      (let* ([clause (car clauses)]
+             [pattern (car clause)]
+             [body (cadr clause)]
+             [tag (car pattern)]
+             [vars (cdr pattern)]
+             ;; Each bound var gets Hash type (block refs)
+             [var-types (map (lambda (_) 'Hash) vars)]
+             [clause-env (tenv-extend* env (map cons vars var-types))]
+             [body-result (annotate-with body clause-env subst)])
+        (if (not (eq? (car body-result) 'ok))
+            body-result
+            (let* ([ann-body (cadr body-result)]
+                   [s2 (caddr body-result)]
+                   [body-type (ann-type ann-body)]
+                   ;; Annotate pattern variables
+                   [ann-vars (map (lambda (v) (ann 'Hash v)) vars)]
+                   [ann-pattern (cons tag ann-vars)]
+                   [ann-clause (list ann-pattern ann-body)])
+              (if result-type
+                  ;; Unify with previous clause result type
+                  (let ([unify-result (unify-with s2 body-type result-type)])
+                    (if (eq? (car unify-result) 'ok)
+                        (annotate-case-clauses
+                          ann-scrut
+                          (cdr clauses)
+                          (cadr unify-result)
+                          env
+                          (cons ann-clause ann-clauses)
+                          (apply-subst (cadr unify-result) body-type))
+                        unify-result))
+                  ;; First clause establishes result type
+                  (annotate-case-clauses
+                    ann-scrut (cdr clauses) s2 env
+                    (cons ann-clause ann-clauses) body-type)))))))
 
 ;;; ============================================================
 ;;; Prim Annotation
@@ -509,6 +571,32 @@
                ind "    " (pp-ann-indent (caddr expr) (+ indent 4)) "\n"
                ind "    " (pp-ann-indent (cadddr expr) (+ indent 4)) ")\n"
                ind ": " (type->string type))]
+
+            ;; Case — multi-line
+            [(and (pair? expr) (eq? (car expr) 'case))
+             (let* ([scrutinee (cadr expr)]
+                    [clauses (cddr expr)]
+                    [clause-strs (map (lambda (c)
+                                        (let* ([pattern (car c)]
+                                               [body (cadr c)]
+                                               [tag (car pattern)]
+                                               [vars (cdr pattern)]
+                                               [var-strs (map (lambda (v)
+                                                                (if (ann? v)
+                                                                    (format "~a" (ann-expr v))
+                                                                    (format "~a" v)))
+                                                              vars)])
+                                          (string-append
+                                            "  ((" (symbol->string tag)
+                                            (if (null? var-strs) ""
+                                                (string-append " " (join-strings " " var-strs)))
+                                            ")\n" ind "    "
+                                            (pp-ann-indent body (+ indent 4)) ")")))
+                                      clauses)])
+               (string-append
+                 "(case " (pp-ann-indent scrutinee (+ indent 6)) "\n" ind
+                 (join-strings (string-append "\n" ind) clause-strs)
+                 ")\n" ind ": " (type->string type)))]
 
             ;; Prim — inline or short
             [(and (pair? expr) (eq? (car expr) 'prim))

@@ -150,6 +150,38 @@
   (test-type "neg is Int" 'Int result))
 
 ;;; ============================================================
+;;; Case Annotations
+;;; ============================================================
+(test-section "Case Annotations")
+
+;; Simple case with one clause
+(let ([result (annotate-expr '(fn (blk) (case blk ((Foo x) 42))))])
+  (test-ok "case annotates" result)
+  (test "case result is function" '-> (if (pair? (ann-type result))
+                                          (car (ann-type result))
+                                          'not-fn)))
+
+;; Case with multiple clauses
+(let ([result (annotate-expr '(fn (blk)
+                                (case blk
+                                  ((True) 1)
+                                  ((False) 0))))])
+  (test-ok "multi-clause case" result))
+
+;; Case using bound variable
+(let ([result (annotate-expr '(fn (blk)
+                                (case blk
+                                  ((Wrap ref) ref))))])
+  (test-ok "case binds ref" result))
+
+;; Case with different result types (should unify)
+(let ([result (annotate-expr '(fn (blk)
+                                (case blk
+                                  ((A) (prim 'add 1 2))
+                                  ((B x) (prim 'neg 3)))))])
+  (test-ok "case unifies branches" result))
+
+;;; ============================================================
 ;;; Type Errors
 ;;; ============================================================
 (test-section "Type Errors")
@@ -188,6 +220,9 @@
 
 (display "\n--- Annotated (if #t 1 2) ---\n")
 (show-annotated '(if #t 1 2))
+
+(display "\n--- Annotated case expression ---\n")
+(show-annotated '(fn (blk) (case blk ((True) 1) ((False) 0))))
 
 (display "\n--- Annotated complex expression ---\n")
 (show-annotated '(let ((double (fn (x) (prim 'mul x 2))))
