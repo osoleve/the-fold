@@ -208,6 +208,12 @@
           new-world)
         world)))
 
+;;; world-replace-entity : World × Nat × Entity -> World
+;;; Replace an entity by ID with a new entity.
+;;; Convenience wrapper for world-update-entity when you already have the new entity.
+(define (world-replace-entity world entity-id new-entity)
+  (world-update-entity world entity-id (lambda (_) new-entity)))
+
 ;;; world-entity-count : World -> Nat
 (define (world-entity-count world)
   (length (world-entities world)))
@@ -685,7 +691,7 @@
 ;;;
 ;;; Entity Management:
 ;;;   world-add-entity, world-remove-entity, world-get-entity
-;;;   world-update-entity, world-entity-count
+;;;   world-update-entity, world-replace-entity, world-entity-count
 ;;;   world-all-entities, world-entity-ids
 ;;;
 ;;; Player Access:
