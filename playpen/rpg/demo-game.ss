@@ -243,9 +243,9 @@
                 (let* ([damage (+ 5 (random 5))]
                        [new-target (entity-take-damage target damage)]
                        [target-name (entity-name new-target)])
-                  (set! *game-world* (world-update-entity *game-world*
-                                                          (entity-id new-target)
-                                                          new-target))
+                  (set! *game-world* (world-replace-entity *game-world*
+                                                           (entity-id new-target)
+                                                           new-target))
                   (log-message (string-append "You hit " target-name
                                             " for " (number->string damage) " damage!"))
 
@@ -350,9 +350,9 @@
       [(and (world-tile-walkable? *game-world* new-x new-y)
             (not (world-entity-at *game-world* new-x new-y)))
        (let* ([moved-monster (entity-move-by monster dx dy)])
-         (set! *game-world* (world-update-entity *game-world*
-                                                (entity-id moved-monster)
-                                                moved-monster)))]
+         (set! *game-world* (world-replace-entity *game-world*
+                                                  (entity-id moved-monster)
+                                                  moved-monster)))]
 
       ;; Blocked, do nothing
       [else (void)])))
@@ -361,9 +361,9 @@
   (let* ([damage (+ 2 (random 4))]
          [monster-name (entity-name monster)]
          [new-player (entity-take-damage player damage)])
-    (set! *game-world* (world-update-entity *game-world*
-                                           (entity-id new-player)
-                                           new-player))
+    (set! *game-world* (world-replace-entity *game-world*
+                                             (entity-id new-player)
+                                             new-player))
     (log-message (string-append monster-name " hits you for "
                               (number->string damage) " damage!"))
 
@@ -385,9 +385,9 @@
     (when (and (world-tile-walkable? *game-world* new-x new-y)
                (not (world-entity-at *game-world* new-x new-y)))
       (let ([moved-monster (entity-move-dir monster dir)])
-        (set! *game-world* (world-update-entity *game-world*
-                                               (entity-id moved-monster)
-                                               moved-monster))))))
+        (set! *game-world* (world-replace-entity *game-world*
+                                                 (entity-id moved-monster)
+                                                 moved-monster))))))
 
 ;;; ============================================================
 ;;; Rendering
