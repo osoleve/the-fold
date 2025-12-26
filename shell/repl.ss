@@ -55,6 +55,7 @@
 
 ;; Block navigation and exploration
 (load "shell/block-navigator.ss")
+(load "shell/block-explorer.ss")
 
 ;; Metadata tagging system
 (load "meta/parse.ss")
@@ -171,6 +172,16 @@
   (display "    (orphans)              Find blocks with no inbound refs\n")
   (display "    (search query)         Search blocks with ranking\n")
   (display "\n")
+  (display "  INTERACTIVE BLOCK EXPLORER:\n")
+  (display "    (bx)                   Start interactive explorer\n")
+  (display "    (bx-popular)           View popular blocks (numbered)\n")
+  (display "    (bx-orphans)           View orphans (numbered)\n")
+  (display "    (bx-search \"query\")   Search blocks (numbered)\n")
+  (display "    (bx-view N)            Explore block number N\n")
+  (display "    (bx-back)              Go back to previous block\n")
+  (display "    (bx-home)              Return to home screen\n")
+  (display "    (bx-help)              Show all explorer commands\n")
+  (display "\n")
   (display "  METADATA TAGS:\n")
   (display "    (tags)                 Show all @tags in use\n")
   (display "    (tag-report)           Tag frequency histogram\n")
@@ -240,6 +251,21 @@
 ;;; Search blocks with relevance ranking.
 (define (search query)
   (search-ranked (fs) query))
+
+;;; ============================================================
+;;; Interactive Block Explorer (session-based)
+;;; ============================================================
+;;; Functions loaded from shell/block-explorer.ss
+;;; Available: bx, bx-view, bx-back, bx-home, bx-popular,
+;;;            bx-orphans, bx-search, bx-recent, bx-by-tag,
+;;;            bx-stats, bx-help
+
+;;; bx : → void
+;;; Convenience wrapper to start the interactive block explorer.
+(define (bx)
+  (block-explorer (fs)))
+
+;;; ============================================================
 
 ;;; resume-session : → void
 ;;; Resume an existing session without re-logging in.
