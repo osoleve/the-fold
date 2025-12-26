@@ -288,7 +288,7 @@
              [counts (vector->list count-vec)]
              [pairs (map cons hashes counts)]
              [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) pairs)]
-             [top-n (take sorted (min n (length sorted)))])
+             [top-n (take (min n (length sorted)) sorted)])
 
         (display "╔══════════════════════════════════════════════════════════════╗\n")
         (display "║                   MOST POPULAR BLOCKS                        ║\n")
@@ -457,13 +457,13 @@
                     (display-lineage fs (vector-ref refs 0) (+ depth 1) visited)))))))))
 
 ;;; ============================================================
-;;; Utility: take
-;;; ============================================================
-
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;;; take is provided by core/prelude.ss as (take n lst)
+;;; take is provided by core/prelude.ss as (take n lst)
+;;; take is provided by core/prelude.ss as (take n lst)
+;;; take is provided by core/prelude.ss as (take n lst)
+;;; take is provided by core/prelude.ss as (take n lst)
+;;; take is provided by core/prelude.ss as (take n lst)
+;;; take is provided by core/prelude.ss as (take n lst)
 
 ;;; ============================================================
 ;;; Export Note

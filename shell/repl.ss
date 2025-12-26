@@ -23,6 +23,9 @@
 
 ;;; Load order matters — dependencies first
 
+;; Set up source-directories so core modules can find prelude.ss
+(source-directories (cons "core" (source-directories)))
+
 ;; Core dependencies
 (load "core/block.ss")
 (load "core/sha256.ss")

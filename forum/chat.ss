@@ -152,7 +152,7 @@
           (display (format "  [~a] ~a\n"
                           (cdr (assq 'timestamp post))
                           (cdr (assq 'body post)))))
-        (take sys-posts 5))
+        (take 5 sys-posts))
       (newline))))
 
 ;;; display-recent-posts : FS × Nat → void
@@ -173,7 +173,7 @@
                      (string>? (cdr (assq 'timestamp a))
                                (cdr (assq 'timestamp b))))
                    all-posts)]
-         [recent (take sorted (min n (length sorted)))])
+         [recent (take (min n (length sorted)) sorted)])
     (if (null? recent)
         (display "  (no posts yet)\n")
         (for-each
@@ -195,7 +195,7 @@
 ;;; display-recent-chat : FS × Nat → void
 (define (display-recent-chat fs n)
   (let* ([posts (collect-channel fs 'chat)]
-         [recent (take posts (min n (length posts)))])
+         [recent (take (min n (length posts)) posts)])
     (if (null? recent)
         (display "  (no chat messages yet)\n")
         (for-each

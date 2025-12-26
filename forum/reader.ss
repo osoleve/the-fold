@@ -25,7 +25,7 @@
       [else
        (display (format "=== Latest ~a posts from #~a ===\n\n"
                        (min n (length posts)) channel))
-       (let ([recent (take posts (min n (length posts)))])
+       (let ([recent (take (min n (length posts)) posts)])
          (for-each
            (lambda (post)
              (display (format-post post))
@@ -160,12 +160,7 @@
 ;;; Utilities
 ;;; ============================================================
 
-;;; take : (List α) × Nat → (List α)
-;;; Return first n elements of list.
-(define (take lst n)
-  (if (or (null? lst) (= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;;; take is provided by core/prelude.ss as (take n lst)
 
 ;;; last : (List α) → α
 ;;; Return last element of list.

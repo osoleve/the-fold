@@ -258,7 +258,13 @@
     (if (file-exists? path)
         (call-with-input-file path
           (lambda (port)
-            (hex->hash (get-line port))))
+            (let* ([line (get-line port)]
+                   [len (string-length line)]
+                   [clean (if (and (> len 0)
+                                   (char=? (string-ref line (- len 1)) #\return))
+                              (substring line 0 (- len 1))
+                              line)])
+              (hex->hash clean))))
         #f)))
 
 ;;; ============================================================
