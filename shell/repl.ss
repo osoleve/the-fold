@@ -53,6 +53,10 @@
 ;; Block navigation and exploration
 (load "shell/block-navigator.ss")
 
+;; Metadata tagging system
+(load "meta/parse.ss")
+(load "meta/query.ss")
+
 ;;; ============================================================
 ;;; Quiet Mode
 ;;; ============================================================
@@ -159,6 +163,12 @@
   (display "    (popular [n])          Show N most-referenced blocks\n")
   (display "    (orphans)              Find blocks with no inbound refs\n")
   (display "    (search query)         Search blocks with ranking\n")
+  (display "\n")
+  (display "  METADATA TAGS:\n")
+  (display "    (tags)                 Show all @tags in use\n")
+  (display "    (tag-report)           Tag frequency histogram\n")
+  (display "    (find-tagged (fs) k v) Find posts with @key:value\n")
+  (display "    (extract-tags text)    Parse @tags from text\n")
   (display "\n")
   (display "  TYPED EVALUATION (after load-core):\n")
   (display "    (t expr)               Type-check and evaluate expression\n")
