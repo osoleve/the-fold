@@ -103,6 +103,14 @@
     (and (>= len slen)
          (string=? suffix (substring str (- len slen) len)))))
 
+;;; string-prefix? : String × String → Boolean
+;;; Check if str starts with prefix.
+(define (string-prefix? prefix str)
+  (let ([plen (string-length prefix)]
+        [len (string-length str)])
+    (and (>= len plen)
+         (string=? prefix (substring str 0 plen)))))
+
 ;;; string-rindex : String × Char → Nat | #f
 ;;; Find last occurrence of char in string.
 (define (string-rindex str char)

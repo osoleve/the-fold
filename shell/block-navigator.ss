@@ -121,12 +121,7 @@
                 hash
                 (loop (cdr hashes))))))))
 
-;;; string-prefix? : String × String → Boolean
-(define (string-prefix? prefix str)
-  (let ([plen (string-length prefix)]
-        [slen (string-length str)])
-    (and (<= plen slen)
-         (string=? prefix (substring str 0 plen)))))
+;;; string-prefix? is now provided by shell/fs.ss
 
 ;;; ============================================================
 ;;; Tree Visualization

@@ -328,12 +328,7 @@
                             #f
                             (loop (vector-ref refs 0))))))))))))
 
-;;; string-prefix? : String × String → Boolean
-(define (string-prefix? prefix str)
-  (let ([plen (string-length prefix)]
-        [slen (string-length str)])
-    (and (<= plen slen)
-         (string=? prefix (substring str 0 plen)))))
+;;; string-prefix? is now provided by shell/fs.ss
 
 ;;; ============================================================
 ;;; chat/1 — Quick Chat Message

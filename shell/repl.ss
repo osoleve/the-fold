@@ -142,6 +142,7 @@
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")
   (display "    (fs)                   Get filesystem capability\n")
+  (display "    (load-core)            Load Core modules for dev work\n")
   (display "\n"))
 
 (define (help) (display-help))
@@ -161,6 +162,42 @@
   (if (session-exists?)
       (who)
       (display "No session. Use (hi tier name msg) to login.\n")))
+
+;;; ============================================================
+;;; Core Development Utilities
+;;; ============================================================
+
+;;; load-core : → void
+;;; Load Core modules for development experimentation.
+;;; Provides: normalize, expand, eval-expr, run, infer, etc.
+;;;
+;;; Note: block.ss and sha256.ss are loaded by repl.ss.
+;;; Other core modules may have internal load statements that assume
+;;; they're loaded from the core directory. We load the standalone modules.
+(define *core-loaded* #f)
+
+(define (load-core)
+  (if *core-loaded*
+      (display "Core modules already loaded.\n")
+      (begin
+        (display "Loading Core modules...\n")
+        ;; These modules are standalone (no internal loads)
+        (load "core/normalize.ss")
+        (load "core/expand.ss")
+        (load "core/prim.ss")
+        (load "core/eval.ss")
+        (load "core/types.ss")
+        (load "core/kinds.ss")
+        (load "core/infer.ss")
+        ;; Note: cas.ss, parse.ss, validate.ss have internal loads
+        ;; that conflict with repl.ss. Hash/block functions are already
+        ;; available from block.ss and sha256.ss loaded by repl.ss.
+        (set! *core-loaded* #t)
+        (display "Core loaded. Available: normalize, expand, run, infer, etc.\n")
+        (display "Examples:\n")
+        (display "  (run '((fn (x) x) 42) 100)   → (ok 42)\n")
+        (display "  (infer '(fn (x) x) '())      → (ok (-> τ1 τ1) ())\n")
+        (display "  (normalize '(+ 1 2))          → (+  1 2)\n"))))
 
 ;;; ============================================================
 ;;; REPL Initialization

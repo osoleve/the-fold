@@ -70,10 +70,7 @@
             [else
              (substring first 0 (min (string-length first) 50))])))))
 
-;;; string-prefix? : String × String → Boolean
-(define (string-prefix? prefix str)
-  (and (>= (string-length str) (string-length prefix))
-       (string=? (substring str 0 (string-length prefix)) prefix)))
+;;; string-prefix? is now provided by shell/fs.ss
 
 ;;; string-split : String × Char → List<String>
 (define (string-split str delim)
