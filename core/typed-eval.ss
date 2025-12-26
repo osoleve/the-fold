@@ -174,6 +174,10 @@
     [(eq? (car expr) 'if)
      (eval-annotated-if (cadr expr) (caddr expr) (cadddr expr) env fuel)]
 
+    ;; Case
+    [(eq? (car expr) 'case)
+     (eval-annotated-case (cadr expr) (cddr expr) env fuel)]
+
     ;; Prim
     [(eq? (car expr) 'prim)
      (eval-annotated-prim (cadr expr) (cddr expr) env fuel)]
@@ -181,6 +185,48 @@
     ;; Application
     [else
      (eval-annotated-app (car expr) (cdr expr) env fuel)]))
+
+;;; ============================================================
+;;; Annotated Case Evaluation
+;;; ============================================================
+
+;;; (case scrutinee ((Tag vars...) body) ...)
+;;; Pattern matching on block tags with type preservation
+
+(define (eval-annotated-case scrutinee clauses env fuel)
+  (if (out-of-fuel? fuel)
+      `(suspended (case ,scrutinee ,@clauses) ,env)
+      (let ([scrut-result (eval-annotated scrutinee env (- fuel 1))])
+        (cond
+          [(eq? (car scrut-result) 'ok)
+           (let ([val (typed-value (cadr scrut-result))]
+                 [remaining (caddr scrut-result)])
+             (if (block? val)
+                 (match-annotated-clauses val clauses env remaining)
+                 `(error case-requires-block ,val)))]
+          [(eq? (car scrut-result) 'suspended)
+           `(suspended (case ,(cadr scrut-result) ,@clauses)
+                       ,(caddr scrut-result))]
+          [else scrut-result]))))
+
+(define (match-annotated-clauses block clauses env fuel)
+  (if (null? clauses)
+      `(error no-matching-clause ,(block-tag block))
+      (let* ([clause (car clauses)]
+             [pattern (car clause)]
+             [body (cadr clause)]
+             ;; Pattern may have annotated variables
+             [tag (if (ann? (car pattern)) (ann-expr (car pattern)) (car pattern))]
+             [vars (map (lambda (v) (if (ann? v) (ann-expr v) v))
+                        (cdr pattern))])
+        (if (eq? tag (block-tag block))
+            ;; Match! Bind refs to vars
+            (let ([refs (block-refs-list block)])
+              (if (= (length vars) (length refs))
+                  (eval-annotated body (env-extend* env vars refs) fuel)
+                  `(error pattern-arity-mismatch ,tag)))
+            ;; No match, try next clause
+            (match-annotated-clauses block (cdr clauses) env fuel)))))
 
 ;;; ============================================================
 ;;; Annotated Let Evaluation

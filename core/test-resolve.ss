@@ -43,7 +43,7 @@
 (test-section "Instance Database")
 (test "empty-idb" '() empty-idb)
 (test "idb-add single" 1 (length (idb-add empty-idb inst-Functor-List)))
-(test "idb-add* multiple" 8 (length (idb-add* empty-idb standard-instances)))
+(test "idb-add* multiple" 31 (length (idb-add* empty-idb standard-instances)))
 
 ;;; ============================================================
 ;;; Constraint Representation
@@ -134,7 +134,7 @@
 
 ;; No Show instance
 (define result-show-nat (resolve '(Show Nat) standard-instances))
-(test-result "no Show Nat" 'error result-show-nat)
+(test-result "resolve Show Nat" 'ok result-show-nat)
 
 ;; No Ord instance
 (define result-ord-option (resolve '(Ord Option) standard-instances))
@@ -219,6 +219,74 @@
 (test "filter-map with #f" '(2 4) (filter-map (lambda (x) (if (even? x) x #f)) '(1 2 3 4 5)))
 (test "filter-map empty" '() (filter-map (lambda (x) x) '()))
 (test "filter-map all #f" '() (filter-map (lambda (x) #f) '(1 2 3)))
+
+;;; ============================================================
+;;; New Type Classes — Eq
+;;; ============================================================
+(test-section "Eq Type Class")
+
+(test-result "resolve Eq Int" 'ok (resolve '(Eq Int) standard-instances))
+(test-result "resolve Eq Bool" 'ok (resolve '(Eq Bool) standard-instances))
+(test-result "resolve Eq Char" 'ok (resolve '(Eq Char) standard-instances))
+(test-result "resolve Eq String" 'ok (resolve '(Eq String) standard-instances))
+(test-result "resolve Eq Symbol" 'ok (resolve '(Eq Symbol) standard-instances))
+(test-result "resolve Eq (List Nat)" 'ok (resolve '(Eq (@ List Nat)) standard-instances))
+(test-result "resolve Eq (Option Int)" 'ok (resolve '(Eq (@ Option Int)) standard-instances))
+
+;;; ============================================================
+;;; New Type Classes — Ord
+;;; ============================================================
+(test-section "Ord Type Class")
+
+(test-result "resolve Ord Nat" 'ok (resolve '(Ord Nat) standard-instances))
+(test-result "resolve Ord Int" 'ok (resolve '(Ord Int) standard-instances))
+(test-result "resolve Ord Char" 'ok (resolve '(Ord Char) standard-instances))
+(test-result "resolve Ord String" 'ok (resolve '(Ord String) standard-instances))
+
+;;; ============================================================
+;;; New Type Classes — Show
+;;; ============================================================
+(test-section "Show Type Class")
+
+(test-result "resolve Show Int" 'ok (resolve '(Show Int) standard-instances))
+(test-result "resolve Show Bool" 'ok (resolve '(Show Bool) standard-instances))
+(test-result "resolve Show Char" 'ok (resolve '(Show Char) standard-instances))
+(test-result "resolve Show String" 'ok (resolve '(Show String) standard-instances))
+(test-result "resolve Show Symbol" 'ok (resolve '(Show Symbol) standard-instances))
+(test-result "resolve Show (List Int)" 'ok (resolve '(Show (@ List Int)) standard-instances))
+
+;;; ============================================================
+;;; New Type Classes — Semigroup/Monoid
+;;; ============================================================
+(test-section "Semigroup/Monoid Type Classes")
+
+(test-result "resolve Semigroup String" 'ok (resolve '(Semigroup String) standard-instances))
+(test-result "resolve Monoid String" 'ok (resolve '(Monoid String) standard-instances))
+(test-result "resolve Semigroup (List a)" 'ok (resolve '(Semigroup (@ List a)) standard-instances))
+(test-result "resolve Monoid (List a)" 'ok (resolve '(Monoid (@ List a)) standard-instances))
+
+;;; ============================================================
+;;; Instance Specificity
+;;; ============================================================
+(test-section "Instance Specificity")
+
+(test "Int more specific than a" #t (> (type-specificity 'Int) (type-specificity 'a)))
+(test "(@ List Int) > (@ List a)" #t
+      (> (type-specificity '(@ List Int)) (type-specificity '(@ List a))))
+
+;;; ============================================================
+;;; Method Extraction — New Classes
+;;; ============================================================
+(test-section "Method Extraction — New Classes")
+
+(define evidence-eq-int (cadr (resolve '(Eq Int) standard-instances)))
+(test "get-method ==" 'int-eq (get-method evidence-eq-int '==))
+
+(define evidence-show-nat (cadr (resolve '(Show Nat) standard-instances)))
+(test "get-method show" 'nat-show (get-method evidence-show-nat 'show))
+
+(define evidence-ord-int (cadr (resolve '(Ord Int) standard-instances)))
+(test "get-method compare" 'int-compare (get-method evidence-ord-int 'compare))
 
 (newline)
 (display "✓ All instance resolution tests complete.\n")

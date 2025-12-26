@@ -194,6 +194,37 @@
        (fib 6))
     1000))
 
+
+;;; ============================================================
+;;; Case Expressions
+;;; ============================================================
+(test-section "Case Expressions")
+
+;; Test case with blocks
+(test-typed-value "case on True block" 1
+  (typecheck-eval
+    '(let ((b (prim 'make-block 'True (prim 'string->utf8 "") (prim 'list->vec (quote ())))))
+       (case b
+         ((True) 1)
+         ((False) 0)))
+    100))
+
+(test-typed-value "case on False block" 0
+  (typecheck-eval
+    '(let ((b (prim 'make-block 'False (prim 'string->utf8 "") (prim 'list->vec (quote ())))))
+       (case b
+         ((True) 1)
+         ((False) 0)))
+    100))
+
+;; Case with different tag (Pair)
+(test-typed-value "case with binding var" 1
+  (typecheck-eval
+    '(let ((b (prim 'make-block 'Pair (prim 'string->utf8 "") (prim 'list->vec (quote ())))))
+       (case b
+         ((True) 0) ((Pair) 1)))
+    100))
+
 ;;; ============================================================
 ;;; Typed Run (Full Pipeline)
 ;;; ============================================================

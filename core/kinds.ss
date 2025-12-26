@@ -371,6 +371,74 @@
                        (-> a (@ m a))))))))
 
 ;;; ============================================================
+;;; Value-Level Type Classes
+;;; ============================================================
+
+;;; Eq : * → Constraint
+;;;   == : a → a → Bool
+(define TC-Eq
+  (make-typeclass
+    'Eq
+    (K=> K* K-constraint)
+    '()
+    `((== . (∀ (a)
+               (=> (Eq a)
+                   (-> a a Bool))))
+      (/= . (∀ (a)
+               (=> (Eq a)
+                   (-> a a Bool)))))))
+
+;;; Ord : * → Constraint
+;;;   requires: Eq a
+;;;   compare : a → a → Ordering
+;;;   <, <=, >, >= : a → a → Bool
+(define TC-Ord
+  (make-typeclass
+    'Ord
+    (K=> K* K-constraint)
+    '(Eq)
+    `((compare . (∀ (a)
+                    (=> (Ord a)
+                        (-> a a Symbol))))  ; Returns 'LT, 'EQ, or 'GT
+      (<  . (∀ (a) (=> (Ord a) (-> a a Bool))))
+      (<= . (∀ (a) (=> (Ord a) (-> a a Bool))))
+      (>  . (∀ (a) (=> (Ord a) (-> a a Bool))))
+      (>= . (∀ (a) (=> (Ord a) (-> a a Bool)))))))
+
+;;; Show : * → Constraint
+;;;   show : a → String
+(define TC-Show
+  (make-typeclass
+    'Show
+    (K=> K* K-constraint)
+    '()
+    `((show . (∀ (a)
+                 (=> (Show a)
+                     (-> a String)))))))
+
+;;; Semigroup : * → Constraint
+;;;   <> : a → a → a
+(define TC-Semigroup
+  (make-typeclass
+    'Semigroup
+    (K=> K* K-constraint)
+    '()
+    `((<> . (∀ (a)
+               (=> (Semigroup a)
+                   (-> a a a)))))))
+
+;;; Monoid : * → Constraint
+;;;   requires: Semigroup a
+;;;   mempty : a
+(define TC-Monoid
+  (make-typeclass
+    'Monoid
+    (K=> K* K-constraint)
+    '(Semigroup)
+    `((mempty . (∀ (a)
+                   (=> (Monoid a) a))))))
+
+;;; ============================================================
 ;;; Type Class Instances
 ;;; ============================================================
 

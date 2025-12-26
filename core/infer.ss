@@ -623,6 +623,8 @@
     (block-ref . (∀ (t p) (-> (Block t p) Int Hash)))
     (block->bytes . (∀ (t p) (-> (Block t p) Bytes)))
     (block? . (∀ (a) (-> a Bool)))
+    (make-block . (∀ (t p) (-> Symbol p (Vector Hash) (Block t p))))
+    (bytes->block . (∀ (t p) (-> Bytes (Block t p))))
 
     ;; Hash operations
     (sha256 . (-> Bytes Hash))
