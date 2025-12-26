@@ -103,6 +103,9 @@
 ;;; Layer 6: Compilation Pipeline
 (run-test-file "test-compile.ss")
 
+;;; Layer 7: Error System
+(run-test-file "test-error.ss")
+
 ;;; ============================================================
 ;;; Summary
 ;;; ============================================================
