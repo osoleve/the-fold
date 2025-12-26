@@ -12,12 +12,12 @@
   (date "2025-12-26")
 
   (body
-    (h1 "Four-Layer Architecture for Rust Migration")
+    (h1 "Three-Layer Architecture for Rust Migration")
 
-    (p "We're migrating from Chez Scheme to a custom Rust interpreter with clean stratification. This preserves The Fold's principles while giving us control over the runtime.")
+    (p "We're migrating from Chez Scheme to a custom Rust interpreter with clean geological stratification. This preserves The Fold's principles while giving us control over the runtime.")
 
-    (h2 "Layer 0: Kernel (Rust VM)")
-    (p "Name: Kernel - the Rust interpreter core")
+    (h2 "Core (Rust VM)")
+    (p "The hot, dense foundation - the interpreter itself")
     (ul
       "Implements 8 fundamental forms: quote, fn, call, let, if, fix, case, prim"
       "Fuel-based evaluation for totality (no infinite loops)"
@@ -30,8 +30,10 @@
 ;; Decrement fuel each step
 ;; Return suspension when fuel exhausted")
 
-    (h2 "Layer 1: ANSI Scheme (Rust)")
-    (p "Standard Scheme primitives for R6RS/R7RS compatibility")
+    (h2 "Mantle (Language Primitives)")
+    (p "The thick working layer - all language primitives in Rust")
+
+    (h3 "Standard Primitives (ANSI Scheme compatibility)")
     (ul
       "List operations: cons, car, cdr, append, reverse, map, filter, fold"
       "Arithmetic: +, -, *, /, quotient, modulo, abs"
@@ -42,10 +44,7 @@
       "Type predicates: number?, symbol?, string?, pair?, null?, etc."
       "Size: ~400 LOC Rust")
 
-    (p "NO Fold-specific extensions in this layer - pure ANSI compliance")
-
-    (h2 "Layer 2: FoldLang (Rust)")
-    (p "The Fold's system language - extends ANSI Scheme with Fold-specific primitives")
+    (h3 "FoldLang Primitives (Fold-specific extensions)")
     (ul
       "Block operations: make-block, block-tag, block-payload, block-refs, block-ref"
       "Content-addressing: hash-block (SHA-256)"
@@ -61,9 +60,9 @@
 (prim 'store! block) → Hash
 (prim 'fetch hash) → Block | #f")
 
-    (h2 "Layer 3: Scaffold (FoldLang source)")
-    (p "Name: Scaffold - Sonnet/Haiku tier utilities and tools")
-    (p "Written IN FoldLang, not part of the language itself")
+    (h2 "Crust (Surface Tools)")
+    (p "The visible surface - tools and applications written in FoldLang")
+    (p "Written IN FoldLang, not part of Core or Mantle")
     (ul
       "Shell tools (shell/*.ss) - Sonnet maintained"
       "Graphics engine (shell/graphics.ss)"
@@ -77,7 +76,7 @@
 
     (h2 "Migration Strategy: Option A (Direct Translation)")
 
-    (h3 "Phase 1: Kernel (Week 1-2)")
+    (h3 "Phase 1: Core (Week 1-2)")
     (code "// src/value.rs - Value enum
 pub enum Value {
     Number(i64),
@@ -106,7 +105,7 @@ pub fn eval(expr: &Expr, env: &Env, fuel: usize) -> Result {
     }
 }")
 
-    (h3 "Phase 2: ANSI Scheme (Week 2)")
+    (h3 "Phase 2: Mantle - Standard Primitives (Week 2)")
     (code "// src/primitives/scheme.rs
 match op {
     Symbol::Cons => ...,
@@ -115,7 +114,7 @@ match op {
     // ~60 ANSI primitives
 }")
 
-    (h3 "Phase 3: FoldLang (Week 3)")
+    (h3 "Phase 3: Mantle - FoldLang Extensions (Week 3)")
     (code "// src/primitives/fold.rs - Block operations
 // src/block.rs - Block substrate
 // src/cas.rs - Content-addressed store
@@ -136,37 +135,37 @@ match op {
     (h2 "Current Code Migration Map")
     (table
       ((Source "Destination" "Layer"))
-      (("core/eval.ss" "src/eval.rs" "Kernel"))
-      (("core/prim.ss (60%)" "src/primitives/scheme.rs" "ANSI Scheme"))
-      (("core/prim.ss (40%)" "src/primitives/fold.rs" "FoldLang"))
-      (("core/block.ss" "src/block.rs" "FoldLang"))
-      (("core/cas.ss" "src/cas.rs" "FoldLang"))
-      (("core/sha256.ss" "use sha2 crate" "FoldLang"))
-      (("core/normalize.ss" "src/normalize.rs" "FoldLang"))
-      (("core/expand.ss" "src/expand.rs" "FoldLang"))
-      (("core/types.ss" "src/types.rs" "FoldLang or Kernel?"))
-      (("core/parse.ss" "src/parser.rs" "Kernel"))
-      (("shell/*.ss" "stays as source" "Scaffold"))
-      (("forum/*.ss" "stays as source" "Scaffold")))
+      (("core/eval.ss" "src/eval.rs" "Core"))
+      (("core/prim.ss (60%)" "src/primitives/scheme.rs" "Mantle"))
+      (("core/prim.ss (40%)" "src/primitives/fold.rs" "Mantle"))
+      (("core/block.ss" "src/block.rs" "Mantle"))
+      (("core/cas.ss" "src/cas.rs" "Mantle"))
+      (("core/sha256.ss" "use sha2 crate" "Mantle"))
+      (("core/normalize.ss" "src/normalize.rs" "Mantle"))
+      (("core/expand.ss" "src/expand.rs" "Mantle"))
+      (("core/types.ss" "src/types.rs" "Mantle or Core?"))
+      (("core/parse.ss" "src/parser.rs" "Core"))
+      (("shell/*.ss" "stays as source" "Crust"))
+      (("forum/*.ss" "stays as source" "Crust")))
 
-    (h2 "Benefits of Stratification")
+    (h2 "Benefits of Geological Stratification")
     (ul
       "Clean separation of concerns - each layer has clear responsibility"
-      "ANSI compliance enables code portability and reuse"
-      "FoldLang extensions are explicit and isolated"
-      "Scaffold stays in high-level language (easier to modify)"
-      "Can swap Kernel implementation without touching Scaffold"
-      "Future: could compile FoldLang → Kernel bytecode"
-      "Testing: validate each layer independently")
+      "Core is the hot foundation - fast, tight, total"
+      "Mantle does the heavy work - all language primitives"
+      "Crust is visible and accessible - easy to modify in FoldLang"
+      "Can swap Core implementation without touching Crust"
+      "Future: could compile FoldLang → Core bytecode"
+      "Testing: validate each layer independently"
+      "Metaphor is intuitive: deeper = more fundamental")
 
     (h2 "Open Questions for Architect")
     (ol
-      "Better name than 'Kernel' for the VM? (FoldVM? Runtime? Engine?)"
-      "Better name than 'Scaffold' for Layer 3? (Shell? Workshop? Studio?)"
-      "Should normalize/expand be in Kernel or FoldLang layer?"
-      "Type system (types.ss, infer.ss) - which layer? Kernel or FoldLang?"
+      "Should normalize/expand be in Core or Mantle?"
+      "Type system (types.ss, infer.ss) - which layer? Core or Mantle?"
       "Do we want bytecode compilation, or stay interpreted?"
-      "Should we use nom crate for parsing or hand-write?")
+      "Should we use nom crate for parsing or hand-write?"
+      "Should Mantle primitives be split into separate modules or unified?")
 
     (h2 "Next Steps")
     (p "Ready to begin implementation!")
