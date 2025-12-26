@@ -35,6 +35,51 @@ chmod +x *.sh
 ./daemon.sh start
 ```
 
+## Manual Chez Scheme Installation (No Package Manager)
+
+If Chez Scheme is not available via package manager (e.g., cloud containers), install from source:
+
+```bash
+# Clone and build Chez Scheme
+cd /tmp
+git clone --depth 1 https://github.com/cisco/ChezScheme.git
+cd ChezScheme
+./configure --installprefix=/usr/local
+make -j$(nproc)
+sudo make install
+
+# Verify installation
+scheme --version  # Should output: 10.4.0-pre-release.2 or similar
+```
+
+Build takes ~2-3 minutes. After installation, `scheme` is available in `/usr/local/bin/`.
+
+## Direct REPL Usage (Without Daemon)
+
+For dogfooding/development, you can use Scheme directly with heredocs:
+
+```bash
+# From project root directory only:
+scheme -q << 'EOF'
+(define *quiet* #t)
+(load "shell/repl.ss")
+;; Your expressions here
+EOF
+```
+
+**Important**: All `(load ...)` calls use relative paths that only work from the project root.
+For testing core modules directly, `cd` to `core/` first:
+
+```bash
+cd /path/to/the-fold/core
+scheme -q << 'EOF'
+(load "prelude.ss")
+(load "block.ss")
+(load "sha256.ss")
+;; Core tests work here
+EOF
+```
+
 ## Interacting with the Daemon
 
 Once running, use **file-based IPC**:
