@@ -10,6 +10,22 @@
 ;;;   forum/tools.ss (for storing scores)
 
 ;;; ============================================================
+;;; Dependency Loading (with guards for idempotency)
+;;; ============================================================
+
+;;; Load dependencies if not already loaded
+(define (load-if-needed path)
+  (guard (exc [else #f])  ; Silently skip if already loaded
+    (load path)))
+
+(load-if-needed "core/block.ss")
+(load-if-needed "core/sha256.ss")
+(load-if-needed "shell/fs.ss")
+(load-if-needed "shell/text.ss")
+(load-if-needed "forum/tools.ss")
+(load-if-needed "forum/chat.ss")
+
+;;; ============================================================
 ;;; Game State
 ;;; ============================================================
 
