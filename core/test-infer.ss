@@ -220,5 +220,69 @@
 (let ([result (typeof '(fn (x) (fn (y) (fn (z) ((x z) (y z))))))])
   (test "S is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
 
+;;; ============================================================
+;;; Extended Primitive Inference
+;;; ============================================================
+(test-section "Extended Primitives")
+
+;; Bitwise
+(test-type "bitand" 'Int '(prim 'bitand 7 3))
+(test-type "bitor" 'Int '(prim 'bitor 4 2))
+(test-type "bitnot" 'Int '(prim 'bitnot 5))
+(test-type "shl" 'Int '(prim 'shl 1 4))
+
+;; Boolean
+(test-type "and" 'Bool '(prim 'and #t #f))
+(test-type "or" 'Bool '(prim 'or #t #f))
+
+;; String operations
+(test-type "string-length" 'Int '(prim 'string-length "hello"))
+(test-type "string-append" 'String '(prim 'string-append "a" "b"))
+(test-type "string=?" 'Bool '(prim 'string=? "a" "b"))
+
+;; Character operations
+(test-type "char->integer" 'Int '(prim 'char->integer (quote #\a)))
+(test-type "char-alphabetic?" 'Bool '(prim 'char-alphabetic? (quote #\a)))
+
+;; List operations
+;; reverse xs returns a list, and the fn wraps it
+(reset-fresh!)
+(let ([result (typeof '(fn (xs) (prim 'reverse xs)))])
+  (test "reverse is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+;; append takes two lists and returns one
+(reset-fresh!)
+(let ([result (typeof '(fn (xs) (prim 'append xs xs)))])
+  (test "append is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+(test-type "list-ref" 'Int '(prim 'list-ref (quote (1 2 3)) 0))
+
+;; Type predicates
+(test-type "boolean?" 'Bool '(prim 'boolean? #t))
+(test-type "char?" 'Bool '(prim 'char? (quote #\x)))
+
+;;; ============================================================
+;;; Case Expression Inference
+;;; ============================================================
+(test-section "Case Expressions")
+
+;; Simple case with one clause
+(reset-fresh!)
+(let ([result (typeof '(fn (blk) (case blk ((Foo x) 42))))])
+  (test "case returns Int" '∀ (if (pair? result) (car result) 'not-pair)))
+
+;; Case with multiple clauses (same type)
+(reset-fresh!)
+(let ([result (typeof '(fn (blk)
+                         (case blk
+                           ((True) 1)
+                           ((False) 0))))])
+  (test "multi-clause case" '∀ (if (pair? result) (car result) 'not-pair)))
+
+;; Case using bound variable
+(reset-fresh!)
+(let ([result (typeof '(fn (blk)
+                         (case blk
+                           ((Wrap ref) ref))))])
+  (test "case binds ref" '∀ (if (pair? result) (car result) 'not-pair)))
+
 (newline)
 (display "✓ All type inference tests complete.\n")

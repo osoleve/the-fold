@@ -307,6 +307,10 @@
     [(eq? (car expr) 'if)
      (infer-if (cadr expr) (caddr expr) (cadddr expr) env)]
 
+    ;; Case: (case expr ((Tag vars...) body) ...)
+    [(eq? (car expr) 'case)
+     (infer-case (cadr expr) (cddr expr) env)]
+
     ;; Primitive call: (prim 'op args...)
     [(eq? (car expr) 'prim)
      (let ([op (cadr expr)])
@@ -376,6 +380,59 @@
                                 (let ([s5 (cadr branch-unify)])
                                   `(ok ,(apply-subst s5 then-type) ,s5))
                                 branch-unify)))))))))))
+
+;;; ============================================================
+;;; Case Inference (Pattern Matching on Blocks)
+;;; ============================================================
+
+;;; (case expr ((Tag x y) body) ...)
+;;; The scrutinee must be a Block type.
+;;; Each clause binds refs to variables and evaluates the body.
+;;; All bodies must have the same type.
+
+(define (infer-case scrutinee clauses env)
+  (let ([scrut-result (infer scrutinee env)])
+    (if (not (eq? (car scrut-result) 'ok))
+        scrut-result
+        (let* ([scrut-type (cadr scrut-result)]
+               [s1 (caddr scrut-result)])
+          ;; Scrutinee must be a block type or type variable
+          ;; For now, we allow any type and check at runtime
+          (infer-case-clauses clauses s1 env #f)))))
+
+;;; infer-case-clauses : (List Clause) × Subst × Env × Type|#f → Result
+;;; Process each clause, accumulating substitution and result type.
+(define (infer-case-clauses clauses subst env result-type)
+  (if (null? clauses)
+      (if result-type
+          `(ok ,(apply-subst subst result-type) ,subst)
+          `(error no-clauses-in-case))
+      (let* ([clause (car clauses)]
+             [pattern (car clause)]
+             [body (cadr clause)]
+             [tag (car pattern)]
+             [vars (cdr pattern)]
+             ;; Each bound var gets a fresh type (refs are hashes)
+             [var-types (map (lambda (_) 'Hash) vars)]
+             [clause-env (tenv-extend* env (map cons vars var-types))]
+             [body-result (infer body clause-env)])
+        (if (not (eq? (car body-result) 'ok))
+            body-result
+            (let* ([body-type (cadr body-result)]
+                   [s2 (compose-subst (caddr body-result) subst)])
+              (if result-type
+                  ;; Unify with previous clause result type
+                  (let ([unify-result (unify-with s2 body-type result-type)])
+                    (if (eq? (car unify-result) 'ok)
+                        (infer-case-clauses
+                          (cdr clauses)
+                          (cadr unify-result)
+                          env
+                          (apply-subst (cadr unify-result) body-type))
+                        unify-result))
+                  ;; First clause establishes result type
+                  (infer-case-clauses
+                    (cdr clauses) s2 env body-type)))))))
 
 ;;; ============================================================
 ;;; Application Inference
@@ -475,13 +532,16 @@
 
 ;;; Type signatures for primitives
 (define prim-types
-  `((add . (-> Int Int Int))
+  `(;; Arithmetic
+    (add . (-> Int Int Int))
     (sub . (-> Int Int Int))
     (mul . (-> Int Int Int))
     (div . (-> Int Int Int))
     (mod . (-> Int Int Int))
     (neg . (-> Int Int))
     (abs . (-> Int Int))
+
+    ;; Comparison
     (eq? . (∀ (a) (-> a a Bool)))
     (lt? . (-> Int Int Bool))
     (le? . (-> Int Int Bool))
@@ -490,16 +550,97 @@
     (zero? . (-> Int Bool))
     (positive? . (-> Int Bool))
     (negative? . (-> Int Bool))
+
+    ;; Bitwise
+    (bitand . (-> Int Int Int))
+    (bitor . (-> Int Int Int))
+    (bitxor . (-> Int Int Int))
+    (bitnot . (-> Int Int))
+    (shl . (-> Int Int Int))
+    (shr . (-> Int Int Int))
+
+    ;; Boolean
     (not . (-> Bool Bool))
+    (and . (-> Bool Bool Bool))
+    (or . (-> Bool Bool Bool))
+
+    ;; List operations
     (cons . (∀ (a) (-> a (List a) (List a))))
     (car . (∀ (a) (-> (List a) a)))
     (cdr . (∀ (a) (-> (List a) (List a))))
     (null? . (∀ (a) (-> (List a) Bool)))
     (pair? . (∀ (a) (-> a Bool)))
     (length . (∀ (a) (-> (List a) Int)))
+    (append . (∀ (a) (-> (List a) (List a) (List a))))
+    (reverse . (∀ (a) (-> (List a) (List a))))
+    (list-ref . (∀ (a) (-> (List a) Int a)))
+    (memq . (∀ (a) (-> a (List a) (List a))))
+    (assq . (∀ (a b) (-> a (List (× a b)) (× a b))))
+
+    ;; Vector operations
+    (vec-ref . (∀ (a) (-> (Vector a) Int a)))
+    (vec-length . (∀ (a) (-> (Vector a) Int)))
+    (vec->list . (∀ (a) (-> (Vector a) (List a))))
+    (list->vec . (∀ (a) (-> (List a) (Vector a))))
+
+    ;; String operations
+    (string-length . (-> String Int))
+    (string-ref . (-> String Int Char))
+    (string-append . (-> String String String))
+    (substring . (-> String Int Int String))
+    (string=? . (-> String String Bool))
+    (string<? . (-> String String Bool))
+    (string>? . (-> String String Bool))
+    (string->list . (-> String (List Char)))
+    (list->string . (-> (List Char) String))
+    (string->utf8 . (-> String Bytes))
+    (utf8->string . (-> Bytes String))
+    (symbol->string . (-> Symbol String))
+    (string->symbol . (-> String Symbol))
+
+    ;; Character operations
+    (char->integer . (-> Char Int))
+    (integer->char . (-> Int Char))
+    (char=? . (-> Char Char Bool))
+    (char<? . (-> Char Char Bool))
+    (char-alphabetic? . (-> Char Bool))
+    (char-numeric? . (-> Char Bool))
+    (char-whitespace? . (-> Char Bool))
+    (char-upper-case? . (-> Char Bool))
+    (char-lower-case? . (-> Char Bool))
+    (char-upcase . (-> Char Char))
+    (char-downcase . (-> Char Char))
+
+    ;; Bytevector operations
+    (bv-length . (-> Bytes Int))
+    (bv-ref . (-> Bytes Int Int))
+    (bv-slice . (-> Bytes Int Int Bytes))
+
+    ;; Block operations
+    (block-tag . (∀ (t p) (-> (Block t p) Symbol)))
+    (block-payload . (∀ (t p) (-> (Block t p) p)))
+    (block-refs . (∀ (t p) (-> (Block t p) (Vector Hash))))
+    (block-ref . (∀ (t p) (-> (Block t p) Int Hash)))
+    (block->bytes . (∀ (t p) (-> (Block t p) Bytes)))
+    (block? . (∀ (a) (-> a Bool)))
+
+    ;; Hash operations
+    (sha256 . (-> Bytes Hash))
+    (hash-block . (∀ (t p) (-> (Block t p) Hash)))
+    (hash->hex . (-> Hash String))
+    (hex->hash . (-> String Hash))
+
+    ;; Type predicates
     (number? . (∀ (a) (-> a Bool)))
+    (integer? . (∀ (a) (-> a Bool)))
     (symbol? . (∀ (a) (-> a Bool)))
-    (string? . (∀ (a) (-> a Bool)))))
+    (string? . (∀ (a) (-> a Bool)))
+    (char? . (∀ (a) (-> a Bool)))
+    (bytevector? . (∀ (a) (-> a Bool)))
+    (vector? . (∀ (a) (-> a Bool)))
+    (list? . (∀ (a) (-> a Bool)))
+    (boolean? . (∀ (a) (-> a Bool)))
+    (procedure? . (∀ (a) (-> a Bool)))))
 
 (define (lookup-prim-type op)
   (let ([entry (assq op prim-types)])

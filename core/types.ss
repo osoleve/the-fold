@@ -50,6 +50,7 @@
   '(Nat      ; Natural numbers (0, 1, 2, ...)
     Int      ; Integers (..., -1, 0, 1, ...)
     Bool     ; Boolean (#t, #f)
+    Char     ; Unicode character
     Symbol   ; Interned symbols
     String   ; UTF-8 strings
     Bytes    ; Raw bytevectors
@@ -290,6 +291,7 @@
 (define T-bool 'Bool)
 (define T-nat 'Nat)
 (define T-int 'Int)
+(define T-char 'Char)
 (define T-string 'String)
 (define T-symbol 'Symbol)
 (define T-bytes 'Bytes)
