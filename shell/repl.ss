@@ -41,6 +41,9 @@
 ;; Survey utility
 (load "shell/survey.ss")
 
+;; Export utilities
+(load "shell/export.ss")
+
 ;; Games
 (load "playpen/templates/lambda-kombat.ss")
 
@@ -128,6 +131,13 @@
   (display "    (lambda-kombat)        Play Lambda Kombat\n")
   (display "    (lk-leaderboard)       View high scores\n")
   (display "    (lk-help)              Game help and patterns\n")
+  (display "\n")
+  (display "  EXPORT:\n")
+  (display "    (export-forums)        Export all forums to file\n")
+  (display "    (export-channel ch)    Export single channel\n")
+  (display "    (export-chat)          Export chat history\n")
+  (display "    (forum-stats)          Show post counts\n")
+  (display "    (export-help)          Export command reference\n")
   (display "\n")
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")
