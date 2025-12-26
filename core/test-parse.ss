@@ -6,7 +6,7 @@
 ;;; This is Core test code: verifies pure functionality.
 
 ;;; Load the parser library
-;;; (load "parse.ss")
+(load "parse.ss")
 
 ;;; ============================================================
 ;;; Test Helpers
@@ -472,9 +472,6 @@
 ;;; ============================================================
 
 (define (test-arithmetic-parser)
-  (display "Testing complete arithmetic parser...")
-  (newline)
-
   ;; Simple expression parser: parses "num op num" like "3 + 5"
   (define addop
     (alt (map-p (lambda (_) +) (char #\+))
@@ -492,6 +489,9 @@
           (bind spaces (lambda (_)
             (bind nat (lambda (right)
               (pure (op left right)))))))))))))
+
+  (display "Testing complete arithmetic parser...")
+  (newline)
 
   ;; Test addition
   (let ([result (run-parser simple-expr "3 + 5")])
@@ -511,9 +511,6 @@
 ;;; ============================================================
 
 (define (test-csv-parser)
-  (display "Testing CSV parser...")
-  (newline)
-
   ;; CSV field: sequence of non-comma characters
   (define csv-field
     (map-p list->string (many (none-of ",\n"))))
@@ -521,6 +518,9 @@
   ;; CSV line: comma-separated fields
   (define csv-line
     (sep-by csv-field (char #\,)))
+
+  (display "Testing CSV parser...")
+  (newline)
 
   ;; Test single field
   (let ([result (run-parser csv-line "hello")])
@@ -545,9 +545,6 @@
 ;;; ============================================================
 
 (define (test-sexpr-parser)
-  (display "Testing simple S-expression parser...")
-  (newline)
-
   ;; Atom: identifier or number
   (define atom
     (alt (map-p (lambda (s) (string->symbol s)) identifier)
@@ -561,6 +558,9 @@
                   (char #\))
                   (sep-by atom space))))
 
+  (display "Testing simple S-expression parser...")
+  (newline)
+
   ;; Test atom
   (let ([result (run-parser simple-sexpr "hello")])
     (assert-parse-ok result "sexpr atom")
@@ -571,10 +571,10 @@
     (assert-parse-ok result "sexpr number")
     (assert-equal (result-value result) 42 "sexpr number value"))
 
-  ;; Test list
-  (let ([result (run-parser simple-sexpr "(+ 1 2)")])
+  ;; Test list (using identifiers that start with letters)
+  (let ([result (run-parser simple-sexpr "(add 1 2)")])
     (assert-parse-ok result "sexpr list")
-    (assert-equal (result-value result) '(+ 1 2) "sexpr list value"))
+    (assert-equal (result-value result) '(add 1 2) "sexpr list value"))
 
   (display "S-expression parser tests complete.")
   (newline))
@@ -641,5 +641,5 @@
   (display "========================================")
   (newline))
 
-;;; Uncomment to run tests:
-;;; (run-all-tests)
+;;; Run tests:
+(run-all-tests)

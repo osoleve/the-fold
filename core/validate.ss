@@ -188,38 +188,49 @@
 ;;; Returns #t if valid, error string otherwise.
 (define (validate-serialized obj)
   (cond
-    [(not (bytevector? obj))
-     "serialized block must be a bytevector"]
-    [(< (bytevector-length obj) 12)
-     "serialized block too short (minimum 12 bytes for headers)"]
-    [else
-     ;; Check if we can at least read the tag length
-     (let ([tag-len (bytes-le->u32 obj 0)])
-       (cond
-         [(> tag-len 1000000)
-          "tag length unreasonably large"]
-         [(< (bytevector-length obj) (+ 4 tag-len 4 4))
-          "serialized block truncated"]
-         [else
-          ;; Check payload length
-          (let ([payload-len (bytes-le->u32 obj (+ 4 tag-len))])
-            (cond
-              [(> payload-len 100000000)
-               "payload length unreasonably large"]
-              [else
-               ;; Check refs count
-               (let* ([refs-offset (+ 4 tag-len 4 payload-len)]
-                      [_ (if (< (bytevector-length obj) (+ refs-offset 4))
-                             (error 'validate-serialized "truncated at refs count")
-                             #f)]
-                      [refs-count (bytes-le->u32 obj refs-offset)]
-                      [expected-len (+ refs-offset 4 (* refs-count hash-size))])
-                 (cond
-                   [(> refs-count 1000000)
-                    "refs count unreasonably large"]
-                   [(not (= (bytevector-length obj) expected-len))
-                    (string-append "serialized block length mismatch: expected "
-                                  (number->string expected-len)
-                                  ", got "
-                                  (number->string (bytevector-length obj)))]
-                   [else #t]))])]))]))
+    ((not (bytevector? obj))
+     "serialized block must be a bytevector")
+    ((< (bytevector-length obj) 12)
+     "serialized block too short (minimum 12 bytes for headers)")
+    (else
+     (validate-serialized-structure obj))))
+
+;;; Helper: validate the structure of a serialized block
+(define (validate-serialized-structure obj)
+  (let ((tag-len (bytes-le->u32 obj 0)))
+    (cond
+      ((> tag-len 1000000)
+       "tag length unreasonably large")
+      ((< (bytevector-length obj) (+ 4 tag-len 4 4))
+       "serialized block truncated")
+      (else
+       (validate-serialized-payload obj tag-len)))))
+
+;;; Helper: validate payload portion
+(define (validate-serialized-payload obj tag-len)
+  (let ((payload-len (bytes-le->u32 obj (+ 4 tag-len))))
+    (cond
+      ((> payload-len 100000000)
+       "payload length unreasonably large")
+      (else
+       (validate-serialized-refs obj tag-len payload-len)))))
+
+;;; Helper: validate refs portion
+(define (validate-serialized-refs obj tag-len payload-len)
+  (let* ((refs-offset (+ 4 tag-len 4 payload-len))
+         (have-refs-count (>= (bytevector-length obj) (+ refs-offset 4))))
+    (cond
+      ((not have-refs-count)
+       "serialized block truncated at refs count")
+      (else
+       (let* ((refs-count (bytes-le->u32 obj refs-offset))
+              (expected-len (+ refs-offset 4 (* refs-count hash-size))))
+         (cond
+           ((> refs-count 1000000)
+            "refs count unreasonably large")
+           ((not (= (bytevector-length obj) expected-len))
+            (string-append "serialized block length mismatch: expected "
+                          (number->string expected-len)
+                          ", got "
+                          (number->string (bytevector-length obj))))
+           (else #t)))))))

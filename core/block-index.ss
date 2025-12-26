@@ -68,7 +68,7 @@
       (hashtable-set! tag-table tag (cons hash existing)))
 
     ;; Index references (reverse index)
-    (for-each
+    (vector-for-each
       (lambda (ref-hash)
         (let ([existing (hashtable-ref ref-table ref-hash '())])
           (hashtable-set! ref-table ref-hash (cons hash existing))))
@@ -135,24 +135,16 @@
 ;;; get-all-tags : Index → List[Symbol]
 ;;; Return all tags in the index.
 (define (get-all-tags idx)
-  (let ([tag-table (index-tag-table idx)]
-        [tags '()])
-    (hashtable-for-each
-      (lambda (tag hashes)
-        (set! tags (cons tag tags)))
-      tag-table)
-    tags))
+  (let ((tag-table (index-tag-table idx)))
+    (vector->list (hashtable-keys tag-table))))
 
 ;;; get-tag-distribution : Index → Alist
 ;;; Return tag → count distribution.
 (define (get-tag-distribution idx)
-  (let ([tag-table (index-tag-table idx)]
-        [dist '()])
-    (hashtable-for-each
-      (lambda (tag hashes)
-        (set! dist (cons (cons tag (length hashes)) dist)))
-      tag-table)
-    dist))
+  (let ((tag-table (index-tag-table idx)))
+    (map (lambda (tag)
+           (cons tag (length (hashtable-ref tag-table tag '()))))
+         (vector->list (hashtable-keys tag-table)))))
 
 ;;; ============================================================
 ;;; Graph Traversal Primitives
@@ -174,7 +166,7 @@
           (when blk
             (when (pred blk)
               (set! results (cons hash results)))
-            (for-each
+            (vector-for-each
               (lambda (ref) (visit ref (- d 1)))
               (block-refs blk))))))
     (visit start depth)
@@ -184,25 +176,27 @@
 ;;; Find a path from start to target, up to max-depth.
 ;;; Returns the path as a list of hashes, or #f if no path found.
 (define (find-path fetch start target max-depth)
-  (let ([visited (make-hashtable equal-hash equal?)])
+  (let ((visited (make-hashtable equal-hash equal?)))
     (define (search hash depth path)
       (cond
-        [(equal? hash target) (reverse (cons hash path))]
-        [(<= depth 0) #f]
-        [(hashtable-ref visited hash #f) #f]
-        [else
+        ((equal? hash target) (reverse (cons hash path)))
+        ((<= depth 0) #f)
+        ((hashtable-ref visited hash #f) #f)
+        (else
          (hashtable-set! visited hash #t)
-         (let ([blk (fetch hash)])
+         (let ((blk (fetch hash)))
            (if (not blk)
                #f
-               (let loop ([refs (block-refs blk)])
-                 (cond
-                   [(null? refs) #f]
-                   [else
-                    (let ([result (search (car refs) (- depth 1) (cons hash path))])
-                      (if result
-                          result
-                          (loop (cdr refs))))]))))]))
+               (search-refs (block-refs blk) depth (cons hash path)))))))
+    (define (search-refs refs depth path)
+      (let loop ((i 0))
+        (cond
+          ((>= i (vector-length refs)) #f)
+          (else
+           (let ((result (search (vector-ref refs i) (- depth 1) path)))
+             (if result
+                 result
+                 (loop (+ i 1))))))))
     (search start max-depth '())))
 
 ;;; compute-reference-counts : List[Hash] × (Hash → Block) → Hashtable
@@ -219,7 +213,7 @@
       (lambda (h)
         (let ([blk (fetch h)])
           (when blk
-            (for-each
+            (vector-for-each
               (lambda (ref)
                 (let ([current (hashtable-ref counts ref 0)])
                   (hashtable-set! counts ref (+ current 1))))
@@ -231,12 +225,5 @@
 ;;; Helper: UTF8 conversion
 ;;; ============================================================
 
-;;; utf8->string : Bytevector → String
-;;; Convert UTF-8 bytes to string (assumes valid UTF-8).
-(define (utf8->string bv)
-  (utf8->string bv))
-
-;;; string->utf8 : String → Bytevector
-;;; Convert string to UTF-8 bytes.
-(define (string->utf8 str)
-  (string->utf8 str))
+;;; Note: utf8->string and string->utf8 are Chez Scheme built-ins.
+;;; No need to define them here.
