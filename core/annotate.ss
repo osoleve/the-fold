@@ -1,0 +1,539 @@
+;;; core/annotate.ss — Type-Annotated AST
+;;;
+;;; Every expression, annotated with its type.
+;;;
+;;; The annotated AST makes types visible at every node.
+;;; This enables:
+;;;   - Type-guided evaluation
+;;;   - Pretty-printing with types
+;;;   - Type-preserving transformations
+;;;   - IDE features (hover for type)
+;;;
+;;; Annotated expressions have the form:
+;;;   (ann Type Expr)
+;;;
+;;; Where Expr may contain nested ann forms.
+;;;
+;;; This is Core code: pure, total, assumes perfect input.
+
+;;; Dependencies
+;;; (load "types.ss")
+;;; (load "kinds.ss")
+;;; (load "infer.ss")
+
+;;; ============================================================
+;;; Annotated AST
+;;; ============================================================
+
+;;; An annotated expression wraps every subexpression with its type.
+;;;
+;;; (ann Type Expr)
+;;;
+;;; Examples:
+;;;   (ann Int 42)
+;;;   (ann (-> Int Int) (fn (x) (ann Int (prim 'add (ann Int x) (ann Int 1)))))
+
+(define (ann type expr)
+  `(ann ,type ,expr))
+
+(define (ann? e)
+  (and (pair? e) (eq? (car e) 'ann)))
+
+(define (ann-type e)
+  (if (ann? e) (cadr e) '?))
+
+(define (ann-expr e)
+  (if (ann? e) (caddr e) e))
+
+;;; ============================================================
+;;; Strip Annotations
+;;; ============================================================
+
+;;; strip-ann : AnnotatedExpr → Expr
+;;; Remove all type annotations, recovering the original expression.
+(define (strip-ann e)
+  (cond
+    [(ann? e) (strip-ann (ann-expr e))]
+    [(not (pair? e)) e]
+    [else (map strip-ann e)]))
+
+;;; ============================================================
+;;; Annotation Inference
+;;; ============================================================
+
+;;; annotate : Expr × TEnv → (ok AnnotatedExpr Subst) | (error ...)
+;;; Run type inference and produce an annotated expression.
+(define (annotate expr env)
+  (annotate-with expr env empty-subst))
+
+(define (annotate-with expr env subst)
+  (cond
+    ;; Literals
+    [(number? expr)
+     (let ([t (if (integer? expr) 'Int 'Nat)])
+       `(ok ,(ann t expr) ,subst))]
+
+    [(boolean? expr)
+     `(ok ,(ann 'Bool expr) ,subst)]
+
+    [(string? expr)
+     `(ok ,(ann 'String expr) ,subst)]
+
+    ;; Quote
+    [(and (pair? expr) (eq? (car expr) 'quote))
+     (let ([result (infer-quoted (cadr expr))])
+       (if (eq? (car result) 'ok)
+           `(ok ,(ann (cadr result) expr) ,subst)
+           result))]
+
+    ;; Variable
+    [(symbol? expr)
+     (let ([type (tenv-lookup env expr)])
+       (if type
+           (let ([inst-type (instantiate type)])
+             `(ok ,(ann (apply-subst subst inst-type) expr) ,subst))
+           `(error unbound-variable ,expr)))]
+
+    [(not (pair? expr))
+     `(error unknown-expression ,expr)]
+
+    ;; Type annotation: (: expr type)
+    [(eq? (car expr) ':)
+     (let* ([e (cadr expr)]
+            [annot-type (caddr expr)]
+            [result (annotate-check e annot-type env subst)])
+       (if (eq? (car result) 'ok)
+           (let ([ann-e (cadr result)]
+                 [s (caddr result)])
+             `(ok ,(ann annot-type (list ': ann-e annot-type)) ,s))
+           result))]
+
+    ;; Lambda: (fn (params...) body)
+    [(eq? (car expr) 'fn)
+     (annotate-fn (cadr expr) (caddr expr) env subst)]
+
+    ;; Let: (let ((x e) ...) body)
+    [(eq? (car expr) 'let)
+     (annotate-let (cadr expr) (caddr expr) env subst)]
+
+    ;; Fix: (fix name (fn ...))
+    [(eq? (car expr) 'fix)
+     (annotate-fix (cadr expr) (caddr expr) env subst)]
+
+    ;; If: (if test then else)
+    [(eq? (car expr) 'if)
+     (annotate-if (cadr expr) (caddr expr) (cadddr expr) env subst)]
+
+    ;; Prim: (prim 'op args...)
+    [(eq? (car expr) 'prim)
+     (annotate-prim (cadr expr) (cddr expr) env subst)]
+
+    ;; Application: (f args...)
+    [(not (special-form? (car expr)))
+     (annotate-app (car expr) (cdr expr) env subst)]
+
+    [else `(error unsupported-expression ,expr)]))
+
+;;; ============================================================
+;;; Lambda Annotation
+;;; ============================================================
+
+(define (annotate-fn params body env subst)
+  (let* ([param-types (map (lambda (_) (fresh-tvar)) params)]
+         [new-env (tenv-extend* env (map cons params param-types))]
+         [result (annotate-with body new-env subst)])
+    (if (eq? (car result) 'ok)
+        (let* ([ann-body (cadr result)]
+               [s (caddr result)]
+               [body-type (ann-type ann-body)]
+               [fn-type (apply-subst s
+                          (cons '-> (append param-types (list body-type))))]
+               ;; Annotate parameters with their types
+               [ann-params (map (lambda (p t)
+                                  (ann (apply-subst s t) p))
+                                params param-types)])
+          `(ok ,(ann fn-type `(fn ,ann-params ,ann-body)) ,s))
+        result)))
+
+;;; ============================================================
+;;; Let Annotation
+;;; ============================================================
+
+(define (annotate-let bindings body env subst)
+  (annotate-let-bindings bindings body env '() subst))
+
+(define (annotate-let-bindings bindings body env ann-bindings subst)
+  (if (null? bindings)
+      ;; All bindings processed, annotate body
+      (let* ([new-env (fold-left
+                        (lambda (e b)
+                          (tenv-extend e (car b) (ann-type (cadr b))))
+                        env
+                        (reverse ann-bindings))]
+             [result (annotate-with body new-env subst)])
+        (if (eq? (car result) 'ok)
+            (let* ([ann-body (cadr result)]
+                   [s (caddr result)]
+                   [body-type (ann-type ann-body)]
+                   ;; Update binding types with final substitution
+                   [final-bindings (map (lambda (b)
+                                          (list (car b)
+                                                (ann (apply-subst s (ann-type (cadr b)))
+                                                     (ann-expr (cadr b)))))
+                                        (reverse ann-bindings))])
+              `(ok ,(ann body-type `(let ,final-bindings ,ann-body)) ,s))
+            result))
+      ;; Process next binding
+      (let* ([binding (car bindings)]
+             [var (car binding)]
+             [init (cadr binding)]
+             [result (annotate-with init env subst)])
+        (if (eq? (car result) 'ok)
+            (let* ([ann-init (cadr result)]
+                   [s (caddr result)]
+                   [init-type (ann-type ann-init)]
+                   [gen-type (generalize env (apply-subst s init-type))]
+                   [new-env (tenv-extend env var gen-type)])
+              (annotate-let-bindings
+                (cdr bindings) body new-env
+                (cons (list var (ann gen-type (ann-expr ann-init))) ann-bindings)
+                s))
+            result))))
+
+;;; ============================================================
+;;; Fix Annotation
+;;; ============================================================
+
+(define (annotate-fix name fn-expr env subst)
+  (let* ([fix-type (fresh-tvar)]
+         [new-env (tenv-extend env name fix-type)]
+         [result (annotate-with fn-expr new-env subst)])
+    (if (eq? (car result) 'ok)
+        (let* ([ann-fn (cadr result)]
+               [s1 (caddr result)]
+               [fn-type (ann-type ann-fn)]
+               [unify-result (unify-with s1 fix-type fn-type)])
+          (if (eq? (car unify-result) 'ok)
+              (let* ([s2 (cadr unify-result)]
+                     [final-type (apply-subst s2 fn-type)])
+                `(ok ,(ann final-type `(fix ,name ,ann-fn)) ,s2))
+              unify-result))
+        result)))
+
+;;; ============================================================
+;;; If Annotation
+;;; ============================================================
+
+(define (annotate-if test then-expr else-expr env subst)
+  (let ([test-result (annotate-with test env subst)])
+    (if (not (eq? (car test-result) 'ok))
+        test-result
+        (let* ([ann-test (cadr test-result)]
+               [s1 (caddr test-result)]
+               ;; Check test is Bool
+               [bool-result (unify-with s1 (ann-type ann-test) 'Bool)])
+          (if (not (eq? (car bool-result) 'ok))
+              `(error if-test-not-bool ,(ann-type ann-test))
+              (let* ([s2 (cadr bool-result)]
+                     [then-result (annotate-with then-expr env s2)])
+                (if (not (eq? (car then-result) 'ok))
+                    then-result
+                    (let* ([ann-then (cadr then-result)]
+                           [s3 (caddr then-result)]
+                           [else-result (annotate-with else-expr env s3)])
+                      (if (not (eq? (car else-result) 'ok))
+                          else-result
+                          (let* ([ann-else (cadr else-result)]
+                                 [s4 (caddr else-result)]
+                                 ;; Unify branches
+                                 [branch-result (unify-with s4
+                                                  (ann-type ann-then)
+                                                  (ann-type ann-else))])
+                            (if (eq? (car branch-result) 'ok)
+                                (let* ([s5 (cadr branch-result)]
+                                       [result-type (apply-subst s5 (ann-type ann-then))])
+                                  `(ok ,(ann result-type
+                                             `(if ,ann-test ,ann-then ,ann-else))
+                                       ,s5))
+                                branch-result)))))))))))
+
+;;; ============================================================
+;;; Prim Annotation
+;;; ============================================================
+
+(define (annotate-prim op args env subst)
+  (let ([op-sym (if (and (pair? op) (eq? (car op) 'quote))
+                    (cadr op)
+                    op)])
+    (let ([prim-type (lookup-prim-type op-sym)])
+      (if (not prim-type)
+          `(error unknown-primitive ,op-sym)
+          (let ([inst-type (instantiate prim-type)])
+            ;; Pass op-sym (the bare symbol) to avoid double-quoting
+            (annotate-prim-args op-sym inst-type args env '() subst))))))
+
+(define (annotate-prim-args op fn-type remaining env ann-args subst)
+  (if (null? remaining)
+      ;; All args processed
+      (let ([result-type (if (function-type? fn-type)
+                             (function-return-type fn-type)
+                             fn-type)])
+        `(ok ,(ann (apply-subst subst result-type)
+                   `(prim ',op ,@(reverse ann-args)))
+             ,subst))
+      ;; Process next arg
+      (if (not (function-type? fn-type))
+          `(error prim-arity-mismatch ,op)
+          (let* ([param-types (function-param-types fn-type)]
+                 [return-type (function-return-type fn-type)]
+                 [expected-type (if (null? param-types) '? (car param-types))]
+                 [result (annotate-with (car remaining) env subst)])
+            (if (not (eq? (car result) 'ok))
+                result
+                (let* ([ann-arg (cadr result)]
+                       [s1 (caddr result)]
+                       [unify-result (unify-with s1
+                                       (ann-type ann-arg)
+                                       (apply-subst s1 expected-type))])
+                  (if (not (eq? (car unify-result) 'ok))
+                      unify-result
+                      (let* ([s2 (cadr unify-result)]
+                             ;; Build remaining function type
+                             [new-fn-type (if (null? (cdr param-types))
+                                              return-type
+                                              (cons '->
+                                                (append (cdr param-types)
+                                                        (list return-type))))])
+                        (annotate-prim-args
+                          op new-fn-type (cdr remaining) env
+                          (cons ann-arg ann-args)
+                          s2)))))))))
+
+;;; ============================================================
+;;; Application Annotation
+;;; ============================================================
+
+(define (annotate-app fn args env subst)
+  (let ([fn-result (annotate-with fn env subst)])
+    (if (not (eq? (car fn-result) 'ok))
+        fn-result
+        (let* ([ann-fn (cadr fn-result)]
+               [s1 (caddr fn-result)]
+               [fn-type (apply-subst s1 (ann-type ann-fn))])
+          (annotate-app-args ann-fn fn-type args env '() s1)))))
+
+(define (annotate-app-args ann-fn fn-type remaining env ann-args subst)
+  (if (null? remaining)
+      ;; All args processed
+      (let ([result-type (if (function-type? fn-type)
+                             (function-return-type fn-type)
+                             fn-type)])
+        `(ok ,(ann (apply-subst subst result-type)
+                   `(,ann-fn ,@(reverse ann-args)))
+             ,subst))
+      ;; Process next arg
+      (cond
+        ;; Function type — check arg against param
+        [(function-type? fn-type)
+         (let* ([param-types (function-param-types fn-type)]
+                [return-type (function-return-type fn-type)]
+                [expected-type (if (null? param-types) '? (car param-types))]
+                [result (annotate-with (car remaining) env subst)])
+           (if (not (eq? (car result) 'ok))
+               result
+               (let* ([ann-arg (cadr result)]
+                      [s1 (caddr result)]
+                      [unify-result (unify-with s1
+                                      (ann-type ann-arg)
+                                      (apply-subst s1 expected-type))])
+                 (if (not (eq? (car unify-result) 'ok))
+                     unify-result
+                     (let* ([s2 (cadr unify-result)]
+                            [new-fn-type (if (null? (cdr param-types))
+                                             return-type
+                                             (cons '->
+                                               (append (cdr param-types)
+                                                       (list return-type))))])
+                       (annotate-app-args
+                         ann-fn new-fn-type (cdr remaining) env
+                         (cons ann-arg ann-args)
+                         s2))))))]
+
+        ;; Type variable — create function type
+        [(type-var? fn-type)
+         (let* ([arg-types (map (lambda (_) (fresh-tvar)) remaining)]
+                [ret-type (fresh-tvar)]
+                [expected-fn-type (cons '-> (append arg-types (list ret-type)))]
+                [unify-result (unify-with subst fn-type expected-fn-type)])
+           (if (eq? (car unify-result) 'ok)
+               (let ([s2 (cadr unify-result)])
+                 (annotate-app-args
+                   ann-fn (apply-subst s2 expected-fn-type) remaining env
+                   ann-args s2))
+               unify-result))]
+
+        [else `(error not-a-function ,fn-type)])))
+
+;;; ============================================================
+;;; Check-Mode Annotation
+;;; ============================================================
+
+(define (annotate-check expr expected env subst)
+  (cond
+    ;; Lambda against function type
+    [(and (pair? expr) (eq? (car expr) 'fn) (function-type? expected))
+     (let* ([params (cadr expr)]
+            [body (caddr expr)]
+            [param-types (function-param-types expected)]
+            [return-type (function-return-type expected)])
+       (if (not (= (length params) (length param-types)))
+           `(error arity-mismatch (expected ,(length param-types))
+                                  (got ,(length params)))
+           (let* ([new-env (tenv-extend* env (map cons params param-types))]
+                  [result (annotate-check body return-type new-env subst)])
+             (if (eq? (car result) 'ok)
+                 (let* ([ann-body (cadr result)]
+                        [s (caddr result)]
+                        [ann-params (map (lambda (p t) (ann t p))
+                                        params param-types)])
+                   `(ok ,(ann expected `(fn ,ann-params ,ann-body)) ,s))
+                 result))))]
+
+    ;; Default: infer and unify
+    [else
+     (let ([result (annotate-with expr env subst)])
+       (if (eq? (car result) 'ok)
+           (let* ([ann-e (cadr result)]
+                  [s1 (caddr result)]
+                  [unify-result (unify-with s1 (ann-type ann-e) expected)])
+             (if (eq? (car unify-result) 'ok)
+                 `(ok ,ann-e ,(cadr unify-result))
+                 unify-result))
+           result))]))
+
+;;; ============================================================
+;;; Convenience API
+;;; ============================================================
+
+;;; annotate-expr : Expr → AnnotatedExpr | Error
+;;; Annotate an expression with types.
+(define (annotate-expr expr)
+  (reset-fresh!)
+  (let ([result (annotate expr empty-tenv)])
+    (if (eq? (car result) 'ok)
+        (let* ([ann-e (cadr result)]
+               [s (caddr result)])
+          (finalize-ann ann-e s))
+        result)))
+
+;;; finalize-ann : AnnotatedExpr × Subst → AnnotatedExpr
+;;; Apply final substitution to all types in an annotated expression.
+(define (finalize-ann ann-e subst)
+  (cond
+    [(ann? ann-e)
+     (ann (apply-subst subst (ann-type ann-e))
+          (finalize-ann-inner (ann-expr ann-e) subst))]
+    [else ann-e]))
+
+(define (finalize-ann-inner e subst)
+  (cond
+    [(ann? e) (finalize-ann e subst)]
+    [(not (pair? e)) e]
+    [else (map (lambda (x) (finalize-ann-inner x subst)) e)]))
+
+;;; ============================================================
+;;; Pretty Print Annotated Code
+;;; ============================================================
+
+;;; pp-ann : AnnotatedExpr × Indent → String
+;;; Pretty-print annotated code showing types.
+(define (pp-ann ann-e)
+  (pp-ann-indent ann-e 0))
+
+(define (pp-ann-indent ann-e indent)
+  (let ([ind (make-string indent #\space)])
+    (if (ann? ann-e)
+        (let ([type (ann-type ann-e)]
+              [expr (ann-expr ann-e)])
+          (cond
+            ;; Simple values — inline
+            [(or (number? expr) (boolean? expr) (string? expr) (symbol? expr))
+             (string-append (format "~a" expr) " : " (type->string type))]
+
+            ;; Quote — inline
+            [(and (pair? expr) (eq? (car expr) 'quote))
+             (string-append (format "~s" expr) " : " (type->string type))]
+
+            ;; Lambda — multi-line
+            [(and (pair? expr) (eq? (car expr) 'fn))
+             (let* ([params (cadr expr)]
+                    [body (caddr expr)]
+                    [param-strs (map (lambda (p)
+                                       (if (ann? p)
+                                           (format "(~a : ~a)"
+                                                   (ann-expr p)
+                                                   (type->string (ann-type p)))
+                                           (format "~a" p)))
+                                     params)])
+               (string-append
+                 "(fn (" (join-strings " " param-strs) ")\n"
+                 ind "  " (pp-ann-indent body (+ indent 2)) ")\n"
+                 ind ": " (type->string type)))]
+
+            ;; Let — multi-line
+            [(and (pair? expr) (eq? (car expr) 'let))
+             (let* ([bindings (cadr expr)]
+                    [body (caddr expr)]
+                    [binding-strs (map (lambda (b)
+                                         (format "  (~a ~a)"
+                                                 (car b)
+                                                 (pp-ann-indent (cadr b) (+ indent 4))))
+                                       bindings)])
+               (string-append
+                 "(let (\n" ind
+                 (join-strings (string-append "\n" ind) binding-strs)
+                 ")\n" ind "  "
+                 (pp-ann-indent body (+ indent 2)) ")\n"
+                 ind ": " (type->string type)))]
+
+            ;; If — multi-line
+            [(and (pair? expr) (eq? (car expr) 'if))
+             (string-append
+               "(if " (pp-ann-indent (cadr expr) (+ indent 4)) "\n"
+               ind "    " (pp-ann-indent (caddr expr) (+ indent 4)) "\n"
+               ind "    " (pp-ann-indent (cadddr expr) (+ indent 4)) ")\n"
+               ind ": " (type->string type))]
+
+            ;; Prim — inline or short
+            [(and (pair? expr) (eq? (car expr) 'prim))
+             (let ([args (cddr expr)])
+               (string-append
+                 "(prim '" (format "~a" (cadr expr)) " "
+                 (join-strings " " (map (lambda (a) (pp-ann-indent a 0)) args))
+                 ") : " (type->string type)))]
+
+            ;; Application — varies
+            [(pair? expr)
+             (string-append
+               "(" (join-strings " "
+                     (map (lambda (e) (pp-ann-indent e (+ indent 1))) expr))
+               ") : " (type->string type))]
+
+            [else (format "~s : ~a" expr (type->string type))]))
+        ;; Not annotated
+        (format "~s" ann-e))))
+
+;;; ============================================================
+;;; Display Annotated Expression
+;;; ============================================================
+
+(define (show-annotated expr)
+  (let ([result (annotate-expr expr)])
+    (if (and (pair? result) (eq? (car result) 'error))
+        (begin
+          (display "Type error: ")
+          (display (format-type-error result))
+          (newline))
+        (begin
+          (display (pp-ann result))
+          (newline)))))

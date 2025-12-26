@@ -286,28 +286,14 @@
     [(not (special-form? (car expr)))
      (infer-app (car expr) (cdr expr) env)]
 
-    ;; Let: (let ((x e1)) e2)
+    ;; Let: (let ((x e1) ...) body)
     [(eq? (car expr) 'let)
-     (let* ([bindings (cadr expr)]
-            [body (caddr expr)]
-            [var (caar bindings)]
-            [init (cadar bindings)]
-            [init-result (infer init env)])
-       (if (eq? (car init-result) 'ok)
-           (let* ([init-type (cadr init-result)]
-                  [s1 (caddr init-result)]
-                  [gen-type (generalize env (apply-subst s1 init-type))]
-                  [new-env (tenv-extend env var gen-type)]
-                  [body-result (infer body new-env)])
-             (if (eq? (car body-result) 'ok)
-                 `(ok ,(cadr body-result)
-                      ,(compose-subst (caddr body-result) s1))
-                 body-result))
-           init-result))]
+     (infer-let (cadr expr) (caddr expr) env empty-subst)]
 
-    ;; Fix: (fix (f) body)
+    ;; Fix: (fix name fn-expr) or (fix (name) fn-expr)
     [(eq? (car expr) 'fix)
-     (let* ([var (caadr expr)]
+     (let* ([name-part (cadr expr)]
+            [var (if (pair? name-part) (car name-part) name-part)]
             [body (caddr expr)]
             [fix-type (fresh-tvar)]
             [new-env (tenv-extend env var fix-type)]
@@ -322,6 +308,10 @@
                  unify-result))
            result))]
 
+    ;; If: (if test then else)
+    [(eq? (car expr) 'if)
+     (infer-if (cadr expr) (caddr expr) (cadddr expr) env)]
+
     ;; Primitive call: (prim 'op args...)
     [(eq? (car expr) 'prim)
      (let ([op (cadr expr)])
@@ -332,6 +322,65 @@
          (infer-prim op-sym (cddr expr) env)))]
 
     [else `(error unsupported-expression ,expr)]))
+
+;;; ============================================================
+;;; Let Inference (Multiple Bindings)
+;;; ============================================================
+
+(define (infer-let bindings body env subst)
+  (if (null? bindings)
+      ;; All bindings processed, infer body
+      (let ([result (infer body env)])
+        (if (eq? (car result) 'ok)
+            `(ok ,(cadr result) ,(compose-subst (caddr result) subst))
+            result))
+      ;; Process next binding
+      (let* ([binding (car bindings)]
+             [var (car binding)]
+             [init (cadr binding)]
+             [init-result (infer init env)])
+        (if (eq? (car init-result) 'ok)
+            (let* ([init-type (cadr init-result)]
+                   [s1 (caddr init-result)]
+                   [combined-subst (compose-subst s1 subst)]
+                   [gen-type (generalize env (apply-subst combined-subst init-type))]
+                   [new-env (tenv-extend env var gen-type)])
+              (infer-let (cdr bindings) body new-env combined-subst))
+            init-result))))
+
+;;; ============================================================
+;;; If Inference
+;;; ============================================================
+
+(define (infer-if test then-expr else-expr env)
+  (let ([test-result (infer test env)])
+    (if (not (eq? (car test-result) 'ok))
+        test-result
+        (let* ([test-type (cadr test-result)]
+               [s1 (caddr test-result)]
+               ;; Check test is Bool
+               [bool-unify (unify-with s1 test-type 'Bool)])
+          (if (not (eq? (car bool-unify) 'ok))
+              `(error if-test-not-bool ,test-type)
+              (let* ([s2 (cadr bool-unify)]
+                     [then-result (infer then-expr env)])
+                (if (not (eq? (car then-result) 'ok))
+                    then-result
+                    (let* ([then-type (cadr then-result)]
+                           [s3 (compose-subst (caddr then-result) s2)]
+                           [else-result (infer else-expr env)])
+                      (if (not (eq? (car else-result) 'ok))
+                          else-result
+                          (let* ([else-type (cadr else-result)]
+                                 [s4 (compose-subst (caddr else-result) s3)]
+                                 ;; Unify branches
+                                 [branch-unify (unify-with s4
+                                                 (apply-subst s4 then-type)
+                                                 (apply-subst s4 else-type))])
+                            (if (eq? (car branch-unify) 'ok)
+                                (let ([s5 (cadr branch-unify)])
+                                  `(ok ,(apply-subst s5 then-type) ,s5))
+                                branch-unify)))))))))))
 
 ;;; ============================================================
 ;;; Application Inference

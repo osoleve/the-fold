@@ -50,6 +50,9 @@
 ;; DUCKIE interaction
 (load "shell/duckie-interact.ss")
 
+;; Block navigation and exploration
+(load "shell/block-navigator.ss")
+
 ;;; ============================================================
 ;;; Quiet Mode
 ;;; ============================================================
@@ -149,10 +152,25 @@
   (display "    (forum-stats)          Show post counts\n")
   (display "    (export-help)          Export command reference\n")
   (display "\n")
+  (display "  BLOCK EXPLORER:\n")
+  (display "    (blocks)               Show CAS statistics and overview\n")
+  (display "    (explore-block hash)   Explore a block by hash prefix\n")
+  (display "    (tree hash [depth])    Visualize block reference tree\n")
+  (display "    (popular [n])          Show N most-referenced blocks\n")
+  (display "    (orphans)              Find blocks with no inbound refs\n")
+  (display "    (search query)         Search blocks with ranking\n")
+  (display "\n")
+  (display "  TYPED EVALUATION (after load-core):\n")
+  (display "    (t expr)               Type-check and evaluate expression\n")
+  (display "    (:type expr)           Show type without evaluating\n")
+  (display "    (:ann expr)            Show expression with type annotations\n")
+  (display "\n")
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")
   (display "    (fs)                   Get filesystem capability\n")
-  (display "    (load-core)            Load Core modules for dev work\n")
+  (display "    (load-core)            Load Core modules + playground\n")
+  (display "    (playground-help)      Playground commands (after load-core)\n")
+  (display "    (playground-demo)      Try the playground (after load-core)\n")
   (display "\n"))
 
 (define (help) (display-help))
@@ -165,6 +183,40 @@
 ;;; Convenience function to get a filesystem capability.
 (define (fs)
   (mint-fs-capability ".store"))
+
+;;; Block Explorer Convenience Functions
+
+;;; blocks : → void
+;;; Show all blocks in the content-addressed store.
+(define (blocks)
+  (block-stats (fs)))
+
+;;; explore : String → void
+;;; Explore a block by hash prefix (interactive drilldown).
+(define (explore-block hash-prefix)
+  (explore (fs) hash-prefix))
+
+;;; popular : [Nat] → void
+;;; Show the N most-referenced blocks (default 10).
+(define (popular . args)
+  (let ([n (if (null? args) 10 (car args))])
+    (find-popular (fs) n)))
+
+;;; orphans : → void
+;;; Find blocks with no inbound references.
+(define (orphans)
+  (find-orphans (fs)))
+
+;;; tree : String [Nat] → void
+;;; Visualize block reference tree (default depth 3).
+(define (tree hash-prefix . args)
+  (let ([depth (if (null? args) 3 (car args))])
+    (visualize-tree (fs) hash-prefix depth)))
+
+;;; search : String → void
+;;; Search blocks with relevance ranking.
+(define (search query)
+  (search-ranked (fs) query))
 
 ;;; resume-session : → void
 ;;; Resume an existing session without re-logging in.
@@ -199,15 +251,63 @@
         (load "core/types.ss")
         (load "core/kinds.ss")
         (load "core/infer.ss")
+        (load "core/annotate.ss")
+        (load "core/typed-eval.ss")
         ;; Note: cas.ss, parse.ss, validate.ss have internal loads
         ;; that conflict with repl.ss. Hash/block functions are already
         ;; available from block.ss and sha256.ss loaded by repl.ss.
+
+        ;; Load Core Playground (depends on normalize/expand)
+        (load "shell/core-playground.ss")
+
         (set! *core-loaded* #t)
         (display "Core loaded. Available: normalize, expand, run, infer, etc.\n")
-        (display "Examples:\n")
+        (display "Core Playground loaded. Use (playground-help) for commands.\n")
+        (display "\nExamples:\n")
         (display "  (run '((fn (x) x) 42) 100)   → (ok 42)\n")
         (display "  (infer '(fn (x) x) '())      → (ok (-> τ1 τ1) ())\n")
-        (display "  (normalize '(+ 1 2))          → (+  1 2)\n"))))
+        (display "  (t '(prim 'add 1 2))         → 3 : Int\n")
+        (display "  (:type '(fn (x) x))          → (∀ (τ1) (τ1 → τ1))\n")
+        (display "\nPlayground:\n")
+        (display "  (try-normalize '(lambda (x) x))  → Show de Bruijn form\n")
+        (display "  (try-hash '(lambda (x) x))       → Show expression hash\n")
+        (display "  (playground-demo)                → See all features\n"))))
+
+;;; ============================================================
+;;; Typed Evaluation Convenience Functions
+;;; ============================================================
+
+;;; These functions are available after (load-core)
+
+;;; t : Expr → void
+;;; Typed evaluation: type-check and evaluate, display result with type.
+(define (t expr)
+  (unless *core-loaded*
+    (error 't "Core not loaded. Run (load-core) first."))
+  (typed-repl-eval expr))
+
+;;; :type : Expr → void
+;;; Show the type of an expression without evaluating.
+(define (:type expr)
+  (unless *core-loaded*
+    (error ':type "Core not loaded. Run (load-core) first."))
+  (reset-fresh!)
+  (let ([result (typeof expr)])
+    (if (and (pair? result) (eq? (car result) 'error))
+        (begin
+          (display "Type error: ")
+          (display (format-type-error result))
+          (newline))
+        (begin
+          (display (type->string result))
+          (newline)))))
+
+;;; :ann : Expr → void
+;;; Show an expression with type annotations at every node.
+(define (:ann expr)
+  (unless *core-loaded*
+    (error ':ann "Core not loaded. Run (load-core) first."))
+  (show-annotated expr))
 
 ;;; ============================================================
 ;;; REPL Initialization
