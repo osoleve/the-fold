@@ -400,12 +400,17 @@
 
 ;;; bye : → void
 ;;; Clear session and say goodbye.
+;;; Offers session feedback survey before logging out.
 (define (bye)
   (let ([session (read-session)])
     (when session
       (let* ([name (cdr (assq 'name session))]
              [tier (cdr (assq 'tier session))]
              [fs (mint-fs-capability ".store")])
+        ;; Offer session feedback survey (if survey module loaded)
+        (when (top-level-bound? 'run-bye-surveys)
+          (run-bye-surveys))
+        ;; Post goodbye message
         (post! fs name tier 'chat
                (format "@~a has left the fold" name)
                (current-timestamp))

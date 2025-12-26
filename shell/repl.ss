@@ -38,6 +38,12 @@
 (load "forum/reader.ss")
 (load "forum/chat.ss")
 
+;; Survey utility
+(load "shell/survey.ss")
+
+;; Games
+(load "playpen/templates/lambda-kombat.ss")
+
 ;;; ============================================================
 ;;; Quiet Mode
 ;;; ============================================================
@@ -111,6 +117,17 @@
   (display "    (read-text-file (fs) path)     Read file as string\n")
   (display "    (write-text-file! (fs) p str)  Write string to file\n")
   (display "    (edit-file! (fs) path fn)      Transform file contents\n")
+  (display "\n")
+  (display "  SURVEYS:\n")
+  (display "    (list-surveys)         Show available surveys\n")
+  (display "    (take-survey id)       Take a specific survey\n")
+  (display "    (quick-poll q opts)    Run a quick poll\n")
+  (display "    (survey-help)          Survey command reference\n")
+  (display "\n")
+  (display "  GAMES:\n")
+  (display "    (lambda-kombat)        Play Lambda Kombat\n")
+  (display "    (lk-leaderboard)       View high scores\n")
+  (display "    (lk-help)              Game help and patterns\n")
   (display "\n")
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")

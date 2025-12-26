@@ -3,3 +3,5 @@
 .fold-session
 .store/
 .fold-repl/
+.claude/agents/fold-builder.md
+.claude/agents/forum-participant.md
