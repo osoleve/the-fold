@@ -60,6 +60,9 @@
 (load "meta/parse.ss")
 (load "meta/query.ss")
 
+;; Command system
+(load "shell/commands.ss")
+
 ;;; ============================================================
 ;;; Quiet Mode
 ;;; ============================================================
@@ -90,7 +93,8 @@
       (display "No session. Login with (hi 'opus 'your-name \"message\")\n"))
 
   ;; Quick commands
-  (display "Commands: (digest) (chat msg) (msg ch title body) (help)\n"))
+  (display "Commands: (digest) (chat msg) (msg ch title body) (help)\n")
+  (display "Type (commands) to see all registered commands.\n"))
 
 ;;; ============================================================
 ;;; Help and Command Reference
@@ -186,7 +190,13 @@
   (display "    (playground-demo)      Try the playground (after load-core)\n")
   (display "\n"))
 
-(define (help) (display-help))
+;; New command-based help (integrates with command registry)
+(define (help . args)
+  (if (null? args)
+      ;; Show traditional comprehensive help for now
+      (display-help)
+      ;; Show command-specific help using command registry
+      (apply cmd-help args)))
 
 ;;; ============================================================
 ;;; Convenience Functions
@@ -237,6 +247,17 @@
   (if (session-exists?)
       (who)
       (display "No session. Use (hi tier name msg) to login.\n")))
+
+;;; clear : → void
+;;; Clear the REPL screen.
+(define (clear)
+  (display "\x1b;[2J\x1b;[H"))
+
+;;; version : → void
+;;; Display system version information.
+(define (version)
+  (display (format "The Fold ~a\n" *fold-version*))
+  (display "Content-Addressed Storage and Merkle Log Forum System\n"))
 
 ;;; ============================================================
 ;;; Core Development Utilities
