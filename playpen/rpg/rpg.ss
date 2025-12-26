@@ -16,6 +16,8 @@
 ;;;   5. action.ss  — Action/command system
 ;;;   6. turn.ss    — Turn-based game loop
 ;;;   7. world.ss   — World state management
+;;;   8. combat.ss  — Combat system (damage, attacks)
+;;;   9. ai.ss      — AI behaviors (hunt, guard, wander)
 ;;;
 ;;; After loading, you have access to all SDK functions for building games.
 
@@ -43,6 +45,12 @@
 
 ;;; Load world system (depends on all above)
 (load "playpen/rpg/world.ss")
+
+;;; Load combat system (depends on entity, world)
+(load "playpen/rpg/combat.ss")
+
+;;; Load AI system (depends on entity, world, combat)
+(load "playpen/rpg/ai.ss")
 
 ;;; ============================================================
 ;;; SDK Version

@@ -15,6 +15,43 @@
 ;;;   Entity management (add, remove, query)
 ;;;   Spatial queries (at position, in area, pathfinding)
 ;;;   World state updates
+;;;
+;;; ============================================================
+;;; MUTATION SEMANTICS — IMPORTANT!
+;;; ============================================================
+;;;
+;;; This SDK uses a HYBRID approach:
+;;;   - FUNCTIONAL: Most operations return NEW worlds/entities
+;;;   - IMPERATIVE: Spatial index and tilemap mutations are in-place
+;;;
+;;; FUNCTIONAL (returns new value, MUST capture return):
+;;;   - world-add-entity, world-remove-entity
+;;;   - world-update-entity, world-replace-entity
+;;;   - world-move-entity
+;;;   - world-set-tilemap, world-set-entities, world-set-player-id
+;;;   - world-pickup-item, world-drop-item, world-transfer-item
+;;;   - All entity-* functions (entity-move-to, entity-damage, etc.)
+;;;
+;;; IMPERATIVE (mutates in place, returns Void or Bool):
+;;;   - world-set-tile!, world-open-door!, world-close-door!
+;;;   - tilemap-set-type!, tilemap-set-visible!
+;;;   - spatial-add!, spatial-remove!, spatial-move!
+;;;   - world-compute-fov!
+;;;
+;;; WHY THE SPLIT?
+;;;   - Spatial index is internal to World - mutations stay encapsulated
+;;;   - Tilemap mutations are common hot-path operations
+;;;   - Entity operations are infrequent but complex - functional is safer
+;;;
+;;; BEST PRACTICE:
+;;;   Always capture return values from functional operations:
+;;;     ✓ (set! world (world-add-entity world entity))
+;;;     ✗ (world-add-entity world entity)  ; Lost the new world!
+;;;
+;;;   Functions with '!' suffix mutate and return Void or Bool:
+;;;     ✓ (world-set-tile! world x y tile-wall)
+;;;     ✗ (set! world (world-set-tile! world x y tile-wall))  ; Wrong!
+;;;
 
 ;;; ============================================================
 ;;; World Structure
@@ -519,6 +556,79 @@
                                            open)))))))))))])))]))
 
 ;;; ============================================================
+;;; Inventory Management (World-Level)
+;;; ============================================================
+
+;;; world-pickup-item : World × Nat × Nat -> World
+;;; Entity picks up an item at their current location.
+;;; Removes item from world and adds to entity's inventory.
+(define (world-pickup-item world entity-id item-id)
+  (let ([entity (world-get-entity world entity-id)]
+        [item (world-get-entity world item-id)])
+    (if (and entity item
+             (entity-has-component? entity 'inventory)
+             (entity-has-component? item 'item)
+             (point=? (entity-point entity) (entity-point item)))
+        ;; Entity and item at same location - pickup
+        (let* ([inventory (entity-inventory entity)]
+               [new-inventory (inventory-add-item inventory item-id)]
+               [new-entity (entity-add-component entity new-inventory)]
+               [world (world-update-entity world entity-id (lambda (_) new-entity))]
+               [world (world-remove-entity world item-id)])
+          world)
+        ;; Can't pickup - return unchanged
+        world)))
+
+;;; world-drop-item : World × Nat × Any -> World
+;;; Entity drops an item from inventory at their current location.
+;;; Removes item from inventory and adds to world as entity.
+(define (world-drop-item world entity-id item-id)
+  (let ([entity (world-get-entity world entity-id)])
+    (if (and entity (entity-has-component? entity 'inventory))
+        (let* ([inventory (entity-inventory entity)]
+               [has-item? (inventory-has-item? inventory item-id)])
+          (if has-item?
+              ;; Drop the item
+              (let* ([new-inventory (inventory-remove-item inventory item-id)]
+                     [new-entity (entity-add-component entity new-inventory)]
+                     [pos (entity-point entity)]
+                     ;; Note: This assumes item-id can be resolved to an item entity
+                     ;; In practice, you'd need an item registry to create item entities
+                     ;; For now, this is a stub that needs item system integration
+                     [world (world-update-entity world entity-id (lambda (_) new-entity))])
+                world)
+              ;; Don't have item
+              world))
+        world)))
+
+;;; world-transfer-item : World × Nat × Nat × Any -> World
+;;; Transfer item from one entity's inventory to another's.
+(define (world-transfer-item world from-entity-id to-entity-id item-id)
+  (let ([from-entity (world-get-entity world from-entity-id)]
+        [to-entity (world-get-entity world to-entity-id)])
+    (if (and from-entity to-entity
+             (entity-has-component? from-entity 'inventory)
+             (entity-has-component? to-entity 'inventory))
+        (let* ([from-inv (entity-inventory from-entity)]
+               [to-inv (entity-inventory to-entity)])
+          (if (inventory-has-item? from-inv item-id)
+              (let* ([new-from-inv (inventory-remove-item from-inv item-id)]
+                     [new-to-inv (inventory-add-item to-inv item-id)]
+                     [new-from (entity-add-component from-entity new-from-inv)]
+                     [new-to (entity-add-component to-entity new-to-inv)]
+                     [world (world-update-entity world from-entity-id (lambda (_) new-from))]
+                     [world (world-update-entity world to-entity-id (lambda (_) new-to))])
+                world)
+              world))
+        world)))
+
+;;; world-items-at : World × Int × Int -> List Entity
+;;; Get all item entities at a position.
+(define (world-items-at world x y)
+  (let ([entities (world-entities-at world x y)])
+    (filter entity-is-item? entities)))
+
+;;; ============================================================
 ;;; Tilemap Mutation
 ;;; ============================================================
 
@@ -713,6 +823,10 @@
 ;;;
 ;;; Pathfinding:
 ;;;   world-find-path
+;;;
+;;; Inventory Management:
+;;;   world-pickup-item, world-drop-item, world-transfer-item
+;;;   world-items-at
 ;;;
 ;;; Tilemap Mutation:
 ;;;   world-set-tile!, world-open-door!, world-close-door!

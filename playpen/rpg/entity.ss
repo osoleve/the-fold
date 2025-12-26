@@ -15,6 +15,38 @@
 ;;;
 ;;; Exports:
 ;;;   Entity creation, components, queries
+;;;
+;;; ============================================================
+;;; MUTATION SEMANTICS — IMPORTANT!
+;;; ============================================================
+;;;
+;;; ALL entity and component operations are FUNCTIONAL:
+;;;   - They return NEW entities/components
+;;;   - Original values are NEVER modified
+;;;   - You MUST capture the return value
+;;;
+;;; FUNCTIONAL (returns new value, MUST capture return):
+;;;   - entity-add-component, entity-remove-component
+;;;   - entity-update-component
+;;;   - entity-move-to, entity-move-by, entity-move-dir
+;;;   - entity-damage, entity-heal
+;;;   - All component update functions (stats-set-hp, etc.)
+;;;
+;;; BEST PRACTICE:
+;;;   Always capture return values:
+;;;     ✓ (set! entity (entity-damage entity 10))
+;;;     ✗ (entity-damage entity 10)  ; Lost the updated entity!
+;;;
+;;;   Use world-update-entity to update entities in the world:
+;;;     ✓ (set! world (world-update-entity world eid
+;;;                     (lambda (e) (entity-damage e 10))))
+;;;
+;;; WHY FUNCTIONAL?
+;;;   - Entities are value types - easy to reason about
+;;;   - No hidden mutations - clear data flow
+;;;   - Easier to test, debug, and replay
+;;;   - Functional transformations compose well
+;;;
 
 ;;; ============================================================
 ;;; Component Types
