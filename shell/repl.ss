@@ -47,6 +47,9 @@
 ;; Games
 (load "playpen/templates/lambda-kombat.ss")
 
+;; DUCKIE interaction
+(load "shell/duckie-interact.ss")
+
 ;;; ============================================================
 ;;; Quiet Mode
 ;;; ============================================================
@@ -131,6 +134,13 @@
   (display "    (lambda-kombat)        Play Lambda Kombat\n")
   (display "    (lk-leaderboard)       View high scores\n")
   (display "    (lk-help)              Game help and patterns\n")
+  (display "\n")
+  (display "  DUCKIE:\n")
+  (display "    (to-duckie msg)        Talk to DUCKIE\n")
+  (display "    (duckie-greet)         Get a greeting from DUCKIE\n")
+  (display "    (duckie-farewell)      Say goodbye to DUCKIE\n")
+  (display "    (duckie-mood)          Check DUCKIE's mood\n")
+  (display "    (set-duckie-mood! m)   Change DUCKIE's mood\n")
   (display "\n")
   (display "  EXPORT:\n")
   (display "    (export-forums)        Export all forums to file\n")

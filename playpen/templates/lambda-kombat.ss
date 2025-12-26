@@ -14,6 +14,7 @@
 ;;; ============================================================
 
 (define *lk-state* #f)
+(define *lk-last-game* #f)  ; Saved state from last completed game
 
 ;;; make-game-state : → Alist
 (define (make-game-state)
@@ -292,6 +293,7 @@
       (display "  No game in progress.\n")
       (begin
         (end-game *lk-state*)
+        (set! *lk-last-game* *lk-state*)  ; Save for submission
         (set! *lk-state* #f))))
 
 ;;; list-index : Any × List → Number | #f
@@ -357,13 +359,15 @@
 ;;; lk-submit : → void
 ;;; Submit the last game's score to the leaderboard.
 (define (lk-submit)
-  (if (not *lk-state*)
-      (display "  No completed game to submit.\n")
-      (let ([rounds (cdr (assq 'rounds *lk-state*))])
-        (if (= rounds 0)
-            (display "  Play at least one round before submitting!\n")
-            (let ([score (cdr (assq 'score *lk-state*))])
-              (submit-score! score *lk-state*))))))
+  (let ([state (or *lk-state* *lk-last-game*)])
+    (if (not state)
+        (display "  No completed game to submit.\n")
+        (let ([rounds (cdr (assq 'rounds state))])
+          (if (= rounds 0)
+              (display "  Play at least one round before submitting!\n")
+              (let ([score (cdr (assq 'score state))])
+                (submit-score! score state)
+                (set! *lk-last-game* #f)))))))
 
 ;;; submit-score! : Number × State → Bytevector
 ;;; Post score to #arena channel.
