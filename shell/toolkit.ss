@@ -12,6 +12,7 @@
 ;;;
 ;;; Categories:
 ;;;   - building:      Tools for building and maintaining code
+;;;   - workflow:      Development workflow and productivity tools
 ;;;   - introspection: Tools for examining and analyzing the system
 ;;;   - debugging:     Tools for finding and fixing issues
 ;;;   - analysis:      Tools for performance and quality analysis
@@ -27,6 +28,7 @@
 ;;; Tool categories and their descriptions
 (define *toolkit-categories*
   '((building . "Code building and maintenance tools")
+    (workflow . "Development workflow and productivity tools")
     (introspection . "System examination and analysis tools")
     (debugging . "Debugging and troubleshooting tools")
     (analysis . "Performance and quality analysis tools")))
@@ -40,6 +42,16 @@
     (edit building "Text file editing utilities" "edit.ss")
     (validate building "Validation utilities for blocks and data" "validate.ss")
     (meta building "Inline metadata tag parser" "meta.ss")
+    (scaffold building "Code scaffolding and templating system" "scaffold.ss")
+    (format building "Code formatter and pretty-printer" "format.ss")
+    (init-project building "Project initialization wizard" "init-project.ss")
+
+    ;; Workflow Tools
+    (test-runner workflow "Comprehensive test automation and discovery" "test-runner.ss")
+    (watch workflow "File watching with auto-reload and auto-test" "watch.ss")
+    (history workflow "Persistent REPL command history" "history.ss")
+    (docgen workflow "Documentation generator for Scheme code" "docgen.ss")
+    (git-workflow workflow "Git workflow helpers and shortcuts" "git-workflow.ss")
 
     ;; Introspection Tools
     (block-diff introspection "Compare and diff blocks structurally" "block-diff.ss")
@@ -54,10 +66,15 @@
     (type-inspect debugging "Examine and explain inferred types" "type-inspect.ss")
     (fuel-profile debugging "Profile fuel consumption" "fuel-profile.ss")
     (debug debugging "Interactive debugger (core)" "../core/debug.ss")
+    (error-fmt debugging "Enhanced error formatter with color and context" "error-fmt.ss")
 
     ;; Analysis Tools
     (project-status analysis "Show project status and metrics" "project-status.ss")
-    (concept-map analysis "Generate concept maps" "concept-map.ss")))
+    (concept-map analysis "Generate concept maps" "concept-map.ss")
+    (perf-monitor analysis "Real-time performance monitoring dashboard" "perf-monitor.ss")
+    (benchmark analysis "Benchmarking harness with statistics" "benchmark.ss")
+    (coverage analysis "Code coverage analyzer" "coverage.ss")))
+    (benchmark analysis "Benchmarking harness with statistics" "benchmark.ss")))
 
 ;;; ============================================================
 ;;; Help System
