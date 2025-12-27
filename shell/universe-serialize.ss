@@ -117,7 +117,13 @@
         [(string=? needle (substring haystack i (+ i nlen))) #t]
         [else (loop (+ i 1))]))))
 
-;;; string-prefix? is now provided by shell/fs.ss
+;;; string-prefix? : String × String → Boolean
+;;; Check if str starts with prefix.
+(define (string-prefix? prefix str)
+  (let ([plen (string-length prefix)]
+        [len (string-length str)])
+    (and (>= len plen)
+         (string=? prefix (substring str 0 plen)))))
 
 ;;; ============================================================
 ;;; File Scanning
