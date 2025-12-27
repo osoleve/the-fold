@@ -38,7 +38,7 @@ An amazing collection of interactive games and creative experiences was discover
 ---
 
 ### 2. **RPG Engine & Demo Game** 🎮
-**Location**: `/home/user/the-fold/playpen/rpg/`
+**Location**: `/home/user/the-fold/playpen/loom/`
 **Type**: Complete 2D Tile-Based RPG SDK
 **Description**: A full Entity-Component System with turn-based combat, AI behaviors, dungeon generation, and complete roguelike gameplay.
 
@@ -55,8 +55,8 @@ An amazing collection of interactive games and creative experiences was discover
 
 **How to Use**:
 ```scheme
-(load "playpen/rpg/rpg.ss")
-(load "playpen/rpg/demo-game.ss")
+(load "playpen/loom/loom.ss")
+(load "playpen/loom/demo-game.ss")
 (new-game!)      ; Start a new game
 (move-player 'north)
 (render-game)    ; Redraw the screen

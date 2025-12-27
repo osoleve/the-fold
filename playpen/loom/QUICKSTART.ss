@@ -1,4 +1,4 @@
-;;; playpen/rpg/QUICKSTART.ss — 5-Minute RPG SDK Guide
+;;; playpen/loom/QUICKSTART.ss — 5-Minute RPG SDK Guide
 ;;;
 ;;; Get started building roguelikes in under 5 minutes!
 
@@ -6,7 +6,7 @@
 ;;; 1. Load the SDK (1 line)
 ;;; ============================================================
 
-(load "playpen/rpg/rpg.ss")
+(load "playpen/loom/loom.ss")
 
 ;;; ============================================================
 ;;; 2. Create a world (3 lines)
@@ -50,11 +50,11 @@
 ;;; 5. Try the examples!
 ;;; ============================================================
 
-(load "playpen/rpg/example-combat-integration.ss")
+(load "playpen/loom/example-combat-integration.ss")
 (run-all-examples)
 
 ;;; Or play the demo game:
-(load "playpen/rpg/demo-game.ss")
+(load "playpen/loom/demo-game.ss")
 (new-game!)
 (render-game)
 (move-player 'north)

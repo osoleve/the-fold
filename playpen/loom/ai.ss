@@ -1,4 +1,4 @@
-;;; playpen/rpg/ai.ss — AI System for RPG SDK
+;;; playpen/loom/ai.ss — AI System for RPG SDK
 ;;;
 ;;; Provides reference implementations for common AI behaviors.
 ;;; Fills the gap identified in dogfooding: behaviors defined as symbols but no logic.
@@ -6,10 +6,10 @@
 ;;; This is Playpen code: the SDK for building roguelikes and dungeon crawlers.
 ;;;
 ;;; Dependencies:
-;;;   - playpen/rpg/core.ss
-;;;   - playpen/rpg/entity.ss
-;;;   - playpen/rpg/world.ss
-;;;   - playpen/rpg/combat.ss
+;;;   - playpen/loom/core.ss
+;;;   - playpen/loom/entity.ss
+;;;   - playpen/loom/world.ss
+;;;   - playpen/loom/combat.ss
 ;;;
 ;;; Exports:
 ;;;   AI behavior implementations, AI action selection

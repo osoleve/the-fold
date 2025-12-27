@@ -1,10 +1,10 @@
-;;; playpen/rpg/tile.ss — Tile System for RPG SDK
+;;; playpen/loom/tile.ss — Tile System for RPG SDK
 ;;;
 ;;; Defines tiles, tile types, and tilemaps for 2D grid-based games.
 ;;; Tiles have visual representation, movement properties, and metadata.
 ;;;
 ;;; Dependencies:
-;;;   - playpen/rpg/core.ss
+;;;   - playpen/loom/core.ss
 ;;;   - shell/layout.ss (canvas, point)
 ;;;
 ;;; Exports:

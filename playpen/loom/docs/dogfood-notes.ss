@@ -1,4 +1,4 @@
-;;; playpen/rpg/dogfood-notes.ss
+;;; playpen/loom/dogfood-notes.ss
 ;;;
 ;;; Documentation of RPG SDK dogfooding exercise.
 ;;; This file contains findings from building demo-game.ss.

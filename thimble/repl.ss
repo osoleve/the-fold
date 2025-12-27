@@ -33,6 +33,7 @@
 ;; Shell dependencies
 (load "thimble/fs.ss")
 (load "thimble/text.ss")
+(load "thimble/string-utils.ss")  ; Wishlist #3: Foundational string utilities
 (load "thimble/edit.ss")
 (load "thimble/git.ss")
 (load "thimble/session-manager.ss")  ; Must be before forum/chat.ss

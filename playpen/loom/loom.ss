@@ -1,12 +1,13 @@
-;;; playpen/rpg/rpg.ss — RPG SDK Main Entry Point
+;;; playpen/loom/loom.ss — Loom: The Game-Weaving Framework
 ;;;
-;;; A generic 2D tile-based turn-based RPG SDK.
+;;; A generic 2D tile-based turn-based game SDK.
 ;;; Provides the foundation for roguelike dungeon crawlers and similar games.
 ;;;
-;;; This is Playpen code: the SDK for building RPGs in The Fold.
+;;; This is Playpen code: the framework for weaving games in The Fold.
+;;; "Loom" — where game worlds are woven from threads of logic.
 ;;;
 ;;; Usage:
-;;;   (load "playpen/rpg/rpg.ss")
+;;;   (load "playpen/loom/loom.ss")
 ;;;
 ;;; This loads all SDK modules in the correct order:
 ;;;   1. core.ss    — Core types and utilities
@@ -26,37 +27,37 @@
 ;;; ============================================================
 
 ;;; Load core utilities first (no dependencies)
-(load "playpen/rpg/core.ss")
+(load "playpen/loom/core.ss")
 
 ;;; Load tile system (depends on core)
-(load "playpen/rpg/tile.ss")
+(load "playpen/loom/tile.ss")
 
 ;;; Load entity system (depends on core)
-(load "playpen/rpg/entity.ss")
+(load "playpen/loom/entity.ss")
 
 ;;; Load event system (depends on core)
-(load "playpen/rpg/event.ss")
+(load "playpen/loom/event.ss")
 
 ;;; Load action system (depends on core)
-(load "playpen/rpg/action.ss")
+(load "playpen/loom/action.ss")
 
 ;;; Load turn system (depends on core, entity, action, event)
-(load "playpen/rpg/turn.ss")
+(load "playpen/loom/turn.ss")
 
 ;;; Load world system (depends on all above)
-(load "playpen/rpg/world.ss")
+(load "playpen/loom/world.ss")
 
 ;;; Load combat system (depends on entity, world)
-(load "playpen/rpg/combat.ss")
+(load "playpen/loom/combat.ss")
 
 ;;; Load AI system (depends on entity, world, combat)
-(load "playpen/rpg/ai.ss")
+(load "playpen/loom/ai.ss")
 
 ;;; ============================================================
 ;;; SDK Version
 ;;; ============================================================
 
-(define *rpg-sdk-version* "0.1.0")
+(define *loom-version* "0.2.0")
 
 ;;; ============================================================
 ;;; Quick Start Helpers
@@ -120,7 +121,7 @@
 ;;; SDK Loaded Message
 ;;; ============================================================
 
-(display "RPG SDK v")
-(display *rpg-sdk-version*)
-(display " loaded.\n")
-(display "Modules: core, tile, entity, event, action, turn, world\n")
+(display "Loom v")
+(display *loom-version*)
+(display " loaded — the game-weaving framework.\n")
+(display "Modules: core, tile, entity, event, action, turn, world, combat, ai\n")

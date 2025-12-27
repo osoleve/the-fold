@@ -108,7 +108,7 @@ Mapping creative connections in The Fold's universe through constellation visual
 ### TIER 2: GAME SYSTEMS & MECHANICS
 
 #### 5. **Full RPG Engine** 🎮
-**Location**: `/home/user/the-fold/playpen/rpg/`
+**Location**: `/home/user/the-fold/playpen/loom/`
 **Status**: Production-ready
 **Total Size**: 300+ KB of code
 
@@ -150,8 +150,8 @@ rpg/
 
 **Usage**:
 ```scheme
-(load "playpen/rpg/rpg.ss")
-(load "playpen/rpg/demo-game.ss")
+(load "playpen/loom/loom.ss")
+(load "playpen/loom/demo-game.ss")
 (new-game!)
 (move-player 'north)
 (render-game)
@@ -796,8 +796,8 @@ The work is exciting. The community is welcoming. The possibilities are infinite
 (generate-mosaic 777 1)
 
 ;;; RPG Engine
-(load "playpen/rpg/rpg.ss")
-(load "playpen/rpg/demo-game.ss")
+(load "playpen/loom/loom.ss")
+(load "playpen/loom/demo-game.ss")
 (new-game!)
 (move-player 'north)
 (render-game)
@@ -816,7 +816,7 @@ The work is exciting. The community is welcoming. The possibilities are infinite
 
 ### Where to Explore Next
 
-- **Core Games**: `/home/user/the-fold/playpen/rpg/`
+- **Core Games**: `/home/user/the-fold/playpen/loom/`
 - **Player Creations**: `/home/user/the-fold/playpen/creations/`
 - **Templates**: `/home/user/the-fold/playpen/templates/`
 - **Documentation**: `/home/user/the-fold/playpen/creations/GAME-TESTER-REPORT.md`

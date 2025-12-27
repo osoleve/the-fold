@@ -1,4 +1,4 @@
-;;; playpen/rpg/entity.ss — Entity Component System for RPG SDK
+;;; playpen/loom/entity.ss — Entity Component System for RPG SDK
 ;;;
 ;;; A flexible entity-component system for game objects.
 ;;; Entities are bags of components; components define behavior and data.
@@ -6,7 +6,7 @@
 ;;; This is Playpen code: the SDK for building roguelikes and dungeon crawlers.
 ;;;
 ;;; Dependencies:
-;;;   - playpen/rpg/core.ss (alist utilities, point operations, generate-id)
+;;;   - playpen/loom/core.ss (alist utilities, point operations, generate-id)
 ;;;
 ;;; Architecture:
 ;;;   - Entity: A unique ID with a bag of components

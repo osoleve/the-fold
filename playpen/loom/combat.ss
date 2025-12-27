@@ -1,4 +1,4 @@
-;;; playpen/rpg/combat.ss — Combat System for RPG SDK
+;;; playpen/loom/combat.ss — Combat System for RPG SDK
 ;;;
 ;;; Provides damage calculation, attack resolution, and combat utilities.
 ;;; Fills the critical gap identified in dogfooding: stats exist but no combat logic.
@@ -6,8 +6,8 @@
 ;;; This is Playpen code: the SDK for building roguelikes and dungeon crawlers.
 ;;;
 ;;; Dependencies:
-;;;   - playpen/rpg/core.ss
-;;;   - playpen/rpg/entity.ss
+;;;   - playpen/loom/core.ss
+;;;   - playpen/loom/entity.ss
 ;;;
 ;;; Exports:
 ;;;   Combat resolution, damage calculation, attack helpers

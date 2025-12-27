@@ -1,4 +1,4 @@
-;;; playpen/rpg/turn.ss — Turn-Based Game Loop System for RPG SDK
+;;; playpen/loom/turn.ss — Turn-Based Game Loop System for RPG SDK
 ;;;
 ;;; Implements a flexible turn-based system with energy-based turn order,
 ;;; phase management, and event generation. Entities accumulate energy based
@@ -7,10 +7,10 @@
 ;;; This is Playpen code: the SDK for building roguelikes and dungeon crawlers.
 ;;;
 ;;; Dependencies:
-;;;   - playpen/rpg/core.ss (alist utilities, clamp)
-;;;   - playpen/rpg/entity.ss (entity system, actor component)
-;;;   - playpen/rpg/action.ss (action system, action queue)
-;;;   - playpen/rpg/event.ss (event system)
+;;;   - playpen/loom/core.ss (alist utilities, clamp)
+;;;   - playpen/loom/entity.ss (entity system, actor component)
+;;;   - playpen/loom/action.ss (action system, action queue)
+;;;   - playpen/loom/event.ss (event system)
 ;;;
 ;;; Architecture:
 ;;;   - Energy-based initiative: entities gain energy each tick

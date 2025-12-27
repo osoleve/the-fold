@@ -1,4 +1,4 @@
-;;; playpen/rpg/core.ss — RPG SDK Core Types and Utilities
+;;; playpen/loom/core.ss — RPG SDK Core Types and Utilities
 ;;;
 ;;; The foundation for a 2D tile-based turn-based RPG system.
 ;;; Provides core data structures and utilities used across all RPG modules.

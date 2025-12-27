@@ -1,4 +1,4 @@
-;;; playpen/rpg/example-combat-integration.ss — Combat Integration Example
+;;; playpen/loom/example-combat-integration.ss — Combat Integration Example
 ;;;
 ;;; This example demonstrates how to use the new combat system, AI system,
 ;;; and inventory helpers together in a complete game loop.
@@ -12,9 +12,9 @@
 ;;; Run this to see all the new features in action!
 
 ;;; Load dependencies
-(load "playpen/rpg/rpg.ss")
-(load "playpen/rpg/combat.ss")
-(load "playpen/rpg/ai.ss")
+(load "playpen/loom/loom.ss")
+(load "playpen/loom/combat.ss")
+(load "playpen/loom/ai.ss")
 
 ;;; ============================================================
 ;;; Example 1: Basic Combat

@@ -1,7 +1,7 @@
-;;; playpen/rpg/test-rpg.ss — RPG SDK Test Suite
+;;; playpen/loom/test-rpg.ss — RPG SDK Test Suite
 ;;;
 ;;; Tests for the 2D tile-based turn-based RPG SDK.
-;;; Run with: scheme --script playpen/rpg/test-rpg.ss
+;;; Run with: scheme --script playpen/loom/test-rpg.ss
 ;;;
 ;;; This is Playpen code: tests for the RPG SDK.
 
@@ -64,13 +64,13 @@
 (load "thimble/layout.ss")
 
 ;;; Load the RPG SDK
-(load "playpen/rpg/core.ss")
-(load "playpen/rpg/tile.ss")
-(load "playpen/rpg/entity.ss")
-(load "playpen/rpg/event.ss")
-(load "playpen/rpg/action.ss")
-(load "playpen/rpg/turn.ss")
-(load "playpen/rpg/world.ss")
+(load "playpen/loom/core.ss")
+(load "playpen/loom/tile.ss")
+(load "playpen/loom/entity.ss")
+(load "playpen/loom/event.ss")
+(load "playpen/loom/action.ss")
+(load "playpen/loom/turn.ss")
+(load "playpen/loom/world.ss")
 
 ;;; ============================================================
 ;;; Core Tests

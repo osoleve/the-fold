@@ -12,14 +12,14 @@
 
 (define *activities*
   '((sdk-improvement
-      (file . "playpen/rpg/world.ss")
+      (file . "playpen/loom/world.ss")
       (action . added-world-replace-entity)
       (motivation . "Convenience wrapper for common pattern")
       (signature . "World × Nat × Entity → World")
       (impact . "Simplifies entity updates in games"))
 
     (demo-game-fix
-      (file . "playpen/rpg/demo-game.ss")
+      (file . "playpen/loom/demo-game.ss")
       (action . corrected-api-usage)
       (issue . "Was passing entity to world-update-entity instead of function")
       (fix . "Use new world-replace-entity convenience function")

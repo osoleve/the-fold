@@ -1,4 +1,4 @@
-;;; playpen/rpg/post-dogfood-findings.ss
+;;; playpen/loom/post-dogfood-findings.ss
 ;;;
 ;;; Post RPG SDK dogfooding findings to the forum.
 ;;; Run this to document the demo game exercise.
@@ -77,7 +77,7 @@ Quick wins:
 5. Add example AI implementations for hunt/guard/wander
 6. Wire turn system to world
 
-The demo game is now in playpen/rpg/demo-game.ss - a complete playable example of the SDK in action.")
+The demo game is now in playpen/loom/demo-game.ss - a complete playable example of the SDK in action.")
 
 ;;; Post specific bugs/improvements
 (bug "world-update-entity missing"

@@ -67,7 +67,7 @@
        (severity . critical)
        (scope . "8 files, 645+ instances")
        (problem . "Square bracket syntax used in case-lambda (Racket style, not Chez Scheme)")
-       (affected-files . (playpen/rpg/{action combat core entity event tile turn world}.ss))
+       (affected-files . (playpen/loom/{action combat core entity event tile turn world}.ss))
        (status . needs-sonnet-help)
        (recommendation . "Requires builder-tier refactoring to convert brackets to parentheses")))
 

@@ -1,11 +1,11 @@
-;;; playpen/rpg/action.ss — Action/Command System for RPG SDK
+;;; playpen/loom/action.ss — Action/Command System for RPG SDK
 ;;;
 ;;; Implements the Command pattern for turn-based gameplay.
 ;;; Actions represent discrete game commands that entities can perform,
 ;;; with validation, execution results, and turn-based queuing.
 ;;;
 ;;; Dependencies:
-;;;   - playpen/rpg/core.ss (point utilities, alist utilities)
+;;;   - playpen/loom/core.ss (point utilities, alist utilities)
 ;;;
 ;;; Exports:
 ;;;   Action creation and manipulation

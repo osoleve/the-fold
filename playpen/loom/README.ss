@@ -1,4 +1,4 @@
-;;; playpen/rpg/README.ss — RPG SDK Documentation
+;;; playpen/loom/README.ss — RPG SDK Documentation
 ;;;
 ;;; A complete 2D tile-based turn-based RPG SDK for building roguelikes,
 ;;; dungeon crawlers, and tactical RPGs in Scheme.
@@ -11,18 +11,18 @@
 ;;; ============================================================
 ;;;
 ;;; Load the SDK:
-;;;   (load "playpen/rpg/rpg.ss")
+;;;   (load "playpen/loom/loom.ss")
 ;;;
 ;;; Try the examples:
-;;;   (load "playpen/rpg/example-combat-integration.ss")
+;;;   (load "playpen/loom/example-combat-integration.ss")
 ;;;   (run-all-examples)
 ;;;
 ;;; Play the demo game:
-;;;   (load "playpen/rpg/demo-game.ss")
+;;;   (load "playpen/loom/demo-game.ss")
 ;;;   (new-game!)
 ;;;
 ;;; Run tests:
-;;;   (load "playpen/rpg/test-rpg.ss")
+;;;   (load "playpen/loom/test-rpg.ss")
 
 ;;; ============================================================
 ;;; SDK Architecture

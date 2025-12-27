@@ -1,4 +1,4 @@
-;;; playpen/rpg/world.ss — World State Management for RPG SDK
+;;; playpen/loom/world.ss — World State Management for RPG SDK
 ;;;
 ;;; The world holds the complete game state: tilemap, entities, and metadata.
 ;;; Provides centralized state management and spatial queries.
@@ -6,9 +6,9 @@
 ;;; This is Playpen code: the SDK for building roguelikes and dungeon crawlers.
 ;;;
 ;;; Dependencies:
-;;;   - playpen/rpg/core.ss
-;;;   - playpen/rpg/tile.ss
-;;;   - playpen/rpg/entity.ss
+;;;   - playpen/loom/core.ss
+;;;   - playpen/loom/tile.ss
+;;;   - playpen/loom/entity.ss
 ;;;
 ;;; Exports:
 ;;;   World creation and management

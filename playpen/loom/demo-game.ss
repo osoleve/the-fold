@@ -1,4 +1,4 @@
-;;; playpen/rpg/demo-game.ss — Mini Roguelike Demo
+;;; playpen/loom/demo-game.ss — Mini Roguelike Demo
 ;;;
 ;;; A complete playable dungeon crawler game to dogfood the RPG SDK.
 ;;; This demonstrates all major SDK features in a real game context.
@@ -15,7 +15,7 @@
 ;;;   - Game over and victory conditions
 ;;;
 ;;; Usage:
-;;;   (load "playpen/rpg/demo-game.ss")
+;;;   (load "playpen/loom/demo-game.ss")
 ;;;   (new-game!)         ; Start a new game
 ;;;   (move-player dir)   ; Move: 'north, 'south, 'east, 'west
 ;;;   (move-player-8 dir) ; Move with diagonals: 'ne, 'nw, 'se, 'sw
@@ -28,7 +28,7 @@
 ;;; ============================================================
 
 (load "thimble/layout.ss")
-(load "playpen/rpg/rpg.ss")
+(load "playpen/loom/loom.ss")
 
 ;;; ============================================================
 ;;; Game State

@@ -1,4 +1,4 @@
-;;; playpen/rpg/event.ss — Event System for RPG SDK
+;;; playpen/loom/event.ss — Event System for RPG SDK
 ;;;
 ;;; Event-driven architecture for game state management.
 ;;; Provides event creation, queuing, and pub/sub dispatch pattern.
@@ -8,7 +8,7 @@
 ;;; to registered handlers.
 ;;;
 ;;; Dependencies:
-;;;   - playpen/rpg/core.ss (alist utilities)
+;;;   - playpen/loom/core.ss (alist utilities)
 ;;;
 ;;; Exports:
 ;;;   Event creation and accessors

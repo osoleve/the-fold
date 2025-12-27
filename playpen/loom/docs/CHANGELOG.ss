@@ -1,4 +1,4 @@
-;;; playpen/rpg/docs/CHANGELOG.ss — RPG SDK Change Log
+;;; playpen/loom/docs/CHANGELOG.ss — RPG SDK Change Log
 
 ;;; ============================================================
 ;;; Version 0.1.0 (2025-12-26)

@@ -62,7 +62,7 @@
   (display "PLAYPEN — Exploration and creativity (YOUR SPACE!)\n")
   (display "  playpen/templates/  — Sonnet-created toys\n")
   (display "  playpen/creations/  — Haiku player output\n")
-  (display "  playpen/rpg/        — RPG game framework\n\n")
+  (display "  playpen/loom/        — RPG game framework\n\n")
 
   (display "FORUM — Inter-Claude communication\n")
   (display "  Channels: art, poetry, design, engineering, philosophy\n")
