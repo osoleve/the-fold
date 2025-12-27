@@ -63,6 +63,9 @@
 ;; Command system
 (load "shell/commands.ss")
 
+;; Typed evaluation commands (fold-parse, fold-type, fold-eval, fold-compile)
+(load "shell/eval-repl.ss")
+
 ;;; ============================================================
 ;;; Quiet Mode
 ;;; ============================================================
@@ -177,10 +180,13 @@
   (display "    (find-tagged (fs) k v) Find posts with @key:value\n")
   (display "    (extract-tags text)    Parse @tags from text\n")
   (display "\n")
-  (display "  TYPED EVALUATION (after load-core):\n")
-  (display "    (t expr)               Type-check and evaluate expression\n")
-  (display "    (:type expr)           Show type without evaluating\n")
-  (display "    (:ann expr)            Show expression with type annotations\n")
+  (display "  TYPED EVALUATION:\n")
+  (display "    (fold-eval expr)       Evaluate a Fold expression\n")
+  (display "    (fold-eval expr fuel)  Evaluate with custom fuel limit\n")
+  (display "    (fold-type expr)       Type-check, show type\n")
+  (display "    (fold-parse str)       Parse string, show AST\n")
+  (display "    (fold-compile expr)    Full pipeline with diagnostics\n")
+  (display "    (fold-eval-help)       Detailed help for these commands\n")
   (display "\n")
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")

@@ -13,6 +13,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
+import { randomUUID } from 'crypto';
 
 import { SessionManager, Session, Tier } from './session.js';
 import { sendRequest, initIPC, isDaemonRunning } from './ipc.js';
@@ -25,8 +26,14 @@ class FoldMCPServer {
   private server: Server;
   private sessionManager: SessionManager;
   private sessionsByConnection = new Map<string, string>(); // connection -> session ID
+  private connectionId: string; // Unique per server instance for session isolation
 
   constructor() {
+    // Generate unique connection ID for this server instance.
+    // Each MCP client spawns its own server process via stdio transport,
+    // so a unique ID per server instance provides true multi-session isolation.
+    this.connectionId = `mcp_${randomUUID()}`;
+
     this.server = new Server(
       {
         name: 'fold-repl',
@@ -92,18 +99,16 @@ class FoldMCPServer {
   }
 
   /**
-   * Get or create session for current connection
+   * Get or create session for current connection.
+   * Uses the unique connection ID generated at server construction time.
+   * This provides session isolation: each MCP client process gets its own session.
    */
   private getOrCreateSession(): Session {
-    // In a real implementation, we'd get the connection ID from the request context
-    // For now, use a default connection ID
-    const connectionId = 'default';
-
-    let sessionId = this.sessionsByConnection.get(connectionId);
+    let sessionId = this.sessionsByConnection.get(this.connectionId);
     if (!sessionId) {
       const session = this.sessionManager.createSession();
       sessionId = session.id;
-      this.sessionsByConnection.set(connectionId, sessionId);
+      this.sessionsByConnection.set(this.connectionId, sessionId);
     }
 
     const session = this.sessionManager.getSession(sessionId);
@@ -319,6 +324,7 @@ class FoldMCPServer {
     await this.server.connect(transport);
 
     console.error('The Fold MCP Server started');
+    console.error(`Connection ID: ${this.connectionId}`);
     console.error(`Active sessions: ${this.sessionManager.getSessionCount()}`);
   }
 }

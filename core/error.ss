@@ -12,8 +12,10 @@
 ;;;
 ;;; Dependencies:
 ;;;   - prelude.ss
+;;;   - span.ss (for source location tracking)
 
 (load "prelude.ss")
+(load "span.ss")  ; Imports make-span, span?, span-file, span-line, etc.
 
 ;;; ============================================================
 ;;; Error Codes by Phase
@@ -89,33 +91,10 @@
 
 ;;; ============================================================
 ;;; Source Context (Spans)
+;;;
+;;; Span operations imported from span.ss:
+;;;   make-span, span?, span-file, span-line, span-column, no-span
 ;;; ============================================================
-
-;;; A Span identifies a location in source code.
-;;; (span file line column end-line end-column)
-
-;;; make-span : String × Int × Int × Int × Int → Span
-(define (make-span file line col end-line end-col)
-  `(span ,file ,line ,col ,end-line ,end-col))
-
-;;; span? : Any → Boolean
-(define (span? x)
-  (and (pair? x)
-       (eq? (car x) 'span)
-       (= (length x) 6)))
-
-;;; span-file : Span → String
-(define (span-file s) (and (span? s) (cadr s)))
-
-;;; span-line : Span → Int
-(define (span-line s) (and (span? s) (caddr s)))
-
-;;; span-column : Span → Int
-(define (span-column s) (and (span? s) (cadddr s)))
-
-;;; no-span : Span
-;;; Placeholder for errors without source location.
-(define no-span '(span "<unknown>" 0 0 0 0))
 
 ;;; ============================================================
 ;;; Error Message Lookup
