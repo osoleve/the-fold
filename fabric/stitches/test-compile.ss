@@ -1,4 +1,4 @@
-;;; core/test-compile.ss — Tests for the unified compilation pipeline
+;;; fabric/stitches/test-compile.ss — Tests for the unified compilation pipeline
 ;;;
 ;;; Tests the compile.ss pipeline integration.
 

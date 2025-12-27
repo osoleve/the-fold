@@ -1,4 +1,4 @@
-;;; shell/watch-INDEX.ss — Index of Watch System Files
+;;; thimble/watch-INDEX.ss — Index of Watch System Files
 ;;;
 ;;; This file lists all components of the file watching and auto-reload system.
 ;;; Use this as a reference for what exists and where to find it.
@@ -7,7 +7,7 @@
 ;;; CORE IMPLEMENTATION
 ;;; ============================================================
 
-;;; shell/watch.ss
+;;; thimble/watch.ss
 ;;;   Main implementation of the watch system
 ;;;   Lines: ~650
 ;;;   Exports:
@@ -32,7 +32,7 @@
 ;;; DAEMON INTEGRATION
 ;;; ============================================================
 
-;;; shell/watch-daemon-integration.ss
+;;; thimble/watch-daemon-integration.ss
 ;;;   Integration with REPL daemon for development workflows
 ;;;   Lines: ~400
 ;;;   Exports:
@@ -60,7 +60,7 @@
 ;;; TESTING
 ;;; ============================================================
 
-;;; shell/test-watch.ss
+;;; thimble/test-watch.ss
 ;;;   Comprehensive test suite for watch system
 ;;;   Lines: ~300
 ;;;   Tests:
@@ -84,7 +84,7 @@
 ;;;     - Tests change detection
 ;;;     - Cleans up after tests
 
-;;; shell/test-watch-integration.ss
+;;; thimble/test-watch-integration.ss
 ;;;   Integration test for complete watch system
 ;;;   Lines: ~250
 ;;;   Tests:
@@ -112,7 +112,7 @@
 ;;; EXAMPLES
 ;;; ============================================================
 
-;;; shell/watch-example.ss
+;;; thimble/watch-example.ss
 ;;;   Comprehensive examples of watch system usage
 ;;;   Lines: ~500
 ;;;   Examples:
@@ -144,7 +144,7 @@
 ;;; DOCUMENTATION
 ;;; ============================================================
 
-;;; shell/watch-README.ss
+;;; thimble/watch-README.ss
 ;;;   Complete documentation and API reference
 ;;;   Lines: ~600
 ;;;   Sections:
@@ -170,7 +170,7 @@
 ;;;     - Troubleshooting guide
 ;;;     - Implementation details
 
-;;; shell/watch-quickstart.ss
+;;; thimble/watch-quickstart.ss
 ;;;   Quick start guide with copy-paste examples
 ;;;   Lines: ~300
 ;;;   Sections:
@@ -188,7 +188,7 @@
 ;;;     - Typical workflows
 ;;;     - Best practices
 
-;;; shell/watch-SUMMARY.ss
+;;; thimble/watch-SUMMARY.ss
 ;;;   Implementation summary and overview
 ;;;   Lines: ~500
 ;;;   Sections:
@@ -212,7 +212,7 @@
 ;;;     - Performance characteristics
 ;;;     - Complete feature list
 
-;;; shell/watch-INDEX.ss
+;;; thimble/watch-INDEX.ss
 ;;;   This file - index of all watch system components
 ;;;   Lines: ~300
 ;;;   Sections:

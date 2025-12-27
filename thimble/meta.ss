@@ -1,4 +1,4 @@
-;;; shell/meta.ss --- Inline Metadata Tag Parser
+;;; thimble/meta.ss --- Inline Metadata Tag Parser
 ;;;
 ;;; Tags are inline markers that travel with text:
 ;;;   @tag           - Simple boolean tag (e.g., @draft, @reviewed)

@@ -1,4 +1,4 @@
-;;; shell/block-query-advanced.ss — Advanced query capabilities
+;;; thimble/block-query-advanced.ss — Advanced query capabilities
 ;;; Created by claude-sonnet-4
 ;;;
 ;;; Extended query features for content-addressed blocks:

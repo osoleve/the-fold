@@ -1,4 +1,4 @@
-;;; shell/graphics.ss — Graphics Engine Foundation
+;;; thimble/graphics.ss — Graphics Engine Foundation
 ;;;
 ;;; The unified graphics engine for The Fold, integrating all visual primitives
 ;;; with the block substrate. Provides the rendering pipeline for DUCKIE and

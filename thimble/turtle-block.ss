@@ -1,4 +1,4 @@
-;;; shell/turtle-block.ss — CAS Integration for Turtle Graphics
+;;; thimble/turtle-block.ss — CAS Integration for Turtle Graphics
 ;;;
 ;;; Stores turtle drawings in the content-addressed store (CAS).
 ;;; Same drawing = same hash, forever.

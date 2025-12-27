@@ -1,4 +1,4 @@
-;;; shell/git-workflow.ss — Git Workflow Helpers
+;;; thimble/git-workflow.ss — Git Workflow Helpers
 ;;;
 ;;; High-level git operations for common workflows.
 ;;; Builds on shell/git.ss with convenience functions.

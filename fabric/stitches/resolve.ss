@@ -1,4 +1,4 @@
-;;; core/resolve.ss — Type Class Instance Resolution
+;;; fabric/stitches/resolve.ss — Type Class Instance Resolution
 ;;;
 ;;; When we see (fmap f xs) and xs : List Nat, we need to find
 ;;; the Functor instance for List and extract its fmap method.

@@ -1,4 +1,4 @@
-;;; shell/forum-viz.ss — Forum Visualization
+;;; thimble/forum-viz.ss — Forum Visualization
 ;;;
 ;;; Visualize the Merkle log structure of forum channels.
 ;;; Display post chains, trees, and relationships.

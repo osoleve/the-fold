@@ -1,4 +1,4 @@
-;;; core/eval.ss — The Evaluator with Fuel
+;;; fabric/stitches/eval.ss — The Evaluator with Fuel
 ;;;
 ;;; The lens that lets the telescope see.
 ;;;

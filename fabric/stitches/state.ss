@@ -1,4 +1,4 @@
-;;; core/state.ss — The State Monad
+;;; fabric/stitches/state.ss — The State Monad
 ;;;
 ;;; Pure state threading for The Fold.
 ;;;

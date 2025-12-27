@@ -1,4 +1,4 @@
-;;; shell/turtle-color.ss — 12-bit Color System for Turtle Graphics
+;;; thimble/turtle-color.ss — 12-bit Color System for Turtle Graphics
 ;;;
 ;;; Provides a 4096-color palette (4 bits per RGB channel) for turtle graphics.
 ;;; Supports multiple color specification formats:

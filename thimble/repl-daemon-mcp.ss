@@ -1,4 +1,4 @@
-;;; shell/repl-daemon-mcp.ss — Multi-Session REPL Daemon
+;;; thimble/repl-daemon-mcp.ss — Multi-Session REPL Daemon
 ;;;
 ;;; Enhanced version of repl-daemon.ss with session support.
 ;;; Session ID is derived from the request filename.

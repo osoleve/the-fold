@@ -1,4 +1,4 @@
-;;; core/prelude.ss — Shared Utilities for Core Modules
+;;; fabric/stitches/prelude.ss — Shared Utilities for Core Modules
 ;;;
 ;;; Common pure functions used across core/ modules.
 ;;; This is the ONLY place for these implementations.
@@ -7,7 +7,7 @@
 ;;;
 ;;; Dependencies: NONE (this is the foundation)
 ;;;
-;;; See core/MODULES.md for dependency graph.
+;;; See fabric/stitches/MODULES.md for dependency graph.
 
 ;;; ============================================================
 ;;; List Predicates

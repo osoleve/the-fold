@@ -1,4 +1,4 @@
-;;; shell/concept-map.ss --- ConceptMap Tool for The Fold
+;;; thimble/concept-map.ss --- ConceptMap Tool for The Fold
 ;;;
 ;;; Extracts the ontology/concept structure from the codebase.
 ;;; Analyzes definitions, types, and relationships between concepts.

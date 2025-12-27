@@ -1,4 +1,4 @@
-;;; core/infer.ss — Bidirectional Type Inference
+;;; fabric/stitches/infer.ss — Bidirectional Type Inference
 ;;;
 ;;; Types flow in two directions:
 ;;;   - Inference (↑): Expression → Type (synthesize a type)

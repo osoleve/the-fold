@@ -1,4 +1,4 @@
-;;; core/cas.ss — Content-Addressed Store
+;;; fabric/stitches/cas.ss — Content-Addressed Store
 ;;;
 ;;; Every Block has a cryptographic hash that IS its identity.
 ;;; Same content = same hash, forever.
@@ -23,7 +23,7 @@
 ;;;   - block.ss
 ;;;   - sha256.ss
 ;;;
-;;; See core/MODULES.md for full dependency graph.
+;;; See fabric/stitches/MODULES.md for full dependency graph.
 
 (load "prelude.ss")
 (load "block.ss")

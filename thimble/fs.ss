@@ -1,4 +1,4 @@
-;;; shell/fs.ss — Filesystem Capability Layer
+;;; thimble/fs.ss — Filesystem Capability Layer
 ;;;
 ;;; Persists the Content-Addressed Store to disk.
 ;;; All operations are capability-gated.

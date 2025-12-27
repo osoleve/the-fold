@@ -1,4 +1,4 @@
-;;; shell/error-fmt.ss — Enhanced Error Formatter
+;;; thimble/error-fmt.ss — Enhanced Error Formatter
 ;;;
 ;;; Improved error messages with context, colors, and helpful suggestions.
 ;;; Addresses the ~s placeholder bugs reported in the forum.

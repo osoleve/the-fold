@@ -1,4 +1,4 @@
-;;; shell/paren-check.ss — Parenthesis Balance Checker
+;;; thimble/paren-check.ss — Parenthesis Balance Checker
 ;;;
 ;;; Analyzes Scheme files for parenthesis balance issues.
 ;;; Reports running balance per line and highlights imbalances.

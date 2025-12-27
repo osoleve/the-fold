@@ -1,4 +1,4 @@
-;;; shell/scaffold.ss — Code Scaffolding and Templating System
+;;; thimble/scaffold.ss — Code Scaffolding and Templating System
 ;;;
 ;;; Generate boilerplate code from templates for rapid development.
 ;;; Supports variable substitution, interactive prompts, and validation.
@@ -240,7 +240,7 @@
   '((description . ("Module description" . "A new shell module"))
     (dependencies . ("Dependencies (comma-separated)" . "fs.ss, text.ss")))
   '(((path . "shell/{{NAME}}.ss")
-     (content . ";;; shell/{{NAME}}.ss — {{DESCRIPTION}}
+     (content . ";;; thimble/{{NAME}}.ss — {{DESCRIPTION}}
 ;;;
 ;;; This is Shell code: impure, defensive, handles failure.
 ;;;
@@ -313,14 +313,14 @@
   '((description . ("Module description" . "A new core module"))
     (dependencies . ("Dependencies" . "prelude.ss")))
   '(((path . "core/{{NAME}}.ss")
-     (content . ";;; core/{{NAME}}.ss — {{DESCRIPTION}}
+     (content . ";;; fabric/stitches/{{NAME}}.ss — {{DESCRIPTION}}
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;;
 ;;; Dependencies:
 ;;;   {{DEPENDENCIES}}
 ;;;
-;;; See core/MODULES.md for full dependency graph.
+;;; See fabric/stitches/MODULES.md for full dependency graph.
 ;;;
 ;;; Created: {{TIMESTAMP}}
 ;;; Author: {{AUTHOR}}
@@ -379,7 +379,7 @@
   '((description . ("Tool description" . "A new development tool"))
     (category . ("Category (building/introspection/debugging/analysis)" . "building")))
   '(((path . "shell/{{NAME}}.ss")
-     (content . ";;; shell/{{NAME}}.ss — {{DESCRIPTION}}
+     (content . ";;; thimble/{{NAME}}.ss — {{DESCRIPTION}}
 ;;;
 ;;; Part of The Fold Development Toolkit.
 ;;;

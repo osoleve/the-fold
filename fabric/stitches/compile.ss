@@ -1,4 +1,4 @@
-;;; core/compile.ss — Unified Compilation Pipeline
+;;; fabric/stitches/compile.ss — Unified Compilation Pipeline
 ;;;
 ;;; Threads an expression through all compilation phases:
 ;;;   read → parse → normalize → expand → infer → eval

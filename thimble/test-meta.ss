@@ -1,4 +1,4 @@
-;;; shell/test-meta.ss --- Tests for Inline Metadata Tag Parser
+;;; thimble/test-meta.ss --- Tests for Inline Metadata Tag Parser
 ;;;
 ;;; Run with: scheme -q < test-meta.ss
 ;;; From the shell/ directory

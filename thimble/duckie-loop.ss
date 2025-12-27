@@ -1,4 +1,4 @@
-;;; shell/duckie-loop.ss — DUCKIE Heartbeat (The Main Loop)
+;;; thimble/duckie-loop.ss — DUCKIE Heartbeat (The Main Loop)
 ;;;
 ;;; The eternal cycle that gives DUCKIE life:
 ;;;   INPUT → PARSE → UPDATE → RENDER → DISPLAY → WAIT → REPEAT

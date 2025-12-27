@@ -1,4 +1,4 @@
-;;; core/sha256.ss — SHA-256 implementation (FIPS 180-4)
+;;; fabric/stitches/sha256.ss — SHA-256 implementation (FIPS 180-4)
 ;;;
 ;;; sha256 : Bytevector → Bytevector (32 bytes)
 ;;;
@@ -7,7 +7,7 @@
 ;;;
 ;;; Dependencies: NONE (self-contained cryptographic primitive)
 ;;;
-;;; See core/MODULES.md for full dependency graph.
+;;; See fabric/stitches/MODULES.md for full dependency graph.
 
 ;;; ============================================================
 ;;; 32-bit Arithmetic (mod 2^32)

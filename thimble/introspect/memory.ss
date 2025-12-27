@@ -1,4 +1,4 @@
-;;; shell/introspect/memory.ss — Memory Measurement and Analysis
+;;; thimble/introspect/memory.ss — Memory Measurement and Analysis
 ;;;
 ;;; Measures memory consumption for operations and tracks allocations.
 ;;; This is Shell code: impure, uses system memory primitives.

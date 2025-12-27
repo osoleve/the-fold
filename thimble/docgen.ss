@@ -1,4 +1,4 @@
-;;; shell/docgen.ss — Documentation Generator
+;;; thimble/docgen.ss — Documentation Generator
 ;;;
 ;;; Extracts documentation from Scheme source files and generates
 ;;; structured documentation in multiple formats.

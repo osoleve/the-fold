@@ -1,4 +1,4 @@
-;;; shell/layout.ss — Text Layout Primitives
+;;; thimble/layout.ss — Text Layout Primitives
 ;;;
 ;;; The canvas for DUCKIE — a 2D character framebuffer for ASCII/ANSI rendering.
 ;;;

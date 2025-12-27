@@ -1,4 +1,4 @@
-;;; shell/namespace.ss — Session Namespace Isolation
+;;; thimble/namespace.ss — Session Namespace Isolation
 ;;;
 ;;; Provides transparent symbol prefixing for session isolation.
 ;;; User-defined variables are prefixed with session ID, preventing

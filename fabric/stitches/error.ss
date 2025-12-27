@@ -1,4 +1,4 @@
-;;; core/error.ss — Unified Error System
+;;; fabric/stitches/error.ss — Unified Error System
 ;;;
 ;;; Standardized error types with:
 ;;;   - Phase identification (where it happened)

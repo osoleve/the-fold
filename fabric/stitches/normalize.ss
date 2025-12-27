@@ -1,4 +1,4 @@
-;;; core/normalize.ss — S-expression α-normalization via de Bruijn indices
+;;; fabric/stitches/normalize.ss — S-expression α-normalization via de Bruijn indices
 ;;;
 ;;; Converts named variables to positional indices, ensuring that
 ;;; α-equivalent expressions produce identical canonical forms.

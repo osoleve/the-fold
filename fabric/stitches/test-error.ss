@@ -1,4 +1,4 @@
-;;; core/test-error.ss — Tests for the unified error system
+;;; fabric/stitches/test-error.ss — Tests for the unified error system
 
 (load "error.ss")
 

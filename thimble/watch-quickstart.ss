@@ -1,4 +1,4 @@
-;;; shell/watch-quickstart.ss — Quick Start Guide for File Watching
+;;; thimble/watch-quickstart.ss — Quick Start Guide for File Watching
 ;;;
 ;;; Copy and paste these snippets into your REPL to get started quickly.
 

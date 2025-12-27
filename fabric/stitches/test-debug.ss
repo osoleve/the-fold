@@ -1,4 +1,4 @@
-;;; core/test-debug.ss — Tests for Stepping/Debugger
+;;; fabric/stitches/test-debug.ss — Tests for Stepping/Debugger
 ;;;
 ;;; Tests debugger state, stepping, breakpoints, and tracing.
 

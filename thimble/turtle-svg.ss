@@ -1,4 +1,4 @@
-;;; shell/turtle-svg.ss — SVG Generation for Turtle Graphics
+;;; thimble/turtle-svg.ss — SVG Generation for Turtle Graphics
 ;;;
 ;;; Converts turtle drawings to SVG format for viewing and export.
 ;;; Generates clean, well-formed SVG 1.1 documents.

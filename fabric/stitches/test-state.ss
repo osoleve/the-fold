@@ -1,4 +1,4 @@
-;;; core/test-state.ss — Tests for the State Monad
+;;; fabric/stitches/test-state.ss — Tests for the State Monad
 ;;;
 ;;; Verifies the State monad implementation.
 

@@ -1,4 +1,4 @@
-;;; shell/color.ss — ANSI Color Support
+;;; thimble/color.ss — ANSI Color Support
 ;;;
 ;;; Color primitives for terminal rendering with ANSI escape sequences.
 ;;; Supports both 256-color and 24-bit truecolor modes.

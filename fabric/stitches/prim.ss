@@ -1,4 +1,4 @@
-;;; core/prim.ss — Pure Primitive Dispatcher
+;;; fabric/stitches/prim.ss — Pure Primitive Dispatcher
 ;;;
 ;;; The `prim` form dispatches to pure operations:
 ;;;   (prim 'op arg ...)

@@ -1,4 +1,4 @@
-;;; core/kinds.ss — Higher-Kinded Types for The Fold
+;;; fabric/stitches/kinds.ss — Higher-Kinded Types for The Fold
 ;;;
 ;;; Types have types. We call them Kinds.
 ;;;

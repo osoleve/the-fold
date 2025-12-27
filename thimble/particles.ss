@@ -1,4 +1,4 @@
-;;; shell/particles.ss — Particle Effects System
+;;; thimble/particles.ss — Particle Effects System
 ;;;
 ;;; Provides particle emitters and effects for visual feedback:
 ;;;   - Hearts floating up when petted

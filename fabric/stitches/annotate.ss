@@ -1,4 +1,4 @@
-;;; core/annotate.ss — Type-Annotated AST
+;;; fabric/stitches/annotate.ss — Type-Annotated AST
 ;;;
 ;;; Every expression, annotated with its type.
 ;;;

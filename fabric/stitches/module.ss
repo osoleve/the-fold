@@ -1,4 +1,4 @@
-;;; core/module.ss — Simple Module System for The Fold
+;;; fabric/stitches/module.ss — Simple Module System for The Fold
 ;;;
 ;;; Provides a module loader that:
 ;;;   - Tracks loaded modules to avoid reloading

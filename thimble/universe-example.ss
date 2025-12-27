@@ -1,4 +1,4 @@
-;;; shell/universe-example.ss — Example usage of universe-serialize library
+;;; thimble/universe-example.ss — Example usage of universe-serialize library
 ;;;
 ;;; This demonstrates how to use the universe serialization library
 ;;; programmatically in your own Scheme code.

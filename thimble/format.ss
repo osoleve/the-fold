@@ -1,4 +1,4 @@
-;;; shell/format.ss — Code Formatter and Pretty-Printer
+;;; thimble/format.ss — Code Formatter and Pretty-Printer
 ;;;
 ;;; Format Scheme code with consistent style and indentation.
 ;;; Supports multiple formatting styles and customization.

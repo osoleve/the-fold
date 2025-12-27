@@ -1,4 +1,4 @@
-;;; core/test-parse.ss — Test Vectors for Parser Combinators
+;;; fabric/stitches/test-parse.ss — Test Vectors for Parser Combinators
 ;;;
 ;;; Comprehensive tests for the parser combinator library.
 ;;; Tests cover primitives, combinators, and example parsers.

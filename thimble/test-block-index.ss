@@ -1,4 +1,4 @@
-;;; shell/test-block-index.ss — Tests for Block Index
+;;; thimble/test-block-index.ss — Tests for Block Index
 ;;;
 ;;; Test the indexing primitives (uses mutation).
 ;;;

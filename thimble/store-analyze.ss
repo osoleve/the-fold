@@ -1,4 +1,4 @@
-;;; shell/store-analyze.ss — Content-Addressed Store Analyzer
+;;; thimble/store-analyze.ss — Content-Addressed Store Analyzer
 ;;;
 ;;; Analyze the block store for usage patterns, statistics, and health.
 ;;; Helps understand storage growth and optimize the store.

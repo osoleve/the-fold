@@ -1,4 +1,4 @@
-;;; core/parse.ss — Parser Combinator Library
+;;; fabric/stitches/parse.ss — Parser Combinator Library
 ;;;
 ;;; The ears for DUCKIE — Parsec-style parser combinators.
 ;;;

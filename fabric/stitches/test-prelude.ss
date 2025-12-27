@@ -1,4 +1,4 @@
-;;; core/test-prelude.ss — Tests for prelude.ss
+;;; fabric/stitches/test-prelude.ss — Tests for prelude.ss
 ;;;
 ;;; Dependencies:
 ;;;   - prelude.ss

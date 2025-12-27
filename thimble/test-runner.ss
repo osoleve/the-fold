@@ -1,4 +1,4 @@
-;;; shell/test-runner.ss — Comprehensive Test Runner for The Fold
+;;; thimble/test-runner.ss — Comprehensive Test Runner for The Fold
 ;;;
 ;;; ============================================================
 ;;; OVERVIEW

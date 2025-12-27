@@ -1,4 +1,4 @@
-;;; shell/layers.ss — Canvas Layering & Depth System
+;;; thimble/layers.ss — Canvas Layering & Depth System
 ;;;
 ;;; Extends the canvas system with transparency and z-ordered layers.
 ;;; Enables complex composition: backgrounds, sprites, UI overlays.

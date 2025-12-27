@@ -1,4 +1,4 @@
-;;; shell/layout-color.ss — Color-Enabled Layout System
+;;; thimble/layout-color.ss — Color-Enabled Layout System
 ;;;
 ;;; Extended version of layout.ss with full color support.
 ;;; Load this instead of layout.ss for colored rendering.

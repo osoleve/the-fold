@@ -1,4 +1,4 @@
-;;; core/types.ss — The Type System of The Fold
+;;; fabric/stitches/types.ss — The Type System of The Fold
 ;;;
 ;;; Types are Blocks. Types are S-expressions. Types are data.
 ;;;
@@ -14,7 +14,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 ;;;
-;;; See core/MODULES.md for full dependency graph.
+;;; See fabric/stitches/MODULES.md for full dependency graph.
 
 (load "prelude.ss")
 ;;;

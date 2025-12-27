@@ -1,4 +1,4 @@
-;;; shell/watch.ss — File Watching and Auto-Reload System
+;;; thimble/watch.ss — File Watching and Auto-Reload System
 ;;;
 ;;; Watch files and directories for changes, trigger actions on modification.
 ;;; Supports auto-reload, auto-test, debouncing, and custom actions.

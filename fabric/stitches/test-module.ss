@@ -1,4 +1,4 @@
-;;; core/test-module.ss — Tests for Module System
+;;; fabric/stitches/test-module.ss — Tests for Module System
 ;;;
 ;;; Tests the module loader and dependency tracking.
 

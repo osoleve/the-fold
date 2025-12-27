@@ -1,4 +1,4 @@
-;;; core/debug.ss — Stepping and Debugger for The Fold
+;;; fabric/stitches/debug.ss — Stepping and Debugger for The Fold
 ;;;
 ;;; Interactive debugging capabilities built on fuel suspension:
 ;;;   - Single-step execution

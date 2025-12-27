@@ -1,4 +1,4 @@
-;;; shell/test-block-navigator.ss — Tests for Block Navigator
+;;; thimble/test-block-navigator.ss — Tests for Block Navigator
 ;;;
 ;;; Test suite for the block-navigator module.
 ;;; Verifies navigation, analytics, search, and visualization functions.

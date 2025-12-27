@@ -1,4 +1,4 @@
-;;; shell/benchmark.ss — Benchmarking Harness
+;;; thimble/benchmark.ss — Benchmarking Harness
 ;;;
 ;;; Performance testing and comparison framework.
 ;;; Measure execution time, memory allocation, and throughput.

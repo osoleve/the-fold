@@ -1,4 +1,4 @@
-;;; shell/test-toolkit.ss — Basic Tests for Development Toolkit
+;;; thimble/test-toolkit.ss — Basic Tests for Development Toolkit
 ;;;
 ;;; Smoke tests to verify toolkit components load and work.
 ;;;

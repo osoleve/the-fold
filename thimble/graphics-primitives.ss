@@ -1,4 +1,4 @@
-;;; shell/graphics-primitives.ss — Advanced Graphics Primitives
+;;; thimble/graphics-primitives.ss — Advanced Graphics Primitives
 ;;;
 ;;; High-level drawing operations for the DUCKIE canvas system.
 ;;; Integrates with the easing system for smooth gradients and effects.

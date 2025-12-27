@@ -1,4 +1,4 @@
-;;; core/typed-eval.ss — Type-Checked Evaluation
+;;; fabric/stitches/typed-eval.ss — Type-Checked Evaluation
 ;;;
 ;;; The marriage of types and computation.
 ;;;

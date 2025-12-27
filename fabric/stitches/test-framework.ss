@@ -1,4 +1,4 @@
-;;; core/test-framework.ss — Unified Test Harness
+;;; fabric/stitches/test-framework.ss — Unified Test Harness
 ;;;
 ;;; Provides a standard testing API for all core/ tests.
 ;;; Tests self-register when defined and can be run as groups.

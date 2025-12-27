@@ -1,4 +1,4 @@
-;;; shell/git.ss — Tier-Gated Git Operations
+;;; thimble/git.ss — Tier-Gated Git Operations
 ;;;
 ;;; Git commit and push are OPUS-ONLY operations.
 ;;; Sonnets and Haikus may not commit or push.

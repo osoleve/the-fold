@@ -1,5 +1,5 @@
 #!/usr/bin/env scheme-script
-;;; shell/universe-dump.ss — CLI tool for dumping the universe
+;;; thimble/universe-dump.ss — CLI tool for dumping the universe
 ;;;
 ;;; Serializes all .sexp files in the-fold project to a single file.
 ;;;

@@ -1,4 +1,4 @@
-;;; shell/repl-daemon.ss — Persistent REPL Daemon
+;;; thimble/repl-daemon.ss — Persistent REPL Daemon
 ;;;
 ;;; A file-based IPC system for Claude Code integration.
 ;;; Polls for request files, evaluates them, writes responses.
@@ -86,7 +86,7 @@
 ;;; ============================================================
 
 ;;; NOTE: These functions use unique names to avoid shadowing by
-;;; core/compile.ss which defines its own eval-string for the Fold
+;;; fabric/stitches/compile.ss which defines its own eval-string for the Fold
 ;;; type system. We need Chez Scheme's eval, not Fold's type checker.
 
 (define (scheme-eval-string str)

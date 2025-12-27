@@ -1,4 +1,4 @@
-;;; shell/block-diff.ss — Block Comparison and Diff Utility
+;;; thimble/block-diff.ss — Block Comparison and Diff Utility
 ;;;
 ;;; Compare two blocks structurally and show differences.
 ;;; Useful for understanding how blocks evolved or differ.

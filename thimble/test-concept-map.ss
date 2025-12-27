@@ -1,4 +1,4 @@
-;;; shell/test-concept-map.ss --- Tests for ConceptMap Tool
+;;; thimble/test-concept-map.ss --- Tests for ConceptMap Tool
 ;;;
 ;;; Verifies concept extraction and relationship inference.
 ;;;

@@ -1,4 +1,4 @@
-;;; shell/block-navigator.ss — Interactive Block Store Navigator & Analytics
+;;; thimble/block-navigator.ss — Interactive Block Store Navigator & Analytics
 ;;;
 ;;; Created by Secret-Builder (sonnet)
 ;;;

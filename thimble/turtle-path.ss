@@ -1,4 +1,4 @@
-;;; shell/turtle-path.ss — Path Command Representation for Turtle Graphics
+;;; thimble/turtle-path.ss — Path Command Representation for Turtle Graphics
 ;;;
 ;;; Defines the path command types used to record turtle movements.
 ;;; Path commands are stored as tagged lists (S-expressions) for easy

@@ -1,4 +1,4 @@
-;;; shell/toolkit.ss — Development Toolkit Index
+;;; thimble/toolkit.ss — Development Toolkit Index
 ;;;
 ;;; Central registry and documentation for all development tools.
 ;;; Load this file to access the complete toolkit.

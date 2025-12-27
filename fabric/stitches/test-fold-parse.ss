@@ -1,4 +1,4 @@
-;;; core/test-fold-parse.ss — Tests for Fold Parser
+;;; fabric/stitches/test-fold-parse.ss — Tests for Fold Parser
 ;;;
 ;;; Tests the spanned parser combinators and Fold syntax parser.
 

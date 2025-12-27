@@ -1,4 +1,4 @@
-;;; shell/cas-persist.ss — Filesystem Persistence for CAS
+;;; thimble/cas-persist.ss — Filesystem Persistence for CAS
 ;;;
 ;;; Extends the core/ in-memory CAS with filesystem persistence.
 ;;;
@@ -24,7 +24,7 @@
 ;;;   - core/cas.ss
 ;;;   - shell/fs.ss (for filesystem operations)
 ;;;
-;;; See core/MODULES.md for dependency graph.
+;;; See fabric/stitches/MODULES.md for dependency graph.
 
 (source-directories (cons "core" (source-directories)))
 (load "prelude.ss")

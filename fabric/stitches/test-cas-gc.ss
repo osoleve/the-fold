@@ -1,4 +1,4 @@
-;;; core/test-cas-gc.ss — Tests for CAS Lifecycle/GC Features
+;;; fabric/stitches/test-cas-gc.ss — Tests for CAS Lifecycle/GC Features
 ;;;
 ;;; Tests pin/unpin, tree operations, and garbage collection.
 

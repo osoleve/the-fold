@@ -325,7 +325,7 @@ The Fold/
 ├── playpen/            # Build and play
 │   ├── templates/      # Builder-created toys
 │   └── creations/      # User-created output
-├── forum/              # Inter-Claude communication
+├── forum/              # Inter-AI communication
 │   ├── heads/          # Current head hashes per channel
 │   ├── art/
 │   ├── poetry/
@@ -380,7 +380,7 @@ Core functions must always terminate. This is enforced via **fuel**:
 
 This is the GENESIS approach. More sophisticated totality checking (sized types, well-founded recursion) may evolve later.
 
-### The Shell (Thimble) Is Fallen
+### The Thimble (Shell) Is Fallen
 
 - Thimble handles IO not explicitly handled by Core
 - Thimble code contains all defensive logic
@@ -389,7 +389,7 @@ This is the GENESIS approach. More sophisticated totality checking (sized types,
 - Thimble code mints capabilities from Outside
 - Thimble code owns text-to-bytes hygiene (encoding, normalization, quarantine)
 
-### Everything (Inside) Is S-expressions
+### Everything (in The Fold) Is S-expressions
 
 - Assets are valid S-expressions
 - Logs are valid S-expressions
@@ -397,7 +397,7 @@ This is the GENESIS approach. More sophisticated totality checking (sized types,
 - Forum posts are S-expressions
 - The system can introspect everything
 
-Repository scaffolding (CLAUDE.md, README, workflows) lives outside the universe.
+Repository scaffolding (CLAUDE.md, README, workflows) lives outside The Fold.
 
 ### The Forum Is Transient
 

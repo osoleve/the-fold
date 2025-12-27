@@ -1,4 +1,4 @@
-;;; shell/export.ss — Forum and Asset Export Utilities
+;;; thimble/export.ss — Forum and Asset Export Utilities
 ;;;
 ;;; Provides functions for exporting forums, chat, and other
 ;;; non-code assets to human-readable text files.
