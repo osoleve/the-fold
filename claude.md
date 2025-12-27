@@ -92,19 +92,24 @@ The daemon supports **multi-session IPC** for parallel agent execution. Each ses
 
 ### Session-Based IPC (Recommended)
 
-```bash
-# 1. Generate a unique session ID (use your agent ID or UUID)
-SESSION_ID="your-unique-session-id"
+Just write raw Scheme expressions to `.fold-repl/requests/<session-id>.ss`. The session ID is derived from the filename — no envelope needed!
 
-# 2. Write request using the Write tool:
+```bash
+# 1. Choose a session ID (use your agent ID or a descriptive name)
+SESSION_ID="my-session"
+
+# 2. Write raw Scheme expression:
 Write ".fold-repl/requests/${SESSION_ID}.ss" with content:
-((session-id . "your-unique-session-id")
- (expression . (hi 'opus 'YourName "Starting work"))
- (timestamp . 0))
+(hi 'opus 'YourName "Starting work")
 
 # 3. Read the response:
 Read ".fold-repl/responses/${SESSION_ID}.txt"
-# Or: cat .fold-repl/responses/${SESSION_ID}.txt
+```
+
+Multiple expressions work too:
+```scheme
+(define x 42)
+(+ x 10)
 ```
 
 **Key insight:** Use session-based IPC for multitenancy. Each session gets isolated variable namespaces, preventing cross-session pollution.

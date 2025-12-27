@@ -2,11 +2,11 @@
 REM DAEMON.cmd — Start the REPL daemon in background
 REM
 REM This starts a persistent REPL daemon that Claude Code can communicate with
-REM via file-based IPC:
+REM via file-based IPC. Supports multi-session for parallel agents:
 REM
-REM   .fold-repl/request.ss   — Write expressions here
-REM   .fold-repl/response.txt — Read results from here
-REM   .fold-repl/ready        — Exists when daemon is running
+REM   .fold-repl/requests/<session-id>.ss   — Write session requests here
+REM   .fold-repl/responses/<session-id>.txt — Read session results here
+REM   .fold-repl/ready                      — Exists when daemon is running
 REM
 REM Usage:
 REM   DAEMON start   — Start the daemon in background
@@ -34,7 +34,7 @@ if exist "%READY_FILE%" (
     exit /b 1
 )
 echo Starting REPL daemon in background...
-start /b "" "%SCHEME%" --script start-daemon.ss
+start /b "" "%SCHEME%" --script start-daemon-mcp.ss
 REM Wait for ready file
 :wait_ready
 if not exist "%READY_FILE%" (
@@ -65,7 +65,7 @@ goto :eof
 
 :foreground
 echo Running daemon in foreground (Ctrl+C to stop)...
-"%SCHEME%" --script start-daemon.ss
+"%SCHEME%" --script start-daemon-mcp.ss
 goto :eof
 
 :usage

@@ -1,22 +1,20 @@
 ;;; shell/repl-daemon-mcp.ss — Multi-Session REPL Daemon
 ;;;
 ;;; Enhanced version of repl-daemon.ss with session support.
-;;; Supports both:
-;;;   1. Legacy single-file IPC (.fold-repl/request.ss)
-;;;   2. Multi-session IPC (.fold-repl/requests/<session-id>.ss)
+;;; Session ID is derived from the request filename.
 ;;;
 ;;; Protocol:
 ;;;   .fold-repl/
 ;;;     ready                        — Sentinel (daemon running)
-;;;     request.ss                   — Legacy single-session request
-;;;     response.txt                 — Legacy single-session response
-;;;     requests/<session-id>.ss     — Multi-session requests
-;;;     responses/<session-id>.txt   — Multi-session responses
+;;;     requests/<session-id>.ss     — Session requests (raw expressions)
+;;;     responses/<session-id>.txt   — Session responses
 ;;;
-;;; Request Format (multi-session):
-;;;   ((session-id . "uuid")
-;;;    (expression . <scheme-expr>)
-;;;    (timestamp . 1234567890))
+;;; Request Format:
+;;;   Just write raw Scheme expressions to requests/<session-id>.ss
+;;;   The session ID is extracted from the filename.
+;;;
+;;;   Example: Write "(hi 'opus 'Shepherd \"Hello\")" to requests/my-session.ss
+;;;            Read response from responses/my-session.txt
 ;;;
 ;;; This is Shell code: uses IO, manages daemon state.
 
@@ -129,10 +127,10 @@
                 (write-session-response! session-id result))
               (delete-file request-path))
 
-            ;; Invalid format - treat as legacy request
-            (let ([result (eval-and-capture content)])
-              (let ([session-id (extract-session-id-from-filename filename)])
-                (write-session-response! session-id result))
+            ;; Raw expression - derive session from filename
+            (let* ([session-id (extract-session-id-from-filename filename)]
+                   [result (eval-in-session-and-capture session-id content)])
+              (write-session-response! session-id result)
               (delete-file request-path)))))))
 
 ;;; extract-session-id-from-filename : String → String
