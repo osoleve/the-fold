@@ -25,11 +25,11 @@
 ;;; ============================================================
 
 ;;; *module-registry* : Hashtable Symbol → (loaded? load-time-ms)
-(define *module-registry* (make-hashtable symbol-hash eq?))
+(define *module-registry* (make-eq-hashtable))
 
 ;;; *module-deps* : Hashtable Symbol → (List Symbol)
 ;;; Declared dependencies for each module
-(define *module-deps* (make-hashtable symbol-hash eq?))
+(define *module-deps* (make-eq-hashtable))
 
 ;;; *load-order* : List Symbol
 ;;; Order in which modules were loaded (for diagnostics)

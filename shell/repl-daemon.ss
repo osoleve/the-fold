@@ -85,7 +85,11 @@
 ;;; Expression Evaluation
 ;;; ============================================================
 
-(define (eval-string str)
+;;; NOTE: These functions use unique names to avoid shadowing by
+;;; core/compile.ss which defines its own eval-string for the Fold
+;;; type system. We need Chez Scheme's eval, not Fold's type checker.
+
+(define (scheme-eval-string str)
   "Evaluate a string containing Scheme expressions.
    Returns the result of the last expression."
   (let ([port (open-input-string str)])
@@ -95,13 +99,13 @@
             last-result
             (loop (eval expr)))))))
 
-(define (eval-and-capture str)
+(define (scheme-eval-and-capture str)
   "Evaluate expressions and capture both stdout and return value.
    Returns a string with output followed by the result."
   (let ([output-port (open-output-string)])
     (let ([result
            (parameterize ([current-output-port output-port])
-             (eval-string str))])
+             (scheme-eval-string str))])
       (let ([output (get-output-string output-port)])
         (cond
           ;; Only output, no meaningful return value
@@ -129,7 +133,7 @@
                                (format "~a" e))])
                    (write-error msg)
                    (write-response (format "ERROR: ~a" msg)))])
-        (let ([result (eval-and-capture request)])
+        (let ([result (scheme-eval-and-capture request)])
           (write-response result)))
       (clear-request!))))
 
