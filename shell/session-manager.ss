@@ -123,7 +123,8 @@
 ;;; ============================================================
 
 ;;; eval-in-session : String String → Any
-;;; Evaluate an expression string in the shared interaction-environment.
+;;; Evaluate an expression string with namespace isolation.
+;;; User-defined symbols are prefixed with session-id to prevent leakage.
 ;;; Session identity is established via *current-session-id* parameter.
 ;;; Auto-creates the session if it doesn't exist.
 (define (eval-in-session session-id expr-str)
@@ -133,7 +134,11 @@
       (let ([expr (read port)])
         (if (eof-object? expr)
             last-result
-            (loop (eval expr)))))))
+            ;; Transform expression to use namespaced symbols
+            (let ([transformed (if (top-level-bound? 'namespace-transform)
+                                   (namespace-transform session-id expr)
+                                   expr)])  ; Fallback if not loaded
+              (loop (eval transformed))))))))
 
 ;;; ============================================================
 ;;; Session File Storage (for compatibility with existing REPL)

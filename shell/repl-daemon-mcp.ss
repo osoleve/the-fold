@@ -22,6 +22,9 @@
 ;;; Load Dependencies
 ;;; ============================================================
 
+;; Load namespace isolation (must be before session-manager)
+(load "shell/namespace.ss")
+
 ;; Load session manager
 (load "shell/session-manager.ss")
 
