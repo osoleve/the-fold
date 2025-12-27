@@ -21,6 +21,11 @@
 ;;;   9. ai.ss      — AI behaviors (hunt, guard, wander)
 ;;;
 ;;; After loading, you have access to all SDK functions for building games.
+;;;
+;;; For the Spell DSL (declarative game building), load spell.ss instead:
+;;;   (load "playpen/loom/spell/spell.ss")
+;;;
+;;; Spell provides: def-entity, def-component, def-behavior, def-action, def-game
 
 ;;; ============================================================
 ;;; Load Order

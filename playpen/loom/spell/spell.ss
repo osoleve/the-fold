@@ -39,19 +39,27 @@
 ;;;   queue!           Queue an event for deferred processing
 ;;;
 ;;; ============================================================
-;;; Extended DSL Forms (Layer 2 - Future)
+;;; Game DSL Forms (Layer 2)
 ;;; ============================================================
 ;;;
 ;;; Behaviors:
-;;;   def-behavior     State machine AI behaviors
+;;;   def-behavior     State machine AI behaviors with states/transitions
 ;;;
 ;;; Actions:
-;;;   def-action       Custom action definitions with validation
+;;;   def-action       Custom actions with validation, cost, execution
+;;;   try-action       Execute a custom action with validation
+;;;
+;;; Predicates:
+;;;   alive?, dead?, hurt?, wounded?, critical?
+;;;   adjacent?, in-range?, hostile?, friendly?
+;;;   player-nearby?, safe?, threatened?, outnumbered?
 ;;;
 ;;; Game Configuration:
 ;;;   def-game         Top-level game definition
+;;;   game-create      Create world from game config
+;;;   game-check-state Check win/lose conditions
 ;;;
-;;; Generation:
+;;; Generation (Layer 3 - Future):
 ;;;   def-generator    Procedural world generation
 ;;;   def-recipe       Reusable room/area templates
 
@@ -69,7 +77,7 @@
 ;;; DSL Version
 ;;; ============================================================
 
-(define *spell-version* "0.1.1")
+(define *spell-version* "0.2.1")
 
 ;;; ============================================================
 ;;; Standard Component Reference
@@ -215,6 +223,85 @@
 (->! canvas
      (canvas-set! 0 0 #\#)
      (canvas-set! 1 0 #\#))
+
+
+;;; ========== BEHAVIOR STATE MACHINES ==========
+
+;; Define a cowardly AI that flees when hurt
+(def-behavior coward
+  (initial normal)
+  (vars [flee-threshold 30])
+
+  (state normal
+    (on tick
+      (if (< (self-hp-percent entity) flee-threshold)
+          (-> fleeing)
+          (-> normal)))
+    (action (ai-hunt world entity)))
+
+  (state fleeing
+    (on enter (display "Entity starts fleeing!\n"))
+    (on tick
+      (if (> (self-hp-percent entity) 50)
+          (-> normal)
+          (-> fleeing)))
+    (action (ai-flee world entity))))
+
+
+;;; ========== CUSTOM ACTIONS ==========
+
+;; Define a healing spell action
+(def-action heal-self
+  :validate (and (alive? actor)
+                 (< (entity-hp-percent actor) 100))
+  :cost 50
+  :execute (entity-heal actor 20)
+  :events ((make-event 'spell-cast (entity-id actor) (entity-id actor)
+                       '((spell . heal) (amount . 20)))))
+
+;; Action with parameters from data alist
+(def-action fireball
+  :params (damage mana-cost)
+  :validate (and (>= (entity-mana actor) mana-cost)
+                 (alive? target)
+                 (in-range? actor target 10))
+  :cost 150
+  :execute (entity-damage target damage))
+
+
+;;; ========== GAME DEFINITION ==========
+
+(def-game dungeon-escape
+  (title "Dungeon Escape")
+  (description "Find the stairs and escape!")
+  (world 80 40)
+
+  (player
+    (name "Hero")
+    (char #\@)
+    (stats 100 100 15 8 100)
+    (color 'white))
+
+  (win-when (player-at-tile? world 'stairs-up))
+  (lose-when (<= (player-hp world) 0)))
+
+;; Create and run:
+;; (define world (game-create dungeon-escape))
+;; (game-check-state dungeon-escape world) ; -> 'playing, 'won, or 'lost
+
+
+;;; ========== PREDICATES ==========
+
+;; Use predicates in conditions
+(if (and (alive? entity)
+         (wounded? entity 50)
+         (threatened? world entity))
+    (flee!)
+    (attack!))
+
+;; Common predicates: alive?, dead?, hurt?, wounded?, critical?
+;;                    adjacent?, in-range?, hostile?, friendly?
+;;                    player-nearby?, safe?, threatened?, outnumbered?
 |#
 
 ;;; ============================================================
@@ -224,4 +311,5 @@
 (display "Spell v")
 (display *spell-version*)
 (display " loaded — the game logic DSL.\n")
-(display "Forms: def-component, def-entity, on-event, with-entity, ->, ->!, ->>\n")
+(display "Layer 1: def-component, def-entity, on-event, with-entity, ->, ->!, ->>\n")
+(display "Layer 2: def-behavior, def-action, def-game, predicates\n")

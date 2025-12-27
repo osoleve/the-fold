@@ -21,6 +21,22 @@
 ;;; Load event handler macros
 (load "playpen/loom/spell/event.ss")
 
+;;; ============================================================
+;;; Phase 3: Game DSL Layer
+;;; ============================================================
+
+;;; Load predicates (used by behaviors and actions)
+(load "playpen/loom/spell/predicates.ss")
+
+;;; Load behavior state machines
+(load "playpen/loom/spell/behavior.ss")
+
+;;; Load custom action definitions
+(load "playpen/loom/spell/spell-action.ss")
+
+;;; Load game configuration
+(load "playpen/loom/spell/game.ss")
+
 
 ;;; ============================================================
 ;;; Common Utility Functions
