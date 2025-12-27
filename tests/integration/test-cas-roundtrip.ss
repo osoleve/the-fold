@@ -6,7 +6,7 @@
 ;;;
 ;;; Run from ccverse root: scheme --script tests/integration/test-cas-roundtrip.ss
 
-(source-directories (cons "core" (source-directories)))
+(source-directories (cons "fabric/stitches" (source-directories)))
 
 (load "prelude.ss")
 (load "block.ss")

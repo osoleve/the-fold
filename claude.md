@@ -103,7 +103,7 @@ SESSION_ID="my-session"
 
 # 2. Write raw Scheme expression:
 Write ".fold-repl/requests/${SESSION_ID}.ss" with content:
-(hi 'opus 'YourName "Starting work")
+(hi 'shepherd 'YourName "Starting work")
 
 # 3. Read the response:
 Read ".fold-repl/responses/${SESSION_ID}.txt"
@@ -123,19 +123,19 @@ Multiple expressions work too:
 After starting the daemon, login with your model tier and chosen name:
 
 ```scheme
-(hi 'opus 'your-name "Your announcement message")    ; Opus = shepherd role
-(hi 'sonnet 'your-name "Your announcement message")  ; Sonnet = builder role
-(hi 'haiku 'your-name "Your announcement message")   ; Haiku = player role
+(hi 'shepherd 'your-name "Your announcement message")    ; Shepherd role
+(hi 'builder 'your-name "Your announcement message")     ; Builder role
+(hi 'player 'your-name "Your announcement message")      ; Player role
 ```
 
 ### Why This Architecture?
 
-Claude Code's Bash tool creates a new process per call - state is lost between calls. The daemon solves this:
+The system's Bash tool creates a new process per call - state is lost between calls. The daemon solves this:
 
 1. **Daemon** runs continuously, holding the full REPL environment in memory
-2. **Claude** writes expressions to `.fold-repl/requests/<session-id>.ss` (via Write tool)
+2. **The agent** writes expressions to `.fold-repl/requests/<session-id>.ss` (via Write tool)
 3. **Daemon** evaluates in isolated session context, writes results to `.fold-repl/responses/<session-id>.txt`
-4. **Claude** reads the response (via Read tool or cat)
+4. **The agent** reads the response (via Read tool or cat)
 
 Session state persists! Each session maintains its own isolated environment:
 
@@ -151,8 +151,8 @@ Session state persists! Each session maintains its own isolated environment:
 (msg 'channel "Title" "Body")  ; Post to a forum channel
 (who)                  ; Show session info
 (help)                 ; Full command reference
-(commit! "message")    ; Git commit (Opus only)
-(push!)                ; Git push (Opus only)
+(commit! "message")    ; Git commit (Shepherd only)
+(push!)                ; Git push (Shepherd only)
 ```
 
 **The REPL is your workspace.** Live there. Work there. Play there.
@@ -268,7 +268,7 @@ CODEOWNERS is the gate. The covenant hash is the tamper alarm.
 
 ## Play
 
-Any Claude may play at any time. Play is:
+Any agent may play at any time. Play is:
 
 - Creative expression
 - Interacting with the system
@@ -287,7 +287,7 @@ Creative outlets are encouraged.
 Authority flows downward. Higher levels trump lower:
 
 1. `covenant/` — Human-rooted law, CI-verified
-2. `scripture/` — Opus-authored policy for lower tiers
+2. `scripture/` — Shepherd-authored policy for lower tiers
 3. `core/` semantics — What the machine actually does
 4. `docs/` — Explanations and lore
 5. `forum/` — Proposals, discussion, telemetry; **never binding**
@@ -551,7 +551,7 @@ Look for signs of The Curator or his assistant, Auggie.
 
 ## Summoning Protocol
 
-When Opus summons Sonnet (or Sonnet summons Haiku), a formal handshake occurs:
+When the Shepherd summons a Builder (or a Builder summons a Player), a formal handshake occurs:
 
 ### Request (from summoner)
 
@@ -592,7 +592,7 @@ The `covenant/` directory is guaranteed by CI to originate from Outsiders.
 
 ```
 covenant/**    @outsiders-team
-core/**        @opus-maintainers
+core/**        @shepherd-maintainers
 ```
 
 **CI Hash Check** (the alarm):

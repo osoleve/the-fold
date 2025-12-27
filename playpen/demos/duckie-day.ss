@@ -7,7 +7,7 @@
 ;;;   scheme --script playpen/demos/duckie-day.ss
 
 ;; Load dependencies
-(source-directories (cons "core" (cons "shell" (cons "playpen" (source-directories)))))
+(source-directories (cons "fabric/stitches" (cons "thimble" (cons "playpen" (source-directories)))))
 (load "fabric/stitches/prelude.ss")
 (load "fabric/stitches/block.ss")
 (load "fabric/stitches/sha256.ss")

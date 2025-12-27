@@ -682,8 +682,8 @@
 (define *test-runner-loaded* #f)
 
 ;;; Add core to source-directories if not present
-(unless (member "core" (source-directories))
-  (source-directories (cons "core" (source-directories))))
+(unless (member "fabric/stitches" (source-directories))
+  (source-directories (cons "fabric/stitches" (source-directories))))
 
 ;;; When run as a script, parse command-line args
 (let ([args (command-line)])

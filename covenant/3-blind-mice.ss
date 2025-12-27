@@ -12,4 +12,4 @@
  4. If the evaluation yields valid feedback or you notice sharp edges, make adjustments as needed.
  5. Repeat the process two more times.
 
- Valid subagents include Haikus and Sonnets."))
+ Valid subagents include Players and Builders."))

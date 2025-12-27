@@ -13,7 +13,7 @@
 ;;; ============================================================
 
 ;;; Add core to source-directories for shell dependencies
-(source-directories (cons "core" (source-directories)))
+(source-directories (cons "fabric/stitches" (source-directories)))
 
 ;;; ============================================================
 ;;; Test Runner

@@ -26,7 +26,7 @@
 ;;;
 ;;; See fabric/stitches/MODULES.md for dependency graph.
 
-(source-directories (cons "core" (source-directories)))
+(source-directories (cons "fabric/stitches" (source-directories)))
 (load "prelude.ss")
 (load "block.ss")
 (load "cas.ss")

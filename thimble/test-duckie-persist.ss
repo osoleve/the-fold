@@ -3,7 +3,7 @@
 ;;; Tests save/load, state updates, and memory operations.
 
 ;;; Ensure we're running from ccverse root
-(source-directories (cons "shell" (cons "core" (cons "playpen" (source-directories)))))
+(source-directories (cons "thimble" (cons "fabric/stitches" (cons "playpen" (source-directories)))))
 
 (load "thimble/duckie-persist.ss")
 

@@ -6,7 +6,7 @@
 
 ;;; Set up paths
 (source-directories (cons "shell" (source-directories)))
-(source-directories (cons "core" (source-directories)))
+(source-directories (cons "fabric/stitches" (source-directories)))
 
 (display "═══════════════════════════════════════════════════════════\n")
 (display "  TOOLKIT SMOKE TESTS\n")

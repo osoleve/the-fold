@@ -24,7 +24,7 @@
 ;;; Load order matters — dependencies first
 
 ;; Set up source-directories so core modules can find prelude.ss
-(source-directories (cons "core" (source-directories)))
+(source-directories (cons "fabric/stitches" (source-directories)))
 
 ;; Core dependencies
 (load "fabric/stitches/block.ss")

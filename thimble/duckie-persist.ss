@@ -14,7 +14,7 @@
 ;;;   - playpen/duckie.ss
 
 ;;; Load dependencies
-(source-directories (cons "core" (cons "playpen" (source-directories))))
+(source-directories (cons "fabric/stitches" (cons "playpen" (source-directories))))
 
 (load "fabric/stitches/prelude.ss")
 (load "fabric/stitches/block.ss")

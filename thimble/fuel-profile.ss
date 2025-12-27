@@ -24,7 +24,7 @@
 ;;;   shell/edit.ss
 
 ;;; Set up source-directories to find modules
-(source-directories (cons "core" (source-directories)))
+(source-directories (cons "fabric/stitches" (source-directories)))
 (source-directories (cons "shell" (source-directories)))
 
 (load "prelude.ss")

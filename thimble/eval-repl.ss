@@ -17,7 +17,7 @@
 ;;; ============================================================
 
 ;; Ensure core is in path
-(source-directories (cons "core" (source-directories)))
+(source-directories (cons "fabric/stitches" (source-directories)))
 
 (load "fabric/stitches/compile.ss")
 (load "fabric/stitches/error.ss")

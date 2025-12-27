@@ -20,7 +20,7 @@
 ;;; NOTE: All shell files should be run from the ccverse root directory.
 
 ;;; Set up source-directories to find core modules
-(source-directories (cons "core" (source-directories)))
+(source-directories (cons "fabric/stitches" (source-directories)))
 
 (load "prelude.ss")
 (load "block.ss")

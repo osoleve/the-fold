@@ -161,6 +161,17 @@
       digest chat msg post!
       commit! push! pull!
 
+      ;; Typed evaluation
+      fold-eval fold-type fold-parse fold-compile fold-eval-help
+      load-core t :type :ann
+
+      ;; Block explorer
+      blocks explore-block tree popular orphans search
+      bx bx-popular bx-orphans bx-search bx-view bx-back bx-home bx-help
+
+      ;; Other REPL utilities
+      fs version clear resume-session
+
       ;; Forum/CAS
       store! fetch pin! unpin!
       hash-block block? make-block
@@ -180,6 +191,9 @@
 
       ;; Other utilities
       repeat
+
+      ;; Fold language keywords (used inside fold-eval/fold-type expressions)
+      fn fix prim ann case make-block
       )))
 
 ;; Initialize on load
