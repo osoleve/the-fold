@@ -310,7 +310,7 @@
 ;;; Find blocks with no inbound references.
 (define (find-orphans fs)
   (let* ([all-hashes (fs-all-hashes fs)]
-         [referenced (make-hashtable bytevector-hash bytevector=?)])
+         [referenced (make-hashtable equal-hash equal?)])
 
     ;; Mark all referenced blocks
     (for-each
