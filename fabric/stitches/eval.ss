@@ -316,20 +316,29 @@
 ;;; Primitive Evaluation
 ;;; ============================================================
 
+;;; Primitives now have variable fuel costs based on their computational
+;;; complexity (see prim-fuel-cost in prim.ss). Simple predicates cost 1,
+;;; while sha256 costs 100.
+
 (define (eval-prim op args env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (prim ,op ,@args) ,env)
-      ;; Evaluate all arguments
+      ;; Evaluate all arguments (costs 1 fuel to start the prim evaluation)
       (eval-prim-args op args env '() (- fuel 1))))
 
 (define (eval-prim-args op remaining env acc fuel)
   (if (null? remaining)
       ;; All args evaluated — call the primitive
-      (let ([op-sym (if (and (pair? op) (eq? (car op) 'quote))
-                        (cadr op)
-                        op)]
-            [arg-vals (reverse acc)])
-        `(ok ,(apply prim (cons op-sym arg-vals)) ,fuel))
+      (let* ([op-sym (if (and (pair? op) (eq? (car op) 'quote))
+                         (cadr op)
+                         op)]
+             [arg-vals (reverse acc)]
+             ;; Get the fuel cost for this primitive
+             [prim-cost (or (prim-fuel-cost op-sym) 1)])
+        ;; Check if we have enough fuel for the primitive
+        (if (< fuel prim-cost)
+            `(suspended (prim ',op-sym ,@arg-vals) ,env)
+            `(ok ,(apply prim (cons op-sym arg-vals)) ,(- fuel prim-cost))))
       ;; Evaluate next arg
       (let ([result (eval-expr (car remaining) env fuel)])
         (cond

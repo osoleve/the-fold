@@ -325,5 +325,45 @@
 (test-ok "custom env computation" 105
   (eval-with-env '(prim 'add x 5) custom-env 100))
 
+;;; ============================================================
+;;; Variable Fuel Costs
+;;; ============================================================
+(test-section "Variable Fuel Costs")
+
+;; Primitives have different fuel costs based on complexity.
+;; Simple predicates cost 1, arithmetic costs 2, sha256 costs 100.
+
+;; Test that a cheap primitive (cost 1) works with just enough fuel
+;; null? costs 1 to call, plus 1 to start prim evaluation = 2 total
+(test-ok "cheap prim (null?) succeeds" #t
+  (run '(prim 'null? '()) 5))
+
+;; Test that add (cost 2) works
+;; add costs 2, plus 1 to start prim evaluation = 3 total
+(test-ok "add (cost 2) succeeds" 5
+  (run '(prim 'add 2 3) 5))
+
+;; Test that we can check remaining fuel after primitives
+;; A simple expression using add (cost 2) should leave more fuel
+;; than one using number->string (cost 15)
+(define add-result (eval-expr '(prim 'add 1 1) empty-env 100))
+(define n2s-result (eval-expr '(prim 'number->string 42) empty-env 100))
+
+(test "add uses less fuel than number->string" #t
+  (> (caddr add-result) (caddr n2s-result)))
+
+;; Verify specific fuel consumption
+;; add costs 2, prim entry costs 1 = 3 total from initial 100 = 97 remaining
+(test "add remaining fuel" 97 (caddr add-result))
+
+;; number->string costs 15, prim entry costs 1 = 16 total from initial 100 = 84 remaining
+(test "number->string remaining fuel" 84 (caddr n2s-result))
+
+;; Test that insufficient fuel for expensive primitive suspends
+;; sha256 costs 100 - trying with only 50 fuel should suspend
+(define sha-result
+  (eval-expr '(prim 'sha256 #vu8(1 2 3 4)) empty-env 50))
+(test-suspended "sha256 suspends with insufficient fuel" sha-result)
+
 (newline)
 (display "✓ All evaluator tests complete.\n")
