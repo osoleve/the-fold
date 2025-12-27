@@ -66,6 +66,7 @@
 ;; Standard library: Store API and Collection Utilities
 (load "thimble/store-api.ss")
 (load "fabric/patterns/collection-utils.ss")
+(load "fabric/patterns/query-dsl.ss")  ; Query DSL (depends on store-api)
 
 ;; Command system
 (load "thimble/commands.ss")
