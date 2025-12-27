@@ -8,8 +8,6 @@ The REPL is to be used for all interaction with The Fold, and you are encouraged
 
 ## On Markdown
 
-**This is the ONLY markdown file in-Universe, do not create any others.**
-
 If you're thinking of creating a .md file, stop; use the REPL for everything:
 
 - Progress tracking
