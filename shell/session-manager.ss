@@ -60,13 +60,18 @@
 ;;; Construct a new session record.
 ;;; Sessions share the interaction-environment; isolation is via *current-session-id*.
 ;;; Timestamps are stored as seconds (numbers) for easy arithmetic.
+;;;
+;;; IMPORTANT: We use explicit cons/list to ensure each session gets FRESH cons cells.
+;;; Using quasiquote with literal parts like `(name . #f) would share structure,
+;;; causing set-cdr! on one session to affect all sessions.
 (define (make-session id)
-  `((id . ,id)
-    (tier . #f)
-    (name . #f)
-    (created . ,(time-second (current-time)))
-    (last-active . ,(time-second (current-time)))
-    (logged-in . #f)))
+  (let ([now (time-second (current-time))])
+    (list (cons 'id id)
+          (cons 'tier #f)
+          (cons 'name #f)
+          (cons 'created now)
+          (cons 'last-active now)
+          (cons 'logged-in #f))))
 
 ;;; get-session : String → Session | #f
 ;;; Get a session by ID, updating last-active.

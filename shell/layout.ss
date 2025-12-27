@@ -10,7 +10,7 @@
 ;;;   Rect   — A rectangle (origin, width, height)
 ;;;
 ;;; Operations:
-;;;   Construction: make-canvas, canvas-width, canvas-height, canvas-ref, canvas-set
+;;;   Construction: make-canvas, canvas-width, canvas-height, canvas-ref, canvas-set, canvas-set!
 ;;;   Drawing: draw-char, draw-string, draw-string-v, draw-rect, fill-rect
 ;;;   Composition: composite, blit
 ;;;   Rendering: canvas->string
@@ -86,6 +86,17 @@
               [idx (+ (* y w) x)])
           (vector-set! cells idx ch)
           (make-canvas% w h cells)))))
+
+;;; canvas-set! : Canvas × Nat × Nat × Char → void
+;;; Set character at (x, y). Mutates canvas in-place (imperative).
+;;; Out-of-bounds coordinates are ignored (no-op).
+(define (canvas-set! c x y ch)
+  (let ([w (canvas-width c)]
+        [h (canvas-height c)])
+    (unless (or (< x 0) (< y 0) (>= x w) (>= y h))
+      (let ([cells (canvas-cells c)]
+            [idx (+ (* y w) x)])
+        (vector-set! cells idx ch)))))
 
 ;;; ============================================================
 ;;; Drawing Primitives
@@ -272,6 +283,20 @@
                             (loop-x (+ x 1)
                                    (cons (canvas-ref c x y) chars))))])
             (loop (+ y 1) (cons line lines)))))))
+
+;;; ============================================================
+;;; String Utilities
+;;; ============================================================
+
+;;; string-pad : String × Nat × Char → String
+;;; Pad string to target length with pad-char on the right.
+;;; If string is already longer, return as-is.
+(define (string-pad str target-len pad-char)
+  (let ([current-len (string-length str)])
+    (if (>= current-len target-len)
+        str
+        (string-append str
+                      (make-string (- target-len current-len) pad-char)))))
 
 ;;; ============================================================
 ;;; Box Drawing (Optional Enhancement)

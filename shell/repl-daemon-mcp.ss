@@ -92,14 +92,27 @@
 (define (extract-expression request)
   (cdr (assq 'expression request)))
 
+;;; format-condition : Condition → String
+;;; Format a condition with its irritants properly filled in.
+;;; Handles the ~s placeholders in condition messages.
+(define (format-condition e)
+  (if (condition? e)
+      (guard (e2 [else (condition-message e)])  ; fallback to template
+        (let ([template (condition-message e)]
+              [irritants (if (irritants-condition? e)
+                            (condition-irritants e)
+                            '())])
+          (if (null? irritants)
+              template
+              (apply format template irritants))))
+      (format "~a" e)))
+
 ;;; process-session-request! : String → void
 ;;; Process a single session request file.
 (define (process-session-request! filename)
   (let ([request-path (string-append *requests-dir* "/" filename)])
     (guard (e [else
-               (let ([msg (if (condition? e)
-                             (condition-message e)
-                             (format "~a" e))])
+               (let ([msg (format-condition e)])
                  ;; Try to extract session ID for error response
                  (let ([session-id (extract-session-id-from-filename filename)])
                    (write-session-error! session-id msg)
@@ -212,9 +225,7 @@
 (define (process-legacy-request!)
   (when (file-exists? *legacy-request-file*)
     (guard (e [else
-               (let ([msg (if (condition? e)
-                             (condition-message e)
-                             (format "~a" e))])
+               (let ([msg (format-condition e)])
                  (call-with-output-file *legacy-error-file*
                    (lambda (p) (display msg p))
                    'replace)
