@@ -63,6 +63,10 @@
 (load "fabric/patterns/parse.ss")
 (load "fabric/patterns/query.ss")
 
+;; Standard library: Store API and Collection Utilities
+(load "thimble/store-api.ss")
+(load "fabric/patterns/collection-utils.ss")
+
 ;; Command system
 (load "thimble/commands.ss")
 
