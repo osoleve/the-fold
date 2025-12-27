@@ -157,9 +157,30 @@
       fxand fxior fxxor fxnot fxsll fxsrl
 
       ;; REPL commands
-      hi bye who help commands
-      digest chat msg post!
-      commit! push! pull!
+      hi bye who help commands cmd
+      digest chat msg reply bug post!
+      commit! push! pull! commit-and-push!
+
+      ;; Forum reading
+      channels forum-summary print-latest search-posts
+
+      ;; Editing
+      read-text-file write-text-file! edit-file!
+
+      ;; Git
+      git-status git-diff git-log
+
+      ;; Surveys
+      list-surveys take-survey quick-poll survey-help
+
+      ;; Games
+      lambda-kombat lk-leaderboard lk-help
+
+      ;; Duckie
+      to-duckie duckie-greet duckie-farewell duckie-mood set-duckie-mood!
+
+      ;; Export
+      export-forums export-channel export-chat forum-stats export-help
 
       ;; Typed evaluation
       fold-eval fold-type fold-parse fold-compile fold-eval-help
@@ -171,6 +192,8 @@
 
       ;; Other REPL utilities
       fs version clear resume-session
+      playground-help playground-demo
+      run-tests deps-check find-uses project-status check-circular-deps
 
       ;; Forum/CAS
       store! fetch pin! unpin!
@@ -188,6 +211,9 @@
       polygon filled-polygon
       square triangle star spiral
       turtle->drawing drawing->svg save-svg
+
+      ;; Metadata tags
+      tags tag-report find-tagged extract-tags
 
       ;; Other utilities
       repeat

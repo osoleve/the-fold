@@ -228,7 +228,7 @@
   (display "  (fold-compile expr)   Full pipeline with diagnostics\n")
   (display "\n")
   (display "  Examples:\n")
-  (display "    (fold-eval (+ 1 2))                ; => 3\n")
+  (display "    (fold-eval (prim 'add 1 2))        ; => 3\n")
   (display "    (fold-type (fn (x) x))             ; Type: (a → a)\n")
   (display "    (fold-parse \"(let ((x 1)) x)\")    ; Show AST\n")
   (display "    (fold-compile (if #t 1 0))         ; Full diagnostics\n")

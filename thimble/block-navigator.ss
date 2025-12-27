@@ -361,7 +361,7 @@
                    [payload-str (guard (e [else ""])
                                   (utf8->string (block-payload blk)))]
                    [tag-score (if (bn-string-contains-ci? tag-str query) 10 0)]
-                   [payload-score (count-occurrences payload-str query)]
+                   [payload-score (bn-count-occurrences payload-str query)]
                    [total-score (+ tag-score payload-score)])
               (when (> total-score 0)
                 (set! results (cons (list hash blk total-score) results)))))))
@@ -407,9 +407,9 @@
         [(string=? (substring haystack i (+ i need-len)) needle) #t]
         [else (loop (+ i 1))]))))
 
-;;; count-occurrences : String × String → Nat
+;;; bn-count-occurrences : String × String → Nat
 ;;; Count how many times needle appears in haystack (case-insensitive).
-(define (count-occurrences haystack needle)
+(define (bn-count-occurrences haystack needle)
   (let ([hay-lower (string-downcase haystack)]
         [need-lower (string-downcase needle)]
         [need-len (string-length needle)])
