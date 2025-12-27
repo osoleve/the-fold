@@ -23,6 +23,8 @@
 
 (load "prelude.ss")
 (load "parse.ss")
+(load "span.ss")
+(load "fold-parse.ss")
 (load "normalize.ss")
 (load "expand.ss")
 (load "types.ss")
@@ -141,13 +143,23 @@
           (result-error 'read 'empty-input)
           (result-ok expr)))))
 
-;;; adapt-parse : String → Result
-;;; Parse phase using the parser combinator.
-;;; Note: Currently just uses read. A real Fold parser would go here.
-(define (adapt-parse input)
-  ;; For now, use Scheme's reader. The parse.ss module provides
-  ;; parser combinators for more complex parsing tasks.
-  (adapt-read input))
+;;; adapt-parse : String [× String] → Result
+;;; Parse phase using the Fold parser with source spans.
+;;; Returns stripped AST (spans removed) for compatibility with downstream phases.
+;;; Full spanned AST available via parse-fold-expr directly.
+(define (adapt-parse input . file-arg)
+  (let* ([file (if (null? file-arg) "<input>" (car file-arg))]
+         [result (parse-fold-expr input file)])
+    (cond
+      [(eq? (car result) 'ok)
+       ;; Success: strip spans for downstream compatibility
+       (result-ok (strip-spans (cadr result)))]
+      [(eq? (car result) 'error)
+       ;; Error: preserve span information
+       (let ([expected (caddr result)]
+             [span (cadddr result)])
+         (result-error 'parse 'syntax-error expected span))]
+      [else (result-error 'parse 'unknown-error result)])))
 
 ;;; adapt-normalize : S-expr → Result
 ;;; Normalize phase: convert to de Bruijn form.

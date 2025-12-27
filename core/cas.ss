@@ -108,6 +108,140 @@
 (define (pinned? hash)
   (hashtable-ref *pinned* hash #f))
 
+;;; unpin! : Bytevector → void
+;;; Remove pin from a hash.
+(define (unpin! hash)
+  (hashtable-delete! *pinned* hash))
+
+;;; ============================================================
+;;; Tree Operations (Transitive Pinning/Unpinning)
+;;; ============================================================
+
+;;; collect-refs : Bytevector × (Bytevector → Block) → (List Bytevector)
+;;; Collect all transitive references from a block.
+;;; Uses BFS to avoid stack overflow on deep trees.
+(define (collect-refs hash fetch)
+  (let ([visited (make-hashtable equal-hash equal?)]
+        [queue (list hash)]
+        [results '()])
+    (let loop ()
+      (if (null? queue)
+          results
+          (let ([current (car queue)])
+            (set! queue (cdr queue))
+            (unless (hashtable-ref visited current #f)
+              (hashtable-set! visited current #t)
+              (set! results (cons current results))
+              (let ([blk (fetch current)])
+                (when blk
+                  (vector-for-each
+                    (lambda (ref)
+                      (unless (hashtable-ref visited ref #f)
+                        (set! queue (append queue (list ref)))))
+                    (block-refs blk)))))
+            (loop))))))
+
+;;; pin-tree! : Bytevector → Nat
+;;; Pin a hash and all its transitive references.
+;;; Returns the number of blocks pinned.
+(define (pin-tree! hash)
+  (let* ([refs (collect-refs hash fetch)]
+         [count 0])
+    (for-each
+      (lambda (h)
+        (unless (pinned? h)
+          (pin! h)
+          (set! count (+ count 1))))
+      refs)
+    count))
+
+;;; unpin-tree! : Bytevector → Nat
+;;; Unpin a hash and all its transitive references.
+;;; Returns the number of blocks unpinned.
+(define (unpin-tree! hash)
+  (let* ([refs (collect-refs hash fetch)]
+         [count 0])
+    (for-each
+      (lambda (h)
+        (when (pinned? h)
+          (unpin! h)
+          (set! count (+ count 1))))
+      refs)
+    count))
+
+;;; ============================================================
+;;; Garbage Collection
+;;; ============================================================
+
+;;; gc! : → (values Nat Nat)
+;;; Remove all unpinned blocks from the store.
+;;; Returns (collected-count remaining-count).
+(define (gc!)
+  (let ([to-remove '()]
+        [initial-count (store-count)])
+    ;; Collect unpinned hashes
+    (vector-for-each
+      (lambda (hash)
+        (unless (pinned? hash)
+          (set! to-remove (cons hash to-remove))))
+      (hashtable-keys *store*))
+    ;; Remove them
+    (for-each
+      (lambda (hash)
+        (hashtable-delete! *store* hash))
+      to-remove)
+    (values (length to-remove) (store-count))))
+
+;;; gc-with-roots! : (List Bytevector) → (values Nat Nat)
+;;; Collect blocks not reachable from the given root hashes.
+;;; First pins all reachable blocks, then collects unpinned.
+;;; Returns (collected-count remaining-count).
+(define (gc-with-roots! roots)
+  ;; Save current pins
+  (let ([saved-pins (make-hashtable equal-hash equal?)])
+    (vector-for-each
+      (lambda (h)
+        (hashtable-set! saved-pins h #t))
+      (hashtable-keys *pinned*))
+
+    ;; Clear all pins
+    (hashtable-clear! *pinned*)
+
+    ;; Pin from roots
+    (for-each
+      (lambda (root)
+        (when (stored? root)
+          (pin-tree! root)))
+      roots)
+
+    ;; Run GC
+    (let-values ([(collected remaining) (gc!)])
+      ;; Restore original pins for remaining blocks
+      (vector-for-each
+        (lambda (h)
+          (when (hashtable-ref saved-pins h #f)
+            (pin! h)))
+        (hashtable-keys *store*))
+      (values collected remaining))))
+
+;;; gc-stats : → Alist
+;;; Return statistics about pinned vs unpinned blocks.
+(define (gc-stats)
+  (let ([total 0]
+        [pinned-count 0]
+        [unpinned-count 0])
+    (vector-for-each
+      (lambda (hash)
+        (set! total (+ total 1))
+        (if (pinned? hash)
+            (set! pinned-count (+ pinned-count 1))
+            (set! unpinned-count (+ unpinned-count 1))))
+      (hashtable-keys *store*))
+    `((total . ,total)
+      (pinned . ,pinned-count)
+      (unpinned . ,unpinned-count)
+      (gc-would-collect . ,unpinned-count))))
+
 ;;; ============================================================
 ;;; Store Statistics
 ;;; ============================================================

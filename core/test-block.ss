@@ -2,6 +2,10 @@
 ;;;
 ;;; Uses the unified test framework.
 
+;;; Load test framework if not already loaded
+(unless (top-level-bound? 'define-test)
+  (load "test-framework.ss"))
+
 (load "block.ss")
 
 (display "Block System Tests\n")

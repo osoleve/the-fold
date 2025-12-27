@@ -92,14 +92,15 @@
         (cons 'memories '())            ; No memories yet
         (cons 'traits '())))            ; Traits develop over time
 
-;;; Accessors
-(define (duckie-mood d)      (cdr (assq 'mood d)))
-(define (duckie-location d)  (cdr (assq 'location d)))
-(define (duckie-energy d)    (cdr (assq 'energy d)))
-(define (duckie-age d)       (cdr (assq 'age d)))
-(define (duckie-name d)      (cdr (assq 'name d)))
-(define (duckie-memories d)  (cdr (assq 'memories d)))
-(define (duckie-traits d)    (cdr (assq 'traits d)))
+;;; Accessors (skip the 'duckie tag to get the alist)
+(define (duckie-fields d) (cdr d))  ; Get the alist portion
+(define (duckie-mood d)      (cdr (assq 'mood (duckie-fields d))))
+(define (duckie-location d)  (cdr (assq 'location (duckie-fields d))))
+(define (duckie-energy d)    (cdr (assq 'energy (duckie-fields d))))
+(define (duckie-age d)       (cdr (assq 'age (duckie-fields d))))
+(define (duckie-name d)      (cdr (assq 'name (duckie-fields d))))
+(define (duckie-memories d)  (cdr (assq 'memories (duckie-fields d))))
+(define (duckie-traits d)    (cdr (assq 'traits (duckie-fields d))))
 
 ;;; ============================================================
 ;;; Soul Operations — How DUCKIE Changes
