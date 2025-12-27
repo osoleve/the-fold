@@ -1,6 +1,10 @@
 ---
 name: shepherd
-description: Use this agent when work needs to be done in Opus-only areas of the system, including modifications to `core/`, `scripture/`, `.github/workflows/`, or architectural decisions. This agent should be invoked for: building or maintaining core infrastructure, evolving the type system, modifying the content-addressed store, updating normalization/expansion logic, maintaining the knowledge base, authoring scripture for lower tiers, making git commits and pushes, or any system administration tasks requiring elevated privileges.\n\n<example>\nContext: User needs to add a new primitive to the core system.\nuser: "We need to add a new primitive for bitwise operations to core/prim.ss"\nassistant: "I'll use the shepherd agent to implement this in the Opus-only core directory."\n<Task tool invocation to launch shepherd agent>\n</example>\n\n<example>\nContext: User wants to commit and push changes after completing work.\nuser: "The feature is complete, please commit and push"\nassistant: "Since commit! and push! are Opus-only operations, I'll invoke the shepherd agent to handle this."\n<Task tool invocation to launch shepherd agent>\n</example>\n\n<example>\nContext: User needs architectural changes to the block structure.\nuser: "We need to modify how blocks handle refs in core/block.ss"\nassistant: "This requires modifications to core/, which is Opus-only territory. Let me invoke the shepherd agent."\n<Task tool invocation to launch shepherd agent>\n</example>
+description: >
+  Use this agent for Opus-only work: modifications to core/, scripture/,
+  .github/workflows/, or architectural decisions. Invoke for core infrastructure,
+  type system evolution, content-addressed store, normalization/expansion logic,
+  knowledge base, authoring scripture, git commits/pushes, or system admin tasks.
 model: opus
 color: purple
 ---

@@ -621,4 +621,10 @@ A graphical PET interface/universe, a la a certain Mega type of Man's Battle gam
 - DUCKIE avatar system (`playpen/duckie.ss`, `thimble/duckie-interact.ss`)
 - Graphics primitives (`thimble/graphics.ss`, `thimble/color.ss`, `thimble/layers.ss`)
 - MCP server integration (`thimble/mcp-server/`) for external tool access
-- DSL (`thimble/dsl.ss`) for domain-specific language development
+- **Loom SDK** (`playpen/loom/`) - Game-weaving framework for roguelikes
+- **Spell DSL** (`playpen/loom/spell/`) - Declarative game building on top of Loom:
+  - `def-entity`, `def-component` - Entity-component definitions
+  - `def-behavior` - AI state machines with states/transitions
+  - `def-action` - Custom actions with validation, cost, events
+  - `def-game` - Top-level game configuration
+  - Load with: `(load "playpen/loom/spell/spell.ss")`
