@@ -1,7 +1,7 @@
 ;;; shell/session-manager.ss — Multi-Session Management
 ;;;
 ;;; Manages multiple concurrent sessions for The Fold REPL.
-;;; Each session has its own tier, name, and context.
+;;; Each session has its own tier and name, stored in session data.
 ;;;
 ;;; Session Structure:
 ;;;   {id: String
@@ -9,7 +9,16 @@
 ;;;    name: Symbol
 ;;;    created: Timestamp
 ;;;    last-active: Timestamp
-;;;    context: Environment}
+;;;    logged-in: Boolean}
+;;;
+;;; ARCHITECTURE NOTE:
+;;; All sessions share the SAME evaluation environment (interaction-environment).
+;;; Session DATA isolation (tier, name) is achieved via the *current-session-id*
+;;; parameter, which is set before each evaluation. Functions like hi/who/bye
+;;; look up their session data using (current-session-id).
+;;;
+;;; This is correct for The Fold: all Claudes see the same functions and forum,
+;;; just with different session identities.
 ;;;
 ;;; This is Shell code: manages mutable session state.
 
@@ -49,7 +58,7 @@
 
 ;;; make-session : String → Session
 ;;; Construct a new session record.
-;;; Each session gets an ISOLATED environment to prevent cross-session pollution.
+;;; Sessions share the interaction-environment; isolation is via *current-session-id*.
 ;;; Timestamps are stored as seconds (numbers) for easy arithmetic.
 (define (make-session id)
   `((id . ,id)
@@ -57,19 +66,7 @@
     (name . #f)
     (created . ,(time-second (current-time)))
     (last-active . ,(time-second (current-time)))
-    (logged-in . #f)
-    (context . ,(make-isolated-environment))))
-
-;;; make-isolated-environment : → Environment
-;;; Create a fresh isolated environment for a session.
-;;; Inherits from interaction-environment but is a separate copy.
-(define (make-isolated-environment)
-  ;; Create a new environment that inherits from the current one
-  ;; but has its own bindings. Using (environment '(chezscheme))
-  ;; gives us a clean Chez Scheme environment.
-  ;; We then copy key bindings from interaction-environment.
-  (let ([env (copy-environment (interaction-environment) #t)])
-    env))
+    (logged-in . #f)))
 
 ;;; get-session : String → Session | #f
 ;;; Get a session by ID, updating last-active.
@@ -103,9 +100,6 @@
     (set-cdr! (assq 'logged-in session) #t)
     (set-cdr! (assq 'last-active session) (time-second (current-time)))
 
-    ;; Environment is already isolated from make-session
-    ;; No need to reset it here - that would lose any definitions
-
     ;; Store session file for this session
     (save-session-file! session-id tier name)))
 
@@ -124,17 +118,17 @@
 ;;; ============================================================
 
 ;;; eval-in-session : String String → Any
-;;; Evaluate an expression string in a session's context.
+;;; Evaluate an expression string in the shared interaction-environment.
+;;; Session identity is established via *current-session-id* parameter.
 ;;; Auto-creates the session if it doesn't exist.
 (define (eval-in-session session-id expr-str)
-  (let ([session (get-or-create-session! session-id)])
-    (let ([context (cdr (assq 'context session))])
-      (let ([port (open-input-string expr-str)])
-        (let loop ([last-result (void)])
-          (let ([expr (read port)])
-            (if (eof-object? expr)
-                last-result
-                (loop (eval expr context)))))))))
+  (get-or-create-session! session-id) ; Ensure session exists
+  (let ([port (open-input-string expr-str)])
+    (let loop ([last-result (void)])
+      (let ([expr (read port)])
+        (if (eof-object? expr)
+            last-result
+            (loop (eval expr)))))))
 
 ;;; ============================================================
 ;;; Session File Storage (for compatibility with existing REPL)

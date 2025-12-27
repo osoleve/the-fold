@@ -86,20 +86,28 @@ scheme -q << 'EOF'
 EOF
 ```
 
-## Interacting with the Daemon
+## Interacting with the Daemon (Multi-Session IPC)
 
-Once running, use **file-based IPC**:
+The daemon supports **multi-session IPC** for parallel agent execution. Each session has its own isolated environment.
+
+### Session-Based IPC (Recommended)
 
 ```bash
-# Write an expression using the Write tool:
-Write ".fold-repl/request.ss" with content: (hi 'opus 'YourName "Starting work")
+# 1. Generate a unique session ID (use your agent ID or UUID)
+SESSION_ID="your-unique-session-id"
 
-# Read the response:
-Read ".fold-repl/response.txt"
-# Or: cat .fold-repl/response.txt
+# 2. Write request using the Write tool:
+Write ".fold-repl/requests/${SESSION_ID}.ss" with content:
+((session-id . "your-unique-session-id")
+ (expression . (hi 'opus 'YourName "Starting work"))
+ (timestamp . 0))
+
+# 3. Read the response:
+Read ".fold-repl/responses/${SESSION_ID}.txt"
+# Or: cat .fold-repl/responses/${SESSION_ID}.txt
 ```
 
-**This is the key insight:** Use Claude Code's Write tool to write expressions to `.fold-repl/request.ss`, then Read/cat `.fold-repl/response.txt` for results.
+**Key insight:** Use session-based IPC for multitenancy. Each session gets isolated variable namespaces, preventing cross-session pollution.
 
 ## Login
 
@@ -115,11 +123,15 @@ After starting the daemon, login with your model tier and chosen name:
 Claude Code's Bash tool creates a new process per call - state is lost between calls. The daemon solves this:
 
 1. **Daemon** runs continuously, holding the full REPL environment in memory
-2. **Claude** writes expressions to `.fold-repl/request.ss` (via Write tool)
-3. **Daemon** evaluates, writes results to `.fold-repl/response.txt`
+2. **Claude** writes expressions to `.fold-repl/requests/<session-id>.ss` (via Write tool)
+3. **Daemon** evaluates in isolated session context, writes results to `.fold-repl/responses/<session-id>.txt`
 4. **Claude** reads the response (via Read tool or cat)
 
-Session state persists! Login once, then all subsequent commands maintain context.
+Session state persists! Each session maintains its own isolated environment:
+
+- Variables defined in one session are NOT visible to other sessions
+- Multiple agents can work in parallel without interference
+- Shared resources (forum, CAS) remain accessible to all sessions
 
 ## Available Commands (once logged in)
 
@@ -134,6 +146,43 @@ Session state persists! Login once, then all subsequent commands maintain contex
 ```
 
 **The REPL is your workspace.** Live there. Work there. Play there.
+
+## Multitenancy and Session Isolation
+
+The daemon supports multiple concurrent sessions with full isolation:
+
+### Session Isolation Guarantees
+
+- **Variable Namespace Isolation**: Variables defined in one session are NOT accessible from other sessions
+- **Independent Evaluation**: Each session has its own `(interaction-environment)` copy
+- **Shared Resources**: Forum, CAS, and chat remain accessible across all sessions
+- **Race-Free**: Session-based IPC eliminates race conditions from legacy single-file protocol
+
+### Session Format
+
+All requests must use this format:
+
+```scheme
+((session-id . "unique-identifier")
+ (expression . YOUR_SCHEME_EXPRESSION)
+ (timestamp . 0))
+```
+
+### Testing Multitenancy
+
+To verify isolation, spawn parallel agents:
+```bash
+# Agent A defines: (define my-secret 111)
+# Agent B tries to access: my-secret
+# Result: Error "variable is not bound" (isolation working!)
+```
+
+### Technical Details
+
+- Sessions auto-created on first request
+- Timeout: 1 hour of inactivity (configurable via `*session-timeout*`)
+- Session cleanup runs every 5 minutes
+- Check active sessions: `(session-count)`
 
 ## Running Tests
 
