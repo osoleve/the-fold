@@ -20,6 +20,22 @@
 (define *sessions* (make-hashtable string-hash string=?))
 (define *session-timeout* 3600) ; 1 hour in seconds
 
+;;; *current-session-id* : Parameter holding the current session ID
+;;; Set by the daemon before evaluating each request.
+;;; Used by hi/bye/who to know which session they're operating on.
+(define *current-session-id* (make-parameter #f))
+
+;;; with-session : String Thunk → Any
+;;; Execute thunk with *current-session-id* bound to the given session.
+(define (with-session session-id thunk)
+  (parameterize ([*current-session-id* session-id])
+    (thunk)))
+
+;;; current-session-id : → String | #f
+;;; Get the current session ID (if any).
+(define (current-session-id)
+  (*current-session-id*))
+
 ;;; ============================================================
 ;;; Session Operations
 ;;; ============================================================
@@ -33,21 +49,34 @@
 
 ;;; make-session : String → Session
 ;;; Construct a new session record.
+;;; Each session gets an ISOLATED environment to prevent cross-session pollution.
+;;; Timestamps are stored as seconds (numbers) for easy arithmetic.
 (define (make-session id)
   `((id . ,id)
     (tier . #f)
     (name . #f)
-    (created . ,(current-time))
-    (last-active . ,(current-time))
+    (created . ,(time-second (current-time)))
+    (last-active . ,(time-second (current-time)))
     (logged-in . #f)
-    (context . ,(interaction-environment))))
+    (context . ,(make-isolated-environment))))
+
+;;; make-isolated-environment : → Environment
+;;; Create a fresh isolated environment for a session.
+;;; Inherits from interaction-environment but is a separate copy.
+(define (make-isolated-environment)
+  ;; Create a new environment that inherits from the current one
+  ;; but has its own bindings. Using (environment '(chezscheme))
+  ;; gives us a clean Chez Scheme environment.
+  ;; We then copy key bindings from interaction-environment.
+  (let ([env (copy-environment (interaction-environment) #t)])
+    env))
 
 ;;; get-session : String → Session | #f
 ;;; Get a session by ID, updating last-active.
 (define (get-session session-id)
   (let ([session (hashtable-ref *sessions* session-id #f)])
     (when session
-      (set-cdr! (assq 'last-active session) (current-time)))
+      (set-cdr! (assq 'last-active session) (time-second (current-time))))
     session))
 
 ;;; get-or-create-session! : String → Session
@@ -72,11 +101,10 @@
     (set-cdr! (assq 'tier session) tier)
     (set-cdr! (assq 'name session) name)
     (set-cdr! (assq 'logged-in session) #t)
-    (set-cdr! (assq 'last-active session) (current-time))
+    (set-cdr! (assq 'last-active session) (time-second (current-time)))
 
-    ;; Create session-specific environment
-    ;; (inherits from interaction environment but can be isolated later)
-    (set-cdr! (assq 'context session) (interaction-environment))
+    ;; Environment is already isolated from make-session
+    ;; No need to reset it here - that would lose any definitions
 
     ;; Store session file for this session
     (save-session-file! session-id tier name)))
@@ -97,11 +125,9 @@
 
 ;;; eval-in-session : String String → Any
 ;;; Evaluate an expression string in a session's context.
+;;; Auto-creates the session if it doesn't exist.
 (define (eval-in-session session-id expr-str)
-  (let ([session (get-session session-id)])
-    (unless session
-      (error 'eval-in-session "Session not found" session-id))
-
+  (let ([session (get-or-create-session! session-id)])
     (let ([context (cdr (assq 'context session))])
       (let ([port (open-input-string expr-str)])
         (let loop ([last-result (void)])
@@ -150,7 +176,7 @@
 ;;; Remove sessions that haven't been active recently.
 ;;; Returns the number of sessions cleaned up.
 (define (cleanup-expired-sessions!)
-  (let ([now (current-time)]
+  (let ([now (time-second (current-time))]
         [cleaned 0])
     (let ([session-ids (hashtable-keys *sessions*)])
       (vector-for-each

@@ -43,7 +43,7 @@
 
 (define *poll-interval-ns* 100000000)  ; 100ms in nanoseconds
 (define *cleanup-interval* 300)        ; 5 minutes in seconds
-(define *last-cleanup* (current-time))
+(define *last-cleanup* (time-second (current-time)))
 
 ;;; ============================================================
 ;;; Directory Setup
@@ -58,6 +58,8 @@
     (mkdir *responses-dir*)))
 
 (define (write-ready!)
+  (when (file-exists? *ready-file*)
+    (delete-file *ready-file*))
   (call-with-output-file *ready-file*
     (lambda (p)
       (display (format "~a" (current-time)) p))))
@@ -130,10 +132,12 @@
 
 ;;; eval-in-session-and-capture : String Scheme → String
 ;;; Evaluate expression in session context and capture output.
+;;; Sets *current-session-id* so hi/bye/who know which session they're in.
 (define (eval-in-session-and-capture session-id expr)
   (let ([output-port (open-output-string)])
     (let ([result
-           (parameterize ([current-output-port output-port])
+           (parameterize ([current-output-port output-port]
+                          [*current-session-id* session-id])
              (if (string? expr)
                  (eval-in-session session-id expr)
                  (eval-in-session session-id (format "~s" expr))))])
@@ -238,12 +242,11 @@
   "Daemon stopping...")
 
 ;;; scan-for-requests! : → void
-;;; Scan for both session and legacy requests.
+;;; Scan for session requests only.
+;;; NOTE: Legacy single-file IPC removed to prevent multitenancy race conditions.
+;;;       All clients must use session-id based requests.
 (define (scan-for-requests!)
-  ;; Process legacy request
-  (process-legacy-request!)
-
-  ;; Process session requests
+  ;; Process session requests only
   (when (file-exists? *requests-dir*)
     (let ([files (directory-list *requests-dir*)])
       (for-each
@@ -260,7 +263,7 @@
 ;;; periodic-cleanup! : → void
 ;;; Periodically cleanup expired sessions.
 (define (periodic-cleanup!)
-  (let ([now (current-time)])
+  (let ([now (time-second (current-time))])
     (when (> (- now *last-cleanup*) *cleanup-interval*)
       (let ([cleaned (cleanup-expired-sessions!)])
         (when (> cleaned 0)

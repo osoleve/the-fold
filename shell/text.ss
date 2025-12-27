@@ -266,9 +266,12 @@
 (define (quarantine bytes reason)
   (make-quarantined-text bytes reason (current-time)))
 
-;;; current-time : → String
+;;; current-time-iso : → String
 ;;; ISO 8601 timestamp in UTC
-(define (current-time)
+;;; NOTE: Renamed from current-time to avoid shadowing Chez Scheme's
+;;;       built-in (current-time) which returns a time object.
+;;;       Use (current-timestamp) from forum/tools.ss for string timestamps.
+(define (current-time-iso)
   (let ([d (current-date 0)])  ; 0 = UTC offset
     (format "~4,'0d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0dZ"
             (date-year d)

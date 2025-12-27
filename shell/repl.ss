@@ -35,6 +35,7 @@
 (load "shell/text.ss")
 (load "shell/edit.ss")
 (load "shell/git.ss")
+(load "shell/session-manager.ss")  ; Must be before forum/chat.ss
 
 ;; Forum dependencies
 (load "forum/tools.ss")

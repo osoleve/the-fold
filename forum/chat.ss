@@ -23,38 +23,74 @@
 ;;;   - Color-codes by tier (shepherd/builder/player)
 
 ;;; ============================================================
-;;; Session Management
+;;; Session Management (Multi-Session Aware)
 ;;; ============================================================
+
+;;; Sessions are now managed by shell/session-manager.ss
+;;; which provides isolated environments per session-id.
+;;;
+;;; Legacy single-file session (.fold-session) is kept for
+;;; backward compatibility with non-daemon usage.
 
 (define *session-file* ".fold-session")
 
 ;;; session-exists? : → Boolean
+;;; Check if a session exists (multi-session or legacy).
 (define (session-exists?)
-  (file-exists? *session-file*))
+  (let ([sid (current-session-id)])
+    (if sid
+        ;; Multi-session: check session-manager
+        (let ([session (get-session sid)])
+          (and session (cdr (assq 'logged-in session))))
+        ;; Legacy: check file
+        (file-exists? *session-file*))))
 
 ;;; read-session : → Alist | #f
-;;; Read current session metadata.
+;;; Read current session metadata (multi-session or legacy).
 (define (read-session)
-  (if (session-exists?)
-      (call-with-input-file *session-file* read)
-      #f))
+  (let ([sid (current-session-id)])
+    (if sid
+        ;; Multi-session: read from session-manager
+        (let ([session (get-session sid)])
+          (and session
+               `((tier . ,(cdr (assq 'tier session)))
+                 (model . ,(cdr (assq 'tier session)))  ; tier doubles as model
+                 (name . ,(cdr (assq 'name session)))
+                 (login-time . ,(cdr (assq 'created session))))))
+        ;; Legacy: read from file
+        (if (file-exists? *session-file*)
+            (call-with-input-file *session-file* read)
+            #f))))
 
 ;;; write-session! : Alist → void
-;;; Write session metadata to file.
+;;; Write session metadata (multi-session aware).
 (define (write-session! session)
-  ;; Delete existing file first if it exists
-  (when (file-exists? *session-file*)
-    (delete-file *session-file*))
-  (call-with-output-file *session-file*
-    (lambda (port)
-      (write session port)
-      (newline port))))
+  (let ([sid (current-session-id)])
+    (if sid
+        ;; Multi-session: use session-manager
+        (session-login! sid
+                        (cdr (assq 'tier session))
+                        (cdr (assq 'name session))
+                        "")
+        ;; Legacy: write to file
+        (begin
+          (when (file-exists? *session-file*)
+            (delete-file *session-file*))
+          (call-with-output-file *session-file*
+            (lambda (port)
+              (write session port)
+              (newline port)))))))
 
 ;;; clear-session! : → void
-;;; Remove session file.
+;;; Remove session (multi-session or legacy).
 (define (clear-session!)
-  (when (session-exists?)
-    (delete-file *session-file*)))
+  (let ([sid (current-session-id)])
+    (if sid
+        ;; Multi-session: use session-manager
+        (session-logout! sid)
+        ;; Legacy: delete file
+        (when (file-exists? *session-file*)
+          (delete-file *session-file*)))))
 
 ;;; session-tier : → Symbol | #f
 (define (session-tier)

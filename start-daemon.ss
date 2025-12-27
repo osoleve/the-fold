@@ -2,7 +2,8 @@
 ;;;
 ;;; Usage: scheme --script start-daemon.ss
 ;;;
-;;; This loads the daemon module and starts the loop.
+;;; This loads the MCP daemon module which supports multi-session
+;;; IPC for multitenancy. Each session gets isolated environments.
 
-(load "shell/repl-daemon.ss")
+(load "shell/repl-daemon-mcp.ss")
 (start-daemon!)
