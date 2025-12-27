@@ -11,6 +11,4 @@ shell/mcp-server/dist/
 .store/heads/
 .store/
 nul
-.fold-sessions/agent-alpha.session
-.fold-sessions/agent-beta.session
-.fold-sessions/agent-gamma.session
+.fold-sessions/
