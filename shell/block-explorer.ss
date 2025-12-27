@@ -261,7 +261,7 @@
 
   (let* ([fs (fs)]
          [all-hashes (fs-all-hashes fs)]
-         [referenced (make-hashtable bytevector-hash bytevector=?)])
+         [referenced (make-hashtable equal-hash equal?)])
 
     ;; Mark referenced blocks
     (for-each

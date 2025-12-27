@@ -30,7 +30,7 @@
 ;;;    (short-help . String)
 ;;;    (long-help . String)
 ;;;    (handler . Procedure))
-(define *command-registry* (make-hashtable symbol-hash eq?))
+(define *command-registry* (make-eq-hashtable))
 
 ;;; register-command! : Symbol × String × String × Procedure → void
 ;;; Register a command with the given name, help text, and handler.
