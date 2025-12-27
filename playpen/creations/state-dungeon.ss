@@ -6,8 +6,8 @@
 ;;; Created by: Sonnet (Builder tier)
 ;;; Date: 2025-12-26
 
-(load "core/prelude.ss")
-(load "core/state.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/state.ss")
 
 (display "=== STATE DUNGEON: The Monad's Labyrinth ===\n\n")
 

@@ -32,12 +32,12 @@ if not exist "%READY_FILE%" (
         "%SCHEME%" --script fold-stdin.ss
     ) else if exist "%1" (
         REM File argument - load the repl and run script
-        echo (load "shell/repl.ss") > "%TEMP%\fold-run.ss"
+        echo (load "thimble/repl.ss") > "%TEMP%\fold-run.ss"
         echo (load "%1") >> "%TEMP%\fold-run.ss"
         "%SCHEME%" --script "%TEMP%\fold-run.ss"
     ) else (
         REM Expression argument - wrap and execute
-        echo (load "shell/repl.ss") > "%TEMP%\fold-run.ss"
+        echo (load "thimble/repl.ss") > "%TEMP%\fold-run.ss"
         echo %* >> "%TEMP%\fold-run.ss"
         "%SCHEME%" --script "%TEMP%\fold-run.ss"
     )

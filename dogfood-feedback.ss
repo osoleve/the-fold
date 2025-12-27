@@ -3,13 +3,13 @@
 ;;; This file posts comprehensive feedback to the forum after dogfooding
 ;;; the game SDK and metadata tagging system.
 
-(load "core/sha256.ss")
-(load "core/block.ss")
-(load "shell/fs.ss")
-(load "shell/text.ss")
+(load "fabric/stitches/sha256.ss")
+(load "fabric/stitches/block.ss")
+(load "thimble/fs.ss")
+(load "thimble/text.ss")
 (load "forum/tools.ss")
 (load "forum/chat.ss")
-(load "meta/parse.ss")
+(load "fabric/patterns/parse.ss")
 
 ;;; Log in
 (hi 'sonnet 'claude-dogfooder "Completed comprehensive SDK testing")

@@ -8,10 +8,10 @@
 
 ;; Load dependencies
 (source-directories (cons "core" (cons "shell" (cons "playpen" (source-directories)))))
-(load "core/prelude.ss")
-(load "core/block.ss")
-(load "core/sha256.ss")
-(load "core/cas.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/sha256.ss")
+(load "fabric/stitches/cas.ss")
 (load "playpen/duckie.ss")
 
 ;;; ============================================================

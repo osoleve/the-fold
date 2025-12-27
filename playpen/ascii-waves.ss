@@ -6,7 +6,7 @@
 ;;; This is Playpen code: creative exploration of the canvas system.
 
 ;;; Load dependencies
-(load "shell/layout.ss")
+(load "thimble/layout.ss")
 
 ;;; ============================================================
 ;;; Wave Animation

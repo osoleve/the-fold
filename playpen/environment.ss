@@ -13,8 +13,8 @@
 ;;; Dependencies
 ;;; ============================================================
 
-(load "shell/color.ss")
-(load "shell/layout-color.ss")
+(load "thimble/color.ss")
+(load "thimble/layout-color.ss")
 
 ;;; ============================================================
 ;;; Time of Day

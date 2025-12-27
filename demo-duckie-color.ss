@@ -4,7 +4,7 @@
 ;;; DUCKIE sprites rendered with mood-based colors!
 
 ;;; Load color-enabled layout
-(load "shell/layout-color.ss")
+(load "thimble/layout-color.ss")
 
 ;;; ============================================================
 ;;; DUCKIE Sprites (ASCII Art)

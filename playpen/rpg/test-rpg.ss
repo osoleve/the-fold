@@ -61,7 +61,7 @@
 ;;; ============================================================
 
 ;;; Load canvas system from shell (needed for rendering tests)
-(load "shell/layout.ss")
+(load "thimble/layout.ss")
 
 ;;; Load the RPG SDK
 (load "playpen/rpg/core.ss")

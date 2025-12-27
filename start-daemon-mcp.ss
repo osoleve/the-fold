@@ -4,5 +4,5 @@
 ;;;
 ;;; This loads the MCP daemon module (with session support) and starts the loop.
 
-(load "shell/repl-daemon-mcp.ss")
+(load "thimble/repl-daemon-mcp.ss")
 (start-daemon!)

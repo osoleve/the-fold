@@ -38,7 +38,7 @@ if [ ! -f "$READY_FILE" ]; then
 
     # Create temp script
     TMP_SCRIPT=$(mktemp)
-    echo '(load "shell/repl.ss")' > "$TMP_SCRIPT"
+    echo '(load "thimble/repl.ss")' > "$TMP_SCRIPT"
 
     if [ -t 0 ] && [ -n "$1" ]; then
         # Argument provided

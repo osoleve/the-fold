@@ -10,9 +10,9 @@
 
 ;; Try to load from project root first, fall back to relative
 (guard (exn [else (void)])
-  (load "core/prelude.ss")
-  (load "core/eval.ss")
-  (load "core/state.ss"))
+  (load "fabric/stitches/prelude.ss")
+  (load "fabric/stitches/eval.ss")
+  (load "fabric/stitches/state.ss"))
 
 ;; Fall back to relative paths (running from core/)
 (guard (exn [else (void)])

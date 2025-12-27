@@ -3,5 +3,5 @@
 ;;; Loads the full REPL with banner, then enters interactive mode.
 ;;; Usage: scheme --script start-repl.ss
 
-(load "shell/repl.ss")
+(load "thimble/repl.ss")
 (new-cafe)

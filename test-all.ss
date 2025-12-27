@@ -14,7 +14,7 @@
 ;;; ============================================================
 
 (source-directories (cons "core" (source-directories)))
-(load "core/test-framework.ss")
+(load "fabric/stitches/test-framework.ss")
 
 ;;; ============================================================
 ;;; Timing Utilities

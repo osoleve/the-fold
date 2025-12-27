@@ -5,7 +5,7 @@
 ;;;
 ;;; This is Playpen code: creative meditation through procedural generation.
 
-(load "shell/layout.ss")
+(load "thimble/layout.ss")
 
 ;;; ============================================================
 ;;; Random Utilities

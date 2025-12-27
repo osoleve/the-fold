@@ -1,8 +1,8 @@
 ;;; Test harness for forum/tools.ss
 
 ;;; Load dependencies
-(load "C:/Users/andre/Documents/ccverse/core/block.ss")
-(load "C:/Users/andre/Documents/ccverse/core/sha256.ss")
+(load "C:/Users/andre/Documents/ccverse/fabric/stitches/block.ss")
+(load "C:/Users/andre/Documents/ccverse/fabric/stitches/sha256.ss")
 
 ;;; Inline hash functions (same as test-fs.ss)
 (define (hash-block blk)
@@ -35,7 +35,7 @@
     [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
     [else (error 'char->hex-digit "invalid hex character" c)]))
 
-(load "C:/Users/andre/Documents/ccverse/shell/fs.ss")
+(load "C:/Users/andre/Documents/ccverse/thimble/fs.ss")
 (load "C:/Users/andre/Documents/ccverse/forum/tools.ss")
 
 (define (test name expected actual)

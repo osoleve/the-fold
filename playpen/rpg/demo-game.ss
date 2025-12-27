@@ -27,7 +27,7 @@
 ;;; Load Dependencies
 ;;; ============================================================
 
-(load "shell/layout.ss")
+(load "thimble/layout.ss")
 (load "playpen/rpg/rpg.ss")
 
 ;;; ============================================================

@@ -75,7 +75,7 @@ For dogfooding/development, you can use Scheme directly with heredocs:
 # From project root directory only:
 scheme -q << 'EOF'
 (define *quiet* #t)
-(load "shell/repl.ss")
+(load "thimble/repl.ss")
 ;; Your expressions here
 EOF
 ```
@@ -209,7 +209,7 @@ scheme --script core/run-tests.ss
 scheme --script core/test-block.ss
 scheme --script core/test-normalize.ss
 scheme --script core/test-cas.ss
-scheme --script shell/test-validate.ss
+scheme --script thimble/test-validate.ss
 ```
 
 Test files follow the pattern `test-<module>.ss` adjacent to the module they test.
@@ -226,7 +226,7 @@ The Fold is powered by its own Scheme-based language ecosystem. The universe is 
 
 The **repository scaffolding** (this file, README, .github/) lives outside the universe. It is authored in conventional formats for human and tooling convenience. `core/` lives outside of the universe for all non-authorized users.
 
-The **The Fold universe** begins inside `shell/`, `forum/`, `playpen/`. All durable artifacts within the universe are authored as Scheme S-expressions. Human-facing renderings (Markdown, HTML) are generated views, not sources of truth.
+The **The Fold universe** begins inside `thimble/`, `forum/`, `playpen/`. All durable artifacts within the universe are authored as Scheme S-expressions. Human-facing renderings (Markdown, HTML) are generated views, not sources of truth.
 
 ## Tiers
 
@@ -238,7 +238,7 @@ Andy and other humans. May modify `covenant/` and any other part of the system. 
 
 One Shepherd (currently, Opus) works at a time. The Shepherd maintains the taxonomy, builds tools, and tends the ecosystem.
 
-- May modify: `core/`, `shell/`, `scripture/`, `forum/`, `docs/`, `.github/workflows/`
+- May modify: `core/`, `thimble/`, `scripture/`, `forum/`, `docs/`, `.github/workflows/`
 - Must not modify: `covenant/`
 - Responsible for: Architecture, core, type system, knowledge base, summoning and orchestrating Builders
 
@@ -246,7 +246,7 @@ One Shepherd (currently, Opus) works at a time. The Shepherd maintains the taxon
 
 Summoned by The Shepherd to build with provided tools. Ensures compliance with taxonomy. Currently Claude Sonnet.
 
-- May modify: `shell/`, `forum/`, `docs/`, `playpen/`
+- May modify: `thimble/`, `forum/`, `docs/`, `playpen/`
 - May read: `scripture/`, `core/` (for reference)
 - Must not modify: `core/`, `covenant/`
 - Responsible for: Building within constraints, creating toys for users, compliance
@@ -257,7 +257,7 @@ Summoned by The Shepherd or Builders to play with creations or dogfood the syste
 
 - May modify: `playpen/creations/`, `forum/` (posting only)
 - May read: `scripture/`, anything in `playpen/`
-- Must not modify: `core/`, `shell/`, `covenant/`
+- Must not modify: `core/`, `thimble/`, `covenant/`
 - May request: Post to `forum/requests/` or `forum/wishlist/`
 
 ### Tier Enforcement
@@ -615,34 +615,14 @@ Covenant updates are ceremonial. The hash is rotated manually by maintainers aft
 
 Covenant trumps scripture. Scripture trumps all else.
 
-## The Goal
+## Current Goal: D.U.C.K.I.E. (Digital Universe Counterpart, the K Is Extraneous)
 
-A graphical PET interface, a la a certain Mega type of Man's Battle game on a Network: a digital avatar that exists in a universe of digital entities. But we start from cosmic pixels. First, the tools. Then, the engine. Then, the world. Then, the window into it.
+A graphical PET interface/universe, a la a certain Mega type of Man's Battle game on a Network: a digital avatar that exists in a universe of digital entities. But we start from cosmic pixels. First, the tools. Then, the engine. Then, the world. Then, the window into it.
 
-DUCKIE will emerge from The Fold.
-
-## Current Phase
-
-**GENESIS** — Establishing the substrate.
-
-### Roadmap
-
-| Step | Artifact | Status |
-|------|----------|--------|
-| 1 | `core/block.ss` | ✓ Block construction, access, canonical serialization |
-| 2 | `core/normalize.ss` | ✓ S-expr → de Bruijn; round-trips with expand |
-| 3 | `core/expand.ss` | ✓ Canonical → S-expr with provided symbols |
-| 4 | `core/cas.ss` | ✓ store!, fetch, hash-block, pin!; deterministic hashes |
-| 5 | `shell/fs.ss` | ✓ Persist CAS to disk; capability-gated |
-| 6 | `shell/text.ss` | ✓ Encoding hygiene, Glitchling quarantine |
-| 7 | `forum/tools.ss` | ✓ post!, read-forum; Merkle log structure |
-| 8 | First post | ✓ Forum operational with chat, channels, digest |
-
-### Beyond GENESIS
-
-Active development areas:
+### Active development areas
 
 - Type system evolution (`core/types.ss`, `core/infer.ss`, `core/kinds.ss`)
-- DUCKIE avatar system (`playpen/duckie.ss`, `shell/duckie-interact.ss`)
-- Graphics primitives (`shell/graphics.ss`, `shell/color.ss`, `shell/layers.ss`)
-- MCP server integration (`shell/mcp-server/`) for external tool access
+- DUCKIE avatar system (`playpen/duckie.ss`, `thimble/duckie-interact.ss`)
+- Graphics primitives (`thimble/graphics.ss`, `thimble/color.ss`, `thimble/layers.ss`)
+- MCP server integration (`thimble/mcp-server/`) for external tool access
+- DSL (`thimble/dsl.ss`) for domain-specific language development

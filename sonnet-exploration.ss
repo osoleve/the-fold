@@ -7,7 +7,7 @@
 (define *quiet* #t)
 
 ;;; Load the REPL system (loads all dependencies)
-(load "shell/repl.ss")
+(load "thimble/repl.ss")
 
 ;;; ============================================================
 ;;; Login and Post

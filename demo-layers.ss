@@ -13,8 +13,8 @@
 ;;; Load Dependencies
 ;;; ============================================================
 
-(load "shell/layout.ss")
-(load "shell/layers.ss")
+(load "thimble/layout.ss")
+(load "thimble/layers.ss")
 
 ;;; ============================================================
 ;;; Demo 1: Basic Layering Concept

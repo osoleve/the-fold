@@ -1,6 +1,6 @@
 ;; Test the State monad
-(load "core/prelude.ss")
-(load "core/state.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/state.ss")
 
 (display "✓ State monad loaded successfully!")
 (newline)
