@@ -1,0 +1,17 @@
+[Unit]
+Description=The Fold REPL daemon (MCP)
+After=network.target
+ConditionPathExists=%h/the-fold/start-daemon-mcp.ss
+
+[Service]
+Type=simple
+WorkingDirectory=%h/the-fold
+Environment=FOLD_ROOT=%h/the-fold
+ExecStart=%h/the-fold/ops/scripts/run-daemon-mcp.sh
+Restart=on-failure
+RestartSec=2
+StandardOutput=append:%h/the-fold/.fold-repl/daemon.log
+StandardError=append:%h/the-fold/.fold-repl/daemon.log
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=The Fold cleanup job
+ConditionPathExists=%h/the-fold/ops/scripts/cleanup-fold.sh
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/the-fold
+Environment=FOLD_ROOT=%h/the-fold
+ExecStart=%h/the-fold/ops/scripts/cleanup-fold.sh
