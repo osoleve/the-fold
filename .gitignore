@@ -10,3 +10,4 @@ shell/mcp-server/dist/
 .store/pins/
 .store/heads/
 .store/
+nul
