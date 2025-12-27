@@ -224,6 +224,163 @@
 ;;; Primitive Metadata
 ;;; ============================================================
 
+;;; prim-fuel-cost : Symbol → Nat | #f
+;;; Return the fuel cost of a primitive operation.
+;;;
+;;; Fuel costs are determined by computational complexity relative to
+;;; the simplest primitives, which have a cost of 1 fuel unit.
+;;;
+;;; Benchmarked on Windows/Chez Scheme 10.3.0 (see bench-prim.ss):
+;;;   - Tiers 1-5 are dominated by interpreter dispatch overhead (~50-200ns)
+;;;   - SHA-256 is ~500x more expensive than simple ops (~43,000ns)
+;;;   - Block serialization is ~5-10x baseline, not crypto-level
+;;;   - number->string is notably expensive due to formatting
+;;;
+;;; Cost tiers:
+;;;   1  - O(1) trivial: type predicates, simple accessors, boolean ops
+;;;   2  - O(1) simple: basic arithmetic, cons, character ops
+;;;   3  - O(1) moderate: division/modulo, bitwise ops, construction
+;;;   5  - O(n) linear: length, reverse, list conversions
+;;;  10  - O(n) with allocation: string-append, bv-concat, slicing
+;;;  15  - Expensive conversions: number->string (formatting overhead)
+;;; 100  - Cryptographic: sha256
+;;; 110  - Crypto + overhead: hash-block (serialization + sha256)
+;;;
+(define (prim-fuel-cost op)
+  (case op
+    ;; --------------------------------------------------------
+    ;; Tier 1 (Cost 1) - O(1) trivial operations
+    ;; Benchmarked: ~40-100ns/op (interpreter overhead dominates)
+    ;; --------------------------------------------------------
+    ;; Type predicates - single tag check
+    [(number? integer? symbol? string? char? bytevector? block?
+      vector? list? boolean? procedure? null? pair?)
+     1]
+    ;; Simple accessors - direct field access
+    [(car cdr block-tag block-payload block-refs)
+     1]
+    ;; Boolean operations - trivial logic
+    [(not and or)
+     1]
+    ;; Simple comparisons (fixed-size types)
+    [(eq? zero? positive? negative?)
+     1]
+
+    ;; --------------------------------------------------------
+    ;; Tier 2 (Cost 2) - O(1) simple operations
+    ;; Benchmarked: ~40-110ns/op
+    ;; --------------------------------------------------------
+    ;; Basic arithmetic
+    [(add sub mul neg abs)
+     2]
+    ;; Numeric comparisons
+    [(lt? le? gt? ge?)
+     2]
+    ;; Character operations (single char)
+    [(char->integer integer->char char=? char<?
+      char-alphabetic? char-numeric? char-whitespace?
+      char-upper-case? char-lower-case? char-upcase char-downcase)
+     2]
+    ;; cons - single allocation
+    [(cons)
+     2]
+    ;; Simple indexed access
+    [(bv-ref vec-ref string-ref list-ref block-ref)
+     2]
+    ;; Length for fixed-size structures
+    [(bv-length vec-length string-length)
+     2]
+
+    ;; --------------------------------------------------------
+    ;; Tier 3 (Cost 3) - O(1) moderate operations
+    ;; Benchmarked: ~40-160ns/op
+    ;; --------------------------------------------------------
+    ;; Division/modulo - more CPU cycles
+    [(div mod)
+     3]
+    ;; Bitwise operations
+    [(bitand bitor bitxor bitnot shl shr)
+     3]
+    ;; Block/vector construction - allocation + setup
+    [(make-block vec-make vec-empty bv-make make-string)
+     3]
+    ;; Simple string comparisons (may scan)
+    [(string=? string<? string>?)
+     3]
+    ;; memq/assq - O(n) but typically short lists
+    [(memq assq)
+     3]
+
+    ;; --------------------------------------------------------
+    ;; Tier 4 (Cost 5) - O(n) linear operations
+    ;; Benchmarked: ~80-200ns/op for small inputs
+    ;; --------------------------------------------------------
+    ;; List traversal
+    [(length reverse)
+     5]
+    ;; List/vector conversions
+    [(vec->list list->vec)
+     5]
+    ;; String/list conversions
+    [(string->list list->string)
+     5]
+    ;; List operations
+    [(list append)
+     5]
+    ;; Symbol/string conversions
+    [(symbol->string string->symbol)
+     5]
+
+    ;; --------------------------------------------------------
+    ;; Tier 5 (Cost 10) - O(n) with allocation
+    ;; Benchmarked: ~70-150ns/op for small inputs
+    ;; --------------------------------------------------------
+    ;; String operations with allocation
+    [(string-append substring)
+     10]
+    ;; Bytevector operations with allocation
+    [(bv-concat bv-copy bv-slice)
+     10]
+    ;; UTF-8 encoding/decoding
+    [(string->utf8 utf8->string)
+     10]
+    ;; Block serialization/deserialization
+    ;; Benchmarked: ~200-460ns/op (much cheaper than crypto)
+    [(block->bytes bytes->block)
+     10]
+    ;; Hex conversion
+    [(hash->hex hex->hash)
+     10]
+    ;; String/number parsing
+    [(string->number)
+     10]
+
+    ;; --------------------------------------------------------
+    ;; Tier 6 (Cost 15) - Expensive conversions
+    ;; Benchmarked: ~1000ns/op (formatting overhead)
+    ;; --------------------------------------------------------
+    [(number->string)
+     15]
+
+    ;; --------------------------------------------------------
+    ;; Tier 7 (Cost 100) - Cryptographic operations
+    ;; Benchmarked: ~43,000ns/op (~500x baseline)
+    ;; --------------------------------------------------------
+    [(sha256)
+     100]
+
+    ;; --------------------------------------------------------
+    ;; Tier 8 (Cost 110) - Serialization + cryptographic
+    ;; Benchmarked: ~44,000ns/op (block->bytes + sha256)
+    ;; --------------------------------------------------------
+    [(hash-block)
+     110]
+
+    ;; --------------------------------------------------------
+    ;; Unknown primitive
+    ;; --------------------------------------------------------
+    [else #f]))
+
 ;;; prim-arity : Symbol → Nat | 'variadic | #f
 ;;; Return the expected arity of a primitive.
 (define (prim-arity op)
