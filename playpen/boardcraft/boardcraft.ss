@@ -25,8 +25,13 @@
 (display "  Loading triangle.ss...\n")
 (load "playpen/boardcraft/triangle.ss")
 
+;;; Pathfinding algorithms
+(display "  Loading pathfinding.ss...\n")
+(load "playpen/boardcraft/pathfinding.ss")
+
 (display "BoardCraft SDK loaded successfully!\n")
 (display "Available tile shapes: square, hex, triangle\n")
+(display "Pathfinding: BFS, Dijkstra, A*\n")
 (display "See playpen/boardcraft/README.ss for documentation.\n")
 (newline)
 
