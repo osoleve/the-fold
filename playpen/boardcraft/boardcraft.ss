@@ -37,11 +37,16 @@
 (display "  Loading render.ss...\n")
 (load "playpen/boardcraft/render.ss")
 
+;;; Unit/entity management
+(display "  Loading units.ss...\n")
+(load "playpen/boardcraft/units.ss")
+
 (display "BoardCraft SDK loaded successfully!\n")
 (display "Available tile shapes: square, hex, triangle\n")
 (display "Pathfinding: BFS, Dijkstra, A*\n")
 (display "Visibility: Line of sight, Field of view\n")
 (display "Rendering: ASCII art visualization\n")
+(display "Units: Placement, movement, visibility\n")
 (display "See playpen/boardcraft/README.ss for documentation.\n")
 (newline)
 
