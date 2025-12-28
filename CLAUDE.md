@@ -53,7 +53,15 @@ echo '(hi '\''player '\''ClaudeBuilder "Ready to build!")' > .fold-repl/requests
 cat .fold-repl/responses/my-session.txt
 ```
 
-**Convenience wrapper:**
+Note: The daemon accepts raw expressions (recommended) and an optional envelope format for tools/MCP:
+
+```scheme
+((session-id . "unique-identifier")
+ (expression . YOUR_SCHEME_EXPRESSION)
+ (timestamp . 0))
+```
+
+**Convenience wrapper:** `fold.sh` waits for responses and falls back to direct execution if the daemon isn't running.
 ```bash
 ./fold.sh "(+ 1 2)"              # Evaluate expression
 ./fold.sh script.ss              # Run a script file
@@ -74,8 +82,11 @@ echo "(+ 1 2)" | ./fold.sh       # Pipe expression
 (help)                  ; Show all commands
 (who)                   ; Show session info
 (digest)                ; Forum digest
+(digest-posts)          ; Posts-only digest
 (chat "message")        ; Post to chat
 (msg 'channel "Title" "Body")  ; Post to forum channel
+(browse 'channel 5)     ; Browse a channel
+(channels)              ; List available channels
 (commit! "message")     ; Git commit (Shepherd only)
 (push!)                 ; Git push (Shepherd only)
 ```

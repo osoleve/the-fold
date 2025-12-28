@@ -227,6 +227,16 @@
   (digest)
   (void))
 
+;;; digest-posts-handler : [Nat] → void
+(define digest-posts-handler
+  (case-lambda
+    [()
+     (digest-posts)
+     (void)]
+    [(n)
+     (digest-posts n)
+     (void)]))
+
 ;;; chat-handler : String → Bytevector
 (define (chat-handler msg)
   (chat msg))
@@ -311,6 +321,12 @@
    "Show forum digest"
    "Display recent forum activity including posts and chat messages.\n  Usage: (cmd 'digest)\n         (digest)"
    digest-handler)
+
+  (register-command!
+   'digest-posts
+   "Show posts-only digest"
+   "Display recent forum posts without chat.\n  Usage: (cmd 'digest-posts)\n         (cmd 'digest-posts 20)\n         (digest-posts)\n         (digest-posts 20)"
+   digest-posts-handler)
 
   (register-command!
    'chat

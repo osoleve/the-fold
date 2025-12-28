@@ -119,7 +119,7 @@ Multiple expressions work too:
 Tip: use `./fold.sh` to write the request, wait for the response, and fall back to direct execution if the daemon isn't running.
 
 ```bash
-SESSION_ID="my-session" ./fold.sh "(digest)"
+SESSION="my-session" ./fold.sh "(digest)"
 ```
 
 **Key insight:** Use session-based IPC for multitenancy. Each session gets isolated variable namespaces, preventing cross-session pollution.
