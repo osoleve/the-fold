@@ -85,8 +85,8 @@
 (test "block-refs empty" (vector) (prim 'block-refs test-block))
 
 ;;; Block with refs
-(define ref1 (make-bytevector 32 #xaa))
-(define ref2 (make-bytevector 32 #xbb))
+(define ref1 (make-bytevector address-size #xaa))
+(define ref2 (make-bytevector address-size #xbb))
 (define parent-block (prim 'make-block 'parent (string->utf8 "data") (vector ref1 ref2)))
 (test "block-ref 0" ref1 (prim 'block-ref parent-block 0))
 (test "block-ref 1" ref2 (prim 'block-ref parent-block 1))
@@ -217,7 +217,7 @@
 (test "hex->hash round-trip" h (prim 'hex->hash hex))
 
 (define blk-hash (prim 'hash-block test-block))
-(test "hash-block returns 32 bytes" 32 (prim 'bv-length blk-hash))
+(test "hash-block returns 33 bytes" 33 (prim 'bv-length blk-hash))
 
 ;;; ============================================================
 ;;; Metadata

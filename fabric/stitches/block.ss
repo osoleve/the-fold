@@ -4,7 +4,7 @@
 ;;;
 ;;; - tag: Symbol identifying the block type
 ;;; - payload: Bytevector of raw data
-;;; - refs: Vector of hashes (each hash is a 32-byte bytevector)
+;;; - refs: Vector of addresses (each address is a 33-byte bytevector)
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;;
@@ -48,12 +48,15 @@
 ;;; Format (all lengths little-endian u32):
 ;;;   [tag-len : 4 bytes][tag : tag-len bytes (UTF-8, NFC)]
 ;;;   [payload-len : 4 bytes][payload : payload-len bytes]
-;;;   [refs-count : 4 bytes][ref₀ : 32 bytes]...[refₙ : 32 bytes]
+;;;   [refs-count : 4 bytes][ref₀ : 33 bytes]...[refₙ : 33 bytes]
 ;;;
 ;;; Hash size is fixed at 32 bytes (SHA-256).
+;;; Address size is 33 bytes (version byte + hash bytes).
 ;;; ============================================================
 
 (define hash-size 32)
+(define address-version 0)
+(define address-size (+ 1 hash-size))
 
 ;;; u32->bytes-le : Nat → Bytevector
 ;;; Encode a 32-bit unsigned integer as 4 bytes, little-endian.
@@ -69,7 +72,7 @@
 
 ;;; symbol->utf8 : Symbol → Bytevector
 ;;; Convert symbol name to UTF-8 bytes.
-;;; Note: NFC normalization is Shell's responsibility before reaching Core.
+;;; Note: NFC normalization is required in Shell before reaching Core.
 (define (symbol->utf8 sym)
   (string->utf8 (symbol->string sym)))
 
@@ -106,7 +109,7 @@
         ;; Payload: length-prefixed
         (u32->bytes-le (bytevector-length payload))
         payload
-        ;; Refs: count-prefixed, each ref is hash-size bytes
+        ;; Refs: count-prefixed, each ref is address-size bytes
         (u32->bytes-le refs-count)
         (bytevector-concat (vector->list refs))))))
 
@@ -134,10 +137,10 @@
     ;; Read each ref
     (do ([i 0 (+ i 1)])
         ((= i refs-count))
-      (let ([ref (make-bytevector hash-size)])
-        (bytevector-copy! bv pos ref 0 hash-size)
+      (let ([ref (make-bytevector address-size)])
+        (bytevector-copy! bv pos ref 0 address-size)
         (vector-set! refs i ref)
-        (set! pos (+ pos hash-size))))
+        (set! pos (+ pos address-size))))
     (make-block tag payload refs)))
 
 ;;; ============================================================

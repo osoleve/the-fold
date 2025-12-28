@@ -37,8 +37,8 @@
 ;;; Fuel
 ;;; ============================================================
 
-;;; Fuel is a natural number. Each reduction step costs 1 fuel.
-;;; When fuel hits 0, we suspend.
+;;; Fuel is a natural number. Each eval call costs 1 fuel.
+;;; Primitives consume 0 fuel. Suspension happens only at eval boundaries.
 
 (define (fuel? n) (and (integer? n) (>= n 0)))
 
@@ -113,61 +113,65 @@
     [(out-of-fuel? fuel)
      `(suspended ,expr ,env)]
 
-    ;; Already a value
-    [(value? expr)
-     `(ok ,expr ,fuel)]
-
-    ;; Variable reference
-    [(symbol? expr)
-     (let ([result (env-lookup env expr)])
-       (if (eq? (car result) 'ok)
-           `(ok ,(cadr result) ,(- fuel 1))
-           result))]
-
-    ;; Must be a compound form
-    [(not (pair? expr))
-     `(error invalid-expression ,expr)]
-
     [else
-     (let ([head (car expr)])
+     ;; Consume fuel for this eval call.
+     (let ([remaining (- fuel 1)])
        (cond
-         ;; Quote — return datum as-is
-         [(eq? head 'quote)
-          `(ok ,(cadr expr) ,(- fuel 1))]
+         ;; Already a value
+         [(value? expr)
+          `(ok ,expr ,remaining)]
 
-         ;; Lambda — create closure
-         [(eq? head 'fn)
-          (let ([params (cadr expr)]
-                [body (caddr expr)])
-            `(ok ,(make-closure params body env) ,(- fuel 1)))]
+         ;; Variable reference
+         [(symbol? expr)
+          (let ([result (env-lookup env expr)])
+            (if (eq? (car result) 'ok)
+                `(ok ,(cadr result) ,remaining)
+                result))]
 
-         ;; Let — evaluate bindings, extend env, evaluate body
-         [(eq? head 'let)
-          (eval-let (cadr expr) (caddr expr) env fuel)]
+         ;; Must be a compound form
+         [(not (pair? expr))
+          `(error invalid-expression ,expr)]
 
-         ;; Fix — recursive binding
-         [(eq? head 'fix)
-          (eval-fix (cadr expr) (caddr expr) env fuel)]
-
-         ;; If — conditional
-         [(eq? head 'if)
-          (eval-if (cadr expr) (caddr expr) (cadddr expr) env fuel)]
-
-         ;; Case — pattern match on block tag
-         [(eq? head 'case)
-          (eval-case (cadr expr) (cddr expr) env fuel)]
-
-         ;; Prim — pure primitive
-         [(eq? head 'prim)
-          (eval-prim (cadr expr) (cddr expr) env fuel)]
-
-         ;; Call — explicit application
-         [(eq? head 'call)
-          (eval-call (cadr expr) (cddr expr) env fuel)]
-
-         ;; Implicit application — (f args...)
          [else
-          (eval-call (car expr) (cdr expr) env fuel)]))]))
+          (let ([head (car expr)])
+            (cond
+              ;; Quote — return datum as-is
+              [(eq? head 'quote)
+               `(ok ,(cadr expr) ,remaining)]
+
+              ;; Lambda — create closure
+              [(eq? head 'fn)
+               (let ([params (cadr expr)]
+                     [body (caddr expr)])
+                 `(ok ,(make-closure params body env) ,remaining))]
+
+              ;; Let — evaluate bindings, extend env, evaluate body
+              [(eq? head 'let)
+               (eval-let (cadr expr) (caddr expr) env remaining)]
+
+              ;; Fix — recursive binding
+              [(eq? head 'fix)
+               (eval-fix (cadr expr) (caddr expr) env remaining)]
+
+              ;; If — conditional
+              [(eq? head 'if)
+               (eval-if (cadr expr) (caddr expr) (cadddr expr) env remaining)]
+
+              ;; Case — pattern match on block tag
+              [(eq? head 'case)
+               (eval-case (cadr expr) (cddr expr) env remaining)]
+
+              ;; Prim — pure primitive
+              [(eq? head 'prim)
+               (eval-prim (cadr expr) (cddr expr) env remaining)]
+
+              ;; Call — explicit application
+              [(eq? head 'call)
+               (eval-call (cadr expr) (cddr expr) env remaining)]
+
+              ;; Implicit application — (f args...)
+              [else
+               (eval-call (car expr) (cdr expr) env remaining)]))]))]))
 
 ;;; ============================================================
 ;;; Let Evaluation
@@ -226,19 +230,17 @@
 ;;; ============================================================
 
 (define (eval-fix name fn-expr env fuel)
-  (if (out-of-fuel? fuel)
-      `(suspended (fix ,name ,fn-expr) ,env)
-      ;; fn-expr should be (fn (params...) body)
-      (if (and (pair? fn-expr) (eq? (car fn-expr) 'fn))
-          (let* ([params (cadr fn-expr)]
-                 [body (caddr fn-expr)]
-                 ;; Create a recursive closure by including itself in its env
-                 [rec-env (env-extend env name 'placeholder)]
-                 [closure (make-closure params body rec-env)])
-            ;; MUTATION: Tie the knot - see rationale above
-            (set-cdr! (car rec-env) closure)
-            `(ok ,closure ,(- fuel 1)))
-          `(error fix-requires-fn ,fn-expr))))
+  ;; fn-expr should be (fn (params...) body)
+  (if (and (pair? fn-expr) (eq? (car fn-expr) 'fn))
+      (let* ([params (cadr fn-expr)]
+             [body (caddr fn-expr)]
+             ;; Create a recursive closure by including itself in its env
+             [rec-env (env-extend env name 'placeholder)]
+             [closure (make-closure params body rec-env)])
+        ;; MUTATION: Tie the knot - see rationale above
+        (set-cdr! (car rec-env) closure)
+        `(ok ,closure ,fuel))
+      `(error fix-requires-fn ,fn-expr)))
 
 ;;; ============================================================
 ;;; If Evaluation
@@ -247,7 +249,7 @@
 (define (eval-if test-expr then-expr else-expr env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (if ,test-expr ,then-expr ,else-expr) ,env)
-      (let ([test-result (eval-expr test-expr env (- fuel 1))])
+      (let ([test-result (eval-expr test-expr env fuel)])
         (cond
           [(eq? (car test-result) 'ok)
            (let ([test-val (cadr test-result)]
@@ -274,7 +276,7 @@
 (define (eval-case scrutinee clauses env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (case ,scrutinee ,@clauses) ,env)
-      (let ([scrut-result (eval-expr scrutinee env (- fuel 1))])
+      (let ([scrut-result (eval-expr scrutinee env fuel)])
         (cond
           [(eq? (car scrut-result) 'ok)
            (let ([val (cadr scrut-result)]
@@ -316,15 +318,12 @@
 ;;; Primitive Evaluation
 ;;; ============================================================
 
-;;; Primitives now have variable fuel costs based on their computational
-;;; complexity (see prim-fuel-cost in prim.ss). Simple predicates cost 1,
-;;; while sha256 costs 100.
+;;; Primitives consume no fuel themselves; only argument evaluation costs fuel.
 
 (define (eval-prim op args env fuel)
-  (if (out-of-fuel? fuel)
+  (if (and (out-of-fuel? fuel) (pair? args))
       `(suspended (prim ,op ,@args) ,env)
-      ;; Evaluate all arguments (costs 1 fuel to start the prim evaluation)
-      (eval-prim-args op args env '() (- fuel 1))))
+      (eval-prim-args op args env '() fuel)))
 
 (define (eval-prim-args op remaining env acc fuel)
   (if (null? remaining)
@@ -332,13 +331,8 @@
       (let* ([op-sym (if (and (pair? op) (eq? (car op) 'quote))
                          (cadr op)
                          op)]
-             [arg-vals (reverse acc)]
-             ;; Get the fuel cost for this primitive
-             [prim-cost (or (prim-fuel-cost op-sym) 1)])
-        ;; Check if we have enough fuel for the primitive
-        (if (< fuel prim-cost)
-            `(suspended (prim ',op-sym ,@arg-vals) ,env)
-            `(ok ,(apply prim (cons op-sym arg-vals)) ,(- fuel prim-cost))))
+             [arg-vals (reverse acc)])
+        `(ok ,(apply prim (cons op-sym arg-vals)) ,fuel))
       ;; Evaluate next arg
       (let ([result (eval-expr (car remaining) env fuel)])
         (cond
@@ -358,7 +352,7 @@
   (if (out-of-fuel? fuel)
       `(suspended (call ,fn-expr ,@arg-exprs) ,env)
       ;; Evaluate the function
-      (let ([fn-result (eval-expr fn-expr env (- fuel 1))])
+      (let ([fn-result (eval-expr fn-expr env fuel)])
         (cond
           [(eq? (car fn-result) 'ok)
            (let ([fn-val (cadr fn-result)]
@@ -880,5 +874,5 @@
 ;;; run-prelude : Expr × Fuel → Result
 ;;; Evaluate with the standard prelude.
 (define (run-prelude expr fuel)
-  (let ([prelude-env (build-prelude-env 100)])
+  (let ([prelude-env (build-prelude-env 1000)])
     (eval-expr expr prelude-env fuel)))

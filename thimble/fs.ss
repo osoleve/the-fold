@@ -1,6 +1,7 @@
 ;;; thimble/fs.ss — Filesystem Capability Layer
 ;;;
-;;; Persists the Content-Addressed Store to disk.
+;;; Optional filesystem persistence for the in-memory CAS.
+;;; Core CAS is in-memory only; Shell adds persistence when needed.
 ;;; All operations are capability-gated.
 ;;;
 ;;; This is Shell code: impure, defensive, handles failure.
@@ -9,7 +10,7 @@
 ;;;   (make-fs-capability store-path) → FS
 ;;;
 ;;; Operations (require FS capability):
-;;;   (fs-store! fs block) → Bytevector (hash)
+;;;   (fs-store! fs block) → Bytevector (address)
 ;;;   (fs-fetch fs hash) → Block | #f
 ;;;   (fs-stored? fs hash) → Boolean
 ;;;   (fs-pin! fs hash) → void
@@ -19,9 +20,9 @@
 ;;;   {store-path}/
 ;;;     objects/
 ;;;       {aa}/
-;;;         {aabbccdd...}  ; block files named by full hash
+;;;         {aabbccdd...}  ; block files named by full address
 ;;;     pins/
-;;;       {hash}.pin       ; pinned hashes
+;;;       {hash}.pin       ; pinned addresses
 ;;;     heads/
 ;;;       {channel}.head   ; forum head pointers
 

@@ -54,50 +54,47 @@
     (task
       (id "P0-001")
       (title "Resolve fuel specification ambiguity")
-      (status todo)
+      (status done)
       (estimate "1 day")
       (assignee opus)
       (deliverable "Updated core/eval.ss with precise fuel semantics")
       (notes "Decision: 1 fuel = 1 eval call, primitives = 0 fuel
               Suspension at eval boundaries only, deterministic
-              Add tests validating fuel consumption"))
+              Implemented in fabric/stitches/eval.ss + test-eval.ss"))
 
     (task
       (id "P0-002")
       (title "Document CAS persistence boundary")
-      (status todo)
+      (status done)
       (estimate "0.5 days")
       (assignee opus)
       (deliverable "Updated core/cas.ss and shell/fs.ss documentation")
       (notes "Core CAS: In-memory only (HashMap<Hash, Block>)
-              shell/fs.ss: Optional persistence layer in Shell tier
-              Clarify boundary in architecture docs"))
+              thimble/fs.ss + thimble/cas-persist.ss: Optional persistence
+              Boundary documented in core + shell headers"))
 
     (task
       (id "P0-003")
       (title "Decide NFC normalization strategy")
-      (status todo)
+      (status done)
       (estimate "1 day")
       (assignee opus)
       (deliverable "Decision documented + spec updated + tests")
-      (notes "Option A: Keep NFC, add unicode-normalization crate
-              Option B: Relax to raw UTF-8 bytes (breaks hash stability)
-              Must decide BEFORE any production hashes exist
-              If keep NFC: update approved crates list
-              If relax: update core/block.ss serialization spec"))
+      (notes "Decision: Keep NFC for canonical hashing
+              Shell normalize-nfc rejects non-ASCII until full NFC exists
+              core/block.ss notes NFC requirement"))
 
     (task
       (id "P0-004")
       (title "Add versioned address format to spec")
-      (status todo)
+      (status done)
       (estimate "1-2 days")
       (assignee opus)
       (deliverable "Updated core/block.ss and core/cas.ss with versioned addresses")
       (notes "Address = version:u8 || hash:bytes[32] (33 bytes total)
-              Version 0: Current spec (NFC/raw UTF-8, little-endian, length-prefixed)
-              Update hash-block to return 33 bytes
-              Update CAS store keys to 33-byte addresses
-              Add tests validating version byte handling")))
+              Version 0: Current spec (NFC, little-endian, length-prefixed)
+              hash-block returns versioned address; refs are 33 bytes
+              Tests updated to validate version byte + size")))
 
   ;; ================================================================
   ;; PHASE 1: CORE (Week 1-2)

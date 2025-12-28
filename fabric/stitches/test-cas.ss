@@ -24,6 +24,8 @@
 (define blk1 (make-block 'test (string->utf8 "hello") empty-refs))
 (define hash1 (store! blk1))
 (display "  stored hash: ") (display (hash->hex hash1)) (newline)
+(test "address length" address-size (bytevector-length hash1))
+(test "address version byte" address-version (bytevector-u8-ref hash1 0))
 (define retrieved (fetch hash1))
 (test "fetch returns block" #t (block? retrieved))
 (test "tag matches" 'test (block-tag retrieved))

@@ -6,7 +6,11 @@
 
 ;;; Inline hash functions (same as test-fs.ss)
 (define (hash-block blk)
-  (sha256 (block->bytes blk)))
+  (let* ([hash (sha256 (block->bytes blk))]
+         [address (make-bytevector address-size)])
+    (bytevector-u8-set! address 0 address-version)
+    (bytevector-copy! hash 0 address 1 hash-size)
+    address))
 
 (define (hash->hex hash)
   (let ([hex-chars "0123456789abcdef"])
@@ -16,12 +20,13 @@
                     (string
                       (string-ref hex-chars (quotient b 16))
                       (string-ref hex-chars (modulo b 16)))))
-                (iota 32)))))
+                (iota (bytevector-length hash))))))
 
 (define (hex->hash str)
-  (let ([result (make-bytevector 32)])
+  (let* ([len (string-length str)]
+         [result (make-bytevector (quotient len 2))])
     (do ([i 0 (+ i 1)])
-        ((= i 32))
+        ((= i (bytevector-length result)))
       (let* ([j (* i 2)]
              [hi (char->hex-digit (string-ref str j))]
              [lo (char->hex-digit (string-ref str (+ j 1)))])

@@ -2,9 +2,9 @@
 ;;;
 ;;; Defensive validation functions that check structural invariants:
 ;;;   - Block structure (tag, payload, refs are correct types)
-;;;   - Hash format (32-byte bytevectors)
+;;;   - Hash format (33-byte versioned addresses)
 ;;;   - Reference validity (all refs are valid hashes)
-;;;   - Hex string format (64 hex characters)
+;;;   - Hex string format (66 hex characters)
 ;;;
 ;;; This is Shell code: defensive, validates before calling Core.
 ;;; Core assumes perfect input, so Shell must validate at boundaries.
@@ -30,10 +30,10 @@
 ;;; ============================================================
 
 ;;; hash? : Any -> Boolean
-;;; Predicate: is this a valid hash (32-byte bytevector)?
+;;; Predicate: is this a valid hash (33-byte address bytevector)?
 (define (hash? obj)
   (and (bytevector? obj)
-       (= (bytevector-length obj) hash-size)))
+       (= (bytevector-length obj) address-size)))
 
 ;;; validate-hash : Any -> Result Bool
 ;;; Validate that an object is a proper hash.
@@ -42,9 +42,9 @@
   (cond
     [(not (bytevector? obj))
      '(error "hash must be a bytevector")]
-    [(not (= (bytevector-length obj) hash-size))
+    [(not (= (bytevector-length obj) address-size))
      `(error ,(string-append "hash must be exactly "
-                             (number->string hash-size)
+                             (number->string address-size)
                              " bytes, got "
                              (number->string (bytevector-length obj))))]
     [else '(ok #t)]))
@@ -57,10 +57,10 @@
       (char<=? #\A c #\F)))
 
 ;;; hex-string? : Any -> Boolean
-;;; Predicate: is this a valid 64-character hex string (for SHA-256)?
+;;; Predicate: is this a valid 66-character hex string (for versioned addresses)?
 (define (hex-string? obj)
   (and (string? obj)
-       (= (string-length obj) (* 2 hash-size))
+       (= (string-length obj) (* 2 address-size))
        (let loop ([i 0])
          (or (= i (string-length obj))
              (and (hex-char? (string-ref obj i))
@@ -73,9 +73,9 @@
   (cond
     [(not (string? obj))
      '(error "hex hash must be a string")]
-    [(not (= (string-length obj) (* 2 hash-size)))
+    [(not (= (string-length obj) (* 2 address-size)))
      `(error ,(string-append "hex hash must be exactly "
-                             (number->string (* 2 hash-size))
+                             (number->string (* 2 address-size))
                              " characters, got "
                              (number->string (string-length obj))))]
     [else
@@ -234,7 +234,7 @@
        '(error "serialized block truncated at refs count"))
       (else
        (let* ((refs-count (bytes-le->u32 obj refs-offset))
-              (expected-len (+ refs-offset 4 (* refs-count hash-size))))
+              (expected-len (+ refs-offset 4 (* refs-count address-size))))
          (cond
            ((> refs-count 1000000)
             '(error "refs count unreasonably large"))

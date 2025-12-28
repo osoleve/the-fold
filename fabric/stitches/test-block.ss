@@ -40,8 +40,8 @@
       (assert-true (block-equal? blk restored))))
 
   (define-test round-trip-with-refs
-    (let* ([fake-hash-1 (make-bytevector 32 #xAA)]
-           [fake-hash-2 (make-bytevector 32 #xBB)]
+    (let* ([fake-hash-1 (make-bytevector address-size #xAA)]
+           [fake-hash-2 (make-bytevector address-size #xBB)]
            [blk (make-block 'node empty-payload (vector fake-hash-1 fake-hash-2))]
            [serialized (block->bytes blk)]
            [restored (bytes->block serialized)])

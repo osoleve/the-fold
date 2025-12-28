@@ -254,6 +254,12 @@
 ;;; ============================================================
 
 ;;; hash-block : Block → Bytevector
-;;; Compute the SHA-256 hash of a block's canonical serialization.
+;;; Compute the versioned address of a block.
+;;; The SHA-256 hash is computed over the canonical serialization,
+;;; then prefixed with a version byte.
 (define (hash-block blk)
-  (sha256 (block->bytes blk)))
+  (let* ([hash (sha256 (block->bytes blk))]
+         [address (make-bytevector address-size)])
+    (bytevector-u8-set! address 0 address-version)
+    (bytevector-copy! hash 0 address 1 hash-size)
+    address))

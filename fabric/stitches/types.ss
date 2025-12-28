@@ -56,7 +56,7 @@
     Bytes    ; Raw bytevectors
     Unit     ; Single value ()
     Void     ; No values (bottom for returns)
-    Hash))   ; 32-byte hash (block reference)
+    Hash))   ; 33-byte versioned address (block reference)
 
 ;;; base-type? : Any → Boolean
 (define (base-type? t)

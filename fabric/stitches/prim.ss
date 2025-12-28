@@ -235,6 +235,8 @@
 
 ;;; prim-fuel-cost : Symbol → Nat | #f
 ;;; Return the fuel cost of a primitive operation.
+;;; Note: Core eval does not charge primitives for fuel; this table is
+;;; for benchmarking and analysis only.
 ;;;
 ;;; Fuel costs are determined by computational complexity relative to
 ;;; the simplest primitives, which have a cost of 1 fuel unit.

@@ -162,15 +162,14 @@
 ;;; ============================================================
 
 ;;; Note: Full NFC normalization requires Unicode data tables.
-;;; For GENESIS, we take a pragmatic approach:
-;;;   - ASCII text passes through unchanged
-;;;   - Non-ASCII text is flagged for future normalization
-;;;
+;;; Decision: NFC is required for canonical hashing.
+;;; Until full NFC is implemented, we only allow ASCII here.
+;;; 
 ;;; A complete implementation would:
 ;;;   1. Decompose to NFD (Canonical Decomposition)
 ;;;   2. Apply Canonical Composition
-;;;
-;;; This stub ensures deterministic behavior now.
+;;; 
+;;; This guard ensures deterministic behavior now.
 
 ;;; ascii-only? : String → Boolean
 (define (ascii-only? str)
@@ -180,10 +179,12 @@
              (loop (cdr chars))))))
 
 ;;; normalize-nfc : String → String
-;;; For now: pass ASCII through, warn on non-ASCII.
+;;; For now: pass ASCII through, reject non-ASCII.
 ;;; TODO: Implement full NFC using Unicode data tables.
 (define (normalize-nfc str)
-  str)  ; Identity for now
+  (if (ascii-only? str)
+      str
+      (error 'normalize-nfc "NFC normalization required for non-ASCII text")))
 
 ;;; ============================================================
 ;;; Symbol Hygiene

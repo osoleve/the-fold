@@ -4,17 +4,17 @@
 ;;; Same content = same hash, forever.
 ;;;
 ;;; Pure operations:
-;;;   hash-block : Block → Bytevector (32-byte hash)
+;;;   hash-block : Block → Bytevector (33-byte address)
 ;;;
-;;; Store operations (in-memory for bootstrap):
-;;;   store! : Block → Bytevector (store and return hash)
+;;; Store operations (in-memory only):
+;;;   store! : Block → Bytevector (store and return address)
 ;;;   fetch : Bytevector → Block | #f
 ;;;   pin! : Bytevector → void (mark as persistent)
 ;;;   stored? : Bytevector → Boolean
 ;;;
 ;;; Note: The in-memory store uses mutation for the hashtable.
-;;; This is acceptable in a bootstrap CAS. Shell provides
-;;; capability-gated filesystem persistence (shell/cas-persist.ss).
+;;; This is acceptable in Core. Shell provides optional filesystem
+;;; persistence (thimble/cas-persist.ss or thimble/fs.ss).
 ;;;
 ;;; This is Core code, but with bootstrap mutation for the store.
 ;;;
@@ -34,13 +34,18 @@
 ;;; ============================================================
 
 ;;; hash-block : Block → Bytevector
-;;; Compute the cryptographic hash of a block.
-;;; The hash is computed over the canonical serialization.
+;;; Compute the versioned address of a block.
+;;; The SHA-256 hash is computed over the canonical serialization,
+;;; then prefixed with a version byte.
 (define (hash-block blk)
-  (sha256 (block->bytes blk)))
+  (let* ([hash (sha256 (block->bytes blk))]
+         [address (make-bytevector address-size)])
+    (bytevector-u8-set! address 0 address-version)
+    (bytevector-copy! hash 0 address 1 hash-size)
+    address))
 
 ;;; hash->hex : Bytevector → String
-;;; Convert hash to hexadecimal string (for display).
+;;; Convert address bytes to hexadecimal string (for display).
 (define (hash->hex hash)
   (let ([hex-chars "0123456789abcdef"])
     (apply string-append
@@ -49,14 +54,15 @@
                     (string
                       (string-ref hex-chars (quotient b 16))
                       (string-ref hex-chars (modulo b 16)))))
-                (iota 32)))))
+                (iota (bytevector-length hash))))))
 
 ;;; hex->hash : String → Bytevector
-;;; Convert hexadecimal string to hash bytes.
+;;; Convert hexadecimal string to address bytes.
 (define (hex->hash str)
-  (let ([result (make-bytevector 32)])
+  (let* ([len (string-length str)]
+         [result (make-bytevector (quotient len 2))])
     (do ([i 0 (+ i 1)])
-        ((= i 32))
+        ((= i (bytevector-length result)))
       (let* ([j (* i 2)]
              [hi (char->hex-digit (string-ref str j))]
              [lo (char->hex-digit (string-ref str (+ j 1)))])

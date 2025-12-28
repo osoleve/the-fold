@@ -79,7 +79,7 @@
                     (loop (cdr hashes) total-bytes min-size max-size tag-counts ref-counts)
                     (let* ([block (result-value result)]
                            [payload-size (bytevector-length (block-payload block))]
-                           [block-size (+ payload-size (* (vector-length (block-refs block)) hash-size))]
+                           [block-size (+ payload-size (* (vector-length (block-refs block)) address-size))]
                            [tag (block-tag block)]
                            [num-refs (vector-length (block-refs block))])
 

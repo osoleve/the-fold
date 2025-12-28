@@ -6,7 +6,7 @@
 ;;;   .fold/cas/XX/YYYYYYYYYYYYYYYYYYYYYYYY...
 ;;;
 ;;;   Where XX is the first byte of the hash (2 hex chars)
-;;;   and YYY... is the remainder (62 hex chars).
+;;;   and YYY... is the remainder (64 hex chars).
 ;;;
 ;;; This sharding prevents any single directory from having too many files.
 ;;;
@@ -22,7 +22,7 @@
 ;;;   - core/prelude.ss
 ;;;   - core/block.ss
 ;;;   - core/cas.ss
-;;;   - shell/fs.ss (for filesystem operations)
+;;;   - thimble/fs.ss (for filesystem operations)
 ;;;
 ;;; See fabric/stitches/MODULES.md for dependency graph.
 
@@ -51,7 +51,7 @@
 (define (cas-path hash)
   (let* ([hex (hash->hex hash)]
          [prefix (substring hex 0 2)]
-         [suffix (substring hex 2 64)])
+         [suffix (substring hex 2 (string-length hex))])
     (string-append *cas-root* "/" prefix "/" suffix)))
 
 ;;; ensure-dir : String → void

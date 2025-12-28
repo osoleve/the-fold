@@ -169,13 +169,13 @@
   (test "gc empty store remaining" 0 remaining))
 
 ;; Pin non-existent hash
-(let ([fake-hash (make-bytevector 32 0)])
+(let ([fake-hash (make-bytevector address-size 0)])
   (pin! fake-hash)
   (test "can pin non-existent" #t (pinned? fake-hash))
   (unpin! fake-hash))
 
 ;; pin-tree! on non-existent
-(let ([fake-hash (make-bytevector 32 1)])
+(let ([fake-hash (make-bytevector address-size 1)])
   (let ([count (pin-tree! fake-hash)])
     (test "pin-tree! on missing returns 1" 1 count)))
 
