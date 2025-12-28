@@ -314,6 +314,19 @@
 (define (tilemap-find-by-type tm type-id)
   (tilemap-find-tiles tm (lambda (tile) (eq? (tile-id tile) type-id))))
 
+;;; tilemap-fill! : TileMap × TileType -> Void
+;;; Fill entire tilemap with a given tile type.
+(define (tilemap-fill! tm tile-type)
+  (let ([w (tilemap-width tm)]
+        [h (tilemap-height tm)])
+    (let loop-y ([y 0])
+      (when (< y h)
+        (let loop-x ([x 0])
+          (when (< x w)
+            (tilemap-set-type! tm x y tile-type)
+            (loop-x (+ x 1))))
+        (loop-y (+ y 1))))))
+
 ;;; ============================================================
 ;;; TileMap Visibility Operations
 ;;; ============================================================
