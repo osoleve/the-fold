@@ -29,9 +29,14 @@
 (display "  Loading pathfinding.ss...\n")
 (load "playpen/boardcraft/pathfinding.ss")
 
+;;; Visibility and line of sight
+(display "  Loading visibility.ss...\n")
+(load "playpen/boardcraft/visibility.ss")
+
 (display "BoardCraft SDK loaded successfully!\n")
 (display "Available tile shapes: square, hex, triangle\n")
 (display "Pathfinding: BFS, Dijkstra, A*\n")
+(display "Visibility: Line of sight, Field of view\n")
 (display "See playpen/boardcraft/README.ss for documentation.\n")
 (newline)
 

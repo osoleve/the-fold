@@ -70,6 +70,14 @@
 (define (tile-blocks? tile)
   (eq? (tile-type tile) 'wall))
 
+;;; tile-get-prop : Tile × Symbol × Any → Any
+;;; Get a property from tile data with default value
+(define (tile-get-prop tile prop default)
+  (let ([data (tile-data tile)])
+    (if (and (pair? data) (assq prop data))
+        (cdr (assq prop data))
+        default)))
+
 ;;; ============================================================
 ;;; Board Protocol
 ;;; ============================================================
