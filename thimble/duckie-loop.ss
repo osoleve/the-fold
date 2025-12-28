@@ -37,6 +37,9 @@
 ;;; From core/parse.ss — The ears
 (load "fabric/stitches/parse.ss")
 
+;;; From thimble/duckie-persist.ss — The memory
+(load "thimble/duckie-persist.ss")
+
 ;;; ============================================================
 ;;; State Definition
 ;;; ============================================================
@@ -660,7 +663,11 @@
     (begin
       (display "Saving DUCKIE's soul...")
       (newline)
-      ;; TODO: Persist using (duckie->block duckie)
+      ;; Persist DUCKIE to content-addressed store
+      (let ([hash (save-duckie! duckie)])
+        (display "Saved as: ")
+        (display (bytevector->hex-string hash))
+        (newline))
       (display "Done. Until next time.")
       (newline))))
 
