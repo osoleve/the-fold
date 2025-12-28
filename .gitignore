@@ -29,3 +29,6 @@ nul
 
 # Archives
 archive/
+
+# bv (beads viewer) local config and caches
+.bv/
