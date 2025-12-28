@@ -1,3 +1,3 @@
-pub mod core;
-pub mod mantle;
+pub mod fabric;
+pub mod thimble;
 pub mod tools;

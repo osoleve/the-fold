@@ -1,4 +1,4 @@
-use fold_rs::core::{Address, Block, ADDRESS_SIZE};
+use fold_rs::fabric::{Address, Block, ADDRESS_SIZE};
 
 #[test]
 fn block_round_trip_simple() {

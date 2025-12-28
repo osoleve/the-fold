@@ -2,7 +2,7 @@ use std::env;
 use std::io::{self, Read};
 use std::process;
 
-use fold_rs::core::{eval_loop, Env, EvalOutcome, Expr};
+use fold_rs::fabric::{eval_loop, Env, EvalOutcome, Expr};
 use fold_rs::tools::{
     format_value, lower_expr, lower_program, parse_fold_expr, parse_fold_program,
     run_fold_file,
@@ -92,7 +92,7 @@ fn sequence_exprs(exprs: Vec<Expr>) -> Expr {
     let mut iter = exprs.into_iter();
     let mut current = match iter.next() {
         Some(expr) => expr,
-        None => return Expr::Value(fold_rs::core::Value::Nil),
+        None => return Expr::Value(fold_rs::fabric::Value::Nil),
     };
     let mut index = 0usize;
     for next in iter {

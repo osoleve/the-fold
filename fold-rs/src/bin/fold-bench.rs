@@ -2,8 +2,8 @@ use std::env;
 use std::hint::black_box;
 use std::time::Instant;
 
-use fold_rs::core::{Block, Value};
-use fold_rs::mantle::apply_prim;
+use fold_rs::fabric::{Block, Value};
+use fold_rs::thimble::apply_prim;
 
 fn main() {
     let iterations = env::var("FOLD_BENCH_ITERS")

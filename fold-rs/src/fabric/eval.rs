@@ -1,4 +1,4 @@
-use crate::core::{
+use crate::fabric::{
     closure::Closure,
     env::{Env, EnvRef},
     error::EvalError,
@@ -6,7 +6,7 @@ use crate::core::{
     symbol::Symbol,
     value::Value,
 };
-use crate::mantle::apply_prim;
+use crate::thimble::apply_prim;
 
 #[derive(Debug, Clone)]
 pub enum EvalOutcome {

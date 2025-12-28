@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::core::{symbol::Symbol, value::Value};
+use crate::fabric::{symbol::Symbol, value::Value};
 
 pub type EnvRef = Rc<RefCell<Env>>;
 

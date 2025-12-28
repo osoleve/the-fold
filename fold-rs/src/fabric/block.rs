@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::core::{
+use crate::fabric::{
     address::{Address, ADDRESS_SIZE},
     symbol::Symbol,
 };

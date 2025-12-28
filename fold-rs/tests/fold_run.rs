@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use fold_rs::core::EvalOutcome;
+use fold_rs::fabric::EvalOutcome;
 use fold_rs::tools::{run_fold_file, LoadError, RunError};
 
 struct TempPath {
@@ -29,7 +29,7 @@ fn run_file_evaluates_last_expr() {
     let outcome = run_fold_file(&temp.path, 200).expect("run file");
     match outcome {
         EvalOutcome::Done(value) => match value {
-            fold_rs::core::Value::Number(n) => assert_eq!(n, 3),
+            fold_rs::fabric::Value::Number(n) => assert_eq!(n, 3),
             other => panic!("expected number, got {:?}", other),
         },
         other => panic!("expected done, got {:?}", other),

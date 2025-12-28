@@ -1,4 +1,4 @@
-use crate::core::{address::Address, block::Block, closure::Closure, symbol::Symbol};
+use crate::fabric::{address::Address, block::Block, closure::Closure, symbol::Symbol};
 
 #[derive(Debug, Clone)]
 pub enum Value {

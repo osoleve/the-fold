@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::core::Expr;
+use crate::fabric::Expr;
 use crate::tools::fold_lower::{lower_expr, lower_program, LowerError};
 use crate::tools::fold_parse::{parse_fold_expr, parse_fold_program, ParseError};
 

@@ -1,4 +1,4 @@
-use crate::core::hex::bytes_to_hex;
+use crate::fabric::hex::bytes_to_hex;
 
 const H_INIT: [u32; 8] = [
     0x6a09e667,

@@ -1,5 +1,5 @@
-use crate::core::hex::bytes_to_hex;
-use crate::core::value::Value;
+use crate::fabric::hex::bytes_to_hex;
+use crate::fabric::value::Value;
 
 pub fn format_value(value: &Value) -> String {
     match value {

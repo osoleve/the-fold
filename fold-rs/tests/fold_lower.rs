@@ -1,4 +1,4 @@
-use fold_rs::core::{Expr, Value};
+use fold_rs::fabric::{Expr, Value};
 use fold_rs::tools::{lower_expr, parse_fold_expr};
 
 fn parse_and_lower(input: &str) -> Expr {

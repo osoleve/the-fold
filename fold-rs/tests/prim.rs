@@ -1,7 +1,7 @@
 use std::sync::{Mutex, OnceLock};
 
-use fold_rs::core::{symbol::Symbol, value::Value, Address, ADDRESS_SIZE};
-use fold_rs::mantle::apply_prim;
+use fold_rs::fabric::{symbol::Symbol, value::Value, Address, ADDRESS_SIZE};
+use fold_rs::thimble::apply_prim;
 
 fn store_test_guard() -> std::sync::MutexGuard<'static, ()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();

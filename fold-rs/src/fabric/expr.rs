@@ -1,4 +1,4 @@
-use crate::core::{symbol::Symbol, value::Value};
+use crate::fabric::{symbol::Symbol, value::Value};
 
 #[derive(Debug, Clone)]
 pub struct CaseArm {

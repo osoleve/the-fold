@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::core::{
+use crate::fabric::{
     address::{Address, ADDRESS_SIZE, ADDRESS_VERSION},
     block::Block,
     hex::{bytes_to_hex, hex_to_bytes, HexError},

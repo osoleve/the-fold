@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::core::symbol::Symbol;
+use crate::fabric::symbol::Symbol;
 
 #[derive(Debug, Clone)]
 pub enum EvalError {

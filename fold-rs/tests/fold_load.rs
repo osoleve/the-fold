@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use fold_rs::core::Expr;
+use fold_rs::fabric::Expr;
 use fold_rs::tools::{load_fold_program, LoadError};
 
 struct TempPath {

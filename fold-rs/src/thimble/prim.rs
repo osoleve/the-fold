@@ -3,7 +3,7 @@ use std::{
     sync::{Mutex, OnceLock},
 };
 
-use crate::core::{
+use crate::fabric::{
     address::{Address, ADDRESS_SIZE},
     block::Block,
     cas::{address_to_hex, hash_block, hex_to_address, Store},

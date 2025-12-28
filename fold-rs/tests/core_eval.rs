@@ -1,4 +1,4 @@
-use fold_rs::core::{
+use fold_rs::fabric::{
     block::Block,
     env::Env,
     eval::{eval_loop, EvalOutcome},

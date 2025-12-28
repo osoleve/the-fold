@@ -1,4 +1,4 @@
-use crate::core::{env::EnvRef, expr::Expr, symbol::Symbol};
+use crate::fabric::{env::EnvRef, expr::Expr, symbol::Symbol};
 
 #[derive(Debug, Clone)]
 pub struct Closure {

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::path::Path;
 
-use crate::core::{eval_loop, Env, EvalError, EvalOutcome, Expr, Value};
+use crate::fabric::{eval_loop, Env, EvalError, EvalOutcome, Expr, Value};
 use crate::tools::fold_load::{load_fold_program, LoadError};
 
 #[derive(Debug)]

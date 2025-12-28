@@ -1,4 +1,4 @@
-use fold_rs::core::sha256_hex;
+use fold_rs::fabric::sha256_hex;
 
 #[test]
 fn sha256_vectors() {

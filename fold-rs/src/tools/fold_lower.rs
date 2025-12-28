@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::core::{CaseArm, Expr, Value};
+use crate::fabric::{CaseArm, Expr, Value};
 use crate::tools::fold_parse::{NumberLit, Span, Spanned, Sexp};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
