@@ -16,6 +16,7 @@
 .store_archive/
 
 # Build artifacts
+target/
 shell/mcp-server/node_modules/
 shell/mcp-server/dist/
 thimble/mcp-server/node_modules/
