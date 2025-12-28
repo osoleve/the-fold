@@ -91,8 +91,14 @@
           tiles    ; HashTable: Coord -> Tile
           meta))   ; Alist: metadata (dimensions, etc.)
 
-(define (make-board shape-type meta)
-  (make-board% shape-type (make-hashtable coord-hash coord-equal?) meta))
+;;; make-board : Symbol × Alist × [HashFunc] × [EqFunc] → Board
+;;; Create a board with optional custom hash/equality functions
+(define make-board
+  (case-lambda
+    [(shape-type meta)
+     (make-board% shape-type (make-hashtable coord-hash coord-equal?) meta)]
+    [(shape-type meta hash-func eq-func)
+     (make-board% shape-type (make-hashtable hash-func eq-func) meta)]))
 
 (define (board-shape b) (board%-shape b))
 (define (board-meta b) (board%-meta b))

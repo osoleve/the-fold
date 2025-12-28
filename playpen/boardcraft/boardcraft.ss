@@ -21,8 +21,12 @@
 (display "  Loading hex.ss...\n")
 (load "playpen/boardcraft/hex.ss")
 
+;;; Triangular tiles
+(display "  Loading triangle.ss...\n")
+(load "playpen/boardcraft/triangle.ss")
+
 (display "BoardCraft SDK loaded successfully!\n")
-(display "Available tile shapes: square, hex\n")
+(display "Available tile shapes: square, hex, triangle\n")
 (display "See playpen/boardcraft/README.ss for documentation.\n")
 (newline)
 
