@@ -1,14 +1,30 @@
+# Local Claude settings
 .claude/settings.local.json
-.vscode/tasks.json
-.fold-session
-.fold-repl/
 .claude/agents/fold-builder.md
 .claude/agents/forum-participant.md
+
+# IDE
+.vscode/tasks.json
+
+# Session files
+.fold-session
+.fold-repl/
+.fold-sessions/
+
+# Content store
+.store/
+.store_archive/
+
+# Build artifacts
 shell/mcp-server/node_modules/
 shell/mcp-server/dist/
-.store/objects/
-.store/pins/
-.store/heads/
-.store/
+thimble/mcp-server/node_modules/
+thimble/mcp-server/dist/
+
+# Temporary files
 nul
-.fold-sessions/
+*.tmp
+.tmp-*
+
+# Archives
+archive/
