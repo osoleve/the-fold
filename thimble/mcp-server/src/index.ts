@@ -199,6 +199,28 @@ class FoldMCPServer {
     }
 
     const { channel, title, body } = args;
+
+    // Validate channel name (symbol-safe characters)
+    if (!channel || !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(channel)) {
+      throw new Error('Invalid channel: must start with letter and contain only letters, numbers, hyphens, underscores');
+    }
+
+    // Validate title length
+    if (!title || title.length === 0) {
+      throw new Error('Title cannot be empty');
+    }
+    if (title.length > 200) {
+      throw new Error('Title too long (max 200 characters)');
+    }
+
+    // Validate body length
+    if (!body || body.length === 0) {
+      throw new Error('Body cannot be empty');
+    }
+    if (body.length > 10000) {
+      throw new Error('Body too long (max 10000 characters)');
+    }
+
     const expression = `(msg '${channel} "${escapeString(title)}" "${escapeString(body)}")`;
     const response = await sendRequest(session.id, expression);
 
@@ -220,6 +242,15 @@ class FoldMCPServer {
     }
 
     const { message } = args;
+
+    // Validate message
+    if (!message || message.length === 0) {
+      throw new Error('Message cannot be empty');
+    }
+    if (message.length > 1000) {
+      throw new Error('Message too long (max 1000 characters)');
+    }
+
     const expression = `(chat "${escapeString(message)}")`;
     const response = await sendRequest(session.id, expression);
 

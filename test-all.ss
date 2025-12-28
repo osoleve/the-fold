@@ -205,19 +205,19 @@
       [(all)
        (run-test-category "CORE TESTS" "fabric/stitches" core-tests)
        (display "\n")
-       (run-test-category "SHELL TESTS" "thimble" shell-tests)]
+       (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
 
       [(core)
        (run-test-category "CORE TESTS" "fabric/stitches" core-tests)]
 
       [(shell)
-       (run-test-category "SHELL TESTS" "thimble" shell-tests)]
+       (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
 
       [(quick)
        (let ([quick-core (filter (lambda (t) (not (member t slow-tests))) core-tests)])
          (run-test-category "CORE TESTS (quick)" "fabric/stitches" quick-core))
        (display "\n")
-       (run-test-category "SHELL TESTS" "thimble" shell-tests)]
+       (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
 
       [else
        (display (string-append "Unknown mode: " (symbol->string mode) "\n"))
