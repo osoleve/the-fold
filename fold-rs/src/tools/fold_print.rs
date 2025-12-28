@@ -14,7 +14,20 @@ pub fn format_value(value: &Value) -> String {
         Value::Address(address) => format!("#<address {}>", bytes_to_hex(address.as_bytes())),
         Value::Pair(_, _) => format_pair(value),
         Value::Vector(values) => format_vector(values),
-        Value::Closure(_) => "#<closure>".to_string(),
+        Value::Closure(closure) => {
+            if closure.params.is_empty() {
+                "#<closure/0>".to_string()
+            } else if closure.params.len() <= 3 {
+                // Show params for small arities
+                format!(
+                    "#<closure ({})>",
+                    closure.params.join(" ")
+                )
+            } else {
+                // Just show arity for larger closures
+                format!("#<closure/{}>", closure.params.len())
+            }
+        }
         Value::Block(block) => format!("#<block {}>", block.tag),
         Value::Nil => "()".to_string(),
     }

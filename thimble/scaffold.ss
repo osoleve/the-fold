@@ -277,9 +277,9 @@
 ;;;   scheme --script shell/test-{{NAME}}.ss
 
 ;;; Load dependencies
-(load \"C:/Users/andre/Documents/ccverse/fabric/stitches/block.ss\")
-(load \"C:/Users/andre/Documents/ccverse/thimble/fs.ss\")
-(load \"C:/Users/andre/Documents/ccverse/thimble/{{NAME}}.ss\")
+(load \"fabric/stitches/block.ss\")
+(load \"thimble/fs.ss\")
+(load \"thimble/{{NAME}}.ss\")
 
 (define (test name expected actual)
   (display \"  \")
@@ -415,9 +415,9 @@
     ((path . "shell/test-{{NAME}}.ss")
      (content . ";;; Test harness for shell/{{NAME}}.ss
 
-(load \"C:/Users/andre/Documents/ccverse/fabric/stitches/block.ss\")
-(load \"C:/Users/andre/Documents/ccverse/thimble/fs.ss\")
-(load \"C:/Users/andre/Documents/ccverse/thimble/{{NAME}}.ss\")
+(load \"fabric/stitches/block.ss\")
+(load \"thimble/fs.ss\")
+(load \"thimble/{{NAME}}.ss\")
 
 (define (test name expected actual)
   (display \"  \")

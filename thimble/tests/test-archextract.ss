@@ -1,10 +1,10 @@
 ;;; Test harness for shell/archextract.ss
 
 ;;; Load dependencies from core
-(load "C:/Users/andre/Documents/ccverse/fabric/stitches/prelude.ss")
+(load "fabric/stitches/prelude.ss")
 
 ;;; Load the archextract module
-(load "C:/Users/andre/Documents/ccverse/thimble/archextract.ss")
+(load "thimble/archextract.ss")
 
 ;;; ============================================================
 ;;; Test Framework
@@ -111,8 +111,8 @@
 ;;; Test Module Analysis
 ;;; ============================================================
 
-(display "\nTest 5: Analyze actual module (core/prelude.ss)\n")
-(let ([mod (analyze-module "C:/Users/andre/Documents/ccverse/fabric/stitches/prelude.ss")])
+(display "\nTest 5: Analyze actual module (fabric/stitches/prelude.ss)\n")
+(let ([mod (analyze-module "fabric/stitches/prelude.ss")])
   (test-true "module analyzed" (and mod #t))
   (test "module name" "prelude" (cdr (assq 'name mod)))
   ;; prelude.ss has no loads
@@ -120,8 +120,8 @@
   ;; prelude.ss defines many functions
   (test-true "prelude has defines" (> (length (cdr (assq 'defines mod))) 5)))
 
-(display "\nTest 6: Analyze module with loads (core/block.ss)\n")
-(let ([mod (analyze-module "C:/Users/andre/Documents/ccverse/fabric/stitches/block.ss")])
+(display "\nTest 6: Analyze module with loads (fabric/stitches/block.ss)\n")
+(let ([mod (analyze-module "fabric/stitches/block.ss")])
   (test-true "module analyzed" (and mod #t))
   (test "module name" "block" (cdr (assq 'name mod)))
   ;; block.ss loads prelude.ss
@@ -131,8 +131,8 @@
 ;;; Test Directory Analysis
 ;;; ============================================================
 
-(display "\nTest 7: Analyze directory (core/)\n")
-(let ([modules (analyze-directory "C:/Users/andre/Documents/ccverse/core")])
+(display "\nTest 7: Analyze directory (fabric/stitches/)\n")
+(let ([modules (analyze-directory "fabric/stitches")])
   (test-true "found modules" (> (length modules) 5))
   (test-true "found prelude" (ormap (lambda (m) (string=? "prelude" (cdr (assq 'name m)))) modules))
   (test-true "found block" (ormap (lambda (m) (string=? "block" (cdr (assq 'name m)))) modules)))
@@ -142,7 +142,7 @@
 ;;; ============================================================
 
 (display "\nTest 8: Build dependency graph\n")
-(let* ([modules (analyze-directory "C:/Users/andre/Documents/ccverse/core")]
+(let* ([modules (analyze-directory "fabric/stitches")]
        [graph (build-dependency-graph modules)])
   (let ([nodes (cdr (assq 'nodes graph))]
         [edges (cdr (assq 'edges graph))])
@@ -204,7 +204,7 @@
 ;;; ============================================================
 
 (display "\nTest 12: Full report generation\n")
-(let ([report (archextract-report "C:/Users/andre/Documents/ccverse/core")])
+(let ([report (archextract-report "fabric/stitches")])
   (test-true "report is string" (string? report))
   (test-true "report has header" (string-contains report "ARCHITECTURE REPORT"))
   (test-true "report has modules" (string-contains report "MODULES"))
@@ -219,6 +219,6 @@
 (test-summary)
 
 ;;; Show sample output
-(display "\n\nSAMPLE OUTPUT: core/ directory analysis\n")
+(display "\n\nSAMPLE OUTPUT: fabric/stitches/ directory analysis\n")
 (display "============================================================\n\n")
-(archextract "C:/Users/andre/Documents/ccverse/core")
+(archextract "fabric/stitches")

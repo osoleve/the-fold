@@ -48,6 +48,7 @@ enum Frame {
     },
     Case {
         arms: Vec<CaseArm>,
+        else_body: Option<Box<Expr>>,
         env: EnvRef,
     },
 }
@@ -148,9 +149,10 @@ impl Frame {
                     args: rebuilt,
                 }
             }
-            Frame::Case { arms, .. } => Expr::Case {
+            Frame::Case { arms, else_body, .. } => Expr::Case {
                 expr: Box::new(current),
                 arms: arms.clone(),
+                else_body: else_body.clone(),
             },
         }
     }
@@ -282,9 +284,10 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
                 }
                 _ => return Err(EvalError::FixRequiresFn),
             },
-            Expr::Case { expr: scrutinee, arms } => {
+            Expr::Case { expr: scrutinee, arms, else_body } => {
                 frames.push(Frame::Case {
                     arms,
+                    else_body,
                     env: env.clone(),
                 });
                 expr = *scrutinee;
@@ -416,8 +419,8 @@ fn unwind(
                 }
                 value = apply_prim(&op, &values)?;
             }
-            Frame::Case { arms, env: frame_env } => {
-                let (next_expr, next_env) = apply_case(value, arms, frame_env)?;
+            Frame::Case { arms, else_body, env: frame_env } => {
+                let (next_expr, next_env) = apply_case(value, arms, else_body, frame_env)?;
                 *env = next_env;
                 return Ok(Unwind::Continue(next_expr));
             }
@@ -449,7 +452,12 @@ fn apply_closure(func: Value, args: Vec<Value>) -> Result<(Expr, EnvRef), EvalEr
     Ok(((*closure.body).clone(), new_env))
 }
 
-fn apply_case(value: Value, arms: Vec<CaseArm>, env: EnvRef) -> Result<(Expr, EnvRef), EvalError> {
+fn apply_case(
+    value: Value,
+    arms: Vec<CaseArm>,
+    else_body: Option<Box<Expr>>,
+    env: EnvRef,
+) -> Result<(Expr, EnvRef), EvalError> {
     let block = match value {
         Value::Block(block) => block,
         _ => return Err(EvalError::CaseRequiresBlock),
@@ -474,6 +482,11 @@ fn apply_case(value: Value, arms: Vec<CaseArm>, env: EnvRef) -> Result<(Expr, En
             let new_env = Env::extend(env, bindings);
             return Ok(((*arm.body).clone(), new_env));
         }
+    }
+
+    // No matching arm - check for else clause
+    if let Some(else_expr) = else_body {
+        return Ok((*else_expr, env));
     }
 
     Err(EvalError::NoMatchingClause(block.tag))

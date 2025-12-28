@@ -39,8 +39,10 @@ fn lower_list(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr
     if let Some(head_symbol) = symbol_name(&items[0]) {
         match head_symbol.as_str() {
             "quote" => return lower_quote(list_expr, items),
+            "quasiquote" => return lower_quasiquote(list_expr, items),
             "fn" => return lower_fn(list_expr, items),
             "let" => return lower_let(list_expr, items),
+            "let*" => return lower_let_star(list_expr, items),
             "fix" => return lower_fix(list_expr, items),
             "if" => return lower_if(list_expr, items),
             "case" => return lower_case(list_expr, items),
@@ -67,6 +69,94 @@ fn lower_quote(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Exp
     }
     let datum = value_from_spanned(&items[1])?;
     Ok(Expr::Quote(datum))
+}
+
+/// Expand quasiquote - handles unquote (,) and unquote-splicing (,@)
+fn lower_quasiquote(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+    if items.len() != 2 {
+        return Err(error(list_expr, "quasiquote expects 1 argument"));
+    }
+    expand_quasiquote(&items[1])
+}
+
+/// Recursively expand a quasiquoted expression
+fn expand_quasiquote(expr: &Spanned<Sexp>) -> Result<Expr, LowerError> {
+    match &expr.value {
+        Sexp::List(items) if !items.is_empty() => {
+            // Check for (unquote x)
+            if let Some(head) = symbol_name(&items[0]) {
+                if head == "unquote" {
+                    if items.len() != 2 {
+                        return Err(error(expr, "unquote expects 1 argument"));
+                    }
+                    return lower_expr(&items[1]);
+                }
+            }
+            // It's a list - expand each element
+            expand_quasiquote_list(items)
+        }
+        // Non-list or empty list - just quote it
+        _ => {
+            let datum = value_from_spanned(expr)?;
+            Ok(Expr::Quote(datum))
+        }
+    }
+}
+
+/// Expand a quasiquoted list, handling unquote-splicing
+fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+    // Check if any element uses unquote-splicing
+    let has_splicing = items.iter().any(|item| {
+        if let Sexp::List(inner) = &item.value {
+            if !inner.is_empty() {
+                if let Some(head) = symbol_name(&inner[0]) {
+                    return head == "unquote-splicing";
+                }
+            }
+        }
+        false
+    });
+
+    if has_splicing {
+        // Need to use append for splicing
+        let mut append_args = Vec::new();
+        for item in items {
+            if let Sexp::List(inner) = &item.value {
+                if !inner.is_empty() {
+                    if let Some(head) = symbol_name(&inner[0]) {
+                        if head == "unquote-splicing" {
+                            if inner.len() != 2 {
+                                return Err(error(item, "unquote-splicing expects 1 argument"));
+                            }
+                            // Splice: the value should be a list to splice in
+                            append_args.push(lower_expr(&inner[1])?);
+                            continue;
+                        }
+                    }
+                }
+            }
+            // Regular element - wrap in (list <expanded-element>)
+            let expanded = expand_quasiquote(item)?;
+            append_args.push(Expr::Prim {
+                op: "list".to_string(),
+                args: vec![expanded],
+            });
+        }
+        Ok(Expr::Prim {
+            op: "append".to_string(),
+            args: append_args,
+        })
+    } else {
+        // No splicing - use (list ...)
+        let mut list_args = Vec::new();
+        for item in items {
+            list_args.push(expand_quasiquote(item)?);
+        }
+        Ok(Expr::Prim {
+            op: "list".to_string(),
+            args: list_args,
+        })
+    }
 }
 
 fn lower_fn(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
@@ -119,6 +209,49 @@ fn lower_let(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr,
     })
 }
 
+/// Transform let* into nested let expressions
+/// (let* ((a 1) (b (+ a 1))) body) => (let ((a 1)) (let ((b (+ a 1))) body))
+fn lower_let_star(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+    if items.len() != 3 {
+        return Err(error(list_expr, "let* expects (let* ((name expr) ...) body)"));
+    }
+    let bindings_list = match &items[1].value {
+        Sexp::List(list) => list,
+        _ => return Err(error(&items[1], "let* expects a bindings list")),
+    };
+
+    // Parse all bindings
+    let mut bindings: Vec<(String, Expr)> = Vec::with_capacity(bindings_list.len());
+    for binding in bindings_list {
+        match &binding.value {
+            Sexp::List(pair) if pair.len() == 2 => {
+                let name = match &pair[0].value {
+                    Sexp::Symbol(sym) => sym.clone(),
+                    _ => return Err(error(&pair[0], "let* binding name must be a symbol")),
+                };
+                let expr = lower_expr(&pair[1])?;
+                bindings.push((name, expr));
+            }
+            _ => return Err(error(binding, "let* binding must be (name expr)")),
+        }
+    }
+
+    // If no bindings, just return the body
+    if bindings.is_empty() {
+        return lower_expr(&items[2]);
+    }
+
+    // Build nested let expressions from inside out
+    let mut body = lower_expr(&items[2])?;
+    for (name, expr) in bindings.into_iter().rev() {
+        body = Expr::Let {
+            bindings: vec![(name, expr)],
+            body: Box::new(body),
+        };
+    }
+    Ok(body)
+}
+
 fn lower_fix(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
     if items.len() != 3 {
         return Err(error(list_expr, "fix expects (fix name expr)"));
@@ -151,14 +284,29 @@ fn lower_case(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr
     }
     let scrutinee = lower_expr(&items[1])?;
     let mut arms = Vec::with_capacity(items.len().saturating_sub(2));
+    let mut else_body = None;
+
     for clause in &items[2..] {
         let clause_items = match &clause.value {
             Sexp::List(list) if list.len() == 2 => list,
-            _ => return Err(error(clause, "case clause must be (pattern body)")),
+            _ => return Err(error(clause, "case clause must be (pattern body) or (else body)")),
         };
+
+        // Check for (else body) clause
+        if let Sexp::Symbol(sym) = &clause_items[0].value {
+            if sym == "else" {
+                if else_body.is_some() {
+                    return Err(error(clause, "case can only have one else clause"));
+                }
+                else_body = Some(Box::new(lower_expr(&clause_items[1])?));
+                continue;
+            }
+        }
+
+        // Regular pattern clause: ((tag vars...) body)
         let pattern_items = match &clause_items[0].value {
             Sexp::List(list) if !list.is_empty() => list,
-            _ => return Err(error(&clause_items[0], "case pattern must be (tag vars...)")),
+            _ => return Err(error(&clause_items[0], "case pattern must be (tag vars...) or else")),
         };
         let tag = match &pattern_items[0].value {
             Sexp::Symbol(sym) => sym.clone(),
@@ -177,6 +325,7 @@ fn lower_case(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr
     Ok(Expr::Case {
         expr: Box::new(scrutinee),
         arms,
+        else_body,
     })
 }
 

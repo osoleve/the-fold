@@ -45,6 +45,7 @@ pub enum Expr {
     Case {
         expr: Box<Expr>,
         arms: Vec<CaseArm>,
+        else_body: Option<Box<Expr>>,
     },
     Prim {
         op: Symbol,

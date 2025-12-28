@@ -7,8 +7,8 @@
 ;;; Run once. The hash is forever.
 
 ;;; Load the substrate
-(load "C:/Users/andre/Documents/ccverse/fabric/stitches/block.ss")
-(load "C:/Users/andre/Documents/ccverse/fabric/stitches/sha256.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/sha256.ss")
 
 ;;; Inline hash functions (avoiding cas.ss relative load issues)
 (define (hash-block blk)
@@ -47,16 +47,16 @@
     [else (error 'char->hex-digit "invalid hex character" c)]))
 
 ;;; Load the Shell
-(load "C:/Users/andre/Documents/ccverse/thimble/fs.ss")
+(load "thimble/fs.ss")
 
 ;;; Load the Forum tools
-(load "C:/Users/andre/Documents/ccverse/forum/tools.ss")
+(load "forum/tools.ss")
 
 ;;; ============================================================
 ;;; THE GENESIS
 ;;; ============================================================
 
-(define store-path "C:/Users/andre/Documents/ccverse/.store")
+(define store-path ".store")
 
 (display "=== THE FOLD GENESIS ===\n\n")
 

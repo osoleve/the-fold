@@ -1,6 +1,6 @@
 ;;; Test harness for shell/text.ss
 
-(load "C:/Users/andre/Documents/ccverse/thimble/text.ss")
+(load "thimble/text.ss")
 
 (define (test name expected actual)
   (display "  ")

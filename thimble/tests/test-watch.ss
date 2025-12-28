@@ -1,6 +1,6 @@
 ;;; Test harness for shell/watch.ss
 
-(load "C:/Users/andre/Documents/ccverse/thimble/watch.ss")
+(load "thimble/watch.ss")
 
 (define (test name expected actual)
   (display "  ")

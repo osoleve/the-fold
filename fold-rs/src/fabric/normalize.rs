@@ -289,6 +289,18 @@ fn free_vars_with_env(expr: &Value, env: &NormEnv) -> Vec<Symbol> {
                             free_vars_list(expr, env)
                         }
                     }
+                    // prim is a special form: (prim op args...)
+                    // op is a primitive name (not a variable), skip it
+                    "prim" => {
+                        if let Value::Pair(_, args_cdr) = cdr.as_ref() {
+                            // Skip the op, collect free vars from remaining args
+                            free_vars_list(args_cdr, env)
+                        } else {
+                            vec![]
+                        }
+                    }
+                    // if, case, block, etc. - just collect from all subexpressions
+                    "if" | "case" | "block" => free_vars_list(cdr, env),
                     _ => free_vars_list(expr, env),
                 }
             } else {

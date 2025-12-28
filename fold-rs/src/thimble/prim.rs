@@ -842,6 +842,30 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(Value::Block(Block::new(tag, payload, refs)))
         }
+        // Simple block constructor: (block tag val1 val2 ...)
+        // Creates a block with empty payload and values as refs (embedded as hashes)
+        "block" => {
+            if args.is_empty() {
+                return Err(EvalError::TypeMismatch("block expects at least tag"));
+            }
+            let tag = expect_symbol(&args[0])?;
+            // Convert remaining args to addresses by hashing their representation
+            let refs = args[1..]
+                .iter()
+                .map(|v| {
+                    // Use a simple hash based on the value's string representation
+                    use std::hash::{Hash, Hasher};
+                    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                    format!("{:?}", v).hash(&mut hasher);
+                    let hash = hasher.finish();
+                    let mut addr = [0u8; 33];
+                    addr[0] = 0x00; // version byte
+                    addr[1..9].copy_from_slice(&hash.to_le_bytes());
+                    Address(addr)
+                })
+                .collect::<Vec<_>>();
+            Ok(Value::Block(Block::new(tag, vec![], refs)))
+        }
         "block-tag" => {
             let block = expect_block(args)?;
             Ok(Value::Symbol(block.tag.clone()))

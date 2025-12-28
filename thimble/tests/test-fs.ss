@@ -1,8 +1,8 @@
 ;;; Test harness for shell/fs.ss
 
 ;;; Load from core directory
-(load "C:/Users/andre/Documents/ccverse/fabric/stitches/block.ss")
-(load "C:/Users/andre/Documents/ccverse/fabric/stitches/sha256.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/sha256.ss")
 
 ;;; Can't load cas.ss directly — it has relative loads. We just need hash-block.
 ;;; Inline the hash functions we need:
@@ -45,7 +45,7 @@
     [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
     [else (error 'char->hex-digit "invalid hex character" c)]))
 
-(load "C:/Users/andre/Documents/ccverse/thimble/fs.ss")
+(load "thimble/fs.ss")
 
 (define (test name expected actual)
   (display "  ")

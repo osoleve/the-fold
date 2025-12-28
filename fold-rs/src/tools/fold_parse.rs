@@ -305,6 +305,23 @@ impl Parser {
                 idx += 1;
             }
         }
+        // Check for exponent part (e.g., 1e10, 1.5e-3, 2E+5)
+        if idx < len && (self.chars[idx] == 'e' || self.chars[idx] == 'E') {
+            let exp_start = idx;
+            idx += 1;
+            if idx < len && (self.chars[idx] == '+' || self.chars[idx] == '-') {
+                idx += 1;
+            }
+            let exp_digits_start = idx;
+            while idx < len && self.chars[idx].is_ascii_digit() {
+                idx += 1;
+            }
+            if idx > exp_digits_start {
+                is_float = true; // Scientific notation always produces float
+            } else {
+                idx = exp_start; // No valid exponent, revert
+            }
+        }
         let literal: String = self.chars[self.index..idx].iter().collect();
         if is_float {
             literal.parse::<f64>().ok().map(|n| (NumberLit::Float(n), idx))
