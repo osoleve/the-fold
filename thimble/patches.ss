@@ -218,6 +218,7 @@
 
   (display "\n")
   (display "  Use (apply-patch 'name) to load a patch.\n")
+  (display "  Use (apply-patch-recursive 'name) to load with dependencies.\n")
   (display "  Use (patch-info 'name) for details.\n\n"))
 
 ;;; applied-patches : -> (List Symbol)
