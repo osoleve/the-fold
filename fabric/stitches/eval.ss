@@ -479,6 +479,20 @@
                       acc
                       (f (prim 'car xs) (foldr f acc (prim 'cdr xs)))))))
 
+    (scanl   . (fix scanl (fn (f acc xs)
+                  (prim 'cons acc
+                        (if (prim 'null? xs)
+                            '()
+                            (let ((new-acc (f acc (prim 'car xs))))
+                              (scanl f new-acc (prim 'cdr xs))))))))
+
+    (scanr   . (fix scanr (fn (f acc xs)
+                  (if (prim 'null? xs)
+                      (prim 'list acc)
+                      (let ((rest (scanr f acc (prim 'cdr xs))))
+                        (prim 'cons (f (prim 'car xs) (prim 'car rest))
+                                    rest))))))
+
     (take    . (fix take (fn (n xs)
                   (if (prim 'zero? n)
                       '()
@@ -516,6 +530,158 @@
                   (if (prim 'null? xs)
                       1
                       (prim 'mul (prim 'car xs) (product (prim 'cdr xs)))))))
+
+    ;; Advanced list operations
+    (flatten . (fix flatten (fn (xss)
+                  (if (prim 'null? xss)
+                      '()
+                      (prim 'append (prim 'car xss)
+                                    (flatten (prim 'cdr xss)))))))
+
+    (flatMap . (fn (f)
+                 (fix flatMap-rec (fn (xs)
+                   (if (prim 'null? xs)
+                       '()
+                       (prim 'append (f (prim 'car xs))
+                                     (flatMap-rec (prim 'cdr xs))))))))
+
+    (any     . (fix any (fn (p xs)
+                  (if (prim 'null? xs)
+                      #f
+                      (if (p (prim 'car xs))
+                          #t
+                          (any p (prim 'cdr xs)))))))
+
+    (all     . (fix all (fn (p xs)
+                  (if (prim 'null? xs)
+                      #t
+                      (if (p (prim 'car xs))
+                          (all p (prim 'cdr xs))
+                          #f)))))
+
+    (elem    . (fix elem (fn (x xs)
+                  (if (prim 'null? xs)
+                      #f
+                      (if (prim 'eq? x (prim 'car xs))
+                          #t
+                          (elem x (prim 'cdr xs)))))))
+
+    (replicate . (fix replicate (fn (n x)
+                    (if (prim 'zero? n)
+                        '()
+                        (prim 'cons x (replicate (prim 'sub n 1) x))))))
+
+    (takeWhile . (fix takeWhile (fn (p xs)
+                    (if (prim 'null? xs)
+                        '()
+                        (if (p (prim 'car xs))
+                            (prim 'cons (prim 'car xs)
+                                        (takeWhile p (prim 'cdr xs)))
+                            '())))))
+
+    (dropWhile . (fix dropWhile (fn (p xs)
+                    (if (prim 'null? xs)
+                        '()
+                        (if (p (prim 'car xs))
+                            (dropWhile p (prim 'cdr xs))
+                            xs)))))
+
+    (span    . (fix span (fn (p xs)
+                  (if (prim 'null? xs)
+                      (prim 'list '() '())
+                      (if (p (prim 'car xs))
+                          (let ((rest (span p (prim 'cdr xs))))
+                            (prim 'list
+                                  (prim 'cons (prim 'car xs) (prim 'car rest))
+                                  (prim 'car (prim 'cdr rest))))
+                          (prim 'list '() xs))))))
+
+    (break   . (fn (p)
+                 (fix break-rec (fn (xs)
+                   (if (prim 'null? xs)
+                       (prim 'list '() '())
+                       (if (p (prim 'car xs))
+                           (prim 'list '() xs)
+                           (let ((rest (break-rec (prim 'cdr xs))))
+                             (prim 'list
+                                   (prim 'cons (prim 'car xs) (prim 'car rest))
+                                   (prim 'car (prim 'cdr rest))))))))))
+
+    (partition . (fix partition (fn (p xs)
+                    (if (prim 'null? xs)
+                        (prim 'list '() '())
+                        (let ((x (prim 'car xs))
+                              (rest (partition p (prim 'cdr xs))))
+                          (if (p x)
+                              (prim 'list
+                                    (prim 'cons x (prim 'car rest))
+                                    (prim 'car (prim 'cdr rest)))
+                              (prim 'list
+                                    (prim 'car rest)
+                                    (prim 'cons x (prim 'car (prim 'cdr rest))))))))))
+
+    (zipWith . (fix zipWith (fn (f xs ys)
+                  (if (prim 'null? xs)
+                      '()
+                      (if (prim 'null? ys)
+                          '()
+                          (prim 'cons (f (prim 'car xs) (prim 'car ys))
+                                      (zipWith f (prim 'cdr xs) (prim 'cdr ys))))))))
+
+    (unzip   . (fix unzip (fn (pairs)
+                  (if (prim 'null? pairs)
+                      (prim 'list '() '())
+                      (let ((p (prim 'car pairs))
+                            (rest (unzip (prim 'cdr pairs))))
+                        (prim 'list
+                              (prim 'cons (prim 'car p)
+                                          (prim 'car rest))
+                              (prim 'cons (prim 'car (prim 'cdr p))
+                                          (prim 'car (prim 'cdr rest)))))))))
+
+    (intersperse . (fix intersperse (fn (sep xs)
+                      (if (prim 'null? xs)
+                          '()
+                          (if (prim 'null? (prim 'cdr xs))
+                              xs
+                              (prim 'cons (prim 'car xs)
+                                          (prim 'cons sep
+                                                      (intersperse sep (prim 'cdr xs)))))))))
+
+    (group   . (fix group (fn (xs)
+                  (if (prim 'null? xs)
+                      '()
+                      (let ((x (prim 'car xs))
+                            (rest-result (span (fn (y) (prim 'eq? x y)) (prim 'cdr xs))))
+                        (prim 'cons
+                              (prim 'cons x (prim 'car rest-result))
+                              (group (prim 'car (prim 'cdr rest-result)))))))))
+
+    (nub     . (fix nub (fn (xs)
+                  (if (prim 'null? xs)
+                      '()
+                      (let ((x (prim 'car xs))
+                            (rest (nub (prim 'cdr xs))))
+                        (if (elem x rest)
+                            rest
+                            (prim 'cons x rest)))))))
+
+    (find    . (fix find (fn (p xs)
+                  (if (prim 'null? xs)
+                      'none
+                      (if (p (prim 'car xs))
+                          (prim 'cons 'some (prim 'car xs))
+                          (find p (prim 'cdr xs)))))))
+
+    (splitAt . (fix splitAt (fn (n xs)
+                  (if (prim 'zero? n)
+                      (prim 'list '() xs)
+                      (if (prim 'null? xs)
+                          (prim 'list '() '())
+                          (let ((rest (splitAt (prim 'sub n 1) (prim 'cdr xs))))
+                            (prim 'list
+                                  (prim 'cons (prim 'car xs) (prim 'car rest))
+                                  (prim 'car (prim 'cdr rest)))))))))
 
     ;; ================================================================
     ;; Type Class Method Implementations

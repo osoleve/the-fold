@@ -298,6 +298,14 @@
   (run-prelude '(foldl (fn (acc x) (prim 'add acc x)) 0 '(1 2 3 4)) 500))
 (test-ok "prelude foldr" '(1 2 3)
   (run-prelude '(foldr (fn (x acc) (prim 'cons x acc)) '() '(1 2 3)) 500))
+(test-ok "prelude scanl" '(0 1 3 6 10)
+  (run-prelude '(scanl (fn (acc x) (prim 'add acc x)) 0 '(1 2 3 4)) 500))
+(test-ok "prelude scanl empty" '(0)
+  (run-prelude '(scanl (fn (acc x) (prim 'add acc x)) 0 '()) 500))
+(test-ok "prelude scanr" '(10 9 7 4 0)
+  (run-prelude '(scanr (fn (x acc) (prim 'add x acc)) 0 '(1 2 3 4)) 500))
+(test-ok "prelude scanr empty" '(0)
+  (run-prelude '(scanr (fn (x acc) (prim 'add x acc)) 0 '()) 500))
 (test-ok "prelude take" '(1 2 3)
   (run-prelude '(take 3 '(1 2 3 4 5)) 300))
 (test-ok "prelude drop" '(4 5)
@@ -310,6 +318,52 @@
   (run-prelude '(sum '(1 2 3 4 5)) 300))
 (test-ok "prelude product" 120
   (run-prelude '(product '(1 2 3 4 5)) 300))
+(test-ok "prelude flatten" '(1 2 3 4 5 6)
+  (run-prelude '(flatten '((1 2) (3 4) (5 6))) 500))
+(test-ok "prelude flatten empty" '()
+  (run-prelude '(flatten '()) 300))
+(test-ok "prelude flatMap" '(1 1 2 2 3 3)
+  (run-prelude '((flatMap (fn (x) (prim 'list x x))) '(1 2 3)) 800))
+(test-ok "prelude any true" #t
+  (run-prelude '(any (fn (x) (prim 'eq? x 3)) '(1 2 3 4)) 500))
+(test-ok "prelude any false" #f
+  (run-prelude '(any (fn (x) (prim 'eq? x 5)) '(1 2 3 4)) 500))
+(test-ok "prelude all true" #t
+  (run-prelude '(all (fn (x) (prim 'positive? x)) '(1 2 3 4)) 500))
+(test-ok "prelude all false" #f
+  (run-prelude '(all (fn (x) (prim 'positive? x)) '(1 -2 3 4)) 500))
+(test-ok "prelude elem true" #t
+  (run-prelude '(elem 3 '(1 2 3 4)) 500))
+(test-ok "prelude elem false" #f
+  (run-prelude '(elem 5 '(1 2 3 4)) 500))
+(test-ok "prelude replicate" '(x x x x x)
+  (run-prelude '(replicate 5 'x) 500))
+(test-ok "prelude takeWhile" '(1 2 3)
+  (run-prelude '(takeWhile (fn (x) (prim 'lt? x 4)) '(1 2 3 4 5 6)) 800))
+(test-ok "prelude dropWhile" '(4 5 6)
+  (run-prelude '(dropWhile (fn (x) (prim 'lt? x 4)) '(1 2 3 4 5 6)) 800))
+(test-ok "prelude span" '((1 2 3) (4 5 6))
+  (run-prelude '(span (fn (x) (prim 'lt? x 4)) '(1 2 3 4 5 6)) 1000))
+(test-ok "prelude break" '((1 2 3) (4 5 6))
+  (run-prelude '((break (fn (x) (prim 'ge? x 4))) '(1 2 3 4 5 6)) 1000))
+(test-ok "prelude partition" '((2 4 6) (1 3 5))
+  (run-prelude '(partition (fn (x) (prim 'eq? 0 (prim 'mod x 2))) '(1 2 3 4 5 6)) 1500))
+(test-ok "prelude zipWith" '(5 7 9)
+  (run-prelude '(zipWith (fn (x y) (prim 'add x y)) '(1 2 3) '(4 5 6)) 800))
+(test-ok "prelude unzip" '((1 2 3) (4 5 6))
+  (run-prelude '(unzip '((1 4) (2 5) (3 6))) 800))
+(test-ok "prelude intersperse" '(a x b x c)
+  (run-prelude '(intersperse 'x '(a b c)) 800))
+(test-ok "prelude group" '((1 1) (2 2 2) (3) (4 4))
+  (run-prelude '(group '(1 1 2 2 2 3 4 4)) 1500))
+(test-ok "prelude nub" '(1 2 3 4)
+  (run-prelude '(nub '(1 2 2 3 1 4 3)) 1500))
+(test-ok "prelude find some" '(some . 3)
+  (run-prelude '(find (fn (x) (prim 'eq? 0 (prim 'mod x 3))) '(1 2 3 4)) 800))
+(test-ok "prelude find none" 'none
+  (run-prelude '(find (fn (x) (prim 'eq? 0 (prim 'mod x 7))) '(1 2 3 4)) 800))
+(test-ok "prelude splitAt" '((1 2 3) (4 5 6))
+  (run-prelude '(splitAt 3 '(1 2 3 4 5 6)) 800))
 
 ;; Combining prelude functions
 (test-ok "sum of squares" 55
