@@ -61,6 +61,7 @@
     (block-index introspection "Build and query block indices" "block-index.ss")
     (store-analyze introspection "Analyze store usage and health" "store-analyze.ss")
     (universe-dump introspection "Dump universe to single file" "universe-dump.ss")
+    (capability-lens introspection "Analyze capability mint/use across codebase" "capability-lens.ss")
 
     ;; Debugging Tools
     (type-inspect debugging "Examine and explain inferred types" "type-inspect.ss")
@@ -74,7 +75,6 @@
     (perf-monitor analysis "Real-time performance monitoring dashboard" "perf-monitor.ss")
     (benchmark analysis "Benchmarking harness with statistics" "benchmark.ss")
     (coverage analysis "Code coverage analyzer" "coverage.ss")))
-    (benchmark analysis "Benchmarking harness with statistics" "benchmark.ss")))
 
 ;;; ============================================================
 ;;; Help System

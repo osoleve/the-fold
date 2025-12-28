@@ -193,17 +193,22 @@
          [(and (symbol? op) (memq op '(lambda λ)))
           (collect-operators-list (cddr expr))]
          [(and (symbol? op) (eq? op 'case-lambda))
-          (collect-operators-case-lambda rest)]
+         (collect-operators-case-lambda rest)]
          [(and (symbol? op) (memq op '(let let* letrec letrec*)))
           (collect-operators-let rest)]
          [else
           (append (if (symbol? op) (list op) '())
                   (collect-operators op)
-                  (collect-operators rest))]))]
+                  (collect-operators-list rest))]))]
     [else '()]))
 
 (define (collect-operators-list exprs)
-  (append-map collect-operators exprs))
+  (let loop ([xs exprs] [acc '()])
+    (cond
+      [(null? xs) acc]
+      [(pair? xs)
+       (loop (cdr xs) (append acc (collect-operators (car xs))))]
+      [else (append acc (collect-operators xs))])))
 
 (define (collect-operators-case-lambda clauses)
   (append-map

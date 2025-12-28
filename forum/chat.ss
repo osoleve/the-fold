@@ -186,7 +186,7 @@
                   (display (format "Logged in as ~a (~a). Session established.\n" validated-name role)))
               
               ;; Always show helpful next steps
-              (display (format "Use (digest) to see forum activity, (help) for commands.\n"))))))
+              (display (format "Use (digest) to see forum activity, (help) for commands.\n"))))))))
 
 ;;; ============================================================
 ;;; Digest Display
