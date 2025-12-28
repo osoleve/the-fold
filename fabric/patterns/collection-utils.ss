@@ -12,6 +12,23 @@
 (load "fabric/stitches/sha256.ss")
 
 ;;; ============================================================
+;;; General List Utilities (Tier 5-6)
+;;; ============================================================
+
+;;; foldr : (A B → B) B (List A) → B
+;;; Right-associative fold over a list.
+;;; Processes elements from right to left: (f x1 (f x2 (f x3 ... init)))
+;;;
+;;; Examples:
+;;;   (foldr cons '() '(1 2 3))     → '(1 2 3)
+;;;   (foldr + 0 '(1 2 3 4))        → 10
+;;;   (foldr (lambda (x acc) (cons (* x 2) acc)) '() '(1 2 3)) → '(2 4 6)
+(define (foldr f init lst)
+  (if (null? lst)
+      init
+      (f (car lst) (foldr f init (cdr lst)))))
+
+;;; ============================================================
 ;;; Core Collection Operations (Tier 5-6)
 ;;; ============================================================
 
@@ -66,7 +83,7 @@
                  hashes))))
 
 ;;; fold-collection : FSCap (A Block → A) A Block → A
-;;; Fold over collection members.
+;;; Fold over collection members (left-to-right).
 (define (fold-collection fs f init collection)
   (let ([hashes (collection-hashes collection)])
     (fold-left (lambda (acc h)
@@ -76,6 +93,19 @@
                        acc)))
                init
                hashes)))
+
+;;; foldr-collection : FSCap (Block A → A) A Block → A
+;;; Fold over collection members (right-to-left).
+;;; Note: Function signature is (Block A → A) to match foldr convention.
+(define (foldr-collection fs f init collection)
+  (let ([hashes (collection-hashes collection)])
+    (foldr (lambda (h acc)
+             (let ([block (fs-fetch fs h)])
+               (if block
+                   (f block acc)
+                   acc)))
+           init
+           hashes)))
 
 ;;; for-each-collection : FSCap (Block → Void) Block → Void
 ;;; Execute function for each member (for side effects).

@@ -52,6 +52,44 @@
                                       (hash-block b5))))
 
 ;;; ============================================================
+;;; Test General List Utilities
+;;; ============================================================
+
+(printf "Testing General List Utilities:\n")
+(printf "─────────────────────────────────────\n")
+
+(test "foldr - identity with cons"
+      '(1 2 3)
+      (foldr cons '() '(1 2 3)))
+
+(test "foldr - sum"
+      10
+      (foldr + 0 '(1 2 3 4)))
+
+(test "foldr - product"
+      24
+      (foldr * 1 '(1 2 3 4)))
+
+(test "foldr - string append"
+      "abc"
+      (foldr string-append "" '("a" "b" "c")))
+
+(test "foldr - map with cons (double)"
+      '(2 4 6)
+      (foldr (lambda (x acc) (cons (* x 2) acc)) '() '(1 2 3)))
+
+(test "foldr - empty list"
+      42
+      (foldr + 42 '()))
+
+(test "foldr - subtraction (right-associative)"
+      2
+      (foldr - 0 '(1 2 3)))
+      ; 1 - (2 - (3 - 0)) = 1 - (2 - 3) = 1 - (-1) = 2
+
+(printf "\n")
+
+;;; ============================================================
 ;;; Test Core Collection Operations
 ;;; ============================================================
 
@@ -103,6 +141,32 @@
                       (lambda (acc b) (+ acc 1))
                       0
                       test-coll))
+
+(test "foldr-collection - count"
+      3
+      (foldr-collection fs
+                       (lambda (b acc) (+ acc 1))
+                       0
+                       test-coll))
+
+(test "foldr-collection - collect tags"
+      '(entity entity entity)
+      (foldr-collection fs
+                       (lambda (b acc) (cons (block-tag b) acc))
+                       '()
+                       test-coll))
+
+(test "foldr-collection vs fold-collection - order difference"
+      #t
+      (let ([left-result (fold-collection fs
+                                         (lambda (acc b) (cons (block-tag b) acc))
+                                         '()
+                                         test-coll)]
+            [right-result (foldr-collection fs
+                                           (lambda (b acc) (cons (block-tag b) acc))
+                                           '()
+                                           test-coll)])
+        (equal? left-result (reverse right-result))))
 
 (printf "\n")
 
