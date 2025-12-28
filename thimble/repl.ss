@@ -74,6 +74,9 @@
 ;; Typed evaluation commands (fold-parse, fold-type, fold-eval, fold-compile)
 (load "thimble/eval-repl.ss")
 
+;; Patch system
+(load "thimble/patches.ss")
+
 ;;; ============================================================
 ;;; Quiet Mode
 ;;; ============================================================
@@ -205,6 +208,12 @@
   (display "    (fold-parse str)       Parse string, show AST\n")
   (display "    (fold-compile expr)    Full pipeline with diagnostics\n")
   (display "    (fold-eval-help)       Detailed help for these commands\n")
+  (display "\n")
+  (display "  PATCHES:\n")
+  (display "    (patches)              List available patches\n")
+  (display "    (apply-patch 'name)    Load a patch (e.g., 'turtle)\n")
+  (display "    (patch-info 'name)     Show patch details\n")
+  (display "    (applied-patches)      List currently loaded patches\n")
   (display "\n")
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")

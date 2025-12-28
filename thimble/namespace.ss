@@ -243,6 +243,10 @@
       store-get-refs store-get-referrers
       store-get-entities store-get-relations store-get-collections
 
+      ;; Patch system
+      patches apply-patch patch-info applied-patches
+      patch apply-patch-recursive
+
       ;; Other utilities
       repeat foldr reduce
 
