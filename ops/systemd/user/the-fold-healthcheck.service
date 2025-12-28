@@ -1,0 +1,15 @@
+[Unit]
+Description=The Fold health check
+ConditionPathExists=%h/the-fold/ops/scripts/health-check.sh
+After=the-fold-daemon.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/the-fold
+Environment=FOLD_ROOT=%h/the-fold
+ExecStart=%h/the-fold/ops/scripts/health-check.sh
+StandardOutput=append:%h/the-fold/.fold-repl/healthcheck.log
+StandardError=append:%h/the-fold/.fold-repl/healthcheck.log
+
+# Alert on failure
+ExecStopPost=/bin/bash -c 'if [ "$SERVICE_RESULT" != "success" ]; then %h/the-fold/ops/scripts/alert.sh "Health Check Failed" "The Fold daemon failed health check. Check logs for details."; fi'

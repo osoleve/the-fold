@@ -1,0 +1,11 @@
+[Unit]
+Description=The Fold store backup
+ConditionPathExists=%h/the-fold/ops/scripts/backup-store.sh
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/the-fold
+Environment=FOLD_ROOT=%h/the-fold
+ExecStart=%h/the-fold/ops/scripts/backup-store.sh --auto
+StandardOutput=append:%h/the-fold/.fold-repl/backup.log
+StandardError=append:%h/the-fold/.fold-repl/backup.log

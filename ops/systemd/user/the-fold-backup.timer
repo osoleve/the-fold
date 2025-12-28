@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily backup of The Fold store
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
