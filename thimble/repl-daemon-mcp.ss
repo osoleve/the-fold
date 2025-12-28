@@ -1,32 +1,18 @@
-;;; thimble/repl-daemon-mcp.ss — Multi-Session REPL Daemon
+;;; thimble/repl-daemon-mcp.ss — Session Broker Daemon
 ;;;
-;;; Enhanced version of repl-daemon.ss with session support.
-;;; Session ID is derived from the request filename.
+;;; Broker daemon that spawns one REPL worker process per session-id.
+;;; The broker does not eval user code; it only watches request files
+;;; and ensures a worker is running for each active session.
 ;;;
 ;;; Protocol:
 ;;;   .fold-repl/
 ;;;     ready                        — Sentinel (daemon running)
 ;;;     requests/<session-id>.ss     — Session requests (raw expressions)
 ;;;     responses/<session-id>.txt   — Session responses
+;;;     responses/<session-id>.error.txt — Session errors
+;;;     workers/<session-id>.*       — Worker metadata
 ;;;
-;;; Request Format:
-;;;   Just write raw Scheme expressions to requests/<session-id>.ss
-;;;   The session ID is extracted from the filename.
-;;;
-;;;   Example: Write "(hi 'opus 'Shepherd \"Hello\")" to requests/my-session.ss
-;;;            Read response from responses/my-session.txt
-;;;
-;;; This is Shell code: uses IO, manages daemon state.
-
-;;; ============================================================
-;;; Load Dependencies
-;;; ============================================================
-
-;; Load namespace isolation (must be before session-manager)
-(load "thimble/namespace.ss")
-
-;; Load session manager
-(load "thimble/session-manager.ss")
+;;; This is Shell code: uses IO and process spawning.
 
 ;;; ============================================================
 ;;; Configuration
@@ -35,20 +21,31 @@
 (define *repl-dir* ".fold-repl")
 (define *requests-dir* ".fold-repl/requests")
 (define *responses-dir* ".fold-repl/responses")
+(define *workers-dir* ".fold-repl/workers")
 (define *ready-file* ".fold-repl/ready")
-
-;; Legacy paths (for backward compatibility)
-(define *legacy-request-file* ".fold-repl/request.ss")
-(define *legacy-response-file* ".fold-repl/response.txt")
-(define *legacy-error-file* ".fold-repl/error.txt")
-
+(define *worker-script* "thimble/repl-worker.ss")
 (define *poll-interval-ns* 100000000)  ; 100ms in nanoseconds
+(define *worker-timeout* 60)           ; seconds without heartbeat
+(define *starting-timeout* 30)         ; seconds to wait for worker startup
 (define *cleanup-interval* 300)        ; 5 minutes in seconds
 (define *last-cleanup* (time-second (current-time)))
 
 ;;; ============================================================
-;;; Directory Setup
+;;; Utilities
 ;;; ============================================================
+
+(define (string-contains? str needle)
+  (let ([slen (string-length str)]
+        [nlen (string-length needle)])
+    (let loop ([i 0])
+      (cond
+        [(> (+ i nlen) slen) #f]
+        [(string=? (substring str i (+ i nlen)) needle) #t]
+        [else (loop (+ i 1))]))))
+
+(define (windows?)
+  (let ([os (getenv "OS")])
+    (and os (string-contains? os "Windows"))))
 
 (define (ensure-dirs!)
   (unless (file-exists? *repl-dir*)
@@ -56,7 +53,9 @@
   (unless (file-exists? *requests-dir*)
     (mkdir *requests-dir*))
   (unless (file-exists? *responses-dir*)
-    (mkdir *responses-dir*)))
+    (mkdir *responses-dir*))
+  (unless (file-exists? *workers-dir*)
+    (mkdir *workers-dir*)))
 
 (define (write-ready!)
   (when (file-exists? *ready-file*)
@@ -72,175 +71,124 @@
 (define (daemon-running?)
   (file-exists? *ready-file*))
 
-;;; ============================================================
-;;; Session Request Processing
-;;; ============================================================
-
-;;; parse-session-request : String → Alist | #f
-;;; Parse a session request from file content.
-(define (parse-session-request content)
-  (guard (e [else #f])
-    (let ([data (read (open-input-string content))])
-      (if (and (list? data) (assq 'session-id data) (assq 'expression data))
-          data
-          #f))))
-
-;;; extract-session-id : Alist → String
-(define (extract-session-id request)
-  (cdr (assq 'session-id request)))
-
-;;; extract-expression : Alist → Scheme
-(define (extract-expression request)
-  (cdr (assq 'expression request)))
-
-;;; format-condition : Condition → String
-;;; Format a condition with its irritants properly filled in.
-;;; Handles the ~s placeholders in condition messages.
-(define (format-condition e)
-  (if (condition? e)
-      (guard (e2 [else (condition-message e)])  ; fallback to template
-        (let ([template (condition-message e)]
-              [irritants (if (irritants-condition? e)
-                            (condition-irritants e)
-                            '())])
-          (if (null? irritants)
-              template
-              (apply format template irritants))))
-      (format "~a" e)))
-
-;;; process-session-request! : String → void
-;;; Process a single session request file.
-(define (process-session-request! filename)
-  (let ([request-path (string-append *requests-dir* "/" filename)])
-    (guard (e [else
-               (let ([msg (format-condition e)])
-                 ;; Try to extract session ID for error response
-                 (let ([session-id (extract-session-id-from-filename filename)])
-                   (write-session-error! session-id msg)
-                   (delete-file request-path)))])
-
-      (let* ([content (call-with-input-file request-path get-string-all)]
-             [request (parse-session-request content)])
-
-        (if request
-            ;; Valid session request
-            (let ([session-id (extract-session-id request)]
-                  [expression (extract-expression request)])
-              (let ([result (eval-in-session-and-capture session-id expression)])
-                (write-session-response! session-id result))
-              (delete-file request-path))
-
-            ;; Raw expression - derive session from filename
-            (let* ([session-id (extract-session-id-from-filename filename)]
-                   [result (eval-in-session-and-capture session-id content)])
-              (write-session-response! session-id result)
-              (delete-file request-path)))))))
-
-;;; extract-session-id-from-filename : String → String
-;;; Extract session ID from filename (e.g., "abc-123.ss" → "abc-123").
 (define (extract-session-id-from-filename filename)
   (let ([len (string-length filename)])
     (if (and (>= len 3) (string=? (substring filename (- len 3) len) ".ss"))
         (substring filename 0 (- len 3))
         filename)))
 
-;;; eval-in-session-and-capture : String Scheme → String
-;;; Evaluate expression in session context and capture output.
-;;; Sets *current-session-id* so hi/bye/who know which session they're in.
-(define (eval-in-session-and-capture session-id expr)
-  (let ([output-port (open-output-string)])
-    (let ([result
-           (parameterize ([current-output-port output-port]
-                          [*current-session-id* session-id])
-             (if (string? expr)
-                 (eval-in-session session-id expr)
-                 (eval-in-session session-id (format "~s" expr))))])
-      (let ([output (get-output-string output-port)])
-        (cond
-          ;; Only output, no meaningful return value
-          [(and (eq? result (void)) (> (string-length output) 0))
-           output]
-          ;; Both output and result
-          [(> (string-length output) 0)
-           (string-append output
-                         (if (eq? result (void))
-                             ""
-                             (string-append "\n=> " (format "~a" result))))]
-          ;; Only result, no output
-          [(not (eq? result (void)))
-           (format "~a" result)]
-          ;; Nothing
-          [else ""])))))
+(define (pid-path session-id)
+  (string-append *workers-dir* "/" session-id ".pid"))
 
-;;; write-session-response! : String String → void
-(define (write-session-response! session-id result)
-  (let ([response-path (string-append *responses-dir* "/" session-id ".txt")])
-    (when (file-exists? response-path)
-      (delete-file response-path))
-    (call-with-output-file response-path
-      (lambda (p)
-        (display result p)))))
+(define (ready-path session-id)
+  (string-append *workers-dir* "/" session-id ".ready"))
 
-;;; write-session-error! : String String → void
-(define (write-session-error! session-id msg)
-  (let ([error-path (string-append *responses-dir* "/" session-id ".error.txt")])
-    (when (file-exists? error-path)
-      (delete-file error-path))
-    (call-with-output-file error-path
-      (lambda (p)
-        (display msg p)))))
+(define (heartbeat-path session-id)
+  (string-append *workers-dir* "/" session-id ".heartbeat"))
+
+(define (starting-path session-id)
+  (string-append *workers-dir* "/" session-id ".starting"))
+
+(define (log-path session-id)
+  (string-append *workers-dir* "/" session-id ".log"))
+
+(define (read-number-file path)
+  (guard (e [else #f])
+    (and (file-exists? path)
+         (call-with-input-file path
+           (lambda (p)
+             (string->number (get-line p)))))))
+
+(define (process-alive? pid)
+  (if (windows?)
+      #f
+      (zero? (system (format "kill -0 ~a 2>/dev/null" pid)))))
+
+(define (worker-alive? session-id)
+  (let* ([now (time-second (current-time))]
+         [hb (read-number-file (heartbeat-path session-id))]
+         [pid (read-number-file (pid-path session-id))])
+    (cond
+      [(and hb (< (- now hb) *worker-timeout*)) #t]
+      [(and pid (process-alive? pid)) #t]
+      [else #f])))
+
+(define (terminate-worker! session-id)
+  (let ([pid (read-number-file (pid-path session-id))])
+    (when pid
+      (if (windows?)
+          (system (format "taskkill /PID ~a /F >nul 2>nul" pid))
+          (begin
+            (system (format "kill ~a 2>/dev/null" pid))
+            (when (process-alive? pid)
+              (system (format "kill -9 ~a 2>/dev/null" pid))))))))
+
+(define (worker-starting? session-id)
+  (let* ([now (time-second (current-time))]
+         [started (read-number-file (starting-path session-id))])
+    (cond
+      [(and started (< (- now started) *starting-timeout*)) #t]
+      [started
+       (when (file-exists? (starting-path session-id))
+         (delete-file (starting-path session-id)))
+       #f]
+      [else #f])))
 
 ;;; ============================================================
-;;; Legacy Request Processing (Backward Compatibility)
+;;; Worker Spawning
 ;;; ============================================================
 
-(define (eval-and-capture str)
-  "Evaluate expressions and capture both stdout and return value.
-   Returns a string with output followed by the result."
-  (let ([output-port (open-output-string)])
-    (let ([result
-           (parameterize ([current-output-port output-port])
-             (eval-string str))])
-      (let ([output (get-output-string output-port)])
-        (cond
-          [(and (eq? result (void)) (> (string-length output) 0))
-           output]
-          [(> (string-length output) 0)
-           (string-append output
-                         (if (eq? result (void))
-                             ""
-                             (string-append "\n=> " (format "~a" result))))]
-          [(not (eq? result (void)))
-           (format "~a" result)]
-          [else ""])))))
+(define (scheme-command)
+  (or (getenv "FOLD_SCHEME_CMD") "scheme"))
 
-(define (eval-string str)
-  "Evaluate a string containing Scheme expressions."
-  (let ([port (open-input-string str)])
-    (let loop ([last-result (void)])
-      (let ([expr (read port)])
-        (if (eof-object? expr)
-            last-result
-            (loop (eval expr)))))))
+(define (spawn-worker! session-id)
+  (let* ([scheme (scheme-command)]
+         [script *worker-script*]
+         [log (log-path session-id)]
+         [cmd (if (windows?)
+                  (format "cmd.exe /c start /b \"\" \"~a\" --script ~a ~a"
+                          scheme script session-id)
+                  (format "~a --script ~a ~a > ~a 2>&1 &"
+                          scheme script session-id log))])
+    (call-with-output-file (starting-path session-id)
+      (lambda (p)
+        (display (time-second (current-time)) p))
+      'replace)
+    (system cmd)))
 
-(define (process-legacy-request!)
-  (when (file-exists? *legacy-request-file*)
-    (guard (e [else
-               (let ([msg (format-condition e)])
-                 (call-with-output-file *legacy-error-file*
-                   (lambda (p) (display msg p))
-                   'replace)
-                 (call-with-output-file *legacy-response-file*
-                   (lambda (p) (display (format "ERROR: ~a" msg) p))
-                   'replace))])
+(define (ensure-worker! session-id)
+  (unless (or (worker-alive? session-id) (worker-starting? session-id))
+    (spawn-worker! session-id)))
 
-      (let* ([content (call-with-input-file *legacy-request-file* get-string-all)]
-             [result (eval-and-capture content)])
-        (when (file-exists? *legacy-response-file*)
-          (delete-file *legacy-response-file*))
-        (call-with-output-file *legacy-response-file*
-          (lambda (p) (display result p))))
-      (delete-file *legacy-request-file*))))
+;;; ============================================================
+;;; Cleanup
+;;; ============================================================
+
+(define (cleanup-stale-workers!)
+  (when (file-exists? *workers-dir*)
+    (let ([files (directory-list *workers-dir*)])
+      (for-each
+        (lambda (filename)
+          (when (and (string? filename)
+                     (> (string-length filename) 10)
+                     (string=? (substring filename
+                                         (- (string-length filename) 10)
+                                         (string-length filename))
+                              ".heartbeat"))
+            (let* ([session-id (substring filename 0 (- (string-length filename) 10))]
+                   [hb (read-number-file (heartbeat-path session-id))]
+                   [now (time-second (current-time))])
+              (when (and hb (>= (- now hb) *worker-timeout*))
+                (terminate-worker! session-id)
+                (for-each
+                  (lambda (path)
+                    (when (file-exists? path)
+                      (delete-file path)))
+                  (list (pid-path session-id)
+                        (ready-path session-id)
+                        (heartbeat-path session-id)
+                        (starting-path session-id)))))))
+        files))))
 
 ;;; ============================================================
 ;;; Main Daemon Loop
@@ -253,12 +201,7 @@
   (clear-ready!)
   "Daemon stopping...")
 
-;;; scan-for-requests! : → void
-;;; Scan for session requests only.
-;;; NOTE: Legacy single-file IPC removed to prevent multitenancy race conditions.
-;;;       All clients must use session-id based requests.
 (define (scan-for-requests!)
-  ;; Process session requests only
   (when (file-exists? *requests-dir*)
     (let ([files (directory-list *requests-dir*)])
       (for-each
@@ -269,25 +212,19 @@
                                          (- (string-length filename) 3)
                                          (string-length filename))
                               ".ss"))
-            (process-session-request! filename)))
+            (ensure-worker! (extract-session-id-from-filename filename))))
         files))))
 
-;;; periodic-cleanup! : → void
-;;; Periodically cleanup expired sessions.
 (define (periodic-cleanup!)
   (let ([now (time-second (current-time))])
     (when (> (- now *last-cleanup*) *cleanup-interval*)
-      (let ([cleaned (cleanup-expired-sessions!)])
-        (when (> cleaned 0)
-          (display (format "Cleaned up ~a expired sessions\n" cleaned))))
+      (cleanup-stale-workers!)
       (set! *last-cleanup* now))))
 
 (define (daemon-loop)
   (when *daemon-running*
     (scan-for-requests!)
     (periodic-cleanup!)
-
-    ;; Check if we should keep running
     (when (and *daemon-running* (daemon-running?))
       (sleep (make-time 'time-duration *poll-interval-ns* 0))
       (daemon-loop))))
@@ -297,32 +234,19 @@
 ;;; ============================================================
 
 (define (start-daemon!)
-  "Load the REPL environment and start the MCP-enabled daemon."
-  (load "thimble/repl.ss")
+  "Start the session broker daemon."
   (ensure-dirs!)
-
-  ;; Clear any stale files
-  (when (file-exists? *legacy-request-file*)
-    (delete-file *legacy-request-file*))
-  (when (file-exists? *legacy-response-file*)
-    (delete-file *legacy-response-file*))
-  (when (file-exists? *legacy-error-file*)
-    (delete-file *legacy-error-file*))
-
-  ;; Mark as ready
   (write-ready!)
 
   (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║          THE FOLD — MCP REPL DAEMON STARTED                  ║\n")
+  (display "║          THE FOLD — SESSION BROKER STARTED                  ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n")
-  (display (format "Legacy:   ~a\n" *legacy-request-file*))
   (display (format "Sessions: ~a\n" *requests-dir*))
   (display (format "Output:   ~a\n" *responses-dir*))
+  (display (format "Workers:  ~a\n" *workers-dir*))
   (display "Multitenancy enabled. Waiting for requests...\n\n")
 
-  ;; Enter the loop
   (daemon-loop)
 
-  ;; Cleanup on exit
   (clear-ready!)
   (display "Daemon stopped.\n"))

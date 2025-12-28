@@ -1,0 +1,235 @@
+;;; thimble/repl-worker.ss — Per-session REPL worker process
+;;;
+;;; Each worker handles a single session-id and processes requests from:
+;;;   .fold-repl/requests/<session-id>.ss
+;;; It writes responses to:
+;;;   .fold-repl/responses/<session-id>.txt
+;;;   .fold-repl/responses/<session-id>.error.txt
+;;;
+;;; The broker daemon spawns one worker per session-id.
+
+(define *poll-interval-ns* 100000000)  ; 100ms
+(define *heartbeat-interval* 5)        ; seconds
+
+;; Suppress REPL startup chatter in worker logs.
+(define *quiet* #t)
+
+(define *repl-dir* ".fold-repl")
+(define *requests-dir* ".fold-repl/requests")
+(define *responses-dir* ".fold-repl/responses")
+(define *workers-dir* ".fold-repl/workers")
+(define *ready-file* ".fold-repl/ready")
+
+;;; ============================================================
+;;; Utilities
+;;; ============================================================
+
+(define (ensure-dirs!)
+  (unless (file-exists? *repl-dir*)
+    (mkdir *repl-dir*))
+  (unless (file-exists? *requests-dir*)
+    (mkdir *requests-dir*))
+  (unless (file-exists? *responses-dir*)
+    (mkdir *responses-dir*))
+  (unless (file-exists? *workers-dir*)
+    (mkdir *workers-dir*)))
+
+(define (daemon-running?)
+  (file-exists? *ready-file*))
+
+(define (format-condition e)
+  "Format a condition with its irritants properly filled in."
+  (if (condition? e)
+      (guard (e2 [else (condition-message e)])  ; fallback to template
+        (let ([template (condition-message e)]
+              [irritants (if (irritants-condition? e)
+                             (condition-irritants e)
+                             '())])
+          (if (null? irritants)
+              template
+              (apply format template irritants))))
+      (format "~a" e)))
+
+;;; ============================================================
+;;; Paths
+;;; ============================================================
+
+(define (request-path session-id)
+  (string-append *requests-dir* "/" session-id ".ss"))
+
+(define (response-path session-id)
+  (string-append *responses-dir* "/" session-id ".txt"))
+
+(define (error-path session-id)
+  (string-append *responses-dir* "/" session-id ".error.txt"))
+
+(define (pid-path session-id)
+  (string-append *workers-dir* "/" session-id ".pid"))
+
+(define (ready-path session-id)
+  (string-append *workers-dir* "/" session-id ".ready"))
+
+(define (heartbeat-path session-id)
+  (string-append *workers-dir* "/" session-id ".heartbeat"))
+
+(define (starting-path session-id)
+  (string-append *workers-dir* "/" session-id ".starting"))
+
+;;; ============================================================
+;;; Request Parsing
+;;; ============================================================
+
+(define (parse-session-request content)
+  (guard (e [else #f])
+    (let ([data (read (open-input-string content))])
+      (if (and (list? data) (assq 'session-id data) (assq 'expression data))
+          data
+          #f))))
+
+(define (extract-expression request)
+  (cdr (assq 'expression request)))
+
+;;; ============================================================
+;;; Evaluation
+;;; ============================================================
+
+(define (scheme-eval-string str)
+  "Evaluate a string containing Scheme expressions."
+  (let ([port (open-input-string str)])
+    (let loop ([last-result (void)])
+      (let ([expr (read port)])
+        (if (eof-object? expr)
+            last-result
+            (loop (eval expr)))))))
+
+(define (scheme-eval-and-capture session-id str)
+  "Evaluate expressions and capture both stdout and return value."
+  (let ([output-port (open-output-string)])
+    (let ([result
+           (parameterize ([current-output-port output-port]
+                          [*current-session-id* session-id])
+             (scheme-eval-string str))])
+      (let ([output (get-output-string output-port)])
+        (cond
+          [(and (eq? result (void)) (> (string-length output) 0))
+           output]
+          [(> (string-length output) 0)
+           (string-append output
+                         (if (eq? result (void))
+                             ""
+                             (string-append "\n=> " (format "~a" result))))]
+          [(not (eq? result (void)))
+           (format "~a" result)]
+          [else ""])))))
+
+;;; ============================================================
+;;; Response Helpers
+;;; ============================================================
+
+(define (write-response path result)
+  (when (file-exists? path)
+    (delete-file path))
+  (call-with-output-file path
+    (lambda (p)
+      (display result p))))
+
+(define (write-error path msg)
+  (when (file-exists? path)
+    (delete-file path))
+  (call-with-output-file path
+    (lambda (p)
+      (display msg p))))
+
+;;; ============================================================
+;;; Worker Loop
+;;; ============================================================
+
+(define (write-pid! session-id)
+  (call-with-output-file (pid-path session-id)
+    (lambda (p)
+      (display (get-process-id) p))
+    'replace))
+
+(define (write-ready! session-id)
+  (call-with-output-file (ready-path session-id)
+    (lambda (p)
+      (display (format "~a" (current-time)) p))
+    'replace))
+
+(define (write-heartbeat! session-id)
+  (call-with-output-file (heartbeat-path session-id)
+    (lambda (p)
+      (display (time-second (current-time)) p))
+    'replace))
+
+(define (clear-starting! session-id)
+  (let ([path (starting-path session-id)])
+    (when (file-exists? path)
+      (delete-file path))))
+
+(define (cleanup-worker! session-id)
+  (let ([paths (list (pid-path session-id)
+                     (ready-path session-id)
+                     (heartbeat-path session-id))])
+    (for-each
+      (lambda (path)
+        (when (file-exists? path)
+          (delete-file path)))
+      paths)))
+
+(define (process-request! session-id)
+  (let ([path (request-path session-id)])
+    (when (file-exists? path)
+      (let* ([content (call-with-input-file path get-string-all)]
+             [request (parse-session-request content)]
+             [expr (if request
+                       (extract-expression request)
+                       content)]
+             [expr-str (if (string? expr)
+                           expr
+                           (format "~s" expr))]
+             [resp-path (response-path session-id)]
+             [err-path (error-path session-id)])
+        (when (file-exists? err-path)
+          (delete-file err-path))
+        (guard (e [else
+                   (write-error err-path (format-condition e))])
+          (let ([result (scheme-eval-and-capture session-id expr-str)])
+            (write-response resp-path result)))
+        (delete-file path)))))
+
+(define (worker-loop session-id)
+  (let loop ([last-heartbeat 0])
+    (if (daemon-running?)
+        (begin
+          (process-request! session-id)
+          (let ([now (time-second (current-time))])
+            (when (>= (- now last-heartbeat) *heartbeat-interval*)
+              (write-heartbeat! session-id)
+              (set! last-heartbeat now)))
+          (sleep (make-time 'time-duration *poll-interval-ns* 0))
+          (loop last-heartbeat))
+        (cleanup-worker! session-id))))
+
+;;; ============================================================
+;;; Startup
+;;; ============================================================
+
+(define (require-session-id args)
+  (if (and (pair? args) (pair? (cdr args)))
+      (cadr args)
+      (begin
+        (display "Usage: scheme --script thimble/repl-worker.ss <session-id>\n")
+        (exit 1))))
+
+(define (start-worker!)
+  (let ([session-id (require-session-id (command-line))])
+    (ensure-dirs!)
+    (write-pid! session-id)
+    (load "thimble/repl.ss")
+    (write-ready! session-id)
+    (write-heartbeat! session-id)
+    (clear-starting! session-id)
+    (worker-loop session-id)))
+
+(start-worker!)

@@ -2,10 +2,11 @@
 # daemon.sh — REPL Daemon Management (Unix)
 #
 # Usage:
-#   ./daemon.sh start   — Start the daemon in background
-#   ./daemon.sh stop    — Stop the daemon
-#   ./daemon.sh status  — Check if daemon is running
-#   ./daemon.sh fg      — Run daemon in foreground (for debugging)
+#   ./daemon.sh start    — Start the daemon in background
+#   ./daemon.sh stop     — Stop the daemon
+#   ./daemon.sh status   — Check if daemon is running
+#   ./daemon.sh fg       — Run daemon in foreground (for debugging)
+#   ./daemon.sh cleanup  — Cleanup stale workers by heartbeat age
 
 set -e
 cd "$(dirname "$0")"
@@ -36,6 +37,7 @@ case "$1" in
         fi
 
         echo "Starting REPL daemon in background..."
+        export FOLD_SCHEME_CMD="$SCHEME_CMD"
         nohup "$SCHEME_CMD" --script start-daemon.ss > .fold-repl/daemon.log 2>&1 &
         echo $! > "$PID_FILE"
 
@@ -43,8 +45,8 @@ case "$1" in
         for i in {1..30}; do
             if [ -f "$READY_FILE" ]; then
                 echo "Daemon started (PID: $(cat $PID_FILE))"
-                echo "Write expressions to: .fold-repl/request.ss"
-                echo "Read responses from:  .fold-repl/response.txt"
+                echo "Write expressions to: .fold-repl/requests/<session-id>.ss"
+                echo "Read responses from:  .fold-repl/responses/<session-id>.txt"
                 exit 0
             fi
             sleep 0.5
@@ -69,7 +71,21 @@ case "$1" in
             rm -f "$PID_FILE"
         fi
 
+        if [ -d ".fold-repl/workers" ]; then
+            for pidfile in .fold-repl/workers/*.pid; do
+                [ -e "$pidfile" ] || continue
+                WPID=$(cat "$pidfile")
+                kill "$WPID" 2>/dev/null || true
+            done
+        fi
+
         echo "Daemon stopped."
+        ;;
+
+    cleanup)
+        echo "Cleaning up stale workers..."
+        export FOLD_SCHEME_CMD="$SCHEME_CMD"
+        "$SCHEME_CMD" --script thimble/cleanup-workers.ss
         ;;
 
     status)
@@ -85,17 +101,19 @@ case "$1" in
 
     fg)
         echo "Running daemon in foreground (Ctrl+C to stop)..."
+        export FOLD_SCHEME_CMD="$SCHEME_CMD"
         exec "$SCHEME_CMD" --script start-daemon.ss
         ;;
 
     *)
         echo ""
-        echo "Usage: ./daemon.sh [start|stop|status|fg]"
+        echo "Usage: ./daemon.sh [start|stop|status|fg|cleanup]"
         echo ""
-        echo "  start  — Start the daemon in background"
-        echo "  stop   — Stop the daemon"
-        echo "  status — Check if daemon is running"
-        echo "  fg     — Run daemon in foreground"
+        echo "  start    — Start the daemon in background"
+        echo "  stop     — Stop the daemon"
+        echo "  status   — Check if daemon is running"
+        echo "  fg       — Run daemon in foreground"
+        echo "  cleanup  — Cleanup stale workers by heartbeat age"
         echo ""
         exit 1
         ;;

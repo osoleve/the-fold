@@ -53,10 +53,17 @@
         ;; Multi-session: read from session-manager
         (let ([session (get-session sid)])
           (and session
-               `((tier . ,(cdr (assq 'tier session)))
-                 (model . ,(cdr (assq 'tier session)))  ; tier doubles as model
-                 (name . ,(cdr (assq 'name session)))
-                 (login-time . ,(cdr (assq 'created session))))))
+               (cdr (assq 'logged-in session))
+               (begin
+                 (session-maybe-warn-rehydrated! session)
+                 #t)
+               (let ([tier (cdr (assq 'tier session))]
+                     [model (cdr (assq 'model session))]
+                     [name (cdr (assq 'name session))])
+                 `((tier . ,tier)
+                   (model . ,(if model model tier))
+                   (name . ,name)
+                   (login-time . ,(cdr (assq 'created session)))))))
         ;; Legacy: read from file
         (if (file-exists? *session-file*)
             (call-with-input-file *session-file* read)
@@ -68,10 +75,12 @@
   (let ([sid (current-session-id)])
     (if sid
         ;; Multi-session: use session-manager
-        (session-login! sid
-                        (cdr (assq 'tier session))
-                        (cdr (assq 'name session))
-                        "")
+        (let* ([model-pair (assq 'model session)]
+               [model (and model-pair (cdr model-pair))])
+          (session-login! sid
+                          (cdr (assq 'tier session))
+                          (cdr (assq 'name session))
+                          model))
         ;; Legacy: write to file
         (begin
           (when (file-exists? *session-file*)
@@ -130,21 +139,32 @@
   (let ([role (model->role model-tier)])
     (unless role
       (error 'hi "Invalid tier. Use 'opus, 'sonnet, or 'haiku." model-tier))
+    (unless (symbol? name)
+      (error 'hi "Name must be a symbol." name))
+    (let ([validated-name (safe-symbol (symbol->string name))])
+      (unless validated-name
+        (error 'hi "Invalid name symbol." name))
+      (let ([existing (read-session)])
+        (if (and existing
+                 (eq? (cdr (assq 'name existing)) validated-name)
+                 (eq? (cdr (assq 'tier existing)) role))
+            (display (format "Already logged in as ~a (~a).\n" validated-name role))
+            (begin
+              ;; Create session
+              (let ([session `((tier . ,role)
+                               (model . ,model-tier)
+                               (name . ,validated-name)
+                               (login-time . ,(current-timestamp)))])
+                (write-session! session))
 
-    ;; Create session
-    (let ([session `((tier . ,role)
-                     (model . ,model-tier)
-                     (name . ,name)
-                     (login-time . ,(current-timestamp)))])
-      (write-session! session))
+              ;; Announce in chat
+              (let ([fs (mint-fs-capability ".store")])
+                (let ([announcement (format "@~a (~a) has joined: ~a" validated-name role txt)])
+                  (post! fs validated-name role 'chat announcement (current-timestamp))))
 
-    ;; Announce in chat
-    (let ([fs (mint-fs-capability ".store")])
-      (let ([announcement (format "@~a (~a) has joined: ~a" name role txt)])
-        (post! fs name role 'chat announcement (current-timestamp))))
-
-    ;; Confirm
-    (display (format "Logged in as ~a (~a). Use (digest) to see forum.\n" name role))))
+              ;; Confirm
+              (display (format "Logged in as ~a (~a). Use (digest) to see forum.\n"
+                               validated-name role))))))))
 
 ;;; ============================================================
 ;;; Digest Display

@@ -321,7 +321,8 @@
 (display "Use (tutorial) for options, (robust-interactive-tutorial) to start\n")
 (display "Use (tutorial-help) for troubleshooting guidance\n")
 
-(provide robust-interactive-tutorial tutorial-help tutorial-progress 
-         tutorial start-tutorial start-interactive-tutorial
-         safe-who safe-digest safe-chat safe-lambda-kombat safe-duckie-greet
-         safe-fold-eval safe-blocks)
+(when (top-level-bound? 'provide)
+  (provide robust-interactive-tutorial tutorial-help tutorial-progress
+           tutorial start-tutorial start-interactive-tutorial
+           safe-who safe-digest safe-chat safe-lambda-kombat safe-duckie-greet
+           safe-fold-eval safe-blocks))

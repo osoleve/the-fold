@@ -5,20 +5,18 @@
 ;;;
 ;;; Session Structure:
 ;;;   {id: String
-;;;    tier: Symbol (opus | sonnet | haiku)
+;;;    tier: Symbol (shepherd | builder | player)
+;;;    model: Symbol (opus | sonnet | haiku) | #f
 ;;;    name: Symbol
 ;;;    created: Timestamp
 ;;;    last-active: Timestamp
 ;;;    logged-in: Boolean}
 ;;;
 ;;; ARCHITECTURE NOTE:
-;;; All sessions share the SAME evaluation environment (interaction-environment).
-;;; Session DATA isolation (tier, name) is achieved via the *current-session-id*
-;;; parameter, which is set before each evaluation. Functions like hi/who/bye
-;;; look up their session data using (current-session-id).
-;;;
-;;; This is correct for The Fold: all Claudes see the same functions and forum,
-;;; just with different session identities.
+;;; Each worker process handles one session. Session DATA isolation (tier, name)
+;;; is still achieved via the *current-session-id* parameter, which is set
+;;; before each evaluation. Functions like hi/who/bye look up their session
+;;; data using (current-session-id).
 ;;;
 ;;; This is Shell code: manages mutable session state.
 
@@ -58,7 +56,7 @@
 
 ;;; make-session : String → Session
 ;;; Construct a new session record.
-;;; Sessions share the interaction-environment; isolation is via *current-session-id*.
+;;; Isolation is handled by process boundaries; *current-session-id* tags data.
 ;;; Timestamps are stored as seconds (numbers) for easy arithmetic.
 ;;;
 ;;; IMPORTANT: We use explicit cons/list to ensure each session gets FRESH cons cells.
@@ -68,10 +66,52 @@
   (let ([now (time-second (current-time))])
     (list (cons 'id id)
           (cons 'tier #f)
+          (cons 'model #f)
           (cons 'name #f)
           (cons 'created now)
           (cons 'last-active now)
-          (cons 'logged-in #f))))
+          (cons 'logged-in #f)
+          (cons 'rehydrated-at #f)
+          (cons 'rehydrated-warned-at #f))))
+
+;;; load-session-file : String → Session | #f
+;;; Load session metadata from disk and register it.
+(define (load-session-file session-id)
+  (let ([path (session-file-path session-id)])
+    (guard (e [else #f])
+      (and (file-exists? path)
+           (let ([data (call-with-input-file path read)])
+             (and (list? data)
+                  (let* ([tier (cdr (assq 'tier data))]
+                         [name (cdr (assq 'name data))]
+                         [model (cdr (assq 'model data))]
+                         [session (make-session session-id)])
+                    (when tier
+                      (set-cdr! (assq 'tier session) tier))
+                    (when model
+                      (set-cdr! (assq 'model session) model))
+                    (when name
+                      (set-cdr! (assq 'name session) name))
+                    (set-cdr! (assq 'rehydrated-at session) (time-second (current-time)))
+                    (set-cdr! (assq 'rehydrated-warned-at session) #f)
+                    (when (and tier name)
+                      (set-cdr! (assq 'logged-in session) #t))
+                    (hashtable-set! *sessions* session-id session)
+                    session)))))))
+
+;;; session-maybe-warn-rehydrated! : Session → void
+;;; Warn once per 5 minutes if this session was restored from disk.
+(define (session-maybe-warn-rehydrated! session)
+  (let* ([rehydrated-pair (assq 'rehydrated-at session)]
+         [warned-pair (assq 'rehydrated-warned-at session)]
+         [rehydrated (and rehydrated-pair (cdr rehydrated-pair))]
+         [warned (and warned-pair (cdr warned-pair))])
+    (when rehydrated
+      (let ([now (time-second (current-time))])
+        (when (or (not warned) (>= (- now warned) 300))
+          (display "Session restored from disk; run (hi ...) if you want to announce.\n")
+          (when warned-pair
+            (set-cdr! warned-pair now)))))))
 
 ;;; get-session : String → Session | #f
 ;;; Get a session by ID, updating last-active.
@@ -79,7 +119,11 @@
   (let ([session (hashtable-ref *sessions* session-id #f)])
     (when session
       (set-cdr! (assq 'last-active session) (time-second (current-time))))
-    session))
+    (or session
+        (let ([loaded (load-session-file session-id)])
+          (when loaded
+            (set-cdr! (assq 'last-active loaded) (time-second (current-time))))
+          loaded))))
 
 ;;; get-or-create-session! : String → Session
 ;;; Get existing session or create new one.
@@ -96,17 +140,23 @@
 ;;; Session Login/Logout
 ;;; ============================================================
 
-;;; session-login! : String Symbol Symbol String → void
-;;; Login a session with tier and name.
-(define (session-login! session-id tier name message)
-  (let ([session (get-or-create-session! session-id)])
+;;; session-login! : String Symbol Symbol [Symbol] → void
+;;; Login a session with tier, name, and optional model.
+(define (session-login! session-id tier name . rest)
+  (let* ([model (if (and (pair? rest) (symbol? (car rest)))
+                    (car rest)
+                    tier)]
+         [session (get-or-create-session! session-id)])
     (set-cdr! (assq 'tier session) tier)
+    (set-cdr! (assq 'model session) model)
     (set-cdr! (assq 'name session) name)
     (set-cdr! (assq 'logged-in session) #t)
+    (set-cdr! (assq 'rehydrated-at session) #f)
+    (set-cdr! (assq 'rehydrated-warned-at session) #f)
     (set-cdr! (assq 'last-active session) (time-second (current-time)))
 
     ;; Store session file for this session
-    (save-session-file! session-id tier name)))
+    (save-session-file! session-id tier name model)))
 
 ;;; session-logout! : String → void
 ;;; Logout a session.
@@ -117,28 +167,6 @@
       (set-cdr! (assq 'name session) #f)
       (set-cdr! (assq 'logged-in session) #f)
       (delete-session-file! session-id))))
-
-;;; ============================================================
-;;; Session Context Evaluation
-;;; ============================================================
-
-;;; eval-in-session : String String → Any
-;;; Evaluate an expression string with namespace isolation.
-;;; User-defined symbols are prefixed with session-id to prevent leakage.
-;;; Session identity is established via *current-session-id* parameter.
-;;; Auto-creates the session if it doesn't exist.
-(define (eval-in-session session-id expr-str)
-  (get-or-create-session! session-id) ; Ensure session exists
-  (let ([port (open-input-string expr-str)])
-    (let loop ([last-result (void)])
-      (let ([expr (read port)])
-        (if (eof-object? expr)
-            last-result
-            ;; Transform expression to use namespaced symbols
-            (let ([transformed (if (top-level-bound? 'namespace-transform)
-                                   (namespace-transform session-id expr)
-                                   expr)])  ; Fallback if not loaded
-              (loop (eval transformed))))))))
 
 ;;; ============================================================
 ;;; Session File Storage (for compatibility with existing REPL)
@@ -155,13 +183,14 @@
 (define (session-file-path session-id)
   (string-append *session-dir* "/" session-id ".session"))
 
-;;; save-session-file! : String Symbol Symbol → void
+;;; save-session-file! : String Symbol Symbol Symbol → void
 ;;; Save session to file (for compatibility with existing tools).
-(define (save-session-file! session-id tier name)
+(define (save-session-file! session-id tier name model)
   (ensure-session-dir!)
   (call-with-output-file (session-file-path session-id)
     (lambda (p)
       (write `((tier . ,tier)
+               (model . ,model)
                (name . ,name)
                (session-id . ,session-id)) p))
     'replace))
