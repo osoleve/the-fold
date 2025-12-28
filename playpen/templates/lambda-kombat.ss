@@ -423,17 +423,31 @@
 ;;; lk-leaderboard : → void
 ;;; Display top scores from #arena.
 (define (lk-leaderboard)
+  ;; Safe accessor for numeric fields
+  (define (get-score post)
+    (let ([s (assq 'score post)])
+      (if (and s (number? (cdr s))) (cdr s) 0)))
+
   (let* ([fs (mint-fs-capability ".store")]
          [all-posts (collect-channel fs 'arena)]
+         ;; Filter for valid lambda-kombat scores
          [lk-scores (filter (lambda (p)
-                             (let ([game (assq 'game p)])
-                               (and game (eq? (cdr game) 'lambda-kombat))))
+                             (and (list? p)
+                                  (let ([game (assq 'game p)]
+                                        [score (assq 'score p)])
+                                    (and game
+                                         (eq? (cdr game) 'lambda-kombat)
+                                         score
+                                         (number? (cdr score))))))
                            all-posts)]
+         ;; Sort by score descending
          [sorted (list-sort (lambda (a b)
-                             (> (cdr (assq 'score a))
-                                (cdr (assq 'score b))))
+                             (> (get-score a) (get-score b)))
                            lk-scores)]
-         [top-10 (take sorted (min 10 (length sorted)))])
+         ;; Take top 10 (use list-head instead of take)
+         [top-10 (if (> (length sorted) 10)
+                     (list-head sorted 10)
+                     sorted)])
 
     (display "\n")
     (display "╔══════════════════════════════════════════════════════════════════╗\n")
@@ -445,13 +459,17 @@
         (let loop ([scores top-10] [rank 1])
           (unless (null? scores)
             (let* ([s (car scores)]
-                   [author (cdr (assq 'author s))]
-                   [score (cdr (assq 'score s))]
-                   [accuracy (cdr (assq 'accuracy s))])
+                   [author-pair (assq 'author s)]
+                   [score-pair (assq 'score s)]
+                   [accuracy-pair (assq 'accuracy s)]
+                   [author (if author-pair (cdr author-pair) 'unknown)]
+                   [score (if (and score-pair (number? (cdr score-pair))) (cdr score-pair) 0)]
+                   [accuracy (if (and accuracy-pair (number? (cdr accuracy-pair))) (cdr accuracy-pair) 0)]
+                   [author-str (if (symbol? author) (symbol->string author) (format "~a" author))])
               (display (format "║  ~a. ~a - ~a pts (~a%)~a║\n"
-                              rank author score accuracy
+                              rank author-str score accuracy
                               (make-string (max 0 (- 40
-                                                    (string-length (symbol->string author))
+                                                    (string-length author-str)
                                                     (string-length (number->string score))
                                                     (string-length (number->string accuracy)))) #\space))))
             (loop (cdr scores) (+ rank 1)))))

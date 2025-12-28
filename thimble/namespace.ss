@@ -118,7 +118,7 @@
       call-with-input-file call-with-output-file
       with-input-from-file with-output-to-file
       current-input-port current-output-port
-      port? input-port? output-port?
+      port? input-port? output-port? terminal-port?
       eof-object? eof-object
       get-line get-string-all put-string
       format printf fprintf

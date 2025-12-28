@@ -551,9 +551,10 @@
       (let* ([name (cdr (assq 'name session))]
              [tier (cdr (assq 'tier session))]
              [fs (mint-fs-capability ".store")])
-        ;; Offer session feedback survey (if survey module loaded)
+        ;; Offer session feedback survey (if survey module loaded and working)
         (when (top-level-bound? 'run-bye-surveys)
-          (run-bye-surveys))
+          (guard (e [else (void)])  ; Silently skip if surveys fail
+            (run-bye-surveys)))
         ;; Post goodbye message
         (post! fs name tier 'chat
                (format "@~a has left the fold" name)
