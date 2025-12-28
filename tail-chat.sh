@@ -52,19 +52,27 @@ done
 COLOR_RESET="\033[0m"
 COLOR_TIME="\033[90m"
 
-# File to track the last message seen (to persist across subshells)
-LAST_MESSAGE_FILE="/tmp/tail-chat-last-$$"
+# File to track the last chat head (to detect actual new messages)
+LAST_HEAD_FILE="/tmp/tail-chat-head-$$"
 
 # Cleanup function
 cleanup() {
-    rm -f "$LAST_MESSAGE_FILE"
+    rm -f "$LAST_HEAD_FILE"
 }
 trap cleanup EXIT
+
+# Function to get current chat head
+get_chat_head() {
+    if [[ -f ".store/heads/chat.head" ]]; then
+        cat ".store/heads/chat.head" | tr -d '[:space:]'
+    else
+        echo ""
+    fi
+}
 
 # Function to display a chat message with colors
 display_message() {
     local line="$1"
-    local is_new="$2"  # "true" if this is a new message in watch mode
     
     # Parse the line format: [HH:MM] author (badge) [hash]: message
     if [[ "$line" =~ ^\s*\[([0-9:]+)\]\ ([^\ ]+)\ \(([🐑🔨🎮])\)\ \[([a-f0-9]+)\]:\ (.*) ]]; then
@@ -73,20 +81,6 @@ display_message() {
         local badge="${BASH_REMATCH[3]}"
         local hash="${BASH_REMATCH[4]}"
         local message="${BASH_REMATCH[5]}"
-        
-        # Create a unique key for this message
-        local message_key="${time}|${author}|${hash}"
-        
-        # Skip if this is the same as the last message (unless it's the initial batch)
-        if [[ "$is_new" == "true" ]] && [[ -f "$LAST_MESSAGE_FILE" ]]; then
-            local last_key=$(cat "$LAST_MESSAGE_FILE")
-            if [[ "$message_key" == "$last_key" ]]; then
-                return 1  # Skip duplicate
-            fi
-        fi
-        
-        # Update last message key
-        echo "$message_key" > "$LAST_MESSAGE_FILE"
         
         # Determine color from badge
         local color="\033[1;32m"  # Default green for player
@@ -108,7 +102,6 @@ display_message() {
 # Function to get recent chat messages using direct scheme execution
 get_recent_chat_direct() {
     local lines="$1"
-    local is_new="$2"  # "true" if this is in watch mode
     
     # Try direct scheme execution first (faster, no daemon overhead)
     local result
@@ -124,7 +117,7 @@ EOF
         local chat_lines="$(echo "$result" | grep -E "^\s*\[.*\]" || true)"
         if [[ -n "$chat_lines" ]]; then
             while IFS= read -r line; do
-                display_message "$line" "$is_new"
+                display_message "$line"
             done <<< "$chat_lines"
             return 0
         fi
@@ -137,7 +130,6 @@ EOF
 # Function to get recent chat messages using daemon
 get_recent_chat_daemon() {
     local lines="$1"
-    local is_new="$2"  # "true" if this is in watch mode
     
     # Use fold.sh to get recent chat messages
     local result
@@ -147,7 +139,7 @@ get_recent_chat_daemon() {
         local chat_lines="$(echo "$result" | grep -E "^\s*\[.*\]" || true)"
         if [[ -n "$chat_lines" ]]; then
             while IFS= read -r line; do
-                display_message "$line" "$is_new"
+                display_message "$line"
             done <<< "$chat_lines"
             return 0
         fi
@@ -159,25 +151,22 @@ get_recent_chat_daemon() {
 # Function to get recent chat messages (tries direct first, then daemon)
 get_recent_chat() {
     local lines="$1"
-    local is_new="$2"  # "true" if this is in watch mode
     
     # Try direct execution first
-    if get_recent_chat_direct "$lines" "$is_new"; then
+    if get_recent_chat_direct "$lines"; then
         return 0
     fi
     
     # Fall back to daemon
-    if get_recent_chat_daemon "$lines" "$is_new"; then
+    if get_recent_chat_daemon "$lines"; then
         return 0
     fi
     
     # Both failed
-    if [[ "$is_new" != "true" ]]; then  # Only show error on initial load
-        echo "❌ Error: Could not fetch chat messages"
-        echo "   - Direct scheme execution failed"
-        echo "   - REPL daemon not responding (try: ./daemon.sh start)"
-        echo "   - Make sure you're in The Fold project root directory"
-    fi
+    echo "❌ Error: Could not fetch chat messages"
+    echo "   - Direct scheme execution failed"
+    echo "   - REPL daemon not responding (try: ./daemon.sh start)"
+    echo "   - Make sure you're in The Fold project root directory"
     return 1
 }
 
@@ -188,16 +177,27 @@ watch_chat() {
     echo "👁  Watching The Fold chat (press Ctrl+C to exit)..."
     echo ""
     
-    # Initial display - mark all these as "old"
-    get_recent_chat "$lines" "false"
+    # Initial display
+    get_recent_chat "$lines"
     
-    # Simple polling loop with deduplication
-    # In watch mode, we get a few recent messages each time to catch any new ones
+    # Save the initial chat head
+    local last_head="$(get_chat_head)"
+    if [[ -n "$last_head" ]]; then
+        echo "$last_head" > "$LAST_HEAD_FILE"
+    fi
+    
+    # Watch for changes by polling the chat head
     while true; do
         sleep 3
-        # Get recent messages but only show new ones
-        # Get 3 messages to catch any that might have come in, but deduplicate
-        get_recent_chat 3 "true"
+        local current_head="$(get_chat_head)"
+        
+        if [[ "$current_head" != "$last_head" && -n "$current_head" ]]; then
+            # New message(s) available - show just the newest ones
+            echo "📝 New messages detected..."
+            get_recent_chat 3  # Show recent messages including new ones
+            last_head="$current_head"
+            echo "$last_head" > "$LAST_HEAD_FILE"
+        fi
     done
 }
 
@@ -235,5 +235,5 @@ echo ""
 if [[ "$WATCH_MODE" == true ]]; then
     watch_chat "$LINES"
 else
-    get_recent_chat "$LINES" "false"
+    get_recent_chat "$LINES"
 fi

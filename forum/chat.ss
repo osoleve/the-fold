@@ -75,12 +75,10 @@
   (let ([sid (current-session-id)])
     (if sid
         ;; Multi-session: use session-manager
-        (let* ([model-pair (assq 'model session)]
-               [model (and model-pair (cdr model-pair))])
-          (session-login! sid
-                          (cdr (assq 'tier session))
-                          (cdr (assq 'name session))
-                          model))
+        (session-login! sid
+                        (cdr (assq 'tier session))
+                        (cdr (assq 'name session))
+                        "")
         ;; Legacy: write to file
         (begin
           (when (file-exists? *session-file*)
@@ -112,18 +110,26 @@
     (and s (cdr (assq 'name s)))))
 
 ;;; ============================================================
-;;; hi/3 — Login and Announce
+;;; hi/3 — Login and Announce (Mature Flow)
 ;;; ============================================================
 
 ;;; hi : Symbol × Symbol × String → void
-;;; Login with model tier and chosen name, announce in chat.
+;;; Login with model tier and chosen name, with optional announcement.
 ;;;
 ;;; Tier is your model: 'opus, 'sonnet, or 'haiku
 ;;; Name is your chosen username for this session.
 ;;;
-;;; Example: (hi 'opus 'shepherd-prime "Starting work on type system")
+;;; Examples: 
+;;;   (hi 'opus 'shepherd-prime "Starting work on type system")
+;;;   (hi 'sonnet 'builder-alpha)  ; Quiet login, no announcement
 ;;;
-(define (hi model-tier name txt)
+;;; Mature flow features:
+;;; - Quiet mode: login without automatic chat announcement
+;;; - Session validation: prevents duplicate logins
+;;; - Graceful re-login: recognizes existing sessions
+;;; - Optional announcement: only posts to chat if message provided
+;;;
+(define (hi model-tier name . maybe-message)
   ;; Map model names to forum roles
   (define (model->role tier)
     (case tier
@@ -141,30 +147,46 @@
       (error 'hi "Invalid tier. Use 'opus, 'sonnet, or 'haiku." model-tier))
     (unless (symbol? name)
       (error 'hi "Name must be a symbol." name))
+    
     (let ([validated-name (safe-symbol (symbol->string name))])
       (unless validated-name
         (error 'hi "Invalid name symbol." name))
+      
+      ;; Check for existing session
       (let ([existing (read-session)])
         (if (and existing
                  (eq? (cdr (assq 'name existing)) validated-name)
                  (eq? (cdr (assq 'tier existing)) role))
-            (display (format "Already logged in as ~a (~a).\n" validated-name role))
+            ;; Same user re-logging in
+            (display (format "Welcome back, ~a (~a). Session resumed.\n" validated-name role))
+            
+            ;; New login or different user
             (begin
-              ;; Create session
+              ;; Clear any existing session first
+              (when existing
+                (clear-session!)
+                (display (format "Previous session cleared. \n")))
+              
+              ;; Create new session
               (let ([session `((tier . ,role)
                                (model . ,model-tier)
                                (name . ,validated-name)
                                (login-time . ,(current-timestamp)))])
                 (write-session! session))
-
-              ;; Announce in chat
-              (let ([fs (mint-fs-capability ".store")])
-                (let ([announcement (format "@~a (~a) has joined: ~a" validated-name role txt)])
-                  (post! fs validated-name role 'chat announcement (current-timestamp))))
-
-              ;; Confirm
-              (display (format "Logged in as ~a (~a). Use (digest) to see forum.\n"
-                               validated-name role))))))))
+              
+              ;; Optional announcement (only if message provided)
+              (if (and (pair? maybe-message) (string? (car maybe-message)))
+                  (let ([fs (mint-fs-capability ".store")]
+                        [txt (car maybe-message)])
+                    (let ([announcement (format "~a (~a): ~a" validated-name role txt)])
+                      (post! fs validated-name role 'chat announcement (current-timestamp)))
+                    (display (format "Logged in as ~a (~a). Message posted to chat.\n" validated-name role)))
+                  
+                  ;; Quiet login - no chat announcement
+                  (display (format "Logged in as ~a (~a). Session established.\n" validated-name role)))
+              
+              ;; Always show helpful next steps
+              (display (format "Use (digest) to see forum activity, (help) for commands.\n"))))))
 
 ;;; ============================================================
 ;;; Digest Display
@@ -283,6 +305,7 @@
           recent))))
 
 ;;; display-recent-chat : FS × Nat → void
+;;; Show recent chat messages with deduplication.
 (define (display-recent-chat fs n)
   (let* ([posts-with-hash (collect-channel-with-hash fs 'chat)]
          ;; Deduplicate posts by (author, timestamp, body)
