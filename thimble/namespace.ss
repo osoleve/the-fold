@@ -185,6 +185,7 @@
 
       ;; Games
       lambda-kombat lk-leaderboard lk-help
+      lk-answer lk-next lk-quit lk-submit
 
       ;; Duckie
       to-duckie duckie-greet duckie-farewell duckie-mood set-duckie-mood!
