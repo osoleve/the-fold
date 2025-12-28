@@ -5,6 +5,9 @@
 ;;;
 ;;; This is Playpen code: experimental, evolving, dreaming.
 
+;;; Load security utilities
+(load "playpen/security-utils.ss")
+
 ;;; ============================================================
 ;;; The Soul — Core Data Structures
 ;;; ============================================================
@@ -12,7 +15,12 @@
 ;;; Point : (× Nat Nat)
 ;;; A location in 2D space. Origin is top-left.
 (define (make-point x y)
-  (cons x y))
+  (if (and (valid-integer? x 0 1000)  ; Reasonable canvas bounds
+           (valid-integer? y 0 1000))
+      (cons x y)
+      (begin
+        (log-invalid-input "point-coordinates" (cons x y))
+        (cons 0 0))))  ; Default to safe coordinates
 
 (define (point-x p) (car p))
 (define (point-y p) (cdr p))
@@ -25,21 +33,15 @@
 ;;; Mood — The Emotional State
 ;;; ============================================================
 
-;;; Mood : (+ 'happy 'curious 'sleepy 'content 'lonely 'playful)
+;;; Mood : Validated emotional states
 ;;;
-;;; DUCKIE's current emotional state. Not complex —
-;;; not pretending to be human. Just... present.
+;;; DUCKIE's current emotional state with validation.
 
 (define valid-moods
-  '(happy      ; Bouncing, bright
-    curious    ; Head tilted, watching
-    sleepy     ; Eyes drooping, slow
-    content    ; Still, peaceful
-    lonely     ; Looking around, waiting
-    playful))  ; Energetic, wanting interaction
+  '(happy curious sleepy content lonely playful))
 
 (define (mood? m)
-  (if (memq m valid-moods) #t #f))
+  (valid-symbol? m valid-moods))
 
 (define (mood->string m)
   (symbol->string m))
@@ -225,10 +227,16 @@
               (list->vector (duckie-memories d))))
 
 ;;; block->duckie : Block → Duckie | #f
-;;; Restore DUCKIE from persistence.
+;;; Restore DUCKIE from persistence with validation
 (define (block->duckie blk)
   (if (eq? (block-tag blk) 'duckie)
-      (read (open-input-string (utf8->string (block-payload blk))))
+      (let ([payload (utf8->string (block-payload blk))])
+        (if (and (valid-string? payload 1 10000)
+                 (not (string-contains? payload "\000")))
+            (read (open-input-string payload))
+            (begin
+              (log-security-event 'invalid-duckie-payload payload)
+              #f)))
       #f))
 
 ;;; ============================================================

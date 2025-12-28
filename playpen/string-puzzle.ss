@@ -3,20 +3,31 @@
 ;;; A fun text adventure using string utilities!
 
 (load "thimble/string-utils.ss")
+(load "playpen/security-utils.ss")
 
-;;; Helper functions
+;;; Secure helper functions with validation
 (define (unique lst)
-  (if (null? lst)
-      '()
-      (cons (car lst)
-            (unique (filter (lambda (x) (not (equal? x (car lst))))
-                           (cdr lst))))))
+  (if (not (list? lst))
+      (begin
+        (log-invalid-input "unique" lst)
+        '())
+      (let ([safe-lst (safe-list-take lst MAX_LIST_LENGTH)])
+        (if (null? safe-lst)
+            '()
+            (cons (car safe-lst)
+                  (unique (filter (lambda (x) (not (equal? x (car safe-lst))))
+                                 (cdr safe-lst))))))))
 
 (define (filter pred lst)
-  (cond
-    [(null? lst) '()]
-    [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
-    [else (filter pred (cdr lst))]))
+  (if (not (and (procedure? pred) (list? lst)))
+      (begin
+        (log-invalid-input "filter" (cons pred lst))
+        '())
+      (let ([safe-lst (safe-list-take lst MAX_LIST_LENGTH)])
+        (cond
+          [(null? safe-lst) '()]
+          [(pred (car safe-lst)) (cons (car safe-lst) (filter pred (cdr safe-lst)))]
+          [else (filter pred (cdr safe-lst))]))))
 
 (printf "\n")
 (printf "╔═══════════════════════════════════════════════════════════════╗\n")
@@ -25,8 +36,14 @@
 (printf "║  A mysterious message has been scrambled! Can you decode it?  ║\n")
 (printf "╚═══════════════════════════════════════════════════════════════╝\n\n")
 
-;;; The scrambled message
-(define scrambled "XXXehTXXX XXXdloFXXX XXXsiXXX XXXaXXX XXXecalpXXX XXXerehwXXX XXXnoitaerCXXX XXXdnaXXX XXXyrevocsiDXXX XXXtnemXXX")
+;;; The scrambled message (validated)
+(define scrambled 
+  (let ([msg "XXXehTXXX XXXdloFXXX XXXsiXXX XXXaXXX XXXecalpXXX XXXerehwXXX XXXnoitaerCXXX XXXdnaXXX XXXyrevocsiDXXX XXXtnemXXX"])
+    (if (valid-string? msg 1 MAX_STRING_LENGTH)
+        msg
+        (begin
+          (log-security-event 'invalid-scrambled-message msg)
+          "INVALID MESSAGE"))))
 
 (printf "🔐 ENCRYPTED MESSAGE:\n")
 (printf "   ~a\n\n" scrambled)
@@ -106,7 +123,12 @@
 (printf "📊 WORD FREQUENCY ANALYZER\n\n")
 
 (define sample-text
-  "the quick brown fox jumps over the lazy dog the fox was quick")
+  (let ([text "the quick brown fox jumps over the lazy dog the fox was quick"])
+    (if (valid-string? text 1 MAX_STRING_LENGTH)
+        text
+        (begin
+          (log-security-event 'invalid-sample-text text)
+          "invalid text"))))
 
 (printf "Text: ~a\n\n" sample-text)
 

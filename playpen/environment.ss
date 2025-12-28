@@ -15,6 +15,7 @@
 
 (load "thimble/color.ss")
 (load "thimble/layout-color.ss")
+(load "playpen/security-utils.ss")
 
 ;;; ============================================================
 ;;; Time of Day
@@ -24,53 +25,68 @@
 ;;;
 ;;; Represents the current time for lighting and color.
 
+;;; Valid time of day symbols
+(define valid-times '(day dusk night dawn))
+
 ;;; time-of-day-color : TimeOfDay → Color
 ;;;
-;;; Get the sky color for a given time of day.
+;;; Get the sky color for a given time of day with validation.
 (define (time-of-day-color time)
-  (case time
-    [(day)   (rgb 135 206 235)]  ; Sky blue
-    [(dusk)  (rgb 255 140  60)]  ; Orange sunset
-    [(night) (rgb  25  25  50)]  ; Dark blue night
-    [(dawn)  (rgb 255 200 150)]  ; Soft pink/yellow
-    [else    (rgb 135 206 235)])) ; Default to day
+  (if (valid-symbol? time valid-times)
+      (case time
+        [(day)   (rgb 135 206 235)]  ; Sky blue
+        [(dusk)  (rgb 255 140  60)]  ; Orange sunset
+        [(night) (rgb  25  25  50)]  ; Dark blue night
+        [(dawn)  (rgb 255 200 150)]  ; Soft pink/yellow
+        [else    (rgb 135 206 235)]) ; Default to day
+      (begin
+        (log-invalid-input "time-of-day" time)
+        (rgb 135 206 235))))  ; Safe default
 
 ;;; ============================================================
 ;;; Pond Rendering
 ;;; ============================================================
 
-;;; draw-water-surface : Canvas × Nat × Nat × Color → Canvas
-;;;
-;;; Draw a water surface with wave patterns.
-;;; Uses ~ characters to suggest gentle waves.
+;;; Secure draw-water-surface with bounds checking
 (define (draw-water-surface canvas y-start y-end water-color)
-  (let ([wave-chars (list #\~ #\≈ #\~ #\≈)])  ; Alternating wave symbols
-    (let y-loop ([y y-start] [c canvas])
-      (if (>= y y-end)
-          c
-          (let x-loop ([x 1] [wave-idx 0] [c c])
-            (if (>= x (- (canvas-width c) 1))
-                (y-loop (+ y 1) c)
-                (let* ([char-idx (modulo (+ wave-idx (quotient x 2)) (length wave-chars))]
-                       [wave-char (list-ref wave-chars char-idx)]
-                       [c (draw-char-colored c (point x y) wave-char water-color color-default)])
-                  (x-loop (+ x 1) (+ wave-idx 1) c))))))))
+  (if (not (and (valid-integer? y-start 0 1000)
+                (valid-integer? y-end 0 1000)
+                (<= y-start y-end)))
+      (begin
+        (log-invalid-input "water-surface-bounds" (list y-start y-end))
+        canvas)
+      (let ([wave-chars (list #\~ #\≈ #\~ #\≈)])
+        (let y-loop ([y y-start] [c canvas] [depth 0])
+          (if (or (>= y y-end) (> depth MAX_RECURSION_DEPTH))
+              c
+              (let x-loop ([x 1] [wave-idx 0] [c c] [x-depth 0])
+                (if (or (>= x (- (canvas-width c) 1)) (> x-depth MAX_RECURSION_DEPTH))
+                    (y-loop (+ y 1) c (+ depth 1))
+                    (let* ([safe-idx (modulo wave-idx (length wave-chars))]
+                           [wave-char (safe-vector-ref (list->vector wave-chars) safe-idx #\~)])
+                      (x-loop (+ x 1) (+ wave-idx 1) 
+                             (draw-char-colored c (point x y) wave-char water-color color-default)
+                             (+ x-depth 1))))))))))
 
-;;; draw-ripple : Canvas × Point × Nat × Color → Canvas
-;;;
-;;; Draw a circular ripple effect at a given point.
-;;; Used for subtle water animation.
+;;; Secure draw-ripple with validation
 (define (draw-ripple canvas center radius ripple-color)
-  (let ([cx (point-x center)]
-        [cy (point-y center)])
-    (let ([c (draw-char-colored canvas center #\o ripple-color color-default)])
-      (if (> radius 0)
-          (let ([c (draw-char-colored c (point (- cx 1) cy) #\. ripple-color color-default)]
-                [c (draw-char-colored c (point (+ cx 1) cy) #\. ripple-color color-default)]
-                [c (draw-char-colored c (point cx (- cy 1)) #\. ripple-color color-default)]
-                [c (draw-char-colored c (point cx (+ cy 1)) #\. ripple-color color-default)])
-            c)
-          c))))
+  (if (not (and (pair? center)
+                (valid-integer? (point-x center) 0 1000)
+                (valid-integer? (point-y center) 0 1000)
+                (valid-integer? radius 0 100)))
+      (begin
+        (log-invalid-input "ripple-parameters" (list center radius))
+        canvas)
+      (let ([cx (point-x center)]
+            [cy (point-y center)])
+        (let ([c (draw-char-colored canvas center #\o ripple-color color-default)])
+          (if (> radius 0)
+              (let ([c (draw-char-colored c (point (max 0 (- cx 1)) cy) #\. ripple-color color-default)]
+                    [c (draw-char-colored c (point (+ cx 1) cy) #\. ripple-color color-default)]
+                    [c (draw-char-colored c (point cx (max 0 (- cy 1))) #\. ripple-color color-default)]
+                    [c (draw-char-colored c (point cx (+ cy 1)) #\. ripple-color color-default)])
+                c)
+              c)))))
 
 ;;; render-pond : Canvas × TimeOfDay → Canvas
 ;;;
@@ -91,18 +107,24 @@
 ;;; Plant Rendering
 ;;; ============================================================
 
-;;; draw-reed : Canvas × Point × Nat × Color → Canvas
-;;;
-;;; Draw a single reed/plant at a position with given height.
+;;; Secure draw-reed with validation
 (define (draw-reed canvas pos height reed-color)
-  (let ([x (point-x pos)]
-        [y (point-y pos)])
-    (let loop ([i 0] [c canvas])
-      (if (>= i height)
-          ;; Draw flower/top
-          (draw-char-colored c (point x (- y height)) #\* reed-color color-default)
-          (loop (+ i 1)
-                (draw-char-colored c (point x (- y i)) #\| reed-color color-default))))))
+  (if (not (and (pair? pos)
+                (valid-integer? (point-x pos) 0 1000)
+                (valid-integer? (point-y pos) 0 1000)
+                (valid-integer? height 1 50)))
+      (begin
+        (log-invalid-input "reed-parameters" (list pos height))
+        canvas)
+      (let ([x (point-x pos)]
+            [y (point-y pos)])
+        (let loop ([i 0] [c canvas] [depth 0])
+          (if (or (>= i height) (> depth MAX_RECURSION_DEPTH))
+              ;; Draw flower/top
+              (draw-char-colored c (point x (max 0 (- y height))) #\* reed-color color-default)
+              (loop (+ i 1)
+                    (draw-char-colored c (point x (max 0 (- y i))) #\| reed-color color-default)
+                    (+ depth 1)))))))
 
 ;;; draw-grass : Canvas × Nat × Color → Canvas
 ;;;
@@ -228,18 +250,19 @@
 ;;; Animated Environment
 ;;; ============================================================
 
-;;; frame->time-of-day : Nat → TimeOfDay
-;;;
-;;; Convert frame counter to time of day for animation.
-;;; Full cycle every 800 frames.
+;;; Secure frame->time-of-day with validation
 (define (frame->time-of-day frame)
-  (let ([cycle (modulo frame 800)])
-    (cond
-      [(< cycle 200) 'day]
-      [(< cycle 300) 'dusk]
-      [(< cycle 600) 'night]
-      [(< cycle 700) 'dawn]
-      [else 'day])))
+  (if (not (valid-integer? frame 0 1000000))  ; Reasonable frame limit
+      (begin
+        (log-invalid-input "frame-counter" frame)
+        'day)  ; Safe default
+      (let ([cycle (modulo frame 800)])
+        (cond
+          [(< cycle 200) 'day]
+          [(< cycle 300) 'dusk]
+          [(< cycle 600) 'night]
+          [(< cycle 700) 'dawn]
+          [else 'day]))))
 
 ;;; render-animated-environment : Nat × Nat × Nat → Canvas
 ;;;

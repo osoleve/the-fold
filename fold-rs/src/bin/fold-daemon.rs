@@ -1,0 +1,238 @@
+//! fold-daemon — Persistent REPL Daemon
+//!
+//! A file-based IPC system for The Fold.
+//! Polls for request files, evaluates them, writes responses.
+//!
+//! Protocol:
+//!   .fold-repl/
+//!     requests/<session-id>.ss   — Client writes expressions here
+//!     responses/<session-id>.txt — Daemon writes results here
+//!     ready                      — Sentinel file (exists = daemon running)
+//!
+//! Usage:
+//!   Start:  ./fold-daemon
+//!   Stop:   Delete .fold-repl/ready
+
+use std::collections::HashMap;
+use std::fs::{self, File};
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::thread;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
+use fold_rs::fabric::{eval_loop, Env, EnvRef, EvalOutcome, Value};
+use fold_rs::tools::{format_value, lower_program, parse_fold_program};
+
+const REPL_DIR: &str = ".fold-repl";
+const REQUESTS_DIR: &str = ".fold-repl/requests";
+const RESPONSES_DIR: &str = ".fold-repl/responses";
+const READY_FILE: &str = ".fold-repl/ready";
+const POLL_INTERVAL_MS: u64 = 100;
+const DEFAULT_FUEL: usize = 10_000;
+
+/// Session state for a connected client.
+struct Session {
+    id: String,
+    env: EnvRef,
+    last_active: Instant,
+}
+
+impl Session {
+    fn new(id: String) -> Self {
+        Self {
+            id,
+            env: Env::new(),
+            last_active: Instant::now(),
+        }
+    }
+
+    fn touch(&mut self) {
+        self.last_active = Instant::now();
+    }
+}
+
+/// The daemon state.
+struct Daemon {
+    sessions: HashMap<String, Session>,
+}
+
+impl Daemon {
+    fn new() -> Self {
+        Self {
+            sessions: HashMap::new(),
+        }
+    }
+
+    /// Get or create a session.
+    fn get_or_create_session(&mut self, session_id: &str) -> &mut Session {
+        if !self.sessions.contains_key(session_id) {
+            self.sessions
+                .insert(session_id.to_string(), Session::new(session_id.to_string()));
+        }
+        self.sessions.get_mut(session_id).unwrap()
+    }
+
+    /// Evaluate an expression string and return the result.
+    fn eval_source(&mut self, session_id: &str, source: &str) -> Result<String, String> {
+        let session = self.get_or_create_session(session_id);
+        session.touch();
+
+        // Parse the source
+        let parsed = parse_fold_program(source, Some(session_id))
+            .map_err(|err| format!("Parse error: {}", err))?;
+
+        // Lower to expressions
+        let exprs = lower_program(&parsed).map_err(|err| format!("Lower error: {}", err))?;
+
+        // Evaluate each expression, keeping the last result
+        let mut last_result = Value::Nil;
+        let env = session.env.clone();
+
+        for expr in exprs {
+            match eval_loop(expr, env.clone(), DEFAULT_FUEL) {
+                Ok(EvalOutcome::Done(value)) => {
+                    last_result = value;
+                }
+                Ok(EvalOutcome::Suspended { .. }) => {
+                    return Ok("[suspended - out of fuel]".to_string());
+                }
+                Err(err) => {
+                    return Err(format!("{}", err));
+                }
+            }
+        }
+
+        Ok(format!("=> {}", format_value(&last_result)))
+    }
+
+    /// Process a single request file.
+    fn process_request(&mut self, request_path: &Path) {
+        // Extract session ID from filename
+        let session_id = match request_path.file_stem() {
+            Some(stem) => stem.to_string_lossy().to_string(),
+            None => return,
+        };
+
+        // Read the request
+        let source = match fs::read_to_string(request_path) {
+            Ok(s) => s,
+            Err(err) => {
+                eprintln!("[{}] Failed to read request: {}", session_id, err);
+                return;
+            }
+        };
+
+        // Delete the request file immediately
+        if let Err(err) = fs::remove_file(request_path) {
+            eprintln!("[{}] Failed to remove request file: {}", session_id, err);
+        }
+
+        // Evaluate and get response
+        let response = match self.eval_source(&session_id, &source) {
+            Ok(result) => result,
+            Err(err) => format!("ERROR: {}", err),
+        };
+
+        // Write response
+        let response_path = PathBuf::from(RESPONSES_DIR).join(format!("{}.txt", session_id));
+        if let Err(err) = fs::write(&response_path, &response) {
+            eprintln!(
+                "[{}] Failed to write response to {:?}: {}",
+                session_id, response_path, err
+            );
+        }
+    }
+
+    /// Poll for new requests.
+    fn poll_requests(&mut self) {
+        let requests_path = Path::new(REQUESTS_DIR);
+        if !requests_path.exists() {
+            return;
+        }
+
+        // Read directory entries
+        let entries = match fs::read_dir(requests_path) {
+            Ok(entries) => entries,
+            Err(_) => return,
+        };
+
+        // Process each .ss file
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("ss") {
+                self.process_request(&path);
+            }
+        }
+    }
+
+    /// Run the daemon loop.
+    fn run(&mut self) {
+        let poll_interval = Duration::from_millis(POLL_INTERVAL_MS);
+
+        loop {
+            // Check if ready file still exists (deletion signals shutdown)
+            if !Path::new(READY_FILE).exists() {
+                println!("Ready file removed, shutting down...");
+                break;
+            }
+
+            self.poll_requests();
+            thread::sleep(poll_interval);
+        }
+    }
+}
+
+fn ensure_directories() -> std::io::Result<()> {
+    fs::create_dir_all(REPL_DIR)?;
+    fs::create_dir_all(REQUESTS_DIR)?;
+    fs::create_dir_all(RESPONSES_DIR)?;
+    Ok(())
+}
+
+fn write_ready_file() -> std::io::Result<()> {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let mut file = File::create(READY_FILE)?;
+    write!(file, "{}", timestamp)?;
+    Ok(())
+}
+
+fn clear_ready_file() {
+    let _ = fs::remove_file(READY_FILE);
+}
+
+fn print_banner() {
+    println!("============================================================");
+    println!("              THE FOLD - RUST REPL DAEMON                   ");
+    println!("============================================================");
+    println!("Watching: {}/", REQUESTS_DIR);
+    println!("Output:   {}/", RESPONSES_DIR);
+    println!("Waiting for requests...");
+    println!();
+}
+
+fn main() {
+    // Ensure directories exist
+    if let Err(err) = ensure_directories() {
+        eprintln!("Failed to create directories: {}", err);
+        std::process::exit(1);
+    }
+
+    // Write ready file
+    if let Err(err) = write_ready_file() {
+        eprintln!("Failed to write ready file: {}", err);
+        std::process::exit(1);
+    }
+
+    print_banner();
+
+    // Run daemon (stops when ready file is deleted)
+    let mut daemon = Daemon::new();
+    daemon.run();
+
+    // Cleanup
+    clear_ready_file();
+    println!("Daemon stopped.");
+}

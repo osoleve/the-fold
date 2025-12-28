@@ -3,6 +3,7 @@
 ;;; Let's have some fun with the new string utilities!
 
 (load "thimble/string-utils.ss")
+(load "playpen/security-utils.ss")
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║         STRING UTILITIES PLAYGROUND & STRESS TEST          ║\n")
@@ -45,7 +46,7 @@
 (printf "Emoji string: ~a\n" emoji-sentence)
 (printf "Length: ~a characters\n" (string-length emoji-sentence))
 
-(define emoji-list (map string (string->list emoji-sentence)))
+(define emoji-list (safe-list-take (map string (string->list emoji-sentence)) 100))
 (printf "Individual emoji: ~s\n" emoji-list)
 
 (define emoji-csv (string-join emoji-list ","))
@@ -190,6 +191,8 @@
     ("sender" . "The Fold System")))
 
 (define result (render template bindings))
+(when (string-empty? result)
+  (log-security-event 'template-render-failed "Template rendering produced empty result"))
 (printf "Rendered:\n~a\n\n" result)
 
 ;;; ============================================================
@@ -201,7 +204,7 @@
 
 (define big-string (string-join (make-list 100 "test") ","))
 (printf "Created string with 100 'test' words joined by commas\n")
-(printf "Length: ~a characters\n" (string-length big-string))
+(printf "Length: ~a characters\n" (safe-string-length big-string MAX_STRING_LENGTH))
 
 (define big-split (string-split big-string #\,))
 (printf "Split into: ~a parts\n" (length big-split))

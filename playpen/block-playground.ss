@@ -8,8 +8,9 @@
   (load "sha256.ss")
   (load "block.ss"))
 
-;; Load string utilities
+;; Load string utilities and security functions
 (load "thimble/string-utils.ss")
+(load "playpen/security-utils.ss")
 
 (printf "\n")
 (printf "╔═══════════════════════════════════════════════════════════════╗\n")
@@ -38,24 +39,33 @@
 (printf "🎯 Experiment 1: Creating Blocks\n")
 (printf "═════════════════════════════════════\n\n")
 
-;; Create a simple text block
+;; Create a simple text block with validation
 (define hello-block
-  (make-block
-    'text
-    (string->utf8 "Hello, Fold!")
-    (vector)))
+  (if (validate-block-content "Hello, Fold!")
+      (make-block
+        'text
+        (string->utf8 "Hello, Fold!")
+        (vector))
+      (begin
+        (log-security-event 'invalid-block-content "Hello, Fold!")
+        (make-block 'error (string->utf8 "Invalid content") (vector)))))
 
 (printf "Block 1: Simple text\n")
 (printf "  Tag:     ~a\n" (block-tag hello-block))
 (printf "  Payload: ~s\n" (utf8->string (block-payload hello-block)))
 (printf "  Refs:    ~a references\n\n" (vector-length (block-refs hello-block)))
 
-;; Create a block with metadata
+;; Create a block with metadata (validated)
+(define poem-content "Roses are red\nViolets are blue\nBlocks are content-addressed\nAnd immutable too")
 (define poem-block
-  (make-block
-    'poem
-    (string->utf8 "Roses are red\nViolets are blue\nBlocks are content-addressed\nAnd immutable too")
-    (vector)))
+  (if (validate-block-content poem-content)
+      (make-block
+        'poem
+        (string->utf8 poem-content)
+        (vector))
+      (begin
+        (log-security-event 'invalid-block-content poem-content)
+        (make-block 'error (string->utf8 "Invalid poem content") (vector)))))
 
 (printf "Block 2: A poem\n")
 (printf "  Tag:     ~a\n" (block-tag poem-block))
@@ -69,9 +79,17 @@
 (printf "🔐 Experiment 2: Content Addressing\n")
 (printf "════════════════════════════════════════\n\n")
 
-(define msg1 (make-block 'data (string->utf8 "test") (vector)))
-(define msg2 (make-block 'data (string->utf8 "test") (vector)))
-(define msg3 (make-block 'data (string->utf8 "TEST") (vector)))
+(define (safe-make-content-block tag content)
+  (if (and (valid-symbol? tag '(text data poem relation person concept))
+           (validate-block-content content))
+      (make-block tag (string->utf8 content) (vector))
+      (begin
+        (log-invalid-input "block-content" (cons tag content))
+        (make-block 'error (string->utf8 "Invalid block parameters") (vector)))))
+
+(define msg1 (safe-make-content-block 'data "test"))
+(define msg2 (safe-make-content-block 'data "test"))
+(define msg3 (safe-make-content-block 'data "TEST"))
 
 (define hash1 (hash-block msg1))
 (define hash2 (hash-block msg2))

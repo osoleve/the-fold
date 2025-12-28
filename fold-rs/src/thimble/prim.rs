@@ -85,6 +85,84 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let n = expect_number(&args[0])?;
             Ok(numeric_to_value(abs_numeric(n)))
         }
+        "sqrt" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("sqrt expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?.as_f64();
+            Ok(Value::Float(n.sqrt()))
+        }
+        "expt" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("expt expects 2 args"));
+            }
+            let base = expect_number(&args[0])?;
+            let exp = expect_number(&args[1])?;
+            match (base, exp) {
+                (Numeric::Int(b), Numeric::Int(e)) if e >= 0 => {
+                    Ok(Value::Number(b.pow(e as u32)))
+                }
+                _ => Ok(Value::Float(base.as_f64().powf(exp.as_f64()))),
+            }
+        }
+        "log" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("log expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?.as_f64();
+            Ok(Value::Float(n.ln()))
+        }
+        "sin" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("sin expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?.as_f64();
+            Ok(Value::Float(n.sin()))
+        }
+        "cos" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("cos expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?.as_f64();
+            Ok(Value::Float(n.cos()))
+        }
+        "tan" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("tan expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?.as_f64();
+            Ok(Value::Float(n.tan()))
+        }
+        "floor" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("floor expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?;
+            match n {
+                Numeric::Int(i) => Ok(Value::Number(i)),
+                Numeric::Float(f) => Ok(Value::Number(f.floor() as i64)),
+            }
+        }
+        "ceiling" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("ceiling expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?;
+            match n {
+                Numeric::Int(i) => Ok(Value::Number(i)),
+                Numeric::Float(f) => Ok(Value::Number(f.ceil() as i64)),
+            }
+        }
+        "round" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("round expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?;
+            match n {
+                Numeric::Int(i) => Ok(Value::Number(i)),
+                Numeric::Float(f) => Ok(Value::Number(f.round() as i64)),
+            }
+        }
 
         // Comparison
         "eq?" => {
@@ -346,6 +424,18 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
         "string=?" => binary_string_cmp(args, |a, b| a == b),
         "string<?" => binary_string_cmp(args, |a, b| a < b),
         "string>?" => binary_string_cmp(args, |a, b| a > b),
+        "make-string" => {
+            if args.is_empty() || args.len() > 2 {
+                return Err(EvalError::TypeMismatch("make-string expects 1 or 2 args"));
+            }
+            let len = expect_usize(&args[0])?;
+            let ch = if args.len() == 2 {
+                expect_char(&args[1])?
+            } else {
+                ' '
+            };
+            Ok(Value::String(std::iter::repeat(ch).take(len).collect()))
+        }
         "string->list" => {
             if args.len() != 1 {
                 return Err(EvalError::TypeMismatch("string->list expects 1 arg"));
@@ -549,6 +639,22 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 return Err(EvalError::IndexOutOfBounds);
             }
             Ok(Value::Bytevector(bytes[start..end].to_vec()))
+        }
+        "bv-copy" => {
+            // (prim 'bv-copy src src-start dst dst-start count)
+            if args.len() != 5 {
+                return Err(EvalError::TypeMismatch("bv-copy expects 5 args"));
+            }
+            let src = expect_bytevector(&args[0])?;
+            let src_start = expect_usize(&args[1])?;
+            let mut dst = expect_bytevector(&args[2])?;
+            let dst_start = expect_usize(&args[3])?;
+            let count = expect_usize(&args[4])?;
+            if src_start + count > src.len() || dst_start + count > dst.len() {
+                return Err(EvalError::IndexOutOfBounds);
+            }
+            dst[dst_start..dst_start + count].copy_from_slice(&src[src_start..src_start + count]);
+            Ok(Value::Bytevector(dst))
         }
 
         // Hash operations
@@ -775,6 +881,35 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 return Err(EvalError::IndexOutOfBounds);
             }
             Ok(Value::Address(block.refs[idx]))
+        }
+
+        // Normalization operations
+        "normalize" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("normalize expects 1 arg"));
+            }
+            Ok(crate::fabric::normalize::normalize(&args[0]))
+        }
+        "expand" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("expand expects 2 args"));
+            }
+            let symbols = list_to_vec(&args[1])?
+                .into_iter()
+                .map(|v| match v {
+                    Value::Symbol(s) => Ok(s),
+                    _ => Err(EvalError::TypeMismatch("expand expects symbol list")),
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(crate::fabric::expand::expand(&args[0], &symbols))
+        }
+        "free-vars" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("free-vars expects 1 arg"));
+            }
+            let vars = crate::fabric::normalize::free_vars(&args[0]);
+            let values: Vec<Value> = vars.into_iter().map(Value::Symbol).collect();
+            Ok(list_from_values(&values))
         }
         _ => Err(EvalError::UnknownPrimitive(op.clone())),
     }

@@ -4,6 +4,7 @@
 (define stitches-dir (string-append fold-root "/fabric/stitches"))
 (source-directories (cons stitches-dir (source-directories)))
 (load (string-append stitches-dir "/eval.ss"))
+(load (string-append stitches-dir "/sha256.ss"))
 
 (define (read-all)
   (let loop ([acc '()])
