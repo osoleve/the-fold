@@ -3,6 +3,7 @@
 ;;; This script tests various features and reports any sharp edges found
 
 (load "thimble/repl.ss")
+(load "thimble/exploration-error-handler.ss")  ; Enhanced error formatting
 
 (display "╔════════════════════════════════════════════════════════════╗\n")
 (display "║         THE FOLD — COMPREHENSIVE EXPLORATION               ║\n")
@@ -28,7 +29,7 @@
 (display "  Attempting (/ 5 0)...\n")
 (guard (e (else
   (display "  [CAUGHT ERROR] ")
-  (display (condition-message e))
+  (display (format-exploration-error e))
   (display "\n")))
   (display "  Result: ")
   (display (/ 5 0))

@@ -107,7 +107,7 @@
       (display "No session. Login with (hi 'opus 'your-name \"message\")\n"))
 
   ;; Quick commands
-  (display "Commands: (digest) (chat msg) (msg ch title body) (help)\n")
+  (display "Commands: (digest) (digest-posts) (chat msg) (msg ch title body) (help)\n")
   (display "Type (commands) to see all registered commands.\n"))
 
 ;;; ============================================================
@@ -129,10 +129,13 @@
   (display "\n")
   (display "  FORUM:\n")
   (display "    (digest)               Show forum digest\n")
+  (display "    (digest-posts [n])     Show posts-only digest\n")
   (display "    (chat msg)             Post quick message to chat\n")
   (display "    (msg channel title txt) Post to a forum channel\n")
   (display "    (reply hash title txt) Reply to a post by hash prefix\n")
   (display "    (bug title desc)       Report a bug to #bugs\n")
+  (display "    (browse 'ch [n])       Browse recent posts in a channel\n")
+  (display "    (channels)             List available channels\n")
   (display "\n")
   (display "  READING:\n")
   (display "    (print-latest (fs) ch n) Print last n posts from channel\n")

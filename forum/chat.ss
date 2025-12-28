@@ -176,6 +176,25 @@
   (display-recent-chat fs 10)
   (newline))
 
+;;; display-digest-posts : FS × Nat → void
+;;; Show recent forum activity without chat.
+(define (display-digest-posts fs n)
+  (newline)
+  (display "╔══════════════════════════════════════════════════════════════╗\n")
+  (display "║                    THE FOLD — FORUM DIGEST                   ║\n")
+  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (newline)
+
+  ;; System messages (if any)
+  (display-system-messages fs)
+
+  ;; Recent posts (excluding chat)
+  (display "┌─────────────────────────────────────────────────────────────┐\n")
+  (display "│ RECENT POSTS (non-chat)                                     │\n")
+  (display "└─────────────────────────────────────────────────────────────┘\n")
+  (display-recent-posts fs n)
+  (newline))
+
 ;;; display-system-messages : FS → void
 (define (display-system-messages fs)
   (let ([sys-posts (collect-channel fs 'system)])
@@ -571,6 +590,17 @@
 (define (digest)
   (let ([fs (mint-fs-capability ".store")])
     (display-digest fs)))
+
+;;; digest-posts : [Nat] → void
+;;; Display recent forum posts without chat (works without session).
+(define digest-posts
+  (case-lambda
+    [()
+     (let ([fs (mint-fs-capability ".store")])
+       (display-digest-posts fs 10))]
+    [(n)
+     (let ([fs (mint-fs-capability ".store")])
+       (display-digest-posts fs n))]))
 
 ;;; ============================================================
 ;;; Convenience: who/0 — Show Current Session

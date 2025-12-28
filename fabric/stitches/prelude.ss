@@ -96,6 +96,58 @@
       (drop (- n 1) (cdr lst))))
 
 ;;; ============================================================
+;;; Collection Utilities (Missing Functional Primitives)
+;;; ============================================================
+
+;;; identity : α → α
+;;; The identity function - returns its argument unchanged.
+(define (identity x) x)
+
+;;; flatten : (List (List α)) → (List α)
+;;; Flatten a list of lists into a single list.
+(define (flatten lst-of-lists)
+  (fold-right append '() lst-of-lists))
+
+;;; partition : (α → Bool) × (List α) → (List (List α) (List α))
+;;; Partition list into two lists: those satisfying predicate, and those that don't.
+(define (partition pred lst)
+  (let loop ([lst lst] [yes '()] [no '()])
+    (cond
+      [(null? lst) (list (reverse yes) (reverse no))]
+      [(pred (car lst)) (loop (cdr lst) (cons (car lst) yes) no)]
+      [else (loop (cdr lst) yes (cons (car lst) no))])))
+
+;;; group-by : (α → β) × (List α) → (List (Pair β (List α)))
+;;; Group consecutive elements by key function result.
+(define (group-by key-fn lst)
+  (if (null? lst)
+      '()
+      (let ([first-key (key-fn (car lst))])
+        (let loop ([remaining lst] [current-key first-key] [current-group '()] [result '()])
+          (cond
+            [(null? remaining)
+             (reverse (cons (cons current-key (reverse current-group)) result))]
+            [(equal? (key-fn (car remaining)) current-key)
+             (loop (cdr remaining) current-key (cons (car remaining) current-group) result)]
+            [else
+             (let ([new-key (key-fn (car remaining))])
+               (loop (cdr remaining) new-key (list (car remaining)) 
+                     (cons (cons current-key (reverse current-group)) result)))])))))
+
+;;; distinct-by : (α → β) × (List α) → (List α)
+;;; Remove duplicates based on key function, preserving first occurrence order.
+(define (distinct-by key-fn lst)
+  (let loop ([lst lst] [seen '()] [result '()])
+    (cond
+      [(null? lst) (reverse result)]
+      [else
+       (let* ([elem (car lst)]
+              [key (key-fn elem)])
+         (if (member key seen)
+             (loop (cdr lst) seen result)
+             (loop (cdr lst) (cons key seen) (cons elem result))))])))
+
+;;; ============================================================
 ;;; Result Type (Standardized Error Handling)
 ;;; ============================================================
 

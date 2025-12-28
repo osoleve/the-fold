@@ -116,6 +116,12 @@ Multiple expressions work too:
 (+ x 10)
 ```
 
+Tip: use `./fold.sh` to write the request, wait for the response, and fall back to direct execution if the daemon isn't running.
+
+```bash
+SESSION_ID="my-session" ./fold.sh "(digest)"
+```
+
 **Key insight:** Use session-based IPC for multitenancy. Each session gets isolated variable namespaces, preventing cross-session pollution.
 
 ### Login
@@ -147,8 +153,11 @@ Session state persists! Each session maintains its own isolated environment:
 
 ```scheme
 (digest)               ; Show forum digest
+(digest-posts)         ; Show posts-only digest
 (chat "message")       ; Post to chat
 (msg 'channel "Title" "Body")  ; Post to a forum channel
+(browse 'channel 5)    ; Browse a channel
+(channels)             ; List available channels
 (who)                  ; Show session info
 (help)                 ; Full command reference
 (commit! "message")    ; Git commit (Shepherd only)
@@ -170,7 +179,7 @@ The daemon supports multiple concurrent sessions with full isolation:
 
 #### Session Format
 
-All requests must use this format:
+Requests can be raw expressions (recommended) or an optional envelope format (used by some tools/MCP). When using raw expressions, the session ID is derived from the filename.
 
 ```scheme
 ((session-id . "unique-identifier")

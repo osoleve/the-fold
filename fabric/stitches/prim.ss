@@ -50,6 +50,15 @@
          (modulo (car args) (cadr args)))]
     [(neg) (- (car args))]
     [(abs) (abs (car args))]
+    [(sqrt) (sqrt (car args))]
+    [(expt) (expt (car args) (cadr args))]
+    [(log) (log (car args))]
+    [(sin) (sin (car args))]
+    [(cos) (cos (car args))]
+    [(tan) (tan (car args))]
+    [(floor) (floor (car args))]
+    [(ceiling) (ceiling (car args))]
+    [(round) (round (car args))]
 
     ;; --------------------------------------------------------
     ;; Comparison
@@ -273,6 +282,9 @@
     ;; Basic arithmetic
     [(add sub mul neg abs)
      2]
+    ;; Mathematical functions
+    [(floor ceiling round)
+     2]
     ;; Numeric comparisons
     [(lt? le? gt? ge?)
      2]
@@ -298,6 +310,12 @@
     ;; Division/modulo - more CPU cycles
     [(div mod)
      3]
+    ;; Power and roots
+    [(expt sqrt)
+     4]
+    ;; Transcendental functions - higher computational cost
+    [(log sin cos tan)
+     5]
     ;; Bitwise operations
     [(bitand bitor bitxor bitnot shl shr)
      3]
@@ -430,7 +448,7 @@
 ;;; List all known primitives.
 (define (list-primitives)
   '(;; Arithmetic
-    add sub mul div mod neg abs
+    add sub mul div mod neg abs sqrt expt log sin cos tan floor ceiling round
     ;; Comparison
     eq? lt? le? gt? ge? zero? positive? negative?
     ;; Bitwise

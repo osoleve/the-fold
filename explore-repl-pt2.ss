@@ -1,6 +1,7 @@
 ;;; explore-repl-pt2.ss — Further exploration of Fold features
 
 (load "thimble/repl.ss")
+(load "thimble/exploration-error-handler.ss")  ; Enhanced error formatting
 
 (display "\n╔════════════════════════════════════════════════════════════╗\n")
 (display "║       THE FOLD — EXPLORATION PART 2 (ADVANCED)             ║\n")
@@ -36,7 +37,7 @@
 (display "  Attempting (string-ref \"abc\" 10)...\n")
 (guard (e (else
   (display "    [CAUGHT ERROR] ")
-  (display (condition-message e))
+  (display (format-exploration-error e))
   (display "\n")))
   (display "    Result: ")
   (display (string-ref "abc" 10))
@@ -47,7 +48,7 @@
 (display "  (car '()) on empty list...\n")
 (guard (e (else
   (display "    [CAUGHT ERROR] ")
-  (display (condition-message e))
+  (display (format-exploration-error e))
   (display "\n")))
   (display "    Result: ")
   (display (car '()))
@@ -121,7 +122,7 @@
 (display "  (+ \"5\" 3) - attempting string + number...\n")
 (guard (e (else
   (display "    [CAUGHT ERROR] ")
-  (display (condition-message e))
+  (display (format-exploration-error e))
   (display "\n")))
   (display "    Result: ")
   (display (+ "5" 3))
@@ -219,7 +220,9 @@
 ;;; Test 24: Multiple return values
 (display "\nTEST 24: Values and call-with-values\n")
 (display "  Testing (values 1 2 3)...\n")
-(guard (e (else (display "    [NOT AVAILABLE or ERROR]")))
+(guard (e (else 
+  (display "    [NOT AVAILABLE or ERROR] ")
+  (display (format-exploration-error e))))
   (display "    Result: ")
   (display (values 1 2 3))
   (display "\n"))

@@ -203,6 +203,20 @@
         [else #f]))))
 
 ;;; ============================================================
+;;; String Case Conversion (Tier 5)
+;;; ============================================================
+
+;;; string-upcase : String → String
+;;; Convert string to uppercase.
+(define (string-upcase str)
+  (list->string (map char-upcase (string->list str))))
+
+;;; string-downcase : String → String  
+;;; Convert string to lowercase.
+(define (string-downcase str)
+  (list->string (map char-downcase (string->list str))))
+
+;;; ============================================================
 ;;; String Padding (Tier 5)
 ;;; ============================================================
 
