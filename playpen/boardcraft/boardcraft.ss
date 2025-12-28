@@ -33,10 +33,15 @@
 (display "  Loading visibility.ss...\n")
 (load "playpen/boardcraft/visibility.ss")
 
+;;; Board rendering (ASCII art)
+(display "  Loading render.ss...\n")
+(load "playpen/boardcraft/render.ss")
+
 (display "BoardCraft SDK loaded successfully!\n")
 (display "Available tile shapes: square, hex, triangle\n")
 (display "Pathfinding: BFS, Dijkstra, A*\n")
 (display "Visibility: Line of sight, Field of view\n")
+(display "Rendering: ASCII art visualization\n")
 (display "See playpen/boardcraft/README.ss for documentation.\n")
 (newline)
 
