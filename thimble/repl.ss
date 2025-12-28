@@ -77,6 +77,9 @@
 ;; Patch system
 (load "thimble/patches.ss")
 
+;; Tutorial system - Load early to ensure functions are available
+(load "thimble/tutorial-session-fix.ss")   ; Fixed tutorial with session handling and error recovery
+
 ;;; ============================================================
 ;;; Quiet Mode
 ;;; ============================================================
@@ -108,6 +111,7 @@
 
   ;; Quick commands
   (display "Commands: (digest) (digest-posts) (chat msg) (msg ch title body) (help)\n")
+  (display "New to The Fold? Try (start-tutorial) for an interactive guide!\n")
   (display "Type (commands) to see all registered commands.\n"))
 
 ;;; ============================================================
@@ -136,6 +140,15 @@
   (display "    (bug title desc)       Report a bug to #bugs\n")
   (display "    (browse 'ch [n])       Browse recent posts in a channel\n")
   (display "    (channels)             List available channels\n")
+  (display "\n")
+  (display "  TUTORIALS:\n")
+  (display "    (start-tutorial)       Start interactive tutorial\n")
+  (display "    (tutorial-next)        Next tutorial step\n")
+  (display "    (tutorial-do)          Do tutorial exercise\n")
+  (display "    (tutorial-skip)        Skip tutorial step\n")
+  (display "    (tutorial-help)        Get tutorial help\n")
+  (display "    (tutorial-status)      Show tutorial progress\n")
+  (display "    (list-tutorials)       List available tutorials\n")
   (display "\n")
   (display "  READING:\n")
   (display "    (print-latest (fs) ch n) Print last n posts from channel\n")
