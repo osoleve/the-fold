@@ -84,6 +84,16 @@
       string-upcase string-downcase string-titlecase
       string-contains string-prefix? string-suffix?
 
+      ;; String utilities (thimble/string-utils.ss)
+      string-contains? string-starts-with? string-ends-with?
+      string-index-of string-last-index-of
+      string-split string-join
+      string-trim string-trim-left string-trim-right
+      string-replace string-reverse
+      string-empty? string-blank? string-all-match?
+      string-pad-left string-pad-right
+      whitespace?
+
       ;; Primitives - characters
       char? char=? char<? char>? char<=? char>=?
       char->integer integer->char
@@ -215,8 +225,25 @@
       ;; Metadata tags
       tags tag-report find-tagged extract-tags
 
+      ;; Collection utilities (fabric/patterns/collection-utils.ss)
+      collection-hashes collection-size collection-empty?
+      map-collection filter-collection fold-collection for-each-collection
+      collection-find collection-any? collection-all?
+      collection-count-matching collection-partition collection-group-by
+      make-collection-from-blocks collection-add collection-remove collection-merge
+
+      ;; Store API (thimble/store-api.ss)
+      store-put! store-get store-exists?
+      store-all-hashes store-count store-all-blocks
+      store-filter store-find-by-tag store-find-by-payload
+      store-find-by-payload-contains store-find-by-ref
+      store-put-many! store-get-many
+      store-stats store-print-stats
+      store-get-refs store-get-referrers
+      store-get-entities store-get-relations store-get-collections
+
       ;; Other utilities
-      repeat
+      repeat foldr reduce
 
       ;; Fold language keywords (used inside fold-eval/fold-type expressions)
       fn fix prim ann case make-block
