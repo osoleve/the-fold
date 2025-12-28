@@ -6,9 +6,9 @@ The Structured REPL Command Subsystem (3.2) is now integrated into The Fold.
 
 ## Key Files
 
-- **`/home/user/the-fold/shell/commands.ss`** - Main implementation (12KB)
-- **`/home/user/the-fold/shell/COMMANDS.md`** - Full documentation
-- **`/home/user/the-fold/shell/commands-example.ss`** - Extension examples
+- **`shell/commands.ss`** - Main implementation (12KB)
+- **`shell/COMMANDS.md`** - Full documentation
+- **`shell/commands-example.ss`** - Extension examples
 
 ## Basic Usage
 
@@ -112,7 +112,7 @@ scheme --quiet --script test-commands-demo.ss
 
 ## Next Steps
 
-1. **Read documentation**: `/home/user/the-fold/shell/COMMANDS.md`
+1. **Read documentation**: `shell/COMMANDS.md`
 2. **Try examples**: Load `commands-example.ss`
 3. **Create your own**: Use `register-command!` to add custom commands
 4. **Full report**: See `IMPLEMENTATION-REPORT.md` for technical details

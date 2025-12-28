@@ -57,7 +57,7 @@
 
 ;;; make-relative-path : String × String → String
 ;;; Convert absolute path to relative path from root.
-;;; Example: ("/home/user/fold", "/home/user/fold/forum/test.sexp") → "forum/test.sexp"
+;;; Example: ("<project-root>", "<project-root>/forum/test.sexp") → "forum/test.sexp"
 (define (make-relative-path root-dir absolute-path)
   (let ([root-len (string-length root-dir)])
     (if (and (>= (string-length absolute-path) root-len)

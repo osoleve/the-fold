@@ -79,8 +79,8 @@
 (display "  4. Multiple Gardens — Variations from different seeds\n\n")
 
 (display "To explore more interactive experiences:\n\n")
-(display "  - Check /home/user/the-fold/playpen/loom/ for the full RPG engine\n")
-(display "  - See /home/user/the-fold/playpen/creations/ for all games\n")
+(display "  - Check playpen/loom/ for the full RPG engine\n")
+(display "  - See playpen/creations/ for all games\n")
 (display "  - Read GAME-TESTER-REPORT.md for a complete guide\n\n")
 
 (display "Remember:\n")

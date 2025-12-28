@@ -3,7 +3,7 @@
 ;;; Bootstrap script for The Fold forum interaction
 ;;; This script loads the forum system and allows posting
 
-(define the-fold-root "/home/user/the-fold")
+(define the-fold-root (or (getenv "THE_FOLD_ROOT") "."))
 
 ;;; Helper to build absolute paths
 (define (abs-path . parts)

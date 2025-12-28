@@ -15,7 +15,7 @@ An amazing collection of interactive games and creative experiences was discover
 ## Games & Experiences Discovered
 
 ### 1. **Digital Zen Garden** 📿
-**Location**: `/home/user/the-fold/playpen/zen-garden.ss`
+**Location**: `playpen/zen-garden.ss`
 **Type**: Procedural ASCII Art Generator
 **Description**: Generates peaceful ASCII gardens with rocks, plants, trees, water features, and raked sand patterns. Each garden is unique based on a seed and includes haiku poetry.
 
@@ -38,7 +38,7 @@ An amazing collection of interactive games and creative experiences was discover
 ---
 
 ### 2. **RPG Engine & Demo Game** 🎮
-**Location**: `/home/user/the-fold/playpen/loom/`
+**Location**: `playpen/loom/`
 **Type**: Complete 2D Tile-Based RPG SDK
 **Description**: A full Entity-Component System with turn-based combat, AI behaviors, dungeon generation, and complete roguelike gameplay.
 
@@ -66,7 +66,7 @@ An amazing collection of interactive games and creative experiences was discover
 ---
 
 ### 3. **Continuation Quest** ⏪
-**Location**: `/home/user/the-fold/playpen/creations/continuation-quest.ss`
+**Location**: `playpen/creations/continuation-quest.ss`
 **Type**: Text Adventure with Time Travel
 **Description**: A creative text adventure game that uses Scheme's `call/cc` (continuations) for time travel and save/restore mechanics.
 
@@ -85,7 +85,7 @@ An amazing collection of interactive games and creative experiences was discover
 ---
 
 ### 4. **State Dungeon** 🏰
-**Location**: `/home/user/the-fold/playpen/creations/state-dungeon.ss`
+**Location**: `playpen/creations/state-dungeon.ss`
 **Type**: Functional Dungeon Crawler
 **Description**: A mini dungeon crawler using The Fold's State monad for pure state management without mutation.
 
@@ -105,7 +105,7 @@ An amazing collection of interactive games and creative experiences was discover
 ---
 
 ### 5. **Dice Games & Utilities** 🎲
-**Location**: `/home/user/the-fold/playpen/creations/dice-games.ss`
+**Location**: `playpen/creations/dice-games.ss`
 **Type**: Game Utilities and Storytelling Tools
 **Description**: A collection of dice rolling utilities for RPG-style games and creative storytelling.
 
@@ -128,7 +128,7 @@ An amazing collection of interactive games and creative experiences was discover
 ---
 
 ### 6. **ASCII Waves Animation** 🌊
-**Location**: `/home/user/the-fold/playpen/ascii-waves.ss`
+**Location**: `playpen/ascii-waves.ss`
 **Type**: Animated Visual Demo
 **Description**: A mesmerizing sine wave animation using the canvas system, demonstrating procedural animation.
 
@@ -142,7 +142,7 @@ An amazing collection of interactive games and creative experiences was discover
 ---
 
 ### 7. **Fold Explorer Navigation Helper** 🗺️
-**Location**: `/home/user/the-fold/playpen/creations/fold-explorer.ss`
+**Location**: `playpen/creations/fold-explorer.ss`
 **Type**: Navigation & Learning Tool
 **Description**: A utility to help players explore and understand The Fold system, learning about the tier system, directory structure, and community channels.
 
@@ -164,7 +164,7 @@ An amazing collection of interactive games and creative experiences was discover
 ---
 
 ### 8. **DUCKIE Dialogue System** 🦆
-**Location**: `/home/user/the-fold/playpen/creations/duckie-dialogue.ss`
+**Location**: `playpen/creations/duckie-dialogue.ss`
 **Type**: Character Personality & Dialogue
 **Description**: A collection of personality-driven dialogue responses for DUCKIE, showing different moods and emotional states through text.
 
@@ -184,7 +184,7 @@ An amazing collection of interactive games and creative experiences was discover
 ---
 
 ### 9. **Color Palette Explorer** 🎨 [NEW CREATION]
-**Location**: `/home/user/the-fold/playpen/creations/color-palette-explorer.ss`
+**Location**: `playpen/creations/color-palette-explorer.ss`
 **Type**: ASCII Art & Pattern Generator
 **Description**: An interactive system for exploring and generating beautiful ASCII art color palettes with various gradient types and mosaic art.
 
@@ -292,7 +292,7 @@ An amazing collection of interactive games and creative experiences was discover
 ## Directory Reference
 
 ```
-/home/user/the-fold/playpen/
+playpen/
 ├── zen-garden.ss                    (Meditation garden)
 ├── ascii-waves.ss                   (Wave animation)
 ├── rpg/                             (Complete RPG SDK)

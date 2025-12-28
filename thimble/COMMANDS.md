@@ -6,8 +6,8 @@ The Structured REPL Command Subsystem provides a unified framework for command d
 
 ## Location
 
-- **Implementation**: `/home/user/the-fold/shell/commands.ss`
-- **Integration**: `/home/user/the-fold/shell/repl.ss`
+- **Implementation**: `thimble/commands.ss`
+- **Integration**: `thimble/repl.ss`
 
 ## Features
 
@@ -126,7 +126,7 @@ All registered commands are also available as direct Scheme functions:
 
 ## Integration with REPL
 
-The command system is loaded automatically by `shell/repl.ss`:
+The command system is loaded automatically by `thimble/repl.ss`:
 
 1. `commands.ss` is loaded after all dependencies
 2. Core commands are auto-registered on load

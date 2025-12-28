@@ -116,9 +116,9 @@ Then use commands:
 
 ## Files Created
 
-- `/home/user/the-fold/playpen/creations/fortune-cookies.ss` - Main utility
-- `/home/user/the-fold/playpen/creations/FORTUNE-COOKIES-README.sexp` - Documentation
-- `/home/user/the-fold/playpen/creations/FORTUNE-COOKIES-SUMMARY.md` - This file
+- `playpen/creations/fortune-cookies.ss` - Main utility
+- `playpen/creations/FORTUNE-COOKIES-README.sexp` - Documentation
+- `playpen/creations/FORTUNE-COOKIES-SUMMARY.md` - This file
 
 ## Why This Creation?
 
