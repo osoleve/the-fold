@@ -460,6 +460,250 @@
   (test-false "string-contains? too long" (string-contains? "hi" "hello"))
   
   ;; ============================================================
+  ;; Education Form Recognition Tests
+  ;; ============================================================
+  (display "
+--- Education Form Recognition ---
+")
+  
+  (test-true "satin-lesson?" (satin-lesson? '(lesson intro-lesson)))
+  (test-false "satin-lesson? node" (satin-lesson? '(node foo)))
+  
+  (test-true "satin-mcq?" (satin-mcq? '(mcq q1)))
+  (test-false "satin-mcq? exercise" (satin-mcq? '(exercise q1)))
+  
+  (test-true "satin-short-answer?" (satin-short-answer? '(short-answer sa1)))
+  (test-false "satin-short-answer? mcq" (satin-short-answer? '(mcq q1)))
+  
+  (test-true "satin-code-task?" (satin-code-task? '(code-task task1)))
+  (test-false "satin-code-task? node" (satin-code-task? '(node n1)))
+  
+  (test-true "satin-mastery?" (satin-mastery? '(mastery skill1)))
+  (test-false "satin-mastery? quest" (satin-mastery? '(quest q1)))
+  
+  ;; ============================================================
+  ;; Lesson Extraction Tests
+  ;; ============================================================
+  (display "
+--- Lesson Extraction ---
+")
+  
+  (let ([lesson '(lesson scheme-basics
+                  (title "Introduction to Scheme")
+                  (objectives "Understand S-expressions" "Write basic forms")
+                  (prerequisites scheme-setup)
+                  (sequence node-intro mcq-1 exercise-1)
+                  (on-complete (set-flag! scheme-basics-done?)))])
+       (test "lesson-id" 'scheme-basics (satin-lesson-id lesson))
+       (test "lesson-title" "Introduction to Scheme" (satin-lesson-title lesson))
+       (test "lesson-objectives" '("Understand S-expressions" "Write basic forms")
+             (satin-lesson-objectives lesson))
+       (test "lesson-prerequisites" '(scheme-setup) (satin-lesson-prerequisites lesson))
+       (test "lesson-sequence" '(node-intro mcq-1 exercise-1) (satin-lesson-sequence lesson))
+       (test "lesson-on-complete count" 1 (length (satin-lesson-on-complete lesson))))
+  
+  ;; ============================================================
+  ;; MCQ Extraction Tests
+  ;; ============================================================
+  (display "
+--- MCQ Extraction ---
+")
+  
+  (let ([mcq '(mcq what-is-lambda
+               (question "What is a lambda expression?")
+               (options "A variable" "An anonymous function" "A loop" "A string")
+               (correct 2)
+               (explanation "Lambda creates anonymous functions")
+               (hints "Think about functions"))])
+       (test "mcq-id" 'what-is-lambda (satin-mcq-id mcq))
+       (test "mcq-question" "What is a lambda expression?" (satin-mcq-question mcq))
+       (test "mcq-options count" 4 (length (satin-mcq-options mcq)))
+       (test "mcq-correct" 2 (satin-mcq-correct mcq))
+       (test "mcq-explanation" "Lambda creates anonymous functions" (satin-mcq-explanation mcq))
+       (test "mcq-hints count" 1 (length (satin-mcq-hints mcq))))
+  
+  ;; ============================================================
+  ;; Short Answer Extraction Tests
+  ;; ============================================================
+  (display "
+--- Short Answer Extraction ---
+")
+  
+  (let ([sa '(short-answer define-function
+              (question "What keyword defines a function?")
+              (expected "define")
+              (hints "It starts with 'd'"))])
+       (test "short-answer-id" 'define-function (satin-short-answer-id sa))
+       (test "short-answer-question" "What keyword defines a function?" (satin-short-answer-question sa))
+       (test "short-answer-expected" "define" (satin-short-answer-expected sa))
+       (test "short-answer-hints count" 1 (length (satin-short-answer-hints sa))))
+  
+  ;; ============================================================
+  ;; Code Task Extraction Tests
+  ;; ============================================================
+  (display "
+--- Code Task Extraction ---
+")
+  
+  (let ([ct '(code-task write-add
+              (title "Write an add function")
+              (description "Write a function that adds two numbers")
+              (starter "(define (add a b)
+  ; your code here
+  )")
+              (solution "(define (add a b) (+ a b))")
+              (tests
+               (test "adds 1 + 2" (answer-eq? 3))
+               (test "adds 0 + 0" (answer-eq? 0)))
+              (hints "Use the + operator" "Two arguments"))])
+       (test "code-task-id" 'write-add (satin-code-task-id ct))
+       (test "code-task-title" "Write an add function" (satin-code-task-title ct))
+       (test "code-task-description" "Write a function that adds two numbers" (satin-code-task-description ct))
+       (test-pred "code-task-starter" string? (satin-code-task-starter ct))
+       (test "code-task-tests count" 2 (length (satin-code-task-tests ct)))
+       (test "code-task-hints count" 2 (length (satin-code-task-hints ct))))
+  
+  ;; ============================================================
+  ;; Mastery Extraction Tests
+  ;; ============================================================
+  (display "
+--- Mastery Extraction ---
+")
+  
+  (let ([mastery '(mastery recursion-skill
+                   (skill "Recursive Thinking")
+                   (levels beginner intermediate advanced)
+                   (threshold 3)
+                   (exercises rec-1 rec-2 rec-3 rec-4))])
+       (test "mastery-id" 'recursion-skill (satin-mastery-id mastery))
+       (test "mastery-skill" "Recursive Thinking" (satin-mastery-skill mastery))
+       (test "mastery-levels" '(beginner intermediate advanced) (satin-mastery-levels mastery))
+       (test "mastery-threshold" 3 (satin-mastery-threshold mastery))
+       (test "mastery-exercises" '(rec-1 rec-2 rec-3 rec-4) (satin-mastery-exercises mastery)))
+  
+  ;; ============================================================
+  ;; Education Form Compilation Tests
+  ;; ============================================================
+  (display "
+--- Education Form Compilation ---
+")
+  
+  ;; Test MCQ compilation
+  (let* ([mcq '(mcq test-mcq
+                (question "Which is correct?")
+                (options "A" "B" "C")
+                (correct 2))]
+         [compiled (satin-compile-mcq mcq)])
+        (test "mcq compile is exercise" #t (quill-exercise%? compiled))
+        (test "mcq compile id" 'test-mcq (quill-exercise-id compiled))
+        (test-pred "mcq has checks" (lambda (x) (> (length x) 0)) (quill-exercise-checks compiled))
+        (let ([meta (quill-exercise-meta compiled)])
+             (test "mcq meta type" 'mcq (cdr (assq 'type meta)))
+             (test "mcq meta correct" 2 (cdr (assq 'correct meta)))))
+  
+  ;; Test short-answer compilation
+  (let* ([sa '(short-answer test-sa
+               (question "What is 2+2?")
+               (expected "4"))]
+         [compiled (satin-compile-short-answer sa)])
+        (test "short-answer compile is exercise" #t (quill-exercise%? compiled))
+        (test "short-answer compile id" 'test-sa (quill-exercise-id compiled))
+        (let ([meta (quill-exercise-meta compiled)])
+             (test "short-answer meta type" 'short-answer (cdr (assq 'type meta)))))
+  
+  ;; Test code-task compilation
+  (let* ([ct '(code-task test-ct
+               (title "Test Task")
+               (description "Do something"))]
+         [compiled (satin-compile-code-task ct)])
+        (test "code-task compile is exercise" #t (quill-exercise%? compiled))
+        (test "code-task compile id" 'test-ct (quill-exercise-id compiled))
+        (let ([meta (quill-exercise-meta compiled)])
+             (test "code-task meta type" 'code-task (cdr (assq 'type meta)))))
+  
+  ;; Test lesson compilation
+  (let* ([lesson '(lesson test-lesson
+                   (title "Test Lesson")
+                   (objectives "Learn stuff")
+                   (sequence node1 mcq1))]
+         [compiled (satin-compile-lesson lesson)])
+        (test "lesson compile id" 'test-lesson (cdr (assq 'id compiled)))
+        (test "lesson compile title" "Test Lesson" (cdr (assq 'title compiled)))
+        (test "lesson compile objectives" '("Learn stuff") (cdr (assq 'objectives compiled))))
+  
+  ;; Test mastery compilation
+  (let* ([mastery '(mastery test-mastery
+                    (skill "Testing")
+                    (threshold 5))]
+         [compiled (satin-compile-mastery mastery)])
+        (test "mastery compile id" 'test-mastery (cdr (assq 'id compiled)))
+        (test "mastery compile skill" "Testing" (cdr (assq 'skill compiled)))
+        (test "mastery compile threshold" 5 (cdr (assq 'threshold compiled))))
+  
+  ;; ============================================================
+  ;; Full Story with Education Forms
+  ;; ============================================================
+  (display "
+--- Story with Education Forms ---
+")
+  
+  (let* ([spec '(satin-story
+                 (id edu-demo)
+                 (title "Education Demo")
+                 (start intro)
+                 
+                 (node intro
+                       (title "Welcome")
+                       (body "Welcome to the lesson")
+                       (choice "Start" lesson1))
+                 
+                 (node lesson1
+                       (title "Lesson 1")
+                       (body "Learn this")
+                       (choice "Done" ending))
+                 
+                 (node ending
+                       (title "End")
+                       (body "Complete")
+                       (end))
+                 
+                 (lesson basics
+                         (title "The Basics")
+                         (objectives "Learn" "Practice")
+                         (sequence intro lesson1 ending))
+                 
+                 (mcq test-q
+                      (question "Is 1+1=2?")
+                      (options "Yes" "No")
+                      (correct 1))
+                 
+                 (short-answer fill-blank
+                               (question "What is (+ 1 1)?")
+                               (expected "2"))
+                 
+                 (code-task write-code
+                            (title "Write Code")
+                            (description "Write any code"))
+                 
+                 (mastery math-skill
+                          (skill "Math")
+                          (threshold 2)
+                          (exercises test-q fill-blank)))]
+         [story (satin-compile! spec)]
+         [meta (quill-story-meta story)])
+        (test "edu story compiles" 'edu-demo (quill-story-id story))
+        (test-true "has lessons in meta"
+                   (if (assq 'lessons meta) #t #f))
+        (test-true "has exercises in meta"
+                   (if (assq 'exercises meta) #t #f))
+        (test-true "has masteries in meta"
+                   (if (assq 'masteries meta) #t #f))
+        (let ([lessons (cdr (assq 'lessons meta))])
+             (test "lesson count" 1 (length lessons)))
+        (let ([masteries (cdr (assq 'masteries meta))])
+             (test "mastery count" 1 (length masteries))))
+  
+  ;; ============================================================
   ;; Summary
   ;; ============================================================
   (display "

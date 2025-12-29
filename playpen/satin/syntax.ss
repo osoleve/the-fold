@@ -124,6 +124,21 @@
 (define (satin-story-timelines spec)
   (filter satin-timeline? (satin-story-fields spec)))
 
+(define (satin-story-lessons spec)
+  (filter satin-lesson? (satin-story-fields spec)))
+
+(define (satin-story-mcqs spec)
+  (filter satin-mcq? (satin-story-fields spec)))
+
+(define (satin-story-short-answers spec)
+  (filter satin-short-answer? (satin-story-fields spec)))
+
+(define (satin-story-code-tasks spec)
+  (filter satin-code-task? (satin-story-fields spec)))
+
+(define (satin-story-masteries spec)
+  (filter satin-mastery? (satin-story-fields spec)))
+
 ;;; ============================================================
 ;;; Node Extraction
 ;;; ============================================================
@@ -322,6 +337,189 @@
 
 (define (satin-exercise-on-fail exercise)
   (let ([field (satin-get-all-fields (satin-exercise-fields exercise) 'on-fail)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+;;; ============================================================
+;;; Lesson Extraction
+;;; ============================================================
+
+;;; Is this a lesson form?
+(define (satin-lesson? x)
+  (and (pair? x)
+       (eq? (car (strip-span x)) 'lesson)))
+
+(define (satin-lesson-fields lesson)
+  (cddr (strip-span lesson)))
+
+(define (satin-lesson-id lesson)
+  (cadr (strip-span lesson)))
+
+(define (satin-lesson-title lesson)
+  (satin-get-field (satin-lesson-fields lesson) 'title ""))
+
+(define (satin-lesson-objectives lesson)
+  (let ([field (satin-get-all-fields (satin-lesson-fields lesson) 'objectives)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+(define (satin-lesson-prerequisites lesson)
+  (let ([field (satin-get-all-fields (satin-lesson-fields lesson) 'prerequisites)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+(define (satin-lesson-sequence lesson)
+  (let ([field (satin-get-all-fields (satin-lesson-fields lesson) 'sequence)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+(define (satin-lesson-on-complete lesson)
+  (let ([field (satin-get-all-fields (satin-lesson-fields lesson) 'on-complete)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+;;; ============================================================
+;;; MCQ (Multiple Choice Question) Extraction
+;;; ============================================================
+
+;;; Is this an mcq form?
+(define (satin-mcq? x)
+  (and (pair? x)
+       (eq? (car (strip-span x)) 'mcq)))
+
+(define (satin-mcq-fields mcq)
+  (cddr (strip-span mcq)))
+
+(define (satin-mcq-id mcq)
+  (cadr (strip-span mcq)))
+
+(define (satin-mcq-question mcq)
+  (satin-get-field (satin-mcq-fields mcq) 'question ""))
+
+(define (satin-mcq-options mcq)
+  (let ([field (satin-get-all-fields (satin-mcq-fields mcq) 'options)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+(define (satin-mcq-correct mcq)
+  (satin-get-field (satin-mcq-fields mcq) 'correct 0))
+
+(define (satin-mcq-explanation mcq)
+  (satin-get-field (satin-mcq-fields mcq) 'explanation ""))
+
+(define (satin-mcq-hints mcq)
+  (let ([field (satin-get-all-fields (satin-mcq-fields mcq) 'hints)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+;;; ============================================================
+;;; Short Answer Extraction
+;;; ============================================================
+
+;;; Is this a short-answer form?
+(define (satin-short-answer? x)
+  (and (pair? x)
+       (eq? (car (strip-span x)) 'short-answer)))
+
+(define (satin-short-answer-fields sa)
+  (cddr (strip-span sa)))
+
+(define (satin-short-answer-id sa)
+  (cadr (strip-span sa)))
+
+(define (satin-short-answer-question sa)
+  (satin-get-field (satin-short-answer-fields sa) 'question ""))
+
+(define (satin-short-answer-expected sa)
+  (satin-get-field (satin-short-answer-fields sa) 'expected ""))
+
+(define (satin-short-answer-rubric sa)
+  (let ([field (satin-get-all-fields (satin-short-answer-fields sa) 'rubric)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+(define (satin-short-answer-hints sa)
+  (let ([field (satin-get-all-fields (satin-short-answer-fields sa) 'hints)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+;;; ============================================================
+;;; Code Task Extraction
+;;; ============================================================
+
+;;; Is this a code-task form?
+(define (satin-code-task? x)
+  (and (pair? x)
+       (eq? (car (strip-span x)) 'code-task)))
+
+(define (satin-code-task-fields ct)
+  (cddr (strip-span ct)))
+
+(define (satin-code-task-id ct)
+  (cadr (strip-span ct)))
+
+(define (satin-code-task-title ct)
+  (satin-get-field (satin-code-task-fields ct) 'title ""))
+
+(define (satin-code-task-description ct)
+  (satin-get-field (satin-code-task-fields ct) 'description ""))
+
+(define (satin-code-task-starter ct)
+  (satin-get-field (satin-code-task-fields ct) 'starter ""))
+
+(define (satin-code-task-solution ct)
+  (satin-get-field (satin-code-task-fields ct) 'solution ""))
+
+(define (satin-code-task-tests ct)
+  (let ([field (satin-get-all-fields (satin-code-task-fields ct) 'tests)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+(define (satin-code-task-hints ct)
+  (let ([field (satin-get-all-fields (satin-code-task-fields ct) 'hints)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+;;; ============================================================
+;;; Mastery Extraction
+;;; ============================================================
+
+;;; Is this a mastery form?
+(define (satin-mastery? x)
+  (and (pair? x)
+       (eq? (car (strip-span x)) 'mastery)))
+
+(define (satin-mastery-fields mastery)
+  (cddr (strip-span mastery)))
+
+(define (satin-mastery-id mastery)
+  (cadr (strip-span mastery)))
+
+(define (satin-mastery-skill mastery)
+  (satin-get-field (satin-mastery-fields mastery) 'skill ""))
+
+(define (satin-mastery-levels mastery)
+  (let ([field (satin-get-all-fields (satin-mastery-fields mastery) 'levels)])
+       (if (null? field)
+           '()
+           (cdr (strip-span (car field))))))
+
+(define (satin-mastery-threshold mastery)
+  (satin-get-field (satin-mastery-fields mastery) 'threshold 3))
+
+(define (satin-mastery-exercises mastery)
+  (let ([field (satin-get-all-fields (satin-mastery-fields mastery) 'exercises)])
        (if (null? field)
            '()
            (cdr (strip-span (car field))))))

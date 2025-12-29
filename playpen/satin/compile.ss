@@ -32,6 +32,14 @@
          [rules (map satin-compile-rule-to-meta (satin-story-rules spec))]
          [exercises (map satin-compile-exercise-to-meta (satin-story-exercises spec))]
          [timelines (satin-compile-timelines (satin-story-timelines spec))]
+         ;; Education forms
+         [lessons (map satin-compile-lesson (satin-story-lessons spec))]
+         [mcqs (map satin-compile-mcq (satin-story-mcqs spec))]
+         [short-answers (map satin-compile-short-answer (satin-story-short-answers spec))]
+         [code-tasks (map satin-compile-code-task (satin-story-code-tasks spec))]
+         [masteries (map satin-compile-mastery (satin-story-masteries spec))]
+         ;; Combine all exercises (regular + MCQ + short-answer + code-task)
+         [all-exercises (append exercises mcqs short-answers code-tasks)]
          [author (satin-story-author spec)]
          [version (satin-story-version spec)]
          [base-meta `((author . ,author)
@@ -41,8 +49,10 @@
                 (if (null? dialogues) '() `((dialogues . ,dialogues)))
                 (if (null? quests) '() `((quests . ,quests)))
                 (if (null? rules) '() `((rules . ,rules)))
-                (if (null? exercises) '() `((exercises . ,exercises)))
+                (if (null? all-exercises) '() `((exercises . ,all-exercises)))
                 (if (null? timelines) '() `((timeline . ,timelines)))
+                (if (null? lessons) '() `((lessons . ,lessons)))
+                (if (null? masteries) '() `((masteries . ,masteries)))
                 base-meta)])
         (make-quill-story id title start nodes meta)))
 
@@ -366,3 +376,172 @@
               (if result
                   (loop (cdr xs) (cons result acc))
                   (loop (cdr xs) acc)))])))
+
+;;; ============================================================
+;;; Lesson Compilation
+;;; ============================================================
+
+;;; Lessons are sequences of nodes/exercises that form a unit.
+;;; They compile to metadata that the runtime uses for progress tracking.
+(define (satin-compile-lesson lesson)
+  (let* ([id (satin-lesson-id lesson)]
+         [title (satin-lesson-title lesson)]
+         [objectives (satin-lesson-objectives lesson)]
+         [prerequisites (satin-lesson-prerequisites lesson)]
+         [sequence (satin-lesson-sequence lesson)]
+         [on-complete (satin-compile-effects (satin-lesson-on-complete lesson))])
+        `((id . ,id)
+          (title . ,title)
+          (objectives . ,objectives)
+          (prerequisites . ,prerequisites)
+          (sequence . ,sequence)
+          (on-complete . ,on-complete))))
+
+;;; ============================================================
+;;; MCQ (Multiple Choice Question) Compilation
+;;; ============================================================
+
+;;; MCQs compile to exercises with auto-generated checks
+(define (satin-compile-mcq mcq)
+  (let* ([id (satin-mcq-id mcq)]
+         [question (satin-mcq-question mcq)]
+         [options (satin-mcq-options mcq)]
+         [correct (satin-mcq-correct mcq)]
+         [explanation (satin-mcq-explanation mcq)]
+         [hints (satin-mcq-hints mcq)]
+         ;; Generate a check that verifies the answer matches correct index
+         [check-pred (lambda (_s _r answer)
+                             (cond
+                              [(number? answer) (= answer correct)]
+                              [(string? answer)
+                               (let ([n (string->number answer)])
+                                    (and n (= n correct)))]
+                              [else #f]))]
+         [checks (list (make-quill-check
+                        'correct-answer
+                        "Correct option selected"
+                        check-pred
+                        '()))]
+         [prompt (string-append question "
+
+"
+                                (satin-format-mcq-options options))]
+         [meta `((type . mcq)
+                 (options . ,options)
+                 (correct . ,correct)
+                 (explanation . ,explanation)
+                 (hints . ,hints))])
+        (make-quill-exercise id question prompt checks '() meta)))
+
+(define (satin-format-mcq-options options)
+  (let loop ([opts options] [i 1] [result '()])
+       (if (null? opts)
+           (apply string-append (reverse result))
+           (loop (cdr opts)
+                 (+ i 1)
+                 (cons (string-append (number->string i) ". " (car opts) "
+")
+                       result)))))
+
+;;; ============================================================
+;;; Short Answer Compilation
+;;; ============================================================
+
+(define (satin-compile-short-answer sa)
+  (let* ([id (satin-short-answer-id sa)]
+         [question (satin-short-answer-question sa)]
+         [expected (satin-short-answer-expected sa)]
+         [rubric (satin-short-answer-rubric sa)]
+         [hints (satin-short-answer-hints sa)]
+         ;; If no rubric provided, auto-generate one that checks for expected
+         [checks (if (null? rubric)
+                     (list (make-quill-check
+                            'matches-expected
+                            "Answer matches expected"
+                            (lambda (_s _r answer)
+                                    (and (string? answer)
+                                         (string-ci=? (string-trim-both answer)
+                                                      (string-trim-both expected))))
+                            '()))
+                     (map satin-compile-check rubric))]
+         [meta `((type . short-answer)
+                 (expected . ,expected)
+                 (hints . ,hints))])
+        (make-quill-exercise id question question checks '() meta)))
+
+;;; Simple case-insensitive string comparison
+(define (string-ci=? s1 s2)
+  (string=? (string-downcase s1) (string-downcase s2)))
+
+;;; Simple string trim (removes leading/trailing whitespace)
+(define (string-trim-both s)
+  (let* ([len (string-length s)]
+         [start (let loop ([i 0])
+                     (if (and (< i len) (char-whitespace? (string-ref s i)))
+                         (loop (+ i 1))
+                         i))]
+         [end (let loop ([i len])
+                   (if (and (> i start) (char-whitespace? (string-ref s (- i 1))))
+                       (loop (- i 1))
+                       i))])
+        (if (>= start end)
+            ""
+            (substring s start end))))
+
+;;; Simple lowercase conversion
+(define (string-downcase s)
+  (list->string
+   (map char-downcase (string->list s))))
+
+;;; ============================================================
+;;; Code Task Compilation
+;;; ============================================================
+
+(define (satin-compile-code-task ct)
+  (let* ([id (satin-code-task-id ct)]
+         [title (satin-code-task-title ct)]
+         [description (satin-code-task-description ct)]
+         [starter (satin-code-task-starter ct)]
+         [solution (satin-code-task-solution ct)]
+         [tests (satin-code-task-tests ct)]
+         [hints (satin-code-task-hints ct)]
+         ;; Compile test cases into checks
+         [checks (map satin-compile-code-test tests)]
+         [prompt (string-append description
+                                (if (string=? starter "")
+                                    ""
+                                    (string-append "
+
+Starter code:
+" starter)))]
+         [meta `((type . code-task)
+                 (starter . ,starter)
+                 (solution . ,solution)
+                 (hints . ,hints))])
+        (make-quill-exercise id title prompt checks '() meta)))
+
+(define (satin-compile-code-test test)
+  (let ([raw (strip-span test)])
+       (if (and (pair? raw) (eq? (car raw) 'test))
+           (let* ([desc (if (pair? (cdr raw)) (cadr raw) "test")]
+                  [pred-expr (if (pair? (cddr raw)) (caddr raw) #t)]
+                  [pred (satin-compile-check-predicate pred-expr)])
+                 (make-quill-check (string->symbol desc) desc pred '()))
+           (make-quill-check 'unknown "unknown test" (lambda (_s _r _a) #f) '()))))
+
+;;; ============================================================
+;;; Mastery Compilation
+;;; ============================================================
+
+;;; Mastery tracks skill development across multiple exercises
+(define (satin-compile-mastery mastery)
+  (let* ([id (satin-mastery-id mastery)]
+         [skill (satin-mastery-skill mastery)]
+         [levels (satin-mastery-levels mastery)]
+         [threshold (satin-mastery-threshold mastery)]
+         [exercises (satin-mastery-exercises mastery)])
+        `((id . ,id)
+          (skill . ,skill)
+          (levels . ,levels)
+          (threshold . ,threshold)
+          (exercises . ,exercises))))
