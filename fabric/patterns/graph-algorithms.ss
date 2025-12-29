@@ -31,27 +31,43 @@
 ;;; ============================================================
 
 ;;; --- Visited Set Management ---
-;;; We use an association list for small sets and convert to hash table
-;;; semantics by checking membership via bytevector equality.
+;;; We use a hash table for O(1) membership testing.
+;;; Keys are bytevectors (block hashes), values are #t.
 
-;;; make-visited : → (List Hash)
-;;; Create an empty visited set.
+;;; bytevector-hash : Bytevector → Integer
+;;; Hash function for bytevectors (FNV-1a inspired).
+(define (bytevector-hash bv)
+  (let ([len (bytevector-length bv)])
+       (let loop ([i 0] [h 2166136261])  ; FNV offset basis
+            (if (>= i len)
+                (bitwise-and h #xFFFFFFFF)  ; Keep 32-bit
+                (loop (+ i 1)
+                      (bitwise-and
+                       (* (bitwise-xor h (bytevector-u8-ref bv i))
+                          16777619)  ; FNV prime
+                       #xFFFFFFFF))))))
+
+;;; make-visited : → HashTable
+;;; Create an empty visited set (hash table).
 (define (make-visited)
-  '())
+  (make-hashtable bytevector-hash bytevector=?))
 
-;;; visited-add : (List Hash) Hash → (List Hash)
-;;; Add a hash to the visited set.
+;;; visited-add : HashTable Hash → HashTable
+;;; Add a hash to the visited set. Mutates and returns the table.
 (define (visited-add visited hash)
-  (cons hash visited))
+  (hashtable-set! visited hash #t)
+  visited)
 
-;;; visited-contains? : (List Hash) Hash → Boolean
-;;; Check if hash is in visited set.
+;;; visited-contains? : HashTable Hash → Boolean
+;;; Check if hash is in visited set. O(1) lookup.
 (define (visited-contains? visited hash)
-  (let loop ([vs visited])
-       (cond
-        [(null? vs) #f]
-        [(bytevector=? (car vs) hash) #t]
-        [else (loop (cdr vs))])))
+  (hashtable-ref visited hash #f))
+
+;;; visited-remove : HashTable Hash → HashTable
+;;; Remove a hash from the visited set. Used for backtracking.
+(define (visited-remove visited hash)
+  (hashtable-delete! visited hash)
+  visited)
 
 ;;; --- Queue Operations (for BFS) ---
 
@@ -288,10 +304,12 @@
 ;;;   (all-paths fs start end 5)
 ;;;   => (((path1...)) ((path2...)))
 (define (all-paths fs from-hash to-hash max-depth)
-  (let ([results '()])
+  (let ([results '()]
+        [visited (make-visited)])
+       ;; Mark start as visited
+       (visited-add visited from-hash)
        (let dfs ([current from-hash]
                  [path (list from-hash)]
-                 [visited (visited-add (make-visited) from-hash)]
                  [depth 0])
             (cond
              ;; Found target
@@ -306,10 +324,13 @@
                    (for-each
                     (lambda (neighbor)
                             (unless (visited-contains? visited neighbor)
+                                    ;; Mark visited before recursing
+                                    (visited-add visited neighbor)
                                     (dfs neighbor
                                          (cons neighbor path)
-                                         (visited-add visited neighbor)
-                                         (+ depth 1))))
+                                         (+ depth 1))
+                                    ;; Backtrack: unmark after returning
+                                    (visited-remove visited neighbor)))
                     neighbors))]))
        results))
 
