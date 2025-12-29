@@ -367,3 +367,94 @@
   (write val)
   (newline)
   val)
+
+;;; ============================================================
+;;; Unicode Aliases — Mathematical Notation
+;;; ============================================================
+;;;
+;;; These are ALIASES, not replacements. Both forms work.
+;;; The Fold embraces mathematical notation where it aids clarity.
+
+;;; --- Core Forms ---
+
+;;; λ : Lambda alias
+;;; Usage: (λ (x) (* x x)) ≡ (lambda (x) (* x x))
+(define-syntax λ
+  (syntax-rules ()
+                [(_ args body ...) (lambda args body ...)]))
+
+;;; --- Logic ---
+
+;;; ∧ : Logical conjunction (and)
+(define-syntax ∧
+  (syntax-rules ()
+                [(_ e ...) (and e ...)]))
+
+;;; ∨ : Logical disjunction (or)
+(define-syntax ∨
+  (syntax-rules ()
+                [(_ e ...) (or e ...)]))
+
+;;; ¬ : Logical negation (not)
+(define ¬ not)
+
+;;; --- Comparison ---
+
+;;; ≠ : Not equal
+(define (≠ a b) (not (equal? a b)))
+
+;;; ≤ : Less than or equal
+(define ≤ <=)
+
+;;; ≥ : Greater than or equal
+(define ≥ >=)
+
+;;; --- Arithmetic ---
+
+;;; × : Multiplication (alternative to *)
+(define × *)
+
+;;; ÷ : Division (alternative to /)
+(define ÷ /)
+
+;;; ² : Square function
+(define (² x) (* x x))
+
+;;; ³ : Cube function
+(define (³ x) (* x x x))
+
+;;; √ : Square root
+(define √ sqrt)
+
+;;; --- Collections ---
+
+;;; ∈ : Membership test (member, returns boolean)
+(define (∈ x lst) (if (member x lst) #t #f))
+
+;;; ∉ : Non-membership test
+(define (∉ x lst) (not (∈ x lst)))
+
+;;; ∅ : Empty list
+(define ∅ '())
+
+;;; --- Function Composition ---
+
+;;; ∘ : Function composition (f ∘ g)(x) = f(g(x))
+(define (∘ f g) (λ (x) (f (g x))))
+
+;;; --- Constants ---
+
+;;; π : Pi (3.14159...)
+(define π 3.141592653589793)
+
+;;; τ : Tau (2π)
+(define τ 6.283185307179586)
+
+;;; 𝑒 : Euler's number
+(define 𝑒 2.718281828459045)
+
+;;; ∞ : Infinity (largest flonum)
+(define ∞ +inf.0)
+
+;;; -∞ : Negative infinity
+(define -∞ -inf.0)
