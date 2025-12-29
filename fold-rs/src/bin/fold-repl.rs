@@ -2,7 +2,7 @@ use std::env;
 use std::io::{self, Read};
 use std::process;
 
-use fold_rs::fabric::{Env, EvalOutcome, Expr, eval_loop};
+use fold_rs::fabric::{Env, EvalOutcome, Expr, SpannedExpr, Value, eval_spanned};
 use fold_rs::tools::{
     format_value, lower_expr, lower_program, parse_fold_expr, parse_fold_program, run_fold_file,
 };
@@ -82,23 +82,26 @@ fn run_program_source(source: &str, fuel: usize) -> Result<EvalOutcome, String> 
     run_expr(sequence_exprs(exprs), fuel)
 }
 
-fn run_expr(expr: Expr, fuel: usize) -> Result<EvalOutcome, String> {
+fn run_expr(expr: SpannedExpr, fuel: usize) -> Result<EvalOutcome, String> {
     let env = Env::new();
-    eval_loop(expr, env, fuel).map_err(|err| err.to_string())
+    eval_spanned(expr, env, fuel).map_err(|err| err.to_string())
 }
 
-fn sequence_exprs(exprs: Vec<Expr>) -> Expr {
+fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
     let mut iter = exprs.into_iter();
     let mut current = match iter.next() {
         Some(expr) => expr,
-        None => return Expr::Value(fold_rs::fabric::Value::Nil),
+        None => return SpannedExpr::unspanned(Expr::Value(Value::Nil)),
     };
     for (index, next) in iter.enumerate() {
         let name = format!("#%fold-seq-{index}");
-        current = Expr::Let {
-            bindings: vec![(name, current)],
-            body: Box::new(next),
-        };
+        current = SpannedExpr::new(
+            Expr::Let {
+                bindings: vec![(name, current)],
+                body: Box::new(next),
+            },
+            None,
+        );
     }
     current
 }

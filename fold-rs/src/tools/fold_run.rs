@@ -1,13 +1,13 @@
 use std::fmt;
 use std::path::Path;
 
-use crate::fabric::{Env, EvalError, EvalOutcome, Expr, Value, eval_loop};
+use crate::fabric::{Env, EvalOutcome, Expr, SpannedEvalError, SpannedExpr, Value, eval_spanned};
 use crate::tools::fold_load::{LoadError, load_fold_program};
 
 #[derive(Debug)]
 pub enum RunError {
     Load(LoadError),
-    Eval(EvalError),
+    Eval(SpannedEvalError),
 }
 
 impl fmt::Display for RunError {
@@ -32,21 +32,24 @@ pub fn run_fold_file<P: AsRef<Path>>(path: P, fuel: usize) -> Result<EvalOutcome
     let exprs = load_fold_program(path).map_err(RunError::Load)?;
     let expr = sequence_exprs(exprs);
     let env = Env::new();
-    eval_loop(expr, env, fuel).map_err(RunError::Eval)
+    eval_spanned(expr, env, fuel).map_err(RunError::Eval)
 }
 
-fn sequence_exprs(exprs: Vec<Expr>) -> Expr {
+fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
     let mut iter = exprs.into_iter();
     let mut current = match iter.next() {
         Some(expr) => expr,
-        None => return Expr::Value(Value::Nil),
+        None => return SpannedExpr::unspanned(Expr::Value(Value::Nil)),
     };
     for (index, next) in iter.enumerate() {
         let name = format!("#%fold-seq-{index}");
-        current = Expr::Let {
-            bindings: vec![(name, current)],
-            body: Box::new(next),
-        };
+        current = SpannedExpr::new(
+            Expr::Let {
+                bindings: vec![(name, current)],
+                body: Box::new(next),
+            },
+            None,
+        );
     }
     current
 }

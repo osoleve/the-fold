@@ -3,7 +3,7 @@ use fold_rs::fabric::{
     block::Block,
     env::Env,
     eval::{EvalOutcome, eval_loop},
-    expr::{CaseArm, Expr},
+    expr::{CaseArm, Expr, SpannedExpr},
     symbol::Symbol,
     value::Value,
 };
@@ -17,6 +17,10 @@ fn addr(byte: u8) -> Address {
     bytes[0] = 0;
     bytes[1] = byte;
     Address::from(bytes)
+}
+
+fn spanned(expr: Expr) -> SpannedExpr {
+    SpannedExpr::unspanned(expr)
 }
 
 #[test]
@@ -36,9 +40,9 @@ fn literal_consumes_fuel() {
 fn if_selects_branch() {
     let env = Env::new();
     let expr = Expr::If {
-        test: Box::new(Expr::Value(Value::Bool(false))),
-        then_branch: Box::new(Expr::Value(Value::Number(1))),
-        else_branch: Box::new(Expr::Value(Value::Number(2))),
+        test: Box::new(spanned(Expr::Value(Value::Bool(false)))),
+        then_branch: Box::new(spanned(Expr::Value(Value::Number(1)))),
+        else_branch: Box::new(spanned(Expr::Value(Value::Number(2)))),
     };
 
     let out = eval_loop(expr, env, 10).unwrap();
@@ -50,13 +54,13 @@ fn let_binds_values() {
     let env = Env::new();
     let expr = Expr::Let {
         bindings: vec![
-            (sym("x"), Expr::Value(Value::Number(3))),
-            (sym("y"), Expr::Value(Value::Number(4))),
+            (sym("x"), spanned(Expr::Value(Value::Number(3)))),
+            (sym("y"), spanned(Expr::Value(Value::Number(4)))),
         ],
-        body: Box::new(Expr::Prim {
+        body: Box::new(spanned(Expr::Prim {
             op: sym("add"),
-            args: vec![Expr::Var(sym("x")), Expr::Var(sym("y"))],
-        }),
+            args: vec![spanned(Expr::Var(sym("x"))), spanned(Expr::Var(sym("y")))],
+        })),
     };
 
     let out = eval_loop(expr, env, 10).unwrap();
@@ -80,10 +84,18 @@ fn case_matches_block() {
     let env = Env::new();
     let block = Block::new(sym("Just"), Vec::new(), vec![addr(0xAA)]);
     let expr = Expr::Case {
-        expr: Box::new(Expr::Value(Value::Block(block))),
+        expr: Box::new(spanned(Expr::Value(Value::Block(block)))),
         arms: vec![
-            CaseArm::new(sym("Nothing"), Vec::new(), Expr::Value(Value::Number(0))),
-            CaseArm::new(sym("Just"), vec![sym("ref")], Expr::Var(sym("ref"))),
+            CaseArm::new(
+                sym("Nothing"),
+                Vec::new(),
+                spanned(Expr::Value(Value::Number(0))),
+            ),
+            CaseArm::new(
+                sym("Just"),
+                vec![sym("ref")],
+                spanned(Expr::Var(sym("ref"))),
+            ),
         ],
         else_body: None,
     };

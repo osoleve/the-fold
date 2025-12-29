@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use fold_rs::fabric::{Env, EnvRef, EvalOutcome, Value, eval_loop};
+use fold_rs::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
 use fold_rs::tools::{format_value, lower_program, parse_fold_program};
 
 const REPL_DIR: &str = ".fold-repl";
@@ -87,7 +87,7 @@ impl Daemon {
         let env = session.env.clone();
 
         for expr in exprs {
-            match eval_loop(expr, env.clone(), DEFAULT_FUEL) {
+            match eval_spanned(expr, env.clone(), DEFAULT_FUEL) {
                 Ok(EvalOutcome::Done(value)) => {
                     last_result = value;
                 }
@@ -95,6 +95,7 @@ impl Daemon {
                     return Ok("[suspended - out of fuel]".to_string());
                 }
                 Err(err) => {
+                    // Error now includes source location if available
                     return Err(format!("{}", err));
                 }
             }

@@ -29,7 +29,7 @@ fn load_program_from_file() {
     let exprs = load_fold_program(&temp.path).expect("load program");
     assert_eq!(exprs.len(), 1);
 
-    match &exprs[0] {
+    match &exprs[0].expr {
         Expr::Let { bindings, .. } => {
             assert_eq!(bindings.len(), 1);
             assert_eq!(bindings[0].0, "x");

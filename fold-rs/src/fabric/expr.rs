@@ -1,14 +1,42 @@
 use crate::fabric::{symbol::Symbol, value::Value};
+use crate::tools::Span;
+
+/// A source location span for error reporting.
+/// Re-exported from tools for use in fabric.
+pub use crate::tools::Span as SourceSpan;
+
+/// An expression paired with an optional source location.
+#[derive(Debug, Clone)]
+pub struct SpannedExpr {
+    pub expr: Expr,
+    pub span: Option<Span>,
+}
+
+impl SpannedExpr {
+    pub fn new(expr: Expr, span: Option<Span>) -> Self {
+        Self { expr, span }
+    }
+
+    pub fn unspanned(expr: Expr) -> Self {
+        Self { expr, span: None }
+    }
+}
+
+impl From<Expr> for SpannedExpr {
+    fn from(expr: Expr) -> Self {
+        Self::unspanned(expr)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct CaseArm {
     pub tag: Symbol,
     pub vars: Vec<Symbol>,
-    pub body: Box<Expr>,
+    pub body: Box<SpannedExpr>,
 }
 
 impl CaseArm {
-    pub fn new(tag: Symbol, vars: Vec<Symbol>, body: Expr) -> Self {
+    pub fn new(tag: Symbol, vars: Vec<Symbol>, body: SpannedExpr) -> Self {
         Self {
             tag,
             vars,
@@ -23,33 +51,33 @@ pub enum Expr {
     Quote(Value),
     Fn {
         params: Vec<Symbol>,
-        body: Box<Expr>,
+        body: Box<SpannedExpr>,
     },
     Call {
-        func: Box<Expr>,
-        args: Vec<Expr>,
+        func: Box<SpannedExpr>,
+        args: Vec<SpannedExpr>,
     },
     Let {
-        bindings: Vec<(Symbol, Expr)>,
-        body: Box<Expr>,
+        bindings: Vec<(Symbol, SpannedExpr)>,
+        body: Box<SpannedExpr>,
     },
     If {
-        test: Box<Expr>,
-        then_branch: Box<Expr>,
-        else_branch: Box<Expr>,
+        test: Box<SpannedExpr>,
+        then_branch: Box<SpannedExpr>,
+        else_branch: Box<SpannedExpr>,
     },
     Fix {
         name: Symbol,
-        value: Box<Expr>,
+        value: Box<SpannedExpr>,
     },
     Case {
-        expr: Box<Expr>,
+        expr: Box<SpannedExpr>,
         arms: Vec<CaseArm>,
-        else_body: Option<Box<Expr>>,
+        else_body: Option<Box<SpannedExpr>>,
     },
     Prim {
         op: Symbol,
-        args: Vec<Expr>,
+        args: Vec<SpannedExpr>,
     },
     Var(Symbol),
 }

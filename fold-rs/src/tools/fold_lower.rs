@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::fabric::{CaseArm, Expr, Value};
+use crate::fabric::{CaseArm, Expr, SpannedExpr, Value};
 use crate::tools::fold_parse::{NumberLit, Sexp, Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,24 +17,31 @@ impl fmt::Display for LowerError {
 
 impl std::error::Error for LowerError {}
 
-pub fn lower_expr(expr: &Spanned<Sexp>) -> Result<Expr, LowerError> {
-    match &expr.value {
-        Sexp::Number(NumberLit::Integer(n)) => Ok(Expr::Value(Value::Number(*n))),
-        Sexp::Number(NumberLit::Float(n)) => Ok(Expr::Value(Value::Float(*n))),
-        Sexp::String(s) => Ok(Expr::Value(Value::String(s.clone()))),
-        Sexp::Bool(b) => Ok(Expr::Value(Value::Bool(*b))),
-        Sexp::Symbol(sym) => Ok(Expr::Var(sym.clone())),
-        Sexp::List(items) => lower_list(expr, items),
-    }
+/// Lower a spanned S-expression to a spanned expression, preserving source locations.
+pub fn lower_expr(expr: &Spanned<Sexp>) -> Result<SpannedExpr, LowerError> {
+    let span = Some(expr.span.clone());
+    let inner = match &expr.value {
+        Sexp::Number(NumberLit::Integer(n)) => Expr::Value(Value::Number(*n)),
+        Sexp::Number(NumberLit::Float(n)) => Expr::Value(Value::Float(*n)),
+        Sexp::String(s) => Expr::Value(Value::String(s.clone())),
+        Sexp::Bool(b) => Expr::Value(Value::Bool(*b)),
+        Sexp::Symbol(sym) => Expr::Var(sym.clone()),
+        Sexp::List(items) => return lower_list(expr, items),
+    };
+    Ok(SpannedExpr::new(inner, span))
 }
 
-pub fn lower_program(exprs: &[Spanned<Sexp>]) -> Result<Vec<Expr>, LowerError> {
+pub fn lower_program(exprs: &[Spanned<Sexp>]) -> Result<Vec<SpannedExpr>, LowerError> {
     exprs.iter().map(lower_expr).collect()
 }
 
-fn lower_list(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_list(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.is_empty() {
-        return Ok(Expr::Value(Value::Nil));
+        return Ok(SpannedExpr::new(Expr::Value(Value::Nil), span));
     }
     if let Some(head_symbol) = symbol_name(&items[0]) {
         match head_symbol.as_str() {
@@ -57,29 +64,38 @@ fn lower_list(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr
     for arg in &items[1..] {
         args.push(lower_expr(arg)?);
     }
-    Ok(Expr::Call {
-        func: Box::new(func),
-        args,
-    })
+    Ok(SpannedExpr::new(
+        Expr::Call {
+            func: Box::new(func),
+            args,
+        },
+        span,
+    ))
 }
 
-fn lower_quote(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_quote(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.len() != 2 {
         return Err(error(list_expr, "quote expects 1 argument"));
     }
     let datum = value_from_spanned(&items[1])?;
-    Ok(Expr::Quote(datum))
+    Ok(SpannedExpr::new(Expr::Quote(datum), span))
 }
 
 /// Expand quasiquote - handles unquote (,) and unquote-splicing (,@)
 fn lower_quasiquote(
     list_expr: &Spanned<Sexp>,
     items: &[Spanned<Sexp>],
-) -> Result<Expr, LowerError> {
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.len() != 2 {
         return Err(error(list_expr, "quasiquote expects 1 argument"));
     }
-    expand_quasiquote(&items[1])
+    let inner = expand_quasiquote(&items[1])?;
+    Ok(SpannedExpr::new(inner, span))
 }
 
 /// Recursively expand a quasiquoted expression
@@ -93,7 +109,8 @@ fn expand_quasiquote(expr: &Spanned<Sexp>) -> Result<Expr, LowerError> {
                 if items.len() != 2 {
                     return Err(error(expr, "unquote expects 1 argument"));
                 }
-                return lower_expr(&items[1]);
+                // lower_expr returns SpannedExpr, extract the inner Expr
+                return Ok(lower_expr(&items[1])?.expr);
             }
             // It's a list - expand each element
             expand_quasiquote_list(items)
@@ -121,7 +138,7 @@ fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
 
     if has_splicing {
         // Need to use append for splicing
-        let mut append_args = Vec::new();
+        let mut append_args: Vec<SpannedExpr> = Vec::new();
         for item in items {
             if let Sexp::List(inner) = &item.value
                 && !inner.is_empty()
@@ -137,10 +154,13 @@ fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
             }
             // Regular element - wrap in (list <expanded-element>)
             let expanded = expand_quasiquote(item)?;
-            append_args.push(Expr::Prim {
-                op: "list".to_string(),
-                args: vec![expanded],
-            });
+            append_args.push(SpannedExpr::new(
+                Expr::Prim {
+                    op: "list".to_string(),
+                    args: vec![SpannedExpr::unspanned(expanded)],
+                },
+                Some(item.span.clone()),
+            ));
         }
         Ok(Expr::Prim {
             op: "append".to_string(),
@@ -148,9 +168,12 @@ fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
         })
     } else {
         // No splicing - use (list ...)
-        let mut list_args = Vec::new();
+        let mut list_args: Vec<SpannedExpr> = Vec::new();
         for item in items {
-            list_args.push(expand_quasiquote(item)?);
+            list_args.push(SpannedExpr::new(
+                expand_quasiquote(item)?,
+                Some(item.span.clone()),
+            ));
         }
         Ok(Expr::Prim {
             op: "list".to_string(),
@@ -159,7 +182,8 @@ fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
     }
 }
 
-fn lower_fn(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_fn(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.len() != 3 {
         return Err(error(list_expr, "fn expects (fn (params...) body)"));
     }
@@ -174,13 +198,20 @@ fn lower_fn(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, 
         _ => return Err(error(&items[1], "fn expects a parameter list")),
     };
     let body = lower_expr(&items[2])?;
-    Ok(Expr::Fn {
-        params,
-        body: Box::new(body),
-    })
+    Ok(SpannedExpr::new(
+        Expr::Fn {
+            params,
+            body: Box::new(body),
+        },
+        span,
+    ))
 }
 
-fn lower_let(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_let(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.len() != 3 {
         return Err(error(list_expr, "let expects (let ((name expr) ...) body)"));
     }
@@ -203,15 +234,22 @@ fn lower_let(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr,
         }
     }
     let body = lower_expr(&items[2])?;
-    Ok(Expr::Let {
-        bindings,
-        body: Box::new(body),
-    })
+    Ok(SpannedExpr::new(
+        Expr::Let {
+            bindings,
+            body: Box::new(body),
+        },
+        span,
+    ))
 }
 
 /// Transform let* into nested let expressions
 /// (let* ((a 1) (b (+ a 1))) body) => (let ((a 1)) (let ((b (+ a 1))) body))
-fn lower_let_star(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_let_star(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.len() != 3 {
         return Err(error(
             list_expr,
@@ -224,7 +262,7 @@ fn lower_let_star(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<
     };
 
     // Parse all bindings
-    let mut bindings: Vec<(String, Expr)> = Vec::with_capacity(bindings_list.len());
+    let mut bindings: Vec<(String, SpannedExpr)> = Vec::with_capacity(bindings_list.len());
     for binding in bindings_list {
         match &binding.value {
             Sexp::List(pair) if pair.len() == 2 => {
@@ -247,15 +285,22 @@ fn lower_let_star(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<
     // Build nested let expressions from inside out
     let mut body = lower_expr(&items[2])?;
     for (name, expr) in bindings.into_iter().rev() {
-        body = Expr::Let {
-            bindings: vec![(name, expr)],
-            body: Box::new(body),
-        };
+        body = SpannedExpr::new(
+            Expr::Let {
+                bindings: vec![(name, expr)],
+                body: Box::new(body),
+            },
+            span.clone(),
+        );
     }
     Ok(body)
 }
 
-fn lower_fix(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_fix(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.len() != 3 {
         return Err(error(list_expr, "fix expects (fix name expr)"));
     }
@@ -264,24 +309,35 @@ fn lower_fix(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr,
         _ => return Err(error(&items[1], "fix name must be a symbol")),
     };
     let value = lower_expr(&items[2])?;
-    Ok(Expr::Fix {
-        name,
-        value: Box::new(value),
-    })
+    Ok(SpannedExpr::new(
+        Expr::Fix {
+            name,
+            value: Box::new(value),
+        },
+        span,
+    ))
 }
 
-fn lower_if(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_if(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.len() != 4 {
         return Err(error(list_expr, "if expects (if test then else)"));
     }
-    Ok(Expr::If {
-        test: Box::new(lower_expr(&items[1])?),
-        then_branch: Box::new(lower_expr(&items[2])?),
-        else_branch: Box::new(lower_expr(&items[3])?),
-    })
+    Ok(SpannedExpr::new(
+        Expr::If {
+            test: Box::new(lower_expr(&items[1])?),
+            then_branch: Box::new(lower_expr(&items[2])?),
+            else_branch: Box::new(lower_expr(&items[3])?),
+        },
+        span,
+    ))
 }
 
-fn lower_case(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_case(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.len() < 2 {
         return Err(error(
             list_expr,
@@ -338,14 +394,21 @@ fn lower_case(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr
         let body = lower_expr(&clause_items[1])?;
         arms.push(CaseArm::new(tag, vars, body));
     }
-    Ok(Expr::Case {
-        expr: Box::new(scrutinee),
-        arms,
-        else_body,
-    })
+    Ok(SpannedExpr::new(
+        Expr::Case {
+            expr: Box::new(scrutinee),
+            arms,
+            else_body,
+        },
+        span,
+    ))
 }
 
-fn lower_prim(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_prim(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.len() < 2 {
         return Err(error(list_expr, "prim expects (prim op args...)"));
     }
@@ -354,10 +417,14 @@ fn lower_prim(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr
     for arg in &items[2..] {
         args.push(lower_expr(arg)?);
     }
-    Ok(Expr::Prim { op, args })
+    Ok(SpannedExpr::new(Expr::Prim { op, args }, span))
 }
 
-fn lower_call(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_call(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
     if items.len() < 2 {
         return Err(error(list_expr, "call expects (call func args...)"));
     }
@@ -366,10 +433,13 @@ fn lower_call(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr
     for arg in &items[2..] {
         args.push(lower_expr(arg)?);
     }
-    Ok(Expr::Call {
-        func: Box::new(func),
-        args,
-    })
+    Ok(SpannedExpr::new(
+        Expr::Call {
+            func: Box::new(func),
+            args,
+        },
+        span,
+    ))
 }
 
 fn parse_prim_op(op: &Spanned<Sexp>) -> Result<String, LowerError> {

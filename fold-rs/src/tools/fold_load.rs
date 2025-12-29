@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::fabric::Expr;
+use crate::fabric::SpannedExpr;
 use crate::tools::fold_lower::{LowerError, lower_expr, lower_program};
 use crate::tools::fold_parse::{ParseError, parse_fold_expr, parse_fold_program};
 
@@ -49,7 +49,7 @@ impl std::error::Error for LoadError {
     }
 }
 
-pub fn load_fold_program<P: AsRef<Path>>(path: P) -> Result<Vec<Expr>, LoadError> {
+pub fn load_fold_program<P: AsRef<Path>>(path: P) -> Result<Vec<SpannedExpr>, LoadError> {
     let path = path.as_ref();
     let source = fs::read_to_string(path).map_err(|err| LoadError::Io {
         path: path.to_path_buf(),
@@ -66,7 +66,7 @@ pub fn load_fold_program<P: AsRef<Path>>(path: P) -> Result<Vec<Expr>, LoadError
     })
 }
 
-pub fn load_fold_expr<P: AsRef<Path>>(path: P) -> Result<Expr, LoadError> {
+pub fn load_fold_expr<P: AsRef<Path>>(path: P) -> Result<SpannedExpr, LoadError> {
     let path = path.as_ref();
     let source = fs::read_to_string(path).map_err(|err| LoadError::Io {
         path: path.to_path_buf(),

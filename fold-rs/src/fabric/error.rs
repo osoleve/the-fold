@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::fabric::symbol::Symbol;
+use crate::tools::Span;
 
 #[derive(Debug, Clone)]
 pub enum EvalError {
@@ -18,6 +19,40 @@ pub enum EvalError {
     IndexOutOfBounds,
     UnknownPrimitive(Symbol),
     Unimplemented(&'static str),
+}
+
+/// An evaluation error with an optional source location.
+#[derive(Debug, Clone)]
+pub struct SpannedEvalError {
+    pub error: EvalError,
+    pub span: Option<Span>,
+}
+
+impl SpannedEvalError {
+    pub fn new(error: EvalError, span: Option<Span>) -> Self {
+        Self { error, span }
+    }
+
+    pub fn unspanned(error: EvalError) -> Self {
+        Self { error, span: None }
+    }
+}
+
+impl fmt::Display for SpannedEvalError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.span {
+            Some(span) => write!(f, "{} at {}", self.error, span),
+            None => write!(f, "{}", self.error),
+        }
+    }
+}
+
+impl std::error::Error for SpannedEvalError {}
+
+impl From<EvalError> for SpannedEvalError {
+    fn from(error: EvalError) -> Self {
+        Self::unspanned(error)
+    }
 }
 
 impl fmt::Display for EvalError {

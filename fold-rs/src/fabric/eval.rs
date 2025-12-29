@@ -1,55 +1,62 @@
 use crate::fabric::{
     closure::Closure,
     env::{Env, EnvRef},
-    error::EvalError,
-    expr::{CaseArm, Expr},
+    error::{EvalError, SpannedEvalError},
+    expr::{CaseArm, Expr, SpannedExpr},
     symbol::Symbol,
     value::Value,
 };
 use crate::thimble::apply_prim;
+use crate::tools::Span;
 
 #[derive(Debug, Clone)]
 pub enum EvalOutcome {
     Done(Value),
-    Suspended { expr: Expr, env: EnvRef },
+    Suspended { expr: SpannedExpr, env: EnvRef },
 }
 
 #[derive(Debug, Clone)]
 enum Frame {
     If {
-        then_branch: Expr,
-        else_branch: Expr,
+        then_branch: SpannedExpr,
+        else_branch: SpannedExpr,
         env: EnvRef,
+        span: Option<Span>,
     },
     Let {
-        bindings: Vec<(Symbol, Expr)>,
+        bindings: Vec<(Symbol, SpannedExpr)>,
         index: usize,
         values: Vec<Value>,
-        body: Expr,
+        body: SpannedExpr,
         env: EnvRef,
+        span: Option<Span>,
     },
     CallFunc {
-        args: Vec<Expr>,
+        args: Vec<SpannedExpr>,
         env: EnvRef,
+        span: Option<Span>,
     },
     CallArgs {
         func: Value,
-        args: Vec<Expr>,
+        args: Vec<SpannedExpr>,
         index: usize,
         values: Vec<Value>,
         env: EnvRef,
+        span: Option<Span>,
     },
     PrimArgs {
         op: Symbol,
-        args: Vec<Expr>,
+        args: Vec<SpannedExpr>,
         index: usize,
         values: Vec<Value>,
         env: EnvRef,
+        span: Option<Span>,
     },
     Case {
         arms: Vec<CaseArm>,
-        else_body: Option<Box<Expr>>,
+        else_body: Option<Box<SpannedExpr>>,
         env: EnvRef,
+        span: Option<Span>,
     },
 }
 
@@ -65,28 +72,44 @@ impl Frame {
         }
     }
 
-    fn reify(&self, current: Expr) -> Expr {
+    fn span(&self) -> Option<Span> {
+        match self {
+            Frame::If { span, .. }
+            | Frame::Let { span, .. }
+            | Frame::CallFunc { span, .. }
+            | Frame::CallArgs { span, .. }
+            | Frame::PrimArgs { span, .. }
+            | Frame::Case { span, .. } => span.clone(),
+        }
+    }
+
+    fn reify(&self, current: SpannedExpr) -> SpannedExpr {
         match self {
             Frame::If {
                 then_branch,
                 else_branch,
+                span,
                 ..
-            } => Expr::If {
-                test: Box::new(current),
-                then_branch: Box::new(then_branch.clone()),
-                else_branch: Box::new(else_branch.clone()),
-            },
+            } => SpannedExpr::new(
+                Expr::If {
+                    test: Box::new(current),
+                    then_branch: Box::new(then_branch.clone()),
+                    else_branch: Box::new(else_branch.clone()),
+                },
+                span.clone(),
+            ),
             Frame::Let {
                 bindings,
                 index,
                 values,
                 body,
+                span,
                 ..
             } => {
                 let mut rebuilt = Vec::with_capacity(bindings.len());
                 for (i, (name, expr)) in bindings.iter().cloned().enumerate() {
                     let expr = if i < *index {
-                        Expr::Value(values[i].clone())
+                        SpannedExpr::unspanned(Expr::Value(values[i].clone()))
                     } else if i == *index {
                         current.clone()
                     } else {
@@ -94,26 +117,33 @@ impl Frame {
                     };
                     rebuilt.push((name, expr));
                 }
-                Expr::Let {
-                    bindings: rebuilt,
-                    body: Box::new(body.clone()),
-                }
+                SpannedExpr::new(
+                    Expr::Let {
+                        bindings: rebuilt,
+                        body: Box::new(body.clone()),
+                    },
+                    span.clone(),
+                )
             }
-            Frame::CallFunc { args, .. } => Expr::Call {
-                func: Box::new(current),
-                args: args.clone(),
-            },
+            Frame::CallFunc { args, span, .. } => SpannedExpr::new(
+                Expr::Call {
+                    func: Box::new(current),
+                    args: args.clone(),
+                },
+                span.clone(),
+            ),
             Frame::CallArgs {
                 func,
                 args,
                 index,
                 values,
+                span,
                 ..
             } => {
                 let mut rebuilt = Vec::with_capacity(args.len());
                 for (i, expr) in args.iter().cloned().enumerate() {
                     let expr = if i < *index {
-                        Expr::Value(values[i].clone())
+                        SpannedExpr::unspanned(Expr::Value(values[i].clone()))
                     } else if i == *index {
                         current.clone()
                     } else {
@@ -121,22 +151,26 @@ impl Frame {
                     };
                     rebuilt.push(expr);
                 }
-                Expr::Call {
-                    func: Box::new(Expr::Value(func.clone())),
-                    args: rebuilt,
-                }
+                SpannedExpr::new(
+                    Expr::Call {
+                        func: Box::new(SpannedExpr::unspanned(Expr::Value(func.clone()))),
+                        args: rebuilt,
+                    },
+                    span.clone(),
+                )
             }
             Frame::PrimArgs {
                 op,
                 args,
                 index,
                 values,
+                span,
                 ..
             } => {
                 let mut rebuilt = Vec::with_capacity(args.len());
                 for (i, expr) in args.iter().cloned().enumerate() {
                     let expr = if i < *index {
-                        Expr::Value(values[i].clone())
+                        SpannedExpr::unspanned(Expr::Value(values[i].clone()))
                     } else if i == *index {
                         current.clone()
                     } else {
@@ -144,23 +178,37 @@ impl Frame {
                     };
                     rebuilt.push(expr);
                 }
-                Expr::Prim {
-                    op: op.clone(),
-                    args: rebuilt,
-                }
+                SpannedExpr::new(
+                    Expr::Prim {
+                        op: op.clone(),
+                        args: rebuilt,
+                    },
+                    span.clone(),
+                )
             }
             Frame::Case {
-                arms, else_body, ..
-            } => Expr::Case {
-                expr: Box::new(current),
-                arms: arms.clone(),
-                else_body: else_body.clone(),
-            },
+                arms,
+                else_body,
+                span,
+                ..
+            } => SpannedExpr::new(
+                Expr::Case {
+                    expr: Box::new(current),
+                    arms: arms.clone(),
+                    else_body: else_body.clone(),
+                },
+                span.clone(),
+            ),
         }
     }
 }
 
-pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, EvalError> {
+/// Evaluate a spanned expression, returning errors with source locations.
+pub fn eval_spanned(
+    expr: SpannedExpr,
+    env: EnvRef,
+    fuel: usize,
+) -> Result<EvalOutcome, SpannedEvalError> {
     let mut expr = expr;
     let mut env = env;
     let mut fuel = fuel;
@@ -177,8 +225,9 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
         }
 
         fuel -= 1;
+        let current_span = expr.span.clone();
 
-        match expr {
+        match expr.expr {
             Expr::Value(value) => match unwind(value, &mut frames, &mut env)? {
                 Unwind::Continue(next_expr) => {
                     expr = next_expr;
@@ -194,7 +243,9 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
                 Unwind::Done(value) => return Ok(EvalOutcome::Done(value)),
             },
             Expr::Var(name) => {
-                let value = Env::lookup(&env, &name).ok_or(EvalError::UnboundVariable(name))?;
+                let value = Env::lookup(&env, &name).ok_or_else(|| {
+                    SpannedEvalError::new(EvalError::UnboundVariable(name), current_span.clone())
+                })?;
                 match unwind(value, &mut frames, &mut env)? {
                     Unwind::Continue(next_expr) => {
                         expr = next_expr;
@@ -223,6 +274,7 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
                     then_branch: *then_branch,
                     else_branch: *else_branch,
                     env: env.clone(),
+                    span: current_span,
                 });
                 expr = *test;
             }
@@ -237,6 +289,7 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
                         values: Vec::new(),
                         body: *body,
                         env: env.clone(),
+                        span: current_span,
                     });
                     expr = first_expr;
                 }
@@ -245,12 +298,14 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
                 frames.push(Frame::CallFunc {
                     args,
                     env: env.clone(),
+                    span: current_span,
                 });
                 expr = *func;
             }
             Expr::Prim { op, args } => {
                 if args.is_empty() {
-                    let value = apply_prim(&op, &[])?;
+                    let value = apply_prim(&op, &[])
+                        .map_err(|e| SpannedEvalError::new(e, current_span.clone()))?;
                     match unwind(value, &mut frames, &mut env)? {
                         Unwind::Continue(next_expr) => {
                             expr = next_expr;
@@ -266,11 +321,12 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
                         index: 0,
                         values: Vec::new(),
                         env: env.clone(),
+                        span: current_span,
                     });
                     expr = first_expr;
                 }
             }
-            Expr::Fix { name, value } => match *value {
+            Expr::Fix { name, value } => match value.expr {
                 Expr::Fn { params, body } => {
                     let rec_env = Env::with_parent(env.clone());
                     let closure = Closure::new(params, *body, rec_env.clone());
@@ -284,7 +340,12 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
                         Unwind::Done(value) => return Ok(EvalOutcome::Done(value)),
                     }
                 }
-                _ => return Err(EvalError::FixRequiresFn),
+                _ => {
+                    return Err(SpannedEvalError::new(
+                        EvalError::FixRequiresFn,
+                        current_span,
+                    ));
+                }
             },
             Expr::Case {
                 expr: scrutinee,
@@ -295,6 +356,7 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
                     arms,
                     else_body,
                     env: env.clone(),
+                    span: current_span,
                 });
                 expr = *scrutinee;
             }
@@ -302,8 +364,14 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
     }
 }
 
+/// Legacy eval_loop that takes bare Expr and wraps it
+pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, EvalError> {
+    let spanned = SpannedExpr::unspanned(expr);
+    eval_spanned(spanned, env, fuel).map_err(|e| e.error)
+}
+
 enum Unwind {
-    Continue(Expr),
+    Continue(SpannedExpr),
     Done(Value),
 }
 
@@ -311,18 +379,21 @@ fn unwind(
     mut value: Value,
     frames: &mut Vec<Frame>,
     env: &mut EnvRef,
-) -> Result<Unwind, EvalError> {
+) -> Result<Unwind, SpannedEvalError> {
     loop {
         let frame = match frames.pop() {
             Some(frame) => frame,
             None => return Ok(Unwind::Done(value)),
         };
 
+        let frame_span = frame.span();
+
         match frame {
             Frame::If {
                 then_branch,
                 else_branch,
                 env: frame_env,
+                ..
             } => {
                 *env = frame_env;
                 let next = if is_truthy(&value) {
@@ -338,6 +409,7 @@ fn unwind(
                 mut values,
                 body,
                 env: frame_env,
+                span,
             } => {
                 values.push(value);
                 if index + 1 < bindings.len() {
@@ -349,6 +421,7 @@ fn unwind(
                         values,
                         body,
                         env: frame_env.clone(),
+                        span,
                     });
                     return Ok(Unwind::Continue(next_expr));
                 }
@@ -364,10 +437,11 @@ fn unwind(
             Frame::CallFunc {
                 args,
                 env: frame_env,
+                span,
             } => {
                 let func = value;
                 if args.is_empty() {
-                    let (next_expr, next_env) = apply_closure(func, Vec::new())?;
+                    let (next_expr, next_env) = apply_closure(func, Vec::new(), frame_span)?;
                     *env = next_env;
                     return Ok(Unwind::Continue(next_expr));
                 }
@@ -379,6 +453,7 @@ fn unwind(
                     index: 0,
                     values: Vec::new(),
                     env: frame_env,
+                    span,
                 });
                 return Ok(Unwind::Continue(next_expr));
             }
@@ -388,6 +463,7 @@ fn unwind(
                 index,
                 mut values,
                 env: frame_env,
+                span,
             } => {
                 values.push(value);
                 if index + 1 < args.len() {
@@ -399,10 +475,11 @@ fn unwind(
                         index: index + 1,
                         values,
                         env: frame_env,
+                        span,
                     });
                     return Ok(Unwind::Continue(next_expr));
                 }
-                let (next_expr, next_env) = apply_closure(func, values)?;
+                let (next_expr, next_env) = apply_closure(func, values, frame_span)?;
                 *env = next_env;
                 return Ok(Unwind::Continue(next_expr));
             }
@@ -412,6 +489,7 @@ fn unwind(
                 index,
                 mut values,
                 env: frame_env,
+                span,
             } => {
                 values.push(value);
                 if index + 1 < args.len() {
@@ -423,17 +501,21 @@ fn unwind(
                         index: index + 1,
                         values,
                         env: frame_env,
+                        span,
                     });
                     return Ok(Unwind::Continue(next_expr));
                 }
-                value = apply_prim(&op, &values)?;
+                value =
+                    apply_prim(&op, &values).map_err(|e| SpannedEvalError::new(e, frame_span))?;
             }
             Frame::Case {
                 arms,
                 else_body,
                 env: frame_env,
+                ..
             } => {
-                let (next_expr, next_env) = apply_case(value, arms, else_body, frame_env)?;
+                let (next_expr, next_env) =
+                    apply_case(value, arms, else_body, frame_env, frame_span)?;
                 *env = next_env;
                 return Ok(Unwind::Continue(next_expr));
             }
@@ -441,17 +523,24 @@ fn unwind(
     }
 }
 
-fn apply_closure(func: Value, args: Vec<Value>) -> Result<(Expr, EnvRef), EvalError> {
+fn apply_closure(
+    func: Value,
+    args: Vec<Value>,
+    span: Option<Span>,
+) -> Result<(SpannedExpr, EnvRef), SpannedEvalError> {
     let closure = match func {
         Value::Closure(closure) => closure,
-        _ => return Err(EvalError::NotCallable),
+        _ => return Err(SpannedEvalError::new(EvalError::NotCallable, span)),
     };
 
     if closure.params.len() != args.len() {
-        return Err(EvalError::ArityMismatch {
-            expected: closure.params.len(),
-            got: args.len(),
-        });
+        return Err(SpannedEvalError::new(
+            EvalError::ArityMismatch {
+                expected: closure.params.len(),
+                got: args.len(),
+            },
+            span,
+        ));
     }
 
     let bindings = closure.params.iter().cloned().zip(args).collect::<Vec<_>>();
@@ -463,21 +552,25 @@ fn apply_closure(func: Value, args: Vec<Value>) -> Result<(Expr, EnvRef), EvalEr
 fn apply_case(
     value: Value,
     arms: Vec<CaseArm>,
-    else_body: Option<Box<Expr>>,
+    else_body: Option<Box<SpannedExpr>>,
     env: EnvRef,
-) -> Result<(Expr, EnvRef), EvalError> {
+    span: Option<Span>,
+) -> Result<(SpannedExpr, EnvRef), SpannedEvalError> {
     let block = match value {
         Value::Block(block) => block,
-        _ => return Err(EvalError::CaseRequiresBlock),
+        _ => return Err(SpannedEvalError::new(EvalError::CaseRequiresBlock, span)),
     };
 
     for arm in arms {
         if arm.tag == block.tag {
             if arm.vars.len() != block.refs.len() {
-                return Err(EvalError::PatternArityMismatch {
-                    expected: arm.vars.len(),
-                    got: block.refs.len(),
-                });
+                return Err(SpannedEvalError::new(
+                    EvalError::PatternArityMismatch {
+                        expected: arm.vars.len(),
+                        got: block.refs.len(),
+                    },
+                    span,
+                ));
             }
 
             let bindings = arm
@@ -497,14 +590,17 @@ fn apply_case(
         return Ok((*else_expr, env));
     }
 
-    Err(EvalError::NoMatchingClause(block.tag))
+    Err(SpannedEvalError::new(
+        EvalError::NoMatchingClause(block.tag),
+        span,
+    ))
 }
 
 fn is_truthy(value: &Value) -> bool {
     !matches!(value, Value::Bool(false))
 }
 
-fn reify(expr: Expr, frames: &[Frame]) -> Expr {
+fn reify(expr: SpannedExpr, frames: &[Frame]) -> SpannedExpr {
     frames
         .iter()
         .rev()

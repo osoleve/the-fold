@@ -3,7 +3,7 @@ use fold_rs::tools::{lower_expr, parse_fold_expr};
 
 fn parse_and_lower(input: &str) -> Expr {
     let expr = parse_fold_expr(input, None).expect("parse failed");
-    lower_expr(&expr).expect("lower failed")
+    lower_expr(&expr).expect("lower failed").expr
 }
 
 fn list_to_vec(list: &Value) -> Vec<Value> {
@@ -79,7 +79,7 @@ fn lower_core_forms() {
     match parse_and_lower("(fn (x y) x)") {
         Expr::Fn { params, body } => {
             assert_eq!(params, vec!["x".to_string(), "y".to_string()]);
-            assert!(matches!(*body, Expr::Var(_)));
+            assert!(matches!(body.expr, Expr::Var(_)));
         }
         other => panic!("expected fn, got {:?}", other),
     }
@@ -137,7 +137,7 @@ fn lower_core_forms() {
 fn lower_accepts_float_literals() {
     let parsed = parse_fold_expr("2.5", None).expect("parse failed");
     let expr = lower_expr(&parsed).expect("lower failed");
-    match expr {
+    match expr.expr {
         Expr::Value(Value::Float(n)) => {
             assert!((n - 2.5).abs() < 1e-9);
         }
