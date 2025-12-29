@@ -11,7 +11,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 
-(load "prelude.ss")
+(load "fabric/stitches/prelude.ss")
 
 ;;; Categories:
 ;;;   - Arithmetic: add, sub, mul, div, mod, neg, abs
