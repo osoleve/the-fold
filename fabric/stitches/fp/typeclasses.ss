@@ -1,4 +1,4 @@
-;;; fabric/stitches/fp/typeclasses.ss — Unified Typeclass Hierarchy
+;;; fabric/stitches/fp/typeclasses.ss - Unified Typeclass Hierarchy
 ;;;
 ;;; This module provides a unified interface for the standard FP typeclass
 ;;; hierarchy: Functor, Applicative, Monad, and their duals.
@@ -201,8 +201,8 @@
 (define function-applicative
   (make-applicative-full
    function-functor
-   const                                          ; pure:  ->  -> a
-   (lambda (ff fa)                                ; ap: f fa r -> ff r (fa r)
+   const                                          ; pure: a -> (r -> a)
+   (lambda (ff fa)                                ; ap: (r -> a -> b) -> (r -> a) -> (r -> b)
            (lambda (r)
                    ((ff r) (fa r))))))
 
@@ -285,13 +285,16 @@
            (apply append (map f ma)))))
 
 ;;; maybe-monad : Monad Maybe
-(define maybe-monad-full
+(define maybe-monad
   (make-monad
-   maybe-applicative-full
+   maybe-applicative
    (lambda (ma f)
            (if (nothing? ma)
                nothing
                (f (from-just ma))))))
+
+;;; Alias for backwards compatibility
+(define maybe-monad-full maybe-monad)
 
 ;;; either-monad : Monad (Either e)
 (define either-monad

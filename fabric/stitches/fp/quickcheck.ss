@@ -430,7 +430,7 @@
   (let ([n (char->integer c)])
        (if (= n 97)  ; 'a'
            '()
-           (list #))))
+           (list #\a))))
 
 ;;; shrink-list : (a -> (List a)) -> (List a) -> (List (List a))
 ;;; Shrink a list by:
