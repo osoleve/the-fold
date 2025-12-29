@@ -37,6 +37,9 @@
 (load "playpen/satin/effects.ss")
 (load "playpen/satin/validate.ss")
 (load "playpen/satin/compile.ss")
+(load "playpen/satin/pretty.ss")
+(load "playpen/satin/lint.ss")
+(load "playpen/satin/docs.ss")
 
 ;;; ============================================================
 ;;; Public API
