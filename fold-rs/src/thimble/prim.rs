@@ -434,7 +434,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             } else {
                 ' '
             };
-            Ok(Value::String(std::iter::repeat(ch).take(len).collect()))
+            Ok(Value::String(std::iter::repeat_n(ch, len).collect()))
         }
         "string->list" => {
             if args.len() != 1 {
@@ -1113,7 +1113,7 @@ fn expect_vector(value: &Value) -> Result<&[Value], EvalError> {
     }
 }
 
-fn expect_block<'a>(args: &'a [Value]) -> Result<&'a Block, EvalError> {
+fn expect_block(args: &[Value]) -> Result<&Block, EvalError> {
     if args.len() != 1 {
         return Err(EvalError::TypeMismatch("block op expects 1 arg"));
     }
@@ -1245,10 +1245,7 @@ fn list_to_vec(list: &Value) -> Result<Vec<Value>, EvalError> {
 }
 
 fn is_list(value: &Value) -> bool {
-    match list_to_vec(value) {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    list_to_vec(value).is_ok()
 }
 
 fn is_truthy(value: &Value) -> bool {

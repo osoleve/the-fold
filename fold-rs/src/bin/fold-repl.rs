@@ -94,14 +94,12 @@ fn sequence_exprs(exprs: Vec<Expr>) -> Expr {
         Some(expr) => expr,
         None => return Expr::Value(fold_rs::fabric::Value::Nil),
     };
-    let mut index = 0usize;
-    for next in iter {
+    for (index, next) in iter.enumerate() {
         let name = format!("#%fold-seq-{index}");
         current = Expr::Let {
             bindings: vec![(name, current)],
             body: Box::new(next),
         };
-        index += 1;
     }
     current
 }

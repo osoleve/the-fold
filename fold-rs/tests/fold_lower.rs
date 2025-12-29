@@ -135,11 +135,11 @@ fn lower_core_forms() {
 
 #[test]
 fn lower_accepts_float_literals() {
-    let parsed = parse_fold_expr("3.14", None).expect("parse failed");
+    let parsed = parse_fold_expr("2.5", None).expect("parse failed");
     let expr = lower_expr(&parsed).expect("lower failed");
     match expr {
         Expr::Value(Value::Float(n)) => {
-            assert!((n - 3.14).abs() < 1e-9);
+            assert!((n - 2.5).abs() < 1e-9);
         }
         other => panic!("expected float literal, got {:?}", other),
     }

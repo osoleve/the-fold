@@ -28,7 +28,7 @@ impl SymbolSupply {
     }
 
     /// Take the next symbol from the supply.
-    pub fn next(&mut self) -> Option<Symbol> {
+    pub fn next_symbol(&mut self) -> Option<Symbol> {
         if self.index < self.symbols.len() {
             let sym = self.symbols[self.index].clone();
             self.index += 1;
@@ -70,10 +70,10 @@ fn expand_with_ctx(expr: &Value, ctx: &[Symbol], supply: &mut SymbolSupply) -> V
             if let Value::Symbol(head) = car.as_ref() {
                 match head.as_str() {
                     "dv" => {
-                        if let Some(idx) = parse_dv(cdr) {
-                            if idx < ctx.len() {
-                                return Value::Symbol(ctx[idx].clone());
-                            }
+                        if let Some(idx) = parse_dv(cdr)
+                            && idx < ctx.len()
+                        {
+                            return Value::Symbol(ctx[idx].clone());
                         }
                         // Invalid dv, return as-is
                         expr.clone()
@@ -82,7 +82,7 @@ fn expand_with_ctx(expr: &Value, ctx: &[Symbol], supply: &mut SymbolSupply) -> V
                     // (fn body) -> (fn (var) expanded-body)
                     "fn" => {
                         if let Some(body) = parse_normalized_fn(cdr) {
-                            if let Some(var) = supply.next() {
+                            if let Some(var) = supply.next_symbol() {
                                 let mut new_ctx = vec![var.clone()];
                                 new_ctx.extend(ctx.iter().cloned());
                                 let expanded_body = expand_with_ctx(&body, &new_ctx, supply);
@@ -99,7 +99,7 @@ fn expand_with_ctx(expr: &Value, ctx: &[Symbol], supply: &mut SymbolSupply) -> V
                     // (let (val) body) -> (let ((var val)) expanded-body)
                     "let" => {
                         if let Some((val, body)) = parse_normalized_let(cdr) {
-                            if let Some(var) = supply.next() {
+                            if let Some(var) = supply.next_symbol() {
                                 let expanded_val = expand_with_ctx(&val, ctx, supply);
                                 let mut new_ctx = vec![var.clone()];
                                 new_ctx.extend(ctx.iter().cloned());
@@ -116,7 +116,7 @@ fn expand_with_ctx(expr: &Value, ctx: &[Symbol], supply: &mut SymbolSupply) -> V
                     // (fix body) -> (fix (f) expanded-body)
                     "fix" => {
                         if let Some(body) = parse_normalized_fix(cdr) {
-                            if let Some(f) = supply.next() {
+                            if let Some(f) = supply.next_symbol() {
                                 let mut new_ctx = vec![f.clone()];
                                 new_ctx.extend(ctx.iter().cloned());
                                 let expanded_body = expand_with_ctx(&body, &new_ctx, supply);

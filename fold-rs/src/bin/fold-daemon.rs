@@ -32,15 +32,13 @@ const DEFAULT_FUEL: usize = 10_000;
 
 /// Session state for a connected client.
 struct Session {
-    id: String,
     env: EnvRef,
     last_active: Instant,
 }
 
 impl Session {
-    fn new(id: String) -> Self {
+    fn new(_id: String) -> Self {
         Self {
-            id,
             env: Env::new(),
             last_active: Instant::now(),
         }

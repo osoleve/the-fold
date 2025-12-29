@@ -445,7 +445,7 @@ fn apply_closure(func: Value, args: Vec<Value>) -> Result<(Expr, EnvRef), EvalEr
         .params
         .iter()
         .cloned()
-        .zip(args.into_iter())
+        .zip(args)
         .collect::<Vec<_>>();
 
     let new_env = Env::extend(closure.env.clone(), bindings);

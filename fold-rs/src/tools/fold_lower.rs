@@ -84,13 +84,13 @@ fn expand_quasiquote(expr: &Spanned<Sexp>) -> Result<Expr, LowerError> {
     match &expr.value {
         Sexp::List(items) if !items.is_empty() => {
             // Check for (unquote x)
-            if let Some(head) = symbol_name(&items[0]) {
-                if head == "unquote" {
-                    if items.len() != 2 {
-                        return Err(error(expr, "unquote expects 1 argument"));
-                    }
-                    return lower_expr(&items[1]);
+            if let Some(head) = symbol_name(&items[0])
+                && head == "unquote"
+            {
+                if items.len() != 2 {
+                    return Err(error(expr, "unquote expects 1 argument"));
                 }
+                return lower_expr(&items[1]);
             }
             // It's a list - expand each element
             expand_quasiquote_list(items)
@@ -107,12 +107,11 @@ fn expand_quasiquote(expr: &Spanned<Sexp>) -> Result<Expr, LowerError> {
 fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
     // Check if any element uses unquote-splicing
     let has_splicing = items.iter().any(|item| {
-        if let Sexp::List(inner) = &item.value {
-            if !inner.is_empty() {
-                if let Some(head) = symbol_name(&inner[0]) {
-                    return head == "unquote-splicing";
-                }
-            }
+        if let Sexp::List(inner) = &item.value
+            && !inner.is_empty()
+            && let Some(head) = symbol_name(&inner[0])
+        {
+            return head == "unquote-splicing";
         }
         false
     });
@@ -121,19 +120,17 @@ fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
         // Need to use append for splicing
         let mut append_args = Vec::new();
         for item in items {
-            if let Sexp::List(inner) = &item.value {
-                if !inner.is_empty() {
-                    if let Some(head) = symbol_name(&inner[0]) {
-                        if head == "unquote-splicing" {
-                            if inner.len() != 2 {
-                                return Err(error(item, "unquote-splicing expects 1 argument"));
-                            }
-                            // Splice: the value should be a list to splice in
-                            append_args.push(lower_expr(&inner[1])?);
-                            continue;
-                        }
-                    }
+            if let Sexp::List(inner) = &item.value
+                && !inner.is_empty()
+                && let Some(head) = symbol_name(&inner[0])
+                && head == "unquote-splicing"
+            {
+                if inner.len() != 2 {
+                    return Err(error(item, "unquote-splicing expects 1 argument"));
                 }
+                // Splice: the value should be a list to splice in
+                append_args.push(lower_expr(&inner[1])?);
+                continue;
             }
             // Regular element - wrap in (list <expanded-element>)
             let expanded = expand_quasiquote(item)?;
@@ -293,14 +290,14 @@ fn lower_case(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr
         };
 
         // Check for (else body) clause
-        if let Sexp::Symbol(sym) = &clause_items[0].value {
-            if sym == "else" {
-                if else_body.is_some() {
-                    return Err(error(clause, "case can only have one else clause"));
-                }
-                else_body = Some(Box::new(lower_expr(&clause_items[1])?));
-                continue;
+        if let Sexp::Symbol(sym) = &clause_items[0].value
+            && sym == "else"
+        {
+            if else_body.is_some() {
+                return Err(error(clause, "case can only have one else clause"));
             }
+            else_body = Some(Box::new(lower_expr(&clause_items[1])?));
+            continue;
         }
 
         // Regular pattern clause: ((tag vars...) body)
@@ -360,13 +357,13 @@ fn parse_prim_op(op: &Spanned<Sexp>) -> Result<String, LowerError> {
     match &op.value {
         Sexp::Symbol(sym) => Ok(sym.clone()),
         Sexp::List(items) if items.len() == 2 => {
-            if let Some(head) = symbol_name(&items[0]) {
-                if head == "quote" {
-                    if let Sexp::Symbol(sym) = &items[1].value {
-                        return Ok(sym.clone());
-                    }
-                    return Err(error(&items[1], "prim op must be a symbol"));
+            if let Some(head) = symbol_name(&items[0])
+                && head == "quote"
+            {
+                if let Sexp::Symbol(sym) = &items[1].value {
+                    return Ok(sym.clone());
                 }
+                return Err(error(&items[1], "prim op must be a symbol"));
             }
             Err(error(op, "prim op must be a symbol or quoted symbol"))
         }

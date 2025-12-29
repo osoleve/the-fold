@@ -89,6 +89,7 @@ fn case_matches_block() {
                 Expr::Var(sym("ref")),
             ),
         ],
+        else_body: None,
     };
 
     let out = eval_loop(expr, env, 10).unwrap();

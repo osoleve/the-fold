@@ -151,7 +151,7 @@ pub fn sha256_hex(message: &[u8]) -> String {
 
 fn pad_message(message: &[u8]) -> Vec<u8> {
     let bit_len = (message.len() as u64) * 8;
-    let mut out = Vec::with_capacity(((message.len() + 9 + 63) / 64) * 64);
+    let mut out = Vec::with_capacity((message.len() + 9).div_ceil(64) * 64);
     out.extend_from_slice(message);
     out.push(0x80);
     while (out.len() + 8) % 64 != 0 {

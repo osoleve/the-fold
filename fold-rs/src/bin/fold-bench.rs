@@ -18,12 +18,12 @@ fn main() {
 
     let test_list = list_from_values(
         &(1..=10)
-            .map(|n| Value::Number(n))
+            .map(Value::Number)
             .collect::<Vec<_>>(),
     );
     let test_vec = Value::Vector(
         (1..=10)
-            .map(|n| Value::Number(n))
+            .map(Value::Number)
             .collect::<Vec<_>>(),
     );
     let test_bv = Value::Bytevector(vec![42u8; 32]);
@@ -77,7 +77,7 @@ fn main() {
     bench_prim("not", &[Value::Bool(false)], iterations);
     bench_prim("eq?", &[Value::Number(42), Value::Number(42)], iterations);
     bench_prim("zero?", &[Value::Number(0)], iterations);
-    bench_prim("block-tag", &[test_block.clone()], iterations);
+    bench_prim("block-tag", std::slice::from_ref(&test_block), iterations);
 
     println!();
     println!("--- Tier 2 (Cost 2) - O(1) simple ---");
@@ -95,8 +95,8 @@ fn main() {
         &[test_string.clone(), Value::Number(5)],
         iterations,
     );
-    bench_prim("string-length", &[test_string.clone()], iterations);
-    bench_prim("vec-length", &[test_vec.clone()], iterations);
+    bench_prim("string-length", std::slice::from_ref(&test_string), iterations);
+    bench_prim("vec-length", std::slice::from_ref(&test_vec), iterations);
 
     println!();
     println!("--- Tier 3 (Cost 3) - O(1) moderate ---");
@@ -122,11 +122,11 @@ fn main() {
 
     println!();
     println!("--- Tier 4 (Cost 5) - O(n) linear ---");
-    bench_prim("length", &[test_list.clone()], iterations);
-    bench_prim("reverse", &[test_list.clone()], iterations);
-    bench_prim("vec->list", &[test_vec.clone()], iterations);
-    bench_prim("list->vec", &[test_list.clone()], iterations);
-    bench_prim("string->list", &[test_string.clone()], iterations);
+    bench_prim("length", std::slice::from_ref(&test_list), iterations);
+    bench_prim("reverse", std::slice::from_ref(&test_list), iterations);
+    bench_prim("vec->list", std::slice::from_ref(&test_vec), iterations);
+    bench_prim("list->vec", std::slice::from_ref(&test_list), iterations);
+    bench_prim("string->list", std::slice::from_ref(&test_string), iterations);
     bench_prim(
         "list->string",
         &[list_from_values(&[
@@ -158,10 +158,10 @@ fn main() {
         iterations,
     );
     bench_prim("bv-slice", &[test_bv.clone(), Value::Number(0), Value::Number(16)], iterations);
-    bench_prim("string->utf8", &[test_string.clone()], iterations);
+    bench_prim("string->utf8", std::slice::from_ref(&test_string), iterations);
     bench_prim("utf8->string", &[Value::Bytevector(b"hello world".to_vec())], iterations);
-    bench_prim("block->bytes", &[test_block.clone()], iterations);
-    let block_bytes = match apply_prim(&"block->bytes".to_string(), &[test_block.clone()]) {
+    bench_prim("block->bytes", std::slice::from_ref(&test_block), iterations);
+    let block_bytes = match apply_prim(&"block->bytes".to_string(), std::slice::from_ref(&test_block)) {
         Ok(Value::Bytevector(bytes)) => Value::Bytevector(bytes),
         Ok(_) => panic!("block->bytes did not return bytevector"),
         Err(err) => panic!("block->bytes failed: {err:?}"),
@@ -175,11 +175,11 @@ fn main() {
 
     println!();
     println!("--- Tier 7 (Cost 100) - Cryptographic ---");
-    bench_prim("sha256", &[test_bv.clone()], iterations);
+    bench_prim("sha256", std::slice::from_ref(&test_bv), iterations);
 
     println!();
     println!("--- Tier 8 (Cost 110) - Serialization + crypto ---");
-    bench_prim("hash-block", &[test_block.clone()], iterations);
+    bench_prim("hash-block", std::slice::from_ref(&test_block), iterations);
 }
 
 fn bench_prim(op: &str, args: &[Value], iterations: usize) {

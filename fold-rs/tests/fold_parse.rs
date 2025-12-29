@@ -34,7 +34,7 @@ fn expect_symbol(expr: PlainSexp, expected: &str) {
 fn parse_numbers() {
     expect_integer(parse_plain("42"), 42);
     expect_integer(parse_plain("-17"), -17);
-    expect_float(parse_plain("3.14"), 3.14);
+    expect_float(parse_plain("2.5"), 2.5);
     expect_float(parse_plain("-2.5"), -2.5);
 }
 
