@@ -82,7 +82,7 @@
                [mem-used (- end-mem start-mem)])
               
               ;; Compute statistics
-              (let ([sorted (sort samples <)])
+              (let ([sorted (list-sort < samples)])
                    (make-benchmark-result
                     name
                     iterations
@@ -207,47 +207,71 @@
 ;;; benchmark-report : (List BenchmarkResult) → void
 ;;; Display benchmark results.
 (define (benchmark-report results)
-  (display "\n")
-  (display "╔═══════════════════════════════════════════════════════════════╗\n")
-  (display "║                    BENCHMARK RESULTS                          ║\n")
-  (display "╚═══════════════════════════════════════════════════════════════╝\n")
-  (display "\n")
+  (display "
+")
+  (display "╔═══════════════════════════════════════════════════════════════╗
+")
+  (display "║                    BENCHMARK RESULTS                          ║
+")
+  (display "╚═══════════════════════════════════════════════════════════════╝
+")
+  (display "
+")
   
   (for-each
    (lambda (result)
-           (display "───────────────────────────────────────────────────────────────\n")
-           (display (format "  ~a\n" (benchmark-result-name result)))
-           (display "───────────────────────────────────────────────────────────────\n")
-           (display (format "  Iterations:    ~a\n" (benchmark-result-iterations result)))
-           (display (format "  Mean:          ~a\n" (format-time-ns (benchmark-result-mean-ns result))))
-           (display (format "  Median:        ~a\n" (format-time-ns (benchmark-result-median-ns result))))
-           (display (format "  Std Dev:       ~a\n" (format-time-ns (benchmark-result-stddev-ns result))))
-           (display (format "  Min:           ~a\n" (format-time-ns (benchmark-result-min-ns result))))
-           (display (format "  Max:           ~a\n" (format-time-ns (benchmark-result-max-ns result))))
-           (display (format "  P50:           ~a\n" (format-time-ns (benchmark-result-p50-ns result))))
-           (display (format "  P90:           ~a\n" (format-time-ns (benchmark-result-p90-ns result))))
-           (display (format "  P99:           ~a\n" (format-time-ns (benchmark-result-p99-ns result))))
-           (display (format "  Memory:        ~a\n" (format-bytes (benchmark-result-mem-allocated result))))
-           (display "\n"))
+           (display "───────────────────────────────────────────────────────────────
+")
+           (display (format "  ~a
+" (benchmark-result-name result)))
+           (display "───────────────────────────────────────────────────────────────
+")
+           (display (format "  Iterations:    ~a
+" (benchmark-result-iterations result)))
+           (display (format "  Mean:          ~a
+" (format-time-ns (benchmark-result-mean-ns result))))
+           (display (format "  Median:        ~a
+" (format-time-ns (benchmark-result-median-ns result))))
+           (display (format "  Std Dev:       ~a
+" (format-time-ns (benchmark-result-stddev-ns result))))
+           (display (format "  Min:           ~a
+" (format-time-ns (benchmark-result-min-ns result))))
+           (display (format "  Max:           ~a
+" (format-time-ns (benchmark-result-max-ns result))))
+           (display (format "  P50:           ~a
+" (format-time-ns (benchmark-result-p50-ns result))))
+           (display (format "  P90:           ~a
+" (format-time-ns (benchmark-result-p90-ns result))))
+           (display (format "  P99:           ~a
+" (format-time-ns (benchmark-result-p99-ns result))))
+           (display (format "  Memory:        ~a
+" (format-bytes (benchmark-result-mem-allocated result))))
+           (display "
+"))
    results)
   
   ;; Comparison if multiple results
   (when (> (length results) 1)
-        (display "───────────────────────────────────────────────────────────────\n")
-        (display "  COMPARISON (relative to fastest)\n")
-        (display "───────────────────────────────────────────────────────────────\n")
+        (display "───────────────────────────────────────────────────────────────
+")
+        (display "  COMPARISON (relative to fastest)
+")
+        (display "───────────────────────────────────────────────────────────────
+")
         (let* ([fastest (find-fastest results)]
                [fastest-mean (benchmark-result-mean-ns fastest)])
               (for-each
                (lambda (result)
                        (let* ([mean (benchmark-result-mean-ns result)]
                               [ratio (if (= fastest-mean 0) 1.0 (/ mean fastest-mean))])
-                             (display (format "  ~a: ~ax~a\n"
+                             (display (format "  ~a: ~ax~a
+"
                                               (benchmark-result-name result)
                                               (format-ratio ratio)
                                               (if (eq? result fastest) " (fastest)" "")))))
                results))
-        (display "\n")))
+        (display "
+")))
 
 ;;; find-fastest : (List BenchmarkResult) → BenchmarkResult
 (define (find-fastest results)
@@ -310,7 +334,8 @@
 ;;; Save benchmark results to file.
 (define (benchmark-save result path)
   (guard (e [else
-             (display (format "Error saving benchmark: ~a\n"
+             (display (format "Error saving benchmark: ~a
+"
                               (if (condition? e)
                                   (condition-message e)
                                   e)))])
@@ -383,17 +408,31 @@
      ("append" . ,(lambda () (append '(1 2) '(3 4))))
      ("reverse" . ,(lambda () (reverse '(1 2 3 4 5)))))))
 
-(display "\n")
-(display "Benchmarking harness loaded.\n")
-(display "\n")
-(display "Usage:\n")
-(display "  (benchmark \"name\" thunk [iterations])  - Run benchmark\n")
-(display "  (benchmark-compare pairs [iterations])  - Compare implementations\n")
-(display "  (benchmark-suite \"name\" benchmarks)     - Run suite\n")
-(display "  (benchmark-report results)              - Display report\n")
-(display "\n")
-(display "Quick Access:\n")
-(display "  (quick-bench thunk)                     - Quick test (100 iter)\n")
-(display "  (thorough-bench thunk)                  - Thorough test (10k iter)\n")
-(display "  (example-benchmark-suite)               - Example suite\n")
-(display "\n")
+(display "
+")
+(display "Benchmarking harness loaded.
+")
+(display "
+")
+(display "Usage:
+")
+(display "  (benchmark \"name\" thunk [iterations])  - Run benchmark
+")
+(display "  (benchmark-compare pairs [iterations])  - Compare implementations
+")
+(display "  (benchmark-suite \"name\" benchmarks)     - Run suite
+")
+(display "  (benchmark-report results)              - Display report
+")
+(display "
+")
+(display "Quick Access:
+")
+(display "  (quick-bench thunk)                     - Quick test (100 iter)
+")
+(display "  (thorough-bench thunk)                  - Thorough test (10k iter)
+")
+(display "  (example-benchmark-suite)               - Example suite
+")
+(display "
+")
