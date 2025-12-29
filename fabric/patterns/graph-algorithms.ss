@@ -214,7 +214,8 @@
                                (let ([block (store-get fs current)])
                                     (when block
                                           (visit-fn current block)
-                                          (let* ([neighbors (get-outgoing-hashes fs current)]
+                                          ;; Optimization: use block-refs directly instead of calling get-outgoing-hashes
+                                          (let* ([neighbors (vector->list (block-refs block))]
                                                  [unvisited (filter (lambda (h)
                                                                             (not (visited-contains? visited h)))
                                                                     neighbors)])
@@ -241,7 +242,8 @@
                                (let ([block (store-get fs current)])
                                     (when block
                                           (visit-fn current block)
-                                          (let* ([neighbors (get-outgoing-hashes fs current)]
+                                          ;; Optimization: use block-refs directly instead of calling get-outgoing-hashes
+                                          (let* ([neighbors (vector->list (block-refs block))]
                                                  [unvisited (filter (lambda (h)
                                                                             (not (visited-contains? visited h)))
                                                                     neighbors)])

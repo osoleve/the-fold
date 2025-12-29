@@ -66,7 +66,7 @@
                             (loop (+ i 1) (cons (hash-block block) hashes)))))]
              [center (make-block 'center (string->utf8 "data") leaves)])
             (store-put! fs center)
-            (block-hash center))))
+            (hash-block center))))
 
 ;;; make-tree-graph : FSCap Nat Nat → Hash
 ;;; Create a binary tree of given depth.
@@ -80,7 +80,7 @@
                       ;; Root level
                       (let ([root (make-block 'root (string->utf8 "data") (vector))])
                            (store-put! fs root)
-                           (list (block-hash root)))
+                           (list (hash-block root)))
                       ;; Other levels
                       (let loop ([parents parent-hashes] [all-children '()])
                            (if (null? parents)
@@ -95,7 +95,7 @@
                                                              (vector (car parents)))])
                                                     (store-put! fs child)
                                                     (child-loop (+ i 1)
-                                                                (cons (block-hash child) child-hashes)))))])
+                                                                (cons (hash-block child) child-hashes)))))])
                                     (loop (cdr parents)
                                           (append all-children children))))))])
                 (build-level (+ d 1) new-hashes)))))
@@ -116,7 +116,7 @@
                                      (string->utf8 "data")
                                      (vector))])
                             (loop (+ i 1) (cons block acc)))))]
-             [hashes (map block-hash nodes)])
+             [hashes (map hash-block nodes)])
             ;; Second pass: update refs to create cycle
             (let update-loop ([i 0] [nds nodes] [hs hashes])
                  (unless (null? nds)
@@ -147,7 +147,7 @@
                                      (string->utf8 "data")
                                      (vector))])
                             (loop (+ i 1) (cons block acc)))))]
-             [hashes (map block-hash nodes)])
+             [hashes (map hash-block nodes)])
             ;; Update each node to reference 60% of other nodes
             (let update-loop ([i 0] [nds nodes])
                  (unless (null? nds)
@@ -189,7 +189,7 @@
                                      (string->utf8 "data")
                                      (vector))])
                             (loop (+ i 1) (cons block acc)))))]
-             [hashes (map block-hash nodes)])
+             [hashes (map hash-block nodes)])
             ;; Each node connects to 1-2 random others
             (let update-loop ([i 0] [nds nodes])
                  (unless (null? nds)
@@ -386,9 +386,12 @@ Testing BFS traversal scaling on chain graphs:
         (lambda (size)
                 (let ([fs (make-fs-capability ".store-bench")])
                      ;; Clean store for each test
+                     (unless (file-exists? ".store-bench")
+                             (mkdir ".store-bench"))
                      (when (file-exists? ".store-bench/objects")
                            (system "rm -rf .store-bench/objects/*"))
-                     (mkdir ".store-bench/objects")
+                     (unless (file-exists? ".store-bench/objects")
+                             (mkdir ".store-bench/objects"))
                      
                      (let* ([start (make-chain-graph fs size)]
                             [visit-fn (lambda (h b) (void))]
