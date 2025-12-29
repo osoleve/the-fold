@@ -412,11 +412,11 @@
                                       (left (merge-errors err1 (from-left result2))))))))))))
 
 ;;; choice : (List Parser) → Parser
-;;; Try parsers in order.
+;;; Try parsers in order (left to right).
 (define (choice parsers)
   (if (null? parsers)
       (parser-fail "no alternatives")
-      (fold-right parser-or (car parsers) (cdr parsers))))
+      (fold-left parser-or (car parsers) (cdr parsers))))
 
 ;;; try : Parser a → Parser a
 ;;; Try parser, on failure pretend no input was consumed.
