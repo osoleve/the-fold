@@ -24,12 +24,14 @@
 (define fail-count 0)
 
 (define (run-test-file filename)
-  (display (string-append "\n=== Running " filename " ===\n"))
+  (display (string-append "
+=== Running " filename " ===
+"))
   (set! test-count (+ test-count 1))
   (guard (exn [else
                (set! fail-count (+ fail-count 1))
                (display "FAILED: ")
-               (display (condition-message exn))
+               (display (format-condition exn))
                (newline)])
          (load (string-append "shell/" filename))
          (set! pass-count (+ pass-count 1))))
@@ -38,10 +40,14 @@
 ;;; Run Shell Tests
 ;;; ============================================================
 
-(display "╔══════════════════════════════════════════════════════════╗\n")
-(display "║           The Fold — Shell Test Suite                    ║\n")
-(display "╚══════════════════════════════════════════════════════════╝\n")
-(display (string-append "Working directory: " (current-directory) "\n"))
+(display "╔══════════════════════════════════════════════════════════╗
+")
+(display "║           The Fold — Shell Test Suite                    ║
+")
+(display "╚══════════════════════════════════════════════════════════╝
+")
+(display (string-append "Working directory: " (current-directory) "
+"))
 
 ;;; Validation
 (run-test-file "test-validate.ss")
@@ -58,15 +64,25 @@
 ;;; ============================================================
 
 (newline)
-(display "╔══════════════════════════════════════════════════════════╗\n")
-(display "║                    TEST SUMMARY                          ║\n")
-(display "╚══════════════════════════════════════════════════════════╝\n")
-(display (string-append "  Total:  " (number->string test-count) " test files\n"))
-(display (string-append "  Passed: " (number->string pass-count) "\n"))
-(display (string-append "  Failed: " (number->string fail-count) "\n"))
+(display "╔══════════════════════════════════════════════════════════╗
+")
+(display "║                    TEST SUMMARY                          ║
+")
+(display "╚══════════════════════════════════════════════════════════╝
+")
+(display (string-append "  Total:  " (number->string test-count) " test files
+"))
+(display (string-append "  Passed: " (number->string pass-count) "
+"))
+(display (string-append "  Failed: " (number->string fail-count) "
+"))
 
 (if (= fail-count 0)
-    (display "\n✓ All shell tests passed!\n")
+    (display "
+✓ All shell tests passed!
+")
     (begin
-     (display "\n✗ Some tests failed!\n")
+     (display "
+✗ Some tests failed!
+")
      (exit 1)))

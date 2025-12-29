@@ -121,7 +121,7 @@
                     (guard (e [else
                                (display "✗ Reload failed: ")
                                (if (condition? e)
-                                   (display (condition-message e))
+                                   (display (format-condition e))
                                    (display e))
                                (newline)])
                            (load "thimble/custom.ss")
@@ -146,7 +146,7 @@
                     (guard (e [else
                                (display "✗ Syntax error, not loading\n")
                                (if (condition? e)
-                                   (display (condition-message e))
+                                   (display (format-condition e))
                                    (display e))
                                (newline)])
                            ;; If compilation succeeds, load it

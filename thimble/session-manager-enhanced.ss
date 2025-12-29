@@ -55,9 +55,13 @@
                       (list-sessions))]
         [count (session-count)])
        
-       (display "═══════════════════════════════════════════════════════════════\n")
-       (display "  SESSION MANAGER\n")
-       (display "═══════════════════════════════════════════════════════════════\n\n")
+       (display "═══════════════════════════════════════════════════════════════
+")
+       (display "  SESSION MANAGER
+")
+       (display "═══════════════════════════════════════════════════════════════
+
+")
        
        (display "Active sessions: ")
        (display count)
@@ -65,19 +69,27 @@
        (newline)
        
        (if (null? sessions)
-           (display "No active sessions.\n")
+           (display "No active sessions.
+")
            (begin
             (for-each (lambda (session)
                               (display-session session detailed?))
                       sessions)
             (newline)
-            (display "Commands:\n")
-            (display "  (show-sessions)        - Show this overview\n")
-            (display "  (show-sessions #t)     - Show detailed info\n")
-            (display "  (create-session! id)   - Create new session\n")
-            (display "  (switch-session id)    - Switch to session\n")
-            (display "  (save-session id)      - Save session state\n")
-            (display "  (session-info id)      - Get session details\n")))))
+            (display "Commands:
+")
+            (display "  (show-sessions)        - Show this overview
+")
+            (display "  (show-sessions #t)     - Show detailed info
+")
+            (display "  (create-session! id)   - Create new session
+")
+            (display "  (switch-session id)    - Switch to session
+")
+            (display "  (save-session id)      - Save session state
+")
+            (display "  (session-info id)      - Get session details
+")))))
 
 ;;; display-session : Session × Bool → void
 ;;; Display a single session's information.
@@ -90,7 +102,8 @@
         [created (cdr (assq 'created session))]
         [last-active (cdr (assq 'last-active session))])
        
-       (display "┌───────────────────────────────────────────────────────────────┐\n")
+       (display "┌───────────────────────────────────────────────────────────────┐
+")
        (display "│ Session: ")
        (display id)
        (newline)
@@ -124,7 +137,8 @@
                   (display (length analytics))
                   (newline)))
        
-       (display "└───────────────────────────────────────────────────────────────┘\n")
+       (display "└───────────────────────────────────────────────────────────────┘
+")
        (newline)))
 
 ;;; ============================================================
@@ -312,7 +326,7 @@
   (guard (e
           [(condition? e)
            (display "Import failed: ")
-           (display (condition-message e))
+           (display (format-condition e))
            (newline)
            #f])
          (let ([imported (call-with-input-file import-path read)])
@@ -325,10 +339,12 @@
                        (display new-session-id)
                        (display " (from ")
                        (display old-id)
-                       (display ")\n")
+                       (display ")
+")
                        session-data)
                   (begin
-                   (display "Invalid session export format\n")
+                   (display "Invalid session export format
+")
                    #f)))))
 
 ;;; ============================================================
@@ -354,27 +370,49 @@
 
 (define (demo-session-management)
   "Demonstrate enhanced session management"
-  (display "═══════════════════════════════════════════════════════════════\n")
-  (display "  ENHANCED SESSION MANAGEMENT DEMO\n")
-  (display "═══════════════════════════════════════════════════════════════\n\n")
+  (display "═══════════════════════════════════════════════════════════════
+")
+  (display "  ENHANCED SESSION MANAGEMENT DEMO
+")
+  (display "═══════════════════════════════════════════════════════════════
+
+")
   
-  (display "Current sessions:\n")
+  (display "Current sessions:
+")
   (show-sessions)
   
-  (display "\nSession management commands:\n")
-  (display "  (sessions)              - Show session overview\n")
-  (display "  (sessions #t)           - Show detailed session info\n")
-  (display "  (my-session)            - Get current session details\n")
-  (display "  (switch-session 'id)    - Switch to different session\n")
-  (display "  (save-session 'id)      - Save session state\n")
-  (display "  (export-session 'id path) - Export session for sharing\n")
-  (display "  (import-session path 'new-id) - Import shared session\n")
+  (display "
+Session management commands:
+")
+  (display "  (sessions)              - Show session overview
+")
+  (display "  (sessions #t)           - Show detailed session info
+")
+  (display "  (my-session)            - Get current session details
+")
+  (display "  (switch-session 'id)    - Switch to different session
+")
+  (display "  (save-session 'id)      - Save session state
+")
+  (display "  (export-session 'id path) - Export session for sharing
+")
+  (display "  (import-session path 'new-id) - Import shared session
+")
   
-  (display "\n✅ Enhanced session management provides:\n")
-  (display "✅ Clear session overview and management\n")
-  (display "✅ Session persistence and recovery\n")
-  (display "✅ Session analytics and insights\n")
-  (display "✅ Session sharing and collaboration\n"))
+  (display "
+✅ Enhanced session management provides:
+")
+  (display "✅ Clear session overview and management
+")
+  (display "✅ Session persistence and recovery
+")
+  (display "✅ Session analytics and insights
+")
+  (display "✅ Session sharing and collaboration
+"))
 
-(display "Enhanced session management loaded!\n")
-(display "Run (demo-session-management) to see the new features.\n")
+(display "Enhanced session management loaded!
+")
+(display "Run (demo-session-management) to see the new features.
+")

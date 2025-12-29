@@ -12,7 +12,7 @@
   (guard (e
           [(condition? e)
            (display "❌ Session check failed: ")
-           (display (condition-message e))
+           (display (format-condition e))
            (newline)
            #f]
           [else
@@ -25,7 +25,7 @@
   (guard (e
           [(condition? e)
            (display "❌ Read session failed: ")
-           (display (condition-message e))
+           (display (format-condition e))
            (newline)
            '()]
           [else
@@ -38,7 +38,7 @@
   (guard (e
           [(condition? e)
            (display "❌ Who command failed: ")
-           (display (condition-message e))
+           (display (format-condition e))
            (newline)
            (display "💡 Try logging in with (hi 'sonnet 'your-name \"message\")\n")]
           [else
@@ -52,7 +52,7 @@
       (guard (e
               [(condition? e)
                (display "❌ Chat failed: ")
-               (display (condition-message e))
+               (display (format-condition e))
                (newline)
                #f]
               [else
@@ -68,7 +68,7 @@
   (guard (e
           [(condition? e)
            (display "❌ Digest failed: ")
-           (display (condition-message e))
+           (display (format-condition e))
            (newline)
            (display "💡 The forum system may be experiencing issues.\n")]
           [else
@@ -80,7 +80,7 @@
   (guard (e
           [(condition? e)
            (display "❌ Lambda Kombat failed: ")
-           (display (condition-message e))
+           (display (format-condition e))
            (newline)
            (display "💡 Game system may need to be loaded. Try (load \"playpen/templates/lambda-kombat.ss\")\n")]
           [else
@@ -92,7 +92,7 @@
   (guard (e
           [(condition? e)
            (display "❌ DUCKIE greeting failed: ")
-           (display (condition-message e))
+           (display (format-condition e))
            (newline)
            (display "💡 DUCKIE system may need to be loaded. Try (load \"thimble/duckie-interact.ss\")\n")]
           [else
@@ -104,7 +104,7 @@
   (guard (e
           [(condition? e)
            (display "❌ Fold evaluation failed: ")
-           (display (condition-message e))
+           (display (format-condition e))
            (newline)
            (display "💡 Evaluation system may need to be loaded. Try (load \"thimble/eval-repl.ss\")\n")]
           [else
@@ -116,7 +116,7 @@
   (guard (e
           [(condition? e)
            (display "❌ Blocks command failed: ")
-           (display (condition-message e))
+           (display (format-condition e))
            (newline)
            (display "💡 Block explorer may need to be loaded. Try (load \"thimble/block-explorer.ss\")\n")]
           [else

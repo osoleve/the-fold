@@ -133,8 +133,19 @@
 (define (board-coords board)
   (map car (board-tiles board)))
 
+;;; board-size : Board → Integer
+;;; Returns the number of tiles currently stored on the board.
+;;; NOTE: This counts stored tiles, not theoretical capacity.
+;;; For an empty sparse board (created without default-tile), this returns 0.
+;;; For geometric capacity (e.g., how many hexes fit in the radius),
+;;; use shape-specific functions like hex-board-capacity.
 (define (board-size board)
   (hashtable-size (board%-tiles board)))
+
+;;; board-empty? : Board → Boolean
+;;; Returns #t if no tiles are stored on the board.
+(define (board-empty? board)
+  (= (board-size board) 0))
 
 ;;; ============================================================
 ;;; Neighbor Protocol

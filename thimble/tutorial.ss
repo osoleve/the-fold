@@ -325,7 +325,7 @@
           (guard (e
                   [(condition? e)
                    (display "❌ Error during exercise: ")
-                   (display (condition-message e))
+                   (display (format-condition e))
                    (display "\nUse (tutorial-help) for guidance or (tutorial-skip) to skip.\n")]
                   [else
                    (display "❌ Unexpected error occurred.\n")

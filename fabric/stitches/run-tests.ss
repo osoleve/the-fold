@@ -21,7 +21,7 @@
                   [slash-pos (let loop ([i (- (string-length script-path) 1)])
                                   (cond
                                    [(< i 0) #f]
-                                   [(or (char=? (string-ref script-path i) #\\)
+                                   [(or (char=? (string-ref script-path i) #\)
                                         (char=? (string-ref script-path i) #\/)) i]
                                    [else (loop (- i 1))]))])
                  (if slash-pos
@@ -31,8 +31,8 @@
 
 ;;; Change to fabric/stitches directory if we're not already there
 (when (or (string=? script-dir "fabric/stitches/")
-          (string=? script-dir "fabric/stitches\\")
-          (string=? script-dir "fabric\\stitches\\"))
+          (string=? script-dir "fabric/stitches\")
+          (string=? script-dir "fabric\stitches\"))
       (current-directory (path-parent (path-parent (current-directory)))))
 
 ;;; Ensure fabric/stitches/ is in source-directories
@@ -55,13 +55,30 @@
 (define pass-count 0)
 (define fail-count 0)
 
+;;; format-condition : Condition → String
+;;; Format a Chez Scheme condition with its irritants properly filled in.
+;;; Fixes the ~s placeholder bug in error messages.
+(define (format-condition e)
+  (if (condition? e)
+      (guard (e2 [else (condition-message e)])
+             (let ([template (condition-message e)]
+                   [irritants (if (irritants-condition? e)
+                                  (condition-irritants e)
+                                  '())])
+                  (if (null? irritants)
+                      template
+                      (apply format template irritants))))
+      (format "~a" e)))
+
 (define (run-test-file filename)
-  (display (string-append "\n=== Running " filename " ===\n"))
+  (display (string-append "
+=== Running " filename " ===
+"))
   (set! test-count (+ test-count 1))
   (guard (exn [else
                (set! fail-count (+ fail-count 1))
                (display "FAILED: ")
-               (display (condition-message exn))
+               (display (format-condition exn))
                (newline)])
          (load (string-append "fabric/stitches/" filename))
          (set! pass-count (+ pass-count 1))))
@@ -70,10 +87,14 @@
 ;;; Run Tests in Dependency Order
 ;;; ============================================================
 
-(display "╔══════════════════════════════════════════════════════════╗\n")
-(display "║           The Fold — Core Test Suite                     ║\n")
-(display "╚══════════════════════════════════════════════════════════╝\n")
-(display (string-append "Working directory: " (current-directory) "\n"))
+(display "╔══════════════════════════════════════════════════════════╗
+")
+(display "║           The Fold — Core Test Suite                     ║
+")
+(display "╚══════════════════════════════════════════════════════════╝
+")
+(display (string-append "Working directory: " (current-directory) "
+"))
 
 ;;; Layer 0: Foundation
 (run-test-file "test-prelude.ss")
@@ -112,15 +133,25 @@
 ;;; ============================================================
 
 (newline)
-(display "╔══════════════════════════════════════════════════════════╗\n")
-(display "║                    TEST SUMMARY                          ║\n")
-(display "╚══════════════════════════════════════════════════════════╝\n")
-(display (string-append "  Total:  " (number->string test-count) " test files\n"))
-(display (string-append "  Passed: " (number->string pass-count) "\n"))
-(display (string-append "  Failed: " (number->string fail-count) "\n"))
+(display "╔══════════════════════════════════════════════════════════╗
+")
+(display "║                    TEST SUMMARY                          ║
+")
+(display "╚══════════════════════════════════════════════════════════╝
+")
+(display (string-append "  Total:  " (number->string test-count) " test files
+"))
+(display (string-append "  Passed: " (number->string pass-count) "
+"))
+(display (string-append "  Failed: " (number->string fail-count) "
+"))
 
 (if (= fail-count 0)
-    (display "\n✓ All core tests passed!\n")
+    (display "
+✓ All core tests passed!
+")
     (begin
-     (display "\n✗ Some tests failed!\n")
+     (display "
+✗ Some tests failed!
+")
      (exit 1)))

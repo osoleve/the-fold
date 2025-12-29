@@ -278,7 +278,7 @@
                     (guard (e [else
                                (display "Error reloading: ")
                                (if (condition? e)
-                                   (display (condition-message e))
+                                   (display (format-condition e))
                                    (display e))
                                (newline)])
                            (load "fabric/stitches/block.ss")

@@ -16,6 +16,21 @@
 (source-directories (cons "fabric/stitches" (source-directories)))
 (load "fabric/stitches/test-framework.ss")
 
+;;; format-condition : Condition → String
+;;; Format a Chez Scheme condition with its irritants properly filled in.
+;;; Fixes the ~s placeholder bug in error messages.
+(define (format-condition e)
+  (if (condition? e)
+      (guard (e2 [else (condition-message e)])
+             (let ([template (condition-message e)]
+                   [irritants (if (irritants-condition? e)
+                                  (condition-irritants e)
+                                  '())])
+                  (if (null? irritants)
+                      template
+                      (apply format template irritants))))
+      (format "~a" e)))
+
 ;;; ============================================================
 ;;; Timing Utilities
 ;;; ============================================================
@@ -58,7 +73,7 @@
        (flush-output-port)
        (guard (exn [else
                     (let ([duration (- (current-time-ms) start)]
-                          [msg (if (condition? exn) (condition-message exn) "Unknown error")])
+                          [msg (if (condition? exn) (format-condition exn) "Unknown error")])
                          (record-result! filename 'failed duration msg)
                          (display "FAILED")
                          (display (string-append " (" (format-duration-ms duration) ")"))
@@ -132,9 +147,12 @@
 ;;; ============================================================
 
 (define (run-test-category category-name dir tests)
-  (display "────────────────────────────────────────────────────────────────\n")
-  (display (string-append "  " category-name " (" dir "/)\n"))
-  (display "────────────────────────────────────────────────────────────────\n")
+  (display "────────────────────────────────────────────────────────────────
+")
+  (display (string-append "  " category-name " (" dir "/)
+"))
+  (display "────────────────────────────────────────────────────────────────
+")
   (for-each (lambda (test) (run-test-file dir test)) tests))
 
 (define (count-status status)
@@ -149,39 +167,59 @@
          [total (length *test-results*)]
          [duration (- (current-time-ms) total-start-time)])
         
-        (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-        (display "║                      FINAL SUMMARY                           ║\n")
-        (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+        (display "
+╔══════════════════════════════════════════════════════════════╗
+")
+        (display "║                      FINAL SUMMARY                           ║
+")
+        (display "╚══════════════════════════════════════════════════════════════╝
+
+")
         
-        (display (string-append "  Test files:  " (number->string total) "\n"))
-        (display (string-append "  Passed:      " (number->string passed) "\n"))
-        (display (string-append "  Failed:      " (number->string failed) "\n"))
-        (display (string-append "  Duration:    " (format-duration-ms duration) "\n\n"))
+        (display (string-append "  Test files:  " (number->string total) "
+"))
+        (display (string-append "  Passed:      " (number->string passed) "
+"))
+        (display (string-append "  Failed:      " (number->string failed) "
+"))
+        (display (string-append "  Duration:    " (format-duration-ms duration) "
+
+"))
         
         ;; Show slowest tests
         (let ([sorted (sort (lambda (a b) (> (caddr a) (caddr b))) *test-results*)])
-             (display "  Slowest tests:\n")
+             (display "  Slowest tests:
+")
              (for-each
               (lambda (r)
-                      (display (string-append "    " (format-duration-ms (caddr r)) "  " (car r) "\n")))
+                      (display (string-append "    " (format-duration-ms (caddr r)) "  " (car r) "
+")))
               (take 5 sorted)))
         
         (newline)
         (if (= failed 0)
             (begin
-             (display "╔══════════════════════════════════════════════════════════════╗\n")
-             (display "║              ✓ ALL TESTS PASSED                              ║\n")
-             (display "╚══════════════════════════════════════════════════════════════╝\n"))
+             (display "╔══════════════════════════════════════════════════════════════╗
+")
+             (display "║              ✓ ALL TESTS PASSED                              ║
+")
+             (display "╚══════════════════════════════════════════════════════════════╝
+"))
             (begin
-             (display "╔══════════════════════════════════════════════════════════════╗\n")
-             (display "║              ✗ SOME TESTS FAILED                             ║\n")
-             (display "╚══════════════════════════════════════════════════════════════╝\n")
+             (display "╔══════════════════════════════════════════════════════════════╗
+")
+             (display "║              ✗ SOME TESTS FAILED                             ║
+")
+             (display "╚══════════════════════════════════════════════════════════════╝
+")
              (newline)
-             (display "  Failed tests:\n")
+             (display "  Failed tests:
+")
              (for-each
               (lambda (r)
                       (when (eq? (cadr r) 'failed)
-                            (display (string-append "    ✗ " (car r) ": " (cadddr r) "\n"))))
+                            (display (string-append "    ✗ " (car r) ": " (cadddr r) "
+"))))
               *test-results*)
              (exit 1)))))
 
@@ -192,19 +230,28 @@
 (define (main args)
   (let ([mode (if (null? args) 'all (string->symbol (car args)))])
        
-       (display "\n")
-       (display "╔══════════════════════════════════════════════════════════════╗\n")
-       (display "║         THE FOLD — UNIFIED TEST SUITE                        ║\n")
-       (display "╚══════════════════════════════════════════════════════════════╝\n")
-       (display (string-append "\nWorking directory: " (current-directory) "\n"))
-       (display (string-append "Mode: " (symbol->string mode) "\n\n"))
+       (display "
+")
+       (display "╔══════════════════════════════════════════════════════════════╗
+")
+       (display "║         THE FOLD — UNIFIED TEST SUITE                        ║
+")
+       (display "╚══════════════════════════════════════════════════════════════╝
+")
+       (display (string-append "
+Working directory: " (current-directory) "
+"))
+       (display (string-append "Mode: " (symbol->string mode) "
+
+"))
        
        (set! total-start-time (current-time-ms))
        
        (case mode
              [(all)
               (run-test-category "CORE TESTS" "fabric/stitches" core-tests)
-              (display "\n")
+              (display "
+")
               (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
              
              [(core)
@@ -216,12 +263,15 @@
              [(quick)
               (let ([quick-core (filter (lambda (t) (not (member t slow-tests))) core-tests)])
                    (run-test-category "CORE TESTS (quick)" "fabric/stitches" quick-core))
-              (display "\n")
+              (display "
+")
               (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
              
              [else
-              (display (string-append "Unknown mode: " (symbol->string mode) "\n"))
-              (display "Valid modes: all, quick, core, shell\n")
+              (display (string-append "Unknown mode: " (symbol->string mode) "
+"))
+              (display "Valid modes: all, quick, core, shell
+")
               (exit 1)])
        
        (print-final-summary)))

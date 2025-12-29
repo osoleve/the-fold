@@ -225,13 +225,13 @@
        
        (guard (e
                [(error? e)
-                (display "❌ Error running test file: ")
+                (display "Error running test file: ")
                 (display test-file)
                 (display "
 ")
-                (display (condition-message e))
+                (display (format-condition e))
                 (newline)
-                (list test-file 0 1 (list (condition-message e)) 0)]
+                (list test-file 0 1 (list (format-condition e)) 0)]
                [else
                 (display "❌ Unexpected error in: ")
                 (display test-file)
@@ -279,9 +279,9 @@
                         
                         ;; Run the changed test file
                         (guard (e [(error? e)
-                                   (display "❌ Error reloading test file:
+                                   (display "Error reloading test file:
 ")
-                                   (display (condition-message e))
+                                   (display (format-condition e))
                                    (newline)]
                                   [else
                                    (display "❌ Unexpected error reloading test file

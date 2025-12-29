@@ -227,6 +227,13 @@
         [h (square-board-height board)])
        (and (>= x 0) (< x w) (>= y 0) (< y h))))
 
+;;; square-board-capacity : Board → Integer
+;;; Returns the total number of squares in the board (width * height).
+;;; This is the theoretical capacity based on geometry, not the number
+;;; of tiles currently stored. For stored tile count, use (board-size board).
+(define (square-board-capacity board)
+  (* (square-board-width board) (square-board-height board)))
+
 ;;; ============================================================
 ;;; Exports Summary
 ;;; ============================================================
@@ -245,3 +252,4 @@
 ;;;   • square-ring — Coordinates at exact distance
 ;;;   • make-square-board — Create rectangular board
 ;;;   • square-in-bounds? — Bounds checking
+;;;   • square-board-capacity — Get total square count for board geometry

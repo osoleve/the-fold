@@ -283,6 +283,20 @@
 (define (hex-board-radius board)
   (alist-ref (board-meta board) 'radius))
 
+;;; hex-board-capacity : Board → Integer
+;;; Returns the total number of hexes that fit in the board's radius.
+;;; This is the theoretical capacity based on geometry, not the number
+;;; of tiles currently stored. For stored tile count, use (board-size board).
+;;;
+;;; Formula: 1 + 3*n*(n+1) where n is the radius
+;;;   radius 0: 1 hex
+;;;   radius 1: 7 hexes (1 + 6)
+;;;   radius 2: 19 hexes (1 + 6 + 12)
+;;;   radius 3: 37 hexes (1 + 6 + 12 + 18)
+(define (hex-board-capacity board)
+  (let ([r (hex-board-radius board)])
+       (+ 1 (* 3 r (+ r 1)))))
+
 ;;; ============================================================
 ;;; Exports Summary
 ;;; ============================================================
@@ -298,3 +312,5 @@
 ;;;   • hex-ring — Hexes at exact distance
 ;;;   • hex-rotate-left, hex-rotate-right — Rotation operations
 ;;;   • make-hex-board — Create hexagonal board
+;;;   • hex-board-radius — Get board radius from metadata
+;;;   • hex-board-capacity — Get total hex count for board geometry
