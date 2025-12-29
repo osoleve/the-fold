@@ -184,6 +184,27 @@
 ;;; ============================================================
 ;;; Par/Pseq Evaluation
 ;;; ============================================================
+;;;
+;;; NOTE ON CURRENT IMPLEMENTATION:
+;;; eval-par and eval-pseq currently have identical implementations —
+;;; both evaluate a then b sequentially. This is intentional.
+;;;
+;;; These forms are SEMANTIC HINTS for future parallel execution:
+;;;   - (par a b)  = "a and b can run in parallel; return b"
+;;;   - (pseq a b) = "force a to complete before starting b; return b"
+;;;
+;;; In the current sequential evaluator, both behave identically.
+;;; In a future parallel runtime:
+;;;   - par would enable speculative/concurrent evaluation of a
+;;;   - pseq would enforce strict ordering (useful when a has effects
+;;;     that b depends on, or for controlling evaluation order)
+;;;
+;;; The distinction matters for:
+;;;   1. Documenting programmer intent about parallelizability
+;;;   2. Future optimization passes that could parallelize par
+;;;   3. Reasoning about evaluation order in a parallel context
+;;;
+;;; ============================================================
 
 ;;; eval-par : Expr × Expr × Env × Fuel → Result
 ;;; Parallel evaluation hint: (par a b)

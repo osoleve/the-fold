@@ -9,6 +9,7 @@ hel = "hel"     # Parser test
 vrsion = "vrsion"  # Command test
 strng = "strng"  # Help system typo suggestion test
 ba = "ba"       # Regex test (not matching "ab")
+numer = "numer" # Mathematical abbreviation for numerator
 
 [default.extend-words]
 # Fold-specific terminology
