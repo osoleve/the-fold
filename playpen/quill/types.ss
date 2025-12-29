@@ -29,7 +29,7 @@
 ;;; nodes is an alist: ((node-id . quill-node) ...)
 (define (quill-story-node story node-id)
   (let ([pair (assq node-id (quill-story-nodes story))])
-    (and pair (cdr pair))))
+       (and pair (cdr pair))))
 
 (define (quill-story-has-node? story node-id)
   (and (quill-story-node story node-id) #t))
@@ -73,43 +73,43 @@
 ;;; Constructors / helpers
 (define (quill-run-with-node run node-id)
   (make-quill-run (quill-run-story-id run)
-                 node-id
-                 (quill-run-state run)
-                 (quill-run-transcript run)
-                 (quill-run-done? run)
-                 (quill-run-message run)))
+                  node-id
+                  (quill-run-state run)
+                  (quill-run-transcript run)
+                  (quill-run-done? run)
+                  (quill-run-message run)))
 
 (define (quill-run-with-state run state)
   (make-quill-run (quill-run-story-id run)
-                 (quill-run-node-id run)
-                 state
-                 (quill-run-transcript run)
-                 (quill-run-done? run)
-                 (quill-run-message run)))
+                  (quill-run-node-id run)
+                  state
+                  (quill-run-transcript run)
+                  (quill-run-done? run)
+                  (quill-run-message run)))
 
 (define (quill-run-with-done run done?)
   (make-quill-run (quill-run-story-id run)
-                 (quill-run-node-id run)
-                 (quill-run-state run)
-                 (quill-run-transcript run)
-                 done?
-                 (quill-run-message run)))
+                  (quill-run-node-id run)
+                  (quill-run-state run)
+                  (quill-run-transcript run)
+                  done?
+                  (quill-run-message run)))
 
 (define (quill-run-with-message run msg)
   (make-quill-run (quill-run-story-id run)
-                 (quill-run-node-id run)
-                 (quill-run-state run)
-                 (quill-run-transcript run)
-                 (quill-run-done? run)
-                 msg))
+                  (quill-run-node-id run)
+                  (quill-run-state run)
+                  (quill-run-transcript run)
+                  (quill-run-done? run)
+                  msg))
 
 (define (quill-run-append-transcript run entry)
   (make-quill-run (quill-run-story-id run)
-                 (quill-run-node-id run)
-                 (quill-run-state run)
-                 (cons entry (quill-run-transcript run))
-                 (quill-run-done? run)
-                 (quill-run-message run)))
+                  (quill-run-node-id run)
+                  (quill-run-state run)
+                  (cons entry (quill-run-transcript run))
+                  (quill-run-done? run)
+                  (quill-run-message run)))
 
 ;;; Transcript entry helpers
 ;;; Entries are intended to be stable, structured data for assessment/debugging.
@@ -123,13 +123,29 @@
 ;;; ============================================================
 
 ;;; Intent values are small tagged lists:
-;;;   (choose n) | (look) | (help) | (quit) | (unknown raw)
+;;;   (choose n)
+;;;   (look) | (examine String)
+;;;   (move Symbol)
+;;;   (inventory)
+;;;   (take String) | (drop String)
+;;;   (use String String|#f)
+;;;   (say String)
+;;;   (help) | (quit)
+;;;   (unknown raw)
 
 (define (quill-intent-choose n) (list 'choose n))
 (define (quill-intent-look) (list 'look))
+(define (quill-intent-examine obj) (list 'examine obj))
+(define (quill-intent-move dir) (list 'move dir))
+(define (quill-intent-inventory) (list 'inventory))
+(define (quill-intent-take obj) (list 'take obj))
+(define (quill-intent-drop obj) (list 'drop obj))
+(define (quill-intent-use obj target) (list 'use obj target))
+(define (quill-intent-say text) (list 'say text))
 (define (quill-intent-help) (list 'help))
 (define (quill-intent-quit) (list 'quit))
 (define (quill-intent-unknown raw) (list 'unknown raw))
 
 (define (quill-intent-type intent) (car intent))
+(define (quill-intent-args intent) (cdr intent))
 (define (quill-intent-arg intent) (and (pair? (cdr intent)) (cadr intent)))
