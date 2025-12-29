@@ -214,9 +214,14 @@
 (define (stream-flatten ss)
   (if (stream-nil? ss)
       stream-nil
-      (stream-concat (stream-head ss)
-                     (stream-cons '()  ; force thunk
-                       (lambda () (stream-tail (stream-flatten (stream-tail ss))))))))
+      (let ([head (stream-head ss)])
+        (if (stream-nil? head)
+            (stream-flatten (stream-tail ss))
+            (stream-cons (stream-head head)
+                         (lambda ()
+                           (stream-flatten
+                            (stream-cons (stream-tail head)
+                                         (lambda () (stream-tail ss))))))))))
 
 ;;; stream-flatmap : (a -> Stream b) -> Stream a -> Stream b
 ;;; Map and flatten.
