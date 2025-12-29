@@ -100,8 +100,7 @@
         [line (state-line s)]
         [col (state-column s)]
         [file (state-file s)])
-       (if (char=? char #
-ewline)
+       (if (char=? char #\newline)
            (make-state (substring input 1 (string-length input))
                        (+ offset 1)
                        (+ line 1)

@@ -171,6 +171,62 @@
 (test "display chain" "* ⇒ * ⇒ *" (kind->string '(⇒ * (⇒ * *))))
 
 ;;; ============================================================
+;;; Kinded Type Variables (HKT)
+;;; ============================================================
+(test-section "Kinded Type Variables")
+
+;; Test kinded forall syntax: (∀ ((f : (⇒ * *)) (a : *)) (@ f a))
+(define hkt-type '(∀ ((f : (⇒ * *)) (a : *)) (@ f a)))
+(test "kinded forall is valid type" #t (type? hkt-type))
+(test "kinded forall kind" '* (infer-kind hkt-type '()))
+
+;; Test simple + kinded mixed
+(define mixed-forall '(∀ (a (f : (⇒ * *))) (@ f a)))
+(test "mixed forall is valid" #t (type? mixed-forall))
+(test "mixed forall kind" '* (infer-kind mixed-forall '()))
+
+;; Functor-style type: (∀ ((f : (* → *)) a b) (-> (-> a b) (@ f a) (@ f b)))
+(define fmap-type-kinded
+  '(∀ ((f : (⇒ * *)) (a : *) (b : *))
+    (-> (-> a b) (@ f a) (@ f b))))
+(test "fmap type is valid" #t (type? fmap-type-kinded))
+(test "fmap type kind" '* (infer-kind fmap-type-kinded '()))
+
+;;; ============================================================
+;;; Kind Unification
+;;; ============================================================
+(test-section "Kind Unification")
+
+(test "unify * *" '(ok ()) (unify-kinds '* '*))
+(test "unify * Constraint fails" 'error (car (unify-kinds '* 'Constraint)))
+(test "unify κa *" '(ok ((κa . *))) (unify-kinds 'κa '*))
+(test "unify * κa" '(ok ((κa . *))) (unify-kinds '* 'κa))
+(test "unify arrow" '(ok ()) (unify-kinds '(⇒ * *) '(⇒ * *)))
+(test "unify arrow with var"
+      'ok
+      (car (unify-kinds '(⇒ κa *) '(⇒ * *))))
+(test "unify nested arrow"
+      'ok
+      (car (unify-kinds '(⇒ (⇒ * *) *) '(⇒ κa *))))
+
+;;; ============================================================
+;;; HKT Kind Inference in Environment
+;;; ============================================================
+(test-section "HKT Kind Inference in Environment")
+
+;; When f has kind * → *, and we apply it to Nat, result is *
+(define hkt-env `((f . ,(K=> K* K*)) (a . ,K*)))
+(test "f in env" '(⇒ * *) (infer-kind 'f hkt-env))
+(test "(@ f a) with HKT" '* (infer-kind '(@ f a) hkt-env))
+(test "(@ f Nat)" '* (infer-kind '(@ f Nat) hkt-env))
+
+;; Binary type constructor in env
+(define binary-env `((g . ,(K=>* K* K* K*))))
+(test "g : * → * → *" '(⇒ * (⇒ * *)) (infer-kind 'g binary-env))
+(test "(@ g Nat)" '(⇒ * *) (infer-kind '(@ g Nat) binary-env))
+(test "(@ g Nat Bool)" '* (infer-kind '(@ g Nat Bool) binary-env))
+
+;;; ============================================================
 ;;; Instances (deferred)
 ;;; ============================================================
 ;;; Note: Instance implementations are deferred.

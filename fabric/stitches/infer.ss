@@ -148,7 +148,7 @@
         [(and (pair? t1) (pair? t2) (eq? (car t1) (car t2)))
          (unify-lists s (cdr t1) (cdr t2))]
         
-        ;; Type application
+        ;; Type application on both sides: (@ F1 Args1...) ~ (@ F2 Args2...)
         [(and (type-app? t1) (type-app? t2))
          (let ([h1 (type-app-head t1)]
                [h2 (type-app-head t2)]
@@ -158,6 +158,25 @@
                    (if (eq? (car result) 'ok)
                        (unify-lists (cadr result) a1 a2)
                        result)))]
+        
+        ;; HKT: Type application on left, concrete type on right
+        ;; (@ f a) ~ (List Int) → f = List, a = Int
+        [(and (type-app? t1) (pair? t2) (not (type-app? t2)))
+         (let ([head (type-app-head t1)]
+               [args (type-app-args t1)]
+               [constr (car t2)]
+               [constr-args (cdr t2)])
+              ;; Try to unify head with constructor, args with constructor args
+              (if (= (length args) (length constr-args))
+                  (let ([head-result (unify-with s head constr)])
+                       (if (eq? (car head-result) 'ok)
+                           (unify-lists (cadr head-result) args constr-args)
+                           head-result))
+                  `(error hkt-arity-mismatch ,t1 ,t2)))]
+        
+        ;; HKT: Concrete type on left, type application on right
+        [(and (pair? t1) (not (type-app? t1)) (type-app? t2))
+         (unify-with s t2 t1)]  ;; Swap and retry
         
         [else `(error type-mismatch ,t1 ,t2)])))
 

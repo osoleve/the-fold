@@ -21,8 +21,8 @@
                   [slash-pos (let loop ([i (- (string-length script-path) 1)])
                                   (cond
                                    [(< i 0) #f]
-                                   [(or (char=? (string-ref script-path i) #\)
-                                        (char=? (string-ref script-path i) #\/)) i]
+                                   [(or (char=? (string-ref script-path i) #\/)
+                                        (char=? (string-ref script-path i) #\)) i]
                                    [else (loop (- i 1))]))])
                  (if slash-pos
                      (substring script-path 0 (+ slash-pos 1))

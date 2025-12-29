@@ -94,10 +94,21 @@
    [(eq? (car t) 'Block) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
    ;; Ref type: (Ref T)
    [(eq? (car t) 'Ref) (and (= (length t) 2) (type? (cadr t)))]
+   ;; Type application: (@ F Args...)
+   ;; Used for HKTs: (@ List Int), (@ f a)
+   [(eq? (car t) '@) (and (>= (length t) 2)
+                          (andmap type? (cdr t)))]
    ;; Universal: (∀ (vars...) T)
+   ;; Vars can be simple symbols (kind *) or kinded: (name : kind)
    [(eq? (car t) '∀) (and (= (length t) 3)
                           (list? (cadr t))
-                          (andmap symbol? (cadr t))
+                          (andmap (lambda (v)
+                                          (or (symbol? v)
+                                              (and (pair? v)
+                                                   (= (length v) 3)
+                                                   (symbol? (car v))
+                                                   (eq? (cadr v) ':))))
+                                  (cadr t))
                           (type? (caddr t)))]
    ;; Recursive: (μ var T)
    [(eq? (car t) 'μ) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
@@ -150,8 +161,16 @@
   `(Ref ,target-type))
 
 ;;; t-forall : (List Symbol) × Type → Type
+;;; Simple form: vars are symbols, all assumed kind *
 (define (t-forall vars body)
   `(∀ ,vars ,body))
+
+;;; t-forall-kinded : (List (Symbol × Kind)) × Type → Type
+;;; Kinded form: vars are (name : kind) pairs for HKT support
+;;; Example: (t-forall-kinded '((f . (* → *)) (a . *)) '(@ f a))
+;;;          → (∀ ((f : (⇒ * *)) (a : *)) (@ f a))
+(define (t-forall-kinded kinded-vars body)
+  `(∀ ,(map (lambda (pair) `(,(car pair) : ,(cdr pair))) kinded-vars) ,body))
 
 ;;; t-rec : Symbol × Type → Type
 (define (t-rec var body)
@@ -216,6 +235,54 @@
        (not (base-type? t))
        (not (eq? t '?))
        (char-lower-case? (string-ref (symbol->string t) 0))))
+
+;;; ============================================================
+;;; Kind-Annotated Type Variables (HKT Support)
+;;; ============================================================
+
+;;; A kinded type variable has the form (name : kind)
+;;; Example: (f : (⇒ * *)) means f has kind * → *
+
+;;; kinded-tvar? : Any → Boolean
+;;; Is this a kind-annotated type variable?
+(define (kinded-tvar? x)
+  (and (pair? x)
+       (= (length x) 3)
+       (symbol? (car x))
+       (eq? (cadr x) ':)))
+
+;;; kinded-tvar-name : KindedTVar → Symbol
+(define (kinded-tvar-name ktv)
+  (car ktv))
+
+;;; kinded-tvar-kind : KindedTVar → Kind
+(define (kinded-tvar-kind ktv)
+  (caddr ktv))
+
+;;; forall-vars : Type → (List Symbol)
+;;; Extract variable names from a forall, handling both simple and kinded forms.
+(define (forall-vars t)
+  (if (and (pair? t) (eq? (car t) '∀))
+      (let ([vars (cadr t)])
+           (map (lambda (v)
+                        (if (kinded-tvar? v)
+                            (kinded-tvar-name v)
+                            v))
+                vars))
+      '()))
+
+;;; forall-var-kinds : Type → (List (Symbol . Kind))
+;;; Extract variable names with their kinds from a forall.
+;;; Simple vars get kind *, kinded vars get their annotated kind.
+(define (forall-var-kinds t)
+  (if (and (pair? t) (eq? (car t) '∀))
+      (let ([vars (cadr t)])
+           (map (lambda (v)
+                        (if (kinded-tvar? v)
+                            (cons (kinded-tvar-name v) (kinded-tvar-kind v))
+                            (cons v '*)))
+                vars))
+      '()))
 
 ;;; ============================================================
 ;;; Type Equality

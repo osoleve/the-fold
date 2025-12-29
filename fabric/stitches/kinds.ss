@@ -215,12 +215,23 @@
     (infer-app-kind (cadr type) (cddr type) kenv)]
    
    ;; Universal quantification: (∀ (vars) body)
+   ;; Vars can be simple (kind *) or kinded: (name : kind)
    ;; Quantified type has kind * if body has kind *
    [(eq? (car type) '∀)
     (let* ([vars (cadr type)]
            [body (caddr type)]
-           ;; Extend environment with kind * for each variable
-           [new-env (append (map (lambda (v) (cons v K*)) vars) kenv)]
+           ;; Extract variable names and their kinds
+           [var-kinds (map (lambda (v)
+                                   (if (and (pair? v)
+                                            (= (length v) 3)
+                                            (eq? (cadr v) ':))
+                                       ;; Kinded var: (name : kind)
+                                       (cons (car v) (caddr v))
+                                       ;; Simple var: assume kind *
+                                       (cons v K*)))
+                           vars)]
+           ;; Extend environment with variable kinds
+           [new-env (append var-kinds kenv)]
            [body-kind (infer-kind body new-env)])
           (if (kind=? body-kind K*)
               K*
@@ -492,6 +503,89 @@
   (if (constrained-type? t)
       (caddr t)
       t))
+
+;;; ============================================================
+;;; Kind Unification (for HKT inference)
+;;; ============================================================
+
+;;; Kind unification finds a substitution that makes two kinds equal.
+;;; This is needed when inferring HKT type variables.
+
+;;; kind-subst-lookup : KindSubst × Symbol → Kind | #f
+(define (kind-subst-lookup s var)
+  (let ([entry (assq var s)])
+       (if entry (cdr entry) #f)))
+
+;;; kind-subst-extend : KindSubst × Symbol × Kind → KindSubst
+(define (kind-subst-extend s var kind)
+  (cons (cons var kind) s))
+
+;;; apply-kind-subst : KindSubst × Kind → Kind
+(define (apply-kind-subst s kind)
+  (cond
+   [(kind-var? kind)
+    (let ([replacement (kind-subst-lookup s kind)])
+         (if replacement
+             (apply-kind-subst s replacement)
+             kind))]
+   [(not (pair? kind)) kind]
+   [(eq? (car kind) '⇒)
+    (K=> (apply-kind-subst s (cadr kind))
+         (apply-kind-subst s (caddr kind)))]
+   [(eq? (car kind) 'κ∀)
+    ;; Remove bound vars from substitution
+    (let* ([bound (cadr kind)]
+           [body (caddr kind)]
+           [s* (filter (lambda (p) (not (memq (car p) bound))) s)])
+          `(κ∀ ,bound ,(apply-kind-subst s* body)))]
+   [else kind]))
+
+;;; kind-occurs? : Symbol × Kind → Boolean
+(define (kind-occurs? var kind)
+  (cond
+   [(kind-var? kind) (eq? var kind)]
+   [(not (pair? kind)) #f]
+   [(eq? (car kind) '⇒)
+    (or (kind-occurs? var (cadr kind))
+        (kind-occurs? var (caddr kind)))]
+   [(eq? (car kind) 'κ∀)
+    (if (memq var (cadr kind))
+        #f
+        (kind-occurs? var (caddr kind)))]
+   [else #f]))
+
+;;; unify-kinds : Kind × Kind → (ok KindSubst) | (error ...)
+;;; Unify two kinds, returning a substitution.
+(define (unify-kinds k1 k2)
+  (unify-kinds-with '() k1 k2))
+
+(define (unify-kinds-with s k1 k2)
+  (let ([k1 (apply-kind-subst s k1)]
+        [k2 (apply-kind-subst s k2)])
+       (cond
+        ;; Same kind
+        [(kind=? k1 k2) `(ok ,s)]
+        
+        ;; Kind variable on left
+        [(kind-var? k1)
+         (if (kind-occurs? k1 k2)
+             `(error kind-occurs-check ,k1 ,k2)
+             `(ok ,(kind-subst-extend s k1 k2)))]
+        
+        ;; Kind variable on right
+        [(kind-var? k2)
+         (if (kind-occurs? k2 k1)
+             `(error kind-occurs-check ,k2 ,k1)
+             `(ok ,(kind-subst-extend s k2 k1)))]
+        
+        ;; Both are kind arrows
+        [(and (kind-arrow? k1) (kind-arrow? k2))
+         (let ([result (unify-kinds-with s (kind-param k1) (kind-param k2))])
+              (if (eq? (car result) 'ok)
+                  (unify-kinds-with (cadr result) (kind-result k1) (kind-result k2))
+                  result))]
+        
+        [else `(error kind-mismatch ,k1 ,k2)])))
 
 ;;; ============================================================
 ;;; Kind Display
