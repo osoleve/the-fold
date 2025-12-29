@@ -600,3 +600,127 @@
 ;;; ; => (right (1 2 3))
 ;;; (list-traverse either-applicative validate-positive '(1 -2 3))
 ;;; ; => (left "must be positive")
+
+;;; ============================================================
+;;; Foldable Typeclass Dictionary
+;;; ============================================================
+;;;
+;;; Foldable represents data structures that can be folded to a
+;;; summary value. The dictionary captures foldr, foldl, and fold-map
+;;; operations.
+;;;
+;;; Format: (list 'foldable foldr foldl fold-map)
+;;;   foldr    : (a -> b -> b) -> b -> t a -> b
+;;;   foldl    : (b -> a -> b) -> b -> t a -> b
+;;;   fold-map : Monoid m -> (a -> m) -> t a -> m
+
+;;; make-foldable : foldr -> foldl -> fold-map -> Foldable t
+(define (make-foldable foldr-fn foldl-fn fold-map-fn)
+  (list 'foldable foldr-fn foldl-fn fold-map-fn))
+
+;;; foldable? : Any -> Boolean
+(define (foldable? x)
+  (and (pair? x) (eq? (car x) 'foldable)))
+
+;;; Accessors
+(define (foldable-foldr f) (list-ref f 1))
+(define (foldable-foldl f) (list-ref f 2))
+(define (foldable-fold-map f) (list-ref f 3))
+
+;;; foldr : Foldable t -> (a -> b -> b) -> b -> t a -> b
+(define (foldr foldable f init ta)
+  ((foldable-foldr foldable) f init ta))
+
+;;; foldl : Foldable t -> (b -> a -> b) -> b -> t a -> b
+(define (foldl foldable f init ta)
+  ((foldable-foldl foldable) f init ta))
+
+;;; fold-map : Foldable t -> Monoid m -> (a -> m) -> t a -> m
+(define (fold-map foldable monoid f ta)
+  ((foldable-fold-map foldable) monoid f ta))
+
+;;; fold : Foldable t -> Monoid m -> t m -> m
+;;; Fold a structure of monoid values.
+(define (fold foldable monoid ta)
+  (fold-map foldable monoid identity ta))
+
+;;; to-list : Foldable t -> t a -> List a
+;;; Convert any foldable to a list.
+(define (to-list foldable ta)
+  (foldr foldable cons '() ta))
+
+;;; ============================================================
+;;; Foldable Instances
+;;; ============================================================
+
+;;; list-foldable : Foldable List
+(define list-foldable
+  (make-foldable list-foldr list-foldl list-fold-map))
+
+;;; maybe-foldable : Foldable Maybe
+(define maybe-foldable
+  (make-foldable maybe-foldr maybe-foldl maybe-fold-map))
+
+;;; either-foldable : Foldable (Either e)
+(define either-foldable
+  (make-foldable either-foldr either-foldl either-fold-map))
+
+;;; pair-foldable : Foldable ((,) c)
+(define pair-foldable
+  (make-foldable pair-foldr pair-foldl pair-fold-map))
+
+;;; ============================================================
+;;; Traversable Typeclass Dictionary
+;;; ============================================================
+;;;
+;;; Traversable represents data structures that can be traversed
+;;; while accumulating applicative effects.
+;;;
+;;; Format: (list 'traversable foldable traverse)
+;;;   foldable : Foldable t (superclass)
+;;;   traverse : Applicative f -> (a -> f b) -> t a -> f (t b)
+
+;;; make-traversable : Foldable t -> traverse -> Traversable t
+(define (make-traversable foldable-inst traverse-fn)
+  (list 'traversable foldable-inst traverse-fn))
+
+;;; traversable? : Any -> Boolean
+(define (traversable? x)
+  (and (pair? x) (eq? (car x) 'traversable)))
+
+;;; Accessors
+(define (traversable-foldable t) (list-ref t 1))
+(define (traversable-traverse t) (list-ref t 2))
+
+;;; traverse : Traversable t -> Applicative f -> (a -> f b) -> t a -> f (t b)
+(define (traverse traversable app f ta)
+  ((traversable-traverse traversable) app f ta))
+
+;;; sequence : Traversable t -> Applicative f -> t (f a) -> f (t a)
+(define (sequence traversable app tfa)
+  (traverse traversable app identity tfa))
+
+;;; for : Traversable t -> Applicative f -> t a -> (a -> f b) -> f (t b)
+;;; Flipped traverse.
+(define (for traversable app ta f)
+  (traverse traversable app f ta))
+
+;;; ============================================================
+;;; Traversable Instances
+;;; ============================================================
+
+;;; list-traversable : Traversable List
+(define list-traversable
+  (make-traversable list-foldable list-traverse))
+
+;;; maybe-traversable : Traversable Maybe
+(define maybe-traversable
+  (make-traversable maybe-foldable maybe-traverse))
+
+;;; either-traversable : Traversable (Either e)
+(define either-traversable
+  (make-traversable either-foldable either-traverse))
+
+;;; pair-traversable : Traversable ((,) c)
+(define pair-traversable
+  (make-traversable pair-foldable pair-traverse))

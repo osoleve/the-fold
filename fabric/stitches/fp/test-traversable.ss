@@ -455,6 +455,100 @@
                     (assert-equal '(1 2 3) (from-right result)))))
 
 ;;; ============================================================
+;;; Foldable Dictionary Tests
+;;; ============================================================
+
+(test-group foldable-dictionary
+            ;; Test foldable? predicate
+            (define-test foldable-predicate-test
+              (assert-true (foldable? list-foldable))
+              (assert-true (foldable? maybe-foldable))
+              (assert-true (foldable? either-foldable))
+              (assert-true (foldable? pair-foldable))
+              (assert-false (foldable? 42))
+              (assert-false (foldable? '(1 2 3))))
+            
+            ;; Test generic foldr with dictionary
+            (define-test generic-foldr-test
+              (assert-equal 15 (foldr list-foldable + 0 '(1 2 3 4 5)))
+              (assert-equal 5 (foldr maybe-foldable + 0 (just 5)))
+              (assert-equal 0 (foldr maybe-foldable + 0 nothing))
+              (assert-equal 7 (foldr either-foldable + 0 (right 7)))
+              (assert-equal 0 (foldr either-foldable + 0 (left "error"))))
+            
+            ;; Test generic foldl with dictionary
+            (define-test generic-foldl-test
+              (assert-equal '(3 2 1) (foldl list-foldable (lambda (acc x) (cons x acc)) '() '(1 2 3)))
+              (assert-equal '(5) (foldl maybe-foldable (lambda (acc x) (cons x acc)) '() (just 5))))
+            
+            ;; Test generic fold-map with dictionary
+            (define-test generic-fold-map-test
+              (assert-equal 6 (fold-map list-foldable sum-monoid identity '(1 2 3)))
+              (assert-equal 5 (fold-map maybe-foldable sum-monoid identity (just 5)))
+              (assert-equal 0 (fold-map maybe-foldable sum-monoid identity nothing)))
+            
+            ;; Test generic fold with dictionary
+            (define-test generic-fold-test
+              (assert-equal 10 (fold list-foldable sum-monoid '(1 2 3 4)))
+              (assert-equal "abc" (fold list-foldable string-monoid '("a" "b" "c"))))
+            
+            ;; Test to-list with dictionary
+            (define-test dictionary-to-list-test
+              (assert-equal '(1 2 3) (to-list list-foldable '(1 2 3)))
+              (assert-equal '(5) (to-list maybe-foldable (just 5)))
+              (assert-equal '() (to-list maybe-foldable nothing))
+              (assert-equal '(42) (to-list either-foldable (right 42)))
+              (assert-equal '() (to-list either-foldable (left "err")))))
+
+;;; ============================================================
+;;; Traversable Dictionary Tests
+;;; ============================================================
+
+(test-group traversable-dictionary
+            ;; Test traversable? predicate
+            (define-test traversable-predicate-test
+              (assert-true (traversable? list-traversable))
+              (assert-true (traversable? maybe-traversable))
+              (assert-true (traversable? either-traversable))
+              (assert-true (traversable? pair-traversable))
+              (assert-false (traversable? 42))
+              (assert-false (traversable? list-foldable)))
+            
+            ;; Test traversable-foldable accessor
+            (define-test traversable-foldable-test
+              (assert-true (foldable? (traversable-foldable list-traversable)))
+              (assert-true (foldable? (traversable-foldable maybe-traversable))))
+            
+            ;; Test generic traverse with dictionary
+            (define-test generic-traverse-test
+              (let ([result (traverse list-traversable maybe-applicative
+                                      (lambda (x) (if (> x 0) (just x) nothing))
+                                      '(1 2 3))])
+                   (assert-true (just? result))
+                   (assert-equal '(1 2 3) (from-just result)))
+              (let ([result (traverse list-traversable maybe-applicative
+                                      (lambda (x) (if (> x 0) (just x) nothing))
+                                      '(1 -2 3))])
+                   (assert-true (nothing? result))))
+            
+            ;; Test generic sequence with dictionary
+            (define-test generic-sequence-test
+              (let ([result (sequence list-traversable maybe-applicative
+                                      (list (just 1) (just 2) (just 3)))])
+                   (assert-true (just? result))
+                   (assert-equal '(1 2 3) (from-just result)))
+              (let ([result (sequence list-traversable maybe-applicative
+                                      (list (just 1) nothing (just 3)))])
+                   (assert-true (nothing? result))))
+            
+            ;; Test generic for with dictionary
+            (define-test generic-for-test
+              (let ([result (for list-traversable identity-applicative
+                                 '(1 2 3)
+                                 (lambda (x) (* x 2)))])
+                   (assert-equal '(2 4 6) result))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 
