@@ -19,17 +19,18 @@
         (list cmd args rest)))
 
 (define (quill-repl-help)
-  (string-append
-   "REPL commands:\n"
-   "  :help                      show this help\n"
-   "  :undo                      undo last step\n"
-   "  :checkpoint [label]        create checkpoint\n"
-   "  :restore <label>           restore checkpoint\n"
-   "  :dialogue <id>             start dialogue\n"
-   "  :transcript                show transcript\n"
-   "  :snapshot                  print snapshot data\n"
-   "  :exercise <id>             select exercise\n"
-   "  :answer <text>             grade current exercise\n"))
+  (let ([nl (string (integer->char 10))])
+       (string-append
+        "REPL commands:" nl
+        "  :help                      show this help" nl
+        "  :undo                      undo last step" nl
+        "  :checkpoint [label]        create checkpoint" nl
+        "  :restore <label>           restore checkpoint" nl
+        "  :dialogue <id>             start dialogue" nl
+        "  :transcript                show transcript" nl
+        "  :snapshot                  print snapshot data" nl
+        "  :exercise <id>             select exercise" nl
+        "  :answer <text>             grade current exercise" nl)))
 
 (define (quill-repl-current-exercise run)
   (quill-state-meta-get (quill-run-state run) 'current-exercise #f))
@@ -82,18 +83,18 @@
          [(string=? cmd "answer")
           (let* ([exercise-id (quill-repl-current-exercise run)]
                  [exercise (and exercise-id (quill-story-exercise story exercise-id))])
-            (if (not exercise)
-                (values (quill-repl-message run "No active exercise.") #t)
-                (let-values ([(r2 result) (quill-apply-exercise story run exercise rest quill-apply-effects)])
-                  (let* ([pass? (and (assq 'pass? result) (cdr (assq 'pass? result)))]
-                         [failed (assq 'failed result)]
-                         [msg (if pass?
-                                  "Correct."
-                                  (string-append "Not yet. Failed: "
-                                                 (format "~a" (if failed (cdr failed) ""))))])
-                    (values (quill-repl-message r2 msg) #t)))))]
-        [else
-         (values (quill-repl-message run "Unknown REPL command. Try :help.") #t)])))
+                (if (not exercise)
+                    (values (quill-repl-message run "No active exercise.") #t)
+                    (let-values ([(r2 result) (quill-apply-exercise story run exercise rest quill-apply-effects)])
+                                (let* ([pass? (and (assq 'pass? result) (cdr (assq 'pass? result)))]
+                                       [failed (assq 'failed result)]
+                                       [msg (if pass?
+                                                "Correct."
+                                                (string-append "Not yet. Failed: "
+                                                               (format "~a" (if failed (cdr failed) ""))))])
+                                      (values (quill-repl-message r2 msg) #t)))))]
+         [else
+          (values (quill-repl-message run "Unknown REPL command. Try :help.") #t)])))
 
 (define (quill-repl-step story run line)
   (if (and (string? line) (string-starts-with? (string-trim line) ":"))
