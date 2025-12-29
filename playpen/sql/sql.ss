@@ -66,9 +66,9 @@
 ;;; Example:
 ;;;   (format-sql ast)
 ;;;   => "SELECT
-  *
+	*
 FROM
-  users"
+	users"
 ;;;
 ;;;   (format-sql ast '((compact . #t)))
 ;;;   => "SELECT * FROM users"
@@ -100,9 +100,9 @@ FROM
 ;;; Example:
 ;;;   (reformat-sql "select * from users")
 ;;;   => (right "SELECT
-  *
+	*
 FROM
-  users")
+	users")
 ;;;
 ;;;   (reformat-sql "select * from users" '((compact . #t)))
 ;;;   => (right "SELECT * FROM users")

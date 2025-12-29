@@ -17,11 +17,32 @@
 ;;; ============================================================
 
 ;;; default-format-options : Alist
+;;; Options:
+;;;   indent            : number of spaces, or 'tab for tab characters
+;;;   uppercase-keywords: #t for SELECT, #f for select
+;;;   compact           : #t for single line, #f for multi-line
+;;;   max-line-width    : max characters per line (0 for no limit)
+;;;   leading-commas    : #t for ", col" style, #f for "col," style
+;;;   align-keywords    : #t to right-align SELECT/FROM/WHERE
+;;;   and-or-newline    : 'start for "AND x", 'end for "x AND"
+;;;   explicit-as       : #t to always include AS for aliases
+;;;   join-newline      : #t for JOINs on new lines
+;;;   trailing-semicolon: #t to append semicolon
+;;;   paren-spacing     : #t for "( x )", #f for "(x)"
+;;;   column-per-line   : #t for each column on own line
 (define default-format-options
-  '((indent . 2)
+  '((indent . tab)
     (uppercase-keywords . #t)
     (compact . #f)
-    (max-line-width . 80)))
+    (max-line-width . 120)
+    (leading-commas . #t)
+    (align-keywords . #f)
+    (and-or-newline . start)
+    (explicit-as . #t)
+    (join-newline . #t)
+    (trailing-semicolon . #f)
+    (paren-spacing . #f)
+    (column-per-line . #t)))
 
 ;;; get-option : Alist × Symbol × Any → Any
 (define (get-option opts key default)
@@ -51,9 +72,12 @@
 ;;; ============================================================
 
 ;;; make-indent : Nat × Alist → String
+;;; Supports numeric indent (spaces) or 'tab for tab characters
 (define (make-indent level opts)
-  (let ([indent-size (get-option opts 'indent 2)])
-       (make-string (* level indent-size) #\space)))
+  (let ([indent-val (get-option opts 'indent 'tab)])
+       (if (eq? indent-val 'tab)
+           (make-string level #	ab)
+           (make-string (* level indent-val) #\space))))
 
 ;;; make-string : Nat × Char → String
 (define (make-string n ch)
@@ -70,13 +94,17 @@
 ;;; format-sql : AST × Alist → String
 ;;; Main entry point for formatting
 (define (format-sql ast . opts-arg)
-  (let ([opts (if (null? opts-arg) default-format-options (car opts-arg))])
-       (cond
-        [(select? ast) (format-select ast opts)]
-        [(insert? ast) (format-insert ast opts)]
-        [(update? ast) (format-update ast opts)]
-        [(delete? ast) (format-delete ast opts)]
-        [else (format-expression ast opts)])))
+  (let* ([opts (if (null? opts-arg) default-format-options (car opts-arg))]
+         [trailing-semicolon? (get-option opts 'trailing-semicolon #f)]
+         [result (cond
+                  [(select? ast) (format-select ast opts)]
+                  [(insert? ast) (format-insert ast opts)]
+                  [(update? ast) (format-update ast opts)]
+                  [(delete? ast) (format-delete ast opts)]
+                  [else (format-expression ast opts)])])
+        (if trailing-semicolon?
+            (string-append result ";")
+            result)))
 
 ;;; ============================================================
 ;;; SELECT Formatting
@@ -127,7 +155,29 @@
 
 ;;; format-select-list : (List AST) × Alist → String
 (define (format-select-list items opts)
-  (string-join (map (lambda (item) (format-select-item item opts)) items) ", "))
+  (let* ([compact? (get-option opts 'compact #f)]
+         [leading-commas? (get-option opts 'leading-commas #t)]
+         [column-per-line? (get-option opts 'column-per-line #t)]
+         [indent (make-indent 1 opts)]
+         [formatted-items (map (lambda (item) (format-select-item item opts)) items)])
+        (if (or compact? (not column-per-line?))
+            ;; Compact: join with ", "
+            (string-join formatted-items ", ")
+            ;; Multi-line with column-per-line
+            (if leading-commas?
+                ;; Leading commas: first item, then ", item" on new lines
+                (if (null? formatted-items)
+                    ""
+                    (string-append
+                     (car formatted-items)
+                     (apply string-append
+                            (map (lambda (item)
+                                         (string-append "
+" indent ", " item))
+                                 (cdr formatted-items)))))
+                ;; Trailing commas: "item," on each line except last
+                (string-join formatted-items (string-append ",
+" indent))))))
 
 ;;; format-select-item : AST × Alist → String
 (define (format-select-item item opts)
@@ -136,9 +186,12 @@
     (let ([table (star-table item)])
          (if table (string-append table ".*") "*"))]
    [(alias? item)
-    (string-append (format-expression (alias-expr item) opts)
-                   " " (format-keyword "AS" opts) " "
-                   (alias-name item))]
+    (let ([explicit-as? (get-option opts 'explicit-as #t)])
+         (string-append (format-expression (alias-expr item) opts)
+                        (if explicit-as?
+                            (string-append " " (format-keyword "AS" opts) " ")
+                            " ")
+                        (alias-name item)))]
    [else (format-expression item opts)]))
 
 ;;; format-from-list : (List AST) × Alist → String
@@ -150,9 +203,14 @@
   (cond
    [(table-ref? item)
     (let ([name (table-ref-name item)]
-          [alias (table-ref-alias item)])
+          [alias (table-ref-alias item)]
+          [explicit-as? (get-option opts 'explicit-as #t)])
          (if alias
-             (string-append name " " (format-keyword "AS" opts) " " alias)
+             (string-append name
+                            (if explicit-as?
+                                (string-append " " (format-keyword "AS" opts) " ")
+                                " ")
+                            alias)
              name))]
    [(join? item)
     (format-join item opts)]
@@ -160,21 +218,27 @@
 
 ;;; format-join : AST × Alist → String
 (define (format-join j opts)
-  (let ([type (join-type j)]
-        [left (join-left j)]
-        [right (join-right j)]
-        [condition (join-condition j)])
-       (string-append
-        (format-from-item left opts)
-        " "
-        (format-join-type type opts)
-        " "
-        (format-keyword "JOIN" opts)
-        " "
-        (format-from-item right opts)
-        (if condition
-            (string-append " " (format-keyword "ON" opts) " " (format-expression condition opts))
-            ""))))
+  (let* ([type (join-type j)]
+         [left (join-left j)]
+         [right (join-right j)]
+         [condition (join-condition j)]
+         [compact? (get-option opts 'compact #f)]
+         [join-newline? (get-option opts 'join-newline #t)]
+         [nl (if (and join-newline? (not compact?))
+                 (string-append "
+" (make-indent 1 opts))
+                 " ")])
+        (string-append
+         (format-from-item left opts)
+         nl
+         (format-join-type type opts)
+         " "
+         (format-keyword "JOIN" opts)
+         " "
+         (format-from-item right opts)
+         (if condition
+             (string-append " " (format-keyword "ON" opts) " " (format-expression condition opts))
+             ""))))
 
 ;;; format-join-type : Symbol × Alist → String
 (define (format-join-type type opts)
@@ -358,13 +422,36 @@
 
 ;;; format-binary-op : AST × Alist → String
 (define (format-binary-op expr opts)
-  (let ([op (binary-op-op expr)]
-        [left (binary-op-left expr)]
-        [right (binary-op-right expr)])
-       (string-append
-        "(" (format-expression left opts) " "
-        (format-operator op opts) " "
-        (format-expression right opts) ")")))
+  (let* ([op (binary-op-op expr)]
+         [left (binary-op-left expr)]
+         [right (binary-op-right expr)]
+         [compact? (get-option opts 'compact #f)]
+         [paren-spacing? (get-option opts 'paren-spacing #f)]
+         [and-or-newline (get-option opts 'and-or-newline 'start)]
+         [is-logical? (memq op '(and or))]
+         [lp (if paren-spacing? "( " "(")]
+         [rp (if paren-spacing? " )" ")")]
+         [indent (make-indent 1 opts)])
+        (if (and is-logical? (not compact?))
+            ;; Special formatting for AND/OR
+            (if (eq? and-or-newline 'start)
+                ;; AND/OR at start of line
+                (string-append
+                 (format-expression left opts)
+                 "
+" indent (format-operator op opts) " "
+                 (format-expression right opts))
+                ;; AND/OR at end of line
+                (string-append
+                 (format-expression left opts) " "
+                 (format-operator op opts)
+                 "
+" indent (format-expression right opts)))
+            ;; Regular inline formatting
+            (string-append
+             lp (format-expression left opts) " "
+             (format-operator op opts) " "
+             (format-expression right opts) rp))))
 
 ;;; format-unary-op : AST × Alist → String
 (define (format-unary-op expr opts)
@@ -384,16 +471,19 @@
 
 ;;; format-function-call : AST × Alist → String
 (define (format-function-call expr opts)
-  (let ([name (function-call-name expr)]
-        [args (function-call-args expr)]
-        [distinct? (function-call-distinct? expr)])
-       (string-append
-        (string-upcase name) "("
-        (if distinct? (string-append (format-keyword "DISTINCT" opts) " ") "")
-        (if (and (pair? args) (eq? (car args) '*))
-            "*"
-            (string-join (map (lambda (a) (format-expression a opts)) args) ", "))
-        ")")))
+  (let* ([name (function-call-name expr)]
+         [args (function-call-args expr)]
+         [distinct? (function-call-distinct? expr)]
+         [paren-spacing? (get-option opts 'paren-spacing #f)]
+         [lp (if paren-spacing? "( " "(")]
+         [rp (if paren-spacing? " )" ")")])
+        (string-append
+         (string-upcase name) lp
+         (if distinct? (string-append (format-keyword "DISTINCT" opts) " ") "")
+         (if (and (pair? args) (eq? (car args) '*))
+             "*"
+             (string-join (map (lambda (a) (format-expression a opts)) args) ", "))
+         rp)))
 
 ;;; format-case-expr : AST × Alist → String
 (define (format-case-expr expr opts)
