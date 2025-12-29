@@ -160,18 +160,19 @@
   (lambda (pair)
           (cons (f (car pair)) (f (cdr pair)))))
 
-;;; first : (a → b) → (a × c) → (b × c)
+;;; pair-first : (a → b) → (a × c) → (b × c)
 ;;; Apply function to first element of pair.
-(define (first f)
+(define (pair-first f)
   (lambda (pair)
           (cons (f (car pair)) (cdr pair))))
 
-;;; second : (b → c) → (a × b) → (a × c)
+;;; pair-second : (b → c) → (a × b) → (a × c)
 ;;; Apply function to second element of pair.
 ;;; Note: pairs are (cons a b), returns (cons a (f b)).
-(define (second f)
+(define (pair-second f)
   (lambda (pair)
           (cons (car pair) (f (cdr pair)))))
+
 
 ;;; bimap : (a → c) → (b → d) → (a × b) → (c × d)
 ;;; Apply two functions to elements of a pair.
@@ -266,19 +267,20 @@
       (f (from-just m))
       default))
 
-;;; map-maybe : (a → b) → Maybe a → Maybe b
+;;; maybe-fmap : (a → b) → Maybe a → Maybe b
 ;;; Functor map for Maybe.
-(define (map-maybe f m)
+(define (maybe-fmap f m)
   (if (just? m)
       (just (f (from-just m)))
       nothing))
 
-;;; bind-maybe : Maybe a → (a → Maybe b) → Maybe b
+;;; maybe-bind : Maybe a → (a → Maybe b) → Maybe b
 ;;; Monadic bind for Maybe.
-(define (bind-maybe m f)
+(define (maybe-bind m f)
   (if (just? m)
       (f (from-just m))
       nothing))
+
 
 ;;; filter-maybe : (a → Boolean) → Maybe a → Maybe a
 ;;; Filter a Maybe value.
@@ -302,9 +304,9 @@
 (define (sequence-maybe ms)
   (if (null? ms)
       (just '())
-      (bind-maybe (car ms)
+      (maybe-bind (car ms)
                   (lambda (x)
-                          (bind-maybe (sequence-maybe (cdr ms))
+                          (maybe-bind (sequence-maybe (cdr ms))
                                       (lambda (xs)
                                               (just (cons x xs))))))))
 
@@ -345,23 +347,23 @@
       (f (from-left e))
       (g (from-right e))))
 
-;;; map-right : (b → c) → Either a b → Either a c
-;;; Functor map for Either (over Right).
-(define (map-right f e)
+;;; either-fmap : (b → c) → Either a b → Either a c
+;;; Functor map for Either (standard: operates on Right).
+(define (either-fmap f e)
   (if (right? e)
       (right (f (from-right e)))
       e))
 
-;;; map-left : (a → c) → Either a b → Either c b
-;;; Map over Left.
-(define (map-left f e)
+;;; either-fmap-left : (a → c) → Either a b → Either c b
+;;; Map over Left side of Either.
+(define (either-fmap-left f e)
   (if (left? e)
       (left (f (from-left e)))
       e))
 
-;;; bind-right : Either a b → (b → Either a c) → Either a c
-;;; Monadic bind for Either (over Right).
-(define (bind-right e f)
+;;; either-bind : Either a b → (b → Either a c) → Either a c
+;;; Monadic bind for Either (standard: operates on Right).
+(define (either-bind e f)
   (if (right? e)
       (f (from-right e))
       e))

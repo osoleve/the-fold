@@ -149,18 +149,18 @@
                    (assert-true (compare-by-length '(1) '(1 2 3)))
                    (assert-false (compare-by-length '(1 2 3) '(1)))))
             
-            ;; Note: both, first, second, bimap work with (cons a b) pairs
+            ;; Note: both, pair-first, pair-second, bimap work with (cons a b) pairs
             (define-test both-test
               (let ([double-both ((both (lambda (x) (* x 2))) (cons 3 4))])
                    (assert-equal? double-both (cons 6 8))))
             
-            (define-test first-test
-              (let ([result ((first (lambda (x) (* x 2))) (cons 3 4))])
+            (define-test pair-first-test
+              (let ([result ((pair-first (lambda (x) (* x 2))) (cons 3 4))])
                    (assert-= (car result) 6 0)
                    (assert-= (cdr result) 4 0)))
             
-            (define-test second-test
-              (let ([result ((second (lambda (x) (* x 2))) (cons 3 4))])
+            (define-test pair-second-test
+              (let ([result ((pair-second (lambda (x) (* x 2))) (cons 3 4))])
                    (assert-= (car result) 3 0)
                    (assert-= (cdr result) 8 0)))
             
@@ -230,16 +230,16 @@
               (assert-= (maybe 0 (lambda (x) (* x 2)) (just 5)) 10 0)
               (assert-= (maybe 0 (lambda (x) (* x 2)) nothing) 0 0))
             
-            (define-test map-maybe-test
-              (assert-= (from-just (map-maybe (lambda (x) (* x 2)) (just 5))) 10 0)
-              (assert-true (nothing? (map-maybe (lambda (x) (* x 2)) nothing))))
+            (define-test maybe-fmap-test
+              (assert-= (from-just (maybe-fmap (lambda (x) (* x 2)) (just 5))) 10 0)
+              (assert-true (nothing? (maybe-fmap (lambda (x) (* x 2)) nothing))))
             
-            (define-test bind-maybe-test
+            (define-test maybe-bind-test
               (let ([safe-div (lambda (n)
                                       (if (= n 0) nothing (just (/ 10 n))))])
-                   (assert-= (from-just (bind-maybe (just 2) safe-div)) 5 0)
-                   (assert-true (nothing? (bind-maybe (just 0) safe-div)))
-                   (assert-true (nothing? (bind-maybe nothing safe-div)))))
+                   (assert-= (from-just (maybe-bind (just 2) safe-div)) 5 0)
+                   (assert-true (nothing? (maybe-bind (just 0) safe-div)))
+                   (assert-true (nothing? (maybe-bind nothing safe-div)))))
             
             (define-test filter-maybe-test
               (assert-true (just? (filter-maybe positive? (just 5))))
@@ -274,21 +274,21 @@
               (assert-= (either string-length (lambda (x) (* x 2)) (left "hi")) 2 0)
               (assert-= (either string-length (lambda (x) (* x 2)) (right 5)) 10 0))
             
-            (define-test map-right-test
-              (assert-= (from-right (map-right (lambda (x) (* x 2)) (right 5))) 10 0)
-              (assert-equal? (from-left (map-right (lambda (x) (* x 2)) (left 'err))) 'err))
+            (define-test either-fmap-test
+              (assert-= (from-right (either-fmap (lambda (x) (* x 2)) (right 5))) 10 0)
+              (assert-equal? (from-left (either-fmap (lambda (x) (* x 2)) (left 'err))) 'err))
             
-            (define-test map-left-test
-              (assert-equal? (from-left (map-left (lambda (x) (cons 'wrapped x)) (left 'err)))
+            (define-test either-fmap-left-test
+              (assert-equal? (from-left (either-fmap-left (lambda (x) (cons 'wrapped x)) (left 'err)))
                              '(wrapped . err))
-              (assert-= (from-right (map-left (lambda (x) (cons 'wrapped x)) (right 5))) 5 0))
+              (assert-= (from-right (either-fmap-left (lambda (x) (cons 'wrapped x)) (right 5))) 5 0))
             
-            (define-test bind-right-test
+            (define-test either-bind-test
               (let ([validate (lambda (x)
                                       (if (positive? x) (right (* x 2)) (left 'negative)))])
-                   (assert-= (from-right (bind-right (right 5) validate)) 10 0)
-                   (assert-equal? (from-left (bind-right (right -5) validate)) 'negative)
-                   (assert-equal? (from-left (bind-right (left 'already-error) validate)) 'already-error)))
+                   (assert-= (from-right (either-bind (right 5) validate)) 10 0)
+                   (assert-equal? (from-left (either-bind (right -5) validate)) 'negative)
+                   (assert-equal? (from-left (either-bind (left 'already-error) validate)) 'already-error)))
             
             (define-test rights-lefts-test
               (let ([es (list (right 1) (left 'a) (right 2) (left 'b) (right 3))])
@@ -395,14 +395,14 @@
 (test-group do-monad-tests
             ;; Test with Maybe monad
             (define-test do-monad-maybe-success-test
-              (let ([result (do-monad bind-maybe
+              (let ([result (do-monad maybe-bind
                                       [x <- (just 3)]
                                       [y <- (just 4)]
                                       (just (+ x y)))])
                    (assert-equal (just 7) result)))
             
             (define-test do-monad-maybe-failure-test
-              (let ([result (do-monad bind-maybe
+              (let ([result (do-monad maybe-bind
                                       [x <- (just 3)]
                                       [y <- nothing]
                                       (just (+ x y)))])
@@ -414,7 +414,7 @@
                    (define (set-effect! v)
                      (set! side-effect v)
                      (just v))
-                   (let ([result (do-monad bind-maybe
+                   (let ([result (do-monad maybe-bind
                                            (set-effect! 1)
                                            [x <- (just 10)]
                                            (just (+ x side-effect)))])

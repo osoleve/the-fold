@@ -122,14 +122,16 @@
 (define (either-bimap f g e)
   (bf-bimap either-bifunctor f g e))
 
-;;; Note: map-left and map-right are already in combinators.ss
-;;; These are aliases that use the bifunctor explicitly.
+;;; Note: combinators.ss provides either-fmap and either-fmap-left as direct implementations.
+;;; These bifunctor-based versions use the bifunctor machinery explicitly.
 
 ;;; either-map-left : (e -> e') -> Either e a -> Either e' a
+;;; Bifunctor-based left mapping (equivalent to either-fmap-left in combinators.ss).
 (define (either-map-left f e)
   (bf-first either-bifunctor f e))
 
 ;;; either-map-right : (a -> a') -> Either e a -> Either e a'
+;;; Bifunctor-based right mapping (equivalent to either-fmap in combinators.ss).
 (define (either-map-right g e)
   (bf-second either-bifunctor g e))
 

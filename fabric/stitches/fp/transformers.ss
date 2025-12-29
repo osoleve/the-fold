@@ -371,9 +371,9 @@
   (reader-t-pure (lambda (y) (right y)) x))
 
 ;;; reader-either-bind : ReaderT r (Either e) a -> (a -> ReaderT r (Either e) b) -> ReaderT r (Either e) b
-;;; Note: Uses bind-right from combinators.ss for Either monad bind
+;;; Note: Uses either-bind from combinators.ss for Either monad bind
 (define (reader-either-bind rt f)
-  (reader-t-bind bind-right rt f))
+  (reader-t-bind either-bind rt f))
 
 ;;; reader-either-ask : ReaderT r (Either e) r
 (define reader-either-ask
