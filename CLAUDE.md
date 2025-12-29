@@ -358,7 +358,15 @@ See `EXPLORATION-FINDINGS.md` for full details.
 - Transcendental functions library (`fp/transcendental.ss`): 59 tests passing
 - Arbitrary precision arithmetic (`fp/bignum.ss`): 35 tests passing
 - Automatic differentiation (`comp-graph.ss`, `reverse-diff.ss`, `higher-order-diff.ss`)
-- Complex numbers (in progress, blocked by transcendental optimization)
+- Complex numbers (`complex.ss`): 56 tests passing
+  - Rectangular and polar forms
+  - Complex transcendental functions (exp, log, pow, sqrt, trig, hyperbolic)
+  - Verified mathematical identities (Euler's, Pythagorean, hyperbolic)
+- Signal processing (`dft.ss`): 46 tests passing
+  - Naive DFT: O(N²) for any size
+  - FFT (Cooley-Tukey radix-2): O(N log N) for power-of-2 sizes
+  - Spectral analysis (magnitude, phase, power spectra)
+  - Verified Parseval's theorem and linearity
 
 **Type System & FP Infrastructure:**
 - Type system evolution (`types.ss`, `infer.ss`, `kinds.ss`, `dep-types.ss`)

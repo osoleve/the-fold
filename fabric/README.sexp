@@ -60,6 +60,10 @@ Everything in fabric/ is:
       "  reverse-diff.ss    - Reverse-mode AD (backpropagation)"
       "  higher-order-diff.ss - Higher-order derivatives"
       ""
+      "Complex Numbers & Signal Processing:"
+      "  complex.ss     - Complex number arithmetic (56 tests)"
+      "  dft.ss         - DFT/FFT algorithms (46 tests)"
+      ""
       "Utilities:"
       "  prelude.ss     - Pure utility functions"
       "  error.ss       - Error types and formatting"
@@ -134,7 +138,11 @@ Everything in fabric/ is:
       "  units.ss         - Physical units and dimensions"
       ""
       "Computational:"
-      "  vec-matrix-instances.ss - Type class instances for vectors/matrices"))
+      "  vec-matrix-instances.ss - Type class instances for vectors/matrices"
+      ""
+      "Signal Processing (in fabric/stitches/):"
+      "  complex.ss - Complex number arithmetic for Fourier analysis"
+      "  dft.ss     - DFT/FFT algorithms (naive O(N²) and radix-2 O(N log N))"))
     (parsing-dsl . (
       "Parser Infrastructure:"
       "  parser.ss      - Parser combinator framework"
