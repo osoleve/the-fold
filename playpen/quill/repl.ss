@@ -1,4 +1,4 @@
-;;; thimble/quill/repl.ss — Quill REPL helpers
+;;; playpen/quill/repl.ss — Quill REPL helpers
 ;;;
 ;;; Minimal interactive runner. Advanced tooling (inspectors, debugging)
 ;;; lands in a dedicated tooling file later.
@@ -19,4 +19,3 @@
                   (quill-run-with-done r #t)
                   (let-values ([(r2 _out) (quill-step story r line)])
                     (loop r2)))))))))
-

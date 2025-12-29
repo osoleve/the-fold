@@ -1,4 +1,4 @@
-;;; thimble/quill/render.ss — Quill rendering
+;;; playpen/quill/render.ss — Quill rendering
 ;;;
 ;;; Rendering is pure: given a Story + Run, produce a display string.
 ;;; Advanced formatting (wrapping, styles, transcript views) comes later.

@@ -1,4 +1,4 @@
-;;; thimble/quill/runtime.ss — Quill runtime (minimal)
+;;; playpen/quill/runtime.ss — Quill runtime (minimal)
 ;;;
 ;;; Implements:
 ;;;   - quill-start: initialize a run
@@ -122,4 +122,3 @@
          [out (quill-render story run1)]
          [run2 (quill-run-append-transcript run1 out)])
     (values run2 out)))
-

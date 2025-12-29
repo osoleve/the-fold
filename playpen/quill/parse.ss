@@ -1,4 +1,4 @@
-;;; thimble/quill/parse.ss — Quill command parsing
+;;; playpen/quill/parse.ss — Quill command parsing
 ;;;
 ;;; This parser is intentionally small. It provides a stable intent model
 ;;; for the runtime while leaving room for richer parsing later.
@@ -39,4 +39,3 @@
     [else
      (or (quill-parse-complete quill-intent-parser s)
          (quill-intent-unknown (string-trim s)))]))
-

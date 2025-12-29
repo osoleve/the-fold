@@ -1,4 +1,4 @@
-;;; thimble/quill/types.ss — Quill core types
+;;; playpen/quill/types.ss — Quill core types
 ;;;
 ;;; This file defines the core data structures for Quill:
 ;;;   - Story: a directed graph of nodes/scenes
@@ -126,4 +126,3 @@
 
 (define (quill-intent-type intent) (car intent))
 (define (quill-intent-arg intent) (and (pair? (cdr intent)) (cadr intent)))
-

@@ -1,4 +1,4 @@
-;;; thimble/quill.ss — Quill: Text Adventure SDK (loader)
+;;; playpen/quill/quill.ss — Quill: Text Adventure SDK (loader)
 ;;;
 ;;; Quill is a deterministic text-adventure and narrative engine for The Fold.
 ;;; It is REPL-first and intended for:
@@ -9,7 +9,7 @@
 ;;;
 ;;; Usage:
 ;;;   (load "thimble/repl.ss")
-;;;   (load "thimble/quill.ss")
+;;;   (load "playpen/quill/quill.ss")
 ;;;
 ;;; Then:
 ;;;   (quill-run story)                  ; interactive
@@ -32,14 +32,13 @@
 ;;; Quill Modules (load order)
 ;;; ============================================================
 
-(load "thimble/quill/types.ss")
-(load "thimble/quill/state.ss")
-(load "thimble/quill/parse.ss")
-(load "thimble/quill/render.ss")
-(load "thimble/quill/runtime.ss")
-(load "thimble/quill/repl.ss")
+(load "playpen/quill/types.ss")
+(load "playpen/quill/state.ss")
+(load "playpen/quill/parse.ss")
+(load "playpen/quill/render.ss")
+(load "playpen/quill/runtime.ss")
+(load "playpen/quill/repl.ss")
 
 ;;; Optional startup message (respects *quiet* convention used by thimble/repl.ss)
 (when (and (top-level-bound? '*quiet*) (not *quiet*))
   (display "Quill loaded — text adventure SDK\n"))
-

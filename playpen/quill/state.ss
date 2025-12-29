@@ -1,4 +1,4 @@
-;;; thimble/quill/state.ss — Quill state helpers
+;;; playpen/quill/state.ss — Quill state helpers
 ;;;
 ;;; Quill state is a small persistent data structure intended to be:
 ;;;   - Easy to serialize later (CAS persistence)
@@ -92,4 +92,3 @@
 (define (quill-state-remove-item state item)
   (let ([inv (quill-state-inventory state)])
     (quill-state-set-section state 'inv (remq item inv))))
-
