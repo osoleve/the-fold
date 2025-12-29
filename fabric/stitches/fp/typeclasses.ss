@@ -359,10 +359,10 @@
 (define (function-comonad-from-monoid mempty mappend)
   (make-comonad
    function-functor
-   (lambda (f) (f mempty))
-   (lambda (wab f)
+   (lambda (f) (f mempty))                    ; extract: apply at identity
+   (lambda (wab f)                            ; extend: shift the argument
            (lambda (m1)
-                   (wab (lambda (m2) (f (lambda (m3) (wab (mappend m1 m2))))))))))
+                   (f (lambda (m2) (wab (mappend m1 m2))))))))
 
 ;;; ============================================================
 ;;; Law Verification

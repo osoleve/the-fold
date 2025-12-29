@@ -21,9 +21,13 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
+;;;   - fp/algebraic.ss (for mappend in Bifoldable)
+;;;   - fp/traversable.ss (for app-fmap, app-lift2-uncurried in Bitraversable)
 
 (load "fabric/stitches/prelude.ss")
 (load "fabric/stitches/fp/combinators.ss")
+(load "fabric/stitches/fp/algebraic.ss")
+(load "fabric/stitches/fp/traversable.ss")
 
 ;;; ============================================================
 ;;; Bifunctor Type
@@ -464,7 +468,7 @@
            (cond
             [(this? t) (f (from-this t))]
             [(that? t) (g (from-that t))]
-            [else (mappend monoid (f (from-this-both t)) (g (from-that-both t)))]))))
+            [else (mappend monoid (f (from-these-fst t)) (g (from-these-snd t)))]))))
 
 ;;; ============================================================
 ;;; Bitraversable
@@ -542,8 +546,8 @@
             [(this? t) (app-fmap app make-this (f (from-this t)))]
             [(that? t) (app-fmap app make-that (g (from-that t)))]
             [else (app-lift2-uncurried app make-these
-                                       (f (from-this-both t))
-                                       (g (from-that-both t)))]))))
+                                       (f (from-these-fst t))
+                                       (g (from-these-snd t)))]))))
 
 ;;; ============================================================
 ;;; Example Usage (for documentation)

@@ -17,9 +17,11 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
+;;;   - fp/algebraic.ss (for Monoid in WriterT)
 
 (load "fabric/stitches/prelude.ss")
 (load "fabric/stitches/fp/combinators.ss")
+(load "fabric/stitches/fp/algebraic.ss")
 
 ;;; ============================================================
 ;;; Identity Monad (Base Case)
@@ -309,12 +311,6 @@
 (define (writer-t-pure m-pure monoid x)
   (make-writer-t monoid (m-pure (cons x (monoid-empty monoid)))))
 
-;;; Monoid helpers (from writer.ss)
-(define (make-monoid empty append-fn)
-  (cons empty append-fn))
-(define (monoid-empty m) (car m))
-(define (monoid-append m) (cdr m))
-
 ;;; writer-t-bind : (m a -> (a -> m b) -> m b) -> (a -> m a) -> WriterT w m a -> (a -> WriterT w m b) -> WriterT w m b
 ;;; Sequence WriterT computations.
 (define (writer-t-bind m-bind m-pure wt f)
@@ -330,7 +326,7 @@
                                       (lambda (pair2)
                                               (let* ([b (car pair2)]
                                                      [w2 (cdr pair2)]
-                                                     [combined ((monoid-append monoid) w1 w2)])
+                                                     [combined ((monoid-op monoid) w1 w2)])
                                                     (m-pure (cons b combined)))))))))))
 
 ;;; writer-t-tell : (a -> m a) -> Monoid w -> w -> WriterT w m ()
@@ -364,8 +360,8 @@
 ;;; ============================================================
 
 ;;; List monoid (for WriterT)
-(define transformer-list-monoid
-  (make-monoid '() append))
+;;; Note: Using list-monoid from algebraic.ss instead of local definition
+(define transformer-list-monoid list-monoid)
 
 ;;; ReaderT r (Either e) a — Reader with errors
 ;;; Useful for configuration + validation
@@ -375,14 +371,9 @@
   (reader-t-pure (lambda (y) (right y)) x))
 
 ;;; reader-either-bind : ReaderT r (Either e) a -> (a -> ReaderT r (Either e) b) -> ReaderT r (Either e) b
+;;; Note: Uses bind-right from combinators.ss for Either monad bind
 (define (reader-either-bind rt f)
-  (reader-t-bind either-bind rt f))
-
-;;; Helper for Either monad
-(define (either-bind e f)
-  (if (left? e)
-      e
-      (f (from-right e))))
+  (reader-t-bind bind-right rt f))
 
 ;;; reader-either-ask : ReaderT r (Either e) r
 (define reader-either-ask
