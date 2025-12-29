@@ -355,12 +355,39 @@ See `EXPLORATION-FINDINGS.md` for full details.
 
 ## Current Development Focus
 
-- Type system evolution (`fabric/stitches/types.ss`, `infer.ss`, `kinds.ss`)
+**Mathematical Computing Infrastructure:**
+- Linear algebra library complete (`vec.ss`, `matrix.ss`, `matrix-decomp.ss`)
+  - Vector operations: 55 tests passing
+  - Matrix operations: 50 tests passing
+  - Matrix decompositions (LU, QR, Cholesky): 22 tests passing
+- Transcendental functions library (`fp/transcendental.ss`): 59 tests passing
+- Arbitrary precision arithmetic (`fp/bignum.ss`): 35 tests passing
+- Automatic differentiation (`comp-graph.ss`, `reverse-diff.ss`, `higher-order-diff.ss`)
+- Complex numbers (in progress, blocked by transcendental optimization)
+
+**Type System & FP Infrastructure:**
+- Type system evolution (`types.ss`, `infer.ss`, `kinds.ss`, `dep-types.ss`)
+- Comprehensive FP toolkit (`fabric/stitches/fp/`)
+  - 50+ modules covering type classes, data structures, and abstractions
+  - Dictionary-passing style for polymorphism
+  - Haskell-inspired design with Scheme pragmatism
+- Parser combinators with memoization (`fp/parser.ss`)
+- Pretty printing (Wadler-Lindig algorithm)
+
+**Development Tools:**
 - DUCKIE avatar system (digital pet universe)
 - Graphics primitives (`thimble/graphics.ss`, `color.ss`, `layers.ss`)
 - MCP server integration (`thimble/mcp-server/`)
+
+**Game Development:**
 - **Loom SDK** (`playpen/loom/`) — Game-weaving framework for roguelikes
 - **Spell DSL** (`playpen/loom/spell/`) — Declarative game building
+
+**Performance Optimization:**
+- BigNum performance bottleneck identified (Scheme implementation too slow)
+- Recommendation: Implement high-performance BigNum in fold-rs (Rust)
+  - Would enable high-precision transcendental functions
+  - Unblocks complex numbers and special functions
 
 ---
 
