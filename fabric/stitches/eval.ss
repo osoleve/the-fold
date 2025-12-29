@@ -165,6 +165,14 @@
                  [(eq? head 'prim)
                   (eval-prim (cadr expr) (cddr expr) env remaining)]
                  
+                 ;; Par — parallel evaluation hint
+                 [(eq? head 'par)
+                  (eval-par (cadr expr) (caddr expr) env remaining)]
+                 
+                 ;; Pseq — sequential evaluation
+                 [(eq? head 'pseq)
+                  (eval-pseq (cadr expr) (caddr expr) env remaining)]
+                 
                  ;; Call — explicit application
                  [(eq? head 'call)
                   (eval-call (cadr expr) (cddr expr) env remaining)]
@@ -172,6 +180,43 @@
                  ;; Implicit application — (f args...)
                  [else
                   (eval-call (car expr) (cdr expr) env remaining)]))]))]))
+
+;;; ============================================================
+;;; Par/Pseq Evaluation
+;;; ============================================================
+
+;;; eval-par : Expr × Expr × Env × Fuel → Result
+;;; Parallel evaluation hint: (par a b)
+;;; Evaluate both a and b, return b.
+;;; Currently evaluates sequentially, but provides a hint for
+;;; future parallel execution strategies.
+(define (eval-par a-expr b-expr env fuel)
+  ;; Evaluate a (for side-effect of forcing computation)
+  (let ([a-result (eval-expr a-expr env fuel)])
+       (case (car a-result)
+             [(ok)
+              (let ([a-value (cadr a-result)]
+                    [fuel-after-a (caddr a-result)])
+                   ;; Now evaluate b with remaining fuel
+                   (eval-expr b-expr env fuel-after-a))]
+             [(suspended) a-result]  ; Forward suspension
+             [(error) a-result])))   ; Forward error
+
+;;; eval-pseq : Expr × Expr × Env × Fuel → Result
+;;; Sequential evaluation: (pseq a b)
+;;; Force evaluation of a, then evaluate b, return b.
+;;; Ensures a is strictly evaluated before b.
+(define (eval-pseq a-expr b-expr env fuel)
+  ;; Evaluate a first (strict evaluation)
+  (let ([a-result (eval-expr a-expr env fuel)])
+       (case (car a-result)
+             [(ok)
+              (let ([a-value (cadr a-result)]
+                    [fuel-after-a (caddr a-result)])
+                   ;; a is fully evaluated, now evaluate b
+                   (eval-expr b-expr env fuel-after-a))]
+             [(suspended) a-result]  ; Forward suspension
+             [(error) a-result])))   ; Forward error
 
 ;;; ============================================================
 ;;; Let Evaluation
