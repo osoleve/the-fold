@@ -1,4 +1,4 @@
-;;; test-graph-algorithms.ss — Tests for traversal primitives
+;;; test-graph-algorithms.ss — Tests for traversal + pathfinding primitives
 
 (source-directories (cons "fabric/stitches" (source-directories)))
 (load "fabric/stitches/block.ss")
@@ -56,11 +56,28 @@
                          (set! tags (append tags (list (block-tag b))))))
        tags))
 
+(define (path->tags fs path)
+  (map (lambda (h)
+               (let ([b (store-get fs h)])
+                    (if b (block-tag b) 'missing)))
+       path))
+
+(define (paths->tag-paths fs paths)
+  (map (lambda (p) (path->tags fs p)) paths))
+
+(define (same-path-set? a b)
+  (and (= (length a) (length b))
+       (let loop ([xs a])
+            (cond
+             [(null? xs) #t]
+             [(member (car xs) b) (loop (cdr xs))]
+             [else #f]))))
+
 (printf "
 ")
 (printf "================================================================
 ")
-(printf "              GRAPH TRAVERSAL TESTS                            
+(printf "              GRAPH ALGORITHM TESTS
 ")
 (printf "================================================================
 
@@ -171,6 +188,53 @@
 ")
 
 ;;; ============================================================
+;;; Pathfinding
+;;; ============================================================
+
+(printf "Pathfinding:
+")
+(printf "----------------------------------------------------------------
+")
+
+(define shortest-tags (path->tags fs (shortest-path fs hash-a hash-e)))
+(test "shortest-path selects shortest route"
+      '(node-a node-c node-e)
+      shortest-tags)
+(test "shortest-path same node"
+      '(node-a)
+      (path->tags fs (shortest-path fs hash-a hash-a)))
+(test "shortest-path unreachable"
+      #f
+      (shortest-path fs hash-e hash-a))
+
+(define all-depth2 (paths->tag-paths fs (all-paths fs hash-a hash-e 2)))
+(test-true "all-paths depth 2 returns only the direct shortest path"
+           (same-path-set? all-depth2
+                           '((node-a node-c node-e))))
+
+(define all-depth3 (paths->tag-paths fs (all-paths fs hash-a hash-e 3)))
+(test-true "all-paths depth 3 returns all routes"
+           (same-path-set? all-depth3
+                           '((node-a node-c node-e)
+                             (node-a node-c node-d node-e)
+                             (node-a node-b node-d node-e))))
+(test-true "all-paths same node"
+           (same-path-set? (paths->tag-paths fs (all-paths fs hash-a hash-a 0))
+                           '((node-a))))
+
+(test-true "path-exists? returns true when reachable"
+           (path-exists? fs hash-a hash-e))
+(test-false "path-exists? returns false when unreachable"
+            (path-exists? fs hash-e hash-a))
+(test-true "path-exists? same node"
+           (path-exists? fs hash-a hash-a))
+(test-false "path-exists? missing start"
+            (path-exists? fs missing-hash hash-a))
+
+(printf "
+")
+
+;;; ============================================================
 ;;; Cleanup
 ;;; ============================================================
 
@@ -187,7 +251,7 @@
 
 (printf "================================================================
 ")
-(printf "                    TEST RESULTS                               
+(printf "                    TEST RESULTS
 ")
 (printf "================================================================
 
@@ -202,10 +266,10 @@
 
 (if (= tests-failed 0)
     (printf "
-[SUCCESS] All traversal tests passed.
+[SUCCESS] All graph algorithm tests passed.
 
 ")
     (printf "
-[FAILURE] Some traversal tests failed.
+[FAILURE] Some graph algorithm tests failed.
 
 "))

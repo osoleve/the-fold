@@ -248,10 +248,9 @@
 ;;; Check if character is whitespace.
 (define (whitespace? ch)
   (or (char=? ch #\space)
-      (char=? ch #	ab)
-      (char=? ch #
-ewline)
-      (char=? ch #eturn)))
+      (char=? ch (integer->char 9))
+      (char=? ch (integer->char 10))
+      (char=? ch (integer->char 13))))
 
 ;;; string-trim-left : String → String
 ;;; Remove leading whitespace.

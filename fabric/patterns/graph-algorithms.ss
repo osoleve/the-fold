@@ -172,7 +172,8 @@
 ;;;
 ;;; Example:
 ;;;   (bfs-traverse fs root-hash
-;;;     (lambda (h b) (printf "Visiting: ~a\n" (block-tag b))))
+;;;     (lambda (h b) (printf "Visiting: ~a
+" (block-tag b))))
 (define (bfs-traverse fs start-hash visit-fn)
   (let loop ([queue (queue-enqueue (make-queue) start-hash)]
              [visited (make-visited)])
@@ -197,7 +198,8 @@
 ;;;
 ;;; Example:
 ;;;   (dfs-traverse fs root-hash
-;;;     (lambda (h b) (printf "Visiting: ~a\n" (block-tag b))))
+;;;     (lambda (h b) (printf "Visiting: ~a
+" (block-tag b))))
 (define (dfs-traverse fs start-hash visit-fn)
   (let loop ([stack (stack-push (make-stack) start-hash)]
              [visited (make-visited)])
@@ -318,13 +320,22 @@
 (define (path-exists? fs from-hash to-hash)
   (if (bytevector=? from-hash to-hash)
       #t
-      (let/ec return
-              (bfs-traverse fs from-hash
-                            (lambda (h b)
-                                    (let ([refs (vector->list (block-refs b))])
-                                         (when (hash-in-list? to-hash refs)
-                                               (return #t)))))
-              #f)))
+      (let loop ([queue (queue-enqueue (make-queue) from-hash)]
+                 [visited (make-visited)])
+           (if (queue-empty? queue)
+               #f
+               (let-values ([(current rest-queue) (queue-dequeue queue)])
+                           (if (visited-contains? visited current)
+                               (loop rest-queue visited)
+                               (let ([neighbors (get-outgoing-hashes fs current)])
+                                    (if (hash-in-list? to-hash neighbors)
+                                        #t
+                                        (let* ([new-visited (visited-add visited current)]
+                                               [unvisited (filter (lambda (h)
+                                                                          (not (visited-contains? visited h)))
+                                                                  neighbors)])
+                                              (loop (queue-enqueue-all rest-queue unvisited)
+                                                    new-visited))))))))))
 
 
 ;;; ============================================================
@@ -703,13 +714,20 @@
 ;;; Print human-readable graph statistics.
 (define (print-graph-stats fs)
   (let ([stats (graph-stats fs)])
-       (printf "Graph Statistics:\n")
-       (printf "  Nodes:      ~a\n" (cdr (assq 'nodes stats)))
-       (printf "  Edges:      ~a\n" (cdr (assq 'edges stats)))
-       (printf "  Roots:      ~a\n" (cdr (assq 'roots stats)))
-       (printf "  Leaves:     ~a\n" (cdr (assq 'leaves stats)))
-       (printf "  Components: ~a\n" (cdr (assq 'components stats)))
-       (printf "  Cyclic:     ~a\n" (if (cdr (assq 'cyclic stats)) "yes" "no"))))
+       (printf "Graph Statistics:
+")
+       (printf "  Nodes:      ~a
+" (cdr (assq 'nodes stats)))
+       (printf "  Edges:      ~a
+" (cdr (assq 'edges stats)))
+       (printf "  Roots:      ~a
+" (cdr (assq 'roots stats)))
+       (printf "  Leaves:     ~a
+" (cdr (assq 'leaves stats)))
+       (printf "  Components: ~a
+" (cdr (assq 'components stats)))
+       (printf "  Cyclic:     ~a
+" (if (cdr (assq 'cyclic stats)) "yes" "no"))))
 
 ;;; path-length : (List Hash) → Integer
 ;;; Get length of a path (number of edges).
@@ -739,9 +757,15 @@
 ;;; Load Complete
 ;;; ============================================================
 
-(printf "✓ Graph algorithms loaded\n")
-(printf "  Traversal:   bfs-traverse, dfs-traverse\n")
-(printf "  Paths:       shortest-path, all-paths, path-exists?\n")
-(printf "  Analysis:    connected-components, find-cycles, topological-sort\n")
-(printf "  Centrality:  in-degree, out-degree, find-hubs, find-roots, find-leaves\n")
-(printf "  Subgraphs:   reachable-from, ancestors-of, subgraph, neighborhood\n")
+(printf "✓ Graph algorithms loaded
+")
+(printf "  Traversal:   bfs-traverse, dfs-traverse
+")
+(printf "  Paths:       shortest-path, all-paths, path-exists?
+")
+(printf "  Analysis:    connected-components, find-cycles, topological-sort
+")
+(printf "  Centrality:  in-degree, out-degree, find-hubs, find-roots, find-leaves
+")
+(printf "  Subgraphs:   reachable-from, ancestors-of, subgraph, neighborhood
+")
