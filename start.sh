@@ -7,10 +7,13 @@
 #   3. Starts the REPL daemon in background
 #   4. Provides an interactive REPL for humans
 #
-# For Claude Code:
-#   - Use: ./daemon.sh start
-#   - Write expressions to: .fold-repl/request.ss
-#   - Read responses from: .fold-repl/response.txt
+# For Claude Code / AI Agents:
+#   - Start daemon: ./daemon.sh start
+#   - Use wrapper:  SESSION=my-agent ./fold.sh "(+ 1 2)"
+#   - Or manually:
+#       Write to:   .fold-repl/requests/<session-id>.ss
+#       Read from:  .fold-repl/responses/<session-id>.txt
+#   - Sessions are isolated - each agent should use a unique session ID
 #
 # For humans:
 #   - Just run ./start.sh for an interactive session
