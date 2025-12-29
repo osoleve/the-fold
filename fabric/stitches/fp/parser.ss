@@ -674,3 +674,208 @@
                             (if (string=? id kw)
                                 (parser-pure kw)
                                 (parser-fail (string-append "expected keyword '" kw "'")))))))
+
+;;; ============================================================
+;;; Higher-Order Combinators
+;;; ============================================================
+
+;;; chainl1 : Parser a × Parser (a × a → a) → Parser a
+;;; Parse left-associative binary operations.
+;;; Parses: p (op p)*
+;;; Associates: ((a op b) op c)
+(define (chainl1 p op)
+  (define (rest acc)
+    (parser-or
+     (parser-bind op
+                  (lambda (f)
+                          (parser-bind p
+                                       (lambda (y)
+                                               (rest (f acc y))))))
+     (parser-pure acc)))
+  (parser-bind p rest))
+
+;;; chainl : Parser a × Parser (a × a → a) × a → Parser a
+;;; Like chainl1, but returns default if no matches.
+(define (chainl p op default)
+  (parser-or (chainl1 p op) (parser-pure default)))
+
+;;; chainr1 : Parser a × Parser (a × a → a) → Parser a
+;;; Parse right-associative binary operations.
+;;; Parses: p (op p)*
+;;; Associates: (a op (b op c))
+(define (chainr1 p op)
+  (parser-bind p
+               (lambda (x)
+                       (parser-or
+                        (parser-bind op
+                                     (lambda (f)
+                                             (parser-bind (chainr1 p op)
+                                                          (lambda (y)
+                                                                  (parser-pure (f x y))))))
+                        (parser-pure x)))))
+
+;;; chainr : Parser a × Parser (a × a → a) × a → Parser a
+;;; Like chainr1, but returns default if no matches.
+(define (chainr p op default)
+  (parser-or (chainr1 p op) (parser-pure default)))
+
+;;; skip-many : Parser a → Parser ()
+;;; Apply parser zero or more times, discarding results.
+(define (skip-many p)
+  (parser-or (parser-bind p (lambda (_) (skip-many p)))
+             (parser-pure '())))
+
+;;; skip-some : Parser a → Parser ()
+;;; Apply parser one or more times, discarding results.
+(define (skip-some p)
+  (parser-bind p (lambda (_) (skip-many p))))
+
+;;; sep-end-by : Parser a × Parser sep → Parser (List a)
+;;; Zero or more, separated and optionally ended by separator.
+(define (sep-end-by p sep)
+  (parser-or (sep-end-by1 p sep) (parser-pure '())))
+
+;;; sep-end-by1 : Parser a × Parser sep → Parser (List a)
+;;; One or more, separated and optionally ended by separator.
+(define (sep-end-by1 p sep)
+  (parser-bind p
+               (lambda (x)
+                       (parser-or
+                        (parser-bind sep
+                                     (lambda (_)
+                                             (parser-bind (sep-end-by p sep)
+                                                          (lambda (xs)
+                                                                  (parser-pure (cons x xs))))))
+                        (parser-pure (list x))))))
+
+;;; many-accum : (a × b → b) × b × Parser a → Parser b
+;;; Parse zero or more, accumulating with a function.
+(define (many-accum f init p)
+  (define (go acc)
+    (parser-or
+     (parser-bind p (lambda (x) (go (f x acc))))
+     (parser-pure acc)))
+  (go init))
+
+;;; fold-p : (b × a → b) × b × Parser a → Parser b
+;;; Left fold over parsed values.
+(define (fold-p f init p)
+  (many-accum (lambda (x acc) (f acc x)) init p))
+
+;;; scan-p : (b × a → b) × b × Parser a → Parser (List b)
+;;; Like fold-p but collects intermediate results.
+(define (scan-p f init p)
+  (parser-map reverse
+              (many-accum (lambda (x acc)
+                                  (let ([new-val (f (car acc) x)])
+                                       (cons new-val acc)))
+                          (list init) p)))
+
+;;; until : Parser end × Parser a → Parser (List a)
+;;; Parse until end succeeds, returning parsed values (not including end).
+(define (until end p)
+  (many-till p end))
+
+;;; exactly : Nat × Parser a → Parser (List a)
+;;; Alias for count.
+(define exactly count)
+
+;;; at-most : Nat × Parser a → Parser (List a)
+;;; Parse at most n occurrences.
+(define (at-most n p)
+  (if (<= n 0)
+      (parser-pure '())
+      (parser-or
+       (parser-bind p
+                    (lambda (x)
+                            (parser-bind (at-most (- n 1) p)
+                                         (lambda (xs)
+                                                 (parser-pure (cons x xs))))))
+       (parser-pure '()))))
+
+;;; at-least : Nat × Parser a → Parser (List a)
+;;; Parse at least n occurrences.
+(define (at-least n p)
+  (parser-bind (count n p)
+               (lambda (xs)
+                       (parser-bind (many p)
+                                    (lambda (ys)
+                                            (parser-pure (append xs ys)))))))
+
+;;; range-of : Nat × Nat × Parser a → Parser (List a)
+;;; Parse between min and max occurrences.
+(define (range-of min max p)
+  (parser-bind (count min p)
+               (lambda (xs)
+                       (parser-bind (at-most (- max min) p)
+                                    (lambda (ys)
+                                            (parser-pure (append xs ys)))))))
+
+;;; ============================================================
+;;; Position Utilities
+;;; ============================================================
+
+;;; get-pos : Parser Pos
+;;; Get current position.
+(define get-pos
+  (make-parser
+   (lambda (state)
+           (right (cons (state-pos state) state)))))
+
+;;; get-input : Parser String
+;;; Get remaining input.
+(define get-input
+  (make-parser
+   (lambda (state)
+           (right (cons (state-input state) state)))))
+
+;;; with-pos : Parser a → Parser (a × Pos)
+;;; Attach starting position to result.
+(define (with-pos p)
+  (parser-bind get-pos
+               (lambda (pos)
+                       (parser-bind p
+                                    (lambda (val)
+                                            (parser-pure (cons val pos)))))))
+
+;;; with-span : Parser a → Parser (a × Pos × Pos)
+;;; Attach start and end positions to result.
+(define (with-span p)
+  (parser-bind get-pos
+               (lambda (start)
+                       (parser-bind p
+                                    (lambda (val)
+                                            (parser-bind get-pos
+                                                         (lambda (end)
+                                                                 (parser-pure (list val start end)))))))))
+
+;;; ============================================================
+;;; Debugging Utilities
+;;; ============================================================
+
+;;; trace-parser : String × Parser a → Parser a
+;;; Print debug info when parser is invoked.
+(define (trace-parser label p)
+  (make-parser
+   (lambda (state)
+           (display "TRACE ")
+           (display label)
+           (display " at ")
+           (display (pos-line (state-pos state)))
+           (display ":")
+           (display (pos-col (state-pos state)))
+           (display " input='")
+           (display (if (> (string-length (state-input state)) 20)
+                        (string-append (substring (state-input state) 0 20) "...")
+                        (state-input state)))
+           (display "'")
+           (newline)
+           (let ([result (run-parser p state)])
+                (display "TRACE ")
+                (display label)
+                (display " -> ")
+                (if (right? result)
+                    (display "SUCCESS")
+                    (display "FAILURE"))
+                (newline)
+                result))))
