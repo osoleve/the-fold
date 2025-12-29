@@ -1,0 +1,516 @@
+;;; the-garden.satin — A narrative showcase with dialogue, quests, and rules
+;;;
+;;; A short interactive story demonstrating Satin's narrative features:
+;;; dialogues, quests, rules, and timeline events.
+;;;
+;;; Usage: (satin-compile! (call-with-input-file "..." read))
+
+(satin-story
+  (id the-garden)
+  (title "The Garden of Whispers")
+  (author "The Fold")
+  (version "1.0")
+  (start garden-entrance)
+
+  ;; ============================================================
+  ;; The Garden Entrance
+  ;; ============================================================
+
+  (node garden-entrance
+    (title "The Garden Gate")
+    (body "You stand before an ornate iron gate, its bars twisted into
+shapes of vines and flowers. Beyond, a garden stretches into mist.
+
+A weathered sign reads: *'The Garden of Whispers — Enter at your own pace.'*
+
+The gate creaks softly, as if inviting you in.")
+    (on-enter (set-flag! story-begun?))
+    (choice "Push open the gate" first-clearing)
+    (choice "Examine the sign more closely" examine-sign))
+
+  (node examine-sign
+    (title "The Sign")
+    (body "The sign is old copper, green with age. Beneath the main text,
+smaller letters have been scratched:
+
+*'Listen well. The flowers remember.'*
+
+Someone has been here before.")
+    (choice "Enter the garden" first-clearing)
+    (choice "Look around outside" outside-garden))
+
+  (node outside-garden
+    (title "Outside the Garden")
+    (body "The path behind you leads back to the village. The morning sun
+is warm on your face.
+
+You notice a small patch of wildflowers growing near the gate.
+Among them, a single blue bloom catches your eye.")
+    (choice "Pick the blue flower" pick-flower)
+    (choice "Enter the garden" first-clearing))
+
+  (node pick-flower
+    (title "The Blue Flower")
+    (body "You carefully pick the delicate blue flower. As your fingers
+touch the stem, a faint hum vibrates through your hand — and is gone.
+
+You tuck the flower into your pocket.")
+    (on-enter
+      (give-item! blue-flower)
+      (set-flag! has-blue-flower?))
+    (choice "Enter the garden" first-clearing))
+
+  ;; ============================================================
+  ;; The First Clearing
+  ;; ============================================================
+
+  (node first-clearing
+    (title "The First Clearing")
+    (body "The path opens into a circular clearing surrounded by
+roses of impossible colors — violet, silver, deep black.
+
+In the center stands a stone sundial, its gnomon casting no shadow
+despite the light filtering through the leaves above.
+
+To the east, you hear the sound of running water.
+To the north, a path disappears into denser foliage.")
+    (on-enter (activate-quest! explore-garden))
+    (choice "Examine the sundial" sundial)
+    (choice "Follow the sound of water" fountain)
+    (choice "Take the northern path" northern-path))
+
+  (node sundial
+    (title "The Sundial")
+    (body "The sundial is carved from white marble. Its face shows
+not numbers but symbols — a crescent moon, a sun, a star, and
+something that might be an eye.
+
+Around the edge, words are inscribed:
+
+*'Time flows differently here.'*
+
+The gnomon points steadily north, regardless of where the sun hangs.")
+    (choice "Touch the gnomon" touch-sundial)
+    (choice "Return to the clearing" first-clearing))
+
+  (node touch-sundial
+    (title "The Touch")
+    (body "The moment your finger touches the cold metal, the world
+*shifts*. Colors brighten. Sounds sharpen. You feel... more present.
+
+A voice, like wind through leaves, whispers:
+
+*'A seeker. How rare.'*
+
+Then silence returns, but the garden feels different now.")
+    (on-enter (set-flag! touched-sundial?))
+    (choice "Continue exploring" first-clearing))
+
+  ;; ============================================================
+  ;; The Fountain
+  ;; ============================================================
+
+  (node fountain
+    (title "The Fountain")
+    (body "A marble fountain rises from a small pond. Water arcs
+from the mouths of carved fish, catching light like liquid crystal.
+
+Sitting on the fountain's edge is an old woman in a cloak of
+woven leaves. She watches you approach with eyes like clear water.")
+    (choice "Approach and speak" meet-keeper)
+    (choice "Watch from a distance" watch-keeper))
+
+  (node watch-keeper
+    (title "Watching")
+    (body "You hang back, observing. The woman trails her fingers
+through the water, and wherever she touches, tiny lights bloom
+and fade like underwater stars.
+
+After a moment, without turning, she speaks:
+
+*'The garden knows you're here. You might as well say hello.'*")
+    (choice "Approach her" meet-keeper))
+
+  (node meet-keeper
+    (title "The Keeper")
+    (body "The woman smiles as you approach. Up close, her face is
+ageless — old and young at once.
+
+*'I am the Keeper,'* she says. *'I tend this garden, though it
+mostly tends itself.'*
+
+She gestures at the fountain.
+
+*'The waters here remember everything. Would you like to see?'*")
+    (on-enter (set-flag! met-keeper?))
+    (choice "Yes, show me" fountain-vision :when (flag? touched-sundial?))
+    (choice "What do you mean?" ask-keeper)
+    (choice "Not yet, thank you" first-clearing))
+
+  (node ask-keeper
+    (title "The Keeper Explains")
+    (body "*'Memory lives in water,'* she says, cupping a palmful.
+*'Every drop that has ever fallen here carries echoes of what was.'*
+
+She lets the water fall back.
+
+*'But to see true memories, you must first be... attuned. The sundial
+can help with that.'*
+
+She nods toward the clearing you came from.")
+    (choice "I'll try the sundial" first-clearing)
+    (choice "I already touched it" fountain-vision :when (flag? touched-sundial?)))
+
+  (node fountain-vision
+    (title "The Vision")
+    (body "The Keeper gestures over the water. Its surface stills,
+becoming mirror-smooth, then darker — a window into somewhere else.
+
+You see a garden, but different. The roses are white, the paths
+are new-laid stone. A young woman plants a seed near a fountain
+that is not yet built.
+
+*'That was me,'* the Keeper whispers. *'A very long time ago.'*
+
+The vision fades.")
+    (on-enter (set-flag! saw-vision?))
+    (choice "Ask about the seed" ask-seed)
+    (choice "Thank her and explore more" northern-path))
+
+  (node ask-seed
+    (title "The Seed")
+    (body "*'That seed became the Heart Tree,'* she says softly.
+*'It stands at the garden's center still. Everything here
+grew from its roots.'*
+
+She looks at you appraisingly.
+
+*'If you seek the tree, take the northern path. But be warned:
+the deeper garden has its own logic.'*
+
+She presses something into your hand — a small silver key.")
+    (on-enter
+      (give-item! silver-key)
+      (set-flag! has-key?))
+    (choice "Thank her and go north" northern-path))
+
+  ;; ============================================================
+  ;; The Northern Path
+  ;; ============================================================
+
+  (node northern-path
+    (title "The Northern Path")
+    (body "The path narrows between hedges that grow taller as you walk.
+The light dims to a green twilight.
+
+After a while, you reach a fork. One path leads left toward what
+sounds like rustling paper. The other leads right, where you
+glimpse something shimmering between the trees.")
+    (on-enter (complete-step! explore-garden visit-path))
+    (choice "Go left, toward the rustling" paper-grove)
+    (choice "Go right, toward the shimmer" crystal-grove)
+    (choice "Turn back" first-clearing))
+
+  (node paper-grove
+    (title "The Paper Grove")
+    (body "You emerge into a grove of pale trees. But these are not
+normal trees — their leaves are *paper*, covered in tiny writing.
+
+The rustling you heard is the wind turning their pages.
+
+You pluck a leaf and read:
+
+*'...and so the garden grew, fed by dreams and watered by...'*
+
+The rest is faded.")
+    (choice "Take the leaf" take-leaf)
+    (choice "Continue deeper" heart-gate :when (flag? has-key?))
+    (choice "Return to the fork" northern-path))
+
+  (node take-leaf
+    (title "A Memory Leaf")
+    (body "You fold the paper leaf carefully and slip it into your pocket.
+Perhaps it will be useful.")
+    (on-enter
+      (give-item! memory-leaf)
+      (set-flag! has-leaf?))
+    (choice "Continue deeper" heart-gate :when (flag? has-key?))
+    (choice "Return to the fork" northern-path))
+
+  (node crystal-grove
+    (title "The Crystal Grove")
+    (body "The shimmer resolves into a small clearing where crystals
+grow from the ground like frozen flowers. Each one glows with
+soft inner light.
+
+In the center, a crystal larger than your head pulses slowly,
+like a heartbeat.")
+    (choice "Touch the large crystal" touch-crystal)
+    (choice "Return to the fork" northern-path))
+
+  (node touch-crystal
+    (title "The Crystal's Song")
+    (body "The crystal is warm under your palm. A tone, pure and clear,
+rings through your mind — not heard, but *felt*.
+
+For a moment, you sense the garden's vastness: roots deeper than
+mountains, leaves brushing distant stars.
+
+Then the moment passes, and you are simply yourself again.
+
+But you feel... different. More connected.")
+    (on-enter (set-flag! crystal-attuned?))
+    (choice "Head deeper into the garden" heart-gate :when (flag? has-key?))
+    (choice "Return to the fork" northern-path))
+
+  ;; ============================================================
+  ;; The Heart of the Garden
+  ;; ============================================================
+
+  (node heart-gate
+    (title "The Gate to the Heart")
+    (body "The path ends at a tall archway woven from living branches.
+At its center, a small silver lock gleams.
+
+Beyond the arch, you glimpse a vast tree, its trunk wider than
+houses, its branches disappearing into a canopy of stars.
+
+The Heart Tree.")
+    (choice "Use the silver key" unlock-gate :when (has-item? silver-key))
+    (choice "Turn back" northern-path))
+
+  (node unlock-gate
+    (title "The Gate Opens")
+    (body "The key fits perfectly. The lock clicks. The branches
+unwind, creating an opening just wide enough for you to pass.
+
+You step through.")
+    (on-enter
+      (take-item! silver-key)
+      (complete-step! explore-garden reach-heart))
+    (choice "Approach the Heart Tree" heart-tree))
+
+  (node heart-tree
+    (title "The Heart Tree")
+    (body "The tree is immense, ancient, and utterly still. Its bark
+is silver-white, carved with symbols that shift when you look
+at them directly.
+
+At the base of the trunk, a hollow opens like a doorway.
+Within, you see a soft golden light.
+
+The garden's whispers have grown quiet. Waiting.")
+    (choice "Enter the hollow" tree-heart :when (flag? crystal-attuned?))
+    (choice "Offer the blue flower" offer-flower :when (has-item? blue-flower))
+    (choice "Simply sit with the tree" sit-with-tree))
+
+  (node sit-with-tree
+    (title "Sitting with the Tree")
+    (body "You sit at the base of the Heart Tree, your back against
+its smooth bark.
+
+Time passes. Or doesn't.
+
+You feel the garden breathing around you: the growth and decay,
+the endless cycle of seasons within its walls. You feel the
+tree's roots, deep in the earth, drinking from underground rivers
+that have flowed since before memory.
+
+When you stand, you feel peaceful. Complete.")
+    (on-enter (set-flag! sat-with-tree?))
+    (choice "Enter the hollow" tree-heart)
+    (choice "Leave the garden" ending-peaceful))
+
+  (node offer-flower
+    (title "The Offering")
+    (body "You take the blue flower from your pocket. It still hums
+faintly against your palm.
+
+You place it gently in a hollow in the bark.
+
+The tree... responds. A tremor runs through its trunk. The
+symbols on the bark flare bright, then settle into a new pattern.
+
+*'Thank you,'* whispers the garden. *'It has been so long since
+anyone brought a gift.'*")
+    (on-enter
+      (take-item! blue-flower)
+      (set-flag! offered-flower?))
+    (choice "Enter the hollow" tree-heart))
+
+  (node tree-heart
+    (title "The Heart")
+    (body "You step into the golden light.
+
+Inside, the tree is hollow — a cathedral of living wood. Light
+falls from above, though you cannot see its source.
+
+In the center, floating in the air, is a single seed. Identical
+to the one you saw the Keeper planting in her vision.
+
+*'This is what you came for,'* says a voice that is the garden
+and the tree and the Keeper all at once.
+
+*'Take it, and carry the garden with you. Wherever you plant it,
+a new garden will grow.'*")
+    (choice "Take the seed" take-seed)
+    (choice "Leave it for another" leave-seed))
+
+  (node take-seed
+    (title "The Seed")
+    (body "You reach out and cup the seed in your palm. It is warm
+and alive, pulsing with gentle light.
+
+*'Plant it somewhere special,'* the voice says. *'And remember:
+every garden needs a keeper.'*
+
+The light fades. You find yourself standing outside the tree,
+the seed in your pocket, the garden peaceful around you.")
+    (on-enter
+      (give-item! garden-seed)
+      (set-flag! has-seed?)
+      (complete-quest! explore-garden))
+    (choice "Leave the garden" ending-seed))
+
+  (node leave-seed
+    (title "The Choice")
+    (body "*'A wise choice,'* the voice says, with something like
+a smile. *'Not everyone is ready to be a keeper.'*
+
+*'But you are welcome here, always. The garden remembers those
+who walk its paths with respect.'*
+
+The light dims gently, and you find yourself outside the tree,
+at peace with your choice.")
+    (on-enter (set-flag! left-seed?))
+    (choice "Leave the garden" ending-peaceful))
+
+  ;; ============================================================
+  ;; Endings
+  ;; ============================================================
+
+  (node ending-seed
+    (title "A New Beginning")
+    (body "You walk back through the garden, retracing your steps.
+The gate stands open, and beyond it, the world waits.
+
+In your pocket, the seed hums softly.
+
+Somewhere, a new garden waits to be born.
+
+**THE END**
+
+*You have completed The Garden of Whispers.*")
+    (on-enter (set-flag! story-complete?))
+    (end))
+
+  (node ending-peaceful
+    (title "Peace")
+    (body "You walk back through the garden slowly, savoring each step.
+The Keeper waves from the fountain. The roses nod as you pass.
+
+At the gate, you pause and look back. The garden shimmers in
+the light, mysterious and beautiful.
+
+You carry no seed, but you carry something else: the memory
+of a place where time flows differently, and flowers remember.
+
+**THE END**
+
+*You have completed The Garden of Whispers.*")
+    (on-enter (set-flag! story-complete?))
+    (end))
+
+  ;; ============================================================
+  ;; Quest: Explore the Garden
+  ;; ============================================================
+
+  (quest explore-garden
+    (title "Explore the Garden")
+    (description "Discover the secrets of the Garden of Whispers.")
+    (steps
+      (step visit-path "Follow the northern path" #t)
+      (step reach-heart "Reach the Heart Tree" (flag? has-key?))
+      (step complete "Complete your journey" (flag? story-complete?)))
+    (on-complete (print! "Quest Complete: You have explored the garden!")))
+
+  ;; ============================================================
+  ;; Dialogue: The Keeper
+  ;; ============================================================
+
+  (dialogue keeper-dialogue
+    (participants keeper player)
+    (start greeting)
+
+    (node greeting
+      (speaker keeper)
+      (text "Welcome, traveler. The garden has been expecting you.")
+      (choice "How did you know I was coming?" knows-question)
+      (choice "What is this place?" place-question)
+      (choice "Thank you. I'll explore on my own." end))
+
+    (node knows-question
+      (speaker keeper)
+      (text "The flowers whisper. The water reflects. The garden
+knows all who approach its gates.")
+      (choice "That's... unsettling." unsettling-response)
+      (choice "Beautiful." beautiful-response))
+
+    (node unsettling-response
+      (speaker keeper)
+      (text "Only if you fear being known. The garden does not judge.
+It simply... witnesses.")
+      (choice "I see. What is this place?" place-question)
+      (choice "I should go." end))
+
+    (node beautiful-response
+      (speaker keeper)
+      (text "You understand already. Few do, at first.")
+      (on-enter (set-flag! garden-affinity?))
+      (choice "Tell me more about the garden." place-question)
+      (choice "Thank you." end))
+
+    (node place-question
+      (speaker keeper)
+      (text "A place between places. Where memories grow like flowers
+and time pools like water. It has many names, but I call it home.")
+      (choice "How long have you been here?" time-question)
+      (choice "Thank you. I'll explore." end))
+
+    (node time-question
+      (speaker keeper)
+      (text "Long enough to forget what came before. But that's all right.
+The garden is all I need.")
+      (choice "Goodbye for now." end)))
+
+  ;; ============================================================
+  ;; Rules: Dynamic Garden Events
+  ;; ============================================================
+
+  (rule flower-bloom
+    (when (and (flag? has-blue-flower?) (flag? touched-sundial?)))
+    (once? #t)
+    (effects (print! "The blue flower in your pocket glows softly...")))
+
+  (rule keeper-hint
+    (when (and (flag? met-keeper?) (not (flag? has-key?))))
+    (once? #t)
+    (effects (print! "You remember the Keeper's words about the sundial...")))
+
+  ;; ============================================================
+  ;; Timeline: Ambient Events
+  ;; ============================================================
+
+  (timeline
+    (event dawn
+      (at 0)
+      (effects (print! "Morning light filters through the garden canopy."))
+      (once? #f))
+    (event noon
+      (at 100)
+      (effects (print! "The sun reaches its zenith. Shadows disappear briefly."))
+      (once? #t))
+    (event evening
+      (at 200)
+      (effects (print! "Golden evening light paints the flowers in warm hues."))
+      (once? #t))))

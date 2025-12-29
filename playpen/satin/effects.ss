@@ -23,6 +23,7 @@
 ;;;   (activate-quest! <id>)         ; start quest
 ;;;   (complete-quest! <id>)         ; mark quest done
 ;;;   (fail-quest! <id>)             ; mark quest failed
+;;;   (complete-step! <quest> <step>) ; complete a quest step
 ;;;   (advance-clock! [<n>])         ; advance time (default 1)
 ;;;   (mark-visited! <node>)         ; mark node as visited
 
@@ -38,7 +39,7 @@
                         set-var! inc-var! dec-var!
                         print! goto!
                         start-dialogue! end-dialogue!
-                        activate-quest! complete-quest! fail-quest!
+                        activate-quest! complete-quest! fail-quest! complete-step!
                         advance-clock! mark-visited!
                         end)))))
 
@@ -111,6 +112,9 @@
                       [(fail-quest!)
                        (list 'fail-quest (car args))]
                       
+                      [(complete-step!)
+                       (list 'complete-step (car args) (cadr args))]
+                      
                       ;; Time
                       [(advance-clock!)
                        (let ([amt (if (pair? args) (car args) 1)])
@@ -153,6 +157,13 @@
                                 goto! mark-visited!)
                      (and (pair? args)
                           (symbol? (car args)))]
+                    
+                    ;; Two symbol arguments (quest step completion)
+                    [(complete-step!)
+                     (and (pair? args)
+                          (symbol? (car args))
+                          (pair? (cdr args))
+                          (symbol? (cadr args)))]
                     
                     ;; Two arguments: symbol + value
                     [(set-var!)
@@ -209,6 +220,7 @@
                     [(activate-quest!) (format "activate quest ~a" (car args))]
                     [(complete-quest!) (format "complete quest ~a" (car args))]
                     [(fail-quest!) (format "fail quest ~a" (car args))]
+                    [(complete-step!) (format "complete step ~a in quest ~a" (cadr args) (car args))]
                     [(advance-clock!) "advance clock"]
                     [(mark-visited!) (format "mark ~a visited" (car args))]
                     [(end) "end story"]

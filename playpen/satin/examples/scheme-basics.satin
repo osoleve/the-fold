@@ -1,0 +1,346 @@
+;;; scheme-basics.satin — An educational mini-course in Scheme basics
+;;;
+;;; This Satin story teaches the fundamentals of Scheme programming
+;;; through interactive lessons, exercises, and quizzes.
+;;;
+;;; Usage: (satin-compile! (call-with-input-file "..." read))
+
+(satin-story
+  (id scheme-basics)
+  (title "Scheme Basics: Your First Steps")
+  (author "The Fold")
+  (version "1.0")
+  (start welcome)
+
+  ;; ============================================================
+  ;; Lesson Structure
+  ;; ============================================================
+
+  (lesson intro-lesson
+    (title "Introduction to Scheme")
+    (objectives
+      "Understand what Scheme is"
+      "Learn about S-expressions"
+      "Write your first expression")
+    (sequence welcome what-is-scheme s-expressions first-expression quiz-1))
+
+  (lesson arithmetic-lesson
+    (title "Arithmetic in Scheme")
+    (objectives
+      "Use prefix notation"
+      "Combine arithmetic operations"
+      "Understand nesting")
+    (sequence arithmetic-intro nested-arithmetic arithmetic-exercise))
+
+  ;; ============================================================
+  ;; Welcome and Introduction
+  ;; ============================================================
+
+  (node welcome
+    (title "Welcome!")
+    (body "Welcome to **Scheme Basics**!
+
+In this course, you'll learn the fundamentals of Scheme, a beautiful
+and elegant programming language based on Lisp.
+
+By the end, you'll be able to:
+- Read and write S-expressions
+- Perform arithmetic
+- Define your own functions
+- Work with lists
+
+Ready to begin?")
+    (choice "Let's start!" what-is-scheme))
+
+  (node what-is-scheme
+    (title "What is Scheme?")
+    (body "**Scheme** is a dialect of Lisp, one of the oldest programming
+languages still in use today.
+
+What makes Scheme special?
+
+1. **Simple syntax** — Everything is an S-expression
+2. **Powerful abstractions** — Functions are first-class citizens
+3. **Clean semantics** — A small, elegant core
+
+The language that runs The Fold is built on Scheme!")
+    (choice "What are S-expressions?" s-expressions))
+
+  (node s-expressions
+    (title "S-Expressions")
+    (body "An **S-expression** (symbolic expression) is the basic building
+block of Scheme code.
+
+There are two types:
+
+1. **Atoms** — Simple values like numbers, strings, and symbols
+   - `42` — a number
+   - `\"hello\"` — a string
+   - `foo` — a symbol
+
+2. **Lists** — Collections wrapped in parentheses
+   - `(1 2 3)` — a list of numbers
+   - `(+ 1 2)` — a function call!
+
+In Scheme, **code is data** and **data is code**.")
+    (choice "Let me try writing one!" first-expression))
+
+  (node first-expression
+    (title "Your First Expression")
+    (body "Let's write our first Scheme expression!
+
+In Scheme, we use **prefix notation**. The operator comes first:
+
+```scheme
+(+ 1 2)    ; evaluates to 3
+(* 3 4)    ; evaluates to 12
+(- 10 5)   ; evaluates to 5
+```
+
+Notice how the function name (like `+`) comes before its arguments.
+
+This might feel odd at first, but it has big advantages:
+- Works with any number of arguments: `(+ 1 2 3 4 5)`
+- No precedence rules to remember
+- Consistent, predictable structure")
+    (choice "Test my understanding" quiz-1))
+
+  ;; ============================================================
+  ;; Quiz 1: S-expressions
+  ;; ============================================================
+
+  (mcq quiz-1-mcq
+    (question "What is the result of evaluating `(+ 1 2)`?")
+    (options "12" "3" "1 + 2" "Error")
+    (correct 2)
+    (explanation "In prefix notation, (+ 1 2) means 'add 1 and 2', which equals 3.")
+    (hints "Remember: the operator comes first in Scheme"))
+
+  (node quiz-1
+    (title "Quick Check")
+    (body "Let's make sure you've got the basics!
+
+{quiz-1-mcq}")
+    (exercise quiz-1-mcq)
+    (choice "Continue" arithmetic-intro :when (flag? quiz-1-passed?))
+    (choice "Review S-expressions" s-expressions))
+
+  ;; ============================================================
+  ;; Arithmetic Lesson
+  ;; ============================================================
+
+  (node arithmetic-intro
+    (title "Arithmetic Operations")
+    (body "Scheme has all the arithmetic operations you'd expect:
+
+```scheme
+(+ 1 2 3)      ; addition: 6
+(- 10 3)       ; subtraction: 7
+(* 4 5)        ; multiplication: 20
+(/ 15 3)       ; division: 5
+```
+
+But here's something cool — you can **nest** expressions:
+
+```scheme
+(+ 1 (* 2 3))  ; = 1 + (2 * 3) = 7
+(* (+ 1 2) 3)  ; = (1 + 2) * 3 = 9
+```
+
+Each inner expression is evaluated first!")
+    (choice "More on nesting" nested-arithmetic))
+
+  (node nested-arithmetic
+    (title "Nested Expressions")
+    (body "Let's trace through a nested expression step by step:
+
+```scheme
+(* (+ 1 2) (- 5 2))
+```
+
+1. Evaluate `(+ 1 2)` → `3`
+2. Evaluate `(- 5 2)` → `3`
+3. Evaluate `(* 3 3)` → `9`
+
+The result is **9**!
+
+This is how Scheme handles complex calculations — by breaking them
+into simpler pieces, evaluated from the inside out.")
+    (choice "Try an exercise" arithmetic-exercise))
+
+  ;; ============================================================
+  ;; Code Task: Arithmetic
+  ;; ============================================================
+
+  (code-task arithmetic-task
+    (title "Calculate the Area")
+    (description "Write a Scheme expression that calculates the area of a rectangle
+with width 5 and height 7.
+
+Remember: Area = width × height")
+    (starter "; Calculate 5 * 7\n(")
+    (solution "(* 5 7)")
+    (tests
+      (test "returns 35" (answer-eq? 35)))
+    (hints
+      "Use the * operator"
+      "The format is (operator arg1 arg2)"))
+
+  (node arithmetic-exercise
+    (title "Exercise: Calculate Area")
+    (body "Time to practice!
+
+{arithmetic-task}")
+    (exercise arithmetic-task)
+    (choice "Continue to functions" define-intro :when (flag? arithmetic-task-passed?))
+    (choice "Review arithmetic" arithmetic-intro))
+
+  ;; ============================================================
+  ;; Defining Functions
+  ;; ============================================================
+
+  (node define-intro
+    (title "Defining Functions")
+    (body "In Scheme, you create functions with `define`:
+
+```scheme
+(define (square x)
+  (* x x))
+```
+
+This creates a function called `square` that:
+- Takes one argument `x`
+- Returns `x` multiplied by itself
+
+Now you can use it:
+```scheme
+(square 5)   ; → 25
+(square 3)   ; → 9
+```")
+    (choice "More examples" define-examples))
+
+  (node define-examples
+    (title "More Function Examples")
+    (body "Here are some more function definitions:
+
+```scheme
+;; Add 1 to a number
+(define (inc x)
+  (+ x 1))
+
+;; Double a number
+(define (double x)
+  (* x 2))
+
+;; Sum of squares
+(define (sum-of-squares a b)
+  (+ (* a a) (* b b)))
+```
+
+Functions can call other functions:
+```scheme
+(define (quad x)
+  (double (double x)))
+
+(quad 3)  ; → 12
+```")
+    (choice "Write a function" define-exercise))
+
+  ;; ============================================================
+  ;; Short Answer: Define a function
+  ;; ============================================================
+
+  (short-answer define-task
+    (question "Write a function `triple` that multiplies its argument by 3.
+
+Just write the define expression:")
+    (expected "(define (triple x) (* x 3))")
+    (hints
+      "Start with (define (triple x) ...)"
+      "The body should multiply x by 3"))
+
+  (node define-exercise
+    (title "Exercise: Triple Function")
+    (body "Your turn!
+
+{define-task}")
+    (exercise define-task)
+    (choice "Continue to lists" lists-intro :when (flag? define-task-passed?))
+    (choice "Review define" define-intro))
+
+  ;; ============================================================
+  ;; Lists
+  ;; ============================================================
+
+  (node lists-intro
+    (title "Working with Lists")
+    (body "Lists are fundamental in Scheme. You create them with `list`:
+
+```scheme
+(list 1 2 3)         ; → (1 2 3)
+(list 'a 'b 'c)      ; → (a b c)
+```
+
+Or with quoting:
+```scheme
+'(1 2 3)             ; → (1 2 3)
+```
+
+Key list operations:
+```scheme
+(car '(1 2 3))       ; → 1 (first element)
+(cdr '(1 2 3))       ; → (2 3) (rest of list)
+(cons 0 '(1 2 3))    ; → (0 1 2 3) (prepend)
+```")
+    (choice "Practice with lists" lists-quiz))
+
+  ;; ============================================================
+  ;; Quiz: Lists
+  ;; ============================================================
+
+  (mcq lists-mcq
+    (question "What does `(car '(a b c))` return?")
+    (options "'a" "(b c)" "'(a)" "Error")
+    (correct 1)
+    (explanation "car returns the first element of the list, which is the symbol a."))
+
+  (node lists-quiz
+    (title "List Quiz")
+    (body "{lists-mcq}")
+    (exercise lists-mcq)
+    (choice "Finish course" completion :when (flag? lists-mcq-passed?))
+    (choice "Review lists" lists-intro))
+
+  ;; ============================================================
+  ;; Completion
+  ;; ============================================================
+
+  (node completion
+    (title "Congratulations!")
+    (body "You've completed **Scheme Basics**!
+
+You've learned:
+- ✓ What S-expressions are
+- ✓ How prefix notation works
+- ✓ How to do arithmetic
+- ✓ How to define functions
+- ✓ How to work with lists
+
+You're ready to start writing real Scheme programs!")
+    (end))
+
+  ;; ============================================================
+  ;; Mastery Tracking
+  ;; ============================================================
+
+  (mastery scheme-syntax
+    (skill "Scheme Syntax")
+    (levels beginner intermediate)
+    (threshold 2)
+    (exercises quiz-1-mcq lists-mcq))
+
+  (mastery scheme-coding
+    (skill "Scheme Coding")
+    (levels beginner intermediate advanced)
+    (threshold 2)
+    (exercises arithmetic-task define-task)))
