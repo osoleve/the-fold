@@ -23,49 +23,77 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
+;;;   - fp/algebraic.ss (for Monoid)
 
 (load "fabric/stitches/prelude.ss")
 (load "fabric/stitches/fp/combinators.ss")
+(load "fabric/stitches/fp/algebraic.ss")
 
 ;;; ============================================================
-;;; Monoid (for Foldable)
+;;; Monoid Compatibility Layer
 ;;; ============================================================
+;;;
+;;; Monoids are defined in algebraic.ss with full structure:
+;;;   (list 'monoid name mempty op)
+;;;
+;;; We provide monoid-append as an alias for monoid-op for backward
+;;; compatibility with existing code that uses the append terminology.
 
-;;; We represent monoids as: (empty . append)
-;;; Reusing pattern from writer.ss
+;;; monoid-append : Monoid m -> (a -> a -> a)
+;;; Alias for monoid-op (the binary operation).
+(define monoid-append monoid-op)
 
-;;; monoid-empty : Monoid m -> m
-(define (monoid-empty m) (car m))
+;;; Additional monoids not in algebraic.ss
+;;; Note: list-monoid, sum-monoid, product-monoid, string-monoid,
+;;;       first-monoid, last-monoid, endo-monoid, dual-monoid
+;;;       are all defined in algebraic.ss
 
-;;; monoid-append : Monoid m -> m -> m -> m
-(define (monoid-append m) (cdr m))
+;;; and-monoid : Monoid Bool (conjunction)
+;;; Same as all-monoid from algebraic.ss
+(define and-monoid all-monoid)
 
-;;; Common monoids
-(define list-monoid (cons '() append))
-(define sum-monoid (cons 0 +))
-(define product-monoid (cons 1 *))
-(define string-monoid (cons "" string-append))
-(define and-monoid (cons #t (lambda (a b) (and a b))))
-(define or-monoid (cons #f (lambda (a b) (or a b))))
+;;; or-monoid : Monoid Bool (disjunction)
+;;; Same as any-monoid from algebraic.ss
+(define or-monoid any-monoid)
 
-;;; first-monoid : Monoid (Maybe a)
-(define first-monoid
-  (cons nothing (lambda (a b) (if (just? a) a b))))
+;;; ============================================================
+;;; Simple Monoids (unwrapped versions for convenience)
+;;; ============================================================
+;;;
+;;; The algebraic.ss versions use newtypes (First, Last, Dual, Endo).
+;;; These simple versions work directly with raw values.
 
-;;; last-monoid : Monoid (Maybe a)
-(define last-monoid
-  (cons nothing (lambda (a b) (if (just? b) b a))))
+;;; simple-first-monoid : Monoid (Maybe a)
+;;; Keeps the first non-Nothing value (no First wrapper).
+(define simple-first-monoid
+  (make-monoid
+   'simple-first
+   nothing
+   (lambda (a b) (if (just? a) a b))))
 
-;;; endo-monoid : Monoid (a -> a)
-;;; Endomorphisms under composition.
-(define endo-monoid
-  (cons identity (lambda (f g) (lambda (x) (f (g x))))))
+;;; simple-last-monoid : Monoid (Maybe a)
+;;; Keeps the last non-Nothing value (no Last wrapper).
+(define simple-last-monoid
+  (make-monoid
+   'simple-last
+   nothing
+   (lambda (a b) (if (just? b) b a))))
 
-;;; dual-monoid : Monoid m -> Monoid m
-;;; Reverse the append order.
-(define (dual-monoid m)
-  (cons (monoid-empty m)
-        (lambda (a b) ((monoid-append m) b a))))
+;;; simple-dual-monoid : Monoid a -> Monoid a
+;;; Reverses append order without Dual wrapper.
+(define (simple-dual-monoid m)
+  (make-monoid
+   (string->symbol (string-append "simple-dual-" (symbol->string (monoid-name m))))
+   (monoid-empty m)
+   (lambda (a b) ((monoid-op m) b a))))
+
+;;; simple-endo-monoid : Monoid (a -> a)
+;;; Endomorphisms under composition (no Endo wrapper).
+(define simple-endo-monoid
+  (make-monoid
+   'simple-endo
+   identity
+   (lambda (f g) (lambda (x) (f (g x))))))
 
 ;;; ============================================================
 ;;; Applicative Interface (for Traversable)
@@ -406,27 +434,83 @@
 ;;; ============================================================
 
 ;;; The ZipList applicative applies functions element-wise.
+;;;
+;;; For ZipList, pure x needs to return an infinite stream of x values.
+;;; We use a lazy stream representation: (cons head tail-thunk)
+;;; where tail-thunk is a procedure that returns the rest of the stream.
+
+;;; make-lazy-stream : a -> (() -> LazyStream a) -> LazyStream a
+(define (make-lazy-stream head tail-thunk)
+  (cons head tail-thunk))
+
+;;; lazy-stream-head : LazyStream a -> a
+(define lazy-stream-head car)
+
+;;; lazy-stream-tail : LazyStream a -> LazyStream a
+(define (lazy-stream-tail s)
+  ((cdr s)))
+
+;;; lazy-stream-repeat : a -> LazyStream a
+;;; Create an infinite stream repeating the same value.
+(define (lazy-stream-repeat x)
+  (make-lazy-stream x (lambda () (lazy-stream-repeat x))))
+
+;;; lazy-stream-take : Number -> LazyStream a -> List a
+;;; Take first n elements as a finite list.
+(define (lazy-stream-take n s)
+  (if (= n 0)
+      '()
+      (cons (lazy-stream-head s)
+            (lazy-stream-take (- n 1) (lazy-stream-tail s)))))
 
 ;;; zip-list-applicative : Applicative ZipList
+;;; ZipList can work with either finite lists or lazy streams.
+;;; When mixing, the result is finite (length of shorter).
 (define zip-list-applicative
   (make-applicative
-   (lambda (x) (unfold-stream x))  ; Infinite repeat
+   ;; pure returns an infinite lazy stream
+   lazy-stream-repeat
+   ;; ap zips element-wise, handling both lazy streams and lists
    (lambda (fs as)
-           ;; Zip the two lists with application
-           (if (or (null? fs) (null? as))
-               '()
-               (cons ((car fs) (car as))
-                     ((app-ap zip-list-applicative) (cdr fs) (cdr as)))))))
+           (cond
+            ;; Null/empty terminates
+            [(null? fs) '()]
+            [(null? as) '()]
+            ;; Both are lazy streams (pair with procedure cdr)
+            [(and (pair? fs) (procedure? (cdr fs))
+                  (pair? as) (procedure? (cdr as)))
+             (make-lazy-stream
+              ((lazy-stream-head fs) (lazy-stream-head as))
+              (lambda () ((app-ap zip-list-applicative)
+                          (lazy-stream-tail fs)
+                          (lazy-stream-tail as))))]
+            ;; fs is lazy, as is list
+            [(and (pair? fs) (procedure? (cdr fs)))
+             (cons ((lazy-stream-head fs) (car as))
+                   ((app-ap zip-list-applicative) (lazy-stream-tail fs) (cdr as)))]
+            ;; fs is list, as is lazy
+            [(and (pair? as) (procedure? (cdr as)))
+             (cons ((car fs) (lazy-stream-head as))
+                   ((app-ap zip-list-applicative) (cdr fs) (lazy-stream-tail as)))]
+            ;; Both are regular lists
+            [else
+             (cons ((car fs) (car as))
+                   ((app-ap zip-list-applicative) (cdr fs) (cdr as)))]))))
 
-;;; unfold-stream : a -> Stream a (as list, truncated)
-;;; Helper for zip-list pure (creates infinite-ish list).
-(define (unfold-stream x)
-  ;; Return a "long enough" list for practical use
-  (make-list 1000 x))
-
-;;; make-list : Number -> a -> List a
-(define (make-list n x)
-  (if (= n 0) '() (cons x (make-list (- n 1) x))))
+;;; zip-list-to-list : Number -> ZipList a -> List a
+;;; Convert a (possibly lazy) ZipList to a finite list.
+(define (zip-list-to-list n zl)
+  (cond
+   [(null? zl) '()]
+   [(= n 0) '()]
+   [(procedure? (cdr zl))
+    ;; Lazy stream
+    (cons (lazy-stream-head zl)
+          (zip-list-to-list (- n 1) (lazy-stream-tail zl)))]
+   [else
+    ;; Regular list
+    (cons (car zl)
+          (zip-list-to-list (- n 1) (cdr zl)))]))
 
 ;;; ============================================================
 ;;; Accumulating Traversals

@@ -42,26 +42,26 @@
               (assert-false ((monoid-append or-monoid) #f #f)))
             
             (define-test first-monoid-test
-              (assert-true (nothing? (monoid-empty first-monoid)))
-              (let ([combined ((monoid-append first-monoid) (just 1) (just 2))])
+              (assert-true (nothing? (monoid-empty simple-first-monoid)))
+              (let ([combined ((monoid-append simple-first-monoid) (just 1) (just 2))])
                    (assert-equal 1 (from-just combined)))
-              (let ([combined ((monoid-append first-monoid) nothing (just 2))])
+              (let ([combined ((monoid-append simple-first-monoid) nothing (just 2))])
                    (assert-equal 2 (from-just combined))))
             
             (define-test last-monoid-test
-              (assert-true (nothing? (monoid-empty last-monoid)))
-              (let ([combined ((monoid-append last-monoid) (just 1) (just 2))])
+              (assert-true (nothing? (monoid-empty simple-last-monoid)))
+              (let ([combined ((monoid-append simple-last-monoid) (just 1) (just 2))])
                    (assert-equal 2 (from-just combined)))
-              (let ([combined ((monoid-append last-monoid) (just 1) nothing)])
+              (let ([combined ((monoid-append simple-last-monoid) (just 1) nothing)])
                    (assert-equal 1 (from-just combined))))
             
             (define-test endo-monoid-test
-              (let ([f ((monoid-append endo-monoid) add1 (lambda (x) (* x 2)))])
+              (let ([f ((monoid-append simple-endo-monoid) add1 (lambda (x) (* x 2)))])
                    ;; f(x) = add1((* x 2)) = x*2 + 1
                    (assert-equal 11 (f 5))))
             
             (define-test dual-monoid-test
-              (let ([dual (dual-monoid list-monoid)])
+              (let ([dual (simple-dual-monoid list-monoid)])
                    (assert-equal '(3 4 1 2) ((monoid-append dual) '(1 2) '(3 4))))))
 
 ;;; ============================================================

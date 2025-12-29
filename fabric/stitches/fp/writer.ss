@@ -389,8 +389,8 @@
 ;;;                                                                              (writer-pure string-monoid 'done))))))))))))
 ;;; (exec-writer build-html)
 ;;; ; => "<html>
-  <body>
-    <p>Hello</p>
-  </body>
-</html>
-"
+;;;   <body>
+;;;     <p>Hello</p>
+;;;   </body>
+;;; </html>
+;;; "
