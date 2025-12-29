@@ -27,4 +27,22 @@ export declare function sendRequest(sessionId: string, expression: string): Prom
  * Check if the daemon is running
  */
 export declare function isDaemonRunning(): Promise<boolean>;
+/**
+ * Wait for daemon to become available with retries
+ * Returns true if daemon is running, false if all retries exhausted
+ */
+export declare function waitForDaemon(onRetry?: (attempt: number, maxAttempts: number) => void): Promise<boolean>;
+/**
+ * Connection status information
+ */
+export interface DaemonStatus {
+    running: boolean;
+    readyFile: string;
+    requestsDir: string;
+    responsesDir: string;
+}
+/**
+ * Get detailed daemon status for diagnostics
+ */
+export declare function getDaemonStatus(): Promise<DaemonStatus>;
 //# sourceMappingURL=ipc.d.ts.map

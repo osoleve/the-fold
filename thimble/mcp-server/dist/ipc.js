@@ -13,6 +13,8 @@ const REQUESTS_DIR = join(REPL_DIR, 'requests');
 const RESPONSES_DIR = join(REPL_DIR, 'responses');
 const POLL_INTERVAL_MS = 100;
 const TIMEOUT_MS = 30000; // 30 seconds
+const DAEMON_RETRY_ATTEMPTS = 5;
+const DAEMON_RETRY_DELAY_MS = 2000;
 /**
  * Initialize IPC directories
  */
@@ -102,5 +104,35 @@ export async function isDaemonRunning() {
     catch {
         return false;
     }
+}
+/**
+ * Wait for daemon to become available with retries
+ * Returns true if daemon is running, false if all retries exhausted
+ */
+export async function waitForDaemon(onRetry) {
+    for (let attempt = 1; attempt <= DAEMON_RETRY_ATTEMPTS; attempt++) {
+        if (await isDaemonRunning()) {
+            return true;
+        }
+        if (attempt < DAEMON_RETRY_ATTEMPTS) {
+            if (onRetry) {
+                onRetry(attempt, DAEMON_RETRY_ATTEMPTS);
+            }
+            await sleep(DAEMON_RETRY_DELAY_MS);
+        }
+    }
+    return false;
+}
+/**
+ * Get detailed daemon status for diagnostics
+ */
+export async function getDaemonStatus() {
+    const readyFile = join(REPL_DIR, 'ready');
+    return {
+        running: await isDaemonRunning(),
+        readyFile,
+        requestsDir: REQUESTS_DIR,
+        responsesDir: RESPONSES_DIR
+    };
 }
 //# sourceMappingURL=ipc.js.map

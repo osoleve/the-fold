@@ -10,7 +10,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'crypto';
 import { SessionManager } from './session.js';
-import { sendRequest, initIPC, isDaemonRunning } from './ipc.js';
+import { sendRequest, initIPC, isDaemonRunning, waitForDaemon, getDaemonStatus } from './ipc.js';
 import { tools } from './tools.js';
 /**
  * Main MCP server class
@@ -68,6 +68,8 @@ class FoldMCPServer {
                         return await this.handleWho(session);
                     case 'fold_logout':
                         return await this.handleLogout(session);
+                    case 'fold_status':
+                        return await this.handleStatus(session);
                     default:
                         throw new Error(`Unknown tool: ${name}`);
                 }
@@ -265,6 +267,36 @@ class FoldMCPServer {
         };
     }
     /**
+     * Handle status tool - check daemon connection and diagnostics
+     */
+    async handleStatus(session) {
+        const daemonRunning = await isDaemonRunning();
+        const status = await getDaemonStatus();
+        const lines = [
+            '=== The Fold MCP Server Status ===',
+            '',
+            `Daemon: ${daemonRunning ? '✓ Running' : '✗ Not running'}`,
+            `Connection ID: ${this.connectionId}`,
+            `Session ID: ${session.id}`,
+            `Logged in: ${session.loggedIn ? `Yes (${session.tier} / ${session.name})` : 'No'}`,
+            '',
+            'IPC Paths:',
+            `  Ready file: ${status.readyFile}`,
+            `  Requests:   ${status.requestsDir}`,
+            `  Responses:  ${status.responsesDir}`,
+            '',
+            `Active sessions: ${this.sessionManager.getSessionCount()}`
+        ];
+        if (!daemonRunning) {
+            lines.push('');
+            lines.push('⚠️  Daemon not running. Start with:');
+            lines.push('    ./daemon.sh start');
+        }
+        return {
+            content: [{ type: 'text', text: lines.join('\n') }]
+        };
+    }
+    /**
      * Setup periodic cleanup of expired sessions
      */
     setupCleanupTimer() {
@@ -279,14 +311,31 @@ class FoldMCPServer {
      * Start the server
      */
     async start() {
-        // Check if daemon is running
-        if (!await isDaemonRunning()) {
+        // Initialize IPC directories first
+        await initIPC();
+        // Check if daemon is running, with retries
+        console.error('Checking for The Fold daemon...');
+        const daemonReady = await waitForDaemon((attempt, maxAttempts) => {
+            console.error(`Daemon not ready, waiting... (attempt ${attempt}/${maxAttempts})`);
+        });
+        if (!daemonReady) {
+            const status = await getDaemonStatus();
+            console.error('');
             console.error('ERROR: The Fold daemon is not running.');
-            console.error('Please start it with: ./DAEMON.cmd start (Windows) or ./daemon.sh start (Unix)');
+            console.error('');
+            console.error('To start the daemon:');
+            console.error('  Unix/Mac:  ./daemon.sh start');
+            console.error('  Windows:   .\\DAEMON.cmd start');
+            console.error('');
+            console.error('Diagnostics:');
+            console.error(`  Ready file: ${status.readyFile} (not found)`);
+            console.error(`  Requests:   ${status.requestsDir}`);
+            console.error(`  Responses:  ${status.responsesDir}`);
+            console.error('');
+            console.error('The MCP server will now exit. Restart after starting the daemon.');
             process.exit(1);
         }
-        // Initialize IPC directories
-        await initIPC();
+        console.error('Daemon connected.');
         // Start the server
         const transport = new StdioServerTransport();
         await this.server.connect(transport);

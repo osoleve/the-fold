@@ -130,5 +130,15 @@ export const tools: Tool[] = [
       properties: {},
       required: []
     }
+  },
+
+  {
+    name: 'fold_status',
+    description: 'Check daemon connection status and diagnostics. Does not require login.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: []
+    }
   }
 ];
