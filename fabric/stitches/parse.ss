@@ -20,7 +20,9 @@
 ;;;   - prelude.ss
 ;;;   - prim.ss (string primitives)
 
-(load "prelude.ss")
+;; Load prelude if not already loaded (supports both in-directory and project-root loading)
+(unless (top-level-bound? 'andmap)
+        (load "prelude.ss"))
 
 ;;; ============================================================
 ;;; ParseResult Construction and Destructuring
