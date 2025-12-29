@@ -90,11 +90,17 @@
    [(not (pair? type)) type]
    ;; Don't substitute bound variables
    [(eq? (car type) '∀)
-    (let ([bound (cadr type)]
-          [body (caddr type)])
-         ;; Remove bound vars from substitution
-         (let ([s* (filter (lambda (p) (not (memq (car p) bound))) s)])
-              `(∀ ,bound ,(apply-subst s* body))))]
+    (let* ([bound-raw (cadr type)]
+           [body (caddr type)]
+           ;; Extract var names from both simple (a) and kinded ((a : *)) forms
+           [bound-names (map (lambda (v)
+                                     (if (kinded-tvar? v)
+                                         (kinded-tvar-name v)
+                                         v))
+                             bound-raw)]
+           ;; Remove bound vars from substitution
+           [s* (filter (lambda (p) (not (memq (car p) bound-names))) s)])
+          `(∀ ,bound-raw ,(apply-subst s* body)))]
    [(eq? (car type) 'μ)
     (let ([var (cadr type)]
           [body (caddr type)])
@@ -140,7 +146,13 @@
              `(error occurs-check ,t2 ,t1)
              `(ok ,(subst-extend s t2 t1)))]
         
-        ;; Holes unify with anything
+        ;; Holes unify with anything (gradual typing semantics)
+        ;; NOTE: Holes don't record what they unified with. This means:
+        ;;   - (? → Int) unifies with (Bool → Int) silently
+        ;;   - Multiple uses of the same named hole (? x) don't constrain each other
+        ;; For full gradual typing, we'd need to track hole constraints and
+        ;; generate runtime casts. Current behavior is "optimistic" — assume
+        ;; the programmer knows what they're doing with partial type annotations.
         [(hole? t1) `(ok ,s)]
         [(hole? t2) `(ok ,s)]
         
@@ -200,9 +212,15 @@
    [(or (base-type? type) (hole? type)) #f]
    [(not (pair? type)) #f]
    [(eq? (car type) '∀)
-    (if (memq var (cadr type))
-        #f  ; Bound, doesn't count
-        (occurs? var (caddr type)))]
+    ;; Extract var names from both simple (a) and kinded ((a : *)) forms
+    (let ([bound-names (map (lambda (v)
+                                    (if (kinded-tvar? v)
+                                        (kinded-tvar-name v)
+                                        v))
+                            (cadr type))])
+         (if (memq var bound-names)
+             #f  ; Bound, doesn't count
+             (occurs? var (caddr type))))]
    [(eq? (car type) 'μ)
     (if (eq? var (cadr type))
         #f
@@ -253,10 +271,12 @@
 (define (infer expr env)
   (cond
    ;; Literals
-   [(number? expr)
-    (if (integer? expr)
-        `(ok Int ,empty-subst)
-        `(ok Nat ,empty-subst))]
+   ;; All numeric literals infer as Int for practical reasons:
+   ;; - Nat exists but requires explicit annotation (: 42 Nat)
+   ;; - Without subtyping (Nat ⊆ Int), Nat literals wouldn't work with
+   ;;   arithmetic primitives which expect Int
+   ;; - Floats also become Int (no Real type yet — future work)
+   [(number? expr) `(ok Int ,empty-subst)]
    [(boolean? expr) `(ok Bool ,empty-subst)]
    [(string? expr) `(ok String ,empty-subst)]
    [(and (pair? expr) (eq? (car expr) 'quote))
@@ -595,6 +615,18 @@
     (list-ref . (∀ (a) (-> (List a) Int a)))
     (memq . (∀ (a) (-> a (List a) (List a))))
     (assq . (∀ (a b) (-> a (List (× a b)) (× a b))))
+    
+    ;; Higher-order list operations (core FP primitives)
+    (map . (∀ (a b) (-> (-> a b) (List a) (List b))))
+    (filter . (∀ (a) (-> (-> a Bool) (List a) (List a))))
+    (foldr . (∀ (a b) (-> (-> a b b) b (List a) b)))
+    (foldl . (∀ (a b) (-> (-> b a b) b (List a) b)))
+    (andmap . (∀ (a) (-> (-> a Bool) (List a) Bool)))
+    (ormap . (∀ (a) (-> (-> a Bool) (List a) Bool)))
+    (find . (∀ (a) (-> (-> a Bool) (List a) a)))  ; May fail if not found
+    (take . (∀ (a) (-> Int (List a) (List a))))
+    (drop . (∀ (a) (-> Int (List a) (List a))))
+    (zip . (∀ (a b) (-> (List a) (List b) (List (× a b)))))
     
     ;; Vector operations
     (vec-ref . (∀ (a) (-> (Vector a) Int a)))

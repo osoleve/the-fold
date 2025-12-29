@@ -315,8 +315,15 @@
    [(or (base-type? t) (hole? t)) '()]
    [(not (pair? t)) '()]
    [(eq? (car t) '∀)
-    (let ([new-bound (append (cadr t) bound)])
-         (free-tvars-with new-bound (caddr t)))]
+    ;; Extract variable names from both simple (a) and kinded ((a : *)) forms
+    (let* ([vars (cadr t)]
+           [var-names (map (lambda (v)
+                                   (if (kinded-tvar? v)
+                                       (kinded-tvar-name v)
+                                       v))
+                           vars)]
+           [new-bound (append var-names bound)])
+          (free-tvars-with new-bound (caddr t)))]
    [(eq? (car t) 'μ)
     (let ([new-bound (cons (cadr t) bound)])
          (free-tvars-with new-bound (caddr t)))]
@@ -337,9 +344,15 @@
    [(not (pair? type)) type]
    ;; Don't substitute under binders that shadow
    [(eq? (car type) '∀)
-    (if (memq tvar (cadr type))
-        type  ; tvar is bound, don't substitute
-        `(∀ ,(cadr type) ,(subst-type (caddr type) tvar replacement)))]
+    ;; Extract var names from both simple (a) and kinded ((a : *)) forms
+    (let ([var-names (map (lambda (v)
+                                  (if (kinded-tvar? v)
+                                      (kinded-tvar-name v)
+                                      v))
+                          (cadr type))])
+         (if (memq tvar var-names)
+             type  ; tvar is bound, don't substitute
+             `(∀ ,(cadr type) ,(subst-type (caddr type) tvar replacement))))]
    [(eq? (car type) 'μ)
     (if (eq? tvar (cadr type))
         type  ; tvar is bound

@@ -264,6 +264,45 @@
 (test-type "char?" 'Bool '(prim 'char? (quote #\x)))
 
 ;;; ============================================================
+;;; Higher-Order FP Primitives
+;;; ============================================================
+(test-section "FP Primitives")
+
+;; map : (a → b) → [a] → [b]
+(reset-fresh!)
+(let ([result (typeof '(fn (f) (fn (xs) (prim 'map f xs))))])
+     (test "map is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+
+;; filter : (a → Bool) → [a] → [a]
+(reset-fresh!)
+(let ([result (typeof '(fn (p) (fn (xs) (prim 'filter p xs))))])
+     (test "filter is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+
+;; foldr : (a → b → b) → b → [a] → b
+(reset-fresh!)
+(let ([result (typeof '(fn (f) (fn (z) (fn (xs) (prim 'foldr f z xs)))))])
+     (test "foldr is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+
+;; foldl : (b → a → b) → b → [a] → b
+(reset-fresh!)
+(let ([result (typeof '(fn (f) (fn (z) (fn (xs) (prim 'foldl f z xs)))))])
+     (test "foldl is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+
+;; andmap/ormap : (a → Bool) → [a] → Bool
+(test-type "andmap" 'Bool '(prim 'andmap (fn (x) #t) (quote (1 2 3))))
+(test-type "ormap" 'Bool '(prim 'ormap (fn (x) #f) (quote (1 2 3))))
+
+;; take/drop : Int → [a] → [a]
+(reset-fresh!)
+(let ([result (typeof '(fn (xs) (prim 'take 5 xs)))])
+     (test "take is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+
+;; zip : [a] → [b] → [(a, b)]
+(reset-fresh!)
+(let ([result (typeof '(fn (xs) (fn (ys) (prim 'zip xs ys))))])
+     (test "zip is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+
+;;; ============================================================
 ;;; Case Expression Inference
 ;;; ============================================================
 (test-section "Case Expressions")

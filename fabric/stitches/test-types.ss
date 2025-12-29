@@ -118,6 +118,10 @@
 (test "bound by forall" '() (free-tvars '(∀ (a) (-> a a))))
 (test "partially bound" '(b) (free-tvars '(∀ (a) (-> a b))))
 (test "bound by mu" '() (free-tvars '(μ t (+ (Nil) (Cons Nat t)))))
+;; Kinded type variable tests (HKT support)
+(test "kinded forall binds var" '() (free-tvars '(∀ ((f : (⇒ * *))) (@ f Int))))
+(test "kinded forall free var" '(a) (free-tvars '(∀ ((f : (⇒ * *))) (@ f a))))
+(test "mixed simple+kinded" '(b) (free-tvars '(∀ (a (f : (⇒ * *))) (-> a (@ f b)))))
 
 ;;; ============================================================
 ;;; Type Substitution
@@ -129,6 +133,13 @@
 (test "subst in function" '(-> Bool Bool) (subst-type '(-> a a) 'a 'Bool))
 (test "no subst under forall" '(∀ (a) (-> a a)) (subst-type '(∀ (a) (-> a a)) 'a 'Bool))
 (test "subst free under forall" '(∀ (a) (-> a Bool)) (subst-type '(∀ (a) (-> a b)) 'b 'Bool))
+;; Kinded type variable substitution tests
+(test "no subst under kinded forall"
+      '(∀ ((f : (⇒ * *))) (@ f Int))
+      (subst-type '(∀ ((f : (⇒ * *))) (@ f Int)) 'f 'List))
+(test "subst free under kinded forall"
+      '(∀ ((f : (⇒ * *))) (@ f Bool))
+      (subst-type '(∀ ((f : (⇒ * *))) (@ f a)) 'a 'Bool))
 
 ;;; ============================================================
 ;;; Common Type Patterns
