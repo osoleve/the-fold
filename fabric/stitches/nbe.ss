@@ -303,6 +303,24 @@
    [(eq? (car expr) '×)
     (nbe-eval-product (cdr expr) env)]
    
+   ;; Type-level conditional: (if cond then else)
+   [(eq? (car expr) 'if)
+    (let ([cond-val (nbe-eval (cadr expr) env)]
+          [then-val (nbe-eval (caddr expr) env)]
+          [else-val (nbe-eval (cadddr expr) env)])
+         (type-level-if cond-val then-val else-val))]
+   
+   ;; Type-level primitives: (prim op args...)
+   [(eq? (car expr) 'prim)
+    (let* ([op (cadr (cadr expr))]  ; Extract symbol from quoted
+           [args (map (lambda (e) (nbe-eval e env)) (cddr expr))])
+          (type-level-reduce op args))]
+   
+   ;; Type-level arithmetic shorthand: (+ a b), (- a b), (* a b)
+   [(memq (car expr) '(+ - * < > = == eq))
+    (let ([args (map (lambda (e) (nbe-eval e env)) (cdr expr))])
+         (type-level-reduce (car expr) args))]
+   
    ;; Application: (f x)
    [else
     (let ([func (nbe-eval (car expr) env)]
@@ -418,6 +436,12 @@
    [(V-base? val)
     (V-base-val val)]
    
+   ;; Type-level primitives: read back as operation
+   [(V-type-prim? val)
+    (let ([op (V-type-prim-op val)]
+          [args (map (lambda (a) (readback a level)) (V-type-prim-args val))])
+         (cons op args))]
+   
    [else val]))
 
 ;;; readback-neutral : Neutral × Int → Expr
@@ -448,10 +472,13 @@
 (define (fresh-name level)
   (string->symbol (string-append "x" (number->string level))))
 
-;;; level->name : Int → Symbol
+;;; level->name : Int|Symbol → Symbol
 ;;; Convert a de Bruijn level back to a name.
+;;; If already a symbol (named variable), return as-is.
 (define (level->name level)
-  (string->symbol (string-append "x" (number->string level))))
+  (if (symbol? level)
+      level
+      (string->symbol (string-append "x" (number->string level)))))
 
 ;;; mentions-var? : Expr × Symbol → Boolean
 ;;; Check if an expression mentions a variable (for deciding dependent vs non-dependent).
@@ -544,13 +571,22 @@
    [(and (V-base? v1) (V-base? v2))
     (equal? (V-base-val v1) (V-base-val v2))]
    
+   ;; Type-level primitives: compare structurally
+   [(and (V-type-prim? v1) (V-type-prim? v2))
+    (and (eq? (V-type-prim-op v1) (V-type-prim-op v2))
+         (= (length (V-type-prim-args v1)) (length (V-type-prim-args v2)))
+         (andmap (lambda (a b) (convert? a b level))
+                 (V-type-prim-args v1)
+                 (V-type-prim-args v2)))]
+   
    [else #f]))
 
 ;;; convert-neutral? : Neutral × Neutral × Int → Boolean
 (define (convert-neutral? n1 n2 level)
   (cond
    [(and (N-var? n1) (N-var? n2))
-    (= (N-var-level n1) (N-var-level n2))]
+    ;; Use equal? to handle both numeric and symbolic levels
+    (equal? (N-var-level n1) (N-var-level n2))]
    
    [(and (N-app? n1) (N-app? n2))
     (and (convert-neutral? (cadr n1) (cadr n2) level)
@@ -579,3 +615,109 @@
 ;;; Get the normal form of a type.
 (define (type-nf t)
   (normalize-closed t))
+
+;;; ============================================================
+;;; Type-Level Computation
+;;; ============================================================
+
+;;; The following extends NbE to handle type-level primitives.
+;;; These allow computation within types:
+;;;   - (+ n m) → computes if n,m are base values
+;;;   - (if b A B) → reduces when b is a base boolean
+;;;   - (type-fn ...) → type-level functions
+
+;;; V-type-prim : Symbol × (List Value) → Value
+;;; A type-level primitive waiting for reduction.
+(define (V-type-prim op args)
+  `(V-type-prim ,op ,args))
+
+(define (V-type-prim? v)
+  (and (pair? v) (eq? (car v) 'V-type-prim)))
+
+(define (V-type-prim-op v) (cadr v))
+(define (V-type-prim-args v) (caddr v))
+
+;;; type-level-reduce : Symbol × (List Value) → Value
+;;; Try to reduce a type-level primitive.
+(define (type-level-reduce op args)
+  (case op
+        ;; Arithmetic
+        [(+)
+         (if (and (pair? args)
+                  (pair? (cdr args))
+                  (V-base? (car args))
+                  (V-base? (cadr args))
+                  (number? (V-base-val (car args)))
+                  (number? (V-base-val (cadr args))))
+             (V-base (+ (V-base-val (car args)) (V-base-val (cadr args))))
+             (V-type-prim op args))]
+        
+        [(-)
+         (if (and (pair? args)
+                  (pair? (cdr args))
+                  (V-base? (car args))
+                  (V-base? (cadr args))
+                  (number? (V-base-val (car args)))
+                  (number? (V-base-val (cadr args))))
+             (V-base (- (V-base-val (car args)) (V-base-val (cadr args))))
+             (V-type-prim op args))]
+        
+        [(*)
+         (if (and (pair? args)
+                  (pair? (cdr args))
+                  (V-base? (car args))
+                  (V-base? (cadr args))
+                  (number? (V-base-val (car args)))
+                  (number? (V-base-val (cadr args))))
+             (V-base (* (V-base-val (car args)) (V-base-val (cadr args))))
+             (V-type-prim op args))]
+        
+        ;; Comparison (for conditional types)
+        [(= == eq)
+         (if (and (pair? args)
+                  (pair? (cdr args))
+                  (V-base? (car args))
+                  (V-base? (cadr args)))
+             (V-base (equal? (V-base-val (car args)) (V-base-val (cadr args))))
+             (V-type-prim op args))]
+        
+        [(<)
+         (if (and (pair? args)
+                  (pair? (cdr args))
+                  (V-base? (car args))
+                  (V-base? (cadr args))
+                  (number? (V-base-val (car args)))
+                  (number? (V-base-val (cadr args))))
+             (V-base (< (V-base-val (car args)) (V-base-val (cadr args))))
+             (V-type-prim op args))]
+        
+        [(>)
+         (if (and (pair? args)
+                  (pair? (cdr args))
+                  (V-base? (car args))
+                  (V-base? (cadr args))
+                  (number? (V-base-val (car args)))
+                  (number? (V-base-val (cadr args))))
+             (V-base (> (V-base-val (car args)) (V-base-val (cadr args))))
+             (V-type-prim op args))]
+        
+        [else (V-type-prim op args)]))
+
+;;; type-level-if : Value × Value × Value → Value
+;;; Reduce a type-level conditional.
+(define (type-level-if condition then-val else-val)
+  (cond
+   [(and (V-base? condition) (eq? (V-base-val condition) #t))
+    then-val]
+   [(and (V-base? condition) (eq? (V-base-val condition) #f))
+    else-val]
+   ;; Stuck: condition is not a known boolean
+   [else (V-type-prim 'if (list condition then-val else-val))]))
+
+;;; N-type-prim : Symbol × (List Value) → Neutral
+;;; A stuck type-level primitive.
+(define (N-type-prim op args)
+  `(N-type-prim ,op ,args))
+
+(define (N-type-prim? n)
+  (and (pair? n) (eq? (car n) 'N-type-prim)))
