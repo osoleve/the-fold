@@ -313,7 +313,7 @@
               ;; Number parser
               [number-parser (token decimal)]
               
-              ;; String parser
+              ;; String parser - use integer->char to avoid linter corruption
               [string-lit-parser
                (token
                 (between (char #\")
@@ -323,9 +323,8 @@
                                             (parser-then
                                              (char (integer->char 92)) ; backslash
                                              (choice (list
-                                                      (parser-then (char #
-) (parser-pure (integer->char 10)))
-                                                      (parser-then (char #	) (parser-pure (integer->char 9)))
+                                                      (parser-then (char (integer->char 110)) (parser-pure (integer->char 10)))  ; n -> newline
+                                                      (parser-then (char (integer->char 116)) (parser-pure (integer->char 9)))   ; t -> tab
                                                       (parser-then (char #\") (parser-pure #\"))
                                                       (parser-then (char (integer->char 92))
                                                                    (parser-pure (integer->char 92))))))
@@ -433,12 +432,12 @@
                                 "data" "type" "newtype" "class" "instance"
                                 "module" "import" "qualified" "as" "hiding"
                                 "do" "return" "infix" "infixl" "infixr"))
-        (cons 'reserved-ops '("=" "::" "->" "<-" "=>" "|" "\" "@" "~" "!"))
+        (cons 'reserved-ops '("=" "::" "->" "<-" "=>" "|" "\\" "@" "~" "!"))
         (cons 'comment-line "--")
         (cons 'ident-start letter)
         (cons 'ident-letter (parser-or alpha-num (one-of "_'")))
-        (cons 'op-start (one-of ":!#$%&*+./<=>?@\^|-~"))
-        (cons 'op-letter (one-of ":!#$%&*+./<=>?@\^|-~"))))
+        (cons 'op-start (one-of ":!#$%&*+./<=>?@\\^|-~"))
+        (cons 'op-letter (one-of ":!#$%&*+./<=>?@\\^|-~"))))
 
 ;;; ============================================================
 ;;; Pretty Printing for Parse Errors
@@ -487,3 +486,143 @@
   (if (<= n 0)
       '()
       (cons val (make-list (- n 1) val))))
+
+;;; ============================================================
+;;; Keyword and Alias Utilities
+;;; ============================================================
+
+;;; keyword-aliases : (List (List String)) × (String → a) → Parser a
+;;; Parse any of several keyword groups, mapping to results.
+;;; Each group is (list result-value alias1 alias2 ...).
+;;;
+;;; Example:
+;;;   (keyword-aliases '((north "north" "n")
+;;;                      (south "south" "s"))
+;;;                    identity)
+;;; Parses "north" or "n" → 'north, "south" or "s" → 'south
+(define (keyword-aliases groups builder)
+  (choice
+   (map (lambda (group)
+                (let ([result-val (car group)]
+                      [aliases (cdr group)])
+                     (parser-map (lambda (_) (builder result-val))
+                                 (choice (map (lambda (kw)
+                                                      (try (kw-boundary kw)))
+                                              aliases)))))
+        groups)))
+
+;;; kw-boundary : String → Parser String
+;;; Parse keyword followed by word boundary (whitespace or EOF).
+(define (kw-boundary kw)
+  (parser-left (string-parser kw) word-boundary))
+
+;;; word-boundary : Parser ()
+;;; Succeed at word boundary (whitespace, EOF, or punctuation).
+(define word-boundary
+  (parser-or
+   (look-ahead space)
+   (parser-or
+    (look-ahead eof)
+    (look-ahead (one-of ",.;:!?()[]{}")))))
+
+;;; reserved-words : (List String) → Parser String
+;;; Parse any of the given reserved words with boundary checking.
+;;; Uses try to allow backtracking on partial matches.
+(define (reserved-words words)
+  (choice (map (lambda (w) (try (kw-boundary w))) words)))
+
+;;; ============================================================
+;;; String Parsing with Escapes
+;;; ============================================================
+
+;;; string-with-escapes : Char × Char → Parser String
+;;; Parse string with escape sequences.
+;;; Parameters: quote-char, escape-char (usually #\" and #\)
+(define (string-with-escapes quote-char escape-char)
+  (between (char quote-char)
+           (char quote-char)
+           (parser-map list->string
+                       (many (string-escape-char quote-char escape-char)))))
+
+;;; string-escape-char : Char x Char -> Parser Char
+;;; Parse a single string character with escape handling.
+;;; Uses integer->char to avoid linter corruption of character literals.
+(define (string-escape-char quote-char escape-char)
+  (parser-or
+   ;; Escape sequences
+   (parser-then
+    (char escape-char)
+    (choice (list
+             (parser-then (char (integer->char 110)) (parser-pure (integer->char 10)))  ; n -> newline
+             (parser-then (char (integer->char 116)) (parser-pure (integer->char 9)))   ; t -> tab
+             (parser-then (char (integer->char 114)) (parser-pure (integer->char 13)))  ; r -> carriage return
+             (parser-then (char quote-char) (parser-pure quote-char))                   ; quote
+             (parser-then (char escape-char) (parser-pure escape-char))                 ; escape
+             (parser-then (char (integer->char 48)) (parser-pure (integer->char 0)))    ; 0 -> null
+             )))
+   ;; Regular character (not quote or escape)
+   (satisfy (lambda (c)
+                    (and (not (char=? c quote-char))
+                         (not (char=? c escape-char))))
+            "string character")))
+
+;;; double-quoted-string : Parser String
+;;; Parse "..." with standard escape sequences.
+(define double-quoted-string
+  (string-with-escapes #\" (integer->char 92)))
+;;; single-quoted-string : Parser String
+;;; Parse '...' with standard escape sequences.
+(define single-quoted-string
+  (string-with-escapes #\' (integer->char 92)))
+
+;;; ============================================================
+;;; Command Parser Utilities
+;;; ============================================================
+;;;
+;;; Utilities for building command-line style parsers.
+
+;;; command : String × Parser a → Parser a
+;;; Parse command keyword followed by arguments.
+(define (command kw args-parser)
+  (parser-then (lexeme (kw-boundary kw))
+               args-parser))
+
+;;; command-with-aliases : (List String) × Parser a → Parser a
+;;; Parse command with multiple aliases.
+(define (command-with-aliases aliases args-parser)
+  (parser-then (lexeme (reserved-words aliases))
+               args-parser))
+
+;;; optional-arg : Parser a × a → Parser a
+;;; Parse optional argument with default value.
+(define (optional-arg p default)
+  (parser-or (parser-then spaces1 p)
+             (parser-pure default)))
+
+;;; drop-while : (a → Bool) × (List a) → (List a)
+(define (drop-while pred lst)
+  (cond
+   [(null? lst) '()]
+   [(pred (car lst)) (drop-while pred (cdr lst))]
+   [else lst]))
+
+;;; string-trim-both : String → String
+;;; Trim whitespace from both ends.
+(define (string-trim-both s)
+  (let* ([chars (string->list s)]
+         [trimmed-left (drop-while char-whitespace? chars)]
+         [trimmed-right (reverse (drop-while char-whitespace? (reverse trimmed-left)))])
+        (list->string trimmed-right)))
+
+;;; rest-of-input : Parser String
+;;; Consume and return all remaining input.
+(define rest-of-input
+  (make-parser
+   (lambda (state)
+           (let ([input (state-input state)])
+                (right (cons input (make-state "" (state-pos state))))))))
+
+;;; rest-trimmed : Parser String
+;;; Rest of input with whitespace trimmed.
+(define rest-trimmed
+  (parser-map string-trim-both rest-of-input))
