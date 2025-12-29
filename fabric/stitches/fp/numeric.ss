@@ -20,8 +20,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Type Class Representation

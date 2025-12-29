@@ -21,15 +21,15 @@
 ;;;   - infer.ss
 ;;;   - eval.ss
 
-(load "prelude.ss")
-(load "parse.ss")
-(load "span.ss")
-(load "fold-parse.ss")
-(load "normalize.ss")
-(load "expand.ss")
-(load "types.ss")
-(load "infer.ss")
-(load "eval.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/parse.ss")
+(load "fabric/stitches/span.ss")
+(load "fabric/stitches/fold-parse.ss")
+(load "fabric/stitches/normalize.ss")
+(load "fabric/stitches/expand.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/infer.ss")
+(load "fabric/stitches/eval.ss")
 
 ;;; ============================================================
 ;;; Compilation Phases
@@ -346,9 +346,15 @@
 ;;; show-pipeline : → void
 ;;; Display the compilation pipeline.
 (define (show-pipeline)
-  (display "Compilation Pipeline:\n")
-  (display "  read → parse → normalize → expand → infer → eval\n")
-  (display "\n")
-  (display "Use (compile input 'to 'phase) to stop at any phase.\n")
-  (display "Use (typeof input) to get just the type.\n")
-  (display "Use (eval-string input) to evaluate.\n"))
+  (display "Compilation Pipeline:
+")
+  (display "  read → parse → normalize → expand → infer → eval
+")
+  (display "
+")
+  (display "Use (compile input 'to 'phase) to stop at any phase.
+")
+  (display "Use (typeof input) to get just the type.
+")
+  (display "Use (eval-string input) to evaluate.
+"))

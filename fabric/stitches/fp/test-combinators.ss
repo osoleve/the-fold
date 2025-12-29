@@ -2,8 +2,8 @@
 
 ;;; NOTE: Run from fabric/stitches directory
 
-(load "test-framework.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; Helper for numeric comparison
 (define (assert-= actual expected tolerance)

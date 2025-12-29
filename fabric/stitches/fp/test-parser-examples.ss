@@ -2,8 +2,8 @@
 
 ;;; NOTE: Run from fabric/stitches directory
 
-(load "test-framework.ss")
-(load "fp/parser-examples.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/fp/parser-examples.ss")
 
 ;;; Helper for checking parse success
 (define (assert-parses-to parser input expected)

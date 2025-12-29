@@ -1,7 +1,7 @@
 ;;; fabric/stitches/fp/test-parser-dsl.ss - Tests for DSL Toolkit
 
-(load "test-framework.ss")
-(load "fp/parser-dsl.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/fp/parser-dsl.ss")
 
 (display "
 ")
@@ -294,12 +294,13 @@
                    (assert-equal "hello" (from-right result))))
             
             (define-test double-quoted-newline-test
-              (let ([result (parse double-quoted-string "\"hello\nworld\"")])
+              (let ([result (parse double-quoted-string "\"hello
+world\"")])
                    (assert-true (right? result))
                    (assert-equal 11 (string-length (from-right result)))))
             
             (define-test double-quoted-tab-test
-              (let ([result (parse double-quoted-string "\"hello\tworld\"")])
+              (let ([result (parse double-quoted-string "\"hello	world\"")])
                    (assert-true (right? result))
                    (assert-equal 11 (string-length (from-right result)))))
             

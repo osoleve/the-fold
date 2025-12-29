@@ -1,8 +1,8 @@
 ;;; Test harness for core/eval.ss — The Evaluator
 
-(load "block.ss")
-(load "prim.ss")
-(load "eval.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/prim.ss")
+(load "fabric/stitches/eval.ss")
 
 (define (test name expected actual)
   (display "  ")
@@ -11,9 +11,11 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-       (display "✗\n    expected: ")
+       (display "✗
+    expected: ")
        (display expected)
-       (display "\n    got: ")
+       (display "
+    got: ")
        (display actual)))
   (newline))
 
@@ -26,9 +28,11 @@
            (equal? expected (cadr result)))
       (display "✓")
       (begin
-       (display "✗\n    expected: (ok ")
+       (display "✗
+    expected: (ok ")
        (display expected)
-       (display ")\n    got: ")
+       (display ")
+    got: ")
        (display result)))
   (newline))
 
@@ -39,7 +43,8 @@
   (if (and (pair? result) (eq? (car result) 'error))
       (display "✓")
       (begin
-       (display "✗\n    expected error, got: ")
+       (display "✗
+    expected error, got: ")
        (display result)))
   (newline))
 
@@ -50,7 +55,8 @@
   (if (and (pair? result) (eq? (car result) 'suspended))
       (display "✓")
       (begin
-       (display "✗\n    expected suspended, got: ")
+       (display "✗
+    expected suspended, got: ")
        (display result)))
   (newline))
 
@@ -408,4 +414,5 @@
 (test "deterministic suspension" suspend-a suspend-b)
 
 (newline)
-(display "✓ All evaluator tests complete.\n")
+(display "✓ All evaluator tests complete.
+")

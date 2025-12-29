@@ -12,8 +12,8 @@
 ;;;   - prelude.ss
 ;;;   - vec2.ss
 
-(load "prelude.ss")
-(load "vec2.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/vec2.ss")
 
 ;;; ============================================================
 ;;; Shape Primitives

@@ -25,8 +25,8 @@
 ;;;   mzero >>= f = mzero                (left zero)
 ;;;   m >>= \_ -> mzero = mzero          (right zero) [for some interpretations]
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Alternative Type Class
@@ -114,11 +114,11 @@
    maybe-alt
    just
    (lambda (mf ma)
-     (if (nothing? mf)
-         nothing
-         (if (nothing? ma)
-             nothing
-             (just ((from-just mf) (from-just ma))))))))
+           (if (nothing? mf)
+               nothing
+               (if (nothing? ma)
+                   nothing
+                   (just ((from-just mf) (from-just ma))))))))
 
 ;;; maybe-monad-plus : MonadPlus Maybe
 (define maybe-monad-plus
@@ -127,9 +127,9 @@
    maybe-alt
    just
    (lambda (ma f)
-     (if (nothing? ma)
-         nothing
-         (f (from-just ma))))))
+           (if (nothing? ma)
+               nothing
+               (f (from-just ma))))))
 
 ;;; ============================================================
 ;;; List Alternative Instance
@@ -150,7 +150,7 @@
    list-alt
    list
    (lambda (lf la)
-     (apply append (map (lambda (f) (map f la)) lf)))))
+           (apply append (map (lambda (f) (map f la)) lf)))))
 
 ;;; list-monad-plus : MonadPlus List
 (define list-monad-plus
@@ -159,7 +159,7 @@
    list-alt
    list
    (lambda (la f)
-     (apply append (map f la)))))
+           (apply append (map f la)))))
 
 ;;; ============================================================
 ;;; Either Alternative Instance
@@ -178,11 +178,11 @@
    either-alt
    right
    (lambda (ef ea)
-     (if (left? ef)
-         ef
-         (if (left? ea)
-             ea
-             (right ((from-right ef) (from-right ea))))))))
+           (if (left? ef)
+               ef
+               (if (left? ea)
+                   ea
+                   (right ((from-right ef) (from-right ea))))))))
 
 ;;; ============================================================
 ;;; Derived Combinators
@@ -279,11 +279,11 @@
       (mp-return mp '())
       (mp-bind mp (pred (car lst))
                (lambda (keep?)
-                 (mp-bind mp (filter-m mp pred (cdr lst))
-                          (lambda (rest)
-                            (mp-return mp (if keep?
-                                              (cons (car lst) rest)
-                                              rest))))))))
+                       (mp-bind mp (filter-m mp pred (cdr lst))
+                                (lambda (rest)
+                                        (mp-return mp (if keep?
+                                                          (cons (car lst) rest)
+                                                          rest))))))))
 
 ;;; ============================================================
 ;;; Non-deterministic Search
@@ -312,9 +312,9 @@
 ;;; Interleave two lists fairly.
 (define (interleave la lb)
   (cond
-    [(null? la) lb]
-    [(null? lb) la]
-    [else (cons (car la) (interleave lb (cdr la)))]))
+   [(null? la) lb]
+   [(null? lb) la]
+   [else (cons (car la) (interleave lb (cdr la)))]))
 
 ;;; interleave-m : List a -> List b -> List (Pair a b)
 ;;; All combinations, interleaved fairly.
@@ -341,7 +341,7 @@
       (mp-return mp '())
       (mp-bind mp (car goals)
                (lambda (_)
-                 (conj mp (cdr goals))))))
+                       (conj mp (cdr goals))))))
 
 ;;; fresh : MonadPlus m -> (a -> m b) -> m a -> m b
 ;;; Introduce a fresh variable (really just bind).
@@ -412,9 +412,9 @@
 ;;; Soft cut: if first succeeds, commit to it.
 (define (if-then-else condition then-branch else-branch)
   (let ([solutions (bt-run condition)])
-    (if (null? solutions)
-        else-branch
-        (bt-bind solutions then-branch))))
+       (if (null? solutions)
+           else-branch
+           (bt-bind solutions then-branch))))
 
 ;;; ============================================================
 ;;; Utility Functions
@@ -434,17 +434,17 @@
       '(())
       (bt-bind (amb-list list-monad-plus lst)
                (lambda (x)
-                 (bt-bind (permutations (remove-first x lst))
-                          (lambda (rest)
-                            (bt-return (cons x rest))))))))
+                       (bt-bind (permutations (remove-first x lst))
+                                (lambda (rest)
+                                        (bt-return (cons x rest))))))))
 
 ;;; remove-first : a -> List a -> List a
 ;;; Remove first occurrence.
 (define (remove-first x lst)
   (cond
-    [(null? lst) '()]
-    [(equal? x (car lst)) (cdr lst)]
-    [else (cons (car lst) (remove-first x (cdr lst)))]))
+   [(null? lst) '()]
+   [(equal? x (car lst)) (cdr lst)]
+   [else (cons (car lst) (remove-first x (cdr lst)))]))
 
 ;;; subsets : List a -> List (List a)
 ;;; All subsets of a list.
@@ -452,8 +452,8 @@
   (if (null? lst)
       '(())
       (let ([rest (subsets (cdr lst))])
-        (append rest
-                (map (lambda (s) (cons (car lst) s)) rest)))))
+           (append rest
+                   (map (lambda (s) (cons (car lst) s)) rest)))))
 
 ;;; ============================================================
 ;;; Example: N-Queens
@@ -467,10 +467,10 @@
 (define (safe-helper? col dist placements)
   (or (null? placements)
       (let ([other (car placements)])
-        (and (not (= col other))
-             (not (= col (+ other dist)))
-             (not (= col (- other dist)))
-             (safe-helper? col (+ dist 1) (cdr placements))))))
+           (and (not (= col other))
+                (not (= col (+ other dist)))
+                (not (= col (- other dist)))
+                (safe-helper? col (+ dist 1) (cdr placements))))))
 
 ;;; n-queens : Int -> List (List Int)
 ;;; Solve N-Queens problem.
@@ -482,10 +482,10 @@
       (bt-return placements)
       (bt-bind (between 1 n)
                (lambda (col)
-                 (bt-bind (bt-guard (safe? col placements))
-                          (lambda (_)
-                            (n-queens-helper n (- remaining 1)
-                                             (cons col placements))))))))
+                       (bt-bind (bt-guard (safe? col placements))
+                                (lambda (_)
+                                        (n-queens-helper n (- remaining 1)
+                                                         (cons col placements))))))))
 
 ;;; ============================================================
 ;;; Example Usage (for documentation)
@@ -513,4 +513,3 @@
 ;;; ;; Permutations
 ;;; (permutations '(1 2 3))
 ;;; ; => ((1 2 3) (1 3 2) (2 1 3) (2 3 1) (3 1 2) (3 2 1))
-

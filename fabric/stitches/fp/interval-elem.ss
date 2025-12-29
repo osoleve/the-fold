@@ -9,8 +9,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/interval.ss
 
-(load "prelude.ss")
-(load "fp/interval.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/interval.ss")
 
 ;;; ============================================================
 ;;; Mathematical Constants (as intervals for rigorous computation)

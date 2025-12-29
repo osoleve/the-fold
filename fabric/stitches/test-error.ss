@@ -1,12 +1,17 @@
 ;;; fabric/stitches/test-error.ss — Tests for the unified error system
 
-(load "error.ss")
+(load "fabric/stitches/error.ss")
 
-(display "\n")
-(display "╔══════════════════════════════════════════════════════════════════╗\n")
-(display "║                   Error System Tests                              ║\n")
-(display "╚══════════════════════════════════════════════════════════════════╝\n")
-(display "\n")
+(display "
+")
+(display "╔══════════════════════════════════════════════════════════════════╗
+")
+(display "║                   Error System Tests                              ║
+")
+(display "╚══════════════════════════════════════════════════════════════════╝
+")
+(display "
+")
 
 ;;; ============================================================
 ;;; Test Helpers
@@ -22,10 +27,12 @@
   (if (equal? expected actual)
       (begin
        (set! *pass* (+ *pass* 1))
-       (display "✓\n"))
+       (display "✓
+"))
       (begin
        (set! *fail* (+ *fail* 1))
-       (display "✗\n")
+       (display "✗
+")
        (display "    expected: ") (display expected) (newline)
        (display "    actual:   ") (display actual) (newline))))
 
@@ -38,10 +45,12 @@
            (string-contains actual substring))
       (begin
        (set! *pass* (+ *pass* 1))
-       (display "✓\n"))
+       (display "✓
+"))
       (begin
        (set! *fail* (+ *fail* 1))
-       (display "✗\n")
+       (display "✗
+")
        (display "    expected to contain: ") (display substring) (newline)
        (display "    actual: ") (display actual) (newline))))
 
@@ -58,8 +67,10 @@
 ;;; Error Construction Tests
 ;;; ============================================================
 
-(display "Error Construction\n")
-(display "──────────────────\n")
+(display "Error Construction
+")
+(display "──────────────────
+")
 
 (let ([err (make-error 'infer 'unbound-variable no-span 'x)])
      (test "error? recognizes error" #t (error? err))
@@ -70,14 +81,17 @@
 (test "error? rejects non-error" #f (error? '(ok 42)))
 (test "error? rejects short list" #f (error? '(error foo)))
 
-(display "\n")
+(display "
+")
 
 ;;; ============================================================
 ;;; Span Tests
 ;;; ============================================================
 
-(display "Source Spans\n")
-(display "────────────\n")
+(display "Source Spans
+")
+(display "────────────
+")
 
 (let ([s (make-span "test.ss" 10 5 10 15)])
      (test "span? recognizes span" #t (span? s))
@@ -88,14 +102,17 @@
 (test "span? rejects non-span" #f (span? '(not a span)))
 (test "no-span is a span" #t (span? no-span))
 
-(display "\n")
+(display "
+")
 
 ;;; ============================================================
 ;;; Error Message Lookup Tests
 ;;; ============================================================
 
-(display "Message Lookup\n")
-(display "──────────────\n")
+(display "Message Lookup
+")
+(display "──────────────
+")
 
 (test "infer unbound message" "Variable is not defined"
       (lookup-error-message 'infer 'unbound-variable))
@@ -109,14 +126,17 @@
 (test "unknown code falls back to symbol" "unknown-code"
       (lookup-error-message 'infer 'unknown-code))
 
-(display "\n")
+(display "
+")
 
 ;;; ============================================================
 ;;; Error Formatting Tests
 ;;; ============================================================
 
-(display "Error Formatting\n")
-(display "────────────────\n")
+(display "Error Formatting
+")
+(display "────────────────
+")
 
 (let* ([err (make-error 'infer 'unbound-variable no-span 'foo)]
        [formatted (format-error err)])
@@ -131,14 +151,17 @@
       (test-contains "type error has expected" "expected: Int" formatted)
       (test-contains "type error has actual" "actual:   Bool" formatted))
 
-(display "\n")
+(display "
+")
 
 ;;; ============================================================
 ;;; Suggestion Tests
 ;;; ============================================================
 
-(display "Suggestions\n")
-(display "───────────\n")
+(display "Suggestions
+")
+(display "───────────
+")
 
 (let ([suggestion (get-suggestion 'infer 'unknown-primitive '(+))])
      (test-contains "suggests add for +" "add" suggestion))
@@ -149,14 +172,17 @@
 (let ([suggestion (get-suggestion 'parse 'unclosed-list '())])
      (test-contains "suggests counting parens" "parentheses" suggestion))
 
-(display "\n")
+(display "
+")
 
 ;;; ============================================================
 ;;; Edit Distance Tests
 ;;; ============================================================
 
-(display "Edit Distance\n")
-(display "─────────────\n")
+(display "Edit Distance
+")
+(display "─────────────
+")
 
 (test "same string = 0" 0 (edit-distance "hello" "hello"))
 (test "one char diff = 1" 1 (edit-distance "hello" "hallo"))
@@ -165,14 +191,17 @@
 (test "transposition = 2" 2 (edit-distance "hello" "hlelo"))
 (test "completely different" 4 (edit-distance "hello" "world"))
 
-(display "\n")
+(display "
+")
 
 ;;; ============================================================
 ;;; Helper Function Tests
 ;;; ============================================================
 
-(display "Helper Functions\n")
-(display "────────────────\n")
+(display "Helper Functions
+")
+(display "────────────────
+")
 
 (let ([err (unbound-error 'myvar (make-span "file.ss" 1 1 1 5))])
      (test "unbound-error phase" 'infer (error-phase err))
@@ -182,31 +211,44 @@
      (test "type-error has Int" 'Int (car (error-details err)))
      (test "type-error has String" 'String (cadr (error-details err))))
 
-(display "\n")
+(display "
+")
 
 ;;; ============================================================
 ;;; String Split Tests
 ;;; ============================================================
 
-(display "String Split\n")
-(display "────────────\n")
+(display "String Split
+")
+(display "────────────
+")
 
 (test "split simple" '("a" "b" "c") (string-split "a,b,c" #\,))
-(test "split by newline" '("line1" "line2") (string-split "line1\nline2" #\newline))
+(test "split by newline" '("line1" "line2") (string-split "line1
+line2" #
+ewline))
 (test "split no delim" '("hello") (string-split "hello" #\,))
 
-(display "\n")
+(display "
+")
 
 ;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 
-(display "────────────────────────────────────────────────────────\n")
-(display (format "  Total: ~a tests\n" (+ *pass* *fail*)))
-(display (format "  Passed: ~a\n" *pass*))
-(display (format "  Failed: ~a\n" *fail*))
-(display "────────────────────────────────────────────────────────\n")
+(display "────────────────────────────────────────────────────────
+")
+(display (format "  Total: ~a tests
+" (+ *pass* *fail*)))
+(display (format "  Passed: ~a
+" *pass*))
+(display (format "  Failed: ~a
+" *fail*))
+(display "────────────────────────────────────────────────────────
+")
 
 (if (= *fail* 0)
-    (display "✓ All error system tests passed!\n")
-    (display "✗ Some tests failed.\n"))
+    (display "✓ All error system tests passed!
+")
+    (display "✗ Some tests failed.
+"))

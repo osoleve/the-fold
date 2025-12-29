@@ -20,8 +20,8 @@
 ;;;   - "Checking Dependent Types with NbE" (Christiansen)
 ;;;   - "Mini-TT" (Coquand et al.)
 
-(load "prelude.ss")
-(load "types.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/types.ss")
 
 ;;; ============================================================
 ;;; Semantic Values

@@ -20,8 +20,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; State Representation
@@ -177,19 +177,19 @@
 
 ;;; state-view : Lens s a -> State s a
 ;;; View a part of the state through a lens.
-;;; Requires: (load "fp/lens.ss")
+;;; Requires: (load "fabric/stitches/fp/lens.ss")
 (define (state-view lens)
   (state-gets (lambda (s) (view lens s))))
 
 ;;; state-set : Lens s a -> a -> State s ()
 ;;; Set a part of the state through a lens.
-;;; Requires: (load "fp/lens.ss")
+;;; Requires: (load "fabric/stitches/fp/lens.ss")
 (define (state-set lens val)
   (state-modify (lambda (s) (set lens val s))))
 
 ;;; state-over : Lens s a -> (a -> a) -> State s ()
 ;;; Modify a part of the state through a lens.
-;;; Requires: (load "fp/lens.ss")
+;;; Requires: (load "fabric/stitches/fp/lens.ss")
 (define (state-over lens f)
   (state-modify (lambda (s) (over lens f s))))
 

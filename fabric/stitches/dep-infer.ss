@@ -18,11 +18,11 @@
 ;;;   - nbe.ss
 ;;;   - infer.ss (for base inference)
 
-(load "prelude.ss")
-(load "types.ss")
-(load "dep-types.ss")
-(load "nbe.ss")
-(load "infer.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/dep-types.ss")
+(load "fabric/stitches/nbe.ss")
+(load "fabric/stitches/infer.ss")
 
 ;;; ============================================================
 ;;; Extended Type Context

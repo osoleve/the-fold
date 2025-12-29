@@ -28,8 +28,8 @@
 ;;;   m >>= return      = m
 ;;;   (m >>= f) >>= g   = m >>= (\x -> f x >>= g)
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Cont Monad
@@ -63,8 +63,8 @@
 (define (cont-bind ma f)
   (make-cont
    (lambda (k)
-     (run-cont ma (lambda (a)
-                    (run-cont (f a) k))))))
+           (run-cont ma (lambda (a)
+                                (run-cont (f a) k))))))
 
 ;;; cont-map : (a -> b) -> Cont r a -> Cont r b
 ;;; Functor map for Cont.
@@ -75,8 +75,8 @@
 ;;; Applicative ap for Cont.
 (define (cont-ap cf ca)
   (cont-bind cf (lambda (f)
-                  (cont-bind ca (lambda (a)
-                                  (cont-return (f a)))))))
+                        (cont-bind ca (lambda (a)
+                                              (cont-return (f a)))))))
 
 ;;; cont-join : Cont r (Cont r a) -> Cont r a
 ;;; Flatten nested continuations.
@@ -95,9 +95,9 @@
 (define (callCC f)
   (make-cont
    (lambda (k)
-     (run-cont (f (lambda (a)
-                    (make-cont (lambda (_) (k a)))))
-               k))))
+           (run-cont (f (lambda (a)
+                                (make-cont (lambda (_) (k a)))))
+                     k))))
 
 ;;; ============================================================
 ;;; Control Operators
@@ -112,8 +112,8 @@
 ;;; Delimited shift: captures continuation up to nearest reset.
 (define (cont-shift f)
   (callCC (lambda (k)
-            (cont-bind (f (lambda (a) (run-cont (k a) identity)))
-                       cont-abort))))
+                  (cont-bind (f (lambda (a) (run-cont (k a) identity)))
+                             cont-abort))))
 
 ;;; cont-reset : Cont r r -> Cont s r
 ;;; Delimited reset: delimits the extent of shift.
@@ -133,15 +133,15 @@
 ;;; Note: This uses a protocol where exceptions are (left exn).
 (define (make-try-handler handler normal-cont)
   (lambda (result)
-    (if (and (pair? result) (eq? (car result) 'exception))
-        (run-cont (handler (cadr result)) normal-cont)
-        (normal-cont result))))
+          (if (and (pair? result) (eq? (car result) 'exception))
+              (run-cont (handler (cadr result)) normal-cont)
+              (normal-cont result))))
 
 ;;; throw : exn -> Cont r a
 ;;; Throw an exception value.
 (define (cont-throw exn)
   (make-cont (lambda (k)
-               (k (list 'exception exn)))))
+                     (k (list 'exception exn)))))
 
 ;;; ============================================================
 ;;; Loop Control
@@ -152,9 +152,9 @@
 (define (cont-loop init body)
   (cont-bind (body init)
              (lambda (either)
-               (if (left? either)
-                   (cont-loop (from-left either) body)
-                   (cont-return (from-right either))))))
+                     (if (left? either)
+                         (cont-loop (from-left either) body)
+                         (cont-return (from-right either))))))
 
 ;;; cont-for-each : (a -> Cont r ()) -> List a -> Cont r ()
 ;;; Execute continuation for each element.
@@ -163,7 +163,7 @@
       (cont-return '())
       (cont-bind (f (car lst))
                  (lambda (_)
-                   (cont-for-each f (cdr lst))))))
+                         (cont-for-each f (cdr lst))))))
 
 ;;; cont-fold : (b -> a -> Cont r b) -> b -> List a -> Cont r b
 ;;; Fold with continuation effects.
@@ -172,7 +172,7 @@
       (cont-return init)
       (cont-bind (f init (car lst))
                  (lambda (acc)
-                   (cont-fold f acc (cdr lst))))))
+                         (cont-fold f acc (cdr lst))))))
 
 ;;; ============================================================
 ;;; Early Return Pattern
@@ -208,13 +208,13 @@
 ;;; Non-deterministically choose from a list.
 (define (choose lst)
   (callCC (lambda (k)
-            (let loop ([remaining lst])
-              (if (null? remaining)
-                  fail
-                  (let ([result (run-cont (k (car remaining)) identity)])
-                    (if (just? result)
-                        (cont-return (car remaining))
-                        (loop (cdr remaining)))))))))
+                  (let loop ([remaining lst])
+                       (if (null? remaining)
+                           fail
+                           (let ([result (run-cont (k (car remaining)) identity)])
+                                (if (just? result)
+                                    (cont-return (car remaining))
+                                    (loop (cdr remaining)))))))))
 
 ;;; amb : a -> a -> Cont (Maybe a) a
 ;;; Binary choice.
@@ -247,9 +247,9 @@
 ;;; Yield a value and suspend.
 (define (yield val)
   (callCC (lambda (k)
-            (make-cont (lambda (outer-k)
-                         (outer-k (cons val (make-cont (lambda (inner-k)
-                                                          (run-cont (k '()) inner-k))))))))))
+                  (make-cont (lambda (outer-k)
+                                     (outer-k (cons val (make-cont (lambda (inner-k)
+                                                                           (run-cont (k '()) inner-k))))))))))
 
 ;;; ============================================================
 ;;; Generator Pattern
@@ -264,10 +264,10 @@
 ;;; Collect all yielded values into a list.
 (define (generator-to-list gen)
   (let ([body (list-ref gen 1)])
-    (let loop ([acc '()])
-      (callCC (lambda (k)
-                ;; This is simplified; full impl needs more machinery
-                acc)))))
+       (let loop ([acc '()])
+            (callCC (lambda (k)
+                            ;; This is simplified; full impl needs more machinery
+                            acc)))))
 
 ;;; ============================================================
 ;;; Trampolined Recursion
@@ -335,15 +335,15 @@
 (define (cont-t-bind ma f)
   (make-cont-t
    (lambda (k)
-     (run-cont-t ma (lambda (a)
-                      (run-cont-t (f a) k))))))
+           (run-cont-t ma (lambda (a)
+                                  (run-cont-t (f a) k))))))
 
 ;;; cont-t-lift : m a -> ContT r m a
 ;;; Lift an underlying monad action.
 (define (cont-t-lift m-bind m-action)
   (make-cont-t
    (lambda (k)
-     (m-bind m-action k))))
+           (m-bind m-action k))))
 
 ;;; ============================================================
 ;;; Practical Helpers
@@ -356,9 +356,9 @@
       (cont-return '())
       (cont-bind (car conts)
                  (lambda (x)
-                   (cont-bind (sequence-cont (cdr conts))
-                              (lambda (xs)
-                                (cont-return (cons x xs))))))))
+                         (cont-bind (sequence-cont (cdr conts))
+                                    (lambda (xs)
+                                            (cont-return (cons x xs))))))))
 
 ;;; map-cont : (a -> Cont r b) -> List a -> Cont r (List b)
 ;;; Map a continuation-producing function over a list.
@@ -372,11 +372,11 @@
       (cont-return '())
       (cont-bind (pred (car lst))
                  (lambda (keep?)
-                   (cont-bind (filter-cont pred (cdr lst))
-                              (lambda (rest)
-                                (cont-return (if keep?
-                                                 (cons (car lst) rest)
-                                                 rest))))))))
+                         (cont-bind (filter-cont pred (cdr lst))
+                                    (lambda (rest)
+                                            (cont-return (if keep?
+                                                             (cons (car lst) rest)
+                                                             rest))))))))
 
 ;;; ============================================================
 ;;; Do-Notation Helpers
@@ -431,4 +431,3 @@
 ;;;                (cont-bind (require (> x 1))
 ;;;                           (lambda (_) (cont-return x))))))
 ;;; ; Finds 2 (first > 1)
-

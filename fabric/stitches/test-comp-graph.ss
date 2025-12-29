@@ -1,7 +1,7 @@
 ;;; fabric/stitches/test-comp-graph.ss — Tests for Computational Graph
 
-(load "test-framework.ss")
-(load "comp-graph.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/comp-graph.ss")
 
 ;;; Local helper for numeric comparison with tolerance
 (define (assert-= actual expected tolerance)

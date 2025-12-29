@@ -17,7 +17,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 
-(load "prelude.ss")
+(load "fabric/stitches/prelude.ss")
 
 ;;; ============================================================
 ;;; Document Type

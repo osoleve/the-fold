@@ -16,7 +16,7 @@
 ;;;
 ;;; See fabric/stitches/MODULES.md for full dependency graph.
 
-(load "prelude.ss")
+(load "fabric/stitches/prelude.ss")
 ;;;
 ;;; Type Grammar:
 ;;;

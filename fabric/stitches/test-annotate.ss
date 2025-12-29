@@ -1,10 +1,10 @@
 ;;; Test harness for core/annotate.ss — Type Annotations
 
-(load "block.ss")
-(load "types.ss")
-(load "kinds.ss")
-(load "infer.ss")
-(load "annotate.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/kinds.ss")
+(load "fabric/stitches/infer.ss")
+(load "fabric/stitches/annotate.ss")
 
 (define (test name expected actual)
   (display "  ")
@@ -13,9 +13,11 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-       (display "✗\n    expected: ")
+       (display "✗
+    expected: ")
        (display expected)
-       (display "\n    got: ")
+       (display "
+    got: ")
        (display actual)))
   (newline))
 
@@ -26,7 +28,8 @@
   (if (ann? result)
       (display "✓")
       (begin
-       (display "✗\n    expected annotated expr, got: ")
+       (display "✗
+    expected annotated expr, got: ")
        (display result)))
   (newline))
 
@@ -38,9 +41,11 @@
       (if (type=? expected-type (ann-type result))
           (display "✓")
           (begin
-           (display "✗\n    expected type: ")
+           (display "✗
+    expected type: ")
            (display (type->string expected-type))
-           (display "\n    got type: ")
+           (display "
+    got type: ")
            (display (type->string (ann-type result)))))
       (begin
        (display "✗ not annotated: ")
@@ -54,7 +59,8 @@
   (if (and (pair? result) (eq? (car result) 'error))
       (display "✓")
       (begin
-       (display "✗\n    expected error, got: ")
+       (display "✗
+    expected error, got: ")
        (display result)))
   (newline))
 
@@ -206,27 +212,42 @@
 ;;; ============================================================
 (test-section "Pretty Print (visual inspection)")
 
-(display "\n--- Annotated 42 ---\n")
+(display "
+--- Annotated 42 ---
+")
 (show-annotated 42)
 
-(display "\n--- Annotated (fn (x) x) ---\n")
+(display "
+--- Annotated (fn (x) x) ---
+")
 (show-annotated '(fn (x) x))
 
-(display "\n--- Annotated (fn (x) (prim 'add x 1)) ---\n")
+(display "
+--- Annotated (fn (x) (prim 'add x 1)) ---
+")
 (show-annotated '(fn (x) (prim 'add x 1)))
 
-(display "\n--- Annotated (let ((x 1)) (prim 'mul x 2)) ---\n")
+(display "
+--- Annotated (let ((x 1)) (prim 'mul x 2)) ---
+")
 (show-annotated '(let ((x 1)) (prim 'mul x 2)))
 
-(display "\n--- Annotated (if #t 1 2) ---\n")
+(display "
+--- Annotated (if #t 1 2) ---
+")
 (show-annotated '(if #t 1 2))
 
-(display "\n--- Annotated case expression ---\n")
+(display "
+--- Annotated case expression ---
+")
 (show-annotated '(fn (blk) (case blk ((True) 1) ((False) 0))))
 
-(display "\n--- Annotated complex expression ---\n")
+(display "
+--- Annotated complex expression ---
+")
 (show-annotated '(let ((double (fn (x) (prim 'mul x 2))))
                   (double 21)))
 
 (newline)
-(display "✓ All annotation tests complete.\n")
+(display "✓ All annotation tests complete.
+")

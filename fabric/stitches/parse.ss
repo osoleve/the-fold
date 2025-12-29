@@ -22,7 +22,7 @@
 
 ;; Load prelude if not already loaded (supports both in-directory and project-root loading)
 (unless (top-level-bound? 'andmap)
-        (load "prelude.ss"))
+        (load "fabric/stitches/prelude.ss"))
 
 ;;; ============================================================
 ;;; ParseResult Construction and Destructuring

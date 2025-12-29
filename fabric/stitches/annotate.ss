@@ -22,10 +22,10 @@
 ;;;   - kinds.ss
 ;;;   - infer.ss
 
-(load "prelude.ss")
-(load "types.ss")
-(load "kinds.ss")
-(load "infer.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/kinds.ss")
+(load "fabric/stitches/infer.ss")
 
 ;;; ============================================================
 ;;; Annotated AST
@@ -544,8 +544,10 @@
                                                       (format "~a" p)))
                                           params)])
                         (string-append
-                         "(fn (" (join-strings " " param-strs) ")\n"
-                         ind "  " (pp-ann-indent body (+ indent 2)) ")\n"
+                         "(fn (" (join-strings " " param-strs) ")
+"
+                         ind "  " (pp-ann-indent body (+ indent 2)) ")
+"
                          ind ": " (type->string type)))]
                  
                  ;; Let — multi-line
@@ -558,18 +560,25 @@
                                                             (pp-ann-indent (cadr b) (+ indent 4))))
                                             bindings)])
                         (string-append
-                         "(let (\n" ind
-                         (join-strings (string-append "\n" ind) binding-strs)
-                         ")\n" ind "  "
-                         (pp-ann-indent body (+ indent 2)) ")\n"
+                         "(let (
+" ind
+                         (join-strings (string-append "
+" ind) binding-strs)
+                         ")
+" ind "  "
+                         (pp-ann-indent body (+ indent 2)) ")
+"
                          ind ": " (type->string type)))]
                  
                  ;; If — multi-line
                  [(and (pair? expr) (eq? (car expr) 'if))
                   (string-append
-                   "(if " (pp-ann-indent (cadr expr) (+ indent 4)) "\n"
-                   ind "    " (pp-ann-indent (caddr expr) (+ indent 4)) "\n"
-                   ind "    " (pp-ann-indent (cadddr expr) (+ indent 4)) ")\n"
+                   "(if " (pp-ann-indent (cadr expr) (+ indent 4)) "
+"
+                   ind "    " (pp-ann-indent (caddr expr) (+ indent 4)) "
+"
+                   ind "    " (pp-ann-indent (cadddr expr) (+ indent 4)) ")
+"
                    ind ": " (type->string type))]
                  
                  ;; Case — multi-line
@@ -590,13 +599,17 @@
                                                           "  ((" (symbol->string tag)
                                                           (if (null? var-strs) ""
                                                               (string-append " " (join-strings " " var-strs)))
-                                                          ")\n" ind "    "
+                                                          ")
+" ind "    "
                                                           (pp-ann-indent body (+ indent 4)) ")")))
                                            clauses)])
                         (string-append
-                         "(case " (pp-ann-indent scrutinee (+ indent 6)) "\n" ind
-                         (join-strings (string-append "\n" ind) clause-strs)
-                         ")\n" ind ": " (type->string type)))]
+                         "(case " (pp-ann-indent scrutinee (+ indent 6)) "
+" ind
+                         (join-strings (string-append "
+" ind) clause-strs)
+                         ")
+" ind ": " (type->string type)))]
                  
                  ;; Prim — inline or short
                  [(and (pair? expr) (eq? (car expr) 'prim))

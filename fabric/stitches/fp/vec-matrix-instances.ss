@@ -16,10 +16,10 @@
 ;;;   - matrix.ss
 ;;;   - fp/traversable.ss
 
-(load "prelude.ss")
-(load "vec.ss")
-(load "matrix.ss")
-(load "fp/traversable.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/vec.ss")
+(load "fabric/stitches/matrix.ss")
+(load "fabric/stitches/fp/traversable.ss")
 
 ;;; ============================================================
 ;;; Vec Functor Instance

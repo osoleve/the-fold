@@ -4,12 +4,15 @@
 
 ;;; Load test framework if not already loaded
 (unless (top-level-bound? 'define-test)
-        (load "test-framework.ss"))
+        (load "fabric/stitches/test-framework.ss"))
 
-(load "block.ss")
+(load "fabric/stitches/block.ss")
 
-(display "Block System Tests\n")
-(display "===================\n\n")
+(display "Block System Tests
+")
+(display "===================
+
+")
 
 ;;; ============================================================
 ;;; Block Construction Tests

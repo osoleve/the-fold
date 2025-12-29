@@ -18,11 +18,11 @@
 ;;;   - reverse-diff.ss (for reverse mode)
 
 ;;; NOTE: Run from fabric/stitches directory
-(load "prelude.ss")
-(load "vec.ss")
-(load "matrix.ss")
-(load "comp-graph.ss")
-(load "reverse-diff.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/vec.ss")
+(load "fabric/stitches/matrix.ss")
+(load "fabric/stitches/comp-graph.ss")
+(load "fabric/stitches/reverse-diff.ss")
 
 ;;; ============================================================
 ;;; Jacobian Computation

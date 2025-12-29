@@ -18,7 +18,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 
-(load "prelude.ss")
+(load "fabric/stitches/prelude.ss")
 
 ;;; ============================================================
 ;;; Classic Combinators (SKI + friends)

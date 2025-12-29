@@ -17,9 +17,9 @@
 ;;;   - vec2.ss (2D vector math)
 ;;;   - numerical/integrators.ss (generic methods)
 
-(load "prelude.ss")
-(load "vec2.ss")
-(load "numerical/integrators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/vec2.ss")
+(load "fabric/stitches/numerical/integrators.ss")
 
 ;;; ============================================================
 ;;; 2D Physics Body State

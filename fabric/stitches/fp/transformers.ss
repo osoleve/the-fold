@@ -18,8 +18,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Identity Monad (Base Case)
@@ -64,10 +64,10 @@
   (make-maybe-t
    (m-bind (run-maybe-t mt)
            (lambda (maybe-a)
-             (if (nothing? maybe-a)
-                 ((lambda (pure) (pure nothing))
-                  (lambda (x) x))  ; Need m-pure, but it's tricky without it
-                 (run-maybe-t (f (from-just maybe-a))))))))
+                   (if (nothing? maybe-a)
+                       ((lambda (pure) (pure nothing))
+                        (lambda (x) x))  ; Need m-pure, but it's tricky without it
+                       (run-maybe-t (f (from-just maybe-a))))))))
 
 ;;; maybe-t-fail : (a -> m a) -> MaybeT m a
 ;;; Fail in MaybeT.
@@ -80,7 +80,7 @@
   (make-maybe-t
    (m-bind m-action
            (lambda (a)
-             (m-pure (just a))))))
+                   (m-pure (just a))))))
 
 ;;; ============================================================
 ;;; EitherT Transformer
@@ -112,9 +112,9 @@
   (make-either-t
    (m-bind (run-either-t et)
            (lambda (either-a)
-             (if (left? either-a)
-                 (m-pure either-a)
-                 (run-either-t (f (from-right either-a))))))))
+                   (if (left? either-a)
+                       (m-pure either-a)
+                       (run-either-t (f (from-right either-a))))))))
 
 ;;; either-t-throw : (a -> m a) -> e -> EitherT e m a
 ;;; Throw an error in EitherT.
@@ -127,9 +127,9 @@
   (make-either-t
    (m-bind (run-either-t et)
            (lambda (either-a)
-             (if (left? either-a)
-                 (run-either-t (handler (from-left either-a)))
-                 (m-pure either-a))))))
+                   (if (left? either-a)
+                       (run-either-t (handler (from-left either-a)))
+                       (m-pure either-a))))))
 
 ;;; either-t-lift : (m a -> (a -> m b) -> m b) -> (a -> m a) -> m a -> EitherT e m a
 ;;; Lift an action from the underlying monad.
@@ -137,7 +137,7 @@
   (make-either-t
    (m-bind m-action
            (lambda (a)
-             (m-pure (right a))))))
+                   (m-pure (right a))))))
 
 ;;; ============================================================
 ;;; ReaderT Transformer
@@ -172,9 +172,9 @@
 (define (reader-t-bind m-bind rt f)
   (make-reader-t
    (lambda (env)
-     (m-bind (run-reader-t rt env)
-             (lambda (a)
-               (run-reader-t (f a) env))))))
+           (m-bind (run-reader-t rt env)
+                   (lambda (a)
+                           (run-reader-t (f a) env))))))
 
 ;;; reader-t-ask : (a -> m a) -> ReaderT r m r
 ;;; Get the environment.
@@ -224,14 +224,14 @@
 (define (eval-state-t m-bind m-pure st initial-state)
   (m-bind (run-state-t st initial-state)
           (lambda (pair)
-            (m-pure (car pair)))))
+                  (m-pure (car pair)))))
 
 ;;; exec-state-t : (m a -> (a -> m b) -> m b) -> (a -> m a) -> StateT s m a -> s -> m s
 ;;; Run StateT and extract final state.
 (define (exec-state-t m-bind m-pure st initial-state)
   (m-bind (run-state-t st initial-state)
           (lambda (pair)
-            (m-pure (cdr pair)))))
+                  (m-pure (cdr pair)))))
 
 ;;; state-t-pure : (a -> m a) -> a -> StateT s m a
 ;;; Lift a value into StateT.
@@ -243,11 +243,11 @@
 (define (state-t-bind m-bind st f)
   (make-state-t
    (lambda (s)
-     (m-bind (run-state-t st s)
-             (lambda (pair)
-               (let ([a (car pair)]
-                     [s2 (cdr pair)])
-                 (run-state-t (f a) s2)))))))
+           (m-bind (run-state-t st s)
+                   (lambda (pair)
+                           (let ([a (car pair)]
+                                 [s2 (cdr pair)])
+                                (run-state-t (f a) s2)))))))
 
 ;;; state-t-get : (a -> m a) -> StateT s m s
 ;;; Get the current state.
@@ -274,9 +274,9 @@
 (define (state-t-lift m-bind m-pure m-action)
   (make-state-t
    (lambda (s)
-     (m-bind m-action
-             (lambda (a)
-               (m-pure (cons a s)))))))
+           (m-bind m-action
+                   (lambda (a)
+                           (m-pure (cons a s)))))))
 
 ;;; ============================================================
 ;;; WriterT Transformer
@@ -320,20 +320,20 @@
 ;;; Sequence WriterT computations.
 (define (writer-t-bind m-bind wt f)
   (let ([monoid (writer-t-monoid wt)])
-    (make-writer-t
-     monoid
-     (m-bind (run-writer-t wt)
-             (lambda (pair1)
-               (let* ([a (car pair1)]
-                      [w1 (cdr pair1)]
-                      [wt2 (f a)])
-                 (m-bind (run-writer-t wt2)
-                         (lambda (pair2)
-                           (let* ([b (car pair2)]
-                                  [w2 (cdr pair2)]
-                                  [combined ((monoid-append monoid) w1 w2)])
-                             ((lambda (pure) (pure (cons b combined)))
-                              (lambda (x) x)))))))))))  ; Assume identity for inner pure
+       (make-writer-t
+        monoid
+        (m-bind (run-writer-t wt)
+                (lambda (pair1)
+                        (let* ([a (car pair1)]
+                               [w1 (cdr pair1)]
+                               [wt2 (f a)])
+                              (m-bind (run-writer-t wt2)
+                                      (lambda (pair2)
+                                              (let* ([b (car pair2)]
+                                                     [w2 (cdr pair2)]
+                                                     [combined ((monoid-append monoid) w1 w2)])
+                                                    ((lambda (pure) (pure (cons b combined)))
+                                                     (lambda (x) x)))))))))))  ; Assume identity for inner pure
 
 ;;; writer-t-tell : (a -> m a) -> Monoid w -> w -> WriterT w m ()
 ;;; Output a value.
@@ -344,13 +344,13 @@
 ;;; Expose the output alongside the value.
 (define (writer-t-listen m-bind m-pure wt)
   (let ([monoid (writer-t-monoid wt)])
-    (make-writer-t
-     monoid
-     (m-bind (run-writer-t wt)
-             (lambda (pair)
-               (let ([a (car pair)]
-                     [w (cdr pair)])
-                 (m-pure (cons (cons a w) w))))))))
+       (make-writer-t
+        monoid
+        (m-bind (run-writer-t wt)
+                (lambda (pair)
+                        (let ([a (car pair)]
+                              [w (cdr pair)])
+                             (m-pure (cons (cons a w) w))))))))
 
 ;;; writer-t-lift : (m a -> (a -> m b) -> m b) -> (a -> m a) -> Monoid w -> m a -> WriterT w m a
 ;;; Lift an action from the underlying monad.
@@ -359,7 +359,7 @@
    monoid
    (m-bind m-action
            (lambda (a)
-             (m-pure (cons a (monoid-empty monoid)))))))
+                   (m-pure (cons a (monoid-empty monoid)))))))
 
 ;;; ============================================================
 ;;; Common Monad Stacks

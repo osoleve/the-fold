@@ -15,7 +15,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 
-(load "prelude.ss")
+(load "fabric/stitches/prelude.ss")
 
 ;;; ============================================================
 ;;; Symbol Supply
@@ -39,7 +39,7 @@
               result))
 
 ;;; expand-with-ctx : S-expr × (List Symbol) × Supply → (Values S-expr Supply)
-;;; Context is a list mapping de Bruijn index to symbol (innermost first).
+;;; Expand expression using context and symbol supply. Context is a list mapping de Bruijn index to symbol (innermost first).
 (define (expand-with-ctx expr ctx supply)
   (cond
    ;; (dv n) → the symbol at index n in context

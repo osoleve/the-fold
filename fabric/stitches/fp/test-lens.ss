@@ -2,13 +2,17 @@
 
 ;;; NOTE: Run from fabric/stitches directory
 
-(load "test-framework.ss")
-(load "fp/lens.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/fp/lens.ss")
 
-(display "\n")
-(display "==============================================================\n")
-(display "         LENS LIBRARY TESTS\n")
-(display "==============================================================\n")
+(display "
+")
+(display "==============================================================
+")
+(display "         LENS LIBRARY TESTS
+")
+(display "==============================================================
+")
 
 ;;; ============================================================
 ;;; Core Lens Tests
@@ -18,17 +22,17 @@
             (define-test make-lens-test
               (let ([l (make-lens car (lambda (a p) (cons a (cdr p))))])
                    (assert-true (lens? l))))
-
+            
             (define-test view-test
               (let ([pair (cons 1 2)])
                    (assert-equal 1 (view fst-lens pair))
                    (assert-equal 2 (view snd-lens pair))))
-
+            
             (define-test set-test
               (let ([pair (cons 1 2)])
                    (assert-equal (cons 10 2) (set fst-lens 10 pair))
                    (assert-equal (cons 1 20) (set snd-lens 20 pair))))
-
+            
             (define-test over-test
               (let ([pair (cons 1 2)])
                    (assert-equal (cons 2 2) (over fst-lens add1 pair))
@@ -45,13 +49,13 @@
                     [a 42])
                    (assert-equal a (view fst-lens (set fst-lens a s)))
                    (assert-equal a (view snd-lens (set snd-lens a s)))))
-
+            
             ;; Put-Get: set l (view l s) s = s
             (define-test put-get-law-test
               (let ([s (cons 1 2)])
                    (assert-equal s (set fst-lens (view fst-lens s) s))
                    (assert-equal s (set snd-lens (view snd-lens s) s))))
-
+            
             ;; Put-Put: set l a2 (set l a1 s) = set l a2 s
             (define-test put-put-law-test
               (let ([s (cons 1 2)])
@@ -68,11 +72,11 @@
             (define-test id-lens-view-test
               (assert-equal 42 (view id-lens 42))
               (assert-equal '(a b c) (view id-lens '(a b c))))
-
+            
             (define-test id-lens-set-test
               (assert-equal 100 (set id-lens 100 42))
               (assert-equal 'new (set id-lens 'new 'old)))
-
+            
             (define-test id-lens-over-test
               (assert-equal 43 (over id-lens add1 42))))
 
@@ -87,20 +91,20 @@
                    (assert-equal 1 (view inner-fst nested))
                    (assert-equal (cons (cons 100 2) 3)
                                  (set inner-fst 100 nested))))
-
+            
             (define-test compose-three-lenses-test
               (let ([deep (cons (cons (cons 1 2) 3) 4)]
                     [deep-lens (.. fst-lens fst-lens fst-lens)])
                    (assert-equal 1 (view deep-lens deep))
                    (assert-equal (cons (cons (cons 99 2) 3) 4)
                                  (set deep-lens 99 deep))))
-
+            
             (define-test lens-then-test
               (let ([nested (cons (cons 1 2) 3)])
                    ;; lens-then goes left-to-right
                    (let ([l (lens-then fst-lens fst-lens)])
                         (assert-equal 1 (view l nested)))))
-
+            
             (define-test compose-with-id-test
               (let ([l (lens-compose fst-lens id-lens)]
                     [pair (cons 1 2)])
@@ -116,22 +120,22 @@
               (let ([lst '(1 2 3)])
                    (assert-equal 1 (view car-lens lst))
                    (assert-equal '(10 2 3) (set car-lens 10 lst))))
-
+            
             (define-test cdr-lens-test
               (let ([lst '(1 2 3)])
                    (assert-equal '(2 3) (view cdr-lens lst))
                    (assert-equal '(1 a b) (set cdr-lens '(a b) lst))))
-
+            
             (define-test nth-lens-0-test
               (let ([lst '(a b c d)])
                    (assert-equal 'a (view (nth-lens 0) lst))
                    (assert-equal '(x b c d) (set (nth-lens 0) 'x lst))))
-
+            
             (define-test nth-lens-2-test
               (let ([lst '(a b c d)])
                    (assert-equal 'c (view (nth-lens 2) lst))
                    (assert-equal '(a b x d) (set (nth-lens 2) 'x lst))))
-
+            
             (define-test nth-lens-over-test
               (let ([lst '(1 2 3 4 5)])
                    (assert-equal '(1 2 30 4 5) (over (nth-lens 2) (lambda (x) (* x 10)) lst)))))
@@ -145,23 +149,23 @@
               (let ([data '((name . "Alice") (age . 30))])
                    (assert-equal "Alice" (view (key-lens 'name) data))
                    (assert-equal 30 (view (key-lens 'age) data))))
-
+            
             (define-test key-lens-missing-test
               (let ([data '((name . "Alice"))])
                    (assert-equal #f (view (key-lens 'missing) data))))
-
+            
             (define-test key-lens-set-existing-test
               (let ([data '((name . "Alice") (age . 30))])
                    (let ([result (set (key-lens 'age) 31 data)])
                         (assert-equal 31 (view (key-lens 'age) result))
                         (assert-equal "Alice" (view (key-lens 'name) result)))))
-
+            
             (define-test key-lens-set-new-test
               (let ([data '((name . "Alice"))])
                    (let ([result (set (key-lens 'age) 30 data)])
                         (assert-equal 30 (view (key-lens 'age) result))
                         (assert-equal "Alice" (view (key-lens 'name) result)))))
-
+            
             (define-test key-lens-nested-test
               ;; Compose key lenses for nested alists
               (let ([data '((user . ((name . "Bob") (email . "bob@example.com"))))]
@@ -178,39 +182,39 @@
                    (let ([result (preview just-prism m)])
                         (assert-true (just? result))
                         (assert-equal 42 (from-just result)))))
-
+            
             (define-test just-prism-no-match-test
               (let ([result (preview just-prism nothing)])
                    (assert-true (nothing? result))))
-
+            
             (define-test just-prism-review-test
               (let ([m (review just-prism 42)])
                    (assert-true (just? m))
                    (assert-equal 42 (from-just m))))
-
+            
             (define-test left-prism-match-test
               (let ([e (left "error")])
                    (let ([result (preview left-prism e)])
                         (assert-true (just? result))
                         (assert-equal "error" (from-just result)))))
-
+            
             (define-test left-prism-no-match-test
               (let ([e (right 42)])
                    (let ([result (preview left-prism e)])
                         (assert-true (nothing? result)))))
-
+            
             (define-test right-prism-match-test
               (let ([e (right 42)])
                    (let ([result (preview right-prism e)])
                         (assert-true (just? result))
                         (assert-equal 42 (from-just result)))))
-
+            
             (define-test over-prism-match-test
               (let ([m (just 42)])
                    (let ([result (over-prism just-prism add1 m)])
                         (assert-true (just? result))
                         (assert-equal 43 (from-just result)))))
-
+            
             (define-test over-prism-no-match-test
               (let ([result (over-prism just-prism add1 nothing)])
                    (assert-true (nothing? result)))))
@@ -225,15 +229,15 @@
                    (let ([result (preview cons-prism lst)])
                         (assert-true (just? result))
                         (assert-equal (cons 1 '(2 3)) (from-just result)))))
-
+            
             (define-test cons-prism-no-match-test
               (let ([result (preview cons-prism '())])
                    (assert-true (nothing? result))))
-
+            
             (define-test nil-prism-match-test
               (let ([result (preview nil-prism '())])
                    (assert-true (just? result))))
-
+            
             (define-test nil-prism-no-match-test
               (let ([result (preview nil-prism '(1 2 3))])
                    (assert-true (nothing? result)))))
@@ -246,19 +250,19 @@
             (define-test each-to-list-test
               (assert-equal '(1 2 3) (to-list-of each '(1 2 3)))
               (assert-equal '() (to-list-of each '())))
-
+            
             (define-test each-over-test
               (assert-equal '(2 3 4) (over-traversal each add1 '(1 2 3)))
               (assert-equal '() (over-traversal each add1 '())))
-
+            
             (define-test filtered-to-list-test
               (assert-equal '(2 4) (to-list-of (filtered even?) '(1 2 3 4 5))))
-
+            
             (define-test filtered-over-test
               (assert-equal '(1 20 3 40 5) (over-traversal (filtered even?)
                                                            (lambda (x) (* x 10))
                                                            '(1 2 3 4 5))))
-
+            
             (define-test lens-to-traversal-test
               (let ([trav (lens->traversal fst-lens)]
                     [pair (cons 1 2)])
@@ -279,14 +283,14 @@
                      [updated (set city-lens "Cambridge" person)])
                     (assert-equal "Cambridge" (view city-lens updated))
                     (assert-equal "Alice" (view (key-lens 'name) updated))))
-
+            
             ;; Mapping over list elements
             (define-test map-with-traversal-test
               (let* ([numbers '(1 2 3 4 5)]
                      [double (lambda (x) (+ x x))]
                      [doubled (over-traversal each double numbers)])
                     (assert-equal '(2 4 6 8 10) doubled)))
-
+            
             ;; Filtering and transforming
             (define-test filter-transform-test
               (let* ([data '(1 2 3 4 5 6)]
@@ -299,12 +303,21 @@
 ;;; Summary
 ;;; ============================================================
 
-(display "\n")
-(display "==============================================================\n")
-(printf "Tests passed: ~a\n" *tests-passed*)
-(printf "Tests failed: ~a\n" *tests-failed*)
-(printf "Total tests:  ~a\n" *tests-run*)
+(display "
+")
+(display "==============================================================
+")
+(printf "Tests passed: ~a
+" *tests-passed*)
+(printf "Tests failed: ~a
+" *tests-failed*)
+(printf "Total tests:  ~a
+" *tests-run*)
 
 (if (= *tests-failed* 0)
-    (display "\n[SUCCESS] All lens tests passed.\n")
-    (display "\n[FAILURE] Some lens tests failed.\n"))
+    (display "
+[SUCCESS] All lens tests passed.
+")
+    (display "
+[FAILURE] Some lens tests failed.
+"))

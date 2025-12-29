@@ -20,7 +20,7 @@
 ;;;   (check 100 (forall (xs gen-list-int)
 ;;;                (equal? (reverse (reverse xs)) xs)))
 
-(load "prelude.ss")
+(load "fabric/stitches/prelude.ss")
 
 ;;; ============================================================
 ;;; Random Number Generation (Pure LCG)

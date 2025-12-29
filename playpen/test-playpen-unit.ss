@@ -3,7 +3,7 @@
 ;;; Code:
 
 ;; Load security utilities first
-(load "security-utils.ss")
+(load "playpen/security-utils.ss")
 
 ;; Generic test framework
 (define *tests-run* 0)

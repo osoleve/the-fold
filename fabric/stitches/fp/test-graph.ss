@@ -2,8 +2,8 @@
 
 ;;; NOTE: Run from fabric/stitches directory
 
-(load "test-framework.ss")
-(load "fp/graph.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/fp/graph.ss")
 
 (display "
 ")

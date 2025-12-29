@@ -1,9 +1,9 @@
 ;;; Test harness for core/infer.ss — Type Inference
 
-(load "block.ss")
-(load "types.ss")
-(load "kinds.ss")
-(load "infer.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/kinds.ss")
+(load "fabric/stitches/infer.ss")
 
 (define (test name expected actual)
   (display "  ")
@@ -12,9 +12,11 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-       (display "✗\n    expected: ")
+       (display "✗
+    expected: ")
        (display expected)
-       (display "\n    got: ")
+       (display "
+    got: ")
        (display actual)))
   (newline))
 
@@ -31,9 +33,11 @@
            (if (type=? expected result)
                (display "✓")
                (begin
-                (display "✗\n    expected: ")
+                (display "✗
+    expected: ")
                 (display (type->string expected))
-                (display "\n    got: ")
+                (display "
+    got: ")
                 (display (type->string result)))))
        (newline)))
 
@@ -241,8 +245,8 @@
 (test-type "string=?" 'Bool '(prim 'string=? "a" "b"))
 
 ;; Character operations
-(test-type "char->integer" 'Int '(prim 'char->integer (quote #\a)))
-(test-type "char-alphabetic?" 'Bool '(prim 'char-alphabetic? (quote #\a)))
+(test-type "char->integer" 'Int '(prim 'char->integer (quote #)))
+(test-type "char-alphabetic?" 'Bool '(prim 'char-alphabetic? (quote #)))
 
 ;; List operations
 ;; reverse xs returns a list, and the fn wraps it
@@ -285,4 +289,5 @@
      (test "case binds ref" '∀ (if (pair? result) (car result) 'not-pair)))
 
 (newline)
-(display "✓ All type inference tests complete.\n")
+(display "✓ All type inference tests complete.
+")

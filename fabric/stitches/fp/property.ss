@@ -17,8 +17,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Random Number Generation
@@ -36,7 +36,7 @@
 ;;; Generate next random integer and new seed.
 (define (lcg-next seed)
   (let ([next (modulo (+ (* lcg-a seed) lcg-c) lcg-m)])
-    (cons next next)))
+       (cons next next)))
 
 ;;; random-int : Seed -> Int -> Int -> (Int . Seed)
 ;;; Generate random integer in [lo, hi].
@@ -46,12 +46,12 @@
          [new-seed (cdr r)]
          [range (+ 1 (- hi lo))]
          [scaled (+ lo (modulo val range))])
-    (cons scaled new-seed)))
+        (cons scaled new-seed)))
 
 ;;; random-bool : Seed -> (Boolean . Seed)
 (define (random-bool seed)
   (let ([r (random-int seed 0 1)])
-    (cons (= (car r) 1) (cdr r))))
+       (cons (= (car r) 1) (cdr r))))
 
 ;;; ============================================================
 ;;; Generator Type
@@ -81,13 +81,13 @@
 ;;; Generate n samples, increasing size.
 (define (samples gen seed n)
   (let loop ([i 0] [s seed] [acc '()])
-    (if (>= i n)
-        (reverse acc)
-        (let* ([size (+ 1 i)]
-               [result (run-gen gen s size)]
-               [val (car result)]
-               [new-seed (cdr result)])
-          (loop (+ i 1) new-seed (cons val acc))))))
+       (if (>= i n)
+           (reverse acc)
+           (let* ([size (+ 1 i)]
+                  [result (run-gen gen s size)]
+                  [val (car result)]
+                  [new-seed (cdr result)])
+                 (loop (+ i 1) new-seed (cons val acc))))))
 
 ;;; ============================================================
 ;;; Generator Monad
@@ -103,10 +103,10 @@
 (define (gen-bind gen f)
   (make-gen
    (lambda (seed size)
-     (let* ([result (run-gen gen seed size)]
-            [val (car result)]
-            [new-seed (cdr result)])
-       (run-gen (f val) new-seed size)))))
+           (let* ([result (run-gen gen seed size)]
+                  [val (car result)]
+                  [new-seed (cdr result)])
+                 (run-gen (f val) new-seed size)))))
 
 ;;; gen-map : (a -> b) -> Gen a -> Gen b
 ;;; Functor map.
@@ -117,8 +117,8 @@
 ;;; Applicative apply.
 (define (gen-ap gf ga)
   (gen-bind gf (lambda (f)
-    (gen-bind ga (lambda (a)
-      (gen-pure (f a)))))))
+                       (gen-bind ga (lambda (a)
+                                            (gen-pure (f a)))))))
 
 ;;; gen-seq : List (Gen a) -> Gen (List a)
 ;;; Sequence a list of generators.
@@ -126,8 +126,8 @@
   (if (null? gens)
       (gen-pure '())
       (gen-bind (car gens) (lambda (x)
-        (gen-bind (gen-seq (cdr gens)) (lambda (xs)
-          (gen-pure (cons x xs))))))))
+                                   (gen-bind (gen-seq (cdr gens)) (lambda (xs)
+                                                                          (gen-pure (cons x xs))))))))
 
 ;;; ============================================================
 ;;; Basic Generators
@@ -138,21 +138,21 @@
 (define (gen-int lo hi)
   (make-gen
    (lambda (seed size)
-     (random-int seed lo hi))))
+           (random-int seed lo hi))))
 
 ;;; gen-nat : Gen Int
 ;;; Generate natural number (0 to size).
 (define gen-nat
   (make-gen
    (lambda (seed size)
-     (random-int seed 0 size))))
+           (random-int seed 0 size))))
 
 ;;; gen-pos : Gen Int
 ;;; Generate positive integer (1 to size+1).
 (define gen-pos
   (make-gen
    (lambda (seed size)
-     (random-int seed 1 (+ size 1)))))
+           (random-int seed 1 (+ size 1)))))
 
 ;;; gen-neg : Gen Int
 ;;; Generate negative integer.
@@ -164,13 +164,13 @@
 (define gen-small-int
   (make-gen
    (lambda (seed size)
-     (random-int seed (- size) size))))
+           (random-int seed (- size) size))))
 
 ;;; gen-bool : Gen Boolean
 (define gen-bool
   (make-gen
    (lambda (seed size)
-     (random-bool seed))))
+           (random-bool seed))))
 
 ;;; gen-char : Gen Char
 ;;; Generate printable ASCII character.
@@ -181,9 +181,9 @@
 ;;; Generate alphabetic character.
 (define gen-alpha
   (gen-bind gen-bool (lambda (upper?)
-    (if upper?
-        (gen-map integer->char (gen-int 65 90))   ; A-Z
-        (gen-map integer->char (gen-int 97 122)))))) ; a-z
+                             (if upper?
+                                 (gen-map integer->char (gen-int 65 90))   ; A-Z
+                                 (gen-map integer->char (gen-int 97 122)))))) ; a-z
 
 ;;; gen-digit : Gen Char
 ;;; Generate digit character.
@@ -219,34 +219,34 @@
 ;;; Choose generator with weighted probability.
 (define (gen-frequency weighted-gens)
   (let* ([total (fold-left (lambda (acc wg) (+ acc (car wg))) 0 weighted-gens)])
-    (gen-bind (gen-int 1 total)
-              (lambda (n)
-                (let loop ([wgs weighted-gens] [remaining n])
-                  (let ([weight (caar wgs)]
-                        [gen (cdar wgs)])
-                    (if (<= remaining weight)
-                        gen
-                        (loop (cdr wgs) (- remaining weight)))))))))
+        (gen-bind (gen-int 1 total)
+                  (lambda (n)
+                          (let loop ([wgs weighted-gens] [remaining n])
+                               (let ([weight (caar wgs)]
+                                     [gen (cdar wgs)])
+                                    (if (<= remaining weight)
+                                        gen
+                                        (loop (cdr wgs) (- remaining weight)))))))))
 
 ;;; gen-sized : (Size -> Gen a) -> Gen a
 ;;; Access the size parameter.
 (define (gen-sized f)
   (make-gen
    (lambda (seed size)
-     (run-gen (f size) seed size))))
+           (run-gen (f size) seed size))))
 
 ;;; gen-resize : Size -> Gen a -> Gen a
 ;;; Run generator with different size.
 (define (gen-resize new-size gen)
   (make-gen
    (lambda (seed size)
-     (run-gen gen seed new-size))))
+           (run-gen gen seed new-size))))
 
 ;;; gen-scale : (Size -> Size) -> Gen a -> Gen a
 ;;; Scale the size parameter.
 (define (gen-scale f gen)
   (gen-sized (lambda (size)
-    (gen-resize (f size) gen))))
+                     (gen-resize (f size) gen))))
 
 ;;; ============================================================
 ;;; Collection Generators
@@ -256,9 +256,9 @@
 ;;; Generate a list (length based on size).
 (define (gen-list elem-gen)
   (gen-sized (lambda (size)
-    (gen-bind (gen-int 0 size)
-              (lambda (n)
-                (gen-list-n n elem-gen))))))
+                     (gen-bind (gen-int 0 size)
+                               (lambda (n)
+                                       (gen-list-n n elem-gen))))))
 
 ;;; gen-list-n : Int -> Gen a -> Gen (List a)
 ;;; Generate list of exactly n elements.
@@ -269,8 +269,8 @@
 ;;; Generate non-empty list.
 (define (gen-nonempty-list elem-gen)
   (gen-bind elem-gen (lambda (x)
-    (gen-bind (gen-list elem-gen) (lambda (xs)
-      (gen-pure (cons x xs)))))))
+                             (gen-bind (gen-list elem-gen) (lambda (xs)
+                                                                   (gen-pure (cons x xs)))))))
 
 ;;; gen-string : Gen String
 ;;; Generate string of printable characters.
@@ -286,8 +286,8 @@
 ;;; Generate a pair.
 (define (gen-pair gen-a gen-b)
   (gen-bind gen-a (lambda (a)
-    (gen-bind gen-b (lambda (b)
-      (gen-pure (cons a b)))))))
+                          (gen-bind gen-b (lambda (b)
+                                                  (gen-pure (cons a b)))))))
 
 ;;; gen-triple : Gen a -> Gen b -> Gen c -> Gen (a b c)
 ;;; Generate a triple (list of 3).
@@ -321,10 +321,10 @@
   (if (= n 0)
       '()
       (let ([half (quotient n 2)])
-        (cons 0
-              (if (> (abs half) 0)
-                  (list half (- n half))
-                  '())))))
+           (cons 0
+                 (if (> (abs half) 0)
+                     (list half (- n half))
+                     '())))))
 
 ;;; shrink-list* : (a -> List a) -> List a -> List (List a)
 ;;; Shrink a list by removing elements or shrinking elements.
@@ -332,19 +332,19 @@
   (append
    ;; Remove one element at a time
    (let loop ([prefix '()] [rest lst])
-     (if (null? rest)
-         '()
-         (cons (append (reverse prefix) (cdr rest))
-               (loop (cons (car rest) prefix) (cdr rest)))))
+        (if (null? rest)
+            '()
+            (cons (append (reverse prefix) (cdr rest))
+                  (loop (cons (car rest) prefix) (cdr rest)))))
    ;; Shrink individual elements
    (let loop ([prefix '()] [rest lst])
-     (if (null? rest)
-         '()
-         (append
-          (map (lambda (shrunk)
-                 (append (reverse prefix) (cons shrunk (cdr rest))))
-               (shrink-elem (car rest)))
-          (loop (cons (car rest) prefix) (cdr rest)))))))
+        (if (null? rest)
+            '()
+            (append
+             (map (lambda (shrunk)
+                          (append (reverse prefix) (cons shrunk (cdr rest))))
+                  (shrink-elem (car rest)))
+             (loop (cons (car rest) prefix) (cdr rest)))))))
 
 ;;; shrink-list : (a -> List a) -> (List a -> List (List a))
 ;;; Curried version that returns a shrinker function.
@@ -470,26 +470,26 @@
              [result (run-gen gen seed size)]
              [val (car result)]
              [test-result (test val)])
-        (if (failure? test-result)
-            ;; Try to shrink
-            (shrink-find val shrink test)
-            test-result))
+            (if (failure? test-result)
+                ;; Try to shrink
+                (shrink-find val shrink test)
+                test-result))
       (prop-bool prop)))  ; Treat as boolean
 
 ;;; shrink-find : a -> (a -> List a) -> (a -> Result) -> Result
 ;;; Find minimal counterexample.
 (define (shrink-find val shrink test)
   (let loop ([current val] [fuel 100])
-    (if (<= fuel 0)
-        (make-failure current)
-        (let ([candidates (shrink current)])
-          (let try-next ([cs candidates])
-            (if (null? cs)
-                (make-failure current)  ; Can't shrink further
-                (let ([result (test (car cs))])
-                  (if (failure? result)
-                      (loop (car cs) (- fuel 1))  ; Found smaller failure
-                      (try-next (cdr cs))))))))))
+       (if (<= fuel 0)
+           (make-failure current)
+           (let ([candidates (shrink current)])
+                (let try-next ([cs candidates])
+                     (if (null? cs)
+                         (make-failure current)  ; Can't shrink further
+                         (let ([result (test (car cs))])
+                              (if (failure? result)
+                                  (loop (car cs) (- fuel 1))  ; Found smaller failure
+                                  (try-next (cdr cs))))))))))
 
 ;;; ============================================================
 ;;; Quick Check
@@ -500,22 +500,22 @@
 ;;; Returns: (passed count) or (failed counterexample count)
 (define (quick-check prop n seed)
   (let loop ([i 0] [s seed] [passed 0] [discarded 0])
-    (cond
-      [(>= i n)
-       (list 'passed passed discarded)]
-      [(>= discarded (* 10 n))
-       (list 'gave-up discarded)]
-      [else
-       (let* ([size (+ 1 (modulo i 100))]
-              [result (run-property prop s size)]
-              [next-seed (cdr (lcg-next s))])
-         (cond
-           [(success? result)
-            (loop (+ i 1) next-seed (+ passed 1) discarded)]
-           [(discarded? result)
-            (loop i next-seed passed (+ discarded 1))]
-           [(failure? result)
-            (list 'failed (failure-counterexample result) (+ i 1))]))])))
+       (cond
+        [(>= i n)
+         (list 'passed passed discarded)]
+        [(>= discarded (* 10 n))
+         (list 'gave-up discarded)]
+        [else
+         (let* ([size (+ 1 (modulo i 100))]
+                [result (run-property prop s size)]
+                [next-seed (cdr (lcg-next s))])
+               (cond
+                [(success? result)
+                 (loop (+ i 1) next-seed (+ passed 1) discarded)]
+                [(discarded? result)
+                 (loop i next-seed passed (+ discarded 1))]
+                [(failure? result)
+                 (list 'failed (failure-counterexample result) (+ i 1))]))])))
 
 ;;; check-passed? : CheckResult -> Boolean
 (define (check-passed? result)
@@ -551,30 +551,31 @@
 ;;; Quick check with progress output.
 (define (qc-verbose prop)
   (let ([result (quick-check prop 100 default-seed)])
-    (cond
-      [(check-passed? result)
-       (display "+++ OK, passed ")
-       (display (cadr result))
-       (display " tests")
-       (if (> (caddr result) 0)
-           (begin
-             (display " (")
-             (display (caddr result))
-             (display " discarded)"))
-           (void))
-       (newline)]
-      [(check-failed? result)
-       (display "*** Failed after ")
-       (display (caddr result))
-       (display " tests!\nCounterexample: ")
-       (display (cadr result))
-       (newline)]
-      [(check-gave-up? result)
-       (display "*** Gave up after ")
-       (display (cadr result))
-       (display " discarded tests")
-       (newline)])
-    result))
+       (cond
+        [(check-passed? result)
+         (display "+++ OK, passed ")
+         (display (cadr result))
+         (display " tests")
+         (if (> (caddr result) 0)
+             (begin
+              (display " (")
+              (display (caddr result))
+              (display " discarded)"))
+             (void))
+         (newline)]
+        [(check-failed? result)
+         (display "*** Failed after ")
+         (display (caddr result))
+         (display " tests!
+Counterexample: ")
+         (display (cadr result))
+         (newline)]
+        [(check-gave-up? result)
+         (display "*** Gave up after ")
+         (display (cadr result))
+         (display " discarded tests")
+         (newline)])
+       result))
 
 ;;; ============================================================
 ;;; Standard Properties
@@ -592,8 +593,8 @@
    (gen-pair gen gen)
    (shrink-pair no-shrink no-shrink)
    (lambda (p)
-     (let ([x (car p)] [y (cdr p)])
-       (==> (rel x y) (prop-bool (rel y x)))))))
+           (let ([x (car p)] [y (cdr p)])
+                (==> (rel x y) (prop-bool (rel y x)))))))
 
 ;;; prop-transitive : Gen a -> (a -> a -> Boolean) -> Property
 ;;; Test transitivity: x rel y and y rel z => x rel z
@@ -602,9 +603,9 @@
    (gen-triple gen gen gen)
    (lambda (t) '())
    (lambda (t)
-     (let ([x (car t)] [y (cadr t)] [z (caddr t)])
-       (==> (and (rel x y) (rel y z))
-            (prop-bool (rel x z)))))))
+           (let ([x (car t)] [y (cadr t)] [z (caddr t)])
+                (==> (and (rel x y) (rel y z))
+                     (prop-bool (rel x z)))))))
 
 ;;; prop-commutative : Gen a -> (a -> a -> b) -> (b -> b -> Boolean) -> Property
 ;;; Test commutativity: f x y = f y x
@@ -613,8 +614,8 @@
    (gen-pair gen gen)
    (shrink-pair no-shrink no-shrink)
    (lambda (p)
-     (let ([x (car p)] [y (cdr p)])
-       (prop-bool (eq? (op x y) (op y x)))))))
+           (let ([x (car p)] [y (cdr p)])
+                (prop-bool (eq? (op x y) (op y x)))))))
 
 ;;; prop-associative : Gen a -> (a -> a -> a) -> (a -> a -> Boolean) -> Property
 ;;; Test associativity: (x op y) op z = x op (y op z)
@@ -623,25 +624,25 @@
    (gen-triple gen gen gen)
    (lambda (t) '())
    (lambda (t)
-     (let ([x (car t)] [y (cadr t)] [z (caddr t)])
-       (prop-bool (eq? (op (op x y) z)
-                       (op x (op y z))))))))
+           (let ([x (car t)] [y (cadr t)] [z (caddr t)])
+                (prop-bool (eq? (op (op x y) z)
+                                (op x (op y z))))))))
 
 ;;; prop-identity : Gen a -> a -> (a -> a -> a) -> (a -> a -> Boolean) -> Property
 ;;; Test identity element: id op x = x = x op id
 (define (prop-identity gen identity op eq?)
   (prop-forall gen
                (lambda (x)
-                 (and (eq? (op identity x) x)
-                      (eq? (op x identity) x)))))
+                       (and (eq? (op identity x) x)
+                            (eq? (op x identity) x)))))
 
 ;;; prop-inverse : Gen a -> a -> (a -> a) -> (a -> a -> a) -> (a -> a -> Boolean) -> Property
 ;;; Test inverse: x op inv(x) = identity
 (define (prop-inverse gen identity inv op eq?)
   (prop-forall gen
                (lambda (x)
-                 (and (eq? (op x (inv x)) identity)
-                      (eq? (op (inv x) x) identity)))))
+                       (and (eq? (op x (inv x)) identity)
+                            (eq? (op (inv x) x) identity)))))
 
 ;;; ============================================================
 ;;; List Properties
@@ -662,9 +663,9 @@
    (gen-pair (gen-list gen-nat) (gen-list gen-nat))
    (shrink-pair (shrink-list no-shrink) (shrink-list no-shrink))
    (lambda (p)
-     (let ([xs (car p)] [ys (cdr p)])
-       (prop-bool (= (length (append xs ys))
-                     (+ (length xs) (length ys))))))))
+           (let ([xs (car p)] [ys (cdr p)])
+                (prop-bool (= (length (append xs ys))
+                              (+ (length xs) (length ys))))))))
 
 ;;; prop-map-length : Property
 ;;; length(map f xs) = length(xs)
@@ -673,6 +674,5 @@
    (gen-list gen-nat)
    (shrink-list shrink-int)
    (lambda (xs)
-     (= (length (map (lambda (x) (* x 2)) xs))
-        (length xs)))))
-
+           (= (length (map (lambda (x) (* x 2)) xs))
+              (length xs)))))

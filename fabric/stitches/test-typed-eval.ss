@@ -1,13 +1,13 @@
 ;;; Test harness for core/typed-eval.ss — Typed Evaluation
 
-(load "block.ss")
-(load "prim.ss")
-(load "eval.ss")
-(load "types.ss")
-(load "kinds.ss")
-(load "infer.ss")
-(load "annotate.ss")
-(load "typed-eval.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/prim.ss")
+(load "fabric/stitches/eval.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/kinds.ss")
+(load "fabric/stitches/infer.ss")
+(load "fabric/stitches/annotate.ss")
+(load "fabric/stitches/typed-eval.ss")
 
 (define (test name expected actual)
   (display "  ")
@@ -16,9 +16,11 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-       (display "✗\n    expected: ")
+       (display "✗
+    expected: ")
        (display expected)
-       (display "\n    got: ")
+       (display "
+    got: ")
        (display actual)))
   (newline))
 
@@ -41,11 +43,13 @@
                   (equal? expected-value (typed-value tv)))
              (display "✓")
              (begin
-              (display "✗\n    expected: ")
+              (display "✗
+    expected: ")
               (display expected-value)
               (display " : ")
               (display (type->string expected-type))
-              (display "\n    got: ")
+              (display "
+    got: ")
               (display (typed-value tv))
               (display " : ")
               (display (type->string (typed-type tv))))))])
@@ -67,9 +71,11 @@
          (if (equal? expected-value val)
              (display "✓")
              (begin
-              (display "✗\n    expected: ")
+              (display "✗
+    expected: ")
               (display expected-value)
-              (display "\n    got: ")
+              (display "
+    got: ")
               (display val))))])
   (newline))
 
@@ -254,19 +260,25 @@
 ;;; ============================================================
 (test-section "Display (visual inspection)")
 
-(display "\n--- show-typed ---\n")
+(display "
+--- show-typed ---
+")
 (display (show-typed (typed 'Int 42)))
 (newline)
 (display (show-typed (typed '(-> Int Int) '<closure>)))
 (newline)
 
-(display "\n--- typed-repl-eval ---\n")
+(display "
+--- typed-repl-eval ---
+")
 (typed-repl-eval '42)
 (typed-repl-eval '(prim 'add 10 20))
 (typed-repl-eval '(fn (x) (prim 'mul x 2)))
 (typed-repl-eval '((fn (x) x) "hello"))
 
-(display "\n--- type error example ---\n")
+(display "
+--- type error example ---
+")
 (typed-repl-eval 'undefined)
 
 ;;; ============================================================
@@ -293,4 +305,5 @@
                   (typed-run-prelude '(((compose double) inc) 5) 200))
 
 (newline)
-(display "✓ All typed evaluation tests complete.\n")
+(display "✓ All typed evaluation tests complete.
+")

@@ -1,8 +1,8 @@
 ;;; Test harness for core/kinds.ss — Higher-Kinded Types
 
-(load "block.ss")
-(load "types.ss")
-(load "kinds.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/kinds.ss")
 
 (define (test name expected actual)
   (display "  ")
@@ -11,9 +11,11 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-       (display "✗\n    expected: ")
+       (display "✗
+    expected: ")
        (display expected)
-       (display "\n    got: ")
+       (display "
+    got: ")
        (display actual)))
   (newline))
 
@@ -175,4 +177,5 @@
 ;;; See docs/decisions/ADR-001-type-classes-deferred.md
 
 (newline)
-(display "✓ All higher-kinded type tests complete.\n")
+(display "✓ All higher-kinded type tests complete.
+")

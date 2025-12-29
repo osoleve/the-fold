@@ -16,8 +16,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/parser.ss
 
-(load "prelude.ss")
-(load "fp/parser.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/parser.ss")
 
 ;;; ============================================================
 ;;; AST Nodes with Source Spans
@@ -432,12 +432,12 @@
                                 "data" "type" "newtype" "class" "instance"
                                 "module" "import" "qualified" "as" "hiding"
                                 "do" "return" "infix" "infixl" "infixr"))
-        (cons 'reserved-ops '("=" "::" "->" "<-" "=>" "|" "\\" "@" "~" "!"))
+        (cons 'reserved-ops '("=" "::" "->" "<-" "=>" "|" "\" "@" "~" "!"))
         (cons 'comment-line "--")
         (cons 'ident-start letter)
         (cons 'ident-letter (parser-or alpha-num (one-of "_'")))
-        (cons 'op-start (one-of ":!#$%&*+./<=>?@\\^|-~"))
-        (cons 'op-letter (one-of ":!#$%&*+./<=>?@\\^|-~"))))
+        (cons 'op-start (one-of ":!#$%&*+./<=>?@\^|-~"))
+        (cons 'op-letter (one-of ":!#$%&*+./<=>?@\^|-~"))))
 
 ;;; ============================================================
 ;;; Pretty Printing for Parse Errors

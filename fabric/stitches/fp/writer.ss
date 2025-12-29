@@ -21,8 +21,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Monoid Concept
@@ -83,14 +83,14 @@
 (define first-monoid
   (make-monoid nothing
                (lambda (a b)
-                 (if (just? a) a b))))
+                       (if (just? a) a b))))
 
 ;;; last-monoid : Monoid (Maybe a)
 ;;; Keep last Just value
 (define last-monoid
   (make-monoid nothing
                (lambda (a b)
-                 (if (just? b) b a))))
+                       (if (just? b) b a))))
 
 ;;; ============================================================
 ;;; Writer Representation
@@ -176,7 +176,7 @@
          [a (car pair)]
          [f (cdr pair)]
          [w (writer-output wr)])
-    (make-writer (writer-monoid wr) a (f w))))
+        (make-writer (writer-monoid wr) a (f w))))
 
 ;;; censor : (w -> w) -> Writer w a -> Writer w a
 ;;; Transform the output.
@@ -199,7 +199,7 @@
          [b (writer-value wr2)]
          [w2 (writer-output wr2)]
          [combined ((monoid-append monoid) w1 w2)])
-    (make-writer monoid b combined)))
+        (make-writer monoid b combined)))
 
 ;;; writer-then : Writer w a -> Writer w b -> Writer w b
 ;;; Sequence, discarding first result.
@@ -222,7 +222,7 @@
          [a (writer-value wr-a)]
          [w2 (writer-output wr-a)]
          [combined ((monoid-append monoid) w1 w2)])
-    (make-writer monoid (f a) combined)))
+        (make-writer monoid (f a) combined)))
 
 ;;; ============================================================
 ;;; Writer Combinators
@@ -235,9 +235,9 @@
       (writer-pure monoid '())
       (writer-bind (car writers)
                    (lambda (x)
-                     (writer-bind (writer-sequence monoid (cdr writers))
-                                  (lambda (xs)
-                                    (writer-pure monoid (cons x xs))))))))
+                           (writer-bind (writer-sequence monoid (cdr writers))
+                                        (lambda (xs)
+                                                (writer-pure monoid (cons x xs))))))))
 
 ;;; writer-map-m : Monoid w -> (a -> Writer w b) -> (List a) -> Writer w (List b)
 ;;; Map a Writer-returning function over a list.
@@ -276,13 +276,13 @@
 ;;; Wrapper for functions that should log entry/exit.
 (define (with-logging name f)
   (lambda (x)
-    (writer-bind (log-msg (string-append "Entering " name))
-                 (lambda (_)
-                   (writer-bind (f x)
-                                (lambda (result)
-                                  (writer-bind (log-msg (string-append "Exiting " name))
-                                               (lambda (_)
-                                                 (writer-pure list-monoid result)))))))))
+          (writer-bind (log-msg (string-append "Entering " name))
+                       (lambda (_)
+                               (writer-bind (f x)
+                                            (lambda (result)
+                                                    (writer-bind (log-msg (string-append "Exiting " name))
+                                                                 (lambda (_)
+                                                                         (writer-pure list-monoid result)))))))))
 
 ;;; ============================================================
 ;;; Counting Helpers (Sum Monoid)
@@ -302,7 +302,7 @@
 ;;; Wrap a computation and expose its count.
 (define (with-count f)
   (lambda (x)
-    (writer-listens identity (f x))))
+          (writer-listens identity (f x))))
 
 ;;; ============================================================
 ;;; String Building Helpers (String Monoid)
@@ -316,13 +316,14 @@
 ;;; emit-line : String -> Writer String ()
 ;;; Emit a string with newline.
 (define (emit-line s)
-  (writer-tell string-monoid (string-append s "\n")))
+  (writer-tell string-monoid (string-append s "
+")))
 
 ;;; emit-indent : Number -> String -> Writer String ()
 ;;; Emit an indented line.
 (define (emit-indent level s)
   (let ([indent (make-string (* level 2) (integer->char 32))])
-    (emit-line (string-append indent s))))
+       (emit-line (string-append indent s))))
 
 ;;; ============================================================
 ;;; Lifting Functions
@@ -337,11 +338,11 @@
 ;;; Lift a binary function.
 (define (writer-lift2 monoid f)
   (lambda (wr1 wr2)
-    (writer-bind wr1
-                 (lambda (a)
-                   (writer-bind wr2
-                                (lambda (b)
-                                  (writer-pure monoid (f a b))))))))
+          (writer-bind wr1
+                       (lambda (a)
+                               (writer-bind wr2
+                                            (lambda (b)
+                                                    (writer-pure monoid (f a b))))))))
 
 ;;; ============================================================
 ;;; Example Usage (for documentation)
@@ -387,4 +388,9 @@
 ;;;                                                                            (lambda (_)
 ;;;                                                                              (writer-pure string-monoid 'done))))))))))))
 ;;; (exec-writer build-html)
-;;; ; => "<html>\n  <body>\n    <p>Hello</p>\n  </body>\n</html>\n"
+;;; ; => "<html>
+  <body>
+    <p>Hello</p>
+  </body>
+</html>
+"

@@ -25,14 +25,14 @@
 ;;;   - infer.ss
 ;;;   - annotate.ss
 
-(load "prelude.ss")
-(load "block.ss")
-(load "prim.ss")
-(load "eval.ss")
-(load "types.ss")
-(load "kinds.ss")
-(load "infer.ss")
-(load "annotate.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/prim.ss")
+(load "fabric/stitches/eval.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/kinds.ss")
+(load "fabric/stitches/infer.ss")
+(load "fabric/stitches/annotate.ss")
 
 ;;; ============================================================
 ;;; Typed Values

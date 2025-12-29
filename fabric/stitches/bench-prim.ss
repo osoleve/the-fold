@@ -3,10 +3,10 @@
 ;;; Wallclock benchmarks to validate that fuel costs reflect
 ;;; actual relative computational complexity.
 
-(load "prelude.ss")
-(load "block.ss")
-(load "sha256.ss")
-(load "prim.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/sha256.ss")
+(load "fabric/stitches/prim.ss")
 
 ;;; ============================================================
 ;;; Timing Infrastructure
@@ -105,7 +105,7 @@
 (bench-prim 'vec->list test-vec)
 (bench-prim 'list->vec test-list)
 (bench-prim 'string->list test-string)
-(bench-prim 'list->string '(#\h #\e #\l #\l #\o))
+(bench-prim 'list->string '(#\h # #\l #\l #\o))
 (bench-prim 'symbol->string 'hello)
 (bench-prim 'string->symbol "hello")
 

@@ -15,8 +15,8 @@
 ;;;   - prelude.ss
 ;;;   - types.ss
 
-(load "prelude.ss")
-(load "types.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/types.ss")
 
 ;;; ============================================================
 ;;; Extended Type Grammar

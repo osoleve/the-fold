@@ -2,10 +2,10 @@
 ;;;
 ;;; Verifies the State monad implementation.
 
-(load "prelude.ss")
-(load "test-framework.ss")
-(load "eval.ss")
-(load "state.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/eval.ss")
+(load "fabric/stitches/state.ss")
 
 ;;; ============================================================
 ;;; Build State Environment
@@ -41,7 +41,8 @@
 ;;; Basic Tests
 ;;; ============================================================
 
-(display "State Return and Run\n")
+(display "State Return and Run
+")
 
 ;;; (state-return 42) applied to initial state 0 should give (42 0)
 (test "return preserves state"
@@ -64,7 +65,9 @@
 ;;; Get and Put Tests
 ;;; ============================================================
 
-(display "\nGet and Put\n")
+(display "
+Get and Put
+")
 
 (test "state-get returns current state"
       #t
@@ -87,7 +90,9 @@
 ;;; Bind Tests
 ;;; ============================================================
 
-(display "\nState Bind (Sequencing)\n")
+(display "
+State Bind (Sequencing)
+")
 
 (test "bind sequences computations"
       #t
@@ -117,7 +122,9 @@
 ;;; Modify Tests
 ;;; ============================================================
 
-(display "\nState Modify\n")
+(display "
+State Modify
+")
 
 (test "modify applies function to state"
       #t
@@ -145,7 +152,9 @@
 ;;; Counter Tests
 ;;; ============================================================
 
-(display "\nCounter Combinators\n")
+(display "
+Counter Combinators
+")
 
 (test "inc-counter returns old value"
       #t
@@ -183,7 +192,9 @@
 ;;; Eval and Exec Tests
 ;;; ============================================================
 
-(display "\nEval and Exec State\n")
+(display "
+Eval and Exec State
+")
 
 (test "eval-state extracts value"
       #t
@@ -205,7 +216,9 @@
 ;;; Map and Ap Tests
 ;;; ============================================================
 
-(display "\nFunctor and Applicative\n")
+(display "
+Functor and Applicative
+")
 
 (test "state-map applies function"
       #t
@@ -233,7 +246,9 @@
 ;;; Position/Game State Tests
 ;;; ============================================================
 
-(display "\nGame State (Position)\n")
+(display "
+Game State (Position)
+")
 
 (test "move-right updates x"
       #t
@@ -289,7 +304,9 @@
 ;;; Monad Laws Tests
 ;;; ============================================================
 
-(display "\nMonad Laws\n")
+(display "
+Monad Laws
+")
 
 ;;; Left identity: (bind (return a) f) ≡ (f a)
 (test "left identity"
@@ -352,7 +369,9 @@
 ;;; Replicate Test
 ;;; ============================================================
 
-(display "\nState Replicate\n")
+(display "
+State Replicate
+")
 
 (test "replicate counter"
       #t
@@ -369,4 +388,5 @@
 ;;; ============================================================
 
 (newline)
-(display "✓ All state monad tests complete.\n")
+(display "✓ All state monad tests complete.
+")

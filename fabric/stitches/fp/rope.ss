@@ -13,8 +13,8 @@
 ;;;
 ;;; This module builds on prelude.ss and combinators.ss.
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Rope Type
@@ -67,35 +67,35 @@
 ;;; Get length - O(1) for leaf, O(1) for node
 (define (rope-length r)
   (cond
-    [(rope-leaf? r) (rope-leaf-len r)]
-    [(rope-node? r)
-     (+ (rope-node-weight r) (rope-length (rope-node-right r)))]
-    [else 0]))
+   [(rope-leaf? r) (rope-leaf-len r)]
+   [(rope-node? r)
+    (+ (rope-node-weight r) (rope-length (rope-node-right r)))]
+   [else 0]))
 
 ;;; Get character at index - O(log n)
 (define (rope-ref r i)
   (cond
-    [(rope-leaf? r)
-     (if (and (>= i 0) (< i (rope-leaf-len r)))
-         (just (string-ref (rope-leaf-str r) i))
-         nothing)]
-    [(rope-node? r)
-     (let ([w (rope-node-weight r)])
-       (if (< i w)
-           (rope-ref (rope-node-left r) i)
-           (rope-ref (rope-node-right r) (- i w))))]
-    [else nothing]))
+   [(rope-leaf? r)
+    (if (and (>= i 0) (< i (rope-leaf-len r)))
+        (just (string-ref (rope-leaf-str r) i))
+        nothing)]
+   [(rope-node? r)
+    (let ([w (rope-node-weight r)])
+         (if (< i w)
+             (rope-ref (rope-node-left r) i)
+             (rope-ref (rope-node-right r) (- i w))))]
+   [else nothing]))
 
 ;;; Concatenate two ropes - O(log n)
 (define (rope-append r1 r2)
   (cond
-    [(rope-empty? r1) r2]
-    [(rope-empty? r2) r1]
-    ;; Merge small leaves
-    [(and (rope-leaf? r1) (rope-leaf? r2)
-          (<= (+ (rope-leaf-len r1) (rope-leaf-len r2)) rope-max-leaf-size))
-     (make-rope-leaf (string-append (rope-leaf-str r1) (rope-leaf-str r2)))]
-    [else (make-rope-node r1 r2)]))
+   [(rope-empty? r1) r2]
+   [(rope-empty? r2) r1]
+   ;; Merge small leaves
+   [(and (rope-leaf? r1) (rope-leaf? r2)
+         (<= (+ (rope-leaf-len r1) (rope-leaf-len r2)) rope-max-leaf-size))
+    (make-rope-leaf (string-append (rope-leaf-str r1) (rope-leaf-str r2)))]
+   [else (make-rope-node r1 r2)]))
 
 ;;; ============================================================
 ;;; Split Operations
@@ -105,32 +105,32 @@
 ;;; Returns (left . right) where left has characters [0, i) and right has [i, end)
 (define (rope-split r i)
   (cond
-    [(rope-leaf? r)
-     (let ([str (rope-leaf-str r)]
-           [len (rope-leaf-len r)])
-       (cond
-         [(<= i 0) (cons rope-empty r)]
-         [(>= i len) (cons r rope-empty)]
-         [else (cons (make-rope-leaf (substring str 0 i))
-                     (make-rope-leaf (substring str i len)))]))]
-    [(rope-node? r)
-     (let ([w (rope-node-weight r)]
-           [left (rope-node-left r)]
-           [right (rope-node-right r)])
-       (cond
-         [(<= i 0) (cons rope-empty r)]
-         [(>= i (rope-length r)) (cons r rope-empty)]
-         [(<= i w)
-          ;; Split point is in left subtree
-          (let ([split (rope-split left i)])
-            (cons (car split)
-                  (rope-append (cdr split) right)))]
-         [else
-          ;; Split point is in right subtree
-          (let ([split (rope-split right (- i w))])
-            (cons (rope-append left (car split))
-                  (cdr split)))]))]
-    [else (cons rope-empty rope-empty)]))
+   [(rope-leaf? r)
+    (let ([str (rope-leaf-str r)]
+          [len (rope-leaf-len r)])
+         (cond
+          [(<= i 0) (cons rope-empty r)]
+          [(>= i len) (cons r rope-empty)]
+          [else (cons (make-rope-leaf (substring str 0 i))
+                      (make-rope-leaf (substring str i len)))]))]
+   [(rope-node? r)
+    (let ([w (rope-node-weight r)]
+          [left (rope-node-left r)]
+          [right (rope-node-right r)])
+         (cond
+          [(<= i 0) (cons rope-empty r)]
+          [(>= i (rope-length r)) (cons r rope-empty)]
+          [(<= i w)
+           ;; Split point is in left subtree
+           (let ([split (rope-split left i)])
+                (cons (car split)
+                      (rope-append (cdr split) right)))]
+          [else
+           ;; Split point is in right subtree
+           (let ([split (rope-split right (- i w))])
+                (cons (rope-append left (car split))
+                      (cdr split)))]))]
+   [else (cons rope-empty rope-empty)]))
 
 ;;; ============================================================
 ;;; Insert and Delete
@@ -141,14 +141,14 @@
   (if (string=? str "")
       r
       (let ([split (rope-split r i)])
-        (rope-append (rope-append (car split) (string->rope str))
-                     (cdr split)))))
+           (rope-append (rope-append (car split) (string->rope str))
+                        (cdr split)))))
 
 ;;; Delete range [start, end) - O(log n)
 (define (rope-delete r start end)
   (let* ([split1 (rope-split r start)]
          [split2 (rope-split (cdr split1) (- end start))])
-    (rope-append (car split1) (cdr split2))))
+        (rope-append (car split1) (cdr split2))))
 
 ;;; Replace range [start, end) with string - O(log n)
 (define (rope-replace r start end str)
@@ -162,7 +162,7 @@
 (define (rope-substring r start end)
   (let* ([split1 (rope-split r start)]
          [split2 (rope-split (cdr split1) (- end start))])
-    (car split2)))
+        (car split2)))
 
 ;;; Take first n characters
 (define (rope-take r n)
@@ -183,27 +183,27 @@
       ;; Split large strings into balanced tree
       (let* ([len (string-length str)]
              [mid (quotient len 2)])
-        (make-rope-node (string->rope (substring str 0 mid))
-                        (string->rope (substring str mid len))))))
+            (make-rope-node (string->rope (substring str 0 mid))
+                            (string->rope (substring str mid len))))))
 
 ;;; Convert rope to string - O(n)
 (define (rope->string r)
   (let ([result (make-string (rope-length r))])
-    (rope-write-to-string! r result 0)
-    result))
+       (rope-write-to-string! r result 0)
+       result))
 
 (define (rope-write-to-string! r str pos)
   (cond
-    [(rope-leaf? r)
-     (let* ([leaf-str (rope-leaf-str r)]
-            [len (rope-leaf-len r)])
-       (do ([i 0 (+ i 1)])
-           ((= i len) (+ pos len))
-         (string-set! str (+ pos i) (string-ref leaf-str i))))]
-    [(rope-node? r)
-     (let ([new-pos (rope-write-to-string! (rope-node-left r) str pos)])
-       (rope-write-to-string! (rope-node-right r) str new-pos))]
-    [else pos]))
+   [(rope-leaf? r)
+    (let* ([leaf-str (rope-leaf-str r)]
+           [len (rope-leaf-len r)])
+          (do ([i 0 (+ i 1)])
+              ((= i len) (+ pos len))
+              (string-set! str (+ pos i) (string-ref leaf-str i))))]
+   [(rope-node? r)
+    (let ([new-pos (rope-write-to-string! (rope-node-left r) str pos)])
+         (rope-write-to-string! (rope-node-right r) str new-pos))]
+   [else pos]))
 
 ;;; Convert list of chars to rope
 (define (chars->rope chars)
@@ -244,25 +244,25 @@
 ;;; Find first index of character - O(n)
 (define (rope-index-of r char)
   (let ([len (rope-length r)])
-    (let loop ([i 0])
-      (if (>= i len)
-          nothing
-          (let ([c (from-just (rope-ref r i))])
-            (if (char=? c char)
-                (just i)
-                (loop (+ i 1))))))))
+       (let loop ([i 0])
+            (if (>= i len)
+                nothing
+                (let ([c (from-just (rope-ref r i))])
+                     (if (char=? c char)
+                         (just i)
+                         (loop (+ i 1))))))))
 
 ;;; Find first index of substring - O(n*m)
 (define (rope-find r pattern)
   (let ([str (rope->string r)]
         [pat-len (string-length pattern)]
         [str-len (rope-length r)])
-    (let loop ([i 0])
-      (if (> (+ i pat-len) str-len)
-          nothing
-          (if (string-prefix? (substring str i (min (+ i pat-len) str-len)) pattern)
-              (just i)
-              (loop (+ i 1)))))))
+       (let loop ([i 0])
+            (if (> (+ i pat-len) str-len)
+                nothing
+                (if (string-prefix? (substring str i (min (+ i pat-len) str-len)) pattern)
+                    (just i)
+                    (loop (+ i 1)))))))
 
 ;;; Helper: check if s2 starts with s1
 (define (string-prefix? str prefix)
@@ -279,39 +279,42 @@
 
 ;;; Count lines (number of newlines + 1)
 (define (rope-line-count r)
-  (+ 1 (rope-count-char r (string-ref "\n" 0))))
+  (+ 1 (rope-count-char r (string-ref "
+" 0))))
 
 ;;; Get line at index (0-based)
 (define (rope-get-line r line-num)
   (let* ([chars (rope->chars r)]
-         [newline (string-ref "\n" 0)])
-    (let loop ([chars chars] [current-line 0] [acc '()])
-      (cond
-        [(null? chars)
-         (if (= current-line line-num)
-             (just (list->string (reverse acc)))
-             nothing)]
-        [(char=? (car chars) newline)
-         (if (= current-line line-num)
-             (just (list->string (reverse acc)))
-             (loop (cdr chars) (+ current-line 1) '()))]
-        [else
-         (if (= current-line line-num)
-             (loop (cdr chars) current-line (cons (car chars) acc))
-             (loop (cdr chars) current-line acc))]))))
+         [newline (string-ref "
+" 0)])
+        (let loop ([chars chars] [current-line 0] [acc '()])
+             (cond
+              [(null? chars)
+               (if (= current-line line-num)
+                   (just (list->string (reverse acc)))
+                   nothing)]
+              [(char=? (car chars) newline)
+               (if (= current-line line-num)
+                   (just (list->string (reverse acc)))
+                   (loop (cdr chars) (+ current-line 1) '()))]
+              [else
+               (if (= current-line line-num)
+                   (loop (cdr chars) current-line (cons (car chars) acc))
+                   (loop (cdr chars) current-line acc))]))))
 
 ;;; Get position (offset) of line start
 (define (rope-line-start r line-num)
   (let* ([chars (rope->chars r)]
-         [newline (string-ref "\n" 0)])
-    (let loop ([chars chars] [current-line 0] [pos 0])
-      (cond
-        [(= current-line line-num) (just pos)]
-        [(null? chars) nothing]
-        [(char=? (car chars) newline)
-         (loop (cdr chars) (+ current-line 1) (+ pos 1))]
-        [else
-         (loop (cdr chars) current-line (+ pos 1))]))))
+         [newline (string-ref "
+" 0)])
+        (let loop ([chars chars] [current-line 0] [pos 0])
+             (cond
+              [(= current-line line-num) (just pos)]
+              [(null? chars) nothing]
+              [(char=? (car chars) newline)
+               (loop (cdr chars) (+ current-line 1) (+ pos 1))]
+              [else
+               (loop (cdr chars) current-line (+ pos 1))]))))
 
 ;;; ============================================================
 ;;; Balancing
@@ -324,11 +327,11 @@
 ;;; Get tree depth
 (define (rope-depth r)
   (cond
-    [(rope-leaf? r) 0]
-    [(rope-node? r)
-     (+ 1 (max (rope-depth (rope-node-left r))
-               (rope-depth (rope-node-right r))))]
-    [else 0]))
+   [(rope-leaf? r) 0]
+   [(rope-node? r)
+    (+ 1 (max (rope-depth (rope-node-left r))
+              (rope-depth (rope-node-right r))))]
+   [else 0]))
 
 ;;; ============================================================
 ;;; Comparison
@@ -340,10 +343,10 @@
 (define (rope-compare r1 r2)
   (let ([s1 (rope->string r1)]
         [s2 (rope->string r2)])
-    (cond
-      [(string<? s1 s2) -1]
-      [(string>? s1 s2) 1]
-      [else 0])))
+       (cond
+        [(string<? s1 s2) -1]
+        [(string>? s1 s2) 1]
+        [else 0])))
 
 ;;; ============================================================
 ;;; Display
@@ -351,9 +354,9 @@
 
 (define (rope->display r)
   (let ([s (rope->string r)])
-    (if (> (string-length s) 40)
-        (format "Rope[~a...](len=~a)" (substring s 0 37) (rope-length r))
-        (format "Rope[~a]" s))))
+       (if (> (string-length s) 40)
+           (format "Rope[~a...](len=~a)" (substring s 0 37) (rope-length r))
+           (format "Rope[~a]" s))))
 
 ;;; ============================================================
 ;;; Monoid Operations
@@ -384,7 +387,8 @@
 
 (define (builder-append-line! b str)
   (rope-append (rope-append b (string->rope str))
-               (make-rope-leaf "\n")))
+               (make-rope-leaf "
+")))
 
 (define (builder-finish b)
   b)
@@ -418,7 +422,7 @@
 (define (string-trim-manual s)
   (let* ([chars (string->list s)]
          [trimmed (trim-whitespace-left (trim-whitespace-right chars))])
-    (list->string trimmed)))
+        (list->string trimmed)))
 
 (define (trim-whitespace-left chars)
   (if (or (null? chars) (not (char-whitespace? (car chars))))

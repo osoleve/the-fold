@@ -2,10 +2,13 @@
 ;;;
 ;;; Tests pin/unpin, tree operations, and garbage collection.
 
-(load "cas.ss")
+(load "fabric/stitches/cas.ss")
 
-(display "CAS Lifecycle Tests\n")
-(display "===================\n\n")
+(display "CAS Lifecycle Tests
+")
+(display "===================
+
+")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -26,7 +29,8 @@
 ;;; Setup: Create test blocks
 ;;; ============================================================
 
-(display "Creating test blocks...\n")
+(display "Creating test blocks...
+")
 
 ;; Clear store for fresh tests
 (hashtable-clear! *store*)
@@ -54,13 +58,16 @@
 (define standalone-blk (make-block 'solo (string->utf8 "alone") empty-refs))
 (define standalone-hash (store! standalone-blk))
 
-(display "  Created 5 test blocks\n\n")
+(display "  Created 5 test blocks
+
+")
 
 ;;; ============================================================
 ;;; Pin/Unpin Tests
 ;;; ============================================================
 
-(display "Pin/Unpin:\n")
+(display "Pin/Unpin:
+")
 
 (test "initial not pinned" #f (pinned? root-hash))
 (pin! root-hash)
@@ -72,7 +79,9 @@
 ;;; Tree Operations
 ;;; ============================================================
 
-(display "\nTree Operations:\n")
+(display "
+Tree Operations:
+")
 
 ;; Reset pins
 (hashtable-clear! *pinned*)
@@ -99,7 +108,9 @@
 ;;; GC Statistics
 ;;; ============================================================
 
-(display "\nGC Statistics:\n")
+(display "
+GC Statistics:
+")
 
 ;; Pin some blocks for stats
 (pin! root-hash)
@@ -114,7 +125,9 @@
 ;;; Garbage Collection
 ;;; ============================================================
 
-(display "\nGarbage Collection:\n")
+(display "
+Garbage Collection:
+")
 
 ;; Reset: pin only root tree
 (hashtable-clear! *pinned*)
@@ -134,7 +147,9 @@
 ;;; GC with Roots
 ;;; ============================================================
 
-(display "\nGC with Roots:\n")
+(display "
+GC with Roots:
+")
 
 ;; Recreate standalone
 (set! standalone-hash (store! standalone-blk))
@@ -158,7 +173,9 @@
 ;;; Edge Cases
 ;;; ============================================================
 
-(display "\nEdge Cases:\n")
+(display "
+Edge Cases:
+")
 
 ;; GC on empty store
 (hashtable-clear! *store*)
@@ -184,10 +201,17 @@
 ;;; ============================================================
 
 (newline)
-(display "==================\n")
-(display (string-append "Passed: " (number->string tests-passed) "\n"))
-(display (string-append "Failed: " (number->string tests-failed) "\n"))
+(display "==================
+")
+(display (string-append "Passed: " (number->string tests-passed) "
+"))
+(display (string-append "Failed: " (number->string tests-failed) "
+"))
 
 (if (= tests-failed 0)
-    (display "\n✓ All CAS lifecycle tests passed!\n")
-    (display "\n✗ Some tests failed!\n"))
+    (display "
+✓ All CAS lifecycle tests passed!
+")
+    (display "
+✗ Some tests failed!
+"))

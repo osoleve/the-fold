@@ -1,7 +1,7 @@
 ;;; fabric/stitches/test-higher-order-diff.ss — Tests for Higher-Order Differentiation
 
-(load "test-framework.ss")
-(load "higher-order-diff.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/higher-order-diff.ss")
 
 ;;; Local helper for numeric comparison with tolerance
 (define (assert-= actual expected tolerance)

@@ -1,9 +1,7 @@
 ;;; fabric/stitches/numerical/test-integrators.ss — Tests for Numerical Integration
 
-;;; NOTE: Run from fabric/stitches directory
-
-(load "test-framework.ss")
-(load "numerical/integrators.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/numerical/integrators.ss")
 
 ;;; Helper for numeric comparison
 (define (assert-= actual expected tolerance)

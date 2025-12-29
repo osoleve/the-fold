@@ -22,8 +22,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Free Monad Representation
@@ -100,9 +100,9 @@
 (define (free-ap fmap fr-f fr-a)
   (free-bind fmap fr-f
              (lambda (f)
-               (free-bind fmap fr-a
-                          (lambda (a)
-                            (pure-free (f a)))))))
+                     (free-bind fmap fr-a
+                                (lambda (a)
+                                        (pure-free (f a)))))))
 
 ;;; ============================================================
 ;;; Lifting into Free
@@ -182,53 +182,53 @@
 ;;; Functor instance for KV commands.
 (define (kv-fmap f cmd)
   (let ([tag (car cmd)])
-    (cond
-      [(eq? tag 'get)
-       (let ([key (cadr cmd)]
-             [k (caddr cmd)])
-         (list 'get key (lambda (v) (f (k v)))))]
-      [(eq? tag 'put)
-       (let ([key (cadr cmd)]
-             [val (caddr cmd)]
-             [next (cadddr cmd)])
-         (list 'put key val (f next)))]
-      [(eq? tag 'delete)
-       (let ([key (cadr cmd)]
-             [next (caddr cmd)])
-         (list 'delete key (f next)))]
-      [else (error 'kv-fmap "Unknown command")])))
+       (cond
+        [(eq? tag 'get)
+         (let ([key (cadr cmd)]
+               [k (caddr cmd)])
+              (list 'get key (lambda (v) (f (k v)))))]
+        [(eq? tag 'put)
+         (let ([key (cadr cmd)]
+               [val (caddr cmd)]
+               [next (cadddr cmd)])
+              (list 'put key val (f next)))]
+        [(eq? tag 'delete)
+         (let ([key (cadr cmd)]
+               [next (caddr cmd)])
+              (list 'delete key (f next)))]
+        [else (error 'kv-fmap "Unknown command")])))
 
 ;;; run-kv : Free KVF a -> (alist -> (a . alist))
 ;;; Interpret KV DSL as stateful computation over an alist.
 (define (run-kv program)
   (lambda (store)
-    (if (pure-free? program)
-        (cons (from-pure-free program) store)
-        (let* ([cmd (from-free program)]
-               [tag (car cmd)])
-          (cond
-            [(eq? tag 'get)
-             (let* ([key (cadr cmd)]
-                    [k (caddr cmd)]
-                    [pair (assoc key store)]
-                    [value (if pair (just (cdr pair)) nothing)]
-                    [next (k value)])
-               ((run-kv next) store))]
-            [(eq? tag 'put)
-             (let* ([key (cadr cmd)]
-                    [val (caddr cmd)]
-                    [next (cadddr cmd)]
-                    [new-store (cons (cons key val)
-                                     (filter (lambda (p) (not (equal? (car p) key)))
-                                             store))])
-               ((run-kv next) new-store))]
-            [(eq? tag 'delete)
-             (let* ([key (cadr cmd)]
-                    [next (caddr cmd)]
-                    [new-store (filter (lambda (p) (not (equal? (car p) key)))
-                                       store)])
-               ((run-kv next) new-store))]
-            [else (error 'run-kv "Unknown command")])))))
+          (if (pure-free? program)
+              (cons (from-pure-free program) store)
+              (let* ([cmd (from-free program)]
+                     [tag (car cmd)])
+                    (cond
+                     [(eq? tag 'get)
+                      (let* ([key (cadr cmd)]
+                             [k (caddr cmd)]
+                             [pair (assoc key store)]
+                             [value (if pair (just (cdr pair)) nothing)]
+                             [next (k value)])
+                            ((run-kv next) store))]
+                     [(eq? tag 'put)
+                      (let* ([key (cadr cmd)]
+                             [val (caddr cmd)]
+                             [next (cadddr cmd)]
+                             [new-store (cons (cons key val)
+                                              (filter (lambda (p) (not (equal? (car p) key)))
+                                                      store))])
+                            ((run-kv next) new-store))]
+                     [(eq? tag 'delete)
+                      (let* ([key (cadr cmd)]
+                             [next (caddr cmd)]
+                             [new-store (filter (lambda (p) (not (equal? (car p) key)))
+                                                store)])
+                            ((run-kv next) new-store))]
+                     [else (error 'run-kv "Unknown command")])))))
 
 ;;; ============================================================
 ;;; Example: Console DSL
@@ -249,35 +249,35 @@
 ;;; console-fmap : (a -> b) -> ConsoleF a -> ConsoleF b
 (define (console-fmap f cmd)
   (let ([tag (car cmd)])
-    (cond
-      [(eq? tag 'print)
-       (let ([msg (cadr cmd)]
-             [next (caddr cmd)])
-         (list 'print msg (f next)))]
-      [(eq? tag 'read)
-       (let ([k (cadr cmd)])
-         (list 'read (lambda (s) (f (k s)))))]
-      [else (error 'console-fmap "Unknown command")])))
+       (cond
+        [(eq? tag 'print)
+         (let ([msg (cadr cmd)]
+               [next (caddr cmd)])
+              (list 'print msg (f next)))]
+        [(eq? tag 'read)
+         (let ([k (cadr cmd)])
+              (list 'read (lambda (s) (f (k s)))))]
+        [else (error 'console-fmap "Unknown command")])))
 
 ;;; run-console-pure : Free ConsoleF a -> (List String) -> (a . (List String))
 ;;; Pure interpreter: uses list of strings as mock input, collects output.
 (define (run-console-pure program inputs)
   (let loop ([prog program] [ins inputs] [outs '()])
-    (if (pure-free? prog)
-        (cons (from-pure-free prog) (reverse outs))
-        (let* ([cmd (from-free prog)]
-               [tag (car cmd)])
-          (cond
-            [(eq? tag 'print)
-             (let ([msg (cadr cmd)]
-                   [next (caddr cmd)])
-               (loop next ins (cons msg outs)))]
-            [(eq? tag 'read)
-             (let ([k (cadr cmd)])
-               (if (null? ins)
-                   (error 'run-console-pure "No more input")
-                   (loop (k (car ins)) (cdr ins) outs)))]
-            [else (error 'run-console-pure "Unknown command")])))))
+       (if (pure-free? prog)
+           (cons (from-pure-free prog) (reverse outs))
+           (let* ([cmd (from-free prog)]
+                  [tag (car cmd)])
+                 (cond
+                  [(eq? tag 'print)
+                   (let ([msg (cadr cmd)]
+                         [next (caddr cmd)])
+                        (loop next ins (cons msg outs)))]
+                  [(eq? tag 'read)
+                   (let ([k (cadr cmd)])
+                        (if (null? ins)
+                            (error 'run-console-pure "No more input")
+                            (loop (k (car ins)) (cdr ins) outs)))]
+                  [else (error 'run-console-pure "Unknown command")])))))
 
 ;;; ============================================================
 ;;; Free Monad Combinators
@@ -290,9 +290,9 @@
       (pure-free '())
       (free-bind fmap (car frees)
                  (lambda (x)
-                   (free-bind fmap (free-sequence fmap (cdr frees))
-                              (lambda (xs)
-                                (pure-free (cons x xs))))))))
+                         (free-bind fmap (free-sequence fmap (cdr frees))
+                                    (lambda (xs)
+                                            (pure-free (cons x xs))))))))
 
 ;;; free-map-m : (f a -> f b) -> (a -> Free f b) -> (List a) -> Free f (List b)
 ;;; Map a Free-returning function over a list.
@@ -328,10 +328,10 @@
   (if (pure-free? fr)
       '()
       (let ([cmd (from-free fr)])
-        (cons cmd
-              ;; Would need to access the continuation, which varies by command type
-              ;; This is a simplified version
-              '()))))
+           (cons cmd
+                 ;; Would need to access the continuation, which varies by command type
+                 ;; This is a simplified version
+                 '()))))
 
 ;;; ============================================================
 ;;; Coyoneda: Functor from Any Type
@@ -349,14 +349,14 @@
 (define (coyoneda-map f cy)
   (let ([g (cadr cy)]
         [fa (caddr cy)])
-    (list 'coyoneda (compose f g) fa)))
+       (list 'coyoneda (compose f g) fa)))
 
 ;;; lower-coyoneda : (a -> b) -> f a -> f b) -> Coyoneda f a -> f a
 ;;; Lower Coyoneda back to the original functor (requires fmap).
 (define (lower-coyoneda fmap cy)
   (let ([f (cadr cy)]
         [fa (caddr cy)])
-    (fmap f fa)))
+       (fmap f fa)))
 
 ;;; ============================================================
 ;;; Example Usage (for documentation)

@@ -2,12 +2,12 @@
 ;;;
 ;;; Tests for Pi types, Sigma types, and dependent inference.
 
-(load "prelude.ss")
-(load "types.ss")
-(load "dep-types.ss")
-(load "nbe.ss")
-(load "infer.ss")
-(load "dep-infer.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/dep-types.ss")
+(load "fabric/stitches/nbe.ss")
+(load "fabric/stitches/infer.ss")
+(load "fabric/stitches/dep-infer.ss")
 
 ;;; ============================================================
 ;;; Test Framework

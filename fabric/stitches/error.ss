@@ -14,8 +14,8 @@
 ;;;   - prelude.ss
 ;;;   - span.ss (for source location tracking)
 
-(load "prelude.ss")
-(load "span.ss")  ; Imports make-span, span?, span-file, span-line, etc.
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/span.ss")  ; Imports make-span, span?, span-file, span-line, etc.
 
 ;;; ============================================================
 ;;; Error Codes by Phase
@@ -161,7 +161,9 @@
              (format ": '~a'" (car details))]
             [(type-mismatch)
              (if (>= (length details) 2)
-                 (format "\n  expected: ~a\n  actual:   ~a"
+                 (format "
+  expected: ~a
+  actual:   ~a"
                          (car details) (cadr details))
                  "")]
             [(arity-mismatch)
@@ -184,7 +186,8 @@
 (define (format-suggestion phase code details)
   (let ([suggestion (get-suggestion phase code details)])
        (if suggestion
-           (format "\n  hint: ~a" suggestion)
+           (format "
+  hint: ~a" suggestion)
            "")))
 
 ;;; get-suggestion : Phase × Code × Details → String | #f
@@ -269,7 +272,8 @@
 ;;; display-source-context : String × Int × Int → void
 ;;; Show the relevant line with an underline pointer.
 (define (display-source-context source line col)
-  (let ([lines (string-split source #\newline)])
+  (let ([lines (string-split source #
+ewline)])
        (when (and (> line 0) (<= line (length lines)))
              (let ([src-line (list-ref lines (- line 1))])
                   (display "    ")

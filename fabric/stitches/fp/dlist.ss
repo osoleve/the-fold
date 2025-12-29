@@ -16,8 +16,8 @@
 ;;;
 ;;; This module builds on prelude.ss and combinators.ss.
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; DList Type
@@ -106,7 +106,7 @@
   (if (pred seed)
       dlist-empty
       (let ([x (f seed)])
-        (dlist-cons (car x) (dlist-unfold pred f (cdr x))))))
+           (dlist-cons (car x) (dlist-unfold pred f (cdr x))))))
 
 ;;; ============================================================
 ;;; Transformations
@@ -142,23 +142,23 @@
 ;;; Get first element - O(n)
 (define (dlist-head dl)
   (let ([lst (dlist->list dl)])
-    (if (null? lst)
-        (error 'dlist-head "empty dlist")
-        (car lst))))
+       (if (null? lst)
+           (error 'dlist-head "empty dlist")
+           (car lst))))
 
 ;;; Get tail - O(n)
 (define (dlist-tail dl)
   (let ([lst (dlist->list dl)])
-    (if (null? lst)
-        (error 'dlist-tail "empty dlist")
-        (list->dlist (cdr lst)))))
+       (if (null? lst)
+           (error 'dlist-tail "empty dlist")
+           (list->dlist (cdr lst)))))
 
 ;;; Safe head
 (define (dlist-head-maybe dl)
   (let ([lst (dlist->list dl)])
-    (if (null? lst)
-        nothing
-        (just (car lst)))))
+       (if (null? lst)
+           nothing
+           (just (car lst)))))
 
 ;;; Take first n elements - O(n)
 (define (dlist-take n dl)
@@ -195,7 +195,8 @@
 (define (builder-append-line builder str)
   (dlist-append builder
                 (dlist-snoc (string->dlist str)
-                            (string-ref "\n" 0))))
+                            (string-ref "
+" 0))))
 
 (define (builder->string builder)
   (dlist->string builder))
@@ -205,7 +206,7 @@
   (if (null? dls)
       dlist-empty
       (fold-left (lambda (acc dl)
-                   (dlist-append acc (dlist-append sep dl)))
+                         (dlist-append acc (dlist-append sep dl)))
                  (car dls)
                  (cdr dls))))
 
@@ -234,14 +235,14 @@
 ;;; Convert to displayable string
 (define (dlist-show dl)
   (let ([lst (dlist->list dl)])
-    (string-append "DList["
-                   (fold-left (lambda (acc x)
-                                (if (string=? acc "")
-                                    (format "~a" x)
-                                    (string-append acc ", " (format "~a" x))))
-                              ""
-                              lst)
-                   "]")))
+       (string-append "DList["
+                      (fold-left (lambda (acc x)
+                                         (if (string=? acc "")
+                                             (format "~a" x)
+                                             (string-append acc ", " (format "~a" x))))
+                                 ""
+                                 lst)
+                      "]")))
 
 ;;; ============================================================
 ;;; Comparison
@@ -278,9 +279,9 @@
 ;;; Intersperse element between dlist elements
 (define (dlist-intersperse sep dl)
   (let ([lst (dlist->list dl)])
-    (if (null? lst)
-        dlist-empty
-        (list->dlist (intersperse-list sep lst)))))
+       (if (null? lst)
+           dlist-empty
+           (list->dlist (intersperse-list sep lst)))))
 
 (define (intersperse-list sep lst)
   (if (or (null? lst) (null? (cdr lst)))
@@ -318,14 +319,14 @@
 ;;; Split dlist at position
 (define (dlist-split-at n dl)
   (let ([lst (dlist->list dl)])
-    (cons (list->dlist (take-list n lst))
-          (list->dlist (drop-list n lst)))))
+       (cons (list->dlist (take-list n lst))
+             (list->dlist (drop-list n lst)))))
 
 ;;; Partition by predicate
 (define (dlist-partition pred dl)
   (let ([lst (dlist->list dl)])
-    (cons (list->dlist (filter pred lst))
-          (list->dlist (filter (lambda (x) (not (pred x))) lst)))))
+       (cons (list->dlist (filter pred lst))
+             (list->dlist (filter (lambda (x) (not (pred x))) lst)))))
 
 ;;; ============================================================
 ;;; Exports Summary

@@ -17,8 +17,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; List Zipper
@@ -72,23 +72,23 @@
 ;;; Move focus one position to the right.
 (define (list-zipper-move-right z)
   (let ([right (list-zipper-right z)])
-    (if (null? right)
-        nothing
-        (just (make-list-zipper
-               (car right)
-               (cons (list-zipper-focus z) (list-zipper-left z))
-               (cdr right))))))
+       (if (null? right)
+           nothing
+           (just (make-list-zipper
+                  (car right)
+                  (cons (list-zipper-focus z) (list-zipper-left z))
+                  (cdr right))))))
 
 ;;; list-zipper-move-left : ListZipper a -> Maybe (ListZipper a)
 ;;; Move focus one position to the left.
 (define (list-zipper-move-left z)
   (let ([left (list-zipper-left z)])
-    (if (null? left)
-        nothing
-        (just (make-list-zipper
-               (car left)
-               (cdr left)
-               (cons (list-zipper-focus z) (list-zipper-right z)))))))
+       (if (null? left)
+           nothing
+           (just (make-list-zipper
+                  (car left)
+                  (cdr left)
+                  (cons (list-zipper-focus z) (list-zipper-right z)))))))
 
 ;;; list-zipper-set : a -> ListZipper a -> ListZipper a
 ;;; Replace the focused element.
@@ -120,30 +120,30 @@
 ;;; Delete the element to the right of focus.
 (define (list-zipper-delete-right z)
   (let ([right (list-zipper-right z)])
-    (if (null? right)
-        nothing
-        (just (make-list-zipper
-               (list-zipper-focus z)
-               (list-zipper-left z)
-               (cdr right))))))
+       (if (null? right)
+           nothing
+           (just (make-list-zipper
+                  (list-zipper-focus z)
+                  (list-zipper-left z)
+                  (cdr right))))))
 
 ;;; list-zipper-start : ListZipper a -> ListZipper a
 ;;; Move to the start of the list.
 (define (list-zipper-start z)
   (let ([left (list-zipper-left z)])
-    (if (null? left)
-        z
-        (list-zipper-start
-         (from-just (list-zipper-move-left z))))))
+       (if (null? left)
+           z
+           (list-zipper-start
+            (from-just (list-zipper-move-left z))))))
 
 ;;; list-zipper-end : ListZipper a -> ListZipper a
 ;;; Move to the end of the list.
 (define (list-zipper-end z)
   (let ([right (list-zipper-right z)])
-    (if (null? right)
-        z
-        (list-zipper-end
-         (from-just (list-zipper-move-right z))))))
+       (if (null? right)
+           z
+           (list-zipper-end
+            (from-just (list-zipper-move-right z))))))
 
 ;;; list-zipper-length : ListZipper a -> Int
 ;;; Get the total length of the zipper.
@@ -162,35 +162,35 @@
 (define (list-zipper-move-to n z)
   (let* ([start-z (list-zipper-start z)]
          [pos 0])
-    (list-zipper-move-to-helper n start-z)))
+        (list-zipper-move-to-helper n start-z)))
 
 (define (list-zipper-move-to-helper n z)
   (cond
-    [(< n 0) nothing]
-    [(= n 0) (just z)]
-    [else
-     (let ([moved (list-zipper-move-right z)])
-       (if (nothing? moved)
-           nothing
-           (list-zipper-move-to-helper (- n 1) (from-just moved))))]))
+   [(< n 0) nothing]
+   [(= n 0) (just z)]
+   [else
+    (let ([moved (list-zipper-move-right z)])
+         (if (nothing? moved)
+             nothing
+             (list-zipper-move-to-helper (- n 1) (from-just moved))))]))
 
 ;;; list-zipper-find-right : (a -> Boolean) -> ListZipper a -> Maybe (ListZipper a)
 ;;; Find the next element to the right matching the predicate.
 (define (list-zipper-find-right pred z)
   (let ([moved (list-zipper-move-right z)])
-    (cond
-      [(nothing? moved) nothing]
-      [(pred (list-zipper-focus (from-just moved))) moved]
-      [else (list-zipper-find-right pred (from-just moved))])))
+       (cond
+        [(nothing? moved) nothing]
+        [(pred (list-zipper-focus (from-just moved))) moved]
+        [else (list-zipper-find-right pred (from-just moved))])))
 
 ;;; list-zipper-find-left : (a -> Boolean) -> ListZipper a -> Maybe (ListZipper a)
 ;;; Find the next element to the left matching the predicate.
 (define (list-zipper-find-left pred z)
   (let ([moved (list-zipper-move-left z)])
-    (cond
-      [(nothing? moved) nothing]
-      [(pred (list-zipper-focus (from-just moved))) moved]
-      [else (list-zipper-find-left pred (from-just moved))])))
+       (cond
+        [(nothing? moved) nothing]
+        [(pred (list-zipper-focus (from-just moved))) moved]
+        [else (list-zipper-find-left pred (from-just moved))])))
 
 ;;; ============================================================
 ;;; Binary Tree Zipper
@@ -280,49 +280,49 @@
 (define (tree-zipper-go-left z)
   (let ([focus (tree-zipper-focus z)]
         [crumbs (tree-zipper-crumbs z)])
-    (if (tree-leaf? focus)
-        nothing
-        (just (make-tree-zipper
-               (tree-left focus)
-               (cons (crumb-left (tree-value focus) (tree-right focus))
-                     crumbs))))))
+       (if (tree-leaf? focus)
+           nothing
+           (just (make-tree-zipper
+                  (tree-left focus)
+                  (cons (crumb-left (tree-value focus) (tree-right focus))
+                        crumbs))))))
 
 ;;; tree-zipper-go-right : TreeZipper a -> Maybe (TreeZipper a)
 ;;; Move focus to the right child.
 (define (tree-zipper-go-right z)
   (let ([focus (tree-zipper-focus z)]
         [crumbs (tree-zipper-crumbs z)])
-    (if (tree-leaf? focus)
-        nothing
-        (just (make-tree-zipper
-               (tree-right focus)
-               (cons (crumb-right (tree-value focus) (tree-left focus))
-                     crumbs))))))
+       (if (tree-leaf? focus)
+           nothing
+           (just (make-tree-zipper
+                  (tree-right focus)
+                  (cons (crumb-right (tree-value focus) (tree-left focus))
+                        crumbs))))))
 
 ;;; tree-zipper-go-up : TreeZipper a -> Maybe (TreeZipper a)
 ;;; Move focus to the parent.
 (define (tree-zipper-go-up z)
   (let ([focus (tree-zipper-focus z)]
         [crumbs (tree-zipper-crumbs z)])
-    (if (null? crumbs)
-        nothing
-        (let ([crumb (car crumbs)]
-              [rest (cdr crumbs)])
-          (if (crumb-left? crumb)
-              (just (make-tree-zipper
-                     (tree-node (crumb-value crumb) focus (crumb-sibling crumb))
-                     rest))
-              (just (make-tree-zipper
-                     (tree-node (crumb-value crumb) (crumb-sibling crumb) focus)
-                     rest)))))))
+       (if (null? crumbs)
+           nothing
+           (let ([crumb (car crumbs)]
+                 [rest (cdr crumbs)])
+                (if (crumb-left? crumb)
+                    (just (make-tree-zipper
+                           (tree-node (crumb-value crumb) focus (crumb-sibling crumb))
+                           rest))
+                    (just (make-tree-zipper
+                           (tree-node (crumb-value crumb) (crumb-sibling crumb) focus)
+                           rest)))))))
 
 ;;; tree-zipper-root : TreeZipper a -> TreeZipper a
 ;;; Move to the root of the tree.
 (define (tree-zipper-root z)
   (let ([up (tree-zipper-go-up z)])
-    (if (nothing? up)
-        z
-        (tree-zipper-root (from-just up)))))
+       (if (nothing? up)
+           z
+           (tree-zipper-root (from-just up)))))
 
 ;;; tree-zipper-set : Tree a -> TreeZipper a -> TreeZipper a
 ;;; Replace the focused subtree.
@@ -338,9 +338,9 @@
 ;;; Set the value at the current focus (works for both leaf and node).
 (define (tree-zipper-set-value v z)
   (let ([focus (tree-zipper-focus z)])
-    (if (tree-leaf? focus)
-        (tree-zipper-set (tree-leaf v) z)
-        (tree-zipper-set (tree-node v (tree-left focus) (tree-right focus)) z))))
+       (if (tree-leaf? focus)
+           (tree-zipper-set (tree-leaf v) z)
+           (tree-zipper-set (tree-node v (tree-left focus) (tree-right focus)) z))))
 
 ;;; tree-zipper-is-leaf? : TreeZipper a -> Boolean
 (define (tree-zipper-is-leaf? z)
@@ -373,21 +373,21 @@
       (just z)
       (let* ([dir (car path)]
              [next (case dir
-                     [(left) (tree-zipper-go-left z)]
-                     [(right) (tree-zipper-go-right z)]
-                     [(up) (tree-zipper-go-up z)]
-                     [else nothing])])
-        (if (nothing? next)
-            nothing
-            (tree-zipper-follow-path (cdr path) (from-just next))))))
+                         [(left) (tree-zipper-go-left z)]
+                         [(right) (tree-zipper-go-right z)]
+                         [(up) (tree-zipper-go-up z)]
+                         [else nothing])])
+            (if (nothing? next)
+                nothing
+                (tree-zipper-follow-path (cdr path) (from-just next))))))
 
 ;;; tree-zipper-path-from-root : TreeZipper a -> List Direction
 ;;; Get the path from root to current position.
 (define (tree-zipper-path-from-root z)
   (let ([crumbs (tree-zipper-crumbs z)])
-    (map (lambda (crumb)
-           (if (crumb-left? crumb) 'left 'right))
-         (reverse crumbs))))
+       (map (lambda (crumb)
+                    (if (crumb-left? crumb) 'left 'right))
+            (reverse crumbs))))
 
 ;;; ============================================================
 ;;; Zipper as Comonad
@@ -408,27 +408,27 @@
 (define (list-zipper-duplicate z)
   (let ([lefts (list-zipper-generate-lefts z)]
         [rights (list-zipper-generate-rights z)])
-    (make-list-zipper z lefts rights)))
+       (make-list-zipper z lefts rights)))
 
 (define (list-zipper-generate-lefts z)
   (let ([moved (list-zipper-move-left z)])
-    (if (nothing? moved)
-        '()
-        (cons (from-just moved)
-              (list-zipper-generate-lefts (from-just moved))))))
+       (if (nothing? moved)
+           '()
+           (cons (from-just moved)
+                 (list-zipper-generate-lefts (from-just moved))))))
 
 (define (list-zipper-generate-rights z)
   (let ([moved (list-zipper-move-right z)])
-    (if (nothing? moved)
-        '()
-        (cons (from-just moved)
-              (list-zipper-generate-rights (from-just moved))))))
+       (if (nothing? moved)
+           '()
+           (cons (from-just moved)
+                 (list-zipper-generate-rights (from-just moved))))))
 
 ;;; list-zipper-extend : (ListZipper a -> b) -> ListZipper a -> ListZipper b
 ;;; Apply a function to each position and collect the results.
 (define (list-zipper-extend f z)
   (let ([dup (list-zipper-duplicate z)])
-    (list-zipper-modify-all f dup)))
+       (list-zipper-modify-all f dup)))
 
 (define (list-zipper-modify-all f z)
   (make-list-zipper
@@ -445,71 +445,71 @@
 (define (local-sum z)
   (let* ([focus (list-zipper-focus z)]
          [left-val (let ([m (list-zipper-move-left z)])
-                     (if (nothing? m) 0 (list-zipper-focus (from-just m))))]
+                        (if (nothing? m) 0 (list-zipper-focus (from-just m))))]
          [right-val (let ([m (list-zipper-move-right z)])
-                      (if (nothing? m) 0 (list-zipper-focus (from-just m))))])
-    (+ left-val focus right-val)))
+                         (if (nothing? m) 0 (list-zipper-focus (from-just m))))])
+        (+ left-val focus right-val)))
 
 ;;; smooth : ListZipper Number -> ListZipper Number
 ;;; Apply a 3-point average smoothing filter.
 (define (smooth z)
   (list-zipper-extend
    (lambda (z2)
-     (let* ([focus (list-zipper-focus z2)]
-            [left-val (let ([m (list-zipper-move-left z2)])
-                        (if (nothing? m) focus (list-zipper-focus (from-just m))))]
-            [right-val (let ([m (list-zipper-move-right z2)])
-                         (if (nothing? m) focus (list-zipper-focus (from-just m))))])
-       (/ (+ left-val focus right-val) 3)))
+           (let* ([focus (list-zipper-focus z2)]
+                  [left-val (let ([m (list-zipper-move-left z2)])
+                                 (if (nothing? m) focus (list-zipper-focus (from-just m))))]
+                  [right-val (let ([m (list-zipper-move-right z2)])
+                                  (if (nothing? m) focus (list-zipper-focus (from-just m))))])
+                 (/ (+ left-val focus right-val) 3)))
    z))
 
 ;;; tree-sum : TreeZipper Int -> Int
 ;;; Sum all values in the tree.
 (define (tree-sum z)
   (let loop ([z (tree-zipper-root z)])
-    (let ([focus (tree-zipper-focus z)])
-      (if (tree-leaf? focus)
-          (tree-value focus)
-          (+ (tree-value focus)
-             (let ([left (tree-zipper-go-left z)])
-               (if (nothing? left) 0 (loop (from-just left))))
-             (let ([right (tree-zipper-go-right z)])
-               (if (nothing? right) 0 (loop (from-just right)))))))))
+       (let ([focus (tree-zipper-focus z)])
+            (if (tree-leaf? focus)
+                (tree-value focus)
+                (+ (tree-value focus)
+                   (let ([left (tree-zipper-go-left z)])
+                        (if (nothing? left) 0 (loop (from-just left))))
+                   (let ([right (tree-zipper-go-right z)])
+                        (if (nothing? right) 0 (loop (from-just right)))))))))
 
 ;;; tree-find : (a -> Boolean) -> TreeZipper a -> Maybe (TreeZipper a)
 ;;; DFS search for an element matching the predicate.
 (define (tree-find pred z)
   (let ([focus (tree-zipper-focus z)])
-    (cond
-      [(tree-leaf? focus)
-       (if (pred (tree-value focus)) (just z) nothing)]
-      [else
-       (if (pred (tree-value focus))
-           (just z)
-           (let ([left-result (let ([l (tree-zipper-go-left z)])
-                                (if (nothing? l)
-                                    nothing
-                                    (tree-find pred (from-just l))))])
-             (if (just? left-result)
-                 left-result
-                 (let ([r (tree-zipper-go-right z)])
-                   (if (nothing? r)
-                       nothing
-                       (tree-find pred (from-just r)))))))])))
+       (cond
+        [(tree-leaf? focus)
+         (if (pred (tree-value focus)) (just z) nothing)]
+        [else
+         (if (pred (tree-value focus))
+             (just z)
+             (let ([left-result (let ([l (tree-zipper-go-left z)])
+                                     (if (nothing? l)
+                                         nothing
+                                         (tree-find pred (from-just l))))])
+                  (if (just? left-result)
+                      left-result
+                      (let ([r (tree-zipper-go-right z)])
+                           (if (nothing? r)
+                               nothing
+                               (tree-find pred (from-just r)))))))])))
 
 ;;; tree-map-zipper : (a -> b) -> TreeZipper a -> TreeZipper b
 ;;; Map a function over all values in the tree.
 (define (tree-map-zipper f z)
   (let ([focus (tree-zipper-focus z)])
-    (if (tree-leaf? focus)
-        (tree-zipper-set (tree-leaf (f (tree-value focus))) z)
-        (let* ([z1 (tree-zipper-set-value (f (tree-value focus)) z)]
-               [z2 (from-just (tree-zipper-go-left z1))]
-               [z3 (tree-map-zipper f z2)]
-               [z4 (from-just (tree-zipper-go-up z3))]
-               [z5 (from-just (tree-zipper-go-right z4))]
-               [z6 (tree-map-zipper f z5)])
-          (from-just (tree-zipper-go-up z6))))))
+       (if (tree-leaf? focus)
+           (tree-zipper-set (tree-leaf (f (tree-value focus))) z)
+           (let* ([z1 (tree-zipper-set-value (f (tree-value focus)) z)]
+                  [z2 (from-just (tree-zipper-go-left z1))]
+                  [z3 (tree-map-zipper f z2)]
+                  [z4 (from-just (tree-zipper-go-up z3))]
+                  [z5 (from-just (tree-zipper-go-right z4))]
+                  [z6 (tree-map-zipper f z5)])
+                 (from-just (tree-zipper-go-up z6))))))
 
 ;;; ============================================================
 ;;; String Zipper (specialized list zipper)

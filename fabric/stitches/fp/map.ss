@@ -8,8 +8,8 @@
 ;;;
 ;;; This module builds on prelude.ss and combinators.ss.
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; AVL Tree Type (Internal)
@@ -59,44 +59,44 @@
 ;;; Rotate right
 (define (avl-rotate-right t)
   (let ([l (avl-left t)])
-    (avl-new-node (avl-key l) (avl-value l)
-                  (avl-left l)
-                  (avl-new-node (avl-key t) (avl-value t)
-                                (avl-right l)
-                                (avl-right t)))))
+       (avl-new-node (avl-key l) (avl-value l)
+                     (avl-left l)
+                     (avl-new-node (avl-key t) (avl-value t)
+                                   (avl-right l)
+                                   (avl-right t)))))
 
 ;;; Rotate left
 (define (avl-rotate-left t)
   (let ([r (avl-right t)])
-    (avl-new-node (avl-key r) (avl-value r)
-                  (avl-new-node (avl-key t) (avl-value t)
-                                (avl-left t)
-                                (avl-left r))
-                  (avl-right r))))
+       (avl-new-node (avl-key r) (avl-value r)
+                     (avl-new-node (avl-key t) (avl-value t)
+                                   (avl-left t)
+                                   (avl-left r))
+                     (avl-right r))))
 
 ;;; Balance tree
 (define (avl-balance t)
   (let ([bf (avl-balance-factor t)])
-    (cond
-      ;; Left heavy
-      [(> bf 1)
-       (if (< (avl-balance-factor (avl-left t)) 0)
-           ;; Left-Right case
-           (avl-rotate-right (avl-new-node (avl-key t) (avl-value t)
-                                           (avl-rotate-left (avl-left t))
-                                           (avl-right t)))
-           ;; Left-Left case
-           (avl-rotate-right t))]
-      ;; Right heavy
-      [(< bf -1)
-       (if (> (avl-balance-factor (avl-right t)) 0)
-           ;; Right-Left case
-           (avl-rotate-left (avl-new-node (avl-key t) (avl-value t)
-                                          (avl-left t)
-                                          (avl-rotate-right (avl-right t))))
-           ;; Right-Right case
-           (avl-rotate-left t))]
-      [else t])))
+       (cond
+        ;; Left heavy
+        [(> bf 1)
+         (if (< (avl-balance-factor (avl-left t)) 0)
+             ;; Left-Right case
+             (avl-rotate-right (avl-new-node (avl-key t) (avl-value t)
+                                             (avl-rotate-left (avl-left t))
+                                             (avl-right t)))
+             ;; Left-Left case
+             (avl-rotate-right t))]
+        ;; Right heavy
+        [(< bf -1)
+         (if (> (avl-balance-factor (avl-right t)) 0)
+             ;; Right-Left case
+             (avl-rotate-left (avl-new-node (avl-key t) (avl-value t)
+                                            (avl-left t)
+                                            (avl-rotate-right (avl-right t))))
+             ;; Right-Right case
+             (avl-rotate-left t))]
+        [else t])))
 
 ;;; ============================================================
 ;;; Map Type (Wrapper around AVL tree)
@@ -129,17 +129,17 @@
 ;;; Default key comparison function
 (define (default-key-cmp a b)
   (cond
-    [(and (number? a) (number? b))
-     (cond [(< a b) -1] [(> a b) 1] [else 0])]
-    [(and (string? a) (string? b))
-     (cond [(string<? a b) -1] [(string>? a b) 1] [else 0])]
-    [(and (symbol? a) (symbol? b))
-     (let ([sa (symbol->string a)]
-           [sb (symbol->string b)])
-       (cond [(string<? sa sb) -1] [(string>? sa sb) 1] [else 0]))]
-    [(and (char? a) (char? b))
-     (cond [(char<? a b) -1] [(char>? a b) 1] [else 0])]
-    [else 0]))
+   [(and (number? a) (number? b))
+    (cond [(< a b) -1] [(> a b) 1] [else 0])]
+   [(and (string? a) (string? b))
+    (cond [(string<? a b) -1] [(string>? a b) 1] [else 0])]
+   [(and (symbol? a) (symbol? b))
+    (let ([sa (symbol->string a)]
+          [sb (symbol->string b)])
+         (cond [(string<? sa sb) -1] [(string>? sa sb) 1] [else 0]))]
+   [(and (char? a) (char? b))
+    (cond [(char<? a b) -1] [(char>? a b) 1] [else 0])]
+   [else 0]))
 
 ;;; Create singleton map
 (define (map-singleton key value)
@@ -164,55 +164,55 @@
 ;;; Insert or update key-value pair - O(log n)
 (define (map-insert m key value)
   (let ([cmp (map-cmp m)])
-    (make-map (avl-insert (map-tree m) key value cmp) cmp)))
+       (make-map (avl-insert (map-tree m) key value cmp) cmp)))
 
 (define (avl-insert t key value cmp)
   (cond
-    [(avl-empty? t) (make-avl 1 key value avl-empty avl-empty)]
-    [else
-     (let ([c (cmp key (avl-key t))])
-       (cond
-         [(= c 0) (avl-new-node key value (avl-left t) (avl-right t))]  ; Update
-         [(< c 0)
-          (avl-balance (avl-new-node (avl-key t) (avl-value t)
-                                     (avl-insert (avl-left t) key value cmp)
-                                     (avl-right t)))]
-         [else
-          (avl-balance (avl-new-node (avl-key t) (avl-value t)
-                                     (avl-left t)
-                                     (avl-insert (avl-right t) key value cmp)))]))]))
+   [(avl-empty? t) (make-avl 1 key value avl-empty avl-empty)]
+   [else
+    (let ([c (cmp key (avl-key t))])
+         (cond
+          [(= c 0) (avl-new-node key value (avl-left t) (avl-right t))]  ; Update
+          [(< c 0)
+           (avl-balance (avl-new-node (avl-key t) (avl-value t)
+                                      (avl-insert (avl-left t) key value cmp)
+                                      (avl-right t)))]
+          [else
+           (avl-balance (avl-new-node (avl-key t) (avl-value t)
+                                      (avl-left t)
+                                      (avl-insert (avl-right t) key value cmp)))]))]))
 
 ;;; Delete key - O(log n)
 (define (map-delete m key)
   (let ([cmp (map-cmp m)])
-    (make-map (avl-delete (map-tree m) key cmp) cmp)))
+       (make-map (avl-delete (map-tree m) key cmp) cmp)))
 
 (define (avl-delete t key cmp)
   (if (avl-empty? t)
       t
       (let ([c (cmp key (avl-key t))])
-        (cond
-          [(< c 0)
-           (avl-balance (avl-new-node (avl-key t) (avl-value t)
-                                      (avl-delete (avl-left t) key cmp)
-                                      (avl-right t)))]
-          [(> c 0)
-           (avl-balance (avl-new-node (avl-key t) (avl-value t)
-                                      (avl-left t)
-                                      (avl-delete (avl-right t) key cmp)))]
-          [else
-           ;; Found it
            (cond
-             [(avl-empty? (avl-left t)) (avl-right t)]
-             [(avl-empty? (avl-right t)) (avl-left t)]
-             [else
-              ;; Two children - replace with minimum of right subtree
-              (let* ([min-node (avl-min-node (avl-right t))]
-                     [min-key (avl-key min-node)]
-                     [min-val (avl-value min-node)])
-                (avl-balance (avl-new-node min-key min-val
-                                           (avl-left t)
-                                           (avl-delete (avl-right t) min-key cmp))))])]))))
+            [(< c 0)
+             (avl-balance (avl-new-node (avl-key t) (avl-value t)
+                                        (avl-delete (avl-left t) key cmp)
+                                        (avl-right t)))]
+            [(> c 0)
+             (avl-balance (avl-new-node (avl-key t) (avl-value t)
+                                        (avl-left t)
+                                        (avl-delete (avl-right t) key cmp)))]
+            [else
+             ;; Found it
+             (cond
+              [(avl-empty? (avl-left t)) (avl-right t)]
+              [(avl-empty? (avl-right t)) (avl-left t)]
+              [else
+               ;; Two children - replace with minimum of right subtree
+               (let* ([min-node (avl-min-node (avl-right t))]
+                      [min-key (avl-key min-node)]
+                      [min-val (avl-value min-node)])
+                     (avl-balance (avl-new-node min-key min-val
+                                                (avl-left t)
+                                                (avl-delete (avl-right t) min-key cmp))))])]))))
 
 ;;; Find minimum node
 (define (avl-min-node t)
@@ -228,10 +228,10 @@
   (if (avl-empty? t)
       nothing
       (let ([c (cmp key (avl-key t))])
-        (cond
-          [(= c 0) (just (avl-value t))]
-          [(< c 0) (avl-lookup (avl-left t) key cmp)]
-          [else (avl-lookup (avl-right t) key cmp)]))))
+           (cond
+            [(= c 0) (just (avl-value t))]
+            [(< c 0) (avl-lookup (avl-left t) key cmp)]
+            [else (avl-lookup (avl-right t) key cmp)]))))
 
 ;;; Check if key exists - O(log n)
 (define (map-contains? m key)
@@ -240,9 +240,9 @@
 ;;; Get value with default
 (define (map-get m key default)
   (let ([result (map-lookup m key)])
-    (if (just? result)
-        (from-just result)
-        default)))
+       (if (just? result)
+           (from-just result)
+           default)))
 
 ;;; ============================================================
 ;;; Map Properties
@@ -315,8 +315,8 @@
 ;;; Partition by predicate
 (define (map-partition pred m)
   (let ([alist (map->alist m)])
-    (cons (alist->map-with (map-cmp m) (filter (lambda (p) (pred (cdr p))) alist))
-          (alist->map-with (map-cmp m) (filter (lambda (p) (not (pred (cdr p)))) alist)))))
+       (cons (alist->map-with (map-cmp m) (filter (lambda (p) (pred (cdr p))) alist))
+             (alist->map-with (map-cmp m) (filter (lambda (p) (not (pred (cdr p)))) alist)))))
 
 ;;; Fold over key-value pairs
 (define (map-fold f init m)
@@ -337,12 +337,12 @@
 ;;; Merge with combining function for conflicts
 (define (map-merge-with f m1 m2)
   (fold-left (lambda (m pair)
-               (let* ([key (car pair)]
-                      [val2 (cdr pair)]
-                      [existing (map-lookup m key)])
-                 (if (just? existing)
-                     (map-insert m key (f (from-just existing) val2))
-                     (map-insert m key val2))))
+                     (let* ([key (car pair)]
+                            [val2 (cdr pair)]
+                            [existing (map-lookup m key)])
+                           (if (just? existing)
+                               (map-insert m key (f (from-just existing) val2))
+                               (map-insert m key val2))))
              m1
              (map->alist m2)))
 
@@ -364,16 +364,16 @@
 ;;; Update value at key using function
 (define (map-update m key f)
   (let ([existing (map-lookup m key)])
-    (if (just? existing)
-        (map-insert m key (f (from-just existing)))
-        m)))
+       (if (just? existing)
+           (map-insert m key (f (from-just existing)))
+           m)))
 
 ;;; Update with default if key doesn't exist
 (define (map-update-default m key default f)
   (let ([existing (map-lookup m key)])
-    (if (just? existing)
-        (map-insert m key (f (from-just existing)))
-        (map-insert m key (f default)))))
+       (if (just? existing)
+           (map-insert m key (f (from-just existing)))
+           (map-insert m key (f default)))))
 
 ;;; Insert if absent
 (define (map-insert-if-absent m key value)
@@ -390,14 +390,14 @@
   (if (map-empty? m)
       nothing
       (let ([node (avl-min-node (map-tree m))])
-        (just (cons (avl-key node) (avl-value node))))))
+           (just (cons (avl-key node) (avl-value node))))))
 
 ;;; Get maximum key-value pair
 (define (map-max m)
   (if (map-empty? m)
       nothing
       (let ([node (avl-max-node (map-tree m))])
-        (just (cons (avl-key node) (avl-value node))))))
+           (just (cons (avl-key node) (avl-value node))))))
 
 (define (avl-max-node t)
   (if (avl-empty? (avl-right t))
@@ -407,16 +407,16 @@
 ;;; Delete minimum
 (define (map-delete-min m)
   (let ([min-pair (map-min m)])
-    (if (nothing? min-pair)
-        m
-        (map-delete m (car (from-just min-pair))))))
+       (if (nothing? min-pair)
+           m
+           (map-delete m (car (from-just min-pair))))))
 
 ;;; Delete maximum
 (define (map-delete-max m)
   (let ([max-pair (map-max m)])
-    (if (nothing? max-pair)
-        m
-        (map-delete m (car (from-just max-pair))))))
+       (if (nothing? max-pair)
+           m
+           (map-delete m (car (from-just max-pair))))))
 
 ;;; ============================================================
 ;;; Quantifiers
@@ -437,10 +437,10 @@
 ;;; Find first key-value satisfying predicate
 (define (map-find pred m)
   (let loop ([alist (map->alist m)])
-    (cond
-      [(null? alist) nothing]
-      [(pred (caar alist) (cdar alist)) (just (car alist))]
-      [else (loop (cdr alist))])))
+       (cond
+        [(null? alist) nothing]
+        [(pred (caar alist) (cdar alist)) (just (car alist))]
+        [else (loop (cdr alist))])))
 
 ;;; ============================================================
 ;;; Inversion
@@ -459,16 +459,16 @@
 ;;; Group list by key function
 (define (group-by key-fn lst)
   (fold-left (lambda (m x)
-               (let* ([key (key-fn x)]
-                      [existing (map-get m key '())])
-                 (map-insert m key (cons x existing))))
+                     (let* ([key (key-fn x)]
+                            [existing (map-get m key '())])
+                           (map-insert m key (cons x existing))))
              (map-empty)
              lst))
 
 ;;; Count occurrences
 (define (frequencies lst)
   (fold-left (lambda (m x)
-               (map-update-default m x 0 (lambda (n) (+ n 1))))
+                     (map-update-default m x 0 (lambda (n) (+ n 1))))
              (map-empty)
              lst))
 
@@ -478,15 +478,15 @@
 
 (define (map->string m)
   (let ([alist (map->alist m)])
-    (string-append "{"
-                   (fold-left (lambda (acc pair)
-                                (let ([entry (format "~a: ~a" (car pair) (cdr pair))])
-                                  (if (string=? acc "")
-                                      entry
-                                      (string-append acc ", " entry))))
-                              ""
-                              alist)
-                   "}")))
+       (string-append "{"
+                      (fold-left (lambda (acc pair)
+                                         (let ([entry (format "~a: ~a" (car pair) (cdr pair))])
+                                              (if (string=? acc "")
+                                                  entry
+                                                  (string-append acc ", " entry))))
+                                 ""
+                                 alist)
+                      "}")))
 
 ;;; ============================================================
 ;;; Comparison

@@ -29,8 +29,8 @@
 ;;;   extend extract         = id
 ;;;   extend f . extend g    = extend (f . extend g)
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Identity Comonad
@@ -121,14 +121,14 @@
 ;;; Apply a function at all positions.
 (define (store-extend f s)
   (make-store (lambda (pos)
-                (f (make-store (store-peek s) pos)))
+                      (f (make-store (store-peek s) pos)))
               (store-pos s)))
 
 ;;; store-duplicate : Store s a -> Store s (Store s a)
 ;;; Create nested store.
 (define (store-duplicate s)
   (make-store (lambda (pos)
-                (make-store (store-peek s) pos))
+                      (make-store (store-peek s) pos))
               (store-pos s)))
 
 ;;; store-seek : s -> Store s a -> Store s a
@@ -304,19 +304,19 @@
 (define (zipper-extend f z)
   (define (go-left z result)
     (let ([mz (zipper-move-left z)])
-      (if (nothing? mz)
-          result
-          (let ([z2 (from-just mz)])
-            (go-left z2 (cons (f z2) result))))))
+         (if (nothing? mz)
+             result
+             (let ([z2 (from-just mz)])
+                  (go-left z2 (cons (f z2) result))))))
   (define (go-right z result)
     (let ([mz (zipper-move-right z)])
-      (if (nothing? mz)
-          result
-          (let ([z2 (from-just mz)])
-            (go-right z2 (cons (f z2) result))))))
+         (if (nothing? mz)
+             result
+             (let ([z2 (from-just mz)])
+                  (go-right z2 (cons (f z2) result))))))
   (let* ([left-values (go-left z '())]
          [right-values (reverse (go-right z '()))])
-    (make-zipper left-values (f z) right-values)))
+        (make-zipper left-values (f z) right-values)))
 
 ;;; zipper-duplicate : Zipper a -> Zipper (Zipper a)
 ;;; Create zipper of all positions.
@@ -354,8 +354,8 @@
 ;;; Apply function to shifted versions.
 (define (traced-extend m-append f t)
   (make-traced (lambda (m1)
-                 (f (make-traced (lambda (m2)
-                                   (run-traced t (m-append m1 m2))))))))
+                       (f (make-traced (lambda (m2)
+                                               (run-traced t (m-append m1 m2))))))))
 
 ;;; traced-duplicate : (m -> m -> m) -> Traced m a -> Traced m (Traced m a)
 (define (traced-duplicate m-append t)
@@ -365,7 +365,7 @@
 ;;; Expose the trace alongside the value.
 (define (traced-listen m-append m-empty t)
   (make-traced (lambda (m)
-                 (cons (run-traced t m) m))))
+                       (cons (run-traced t m) m))))
 
 ;;; ============================================================
 ;;; Comonad Combinators
@@ -395,13 +395,13 @@
   (if (null? ws)
       (extend (lambda (_) '()) (car ws))  ; Need at least one
       (let ([combine (lambda (w acc)
-                       (extend (lambda (wa)
-                                 (cons (extract wa) (extract acc)))
-                               w))])
-        (fold-right combine
-                    (extend (lambda (wa) (list (extract wa)))
-                            (car (reverse ws)))
-                    (cdr (reverse ws))))))
+                             (extend (lambda (wa)
+                                             (cons (extract wa) (extract acc)))
+                                     w))])
+           (fold-right combine
+                       (extend (lambda (wa) (list (extract wa)))
+                               (car (reverse ws)))
+                       (cdr (reverse ws))))))
 
 ;;; ============================================================
 ;;; Comonad Transformers
@@ -429,8 +429,8 @@
 (define (env-t-extend w-extend w-extract f et)
   (make-env-t
    (w-extend (lambda (wea)
-               (let ([e (car (w-extract wea))])
-                 (cons e (f (make-env-t wea)))))
+                     (let ([e (car (w-extract wea))])
+                          (cons e (f (make-env-t wea)))))
              (run-env-t et))))
 
 ;;; ============================================================
@@ -441,11 +441,11 @@
 ;;; Calculate moving average over a window.
 (define (moving-average window-size)
   (lambda (s)
-    (stream-extend
-     (lambda (stream)
-       (let ([values (stream-take window-size stream)])
-         (/ (apply + values) window-size)))
-     s)))
+          (stream-extend
+           (lambda (stream)
+                   (let ([values (stream-take window-size stream)])
+                        (/ (apply + values) window-size)))
+           s)))
 
 ;;; cellular-rule : (a -> a -> a -> a) -> Zipper a -> a
 ;;; Generic cellular automaton rule.
@@ -456,7 +456,7 @@
          [right-val (if (null? (zipper-right z))
                         (zipper-focus z)
                         (car (zipper-right z)))])
-    (rule left-val (zipper-focus z) right-val)))
+        (rule left-val (zipper-focus z) right-val)))
 
 ;;; cellular-step : (a -> a -> a -> a) -> Zipper a -> Zipper a
 ;;; One step of cellular automaton.

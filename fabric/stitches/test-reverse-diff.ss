@@ -1,7 +1,7 @@
 ;;; fabric/stitches/test-reverse-diff.ss — Tests for Reverse Mode Autodiff
 
-(load "test-framework.ss")
-(load "reverse-diff.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/reverse-diff.ss")
 
 ;;; Local helper for numeric comparison with tolerance
 (define (assert-= actual expected tolerance)

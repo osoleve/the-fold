@@ -9,8 +9,8 @@
 
 ;;; NOTE: Run from fabric/stitches directory
 
-(load "test-framework.ss")
-(load "fp/quickcheck.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/fp/quickcheck.ss")
 
 (display "
 ")

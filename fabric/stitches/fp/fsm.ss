@@ -14,8 +14,8 @@
 ;;;
 ;;; This module builds on combinators.ss for Maybe type and basic combinators.
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Finite State Machine Types

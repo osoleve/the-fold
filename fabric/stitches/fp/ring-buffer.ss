@@ -13,8 +13,8 @@
 ;;;
 ;;; This module builds on prelude.ss and combinators.ss.
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Ring Buffer Type
@@ -65,9 +65,9 @@
         [front (rb-front rb)]
         [back (rb-back rb)]
         [size (rb-size rb)])
-    (if (and (null? front) (not (null? back)))
-        (make-rb cap (reverse back) '() size)
-        rb)))
+       (if (and (null? front) (not (null? back)))
+           (make-rb cap (reverse back) '() size)
+           rb)))
 
 ;;; ============================================================
 ;;; Push Operations
@@ -80,14 +80,14 @@
          [front (rb-front rb)]
          [back (rb-back rb)]
          [size (rb-size rb)])
-    (if (< size cap)
-        ;; Room available
-        (make-rb cap front (cons x back) (+ size 1))
-        ;; Buffer full - drop oldest (from front)
-        (let ([balanced (rb-rebalance rb)])
-          (let* ([new-front (cdr (rb-front balanced))]
-                 [new-back (cons x (rb-back balanced))])
-            (rb-rebalance (make-rb cap new-front new-back size)))))))
+        (if (< size cap)
+            ;; Room available
+            (make-rb cap front (cons x back) (+ size 1))
+            ;; Buffer full - drop oldest (from front)
+            (let ([balanced (rb-rebalance rb)])
+                 (let* ([new-front (cdr (rb-front balanced))]
+                        [new-back (cons x (rb-back balanced))])
+                       (rb-rebalance (make-rb cap new-front new-back size)))))))
 
 ;;; Push to front (oldest position) - O(1)
 (define (rb-push-front rb x)
@@ -95,17 +95,17 @@
          [front (rb-front rb)]
          [back (rb-back rb)]
          [size (rb-size rb)])
-    (if (< size cap)
-        ;; Room available
-        (make-rb cap (cons x front) back (+ size 1))
-        ;; Buffer full - drop newest (from back)
-        (let* ([new-back (if (null? back)
-                            (cdr (reverse front))
-                            (cdr back))]
-               [new-front (if (null? back)
-                             (cons x '())
-                             (cons x front))])
-          (make-rb cap new-front new-back size)))))
+        (if (< size cap)
+            ;; Room available
+            (make-rb cap (cons x front) back (+ size 1))
+            ;; Buffer full - drop newest (from back)
+            (let* ([new-back (if (null? back)
+                                 (cdr (reverse front))
+                                 (cdr back))]
+                   [new-front (if (null? back)
+                                  (cons x '())
+                                  (cons x front))])
+                  (make-rb cap new-front new-back size)))))
 
 ;;; Push without overflow (returns nothing if full)
 (define (rb-push-back-safe rb x)
@@ -122,12 +122,12 @@
   (if (rb-empty? rb)
       #f
       (let ([balanced (rb-rebalance rb)])
-        (let ([front (rb-front balanced)]
-              [back (rb-back balanced)]
-              [cap (rb-capacity balanced)]
-              [size (rb-size balanced)])
-          (cons (car front)
-                (make-rb cap (cdr front) back (- size 1)))))))
+           (let ([front (rb-front balanced)]
+                 [back (rb-back balanced)]
+                 [cap (rb-capacity balanced)]
+                 [size (rb-size balanced)])
+                (cons (car front)
+                      (make-rb cap (cdr front) back (- size 1)))))))
 
 ;;; Pop from back (newest element) - O(1) amortized
 (define (rb-pop-back rb)
@@ -137,14 +137,14 @@
             [back (rb-back rb)]
             [cap (rb-capacity rb)]
             [size (rb-size rb)])
-        (if (null? back)
-            ;; Need to get from front (reversed)
-            (let ([rev-front (reverse front)])
-              (cons (car rev-front)
-                    (make-rb cap (reverse (cdr rev-front)) '() (- size 1))))
-            ;; Pop from back directly
-            (cons (car back)
-                  (make-rb cap front (cdr back) (- size 1)))))))
+           (if (null? back)
+               ;; Need to get from front (reversed)
+               (let ([rev-front (reverse front)])
+                    (cons (car rev-front)
+                          (make-rb cap (reverse (cdr rev-front)) '() (- size 1))))
+               ;; Pop from back directly
+               (cons (car back)
+                     (make-rb cap front (cdr back) (- size 1)))))))
 
 ;;; ============================================================
 ;;; Peek Operations
@@ -155,16 +155,16 @@
   (if (rb-empty? rb)
       nothing
       (let ([balanced (rb-rebalance rb)])
-        (just (car (rb-front balanced))))))
+           (just (car (rb-front balanced))))))
 
 ;;; Peek back (newest) - O(1) amortized
 (define (rb-peek-back rb)
   (if (rb-empty? rb)
       nothing
       (let ([back (rb-back rb)])
-        (if (null? back)
-            (just (car (reverse (rb-front rb))))
-            (just (car back))))))
+           (if (null? back)
+               (just (car (reverse (rb-front rb))))
+               (just (car back))))))
 
 ;;; ============================================================
 ;;; Rotation Operations
@@ -175,14 +175,14 @@
   (if (rb-empty? rb)
       rb
       (let ([result (rb-pop-front rb)])
-        (rb-push-back (cdr result) (car result)))))
+           (rb-push-back (cdr result) (car result)))))
 
 ;;; Rotate right: move back to front - O(1) amortized
 (define (rb-rotate-right rb)
   (if (rb-empty? rb)
       rb
       (let ([result (rb-pop-back rb)])
-        (rb-push-front (cdr result) (car result)))))
+           (rb-push-front (cdr result) (car result)))))
 
 ;;; Rotate left n times
 (define (rb-rotate-left-n rb n)
@@ -204,7 +204,7 @@
 (define (list->ring-buffer cap lst)
   (let* ([truncated (take-n cap lst)]
          [len (length truncated)])
-    (make-rb cap truncated '() len)))
+        (make-rb cap truncated '() len)))
 
 ;;; Helper: take up to n elements
 (define (take-n n lst)
@@ -215,7 +215,7 @@
 ;;; Convert ring buffer to list (front to back order)
 (define (ring-buffer->list rb)
   (let ([balanced (rb-rebalance rb)])
-    (append (rb-front balanced) (reverse (rb-back balanced)))))
+       (append (rb-front balanced) (reverse (rb-back balanced)))))
 
 ;;; ============================================================
 ;;; Index Operations
@@ -224,20 +224,20 @@
 ;;; Get element at index (0 = front/oldest)
 (define (rb-ref rb i)
   (let ([lst (ring-buffer->list rb)])
-    (if (and (>= i 0) (< i (length lst)))
-        (just (list-ref lst i))
-        nothing)))
+       (if (and (>= i 0) (< i (length lst)))
+           (just (list-ref lst i))
+           nothing)))
 
 ;;; Set element at index
 (define (rb-set rb i x)
   (let* ([lst (ring-buffer->list rb)]
          [len (length lst)])
-    (if (and (>= i 0) (< i len))
-        (list->ring-buffer (rb-capacity rb)
-                           (append (take-n i lst)
-                                   (list x)
-                                   (drop-n (+ i 1) lst)))
-        rb)))
+        (if (and (>= i 0) (< i len))
+            (list->ring-buffer (rb-capacity rb)
+                               (append (take-n i lst)
+                                       (list x)
+                                       (drop-n (+ i 1) lst)))
+            rb)))
 
 ;;; Helper: drop first n elements
 (define (drop-n n lst)
@@ -275,13 +275,13 @@
 (define (rb-slide rb x)
   (if (rb-full? rb)
       (let ([oldest (from-just (rb-peek-front rb))])
-        (cons oldest (rb-push-back rb x)))
+           (cons oldest (rb-push-back rb x)))
       (cons #f (rb-push-back rb x))))
 
 ;;; Get last n elements (most recent n)
 (define (rb-last-n rb n)
   (let ([lst (ring-buffer->list rb)])
-    (drop-n (max 0 (- (length lst) n)) lst)))
+       (drop-n (max 0 (- (length lst) n)) lst)))
 
 ;;; Get first n elements (oldest n)
 (define (rb-first-n rb n)
@@ -365,10 +365,10 @@
 ;;; Pop n elements from front
 (define (rb-pop-n rb n)
   (let loop ([rb rb] [n n] [acc '()])
-    (if (or (<= n 0) (rb-empty? rb))
-        (cons (reverse acc) rb)
-        (let ([result (rb-pop-front rb)])
-          (loop (cdr result) (- n 1) (cons (car result) acc))))))
+       (if (or (<= n 0) (rb-empty? rb))
+           (cons (reverse acc) rb)
+           (let ([result (rb-pop-front rb)])
+                (loop (cdr result) (- n 1) (cons (car result) acc))))))
 
 ;;; ============================================================
 ;;; History Buffer (specialized ring buffer)
@@ -394,18 +394,18 @@
 ;;; Go back in history
 (define (history-back h)
   (let ([result (rb-pop-back (history-buffer h))])
-    (if result
-        (list 'history (cdr result) (cons (car result) (history-future h)))
-        h)))
+       (if result
+           (list 'history (cdr result) (cons (car result) (history-future h)))
+           h)))
 
 ;;; Go forward in history
 (define (history-forward h)
   (let ([future (history-future h)])
-    (if (null? future)
-        h
-        (list 'history
-              (rb-push-back (history-buffer h) (car future))
-              (cdr future)))))
+       (if (null? future)
+           h
+           (list 'history
+                 (rb-push-back (history-buffer h) (car future))
+                 (cdr future)))))
 
 ;;; Get current item (most recent)
 (define (history-current h)

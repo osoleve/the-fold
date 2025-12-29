@@ -19,7 +19,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 
-(load "prelude.ss")
+(load "fabric/stitches/prelude.ss")
 
 ;;; ============================================================
 ;;; Environment
@@ -29,9 +29,11 @@
 ;;; Index 0 refers to (car env), index 1 to (cadr env), etc.
 
 ;;; env-empty : Env
+;;; The empty environment with no bindings.
 (define env-empty '())
 
 ;;; env-extend : Env × Symbol → Env
+;;; Extend environment with a new symbol binding.
 (define (env-extend env sym)
   (cons sym env))
 
@@ -54,6 +56,7 @@
   (normalize-with-env expr env-empty))
 
 ;;; normalize-with-env : S-expr × Env → S-expr
+;;; Convert expression to de Bruijn form using given environment.
 (define (normalize-with-env expr env)
   (cond
    ;; Symbols: look up in environment
@@ -116,6 +119,8 @@
 (define (free-vars expr)
   (free-vars-with-env expr env-empty))
 
+;;; free-vars-with-env : S-expr × Env → (List Symbol)
+;;; Collect free variables using given environment.
 (define (free-vars-with-env expr env)
   (cond
    [(symbol? expr)

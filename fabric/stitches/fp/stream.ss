@@ -17,8 +17,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Stream Type
@@ -126,11 +126,11 @@
 ;;; Step function returns nothing to end, or (just (value . new-seed)) to continue.
 (define (stream-unfold step seed)
   (let ([result (step seed)])
-    (if (nothing? result)
-        stream-nil
-        (let ([pair (from-just result)])
-          (stream-cons (car pair)
-                       (lambda () (stream-unfold step (cdr pair))))))))
+       (if (nothing? result)
+           stream-nil
+           (let ([pair (from-just result)])
+                (stream-cons (car pair)
+                             (lambda () (stream-unfold step (cdr pair))))))))
 
 ;;; ============================================================
 ;;; Stream Transformers
@@ -148,11 +148,11 @@
 ;;; Filter a stream by a predicate.
 (define (stream-filter pred s)
   (cond
-    [(stream-nil? s) stream-nil]
-    [(pred (stream-head s))
-     (stream-cons (stream-head s)
-                  (lambda () (stream-filter pred (stream-tail s))))]
-    [else (stream-filter pred (stream-tail s))]))
+   [(stream-nil? s) stream-nil]
+   [(pred (stream-head s))
+    (stream-cons (stream-head s)
+                 (lambda () (stream-filter pred (stream-tail s))))]
+   [else (stream-filter pred (stream-tail s))]))
 
 ;;; stream-take : Int -> Stream a -> Stream a
 ;;; Take the first n elements.
@@ -175,17 +175,17 @@
   (if (stream-nil? s)
       stream-nil
       (let ([h (stream-head s)])
-        (if (pred h)
-            (stream-cons h (lambda () (stream-take-while pred (stream-tail s))))
-            stream-nil))))
+           (if (pred h)
+               (stream-cons h (lambda () (stream-take-while pred (stream-tail s))))
+               stream-nil))))
 
 ;;; stream-drop-while : (a -> Boolean) -> Stream a -> Stream a
 ;;; Drop elements while predicate holds.
 (define (stream-drop-while pred s)
   (cond
-    [(stream-nil? s) stream-nil]
-    [(pred (stream-head s)) (stream-drop-while pred (stream-tail s))]
-    [else s]))
+   [(stream-nil? s) stream-nil]
+   [(pred (stream-head s)) (stream-drop-while pred (stream-tail s))]
+   [else s]))
 
 ;;; stream-nth : Int -> Stream a -> a
 ;;; Get the nth element (0-indexed).
@@ -197,9 +197,9 @@
 (define (stream-scan f init s)
   (stream-cons init
                (lambda ()
-                 (if (stream-nil? s)
-                     stream-nil
-                     (stream-scan f (f init (stream-head s)) (stream-tail s))))))
+                       (if (stream-nil? s)
+                           stream-nil
+                           (stream-scan f (f init (stream-head s)) (stream-tail s))))))
 
 ;;; stream-concat : Stream a -> Stream a -> Stream a
 ;;; Concatenate two streams (second stream is only accessed when first ends).
@@ -215,13 +215,13 @@
   (if (stream-nil? ss)
       stream-nil
       (let ([head (stream-head ss)])
-        (if (stream-nil? head)
-            (stream-flatten (stream-tail ss))
-            (stream-cons (stream-head head)
-                         (lambda ()
-                           (stream-flatten
-                            (stream-cons (stream-tail head)
-                                         (lambda () (stream-tail ss))))))))))
+           (if (stream-nil? head)
+               (stream-flatten (stream-tail ss))
+               (stream-cons (stream-head head)
+                            (lambda ()
+                                    (stream-flatten
+                                     (stream-cons (stream-tail head)
+                                                  (lambda () (stream-tail ss))))))))))
 
 ;;; stream-flatmap : (a -> Stream b) -> Stream a -> Stream b
 ;;; Map and flatten.
@@ -261,14 +261,14 @@
 ;;; pred should return #t if first arg should come before second.
 (define (stream-merge pred s1 s2)
   (cond
-    [(stream-nil? s1) s2]
-    [(stream-nil? s2) s1]
-    [else
-     (let ([h1 (stream-head s1)]
-           [h2 (stream-head s2)])
-       (if (pred h1 h2)
-           (stream-cons h1 (lambda () (stream-merge pred (stream-tail s1) s2)))
-           (stream-cons h2 (lambda () (stream-merge pred s1 (stream-tail s2))))))]))
+   [(stream-nil? s1) s2]
+   [(stream-nil? s2) s1]
+   [else
+    (let ([h1 (stream-head s1)]
+          [h2 (stream-head s2)])
+         (if (pred h1 h2)
+             (stream-cons h1 (lambda () (stream-merge pred (stream-tail s1) s2)))
+             (stream-cons h2 (lambda () (stream-merge pred s1 (stream-tail s2))))))]))
 
 ;;; ============================================================
 ;;; Stream Folds
@@ -285,28 +285,28 @@
 ;;; Check if any of first n elements satisfies predicate.
 (define (stream-any pred n s)
   (cond
-    [(<= n 0) #f]
-    [(stream-nil? s) #f]
-    [(pred (stream-head s)) #t]
-    [else (stream-any pred (- n 1) (stream-tail s))]))
+   [(<= n 0) #f]
+   [(stream-nil? s) #f]
+   [(pred (stream-head s)) #t]
+   [else (stream-any pred (- n 1) (stream-tail s))]))
 
 ;;; stream-all : (a -> Boolean) -> Int -> Stream a -> Boolean
 ;;; Check if all of first n elements satisfy predicate.
 (define (stream-all pred n s)
   (cond
-    [(<= n 0) #t]
-    [(stream-nil? s) #t]
-    [(not (pred (stream-head s))) #f]
-    [else (stream-all pred (- n 1) (stream-tail s))]))
+   [(<= n 0) #t]
+   [(stream-nil? s) #t]
+   [(not (pred (stream-head s))) #f]
+   [else (stream-all pred (- n 1) (stream-tail s))]))
 
 ;;; stream-find : (a -> Boolean) -> Int -> Stream a -> Maybe a
 ;;; Find first element matching predicate within n elements.
 (define (stream-find pred n s)
   (cond
-    [(<= n 0) nothing]
-    [(stream-nil? s) nothing]
-    [(pred (stream-head s)) (just (stream-head s))]
-    [else (stream-find pred (- n 1) (stream-tail s))]))
+   [(<= n 0) nothing]
+   [(stream-nil? s) nothing]
+   [(pred (stream-head s)) (just (stream-head s))]
+   [else (stream-find pred (- n 1) (stream-tail s))]))
 
 ;;; ============================================================
 ;;; Memoized Streams
@@ -319,15 +319,15 @@
 (define (memo-stream-cons head tail-thunk)
   (let ([cached #f]
         [computed #f])
-    (list 'memo-stream-cons
-          head
-          (lambda ()
-            (if computed
-                cached
-                (begin
-                  (set! cached (tail-thunk))
-                  (set! computed #t)
-                  cached))))))
+       (list 'memo-stream-cons
+             head
+             (lambda ()
+                     (if computed
+                         cached
+                         (begin
+                          (set! cached (tail-thunk))
+                          (set! computed #t)
+                          cached))))))
 
 ;;; memo-stream? : Any -> Boolean
 (define (memo-stream? s)
@@ -346,8 +346,8 @@
   (if (or (<= n 0) (stream-nil? s))
       (void)
       (begin
-        (stream-head s)  ; force head
-        (stream-force-helper (- n 1) (stream-tail s)))))
+       (stream-head s)  ; force head
+       (stream-force-helper (- n 1) (stream-tail s)))))
 
 ;;; ============================================================
 ;;; Classic Streams
@@ -357,20 +357,20 @@
 ;;; The Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, ...
 (define fibonacci
   (letrec ([fibs (lambda (a b)
-                   (stream-cons a (lambda () (fibs b (+ a b)))))])
-    (fibs 0 1)))
+                         (stream-cons a (lambda () (fibs b (+ a b)))))])
+          (fibs 0 1)))
 
 ;;; primes : Stream Int
 ;;; Prime numbers using sieve of Eratosthenes.
 (define primes
   (letrec ([sieve (lambda (s)
-                    (let ([p (stream-head s)])
-                      (stream-cons p
-                                   (lambda ()
-                                     (sieve (stream-filter
-                                             (lambda (n) (not (= 0 (modulo n p))))
-                                             (stream-tail s)))))))])
-    (sieve (stream-from 2))))
+                          (let ([p (stream-head s)])
+                               (stream-cons p
+                                            (lambda ()
+                                                    (sieve (stream-filter
+                                                            (lambda (n) (not (= 0 (modulo n p))))
+                                                            (stream-tail s)))))))])
+          (sieve (stream-from 2))))
 
 ;;; powers-of : Int -> Stream Int
 ;;; Powers of n: 1, n, n^2, n^3, ...
@@ -398,21 +398,21 @@
 ;;; Generator returns nothing when exhausted, or (just value) to continue.
 (define (make-generator gen)
   (let ([result (gen)])
-    (if (nothing? result)
-        stream-nil
-        (stream-cons (from-just result)
-                     (lambda () (make-generator gen))))))
+       (if (nothing? result)
+           stream-nil
+           (stream-cons (from-just result)
+                        (lambda () (make-generator gen))))))
 
 ;;; counter-generator : Int -> Int -> (() -> Maybe Int)
 ;;; Create a generator that counts from start up to (not including) end.
 (define (counter-generator start end)
   (let ([current start])
-    (lambda ()
-      (if (>= current end)
-          nothing
-          (let ([val current])
-            (set! current (+ current 1))
-            (just val))))))
+       (lambda ()
+               (if (>= current end)
+                   nothing
+                   (let ([val current])
+                        (set! current (+ current 1))
+                        (just val))))))
 
 ;;; random-stream : Int -> Int -> Int -> Stream Int
 ;;; Pseudo-random number stream using linear congruential generator.
@@ -449,9 +449,9 @@
   (if (stream-nil? s)
       (stream-cons prev (lambda () stream-nil))
       (let ([h (stream-head s)])
-        (if (equal? h prev)
-            (stream-distinct-helper prev (stream-tail s))
-            (stream-cons prev (lambda () (stream-distinct-helper h (stream-tail s))))))))
+           (if (equal? h prev)
+               (stream-distinct-helper prev (stream-tail s))
+               (stream-cons prev (lambda () (stream-distinct-helper h (stream-tail s))))))))
 
 ;;; stream-enumerate : Stream a -> Stream (Int . a)
 ;;; Pair each element with its index.

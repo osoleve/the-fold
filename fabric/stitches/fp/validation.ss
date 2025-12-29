@@ -22,8 +22,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Validation Type
@@ -359,7 +359,8 @@
       (let ([errors (from-failure v)])
            (apply string-append
                   (map (lambda (e)
-                               (string-append "- " (if (string? e) e (format "~a" e)) "\n"))
+                               (string-append "- " (if (string? e) e (format "~a" e)) "
+"))
                        errors)))))
 
 ;;; with-field-prefix : Symbol -> Validation e a -> Validation (Symbol . e) a

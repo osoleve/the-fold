@@ -16,9 +16,9 @@
 ;;;   - vec2.ss
 ;;;   - physics-2d/integrators.ss (for Body2D)
 
-(load "prelude.ss")
-(load "vec2.ss")
-(load "physics-2d/integrators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/vec2.ss")
+(load "fabric/stitches/physics-2d/integrators.ss")
 
 ;;; ============================================================
 ;;; Collision Manifold

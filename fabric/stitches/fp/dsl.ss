@@ -18,9 +18,9 @@
 ;;;   - fp/free.ss
 ;;;   - fp/effects.ss
 
-(load "prelude.ss")
-(load "fp/free.ss")
-(load "fp/effects.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/free.ss")
+(load "fabric/stitches/fp/effects.ss")
 
 ;;; ============================================================
 ;;; Command/Instruction Definitions
@@ -122,19 +122,19 @@
 ;;; Run a DSL program with an interpreter.
 (define (run-dsl interp program)
   (let ([handler (interpreter-handler interp)])
-    (run-dsl-helper handler program)))
+       (run-dsl-helper handler program)))
 
 (define (run-dsl-helper handler program)
   (cond
-    [(pure-free? program)
-     (from-pure-free program)]
-    [(free-suspended? program)
-     (let* ([instr (from-free program)]
-            [tag (instruction-tag instr)]
-            [payload (instruction-payload instr)]
-            [cont (instruction-cont instr)]
-            [result (handler tag payload)])
-       (run-dsl-helper handler (cont result)))]))
+   [(pure-free? program)
+    (from-pure-free program)]
+   [(free-suspended? program)
+    (let* ([instr (from-free program)]
+           [tag (instruction-tag instr)]
+           [payload (instruction-payload instr)]
+           [cont (instruction-cont instr)]
+           [result (handler tag payload)])
+          (run-dsl-helper handler (cont result)))]))
 
 ;;; ============================================================
 ;;; Effectful Interpreter
@@ -146,16 +146,16 @@
 ;;; Run DSL with effectful interpreter.
 (define (run-dsl-eff handler program)
   (cond
-    [(pure-free? program)
-     (eff-return (from-pure-free program))]
-    [(free-suspended? program)
-     (let* ([instr (from-free program)]
-            [tag (instruction-tag instr)]
-            [payload (instruction-payload instr)]
-            [cont (instruction-cont instr)])
-       (eff-bind (handler tag payload)
-                 (lambda (result)
-                   (run-dsl-eff handler (cont result)))))]))
+   [(pure-free? program)
+    (eff-return (from-pure-free program))]
+   [(free-suspended? program)
+    (let* ([instr (from-free program)]
+           [tag (instruction-tag instr)]
+           [payload (instruction-payload instr)]
+           [cont (instruction-cont instr)])
+          (eff-bind (handler tag payload)
+                    (lambda (result)
+                            (run-dsl-eff handler (cont result)))))]))
 
 ;;; ============================================================
 ;;; Interpreter Composition
@@ -166,10 +166,10 @@
 (define (layered-interpreter handlers)
   (make-interpreter
    (lambda (tag payload)
-     (let ([handler-pair (assoc tag handlers)])
-       (if handler-pair
-           ((cdr handler-pair) payload)
-           (error 'layered-interpreter "Unhandled instruction" tag))))))
+           (let ([handler-pair (assoc tag handlers)])
+                (if handler-pair
+                    ((cdr handler-pair) payload)
+                    (error 'layered-interpreter "Unhandled instruction" tag))))))
 
 ;;; ============================================================
 ;;; Expression DSL Builder
@@ -246,67 +246,67 @@
 ;;; Evaluate an expression in an environment.
 (define (eval-expr env expr)
   (cond
-    [(expr-lit? expr)
-     (expr-lit-value expr)]
-    [(expr-var? expr)
-     (let ([binding (assoc (expr-var-name expr) env)])
-       (if binding
-           (cdr binding)
-           (error 'eval-expr "Unbound variable" (expr-var-name expr))))]
-    [(expr-binop? expr)
-     (let ([op (expr-binop-op expr)]
-           [left (eval-expr env (expr-binop-left expr))]
-           [right (eval-expr env (expr-binop-right expr))])
-       (apply-binop op left right))]
-    [(expr-unop? expr)
-     (let ([op (expr-unop-op expr)]
-           [operand (eval-expr env (expr-unop-operand expr))])
-       (apply-unop op operand))]
-    [(expr-if? expr)
-     (if (eval-expr env (expr-if-cond expr))
-         (eval-expr env (expr-if-then expr))
-         (eval-expr env (expr-if-else expr)))]
-    [(expr-let? expr)
-     (let* ([name (expr-let-name expr)]
-            [value (eval-expr env (expr-let-value expr))]
-            [new-env (cons (cons name value) env)])
-       (eval-expr new-env (expr-let-body expr)))]
-    [(expr-lambda? expr)
-     (list 'closure (expr-lambda-params expr) (expr-lambda-body expr) env)]
-    [(expr-app? expr)
-     (let ([fn (eval-expr env (expr-app-fn expr))]
-           [args (map (lambda (a) (eval-expr env a)) (expr-app-args expr))])
-       (apply-closure fn args))]
-    [else
-     (error 'eval-expr "Unknown expression type" expr)]))
+   [(expr-lit? expr)
+    (expr-lit-value expr)]
+   [(expr-var? expr)
+    (let ([binding (assoc (expr-var-name expr) env)])
+         (if binding
+             (cdr binding)
+             (error 'eval-expr "Unbound variable" (expr-var-name expr))))]
+   [(expr-binop? expr)
+    (let ([op (expr-binop-op expr)]
+          [left (eval-expr env (expr-binop-left expr))]
+          [right (eval-expr env (expr-binop-right expr))])
+         (apply-binop op left right))]
+   [(expr-unop? expr)
+    (let ([op (expr-unop-op expr)]
+          [operand (eval-expr env (expr-unop-operand expr))])
+         (apply-unop op operand))]
+   [(expr-if? expr)
+    (if (eval-expr env (expr-if-cond expr))
+        (eval-expr env (expr-if-then expr))
+        (eval-expr env (expr-if-else expr)))]
+   [(expr-let? expr)
+    (let* ([name (expr-let-name expr)]
+           [value (eval-expr env (expr-let-value expr))]
+           [new-env (cons (cons name value) env)])
+          (eval-expr new-env (expr-let-body expr)))]
+   [(expr-lambda? expr)
+    (list 'closure (expr-lambda-params expr) (expr-lambda-body expr) env)]
+   [(expr-app? expr)
+    (let ([fn (eval-expr env (expr-app-fn expr))]
+          [args (map (lambda (a) (eval-expr env a)) (expr-app-args expr))])
+         (apply-closure fn args))]
+   [else
+    (error 'eval-expr "Unknown expression type" expr)]))
 
 ;;; apply-binop : Symbol -> Value -> Value -> Value
 (define (apply-binop op left right)
   (case op
-    [(+) (+ left right)]
-    [(-) (- left right)]
-    [(*) (* left right)]
-    [(/) (/ left right)]
-    [(%) (modulo left right)]
-    [(=) (= left right)]
-    [(<) (< left right)]
-    [(>) (> left right)]
-    [(<=) (<= left right)]
-    [(>=) (>= left right)]
-    [(and) (and left right)]
-    [(or) (or left right)]
-    [(cons) (cons left right)]
-    [else (error 'apply-binop "Unknown operator" op)]))
+        [(+) (+ left right)]
+        [(-) (- left right)]
+        [(*) (* left right)]
+        [(/) (/ left right)]
+        [(%) (modulo left right)]
+        [(=) (= left right)]
+        [(<) (< left right)]
+        [(>) (> left right)]
+        [(<=) (<= left right)]
+        [(>=) (>= left right)]
+        [(and) (and left right)]
+        [(or) (or left right)]
+        [(cons) (cons left right)]
+        [else (error 'apply-binop "Unknown operator" op)]))
 
 ;;; apply-unop : Symbol -> Value -> Value
 (define (apply-unop op operand)
   (case op
-    [(not) (not operand)]
-    [(neg) (- operand)]
-    [(car) (car operand)]
-    [(cdr) (cdr operand)]
-    [(null?) (null? operand)]
-    [else (error 'apply-unop "Unknown operator" op)]))
+        [(not) (not operand)]
+        [(neg) (- operand)]
+        [(car) (car operand)]
+        [(cdr) (cdr operand)]
+        [(null?) (null? operand)]
+        [else (error 'apply-unop "Unknown operator" op)]))
 
 ;;; apply-closure : Closure -> List Value -> Value
 (define (apply-closure closure args)
@@ -314,8 +314,8 @@
       (let ([params (list-ref closure 1)]
             [body (list-ref closure 2)]
             [env (list-ref closure 3)])
-        (let ([new-env (append (map cons params args) env)])
-          (eval-expr new-env body)))
+           (let ([new-env (append (map cons params args) env)])
+                (eval-expr new-env body)))
       (error 'apply-closure "Not a closure" closure)))
 
 ;;; ============================================================
@@ -371,36 +371,36 @@
 ;;; Run a statement, returning updated env and optional return value.
 (define (run-stmt env stmt)
   (cond
-    [(stmt-assign? stmt)
-     (let* ([var (stmt-assign-var stmt)]
-            [val (eval-expr env (stmt-assign-expr stmt))]
-            [new-env (cons (cons var val)
-                           (filter (lambda (p) (not (eq? (car p) var))) env))])
-       (cons new-env nothing))]
-    [(stmt-seq? stmt)
-     (run-stmt-seq env (stmt-seq-stmts stmt))]
-    [(stmt-if? stmt)
-     (if (eval-expr env (stmt-if-cond stmt))
-         (run-stmt env (stmt-if-then stmt))
-         (run-stmt env (stmt-if-else stmt)))]
-    [(stmt-while? stmt)
-     (run-stmt-while env (stmt-while-cond stmt) (stmt-while-body stmt) 1000)]
-    [(stmt-return? stmt)
-     (cons env (just (eval-expr env (stmt-return-expr stmt))))]
-    [(stmt-expr? stmt)
-     (eval-expr env (stmt-expr-expr stmt))
-     (cons env nothing)]
-    [else
-     (error 'run-stmt "Unknown statement type" stmt)]))
+   [(stmt-assign? stmt)
+    (let* ([var (stmt-assign-var stmt)]
+           [val (eval-expr env (stmt-assign-expr stmt))]
+           [new-env (cons (cons var val)
+                          (filter (lambda (p) (not (eq? (car p) var))) env))])
+          (cons new-env nothing))]
+   [(stmt-seq? stmt)
+    (run-stmt-seq env (stmt-seq-stmts stmt))]
+   [(stmt-if? stmt)
+    (if (eval-expr env (stmt-if-cond stmt))
+        (run-stmt env (stmt-if-then stmt))
+        (run-stmt env (stmt-if-else stmt)))]
+   [(stmt-while? stmt)
+    (run-stmt-while env (stmt-while-cond stmt) (stmt-while-body stmt) 1000)]
+   [(stmt-return? stmt)
+    (cons env (just (eval-expr env (stmt-return-expr stmt))))]
+   [(stmt-expr? stmt)
+    (eval-expr env (stmt-expr-expr stmt))
+    (cons env nothing)]
+   [else
+    (error 'run-stmt "Unknown statement type" stmt)]))
 
 ;;; run-stmt-seq : Env -> List Stmt -> (Env, Maybe Value)
 (define (run-stmt-seq env stmts)
   (if (null? stmts)
       (cons env nothing)
       (let ([result (run-stmt env (car stmts))])
-        (if (just? (cdr result))
-            result  ; Early return
-            (run-stmt-seq (car result) (cdr stmts))))))
+           (if (just? (cdr result))
+               result  ; Early return
+               (run-stmt-seq (car result) (cdr stmts))))))
 
 ;;; run-stmt-while : Env -> Expr -> Stmt -> Fuel -> (Env, Maybe Value)
 (define (run-stmt-while env cond body fuel)
@@ -408,9 +408,9 @@
       (cons env nothing)  ; Out of fuel
       (if (eval-expr env cond)
           (let ([result (run-stmt env body)])
-            (if (just? (cdr result))
-                result  ; Return in loop
-                (run-stmt-while (car result) cond body (- fuel 1))))
+               (if (just? (cdr result))
+                   result  ; Return in loop
+                   (run-stmt-while (car result) cond body (- fuel 1))))
           (cons env nothing))))
 
 ;;; ============================================================
@@ -423,9 +423,9 @@
       (dsl-pure '())
       (dsl-bind (car programs)
                 (lambda (x)
-                  (dsl-bind (dsl-sequence (cdr programs))
-                            (lambda (xs)
-                              (dsl-pure (cons x xs))))))))
+                        (dsl-bind (dsl-sequence (cdr programs))
+                                  (lambda (xs)
+                                          (dsl-pure (cons x xs))))))))
 
 ;;; dsl-for-each : (a -> DSL f ()) -> List a -> DSL f ()
 (define (dsl-for-each f lst)
@@ -433,7 +433,7 @@
       (dsl-pure '())
       (dsl-bind (f (car lst))
                 (lambda (_)
-                  (dsl-for-each f (cdr lst))))))
+                        (dsl-for-each f (cdr lst))))))
 
 ;;; dsl-fold : (b -> a -> DSL f b) -> b -> List a -> DSL f b
 (define (dsl-fold f init lst)
@@ -441,7 +441,7 @@
       (dsl-pure init)
       (dsl-bind (f init (car lst))
                 (lambda (acc)
-                  (dsl-fold f acc (cdr lst))))))
+                        (dsl-fold f acc (cdr lst))))))
 
 ;;; dsl-when : Bool -> DSL f () -> DSL f ()
 (define (dsl-when pred action)
@@ -457,9 +457,9 @@
       (dsl-pure '())
       (dsl-bind action
                 (lambda (x)
-                  (dsl-bind (dsl-replicate (- n 1) action)
-                            (lambda (xs)
-                              (dsl-pure (cons x xs))))))))
+                        (dsl-bind (dsl-replicate (- n 1) action)
+                                  (lambda (xs)
+                                          (dsl-pure (cons x xs))))))))
 
 ;;; ============================================================
 ;;; Example: Simple Calculator DSL
@@ -493,46 +493,46 @@
 ;;; Calculator interpreter (stack-based)
 (define (make-calc-interpreter)
   (let ([stack '()])
-    (make-interpreter
-     (lambda (tag payload)
-       (case tag
-         [(calc-push)
-          (set! stack (cons payload stack))
-          '()]
-         [(calc-add)
-          (let ([a (car stack)]
-                [b (cadr stack)])
-            (set! stack (cons (+ b a) (cddr stack)))
-            '())]
-         [(calc-sub)
-          (let ([a (car stack)]
-                [b (cadr stack)])
-            (set! stack (cons (- b a) (cddr stack)))
-            '())]
-         [(calc-mul)
-          (let ([a (car stack)]
-                [b (cadr stack)])
-            (set! stack (cons (* b a) (cddr stack)))
-            '())]
-         [(calc-div)
-          (let ([a (car stack)]
-                [b (cadr stack)])
-            (set! stack (cons (/ b a) (cddr stack)))
-            '())]
-         [(calc-dup)
-          (set! stack (cons (car stack) stack))
-          '()]
-         [(calc-swap)
-          (let ([a (car stack)]
-                [b (cadr stack)])
-            (set! stack (cons b (cons a (cddr stack))))
-            '())]
-         [(calc-pop)
-          (let ([top (car stack)])
-            (set! stack (cdr stack))
-            top)]
-         [else
-          (error 'calc-interpreter "Unknown instruction" tag)])))))
+       (make-interpreter
+        (lambda (tag payload)
+                (case tag
+                      [(calc-push)
+                       (set! stack (cons payload stack))
+                       '()]
+                      [(calc-add)
+                       (let ([a (car stack)]
+                             [b (cadr stack)])
+                            (set! stack (cons (+ b a) (cddr stack)))
+                            '())]
+                      [(calc-sub)
+                       (let ([a (car stack)]
+                             [b (cadr stack)])
+                            (set! stack (cons (- b a) (cddr stack)))
+                            '())]
+                      [(calc-mul)
+                       (let ([a (car stack)]
+                             [b (cadr stack)])
+                            (set! stack (cons (* b a) (cddr stack)))
+                            '())]
+                      [(calc-div)
+                       (let ([a (car stack)]
+                             [b (cadr stack)])
+                            (set! stack (cons (/ b a) (cddr stack)))
+                            '())]
+                      [(calc-dup)
+                       (set! stack (cons (car stack) stack))
+                       '()]
+                      [(calc-swap)
+                       (let ([a (car stack)]
+                             [b (cadr stack)])
+                            (set! stack (cons b (cons a (cddr stack))))
+                            '())]
+                      [(calc-pop)
+                       (let ([top (car stack)])
+                            (set! stack (cdr stack))
+                            top)]
+                      [else
+                       (error 'calc-interpreter "Unknown instruction" tag)])))))
 
 ;;; run-calc : DSL Instruction a -> a
 (define (run-calc program)
@@ -571,45 +571,45 @@
         [angle 0]
         [pen-down #t]
         [lines '()])
-    (make-interpreter
-     (lambda (tag payload)
-       (case tag
-         [(turtle-forward)
-          (let* ([dist payload]
-                 [rad (* angle (/ 3.14159265 180))]
-                 [new-x (+ x (* dist (cos rad)))]
-                 [new-y (+ y (* dist (sin rad)))])
-            (when pen-down
-              (set! lines (cons (list x y new-x new-y) lines)))
-            (set! x new-x)
-            (set! y new-y)
-            '())]
-         [(turtle-back)
-          (let* ([dist payload]
-                 [rad (* angle (/ 3.14159265 180))]
-                 [new-x (- x (* dist (cos rad)))]
-                 [new-y (- y (* dist (sin rad)))])
-            (when pen-down
-              (set! lines (cons (list x y new-x new-y) lines)))
-            (set! x new-x)
-            (set! y new-y)
-            '())]
-         [(turtle-left)
-          (set! angle (+ angle payload))
-          '()]
-         [(turtle-right)
-          (set! angle (- angle payload))
-          '()]
-         [(turtle-penup)
-          (set! pen-down #f)
-          '()]
-         [(turtle-pendown)
-          (set! pen-down #t)
-          '()]
-         [(turtle-getpos)
-          (cons x y)]
-         [else
-          (error 'turtle-interpreter "Unknown instruction")])))))
+       (make-interpreter
+        (lambda (tag payload)
+                (case tag
+                      [(turtle-forward)
+                       (let* ([dist payload]
+                              [rad (* angle (/ 3.14159265 180))]
+                              [new-x (+ x (* dist (cos rad)))]
+                              [new-y (+ y (* dist (sin rad)))])
+                             (when pen-down
+                                   (set! lines (cons (list x y new-x new-y) lines)))
+                             (set! x new-x)
+                             (set! y new-y)
+                             '())]
+                      [(turtle-back)
+                       (let* ([dist payload]
+                              [rad (* angle (/ 3.14159265 180))]
+                              [new-x (- x (* dist (cos rad)))]
+                              [new-y (- y (* dist (sin rad)))])
+                             (when pen-down
+                                   (set! lines (cons (list x y new-x new-y) lines)))
+                             (set! x new-x)
+                             (set! y new-y)
+                             '())]
+                      [(turtle-left)
+                       (set! angle (+ angle payload))
+                       '()]
+                      [(turtle-right)
+                       (set! angle (- angle payload))
+                       '()]
+                      [(turtle-penup)
+                       (set! pen-down #f)
+                       '()]
+                      [(turtle-pendown)
+                       (set! pen-down #t)
+                       '()]
+                      [(turtle-getpos)
+                       (cons x y)]
+                      [else
+                       (error 'turtle-interpreter "Unknown instruction")])))))
 
 ;;; run-turtle : DSL Instruction a -> a
 (define (run-turtle program)
@@ -645,4 +645,3 @@
 ;;;   (repeat 4
 ;;;     (dsl-bind (forward! 100)
 ;;;               (lambda (_) (right! 90)))))
-

@@ -8,8 +8,8 @@
 ;;;
 ;;; This module builds on prelude.ss and combinators.ss.
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; AVL Tree Type (Internal)
@@ -56,44 +56,44 @@
 ;;; Rotate right
 (define (avl-rotate-right t)
   (let ([l (avl-left t)])
-    (avl-new-node (avl-value l)
-                  (avl-left l)
-                  (avl-new-node (avl-value t)
-                                (avl-right l)
-                                (avl-right t)))))
+       (avl-new-node (avl-value l)
+                     (avl-left l)
+                     (avl-new-node (avl-value t)
+                                   (avl-right l)
+                                   (avl-right t)))))
 
 ;;; Rotate left
 (define (avl-rotate-left t)
   (let ([r (avl-right t)])
-    (avl-new-node (avl-value r)
-                  (avl-new-node (avl-value t)
-                                (avl-left t)
-                                (avl-left r))
-                  (avl-right r))))
+       (avl-new-node (avl-value r)
+                     (avl-new-node (avl-value t)
+                                   (avl-left t)
+                                   (avl-left r))
+                     (avl-right r))))
 
 ;;; Balance tree
 (define (avl-balance t)
   (let ([bf (avl-balance-factor t)])
-    (cond
-      ;; Left heavy
-      [(> bf 1)
-       (if (< (avl-balance-factor (avl-left t)) 0)
-           ;; Left-Right case
-           (avl-rotate-right (avl-new-node (avl-value t)
-                                           (avl-rotate-left (avl-left t))
-                                           (avl-right t)))
-           ;; Left-Left case
-           (avl-rotate-right t))]
-      ;; Right heavy
-      [(< bf -1)
-       (if (> (avl-balance-factor (avl-right t)) 0)
-           ;; Right-Left case
-           (avl-rotate-left (avl-new-node (avl-value t)
-                                          (avl-left t)
-                                          (avl-rotate-right (avl-right t))))
-           ;; Right-Right case
-           (avl-rotate-left t))]
-      [else t])))
+       (cond
+        ;; Left heavy
+        [(> bf 1)
+         (if (< (avl-balance-factor (avl-left t)) 0)
+             ;; Left-Right case
+             (avl-rotate-right (avl-new-node (avl-value t)
+                                             (avl-rotate-left (avl-left t))
+                                             (avl-right t)))
+             ;; Left-Left case
+             (avl-rotate-right t))]
+        ;; Right heavy
+        [(< bf -1)
+         (if (> (avl-balance-factor (avl-right t)) 0)
+             ;; Right-Left case
+             (avl-rotate-left (avl-new-node (avl-value t)
+                                            (avl-left t)
+                                            (avl-rotate-right (avl-right t))))
+             ;; Right-Right case
+             (avl-rotate-left t))]
+        [else t])))
 
 ;;; ============================================================
 ;;; Set Type (Wrapper around AVL tree)
@@ -126,17 +126,17 @@
 ;;; Default comparison function
 (define (default-cmp a b)
   (cond
-    [(and (number? a) (number? b))
-     (cond [(< a b) -1] [(> a b) 1] [else 0])]
-    [(and (string? a) (string? b))
-     (cond [(string<? a b) -1] [(string>? a b) 1] [else 0])]
-    [(and (symbol? a) (symbol? b))
-     (let ([sa (symbol->string a)]
-           [sb (symbol->string b)])
-       (cond [(string<? sa sb) -1] [(string>? sa sb) 1] [else 0]))]
-    [(and (char? a) (char? b))
-     (cond [(char<? a b) -1] [(char>? a b) 1] [else 0])]
-    [else 0]))  ; Fall back to equal
+   [(and (number? a) (number? b))
+    (cond [(< a b) -1] [(> a b) 1] [else 0])]
+   [(and (string? a) (string? b))
+    (cond [(string<? a b) -1] [(string>? a b) 1] [else 0])]
+   [(and (symbol? a) (symbol? b))
+    (let ([sa (symbol->string a)]
+          [sb (symbol->string b)])
+         (cond [(string<? sa sb) -1] [(string>? sa sb) 1] [else 0]))]
+   [(and (char? a) (char? b))
+    (cond [(char<? a b) -1] [(char>? a b) 1] [else 0])]
+   [else 0]))  ; Fall back to equal
 
 ;;; Create singleton set
 (define (set-singleton x)
@@ -157,53 +157,53 @@
 ;;; Insert element - O(log n)
 (define (set-insert s x)
   (let ([cmp (set-cmp s)])
-    (make-set (avl-insert (set-tree s) x cmp) cmp)))
+       (make-set (avl-insert (set-tree s) x cmp) cmp)))
 
 (define (avl-insert t x cmp)
   (cond
-    [(avl-empty? t) (make-avl 1 x avl-empty avl-empty)]
-    [else
-     (let ([c (cmp x (avl-value t))])
-       (cond
-         [(= c 0) t]  ; Already exists
-         [(< c 0)
-          (avl-balance (avl-new-node (avl-value t)
-                                     (avl-insert (avl-left t) x cmp)
-                                     (avl-right t)))]
-         [else
-          (avl-balance (avl-new-node (avl-value t)
-                                     (avl-left t)
-                                     (avl-insert (avl-right t) x cmp)))]))]))
+   [(avl-empty? t) (make-avl 1 x avl-empty avl-empty)]
+   [else
+    (let ([c (cmp x (avl-value t))])
+         (cond
+          [(= c 0) t]  ; Already exists
+          [(< c 0)
+           (avl-balance (avl-new-node (avl-value t)
+                                      (avl-insert (avl-left t) x cmp)
+                                      (avl-right t)))]
+          [else
+           (avl-balance (avl-new-node (avl-value t)
+                                      (avl-left t)
+                                      (avl-insert (avl-right t) x cmp)))]))]))
 
 ;;; Delete element - O(log n)
 (define (set-delete s x)
   (let ([cmp (set-cmp s)])
-    (make-set (avl-delete (set-tree s) x cmp) cmp)))
+       (make-set (avl-delete (set-tree s) x cmp) cmp)))
 
 (define (avl-delete t x cmp)
   (if (avl-empty? t)
       t
       (let ([c (cmp x (avl-value t))])
-        (cond
-          [(< c 0)
-           (avl-balance (avl-new-node (avl-value t)
-                                      (avl-delete (avl-left t) x cmp)
-                                      (avl-right t)))]
-          [(> c 0)
-           (avl-balance (avl-new-node (avl-value t)
-                                      (avl-left t)
-                                      (avl-delete (avl-right t) x cmp)))]
-          [else
-           ;; Found it
            (cond
-             [(avl-empty? (avl-left t)) (avl-right t)]
-             [(avl-empty? (avl-right t)) (avl-left t)]
-             [else
-              ;; Two children - replace with minimum of right subtree
-              (let ([min-val (avl-min (avl-right t))])
-                (avl-balance (avl-new-node min-val
-                                           (avl-left t)
-                                           (avl-delete (avl-right t) min-val cmp))))])]))))
+            [(< c 0)
+             (avl-balance (avl-new-node (avl-value t)
+                                        (avl-delete (avl-left t) x cmp)
+                                        (avl-right t)))]
+            [(> c 0)
+             (avl-balance (avl-new-node (avl-value t)
+                                        (avl-left t)
+                                        (avl-delete (avl-right t) x cmp)))]
+            [else
+             ;; Found it
+             (cond
+              [(avl-empty? (avl-left t)) (avl-right t)]
+              [(avl-empty? (avl-right t)) (avl-left t)]
+              [else
+               ;; Two children - replace with minimum of right subtree
+               (let ([min-val (avl-min (avl-right t))])
+                    (avl-balance (avl-new-node min-val
+                                               (avl-left t)
+                                               (avl-delete (avl-right t) min-val cmp))))])]))))
 
 ;;; Find minimum
 (define (avl-min t)
@@ -219,10 +219,10 @@
   (if (avl-empty? t)
       #f
       (let ([c (cmp x (avl-value t))])
-        (cond
-          [(= c 0) #t]
-          [(< c 0) (avl-member? (avl-left t) x cmp)]
-          [else (avl-member? (avl-right t) x cmp)]))))
+           (cond
+            [(= c 0) #t]
+            [(< c 0) (avl-member? (avl-left t) x cmp)]
+            [else (avl-member? (avl-right t) x cmp)]))))
 
 ;;; ============================================================
 ;;; Set Properties
@@ -314,8 +314,8 @@
 ;;; Partition set
 (define (set-partition pred s)
   (let ([lst (set->list s)])
-    (cons (list->set-with (set-cmp s) (filter pred lst))
-          (list->set-with (set-cmp s) (filter (lambda (x) (not (pred x))) lst)))))
+       (cons (list->set-with (set-cmp s) (filter pred lst))
+             (list->set-with (set-cmp s) (filter (lambda (x) (not (pred x))) lst)))))
 
 ;;; Fold over set (in sorted order)
 (define (set-fold f init s)
@@ -348,7 +348,7 @@
       s
       (let* ([min-val (from-just (set-min s))]
              [new-set (set-delete s min-val)])
-        new-set)))
+            new-set)))
 
 ;;; Delete maximum
 (define (set-delete-max s)
@@ -356,7 +356,7 @@
       s
       (let* ([max-val (from-just (set-max s))]
              [new-set (set-delete s max-val)])
-        new-set)))
+            new-set)))
 
 ;;; ============================================================
 ;;; Quantifiers
@@ -377,10 +377,10 @@
 ;;; Find first element satisfying predicate
 (define (set-find pred s)
   (let loop ([lst (set->list s)])
-    (cond
-      [(null? lst) nothing]
-      [(pred (car lst)) (just (car lst))]
-      [else (loop (cdr lst))])))
+       (cond
+        [(null? lst) nothing]
+        [(pred (car lst)) (just (car lst))]
+        [else (loop (cdr lst))])))
 
 ;;; ============================================================
 ;;; Display
@@ -388,14 +388,14 @@
 
 (define (set->string s)
   (let ([lst (set->list s)])
-    (string-append "{"
-                   (fold-left (lambda (acc x)
-                                (if (string=? acc "")
-                                    (format "~a" x)
-                                    (string-append acc ", " (format "~a" x))))
-                              ""
-                              lst)
-                   "}")))
+       (string-append "{"
+                      (fold-left (lambda (acc x)
+                                         (if (string=? acc "")
+                                             (format "~a" x)
+                                             (string-append acc ", " (format "~a" x))))
+                                 ""
+                                 lst)
+                      "}")))
 
 ;;; ============================================================
 ;;; Set Builders
@@ -410,9 +410,9 @@
 ;;; Build set from generator (takes n elements from generator)
 (define (set-generate n gen)
   (let loop ([i 0] [s (set-empty)])
-    (if (>= i n)
-        s
-        (loop (+ i 1) (set-insert s (gen i))))))
+       (if (>= i n)
+           s
+           (loop (+ i 1) (set-insert s (gen i))))))
 
 ;;; ============================================================
 ;;; Power Set
@@ -421,15 +421,15 @@
 ;;; Generate power set (all subsets) - O(2^n)
 (define (set-power-set s)
   (let ([lst (set->list s)])
-    (map (lambda (sub) (list->set-with (set-cmp s) sub))
-         (power-list lst))))
+       (map (lambda (sub) (list->set-with (set-cmp s) sub))
+            (power-list lst))))
 
 (define (power-list lst)
   (if (null? lst)
       '(())
       (let ([rest (power-list (cdr lst))])
-        (append rest
-                (map (lambda (sub) (cons (car lst) sub)) rest)))))
+           (append rest
+                   (map (lambda (sub) (cons (car lst) sub)) rest)))))
 
 ;;; ============================================================
 ;;; Cartesian Product
@@ -438,19 +438,19 @@
 ;;; Comparator for pairs
 (define (pair-cmp a b)
   (let ([c1 (default-cmp (car a) (car b))])
-    (if (= c1 0)
-        (default-cmp (cdr a) (cdr b))
-        c1)))
+       (if (= c1 0)
+           (default-cmp (cdr a) (cdr b))
+           c1)))
 
 ;;; Cartesian product of two sets
 (define (set-product s1 s2)
   (let ([lst1 (set->list s1)]
         [lst2 (set->list s2)])
-    (list->set-with pair-cmp
-                    (apply append
-                           (map (lambda (x)
-                                  (map (lambda (y) (cons x y)) lst2))
-                                lst1)))))
+       (list->set-with pair-cmp
+                       (apply append
+                              (map (lambda (x)
+                                           (map (lambda (y) (cons x y)) lst2))
+                                   lst1)))))
 
 ;;; ============================================================
 ;;; Monoid Operations

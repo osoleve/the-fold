@@ -1,6 +1,6 @@
 ;;; fabric/stitches/test-help.ss — Test harness for help.ss
 
-(load "help.ss")
+(load "fabric/stitches/help.ss")
 
 (define (test name expected actual)
   (display "  ")

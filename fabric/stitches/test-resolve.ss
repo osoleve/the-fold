@@ -1,10 +1,10 @@
 ;;; Test harness for core/resolve.ss — Type Class Instance Resolution
 
-(load "block.ss")
-(load "types.ss")
-(load "kinds.ss")
-(load "infer.ss")
-(load "resolve.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/kinds.ss")
+(load "fabric/stitches/infer.ss")
+(load "fabric/stitches/resolve.ss")
 
 (define (test name expected actual)
   (display "  ")
@@ -13,9 +13,11 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-       (display "✗\n    expected: ")
+       (display "✗
+    expected: ")
        (display expected)
-       (display "\n    got: ")
+       (display "
+    got: ")
        (display actual)))
   (newline))
 
@@ -26,9 +28,11 @@
   (if (eq? (car result) expected-tag)
       (display "✓")
       (begin
-       (display "✗\n    expected tag: ")
+       (display "✗
+    expected tag: ")
        (display expected-tag)
-       (display "\n    got: ")
+       (display "
+    got: ")
        (display result)))
   (newline))
 
@@ -289,4 +293,5 @@
 (test "get-method compare" 'int-compare (get-method evidence-ord-int 'compare))
 
 (newline)
-(display "✓ All instance resolution tests complete.\n")
+(display "✓ All instance resolution tests complete.
+")

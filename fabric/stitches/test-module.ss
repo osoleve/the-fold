@@ -2,10 +2,13 @@
 ;;;
 ;;; Tests the module loader and dependency tracking.
 
-(load "module.ss")
+(load "fabric/stitches/module.ss")
 
-(display "Module System Tests\n")
-(display "===================\n\n")
+(display "Module System Tests
+")
+(display "===================
+
+")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -26,7 +29,8 @@
 ;;; Dependency Declaration Tests
 ;;; ============================================================
 
-(display "Dependency Declarations:\n")
+(display "Dependency Declarations:
+")
 
 (test "prelude has no deps" '() (module-deps 'prelude))
 (test "block depends on prelude" '(prelude) (module-deps 'block))
@@ -37,7 +41,9 @@
 ;;; Transitive Dependencies
 ;;; ============================================================
 
-(display "\nTransitive Dependencies:\n")
+(display "
+Transitive Dependencies:
+")
 
 (test "all-deps prelude" '() (all-deps 'prelude))
 (test "all-deps block" '(prelude) (all-deps 'block))
@@ -53,7 +59,9 @@
 ;;; Module Loading
 ;;; ============================================================
 
-(display "\nModule Loading:\n")
+(display "
+Module Loading:
+")
 
 ;; prelude is registered when module.ss loads
 (test "prelude already loaded" #t (module-loaded? 'prelude))
@@ -77,7 +85,9 @@
 ;;; Load Times
 ;;; ============================================================
 
-(display "\nLoad Times:\n")
+(display "
+Load Times:
+")
 
 (let ([time (module-load-time 'prelude)])
      (test "prelude has load time" #t (and time (>= time 0))))
@@ -90,10 +100,17 @@
 ;;; ============================================================
 
 (newline)
-(display "==================\n")
-(display (string-append "Passed: " (number->string tests-passed) "\n"))
-(display (string-append "Failed: " (number->string tests-failed) "\n"))
+(display "==================
+")
+(display (string-append "Passed: " (number->string tests-passed) "
+"))
+(display (string-append "Failed: " (number->string tests-failed) "
+"))
 
 (if (= tests-failed 0)
-    (display "\n✓ All module system tests passed!\n")
-    (display "\n✗ Some tests failed!\n"))
+    (display "
+✓ All module system tests passed!
+")
+    (display "
+✗ Some tests failed!
+"))

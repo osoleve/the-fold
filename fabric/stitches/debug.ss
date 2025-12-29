@@ -17,8 +17,8 @@
 ;;;   - prelude.ss
 ;;;   - eval.ss
 
-(load "prelude.ss")
-(load "eval.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/eval.ss")
 
 ;;; ============================================================
 ;;; Debugger State
@@ -305,41 +305,55 @@
         [expr (debugger-expr d)]
         [fuel (debugger-fuel d)]
         [steps (length (debugger-trace d))])
-       (display "┌─────────────────────────────────────────────────────────────┐\n")
-       (display "│ DEBUGGER                                                    │\n")
-       (display "├─────────────────────────────────────────────────────────────┤\n")
-       (display (format "│ Status: ~a~a│\n"
+       (display "┌─────────────────────────────────────────────────────────────┐
+")
+       (display "│ DEBUGGER                                                    │
+")
+       (display "├─────────────────────────────────────────────────────────────┤
+")
+       (display (format "│ Status: ~a~a│
+"
                         status
                         (make-string (max 0 (- 51 (string-length (symbol->string status)))) #\space)))
-       (display (format "│ Fuel: ~a~a│\n"
+       (display (format "│ Fuel: ~a~a│
+"
                         fuel
                         (make-string (max 0 (- 53 (string-length (number->string fuel)))) #\space)))
-       (display (format "│ Steps: ~a~a│\n"
+       (display (format "│ Steps: ~a~a│
+"
                         steps
                         (make-string (max 0 (- 52 (string-length (number->string steps)))) #\space)))
-       (display "├─────────────────────────────────────────────────────────────┤\n")
-       (display "│ Expression:                                                 │\n")
+       (display "├─────────────────────────────────────────────────────────────┤
+")
+       (display "│ Expression:                                                 │
+")
        (display "│   ")
        (write expr)
        (newline)
-       (display "└─────────────────────────────────────────────────────────────┘\n")))
+       (display "└─────────────────────────────────────────────────────────────┘
+")))
 
 ;;; print-trace : Debugger → void
 ;;; Display execution trace.
 (define (print-trace d)
   (let ([trace (debugger-trace d)])
-       (display "┌─────────────────────────────────────────────────────────────┐\n")
-       (display "│ EXECUTION TRACE                                             │\n")
-       (display "├─────────────────────────────────────────────────────────────┤\n")
+       (display "┌─────────────────────────────────────────────────────────────┐
+")
+       (display "│ EXECUTION TRACE                                             │
+")
+       (display "├─────────────────────────────────────────────────────────────┤
+")
        (if (null? trace)
-           (display "│ (no steps taken)                                            │\n")
+           (display "│ (no steps taken)                                            │
+")
            (for-each
             (lambda (entry)
                     (display "│ ")
                     (write entry)
                     (newline))
             (reverse trace)))
-       (display "└─────────────────────────────────────────────────────────────┘\n")))
+       (display "└─────────────────────────────────────────────────────────────┘
+")))
 
 ;;; ============================================================
 ;;; Convenience Commands
@@ -350,7 +364,9 @@
 (define (debug-repl expr)
   (let ([d (make-debugger expr empty-env 10000)])
        (print-debugger d)
-       (display "\nCommands: (s)tep, (c)ontinue, (r)eset, (u)ndo, (t)race, (q)uit\n")
+       (display "
+Commands: (s)tep, (c)ontinue, (r)eset, (u)ndo, (t)race, (q)uit
+")
        d))
 
 ;;; step-show : Debugger → Debugger

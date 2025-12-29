@@ -11,18 +11,9 @@
 ;;;   (source-directories (cons "fabric/stitches" (source-directories)))
 ;;;   (load "playpen/physics/test-physics.ss")
 
-;;; Set up source directories if running from project root
-(let ([stitches-path (string-append (current-directory) "/fabric/stitches")])
-     (when (file-directory? stitches-path)
-           (source-directories (cons stitches-path (source-directories)))))
-
-;;; Also try if running from fabric/stitches
-(let ([stitches-path (current-directory)])
-     (when (file-exists? (string-append stitches-path "/prelude.ss"))
-           (source-directories (cons stitches-path (source-directories)))))
-
-(load "test-framework.ss")
-(load "physics-2d/world.ss")
+;;; Load dependencies using absolute paths from project root
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/physics-2d/world.ss")
 
 ;;; ============================================================
 ;;; Test Helpers

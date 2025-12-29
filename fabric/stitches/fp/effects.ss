@@ -21,9 +21,9 @@
 ;;;   We use a free monad-like encoding where effects are operations
 ;;;   that can be interpreted by handlers.
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
-(load "fp/continuation.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
+(load "fabric/stitches/fp/continuation.ss")
 
 ;;; ============================================================
 ;;; Eff Monad - Effectful Computations
@@ -69,11 +69,11 @@
 ;;; eff-bind : Eff e a -> (a -> Eff e b) -> Eff e b
 (define (eff-bind ma f)
   (cond
-    [(eff-pure? ma) (f (eff-pure-value ma))]
-    [(eff-op? ma)
-     (make-eff-op (eff-op-effect ma)
-                  (lambda (resp)
-                    (eff-bind ((eff-op-cont ma) resp) f)))]))
+   [(eff-pure? ma) (f (eff-pure-value ma))]
+   [(eff-op? ma)
+    (make-eff-op (eff-op-effect ma)
+                 (lambda (resp)
+                         (eff-bind ((eff-op-cont ma) resp) f)))]))
 
 ;;; eff-map : (a -> b) -> Eff e a -> Eff e b
 (define (eff-map f ea)
@@ -121,7 +121,7 @@
 (define (state-modify f)
   (eff-bind state-get
             (lambda (s)
-              (state-put (f s)))))
+                    (state-put (f s)))))
 
 ;;; run-state : s -> Eff State a -> (a, s)
 ;;; Handle state effect.
@@ -130,21 +130,21 @@
 
 (define (run-state-helper state eff)
   (cond
-    [(eff-pure? eff)
-     (cons (eff-pure-value eff) state)]
-    [(eff-op? eff)
-     (let ([effect (eff-op-effect eff)]
-           [k (eff-op-cont eff)])
-       (case (effect-tag effect)
-         [(state-get)
-          (run-state-helper state (k state))]
-         [(state-put)
-          (run-state-helper (effect-payload effect) (k '()))]
-         [else
-          ;; Unknown effect, pass through
-          (make-eff-op effect
-                       (lambda (resp)
-                         (run-state-helper state (k resp))))]))]))
+   [(eff-pure? eff)
+    (cons (eff-pure-value eff) state)]
+   [(eff-op? eff)
+    (let ([effect (eff-op-effect eff)]
+          [k (eff-op-cont eff)])
+         (case (effect-tag effect)
+               [(state-get)
+                (run-state-helper state (k state))]
+               [(state-put)
+                (run-state-helper (effect-payload effect) (k '()))]
+               [else
+                ;; Unknown effect, pass through
+                (make-eff-op effect
+                             (lambda (resp)
+                                     (run-state-helper state (k resp))))]))]))
 
 ;;; ============================================================
 ;;; Reader Effect
@@ -164,20 +164,20 @@
 ;;; Handle reader effect.
 (define (run-reader env eff)
   (cond
-    [(eff-pure? eff)
-     (eff-pure-value eff)]
-    [(eff-op? eff)
-     (let ([effect (eff-op-effect eff)]
-           [k (eff-op-cont eff)])
-       (case (effect-tag effect)
-         [(reader-ask)
-          (run-reader env (k env))]
-         [(reader-local)
-          (let ([f (effect-payload effect)])
-            (run-reader (f env) (k '())))]
-         [else
-          ;; Unknown effect, can't handle
-          (error 'run-reader "Unhandled effect" (effect-tag effect))]))]))
+   [(eff-pure? eff)
+    (eff-pure-value eff)]
+   [(eff-op? eff)
+    (let ([effect (eff-op-effect eff)]
+          [k (eff-op-cont eff)])
+         (case (effect-tag effect)
+               [(reader-ask)
+                (run-reader env (k env))]
+               [(reader-local)
+                (let ([f (effect-payload effect)])
+                     (run-reader (f env) (k '())))]
+               [else
+                ;; Unknown effect, can't handle
+                (error 'run-reader "Unhandled effect" (effect-tag effect))]))]))
 
 ;;; ============================================================
 ;;; Writer Effect
@@ -194,19 +194,19 @@
 
 (define (run-writer-helper log eff)
   (cond
-    [(eff-pure? eff)
-     (cons (eff-pure-value eff) (reverse log))]
-    [(eff-op? eff)
-     (let ([effect (eff-op-effect eff)]
-           [k (eff-op-cont eff)])
-       (case (effect-tag effect)
-         [(writer-tell)
-          (run-writer-helper (cons (effect-payload effect) log)
-                             (k '()))]
-         [else
-          (make-eff-op effect
-                       (lambda (resp)
-                         (run-writer-helper log (k resp))))]))]))
+   [(eff-pure? eff)
+    (cons (eff-pure-value eff) (reverse log))]
+   [(eff-op? eff)
+    (let ([effect (eff-op-effect eff)]
+          [k (eff-op-cont eff)])
+         (case (effect-tag effect)
+               [(writer-tell)
+                (run-writer-helper (cons (effect-payload effect) log)
+                                   (k '()))]
+               [else
+                (make-eff-op effect
+                             (lambda (resp)
+                                     (run-writer-helper log (k resp))))]))]))
 
 ;;; ============================================================
 ;;; Exception Effect
@@ -220,34 +220,34 @@
 ;;; Handle exceptions with a handler.
 (define (eff-catch eff handler)
   (cond
-    [(eff-pure? eff) eff]
-    [(eff-op? eff)
-     (let ([effect (eff-op-effect eff)]
-           [k (eff-op-cont eff)])
-       (case (effect-tag effect)
-         [(throw)
-          (handler (effect-payload effect))]
-         [else
-          (make-eff-op effect
-                       (lambda (resp)
-                         (eff-catch (k resp) handler)))]))]))
+   [(eff-pure? eff) eff]
+   [(eff-op? eff)
+    (let ([effect (eff-op-effect eff)]
+          [k (eff-op-cont eff)])
+         (case (effect-tag effect)
+               [(throw)
+                (handler (effect-payload effect))]
+               [else
+                (make-eff-op effect
+                             (lambda (resp)
+                                     (eff-catch (k resp) handler)))]))]))
 
 ;;; run-exception : Eff Exception a -> Either e a
 ;;; Handle exception effect.
 (define (run-exception eff)
   (cond
-    [(eff-pure? eff)
-     (right (eff-pure-value eff))]
-    [(eff-op? eff)
-     (let ([effect (eff-op-effect eff)]
-           [k (eff-op-cont eff)])
-       (case (effect-tag effect)
-         [(throw)
-          (left (effect-payload effect))]
-         [else
-          (make-eff-op effect
-                       (lambda (resp)
-                         (run-exception (k resp))))]))]))
+   [(eff-pure? eff)
+    (right (eff-pure-value eff))]
+   [(eff-op? eff)
+    (let ([effect (eff-op-effect eff)]
+          [k (eff-op-cont eff)])
+         (case (effect-tag effect)
+               [(throw)
+                (left (effect-payload effect))]
+               [else
+                (make-eff-op effect
+                             (lambda (resp)
+                                     (run-exception (k resp))))]))]))
 
 ;;; ============================================================
 ;;; NonDet Effect (Non-determinism)
@@ -265,27 +265,27 @@
 ;;; Handle non-determinism effect, collecting all results.
 (define (run-nondet eff)
   (cond
-    [(eff-pure? eff)
-     (list (eff-pure-value eff))]
-    [(eff-op? eff)
-     (let ([effect (eff-op-effect eff)]
-           [k (eff-op-cont eff)])
-       (case (effect-tag effect)
-         [(nondet-choose)
-          (let ([options (effect-payload effect)])
-            (apply append
-                   (map (lambda (opt) (run-nondet (k opt)))
-                        options)))]
-         [else
-          (error 'run-nondet "Unhandled effect" (effect-tag effect))]))]))
+   [(eff-pure? eff)
+    (list (eff-pure-value eff))]
+   [(eff-op? eff)
+    (let ([effect (eff-op-effect eff)]
+          [k (eff-op-cont eff)])
+         (case (effect-tag effect)
+               [(nondet-choose)
+                (let ([options (effect-payload effect)])
+                     (apply append
+                            (map (lambda (opt) (run-nondet (k opt)))
+                                 options)))]
+               [else
+                (error 'run-nondet "Unhandled effect" (effect-tag effect))]))]))
 
 ;;; run-nondet-first : Eff NonDet a -> Maybe a
 ;;; Handle non-determinism, returning first result.
 (define (run-nondet-first eff)
   (let ([results (run-nondet eff)])
-    (if (null? results)
-        nothing
-        (just (car results)))))
+       (if (null? results)
+           nothing
+           (just (car results)))))
 
 ;;; ============================================================
 ;;; Console Effect
@@ -306,26 +306,26 @@
 
 (define (run-console-helper inputs outputs eff)
   (cond
-    [(eff-pure? eff)
-     (cons (eff-pure-value eff) (reverse outputs))]
-    [(eff-op? eff)
-     (let ([effect (eff-op-effect eff)]
-           [k (eff-op-cont eff)])
-       (case (effect-tag effect)
-         [(console-print)
-          (run-console-helper inputs
-                              (cons (effect-payload effect) outputs)
-                              (k '()))]
-         [(console-read)
-          (if (null? inputs)
-              (error 'run-console-pure "No more input")
-              (run-console-helper (cdr inputs)
-                                  outputs
-                                  (k (car inputs))))]
-         [else
-          (make-eff-op effect
-                       (lambda (resp)
-                         (run-console-helper inputs outputs (k resp))))]))]))
+   [(eff-pure? eff)
+    (cons (eff-pure-value eff) (reverse outputs))]
+   [(eff-op? eff)
+    (let ([effect (eff-op-effect eff)]
+          [k (eff-op-cont eff)])
+         (case (effect-tag effect)
+               [(console-print)
+                (run-console-helper inputs
+                                    (cons (effect-payload effect) outputs)
+                                    (k '()))]
+               [(console-read)
+                (if (null? inputs)
+                    (error 'run-console-pure "No more input")
+                    (run-console-helper (cdr inputs)
+                                        outputs
+                                        (k (car inputs))))]
+               [else
+                (make-eff-op effect
+                             (lambda (resp)
+                                     (run-console-helper inputs outputs (k resp))))]))]))
 
 ;;; ============================================================
 ;;; Async Effect (for futures/promises)
@@ -343,24 +343,24 @@
 ;;; Run async effects synchronously (no parallelism).
 (define (run-async-sync eff)
   (cond
-    [(eff-pure? eff)
-     (eff-pure-value eff)]
-    [(eff-op? eff)
-     (let ([effect (eff-op-effect eff)]
-           [k (eff-op-cont eff)])
-       (case (effect-tag effect)
-         [(async-fork)
-          ;; Just run immediately and wrap result
-          (let ([comp (effect-payload effect)]
-                [future-id (eff-gensym 'future)])
-            (let ([result (run-async-sync comp)])
-              (run-async-sync (k (cons future-id result)))))]
-         [(async-await)
-          ;; Future is (id . result) pair
-          (let ([future (effect-payload effect)])
-            (run-async-sync (k (cdr future))))]
-         [else
-          (error 'run-async-sync "Unhandled effect" (effect-tag effect))]))]))
+   [(eff-pure? eff)
+    (eff-pure-value eff)]
+   [(eff-op? eff)
+    (let ([effect (eff-op-effect eff)]
+          [k (eff-op-cont eff)])
+         (case (effect-tag effect)
+               [(async-fork)
+                ;; Just run immediately and wrap result
+                (let ([comp (effect-payload effect)]
+                      [future-id (eff-gensym 'future)])
+                     (let ([result (run-async-sync comp)])
+                          (run-async-sync (k (cons future-id result)))))]
+               [(async-await)
+                ;; Future is (id . result) pair
+                (let ([future (effect-payload effect)])
+                     (run-async-sync (k (cdr future))))]
+               [else
+                (error 'run-async-sync "Unhandled effect" (effect-tag effect))]))]))
 
 ;;; gensym counter
 (define *gensym-counter* 0)
@@ -393,13 +393,13 @@
 ;;; Apply a handler to an effectful computation.
 (define (handle handler eff)
   (cond
-    [(eff-pure? eff)
-     ((handler-return handler) (eff-pure-value eff))]
-    [(eff-op? eff)
-     ((handler-effect handler)
-      (eff-op-effect eff)
-      (lambda (resp)
-        (handle handler ((eff-op-cont eff) resp))))]))
+   [(eff-pure? eff)
+    ((handler-return handler) (eff-pure-value eff))]
+   [(eff-op? eff)
+    ((handler-effect handler)
+     (eff-op-effect eff)
+     (lambda (resp)
+             (handle handler ((eff-op-cont eff) resp))))]))
 
 ;;; ============================================================
 ;;; Combining Effects
@@ -412,9 +412,9 @@
       (eff-return '())
       (eff-bind (car effs)
                 (lambda (x)
-                  (eff-bind (eff-sequence (cdr effs))
-                            (lambda (xs)
-                              (eff-return (cons x xs))))))))
+                        (eff-bind (eff-sequence (cdr effs))
+                                  (lambda (xs)
+                                          (eff-return (cons x xs))))))))
 
 ;;; eff-map-m : (a -> Eff e b) -> List a -> Eff e (List b)
 ;;; Map an effectful function over a list.
@@ -428,7 +428,7 @@
       (eff-return '())
       (eff-bind (f (car lst))
                 (lambda (_)
-                  (eff-for-each f (cdr lst))))))
+                        (eff-for-each f (cdr lst))))))
 
 ;;; eff-fold : (b -> a -> Eff e b) -> b -> List a -> Eff e b
 ;;; Fold with effects.
@@ -437,7 +437,7 @@
       (eff-return init)
       (eff-bind (f init (car lst))
                 (lambda (acc)
-                  (eff-fold f acc (cdr lst))))))
+                        (eff-fold f acc (cdr lst))))))
 
 ;;; eff-when : Bool -> Eff e () -> Eff e ()
 (define (eff-when pred action)
@@ -458,8 +458,8 @@
 ;;; eff-lift2 : (a -> b -> c) -> Eff e a -> Eff e b -> Eff e c
 (define (eff-lift2 f ea eb)
   (eff-bind ea (lambda (a)
-                 (eff-bind eb (lambda (b)
-                                (eff-return (f a b)))))))
+                       (eff-bind eb (lambda (b)
+                                            (eff-return (f a b)))))))
 
 ;;; ============================================================
 ;;; Example: Stateful Counter
@@ -536,4 +536,3 @@
 ;;;                     (eff-return x))))
 ;;;     (lambda (e) (eff-return -1))))
 ;;; ; => (right -1)
-

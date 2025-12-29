@@ -31,8 +31,8 @@
 ;;;   first f >>> arr (id *** g) = arr (id *** g) >>> first f  (unit)
 ;;;   first (first f) >>> arr assoc = arr assoc >>> first f    (association)
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Arrow Representation
@@ -107,9 +107,9 @@
 ;;; Apply arrow to first component of a pair.
 (define (arrow-first f)
   (fn-arrow (lambda (pair)
-              (let ([a (car pair)]
-                    [c (cdr pair)])
-                (cons (run-arrow f a) c)))))
+                    (let ([a (car pair)]
+                          [c (cdr pair)])
+                         (cons (run-arrow f a) c)))))
 
 ;;; first : Arrow a b -> Arrow (a, c) (b, c)
 ;;; Alias for arrow-first.
@@ -123,9 +123,9 @@
 ;;; Apply arrow to second component of a pair.
 (define (arrow-second f)
   (fn-arrow (lambda (pair)
-              (let ([c (car pair)]
-                    [a (cdr pair)])
-                (cons c (run-arrow f a))))))
+                    (let ([c (car pair)]
+                          [a (cdr pair)])
+                         (cons c (run-arrow f a))))))
 
 ;;; second : Arrow a b -> Arrow (c, a) (c, b)
 (define second arrow-second)
@@ -178,17 +178,17 @@
 ;;; Reassociate nested pairs.
 (define arr-assoc
   (arr (lambda (p)
-         (let ([ab (car p)]
-               [c (cdr p)])
-           (cons (car ab) (cons (cdr ab) c))))))
+               (let ([ab (car p)]
+                     [c (cdr p)])
+                    (cons (car ab) (cons (cdr ab) c))))))
 
 ;;; arr-unassoc : Arrow (a, (b, c)) ((a, b), c)
 ;;; Reverse reassociation.
 (define arr-unassoc
   (arr (lambda (p)
-         (let ([a (car p)]
-               [bc (cdr p)])
-           (cons (cons a (car bc)) (cdr bc))))))
+               (let ([a (car p)]
+                     [bc (cdr p)])
+                    (cons (cons a (car bc)) (cdr bc))))))
 
 ;;; ============================================================
 ;;; ArrowChoice
@@ -201,25 +201,25 @@
 ;;; Apply arrow to left values, pass through right values.
 (define (arr-left f)
   (fn-arrow (lambda (e)
-              (if (left? e)
-                  (left (run-arrow f (from-left e)))
-                  e))))
+                    (if (left? e)
+                        (left (run-arrow f (from-left e)))
+                        e))))
 
 ;;; arr-right : Arrow a b -> Arrow (Either c a) (Either c b)
 ;;; Apply arrow to right values, pass through left values.
 (define (arr-right f)
   (fn-arrow (lambda (e)
-              (if (right? e)
-                  (right (run-arrow f (from-right e)))
-                  e))))
+                    (if (right? e)
+                        (right (run-arrow f (from-right e)))
+                        e))))
 
 ;;; arrow-choice : Arrow a c -> Arrow b c -> Arrow (Either a b) c
 ;;; Route either left or right input to appropriate arrow (|||).
 (define (arrow-choice f g)
   (fn-arrow (lambda (e)
-              (if (left? e)
-                  (run-arrow f (from-left e))
-                  (run-arrow g (from-right e))))))
+                    (if (left? e)
+                        (run-arrow f (from-left e))
+                        (run-arrow g (from-right e))))))
 
 ;;; arrow-fanin : Arrow a c -> Arrow b c -> Arrow (Either a b) c
 ;;; Fanin composition (|||).
@@ -242,22 +242,22 @@
 ;;; Conditional arrow based on predicate.
 (define (arr-if pred then-arr else-arr)
   (fn-arrow (lambda (x)
-              (if (pred x)
-                  (run-arrow then-arr x)
-                  (run-arrow else-arr x)))))
+                    (if (pred x)
+                        (run-arrow then-arr x)
+                        (run-arrow else-arr x)))))
 
 ;;; arr-case : List (pred, Arrow a b) -> Arrow a b -> Arrow a b
 ;;; Pattern matching on arrows.
 (define (arr-case cases default)
   (fn-arrow (lambda (x)
-              (let loop ([cs cases])
-                (if (null? cs)
-                    (run-arrow default x)
-                    (let ([pred (caar cs)]
-                          [arr (cdar cs)])
-                      (if (pred x)
-                          (run-arrow arr x)
-                          (loop (cdr cs)))))))))
+                    (let loop ([cs cases])
+                         (if (null? cs)
+                             (run-arrow default x)
+                             (let ([pred (caar cs)]
+                                   [arr (cdar cs)])
+                                  (if (pred x)
+                                      (run-arrow arr x)
+                                      (loop (cdr cs)))))))))
 
 ;;; ============================================================
 ;;; ArrowApply
@@ -270,9 +270,9 @@
 ;;; Apply an arrow to its argument.
 (define arr-apply
   (fn-arrow (lambda (pair)
-              (let ([f (car pair)]
-                    [x (cdr pair)])
-                (run-arrow f x)))))
+                    (let ([f (car pair)]
+                          [x (cdr pair)])
+                         (run-arrow f x)))))
 
 ;;; ============================================================
 ;;; ArrowLoop
@@ -286,29 +286,29 @@
 ;;; Create a loop with initial feedback value.
 (define (arrow-loop f init-c)
   (fn-arrow (lambda (a)
-              (let loop ([c init-c] [fuel 1000])
-                (if (= fuel 0)
-                    (error 'arrow-loop "Loop did not converge")
-                    (let* ([result (run-arrow f (cons a c))]
-                           [b (car result)]
-                           [c-new (cdr result)])
-                      (if (equal? c c-new)
-                          b
-                          (loop c-new (- fuel 1)))))))))
+                    (let loop ([c init-c] [fuel 1000])
+                         (if (= fuel 0)
+                             (error 'arrow-loop "Loop did not converge")
+                             (let* ([result (run-arrow f (cons a c))]
+                                    [b (car result)]
+                                    [c-new (cdr result)])
+                                   (if (equal? c c-new)
+                                       b
+                                       (loop c-new (- fuel 1)))))))))
 
 ;;; arrow-fix : Arrow (a, c) (b, c) -> (c -> c -> Boolean) -> c -> Arrow a b
 ;;; Loop with custom convergence test.
 (define (arrow-fix f converged? init-c)
   (fn-arrow (lambda (a)
-              (let loop ([c init-c] [fuel 1000])
-                (if (= fuel 0)
-                    (error 'arrow-fix "Loop did not converge")
-                    (let* ([result (run-arrow f (cons a c))]
-                           [b (car result)]
-                           [c-new (cdr result)])
-                      (if (converged? c c-new)
-                          b
-                          (loop c-new (- fuel 1)))))))))
+                    (let loop ([c init-c] [fuel 1000])
+                         (if (= fuel 0)
+                             (error 'arrow-fix "Loop did not converge")
+                             (let* ([result (run-arrow f (cons a c))]
+                                    [b (car result)]
+                                    [c-new (cdr result)])
+                                   (if (converged? c c-new)
+                                       b
+                                       (loop c-new (- fuel 1)))))))))
 
 ;;; ============================================================
 ;;; Kleisli Arrows
@@ -354,10 +354,10 @@
         [m-bind (kleisli-bind k1)]
         [m-pure (kleisli-pure k1)]
         [f2 (kleisli-fn k2)])
-    (make-kleisli (lambda (a)
-                    (m-bind (f1 a) f2))
-                  m-bind
-                  m-pure)))
+       (make-kleisli (lambda (a)
+                             (m-bind (f1 a) f2))
+                     m-bind
+                     m-pure)))
 
 ;;; kleisli-first : KleisliArrow a b -> KleisliArrow (a, c) (b, c)
 ;;; Apply Kleisli arrow to first component.
@@ -365,14 +365,14 @@
   (let ([f (kleisli-fn k)]
         [m-bind (kleisli-bind k)]
         [m-pure (kleisli-pure k)])
-    (make-kleisli (lambda (pair)
-                    (let ([a (car pair)]
-                          [c (cdr pair)])
-                      (m-bind (f a)
-                              (lambda (b)
-                                (m-pure (cons b c))))))
-                  m-bind
-                  m-pure)))
+       (make-kleisli (lambda (pair)
+                             (let ([a (car pair)]
+                                   [c (cdr pair)])
+                                  (m-bind (f a)
+                                          (lambda (b)
+                                                  (m-pure (cons b c))))))
+                     m-bind
+                     m-pure)))
 
 ;;; ============================================================
 ;;; Arrow Combinators
@@ -406,7 +406,7 @@
   (if (null? lst)
       init
       (let ([result (run-arrow (f init) (car lst))])
-        (arrow-fold f result (cdr lst)))))
+           (arrow-fold f result (cdr lst)))))
 
 ;;; ============================================================
 ;;; Static Arrows (for analysis)
@@ -450,14 +450,14 @@
 ;;; Wrap an arrow to trace its execution.
 (define (traced name f)
   (fn-arrow (lambda (input)
-              (let* ([result (run-arrow f input)]
-                     [trace (if (pair? result)
-                                (cdr result)
-                                '())]
-                     [value (if (pair? result)
-                                (car result)
-                                result)])
-                (cons value (cons name trace))))))
+                    (let* ([result (run-arrow f input)]
+                           [trace (if (pair? result)
+                                      (cdr result)
+                                      '())]
+                           [value (if (pair? result)
+                                      (car result)
+                                      result)])
+                          (cons value (cons name trace))))))
 
 ;;; ============================================================
 ;;; Example: Profiling Arrow
@@ -468,8 +468,8 @@
 ;;; This version counts steps instead.
 (define (counted f)
   (fn-arrow (lambda (input)
-              (let ([result (run-arrow f input)])
-                (cons result 1)))))
+                    (let ([result (run-arrow f input)])
+                         (cons result 1)))))
 
 ;;; ============================================================
 ;;; Example Usage (for documentation)

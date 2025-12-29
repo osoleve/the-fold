@@ -13,8 +13,8 @@
 ;;;
 ;;; This module builds on prelude.ss and combinators.ss.
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Semiring Interface
@@ -108,15 +108,15 @@
 
 (define (tropical-min a b)
   (cond
-    [(eq? a 'inf) b]
-    [(eq? b 'inf) a]
-    [else (min a b)]))
+   [(eq? a 'inf) b]
+   [(eq? b 'inf) a]
+   [else (min a b)]))
 
 (define (tropical-plus a b)
   (cond
-    [(eq? a 'inf) 'inf]
-    [(eq? b 'inf) 'inf]
-    [else (+ a b)]))
+   [(eq? a 'inf) 'inf]
+   [(eq? b 'inf) 'inf]
+   [else (+ a b)]))
 
 (define tropical-semiring
   (make-semiring
@@ -136,15 +136,15 @@
 
 (define (arctic-max a b)
   (cond
-    [(eq? a '-inf) b]
-    [(eq? b '-inf) a]
-    [else (max a b)]))
+   [(eq? a '-inf) b]
+   [(eq? b '-inf) a]
+   [else (max a b)]))
 
 (define (arctic-plus a b)
   (cond
-    [(eq? a '-inf) '-inf]
-    [(eq? b '-inf) '-inf]
-    [else (+ a b)]))
+   [(eq? a '-inf) '-inf]
+   [(eq? b '-inf) '-inf]
+   [else (+ a b)]))
 
 (define arctic-semiring
   (make-semiring
@@ -176,15 +176,15 @@
    '-inf                         ; zero = log(0)
    0                             ; one = log(1)
    (lambda (a b)
-     (cond
-       [(eq? a '-inf) b]
-       [(eq? b '-inf) a]
-       [else (max a b)]))
+           (cond
+            [(eq? a '-inf) b]
+            [(eq? b '-inf) a]
+            [else (max a b)]))
    (lambda (a b)
-     (cond
-       [(eq? a '-inf) '-inf]
-       [(eq? b '-inf) '-inf]
-       [else (+ a b)]))))
+           (cond
+            [(eq? a '-inf) '-inf]
+            [(eq? b '-inf) '-inf]
+            [else (+ a b)]))))
 
 ;;; ============================================================
 ;;; Counting Semiring
@@ -206,9 +206,9 @@
    '()                           ; zero = empty set
    universal-set                 ; one = universal set
    (lambda (a b)                 ; plus = union
-     (set-union-list a b))
+           (set-union-list a b))
    (lambda (a b)                 ; times = intersection
-     (set-intersect-list a b))))
+           (set-intersect-list a b))))
 
 (define (set-union-list a b)
   (fold-left (lambda (acc x) (if (member x acc) acc (cons x acc)))
@@ -230,17 +230,17 @@
    'empty                        ; zero = empty language
    'epsilon                      ; one = empty string
    (lambda (a b)                 ; plus = alternation
-     (cond
-       [(eq? a 'empty) b]
-       [(eq? b 'empty) a]
-       [else (list 'alt a b)]))
+           (cond
+            [(eq? a 'empty) b]
+            [(eq? b 'empty) a]
+            [else (list 'alt a b)]))
    (lambda (a b)                 ; times = concatenation
-     (cond
-       [(eq? a 'empty) 'empty]
-       [(eq? b 'empty) 'empty]
-       [(eq? a 'epsilon) b]
-       [(eq? b 'epsilon) a]
-       [else (list 'seq a b)]))))
+           (cond
+            [(eq? a 'empty) 'empty]
+            [(eq? b 'empty) 'empty]
+            [(eq? a 'epsilon) b]
+            [(eq? b 'epsilon) a]
+            [else (list 'seq a b)]))))
 
 ;;; ============================================================
 ;;; Matrix Operations over Semirings
@@ -256,29 +256,29 @@
 (define (sr-identity-matrix sr n)
   (let ([zero (sr-zero sr)]
         [one (sr-one sr)])
-    (map (lambda (i)
-           (map (lambda (j)
-                  (if (= i j) one zero))
-                (iota n)))
-         (iota n))))
+       (map (lambda (i)
+                    (map (lambda (j)
+                                 (if (= i j) one zero))
+                         (iota n)))
+            (iota n))))
 
 ;;; Create n x n zero matrix
 (define (sr-zero-matrix sr n)
   (let ([zero (sr-zero sr)])
-    (map (lambda (i) (map (lambda (j) zero) (iota n)))
-         (iota n))))
+       (map (lambda (i) (map (lambda (j) zero) (iota n)))
+            (iota n))))
 
 ;;; Helper: iota
 (define (iota n)
   (let loop ([i 0] [acc '()])
-    (if (>= i n)
-        (reverse acc)
-        (loop (+ i 1) (cons i acc)))))
+       (if (>= i n)
+           (reverse acc)
+           (loop (+ i 1) (cons i acc)))))
 
 ;;; Matrix addition
 (define (sr-matrix-add sr m1 m2)
   (map (lambda (row1 row2)
-         (map (lambda (a b) (sr-add sr a b)) row1 row2))
+               (map (lambda (a b) (sr-add sr a b)) row1 row2))
        m1 m2))
 
 ;;; Matrix multiplication
@@ -286,16 +286,16 @@
   (let* ([n (matrix-rows m1)]
          [m (matrix-cols m2)]
          [k (matrix-cols m1)])
-    (map (lambda (i)
-           (map (lambda (j)
-                  (sr-sum sr
-                          (map (lambda (l)
-                                 (sr-mul sr
-                                         (matrix-ref m1 i l)
-                                         (matrix-ref m2 l j)))
-                               (iota k))))
-                (iota m)))
-         (iota n))))
+        (map (lambda (i)
+                     (map (lambda (j)
+                                  (sr-sum sr
+                                          (map (lambda (l)
+                                                       (sr-mul sr
+                                                               (matrix-ref m1 i l)
+                                                               (matrix-ref m2 l j)))
+                                               (iota k))))
+                          (iota m)))
+             (iota n))))
 
 ;;; Matrix power (for transitive closure)
 (define (sr-matrix-power sr m n)
@@ -311,13 +311,13 @@
 (define (sr-transitive-closure sr m iterations)
   (let ([n (matrix-rows m)]
         [id (sr-identity-matrix sr (matrix-rows m))])
-    (let loop ([i 0] [power id] [sum id])
-      (if (>= i iterations)
-          sum
-          (let ([next-power (sr-matrix-mul sr power m)])
-            (loop (+ i 1)
-                  next-power
-                  (sr-matrix-add sr sum next-power)))))))
+       (let loop ([i 0] [power id] [sum id])
+            (if (>= i iterations)
+                sum
+                (let ([next-power (sr-matrix-mul sr power m)])
+                     (loop (+ i 1)
+                           next-power
+                           (sr-matrix-add sr sum next-power)))))))
 
 ;;; ============================================================
 ;;; Shortest Paths (Floyd-Warshall with Semiring)
@@ -346,10 +346,10 @@
 
 (define (sr-poly-add sr p1 p2)
   (cond
-    [(null? p1) p2]
-    [(null? p2) p1]
-    [else (cons (sr-add sr (car p1) (car p2))
-                (sr-poly-add sr (cdr p1) (cdr p2)))]))
+   [(null? p1) p2]
+   [(null? p2) p1]
+   [else (cons (sr-add sr (car p1) (car p2))
+               (sr-poly-add sr (cdr p1) (cdr p2)))]))
 
 (define (sr-poly-mul sr p1 p2)
   (if (null? p1)
@@ -364,10 +364,10 @@
 ;;; Evaluate polynomial at x
 (define (sr-poly-eval sr p x)
   (let loop ([coeffs (reverse p)] [acc (sr-zero sr)])
-    (if (null? coeffs)
-        acc
-        (loop (cdr coeffs)
-              (sr-add sr (car coeffs) (sr-mul sr acc x))))))
+       (if (null? coeffs)
+           acc
+           (loop (cdr coeffs)
+                 (sr-add sr (car coeffs) (sr-mul sr acc x))))))
 
 ;;; ============================================================
 ;;; Star Semiring (Closed Semirings)
@@ -402,9 +402,9 @@
    tropical-min
    tropical-plus
    (lambda (a)
-     (if (and (number? a) (< a 0))
-         '-inf  ; Negative cycle
-         0))))  ; a* = 0 for non-negative
+           (if (and (number? a) (< a 0))
+               '-inf  ; Negative cycle
+               0))))  ; a* = 0 for non-negative
 
 ;;; ============================================================
 ;;; Verification Utilities
@@ -416,27 +416,27 @@
         [one (sr-one sr)]
         [plus (semiring-plus sr)]
         [times (semiring-times sr)])
-    (define (check-all pred name)
-      (let ([results (map pred elements)])
-        (if (fold-left (lambda (a b) (and a b)) #t results)
-            (format "~a: PASS" name)
-            (format "~a: FAIL" name))))
-    (list
-     ;; Zero is additive identity
-     (check-all (lambda (a) (equal? (plus a zero) a))
-                "0 + a = a")
-     (check-all (lambda (a) (equal? (plus zero a) a))
-                "a + 0 = a")
-     ;; One is multiplicative identity
-     (check-all (lambda (a) (equal? (times a one) a))
-                "1 * a = a")
-     (check-all (lambda (a) (equal? (times one a) a))
-                "a * 1 = a")
-     ;; Zero annihilates
-     (check-all (lambda (a) (equal? (times a zero) zero))
-                "0 * a = 0")
-     (check-all (lambda (a) (equal? (times zero a) zero))
-                "a * 0 = 0"))))
+       (define (check-all pred name)
+         (let ([results (map pred elements)])
+              (if (fold-left (lambda (a b) (and a b)) #t results)
+                  (format "~a: PASS" name)
+                  (format "~a: FAIL" name))))
+       (list
+        ;; Zero is additive identity
+        (check-all (lambda (a) (equal? (plus a zero) a))
+                   "0 + a = a")
+        (check-all (lambda (a) (equal? (plus zero a) a))
+                   "a + 0 = a")
+        ;; One is multiplicative identity
+        (check-all (lambda (a) (equal? (times a one) a))
+                   "1 * a = a")
+        (check-all (lambda (a) (equal? (times one a) a))
+                   "a * 1 = a")
+        ;; Zero annihilates
+        (check-all (lambda (a) (equal? (times a zero) zero))
+                   "0 * a = 0")
+        (check-all (lambda (a) (equal? (times zero a) zero))
+                   "a * 0 = 0"))))
 
 ;;; ============================================================
 ;;; Display
@@ -447,15 +447,16 @@
 
 (define (matrix->string m)
   (let ([rows (map (lambda (row)
-                     (fold-left (lambda (acc x)
-                                  (string-append acc " " (format "~a" x)))
-                                ""
-                                row))
+                           (fold-left (lambda (acc x)
+                                              (string-append acc " " (format "~a" x)))
+                                      ""
+                                      row))
                    m)])
-    (fold-left (lambda (acc row)
-                 (string-append acc "\n" row))
-               ""
-               rows)))
+       (fold-left (lambda (acc row)
+                          (string-append acc "
+" row))
+                  ""
+                  rows)))
 
 ;;; ============================================================
 ;;; Exports Summary

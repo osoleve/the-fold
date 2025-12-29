@@ -13,7 +13,7 @@
 ;;;
 ;;; See fabric/stitches/MODULES.md for full dependency graph.
 
-(load "prelude.ss")
+(load "fabric/stitches/prelude.ss")
 
 ;;; ============================================================
 ;;; Compat: ~s format directive (Chez 9.5 compatibility)

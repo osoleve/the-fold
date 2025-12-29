@@ -14,8 +14,8 @@
 ;;;
 ;;; This module builds on prelude.ss and combinators.ss.
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Leftist Heap Type
@@ -80,9 +80,9 @@
 (define (make-leftist-heap value left right cmp)
   (let ([rank-l (heap-rank left)]
         [rank-r (heap-rank right)])
-    (if (>= rank-l rank-r)
-        (make-heap (+ rank-r 1) value left right cmp)
-        (make-heap (+ rank-l 1) value right left cmp))))
+       (if (>= rank-l rank-r)
+           (make-heap (+ rank-r 1) value left right cmp)
+           (make-heap (+ rank-l 1) value right left cmp))))
 
 ;;; ============================================================
 ;;; Core Operations
@@ -91,21 +91,21 @@
 ;;; Merge two heaps - O(log n)
 (define (heap-merge h1 h2)
   (cond
-    [(heap-empty? h1) h2]
-    [(heap-empty? h2) h1]
-    [else
-     (let ([cmp (heap-cmp h1)]
-           [v1 (heap-value h1)]
-           [v2 (heap-value h2)])
-       (if (cmp v1 v2)
-           (make-leftist-heap v1
-                              (heap-left h1)
-                              (heap-merge (heap-right h1) h2)
-                              cmp)
-           (make-leftist-heap v2
-                              (heap-left h2)
-                              (heap-merge h1 (heap-right h2))
-                              cmp)))]))
+   [(heap-empty? h1) h2]
+   [(heap-empty? h2) h1]
+   [else
+    (let ([cmp (heap-cmp h1)]
+          [v1 (heap-value h1)]
+          [v2 (heap-value h2)])
+         (if (cmp v1 v2)
+             (make-leftist-heap v1
+                                (heap-left h1)
+                                (heap-merge (heap-right h1) h2)
+                                cmp)
+             (make-leftist-heap v2
+                                (heap-left h2)
+                                (heap-merge h1 (heap-right h2))
+                                cmp)))]))
 
 ;;; Insert a value - O(log n)
 (define (heap-insert h value)
@@ -150,10 +150,10 @@
 ;;; Check if heap contains value - O(n)
 (define (heap-contains? h value)
   (cond
-    [(heap-empty? h) #f]
-    [(equal? (heap-value h) value) #t]
-    [else (or (heap-contains? (heap-left h) value)
-              (heap-contains? (heap-right h) value))]))
+   [(heap-empty? h) #f]
+   [(equal? (heap-value h) value) #t]
+   [else (or (heap-contains? (heap-left h) value)
+             (heap-contains? (heap-right h) value))]))
 
 ;;; ============================================================
 ;;; Heap Builders
@@ -180,9 +180,9 @@
 ;;; Convert heap to sorted list
 (define (heap->list h)
   (let loop ([h h] [acc '()])
-    (if (heap-empty? h)
-        (reverse acc)
-        (loop (heap-delete-min h) (cons (heap-value h) acc)))))
+       (if (heap-empty? h)
+           (reverse acc)
+           (loop (heap-delete-min h) (cons (heap-value h) acc)))))
 
 ;;; ============================================================
 ;;; Heap Sort
@@ -207,9 +207,9 @@
 ;;; Get k smallest elements
 (define (heap-top-k h k)
   (let loop ([h h] [k k] [acc '()])
-    (if (or (heap-empty? h) (<= k 0))
-        (reverse acc)
-        (loop (heap-delete-min h) (- k 1) (cons (heap-value h) acc)))))
+       (if (or (heap-empty? h) (<= k 0))
+           (reverse acc)
+           (loop (heap-delete-min h) (- k 1) (cons (heap-value h) acc)))))
 
 ;;; Get k smallest from list
 (define (top-k-smallest k lst)
@@ -238,21 +238,21 @@
 
 (define (pq-peek pq)
   (let ([result (heap-find-min pq)])
-    (if (just? result)
-        (just (cdr (from-just result)))
-        nothing)))
+       (if (just? result)
+           (just (cdr (from-just result)))
+           nothing)))
 
 (define (pq-peek-priority pq)
   (let ([result (heap-find-min pq)])
-    (if (just? result)
-        (just (car (from-just result)))
-        nothing)))
+       (if (just? result)
+           (just (car (from-just result)))
+           nothing)))
 
 (define (pq-pop pq)
   (let ([result (heap-extract-min pq)])
-    (if result
-        (cons (cdr (car result)) (cdr result))
-        #f)))
+       (if result
+           (cons (cdr (car result)) (cdr result))
+           #f)))
 
 (define (pq-size pq)
   (heap-size pq))
@@ -260,7 +260,7 @@
 ;;; Build priority queue from list of (priority . value) pairs
 (define (list->pq pairs)
   (fold-left (lambda (pq p)
-               (pq-insert pq (car p) (cdr p)))
+                     (pq-insert pq (car p) (cdr p)))
              (pq-empty)
              pairs))
 
@@ -284,20 +284,20 @@
          [new-heap (heap-insert* heap entry
                                  (lambda (a b) (< (cadr a) (cadr b))))]
          [new-index (cons (cons key entry) index)])
-    (cons new-heap new-index)))
+        (cons new-heap new-index)))
 
 (define (ipq-get ipq key)
   (let ([found (assoc key (cdr ipq))])
-    (if found
-        (just (caddr (cdr found)))
-        nothing)))
+       (if found
+           (just (caddr (cdr found)))
+           nothing)))
 
 (define (ipq-peek ipq)
   (let ([result (heap-find-min (car ipq))])
-    (if (just? result)
-        (let ([entry (from-just result)])
-          (just (cons (car entry) (caddr entry))))  ; (key . value)
-        nothing)))
+       (if (just? result)
+           (let ([entry (from-just result)])
+                (just (cons (car entry) (caddr entry))))  ; (key . value)
+           nothing)))
 
 ;;; ============================================================
 ;;; Heap Merge Operations
@@ -310,12 +310,12 @@
 ;;; Merge two sorted lists (like merge in merge-sort)
 (define (merge-sorted lst1 lst2 cmp)
   (cond
-    [(null? lst1) lst2]
-    [(null? lst2) lst1]
-    [(cmp (car lst1) (car lst2))
-     (cons (car lst1) (merge-sorted (cdr lst1) lst2 cmp))]
-    [else
-     (cons (car lst2) (merge-sorted lst1 (cdr lst2) cmp))]))
+   [(null? lst1) lst2]
+   [(null? lst2) lst1]
+   [(cmp (car lst1) (car lst2))
+    (cons (car lst1) (merge-sorted (cdr lst1) lst2 cmp))]
+   [else
+    (cons (car lst2) (merge-sorted lst1 (cdr lst2) cmp))]))
 
 ;;; K-way merge of sorted lists (purely functional)
 (define (k-way-merge lists)
@@ -323,30 +323,30 @@
   (let* ([non-empty (filter (lambda (lst) (not (null? lst))) lists)]
          [initial-heap
           (fold-left (lambda (h lst)
-                       (heap-insert* h (cons (car lst) (cdr lst))
-                                     (lambda (a b) (< (car a) (car b)))))
+                             (heap-insert* h (cons (car lst) (cdr lst))
+                                           (lambda (a b) (< (car a) (car b)))))
                      heap-empty
                      non-empty)])
-    (let loop ([h initial-heap] [acc '()])
-      (if (heap-empty? h)
-          (reverse acc)
-          (let* ([min-entry (heap-value h)]
-                 [value (car min-entry)]
-                 [rest-list (cdr min-entry)]
-                 [new-h (heap-delete-min h)])
-            (if (null? rest-list)
-                (loop new-h (cons value acc))
-                (loop (heap-insert* new-h
-                                    (cons (car rest-list) (cdr rest-list))
-                                    (lambda (a b) (< (car a) (car b))))
-                      (cons value acc))))))))
+        (let loop ([h initial-heap] [acc '()])
+             (if (heap-empty? h)
+                 (reverse acc)
+                 (let* ([min-entry (heap-value h)]
+                        [value (car min-entry)]
+                        [rest-list (cdr min-entry)]
+                        [new-h (heap-delete-min h)])
+                       (if (null? rest-list)
+                           (loop new-h (cons value acc))
+                           (loop (heap-insert* new-h
+                                               (cons (car rest-list) (cdr rest-list))
+                                               (lambda (a b) (< (car a) (car b))))
+                                 (cons value acc))))))))
 
 ;;; Helper: iota
 (define (iota n)
   (let loop ([i 0] [acc '()])
-    (if (>= i n)
-        (reverse acc)
-        (loop (+ i 1) (cons i acc)))))
+       (if (>= i n)
+           (reverse acc)
+           (loop (+ i 1) (cons i acc)))))
 
 ;;; ============================================================
 ;;; Heap Transformations
@@ -367,9 +367,9 @@
 ;;; Fold over heap in priority order
 (define (heap-fold f init h)
   (let loop ([h h] [acc init])
-    (if (heap-empty? h)
-        acc
-        (loop (heap-delete-min h) (f acc (heap-value h))))))
+       (if (heap-empty? h)
+           acc
+           (loop (heap-delete-min h) (f acc (heap-value h))))))
 
 ;;; ============================================================
 ;;; Median Tracking
@@ -389,43 +389,43 @@
   (let* ([lower (car tracker)]
          [upper (cadr tracker)]
          [lower-max (heap-find-min lower)])
-    (if (or (heap-empty? lower)
-            (and (just? lower-max) (<= value (from-just lower-max))))
-        ;; Insert into lower half
-        (let ([new-lower (heap-insert* lower value max-cmp)])
-          (median-rebalance new-lower upper))
-        ;; Insert into upper half
-        (let ([new-upper (heap-insert* upper value min-cmp)])
-          (median-rebalance lower new-upper)))))
+        (if (or (heap-empty? lower)
+                (and (just? lower-max) (<= value (from-just lower-max))))
+            ;; Insert into lower half
+            (let ([new-lower (heap-insert* lower value max-cmp)])
+                 (median-rebalance new-lower upper))
+            ;; Insert into upper half
+            (let ([new-upper (heap-insert* upper value min-cmp)])
+                 (median-rebalance lower new-upper)))))
 
 (define (median-rebalance lower upper)
   (let ([lower-size (heap-size lower)]
         [upper-size (heap-size upper)])
-    (cond
-      ;; Lower too big
-      [(> lower-size (+ upper-size 1))
-       (let ([val (heap-value lower)])
-         (list (heap-delete-min lower)
-               (heap-insert* upper val min-cmp)))]
-      ;; Upper too big
-      [(> upper-size lower-size)
-       (let ([val (heap-value upper)])
-         (list (heap-insert* lower val max-cmp)
-               (heap-delete-min upper)))]
-      [else (list lower upper)])))
+       (cond
+        ;; Lower too big
+        [(> lower-size (+ upper-size 1))
+         (let ([val (heap-value lower)])
+              (list (heap-delete-min lower)
+                    (heap-insert* upper val min-cmp)))]
+        ;; Upper too big
+        [(> upper-size lower-size)
+         (let ([val (heap-value upper)])
+              (list (heap-insert* lower val max-cmp)
+                    (heap-delete-min upper)))]
+        [else (list lower upper)])))
 
 (define (median-get tracker)
   (let* ([lower (car tracker)]
          [upper (cadr tracker)]
          [lower-size (heap-size lower)]
          [upper-size (heap-size upper)])
-    (cond
-      [(and (heap-empty? lower) (heap-empty? upper)) nothing]
-      [(> lower-size upper-size) (just (heap-value lower))]
-      [(> upper-size lower-size) (just (heap-value upper))]
-      [else
-       ;; Equal sizes - return average (or lower for simplicity)
-       (just (heap-value lower))])))
+        (cond
+         [(and (heap-empty? lower) (heap-empty? upper)) nothing]
+         [(> lower-size upper-size) (just (heap-value lower))]
+         [(> upper-size lower-size) (just (heap-value upper))]
+         [else
+          ;; Equal sizes - return average (or lower for simplicity)
+          (just (heap-value lower))])))
 
 ;;; ============================================================
 ;;; Visualization

@@ -24,8 +24,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Monoid (for Foldable)
@@ -113,11 +113,11 @@
   (make-applicative
    just
    (lambda (mf ma)
-     (if (nothing? mf)
-         nothing
-         (if (nothing? ma)
-             nothing
-             (just ((from-just mf) (from-just ma))))))))
+           (if (nothing? mf)
+               nothing
+               (if (nothing? ma)
+                   nothing
+                   (just ((from-just mf) (from-just ma))))))))
 
 ;;; list-applicative : Applicative List
 ;;; Cartesian product style.
@@ -125,18 +125,18 @@
   (make-applicative
    list
    (lambda (fs as)
-     (apply append (map (lambda (f) (map f as)) fs)))))
+           (apply append (map (lambda (f) (map f as)) fs)))))
 
 ;;; either-applicative : Applicative (Either e)
 (define either-applicative
   (make-applicative
    right
    (lambda (ef ea)
-     (if (left? ef)
-         ef
-         (if (left? ea)
-             ea
-             (right ((from-right ef) (from-right ea))))))))
+           (if (left? ef)
+               ef
+               (if (left? ea)
+                   ea
+                   (right ((from-right ef) (from-right ea))))))))
 
 ;;; const-applicative : Monoid m -> Applicative (Const m)
 ;;; Const m a = m (ignores a).
@@ -327,7 +327,7 @@
 ;;; find : (a -> Bool) -> t a -> Maybe a
 (define (foldable-find foldr-fn pred ta)
   (foldr-fn (lambda (a acc)
-              (if (pred a) (just a) acc))
+                    (if (pred a) (just a) acc))
             nothing
             ta))
 
@@ -350,18 +350,18 @@
 ;;; maximum : Ord a => t a -> Maybe a
 (define (foldable-maximum foldr-fn ta)
   (foldr-fn (lambda (a acc)
-              (if (nothing? acc)
-                  (just a)
-                  (just (max a (from-just acc)))))
+                    (if (nothing? acc)
+                        (just a)
+                        (just (max a (from-just acc)))))
             nothing
             ta))
 
 ;;; minimum : Ord a => t a -> Maybe a
 (define (foldable-minimum foldr-fn ta)
   (foldr-fn (lambda (a acc)
-              (if (nothing? acc)
-                  (just a)
-                  (just (min a (from-just acc)))))
+                    (if (nothing? acc)
+                        (just a)
+                        (just (min a (from-just acc)))))
             nothing
             ta))
 
@@ -397,7 +397,7 @@
       ((app-pure app) '())
       (app-lift2 app
                  (lambda (keep?) (lambda (rest)
-                   (if keep? (cons (car lst) rest) rest)))
+                                         (if keep? (cons (car lst) rest) rest)))
                  (pred (car lst))
                  (list-filter-with-effect app pred (cdr lst)))))
 
@@ -412,11 +412,11 @@
   (make-applicative
    (lambda (x) (unfold-stream x))  ; Infinite repeat
    (lambda (fs as)
-     ;; Zip the two lists with application
-     (if (or (null? fs) (null? as))
-         '()
-         (cons ((car fs) (car as))
-               ((app-ap zip-list-applicative) (cdr fs) (cdr as)))))))
+           ;; Zip the two lists with application
+           (if (or (null? fs) (null? as))
+               '()
+               (cons ((car fs) (car as))
+                     ((app-ap zip-list-applicative) (cdr fs) (cdr as)))))))
 
 ;;; unfold-stream : a -> Stream a (as list, truncated)
 ;;; Helper for zip-list pure (creates infinite-ish list).
@@ -445,7 +445,7 @@
   (if (null? lst)
       (list init)
       (let ([rest (scan-right f init (cdr lst))])
-        (cons (f (car lst) (car rest)) rest))))
+           (cons (f (car lst) (car rest)) rest))))
 
 ;;; ============================================================
 ;;; Indexed Traversals

@@ -20,8 +20,8 @@
 ;;;   - prelude.ss
 ;;;   - span.ss (spanned combinators)
 
-(load "prelude.ss")
-(load "span.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/span.ss")
 
 ;;; ============================================================
 ;;; Fold AST Types
@@ -45,7 +45,8 @@
 ;;; Skip a line comment.
 (define fold-comment
   (s-bind (s-char #\;) (lambda (_)
-                               (s-bind (s-many (s-satisfy (lambda (c) (not (char=? c #\newline)))
+                               (s-bind (s-many (s-satisfy (lambda (c) (not (char=? c #
+ewline)))
                                                           "non-newline"))
                                        (lambda (_)
                                                (s-pure '()))))))
@@ -87,19 +88,21 @@
 ;;; fold-string : SpannedParser String
 ;;; Parse a double-quoted string with escape sequences.
 (define fold-string
-  (let* ([escape (s-bind (s-char #\\) (lambda (_)
+  (let* ([escape (s-bind (s-char #\) (lambda (_)
                                               (s-bind s-item (lambda (c)
                                                                      (s-pure (case c
-                                                                                   [(#\n) #\newline]
-                                                                                   [(#\t) #\tab]
-                                                                                   [(#\r) #\return]
-                                                                                   [(#\\) #\\]
+                                                                                   [(#
+) #
+ewline]
+                                                                                   [(#	) #	ab]
+                                                                                   [(#) #eturn]
+                                                                                   [(#\) #\]
                                                                                    [(#\") #\"]
                                                                                    [else c]))))))]
          [string-char (s-alt escape
                              (s-satisfy (lambda (c)
                                                 (not (or (char=? c #\")
-                                                         (char=? c #\\))))
+                                                         (char=? c #\))))
                                         "string character"))])
         (s-bind (s-char #\") (lambda (_)
                                      (s-bind (s-many string-char) (lambda (chars)

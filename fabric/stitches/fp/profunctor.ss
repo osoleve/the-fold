@@ -38,8 +38,8 @@
 ;;;   lmap Right          = rmap Right . right'
 ;;;   left' . left'       = dimap unassocE assocE . left'
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Function Profunctor (->)
@@ -51,7 +51,7 @@
 ;;; Profunctor dimap for functions.
 (define (fn-dimap f g h)
   (lambda (a-prime)
-    (g (h (f a-prime)))))
+          (g (h (f a-prime)))))
 
 ;;; fn-lmap : (a' -> a) -> (a -> b) -> (a' -> b)
 ;;; Contravariant map on input.
@@ -118,17 +118,17 @@
 ;;; dimap for Star, requires functor's fmap.
 (define (star-dimap fmap f g s)
   (make-star (lambda (a-prime)
-               (fmap g (run-star s (f a-prime))))))
+                     (fmap g (run-star s (f a-prime))))))
 
 ;;; star-lmap : (a' -> a) -> Star f a b -> Star f a' b
 (define (star-lmap f s)
   (make-star (lambda (a-prime)
-               (run-star s (f a-prime)))))
+                     (run-star s (f a-prime)))))
 
 ;;; star-rmap : ((a -> b) -> f a -> f b) -> (b -> b') -> Star f a b -> Star f a b'
 (define (star-rmap fmap g s)
   (make-star (lambda (a)
-               (fmap g (run-star s a)))))
+                     (fmap g (run-star s a)))))
 
 ;;; ============================================================
 ;;; Costar Profunctor (Cokleisli)
@@ -153,7 +153,7 @@
 ;;; dimap for Costar, requires functor's fmap.
 (define (costar-dimap fmap f g cs)
   (make-costar (lambda (fa-prime)
-                 (g (run-costar cs (fmap f fa-prime))))))
+                       (g (run-costar cs (fmap f fa-prime))))))
 
 ;;; ============================================================
 ;;; Strong Profunctor
@@ -169,25 +169,25 @@
 ;;; Strong instance for functions.
 (define (fn-first f)
   (lambda (pair)
-    (cons (f (car pair)) (cdr pair))))
+          (cons (f (car pair)) (cdr pair))))
 
 ;;; fn-second : (a -> b) -> (c, a) -> (c, b)
 (define (fn-second f)
   (lambda (pair)
-    (cons (car pair) (f (cdr pair)))))
+          (cons (car pair) (f (cdr pair)))))
 
 ;;; star-first : ((a -> b) -> f a -> f b) -> Star f a b -> Star f (a, c) (b, c)
 ;;; Strong instance for Star.
 (define (star-first fmap s)
   (make-star (lambda (pair)
-               (fmap (lambda (b) (cons b (cdr pair)))
-                     (run-star s (car pair))))))
+                     (fmap (lambda (b) (cons b (cdr pair)))
+                           (run-star s (car pair))))))
 
 ;;; star-second : ((a -> b) -> f a -> f b) -> Star f a b -> Star f (c, a) (c, b)
 (define (star-second fmap s)
   (make-star (lambda (pair)
-               (fmap (lambda (b) (cons (car pair) b))
-                     (run-star s (cdr pair))))))
+                     (fmap (lambda (b) (cons (car pair) b))
+                           (run-star s (cdr pair))))))
 
 ;;; ============================================================
 ;;; Choice Profunctor
@@ -203,31 +203,31 @@
 ;;; Choice instance for functions.
 (define (fn-left f)
   (lambda (e)
-    (if (left? e)
-        (left (f (from-left e)))
-        e)))
+          (if (left? e)
+              (left (f (from-left e)))
+              e)))
 
 ;;; fn-right : (a -> b) -> Either c a -> Either c b
 (define (fn-right f)
   (lambda (e)
-    (if (right? e)
-        (right (f (from-right e)))
-        e)))
+          (if (right? e)
+              (right (f (from-right e)))
+              e)))
 
 ;;; star-left : ((a -> b) -> f a -> f b) -> (b -> f b) -> Star f a b -> Star f (Either a c) (Either b c)
 ;;; Choice instance for Star.
 (define (star-left fmap pure s)
   (make-star (lambda (e)
-               (if (left? e)
-                   (fmap left (run-star s (from-left e)))
-                   (pure (right (from-right e)))))))
+                     (if (left? e)
+                         (fmap left (run-star s (from-left e)))
+                         (pure (right (from-right e)))))))
 
 ;;; star-right : ((a -> b) -> f a -> f b) -> (b -> f b) -> Star f a b -> Star f (Either c a) (Either c b)
 (define (star-right fmap pure s)
   (make-star (lambda (e)
-               (if (right? e)
-                   (fmap right (run-star s (from-right e)))
-                   (pure (left (from-left e)))))))
+                     (if (right? e)
+                         (fmap right (run-star s (from-right e)))
+                         (pure (left (from-left e)))))))
 
 ;;; tagged-left : Tagged a b -> Tagged (Either a c) (Either b c)
 ;;; Choice instance for Tagged.
@@ -250,7 +250,7 @@
 ;;; Closed instance for functions.
 (define (fn-closed f)
   (lambda (g)
-    (lambda (x) (f (g x)))))
+          (lambda (x) (f (g x)))))
 
 ;;; ============================================================
 ;;; Profunctor Composition
@@ -284,14 +284,14 @@
 ;;; Create an iso from getter and setter.
 (define (make-iso getter setter)
   (lambda (dimap-fn pab)
-    (dimap-fn getter setter pab)))
+          (dimap-fn getter setter pab)))
 
 ;;; iso-forward : Iso s t a b -> s -> a
 ;;; Extract the forward function.
 (define (iso-forward iso)
   (lambda (s)
-    (let ([pab (lambda (x) x)])  ; Identity on a -> b
-      ((iso fn-dimap pab) s))))
+          (let ([pab (lambda (x) x)])  ; Identity on a -> b
+               ((iso fn-dimap pab) s))))
 
 ;;; Lens s t a b = forall p. Strong p => p a b -> p s t
 ;;; A lens focuses on a part of a structure
@@ -300,9 +300,9 @@
 ;;; Convert lens getter/setter to profunctor form.
 (define (lens-to-profunctor getter setter)
   (lambda (dimap-fn first-fn pab)
-    (dimap-fn (lambda (s) (cons (getter s) s))
-              (lambda (pair) (setter (cdr pair) (car pair)))
-              (first-fn pab))))
+          (dimap-fn (lambda (s) (cons (getter s) s))
+                    (lambda (pair) (setter (cdr pair) (car pair)))
+                    (first-fn pab))))
 
 ;;; Prism s t a b = forall p. Choice p => p a b -> p s t
 ;;; A prism focuses on one branch of a sum type
@@ -311,9 +311,9 @@
 ;;; Convert prism review/match to profunctor form.
 (define (prism-to-profunctor review match)
   (lambda (dimap-fn left-fn pab)
-    (dimap-fn match
-              (lambda (e) (if (left? e) (from-left e) (review (from-right e))))
-              (left-fn pab))))
+          (dimap-fn match
+                    (lambda (e) (if (left? e) (from-left e) (review (from-right e))))
+                    (left-fn pab))))
 
 ;;; ============================================================
 ;;; Practical Profunctor Utilities
@@ -323,13 +323,13 @@
 ;;; Compose two dimap functions (for profunctor composition).
 (define (dimap-compose dimap1 dimap2)
   (lambda (f g pab)
-    (dimap1 f g (dimap2 identity identity pab))))
+          (dimap1 f g (dimap2 identity identity pab))))
 
 ;;; arr-to-profunctor : Arrow -> Profunctor operations
 ;;; Arrows are profunctors.
 (define (arr-to-dimap arr-fn arr-compose)
   (lambda (f g arr)
-    (arr-compose (arr-fn f) (arr-compose arr (arr-fn g)))))
+          (arr-compose (arr-fn f) (arr-compose arr (arr-fn g)))))
 
 ;;; ============================================================
 ;;; Market Profunctor (for Prisms)
@@ -356,30 +356,30 @@
 (define (market-dimap f g m)
   (make-market (lambda (b-prime) ((market-setter m) (g b-prime)))
                (lambda (s)
-                 (let ([e ((market-getter m) s)])
-                   (if (left? e) e (right (f (from-right e))))))))
+                       (let ([e ((market-getter m) s)])
+                            (if (left? e) e (right (f (from-right e))))))))
 
 ;;; market-left : Market a b s t -> Market a b (Either s x) (Either t x)
 (define (market-left m)
   (make-market (lambda (b) (left ((market-setter m) b)))
                (lambda (e)
-                 (if (left? e)
-                     (let ([inner ((market-getter m) (from-left e))])
-                       (if (left? inner)
-                           (left (left (from-left inner)))
-                           (right (from-right inner))))
-                     (left (right (from-right e)))))))
+                       (if (left? e)
+                           (let ([inner ((market-getter m) (from-left e))])
+                                (if (left? inner)
+                                    (left (left (from-left inner)))
+                                    (right (from-right inner))))
+                           (left (right (from-right e)))))))
 
 ;;; market-right : Market a b s t -> Market a b (Either x s) (Either x t)
 (define (market-right m)
   (make-market (lambda (b) (right ((market-setter m) b)))
                (lambda (e)
-                 (if (right? e)
-                     (let ([inner ((market-getter m) (from-right e))])
-                       (if (left? inner)
-                           (left (right (from-left inner)))
-                           (right (from-right inner))))
-                     (left (left (from-left e)))))))
+                       (if (right? e)
+                           (let ([inner ((market-getter m) (from-right e))])
+                                (if (left? inner)
+                                    (left (right (from-left inner)))
+                                    (right (from-right inner))))
+                           (left (left (from-left e)))))))
 
 ;;; ============================================================
 ;;; Exchange Profunctor (for Isos)

@@ -1,7 +1,9 @@
 ;;; Test harness for core/types.ss
+;;;
+;;; Run from project root: scheme --script fabric/stitches/test-types.ss
 
-(load "block.ss")
-(load "types.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/types.ss")
 
 (define (test name expected actual)
   (display "  ")
@@ -10,9 +12,11 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-       (display "✗\n    expected: ")
+       (display "✗
+    expected: ")
        (display expected)
-       (display "\n    got: ")
+       (display "
+    got: ")
        (display actual)))
   (newline))
 
@@ -153,5 +157,143 @@
 (test "round-trip" test-type (block->type type-blk))
 (test "invalid block" #f (block->type (make-block 'not-type (make-bytevector 0) (vector))))
 
+;;; ============================================================
+;;; infer.ss — Type Inference Tests
+;;; ============================================================
+
+(load "fabric/stitches/infer.ss")
+
+(test-section "Type Inference - Literals")
+(test "typeof integer" 'Int (typeof 42))
+(test "typeof boolean" 'Bool (typeof #t))
+(test "typeof string" 'String (typeof "hello"))
+(test "typeof quoted symbol" 'Symbol (typeof '(quote foo)))
+
+(test-section "Type Inference - Lambdas")
+(define id-type (typeof '(fn (x) x)))
+(test "identity is polymorphic" #t (and (pair? id-type) (eq? (car id-type) '∀)))
+(test "identity is function" #t (function-type? (caddr id-type)))
+
+(define const-type (typeof '(fn (x) (fn (y) x))))
+(test "const is polymorphic" #t (and (pair? const-type) (eq? (car const-type) '∀)))
+
+(test-section "Type Inference - Application")
+(test "apply identity to int" 'Int (typeof '((fn (x) x) 42)))
+(test "nested application" 'Int (typeof '(((fn (x) (fn (y) x)) 42) #t)))
+
+(test-section "Type Inference - Let")
+(test "let simple" 'Int (typeof '(let ((x 42)) x)))
+(test "let polymorphic" 'Int (typeof '(let ((id (fn (x) x))) (id 42))))
+(test "let multiple bindings" 'Bool (typeof '(let ((x 42) (y #t)) y)))
+
+(test-section "Type Inference - If")
+(test "if simple" 'Int (typeof '(if #t 42 0)))
+(define if-error (typeof '(if #t 42 "hello")))
+(test "if type error" #t (and (pair? if-error) (eq? (car if-error) 'error)))
+
+(test-section "Type Inference - Unification")
+(define unify-ok (unify 'Int 'Int))
+(test "unify same" 'ok (car unify-ok))
+(define unify-var (unify 'a 'Int))
+(test "unify var" 'ok (car unify-var))
+(define unify-mismatch (unify 'Int 'Bool))
+(test "unify mismatch" 'error (car unify-mismatch))
+(define unify-occurs (unify 'a '(List a)))
+(test "unify occurs check" 'occurs-check (cadr unify-occurs))
+
+(test-section "Type Inference - Substitution")
+(test "apply empty subst" 'Int (apply-subst empty-subst 'Int))
+(define s1 (subst-extend empty-subst 'a 'Int))
+(test "apply subst simple" 'Int (apply-subst s1 'a))
+(test "apply subst function" '(-> Int Bool) (apply-subst s1 '(-> a Bool)))
+
+(test-section "Type Inference - Primitives")
+(test "prim add" 'Int (typeof '(prim 'add 1 2)))
+(test "prim not" 'Bool (typeof '(prim 'not #t)))
+(define cons-type (typeof '(prim 'cons 1 (quote ()))))
+(test "prim cons list type" #t (and (pair? cons-type) (eq? (car cons-type) 'List)))
+
+(test-section "Type Inference - Generalization")
+(define inst-result (instantiate '(∀ (a) (-> a a))))
+(test "instantiate forall" #t (function-type? inst-result))
+(test "instantiate non-forall" 'Int (instantiate 'Int))
+(define gen-result (generalize empty-tenv '(-> τ1 τ1)))
+(test "generalize free vars" #t (and (pair? gen-result) (eq? (car gen-result) '∀)))
+
+(test-section "Type Inference - Error Cases")
+(define unbound-error (typeof 'unbound))
+(test "unbound variable" #t (and (pair? unbound-error) (eq? (car unbound-error) 'error)))
+(define app-error (typeof '(42 "hello")))
+(test "type mismatch in app" #t (and (pair? app-error) (eq? (car app-error) 'error)))
+
+;;; ============================================================
+;;; kinds.ss — Kind System Tests
+;;; ============================================================
+
+(load "fabric/stitches/kinds.ss")
+
+(test-section "Kinds - Predicates")
+(test "kind *" #t (kind? '*))
+(test "kind Constraint" #t (kind? 'Constraint))
+(test "kind Row" #t (kind? 'Row))
+(test "kind arrow" #t (kind? '(⇒ * *)))
+(test "kind higher arrow" #t (kind? '(⇒ (⇒ * *) *)))
+(test "not kind" #f (kind? 'NotAKind))
+
+(test-section "Kinds - Constructors")
+(test "K=>" '(⇒ * *) (K=> K* K*))
+(test "K=>*" '(⇒ * (⇒ * *)) (K=>* K* K* K*))
+
+(test-section "Kinds - Equality")
+(test "kind= *" #t (kind=? K* K*))
+(test "kind= arrow" #t (kind=? (K=> K* K*) (K=> K* K*)))
+(test "kind≠ different" #f (kind=? K* (K=> K* K*)))
+
+(test-section "Kinds - Builtins")
+(test "lookup List" #t (kind=? (lookup-kind 'List) (K=> K* K*)))
+(test "lookup Vector" #t (kind=? (lookup-kind 'Vector) (K=> K* K*)))
+(test "lookup Int" #t (kind=? (lookup-kind 'Int) K*))
+(test "lookup not found" #f (lookup-kind 'NotAType))
+
+(test-section "Kinds - Inference")
+(test "infer Int" #t (kind=? (infer-kind 'Int '()) K*))
+(test "infer List Int" #t (kind=? (infer-kind '(List Int) '()) K*))
+(test "infer function" #t (kind=? (infer-kind '(-> Int Bool) '()) K*))
+(test "infer forall" #t (kind=? (infer-kind '(∀ (a) (-> a a)) '()) K*))
+(define hole-kind (infer-kind '? '()))
+(test "infer hole returns kind hole" #t (or (eq? hole-kind 'κ?) (and (pair? hole-kind) (eq? (car hole-kind) 'error))))
+(test "infer product" #t (kind=? (infer-kind '(× Int Bool) '()) K*))
+(test "infer mu" #t (kind=? (infer-kind '(μ t (List t)) '()) K*))
+
+(test-section "Kinds - Display")
+(test "kind->string *" "*" (kind->string K*))
+(test "kind->string arrow" "* ⇒ *" (kind->string (K=> K* K*)))
+(test "kind->string Constraint" "Constraint" (kind->string K-constraint))
+
+;;; ============================================================
+;;; Integration Tests
+;;; ============================================================
+
+(test-section "Integration - Polymorphism")
+(define poly-id (typeof '(fn (x) x)))
+(test "polymorphic identity" #t (and (pair? poly-id) (eq? (car poly-id) '∀)))
+
+(define let-poly (typeof '(let ((id (fn (x) x))) ((id id) 42))))
+(test "let polymorphism" 'Int let-poly)
+
+(define compose (typeof '(fn (f) (fn (g) (fn (x) (f (g x)))))))
+(test "compose function" #t (and (pair? compose) (eq? (car compose) '∀)))
+
+(define factorial (typeof '(fix (fact) (fn (n) (if (prim 'zero? n) 1 (prim 'mul n (fact (prim 'sub n 1))))))))
+(test "factorial recursion" #t (function-type? factorial))
+
+(define annotated (typeof '(: 42 Int)))
+(test "type annotation" 'Int annotated)
+
+(define poly-list (typeof '(let ((id (fn (x) x)))
+                            (prim 'cons (id 1) (prim 'cons (id 2) (quote ()))))))
+(test "polymorphic list ops" #t (and (pair? poly-list) (or (eq? (car poly-list) 'List) (eq? (car poly-list) '∀))))
+
 (newline)
-(display "✓ All type system tests complete.\n")
+(display "✓ All type system tests complete (types.ss, infer.ss, kinds.ss).
+")

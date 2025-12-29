@@ -2,10 +2,13 @@
 ;;;
 ;;; Tests debugger state, stepping, breakpoints, and tracing.
 
-(load "debug.ss")
+(load "fabric/stitches/debug.ss")
 
-(display "Debugger Tests\n")
-(display "==============\n\n")
+(display "Debugger Tests
+")
+(display "==============
+
+")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -26,7 +29,8 @@
 ;;; Debugger Creation
 ;;; ============================================================
 
-(display "Debugger Creation:\n")
+(display "Debugger Creation:
+")
 
 (let ([d (make-debugger 42)])
      (test "debugger?" #t (debugger? d))
@@ -40,7 +44,9 @@
 ;;; Single Step
 ;;; ============================================================
 
-(display "\nSingle Step:\n")
+(display "
+Single Step:
+")
 
 ;; Simple value - one step completes
 (let* ([d (make-debugger 42)]
@@ -66,7 +72,9 @@
 ;;; Step-N
 ;;; ============================================================
 
-(display "\nStep-N:\n")
+(display "
+Step-N:
+")
 
 ;; (+ 1 2) requires multiple steps
 (let* ([d (make-debugger '(prim 'add 1 2))]
@@ -83,7 +91,9 @@
 ;;; Breakpoints
 ;;; ============================================================
 
-(display "\nBreakpoints:\n")
+(display "
+Breakpoints:
+")
 
 ;; Add breakpoint
 (let* ([d (make-debugger '(let ((x 1)) x))]
@@ -106,7 +116,9 @@
 ;;; Continue
 ;;; ============================================================
 
-(display "\nContinue:\n")
+(display "
+Continue:
+")
 
 ;; Continue to completion
 (let* ([d (make-debugger '(prim 'add 1 2))]
@@ -128,7 +140,9 @@
 ;;; History and Undo
 ;;; ============================================================
 
-(display "\nHistory and Undo:\n")
+(display "
+History and Undo:
+")
 
 ;; Undo single step
 (let* ([d (make-debugger '(prim 'add 1 2))]
@@ -159,7 +173,9 @@
 ;;; Inspection
 ;;; ============================================================
 
-(display "\nInspection:\n")
+(display "
+Inspection:
+")
 
 (let* ([d (make-debugger '(prim 'add 1 2))]
        [d2 (step-n d 3)]
@@ -179,7 +195,9 @@
 ;;; Trace Expression
 ;;; ============================================================
 
-(display "\nTrace Expression:\n")
+(display "
+Trace Expression:
+")
 
 (let ([trace (trace-expr '(prim 'add 1 2) 100)])
      (test "trace-expr returns list" #t (list? trace))
@@ -189,7 +207,9 @@
 ;;; Error Handling
 ;;; ============================================================
 
-(display "\nError Handling:\n")
+(display "
+Error Handling:
+")
 
 ;; Unbound variable
 (let* ([d (make-debugger 'undefined)]
@@ -207,7 +227,9 @@
 ;;; Complex Examples
 ;;; ============================================================
 
-(display "\nComplex Examples:\n")
+(display "
+Complex Examples:
+")
 
 ;; Map function with debugging
 (let* ([d (make-debugger
@@ -226,10 +248,17 @@
 ;;; ============================================================
 
 (newline)
-(display "==================\n")
-(display (string-append "Passed: " (number->string tests-passed) "\n"))
-(display (string-append "Failed: " (number->string tests-failed) "\n"))
+(display "==================
+")
+(display (string-append "Passed: " (number->string tests-passed) "
+"))
+(display (string-append "Failed: " (number->string tests-failed) "
+"))
 
 (if (= tests-failed 0)
-    (display "\n✓ All debugger tests passed!\n")
-    (display "\n✗ Some tests failed!\n"))
+    (display "
+✓ All debugger tests passed!
+")
+    (display "
+✗ Some tests failed!
+"))

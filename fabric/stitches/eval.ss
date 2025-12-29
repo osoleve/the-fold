@@ -29,9 +29,9 @@
 ;;;   - block.ss
 ;;;   - prim.ss
 
-(load "prelude.ss")
-(load "block.ss")
-(load "prim.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/block.ss")
+(load "fabric/stitches/prim.ss")
 
 ;;; ============================================================
 ;;; Fuel

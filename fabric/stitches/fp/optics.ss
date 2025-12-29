@@ -35,9 +35,9 @@
 ;;;     view i (review i a) = a                   (from-to)
 ;;;     review i (view i s) = s                   (to-from)
 
-(load "prelude.ss")
-(load "fp/profunctor.ss")
-(load "fp/traversable.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/profunctor.ss")
+(load "fabric/stitches/fp/traversable.ss")
 
 ;;; ============================================================
 ;;; Identity Functor
@@ -66,7 +66,7 @@
   (make-applicative
    make-identity
    (lambda (ff fa)
-     (make-identity ((run-identity ff) (run-identity fa))))))
+           (make-identity ((run-identity ff) (run-identity fa))))))
 
 ;;; ============================================================
 ;;; Const Functor
@@ -97,7 +97,7 @@
   (make-applicative
    (lambda (x) (make-const (monoid-empty monoid)))
    (lambda (cf ca)
-     (make-const ((monoid-append monoid) (get-const cf) (get-const ca))))))
+           (make-const ((monoid-append monoid) (get-const cf) (get-const ca))))))
 
 ;;; Note: first-monoid is already defined in traversable.ss
 
@@ -117,8 +117,8 @@
 ;;; Create a lens from getter and setter.
 (define (make-lens getter setter)
   (lambda (fmap a->fb s)
-    (fmap (lambda (b) (setter s b))
-          (a->fb (getter s)))))
+          (fmap (lambda (b) (setter s b))
+                (a->fb (getter s)))))
 
 ;;; lens-view : Lens s t a b -> s -> a
 ;;; Get the focused value.
@@ -211,17 +211,17 @@
 ;;; Try to match and extract.
 (define (prism-match prism s)
   (let ([result ((prism-get-preview prism) s)])
-    (if (right? result)
-        (just (from-right result))
-        nothing)))
+       (if (right? result)
+           (just (from-right result))
+           nothing)))
 
 ;;; prism-over : Prism s t a b -> (a -> b) -> s -> t
 ;;; Modify if the prism matches.
 (define (prism-over prism f s)
   (let ([result ((prism-get-preview prism) s)])
-    (if (right? result)
-        (prism-review prism (f (from-right result)))
-        (from-left result))))
+       (if (right? result)
+           (prism-review prism (f (from-right result)))
+           (from-left result))))
 
 ;;; prism-set : Prism s t a b -> b -> s -> t
 ;;; Set if the prism matches.
@@ -254,9 +254,9 @@
 ;;; affine-over : Affine s t a b -> (a -> b) -> s -> t
 (define (affine-over aff f s)
   (let ([ma (affine-preview aff s)])
-    (if (just? ma)
-        (affine-set aff (f (from-just ma)) s)
-        s)))
+       (if (just? ma)
+           (affine-set aff (f (from-just ma)) s)
+           s)))
 
 ;;; ============================================================
 ;;; Traversal Type
@@ -323,13 +323,13 @@
   (make-prism
    (lambda (y) (prism-review outer (prism-review inner y)))
    (lambda (s)
-     (let ([outer-result ((prism-get-preview outer) s)])
-       (if (left? outer-result)
-           outer-result
-           (let ([inner-result ((prism-get-preview inner) (from-right outer-result))])
-             (if (left? inner-result)
-                 (left (prism-review outer (from-left inner-result)))
-                 inner-result)))))))
+           (let ([outer-result ((prism-get-preview outer) s)])
+                (if (left? outer-result)
+                    outer-result
+                    (let ([inner-result ((prism-get-preview inner) (from-right outer-result))])
+                         (if (left? inner-result)
+                             (left (prism-review outer (from-left inner-result)))
+                             inner-result)))))))
 
 ;;; ============================================================
 ;;; Stock Lenses
@@ -350,26 +350,26 @@
 (define (at key)
   (make-lens
    (lambda (alist)
-     (let ([result (assoc key alist)])
-       (if result (just (cdr result)) nothing)))
+           (let ([result (assoc key alist)])
+                (if result (just (cdr result)) nothing)))
    (lambda (alist mv)
-     (let ([without (filter (lambda (p) (not (equal? (car p) key))) alist)])
-       (if (just? mv)
-           (cons (cons key (from-just mv)) without)
-           without)))))
+           (let ([without (filter (lambda (p) (not (equal? (car p) key))) alist)])
+                (if (just? mv)
+                    (cons (cons key (from-just mv)) without)
+                    without)))))
 
 ;;; ix : Int -> Affine (List a) (List a) a a
 ;;; Focus on an element at an index.
 (define (ix n)
   (make-affine
    (lambda (lst)
-     (if (and (>= n 0) (< n (length lst)))
-         (just (list-ref lst n))
-         nothing))
+           (if (and (>= n 0) (< n (length lst)))
+               (just (list-ref lst n))
+               nothing))
    (lambda (lst v)
-     (if (and (>= n 0) (< n (length lst)))
-         (list-update lst n v)
-         lst))))
+           (if (and (>= n 0) (< n (length lst)))
+               (list-update lst n v)
+               lst))))
 
 ;;; list-update : List a -> Int -> a -> List a
 ;;; Helper to update element at index.
@@ -388,9 +388,9 @@
   (make-prism
    left
    (lambda (e)
-     (if (left? e)
-         (right (from-left e))
-         (left (right (from-right e)))))))
+           (if (left? e)
+               (right (from-left e))
+               (left (right (from-right e)))))))
 
 ;;; _Right : Prism (Either a b) (Either a b') b b'
 ;;; Focus on the Right branch.
@@ -398,9 +398,9 @@
   (make-prism
    right
    (lambda (e)
-     (if (right? e)
-         (right (from-right e))
-         (left (left (from-left e)))))))
+           (if (right? e)
+               (right (from-right e))
+               (left (left (from-left e)))))))
 
 ;;; _Just : Prism (Maybe a) (Maybe b) a b
 ;;; Focus on the Just branch.
@@ -408,9 +408,9 @@
   (make-prism
    just
    (lambda (m)
-     (if (just? m)
-         (right (from-just m))
-         (left nothing)))))
+           (if (just? m)
+               (right (from-just m))
+               (left nothing)))))
 
 ;;; _Nothing : Prism (Maybe a) (Maybe a) () ()
 ;;; Match Nothing.
@@ -418,9 +418,9 @@
   (make-prism
    (lambda (_) nothing)
    (lambda (m)
-     (if (nothing? m)
-         (right '())
-         (left m)))))
+           (if (nothing? m)
+               (right '())
+               (left m)))))
 
 ;;; _Cons : Prism (List a) (List a) (a, List a) (a, List a)
 ;;; Focus on non-empty list as (head, tail).
@@ -428,9 +428,9 @@
   (make-prism
    (lambda (pair) (cons (car pair) (cdr pair)))
    (lambda (lst)
-     (if (null? lst)
-         (left '())
-         (right (cons (car lst) (cdr lst)))))))
+           (if (null? lst)
+               (left '())
+               (right (cons (car lst) (cdr lst)))))))
 
 ;;; _Nil : Prism (List a) (List a) () ()
 ;;; Match empty list.
@@ -438,9 +438,9 @@
   (make-prism
    (lambda (_) '())
    (lambda (lst)
-     (if (null? lst)
-         (right '())
-         (left lst)))))
+           (if (null? lst)
+               (right '())
+               (left lst)))))
 
 ;;; ============================================================
 ;;; Stock Isos
@@ -488,29 +488,29 @@
 (define each
   (make-traversal
    (lambda (a->fb fmap s)
-     ;; This is list-traverse but we need to pass applicative ops
-     (if (null? s)
-         (make-identity '())
-         (identity-fmap
-          (lambda (pair) (cons (car pair) (cdr pair)))
-          ((app-ap identity-applicative)
-           (identity-fmap
-            (lambda (h) (lambda (t) (cons h t)))
-            (a->fb (car s)))
-           ((get-traversal each) a->fb fmap (cdr s))))))))
+           ;; This is list-traverse but we need to pass applicative ops
+           (if (null? s)
+               (make-identity '())
+               (identity-fmap
+                (lambda (pair) (cons (car pair) (cdr pair)))
+                ((app-ap identity-applicative)
+                 (identity-fmap
+                  (lambda (h) (lambda (t) (cons h t)))
+                  (a->fb (car s)))
+                 ((get-traversal each) a->fb fmap (cdr s))))))))
 
 ;;; both : Traversal (a, a) (b, b) a b
 ;;; Traverse both elements of a homogeneous pair.
 (define both
   (make-traversal
    (lambda (a->fb fmap p)
-     (identity-fmap
-      (lambda (pair) pair)
-      ((app-ap identity-applicative)
-       (identity-fmap
-        (lambda (a) (lambda (b) (cons a b)))
-        (a->fb (car p)))
-       (a->fb (cdr p)))))))
+           (identity-fmap
+            (lambda (pair) pair)
+            ((app-ap identity-applicative)
+             (identity-fmap
+              (lambda (a) (lambda (b) (cons a b)))
+              (a->fb (car p)))
+             (a->fb (cdr p)))))))
 
 ;;; ============================================================
 ;;; Getter/Setter Only Optics
@@ -568,13 +568,13 @@
 (define (failing aff1 aff2)
   (make-affine
    (lambda (s)
-     (let ([r1 (affine-preview aff1 s)])
-       (if (just? r1) r1 (affine-preview aff2 s))))
+           (let ([r1 (affine-preview aff1 s)])
+                (if (just? r1) r1 (affine-preview aff2 s))))
    (lambda (s b)
-     (let ([r1 (affine-preview aff1 s)])
-       (if (just? r1)
-           (affine-set aff1 b s)
-           (affine-set aff2 b s))))))
+           (let ([r1 (affine-preview aff1 s)])
+                (if (just? r1)
+                    (affine-set aff1 b s)
+                    (affine-set aff2 b s))))))
 
 ;;; filtered : (a -> Bool) -> Affine a a a a
 ;;; Focus only if predicate holds.
@@ -588,22 +588,22 @@
 (define (taking n)
   (make-affine
    (lambda (lst)
-     (if (>= (length lst) n)
-         (just (list-take lst n))
-         nothing))
+           (if (>= (length lst) n)
+               (just (list-take lst n))
+               nothing))
    (lambda (lst new-prefix)
-     (append new-prefix (list-drop lst n)))))
+           (append new-prefix (list-drop lst n)))))
 
 ;;; dropping : Int -> Traversal (List a) (List a) (List a) (List a)
 ;;; Focus on elements after first n as a group.
 (define (dropping n)
   (make-affine
    (lambda (lst)
-     (if (>= (length lst) n)
-         (just (list-drop lst n))
-         nothing))
+           (if (>= (length lst) n)
+               (just (list-drop lst n))
+               nothing))
    (lambda (lst new-suffix)
-     (append (list-take lst n) new-suffix))))
+           (append (list-take lst n) new-suffix))))
 
 ;;; list-take : List a -> Int -> List a
 (define (list-take lst n)
@@ -671,17 +671,17 @@
 (define (singular trav)
   (make-affine
    (lambda (s)
-     (let ([lst (traversal-toListOf trav s)])
-       (if (null? lst) nothing (just (car lst)))))
+           (let ([lst (traversal-toListOf trav s)])
+                (if (null? lst) nothing (just (car lst)))))
    (lambda (s b)
-     ;; Set only the first element
-     (let ([done (list #f)])
-       (traversal-over trav
-                       (lambda (a)
-                         (if (car done)
-                             a
-                             (begin (set-car! done #t) b)))
-                       s)))))
+           ;; Set only the first element
+           (let ([done (list #f)])
+                (traversal-over trav
+                                (lambda (a)
+                                        (if (car done)
+                                            a
+                                            (begin (set-car! done #t) b)))
+                                s)))))
 
 ;;; ============================================================
 ;;; Practical Examples (for documentation)
@@ -719,6 +719,5 @@
 ;;; (lens-set (at 'name) (just "Bob") alist) ; => ((name . "Bob") (age . 30))
 ;;;
 ;;; ;; Isos
-;;; (iso-view _chars "hello")               ; => (#\h #\e #\l #\l #\o)
+;;; (iso-view _chars "hello")               ; => (#\h # #\l #\l #\o)
 ;;; (iso-review _chars '(#\h #\i))          ; => "hi"
-

@@ -19,9 +19,9 @@
 ;;;   - fp/combinators.ss
 ;;;   - fp/stream.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
-(load "fp/stream.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
+(load "fabric/stitches/fp/stream.ss")
 
 ;;; ============================================================
 ;;; Logic Variables
@@ -73,10 +73,10 @@
 ;;; Look up a variable in a substitution.
 (define (lookup-subst var subst)
   (let loop ([s subst])
-    (cond
-      [(null? s) nothing]
-      [(lvar=? (caar s) var) (just (cdar s))]
-      [else (loop (cdr s))])))
+       (cond
+        [(null? s) nothing]
+        [(lvar=? (caar s) var) (just (cdar s))]
+        [else (loop (cdr s))])))
 
 ;;; walk : Value -> Substitution -> Value
 ;;; Follow substitution chain to find the value of a term.
@@ -84,19 +84,19 @@
 (define (walk term subst)
   (if (lvar? term)
       (let ([binding (lookup-subst term subst)])
-        (if (nothing? binding)
-            term
-            (walk (from-just binding) subst)))
+           (if (nothing? binding)
+               term
+               (walk (from-just binding) subst)))
       term))
 
 ;;; walk* : Value -> Substitution -> Value
 ;;; Deeply walk a term, substituting all variables.
 (define (walk* term subst)
   (let ([v (walk term subst)])
-    (cond
-      [(lvar? v) v]
-      [(pair? v) (cons (walk* (car v) subst) (walk* (cdr v) subst))]
-      [else v])))
+       (cond
+        [(lvar? v) v]
+        [(pair? v) (cons (walk* (car v) subst) (walk* (cdr v) subst))]
+        [else v])))
 
 ;;; ============================================================
 ;;; Unification
@@ -109,23 +109,23 @@
 (define (unify u v subst)
   (let ([u (walk u subst)]
         [v (walk v subst)])
-    (cond
-      ;; Both are the same variable
-      [(and (lvar? u) (lvar? v) (lvar=? u v)) (just subst)]
-      ;; u is a variable - bind it
-      [(lvar? u) (just (extend-subst u v subst))]
-      ;; v is a variable - bind it
-      [(lvar? v) (just (extend-subst v u subst))]
-      ;; Both are pairs - unify recursively
-      [(and (pair? u) (pair? v))
-       (let ([s1 (unify (car u) (car v) subst)])
-         (if (nothing? s1)
-             nothing
-             (unify (cdr u) (cdr v) (from-just s1))))]
-      ;; Both are equal atoms
-      [(equal? u v) (just subst)]
-      ;; Cannot unify
-      [else nothing])))
+       (cond
+        ;; Both are the same variable
+        [(and (lvar? u) (lvar? v) (lvar=? u v)) (just subst)]
+        ;; u is a variable - bind it
+        [(lvar? u) (just (extend-subst u v subst))]
+        ;; v is a variable - bind it
+        [(lvar? v) (just (extend-subst v u subst))]
+        ;; Both are pairs - unify recursively
+        [(and (pair? u) (pair? v))
+         (let ([s1 (unify (car u) (car v) subst)])
+              (if (nothing? s1)
+                  nothing
+                  (unify (cdr u) (cdr v) (from-just s1))))]
+        ;; Both are equal atoms
+        [(equal? u v) (just subst)]
+        ;; Cannot unify
+        [else nothing])))
 
 ;;; ============================================================
 ;;; Goal Monad
@@ -150,19 +150,19 @@
 ;;; Unification goal: succeed if terms can be unified.
 (define (== u v)
   (lambda (subst)
-    (let ([result (unify u v subst)])
-      (if (nothing? result)
-          stream-nil
-          (stream-cons (from-just result) (lambda () stream-nil))))))
+          (let ([result (unify u v subst)])
+               (if (nothing? result)
+                   stream-nil
+                   (stream-cons (from-just result) (lambda () stream-nil))))))
 
 ;;; =/= : Value -> Value -> Goal
 ;;; Disequality goal: succeed if terms cannot be unified.
 (define (=/= u v)
   (lambda (subst)
-    (let ([result (unify u v subst)])
-      (if (nothing? result)
-          (stream-cons subst (lambda () stream-nil))
-          stream-nil))))
+          (let ([result (unify u v subst)])
+               (if (nothing? result)
+                   (stream-cons subst (lambda () stream-nil))
+                   stream-nil))))
 
 ;;; ============================================================
 ;;; Goal Combinators
@@ -172,13 +172,13 @@
 ;;; Conjunction: both goals must succeed.
 (define (conj g1 g2)
   (lambda (subst)
-    (stream-flatmap g2 (g1 subst))))
+          (stream-flatmap g2 (g1 subst))))
 
 ;;; disj : Goal -> Goal -> Goal
 ;;; Disjunction: either goal may succeed.
 (define (disj g1 g2)
   (lambda (subst)
-    (stream-interleave (g1 subst) (g2 subst))))
+          (stream-interleave (g1 subst) (g2 subst))))
 
 ;;; conj* : List Goal -> Goal
 ;;; Conjunction of multiple goals.
@@ -207,8 +207,8 @@
 ;;; Create a fresh logic variable and pass it to a goal function.
 (define (call/fresh f)
   (lambda (subst)
-    (let ([var (make-lvar '_)])
-      ((f var) subst))))
+          (let ([var (make-lvar '_)])
+               ((f var) subst))))
 
 ;;; fresh1 : (LVar -> Goal) -> Goal
 (define fresh1 call/fresh)
@@ -216,23 +216,23 @@
 ;;; fresh2 : (LVar -> LVar -> Goal) -> Goal
 (define (fresh2 f)
   (call/fresh (lambda (a)
-    (call/fresh (lambda (b)
-      (f a b))))))
+                      (call/fresh (lambda (b)
+                                          (f a b))))))
 
 ;;; fresh3 : (LVar -> LVar -> LVar -> Goal) -> Goal
 (define (fresh3 f)
   (call/fresh (lambda (a)
-    (call/fresh (lambda (b)
-      (call/fresh (lambda (c)
-        (f a b c))))))))
+                      (call/fresh (lambda (b)
+                                          (call/fresh (lambda (c)
+                                                              (f a b c))))))))
 
 ;;; fresh4 : (LVar -> LVar -> LVar -> LVar -> Goal) -> Goal
 (define (fresh4 f)
   (call/fresh (lambda (a)
-    (call/fresh (lambda (b)
-      (call/fresh (lambda (c)
-        (call/fresh (lambda (d)
-          (f a b c d))))))))))
+                      (call/fresh (lambda (b)
+                                          (call/fresh (lambda (c)
+                                                              (call/fresh (lambda (d)
+                                                                                  (f a b c d))))))))))
 
 ;;; ============================================================
 ;;; Running Goals
@@ -247,8 +247,8 @@
 ;;; Run with fresh variable and reify results.
 (define (run* n f)
   (let ([var (make-lvar 'q)])
-    (map (lambda (subst) (reify var subst))
-         (run-goal n (f var)))))
+       (map (lambda (subst) (reify var subst))
+            (run-goal n (f var)))))
 
 ;;; ============================================================
 ;;; Reification
@@ -260,28 +260,28 @@
 ;;; Walk a term and replace unbound variables with symbols.
 (define (reify term subst)
   (let ([v (walk* term subst)])
-    (reify-s v (build-reify-subst v empty-subst))))
+       (reify-s v (build-reify-subst v empty-subst))))
 
 (define (build-reify-subst term subst)
   (let ([v (walk term subst)])
-    (cond
-      [(lvar? v)
-       (let ([n (length subst)])
-         (extend-subst v (reify-name n) subst))]
-      [(pair? v)
-       (build-reify-subst (cdr v)
-                          (build-reify-subst (car v) subst))]
-      [else subst])))
+       (cond
+        [(lvar? v)
+         (let ([n (length subst)])
+              (extend-subst v (reify-name n) subst))]
+        [(pair? v)
+         (build-reify-subst (cdr v)
+                            (build-reify-subst (car v) subst))]
+        [else subst])))
 
 (define (reify-name n)
   (string->symbol (string-append "_." (number->string n))))
 
 (define (reify-s term subst)
   (let ([v (walk term subst)])
-    (cond
-      [(lvar? v) v]  ; Should have been replaced
-      [(pair? v) (cons (reify-s (car v) subst) (reify-s (cdr v) subst))]
-      [else v])))
+       (cond
+        [(lvar? v) v]  ; Should have been replaced
+        [(pair? v) (cons (reify-s (car v) subst) (reify-s (cdr v) subst))]
+        [else v])))
 
 ;;; ============================================================
 ;;; List Relations
@@ -301,19 +301,19 @@
 ;;; Succeed if argument is a pair.
 (define (pairo x)
   (fresh2 (lambda (a d)
-    (conso a d x))))
+                  (conso a d x))))
 
 ;;; caro : Value -> Value -> Goal
 ;;; Relational car: (car lst) == val
 (define (caro lst val)
   (fresh1 (lambda (d)
-    (conso val d lst))))
+                  (conso val d lst))))
 
 ;;; cdro : Value -> Value -> Goal
 ;;; Relational cdr: (cdr lst) == val
 (define (cdro lst val)
   (fresh1 (lambda (a)
-    (conso a val lst))))
+                  (conso a val lst))))
 
 ;;; appendo : Value -> Value -> Value -> Goal
 ;;; Relational append: (append l1 l2) == out
@@ -321,18 +321,18 @@
   (disj
    (conj (nullo l1) (== l2 out))
    (fresh3 (lambda (head tail result)
-     (conj* (list
-       (conso head tail l1)
-       (conso head result out)
-       (appendo tail l2 result)))))))
+                   (conj* (list
+                           (conso head tail l1)
+                           (conso head result out)
+                           (appendo tail l2 result)))))))
 
 ;;; membero : Value -> Value -> Goal
 ;;; Relational member: x is a member of lst
 (define (membero x lst)
   (fresh2 (lambda (head tail)
-    (conj (conso head tail lst)
-          (disj (== head x)
-                (membero x tail))))))
+                  (conj (conso head tail lst)
+                        (disj (== head x)
+                              (membero x tail))))))
 
 ;;; lengtho : Value -> Value -> Goal
 ;;; Relational length: (length lst) == n (using Peano numerals)
@@ -340,10 +340,10 @@
   (disj
    (conj (nullo lst) (== n 'zero))
    (fresh3 (lambda (head tail m)
-     (conj* (list
-       (conso head tail lst)
-       (== n (list 'succ m))
-       (lengtho tail m)))))))
+                   (conj* (list
+                           (conso head tail lst)
+                           (== n (list 'succ m))
+                           (lengtho tail m)))))))
 
 ;;; reverseo : Value -> Value -> Goal
 ;;; Relational reverse: (reverse lst) == out
@@ -354,9 +354,9 @@
   (disj
    (conj (nullo lst) (== acc out))
    (fresh2 (lambda (head tail)
-     (conj* (list
-       (conso head tail lst)
-       (reverse-acc tail (cons head acc) out)))))))
+                   (conj* (list
+                           (conso head tail lst)
+                           (reverse-acc tail (cons head acc) out)))))))
 
 ;;; ============================================================
 ;;; Arithmetic Relations (Peano)
@@ -378,10 +378,10 @@
   (disj
    (conj (zeroo x) (== y z))
    (fresh2 (lambda (x-1 z-1)
-     (conj* (list
-       (succo x-1 x)
-       (succo z-1 z)
-       (pluso x-1 y z-1)))))))
+                   (conj* (list
+                           (succo x-1 x)
+                           (succo z-1 z)
+                           (pluso x-1 y z-1)))))))
 
 ;;; minuso : Value -> Value -> Value -> Goal
 ;;; Relational subtraction: x - y == z (x >= y)
@@ -392,8 +392,8 @@
 ;;; Less than relation (strict).
 (define (lesso x y)
   (fresh1 (lambda (diff)
-    (conj (succo diff y)  ; y has a successor component
-          (minuso y x diff)))))
+                  (conj (succo diff y)  ; y has a successor component
+                        (minuso y x diff)))))
 
 ;;; ============================================================
 ;;; Convenience: Converting Numbers
@@ -421,43 +421,43 @@
 ;;; Check if variable occurs in term.
 (define (occurs? var term subst)
   (let ([v (walk term subst)])
-    (cond
-      [(lvar? v) (lvar=? var v)]
-      [(pair? v) (or (occurs? var (car v) subst)
-                     (occurs? var (cdr v) subst))]
-      [else #f])))
+       (cond
+        [(lvar? v) (lvar=? var v)]
+        [(pair? v) (or (occurs? var (car v) subst)
+                       (occurs? var (cdr v) subst))]
+        [else #f])))
 
 ;;; unify-check : Value -> Value -> Substitution -> Maybe Substitution
 ;;; Unify with occurs check.
 (define (unify-check u v subst)
   (let ([u (walk u subst)]
         [v (walk v subst)])
-    (cond
-      [(and (lvar? u) (lvar? v) (lvar=? u v)) (just subst)]
-      [(lvar? u)
-       (if (occurs? u v subst)
-           nothing
-           (just (extend-subst u v subst)))]
-      [(lvar? v)
-       (if (occurs? v u subst)
-           nothing
-           (just (extend-subst v u subst)))]
-      [(and (pair? u) (pair? v))
-       (let ([s1 (unify-check (car u) (car v) subst)])
-         (if (nothing? s1)
+       (cond
+        [(and (lvar? u) (lvar? v) (lvar=? u v)) (just subst)]
+        [(lvar? u)
+         (if (occurs? u v subst)
              nothing
-             (unify-check (cdr u) (cdr v) (from-just s1))))]
-      [(equal? u v) (just subst)]
-      [else nothing])))
+             (just (extend-subst u v subst)))]
+        [(lvar? v)
+         (if (occurs? v u subst)
+             nothing
+             (just (extend-subst v u subst)))]
+        [(and (pair? u) (pair? v))
+         (let ([s1 (unify-check (car u) (car v) subst)])
+              (if (nothing? s1)
+                  nothing
+                  (unify-check (cdr u) (cdr v) (from-just s1))))]
+        [(equal? u v) (just subst)]
+        [else nothing])))
 
 ;;; ==/check : Value -> Value -> Goal
 ;;; Unification goal with occurs check.
 (define (==/check u v)
   (lambda (subst)
-    (let ([result (unify-check u v subst)])
-      (if (nothing? result)
-          stream-nil
-          (stream-cons (from-just result) (lambda () stream-nil))))))
+          (let ([result (unify-check u v subst)])
+               (if (nothing? result)
+                   stream-nil
+                   (stream-cons (from-just result) (lambda () stream-nil))))))
 
 ;;; ============================================================
 ;;; Constraint Store (Simple)
@@ -485,14 +485,14 @@
 ;;; show-subst : Substitution -> String representation
 (define (show-subst subst)
   (map (lambda (binding)
-         (cons (lvar-name (car binding)) (cdr binding)))
+               (cons (lvar-name (car binding)) (cdr binding)))
        subst))
 
 ;;; trace-goal : String -> Goal -> Goal
 ;;; Wrap a goal with tracing output.
 (define (trace-goal label goal)
   (lambda (subst)
-    (display (string-append "TRACE " label ": "))
-    (display (show-subst subst))
-    (newline)
-    (goal subst)))
+          (display (string-append "TRACE " label ": "))
+          (display (show-subst subst))
+          (newline)
+          (goal subst)))

@@ -18,7 +18,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss (must be loaded first manually)
 
-(load "prelude.ss")
+(load "fabric/stitches/prelude.ss")
 
 ;;; ============================================================
 ;;; Module Registry
@@ -144,38 +144,53 @@
 ;;; module-stats : → void
 ;;; Display loading statistics.
 (define (module-stats)
-  (display "\n╔════════════════════════════════════════════════════════════╗\n")
-  (display "║                    MODULE STATISTICS                        ║\n")
-  (display "╚════════════════════════════════════════════════════════════╝\n\n")
+  (display "
+╔════════════════════════════════════════════════════════════╗
+")
+  (display "║                    MODULE STATISTICS                        ║
+")
+  (display "╚════════════════════════════════════════════════════════════╝
+
+")
   
   (let* ([loaded (reverse *load-order*)]
          [total-time (fold-left + 0 (map (lambda (m) (or (module-load-time m) 0)) loaded))])
         
-        (display "  Loaded modules:\n")
+        (display "  Loaded modules:
+")
         (for-each
          (lambda (m)
                  (let ([time (module-load-time m)])
-                      (display (format "    ~a~a~ams\n"
+                      (display (format "    ~a~a~ams
+"
                                        m
                                        (make-string (max 1 (- 20 (string-length (symbol->string m)))) #\space)
                                        (or time 0)))))
          loaded)
         
         (newline)
-        (display (format "  Total: ~a modules, ~ams\n\n" (length loaded) total-time))))
+        (display (format "  Total: ~a modules, ~ams
+
+" (length loaded) total-time))))
 
 ;;; module-graph : → void
 ;;; Display dependency graph.
 (define (module-graph)
-  (display "\n╔════════════════════════════════════════════════════════════╗\n")
-  (display "║                   DEPENDENCY GRAPH                          ║\n")
-  (display "╚════════════════════════════════════════════════════════════╝\n\n")
+  (display "
+╔════════════════════════════════════════════════════════════╗
+")
+  (display "║                   DEPENDENCY GRAPH                          ║
+")
+  (display "╚════════════════════════════════════════════════════════════╝
+
+")
   
   (let ([modules (vector->list (hashtable-keys *module-deps*))])
        (for-each
         (lambda (m)
                 (let ([deps (module-deps m)])
-                     (display (format "  ~a → ~a\n" m
+                     (display (format "  ~a → ~a
+" m
                                       (if (null? deps) "(none)" (apply string-append
                                                                        (map (lambda (d) (string-append (symbol->string d) " ")) deps)))))))
         (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b))) modules))))

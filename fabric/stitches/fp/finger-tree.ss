@@ -15,8 +15,8 @@
 ;;;
 ;;; This module builds on prelude.ss and combinators.ss.
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Digit Type (1-4 elements)
@@ -72,9 +72,9 @@
 
 (define (node->list n)
   (cond
-    [(node2? n) (list (cadr n) (caddr n))]
-    [(node3? n) (list (cadr n) (caddr n) (cadddr n))]
-    [else (error 'node->list "not a node")]))
+   [(node2? n) (list (cadr n) (caddr n))]
+   [(node3? n) (list (cadr n) (caddr n) (cadddr n))]
+   [else (error 'node->list "not a node")]))
 
 ;;; ============================================================
 ;;; Finger Tree Type
@@ -121,72 +121,72 @@
 ;;; Add element to left - O(1) amortized
 (define (ft-cons-left ft x)
   (cond
-    [(ft-empty? ft) (make-ft-single x)]
-    [(ft-single? ft) (make-ft-deep (digit-one x) ft-empty (digit-one (ft-single-elem ft)))]
-    [(ft-deep? ft)
-     (let ([left (ft-left ft)]
-           [middle (ft-middle ft)]
-           [right (ft-right ft)])
-       (if (= (digit-size left) 4)
-           ;; Left digit full - push node into middle
-           (let ([elems (digit-elements left)])
-             (make-ft-deep (digit-two x (car elems))
-                           (ft-cons-left middle (make-node3 (cadr elems) (caddr elems) (cadddr elems)))
-                           right))
-           ;; Room in left digit
-           (make-ft-deep (make-digit (cons x (digit-elements left)))
-                         middle
-                         right)))]))
+   [(ft-empty? ft) (make-ft-single x)]
+   [(ft-single? ft) (make-ft-deep (digit-one x) ft-empty (digit-one (ft-single-elem ft)))]
+   [(ft-deep? ft)
+    (let ([left (ft-left ft)]
+          [middle (ft-middle ft)]
+          [right (ft-right ft)])
+         (if (= (digit-size left) 4)
+             ;; Left digit full - push node into middle
+             (let ([elems (digit-elements left)])
+                  (make-ft-deep (digit-two x (car elems))
+                                (ft-cons-left middle (make-node3 (cadr elems) (caddr elems) (cadddr elems)))
+                                right))
+             ;; Room in left digit
+             (make-ft-deep (make-digit (cons x (digit-elements left)))
+                           middle
+                           right)))]))
 
 ;;; Add element to right - O(1) amortized
 (define (ft-snoc-right ft x)
   (cond
-    [(ft-empty? ft) (make-ft-single x)]
-    [(ft-single? ft) (make-ft-deep (digit-one (ft-single-elem ft)) ft-empty (digit-one x))]
-    [(ft-deep? ft)
-     (let ([left (ft-left ft)]
-           [middle (ft-middle ft)]
-           [right (ft-right ft)])
-       (if (= (digit-size right) 4)
-           ;; Right digit full - push node into middle
-           (let ([elems (digit-elements right)])
+   [(ft-empty? ft) (make-ft-single x)]
+   [(ft-single? ft) (make-ft-deep (digit-one (ft-single-elem ft)) ft-empty (digit-one x))]
+   [(ft-deep? ft)
+    (let ([left (ft-left ft)]
+          [middle (ft-middle ft)]
+          [right (ft-right ft)])
+         (if (= (digit-size right) 4)
+             ;; Right digit full - push node into middle
+             (let ([elems (digit-elements right)])
+                  (make-ft-deep left
+                                (ft-snoc-right middle (make-node3 (car elems) (cadr elems) (caddr elems)))
+                                (digit-two (cadddr elems) x)))
+             ;; Room in right digit
              (make-ft-deep left
-                           (ft-snoc-right middle (make-node3 (car elems) (cadr elems) (caddr elems)))
-                           (digit-two (cadddr elems) x)))
-           ;; Room in right digit
-           (make-ft-deep left
-                         middle
-                         (make-digit (append (digit-elements right) (list x))))))]))
+                           middle
+                           (make-digit (append (digit-elements right) (list x))))))]))
 
 ;;; Get leftmost element - O(1)
 (define (ft-head-left ft)
   (cond
-    [(ft-empty? ft) nothing]
-    [(ft-single? ft) (just (ft-single-elem ft))]
-    [(ft-deep? ft) (just (car (digit-elements (ft-left ft))))]))
+   [(ft-empty? ft) nothing]
+   [(ft-single? ft) (just (ft-single-elem ft))]
+   [(ft-deep? ft) (just (car (digit-elements (ft-left ft))))]))
 
 ;;; Get rightmost element - O(1)
 (define (ft-head-right ft)
   (cond
-    [(ft-empty? ft) nothing]
-    [(ft-single? ft) (just (ft-single-elem ft))]
-    [(ft-deep? ft)
-     (let ([elems (digit-elements (ft-right ft))])
-       (just (list-ref elems (- (length elems) 1))))]))
+   [(ft-empty? ft) nothing]
+   [(ft-single? ft) (just (ft-single-elem ft))]
+   [(ft-deep? ft)
+    (let ([elems (digit-elements (ft-right ft))])
+         (just (list-ref elems (- (length elems) 1))))]))
 
 ;;; Convert digit or list to finger tree
 (define (digit-or-list->ft items)
   (cond
-    [(null? items) ft-empty]
-    [(null? (cdr items)) (make-ft-single (car items))]
-    [else
-     (let* ([len (length items)]
-            [mid (quotient len 2)]
-            [left-items (take-n mid items)]
-            [right-items (drop-n mid items)])
-       (make-ft-deep (make-digit left-items)
-                     ft-empty
-                     (make-digit right-items)))]))
+   [(null? items) ft-empty]
+   [(null? (cdr items)) (make-ft-single (car items))]
+   [else
+    (let* ([len (length items)]
+           [mid (quotient len 2)]
+           [left-items (take-n mid items)]
+           [right-items (drop-n mid items)])
+          (make-ft-deep (make-digit left-items)
+                        ft-empty
+                        (make-digit right-items)))]))
 
 ;;; Helper: take first n elements
 (define (take-n n lst)
@@ -203,51 +203,51 @@
 ;;; Remove leftmost element - O(1) amortized
 (define (ft-tail-left ft)
   (cond
-    [(ft-empty? ft) ft-empty]
-    [(ft-single? ft) ft-empty]
-    [(ft-deep? ft)
-     (let ([left (ft-left ft)]
-           [middle (ft-middle ft)]
-           [right (ft-right ft)])
-       (if (= (digit-size left) 1)
-           ;; Need to borrow from middle
-           (if (ft-empty? middle)
-               (digit-or-list->ft (digit-elements right))
-               (let ([node-result (ft-head-left middle)])
-                 (if (nothing? node-result)
-                     (digit-or-list->ft (digit-elements right))
-                     (make-ft-deep (make-digit (node->list (from-just node-result)))
-                                   (ft-tail-left middle)
-                                   right))))
-           ;; Just remove first from left digit
-           (make-ft-deep (make-digit (cdr (digit-elements left)))
-                         middle
-                         right)))]))
+   [(ft-empty? ft) ft-empty]
+   [(ft-single? ft) ft-empty]
+   [(ft-deep? ft)
+    (let ([left (ft-left ft)]
+          [middle (ft-middle ft)]
+          [right (ft-right ft)])
+         (if (= (digit-size left) 1)
+             ;; Need to borrow from middle
+             (if (ft-empty? middle)
+                 (digit-or-list->ft (digit-elements right))
+                 (let ([node-result (ft-head-left middle)])
+                      (if (nothing? node-result)
+                          (digit-or-list->ft (digit-elements right))
+                          (make-ft-deep (make-digit (node->list (from-just node-result)))
+                                        (ft-tail-left middle)
+                                        right))))
+             ;; Just remove first from left digit
+             (make-ft-deep (make-digit (cdr (digit-elements left)))
+                           middle
+                           right)))]))
 
 ;;; Remove rightmost element - O(1) amortized
 (define (ft-tail-right ft)
   (cond
-    [(ft-empty? ft) ft-empty]
-    [(ft-single? ft) ft-empty]
-    [(ft-deep? ft)
-     (let ([left (ft-left ft)]
-           [middle (ft-middle ft)]
-           [right (ft-right ft)])
-       (if (= (digit-size right) 1)
-           ;; Need to borrow from middle
-           (if (ft-empty? middle)
-               (digit-or-list->ft (digit-elements left))
-               (let ([node-result (ft-head-right middle)])
-                 (if (nothing? node-result)
-                     (digit-or-list->ft (digit-elements left))
-                     (make-ft-deep left
-                                   (ft-tail-right middle)
-                                   (make-digit (node->list (from-just node-result)))))))
-           ;; Just remove last from right digit
-           (let ([elems (digit-elements right)])
-             (make-ft-deep left
-                           middle
-                           (make-digit (take-n (- (length elems) 1) elems))))))]))
+   [(ft-empty? ft) ft-empty]
+   [(ft-single? ft) ft-empty]
+   [(ft-deep? ft)
+    (let ([left (ft-left ft)]
+          [middle (ft-middle ft)]
+          [right (ft-right ft)])
+         (if (= (digit-size right) 1)
+             ;; Need to borrow from middle
+             (if (ft-empty? middle)
+                 (digit-or-list->ft (digit-elements left))
+                 (let ([node-result (ft-head-right middle)])
+                      (if (nothing? node-result)
+                          (digit-or-list->ft (digit-elements left))
+                          (make-ft-deep left
+                                        (ft-tail-right middle)
+                                        (make-digit (node->list (from-just node-result)))))))
+             ;; Just remove last from right digit
+             (let ([elems (digit-elements right)])
+                  (make-ft-deep left
+                                middle
+                                (make-digit (take-n (- (length elems) 1) elems))))))]))
 
 ;;; ============================================================
 ;;; Concatenation - O(log n)
@@ -256,31 +256,31 @@
 ;;; Concatenate with middle list
 (define (ft-append3 ft1 middle ft2)
   (cond
-    [(ft-empty? ft1) (fold-left ft-cons-left ft2 (reverse middle))]
-    [(ft-empty? ft2) (fold-left ft-snoc-right ft1 middle)]
-    [(ft-single? ft1) (ft-cons-left (fold-left ft-cons-left ft2 (reverse middle)) (ft-single-elem ft1))]
-    [(ft-single? ft2) (ft-snoc-right (fold-left ft-snoc-right ft1 middle) (ft-single-elem ft2))]
-    [(and (ft-deep? ft1) (ft-deep? ft2))
-     (make-ft-deep (ft-left ft1)
-                   (ft-append3 (ft-middle ft1)
-                               (nodes (append (digit-elements (ft-right ft1))
-                                              middle
-                                              (digit-elements (ft-left ft2))))
-                               (ft-middle ft2))
-                   (ft-right ft2))]
-    [else (error 'ft-append3 "invalid finger tree")]))
+   [(ft-empty? ft1) (fold-left ft-cons-left ft2 (reverse middle))]
+   [(ft-empty? ft2) (fold-left ft-snoc-right ft1 middle)]
+   [(ft-single? ft1) (ft-cons-left (fold-left ft-cons-left ft2 (reverse middle)) (ft-single-elem ft1))]
+   [(ft-single? ft2) (ft-snoc-right (fold-left ft-snoc-right ft1 middle) (ft-single-elem ft2))]
+   [(and (ft-deep? ft1) (ft-deep? ft2))
+    (make-ft-deep (ft-left ft1)
+                  (ft-append3 (ft-middle ft1)
+                              (nodes (append (digit-elements (ft-right ft1))
+                                             middle
+                                             (digit-elements (ft-left ft2))))
+                              (ft-middle ft2))
+                  (ft-right ft2))]
+   [else (error 'ft-append3 "invalid finger tree")]))
 
 ;;; Convert list to nodes (groups of 2-3)
 (define (nodes lst)
   (let ([len (length lst)])
-    (cond
-      [(= len 2) (list (make-node2 (car lst) (cadr lst)))]
-      [(= len 3) (list (make-node3 (car lst) (cadr lst) (caddr lst)))]
-      [(= len 4) (list (make-node2 (car lst) (cadr lst))
-                       (make-node2 (caddr lst) (cadddr lst)))]
-      [else
-       (cons (make-node3 (car lst) (cadr lst) (caddr lst))
-             (nodes (cdddr lst)))])))
+       (cond
+        [(= len 2) (list (make-node2 (car lst) (cadr lst)))]
+        [(= len 3) (list (make-node3 (car lst) (cadr lst) (caddr lst)))]
+        [(= len 4) (list (make-node2 (car lst) (cadr lst))
+                         (make-node2 (caddr lst) (cadddr lst)))]
+        [else
+         (cons (make-node3 (car lst) (cadr lst) (caddr lst))
+               (nodes (cdddr lst)))])))
 
 ;;; Simple concatenation
 (define (ft-append ft1 ft2)
@@ -310,15 +310,15 @@
 ;;; Convert at a specific depth where depth 0 = base elements
 (define (ft->list-at-depth ft depth)
   (cond
-    [(ft-empty? ft) '()]
-    [(ft-single? ft)
-     (if (= depth 0)
-         (list (ft-single-elem ft))
-         (flatten-node (ft-single-elem ft) (- depth 1)))]
-    [(ft-deep? ft)
-     (append (flatten-digit (ft-left ft) depth)
-             (ft->list-at-depth (ft-middle ft) (+ depth 1))
-             (flatten-digit (ft-right ft) depth))]))
+   [(ft-empty? ft) '()]
+   [(ft-single? ft)
+    (if (= depth 0)
+        (list (ft-single-elem ft))
+        (flatten-node (ft-single-elem ft) (- depth 1)))]
+   [(ft-deep? ft)
+    (append (flatten-digit (ft-left ft) depth)
+            (ft->list-at-depth (ft-middle ft) (+ depth 1))
+            (flatten-digit (ft-right ft) depth))]))
 
 ;;; Flatten a digit at given depth
 (define (flatten-digit d depth)
@@ -384,15 +384,15 @@
 
 (define (deque-pop-front dq)
   (let ([h (ft-head-left dq)])
-    (if (nothing? h)
-        #f
-        (cons (from-just h) (ft-tail-left dq)))))
+       (if (nothing? h)
+           #f
+           (cons (from-just h) (ft-tail-left dq)))))
 
 (define (deque-pop-back dq)
   (let ([h (ft-head-right dq)])
-    (if (nothing? h)
-        #f
-        (cons (from-just h) (ft-tail-right dq)))))
+       (if (nothing? h)
+           #f
+           (cons (from-just h) (ft-tail-right dq)))))
 
 (define (deque-size dq)
   (ft-size dq))
@@ -455,8 +455,8 @@
 ;;; Split sequence at position n
 (define (seq-split-at n s)
   (let ([lst (ft->list s)])
-    (cons (list->ft (take-n n lst))
-          (list->ft (drop-n n lst)))))
+       (cons (list->ft (take-n n lst))
+             (list->ft (drop-n n lst)))))
 
 ;;; Take first n elements
 (define (seq-take n s)
@@ -469,11 +469,11 @@
 ;;; Get element at index (0-based)
 (define (seq-ref s n)
   (let loop ([s s] [n n])
-    (if (ft-empty? s)
-        nothing
-        (if (= n 0)
-            (ft-head-left s)
-            (loop (ft-tail-left s) (- n 1))))))
+       (if (ft-empty? s)
+           nothing
+           (if (= n 0)
+               (ft-head-left s)
+               (loop (ft-tail-left s) (- n 1))))))
 
 ;;; ============================================================
 ;;; Reversal
@@ -502,9 +502,9 @@
 (define (ft->string ft)
   (format "FingerTree[~a]"
           (fold-left (lambda (acc x)
-                       (if (string=? acc "")
-                           (format "~a" x)
-                           (string-append acc ", " (format "~a" x))))
+                             (if (string=? acc "")
+                                 (format "~a" x)
+                                 (string-append acc ", " (format "~a" x))))
                      ""
                      (ft->list ft))))
 
@@ -537,9 +537,9 @@
 ;;; Intersperse element
 (define (seq-intersperse sep s)
   (let ([lst (ft->list s)])
-    (if (or (null? lst) (null? (cdr lst)))
-        s
-        (list->ft (intersperse-list sep lst)))))
+       (if (or (null? lst) (null? (cdr lst)))
+           s
+           (list->ft (intersperse-list sep lst)))))
 
 (define (intersperse-list sep lst)
   (if (or (null? lst) (null? (cdr lst)))

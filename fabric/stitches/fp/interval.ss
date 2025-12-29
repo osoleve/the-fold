@@ -17,8 +17,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/numeric.ss (for Num type class integration)
 
-(load "prelude.ss")
-(load "fp/numeric.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/numeric.ss")
 
 ;;; ============================================================
 ;;; Interval Type

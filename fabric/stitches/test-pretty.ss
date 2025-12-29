@@ -2,8 +2,8 @@
 
 ;;; NOTE: Run from fabric/stitches directory
 
-(load "test-framework.ss")
-(load "pretty.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/pretty.ss")
 
 (display "
 ")

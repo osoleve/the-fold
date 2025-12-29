@@ -1,7 +1,7 @@
 ;;; fabric/stitches/test-vec.ss — Tests for Vector Operations
 
-(load "prelude.ss")
-(load "vec.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/vec.ss")
 
 ;;; ============================================================
 ;;; Test Framework

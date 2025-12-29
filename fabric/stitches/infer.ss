@@ -18,9 +18,9 @@
 ;;;   - types.ss
 ;;;   - kinds.ss
 
-(load "prelude.ss")
-(load "types.ss")
-(load "kinds.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/types.ss")
+(load "fabric/stitches/kinds.ss")
 
 ;;; ============================================================
 ;;; Type Environment

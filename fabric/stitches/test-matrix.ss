@@ -1,8 +1,8 @@
 ;;; fabric/stitches/test-matrix.ss — Tests for Matrix Operations
 
-(load "prelude.ss")
-(load "vec.ss")
-(load "matrix.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/vec.ss")
+(load "fabric/stitches/matrix.ss")
 
 ;;; ============================================================
 ;;; Test Framework

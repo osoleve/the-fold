@@ -15,11 +15,11 @@
 ;;;   - physics-2d/collision-detection.ss
 ;;;   - physics-2d/collision-response.ss
 
-(load "prelude.ss")
-(load "vec2.ss")
-(load "physics-2d/integrators.ss")
-(load "physics-2d/collision-detection.ss")
-(load "physics-2d/collision-response.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/vec2.ss")
+(load "fabric/stitches/physics-2d/integrators.ss")
+(load "fabric/stitches/physics-2d/collision-detection.ss")
+(load "fabric/stitches/physics-2d/collision-response.ss")
 
 ;;; ============================================================
 ;;; Physics Entity

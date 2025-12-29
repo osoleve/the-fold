@@ -32,8 +32,8 @@
 ;;;   cata alg . ana coalg = hylo alg coalg
 ;;;   cata (fmap f . alg) = f . cata alg (fusion)
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Fix - Fixed Point of Functor
@@ -88,8 +88,8 @@
 ;;; Functor instance for ListF.
 (define (list-f-fmap f lf)
   (cond
-    [(nil-f? lf) lf]
-    [(cons-f? lf) (cons-f (cons-f-head lf) (f (cons-f-tail lf)))]))
+   [(nil-f? lf) lf]
+   [(cons-f? lf) (cons-f (cons-f-head lf) (f (cons-f-tail lf)))]))
 
 ;;; ============================================================
 ;;; MaybeF - Pattern Functor for Maybe
@@ -116,8 +116,8 @@
 ;;; maybe-f-fmap : (a -> b) -> MaybeF a -> MaybeF b
 (define (maybe-f-fmap f mf)
   (cond
-    [(nothing-f? mf) mf]
-    [(just-f? mf) (just-f (f (just-f-value mf)))]))
+   [(nothing-f? mf) mf]
+   [(just-f? mf) (just-f (f (just-f-value mf)))]))
 
 ;;; ============================================================
 ;;; NatF - Pattern Functor for Natural Numbers
@@ -147,8 +147,8 @@
 ;;; nat-f-fmap : (a -> b) -> NatF a -> NatF b
 (define (nat-f-fmap f nf)
   (cond
-    [(zero-f? nf) nf]
-    [(succ-f? nf) (succ-f (f (succ-f-pred nf)))]))
+   [(zero-f? nf) nf]
+   [(succ-f? nf) (succ-f (f (succ-f-pred nf)))]))
 
 ;;; ============================================================
 ;;; TreeF - Pattern Functor for Binary Trees
@@ -183,10 +183,10 @@
 ;;; tree-f-fmap : (a -> b) -> TreeF x a -> TreeF x b
 (define (tree-f-fmap f tf)
   (cond
-    [(leaf-f? tf) tf]
-    [(branch-f? tf) (branch-f (branch-f-value tf)
-                               (f (branch-f-left tf))
-                               (f (branch-f-right tf)))]))
+   [(leaf-f? tf) tf]
+   [(branch-f? tf) (branch-f (branch-f-value tf)
+                             (f (branch-f-left tf))
+                             (f (branch-f-right tf)))]))
 
 ;;; ============================================================
 ;;; Catamorphism (cata) - Generalized Fold
@@ -235,7 +235,7 @@
 ;;; para : Fmap f -> (f (Pair (Fix f) a) -> a) -> Fix f -> a
 (define (para fmap alg fx)
   (alg (fmap (lambda (child)
-               (cons child (para fmap alg child)))
+                     (cons child (para fmap alg child)))
              (unfix fx))))
 
 ;;; ============================================================
@@ -249,9 +249,9 @@
 (define (apo fmap coalg seed)
   (make-fix
    (fmap (lambda (either-child)
-           (if (left? either-child)
-               (from-left either-child)
-               (apo fmap coalg (from-right either-child))))
+                 (if (left? either-child)
+                     (from-left either-child)
+                     (apo fmap coalg (from-right either-child))))
          (coalg seed))))
 
 ;;; ============================================================
@@ -284,7 +284,7 @@
 (define (histo-worker fmap alg fx)
   (let ([fcofree (fmap (lambda (child) (histo-worker fmap alg child))
                        (unfix fx))])
-    (make-cofree (alg fcofree) fcofree)))
+       (make-cofree (alg fcofree) fcofree)))
 
 ;;; ============================================================
 ;;; Futumorphism (futu) - Unfold with Lookahead
@@ -319,16 +319,16 @@
 (define (futu fmap coalg seed)
   (make-fix
    (fmap (lambda (free-child)
-           (futu-worker fmap coalg free-child))
+                 (futu-worker fmap coalg free-child))
          (coalg seed))))
 
 ;;; futu-worker : Fmap f -> (a -> f (Free f a)) -> Free f a -> Fix f
 (define (futu-worker fmap coalg free)
   (cond
-    [(pure? free) (futu fmap coalg (pure-value free))]
-    [(roll? free) (make-fix
-                    (fmap (lambda (fc) (futu-worker fmap coalg fc))
-                          (roll-layer free)))]))
+   [(pure? free) (futu fmap coalg (pure-value free))]
+   [(roll? free) (make-fix
+                  (fmap (lambda (fc) (futu-worker fmap coalg fc))
+                        (roll-layer free)))]))
 
 ;;; ============================================================
 ;;; Zygomorphism (zygo) - Two Folds in One Pass
@@ -345,8 +345,8 @@
 (define (zygo-worker fmap aux alg fx)
   (let ([fpairs (fmap (lambda (child) (zygo-worker fmap aux alg child))
                       (unfix fx))])
-    (cons (aux (fmap car fpairs))
-          (alg fpairs))))
+       (cons (aux (fmap car fpairs))
+             (alg fpairs))))
 
 ;;; ============================================================
 ;;; Conversion Utilities
@@ -363,10 +363,10 @@
 ;;; Convert fixed-point form back to Scheme list.
 (define (fix->list fx)
   (let ([layer (unfix fx)])
-    (cond
-      [(nil-f? layer) '()]
-      [(cons-f? layer) (cons (cons-f-head layer)
-                              (fix->list (cons-f-tail layer)))])))
+       (cond
+        [(nil-f? layer) '()]
+        [(cons-f? layer) (cons (cons-f-head layer)
+                               (fix->list (cons-f-tail layer)))])))
 
 ;;; nat->fix : Number -> Fix NatF
 ;;; Convert a number to Peano natural.
@@ -379,9 +379,9 @@
 ;;; Convert Peano natural back to number.
 (define (fix->nat fx)
   (let ([layer (unfix fx)])
-    (cond
-      [(zero-f? layer) 0]
-      [(succ-f? layer) (+ 1 (fix->nat (succ-f-pred layer)))])))
+       (cond
+        [(zero-f? layer) 0]
+        [(succ-f? layer) (+ 1 (fix->nat (succ-f-pred layer)))])))
 
 ;;; ============================================================
 ;;; Example Algebras and Coalgebras
@@ -391,57 +391,57 @@
 ;;; Algebra for computing list length.
 (define (length-alg lf)
   (cond
-    [(nil-f? lf) 0]
-    [(cons-f? lf) (+ 1 (cons-f-tail lf))]))
+   [(nil-f? lf) 0]
+   [(cons-f? lf) (+ 1 (cons-f-tail lf))]))
 
 ;;; sum-alg : ListF Number Number -> Number
 ;;; Algebra for summing a list of numbers.
 (define (sum-alg lf)
   (cond
-    [(nil-f? lf) 0]
-    [(cons-f? lf) (+ (cons-f-head lf) (cons-f-tail lf))]))
+   [(nil-f? lf) 0]
+   [(cons-f? lf) (+ (cons-f-head lf) (cons-f-tail lf))]))
 
 ;;; product-alg : ListF Number Number -> Number
 ;;; Algebra for multiplying list elements.
 (define (product-alg lf)
   (cond
-    [(nil-f? lf) 1]
-    [(cons-f? lf) (* (cons-f-head lf) (cons-f-tail lf))]))
+   [(nil-f? lf) 1]
+   [(cons-f? lf) (* (cons-f-head lf) (cons-f-tail lf))]))
 
 ;;; map-alg : (a -> b) -> ListF a (List b) -> List b
 ;;; Algebra for mapping a function.
 (define (map-alg f)
   (lambda (lf)
-    (cond
-      [(nil-f? lf) '()]
-      [(cons-f? lf) (cons (f (cons-f-head lf)) (cons-f-tail lf))])))
+          (cond
+           [(nil-f? lf) '()]
+           [(cons-f? lf) (cons (f (cons-f-head lf)) (cons-f-tail lf))])))
 
 ;;; filter-alg : (a -> Bool) -> ListF a (List a) -> List a
 ;;; Algebra for filtering.
 (define (filter-alg pred)
   (lambda (lf)
-    (cond
-      [(nil-f? lf) '()]
-      [(cons-f? lf)
-       (if (pred (cons-f-head lf))
-           (cons (cons-f-head lf) (cons-f-tail lf))
-           (cons-f-tail lf))])))
+          (cond
+           [(nil-f? lf) '()]
+           [(cons-f? lf)
+            (if (pred (cons-f-head lf))
+                (cons (cons-f-head lf) (cons-f-tail lf))
+                (cons-f-tail lf))])))
 
 ;;; range-coalg : (Number, Number) -> ListF Number (Number, Number)
 ;;; Coalgebra for generating a range.
 (define (range-coalg pair)
   (let ([lo (car pair)] [hi (cdr pair)])
-    (if (> lo hi)
-        nil-f
-        (cons-f lo (cons (+ lo 1) hi)))))
+       (if (> lo hi)
+           nil-f
+           (cons-f lo (cons (+ lo 1) hi)))))
 
 ;;; replicate-coalg : (Number, a) -> ListF a (Number, a)
 ;;; Coalgebra for replicating a value.
 (define (replicate-coalg pair)
   (let ([n (car pair)] [x (cdr pair)])
-    (if (<= n 0)
-        nil-f
-        (cons-f x (cons (- n 1) x)))))
+       (if (<= n 0)
+           nil-f
+           (cons-f x (cons (- n 1) x)))))
 
 ;;; ============================================================
 ;;; Tree Algebras
@@ -451,33 +451,33 @@
 ;;; Count nodes in a tree.
 (define (tree-size-alg tf)
   (cond
-    [(leaf-f? tf) 0]
-    [(branch-f? tf) (+ 1 (branch-f-left tf) (branch-f-right tf))]))
+   [(leaf-f? tf) 0]
+   [(branch-f? tf) (+ 1 (branch-f-left tf) (branch-f-right tf))]))
 
 ;;; tree-depth-alg : TreeF a Number -> Number
 ;;; Compute tree depth.
 (define (tree-depth-alg tf)
   (cond
-    [(leaf-f? tf) 0]
-    [(branch-f? tf) (+ 1 (max (branch-f-left tf) (branch-f-right tf)))]))
+   [(leaf-f? tf) 0]
+   [(branch-f? tf) (+ 1 (max (branch-f-left tf) (branch-f-right tf)))]))
 
 ;;; tree-sum-alg : TreeF Number Number -> Number
 ;;; Sum values in tree.
 (define (tree-sum-alg tf)
   (cond
-    [(leaf-f? tf) 0]
-    [(branch-f? tf) (+ (branch-f-value tf)
-                        (branch-f-left tf)
-                        (branch-f-right tf))]))
+   [(leaf-f? tf) 0]
+   [(branch-f? tf) (+ (branch-f-value tf)
+                      (branch-f-left tf)
+                      (branch-f-right tf))]))
 
 ;;; flatten-alg : TreeF a (List a) -> List a
 ;;; Flatten tree to list (in-order).
 (define (flatten-alg tf)
   (cond
-    [(leaf-f? tf) '()]
-    [(branch-f? tf) (append (branch-f-left tf)
-                            (list (branch-f-value tf))
-                            (branch-f-right tf))]))
+   [(leaf-f? tf) '()]
+   [(branch-f? tf) (append (branch-f-left tf)
+                           (list (branch-f-value tf))
+                           (branch-f-right tf))]))
 
 ;;; ============================================================
 ;;; Natural Number Examples
@@ -488,25 +488,25 @@
 ;;; Returns (current-n, factorial-so-far).
 (define (fact-para-alg nf)
   (cond
-    [(zero-f? nf) 1]
-    [(succ-f? nf)
-     (let ([pair (succ-f-pred nf)])
-       ;; pair = (original-subtree . result)
-       (* (+ 1 (fix->nat (car pair)))
-          (cdr pair)))]))
+   [(zero-f? nf) 1]
+   [(succ-f? nf)
+    (let ([pair (succ-f-pred nf)])
+         ;; pair = (original-subtree . result)
+         (* (+ 1 (fix->nat (car pair)))
+            (cdr pair)))]))
 
 ;;; fib-histo-alg : NatF (Cofree NatF Number) -> Number
 ;;; Fibonacci using histomorphism (access to history).
 (define (fib-histo-alg nf)
   (cond
-    [(zero-f? nf) 0]
-    [(succ-f? nf)
-     (let ([prev-cofree (succ-f-pred nf)])
-       (let ([prev-val (cofree-head prev-cofree)]
-             [prev-tail (cofree-tail prev-cofree)])
-         (if (zero-f? prev-tail)
-             1  ; fib(1) = 1
-             (+ prev-val (cofree-head (succ-f-pred prev-tail))))))]))
+   [(zero-f? nf) 0]
+   [(succ-f? nf)
+    (let ([prev-cofree (succ-f-pred nf)])
+         (let ([prev-val (cofree-head prev-cofree)]
+               [prev-tail (cofree-tail prev-cofree)])
+              (if (zero-f? prev-tail)
+                  1  ; fib(1) = 1
+                  (+ prev-val (cofree-head (succ-f-pred prev-tail))))))]))
 
 ;;; ============================================================
 ;;; Practical Combinators
@@ -567,4 +567,3 @@
 ;;;
 ;;; ;; Fibonacci using histomorphism
 ;;; (histo nat-f-fmap fib-histo-alg (nat->fix 10))  ; => 55
-

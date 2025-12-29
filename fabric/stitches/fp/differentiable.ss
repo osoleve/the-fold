@@ -16,9 +16,9 @@
 ;;;   - fp/numeric.ss
 ;;;   - reverse-diff.ss (for implementation)
 
-(load "prelude.ss")
-(load "fp/numeric.ss")
-(load "reverse-diff.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/numeric.ss")
+(load "fabric/stitches/reverse-diff.ss")
 
 ;;; ============================================================
 ;;; Differentiable Type Class

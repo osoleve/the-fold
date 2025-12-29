@@ -20,8 +20,8 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "prelude.ss")
-(load "fp/combinators.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
 
 ;;; ============================================================
 ;;; Reader Representation
@@ -88,8 +88,8 @@
 (define (reader-bind rd f)
   (make-reader
    (lambda (env)
-     (let ([a (run-reader rd env)])
-       (run-reader (f a) env)))))
+           (let ([a (run-reader rd env)])
+                (run-reader (f a) env)))))
 
 ;;; reader-then : Reader r a -> Reader r b -> Reader r b
 ;;; Sequence two Reader computations, discarding the first result (>>).
@@ -106,9 +106,9 @@
 (define (reader-ap rd-f rd-a)
   (reader-bind rd-f
                (lambda (f)
-                 (reader-bind rd-a
-                              (lambda (a)
-                                (reader-pure (f a)))))))
+                       (reader-bind rd-a
+                                    (lambda (a)
+                                            (reader-pure (f a)))))))
 
 ;;; ============================================================
 ;;; Reader Combinators
@@ -121,9 +121,9 @@
       (reader-pure '())
       (reader-bind (car readers)
                    (lambda (x)
-                     (reader-bind (reader-sequence (cdr readers))
-                                  (lambda (xs)
-                                    (reader-pure (cons x xs))))))))
+                           (reader-bind (reader-sequence (cdr readers))
+                                        (lambda (xs)
+                                                (reader-pure (cons x xs))))))))
 
 ;;; reader-map-m : (a -> Reader r b) -> (List a) -> Reader r (List b)
 ;;; Map a Reader-returning function over a list.
@@ -160,25 +160,25 @@
 ;;; Get a value by key from an alist environment.
 (define (reader-get-key key)
   (reader-asks (lambda (env)
-                 (let ([pair (assoc key env)])
-                   (if pair (just (cdr pair)) nothing)))))
+                       (let ([pair (assoc key env)])
+                            (if pair (just (cdr pair)) nothing)))))
 
 ;;; reader-get-key-default : Symbol -> a -> Reader (Alist Symbol a) a
 ;;; Get a value by key with a default.
 (define (reader-get-key-default key default)
   (reader-asks (lambda (env)
-                 (let ([pair (assoc key env)])
-                   (if pair (cdr pair) default)))))
+                       (let ([pair (assoc key env)])
+                            (if pair (cdr pair) default)))))
 
 ;;; reader-require-key : Symbol -> Reader (Alist Symbol a) a
 ;;; Get a required value by key (partial - errors if missing).
 (define (reader-require-key key)
   (reader-asks (lambda (env)
-                 (let ([pair (assoc key env)])
-                   (if pair
-                       (cdr pair)
-                       (error 'reader-require-key
-                              (format "Missing required key: ~a" key)))))))
+                       (let ([pair (assoc key env)])
+                            (if pair
+                                (cdr pair)
+                                (error 'reader-require-key
+                                       (format "Missing required key: ~a" key)))))))
 
 ;;; with-key : Symbol -> a -> Reader (Alist Symbol a) b -> Reader (Alist Symbol a) b
 ;;; Run a Reader with an additional key-value pair in the environment.
@@ -199,14 +199,14 @@
 (define (reader-scope name extractor rd)
   (make-reader
    (lambda (env)
-     (run-reader rd (extractor env)))))
+           (run-reader rd (extractor env)))))
 
 ;;; reader-with-scope : Symbol -> Reader r a -> Reader (Alist Symbol r) a
 ;;; Extract a sub-environment by key and run Reader in that scope.
 (define (reader-with-scope scope-key rd)
   (reader-bind (reader-require-key scope-key)
                (lambda (sub-env)
-                 (make-reader (lambda (_) (run-reader rd sub-env))))))
+                       (make-reader (lambda (_) (run-reader rd sub-env))))))
 
 ;;; ============================================================
 ;;; Lifting Functions
@@ -221,23 +221,23 @@
 ;;; Lift a binary function to work with Reader.
 (define (reader-lift2 f)
   (lambda (rd1 rd2)
-    (reader-bind rd1
-                 (lambda (a)
-                   (reader-bind rd2
-                                (lambda (b)
-                                  (reader-pure (f a b))))))))
+          (reader-bind rd1
+                       (lambda (a)
+                               (reader-bind rd2
+                                            (lambda (b)
+                                                    (reader-pure (f a b))))))))
 
 ;;; reader-lift3 : (a -> b -> c -> d) -> ...
 ;;; Lift a ternary function to work with Reader.
 (define (reader-lift3 f)
   (lambda (rd1 rd2 rd3)
-    (reader-bind rd1
-                 (lambda (a)
-                   (reader-bind rd2
-                                (lambda (b)
-                                  (reader-bind rd3
-                                               (lambda (c)
-                                                 (reader-pure (f a b c))))))))))
+          (reader-bind rd1
+                       (lambda (a)
+                               (reader-bind rd2
+                                            (lambda (b)
+                                                    (reader-bind rd3
+                                                                 (lambda (c)
+                                                                         (reader-pure (f a b c))))))))))
 
 ;;; ============================================================
 ;;; Combining with Other Monads
@@ -247,18 +247,18 @@
 ;;; Pattern match on Reader of Maybe.
 (define (reader-maybe rd on-nothing on-just)
   (reader-map (lambda (m)
-                (if (nothing? m)
-                    on-nothing
-                    (on-just (from-just m))))
+                      (if (nothing? m)
+                          on-nothing
+                          (on-just (from-just m))))
               rd))
 
 ;;; reader-either : Reader r (Either e a) -> (e -> b) -> (a -> b) -> Reader r b
 ;;; Pattern match on Reader of Either.
 (define (reader-either rd on-left on-right)
   (reader-map (lambda (e)
-                (if (left? e)
-                    (on-left (from-left e))
-                    (on-right (from-right e))))
+                      (if (left? e)
+                          (on-left (from-left e))
+                          (on-right (from-right e))))
               rd))
 
 ;;; ============================================================

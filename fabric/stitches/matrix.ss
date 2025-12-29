@@ -11,8 +11,8 @@
 ;;;   - prelude.ss
 ;;;   - vec.ss
 
-(load "prelude.ss")
-(load "vec.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/vec.ss")
 
 ;;; ============================================================
 ;;; Matrix Representation

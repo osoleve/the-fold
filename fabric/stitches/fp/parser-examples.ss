@@ -12,8 +12,8 @@
 ;;; Dependencies:
 ;;;   - fp/parser.ss
 
-(load "prelude.ss")
-(load "fp/parser.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/parser.ss")
 
 ;;; ============================================================
 ;;; Character Constants (to avoid formatter issues)
@@ -365,7 +365,7 @@
 ;;; ini-whitespace : Parser ()
 ;;; Spaces and tabs (not newlines).
 (define ini-hspace
-  (many (one-of " \t")))
+  (many (one-of " 	")))
 
 ;;; ini-line-end : Parser ()
 ;;; End of line: newline or eof (consumes newline if present).
@@ -477,10 +477,14 @@
 ;;; ============================================================
 
 (define (demo)
-  (display "\n=== Parser Combinator Examples ===\n\n")
+  (display "
+=== Parser Combinator Examples ===
 
+")
+  
   ;; JSON
-  (display "--- JSON Parsing ---\n")
+  (display "--- JSON Parsing ---
+")
   (let ([json-input "{\"name\": \"Alice\", \"age\": 30, \"active\": true}"])
        (display "Input: ")
        (display json-input)
@@ -492,9 +496,10 @@
                 (display (format-error (from-left result))))
             (newline)))
   (newline)
-
+  
   ;; S-expression
-  (display "--- S-Expression Parsing ---\n")
+  (display "--- S-Expression Parsing ---
+")
   (let ([sexp-input "(define (square x) (* x x))"])
        (display "Input: ")
        (display sexp-input)
@@ -506,9 +511,10 @@
                 (display (format-error (from-left result))))
             (newline)))
   (newline)
-
+  
   ;; Arithmetic
-  (display "--- Arithmetic Expression Parsing ---\n")
+  (display "--- Arithmetic Expression Parsing ---
+")
   (let ([arith-input "1 + 2 * 3 - 4 / 2"])
        (display "Input: ")
        (display arith-input)
@@ -524,11 +530,20 @@
                 (display (format-error (from-left result))))
             (newline)))
   (newline)
-
+  
   ;; INI file
-  (display "--- INI File Parsing ---\n")
-  (let ([ini-input "[database]\nhost = localhost\nport = 5432\n\n[server]\ndebug = true\nname = my-server\n"])
-       (display "Input:\n")
+  (display "--- INI File Parsing ---
+")
+  (let ([ini-input "[database]
+host = localhost
+port = 5432
+
+[server]
+debug = true
+name = my-server
+"])
+       (display "Input:
+")
        (display ini-input)
        (let ([result (parse-ini ini-input)])
             (display "Result: ")
@@ -543,5 +558,7 @@
                           (display "not found"))))
                 (display (format-error (from-left result))))
             (newline)))
-
-  (display "\n=== Done ===\n"))
+  
+  (display "
+=== Done ===
+"))

@@ -14,8 +14,8 @@
 ;;;   - prelude.ss
 ;;;   - parse.ss (basic combinators)
 
-(load "prelude.ss")
-(load "parse.ss")
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/parse.ss")
 
 ;;; ============================================================
 ;;; Source Spans
@@ -100,7 +100,8 @@
         [line (state-line s)]
         [col (state-column s)]
         [file (state-file s)])
-       (if (char=? char #\newline)
+       (if (char=? char #
+ewline)
            (make-state (substring input 1 (string-length input))
                        (+ offset 1)
                        (+ line 1)

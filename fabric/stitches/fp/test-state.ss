@@ -2,13 +2,17 @@
 
 ;;; NOTE: Run from fabric/stitches directory
 
-(load "test-framework.ss")
-(load "fp/state.ss")
+(load "fabric/stitches/test-framework.ss")
+(load "fabric/stitches/fp/state.ss")
 
-(display "\n")
-(display "==============================================================\n")
-(display "         STATE MONAD TESTS\n")
-(display "==============================================================\n")
+(display "
+")
+(display "==============================================================
+")
+(display "         STATE MONAD TESTS
+")
+(display "==============================================================
+")
 
 ;;; ============================================================
 ;;; Core State Tests
@@ -18,17 +22,17 @@
             (define-test make-state-test
               (let ([st (make-state (lambda (s) (cons 42 s)))])
                    (assert-true (state? st))))
-
+            
             (define-test run-state-test
               (let ([st (make-state (lambda (s) (cons (+ s 1) (+ s 10))))])
                    (let ([result (run-state st 5)])
                         (assert-equal 6 (car result))
                         (assert-equal 15 (cdr result)))))
-
+            
             (define-test eval-state-test
               (let ([st (make-state (lambda (s) (cons (+ s 1) s)))])
                    (assert-equal 6 (eval-state st 5))))
-
+            
             (define-test exec-state-test
               (let ([st (make-state (lambda (s) (cons 'ignored (+ s 100))))])
                    (assert-equal 105 (exec-state st 5)))))
@@ -41,17 +45,17 @@
             (define-test get-test
               (assert-equal 42 (eval-state state-get 42))
               (assert-equal 42 (exec-state state-get 42)))
-
+            
             (define-test put-test
               (let ([st (state-put 100)])
                    (assert-equal '() (eval-state st 0))
                    (assert-equal 100 (exec-state st 0))))
-
+            
             (define-test modify-test
               (let ([st (state-modify add1)])
                    (assert-equal '() (eval-state st 5))
                    (assert-equal 6 (exec-state st 5))))
-
+            
             (define-test gets-test
               (let ([st (state-gets (lambda (s) (+ s 10)))])
                    (assert-equal 15 (eval-state st 5))
@@ -69,14 +73,14 @@
                      [lhs (state-bind (state-pure a) f)]
                      [rhs (f a)])
                     (assert-equal (run-state lhs 0) (run-state rhs 0))))
-
+            
             ;; Right identity: m >>= pure  ===  m
             (define-test right-identity-test
               (let ([m (state-modify add1)])
                    (let ([lhs (state-bind m state-pure)]
                          [rhs m])
                         (assert-equal (run-state lhs 0) (run-state rhs 0)))))
-
+            
             ;; Associativity: (m >>= f) >>= g  ===  m >>= (x -> f x >>= g)
             (define-test associativity-test
               (let ([m (state-pure 1)]
@@ -94,13 +98,13 @@
             (define-test pure-test
               (assert-equal 42 (eval-state (state-pure 42) 'any-state))
               (assert-equal 'any-state (exec-state (state-pure 42) 'any-state)))
-
+            
             (define-test bind-test
               (let ([st (state-bind state-get
                                     (lambda (s)
                                             (state-pure (+ s 10))))])
                    (assert-equal 15 (eval-state st 5))))
-
+            
             (define-test bind-chain-test
               (let ([st (state-bind state-get
                                     (lambda (a)
@@ -110,7 +114,7 @@
                                                                             (lambda (b)
                                                                                     (state-pure (cons a b))))))))])
                    (assert-equal (cons 0 1) (eval-state st 0))))
-
+            
             (define-test then-test
               (let ([st (state-then (state-put 10)
                                     state-get)])
@@ -124,11 +128,11 @@
             (define-test map-test
               (let ([st (state-map add1 (state-pure 5))])
                    (assert-equal 6 (eval-state st 0))))
-
+            
             (define-test map-with-state-test
               (let ([st (state-map add1 state-get)])
                    (assert-equal 6 (eval-state st 5))))
-
+            
             (define-test ap-test
               (let ([st (state-ap (state-pure add1) (state-pure 5))])
                    (assert-equal 6 (eval-state st 0)))))
@@ -140,20 +144,20 @@
 (test-group state-sequence
             (define-test sequence-empty-test
               (assert-equal '() (eval-state (state-sequence '()) 0)))
-
+            
             (define-test sequence-test
               (let ([actions (list (state-pure 1)
                                    (state-pure 2)
                                    (state-pure 3))])
                    (assert-equal '(1 2 3) (eval-state (state-sequence actions) 0))))
-
+            
             (define-test sequence-with-state-test
               ;; Each action increments and returns old value
               (let ([actions (list state-inc state-inc state-inc)])
                    (let ([result (run-state (state-sequence actions) 0)])
                         (assert-equal '(0 1 2) (car result))
                         (assert-equal 3 (cdr result)))))
-
+            
             (define-test map-m-test
               (let ([st (state-map-m (lambda (x) (state-pure (+ x 10)))
                                      '(1 2 3))])
@@ -168,15 +172,15 @@
               (let ([result (run-state state-inc 5)])
                    (assert-equal 5 (car result))
                    (assert-equal 6 (cdr result))))
-
+            
             (define-test dec-test
               (let ([result (run-state state-dec 5)])
                    (assert-equal 5 (car result))
                    (assert-equal 4 (cdr result))))
-
+            
             (define-test add-test
               (assert-equal 15 (exec-state (state-add 10) 5)))
-
+            
             (define-test fresh-test
               (let ([st (state-bind fresh
                                     (lambda (a)
@@ -196,27 +200,27 @@
             (define-test push-test
               (assert-equal '(1) (exec-state (state-push 1) '()))
               (assert-equal '(2 1) (exec-state (state-push 2) '(1))))
-
+            
             (define-test pop-empty-test
               (let ([result (eval-state state-pop '())])
                    (assert-true (nothing? result))))
-
+            
             (define-test pop-test
               (let ([result (run-state state-pop '(1 2 3))])
                    (assert-true (just? (car result)))
                    (assert-equal 1 (from-just (car result)))
                    (assert-equal '(2 3) (cdr result))))
-
+            
             (define-test peek-empty-test
               (let ([result (eval-state state-peek '())])
                    (assert-true (nothing? result))))
-
+            
             (define-test peek-test
               (let ([result (run-state state-peek '(1 2 3))])
                    (assert-true (just? (car result)))
                    (assert-equal 1 (from-just (car result)))
                    (assert-equal '(1 2 3) (cdr result))))
-
+            
             (define-test stack-ops-test
               (let ([st (state-then (state-push 1)
                                     (state-then (state-push 2)
@@ -234,21 +238,21 @@
 (test-group accumulator-state
             (define-test tell-test
               (assert-equal '("hello") (exec-state (state-tell "hello") '())))
-
+            
             (define-test tell-multiple-test
               (let ([st (state-then (state-tell "a")
                                     (state-then (state-tell "b")
                                                 (state-tell "c")))])
                    (assert-equal '("a" "b" "c") (exec-state st '()))))
-
+            
             (define-test tell-all-test
               (assert-equal '(1 2 3) (exec-state (state-tell-all '(1 2 3)) '())))
-
+            
             (define-test listen-test
               (let ([st (state-then (state-tell "x")
                                     state-listen)])
                    (assert-equal '("x") (eval-state st '()))))
-
+            
             (define-test clear-test
               (let ([st (state-then (state-tell "x")
                                     (state-then (state-tell "y")
@@ -264,13 +268,13 @@
 (test-group conditional-state
             (define-test when-true-test
               (assert-equal 6 (exec-state (state-when #t (state-modify add1)) 5)))
-
+            
             (define-test when-false-test
               (assert-equal 5 (exec-state (state-when #f (state-modify add1)) 5)))
-
+            
             (define-test unless-true-test
               (assert-equal 5 (exec-state (state-unless #t (state-modify add1)) 5)))
-
+            
             (define-test unless-false-test
               (assert-equal 6 (exec-state (state-unless #f (state-modify add1)) 5))))
 
@@ -282,25 +286,25 @@
             (define-test get-key-missing-test
               (let ([result (eval-state (state-get-key 'x) '())])
                    (assert-true (nothing? result))))
-
+            
             (define-test get-key-present-test
               (let ([result (eval-state (state-get-key 'x) '((x . 42)))])
                    (assert-true (just? result))
                    (assert-equal 42 (from-just result))))
-
+            
             (define-test put-key-new-test
               (let ([result (exec-state (state-put-key 'x 10) '())])
                    (assert-equal '((x . 10)) result)))
-
+            
             (define-test put-key-update-test
               (let ([result (exec-state (state-put-key 'x 20) '((x . 10) (y . 5)))])
                    (assert-equal 20 (cdr (assoc 'x result)))
                    (assert-equal 5 (cdr (assoc 'y result)))))
-
+            
             (define-test modify-key-existing-test
               (let ([result (exec-state (state-modify-key 'x add1 0) '((x . 5)))])
                    (assert-equal 6 (cdr (assoc 'x result)))))
-
+            
             (define-test modify-key-new-test
               (let ([result (exec-state (state-modify-key 'x add1 0) '())])
                    (assert-equal 1 (cdr (assoc 'x result))))))
@@ -322,7 +326,7 @@
                    ;; 0 + 1 + 2 = 3
                    (assert-equal 3 (eval-state st 0))
                    (assert-equal 3 (exec-state st 0))))
-
+            
             ;; Tree labeling with fresh
             (define-test tree-labeling-test
               (let ([st (state-bind fresh
@@ -336,12 +340,21 @@
 ;;; Summary
 ;;; ============================================================
 
-(display "\n")
-(display "==============================================================\n")
-(printf "Tests passed: ~a\n" *tests-passed*)
-(printf "Tests failed: ~a\n" *tests-failed*)
-(printf "Total tests:  ~a\n" *tests-run*)
+(display "
+")
+(display "==============================================================
+")
+(printf "Tests passed: ~a
+" *tests-passed*)
+(printf "Tests failed: ~a
+" *tests-failed*)
+(printf "Total tests:  ~a
+" *tests-run*)
 
 (if (= *tests-failed* 0)
-    (display "\n[SUCCESS] All state monad tests passed.\n")
-    (display "\n[FAILURE] Some state monad tests failed.\n"))
+    (display "
+[SUCCESS] All state monad tests passed.
+")
+    (display "
+[FAILURE] Some state monad tests failed.
+"))
