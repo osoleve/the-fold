@@ -80,29 +80,30 @@
 ;;; String Splitting and Joining (Tier 5)
 ;;; ============================================================
 
-;;; string-split : String String → (List String)
-;;; Split string by delimiter.
+;;; string-split : String (String | Char) → (List String)
+;;; Split string by delimiter (accepts either string or character).
 (define (string-split str delimiter)
-  (cond
-    [(= (string-length delimiter) 0)
-     ;; Split into individual characters
-     (let loop ([i 0]
-                [result '()])
-       (if (>= i (string-length str))
-           (reverse result)
-           (loop (+ i 1)
-                 (cons (substring str i (+ i 1)) result))))]
-    [else
-     ;; Split by delimiter
-     (let ([delim-len (string-length delimiter)])
-       (let loop ([start 0]
+  (let ([delimiter (if (char? delimiter) (string delimiter) delimiter)])
+    (cond
+      [(= (string-length delimiter) 0)
+       ;; Split into individual characters
+       (let loop ([i 0]
                   [result '()])
-         (let ([idx (string-index-of (substring str start (string-length str)) delimiter)])
-           (if idx
-               (let ([end (+ start idx)])
-                 (loop (+ end delim-len)
-                       (cons (substring str start end) result)))
-               (reverse (cons (substring str start (string-length str)) result))))))]))
+         (if (>= i (string-length str))
+             (reverse result)
+             (loop (+ i 1)
+                   (cons (substring str i (+ i 1)) result))))]
+      [else
+       ;; Split by delimiter
+       (let ([delim-len (string-length delimiter)])
+         (let loop ([start 0]
+                    [result '()])
+           (let ([idx (string-index-of (substring str start (string-length str)) delimiter)])
+             (if idx
+                 (let ([end (+ start idx)])
+                   (loop (+ end delim-len)
+                         (cons (substring str start end) result)))
+                 (reverse (cons (substring str start (string-length str)) result))))))])))
 
 ;;; string-join : (List String) String → String
 ;;; Join list of strings with separator.
