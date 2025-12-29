@@ -226,6 +226,89 @@
                  (car strs)
                  (cdr strs))))
 
+;;; string-split : String × Char → (List String)
+;;; Split string by single-character delimiter.
+(define (string-split str delim)
+  (let loop ([chars (string->list str)]
+             [current '()]
+             [result '()])
+       (cond
+        [(null? chars)
+         (reverse (cons (list->string (reverse current)) result))]
+        [(char=? (car chars) delim)
+         (loop (cdr chars)
+               '()
+               (cons (list->string (reverse current)) result))]
+        [else
+         (loop (cdr chars)
+               (cons (car chars) current)
+               result)])))
+
+;;; whitespace? : Char → Boolean
+;;; Check if character is whitespace.
+(define (whitespace? ch)
+  (or (char=? ch #\space)
+      (char=? ch #	ab)
+      (char=? ch #
+ewline)
+      (char=? ch #eturn)))
+
+;;; string-trim-left : String → String
+;;; Remove leading whitespace.
+(define (string-trim-left str)
+  (let ([len (string-length str)])
+       (let loop ([i 0])
+            (cond
+             [(>= i len) ""]
+             [(whitespace? (string-ref str i)) (loop (+ i 1))]
+             [else (substring str i len)]))))
+
+;;; string-trim-right : String → String
+;;; Remove trailing whitespace.
+(define (string-trim-right str)
+  (let ([len (string-length str)])
+       (let loop ([i (- len 1)])
+            (cond
+             [(< i 0) ""]
+             [(whitespace? (string-ref str i)) (loop (- i 1))]
+             [else (substring str 0 (+ i 1))]))))
+
+;;; string-trim : String → String
+;;; Remove leading and trailing whitespace.
+(define (string-trim str)
+  (string-trim-left (string-trim-right str)))
+
+;;; string-contains? : String × String → Boolean
+;;; Check if haystack contains needle as substring.
+(define (string-contains? haystack needle)
+  (let ([h-len (string-length haystack)]
+        [n-len (string-length needle)])
+       (cond
+        [(= n-len 0) #t]
+        [(> n-len h-len) #f]
+        [else
+         (let loop ([i 0])
+              (cond
+               [(> (+ i n-len) h-len) #f]
+               [(string=? (substring haystack i (+ i n-len)) needle) #t]
+               [else (loop (+ i 1))]))])))
+
+;;; string-starts-with? : String × String → Boolean
+;;; Check if string starts with prefix.
+(define (string-starts-with? str prefix)
+  (let ([str-len (string-length str)]
+        [pre-len (string-length prefix)])
+       (and (<= pre-len str-len)
+            (string=? (substring str 0 pre-len) prefix))))
+
+;;; string-ends-with? : String × String → Boolean
+;;; Check if string ends with suffix.
+(define (string-ends-with? str suffix)
+  (let ([str-len (string-length str)]
+        [suf-len (string-length suffix)])
+       (and (<= suf-len str-len)
+            (string=? (substring str (- str-len suf-len) str-len) suffix))))
+
 ;;; ============================================================
 ;;; Debug Utilities
 ;;; ============================================================
