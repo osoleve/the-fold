@@ -1,4 +1,5 @@
 pub mod address;
+pub mod bigint;
 pub mod block;
 pub mod cas;
 pub mod closure;
@@ -14,6 +15,7 @@ pub mod symbol;
 pub mod value;
 
 pub use address::{ADDRESS_SIZE, ADDRESS_VERSION, Address, HASH_SIZE};
+pub use bigint::{BigIntError, BigIntResult};
 pub use block::Block;
 pub use cas::{Store, address_to_hex, hash_block, hex_to_address};
 pub use closure::Closure;

@@ -5,6 +5,7 @@ pub fn format_value(value: &Value) -> String {
     match value {
         Value::Number(n) => n.to_string(),
         Value::Float(n) => n.to_string(),
+        Value::BigInt(n) => n.to_string(),
         Value::String(s) => format_string(s),
         Value::Symbol(sym) => sym.clone(),
         Value::Bool(true) => "#t".to_string(),
