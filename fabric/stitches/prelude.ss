@@ -103,6 +103,52 @@
       lst
       (drop (- n 1) (cdr lst))))
 
+;;; find : (α → Bool) × (List α) → α | #f
+;;; Find first element satisfying predicate. Returns #f if not found.
+(define (find pred lst)
+  (cond
+   [(null? lst) #f]
+   [(pred (car lst)) (car lst)]
+   [else (find pred (cdr lst))]))
+
+;;; last : (List α) → α
+;;; Get last element of non-empty list.
+(define (last lst)
+  (if (null? (cdr lst))
+      (car lst)
+      (last (cdr lst))))
+
+;;; init : (List α) → (List α)
+;;; Get all elements except the last.
+(define (init lst)
+  (if (null? (cdr lst))
+      '()
+      (cons (car lst) (init (cdr lst)))))
+
+;;; replicate : Nat × α → (List α)
+;;; Create list of n copies of element.
+(define (replicate n x)
+  (if (<= n 0)
+      '()
+      (cons x (replicate (- n 1) x))))
+
+;;; span : (α → Bool) × (List α) → (Values (List α) (List α))
+;;; Split list at first element that fails predicate.
+;;; Returns (prefix, suffix) where all elements in prefix satisfy pred.
+(define (span pred lst)
+  (cond
+   [(null? lst) (values '() '())]
+   [(pred (car lst))
+    (let-values ([(pre suf) (span pred (cdr lst))])
+                (values (cons (car lst) pre) suf))]
+   [else (values '() lst)]))
+
+;;; break : (α → Bool) × (List α) → (Values (List α) (List α))
+;;; Split list at first element that satisfies predicate.
+;;; Opposite of span.
+(define (break pred lst)
+  (span (lambda (x) (not (pred x))) lst))
+
 ;;; ============================================================
 ;;; Collection Utilities (Missing Functional Primitives)
 ;;; ============================================================
