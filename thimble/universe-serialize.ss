@@ -34,7 +34,13 @@
           
           ;; File reading
           read-sexp-file
+          read-sexp-file-strict  ; Ensures entire file is one sexp
+          read-sexp-file-safe    ; Returns (ok . value) or (error type . message)
           read-sexp-files
+          
+          ;; Error handling
+          format-sexp-error
+          classify-sexp-error
           
           ;; Serialization
           serialize-universe
@@ -66,7 +72,7 @@
                          ;; Strip leading slash if present
                          (if (and (> (string-length rel) 0)
                                   (or (char=? (string-ref rel 0) #\/)
-                                      (char=? (string-ref rel 0) #\\)))
+                                      (char=? (string-ref rel 0) #\)))
                              (substring rel 1 (string-length rel))
                              rel))
                     absolute-path)))
@@ -81,7 +87,7 @@
                  ;; Remove trailing slash if not root
                  (if (and (> len 1)
                           (or (char=? (string-ref normalized (- len 1)) #\/)
-                              (char=? (string-ref normalized (- len 1)) #\\)))
+                              (char=? (string-ref normalized (- len 1)) #\)))
                      (substring normalized 0 (- len 1))
                      normalized)))
          
@@ -166,90 +172,29 @@
            (filter-by-directories (scan-sexp-files root-dir) dirs))
          
          ;;; ============================================================
-         ;;; File Reading
+         ;;; Error Formatting
          ;;; ============================================================
          
-         ;;; read-sexp-file : String → (S-expr | #f)
-         ;;; Read and parse a .sexp file. Returns #f on error.
-         (define (read-sexp-file path)
-           (guard (ex
-                   [else
-                    (display "Warning: Failed to read ")
-                    (display path)
-                    (display ": ")
-                    (display (if (condition? ex)
-                                 (condition-message ex)
-                                 ex))
-                    (newline)
-                    #f])
-                  (call-with-input-file path
-                                        (lambda (port)
-                                                (read port)))))
+         ;;; get-condition-irritants : Condition → List
+         ;;; Extract irritants from a compound condition.
+         (define (get-condition-irritants ex)
+           (let loop ([components (simple-conditions ex)])
+                (cond
+                 [(null? components) '()]
+                 [(irritants-condition? (car components))
+                  (condition-irritants (car components))]
+                 [else (loop (cdr components))])))
          
-         ;;; read-sexp-files : (List String) × String → (List (cons String S-expr))
-         ;;; Read multiple .sexp files, returning (path . contents) pairs.
-         ;;; Skips files that fail to read (returns #f for content).
-         (define (read-sexp-files paths root-dir)
-           (let loop ([remaining paths]
-                      [result '()])
-                (if (null? remaining)
-                    (reverse result)
-                    (let* ([path (car remaining)]
-                           [rel-path (make-relative-path root-dir path)]
-                           [contents (read-sexp-file path)])
-                          (if contents
-                              (loop (cdr remaining) (cons (cons rel-path contents) result))
-                              (loop (cdr remaining) result))))))
-         
-         ;;; ============================================================
-         ;;; Serialization
-         ;;; ============================================================
-         
-         ;;; serialize-universe : String → S-expr
-         ;;; Serialize all .sexp files in the universe to a single S-expression.
-         ;;; Returns: ((files (("path" . contents) ...)))
-         (define (serialize-universe root-dir)
-           (let* ([normalized-root (normalize-path root-dir)]
-                  [sexp-paths (scan-sexp-files normalized-root)]
-                  [file-data (read-sexp-files sexp-paths normalized-root)])
-                 `((files ,file-data))))
-         
-         ;;; serialize-universe-filtered : String × (List String) → S-expr
-         ;;; Serialize .sexp files, filtered by directories.
-         (define (serialize-universe-filtered root-dir dirs)
-           (let* ([normalized-root (normalize-path root-dir)]
-                  [sexp-paths (scan-sexp-files-filtered normalized-root dirs)]
-                  [file-data (read-sexp-files sexp-paths normalized-root)])
-                 `((files ,file-data))))
-         
-         ;;; ============================================================
-         ;;; Output Writing
-         ;;; ============================================================
-         
-         ;;; write-universe : S-expr × String × Boolean → void
-         ;;; Write serialized universe to file.
-         ;;; If pretty? is #t, format with indentation for readability.
-         (define (write-universe sexp output-path pretty?)
-           (guard (ex
-                   [else
-                    (display "Error writing to ")
-                    (display output-path)
-                    (display ": ")
-                    (display (if (condition? ex)
-                                 (condition-message ex)
-                                 ex))
-                    (newline)
-                    (raise ex)])
-                  (call-with-output-file output-path
-                                         (lambda (port)
-                                                 (if pretty?
-                                                     (pretty-print sexp port)
-                                                     (write sexp port))
-                                                 (newline port)))))
-         
-         ;;; write-universe-pretty : S-expr × String → void
-         ;;; Convenience wrapper for pretty-printed output.
-         (define (write-universe-pretty sexp output-path)
-           (write-universe sexp output-path #t))
-         
-         ) ;; end library
+         ;;; count-format-directives : String → Nat
+         ;;; Count the number of format directives (~a, ~s, ~d, etc.) in a string.
+         (define (count-format-directives fmt)
+           (let loop ([s fmt] [count 0])
+                (if (string=? s "")
+                    count
+                    (let ([len (string-length s)])
+                         (if (and (>= len 2)
+                                  (char=? (string-ref s 0) #\~))
+                             (let ([directive (string-ref s 1)])
+                                  (case directive
+                                        ;; Format directives that consume an argument
+                                        [(# #\s #\d #\x # #\o #
