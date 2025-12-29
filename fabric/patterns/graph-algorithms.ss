@@ -70,31 +70,44 @@
   visited)
 
 ;;; --- Queue Operations (for BFS) ---
+;;; Using Okasaki's two-list queue for amortized O(1) operations.
+;;; Queue = (front-list . back-list)
+;;; - Enqueue: cons to back
+;;; - Dequeue: pop from front, reverse back if front empty
 
-;;; make-queue : → (List Any)
-;;; Create an empty queue (as a list).
+;;; make-queue : → Queue
+;;; Create an empty queue.
 (define (make-queue)
-  '())
+  (cons '() '()))
 
-;;; queue-empty? : (List Any) → Boolean
+;;; queue-empty? : Queue → Boolean
 ;;; Check if queue is empty.
 (define (queue-empty? q)
-  (null? q))
+  (and (null? (car q)) (null? (cdr q))))
 
-;;; queue-enqueue : (List Any) Any → (List Any)
-;;; Add element to back of queue.
+;;; queue-normalize : Queue → Queue
+;;; Internal: ensure front is non-empty if possible.
+(define (queue-normalize q)
+  (if (null? (car q))
+      (cons (reverse (cdr q)) '())
+      q))
+
+;;; queue-enqueue : Queue Any → Queue
+;;; Add element to back of queue. O(1).
 (define (queue-enqueue q item)
-  (append q (list item)))
+  (queue-normalize (cons (car q) (cons item (cdr q)))))
 
-;;; queue-enqueue-all : (List Any) (List Any) → (List Any)
-;;; Add all elements to back of queue.
+;;; queue-enqueue-all : Queue (List Any) → Queue
+;;; Add all elements to back of queue. O(k) where k = length of items.
 (define (queue-enqueue-all q items)
-  (append q items))
+  (queue-normalize (cons (car q) (append (reverse items) (cdr q)))))
 
-;;; queue-dequeue : (List Any) → (Values Any (List Any))
-;;; Remove and return front element.
+;;; queue-dequeue : Queue → (Values Any Queue)
+;;; Remove and return front element. Amortized O(1).
 (define (queue-dequeue q)
-  (values (car q) (cdr q)))
+  (let ([nq (queue-normalize q)])
+       (values (car (car nq))
+               (queue-normalize (cons (cdr (car nq)) (cdr nq))))))
 
 ;;; --- Stack Operations (for DFS) ---
 
