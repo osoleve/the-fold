@@ -45,8 +45,7 @@
 ;;; Skip a line comment.
 (define fold-comment
   (s-bind (s-char #\;) (lambda (_)
-                               (s-bind (s-many (s-satisfy (lambda (c) (not (char=? c #
-ewline)))
+                               (s-bind (s-many (s-satisfy (lambda (c) (not (char=? c #\newline)))
                                                           "non-newline"))
                                        (lambda (_)
                                                (s-pure '()))))))
@@ -84,25 +83,22 @@ ewline)))
                                                                                                        (list->string (car frac))))]
                                                                            [num (string->number num-str)])
                                                                           (s-pure (if neg? (- num) num)))))))))))
-
 ;;; fold-string : SpannedParser String
 ;;; Parse a double-quoted string with escape sequences.
 (define fold-string
-  (let* ([escape (s-bind (s-char #\) (lambda (_)
+  (let* ([escape (s-bind (s-char #\\) (lambda (_)
                                               (s-bind s-item (lambda (c)
                                                                      (s-pure (case c
-                                                                                   [(#
-) #
-ewline]
-                                                                                   [(#	) #	ab]
-                                                                                   [(#) #eturn]
-                                                                                   [(#\) #\]
+                                                                                   [(#\n) #\newline]
+                                                                                   [(#\t) #\tab]
+                                                                                   [(#\r) #\return]
+                                                                                   [(#\\) #\\]
                                                                                    [(#\") #\"]
                                                                                    [else c]))))))]
          [string-char (s-alt escape
                              (s-satisfy (lambda (c)
                                                 (not (or (char=? c #\")
-                                                         (char=? c #\))))
+                                                         (char=? c #\\))))
                                         "string character"))])
         (s-bind (s-char #\") (lambda (_)
                                      (s-bind (s-many string-char) (lambda (chars)

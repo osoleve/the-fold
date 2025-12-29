@@ -224,9 +224,7 @@
 ")
 
 (test "split simple" '("a" "b" "c") (string-split "a,b,c" #\,))
-(test "split by newline" '("line1" "line2") (string-split "line1
-line2" #
-ewline))
+(test "split by newline" '("line1" "line2") (string-split "line1\nline2" #\newline))
 (test "split no delim" '("hello") (string-split "hello" #\,))
 
 (display "

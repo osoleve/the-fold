@@ -272,8 +272,7 @@
 ;;; display-source-context : String × Int × Int → void
 ;;; Show the relevant line with an underline pointer.
 (define (display-source-context source line col)
-  (let ([lines (string-split source #
-ewline)])
+  (let ([lines (string-split source #\newline)])
        (when (and (> line 0) (<= line (length lines)))
              (let ([src-line (list-ref lines (- line 1))])
                   (display "    ")

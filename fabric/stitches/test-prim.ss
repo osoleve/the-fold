@@ -132,7 +132,7 @@
 (define copy-dst (make-bytevector 5 0))
 (define copy-result (prim 'bv-copy copy-src 1 copy-dst 0 3))
 (test "bv-copy returns dst" copy-dst copy-result)
-(test "bv-copy first" (char->integer #) (prim 'bv-ref copy-dst 0))
+(test "bv-copy first" (char->integer #\b) (prim 'bv-ref copy-dst 0))
 (test "bv-copy third" (char->integer #\d) (prim 'bv-ref copy-dst 2))
 (test "bv-copy untouched" 0 (prim 'bv-ref copy-dst 4))
 
@@ -182,7 +182,7 @@
 (test-section "String operations")
 (test "string-length" 5 (prim 'string-length "hello"))
 (test "string-length empty" 0 (prim 'string-length ""))
-(test "string-ref" # (prim 'string-ref "hello" 1))
+(test "string-ref" #\e (prim 'string-ref "hello" 1))
 (test "string-append" "helloworld" (prim 'string-append "hello" "world"))
 (test "string-append many" "abcdef" (prim 'string-append "ab" "cd" "ef"))
 (test "substring" "ell" (prim 'substring "hello" 1 4))
@@ -191,7 +191,7 @@
 (test "string<?" #t (prim 'string<? "abc" "abd"))
 (test "string>?" #t (prim 'string>? "xyz" "abc"))
 (test "make-string" "   " (prim 'make-string 3 #\space))
-(test "string->list" '(#\h # #\l #\l #\o) (prim 'string->list "hello"))
+(test "string->list" '(#\h #\e #\l #\l #\o) (prim 'string->list "hello"))
 (test "list->string" "hi" (prim 'list->string '(#\h #\i)))
 
 ;;; ============================================================
@@ -200,15 +200,15 @@
 (test-section "Character operations")
 (test "char->integer" 65 (prim 'char->integer #\A))
 (test "integer->char" #\A (prim 'integer->char 65))
-(test "char=?" #t (prim 'char=? # #))
-(test "char<?" #t (prim 'char<? # #))
+(test "char=?" #t (prim 'char=? #\a #\a))
+(test "char<?" #t (prim 'char<? #\a #\b))
 (test "char-alphabetic?" #t (prim 'char-alphabetic? #\q))
-(test "char-numeric?" #t (prim 'char-numeric? #))
+(test "char-numeric?" #t (prim 'char-numeric? #\5))
 (test "char-whitespace?" #t (prim 'char-whitespace? #\space))
 (test "char-upper-case?" #t (prim 'char-upper-case? #\Z))
 (test "char-lower-case?" #t (prim 'char-lower-case? #\z))
-(test "char-upcase" #\A (prim 'char-upcase #))
-(test "char-downcase" # (prim 'char-downcase #\A))
+(test "char-upcase" #\A (prim 'char-upcase #\a))
+(test "char-downcase" #\a (prim 'char-downcase #\A))
 
 ;;; ============================================================
 ;;; Primitive errors
