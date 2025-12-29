@@ -36,6 +36,7 @@
 (load "playpen/quill/state.ss")
 (load "playpen/quill/parse.ss")
 (load "playpen/quill/validate.ss")
+(load "playpen/quill/dsl.ss")
 (load "playpen/quill/render.ss")
 (load "playpen/quill/runtime.ss")
 (load "playpen/quill/repl.ss")
