@@ -71,18 +71,18 @@
 ;;; Add walls in a pattern (creating rooms)
 (define fov-board
   (let loop ([y 0] [b fov-board])
-    (if (> y 11)
-        b
-        (loop (+ y 1)
-              (board-set (board-set b
-                                   (square-coord 6 y) wall)
-                        (square-coord 7 y) wall)))))
+       (if (> y 11)
+           b
+           (loop (+ y 1)
+                 (board-set (board-set b
+                                       (square-coord 6 y) wall)
+                            (square-coord 7 y) wall)))))
 
 ;;; Add doorway
 (define fov-board
   (board-set (board-set fov-board
-                       (square-coord 6 5) floor)
-            (square-coord 6 6) floor))
+                        (square-coord 6 5) floor)
+             (square-coord 6 6) floor))
 
 (define viewer (square-coord 3 5))
 
@@ -91,18 +91,18 @@
 (newline)
 
 (define visible-tiles (board-fov fov-board viewer 8
-                                (lambda (c) (square-neighbors c 'all))
-                                square-line))
+                                 (lambda (c) (square-neighbors c 'all))
+                                 square-line))
 
 (display "Can see ")
 (display (length visible-tiles))
 (display " tiles within range 8\n")
 (display "(showing first 10): ")
 (let loop ([tiles visible-tiles] [count 0])
-  (when (and (pair? tiles) (< count 10))
-    (display (car tiles))
-    (display " ")
-    (loop (cdr tiles) (+ count 1))))
+     (when (and (pair? tiles) (< count 10))
+           (display (car tiles))
+           (display " ")
+           (loop (cdr tiles) (+ count 1))))
 (newline)
 (newline)
 
@@ -118,9 +118,9 @@
 ;;; Add walls
 (define hex-board
   (board-set (board-set (board-set hex-board
-                                  (axial-coord 0 0) wall)
-                       (axial-coord 1 0) wall)
-            (axial-coord 0 1) wall))
+                                   (axial-coord 0 0) wall)
+                        (axial-coord 1 0) wall)
+             (axial-coord 0 1) wall))
 
 (define hex-observer (axial-coord -2 -1))
 (define hex-target1 (axial-coord 3 2))
@@ -159,8 +159,8 @@
 (define hex-viewer (axial-coord 0 0))
 
 (define hex-visible (board-fov hex-fov-board hex-viewer 3
-                              hex-neighbors
-                              hex-line))
+                               hex-neighbors
+                               hex-line))
 
 (display "Viewer at ")
 (display hex-viewer)
@@ -182,9 +182,9 @@
 ;;; Add some walls
 (define tactical-board
   (board-set (board-set (board-set tactical-board
-                                  (square-coord 7 5) wall)
-                       (square-coord 7 6) wall)
-            (square-coord 7 7) wall))
+                                   (square-coord 7 5) wall)
+                        (square-coord 7 6) wall)
+             (square-coord 7 7) wall))
 
 (define player-pos (square-coord 3 6))
 (define enemy-positions
@@ -201,10 +201,10 @@
 
 (define visible-enemies
   (visible-enemies tactical-board player-pos 10
-                  (lambda (c) (square-neighbors c 'all))
-                  square-line
-                  (lambda (coord)
-                    (member coord enemy-positions))))
+                   (lambda (c) (square-neighbors c 'all))
+                   square-line
+                   (lambda (coord)
+                           (member coord enemy-positions))))
 
 (display "Visible enemies: ")
 (if (null? visible-enemies)

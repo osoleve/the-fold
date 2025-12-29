@@ -47,45 +47,45 @@
 
 (define-syntax on-event
   (syntax-rules (:when :do)
-    ;; Simple handler function
-    [(_ dispatcher event-type handler)
-     (dispatcher-subscribe! dispatcher 'event-type handler)]
-
-    ;; Handler with guard condition
-    [(_ dispatcher event-type :when condition handler)
-     (dispatcher-subscribe! dispatcher 'event-type
-       (lambda (evt)
-         (when condition
-           (handler evt))))]
-
-    ;; Handler with destructuring
-    [(_ dispatcher event-type :do (source target data) body ...)
-     (dispatcher-subscribe! dispatcher 'event-type
-       (lambda (evt)
-         (let ([source (event-source evt)]
-               [target (event-target evt)]
-               [data (event-data evt)])
-           body ...)))]
-
-    ;; Handler with guard and destructuring
-    [(_ dispatcher event-type :when condition :do (source target data) body ...)
-     (dispatcher-subscribe! dispatcher 'event-type
-       (lambda (evt)
-         (let ([source (event-source evt)]
-               [target (event-target evt)]
-               [data (event-data evt)])
-           (when condition
-             body ...))))]
-
-    ;; Guard after destructuring (alternative order)
-    [(_ dispatcher event-type :do (source target data) :when condition body ...)
-     (dispatcher-subscribe! dispatcher 'event-type
-       (lambda (evt)
-         (let ([source (event-source evt)]
-               [target (event-target evt)]
-               [data (event-data evt)])
-           (when condition
-             body ...))))]))
+                ;; Simple handler function
+                [(_ dispatcher event-type handler)
+                 (dispatcher-subscribe! dispatcher 'event-type handler)]
+                
+                ;; Handler with guard condition
+                [(_ dispatcher event-type :when condition handler)
+                 (dispatcher-subscribe! dispatcher 'event-type
+                                        (lambda (evt)
+                                                (when condition
+                                                      (handler evt))))]
+                
+                ;; Handler with destructuring
+                [(_ dispatcher event-type :do (source target data) body ...)
+                 (dispatcher-subscribe! dispatcher 'event-type
+                                        (lambda (evt)
+                                                (let ([source (event-source evt)]
+                                                      [target (event-target evt)]
+                                                      [data (event-data evt)])
+                                                     body ...)))]
+                
+                ;; Handler with guard and destructuring
+                [(_ dispatcher event-type :when condition :do (source target data) body ...)
+                 (dispatcher-subscribe! dispatcher 'event-type
+                                        (lambda (evt)
+                                                (let ([source (event-source evt)]
+                                                      [target (event-target evt)]
+                                                      [data (event-data evt)])
+                                                     (when condition
+                                                           body ...))))]
+                
+                ;; Guard after destructuring (alternative order)
+                [(_ dispatcher event-type :do (source target data) :when condition body ...)
+                 (dispatcher-subscribe! dispatcher 'event-type
+                                        (lambda (evt)
+                                                (let ([source (event-source evt)]
+                                                      [target (event-target evt)]
+                                                      [data (event-data evt)])
+                                                     (when condition
+                                                           body ...))))]))
 
 
 ;;; ============================================================
@@ -105,9 +105,9 @@
 
 (define-syntax on-events
   (syntax-rules ()
-    [(_ dispatcher (event-type handler) ...)
-     (begin
-       (on-event dispatcher event-type handler) ...)]))
+                [(_ dispatcher (event-type handler) ...)
+                 (begin
+                  (on-event dispatcher event-type handler) ...)]))
 
 
 ;;; ============================================================
@@ -128,12 +128,12 @@
 
 (define-syntax def-handler
   (syntax-rules ()
-    [(_ name event-type (source target data) body ...)
-     (define (name evt)
-       (let ([source (event-source evt)]
-             [target (event-target evt)]
-             [data (event-data evt)])
-         body ...))]))
+                [(_ name event-type (source target data) body ...)
+                 (define (name evt)
+                   (let ([source (event-source evt)]
+                         [target (event-target evt)]
+                         [data (event-data evt)])
+                        body ...))]))
 
 
 ;;; ============================================================
@@ -149,21 +149,21 @@
 
 (define-syntax emit!
   (syntax-rules ()
-    [(_ dispatcher event-type source target data)
-     (dispatcher-dispatch! dispatcher
-       (make-event 'event-type source target data))]
-
-    [(_ dispatcher event-type source target)
-     (dispatcher-dispatch! dispatcher
-       (make-event 'event-type source target '()))]
-
-    [(_ dispatcher event-type source)
-     (dispatcher-dispatch! dispatcher
-       (make-event 'event-type source #f '()))]
-
-    [(_ dispatcher event-type)
-     (dispatcher-dispatch! dispatcher
-       (make-event 'event-type #f #f '()))]))
+                [(_ dispatcher event-type source target data)
+                 (dispatcher-dispatch! dispatcher
+                                       (make-event 'event-type source target data))]
+                
+                [(_ dispatcher event-type source target)
+                 (dispatcher-dispatch! dispatcher
+                                       (make-event 'event-type source target '()))]
+                
+                [(_ dispatcher event-type source)
+                 (dispatcher-dispatch! dispatcher
+                                       (make-event 'event-type source #f '()))]
+                
+                [(_ dispatcher event-type)
+                 (dispatcher-dispatch! dispatcher
+                                       (make-event 'event-type #f #f '()))]))
 
 
 ;;; queue! : Dispatcher × EventType × Source × Target × Data -> Void
@@ -174,21 +174,21 @@
 
 (define-syntax queue!
   (syntax-rules ()
-    [(_ dispatcher event-type source target data)
-     (dispatcher-enqueue! dispatcher
-       (make-event 'event-type source target data))]
-
-    [(_ dispatcher event-type source target)
-     (dispatcher-enqueue! dispatcher
-       (make-event 'event-type source target '()))]
-
-    [(_ dispatcher event-type source)
-     (dispatcher-enqueue! dispatcher
-       (make-event 'event-type source #f '()))]
-
-    [(_ dispatcher event-type)
-     (dispatcher-enqueue! dispatcher
-       (make-event 'event-type #f #f '()))]))
+                [(_ dispatcher event-type source target data)
+                 (dispatcher-enqueue! dispatcher
+                                      (make-event 'event-type source target data))]
+                
+                [(_ dispatcher event-type source target)
+                 (dispatcher-enqueue! dispatcher
+                                      (make-event 'event-type source target '()))]
+                
+                [(_ dispatcher event-type source)
+                 (dispatcher-enqueue! dispatcher
+                                      (make-event 'event-type source #f '()))]
+                
+                [(_ dispatcher event-type)
+                 (dispatcher-enqueue! dispatcher
+                                      (make-event 'event-type #f #f '()))]))
 
 
 ;;; ============================================================
@@ -201,18 +201,18 @@
 
 ;;; Register handlers
 (on-event game-dispatcher entity-died
-  :do (killer victim data)
-    (display (format "Entity ~a died!\n" victim)))
+          :do (killer victim data)
+          (display (format "Entity ~a died!\n" victim)))
 
 (on-event game-dispatcher damage-dealt
-  :when (> (event-get evt 'amount) 10)
-  :do (attacker target data)
-    (display "Big hit!\n"))
+          :when (> (event-get evt 'amount) 10)
+          :do (attacker target data)
+          (display "Big hit!\n"))
 
 ;;; Batch registration
 (on-events game-dispatcher
-  (turn-started (lambda (e) (display "Turn started\n")))
-  (turn-ended (lambda (e) (display "Turn ended\n"))))
+           (turn-started (lambda (e) (display "Turn started\n")))
+           (turn-ended (lambda (e) (display "Turn ended\n"))))
 
 ;;; Define reusable handler
 (def-handler log-death entity-died (killer victim data)

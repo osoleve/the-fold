@@ -24,8 +24,8 @@
 ;;; This provides ~s behavior for Chez 9.5 which lacks it.
 (define (sexpr->string obj)
   (let ([port (open-output-string)])
-    (write obj port)
-    (get-output-string port)))
+       (write obj port)
+       (get-output-string port)))
 
 ;;; ============================================================
 ;;; Block Construction and Access
@@ -62,8 +62,8 @@
 ;;; Encode a 32-bit unsigned integer as 4 bytes, little-endian.
 (define (u32->bytes-le n)
   (let ([bv (make-bytevector 4)])
-    (bytevector-u32-set! bv 0 n 'little)
-    bv))
+       (bytevector-u32-set! bv 0 n 'little)
+       bv))
 
 ;;; bytes-le->u32 : Bytevector × Nat → Nat
 ;;; Decode a 32-bit unsigned integer from bytes at offset, little-endian.
@@ -87,12 +87,12 @@
   (let* ([total (fold-left + 0 (map bytevector-length bvs))]
          [result (make-bytevector total)]
          [pos 0])
-    (for-each
-      (lambda (bv)
-        (bytevector-copy! bv 0 result pos (bytevector-length bv))
-        (set! pos (+ pos (bytevector-length bv))))
-      bvs)
-    result))
+        (for-each
+         (lambda (bv)
+                 (bytevector-copy! bv 0 result pos (bytevector-length bv))
+                 (set! pos (+ pos (bytevector-length bv))))
+         bvs)
+        result))
 
 ;;; block->bytes : Block → Bytevector
 ;;; Serialize a block to its canonical byte representation.
@@ -101,17 +101,17 @@
          [payload (block-payload blk)]
          [refs (block-refs blk)]
          [refs-count (vector-length refs)])
-    (bytevector-concat
-      (list
-        ;; Tag: length-prefixed
-        (u32->bytes-le (bytevector-length tag-bytes))
-        tag-bytes
-        ;; Payload: length-prefixed
-        (u32->bytes-le (bytevector-length payload))
-        payload
-        ;; Refs: count-prefixed, each ref is address-size bytes
-        (u32->bytes-le refs-count)
-        (bytevector-concat (vector->list refs))))))
+        (bytevector-concat
+         (list
+          ;; Tag: length-prefixed
+          (u32->bytes-le (bytevector-length tag-bytes))
+          tag-bytes
+          ;; Payload: length-prefixed
+          (u32->bytes-le (bytevector-length payload))
+          payload
+          ;; Refs: count-prefixed, each ref is address-size bytes
+          (u32->bytes-le refs-count)
+          (bytevector-concat (vector->list refs))))))
 
 ;;; bytes->block : Bytevector → Block
 ;;; Deserialize a block from its canonical byte representation.
@@ -134,14 +134,14 @@
          [refs-count (bytes-le->u32 bv pos)]
          [_ (set! pos (+ pos 4))]
          [refs (make-vector refs-count)])
-    ;; Read each ref
-    (do ([i 0 (+ i 1)])
-        ((= i refs-count))
-      (let ([ref (make-bytevector address-size)])
-        (bytevector-copy! bv pos ref 0 address-size)
-        (vector-set! refs i ref)
-        (set! pos (+ pos address-size))))
-    (make-block tag payload refs)))
+        ;; Read each ref
+        (do ([i 0 (+ i 1)])
+            ((= i refs-count))
+            (let ([ref (make-bytevector address-size)])
+                 (bytevector-copy! bv pos ref 0 address-size)
+                 (vector-set! refs i ref)
+                 (set! pos (+ pos address-size))))
+        (make-block tag payload refs)))
 
 ;;; ============================================================
 ;;; Block Utilities
@@ -163,7 +163,7 @@
        (= (vector-length (block-refs a)) (vector-length (block-refs b)))
        (let ([refs-a (block-refs a)]
              [refs-b (block-refs b)])
-         (let loop ([i 0])
-           (or (= i (vector-length refs-a))
-               (and (bytevector=? (vector-ref refs-a i) (vector-ref refs-b i))
-                    (loop (+ i 1))))))))
+            (let loop ([i 0])
+                 (or (= i (vector-length refs-a))
+                     (and (bytevector=? (vector-ref refs-a i) (vector-ref refs-b i))
+                          (loop (+ i 1))))))))

@@ -63,9 +63,9 @@
 
 (define (tile-cost tile)
   (let ([data (tile-data tile)])
-    (if (and (pair? data) (assq 'cost data))
-        (cdr (assq 'cost data))
-        1)))
+       (if (and (pair? data) (assq 'cost data))
+           (cdr (assq 'cost data))
+           1)))
 
 (define (tile-blocks? tile)
   (eq? (tile-type tile) 'wall))
@@ -74,9 +74,9 @@
 ;;; Get a property from tile data with default value
 (define (tile-get-prop tile prop default)
   (let ([data (tile-data tile)])
-    (if (and (pair? data) (assq prop data))
-        (cdr (assq prop data))
-        default)))
+       (if (and (pair? data) (assq prop data))
+           (cdr (assq prop data))
+           default)))
 
 ;;; ============================================================
 ;;; Board Protocol
@@ -103,10 +103,10 @@
 ;;; Create a board with optional custom hash/equality functions
 (define make-board
   (case-lambda
-    [(shape-type meta)
-     (make-board% shape-type (make-hashtable coord-hash coord-equal?) meta)]
-    [(shape-type meta hash-func eq-func)
-     (make-board% shape-type (make-hashtable hash-func eq-func) meta)]))
+   [(shape-type meta)
+    (make-board% shape-type (make-hashtable coord-hash coord-equal?) meta)]
+   [(shape-type meta hash-func eq-func)
+    (make-board% shape-type (make-hashtable hash-func eq-func) meta)]))
 
 (define (board-shape b) (board%-shape b))
 (define (board-meta b) (board%-meta b))
@@ -116,19 +116,19 @@
 
 (define (board-set board coord tile)
   (let ([new-tiles (hashtable-copy (board%-tiles board) #t)])
-    (hashtable-set! new-tiles coord tile)
-    (make-board% (board-shape board) new-tiles (board-meta board))))
+       (hashtable-set! new-tiles coord tile)
+       (make-board% (board-shape board) new-tiles (board-meta board))))
 
 (define (board-remove board coord)
   (let ([new-tiles (hashtable-copy (board%-tiles board) #t)])
-    (hashtable-delete! new-tiles coord)
-    (make-board% (board-shape board) new-tiles (board-meta board))))
+       (hashtable-delete! new-tiles coord)
+       (make-board% (board-shape board) new-tiles (board-meta board))))
 
 (define (board-tiles board)
   (let ([ht (board%-tiles board)])
-    (map (lambda (coord)
-           (cons coord (hashtable-ref ht coord #f)))
-         (vector->list (hashtable-keys ht)))))
+       (map (lambda (coord)
+                    (cons coord (hashtable-ref ht coord #f)))
+            (vector->list (hashtable-keys ht)))))
 
 (define (board-coords board)
   (map car (board-tiles board)))
@@ -212,33 +212,33 @@
 ;;; Map function over list, filtering out #f results
 (define (filter-map f lst)
   (let loop ([lst lst] [acc '()])
-    (if (null? lst)
-        (reverse acc)
-        (let ([result (f (car lst))])
-          (if result
-              (loop (cdr lst) (cons result acc))
-              (loop (cdr lst) acc))))))
+       (if (null? lst)
+           (reverse acc)
+           (let ([result (f (car lst))])
+                (if result
+                    (loop (cdr lst) (cons result acc))
+                    (loop (cdr lst) acc))))))
 
 ;;; deduplicate : (List A) × (A × A → Bool) → (List A)
 ;;; Remove duplicates from list using equality predicate
 (define (deduplicate lst equal?)
   (let loop ([lst lst] [seen '()])
-    (if (null? lst)
-        (reverse seen)
-        (if (memp (lambda (x) (equal? x (car lst))) seen)
-            (loop (cdr lst) seen)
-            (loop (cdr lst) (cons (car lst) seen))))))
+       (if (null? lst)
+           (reverse seen)
+           (if (memp (lambda (x) (equal? x (car lst))) seen)
+               (loop (cdr lst) seen)
+               (loop (cdr lst) (cons (car lst) seen))))))
 
 ;;; alist-ref : Alist × Key × [Default] → Value
 ;;; Get value from association list
 (define alist-ref
   (case-lambda
-    [(alist key)
-     (let ([pair (assq key alist)])
-       (if pair (cdr pair) #f))]
-    [(alist key default)
-     (let ([pair (assq key alist)])
-       (if pair (cdr pair) default))]))
+   [(alist key)
+    (let ([pair (assq key alist)])
+         (if pair (cdr pair) #f))]
+   [(alist key default)
+    (let ([pair (assq key alist)])
+         (if pair (cdr pair) default))]))
 
 ;;; ============================================================
 ;;; Exports Summary

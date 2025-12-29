@@ -31,8 +31,8 @@
                (display "FAILED: ")
                (display (condition-message exn))
                (newline)])
-    (load (string-append "shell/" filename))
-    (set! pass-count (+ pass-count 1))))
+         (load (string-append "shell/" filename))
+         (set! pass-count (+ pass-count 1))))
 
 ;;; ============================================================
 ;;; Run Shell Tests
@@ -68,5 +68,5 @@
 (if (= fail-count 0)
     (display "\n✓ All shell tests passed!\n")
     (begin
-      (display "\n✗ Some tests failed!\n")
-      (exit 1)))
+     (display "\n✗ Some tests failed!\n")
+     (exit 1)))

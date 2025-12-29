@@ -43,9 +43,9 @@
 ;;; Error severity levels
 (define-record-type error-level
   (fields
-    name        ; 'error, 'warning, 'info
-    color       ; ANSI color
-    symbol))    ; Display symbol
+   name        ; 'error, 'warning, 'info
+   color       ; ANSI color
+   symbol))    ; Display symbol
 
 (define *level-error*
   (make-error-level 'error *color-red* "ERROR"))
@@ -65,20 +65,20 @@
 (define (format-error condition)
   (guard (e [else
              (format-error-simple
-               (format "Error formatting error: ~a" e))])
-    (let* ([msg (condition-message condition)]
-           [who (if (who-condition? condition)
-                   (condition-who condition)
-                   #f)]
-           [irritants (if (irritants-condition? condition)
-                         (condition-irritants condition)
-                         '())])
-      (format-error-full
-        *level-error*
-        msg
-        who
-        irritants
-        #f #f #f))))  ; file, line, col
+              (format "Error formatting error: ~a" e))])
+         (let* ([msg (condition-message condition)]
+                [who (if (who-condition? condition)
+                         (condition-who condition)
+                         #f)]
+                [irritants (if (irritants-condition? condition)
+                               (condition-irritants condition)
+                               '())])
+               (format-error-full
+                *level-error*
+                msg
+                who
+                irritants
+                #f #f #f))))  ; file, line, col
 
 ;;; format-error-simple : String → String
 ;;; Format a simple error message.
@@ -94,22 +94,22 @@
 ;;; Full error formatting with all options.
 (define (format-error-full level msg who irritants file line col)
   (string-append
-    ;; Header line
-    (format-error-header level who file line col)
-    "\n"
-    ;; Message (with fixed formatting)
-    (format-message msg irritants)
-    "\n"
-    ;; Source context (if available)
-    (if (and file line)
-        (format-source-context file line col)
-        "")
-    ;; Suggestions (if enabled)
-    (if *show-suggestions*
-        (format-suggestions msg)
-        "")
-    ;; Footer
-    "\n"))
+   ;; Header line
+   (format-error-header level who file line col)
+   "\n"
+   ;; Message (with fixed formatting)
+   (format-message msg irritants)
+   "\n"
+   ;; Source context (if available)
+   (if (and file line)
+       (format-source-context file line col)
+       "")
+   ;; Suggestions (if enabled)
+   (if *show-suggestions*
+       (format-suggestions msg)
+       "")
+   ;; Footer
+   "\n"))
 
 ;;; ============================================================
 ;;; Header Formatting
@@ -118,15 +118,15 @@
 ;;; format-error-header : ErrorLevel × Symbol × Path × Nat × Nat → String
 (define (format-error-header level who file line col)
   (let ([level-str (colorize (error-level-symbol level)
-                            (error-level-color level)
-                            *color-bold*)]
+                             (error-level-color level)
+                             *color-bold*)]
         [who-str (if who
-                    (format " [~a]" who)
-                    "")]
+                     (format " [~a]" who)
+                     "")]
         [loc-str (if (and file line)
-                    (format " at ~a:~a" file line)
-                    "")])
-    (string-append level-str who-str loc-str)))
+                     (format " at ~a:~a" file line)
+                     "")])
+       (string-append level-str who-str loc-str)))
 
 ;;; ============================================================
 ;;; Message Formatting (Fixes ~s bugs)
@@ -139,11 +139,11 @@
   (guard (e [else
              ;; If formatting fails, return template as-is
              template])
-    (if (null? irritants)
-        ;; No irritants: check for unfilled placeholders
-        (fix-unfilled-placeholders template)
-        ;; Has irritants: fill them in
-        (fill-placeholders template irritants))))
+         (if (null? irritants)
+             ;; No irritants: check for unfilled placeholders
+             (fix-unfilled-placeholders template)
+             ;; Has irritants: fill them in
+             (fill-placeholders template irritants))))
 
 ;;; fix-unfilled-placeholders : String → String
 ;;; Replace unfilled format directives with safe defaults.
@@ -152,7 +152,7 @@
          [fixed2 (string-replace fixed "~:s" "<value>")]
          [fixed3 (string-replace fixed2 "~a" "<value>")]
          [fixed4 (string-replace fixed3 "~d" "<number>")])
-    fixed4))
+        fixed4))
 
 ;;; fill-placeholders : String × (List Any) → String
 ;;; Fill format directives with actual values.
@@ -160,25 +160,25 @@
   (guard (e [else
              ;; If format fails, manually substitute
              (manual-substitute template irritants)])
-    ;; Try using format
-    (apply format template irritants)))
+         ;; Try using format
+         (apply format template irritants)))
 
 ;;; manual-substitute : String × (List Any) → String
 ;;; Manually substitute placeholders (fallback).
 (define (manual-substitute template irritants)
   (let loop ([str template]
              [vals irritants])
-    (if (null? vals)
-        (fix-unfilled-placeholders str)
-        (let* ([pattern (if (string-contains? str "~s") "~s"
-                           (if (string-contains? str "~a") "~a"
-                              (if (string-contains? str "~d") "~d"
-                                 #f)))]
-               [replacement (format "~a" (car vals))])
-          (if pattern
-              (loop (string-replace-once str pattern replacement)
-                    (cdr vals))
-              str)))))
+       (if (null? vals)
+           (fix-unfilled-placeholders str)
+           (let* ([pattern (if (string-contains? str "~s") "~s"
+                               (if (string-contains? str "~a") "~a"
+                                   (if (string-contains? str "~d") "~d"
+                                       #f)))]
+                  [replacement (format "~a" (car vals))])
+                 (if pattern
+                     (loop (string-replace-once str pattern replacement)
+                           (cdr vals))
+                     str)))))
 
 ;;; string-replace : String × String × String → String
 ;;; Replace all occurrences of pattern with replacement.
@@ -186,37 +186,37 @@
   (let ([plen (string-length pattern)]
         [rlen (string-length replacement)]
         [slen (string-length str)])
-    (let loop ([i 0] [result ""])
-      (cond
-        [(>= i slen) result]
-        [(and (<= (+ i plen) slen)
-              (string=? pattern (substring str i (+ i plen))))
-         (loop (+ i plen) (string-append result replacement))]
-        [else
-         (loop (+ i 1)
-               (string-append result (string (string-ref str i))))]))))
+       (let loop ([i 0] [result ""])
+            (cond
+             [(>= i slen) result]
+             [(and (<= (+ i plen) slen)
+                   (string=? pattern (substring str i (+ i plen))))
+              (loop (+ i plen) (string-append result replacement))]
+             [else
+              (loop (+ i 1)
+                    (string-append result (string (string-ref str i))))]))))
 
 ;;; string-replace-once : String × String × String → String
 ;;; Replace first occurrence of pattern.
 (define (string-replace-once str pattern replacement)
   (let ([idx (string-find str pattern)])
-    (if idx
-        (string-append
-          (substring str 0 idx)
-          replacement
-          (substring str (+ idx (string-length pattern))
-                    (string-length str)))
-        str)))
+       (if idx
+           (string-append
+            (substring str 0 idx)
+            replacement
+            (substring str (+ idx (string-length pattern))
+                       (string-length str)))
+           str)))
 
 ;;; string-find : String × String → Nat | #f
 (define (string-find haystack needle)
   (let ([nlen (string-length needle)]
         [hlen (string-length haystack)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i nlen) hlen) #f]
-        [(string=? needle (substring haystack i (+ i nlen))) i]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i nlen) hlen) #f]
+             [(string=? needle (substring haystack i (+ i nlen))) i]
+             [else (loop (+ i 1))]))))
 
 ;;; ============================================================
 ;;; Source Context
@@ -226,37 +226,37 @@
 ;;; Show source code around error location.
 (define (format-source-context file line col)
   (guard (e [else ""])
-    (let* ([lines (read-file-lines file)]
-           [start (max 1 (- line *max-context-lines*))]
-           [end (min (length lines) (+ line *max-context-lines*))]
-           [context-lines (list-slice lines (- start 1) end)])
-      (string-append
-        "\n"
-        (colorize "Source:" *color-gray* "")
-        "\n"
-        (format-lines-with-numbers context-lines start line col)))))
+         (let* ([lines (read-file-lines file)]
+                [start (max 1 (- line *max-context-lines*))]
+                [end (min (length lines) (+ line *max-context-lines*))]
+                [context-lines (list-slice lines (- start 1) end)])
+               (string-append
+                "\n"
+                (colorize "Source:" *color-gray* "")
+                "\n"
+                (format-lines-with-numbers context-lines start line col)))))
 
 ;;; format-lines-with-numbers : (List String) × Nat × Nat × Nat → String
 (define (format-lines-with-numbers lines start-num error-line error-col)
   (let loop ([ls lines]
              [num start-num]
              [result ""])
-    (if (null? ls)
-        result
-        (let* ([line (car ls)]
-               [is-error-line? (= num error-line)]
-               [prefix (format "~4d | " num)]
-               [formatted-line (if is-error-line?
-                                  (colorize line *color-red* "")
-                                  (colorize line *color-gray* ""))]
-               [pointer (if is-error-line?
-                           (format "     | ~a~a\n"
-                                  (make-string (max 0 (- error-col 1)) #\space)
-                                  (colorize "^" *color-red* *color-bold*))
-                           "")])
-          (loop (cdr ls)
-                (+ num 1)
-                (string-append result prefix formatted-line "\n" pointer))))))
+       (if (null? ls)
+           result
+           (let* ([line (car ls)]
+                  [is-error-line? (= num error-line)]
+                  [prefix (format "~4d | " num)]
+                  [formatted-line (if is-error-line?
+                                      (colorize line *color-red* "")
+                                      (colorize line *color-gray* ""))]
+                  [pointer (if is-error-line?
+                               (format "     | ~a~a\n"
+                                       (make-string (max 0 (- error-col 1)) #\space)
+                                       (colorize "^" *color-red* *color-bold*))
+                               "")])
+                 (loop (cdr ls)
+                       (+ num 1)
+                       (string-append result prefix formatted-line "\n" pointer))))))
 
 ;;; ============================================================
 ;;; Suggestions
@@ -266,37 +266,37 @@
 ;;; Provide helpful suggestions based on error message.
 (define (format-suggestions msg)
   (let ([suggestions (suggest-fixes msg)])
-    (if (null? suggestions)
-        ""
-        (string-append
-          "\n"
-          (colorize "Suggestions:" *color-blue* *color-bold*)
-          "\n"
-          (string-join
-            (map (lambda (s)
-                   (format "  • ~a" s))
-                 suggestions)
-            "\n")
-          "\n"))))
+       (if (null? suggestions)
+           ""
+           (string-append
+            "\n"
+            (colorize "Suggestions:" *color-blue* *color-bold*)
+            "\n"
+            (string-join
+             (map (lambda (s)
+                          (format "  • ~a" s))
+                  suggestions)
+             "\n")
+            "\n"))))
 
 ;;; suggest-fixes : String → (List String)
 ;;; Analyze error and suggest fixes.
 (define (suggest-fixes msg)
   (cond
-    [(string-contains? msg "not bound")
-     '("Check for typos in variable name"
-       "Verify the variable is defined before use"
-       "Check if module is loaded")]
-    [(string-contains? msg "wrong number of arguments")
-     '("Check function signature"
-       "Verify all required parameters are provided")]
-    [(string-contains? msg "type")
-     '("Check type annotations"
-       "Verify input types match expectations")]
-    [(string-contains? msg "file")
-     '("Check file path is correct"
-       "Verify file exists and is readable")]
-    [else '()]))
+   [(string-contains? msg "not bound")
+    '("Check for typos in variable name"
+      "Verify the variable is defined before use"
+      "Check if module is loaded")]
+   [(string-contains? msg "wrong number of arguments")
+    '("Check function signature"
+      "Verify all required parameters are provided")]
+   [(string-contains? msg "type")
+    '("Check type annotations"
+      "Verify input types match expectations")]
+   [(string-contains? msg "file")
+    '("Check file path is correct"
+      "Verify file exists and is readable")]
+   [else '()]))
 
 ;;; ============================================================
 ;;; Colorization
@@ -316,11 +316,11 @@
 (define (string-contains? str needle)
   (let ([nlen (string-length needle)]
         [slen (string-length str)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i nlen) slen) #f]
-        [(string=? needle (substring str i (+ i nlen))) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i nlen) slen) #f]
+             [(string=? needle (substring str i (+ i nlen))) #t]
+             [else (loop (+ i 1))]))))
 
 ;;; make-string : Nat × Char → String
 (define (make-string n ch)
@@ -337,22 +337,22 @@
   (let loop ([ls lst]
              [i 0]
              [result '()])
-    (cond
-      [(null? ls) (reverse result)]
-      [(< i start) (loop (cdr ls) (+ i 1) result)]
-      [(>= i end) (reverse result)]
-      [else (loop (cdr ls) (+ i 1) (cons (car ls) result))])))
+       (cond
+        [(null? ls) (reverse result)]
+        [(< i start) (loop (cdr ls) (+ i 1) result)]
+        [(>= i end) (reverse result)]
+        [else (loop (cdr ls) (+ i 1) (cons (car ls) result))])))
 
 ;;; read-file-lines : Path → (List String)
 (define (read-file-lines path)
   (guard (e [else '()])
-    (call-with-input-file path
-      (lambda (port)
-        (let loop ([lines '()])
-          (let ([line (get-line port)])
-            (if (eof-object? line)
-                (reverse lines)
-                (loop (cons line lines)))))))))
+         (call-with-input-file path
+                               (lambda (port)
+                                       (let loop ([lines '()])
+                                            (let ([line (get-line port)])
+                                                 (if (eof-object? line)
+                                                     (reverse lines)
+                                                     (loop (cons line lines)))))))))
 
 ;;; string-join : (List String) × String → String
 (define (string-join strs sep)
@@ -360,10 +360,10 @@
       ""
       (let loop ([ss (cdr strs)]
                  [result (car strs)])
-        (if (null? ss)
-            result
-            (loop (cdr ss)
-                  (string-append result sep (car ss)))))))
+           (if (null? ss)
+               result
+               (loop (cdr ss)
+                     (string-append result sep (car ss)))))))
 
 ;;; ============================================================
 ;;; Condition Inspection

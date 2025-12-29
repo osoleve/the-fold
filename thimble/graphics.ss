@@ -64,16 +64,16 @@
          [h (canvas-height canvas)]
          [cells (canvas-cells canvas)]
          [cell-count (* w h)])
-    ;; Serialize canvas: [width][height][cells...]
-    (let* ([payload-parts
-            (list
-              (u32->bytes-le w)
-              (u32->bytes-le h)
-              ;; Convert character vector to UTF-8 bytes
-              (string->utf8
-                (list->string (vector->list cells))))]
-           [payload (bytevector-concat payload-parts)])
-      (make-block 'canvas payload empty-refs))))
+        ;; Serialize canvas: [width][height][cells...]
+        (let* ([payload-parts
+                (list
+                 (u32->bytes-le w)
+                 (u32->bytes-le h)
+                 ;; Convert character vector to UTF-8 bytes
+                 (string->utf8
+                  (list->string (vector->list cells))))]
+               [payload (bytevector-concat payload-parts)])
+              (make-block 'canvas payload empty-refs))))
 
 ;;; block->canvas : Block → Canvas | #f
 ;;; Reconstruct a canvas from a block.
@@ -85,11 +85,11 @@
              [w (bytes-le->u32 payload 0)]
              [h (bytes-le->u32 payload 4)]
              [cells-bytes (make-bytevector (- (bytevector-length payload) 8))])
-        (bytevector-copy! payload 8 cells-bytes 0 (bytevector-length cells-bytes))
-        (let* ([cell-str (utf8->string cells-bytes)]
-               [cell-list (string->list cell-str)]
-               [cells (list->vector cell-list)])
-          (make-canvas% w h cells)))))
+            (bytevector-copy! payload 8 cells-bytes 0 (bytevector-length cells-bytes))
+            (let* ([cell-str (utf8->string cells-bytes)]
+                   [cell-list (string->list cell-str)]
+                   [cells (list->vector cell-list)])
+                  (make-canvas% w h cells)))))
 
 ;;; store-canvas! : FS × Canvas → Bytevector
 ;;; Store a canvas in the CAS and return its hash.
@@ -100,9 +100,9 @@
 ;;; Fetch a canvas by its hash from the CAS.
 (define (fetch-canvas fs hash)
   (let ([blk (fs-fetch fs hash)])
-    (if blk
-        (block->canvas blk)
-        #f)))
+       (if blk
+           (block->canvas blk)
+           #f)))
 
 ;;; ============================================================
 ;;; Colored Canvas Block Storage
@@ -178,16 +178,16 @@
          [timestamp-bytes (string->utf8 timestamp)]
          [payload-parts
           (list
-            (u32->bytes-le w)
-            (u32->bytes-le h)
-            (u32->bytes-le (bytevector-length name-bytes))
-            name-bytes
-            (u32->bytes-le (bytevector-length timestamp-bytes))
-            timestamp-bytes
-            (u32->bytes-le layer-count))]
+           (u32->bytes-le w)
+           (u32->bytes-le h)
+           (u32->bytes-le (bytevector-length name-bytes))
+           name-bytes
+           (u32->bytes-le (bytevector-length timestamp-bytes))
+           timestamp-bytes
+           (u32->bytes-le layer-count))]
          [payload (bytevector-concat payload-parts)]
          [refs (list->vector layer-hashes)])
-    (make-block 'scene payload refs)))
+        (make-block 'scene payload refs)))
 
 ;;; block->scene : Block → Scene | #f
 ;;; Reconstruct a scene from a block.
@@ -222,7 +222,7 @@
              ;; Refs
              [refs (block-refs blk)]
              [layer-hashes (vector->list refs)])
-        (make-scene w h name timestamp layer-hashes))))
+            (make-scene w h name timestamp layer-hashes))))
 
 ;;; store-scene! : FS × Scene → Bytevector
 ;;; Store a scene in the CAS and return its hash.
@@ -233,9 +233,9 @@
 ;;; Fetch a scene by its hash.
 (define (fetch-scene fs hash)
   (let ([blk (fs-fetch fs hash)])
-    (if blk
-        (block->scene blk)
-        #f)))
+       (if blk
+           (block->scene blk)
+           #f)))
 
 ;;; ============================================================
 ;;; Rendering Pipeline
@@ -275,27 +275,27 @@
 ;;;   - Bytevector (hash) for block target
 (define (render-canvas canvas mode target)
   (case (render-target-type target)
-    [(terminal)
-     (display (canvas->string canvas))
-     (newline)]
-
-    [(string)
-     (canvas->string canvas)]
-
-    [(file)
-     (let ([path (render-target-value target)])
-       (call-with-output-file path
-         (lambda (port)
-           (display (canvas->string canvas) port)
-           (newline port)))
-       path)]
-
-    [(block)
-     (let ([fs (render-target-value target)])
-       (store-canvas! fs canvas))]
-
-    [else
-     (error 'render-canvas "Unknown render target" target)]))
+        [(terminal)
+         (display (canvas->string canvas))
+         (newline)]
+        
+        [(string)
+         (canvas->string canvas)]
+        
+        [(file)
+         (let ([path (render-target-value target)])
+              (call-with-output-file path
+                                     (lambda (port)
+                                             (display (canvas->string canvas) port)
+                                             (newline port)))
+              path)]
+        
+        [(block)
+         (let ([fs (render-target-value target)])
+              (store-canvas! fs canvas))]
+        
+        [else
+         (error 'render-canvas "Unknown render target" target)]))
 
 ;;; render-scene : Scene × FS × RenderMode × RenderTarget → Any
 ;;; Render a complete scene by fetching and compositing all layers.
@@ -308,18 +308,18 @@
          [layer-hashes (scene-layer-hashes scene)]
          ;; Fetch all layer canvases
          [layers (map (lambda (hash) (fetch-canvas fs hash))
-                     layer-hashes)]
+                      layer-hashes)]
          ;; Create base canvas
          [base (make-canvas w h)])
-    ;; Composite layers (simplified: just overlay in order)
-    (let composite-loop ([layers layers] [result base])
-      (if (null? layers)
-          (render-canvas result mode target)
-          (let ([layer (car layers)])
-            (if layer
-                (composite-loop (cdr layers)
-                               (composite result layer (point 0 0)))
-                (composite-loop (cdr layers) result)))))))
+        ;; Composite layers (simplified: just overlay in order)
+        (let composite-loop ([layers layers] [result base])
+             (if (null? layers)
+                 (render-canvas result mode target)
+                 (let ([layer (car layers)])
+                      (if layer
+                          (composite-loop (cdr layers)
+                                          (composite result layer (point 0 0)))
+                          (composite-loop (cdr layers) result)))))))
 
 ;;; ============================================================
 ;;; Graphics Primitives API
@@ -337,8 +337,8 @@
 ;;; Style: 'ascii, 'light, 'heavy, 'double
 (define (graphics-draw-box canvas x y width height style)
   (draw-box canvas
-           (make-rect (point x y) width height)
-           style))
+            (make-rect (point x y) width height)
+            style))
 
 ;;; graphics-draw-text : Canvas × Nat × Nat × String → Canvas
 ;;; Draw text on the canvas.
@@ -364,28 +364,28 @@
 ;;; Create a new frame buffer with the given dimensions.
 (define (make-frame-buffer width height)
   (make-frame-buffer%
-    width
-    height
-    (make-canvas width height)
-    (make-canvas width height)))
+   width
+   height
+   (make-canvas width height)
+   (make-canvas width height)))
 
 ;;; frame-buffer-swap! : FrameBuffer → FrameBuffer
 ;;; Swap front and back buffers (returns new frame buffer with swapped buffers).
 (define (frame-buffer-swap fb)
   (make-frame-buffer%
-    (frame-buffer%-width fb)
-    (frame-buffer%-height fb)
-    (frame-buffer%-back fb)   ; back becomes front
-    (frame-buffer%-front fb))) ; front becomes back
+   (frame-buffer%-width fb)
+   (frame-buffer%-height fb)
+   (frame-buffer%-back fb)   ; back becomes front
+   (frame-buffer%-front fb))) ; front becomes back
 
 ;;; frame-buffer-clear-back! : FrameBuffer → FrameBuffer
 ;;; Clear the back buffer (returns new frame buffer with cleared back).
 (define (frame-buffer-clear-back fb)
   (make-frame-buffer%
-    (frame-buffer%-width fb)
-    (frame-buffer%-height fb)
-    (frame-buffer%-front fb)
-    (make-canvas (frame-buffer%-width fb) (frame-buffer%-height fb))))
+   (frame-buffer%-width fb)
+   (frame-buffer%-height fb)
+   (frame-buffer%-front fb)
+   (make-canvas (frame-buffer%-width fb) (frame-buffer%-height fb))))
 
 ;;; frame-buffer-get-front : FrameBuffer → Canvas
 ;;; Get the front buffer for rendering.
@@ -399,10 +399,10 @@
 ;;; Set the back buffer to a new canvas.
 (define (frame-buffer-set-back fb canvas)
   (make-frame-buffer%
-    (frame-buffer%-width fb)
-    (frame-buffer%-height fb)
-    (frame-buffer%-front fb)
-    canvas))
+   (frame-buffer%-width fb)
+   (frame-buffer%-height fb)
+   (frame-buffer%-front fb)
+   canvas))
 
 ;;; ============================================================
 ;;; Export Summary

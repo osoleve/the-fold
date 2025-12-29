@@ -49,10 +49,10 @@
 ;;; Get neighbor in a specific direction
 (define (square-neighbor coord dir)
   (let ([offset (alist-ref square-offset-8 dir)])
-    (if offset
-        (square-coord (+ (coord-x coord) (car offset))
-                      (+ (coord-y coord) (cdr offset)))
-        (error 'square-neighbor "Invalid direction" dir))))
+       (if offset
+           (square-coord (+ (coord-x coord) (car offset))
+                         (+ (coord-y coord) (cdr offset)))
+           (error 'square-neighbor "Invalid direction" dir))))
 
 ;;; square-neighbors-ortho : Coord → (List Coord)
 ;;; Get 4 orthogonal neighbors (rook moves in chess)
@@ -79,10 +79,10 @@
 ;;;   'all — all 8 neighbors
 (define (square-neighbors coord mode)
   (case mode
-    [(ortho) (square-neighbors-ortho coord)]
-    [(diag)  (square-neighbors-diag coord)]
-    [(all)   (square-neighbors-all coord)]
-    [else    (error 'square-neighbors "Invalid mode" mode)]))
+        [(ortho) (square-neighbors-ortho coord)]
+        [(diag)  (square-neighbors-diag coord)]
+        [(all)   (square-neighbors-all coord)]
+        [else    (error 'square-neighbors "Invalid mode" mode)]))
 
 ;;; ============================================================
 ;;; Distance Metrics
@@ -113,10 +113,10 @@
 ;;; Generic distance function with metric type
 (define (square-distance c1 c2 metric)
   (case metric
-    [(manhattan) (square-distance-manhattan c1 c2)]
-    [(chebyshev) (square-distance-chebyshev c1 c2)]
-    [(euclidean) (square-distance-euclidean c1 c2)]
-    [else        (error 'square-distance "Invalid metric" metric)]))
+        [(manhattan) (square-distance-manhattan c1 c2)]
+        [(chebyshev) (square-distance-chebyshev c1 c2)]
+        [(euclidean) (square-distance-euclidean c1 c2)]
+        [else        (error 'square-distance "Invalid metric" metric)]))
 
 ;;; ============================================================
 ;;; Range and Area
@@ -134,17 +134,17 @@
          [dy (abs (- y2 y1))]
          [sx (if (< x1 x2) 1 -1)]
          [sy (if (< y1 y2) 1 -1)])
-    (let loop ([x x1] [y y1] [err (- dx dy)] [coords '()])
-      (let ([new-coords (cons (square-coord x y) coords)])
-        (if (and (= x x2) (= y y2))
-            (reverse new-coords)
-            (let* ([e2 (* 2 err)]
-                   [new-x (if (> e2 (- dy)) (+ x sx) x)]
-                   [new-y (if (< e2 dx) (+ y sy) y)]
-                   [new-err (+ err
-                              (if (> e2 (- dy)) (- dy) 0)
-                              (if (< e2 dx) dx 0))])
-              (loop new-x new-y new-err new-coords)))))))
+        (let loop ([x x1] [y y1] [err (- dx dy)] [coords '()])
+             (let ([new-coords (cons (square-coord x y) coords)])
+                  (if (and (= x x2) (= y y2))
+                      (reverse new-coords)
+                      (let* ([e2 (* 2 err)]
+                             [new-x (if (> e2 (- dy)) (+ x sx) x)]
+                             [new-y (if (< e2 dx) (+ y sy) y)]
+                             [new-err (+ err
+                                         (if (> e2 (- dy)) (- dy) 0)
+                                         (if (< e2 dx) dx 0))])
+                            (loop new-x new-y new-err new-coords)))))))
 
 ;;; square-range : Coord × Integer × Symbol → (List Coord)
 ;;; Get all coordinates within range of center using specified metric
@@ -152,15 +152,15 @@
 (define (square-range center radius metric)
   (let ([cx (coord-x center)]
         [cy (coord-y center)])
-    (let loop ([x (- cx radius)] [y (- cy radius)] [coords '()])
-      (cond
-        [(> y (+ cy radius)) (reverse coords)]
-        [(> x (+ cx radius)) (loop (- cx radius) (+ y 1) coords)]
-        [else
-         (let ([coord (square-coord x y)])
-           (if (<= (square-distance center coord metric) radius)
-               (loop (+ x 1) y (cons coord coords))
-               (loop (+ x 1) y coords)))]))))
+       (let loop ([x (- cx radius)] [y (- cy radius)] [coords '()])
+            (cond
+             [(> y (+ cy radius)) (reverse coords)]
+             [(> x (+ cx radius)) (loop (- cx radius) (+ y 1) coords)]
+             [else
+              (let ([coord (square-coord x y)])
+                   (if (<= (square-distance center coord metric) radius)
+                       (loop (+ x 1) y (cons coord coords))
+                       (loop (+ x 1) y coords)))]))))
 
 ;;; square-ring : Coord × Integer → (List Coord)
 ;;; Get all coordinates at exactly distance N from center (Chebyshev)
@@ -169,27 +169,27 @@
       (list center)
       (let ([cx (coord-x center)]
             [cy (coord-y center)])
-        (append
-          ;; Top edge
-          (let loop ([x (- cx radius)] [acc '()])
-            (if (> x (+ cx radius))
-                acc
-                (loop (+ x 1) (cons (square-coord x (- cy radius)) acc))))
-          ;; Right edge
-          (let loop ([y (- cy radius -1)] [acc '()])
-            (if (> y (+ cy radius))
-                acc
-                (loop (+ y 1) (cons (square-coord (+ cx radius) y) acc))))
-          ;; Bottom edge
-          (let loop ([x (+ cx radius -1)] [acc '()])
-            (if (< x (- cx radius))
-                acc
-                (loop (- x 1) (cons (square-coord x (+ cy radius)) acc))))
-          ;; Left edge
-          (let loop ([y (+ cy radius -1)] [acc '()])
-            (if (<= y (- cy radius))
-                acc
-                (loop (- y 1) (cons (square-coord (- cx radius) y) acc))))))))
+           (append
+            ;; Top edge
+            (let loop ([x (- cx radius)] [acc '()])
+                 (if (> x (+ cx radius))
+                     acc
+                     (loop (+ x 1) (cons (square-coord x (- cy radius)) acc))))
+            ;; Right edge
+            (let loop ([y (- cy radius -1)] [acc '()])
+                 (if (> y (+ cy radius))
+                     acc
+                     (loop (+ y 1) (cons (square-coord (+ cx radius) y) acc))))
+            ;; Bottom edge
+            (let loop ([x (+ cx radius -1)] [acc '()])
+                 (if (< x (- cx radius))
+                     acc
+                     (loop (- x 1) (cons (square-coord x (+ cy radius)) acc))))
+            ;; Left edge
+            (let loop ([y (+ cy radius -1)] [acc '()])
+                 (if (<= y (- cy radius))
+                     acc
+                     (loop (- y 1) (cons (square-coord (- cx radius) y) acc))))))))
 
 ;;; ============================================================
 ;;; Board Creation
@@ -199,16 +199,16 @@
 ;;; Create a rectangular square board with optional default tile
 (define make-square-board
   (case-lambda
-    [(width height)
-     (make-board 'square `((width . ,width) (height . ,height)))]
-    [(width height default-tile)
-     (let ([board (make-board 'square `((width . ,width) (height . ,height)))])
-       (let loop ([x 0] [y 0] [b board])
-         (cond
-           [(>= y height) b]
-           [(>= x width) (loop 0 (+ y 1) b)]
-           [else (loop (+ x 1) y
-                      (board-set b (square-coord x y) default-tile))])))]))
+   [(width height)
+    (make-board 'square `((width . ,width) (height . ,height)))]
+   [(width height default-tile)
+    (let ([board (make-board 'square `((width . ,width) (height . ,height)))])
+         (let loop ([x 0] [y 0] [b board])
+              (cond
+               [(>= y height) b]
+               [(>= x width) (loop 0 (+ y 1) b)]
+               [else (loop (+ x 1) y
+                           (board-set b (square-coord x y) default-tile))])))]))
 
 ;;; square-board-width : Board → Integer
 (define (square-board-width board)
@@ -225,7 +225,7 @@
         [y (coord-y coord)]
         [w (square-board-width board)]
         [h (square-board-height board)])
-    (and (>= x 0) (< x w) (>= y 0) (< y h))))
+       (and (>= x 0) (< x w) (>= y 0) (< y h))))
 
 ;;; ============================================================
 ;;; Exports Summary

@@ -41,14 +41,14 @@
 (define (variable? x)
   (and (symbol? x)
        (let ([str (symbol->string x)])
-         (and (> (string-length str) 0)
-              (char=? (string-ref str 0) #\?)))))
+            (and (> (string-length str) 0)
+                 (char=? (string-ref str 0) #\?)))))
 
 ;;; variable-name : Symbol -> String
 ;;; Extract the name of a variable (without the ?).
 (define (variable-name var)
   (let ([str (symbol->string var)])
-    (substring str 1 (string-length str))))
+       (substring str 1 (string-length str))))
 
 ;;; ============================================================
 ;;; Binding Environments
@@ -69,7 +69,7 @@
 ;;; Look up a variable's value in the environment.
 (define (lookup-env env var)
   (let ([binding (assq var env)])
-    (if binding (cdr binding) #f)))
+       (if binding (cdr binding) #f)))
 
 ;;; env-bound? : Env Symbol -> Boolean
 ;;; Check if a variable is bound in the environment.
@@ -81,17 +81,17 @@
 (define (merge-envs env1 env2)
   (let loop ([pairs env2]
              [result env1])
-    (if (null? pairs)
-        result
-        (let* ([var (caar pairs)]
-               [val (cdar pairs)]
-               [existing (lookup-env result var)])
-          (cond
-            [(not existing)
-             (loop (cdr pairs) (extend-env result var val))]
-            [(bytevector=? existing val)
-             (loop (cdr pairs) result)]
-            [else #f])))))
+       (if (null? pairs)
+           result
+           (let* ([var (caar pairs)]
+                  [val (cdar pairs)]
+                  [existing (lookup-env result var)])
+                 (cond
+                  [(not existing)
+                   (loop (cdr pairs) (extend-env result var val))]
+                  [(bytevector=? existing val)
+                   (loop (cdr pairs) result)]
+                  [else #f])))))
 
 ;;; ============================================================
 ;;; Pattern Matching
@@ -112,13 +112,13 @@
 ;;;   (constant attribute-name ?value)  - Match attribute of specific entity
 (define (match-pattern fs pattern env)
   (cond
-    ;; Binary relation pattern: (?x relation-type ?y)
-    [(and (list? pattern) (= (length pattern) 3))
-     (match-binary-relation fs pattern env)]
-
-    ;; Other pattern types can be added here
-    [else
-     (error 'match-pattern "Unknown pattern type" pattern)]))
+   ;; Binary relation pattern: (?x relation-type ?y)
+   [(and (list? pattern) (= (length pattern) 3))
+    (match-binary-relation fs pattern env)]
+   
+   ;; Other pattern types can be added here
+   [else
+    (error 'match-pattern "Unknown pattern type" pattern)]))
 
 ;;; match-binary-relation : FSCap Pattern Env -> (List Env)
 ;;; Match a binary relation pattern (?subject rel-type ?object).
@@ -126,43 +126,43 @@
   (let ([subject-var (car pattern)]
         [relation-type (cadr pattern)]
         [object-var (caddr pattern)])
-
-    ;; Get all relation blocks
-    (let ([relation-blocks (query fs '(tag . relation))])
-
-      ;; Filter and bind
-      (let loop ([blocks relation-blocks]
-                 [results '()])
-        (if (null? blocks)
-            results
-            (let* ([block (car blocks)]
-                   [payload-str (utf8->string (block-payload block))]
-                   [refs (block-refs block)])
-
-              ;; Check if payload matches relation type
-              (if (and (>= (vector-length refs) 2)
-                       (or (eq? relation-type '?)
-                           (query-string-contains? payload-str
-                                                  (symbol->string relation-type))))
-
-                  ;; Try to bind subject and object
-                  (let ([new-env (try-bind-relation env
-                                                    subject-var (vector-ref refs 0)
-                                                    object-var (vector-ref refs 1))])
-                    (if new-env
-                        (loop (cdr blocks) (cons new-env results))
-                        (loop (cdr blocks) results)))
-
-                  (loop (cdr blocks) results))))))))
+       
+       ;; Get all relation blocks
+       (let ([relation-blocks (query fs '(tag . relation))])
+            
+            ;; Filter and bind
+            (let loop ([blocks relation-blocks]
+                       [results '()])
+                 (if (null? blocks)
+                     results
+                     (let* ([block (car blocks)]
+                            [payload-str (utf8->string (block-payload block))]
+                            [refs (block-refs block)])
+                           
+                           ;; Check if payload matches relation type
+                           (if (and (>= (vector-length refs) 2)
+                                    (or (eq? relation-type '?)
+                                        (query-string-contains? payload-str
+                                                                (symbol->string relation-type))))
+                               
+                               ;; Try to bind subject and object
+                               (let ([new-env (try-bind-relation env
+                                                                 subject-var (vector-ref refs 0)
+                                                                 object-var (vector-ref refs 1))])
+                                    (if new-env
+                                        (loop (cdr blocks) (cons new-env results))
+                                        (loop (cdr blocks) results)))
+                               
+                               (loop (cdr blocks) results))))))))
 
 ;;; try-bind-relation : Env Symbol Hash Symbol Hash -> (Maybe Env)
 ;;; Try to bind subject and object variables to hashes.
 ;;; Returns extended environment or #f if binding conflicts.
 (define (try-bind-relation env subject-var subject-hash object-var object-hash)
   (let ([env1 (try-bind-var env subject-var subject-hash)])
-    (if env1
-        (try-bind-var env1 object-var object-hash)
-        #f)))
+       (if env1
+           (try-bind-var env1 object-var object-hash)
+           #f)))
 
 ;;; try-bind-var : Env Symbol Hash -> (Maybe Env)
 ;;; Try to bind a variable to a hash value.
@@ -170,23 +170,23 @@
 ;;; If constant (hash), check for equality.
 (define (try-bind-var env var value)
   (cond
-    ;; Variable - check if already bound
-    [(variable? var)
-     (let ([existing (lookup-env env var)])
-       (cond
-         [(not existing) (extend-env env var value)]
-         [(bytevector=? existing value) env]
-         [else #f]))]
-
-    ;; Constant hash - check equality
-    [(bytevector? var)
-     (if (bytevector=? var value) env #f)]
-
-    ;; Wildcard
-    [(eq? var '?) env]
-
-    ;; Unknown
-    [else #f]))
+   ;; Variable - check if already bound
+   [(variable? var)
+    (let ([existing (lookup-env env var)])
+         (cond
+          [(not existing) (extend-env env var value)]
+          [(bytevector=? existing value) env]
+          [else #f]))]
+   
+   ;; Constant hash - check equality
+   [(bytevector? var)
+    (if (bytevector=? var value) env #f)]
+   
+   ;; Wildcard
+   [(eq? var '?) env]
+   
+   ;; Unknown
+   [else #f]))
 
 ;;; ============================================================
 ;;; Multi-Pattern Join
@@ -216,16 +216,16 @@
       envs
       (let ([pattern (car patterns)]
             [rest-patterns (cdr patterns)])
-
-        ;; For each existing environment, match the pattern
-        (let ([new-envs
-               (apply append
-                      (map (lambda (env)
-                             (match-pattern fs pattern env))
-                           envs))])
-
-          ;; Continue with remaining patterns
-          (join-pattern-list fs rest-patterns new-envs)))))
+           
+           ;; For each existing environment, match the pattern
+           (let ([new-envs
+                  (apply append
+                         (map (lambda (env)
+                                      (match-pattern fs pattern env))
+                              envs))])
+                
+                ;; Continue with remaining patterns
+                (join-pattern-list fs rest-patterns new-envs)))))
 
 ;;; ============================================================
 ;;; Constraint Evaluation
@@ -245,34 +245,34 @@
       (let ([op (car constraint)]
             [arg1 (cadr constraint)]
             [arg2 (caddr constraint)])
-
-        ;; Resolve arguments
-        (let ([val1 (if (variable? arg1) (lookup-env env arg1) arg1)]
-              [val2 (if (variable? arg2) (lookup-env env arg2) arg2)])
-
-          ;; If either value not found, constraint fails
-          (if (or (not val1) (not val2))
-              #f
-
-              ;; Apply operator
-              (case op
-                [(< <= > >= =)
-                 ;; Numeric comparison - extract from bytevector if needed
-                 (let ([n1 (if (bytevector? val1)
-                              (bytevector-length val1)  ; placeholder
-                              val1)]
-                       [n2 (if (bytevector? val2)
-                              (bytevector-length val2)
-                              val2)])
-                   ((eval op) n1 n2))]
-
-                [(string=? string-contains?)
-                 ;; String comparison
-                 (let ([s1 (if (bytevector? val1) (utf8->string val1) val1)]
-                       [s2 (if (bytevector? val2) (utf8->string val2) val2)])
-                   ((eval op) s1 s2))]
-
-                [else #t]))))))
+           
+           ;; Resolve arguments
+           (let ([val1 (if (variable? arg1) (lookup-env env arg1) arg1)]
+                 [val2 (if (variable? arg2) (lookup-env env arg2) arg2)])
+                
+                ;; If either value not found, constraint fails
+                (if (or (not val1) (not val2))
+                    #f
+                    
+                    ;; Apply operator
+                    (case op
+                          [(< <= > >= =)
+                           ;; Numeric comparison - extract from bytevector if needed
+                           (let ([n1 (if (bytevector? val1)
+                                         (bytevector-length val1)  ; placeholder
+                                         val1)]
+                                 [n2 (if (bytevector? val2)
+                                         (bytevector-length val2)
+                                         val2)])
+                                ((eval op) n1 n2))]
+                          
+                          [(string=? string-contains?)
+                           ;; String comparison
+                           (let ([s1 (if (bytevector? val1) (utf8->string val1) val1)]
+                                 [s2 (if (bytevector? val2) (utf8->string val2) val2)])
+                                ((eval op) s1 s2))]
+                          
+                          [else #t]))))))
 
 ;;; ============================================================
 ;;; Main Pattern Query API
@@ -290,17 +290,17 @@
 ;;; Returns list of environments satisfying all patterns and constraints.
 (define pattern-query
   (case-lambda
-    [(fs patterns)
-     (join-patterns fs patterns)]
-
-    [(fs patterns constraints)
-     (let ([envs (join-patterns fs patterns)])
-       ;; Filter by constraints
-       (filter (lambda (env)
-                 (andmap (lambda (constraint)
-                           (eval-constraint constraint env))
-                         constraints))
-               envs))]))
+   [(fs patterns)
+    (join-patterns fs patterns)]
+   
+   [(fs patterns constraints)
+    (let ([envs (join-patterns fs patterns)])
+         ;; Filter by constraints
+         (filter (lambda (env)
+                         (andmap (lambda (constraint)
+                                         (eval-constraint constraint env))
+                                 constraints))
+                 envs))]))
 
 ;;; ============================================================
 ;;; Result Projection
@@ -314,10 +314,10 @@
 ;;;   -> (((person . hash1) (concept . hash2)) ...)
 (define (project-vars envs vars)
   (map (lambda (env)
-         (map (lambda (var)
-                (cons (string->symbol (variable-name var))
-                      (lookup-env env var)))
-              vars))
+               (map (lambda (var)
+                            (cons (string->symbol (variable-name var))
+                                  (lookup-env env var)))
+                    vars))
        envs))
 
 ;;; ============================================================
@@ -328,9 +328,9 @@
 ;;; Find all blocks matching a single pattern, return bound values.
 (define (find-pattern fs pattern)
   (let ([envs (match-pattern fs pattern empty-env)])
-    (map (lambda (env)
-           (map cdr env))
-         envs)))
+       (map (lambda (env)
+                    (map cdr env))
+            envs)))
 
 ;;; count-pattern : FSCap (List Pattern) -> Integer
 ;;; Count results matching pattern query.
@@ -346,11 +346,11 @@
 (define (query-string-contains? haystack needle)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i n-len) h-len) #f]
-        [(string=? (substring haystack i (+ i n-len)) needle) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i n-len) h-len) #f]
+             [(string=? (substring haystack i (+ i n-len)) needle) #t]
+             [else (loop (+ i 1))]))))
 
 (printf "✓ Query pattern matching loaded\n")
 (printf "  Advanced Datalog-style patterns with variable binding\n")

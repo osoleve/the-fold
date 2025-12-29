@@ -9,25 +9,25 @@
 (define (unique lst)
   (if (not (list? lst))
       (begin
-        (log-invalid-input "unique" lst)
-        '())
+       (log-invalid-input "unique" lst)
+       '())
       (let ([safe-lst (safe-list-take lst MAX_LIST_LENGTH)])
-        (if (null? safe-lst)
-            '()
-            (cons (car safe-lst)
-                  (unique (filter (lambda (x) (not (equal? x (car safe-lst))))
-                                 (cdr safe-lst))))))))
+           (if (null? safe-lst)
+               '()
+               (cons (car safe-lst)
+                     (unique (filter (lambda (x) (not (equal? x (car safe-lst))))
+                                     (cdr safe-lst))))))))
 
 (define (filter pred lst)
   (if (not (and (procedure? pred) (list? lst)))
       (begin
-        (log-invalid-input "filter" (cons pred lst))
-        '())
+       (log-invalid-input "filter" (cons pred lst))
+       '())
       (let ([safe-lst (safe-list-take lst MAX_LIST_LENGTH)])
-        (cond
-          [(null? safe-lst) '()]
-          [(pred (car safe-lst)) (cons (car safe-lst) (filter pred (cdr safe-lst)))]
-          [else (filter pred (cdr safe-lst))]))))
+           (cond
+            [(null? safe-lst) '()]
+            [(pred (car safe-lst)) (cons (car safe-lst) (filter pred (cdr safe-lst)))]
+            [else (filter pred (cdr safe-lst))]))))
 
 (printf "\n")
 (printf "╔═══════════════════════════════════════════════════════════════╗\n")
@@ -37,13 +37,13 @@
 (printf "╚═══════════════════════════════════════════════════════════════╝\n\n")
 
 ;;; The scrambled message (validated)
-(define scrambled 
+(define scrambled
   (let ([msg "XXXehTXXX XXXdloFXXX XXXsiXXX XXXaXXX XXXecalpXXX XXXerehwXXX XXXnoitaerCXXX XXXdnaXXX XXXyrevocsiDXXX XXXtnemXXX"])
-    (if (valid-string? msg 1 MAX_STRING_LENGTH)
-        msg
-        (begin
-          (log-security-event 'invalid-scrambled-message msg)
-          "INVALID MESSAGE"))))
+       (if (valid-string? msg 1 MAX_STRING_LENGTH)
+           msg
+           (begin
+            (log-security-event 'invalid-scrambled-message msg)
+            "INVALID MESSAGE"))))
 
 (printf "🔐 ENCRYPTED MESSAGE:\n")
 (printf "   ~a\n\n" scrambled)
@@ -80,17 +80,17 @@
 
 (define (shift-char c shift)
   (let ([code (char->integer c)])
-    (cond
-      [(and (>= code 65) (<= code 90))  ; A-Z
-       (integer->char (+ 65 (modulo (+ (- code 65) shift) 26)))]
-      [(and (>= code 97) (<= code 122)) ; a-z
-       (integer->char (+ 97 (modulo (+ (- code 97) shift) 26)))]
-      [else c])))
+       (cond
+        [(and (>= code 65) (<= code 90))  ; A-Z
+         (integer->char (+ 65 (modulo (+ (- code 65) shift) 26)))]
+        [(and (>= code 97) (<= code 122)) ; a-z
+         (integer->char (+ 97 (modulo (+ (- code 97) shift) 26)))]
+        [else c])))
 
 (define (caesar-cipher text shift)
   (list->string
-    (map (lambda (c) (shift-char c shift))
-         (string->list text))))
+   (map (lambda (c) (shift-char c shift))
+        (string->list text))))
 
 (define decoded (caesar-cipher secret-cipher -1))
 (printf "🔓 DECRYPTED: ~a\n\n" decoded)
@@ -109,12 +109,12 @@
 
 (printf "Searching for hidden words:\n")
 (for-each
-  (lambda (pattern)
-    (if (string-contains? haystack pattern)
-        (let ([pos (string-index-of haystack pattern)])
-          (printf "  ✓ Found '~a' at position ~a\n" pattern pos))
-        (printf "  ✗ '~a' not found\n" pattern)))
-  patterns)
+ (lambda (pattern)
+         (if (string-contains? haystack pattern)
+             (let ([pos (string-index-of haystack pattern)])
+                  (printf "  ✓ Found '~a' at position ~a\n" pattern pos))
+             (printf "  ✗ '~a' not found\n" pattern)))
+ patterns)
 
 (printf "\n")
 
@@ -124,11 +124,11 @@
 
 (define sample-text
   (let ([text "the quick brown fox jumps over the lazy dog the fox was quick"])
-    (if (valid-string? text 1 MAX_STRING_LENGTH)
-        text
-        (begin
-          (log-security-event 'invalid-sample-text text)
-          "invalid text"))))
+       (if (valid-string? text 1 MAX_STRING_LENGTH)
+           text
+           (begin
+            (log-security-event 'invalid-sample-text text)
+            "invalid text"))))
 
 (printf "Text: ~a\n\n" sample-text)
 
@@ -139,13 +139,13 @@
 (printf "Word occurrences:\n")
 (define unique-words (unique all-words))
 (for-each
-  (lambda (word)
-    (let ([count (length (filter (lambda (w) (string=? w word)) all-words))])
-      (printf "  '~a' appears ~a time~a\n"
-              word
-              count
-              (if (= count 1) "" "s"))))
-  unique-words)
+ (lambda (word)
+         (let ([count (length (filter (lambda (w) (string=? w word)) all-words))])
+              (printf "  '~a' appears ~a time~a\n"
+                      word
+                      count
+                      (if (= count 1) "" "s"))))
+ unique-words)
 
 (printf "\n")
 
@@ -156,7 +156,7 @@
 (define (is-palindrome? s)
   (let* ([cleaned (string-trim (string-replace s " " ""))]
          [reversed (reverse-string cleaned)])
-    (string=? cleaned reversed)))
+        (string=? cleaned reversed)))
 
 (define test-phrases
   '("racecar"
@@ -168,11 +168,11 @@
 
 (printf "Testing for palindromes:\n")
 (for-each
-  (lambda (phrase)
-    (printf "  ~s → ~a\n"
-            phrase
-            (if (is-palindrome? phrase) "✓ PALINDROME!" "✗ not a palindrome")))
-  test-phrases)
+ (lambda (phrase)
+         (printf "  ~s → ~a\n"
+                 phrase
+                 (if (is-palindrome? phrase) "✓ PALINDROME!" "✗ not a palindrome")))
+ test-phrases)
 
 (printf "\n")
 
@@ -187,9 +187,9 @@
 
 (printf "Haiku:\n\n")
 (for-each
-  (lambda (line)
-    (printf "     ~a\n" line))
-  haiku-lines)
+ (lambda (line)
+         (printf "     ~a\n" line))
+ haiku-lines)
 
 (printf "\n     Syllables: 5-7-5\n")
 (printf "     Total characters: ~a\n"

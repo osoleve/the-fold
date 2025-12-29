@@ -72,15 +72,15 @@
 ;;; Create a new world with the given tilemap.
 (define make-world
   (case-lambda
-    [(tilemap)
-     (make-world tilemap 1 '())]
-    [(tilemap level)
-     (make-world tilemap level '())]
-    [(tilemap level metadata)
-     (let* ([w (tilemap-width tilemap)]
-            [h (tilemap-height tilemap)]
-            [spatial (make-vector (* w h) '())])
-       (make-world% tilemap '() spatial #f level metadata))]))
+   [(tilemap)
+    (make-world tilemap 1 '())]
+   [(tilemap level)
+    (make-world tilemap level '())]
+   [(tilemap level metadata)
+    (let* ([w (tilemap-width tilemap)]
+           [h (tilemap-height tilemap)]
+           [spatial (make-vector (* w h) '())])
+          (make-world% tilemap '() spatial #f level metadata))]))
 
 ;;; Accessors
 (define world-tilemap world%-tilemap)
@@ -121,20 +121,20 @@
 ;;; Add entity ID to spatial index.
 (define (spatial-add! world x y entity-id)
   (when (tilemap-in-bounds? (world-tilemap world) x y)
-    (let ([idx (spatial-index-pos world x y)]
-          [spatial (world-spatial-index world)])
-      (vector-set! spatial idx
-                   (cons entity-id (vector-ref spatial idx))))))
+        (let ([idx (spatial-index-pos world x y)]
+              [spatial (world-spatial-index world)])
+             (vector-set! spatial idx
+                          (cons entity-id (vector-ref spatial idx))))))
 
 ;;; spatial-remove! : World × Int × Int × Nat -> Void
 ;;; Remove entity ID from spatial index.
 (define (spatial-remove! world x y entity-id)
   (when (tilemap-in-bounds? (world-tilemap world) x y)
-    (let ([idx (spatial-index-pos world x y)]
-          [spatial (world-spatial-index world)])
-      (vector-set! spatial idx
-                   (filter (lambda (id) (not (= id entity-id)))
-                           (vector-ref spatial idx))))))
+        (let ([idx (spatial-index-pos world x y)]
+              [spatial (world-spatial-index world)])
+             (vector-set! spatial idx
+                          (filter (lambda (id) (not (= id entity-id)))
+                                  (vector-ref spatial idx))))))
 
 ;;; spatial-move! : World × Nat × Int × Int × Int × Int -> Void
 ;;; Move entity in spatial index.
@@ -206,19 +206,19 @@
   (let* ([id (entity-id entity)]
          [entities (alist-set (world-entities world) id entity)]
          [new-world (world-set-entities world entities)])
-    ;; Update spatial index if entity has position
-    (when (entity-has-component? entity 'position)
-      (spatial-add! new-world (entity-x entity) (entity-y entity) id))
-    new-world))
+        ;; Update spatial index if entity has position
+        (when (entity-has-component? entity 'position)
+              (spatial-add! new-world (entity-x entity) (entity-y entity) id))
+        new-world))
 
 ;;; world-remove-entity : World × Nat -> World
 ;;; Remove an entity by ID.
 (define (world-remove-entity world entity-id)
   (let ([entity (world-get-entity world entity-id)])
-    (when (and entity (entity-has-component? entity 'position))
-      (spatial-remove! world (entity-x entity) (entity-y entity) entity-id))
-    (world-set-entities world
-                        (alist-remove (world-entities world) entity-id))))
+       (when (and entity (entity-has-component? entity 'position))
+             (spatial-remove! world (entity-x entity) (entity-y entity) entity-id))
+       (world-set-entities world
+                           (alist-remove (world-entities world) entity-id))))
 
 ;;; world-get-entity : World × Nat -> Entity | #f
 ;;; Get entity by ID.
@@ -229,21 +229,21 @@
 ;;; Update an entity by ID using a function.
 (define (world-update-entity world entity-id update-fn)
   (let ([entity (world-get-entity world entity-id)])
-    (if entity
-        (let* ([old-x (entity-x entity)]
-               [old-y (entity-y entity)]
-               [new-entity (update-fn entity)]
-               [new-x (entity-x new-entity)]
-               [new-y (entity-y new-entity)]
-               [entities (alist-set (world-entities world) entity-id new-entity)]
-               [new-world (world-set-entities world entities)])
-          ;; Update spatial index if position changed
-          (when (and (entity-has-component? entity 'position)
-                     (or (not (= old-x new-x))
-                         (not (= old-y new-y))))
-            (spatial-move! new-world entity-id old-x old-y new-x new-y))
-          new-world)
-        world)))
+       (if entity
+           (let* ([old-x (entity-x entity)]
+                  [old-y (entity-y entity)]
+                  [new-entity (update-fn entity)]
+                  [new-x (entity-x new-entity)]
+                  [new-y (entity-y new-entity)]
+                  [entities (alist-set (world-entities world) entity-id new-entity)]
+                  [new-world (world-set-entities world entities)])
+                 ;; Update spatial index if position changed
+                 (when (and (entity-has-component? entity 'position)
+                            (or (not (= old-x new-x))
+                                (not (= old-y new-y))))
+                       (spatial-move! new-world entity-id old-x old-y new-x new-y))
+                 new-world)
+           world)))
 
 ;;; world-replace-entity : World × Nat × Entity -> World
 ;;; Replace an entity by ID with a new entity.
@@ -270,22 +270,22 @@
 ;;; world-get-player : World -> Entity | #f
 (define (world-get-player world)
   (let ([pid (world-player-id world)])
-    (if pid
-        (world-get-entity world pid)
-        #f)))
+       (if pid
+           (world-get-entity world pid)
+           #f)))
 
 ;;; world-update-player : World × (Entity -> Entity) -> World
 (define (world-update-player world update-fn)
   (let ([pid (world-player-id world)])
-    (if pid
-        (world-update-entity world pid update-fn)
-        world)))
+       (if pid
+           (world-update-entity world pid update-fn)
+           world)))
 
 ;;; world-spawn-player : World × Entity -> World
 ;;; Add player entity and set as player.
 (define (world-spawn-player world player-entity)
   (let ([world (world-add-entity world player-entity)])
-    (world-set-player-id world (entity-id player-entity))))
+       (world-set-player-id world (entity-id player-entity))))
 
 ;;; ============================================================
 ;;; Spatial Queries
@@ -295,7 +295,7 @@
 ;;; Get all entities at a position.
 (define (world-entities-at world x y)
   (let ([ids (spatial-get world x y)])
-    (filter-map (lambda (id) (world-get-entity world id)) ids)))
+       (filter-map (lambda (id) (world-get-entity world id)) ids)))
 
 ;;; world-entities-at-point : World × Point -> List Entity
 (define (world-entities-at-point world pt)
@@ -305,7 +305,7 @@
 ;;; Get first entity at position (usually for blocking queries).
 (define (world-entity-at world x y)
   (let ([entities (world-entities-at world x y)])
-    (if (null? entities) #f (car entities))))
+       (if (null? entities) #f (car entities))))
 
 ;;; world-entities-in-rect : World × Rect -> List Entity
 ;;; Get all entities within a rectangle.
@@ -315,17 +315,17 @@
          [w (rect-width rect)]
          [h (rect-height rect)]
          [results '()])
-    (let loop-y ([y oy])
-      (if (>= y (+ oy h))
-          results
-          (begin
-            (let loop-x ([x ox])
-              (if (>= x (+ ox w))
-                  #f
-                  (begin
-                    (set! results (append results (world-entities-at world x y)))
-                    (loop-x (+ x 1)))))
-            (loop-y (+ y 1)))))))
+        (let loop-y ([y oy])
+             (if (>= y (+ oy h))
+                 results
+                 (begin
+                  (let loop-x ([x ox])
+                       (if (>= x (+ ox w))
+                           #f
+                           (begin
+                            (set! results (append results (world-entities-at world x y)))
+                            (loop-x (+ x 1)))))
+                  (loop-y (+ y 1)))))))
 
 ;;; world-entities-in-radius : World × Point × Nat -> List Entity
 ;;; Get entities within Manhattan radius.
@@ -333,18 +333,18 @@
   (let ([cx (car center)]
         [cy (cdr center)]
         [results '()])
-    (let loop-y ([y (- cy radius)])
-      (if (> y (+ cy radius))
-          results
-          (begin
-            (let loop-x ([x (- cx radius)])
-              (if (> x (+ cx radius))
-                  #f
-                  (begin
-                    (when (<= (manhattan-distance (cons x y) center) radius)
-                      (set! results (append results (world-entities-at world x y))))
-                    (loop-x (+ x 1)))))
-            (loop-y (+ y 1)))))))
+       (let loop-y ([y (- cy radius)])
+            (if (> y (+ cy radius))
+                results
+                (begin
+                 (let loop-x ([x (- cx radius)])
+                      (if (> x (+ cx radius))
+                          #f
+                          (begin
+                           (when (<= (manhattan-distance (cons x y) center) radius)
+                                 (set! results (append results (world-entities-at world x y))))
+                           (loop-x (+ x 1)))))
+                 (loop-y (+ y 1)))))))
 
 ;;; world-find-entities : World × (Entity -> Bool) -> List Entity
 ;;; Find all entities matching predicate.
@@ -356,12 +356,12 @@
 (define (world-find-nearest world from-point pred)
   (let* ([entities (world-find-entities world pred)]
          [with-dist (map (lambda (e)
-                          (cons (manhattan-distance from-point (entity-point e)) e))
-                        entities)]
+                                 (cons (manhattan-distance from-point (entity-point e)) e))
+                         entities)]
          [sorted (list-sort (lambda (a b) (< (car a) (car b))) with-dist)])
-    (if (null? sorted)
-        #f
-        (cdar sorted))))
+        (if (null? sorted)
+            #f
+            (cdar sorted))))
 
 ;;; ============================================================
 ;;; Movement and Collision
@@ -390,23 +390,23 @@
   (and (world-position-valid? world x y)
        (world-tile-walkable? world x y)
        (not (any (lambda (e)
-                   (and (entity-blocks-movement? e)
-                        (not (= (entity-id e) (entity-id entity)))))
+                         (and (entity-blocks-movement? e)
+                              (not (= (entity-id e) (entity-id entity)))))
                  (world-entities-at world x y)))))
 
 ;;; world-move-entity : World × Nat × Direction -> World
 ;;; Move entity in direction (if valid).
 (define (world-move-entity world entity-id dir)
   (let ([entity (world-get-entity world entity-id)])
-    (if entity
-        (let* ([delta (direction->delta dir)]
-               [new-x (+ (entity-x entity) (car delta))]
-               [new-y (+ (entity-y entity) (cdr delta))])
-          (if (world-can-move-to? world entity new-x new-y)
-              (world-update-entity world entity-id
-                (lambda (e) (entity-move-to e new-x new-y)))
-              world))
-        world)))
+       (if entity
+           (let* ([delta (direction->delta dir)]
+                  [new-x (+ (entity-x entity) (car delta))]
+                  [new-y (+ (entity-y entity) (cdr delta))])
+                 (if (world-can-move-to? world entity new-x new-y)
+                     (world-update-entity world entity-id
+                                          (lambda (e) (entity-move-to e new-x new-y)))
+                     world))
+           world)))
 
 ;;; ============================================================
 ;;; Line of Sight
@@ -429,24 +429,24 @@
          [sx (if (< x0 x1) 1 -1)]
          [sy (if (< y0 y1) 1 -1)]
          [err (- dx dy)])
-    (let loop ([x x0] [y y0] [err err])
-      (cond
-        [(and (= x x1) (= y y1)) #t]  ; Reached target
-        [(and (not (and (= x x0) (= y y0)))  ; Not starting point
-              (world-tile-opaque? world x y))
-         #f]  ; Blocked
-        [else
-         (let* ([e2 (* 2 err)]
-                [new-err err]
-                [new-x x]
-                [new-y y])
-           (when (> e2 (- dy))
-             (set! new-err (- new-err dy))
-             (set! new-x (+ new-x sx)))
-           (when (< e2 dx)
-             (set! new-err (+ new-err dx))
-             (set! new-y (+ new-y sy)))
-           (loop new-x new-y new-err))]))))
+        (let loop ([x x0] [y y0] [err err])
+             (cond
+              [(and (= x x1) (= y y1)) #t]  ; Reached target
+              [(and (not (and (= x x0) (= y y0)))  ; Not starting point
+                    (world-tile-opaque? world x y))
+               #f]  ; Blocked
+              [else
+               (let* ([e2 (* 2 err)]
+                      [new-err err]
+                      [new-x x]
+                      [new-y y])
+                     (when (> e2 (- dy))
+                           (set! new-err (- new-err dy))
+                           (set! new-x (+ new-x sx)))
+                     (when (< e2 dx)
+                           (set! new-err (+ new-err dx))
+                           (set! new-y (+ new-y sy)))
+                     (loop new-x new-y new-err))]))))
 
 ;;; ============================================================
 ;;; Field of View (Simple Shadowcasting)
@@ -459,25 +459,25 @@
   (let ([tm (world-tilemap world)]
         [cx (car center)]
         [cy (cdr center)])
-    ;; Clear existing visibility
-    (tilemap-clear-visibility! tm)
-    ;; Set center as visible
-    (tilemap-set-visible! tm cx cy #t)
-    ;; Simple radius-based FOV (raycast to each point on perimeter)
-    (let loop-angle ([angle 0.0])
-      (when (< angle (* 2 3.14159))
-        (let* ([dx (cos angle)]
-               [dy (sin angle)])
-          ;; Cast ray
-          (let ray-loop ([dist 1])
-            (when (<= dist radius)
-              (let ([x (+ cx (round (* dist dx)))]
-                    [y (+ cy (round (* dist dy)))])
-                (when (world-position-valid? world x y)
-                  (tilemap-set-visible! tm x y #t)
-                  (unless (world-tile-opaque? world x y)
-                    (ray-loop (+ dist 1))))))))
-        (loop-angle (+ angle (/ 3.14159 (* 4 radius))))))))
+       ;; Clear existing visibility
+       (tilemap-clear-visibility! tm)
+       ;; Set center as visible
+       (tilemap-set-visible! tm cx cy #t)
+       ;; Simple radius-based FOV (raycast to each point on perimeter)
+       (let loop-angle ([angle 0.0])
+            (when (< angle (* 2 3.14159))
+                  (let* ([dx (cos angle)]
+                         [dy (sin angle)])
+                        ;; Cast ray
+                        (let ray-loop ([dist 1])
+                             (when (<= dist radius)
+                                   (let ([x (+ cx (round (* dist dx)))]
+                                         [y (+ cy (round (* dist dy)))])
+                                        (when (world-position-valid? world x y)
+                                              (tilemap-set-visible! tm x y #t)
+                                              (unless (world-tile-opaque? world x y)
+                                                      (ray-loop (+ dist 1))))))))
+                  (loop-angle (+ angle (/ 3.14159 (* 4 radius))))))))
 
 ;;; ============================================================
 ;;; Pathfinding (A*)
@@ -498,62 +498,62 @@
 ;;; Returns list of points (including goal, excluding start), or #f if no path.
 (define world-find-path
   (case-lambda
-    [(world start goal)
-     (world-find-path world start goal #f)]
-    [(world start goal allow-diagonal?)
-     (let* ([open-list (list (make-path-node start 0 (manhattan-distance start goal) #f))]
-            [closed-set '()]
-            [max-iterations 1000])
-       (let loop ([open open-list] [closed closed-set] [iterations 0])
-         (cond
-           [(null? open) #f]  ; No path
-           [(>= iterations max-iterations) #f]  ; Timeout
-           [else
-            (let* ([current (car (list-sort (lambda (a b)
-                                              (< (path-node-f a) (path-node-f b)))
-                                            open))]
-                   [current-pos (path-node-pos current)]
-                   [new-open (filter (lambda (n)
-                                       (not (point=? (path-node-pos n) current-pos)))
-                                     open)]
-                   [new-closed (cons current-pos closed)])
-              (if (point=? current-pos goal)
-                  ;; Reconstruct path
-                  (let reconstruct ([node current] [path '()])
-                    (if (path-node-parent node)
-                        (reconstruct (path-node-parent node)
-                                    (cons (path-node-pos node) path))
-                        path))
-                  ;; Explore neighbors
-                  (let* ([neighbors (point-neighbors current-pos allow-diagonal?)]
-                         [valid-neighbors
-                          (filter (lambda (pt)
-                                    (and (world-position-valid? world (car pt) (cdr pt))
-                                         (world-can-move-to? world
-                                                            (make-entity)  ; Dummy
-                                                            (car pt) (cdr pt))
-                                         (not (member pt new-closed point=?))))
-                                  neighbors)])
-                    (let neighbor-loop ([neighbors valid-neighbors]
-                                        [open new-open])
-                      (if (null? neighbors)
-                          (loop open new-closed (+ iterations 1))
-                          (let* ([neighbor (car neighbors)]
-                                 [g (+ (path-node-g current) 1)]
-                                 [h (manhattan-distance neighbor goal)]
-                                 [existing (find (lambda (n)
-                                                   (point=? (path-node-pos n) neighbor))
-                                                 open)])
-                            (neighbor-loop
-                             (cdr neighbors)
-                             (if (and existing (<= (path-node-g existing) g))
-                                 open  ; Existing path is better
-                                 (cons (make-path-node neighbor g h current)
-                                       (if existing
-                                           (filter (lambda (n)
-                                                     (not (point=? (path-node-pos n) neighbor)))
-                                                   open)
-                                           open))))))))))])))]))
+   [(world start goal)
+    (world-find-path world start goal #f)]
+   [(world start goal allow-diagonal?)
+    (let* ([open-list (list (make-path-node start 0 (manhattan-distance start goal) #f))]
+           [closed-set '()]
+           [max-iterations 1000])
+          (let loop ([open open-list] [closed closed-set] [iterations 0])
+               (cond
+                [(null? open) #f]  ; No path
+                [(>= iterations max-iterations) #f]  ; Timeout
+                [else
+                 (let* ([current (car (list-sort (lambda (a b)
+                                                         (< (path-node-f a) (path-node-f b)))
+                                                 open))]
+                        [current-pos (path-node-pos current)]
+                        [new-open (filter (lambda (n)
+                                                  (not (point=? (path-node-pos n) current-pos)))
+                                          open)]
+                        [new-closed (cons current-pos closed)])
+                       (if (point=? current-pos goal)
+                           ;; Reconstruct path
+                           (let reconstruct ([node current] [path '()])
+                                (if (path-node-parent node)
+                                    (reconstruct (path-node-parent node)
+                                                 (cons (path-node-pos node) path))
+                                    path))
+                           ;; Explore neighbors
+                           (let* ([neighbors (point-neighbors current-pos allow-diagonal?)]
+                                  [valid-neighbors
+                                   (filter (lambda (pt)
+                                                   (and (world-position-valid? world (car pt) (cdr pt))
+                                                        (world-can-move-to? world
+                                                                            (make-entity)  ; Dummy
+                                                                            (car pt) (cdr pt))
+                                                        (not (member pt new-closed point=?))))
+                                           neighbors)])
+                                 (let neighbor-loop ([neighbors valid-neighbors]
+                                                     [open new-open])
+                                      (if (null? neighbors)
+                                          (loop open new-closed (+ iterations 1))
+                                          (let* ([neighbor (car neighbors)]
+                                                 [g (+ (path-node-g current) 1)]
+                                                 [h (manhattan-distance neighbor goal)]
+                                                 [existing (find (lambda (n)
+                                                                         (point=? (path-node-pos n) neighbor))
+                                                                 open)])
+                                                (neighbor-loop
+                                                 (cdr neighbors)
+                                                 (if (and existing (<= (path-node-g existing) g))
+                                                     open  ; Existing path is better
+                                                     (cons (make-path-node neighbor g h current)
+                                                           (if existing
+                                                               (filter (lambda (n)
+                                                                               (not (point=? (path-node-pos n) neighbor)))
+                                                                       open)
+                                                               open))))))))))])))]))
 
 ;;; ============================================================
 ;;; Inventory Management (World-Level)
@@ -565,68 +565,68 @@
 (define (world-pickup-item world entity-id item-id)
   (let ([entity (world-get-entity world entity-id)]
         [item (world-get-entity world item-id)])
-    (if (and entity item
-             (entity-has-component? entity 'inventory)
-             (entity-has-component? item 'item)
-             (point=? (entity-point entity) (entity-point item)))
-        ;; Entity and item at same location - pickup
-        (let* ([inventory (entity-inventory entity)]
-               [new-inventory (inventory-add-item inventory item-id)]
-               [new-entity (entity-add-component entity new-inventory)]
-               [world (world-update-entity world entity-id (lambda (_) new-entity))]
-               [world (world-remove-entity world item-id)])
-          world)
-        ;; Can't pickup - return unchanged
-        world)))
+       (if (and entity item
+                (entity-has-component? entity 'inventory)
+                (entity-has-component? item 'item)
+                (point=? (entity-point entity) (entity-point item)))
+           ;; Entity and item at same location - pickup
+           (let* ([inventory (entity-inventory entity)]
+                  [new-inventory (inventory-add-item inventory item-id)]
+                  [new-entity (entity-add-component entity new-inventory)]
+                  [world (world-update-entity world entity-id (lambda (_) new-entity))]
+                  [world (world-remove-entity world item-id)])
+                 world)
+           ;; Can't pickup - return unchanged
+           world)))
 
 ;;; world-drop-item : World × Nat × Any -> World
 ;;; Entity drops an item from inventory at their current location.
 ;;; Removes item from inventory and adds to world as entity.
 (define (world-drop-item world entity-id item-id)
   (let ([entity (world-get-entity world entity-id)])
-    (if (and entity (entity-has-component? entity 'inventory))
-        (let* ([inventory (entity-inventory entity)]
-               [has-item? (inventory-has-item? inventory item-id)])
-          (if has-item?
-              ;; Drop the item
-              (let* ([new-inventory (inventory-remove-item inventory item-id)]
-                     [new-entity (entity-add-component entity new-inventory)]
-                     [pos (entity-point entity)]
-                     ;; Note: This assumes item-id can be resolved to an item entity
-                     ;; In practice, you'd need an item registry to create item entities
-                     ;; For now, this is a stub that needs item system integration
-                     [world (world-update-entity world entity-id (lambda (_) new-entity))])
-                world)
-              ;; Don't have item
-              world))
-        world)))
+       (if (and entity (entity-has-component? entity 'inventory))
+           (let* ([inventory (entity-inventory entity)]
+                  [has-item? (inventory-has-item? inventory item-id)])
+                 (if has-item?
+                     ;; Drop the item
+                     (let* ([new-inventory (inventory-remove-item inventory item-id)]
+                            [new-entity (entity-add-component entity new-inventory)]
+                            [pos (entity-point entity)]
+                            ;; Note: This assumes item-id can be resolved to an item entity
+                            ;; In practice, you'd need an item registry to create item entities
+                            ;; For now, this is a stub that needs item system integration
+                            [world (world-update-entity world entity-id (lambda (_) new-entity))])
+                           world)
+                     ;; Don't have item
+                     world))
+           world)))
 
 ;;; world-transfer-item : World × Nat × Nat × Any -> World
 ;;; Transfer item from one entity's inventory to another's.
 (define (world-transfer-item world from-entity-id to-entity-id item-id)
   (let ([from-entity (world-get-entity world from-entity-id)]
         [to-entity (world-get-entity world to-entity-id)])
-    (if (and from-entity to-entity
-             (entity-has-component? from-entity 'inventory)
-             (entity-has-component? to-entity 'inventory))
-        (let* ([from-inv (entity-inventory from-entity)]
-               [to-inv (entity-inventory to-entity)])
-          (if (inventory-has-item? from-inv item-id)
-              (let* ([new-from-inv (inventory-remove-item from-inv item-id)]
-                     [new-to-inv (inventory-add-item to-inv item-id)]
-                     [new-from (entity-add-component from-entity new-from-inv)]
-                     [new-to (entity-add-component to-entity new-to-inv)]
-                     [world (world-update-entity world from-entity-id (lambda (_) new-from))]
-                     [world (world-update-entity world to-entity-id (lambda (_) new-to))])
-                world)
-              world))
-        world)))
+       (if (and from-entity to-entity
+                (entity-has-component? from-entity 'inventory)
+                (entity-has-component? to-entity 'inventory))
+           (let* ([from-inv (entity-inventory from-entity)]
+                  [to-inv (entity-inventory to-entity)])
+                 (if (inventory-has-item? from-inv item-id)
+                     (let* ([new-from-inv (inventory-remove-item from-inv item-id)]
+                            [new-to-inv (inventory-add-item to-inv item-id)]
+                            [new-from (entity-add-component from-entity new-from-inv)]
+                            [new-to (entity-add-component to-entity new-to-inv)]
+                            [world (world-update-entity world from-entity-id (lambda (_) new-from))]
+                            [world (world-update-entity world to-entity-id (lambda (_) new-to))])
+                           world)
+                     world))
+           world)))
 
 ;;; world-items-at : World × Int × Int -> List Entity
 ;;; Get all item entities at a position.
 (define (world-items-at world x y)
   (let ([entities (world-entities-at world x y)])
-    (filter entity-is-item? entities)))
+       (filter entity-is-item? entities)))
 
 ;;; ============================================================
 ;;; Tilemap Mutation
@@ -642,22 +642,22 @@
 (define (world-open-door! world x y)
   (let* ([tm (world-tilemap world)]
          [tile (tilemap-ref tm x y)])
-    (if (eq? (tile-id tile) 'door-closed)
-        (begin
-          (tilemap-set-type! tm x y tile-door-open)
-          #t)
-        #f)))
+        (if (eq? (tile-id tile) 'door-closed)
+            (begin
+             (tilemap-set-type! tm x y tile-door-open)
+             #t)
+            #f)))
 
 ;;; world-close-door! : World × Int × Int -> Bool
 ;;; Close a door at position.
 (define (world-close-door! world x y)
   (let* ([tm (world-tilemap world)]
          [tile (tilemap-ref tm x y)])
-    (if (eq? (tile-id tile) 'door-open)
-        (begin
-          (tilemap-set-type! tm x y tile-door-closed)
-          #t)
-        #f)))
+        (if (eq? (tile-id tile) 'door-open)
+            (begin
+             (tilemap-set-type! tm x y tile-door-closed)
+             #t)
+            #f)))
 
 ;;; ============================================================
 ;;; World Rendering
@@ -667,85 +667,85 @@
 ;;; Render world to canvas (tiles + entities).
 (define world->canvas
   (case-lambda
-    [(world) (world->canvas world #t)]
-    [(world show-all?)
-     (let* ([tm (world-tilemap world)]
-            [canvas (tilemap->canvas tm show-all?)])
-       ;; Render entities sorted by layer
-       (let* ([entities (world-all-entities world)]
-              [renderables (filter entity-renderable entities)]
-              [sorted (list-sort
-                       (lambda (a b)
-                         (< (renderable-layer (entity-renderable a))
-                            (renderable-layer (entity-renderable b))))
-                       renderables)])
-         (fold-left
-          (lambda (canvas entity)
-            (let ([x (entity-x entity)]
-                  [y (entity-y entity)]
-                  [ch (entity-char entity)]
-                  [visible? (or show-all?
-                                (tile-visible (tilemap-ref tm x y)))])
-              (if visible?
-                  (canvas-set canvas x y ch)
-                  canvas)))
-          canvas
-          sorted)))]))
+   [(world) (world->canvas world #t)]
+   [(world show-all?)
+    (let* ([tm (world-tilemap world)]
+           [canvas (tilemap->canvas tm show-all?)])
+          ;; Render entities sorted by layer
+          (let* ([entities (world-all-entities world)]
+                 [renderables (filter entity-renderable entities)]
+                 [sorted (list-sort
+                          (lambda (a b)
+                                  (< (renderable-layer (entity-renderable a))
+                                     (renderable-layer (entity-renderable b))))
+                          renderables)])
+                (fold-left
+                 (lambda (canvas entity)
+                         (let ([x (entity-x entity)]
+                               [y (entity-y entity)]
+                               [ch (entity-char entity)]
+                               [visible? (or show-all?
+                                             (tile-visible (tilemap-ref tm x y)))])
+                              (if visible?
+                                  (canvas-set canvas x y ch)
+                                  canvas)))
+                 canvas
+                 sorted)))]))
 
 ;;; world-render-viewport : World × Point × Nat × Nat × [Bool] -> Canvas
 ;;; Render a viewport centered on a point.
 (define world-render-viewport
   (case-lambda
-    [(world center width height)
-     (world-render-viewport world center width height #t)]
-    [(world center width height show-all?)
-     (let* ([cx (car center)]
-            [cy (cdr center)]
-            [half-w (quotient width 2)]
-            [half-h (quotient height 2)]
-            [start-x (- cx half-w)]
-            [start-y (- cy half-h)]
-            [canvas (make-canvas width height)])
-       ;; Render tiles
-       (let loop-y ([vy 0])
-         (when (< vy height)
-           (let loop-x ([vx 0])
-             (when (< vx width)
-               (let* ([wx (+ start-x vx)]
-                      [wy (+ start-y vy)]
-                      [tile (tilemap-ref (world-tilemap world) wx wy)]
-                      [ch (cond
-                            [show-all? (tile-char tile)]
-                            [(tile-visible tile) (tile-char tile)]
-                            [(tile-explored tile) (tile-char tile)]
-                            [else #\space])])
-                 (set! canvas (canvas-set canvas vx vy ch)))
-               (loop-x (+ vx 1))))
-           (loop-y (+ vy 1))))
-       ;; Render entities
-       (let* ([entities (world-all-entities world)]
-              [renderables (filter entity-renderable entities)]
-              [sorted (list-sort
-                       (lambda (a b)
-                         (< (renderable-layer (entity-renderable a))
-                            (renderable-layer (entity-renderable b))))
-                       renderables)])
-         (fold-left
-          (lambda (canvas entity)
-            (let* ([wx (entity-x entity)]
-                   [wy (entity-y entity)]
-                   [vx (- wx start-x)]
-                   [vy (- wy start-y)]
-                   [ch (entity-char entity)]
-                   [tile (tilemap-ref (world-tilemap world) wx wy)]
-                   [visible? (or show-all? (tile-visible tile))])
-              (if (and visible?
-                       (>= vx 0) (< vx width)
-                       (>= vy 0) (< vy height))
-                  (canvas-set canvas vx vy ch)
-                  canvas)))
-          canvas
-          sorted)))]))
+   [(world center width height)
+    (world-render-viewport world center width height #t)]
+   [(world center width height show-all?)
+    (let* ([cx (car center)]
+           [cy (cdr center)]
+           [half-w (quotient width 2)]
+           [half-h (quotient height 2)]
+           [start-x (- cx half-w)]
+           [start-y (- cy half-h)]
+           [canvas (make-canvas width height)])
+          ;; Render tiles
+          (let loop-y ([vy 0])
+               (when (< vy height)
+                     (let loop-x ([vx 0])
+                          (when (< vx width)
+                                (let* ([wx (+ start-x vx)]
+                                       [wy (+ start-y vy)]
+                                       [tile (tilemap-ref (world-tilemap world) wx wy)]
+                                       [ch (cond
+                                            [show-all? (tile-char tile)]
+                                            [(tile-visible tile) (tile-char tile)]
+                                            [(tile-explored tile) (tile-char tile)]
+                                            [else #\space])])
+                                      (set! canvas (canvas-set canvas vx vy ch)))
+                                (loop-x (+ vx 1))))
+                     (loop-y (+ vy 1))))
+          ;; Render entities
+          (let* ([entities (world-all-entities world)]
+                 [renderables (filter entity-renderable entities)]
+                 [sorted (list-sort
+                          (lambda (a b)
+                                  (< (renderable-layer (entity-renderable a))
+                                     (renderable-layer (entity-renderable b))))
+                          renderables)])
+                (fold-left
+                 (lambda (canvas entity)
+                         (let* ([wx (entity-x entity)]
+                                [wy (entity-y entity)]
+                                [vx (- wx start-x)]
+                                [vy (- wy start-y)]
+                                [ch (entity-char entity)]
+                                [tile (tilemap-ref (world-tilemap world) wx wy)]
+                                [visible? (or show-all? (tile-visible tile))])
+                               (if (and visible?
+                                        (>= vx 0) (< vx width)
+                                        (>= vy 0) (< vy height))
+                                   (canvas-set canvas vx vy ch)
+                                   canvas)))
+                 canvas
+                 sorted)))]))
 
 ;;; ============================================================
 ;;; Utility Functions
@@ -755,36 +755,36 @@
 ;;; Check if any element satisfies predicate.
 (define (any pred lst)
   (cond
-    [(null? lst) #f]
-    [(pred (car lst)) #t]
-    [else (any pred (cdr lst))]))
+   [(null? lst) #f]
+   [(pred (car lst)) #t]
+   [else (any pred (cdr lst))]))
 
 ;;; filter-map : (A -> B | #f) × List A -> List B
 ;;; Map with filter for #f results.
 (define (filter-map fn lst)
   (let loop ([lst lst] [results '()])
-    (if (null? lst)
-        (reverse results)
-        (let ([result (fn (car lst))])
-          (loop (cdr lst)
-                (if result
-                    (cons result results)
-                    results))))))
+       (if (null? lst)
+           (reverse results)
+           (let ([result (fn (car lst))])
+                (loop (cdr lst)
+                      (if result
+                          (cons result results)
+                          results))))))
 
 ;;; find : (A -> Bool) × List A -> A | #f
 ;;; Find first element matching predicate.
 (define (find pred lst)
   (cond
-    [(null? lst) #f]
-    [(pred (car lst)) (car lst)]
-    [else (find pred (cdr lst))]))
+   [(null? lst) #f]
+   [(pred (car lst)) (car lst)]
+   [else (find pred (cdr lst))]))
 
 ;;; member with custom equality
 (define (member item lst eq?)
   (cond
-    [(null? lst) #f]
-    [(eq? item (car lst)) lst]
-    [else (member item (cdr lst) eq?)]))
+   [(null? lst) #f]
+   [(eq? item (car lst)) lst]
+   [else (member item (cdr lst) eq?)]))
 
 ;;; ============================================================
 ;;; Export Summary

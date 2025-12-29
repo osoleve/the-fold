@@ -45,14 +45,14 @@
     (scaffold building "Code scaffolding and templating system" "scaffold.ss")
     (format building "Code formatter and pretty-printer" "format.ss")
     (init-project building "Project initialization wizard" "init-project.ss")
-
+    
     ;; Workflow Tools
     (test-runner workflow "Comprehensive test automation and discovery" "test-runner.ss")
     (watch workflow "File watching with auto-reload and auto-test" "watch.ss")
     (history workflow "Persistent REPL command history" "history.ss")
     (docgen workflow "Documentation generator for Scheme code" "docgen.ss")
     (git-workflow workflow "Git workflow helpers and shortcuts" "git-workflow.ss")
-
+    
     ;; Introspection Tools
     (block-diff introspection "Compare and diff blocks structurally" "block-diff.ss")
     (block-explorer introspection "Interactive block navigation" "block-explorer.ss")
@@ -62,13 +62,13 @@
     (store-analyze introspection "Analyze store usage and health" "store-analyze.ss")
     (universe-dump introspection "Dump universe to single file" "universe-dump.ss")
     (capability-lens introspection "Analyze capability mint/use across codebase" "capability-lens.ss")
-
+    
     ;; Debugging Tools
     (type-inspect debugging "Examine and explain inferred types" "type-inspect.ss")
     (fuel-profile debugging "Profile fuel consumption" "fuel-profile.ss")
     (debug debugging "Interactive debugger (core)" "../core/debug.ss")
     (error-fmt debugging "Enhanced error formatter with color and context" "error-fmt.ss")
-
+    
     ;; Analysis Tools
     (project-status analysis "Show project status and metrics" "project-status.ss")
     (concept-map analysis "Generate concept maps" "concept-map.ss")
@@ -97,29 +97,29 @@
   (display "\n")
   (display "A comprehensive set of tools for building on and introspecting The Fold.\n")
   (display "\n")
-
+  
   (for-each
-    (lambda (cat-entry)
-      (let ([category (car cat-entry)]
-            [description (cdr cat-entry)])
-        (display "─────────────────────────────────────────────────────────────────────────\n")
-        (display (format "  ~a: ~a\n" (category-name category) description))
-        (display "─────────────────────────────────────────────────────────────────────────\n")
-
-        (let ([tools (filter (lambda (tool) (eq? (cadr tool) category))
-                            *toolkit-tools*)])
-          (for-each
-            (lambda (tool)
-              (let ([name (car tool)]
-                    [desc (caddr tool)])
-                (display (format "    ~a~a~a\n"
-                                name
-                                (make-string (max 1 (- 20 (string-length (symbol->string name)))) #\space)
-                                desc))))
-            tools))
-        (display "\n")))
-    *toolkit-categories*)
-
+   (lambda (cat-entry)
+           (let ([category (car cat-entry)]
+                 [description (cdr cat-entry)])
+                (display "─────────────────────────────────────────────────────────────────────────\n")
+                (display (format "  ~a: ~a\n" (category-name category) description))
+                (display "─────────────────────────────────────────────────────────────────────────\n")
+                
+                (let ([tools (filter (lambda (tool) (eq? (cadr tool) category))
+                                     *toolkit-tools*)])
+                     (for-each
+                      (lambda (tool)
+                              (let ([name (car tool)]
+                                    [desc (caddr tool)])
+                                   (display (format "    ~a~a~a\n"
+                                                    name
+                                                    (make-string (max 1 (- 20 (string-length (symbol->string name)))) #\space)
+                                                    desc))))
+                      tools))
+                (display "\n")))
+   *toolkit-categories*)
+  
   (display "Usage:\n")
   (display "  (toolkit-help)                  - Show this help\n")
   (display "  (toolkit-help 'category)        - Show tools in a category\n")
@@ -131,31 +131,31 @@
 ;;; Display help for a specific category.
 (define (toolkit-help-category category)
   (let ([cat-entry (assq category *toolkit-categories*)])
-    (if (not cat-entry)
-        (begin
-          (display (format "Unknown category: ~a\n" category))
-          (display "Available categories: ")
-          (display (map car *toolkit-categories*))
-          (display "\n"))
-        (begin
-          (display "\n")
-          (display (format "Category: ~a\n" (category-name category)))
-          (display (format "~a\n\n" (cdr cat-entry)))
-
-          (let ([tools (filter (lambda (tool) (eq? (cadr tool) category))
-                              *toolkit-tools*)])
-            (if (null? tools)
-                (display "No tools in this category.\n")
-                (for-each
-                  (lambda (tool)
-                    (let ([name (car tool)]
-                          [desc (caddr tool)]
-                          [file (cadddr tool)])
-                      (display (format "  ~a\n" name))
-                      (display (format "    Description: ~a\n" desc))
-                      (display (format "    File: ~a\n" file))
-                      (display (format "    Load: (toolkit-load '~a)\n\n" name))))
-                  tools)))))))
+       (if (not cat-entry)
+           (begin
+            (display (format "Unknown category: ~a\n" category))
+            (display "Available categories: ")
+            (display (map car *toolkit-categories*))
+            (display "\n"))
+           (begin
+            (display "\n")
+            (display (format "Category: ~a\n" (category-name category)))
+            (display (format "~a\n\n" (cdr cat-entry)))
+            
+            (let ([tools (filter (lambda (tool) (eq? (cadr tool) category))
+                                 *toolkit-tools*)])
+                 (if (null? tools)
+                     (display "No tools in this category.\n")
+                     (for-each
+                      (lambda (tool)
+                              (let ([name (car tool)]
+                                    [desc (caddr tool)]
+                                    [file (cadddr tool)])
+                                   (display (format "  ~a\n" name))
+                                   (display (format "    Description: ~a\n" desc))
+                                   (display (format "    File: ~a\n" file))
+                                   (display (format "    Load: (toolkit-load '~a)\n\n" name))))
+                      tools)))))))
 
 ;;; category-name : Symbol → String
 ;;; Convert category symbol to display name.
@@ -175,44 +175,44 @@
 ;;; Load a specific tool by name.
 (define (toolkit-load tool-name)
   (let ([tool (assq tool-name *toolkit-tools*)])
-    (if (not tool)
-        (begin
-          (display (format "Unknown tool: ~a\n" tool-name))
-          (display "Use (toolkit-help) to see available tools.\n"))
-        (let ([file (cadddr tool)])
-          (display (format "Loading ~a...\n" tool-name))
-          (guard (e [else
-                     (display (format "Error loading ~a: ~a\n"
-                                     tool-name
-                                     (if (condition? e)
-                                         (condition-message e)
-                                         e)))])
-            (load file)
-            (display (format "✓ ~a loaded.\n" tool-name)))))))
+       (if (not tool)
+           (begin
+            (display (format "Unknown tool: ~a\n" tool-name))
+            (display "Use (toolkit-help) to see available tools.\n"))
+           (let ([file (cadddr tool)])
+                (display (format "Loading ~a...\n" tool-name))
+                (guard (e [else
+                           (display (format "Error loading ~a: ~a\n"
+                                            tool-name
+                                            (if (condition? e)
+                                                (condition-message e)
+                                                e)))])
+                       (load file)
+                       (display (format "✓ ~a loaded.\n" tool-name)))))))
 
 ;;; toolkit-load-category : Symbol → void
 ;;; Load all tools in a category.
 (define (toolkit-load-category category)
   (let ([tools (filter (lambda (tool) (eq? (cadr tool) category))
-                      *toolkit-tools*)])
-    (if (null? tools)
-        (display (format "No tools in category: ~a\n" category))
-        (begin
-          (display (format "Loading ~a tools...\n\n" (category-name category)))
-          (for-each
-            (lambda (tool)
-              (toolkit-load (car tool)))
-            tools)
-          (display (format "\n✓ All ~a tools loaded.\n" (category-name category)))))))
+                       *toolkit-tools*)])
+       (if (null? tools)
+           (display (format "No tools in category: ~a\n" category))
+           (begin
+            (display (format "Loading ~a tools...\n\n" (category-name category)))
+            (for-each
+             (lambda (tool)
+                     (toolkit-load (car tool)))
+             tools)
+            (display (format "\n✓ All ~a tools loaded.\n" (category-name category)))))))
 
 ;;; toolkit-load-all : → void
 ;;; Load all tools in the toolkit.
 (define (toolkit-load-all)
   (display "Loading all toolkit components...\n\n")
   (for-each
-    (lambda (cat-entry)
-      (toolkit-load-category (car cat-entry)))
-    *toolkit-categories*)
+   (lambda (cat-entry)
+           (toolkit-load-category (car cat-entry)))
+   *toolkit-categories*)
   (display "\n✓ Complete toolkit loaded.\n"))
 
 ;;; ============================================================
@@ -298,4 +298,4 @@
 
 ;; Auto-load essential tools
 (guard (e [else (void)])
-  (load "fs.ss"))
+       (load "fs.ss"))

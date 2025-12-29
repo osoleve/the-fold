@@ -20,14 +20,14 @@
   (display ": ")
   (if (equal? expected actual)
       (begin
-        (set! pass-count (+ pass-count 1))
-        (display "✓"))
+       (set! pass-count (+ pass-count 1))
+       (display "✓"))
       (begin
-        (set! fail-count (+ fail-count 1))
-        (display "✗\n    expected: ")
-        (display expected)
-        (display "\n    got: ")
-        (display actual)))
+       (set! fail-count (+ fail-count 1))
+       (display "✗\n    expected: ")
+       (display expected)
+       (display "\n    got: ")
+       (display actual)))
   (newline))
 
 (define (test-pred name pred actual)
@@ -37,12 +37,12 @@
   (display ": ")
   (if (pred actual)
       (begin
-        (set! pass-count (+ pass-count 1))
-        (display "✓"))
+       (set! pass-count (+ pass-count 1))
+       (display "✓"))
       (begin
-        (set! fail-count (+ fail-count 1))
-        (display "✗\n    predicate failed for: ")
-        (display actual)))
+       (set! fail-count (+ fail-count 1))
+       (display "✗\n    predicate failed for: ")
+       (display actual)))
   (newline))
 
 ;;; ============================================================
@@ -54,48 +54,48 @@
 
 (define (clean-test-dir!)
   (when (file-exists? test-dir)
-    (system (string-append "rm -rf " test-dir))))
+        (system (string-append "rm -rf " test-dir))))
 
 (define (setup-test-dir!)
   (clean-test-dir!)
   (mkdir test-dir)
-
+  
   ;; Create subdirectories
   (mkdir (string-append test-dir "/forum"))
   (mkdir (string-append test-dir "/forum/poetry"))
   (mkdir (string-append test-dir "/scripture"))
   (mkdir (string-append test-dir "/playpen"))
-
+  
   ;; Create test .sexp files
   (call-with-output-file (string-append test-dir "/forum/poetry/test1.sexp")
-    (lambda (port)
-      (write '((author . "test-author")
-               (content . "Test poem")) port)))
-
+                         (lambda (port)
+                                 (write '((author . "test-author")
+                                          (content . "Test poem")) port)))
+  
   (call-with-output-file (string-append test-dir "/forum/test2.sexp")
-    (lambda (port)
-      (write '((type . "engineering")
-               (data . 42)) port)))
-
+                         (lambda (port)
+                                 (write '((type . "engineering")
+                                          (data . 42)) port)))
+  
   (call-with-output-file (string-append test-dir "/scripture/protocol.sexp")
-    (lambda (port)
-      (write '((title . "Test Protocol")
-               (rules . ("rule1" "rule2"))) port)))
-
+                         (lambda (port)
+                                 (write '((title . "Test Protocol")
+                                          (rules . ("rule1" "rule2"))) port)))
+  
   (call-with-output-file (string-append test-dir "/playpen/experiment.sexp")
-    (lambda (port)
-      (write '((experiment . "duckie")
-               (result . success)) port)))
-
+                         (lambda (port)
+                                 (write '((experiment . "duckie")
+                                          (result . success)) port)))
+  
   ;; Create a non-.sexp file (should be ignored)
   (call-with-output-file (string-append test-dir "/forum/readme.txt")
-    (lambda (port)
-      (display "This should be ignored" port)))
-
+                         (lambda (port)
+                                 (display "This should be ignored" port)))
+  
   ;; Create a malformed .sexp file (should be skipped with warning)
   (call-with-output-file (string-append test-dir "/forum/broken.sexp")
-    (lambda (port)
-      (display "((this is not valid scheme" port))))
+                         (lambda (port)
+                                 (display "((this is not valid scheme" port))))
 
 ;;; ============================================================
 ;;; Run Tests
@@ -124,9 +124,9 @@
 (define all-sexp-files (scan-sexp-files test-dir))
 (display "  Found files:\n")
 (for-each (lambda (f)
-            (display "    ")
-            (display (make-relative-path test-dir f))
-            (newline))
+                  (display "    ")
+                  (display (make-relative-path test-dir f))
+                  (newline))
           all-sexp-files)
 (test-pred "scan-sexp-files returns list" list? all-sexp-files)
 (test "found multiple files" #t (> (length all-sexp-files) 0))
@@ -150,20 +150,20 @@
 (define (string-contains? haystack needle)
   (let ([hlen (string-length haystack)]
         [nlen (string-length needle)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i nlen) hlen) #f]
-        [(string=? needle (substring haystack i (+ i nlen))) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i nlen) hlen) #f]
+             [(string=? needle (substring haystack i (+ i nlen))) #t]
+             [else (loop (+ i 1))]))))
 
 ;;; Test 3: Filtered scanning
 (display "\nTest 3: Filtered scanning\n")
 (define forum-files (scan-sexp-files-filtered test-dir '("forum")))
 (display "  Forum files:\n")
 (for-each (lambda (f)
-            (display "    ")
-            (display (make-relative-path test-dir f))
-            (newline))
+                  (display "    ")
+                  (display (make-relative-path test-dir f))
+                  (newline))
           forum-files)
 (test "filter by forum directory" #t (> (length forum-files) 0))
 (test "forum filter includes poetry"
@@ -284,8 +284,8 @@
 (if (= fail-count 0)
     (display "\n✓ All tests passed!\n")
     (begin
-      (display "\n✗ Some tests failed.\n")
-      (exit 1)))
+     (display "\n✗ Some tests failed.\n")
+     (exit 1)))
 
 ;;; Cleanup
 (display "\nCleaning up test directory...\n")

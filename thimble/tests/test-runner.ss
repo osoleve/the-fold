@@ -148,23 +148,23 @@
 
 (define (current-time-ms)
   (let ([t (current-time)])
-    (+ (* (time-second t) 1000)
-       (quotient (time-nanosecond t) 1000000))))
+       (+ (* (time-second t) 1000)
+          (quotient (time-nanosecond t) 1000000))))
 
 (define (format-duration-ms ms)
   (cond
-    [(< ms 1) "< 1ms"]
-    [(< ms 1000) (string-append (number->string ms) "ms")]
-    [(< ms 60000)
-     (let ([sec (quotient ms 1000)]
-           [msec (remainder ms 1000)])
-       (string-append (number->string sec) "."
-                      (number->string (quotient msec 100)) "s"))]
-    [else
-     (let ([min (quotient ms 60000)]
-           [sec (quotient (remainder ms 60000) 1000)])
-       (string-append (number->string min) "m "
-                      (number->string sec) "s"))]))
+   [(< ms 1) "< 1ms"]
+   [(< ms 1000) (string-append (number->string ms) "ms")]
+   [(< ms 60000)
+    (let ([sec (quotient ms 1000)]
+          [msec (remainder ms 1000)])
+         (string-append (number->string sec) "."
+                        (number->string (quotient msec 100)) "s"))]
+   [else
+    (let ([min (quotient ms 60000)]
+          [sec (quotient (remainder ms 60000) 1000)])
+         (string-append (number->string min) "m "
+                        (number->string sec) "s"))]))
 
 ;;; ============================================================
 ;;; Test Discovery
@@ -175,46 +175,46 @@
 (define (string-contains? haystack needle)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i n-len) h-len) #f]
-        [(string=? (substring haystack i (+ i n-len)) needle) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i n-len) h-len) #f]
+             [(string=? (substring haystack i (+ i n-len)) needle) #t]
+             [else (loop (+ i 1))]))))
 
 ;;; string-starts-with? : String × String → Boolean
 (define (string-starts-with? str prefix)
   (let ([s-len (string-length str)]
         [p-len (string-length prefix)])
-    (and (>= s-len p-len)
-         (string=? (substring str 0 p-len) prefix))))
+       (and (>= s-len p-len)
+            (string=? (substring str 0 p-len) prefix))))
 
 ;;; string-ends-with? : String × String → Boolean
 (define (string-ends-with? str suffix)
   (let ([s-len (string-length str)]
         [x-len (string-length suffix)])
-    (and (>= s-len x-len)
-         (string=? (substring str (- s-len x-len) s-len) suffix))))
+       (and (>= s-len x-len)
+            (string=? (substring str (- s-len x-len) s-len) suffix))))
 
 ;;; list-directory : String → (List String)
 ;;; List all files in a directory using system commands
 (define (list-directory dir)
   (guard (e [else '()])
-    ;; Detect Windows vs Unix
-    (let* ([is-windows (string-contains? (current-directory) "c:")]
-           [cmd (if is-windows
-                   (string-append "cmd.exe /c dir /b " dir)
-                   (string-append "ls -1 " dir))])
-      (let-values ([(to-stdin from-stdout from-stderr pid)
-                    (open-process-ports cmd (buffer-mode line) (native-transcoder))])
-        (close-port to-stdin)
-        (close-port from-stderr)
-        (let loop ([result '()])
-          (let ([line (get-line from-stdout)])
-            (if (eof-object? line)
-                (begin
-                  (close-port from-stdout)
-                  (reverse result))
-                (loop (cons line result)))))))))
+         ;; Detect Windows vs Unix
+         (let* ([is-windows (string-contains? (current-directory) "c:")]
+                [cmd (if is-windows
+                         (string-append "cmd.exe /c dir /b " dir)
+                         (string-append "ls -1 " dir))])
+               (let-values ([(to-stdin from-stdout from-stderr pid)
+                             (open-process-ports cmd (buffer-mode line) (native-transcoder))])
+                           (close-port to-stdin)
+                           (close-port from-stderr)
+                           (let loop ([result '()])
+                                (let ([line (get-line from-stdout)])
+                                     (if (eof-object? line)
+                                         (begin
+                                          (close-port from-stdout)
+                                          (reverse result))
+                                         (loop (cons line result)))))))))
 
 ;;; is-test-file? : String → Boolean
 ;;; Check if filename matches test file patterns
@@ -261,38 +261,38 @@
 (define (run-test-file path)
   (let ([start (current-time-ms)]
         [filename (if (string-contains? path "/")
-                     (let loop ([i (- (string-length path) 1)])
-                       (cond
-                         [(< i 0) path]
-                         [(or (char=? (string-ref path i) #\/)
-                              (char=? (string-ref path i) #\\))
-                          (substring path (+ i 1) (string-length path))]
-                         [else (loop (- i 1))]))
-                     path)])
-
-    (display (string-append "  " (cyan filename) " "))
-    (flush-output-port)
-
-    (guard (exn [else
-                 (let ([duration (- (current-time-ms) start)]
-                       [msg (if (condition? exn)
-                               (condition-message exn)
-                               (format "~a" exn))])
-                   (record-result! filename 'failed duration msg)
-                   (display (red "FAILED"))
+                      (let loop ([i (- (string-length path) 1)])
+                           (cond
+                            [(< i 0) path]
+                            [(or (char=? (string-ref path i) #\/)
+                                 (char=? (string-ref path i) #\\))
+                             (substring path (+ i 1) (string-length path))]
+                            [else (loop (- i 1))]))
+                      path)])
+       
+       (display (string-append "  " (cyan filename) " "))
+       (flush-output-port)
+       
+       (guard (exn [else
+                    (let ([duration (- (current-time-ms) start)]
+                          [msg (if (condition? exn)
+                                   (condition-message exn)
+                                   (format "~a" exn))])
+                         (record-result! filename 'failed duration msg)
+                         (display (red "FAILED"))
+                         (display (string-append " (" (gray (format-duration-ms duration)) ")"))
+                         (newline)
+                         (display (string-append "    " (red "Error: ") msg))
+                         (newline))])
+              
+              ;; Execute the test file
+              (load path)
+              
+              (let ([duration (- (current-time-ms) start)])
+                   (record-result! filename 'passed duration "")
+                   (display (green "PASSED"))
                    (display (string-append " (" (gray (format-duration-ms duration)) ")"))
-                   (newline)
-                   (display (string-append "    " (red "Error: ") msg))
-                   (newline))])
-
-      ;; Execute the test file
-      (load path)
-
-      (let ([duration (- (current-time-ms) start)])
-        (record-result! filename 'passed duration "")
-        (display (green "PASSED"))
-        (display (string-append " (" (gray (format-duration-ms duration)) ")"))
-        (newline)))))
+                   (newline)))))
 
 ;;; ============================================================
 ;;; Test Categories and Discovery
@@ -355,89 +355,89 @@
   (display (bold "────────────────────────────────────────────────────────────────\n"))
   (display (bold (string-append "  " category-name " (" dir "/)\n")))
   (display (bold "────────────────────────────────────────────────────────────────\n"))
-
+  
   (if (null? test-files)
       (begin
-        (display (yellow "  No test files found.\n"))
-        (newline))
+       (display (yellow "  No test files found.\n"))
+       (newline))
       (for-each
-        (lambda (test-file)
-          (run-test-file (string-append dir "/" test-file)))
-        test-files))
-
+       (lambda (test-file)
+               (run-test-file (string-append dir "/" test-file)))
+       test-files))
+  
   (newline))
 
 ;;; run-tests : [Symbol | (List String)] → Unit
 ;;; Main test runner - can be called from REPL
 (define run-tests
   (case-lambda
-    [() (run-all-tests-impl)]
-    [(category)
-     (cond
-       [(eq? category 'all) (run-all-tests-impl)]
-       [(eq? category 'core) (run-core-tests-impl)]
-       [(eq? category 'shell) (run-shell-tests-impl)]
-       [(list? category) (run-custom-tests-impl category)]
-       [else
-         (display (red (string-append "Unknown category: " (symbol->string category) "\n")))
-         (display "Valid categories: all, core, shell\n")])]))
+   [() (run-all-tests-impl)]
+   [(category)
+    (cond
+     [(eq? category 'all) (run-all-tests-impl)]
+     [(eq? category 'core) (run-core-tests-impl)]
+     [(eq? category 'shell) (run-shell-tests-impl)]
+     [(list? category) (run-custom-tests-impl category)]
+     [else
+      (display (red (string-append "Unknown category: " (symbol->string category) "\n")))
+      (display "Valid categories: all, core, shell\n")])]))
 
 ;;; run-tests-matching : String → Unit
 ;;; Run tests matching a pattern
 (define (run-tests-matching pattern)
   (reset-results!)
   (print-header (string-append "PATTERN: " pattern))
-
+  
   (let ([core-matches (filter-tests-by-pattern pattern *core-test-files*)]
         [shell-matches (filter-tests-by-pattern pattern *shell-test-files*)])
-
-    (unless (null? core-matches)
-      (run-test-category "CORE TESTS" "core" core-matches))
-
-    (unless (null? shell-matches)
-      (run-test-category "SHELL TESTS" "shell" shell-matches))
-
-    (when (and (null? core-matches) (null? shell-matches))
-      (display (yellow (string-append "No tests matching pattern: " pattern "\n")))
-      (newline)))
-
+       
+       (unless (null? core-matches)
+               (run-test-category "CORE TESTS" "core" core-matches))
+       
+       (unless (null? shell-matches)
+               (run-test-category "SHELL TESTS" "shell" shell-matches))
+       
+       (when (and (null? core-matches) (null? shell-matches))
+             (display (yellow (string-append "No tests matching pattern: " pattern "\n")))
+             (newline)))
+  
   (print-summary))
 
 ;;; run-all-tests-impl : Unit → Unit
 (define (run-all-tests-impl)
   (reset-results!)
   (print-header "ALL TESTS")
-
+  
   (run-test-category "CORE TESTS" "fabric/stitches" *core-test-files*)
   (run-test-category "SHELL TESTS" "thimble/tests" *shell-test-files*)
-
+  
   (print-summary))
 
 ;;; run-core-tests-impl : Unit → Unit
 (define (run-core-tests-impl)
   (reset-results!)
   (print-header "CORE TESTS ONLY")
-
+  
   (run-test-category "CORE TESTS" "fabric/stitches" *core-test-files*)
-
+  
   (print-summary))
 
 ;;; run-shell-tests-impl : Unit → Unit
 (define (run-shell-tests-impl)
   (reset-results!)
   (print-header "SHELL TESTS ONLY")
-
+  
   (run-test-category "SHELL TESTS" "thimble/tests" *shell-test-files*)
-
+  
   (print-summary))
 
 ;;; run-custom-tests-impl : (List String) → Unit
 (define (run-custom-tests-impl test-files)
   (reset-results!)
   (print-header "CUSTOM TEST SET")
-
+  
   (for-each run-test-file test-files)
-
+  
   (print-summary))
 
 ;;; ============================================================
@@ -450,7 +450,7 @@
   (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
   (display (bold (string-append "║  THE FOLD — TEST RUNNER: " title)))
   (let ([padding (- 62 (+ 27 (string-length title)))])
-    (display (make-string padding #\space)))
+       (display (make-string padding #\space)))
   (display (bold "║\n"))
   (display (bold "╚══════════════════════════════════════════════════════════════╝\n"))
   (display (string-append "\nWorking directory: " (gray (current-directory)) "\n"))
@@ -459,7 +459,7 @@
 ;;; date-time-string : Unit → String
 (define (date-time-string)
   (let ([t (current-time)])
-    (format "~a" (time-second t))))  ; Simple timestamp for now
+       (format "~a" (time-second t))))  ; Simple timestamp for now
 
 ;;; print-summary : Unit → Unit
 ;;; Print final test summary with statistics
@@ -468,58 +468,58 @@
          [failed (count-status 'failed)]
          [total (length *test-results*)]
          [duration (- (current-time-ms) *total-start-time*)])
-
-    (display (bold "\n╔══════════════════════════════════════════════════════════════╗\n"))
-    (display (bold "║                      SUMMARY                                 ║\n"))
-    (display (bold "╚══════════════════════════════════════════════════════════════╝\n\n"))
-
-    (display (string-append "  Test files:  " (bold (number->string total)) "\n"))
-    (display (string-append "  " (green (string-append "Passed:      " (number->string passed))) "\n"))
-    (display (string-append "  " (if (> failed 0)
-                                    (red (string-append "Failed:      " (number->string failed)))
-                                    (string-append "Failed:      " (number->string failed))) "\n"))
-    (display (string-append "  Total time:  " (bold (format-duration-ms duration)) "\n\n"))
-
-    ;; Show slowest tests (top 5)
-    (unless (null? *test-results*)
-      (let ([sorted (sort (lambda (a b) (> (caddr a) (caddr b)))
-                         *test-results*)])
-        (display (bold "  Slowest tests:\n"))
-        (for-each
-          (lambda (r)
-            (display (string-append "    "
-                                   (magenta (format-duration-ms (caddr r)))
-                                   "  "
-                                   (car r)
-                                   "\n")))
-          (take 5 sorted))))
-
-    (newline)
-
-    ;; Final verdict
-    (if (= failed 0)
-        (begin
-          (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
-          (display (bold "║  "))
-          (display (green "✓ ALL TESTS PASSED"))
-          (display (bold "                                          ║\n"))
-          (display (bold "╚══════════════════════════════════════════════════════════════╝\n")))
-        (begin
-          (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
-          (display (bold "║  "))
-          (display (red "✗ SOME TESTS FAILED"))
-          (display (bold "                                        ║\n"))
-          (display (bold "╚══════════════════════════════════════════════════════════════╝\n\n"))
-
-          ;; List failed tests
-          (display (red (bold "  Failed tests:\n")))
-          (for-each
-            (lambda (r)
-              (when (eq? (cadr r) 'failed)
-                (display (string-append "    " (red "✗ ") (car r) "\n"))
-                (unless (string=? (cadddr r) "")
-                  (display (string-append "      " (gray (cadddr r)) "\n")))))
-            (reverse *test-results*))))))
+        
+        (display (bold "\n╔══════════════════════════════════════════════════════════════╗\n"))
+        (display (bold "║                      SUMMARY                                 ║\n"))
+        (display (bold "╚══════════════════════════════════════════════════════════════╝\n\n"))
+        
+        (display (string-append "  Test files:  " (bold (number->string total)) "\n"))
+        (display (string-append "  " (green (string-append "Passed:      " (number->string passed))) "\n"))
+        (display (string-append "  " (if (> failed 0)
+                                         (red (string-append "Failed:      " (number->string failed)))
+                                         (string-append "Failed:      " (number->string failed))) "\n"))
+        (display (string-append "  Total time:  " (bold (format-duration-ms duration)) "\n\n"))
+        
+        ;; Show slowest tests (top 5)
+        (unless (null? *test-results*)
+                (let ([sorted (sort (lambda (a b) (> (caddr a) (caddr b)))
+                                    *test-results*)])
+                     (display (bold "  Slowest tests:\n"))
+                     (for-each
+                      (lambda (r)
+                              (display (string-append "    "
+                                                      (magenta (format-duration-ms (caddr r)))
+                                                      "  "
+                                                      (car r)
+                                                      "\n")))
+                      (take 5 sorted))))
+        
+        (newline)
+        
+        ;; Final verdict
+        (if (= failed 0)
+            (begin
+             (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
+             (display (bold "║  "))
+             (display (green "✓ ALL TESTS PASSED"))
+             (display (bold "                                          ║\n"))
+             (display (bold "╚══════════════════════════════════════════════════════════════╝\n")))
+            (begin
+             (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
+             (display (bold "║  "))
+             (display (red "✗ SOME TESTS FAILED"))
+             (display (bold "                                        ║\n"))
+             (display (bold "╚══════════════════════════════════════════════════════════════╝\n\n"))
+             
+             ;; List failed tests
+             (display (red (bold "  Failed tests:\n")))
+             (for-each
+              (lambda (r)
+                      (when (eq? (cadr r) 'failed)
+                            (display (string-append "    " (red "✗ ") (car r) "\n"))
+                            (unless (string=? (cadddr r) "")
+                                    (display (string-append "      " (gray (cadddr r)) "\n")))))
+              (reverse *test-results*))))))
 
 ;;; take : Int × (List a) → (List a)
 ;;; Take first n elements from list
@@ -532,9 +532,9 @@
 ;;; Filter list by predicate
 (define (filter pred lst)
   (cond
-    [(null? lst) '()]
-    [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
-    [else (filter pred (cdr lst))]))
+   [(null? lst) '()]
+   [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
+   [else (filter pred (cdr lst))]))
 
 ;;; sort : (a × a → Boolean) × (List a) → (List a)
 ;;; Sort list using comparison function (simple insertion sort)
@@ -545,9 +545,9 @@
 
 (define (insert x sorted less?)
   (cond
-    [(null? sorted) (list x)]
-    [(less? x (car sorted)) (cons x sorted)]
-    [else (cons (car sorted) (insert x (cdr sorted) less?))]))
+   [(null? sorted) (list x)]
+   [(less? x (car sorted)) (cons x sorted)]
+   [else (cons (car sorted) (insert x (cdr sorted) less?))]))
 
 ;;; ============================================================
 ;;; Test Listing
@@ -560,31 +560,31 @@
   (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
   (display (bold "║              AVAILABLE TESTS                                 ║\n"))
   (display (bold "╚══════════════════════════════════════════════════════════════╝\n\n"))
-
+  
   (display (bold (string-append "CORE TESTS (" (number->string (length *core-test-files*)) " files):\n")))
   (for-each
-    (lambda (f) (display (string-append "  " (cyan f) "\n")))
-    *core-test-files*)
-
+   (lambda (f) (display (string-append "  " (cyan f) "\n")))
+   *core-test-files*)
+  
   (display "\n")
   (display (bold (string-append "SHELL TESTS (" (number->string (length *shell-test-files*)) " files):\n")))
   (for-each
-    (lambda (f) (display (string-append "  " (cyan f) "\n")))
-    *shell-test-files*)
-
+   (lambda (f) (display (string-append "  " (cyan f) "\n")))
+   *shell-test-files*)
+  
   (display "\n")
   (display (bold (string-append "EXCLUDED TESTS (" (number->string (length *excluded-test-files*)) " files):\n")))
   (display (gray "  (These require special setup and are not run automatically)\n"))
   (for-each
-    (lambda (f) (display (string-append "  " (gray f) "\n")))
-    *excluded-test-files*)
-
+   (lambda (f) (display (string-append "  " (gray f) "\n")))
+   *excluded-test-files*)
+  
   (display "\n")
   (display (string-append "Total available: "
-                         (bold (number->string (+ (length *core-test-files*)
-                                                 (length *shell-test-files*))))
-                         " tests\n\n"))
-
+                          (bold (number->string (+ (length *core-test-files*)
+                                                   (length *shell-test-files*))))
+                          " tests\n\n"))
+  
   (display "Usage:\n")
   (display "  Run all:       scheme --script shell/test-runner.ss\n")
   (display "  Run core:      scheme --script shell/test-runner.ss core\n")
@@ -613,38 +613,38 @@
 ;;; Parse command-line arguments and execute appropriate action
 (define (parse-args args)
   (cond
-    [(null? args)
-     (run-tests 'all)]
-
-    [(string=? (car args) "--help")
-     (print-help)]
-
-    [(string=? (car args) "--list")
-     (list-available-tests)]
-
-    [(string=? (car args) "--watch")
-     (watch-tests)]
-
-    [(string=? (car args) "--pattern")
-     (if (null? (cdr args))
-         (begin
-           (display (red "Error: --pattern requires an argument\n"))
-           (exit 1))
-         (run-tests-matching (cadr args)))]
-
-    [(string=? (car args) "core")
-     (run-tests 'core)]
-
-    [(string=? (car args) "shell")
-     (run-tests 'shell)]
-
-    [(string=? (car args) "all")
-     (run-tests 'all)]
-
-    [else
-     (display (red (string-append "Unknown argument: " (car args) "\n")))
-     (print-help)
-     (exit 1)]))
+   [(null? args)
+    (run-tests 'all)]
+   
+   [(string=? (car args) "--help")
+    (print-help)]
+   
+   [(string=? (car args) "--list")
+    (list-available-tests)]
+   
+   [(string=? (car args) "--watch")
+    (watch-tests)]
+   
+   [(string=? (car args) "--pattern")
+    (if (null? (cdr args))
+        (begin
+         (display (red "Error: --pattern requires an argument\n"))
+         (exit 1))
+        (run-tests-matching (cadr args)))]
+   
+   [(string=? (car args) "core")
+    (run-tests 'core)]
+   
+   [(string=? (car args) "shell")
+    (run-tests 'shell)]
+   
+   [(string=? (car args) "all")
+    (run-tests 'all)]
+   
+   [else
+    (display (red (string-append "Unknown argument: " (car args) "\n")))
+    (print-help)
+    (exit 1)]))
 
 ;;; print-help : Unit → Unit
 (define (print-help)
@@ -683,29 +683,29 @@
 
 ;;; Add core to source-directories if not present
 (unless (member "fabric/stitches" (source-directories))
-  (source-directories (cons "fabric/stitches" (source-directories))))
+        (source-directories (cons "fabric/stitches" (source-directories))))
 
 ;;; When run as a script, parse command-line args
 (let ([args (command-line)])
-  (when (and (pair? args)
-             (pair? (cdr args))
-             (string-contains? (car args) "test-runner.ss"))
-    ;; Running as script
-    (set! *test-runner-loaded* #t)
-    (parse-args (cdr args))
-
-    ;; Exit with appropriate code
-    (when (> (count-status 'failed) 0)
-      (exit 1))))
+     (when (and (pair? args)
+                (pair? (cdr args))
+                (string-contains? (car args) "test-runner.ss"))
+           ;; Running as script
+           (set! *test-runner-loaded* #t)
+           (parse-args (cdr args))
+           
+           ;; Exit with appropriate code
+           (when (> (count-status 'failed) 0)
+                 (exit 1))))
 
 ;;; If loaded interactively, print a helpful message
 (unless *test-runner-loaded*
-  (set! *test-runner-loaded* #t)
-  (display (green "\nTest runner loaded.\n"))
-  (display "Try: ")
-  (display (cyan "(run-tests)"))
-  (display " or ")
-  (display (cyan "(run-tests 'core)"))
-  (display " or ")
-  (display (cyan "(run-tests-matching \"block\")"))
-  (display "\n\n"))
+        (set! *test-runner-loaded* #t)
+        (display (green "\nTest runner loaded.\n"))
+        (display "Try: ")
+        (display (cyan "(run-tests)"))
+        (display " or ")
+        (display (cyan "(run-tests 'core)"))
+        (display " or ")
+        (display (cyan "(run-tests-matching \"block\")"))
+        (display "\n\n"))

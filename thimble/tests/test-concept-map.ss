@@ -34,36 +34,36 @@
   (set! test-count (+ test-count 1))
   (if (equal? expected actual)
       (begin
-        (set! pass-count (+ pass-count 1))
-        (display (string-append "  PASS: " name "\n")))
+       (set! pass-count (+ pass-count 1))
+       (display (string-append "  PASS: " name "\n")))
       (begin
-        (set! fail-count (+ fail-count 1))
-        (display (string-append "  FAIL: " name "\n"))
-        (display "    Expected: ")
-        (write expected)
-        (newline)
-        (display "    Actual: ")
-        (write actual)
-        (newline))))
+       (set! fail-count (+ fail-count 1))
+       (display (string-append "  FAIL: " name "\n"))
+       (display "    Expected: ")
+       (write expected)
+       (newline)
+       (display "    Actual: ")
+       (write actual)
+       (newline))))
 
 (define (test-pred name pred value)
   (set! test-count (+ test-count 1))
   (if (pred value)
       (begin
-        (set! pass-count (+ pass-count 1))
-        (display (string-append "  PASS: " name "\n")))
+       (set! pass-count (+ pass-count 1))
+       (display (string-append "  PASS: " name "\n")))
       (begin
-        (set! fail-count (+ fail-count 1))
-        (display (string-append "  FAIL: " name "\n"))
-        (display "    Value did not satisfy predicate: ")
-        (write value)
-        (newline))))
+       (set! fail-count (+ fail-count 1))
+       (display (string-append "  FAIL: " name "\n"))
+       (display "    Value did not satisfy predicate: ")
+       (write value)
+       (newline))))
 
 (define (report-results)
   (newline)
   (display "================================================================================\n")
   (display (string-append "RESULTS: " (number->string pass-count) "/"
-                         (number->string test-count) " passed"))
+                          (number->string test-count) " passed"))
   (if (> fail-count 0)
       (display (string-append " (" (number->string fail-count) " failed)"))
       (display " (all passed)"))
@@ -151,7 +151,7 @@
 (test "count-occurrences works"
       '((a . 2) (b . 1))
       (let ([counts (count-occurrences '(a b a))])
-        (list (assq 'a counts) (assq 'b counts))))
+           (list (assq 'a counts) (assq 'b counts))))
 
 ;;; ============================================================
 ;;; Tests: Definition Extraction
@@ -161,24 +161,24 @@
 
 ;; Test on actual core/block.ss
 (let ([defs (extract-definitions (string-append *core-path* "/block.ss"))])
-  (test-pred "extract-definitions finds definitions"
-             (lambda (x) (> (length x) 0))
-             defs)
-
-  (test-pred "extract-definitions finds block record"
-             (lambda (x)
-               (ormap (lambda (d)
-                        (and (eq? (cdr (assq 'type d)) 'record)
-                             (eq? (cdr (assq 'name d)) 'block)))
-                      x))
-             defs)
-
-  (test-pred "extract-definitions finds make-block function"
-             (lambda (x)
-               (ormap (lambda (d)
-                        (and (eq? (cdr (assq 'name d)) 'block->bytes)))
-                      x))
-             defs))
+     (test-pred "extract-definitions finds definitions"
+                (lambda (x) (> (length x) 0))
+                defs)
+     
+     (test-pred "extract-definitions finds block record"
+                (lambda (x)
+                        (ormap (lambda (d)
+                                       (and (eq? (cdr (assq 'type d)) 'record)
+                                            (eq? (cdr (assq 'name d)) 'block)))
+                               x))
+                defs)
+     
+     (test-pred "extract-definitions finds make-block function"
+                (lambda (x)
+                        (ormap (lambda (d)
+                                       (and (eq? (cdr (assq 'name d)) 'block->bytes)))
+                               x))
+                defs))
 
 ;;; ============================================================
 ;;; Tests: Concept Extraction
@@ -187,28 +187,28 @@
 (display "\n=== Concept Extraction ===\n")
 
 (let ([concepts (extract-concepts (string-append *core-path* "/block.ss"))])
-  (test-pred "extract-concepts finds Block"
-             (lambda (x)
-               (ormap (lambda (c)
-                        (eq? (cdr (assq 'name c)) 'Block))
-                      x))
-             concepts)
-
-  (test-pred "extract-concepts counts occurrences"
-             (lambda (x)
-               (let ([block-concept (find (lambda (c)
-                                            (eq? (cdr (assq 'name c)) 'Block))
-                                          x)])
-                 (and block-concept
-                      (> (cdr (assq 'occurrences block-concept)) 0))))
-             concepts))
+     (test-pred "extract-concepts finds Block"
+                (lambda (x)
+                        (ormap (lambda (c)
+                                       (eq? (cdr (assq 'name c)) 'Block))
+                               x))
+                concepts)
+     
+     (test-pred "extract-concepts counts occurrences"
+                (lambda (x)
+                        (let ([block-concept (find (lambda (c)
+                                                           (eq? (cdr (assq 'name c)) 'Block))
+                                                   x)])
+                             (and block-concept
+                                  (> (cdr (assq 'occurrences block-concept)) 0))))
+                concepts))
 
 ;; Helper for find
 (define (find pred lst)
   (cond
-    [(null? lst) #f]
-    [(pred (car lst)) (car lst)]
-    [else (find pred (cdr lst))]))
+   [(null? lst) #f]
+   [(pred (car lst)) (car lst)]
+   [else (find pred (cdr lst))]))
 
 ;;; ============================================================
 ;;; Tests: Relationship Finding
@@ -218,16 +218,16 @@
 
 (let* ([defs (extract-definitions (string-append *core-path* "/block.ss"))]
        [rels (find-relationships defs)])
-  (test-pred "find-relationships returns list"
-             list?
-             rels)
-
-  (test-pred "find-relationships finds field relationships"
-             (lambda (x)
-               (ormap (lambda (r)
-                        (eq? (cadr r) 'has-field))
-                      x))
-             rels))
+      (test-pred "find-relationships returns list"
+                 list?
+                 rels)
+      
+      (test-pred "find-relationships finds field relationships"
+                 (lambda (x)
+                         (ormap (lambda (r)
+                                        (eq? (cadr r) 'has-field))
+                                x))
+                 rels))
 
 ;;; ============================================================
 ;;; Tests: Graph Building
@@ -236,19 +236,19 @@
 (display "\n=== Graph Building ===\n")
 
 (let ([graph (build-concept-graph (string-append *core-path* "/block.ss"))])
-  (test-pred "build-concept-graph has concepts"
-             (lambda (g) (assq 'concepts g))
-             graph)
-
-  (test-pred "build-concept-graph has relationships"
-             (lambda (g) (assq 'relationships g))
-             graph)
-
-  (test-pred "build-concept-graph has source"
-             (lambda (g)
-               (let ([src (assq 'source g)])
-                 (and src (string? (cdr src)))))
-             graph))
+     (test-pred "build-concept-graph has concepts"
+                (lambda (g) (assq 'concepts g))
+                graph)
+     
+     (test-pred "build-concept-graph has relationships"
+                (lambda (g) (assq 'relationships g))
+                graph)
+     
+     (test-pred "build-concept-graph has source"
+                (lambda (g)
+                        (let ([src (assq 'source g)])
+                             (and src (string? (cdr src)))))
+                graph))
 
 ;;; ============================================================
 ;;; Tests: Rendering
@@ -258,17 +258,17 @@
 
 (let* ([graph (build-concept-graph (string-append *core-path* "/block.ss"))]
        [output (render-concept-map graph)])
-  (test-pred "render-concept-map produces string"
-             string?
-             output)
-
-  (test-pred "render-concept-map contains header"
-             (lambda (s) (string-contains? s "CONCEPT MAP"))
-             output)
-
-  (test-pred "render-concept-map contains source path"
-             (lambda (s) (string-contains? s "block.ss"))
-             output))
+      (test-pred "render-concept-map produces string"
+                 string?
+                 output)
+      
+      (test-pred "render-concept-map contains header"
+                 (lambda (s) (string-contains? s "CONCEPT MAP"))
+                 output)
+      
+      (test-pred "render-concept-map contains source path"
+                 (lambda (s) (string-contains? s "block.ss"))
+                 output))
 
 ;;; ============================================================
 ;;; Tests: Full Integration
@@ -278,11 +278,11 @@
 
 ;; Test on types.ss as well
 (let ([graph (build-concept-graph (string-append *core-path* "/types.ss"))])
-  (test-pred "types.ss graph has Type concept"
-             (lambda (g)
-               (let ([concepts (cdr (assq 'concepts g))])
-                 (assq 'Type concepts)))
-             graph))
+     (test-pred "types.ss graph has Type concept"
+                (lambda (g)
+                        (let ([concepts (cdr (assq 'concepts g))])
+                             (assq 'Type concepts)))
+                graph))
 
 ;;; ============================================================
 ;;; Demo Output
@@ -290,11 +290,11 @@
 
 (display "\n=== Demo: Concept Map for core/block.ss ===\n")
 (let ([graph (concept-map (string-append *core-path* "/block.ss"))])
-  (void))
+     (void))
 
 (display "\n=== Demo: Concept Map for core/types.ss ===\n")
 (let ([graph (concept-map (string-append *core-path* "/types.ss"))])
-  (void))
+     (void))
 
 ;;; ============================================================
 ;;; Report
@@ -305,6 +305,6 @@
 ;; Exit with appropriate code (only when running as script)
 ;; Comment out for interactive use
 (when (not (terminal-port? (current-input-port)))
-  (if (> fail-count 0)
-      (exit 1)
-      (exit 0)))
+      (if (> fail-count 0)
+          (exit 1)
+          (exit 0)))

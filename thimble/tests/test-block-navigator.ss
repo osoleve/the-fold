@@ -21,7 +21,7 @@
 
 ;;; Clean up old test store
 (when (file-exists? test-store-path)
-  (system (format "rm -rf ~a" test-store-path)))
+      (system (format "rm -rf ~a" test-store-path)))
 
 (define test-fs (mint-fs-capability test-store-path))
 
@@ -29,48 +29,48 @@
 
 ;; Block 1: A simple data block (orphan)
 (define blk1 (make-block 'data
-                        (string->utf8 "This is a simple data block")
-                        (vector)))
+                         (string->utf8 "This is a simple data block")
+                         (vector)))
 (define hash1 (fs-store! test-fs blk1))
 (fs-pin! test-fs hash1)
 (display (format "Created block 1: ~a\n" (hash->hex hash1)))
 
 ;; Block 2: A code block (orphan)
 (define blk2 (make-block 'code
-                        (string->utf8 "(define (hello) (display \"Hello, World!\"))")
-                        (vector)))
+                         (string->utf8 "(define (hello) (display \"Hello, World!\"))")
+                         (vector)))
 (define hash2 (fs-store! test-fs blk2))
 (fs-pin! test-fs hash2)
 (display (format "Created block 2: ~a\n" (hash->hex hash2)))
 
 ;; Block 3: A block that references block 1
 (define blk3 (make-block 'metadata
-                        (string->utf8 "Metadata for data block")
-                        (vector hash1)))
+                         (string->utf8 "Metadata for data block")
+                         (vector hash1)))
 (define hash3 (fs-store! test-fs blk3))
 (fs-pin! test-fs hash3)
 (display (format "Created block 3: ~a (refs block 1)\n" (hash->hex hash3)))
 
 ;; Block 4: A block that references both block 1 and 2
 (define blk4 (make-block 'composite
-                        (string->utf8 "Composite block with multiple refs")
-                        (vector hash1 hash2)))
+                         (string->utf8 "Composite block with multiple refs")
+                         (vector hash1 hash2)))
 (define hash4 (fs-store! test-fs blk4))
 (fs-pin! test-fs hash4)
 (display (format "Created block 4: ~a (refs blocks 1, 2)\n" (hash->hex hash4)))
 
 ;; Block 5: A chain block referencing block 3
 (define blk5 (make-block 'chain
-                        (string->utf8 "Chain continuation")
-                        (vector hash3)))
+                         (string->utf8 "Chain continuation")
+                         (vector hash3)))
 (define hash5 (fs-store! test-fs blk5))
 (fs-pin! test-fs hash5)
 (display (format "Created block 5: ~a (refs block 3)\n" (hash->hex hash5)))
 
 ;; Block 6: Another block referencing block 1 (making it popular)
 (define blk6 (make-block 'reference
-                        (string->utf8 "Another reference to block 1")
-                        (vector hash1)))
+                         (string->utf8 "Another reference to block 1")
+                         (vector hash1)))
 (define hash6 (fs-store! test-fs blk6))
 (fs-pin! test-fs hash6)
 (display (format "Created block 6: ~a (refs block 1)\n" (hash->hex hash6)))
@@ -127,7 +127,7 @@
 (newline)
 
 (let ([prefix (substring (hash->hex hash4) 0 8)])
-  (explore test-fs prefix))
+     (explore test-fs prefix))
 
 ;;; ============================================================
 ;;; Test 5: Visualize Tree
@@ -139,7 +139,7 @@
 (newline)
 
 (let ([prefix (substring (hash->hex hash5) 0 8)])
-  (visualize-tree test-fs prefix 3))
+     (visualize-tree test-fs prefix 3))
 
 ;;; ============================================================
 ;;; Test 6: Search with Ranking
@@ -162,7 +162,7 @@
 (newline)
 
 (let ([prefix (substring (hash->hex hash5) 0 8)])
-  (show-lineage test-fs prefix))
+     (show-lineage test-fs prefix))
 
 ;;; ============================================================
 ;;; Test Summary

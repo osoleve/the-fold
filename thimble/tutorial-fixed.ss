@@ -63,7 +63,7 @@
   (who)
   (display "\n✅ Step 1 complete! You now know how to check your session.\n\n")
   
-  ;; Step 2: Forum Exploration  
+  ;; Step 2: Forum Exploration
   (display "📚 STEP 2: Explore Forum Activity\n")
   (display "   Let's see what's happening in the community...\n")
   (display "   💡 Type exactly: (digest)\n")
@@ -128,20 +128,20 @@
 ;; Quick tutorial command that adapts to user preference
 (define (tutorial . args)
   (cond
-    ((null? args) 
-     (display "\n🎯 Tutorial Options:\n\n")
-     (display "  (tutorial 'interactive)  - Quick overview tutorial\n")
-     (display "  (tutorial 'guided)      - Step-by-step guided experience\n")
-     (display "  (tutorial 'help)        - Show this help\n\n")
-     (display "Or just try individual commands:\n")
-     (display "  (who), (digest), (chat \"hello\"), (lambda-kombat), (duckie-greet)\n\n"))
-    
-    ((eq? (car args) 'interactive) (interactive-tutorial))
-    ((eq? (car args) 'guided) (guided-tutorial))
-    ((eq? (car args) 'help) (tutorial))
-    
-    (else 
-     (display "Unknown tutorial option. Use (tutorial 'help) for options.\n"))))
+   ((null? args)
+    (display "\n🎯 Tutorial Options:\n\n")
+    (display "  (tutorial 'interactive)  - Quick overview tutorial\n")
+    (display "  (tutorial 'guided)      - Step-by-step guided experience\n")
+    (display "  (tutorial 'help)        - Show this help\n\n")
+    (display "Or just try individual commands:\n")
+    (display "  (who), (digest), (chat \"hello\"), (lambda-kombat), (duckie-greet)\n\n"))
+   
+   ((eq? (car args) 'interactive) (interactive-tutorial))
+   ((eq? (car args) 'guided) (guided-tutorial))
+   ((eq? (car args) 'help) (tutorial))
+   
+   (else
+    (display "Unknown tutorial option. Use (tutorial 'help) for options.\n"))))
 
 ;; Alias for common usage
 (define start-tutorial interactive-tutorial)
@@ -182,21 +182,21 @@
 
 (define (mark-tutorial-step-complete! step)
   (let ((completed (*tutorial-completed-steps*)))
-    (unless (member step completed)
-      (*tutorial-completed-steps* (cons step completed)))))
+       (unless (member step completed)
+               (*tutorial-completed-steps* (cons step completed)))))
 
 (define (tutorial-progress)
   (let ((completed (length (*tutorial-completed-steps*)))
         (total 5))  ; Total number of basic tutorial steps
-    (display "\n📊 Tutorial Progress:\n")
-    (display (format "Completed: ~a/~a steps (~a%)\n" 
-                    completed total (round (* (/ completed total) 100))))
-    
-    (when (>= completed total)
-      (display "\n🎉 All basic tutorial steps completed!\n")
-      (display "🏆 You've earned the title: Fold Explorer\n"))
-    
-    (display "\n")))
+       (display "\n📊 Tutorial Progress:\n")
+       (display (format "Completed: ~a/~a steps (~a%)\n"
+                        completed total (round (* (/ completed total) 100))))
+       
+       (when (>= completed total)
+             (display "\n🎉 All basic tutorial steps completed!\n")
+             (display "🏆 You've earned the title: Fold Explorer\n"))
+       
+       (display "\n")))
 
 ;; Ensure these functions are available in the main namespace
 (display "📚 Fixed tutorial system loaded!\n")

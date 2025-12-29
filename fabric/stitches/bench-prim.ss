@@ -23,28 +23,28 @@
          [elapsed-sec (- (time-second end) (time-second start))]
          [elapsed-ns (- (time-nanosecond end) (time-nanosecond start))]
          [total-ns (+ (* elapsed-sec 1000000000) elapsed-ns)])
-    (values result total-ns)))
+        (values result total-ns)))
 
 ;;; bench : String (-> Any) Nat -> Void
 ;;; Run thunk n times and report timing.
 (define (bench name thunk n)
   (let-values ([(_ ns) (time-thunk (lambda ()
-                                     (let loop ([i n])
-                                       (when (> i 0)
-                                         (thunk)
-                                         (loop (- i 1))))))])
-    (let* ([ms (/ ns 1000000.0)]
-           [per-op-ns (/ ns n)])
-      (printf "  ~a: ~,2fms total, ~,1fns/op~n" name ms per-op-ns))))
+                                           (let loop ([i n])
+                                                (when (> i 0)
+                                                      (thunk)
+                                                      (loop (- i 1))))))])
+              (let* ([ms (/ ns 1000000.0)]
+                     [per-op-ns (/ ns n)])
+                    (printf "  ~a: ~,2fms total, ~,1fns/op~n" name ms per-op-ns))))
 
 ;;; bench-prim : Symbol Args... -> Void
 ;;; Benchmark a specific primitive.
 (define (bench-prim op . args)
   (let ([cost (prim-fuel-cost op)]
         [name (symbol->string op)])
-    (bench (format "~a (cost ~a)" name cost)
-           (lambda () (apply prim op args))
-           *iterations*)))
+       (bench (format "~a (cost ~a)" name cost)
+              (lambda () (apply prim op args))
+              *iterations*)))
 
 ;;; ============================================================
 ;;; Benchmark Suites by Tier
@@ -137,11 +137,11 @@
 
 (define (measure-ns thunk n)
   (let-values ([(_ ns) (time-thunk (lambda ()
-                                     (let loop ([i n])
-                                       (when (> i 0)
-                                         (thunk)
-                                         (loop (- i 1))))))])
-    ns))
+                                           (let loop ([i n])
+                                                (when (> i 0)
+                                                      (thunk)
+                                                      (loop (- i 1))))))])
+              ns))
 
 (define tier1-ns (measure-ns (lambda () (prim 'number? 42)) *iterations*))
 (define tier2-ns (measure-ns (lambda () (prim 'add 100 200)) *iterations*))

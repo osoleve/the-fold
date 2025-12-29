@@ -18,13 +18,13 @@
 (define (test name expected actual)
   (if (equal? expected actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (printf "  ✓ ~a\n" name))
+       (set! tests-passed (+ tests-passed 1))
+       (printf "  ✓ ~a\n" name))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (printf "  ✗ ~a\n" name)
-        (printf "      Expected: ~s\n" expected)
-        (printf "      Got:      ~s\n" actual))))
+       (set! tests-failed (+ tests-failed 1))
+       (printf "  ✗ ~a\n" name)
+       (printf "      Expected: ~s\n" expected)
+       (printf "      Got:      ~s\n" actual))))
 
 (define (test-true name actual)
   (test name #t actual))
@@ -41,7 +41,7 @@
 
 (define test-store-path ".test-pattern-query")
 (when (file-exists? test-store-path)
-  (system (format "rm -rf ~a" test-store-path)))
+      (system (format "rm -rf ~a" test-store-path)))
 
 (define fs (mint-fs-capability test-store-path))
 
@@ -138,13 +138,13 @@
            (bytevector=? (lookup-env env2 '?x) hash-turing))
 
 (test-false "lookup-env returns #f for unbound"
-             (lookup-env env2 '?z))
+            (lookup-env env2 '?z))
 
 (test-true "env-bound? returns #t for bound var"
            (env-bound? env2 '?x))
 
 (test-false "env-bound? returns #f for unbound var"
-             (env-bound? env2 '?z))
+            (env-bound? env2 '?z))
 
 ;; Test merge-envs
 (define env3 (extend-env empty-env '?a hash-lambda))
@@ -209,8 +209,8 @@
 ;; Find who influenced whom, and what the influencer invented
 (define join-result1
   (join-patterns fs
-    '((?x influenced ?y)
-      (?x invented ?concept))))
+                 '((?x influenced ?y)
+                   (?x invented ?concept))))
 
 (test-true "join finds Church influenced Turing AND invented Lambda Calc"
            (>= (length join-result1) 1))
@@ -238,7 +238,7 @@
 ;; Simple pattern query without constraints
 (define query-result1
   (pattern-query fs
-    '((?person invented ?concept))))
+                 '((?person invented ?concept))))
 
 (test "pattern-query finds invented relations"
       2
@@ -247,8 +247,8 @@
 ;; Pattern query with multiple patterns (join)
 (define query-result2
   (pattern-query fs
-    '((?x influenced ?y)
-      (?y invented ?concept))))
+                 '((?x influenced ?y)
+                   (?y invented ?concept))))
 
 (test-true "pattern-query joins patterns correctly"
            (>= (length query-result2) 0))

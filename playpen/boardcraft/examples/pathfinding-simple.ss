@@ -16,15 +16,15 @@
 (define (show-path path-name path)
   (if path
       (begin
-        (display "  ")
-        (display path-name)
-        (display " found! Length: ")
-        (display (length path))
-        (newline))
+       (display "  ")
+       (display path-name)
+       (display " found! Length: ")
+       (display (length path))
+       (newline))
       (begin
-        (display "  ")
-        (display path-name)
-        (display ": No path\n"))))
+       (display "  ")
+       (display path-name)
+       (display ": No path\n"))))
 
 ;;; ============================================================
 ;;; Example 1: BFS on Square Grid
@@ -46,8 +46,8 @@
 (newline)
 
 (let ([path (find-path-bfs square-board sq-start sq-goal
-                          (lambda (c) (square-neighbors c 'ortho)))])
-  (show-path "BFS" path))
+                           (lambda (c) (square-neighbors c 'ortho)))])
+     (show-path "BFS" path))
 (newline)
 
 ;;; ============================================================
@@ -69,9 +69,9 @@
 (newline)
 
 (let ([path (find-path-astar hex-board hex-start hex-goal
-                            hex-neighbors
-                            hex-distance)])
-  (show-path "A*" path))
+                             hex-neighbors
+                             hex-distance)])
+     (show-path "A*" path))
 (newline)
 
 ;;; ============================================================
@@ -96,8 +96,8 @@
 
 (display "Grass (cost=1), Swamp (cost=3)\n")
 (let ([path (find-path-dijkstra terrain-board t-start t-goal
-                               (lambda (c) (square-neighbors c 'all)))])
-  (show-path "Dijkstra" path))
+                                (lambda (c) (square-neighbors c 'all)))])
+     (show-path "Dijkstra" path))
 (newline)
 
 ;;; ============================================================

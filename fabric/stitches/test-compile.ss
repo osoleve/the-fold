@@ -23,13 +23,13 @@
   (display ": ")
   (if (equal? expected actual)
       (begin
-        (set! *test-pass* (+ *test-pass* 1))
-        (display "✓\n"))
+       (set! *test-pass* (+ *test-pass* 1))
+       (display "✓\n"))
       (begin
-        (set! *test-fail* (+ *test-fail* 1))
-        (display "✗\n")
-        (display "    expected: ") (display expected) (newline)
-        (display "    actual:   ") (display actual) (newline))))
+       (set! *test-fail* (+ *test-fail* 1))
+       (display "✗\n")
+       (display "    expected: ") (display expected) (newline)
+       (display "    actual:   ") (display actual) (newline))))
 
 (define (test-ok name result)
   (test name #t (result-ok? result)))
@@ -50,16 +50,16 @@
 (display "───────────\n")
 
 (let ([ok (result-ok 42)])
-  (test "result-ok creates ok" #t (result-ok? ok))
-  (test "result-ok value" 42 (result-value ok)))
+     (test "result-ok creates ok" #t (result-ok? ok))
+     (test "result-ok value" 42 (result-value ok)))
 
 (let ([err (result-error 'test 'some-error 'details)])
-  (test "result-error creates error" #t (result-error? err))
-  (test "result-error phase" 'test (result-phase err))
-  (test "result-error type" 'some-error (result-error-type err)))
+     (test "result-error creates error" #t (result-error? err))
+     (test "result-error phase" 'test (result-phase err))
+     (test "result-error type" 'some-error (result-error-type err)))
 
 (let ([susp (result-suspended 'expr '())])
-  (test "result-suspended creates suspended" #t (result-suspended? susp)))
+     (test "result-suspended creates suspended" #t (result-suspended? susp)))
 
 (display "\n")
 
@@ -72,15 +72,15 @@
 
 (let* ([r1 (result-ok 10)]
        [r2 (result-bind r1 (lambda (x) (result-ok (* x 2))))])
-  (test "bind ok -> ok" 20 (result-value r2)))
+      (test "bind ok -> ok" 20 (result-value r2)))
 
 (let* ([r1 (result-error 'test 'fail)]
        [r2 (result-bind r1 (lambda (x) (result-ok (* x 2))))])
-  (test "bind error -> error" #t (result-error? r2)))
+      (test "bind error -> error" #t (result-error? r2)))
 
 (let* ([r1 (result-ok 5)]
        [r2 (result-map r1 (lambda (x) (+ x 1)))])
-  (test "map ok" 6 (result-value r2)))
+      (test "map ok" 6 (result-value r2)))
 
 (display "\n")
 
@@ -112,16 +112,16 @@
 (display "──────────────\n")
 
 (let ([r (compile "42" 'to 'infer)])
-  (test "infer number is ok" #t (result-ok? r))
-  (test "number has Int type" 'Int (result-value r)))
+     (test "infer number is ok" #t (result-ok? r))
+     (test "number has Int type" 'Int (result-value r)))
 
 (let ([r (compile "#t" 'to 'infer)])
-  (test "infer bool is ok" #t (result-ok? r))
-  (test "bool has Bool type" 'Bool (result-value r)))
+     (test "infer bool is ok" #t (result-ok? r))
+     (test "bool has Bool type" 'Bool (result-value r)))
 
 (let ([r (compile "\"hello\"" 'to 'infer)])
-  (test "infer string is ok" #t (result-ok? r))
-  (test "string has String type" 'String (result-value r)))
+     (test "infer string is ok" #t (result-ok? r))
+     (test "string has String type" 'String (result-value r)))
 
 (display "\n")
 
@@ -139,12 +139,12 @@
 
 ;; Arithmetic via prim (primitives are named add, mul, not +, *)
 (let ([r (compile "(prim 'add 1 2)" 'to 'eval)])
-  (test "eval add is ok" #t (result-ok? r))
-  (test "eval add value" 3 (result-value r)))
+     (test "eval add is ok" #t (result-ok? r))
+     (test "eval add value" 3 (result-value r)))
 
 (let ([r (compile "(prim 'mul 3 4)" 'to 'eval)])
-  (test "eval mul is ok" #t (result-ok? r))
-  (test "eval mul value" 12 (result-value r)))
+     (test "eval mul is ok" #t (result-ok? r))
+     (test "eval mul value" 12 (result-value r)))
 
 (display "\n")
 
@@ -158,13 +158,13 @@
 ;; Identity function - use implicit application (f arg) not (call f arg)
 ;; Type inference uses implicit application, eval supports both
 (let ([r (compile "((fn (x) x) 42)" 'to 'eval)])
-  (test "identity application is ok" #t (result-ok? r))
-  (test "identity returns arg" 42 (result-value r)))
+     (test "identity application is ok" #t (result-ok? r))
+     (test "identity returns arg" 42 (result-value r)))
 
 ;; K combinator (returns first arg)
 (let ([r (compile "(((fn (x) (fn (y) x)) 1) 2)" 'to 'eval)])
-  (test "K combinator is ok" #t (result-ok? r))
-  (test "K returns first" 1 (result-value r)))
+     (test "K combinator is ok" #t (result-ok? r))
+     (test "K returns first" 1 (result-value r)))
 
 (display "\n")
 
@@ -176,12 +176,12 @@
 (display "────────────\n")
 
 (let ([r (compile "(let ((x 10)) x)" 'to 'eval)])
-  (test "let binding is ok" #t (result-ok? r))
-  (test "let binding value" 10 (result-value r)))
+     (test "let binding is ok" #t (result-ok? r))
+     (test "let binding value" 10 (result-value r)))
 
 (let ([r (compile "(let ((x 10)) (let ((y 20)) (prim 'add x y)))" 'to 'eval)])
-  (test "nested let is ok" #t (result-ok? r))
-  (test "nested let value" 30 (result-value r)))
+     (test "nested let is ok" #t (result-ok? r))
+     (test "nested let value" 30 (result-value r)))
 
 (display "\n")
 
@@ -210,12 +210,12 @@
 
 ;; Unbound variable
 (let ([r (compile "undefined-var" 'to 'infer)])
-  (test "unbound var is error" #t (result-error? r))
-  (test "unbound var phase" 'infer (result-phase r)))
+     (test "unbound var is error" #t (result-error? r))
+     (test "unbound var phase" 'infer (result-phase r)))
 
 ;; Empty input
 (let ([r (compile "" 'to 'parse)])
-  (test "empty input is error" #t (result-error? r)))
+     (test "empty input is error" #t (result-error? r)))
 
 (display "\n")
 

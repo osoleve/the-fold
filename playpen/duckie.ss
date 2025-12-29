@@ -19,8 +19,8 @@
            (valid-integer? y 0 1000))
       (cons x y)
       (begin
-        (log-invalid-input "point-coordinates" (cons x y))
-        (cons 0 0))))  ; Default to safe coordinates
+       (log-invalid-input "point-coordinates" (cons x y))
+       (cons 0 0))))  ; Default to safe coordinates
 
 (define (point-x p) (car p))
 (define (point-y p) (cdr p))
@@ -113,9 +113,9 @@
 (define (duckie-update d field value)
   (cons 'duckie
         (map (lambda (pair)
-               (if (eq? (car pair) field)
-                   (cons field value)
-                   pair))
+                     (if (eq? (car pair) field)
+                         (cons field value)
+                         pair))
              (cdr d))))
 
 ;;; set-mood : Duckie × Mood → Duckie
@@ -190,30 +190,30 @@
 
 (define (mood-after-interaction current-mood interaction-type)
   (case interaction-type
-    [(pet stroke)
-     (case current-mood
-       [(lonely) 'happy]
-       [(sleepy) 'content]
-       [else 'happy])]
-    [(talk greet)
-     (case current-mood
-       [(lonely) 'happy]
-       [(sleepy) 'curious]
-       [else current-mood])]
-    [(play)
-     'playful]
-    [(leave close)
-     (case current-mood
-       [(playful happy) 'content]
-       [else 'lonely])]
-    [(idle)
-     (case current-mood
-       [(playful) 'happy]
-       [(happy) 'content]
-       [(content) 'sleepy]
-       [(sleepy) 'lonely]
-       [else current-mood])]
-    [else current-mood]))
+        [(pet stroke)
+         (case current-mood
+               [(lonely) 'happy]
+               [(sleepy) 'content]
+               [else 'happy])]
+        [(talk greet)
+         (case current-mood
+               [(lonely) 'happy]
+               [(sleepy) 'curious]
+               [else current-mood])]
+        [(play)
+         'playful]
+        [(leave close)
+         (case current-mood
+               [(playful happy) 'content]
+               [else 'lonely])]
+        [(idle)
+         (case current-mood
+               [(playful) 'happy]
+               [(happy) 'content]
+               [(content) 'sleepy]
+               [(sleepy) 'lonely]
+               [else current-mood])]
+        [else current-mood]))
 
 ;;; ============================================================
 ;;; Serialization — DUCKIE as Block
@@ -231,12 +231,12 @@
 (define (block->duckie blk)
   (if (eq? (block-tag blk) 'duckie)
       (let ([payload (utf8->string (block-payload blk))])
-        (if (and (valid-string? payload 1 10000)
-                 (not (string-contains? payload "\000")))
-            (read (open-input-string payload))
-            (begin
-              (log-security-event 'invalid-duckie-payload payload)
-              #f)))
+           (if (and (valid-string? payload 1 10000)
+                    (not (string-contains? payload "\000")))
+               (read (open-input-string payload))
+               (begin
+                (log-security-event 'invalid-duckie-payload payload)
+                #f)))
       #f))
 
 ;;; ============================================================

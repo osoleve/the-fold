@@ -14,13 +14,13 @@
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
       (begin
-        (set! pass-count (+ pass-count 1))
-        (printf "  ✓ ~a\n" name))
+       (set! pass-count (+ pass-count 1))
+       (printf "  ✓ ~a\n" name))
       (begin
-        (set! fail-count (+ fail-count 1))
-        (printf "  ✗ ~a\n" name)
-        (printf "    Expected: ~s\n" expected)
-        (printf "    Actual:   ~s\n" actual))))
+       (set! fail-count (+ fail-count 1))
+       (printf "  ✗ ~a\n" name)
+       (printf "    Expected: ~s\n" expected)
+       (printf "    Actual:   ~s\n" actual))))
 
 ;;; ============================================================
 ;;; String Splitting Tests

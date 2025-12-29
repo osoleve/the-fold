@@ -10,6 +10,8 @@ This document catalogs all development quality-of-life tools for The Fold, inclu
 | cargo clippy | Rust | Linting & best practices | Pre-commit hook | ✅ |
 | scmindent | Scheme | Indentation formatting | Pre-commit hook (staged files) | ✅ |
 | cargo-llvm-cov | Rust | Test coverage reporting | Manual (`./ops/scripts/coverage.sh`) | ✅ |
+| cargo-audit | Rust | Security vulnerability scanning | Manual (`./ops/scripts/audit.sh`) | ✅ |
+| cargo-watch | Rust | Auto-rebuild on file changes | Manual (`./ops/scripts/watch.sh`) | ✅ |
 | bd (beads) | All | Issue tracking & git integration | Pre-commit hook | ✅ |
 
 **Usage:**
@@ -32,8 +34,6 @@ This document catalogs all development quality-of-life tools for The Fold, inclu
 | Tool | Language | Primary Purpose | Automation Trigger | Status |
 |------|----------|-----------------|-------------------|--------|
 | git-cliff | Git | Generates CHANGELOG.md | Manual (./ops/scripts/changelog.sh) | ✅ Installed |
-| cargo-watch | Rust | Auto-rebuild on file changes | Dev workflow (manual) | 📋 Candidate |
-| cargo-audit | Rust | Security vulnerability scanning | CI Pipeline / Pre-commit | 📋 Candidate |
 | cargo-benchcmp | Rust | Benchmark regression detection | CI (on benchmark changes) | 📋 Candidate |
 
 ## Scheme-Specific Candidates
@@ -43,11 +43,16 @@ This document catalogs all development quality-of-life tools for The Fold, inclu
 | Scheme test runner | Scheme | Integration with standard test framework | CI / Manual | 📋 Candidate |
 | Scheme linter | Scheme | Code quality checks beyond formatting | Pre-commit | 📋 Candidate |
 
+## The Fold-Specific Tools
+
+| Tool | Language | Primary Purpose | Automation Trigger | Status |
+|------|----------|-----------------|-------------------|--------|
+| Block store validator | Rust | Verify .store/ integrity | Manual (`./ops/scripts/store-validator.sh`) | ✅ Integrated |
+
 ## The Fold-Specific Candidates
 
 | Tool | Language | Primary Purpose | Automation Trigger | Status |
 |------|----------|-----------------|-------------------|--------|
-| Block store validator | Scheme/Rust | Verify .store/ integrity | CI / Manual health check | 📋 Candidate |
 | Schema validator | Scheme | Validate block schema compliance | CI | 📋 Candidate |
 | Primitive cost verifier | Scheme | Ensure fuel costs match complexity | CI | 📋 Candidate |
 
@@ -90,6 +95,30 @@ This document catalogs all development quality-of-life tools for The Fold, inclu
 **Why useful:** Faster test runs, better failure reporting, test retries
 **Tradeoff:** Replaces `cargo test` (new tool to learn)
 **Integration point:** CI pipeline, local dev workflow
+
+### cargo-audit
+**Purpose:** Security vulnerability scanner for Rust dependencies
+**Why useful:** Catches known security vulnerabilities in dependencies before they reach production
+**Tradeoff:** Requires periodic database updates; may flag vulnerabilities in transitive deps you can't easily fix
+**Integration point:** Manual checks before releases (`./ops/scripts/audit.sh`)
+
+### cargo-watch
+**Purpose:** Auto-rebuild and re-run tests/commands when files change
+**Why useful:** Immediate feedback during development; catches errors as you type
+**Tradeoff:** Can be resource-intensive on large projects; may trigger rebuilds too frequently
+**Integration point:** Local development workflow (`./ops/scripts/watch.sh`)
+
+### Block Store Validator
+**Purpose:** Verifies integrity of The Fold's content-addressed block store
+**Why useful:** Detects corruption, missing references, orphaned blocks, and decode errors
+**Tradeoff:** Currently reports many decode errors on existing store (may indicate format evolution)
+**Integration point:** Manual health checks (`./ops/scripts/store-validator.sh`)
+**Checks performed:**
+- Hash integrity: Block content matches address
+- Reference integrity: All refs point to existing blocks
+- Decode integrity: All blocks can be decoded
+- Orphan detection: Blocks not reachable from pins/heads
+- Pin/head consistency: Referenced blocks exist
 
 ---
 
@@ -138,8 +167,10 @@ Low-coverage modules needing attention:
 ./ops/scripts/install-git-hooks.sh    # Install pre-commit hooks
 sudo npm install -g scmindent          # Scheme formatter
 cargo install cargo-llvm-cov           # Coverage tool
+cargo install cargo-audit              # Security vulnerability scanner
+cargo install cargo-watch              # Auto-rebuild on file changes
 
-# Candidates
+# Additional tools
 cargo install cargo-mutants            # Mutation testing
 cargo install cargo-deny               # Dependency auditing
 cargo install cargo-semver-checks      # API compatibility
@@ -168,6 +199,15 @@ typos --write-changes                           # Auto-fix spelling errors
 ./ops/scripts/deny.sh                           # Check dependencies/licenses/security
 cargo fmt                                        # Format Rust code
 cargo clippy                                     # Lint Rust code
+
+# Security & Development
+./ops/scripts/audit.sh                          # Check for security vulnerabilities
+./ops/scripts/watch.sh                          # Auto-rebuild on file changes
+./ops/scripts/watch.sh -x "run --bin fold-repl" # Watch and run specific binary
+
+# The Fold-Specific
+./ops/scripts/store-validator.sh                # Validate .store/ integrity
+./ops/scripts/store-validator.sh /path/to/store # Validate specific store
 
 # Release Tools
 ./ops/scripts/changelog.sh                      # Generate CHANGELOG.md

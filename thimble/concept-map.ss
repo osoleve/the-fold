@@ -31,12 +31,12 @@
   (if (not (file-exists? path))
       '()
       (call-with-input-file path
-        (lambda (port)
-          (let loop ([acc '()])
-            (let ([expr (read port)])
-              (if (eof-object? expr)
-                  (reverse acc)
-                  (loop (cons expr acc)))))))))
+                            (lambda (port)
+                                    (let loop ([acc '()])
+                                         (let ([expr (read port)])
+                                              (if (eof-object? expr)
+                                                  (reverse acc)
+                                                  (loop (cons expr acc)))))))))
 
 ;;; read-file-lines : String -> (List String)
 ;;; Read all lines from a file.
@@ -44,12 +44,12 @@
   (if (not (file-exists? path))
       '()
       (call-with-input-file path
-        (lambda (port)
-          (let loop ([acc '()])
-            (let ([line (get-line port)])
-              (if (eof-object? line)
-                  (reverse acc)
-                  (loop (cons line acc)))))))))
+                            (lambda (port)
+                                    (let loop ([acc '()])
+                                         (let ([line (get-line port)])
+                                              (if (eof-object? line)
+                                                  (reverse acc)
+                                                  (loop (cons line acc)))))))))
 
 ;;; ============================================================
 ;;; Definition Extraction
@@ -67,23 +67,23 @@
 (define (extract-definitions path)
   (let* ([sexps (read-sexps-from-file path)]
          [lines (read-file-lines path)])
-    (let loop ([exprs sexps] [defs '()])
-      (if (null? exprs)
-          (reverse defs)
-          (let ([expr (car exprs)])
-            (loop (cdr exprs)
-                  (cond
-                    ;; define-record-type
-                    [(and (pair? expr)
-                          (eq? (car expr) 'define-record-type))
-                     (cons (extract-record-def expr) defs)]
-                    ;; define (function or value)
-                    [(and (pair? expr) (eq? (car expr) 'define))
-                     (cons (extract-define expr) defs)]
-                    ;; define-syntax
-                    [(and (pair? expr) (eq? (car expr) 'define-syntax))
-                     (cons (extract-syntax-def expr) defs)]
-                    [else defs])))))))
+        (let loop ([exprs sexps] [defs '()])
+             (if (null? exprs)
+                 (reverse defs)
+                 (let ([expr (car exprs)])
+                      (loop (cdr exprs)
+                            (cond
+                             ;; define-record-type
+                             [(and (pair? expr)
+                                   (eq? (car expr) 'define-record-type))
+                              (cons (extract-record-def expr) defs)]
+                             ;; define (function or value)
+                             [(and (pair? expr) (eq? (car expr) 'define))
+                              (cons (extract-define expr) defs)]
+                             ;; define-syntax
+                             [(and (pair? expr) (eq? (car expr) 'define-syntax))
+                              (cons (extract-syntax-def expr) defs)]
+                             [else defs])))))))
 
 ;;; extract-record-def : Sexpr -> Definition
 ;;; Extract record definition details.
@@ -96,27 +96,27 @@
          [field-names (if fields-clause
                           (map extract-field-name (cdr fields-clause))
                           '())])
-    `((type . record)
-      (name . ,name)
-      (fields . ,field-names))))
+        `((type . record)
+          (name . ,name)
+          (fields . ,field-names))))
 
 ;;; extract-field-name : Sexpr -> Symbol
 ;;; Extract field name from field specification.
 (define (extract-field-name field-spec)
   (cond
-    [(symbol? field-spec) field-spec]
-    [(and (pair? field-spec) (symbol? (car field-spec))) (car field-spec)]
-    [else 'unknown-field]))
+   [(symbol? field-spec) field-spec]
+   [(and (pair? field-spec) (symbol? (car field-spec))) (car field-spec)]
+   [else 'unknown-field]))
 
 ;;; find-clause : Symbol x (List Sexpr) -> Sexpr | #f
 ;;; Find a clause with the given head in a list.
 (define (find-clause head clauses)
   (cond
-    [(null? clauses) #f]
-    [(and (pair? (car clauses))
-          (eq? (caar clauses) head))
-     (car clauses)]
-    [else (find-clause head (cdr clauses))]))
+   [(null? clauses) #f]
+   [(and (pair? (car clauses))
+         (eq? (caar clauses) head))
+    (car clauses)]
+   [else (find-clause head (cdr clauses))]))
 
 ;;; extract-define : Sexpr -> Definition
 ;;; Extract define form details.
@@ -126,9 +126,9 @@
          [name (if (pair? form) (car form) form)]
          [params (if (pair? form) (cdr form) '())]
          [is-function? (pair? form)])
-    `((type . ,(if is-function? 'function 'value))
-      (name . ,name)
-      (params . ,params))))
+        `((type . ,(if is-function? 'function 'value))
+          (name . ,name)
+          (params . ,params))))
 
 ;;; extract-syntax-def : Sexpr -> Definition
 ;;; Extract define-syntax form details.
@@ -136,8 +136,8 @@
   (let ([name (if (and (pair? (cdr expr)) (symbol? (cadr expr)))
                   (cadr expr)
                   'unknown)])
-    `((type . syntax)
-      (name . ,name))))
+       `((type . syntax)
+         (name . ,name))))
 
 ;;; ============================================================
 ;;; Concept Extraction
@@ -164,48 +164,48 @@
          [all-symbols (collect-symbols sexps)]
          [concept-syms (filter capitalized-symbol? all-symbols)]
          [counts (count-occurrences concept-syms)])
-    (map (lambda (pair)
-           (let ([sym (car pair)]
-                 [count (cdr pair)])
-             `((name . ,sym)
-               (type . ,(classify-concept sym))
-               (occurrences . ,count))))
-         (sort-by-count counts))))
+        (map (lambda (pair)
+                     (let ([sym (car pair)]
+                           [count (cdr pair)])
+                          `((name . ,sym)
+                            (type . ,(classify-concept sym))
+                            (occurrences . ,count))))
+             (sort-by-count counts))))
 
 ;;; collect-symbols : Sexpr -> (List Symbol)
 ;;; Recursively collect all symbols from an S-expression.
 (define (collect-symbols expr)
   (cond
-    [(null? expr) '()]
-    [(symbol? expr) (list expr)]
-    [(pair? expr) (append (collect-symbols (car expr))
-                          (collect-symbols (cdr expr)))]
-    [else '()]))
+   [(null? expr) '()]
+   [(symbol? expr) (list expr)]
+   [(pair? expr) (append (collect-symbols (car expr))
+                         (collect-symbols (cdr expr)))]
+   [else '()]))
 
 ;;; capitalized-symbol? : Any -> Boolean
 ;;; Is this a symbol that starts with a capital letter?
 (define (capitalized-symbol? x)
   (and (symbol? x)
        (let ([str (symbol->string x)])
-         (and (> (string-length str) 0)
-              (char-upper-case? (string-ref str 0))))))
+            (and (> (string-length str) 0)
+                 (char-upper-case? (string-ref str 0))))))
 
 ;;; count-occurrences : (List Symbol) -> (List (Symbol . Nat))
 ;;; Count occurrences of each unique symbol.
 (define (count-occurrences syms)
   (let loop ([syms syms] [counts '()])
-    (if (null? syms)
-        counts
-        (let* ([sym (car syms)]
-               [existing (assq sym counts)])
-          (loop (cdr syms)
-                (if existing
-                    (map (lambda (pair)
-                           (if (eq? (car pair) sym)
-                               (cons sym (+ 1 (cdr pair)))
-                               pair))
-                         counts)
-                    (cons (cons sym 1) counts)))))))
+       (if (null? syms)
+           counts
+           (let* ([sym (car syms)]
+                  [existing (assq sym counts)])
+                 (loop (cdr syms)
+                       (if existing
+                           (map (lambda (pair)
+                                        (if (eq? (car pair) sym)
+                                            (cons sym (+ 1 (cdr pair)))
+                                            pair))
+                                counts)
+                           (cons (cons sym 1) counts)))))))
 
 ;;; sort-by-count : (List (Symbol . Nat)) -> (List (Symbol . Nat))
 ;;; Sort by count descending.
@@ -216,16 +216,16 @@
 ;;; Classify a concept as record, base, or compound.
 (define (classify-concept sym)
   (let ([name (symbol->string sym)])
-    (cond
-      [(memq sym '(Block Type Hash Ref)) 'fundamental]
-      [(memq sym '(Nat Int Bool Char Symbol String Bytes Bytevector Unit Void)) 'base]
-      [(memq sym '(List Vector)) 'container]
-      [(memq sym '(Capability FS)) 'capability]
-      [(memq sym '(Result Error OK)) 'result]
-      [(memq sym '(Forum Channel Post Head Pin)) 'forum]
-      [(memq sym '(Core Shell Prelude)) 'module]
-      [(memq sym '(Tier Session)) 'session]
-      [else 'other])))
+       (cond
+        [(memq sym '(Block Type Hash Ref)) 'fundamental]
+        [(memq sym '(Nat Int Bool Char Symbol String Bytes Bytevector Unit Void)) 'base]
+        [(memq sym '(List Vector)) 'container]
+        [(memq sym '(Capability FS)) 'capability]
+        [(memq sym '(Result Error OK)) 'result]
+        [(memq sym '(Forum Channel Post Head Pin)) 'forum]
+        [(memq sym '(Core Shell Prelude)) 'module]
+        [(memq sym '(Tier Session)) 'session]
+        [else 'other])))
 
 ;;; ============================================================
 ;;; Relationship Finding
@@ -237,114 +237,114 @@
 ;;;   ((<from-concept> <relation> <to-concept>))
 (define (find-relationships defs)
   (let loop ([defs defs] [rels '()])
-    (if (null? defs)
-        (reverse rels)
-        (let* ([def (car defs)]
-               [new-rels (extract-definition-rels def)])
-          (loop (cdr defs) (append new-rels rels))))))
+       (if (null? defs)
+           (reverse rels)
+           (let* ([def (car defs)]
+                  [new-rels (extract-definition-rels def)])
+                 (loop (cdr defs) (append new-rels rels))))))
 
 ;;; extract-definition-rels : Definition -> (List Relationship)
 ;;; Extract relationships from a single definition.
 (define (extract-definition-rels def)
   (let ([type (cdr (assq 'type def))]
         [name (cdr (assq 'name def))])
-    (cond
-      ;; Records have field relationships
-      [(eq? type 'record)
-       (let ([fields (cdr (assq 'fields def))])
-         (map (lambda (field)
-                (list name 'has-field field))
-              fields))]
-      ;; Functions might reference concepts in their name
-      [(eq? type 'function)
-       (let ([params (cdr (assq 'params def))])
-         (append
-           (infer-name-relationships name)
-           (map (lambda (param)
-                  (list name 'takes-param param))
-                params)))]
-      [else '()])))
+       (cond
+        ;; Records have field relationships
+        [(eq? type 'record)
+         (let ([fields (cdr (assq 'fields def))])
+              (map (lambda (field)
+                           (list name 'has-field field))
+                   fields))]
+        ;; Functions might reference concepts in their name
+        [(eq? type 'function)
+         (let ([params (cdr (assq 'params def))])
+              (append
+               (infer-name-relationships name)
+               (map (lambda (param)
+                            (list name 'takes-param param))
+                    params)))]
+        [else '()])))
 
 ;;; infer-name-relationships : Symbol -> (List Relationship)
 ;;; Infer relationships from function naming patterns.
 (define (infer-name-relationships name)
   (let ([str (symbol->string name)])
-    (cond
-      ;; type->something patterns
-      [(string-contains? str "->")
-       (let ([parts (string-split-at str "->")])
-         (if (= (length parts) 2)
-             (let ([from (string->symbol (car parts))]
-                   [to (string->symbol (cadr parts))])
-               (list (list from 'converts-to to)))
-             '()))]
-      ;; something? predicates
-      [(string-suffix? "?" str)
-       (let ([concept (string->symbol (substring str 0 (- (string-length str) 1)))])
-         (list (list concept 'has-predicate name)))]
-      ;; make-something constructors
-      [(string-prefix? "make-" str)
-       (let ([concept (string->symbol (substring str 5 (string-length str)))])
-         (list (list concept 'has-constructor name)))]
-      ;; something-something accessors
-      [(string-contains? str "-")
-       (let ([parts (string-split str #\-)])
-         (if (>= (length parts) 2)
-             (let ([concept (string->symbol (car parts))])
-               (if (capitalized-symbol? concept)
-                   (list (list concept 'has-accessor name))
-                   '()))
-             '()))]
-      [else '()])))
+       (cond
+        ;; type->something patterns
+        [(string-contains? str "->")
+         (let ([parts (string-split-at str "->")])
+              (if (= (length parts) 2)
+                  (let ([from (string->symbol (car parts))]
+                        [to (string->symbol (cadr parts))])
+                       (list (list from 'converts-to to)))
+                  '()))]
+        ;; something? predicates
+        [(string-suffix? "?" str)
+         (let ([concept (string->symbol (substring str 0 (- (string-length str) 1)))])
+              (list (list concept 'has-predicate name)))]
+        ;; make-something constructors
+        [(string-prefix? "make-" str)
+         (let ([concept (string->symbol (substring str 5 (string-length str)))])
+              (list (list concept 'has-constructor name)))]
+        ;; something-something accessors
+        [(string-contains? str "-")
+         (let ([parts (string-split str #\-)])
+              (if (>= (length parts) 2)
+                  (let ([concept (string->symbol (car parts))])
+                       (if (capitalized-symbol? concept)
+                           (list (list concept 'has-accessor name))
+                           '()))
+                  '()))]
+        [else '()])))
 
 ;;; string-contains? : String x String -> Boolean
 ;;; Check if str contains substr.
 (define (string-contains? str substr)
   (let ([str-len (string-length str)]
         [sub-len (string-length substr)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i sub-len) str-len) #f]
-        [(string-prefix? substr (substring str i str-len)) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i sub-len) str-len) #f]
+             [(string-prefix? substr (substring str i str-len)) #t]
+             [else (loop (+ i 1))]))))
 
 ;;; string-split-at : String x String -> (List String)
 ;;; Split string at delimiter (simple version).
 (define (string-split-at str delim)
   (let ([str-len (string-length str)]
         [delim-len (string-length delim)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i delim-len) str-len) (list str)]
-        [(string=? delim (substring str i (+ i delim-len)))
-         (list (substring str 0 i)
-               (substring str (+ i delim-len) str-len))]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i delim-len) str-len) (list str)]
+             [(string=? delim (substring str i (+ i delim-len)))
+              (list (substring str 0 i)
+                    (substring str (+ i delim-len) str-len))]
+             [else (loop (+ i 1))]))))
 
 ;;; string-split : String x Char -> (List String)
 ;;; Split string by character.
 (define (string-split str char)
   (let ([len (string-length str)])
-    (let loop ([i 0] [start 0] [acc '()])
-      (cond
-        [(= i len)
-         (reverse (cons (substring str start len) acc))]
-        [(char=? (string-ref str i) char)
-         (loop (+ i 1) (+ i 1) (cons (substring str start i) acc))]
-        [else (loop (+ i 1) start acc)]))))
+       (let loop ([i 0] [start 0] [acc '()])
+            (cond
+             [(= i len)
+              (reverse (cons (substring str start len) acc))]
+             [(char=? (string-ref str i) char)
+              (loop (+ i 1) (+ i 1) (cons (substring str start i) acc))]
+             [else (loop (+ i 1) start acc)]))))
 
 ;;; string-prefix? defined in fs.ss, redefine locally for standalone use
 (define (string-prefix? prefix str)
   (let ([plen (string-length prefix)]
         [len (string-length str)])
-    (and (>= len plen)
-         (string=? prefix (substring str 0 plen)))))
+       (and (>= len plen)
+            (string=? prefix (substring str 0 plen)))))
 
 (define (string-suffix? suffix str)
   (let ([slen (string-length suffix)]
         [len (string-length str)])
-    (and (>= len slen)
-         (string=? suffix (substring str (- len slen) len)))))
+       (and (>= len slen)
+            (string=? suffix (substring str (- len slen) len)))))
 
 ;;; ============================================================
 ;;; Concept Graph Building
@@ -360,53 +360,53 @@
          [concepts (extract-concepts path)]
          [rels (find-relationships defs)]
          [concept-map (build-concept-map-from-defs defs concepts)])
-    `((concepts . ,concept-map)
-      (definitions . ,(length defs))
-      (relationships . ,rels)
-      (source . ,path))))
+        `((concepts . ,concept-map)
+          (definitions . ,(length defs))
+          (relationships . ,rels)
+          (source . ,path))))
 
 ;;; build-concept-map-from-defs : (List Def) x (List Concept) -> Alist
 ;;; Build concept properties from definitions and concept occurrences.
 (define (build-concept-map-from-defs defs concepts)
   (let* ([records (filter (lambda (d) (eq? (cdr (assq 'type d)) 'record)) defs)]
          [functions (filter (lambda (d) (eq? (cdr (assq 'type d)) 'function)) defs)])
-    (map (lambda (concept-info)
-           (let* ([name (cdr (assq 'name concept-info))]
-                  [type (cdr (assq 'type concept-info))]
-                  [occurrences (cdr (assq 'occurrences concept-info))]
-                  ;; Find if this concept has a record definition
-                  [record-def (find-def-by-name name records)]
-                  [fields (if record-def
-                              (cdr (assq 'fields record-def))
-                              '())]
-                  ;; Find related functions
-                  [related-fns (find-related-functions name functions)])
-             (cons name
-                   `((type . ,type)
-                     (occurrences . ,occurrences)
-                     ,@(if (null? fields) '() `((fields . ,fields)))
-                     ,@(if (null? related-fns) '() `((functions . ,related-fns)))))))
-         concepts)))
+        (map (lambda (concept-info)
+                     (let* ([name (cdr (assq 'name concept-info))]
+                            [type (cdr (assq 'type concept-info))]
+                            [occurrences (cdr (assq 'occurrences concept-info))]
+                            ;; Find if this concept has a record definition
+                            [record-def (find-def-by-name name records)]
+                            [fields (if record-def
+                                        (cdr (assq 'fields record-def))
+                                        '())]
+                            ;; Find related functions
+                            [related-fns (find-related-functions name functions)])
+                           (cons name
+                                 `((type . ,type)
+                                   (occurrences . ,occurrences)
+                                   ,@(if (null? fields) '() `((fields . ,fields)))
+                                   ,@(if (null? related-fns) '() `((functions . ,related-fns)))))))
+             concepts)))
 
 ;;; find-def-by-name : Symbol x (List Def) -> Def | #f
 (define (find-def-by-name name defs)
   (cond
-    [(null? defs) #f]
-    [(eq? (cdr (assq 'name (car defs))) name) (car defs)]
-    [else (find-def-by-name name (cdr defs))]))
+   [(null? defs) #f]
+   [(eq? (cdr (assq 'name (car defs))) name) (car defs)]
+   [else (find-def-by-name name (cdr defs))]))
 
 ;;; find-related-functions : Symbol x (List Def) -> (List Symbol)
 ;;; Find functions whose names reference this concept.
 (define (find-related-functions concept-name fns)
   (let ([concept-str (string-downcase (symbol->string concept-name))])
-    (filter-map
-      (lambda (fn)
-        (let* ([fn-name (cdr (assq 'name fn))]
-               [fn-str (string-downcase (symbol->string fn-name))])
-          (if (string-contains? fn-str concept-str)
-              fn-name
-              #f)))
-      fns)))
+       (filter-map
+        (lambda (fn)
+                (let* ([fn-name (cdr (assq 'name fn))]
+                       [fn-str (string-downcase (symbol->string fn-name))])
+                      (if (string-contains? fn-str concept-str)
+                          fn-name
+                          #f)))
+        fns)))
 
 ;;; string-downcase : String -> String
 ;;; Convert string to lowercase.
@@ -417,11 +417,11 @@
 ;;; Map and filter out #f results.
 (define (filter-map f lst)
   (let loop ([lst lst] [acc '()])
-    (if (null? lst)
-        (reverse acc)
-        (let ([result (f (car lst))])
-          (loop (cdr lst)
-                (if result (cons result acc) acc))))))
+       (if (null? lst)
+           (reverse acc)
+           (let ([result (f (car lst))])
+                (loop (cdr lst)
+                      (if result (cons result acc) acc))))))
 
 ;;; ============================================================
 ;;; Rendering
@@ -434,24 +434,24 @@
          [rels (cdr (assq 'relationships graph))]
          [source (cdr (assq 'source graph))]
          [def-count (cdr (assq 'definitions graph))])
-    (string-append
-      (render-header source def-count (length concepts) (length rels))
-      "\n"
-      (render-concepts concepts)
-      "\n"
-      (render-relationships rels))))
+        (string-append
+         (render-header source def-count (length concepts) (length rels))
+         "\n"
+         (render-concepts concepts)
+         "\n"
+         (render-relationships rels))))
 
 ;;; render-header : String x Nat x Nat x Nat -> String
 (define (render-header source def-count concept-count rel-count)
   (string-append
-    "================================================================================\n"
-    "CONCEPT MAP\n"
-    "================================================================================\n"
-    "Source: " source "\n"
-    "Definitions: " (number->string def-count) "\n"
-    "Concepts: " (number->string concept-count) "\n"
-    "Relationships: " (number->string rel-count) "\n"
-    "================================================================================\n"))
+   "================================================================================\n"
+   "CONCEPT MAP\n"
+   "================================================================================\n"
+   "Source: " source "\n"
+   "Definitions: " (number->string def-count) "\n"
+   "Concepts: " (number->string concept-count) "\n"
+   "Relationships: " (number->string rel-count) "\n"
+   "================================================================================\n"))
 
 ;;; render-concepts : Alist -> String
 (define (render-concepts concepts)
@@ -470,16 +470,16 @@
          [fields (if fields-pair (cdr fields-pair) '())]
          [fns-pair (assq 'functions props)]
          [fns (if fns-pair (cdr fns-pair) '())])
-    (string-append
-      "\n  " (symbol->string name) " [" (symbol->string type) "] "
-      "(" (number->string occurrences) " occurrences)\n"
-      (if (null? fields)
-          ""
-          (string-append "    Fields: " (render-symbol-list fields) "\n"))
-      (if (null? fns)
-          ""
-          (string-append "    Functions: " (render-symbol-list (take-up-to 5 fns))
-                         (if (> (length fns) 5) " ..." "") "\n")))))
+        (string-append
+         "\n  " (symbol->string name) " [" (symbol->string type) "] "
+         "(" (number->string occurrences) " occurrences)\n"
+         (if (null? fields)
+             ""
+             (string-append "    Fields: " (render-symbol-list fields) "\n"))
+         (if (null? fns)
+             ""
+             (string-append "    Functions: " (render-symbol-list (take-up-to 5 fns))
+                            (if (> (length fns) 5) " ..." "") "\n")))))
 
 ;;; render-symbol-list : (List Symbol) -> String
 (define (render-symbol-list syms)
@@ -498,17 +498,17 @@
   (if (null? rels)
       "  (no relationships found)\n"
       (string-append
-        "\nRELATIONSHIPS:\n"
-        (apply string-append
-               (map (lambda (rel)
-                      (string-append
-                        "  " (symbol->string (car rel))
-                        " --[" (symbol->string (cadr rel)) "]--> "
-                        (symbol->string (caddr rel)) "\n"))
-                    (take-up-to 20 rels)))
-        (if (> (length rels) 20)
-            (string-append "  ... and " (number->string (- (length rels) 20)) " more\n")
-            ""))))
+       "\nRELATIONSHIPS:\n"
+       (apply string-append
+              (map (lambda (rel)
+                           (string-append
+                            "  " (symbol->string (car rel))
+                            " --[" (symbol->string (cadr rel)) "]--> "
+                            (symbol->string (caddr rel)) "\n"))
+                   (take-up-to 20 rels)))
+       (if (> (length rels) 20)
+           (string-append "  ... and " (number->string (- (length rels) 20)) " more\n")
+           ""))))
 
 ;;; ============================================================
 ;;; Multi-file Analysis
@@ -522,11 +522,11 @@
          [all-concepts (merge-concepts (map (lambda (g) (cdr (assq 'concepts g))) graphs))]
          [all-rels (apply append (map (lambda (g) (cdr (assq 'relationships g))) graphs))]
          [total-defs (apply + (map (lambda (g) (cdr (assq 'definitions g))) graphs))])
-    `((concepts . ,all-concepts)
-      (definitions . ,total-defs)
-      (relationships . ,(unique-rels all-rels))
-      (source . ,dir)
-      (files . ,(length files)))))
+        `((concepts . ,all-concepts)
+          (definitions . ,total-defs)
+          (relationships . ,(unique-rels all-rels))
+          (source . ,dir)
+          (files . ,(length files)))))
 
 ;;; directory-files-matching : String x String -> (List String)
 ;;; List files in directory matching pattern (simple .ss check).
@@ -534,34 +534,34 @@
   (if (not (file-exists? dir))
       '()
       (let ([entries (directory-list dir)])
-        (filter-map
-          (lambda (entry)
-            (let ([full-path (string-append dir "/" entry)])
-              (if (and (not (file-directory? full-path))
-                       (string-suffix? ".ss" entry))
-                  full-path
-                  #f)))
-          entries))))
+           (filter-map
+            (lambda (entry)
+                    (let ([full-path (string-append dir "/" entry)])
+                         (if (and (not (file-directory? full-path))
+                                  (string-suffix? ".ss" entry))
+                             full-path
+                             #f)))
+            entries))))
 
 ;;; merge-concepts : (List (List (Symbol . Props))) -> (List (Symbol . Props))
 ;;; Merge concept lists, combining occurrences.
 (define (merge-concepts concept-lists)
   (let ([all-concepts (apply append concept-lists)])
-    (let loop ([concepts all-concepts] [merged '()])
-      (if (null? concepts)
-          merged
-          (let* ([entry (car concepts)]
-                 [name (car entry)]
-                 [existing (assq name merged)])
-            (loop (cdr concepts)
-                  (if existing
-                      ;; Merge occurrences
-                      (map (lambda (e)
-                             (if (eq? (car e) name)
-                                 (merge-concept-entries e entry)
-                                 e))
-                           merged)
-                      (cons entry merged))))))))
+       (let loop ([concepts all-concepts] [merged '()])
+            (if (null? concepts)
+                merged
+                (let* ([entry (car concepts)]
+                       [name (car entry)]
+                       [existing (assq name merged)])
+                      (loop (cdr concepts)
+                            (if existing
+                                ;; Merge occurrences
+                                (map (lambda (e)
+                                             (if (eq? (car e) name)
+                                                 (merge-concept-entries e entry)
+                                                 e))
+                                     merged)
+                                (cons entry merged))))))))
 
 ;;; merge-concept-entries : Entry x Entry -> Entry
 (define (merge-concept-entries e1 e2)
@@ -575,22 +575,22 @@
          [fields2 (let ([f (assq 'fields props2)]) (if f (cdr f) '()))]
          [fns1 (let ([f (assq 'functions props1)]) (if f (cdr f) '()))]
          [fns2 (let ([f (assq 'functions props2)]) (if f (cdr f) '()))])
-    (cons name
-          `((type . ,type)
-            (occurrences . ,(+ occ1 occ2))
-            ,@(if (null? fields1) '() `((fields . ,(unique (append fields1 fields2)))))
-            ,@(if (null? fns1) '() `((functions . ,(unique (append fns1 fns2)))))))))
+        (cons name
+              `((type . ,type)
+                (occurrences . ,(+ occ1 occ2))
+                ,@(if (null? fields1) '() `((fields . ,(unique (append fields1 fields2)))))
+                ,@(if (null? fns1) '() `((functions . ,(unique (append fns1 fns2)))))))))
 
 ;;; unique-rels : (List Relationship) -> (List Relationship)
 ;;; Remove duplicate relationships.
 (define (unique-rels rels)
   (let loop ([rels rels] [seen '()] [acc '()])
-    (if (null? rels)
-        (reverse acc)
-        (let ([rel (car rels)])
-          (if (member rel seen)
-              (loop (cdr rels) seen acc)
-              (loop (cdr rels) (cons rel seen) (cons rel acc)))))))
+       (if (null? rels)
+           (reverse acc)
+           (let ([rel (car rels)])
+                (if (member rel seen)
+                    (loop (cdr rels) seen acc)
+                    (loop (cdr rels) (cons rel seen) (cons rel acc)))))))
 
 ;;; ============================================================
 ;;; Convenience Functions
@@ -600,15 +600,15 @@
 ;;; Build and display concept map for a file.
 (define (concept-map path)
   (let ([graph (build-concept-graph path)])
-    (display (render-concept-map graph))
-    graph))
+       (display (render-concept-map graph))
+       graph))
 
 ;;; concept-map-dir : String -> void
 ;;; Build and display concept map for a directory.
 (define (concept-map-dir dir)
   (let ([graph (scan-directory-concepts dir ".ss")])
-    (display (render-concept-map graph))
-    graph))
+       (display (render-concept-map graph))
+       graph))
 
 ;;; ============================================================
 ;;; Help

@@ -21,14 +21,14 @@
   (display ": ")
   (if (equal? expected actual)
       (begin
-        (set! pass-count (+ pass-count 1))
-        (display "✓"))
+       (set! pass-count (+ pass-count 1))
+       (display "✓"))
       (begin
-        (set! fail-count (+ fail-count 1))
-        (display "✗\n    expected: ")
-        (display expected)
-        (display "\n    got: ")
-        (display actual)))
+       (set! fail-count (+ fail-count 1))
+       (display "✗\n    expected: ")
+       (display expected)
+       (display "\n    got: ")
+       (display actual)))
   (newline))
 
 (define (test-pred name pred actual)
@@ -38,12 +38,12 @@
   (display ": ")
   (if (pred actual)
       (begin
-        (set! pass-count (+ pass-count 1))
-        (display "✓"))
+       (set! pass-count (+ pass-count 1))
+       (display "✓"))
       (begin
-        (set! fail-count (+ fail-count 1))
-        (display "✗\n    failed predicate on: ")
-        (display actual)))
+       (set! fail-count (+ fail-count 1))
+       (display "✗\n    failed predicate on: ")
+       (display actual)))
   (newline))
 
 (define (test-section name)
@@ -81,46 +81,46 @@
 
 ;; Test time-thunk produces timing-result
 (let ([result (time-thunk (lambda () (+ 1 2)))])
-  (test "time-thunk returns timing-result"
-        #t
-        (timing-result? result))
-  (test "time-thunk captures correct value"
-        3
-        (timing-result-value result))
-  (test-pred "time-thunk elapsed-ns >= 0"
-             (lambda (x) (>= x 0))
-             (timing-result-elapsed-ns result)))
+     (test "time-thunk returns timing-result"
+           #t
+           (timing-result? result))
+     (test "time-thunk captures correct value"
+           3
+           (timing-result-value result))
+     (test-pred "time-thunk elapsed-ns >= 0"
+                (lambda (x) (>= x 0))
+                (timing-result-elapsed-ns result)))
 
 ;; Test compute-stats
 (let ([stats (compute-stats '(100 200 300 400 500))])
-  (test "stats min-ns"
-        100
-        (timing-stats-min-ns stats))
-  (test "stats max-ns"
-        500
-        (timing-stats-max-ns stats))
-  (test-pred "stats mean-ns close to 300"
-             (lambda (x) (< (abs (- x 300)) 0.01))
-             (timing-stats-mean-ns stats))
-  (test "stats median-ns"
-        300.0
-        (timing-stats-median-ns stats)))
+     (test "stats min-ns"
+           100
+           (timing-stats-min-ns stats))
+     (test "stats max-ns"
+           500
+           (timing-stats-max-ns stats))
+     (test-pred "stats mean-ns close to 300"
+                (lambda (x) (< (abs (- x 300)) 0.01))
+                (timing-stats-mean-ns stats))
+     (test "stats median-ns"
+           300.0
+           (timing-stats-median-ns stats)))
 
 ;; Test benchmark runs correct iterations
 (let ([counter 0]
       [result (benchmark "counter-test" 5
-                (lambda ()
-                  (set! counter (+ counter 1))
-                  counter))])
-  (test "benchmark runs correct iterations"
-        5
-        counter)
-  (test "benchmark-result iterations field"
-        5
-        (benchmark-result-iterations result))
-  (test "benchmark-result has stats"
-        #t
-        (timing-stats? (benchmark-result-stats result))))
+                         (lambda ()
+                                 (set! counter (+ counter 1))
+                                 counter))])
+     (test "benchmark runs correct iterations"
+           5
+           counter)
+     (test "benchmark-result iterations field"
+           5
+           (benchmark-result-iterations result))
+     (test "benchmark-result has stats"
+           #t
+           (timing-stats? (benchmark-result-stats result))))
 
 ;; Test format-ns
 (test "format-ns nanoseconds"
@@ -144,33 +144,33 @@
 
 ;; Test current-memory-snapshot
 (let ([snap (current-memory-snapshot)])
-  (test "current-memory-snapshot returns snapshot"
-        #t
-        (memory-snapshot? snap))
-  (test-pred "snapshot bytes-allocated > 0"
-             (lambda (x) (> x 0))
-             (memory-snapshot-bytes-allocated snap))
-  (test-pred "snapshot bytes-in-use > 0"
-             (lambda (x) (> x 0))
-             (memory-snapshot-bytes-in-use snap)))
+     (test "current-memory-snapshot returns snapshot"
+           #t
+           (memory-snapshot? snap))
+     (test-pred "snapshot bytes-allocated > 0"
+                (lambda (x) (> x 0))
+                (memory-snapshot-bytes-allocated snap))
+     (test-pred "snapshot bytes-in-use > 0"
+                (lambda (x) (> x 0))
+                (memory-snapshot-bytes-in-use snap)))
 
 ;; Test memory-thunk
 (let ([result (memory-thunk (lambda () (make-bytevector 1000 0)))])
-  (test "memory-thunk returns memory-result"
-        #t
-        (memory-result? result))
-  (test "memory-thunk captures result"
-        1000
-        (bytevector-length (memory-result-value result)))
-  (test-pred "memory-thunk delta allocated >= 1000"
-             (lambda (x) (>= x 1000))
-             (memory-delta-bytes-allocated (memory-result-delta result))))
+     (test "memory-thunk returns memory-result"
+           #t
+           (memory-result? result))
+     (test "memory-thunk captures result"
+           1000
+           (bytevector-length (memory-result-value result)))
+     (test-pred "memory-thunk delta allocated >= 1000"
+                (lambda (x) (>= x 1000))
+                (memory-delta-bytes-allocated (memory-result-delta result))))
 
 ;; Test gc-and-measure
 (let ([snap (gc-and-measure)])
-  (test "gc-and-measure returns snapshot"
-        #t
-        (memory-snapshot? snap)))
+     (test "gc-and-measure returns snapshot"
+           #t
+           (memory-snapshot? snap)))
 
 ;; Test format-bytes
 (test "format-bytes bytes"
@@ -264,9 +264,9 @@
 
 ;; Test complexity-score
 (let ([def (make-definition-info 'test 'define 1 10 3 '(a b c))])
-  (test-pred "complexity-score returns positive"
-             (lambda (x) (> x 0))
-             (complexity-score def)))
+     (test-pred "complexity-score returns positive"
+                (lambda (x) (> x 0))
+                (complexity-score def)))
 
 ;;; ============================================================
 ;;; Integration Test: Analyze this file
@@ -276,21 +276,21 @@
 
 ;; Analyze this test file
 (let ([metrics (analyze-file "shell/introspect/test-introspect.ss")])
-  (test "analyze-file returns file-metrics"
-        #t
-        (file-metrics? metrics))
-  (test-pred "file has > 100 lines"
-             (lambda (x) (> x 100))
-             (file-metrics-total-lines metrics))
-  (test-pred "file has some code lines"
-             (lambda (x) (> x 0))
-             (file-metrics-code-lines metrics))
-  (test-pred "file has some definitions"
-             (lambda (x) (> x 0))
-             (length (file-metrics-definitions metrics)))
-  (test-pred "file has load dependencies"
-             (lambda (x) (>= x 3))  ; We load 3 files
-             (length (file-metrics-load-deps metrics))))
+     (test "analyze-file returns file-metrics"
+           #t
+           (file-metrics? metrics))
+     (test-pred "file has > 100 lines"
+                (lambda (x) (> x 100))
+                (file-metrics-total-lines metrics))
+     (test-pred "file has some code lines"
+                (lambda (x) (> x 0))
+                (file-metrics-code-lines metrics))
+     (test-pred "file has some definitions"
+                (lambda (x) (> x 0))
+                (length (file-metrics-definitions metrics)))
+     (test-pred "file has load dependencies"
+                (lambda (x) (>= x 3))  ; We load 3 files
+                (length (file-metrics-load-deps metrics))))
 
 ;;; ============================================================
 ;;; Summary

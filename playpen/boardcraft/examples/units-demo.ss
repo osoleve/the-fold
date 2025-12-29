@@ -29,38 +29,38 @@
 ;;; Add walls
 (define board
   (let loop ([y 0] [b board])
-    (if (> y 7)
-        b
-        (loop (+ y 1)
-              (board-set b (square-coord 5 y) wall)))))
+       (if (> y 7)
+           b
+           (loop (+ y 1)
+                 (board-set b (square-coord 5 y) wall)))))
 
 ;;; Create game state
 (define game (make-game-state board))
 
 ;;; Create units
 (define warrior (make-unit 'w1 'warrior 'player
-                          '((hp . 100)
-                            (max-hp . 100)
-                            (attack . 15)
-                            (movement . 4)
-                            (vision . 5)
-                            (char . "W"))))
+                           '((hp . 100)
+                             (max-hp . 100)
+                             (attack . 15)
+                             (movement . 4)
+                             (vision . 5)
+                             (char . "W"))))
 
 (define archer (make-unit 'a1 'archer 'player
-                         '((hp . 60)
-                           (max-hp . 60)
-                           (attack . 10)
-                           (movement . 5)
-                           (vision . 7)
-                           (char . "A"))))
+                          '((hp . 60)
+                            (max-hp . 60)
+                            (attack . 10)
+                            (movement . 5)
+                            (vision . 7)
+                            (char . "A"))))
 
 (define enemy (make-unit 'e1 'goblin 'enemy
-                        '((hp . 40)
-                          (max-hp . 40)
-                          (attack . 8)
-                          (movement . 3)
-                          (vision . 4)
-                          (char . "E"))))
+                         '((hp . 40)
+                           (max-hp . 40)
+                           (attack . 8)
+                           (movement . 3)
+                           (vision . 4)
+                           (char . "E"))))
 
 ;;; Place units
 (define game (game-place-unit game warrior (square-coord 1 4)))
@@ -75,21 +75,21 @@
 
 (display "All units:\n")
 (for-each
-  (lambda (entry)
-    (let ([coord (car entry)]
-          [unit (cdr entry)])
-      (display "  ")
-      (display (unit%-type unit))
-      (display " at ")
-      (display coord)
-      (display " (team: ")
-      (display (unit%-team unit))
-      (display ", HP: ")
-      (display (unit-get-prop unit 'hp 0))
-      (display "/")
-      (display (unit-get-prop unit 'max-hp 0))
-      (display ")\n")))
-  (game-all-units game))
+ (lambda (entry)
+         (let ([coord (car entry)]
+               [unit (cdr entry)])
+              (display "  ")
+              (display (unit%-type unit))
+              (display " at ")
+              (display coord)
+              (display " (team: ")
+              (display (unit%-team unit))
+              (display ", HP: ")
+              (display (unit-get-prop unit 'hp 0))
+              (display "/")
+              (display (unit-get-prop unit 'max-hp 0))
+              (display ")\n")))
+ (game-all-units game))
 (newline)
 
 ;;; ============================================================
@@ -115,7 +115,7 @@
 (newline)
 
 (define can-reach (game-unit-can-reach game 'w1 warrior-dest
-                                      (lambda (c) (square-neighbors c 'ortho))))
+                                       (lambda (c) (square-neighbors c 'ortho))))
 
 (display "Can reach destination? ")
 (display (if can-reach "YES" "NO"))
@@ -123,11 +123,11 @@
 
 (if can-reach
     (begin
-      (set! game (game-move-unit game 'w1 warrior-dest
+     (set! game (game-move-unit game 'w1 warrior-dest
                                 (lambda (c) (square-neighbors c 'ortho))))
-      (display "Warrior moved to ")
-      (display (game-get-unit-coord game 'w1))
-      (newline))
+     (display "Warrior moved to ")
+     (display (game-get-unit-coord game 'w1))
+     (newline))
     (display "Warrior cannot reach that location\n"))
 (newline)
 
@@ -147,22 +147,22 @@
 
 (define visible-to-archer
   (game-visible-units game 'a1
-                     (lambda (c) (square-neighbors c 'all))
-                     square-line))
+                      (lambda (c) (square-neighbors c 'all))
+                      square-line))
 
 (display "Archer can see ")
 (display (length visible-to-archer))
 (display " other unit(s):\n")
 (for-each
-  (lambda (unit)
-    (display "  ")
-    (display (unit%-type unit))
-    (display " (")
-    (display (unit%-team unit))
-    (display ") at ")
-    (display (game-get-unit-coord game (unit%-id unit)))
-    (newline))
-  visible-to-archer)
+ (lambda (unit)
+         (display "  ")
+         (display (unit%-type unit))
+         (display " (")
+         (display (unit%-team unit))
+         (display ") at ")
+         (display (game-get-unit-coord game (unit%-id unit)))
+         (newline))
+ visible-to-archer)
 (newline)
 
 ;;; Check mutual visibility
@@ -191,26 +191,26 @@
 (display (length player-units))
 (display " units:\n")
 (for-each
-  (lambda (entry)
-    (display "  ")
-    (display (unit%-type (cdr entry)))
-    (display " at ")
-    (display (car entry))
-    (newline))
-  player-units)
+ (lambda (entry)
+         (display "  ")
+         (display (unit%-type (cdr entry)))
+         (display " at ")
+         (display (car entry))
+         (newline))
+ player-units)
 (newline)
 
 (display "Enemy team has ")
 (display (length enemy-units))
 (display " units:\n")
 (for-each
-  (lambda (entry)
-    (display "  ")
-    (display (unit%-type (cdr entry)))
-    (display " at ")
-    (display (car entry))
-    (newline))
-  enemy-units)
+ (lambda (entry)
+         (display "  ")
+         (display (unit%-type (cdr entry)))
+         (display " at ")
+         (display (car entry))
+         (newline))
+ enemy-units)
 (newline)
 
 ;;; ============================================================
@@ -235,7 +235,7 @@
 
 ;;; Update game state
 (define game (game-place-unit game damaged-warrior
-                             (game-get-unit-coord game 'w1)))
+                              (game-get-unit-coord game 'w1)))
 
 (display "Updated warrior in game state\n")
 (newline)
@@ -254,14 +254,14 @@
 
 ;;; Create hex units
 (define knight (make-unit 'k1 'knight 'player
-                         '((movement . 3)
-                           (vision . 4)
-                           (char . "K"))))
+                          '((movement . 3)
+                            (vision . 4)
+                            (char . "K"))))
 
 (define mage (make-unit 'm1 'mage 'player
-                       '((movement . 2)
-                         (vision . 6)
-                         (char . "M"))))
+                        '((movement . 2)
+                          (vision . 6)
+                          (char . "M"))))
 
 ;;; Place on hex board
 (define hex-game (game-place-unit hex-game knight (axial-coord 0 0)))

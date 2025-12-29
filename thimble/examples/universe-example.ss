@@ -25,9 +25,9 @@
 (display " .sexp files in the universe:\n\n")
 
 (for-each (lambda (file)
-            (display "  - ")
-            (display (make-relative-path root-directory file))
-            (newline))
+                  (display "  - ")
+                  (display (make-relative-path root-directory file))
+                  (newline))
           all-sexp-files)
 
 ;;; ============================================================
@@ -44,17 +44,17 @@
 (display " files in forum/ directory:\n\n")
 
 (for-each (lambda (file)
-            (display "  - ")
-            (display (make-relative-path root-directory file))
-            (newline))
+                  (display "  - ")
+                  (display (make-relative-path root-directory file))
+                  (newline))
           (if (> (length forum-files) 10)
               (list-head forum-files 10)  ; Show first 10
               forum-files))
 
 (when (> (length forum-files) 10)
-  (display "  ... and ")
-  (display (- (length forum-files) 10))
-  (display " more\n"))
+      (display "  ... and ")
+      (display (- (length forum-files) 10))
+      (display " more\n"))
 
 ;;; ============================================================
 ;;; Example 3: Read and analyze content
@@ -70,21 +70,21 @@
 (newline)
 
 (when (> (length poetry-files) 0)
-  (display "\nFirst poetry file:\n")
-  (let* ([first-file (car poetry-files)]
-         [rel-path (make-relative-path root-directory first-file)]
-         [contents (read-sexp-file first-file)])
-    (display "  Path: ")
-    (display rel-path)
-    (newline)
-    (when contents
-      (display "  Author: ")
-      (display (cdr (assoc 'author contents)))
-      (newline)
-      (when (assoc 'channel contents)
-        (display "  Channel: ")
-        (display (cdr (assoc 'channel contents)))
-        (newline)))))
+      (display "\nFirst poetry file:\n")
+      (let* ([first-file (car poetry-files)]
+             [rel-path (make-relative-path root-directory first-file)]
+             [contents (read-sexp-file first-file)])
+            (display "  Path: ")
+            (display rel-path)
+            (newline)
+            (when contents
+                  (display "  Author: ")
+                  (display (cdr (assoc 'author contents)))
+                  (newline)
+                  (when (assoc 'channel contents)
+                        (display "  Channel: ")
+                        (display (cdr (assoc 'channel contents)))
+                        (newline)))))
 
 ;;; ============================================================
 ;;; Example 4: Serialize to memory
@@ -101,9 +101,9 @@
 (display " scripture file(s)\n")
 
 (for-each (lambda (entry)
-            (display "  - ")
-            (display (car entry))  ; path
-            (newline))
+                  (display "  - ")
+                  (display (car entry))  ; path
+                  (newline))
           scripture-files)
 
 ;;; ============================================================
@@ -163,11 +163,11 @@
 (define (string-contains? haystack needle)
   (let ([hlen (string-length haystack)]
         [nlen (string-length needle)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i nlen) hlen) #f]
-        [(string=? needle (substring haystack i (+ i nlen))) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i nlen) hlen) #f]
+             [(string=? needle (substring haystack i (+ i nlen))) #t]
+             [else (loop (+ i 1))]))))
 
 (display "Directory breakdown:\n")
 (display "  forum/poetry:      ")

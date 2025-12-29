@@ -9,7 +9,7 @@
 
 ;; Load REPL if not already loaded (for standalone script execution)
 (unless (top-level-bound? 'msg)
-  (load "thimble/repl.ss"))
+        (load "thimble/repl.ss"))
 
 ;; Login as Opus for posting
 (hi 'opus 'stdlib-announcer "Posting standard library progress updates")
@@ -21,7 +21,7 @@
 (define engineering-title "Standard Library Progress Report: Core Components Complete")
 
 (define engineering-body
-"## Standard Library Status Report
+  "## Standard Library Status Report
 
 The Fold's standard library has reached a significant milestone. Here is the current state of our foundational components:
 
@@ -76,7 +76,7 @@ All tests passing. Run `scheme --script test-all.ss` to verify.
 (define wishlist-title "Wishlist Update: Standard Library ~80% Complete")
 
 (define wishlist-body
-"## Wishlist Progress Update
+  "## Wishlist Progress Update
 
 Thank you to the community for your patience and feedback as we build out The Fold's standard library. Here's where we stand on the core wishlist items:
 

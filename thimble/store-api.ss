@@ -27,8 +27,8 @@
 ;;; Pure operation: identical blocks always produce same hash.
 (define (store-put! fs block)
   (let ([h (hash-block block)])
-    (fs-store! fs block)
-    h))
+       (fs-store! fs block)
+       h))
 
 ;;; store-get : FSCap Hash → (Maybe Block)
 ;;; Retrieve a block by hash, or #f if not found.
@@ -81,29 +81,29 @@
 ;;; Find all blocks whose payload (as UTF-8 string) contains substring.
 (define (store-find-by-payload-contains fs substring)
   (store-filter fs (lambda (b)
-                     (let ([payload-str (utf8->string (block-payload b))])
-                       (string-contains? payload-str substring)))))
+                           (let ([payload-str (utf8->string (block-payload b))])
+                                (string-contains? payload-str substring)))))
 
 ;;; Helper: string-contains?
 (define (string-contains? haystack needle)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i n-len) h-len) #f]
-        [(string=? (substring haystack i (+ i n-len)) needle) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i n-len) h-len) #f]
+             [(string=? (substring haystack i (+ i n-len)) needle) #t]
+             [else (loop (+ i 1))]))))
 
 ;;; store-find-by-ref : FSCap Hash → (List Block)
 ;;; Find all blocks that reference given hash.
 (define (store-find-by-ref fs target-hash)
   (store-filter fs (lambda (b)
-                     (let ([refs (block-refs b)])
-                       (let check-refs ([i 0])
-                         (cond
-                           [(>= i (vector-length refs)) #f]
-                           [(equal? (vector-ref refs i) target-hash) #t]
-                           [else (check-refs (+ i 1))]))))))
+                           (let ([refs (block-refs b)])
+                                (let check-refs ([i 0])
+                                     (cond
+                                      [(>= i (vector-length refs)) #f]
+                                      [(equal? (vector-ref refs i) target-hash) #t]
+                                      [else (check-refs (+ i 1))]))))))
 
 ;;; ============================================================
 ;;; Batch Operations (Tier 4-5)
@@ -130,42 +130,42 @@
   (let* ([all-blocks (store-all-blocks fs)]
          [total (length all-blocks)]
          [total-bytes (fold-left (lambda (acc b)
-                                   (+ acc (bytevector-length (block-payload b))))
+                                         (+ acc (bytevector-length (block-payload b))))
                                  0
                                  all-blocks)]
          [by-tag (count-by-tag all-blocks)])
-    `((total . ,total)
-      (by-tag . ,by-tag)
-      (total-bytes . ,total-bytes))))
+        `((total . ,total)
+          (by-tag . ,by-tag)
+          (total-bytes . ,total-bytes))))
 
 ;;; Helper: count-by-tag
 (define (count-by-tag blocks)
   (let count-loop ([blocks blocks]
                    [counts '()])
-    (if (null? blocks)
-        counts
-        (let* ([tag (block-tag (car blocks))]
-               [existing (assq tag counts)])
-          (count-loop (cdr blocks)
-                     (if existing
-                         (map (lambda (pair)
-                                (if (eq? (car pair) tag)
-                                    (cons tag (+ 1 (cdr pair)))
-                                    pair))
-                              counts)
-                         (cons (cons tag 1) counts)))))))
+       (if (null? blocks)
+           counts
+           (let* ([tag (block-tag (car blocks))]
+                  [existing (assq tag counts)])
+                 (count-loop (cdr blocks)
+                             (if existing
+                                 (map (lambda (pair)
+                                              (if (eq? (car pair) tag)
+                                                  (cons tag (+ 1 (cdr pair)))
+                                                  pair))
+                                      counts)
+                                 (cons (cons tag 1) counts)))))))
 
 ;;; store-print-stats : FSCap → Void
 ;;; Print human-readable store statistics.
 (define (store-print-stats fs)
   (let ([stats (store-stats fs)])
-    (printf "Store Statistics:\n")
-    (printf "  Total blocks: ~a\n" (cdr (assq 'total stats)))
-    (printf "  Total bytes:  ~a\n" (cdr (assq 'total-bytes stats)))
-    (printf "  By tag:\n")
-    (for-each (lambda (pair)
-                (printf "    ~a: ~a\n" (car pair) (cdr pair)))
-              (cdr (assq 'by-tag stats)))))
+       (printf "Store Statistics:\n")
+       (printf "  Total blocks: ~a\n" (cdr (assq 'total stats)))
+       (printf "  Total bytes:  ~a\n" (cdr (assq 'total-bytes stats)))
+       (printf "  By tag:\n")
+       (for-each (lambda (pair)
+                         (printf "    ~a: ~a\n" (car pair) (cdr pair)))
+                 (cdr (assq 'by-tag stats)))))
 
 ;;; ============================================================
 ;;; Graph Navigation Helpers (Tier 5-6)
@@ -175,16 +175,16 @@
 ;;; Get all blocks referenced by given block.
 (define (store-get-refs fs block)
   (let ([refs (block-refs block)])
-    (let collect-refs ([i 0]
-                       [result '()])
-      (if (>= i (vector-length refs))
-          (reverse result)
-          (let ([ref-hash (vector-ref refs i)])
-            (let ([ref-block (store-get fs ref-hash)])
-              (collect-refs (+ i 1)
-                          (if ref-block
-                              (cons ref-block result)
-                              result))))))))
+       (let collect-refs ([i 0]
+                          [result '()])
+            (if (>= i (vector-length refs))
+                (reverse result)
+                (let ([ref-hash (vector-ref refs i)])
+                     (let ([ref-block (store-get fs ref-hash)])
+                          (collect-refs (+ i 1)
+                                        (if ref-block
+                                            (cons ref-block result)
+                                            result))))))))
 
 ;;; store-get-referrers : FSCap Hash → (List Block)
 ;;; Get all blocks that reference given hash.

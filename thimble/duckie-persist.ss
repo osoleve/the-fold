@@ -42,23 +42,23 @@
 (define (save-duckie! d)
   (let* ([blk (duckie->block d)]
          [hash (store! blk)])
-    (pin! hash)
-    ;; Also pin all memory hashes
-    (for-each pin! (duckie-memories d))
-    hash))
+        (pin! hash)
+        ;; Also pin all memory hashes
+        (for-each pin! (duckie-memories d))
+        hash))
 
 ;;; load-duckie : Bytevector → Duckie | #f
 ;;; Fetch DUCKIE from CAS by hash.
 (define (load-duckie hash)
   (let ([blk (fetch hash)])
-    (and blk (block->duckie blk))))
+       (and blk (block->duckie blk))))
 
 ;;; duckie-exists? : Bytevector → Boolean
 ;;; Check if a DUCKIE exists in CAS.
 (define (duckie-exists? hash)
   (and (stored? hash)
        (let ([blk (fetch hash)])
-         (and blk (eq? (block-tag blk) 'duckie)))))
+            (and blk (eq? (block-tag blk) 'duckie)))))
 
 ;;; ============================================================
 ;;; Session Management
@@ -69,22 +69,22 @@
 (define (new-duckie! name)
   (let* ([d (make-duckie name)]
          [hash (save-duckie! d)])
-    (set! *current-duckie* d)
-    (set! *current-duckie-hash* hash)
-    (save-session!)
-    d))
+        (set! *current-duckie* d)
+        (set! *current-duckie-hash* hash)
+        (save-session!)
+        d))
 
 ;;; adopt-duckie! : Bytevector → Duckie | #f
 ;;; Load an existing DUCKIE from CAS, set as current.
 (define (adopt-duckie! hash)
   (let ([d (load-duckie hash)])
-    (if d
-        (begin
-          (set! *current-duckie* d)
-          (set! *current-duckie-hash* hash)
-          (save-session!)
-          d)
-        #f)))
+       (if d
+           (begin
+            (set! *current-duckie* d)
+            (set! *current-duckie-hash* hash)
+            (save-session!)
+            d)
+           #f)))
 
 ;;; current-duckie : → Duckie | #f
 ;;; Get the currently active DUCKIE.
@@ -107,13 +107,13 @@
   (if *current-duckie*
       (let* ([d (update-fn *current-duckie*)]
              [hash (save-duckie! d)])
-        ;; Unpin old state (if different) to allow GC
-        (when (and *current-duckie-hash*
-                   (not (equal? *current-duckie-hash* hash)))
-          (unpin! *current-duckie-hash*))
-        (set! *current-duckie* d)
-        (set! *current-duckie-hash* hash)
-        d)
+            ;; Unpin old state (if different) to allow GC
+            (when (and *current-duckie-hash*
+                       (not (equal? *current-duckie-hash* hash)))
+                  (unpin! *current-duckie-hash*))
+            (set! *current-duckie* d)
+            (set! *current-duckie-hash* hash)
+            d)
       (error "update-duckie!" "No active DUCKIE. Use new-duckie! first.")))
 
 ;;; Convenience update functions
@@ -122,51 +122,51 @@
 ;;; Pet DUCKIE - changes mood, ages, uses a little energy.
 (define (pet!)
   (update-duckie!
-    (lambda (d)
-      (let* ([new-mood (mood-after-interaction (duckie-mood d) 'pet)]
-             [d2 (duckie-set-mood d new-mood)]
-             [d3 (duckie-age-once d2)]
-             [d4 (duckie-drain-energy d3 5)])
-        d4))))
+   (lambda (d)
+           (let* ([new-mood (mood-after-interaction (duckie-mood d) 'pet)]
+                  [d2 (duckie-set-mood d new-mood)]
+                  [d3 (duckie-age-once d2)]
+                  [d4 (duckie-drain-energy d3 5)])
+                 d4))))
 
 ;;; play! : → Duckie
 ;;; Play with DUCKIE - always results in playful mood.
 (define (play!)
   (update-duckie!
-    (lambda (d)
-      (let* ([d2 (duckie-set-mood d 'playful)]
-             [d3 (duckie-age-once d2)]
-             [d4 (duckie-drain-energy d3 15)])
-        d4))))
+   (lambda (d)
+           (let* ([d2 (duckie-set-mood d 'playful)]
+                  [d3 (duckie-age-once d2)]
+                  [d4 (duckie-drain-energy d3 15)])
+                 d4))))
 
 ;;; rest! : → Duckie
 ;;; Let DUCKIE rest - restores energy.
 (define (rest!)
   (update-duckie!
-    (lambda (d)
-      (let* ([d2 (duckie-set-mood d 'sleepy)]
-             [d3 (duckie-restore-energy d2 30)])
-        d3))))
+   (lambda (d)
+           (let* ([d2 (duckie-set-mood d 'sleepy)]
+                  [d3 (duckie-restore-energy d2 30)])
+                 d3))))
 
 ;;; feed! : → Duckie
 ;;; Feed DUCKIE - restores energy, makes happy.
 (define (feed!)
   (update-duckie!
-    (lambda (d)
-      (let* ([d2 (duckie-set-mood d 'happy)]
-             [d3 (duckie-restore-energy d2 50)]
-             [d4 (duckie-age-once d3)])
-        d4))))
+   (lambda (d)
+           (let* ([d2 (duckie-set-mood d 'happy)]
+                  [d3 (duckie-restore-energy d2 50)]
+                  [d4 (duckie-age-once d3)])
+                 d4))))
 
 ;;; idle! : → Duckie
 ;;; Time passes - mood shifts toward lonely, energy drains.
 (define (idle!)
   (update-duckie!
-    (lambda (d)
-      (let* ([new-mood (mood-after-interaction (duckie-mood d) 'idle)]
-             [d2 (duckie-set-mood d new-mood)]
-             [d3 (duckie-drain-energy d2 2)])
-        d3))))
+   (lambda (d)
+           (let* ([new-mood (mood-after-interaction (duckie-mood d) 'idle)]
+                  [d2 (duckie-set-mood d new-mood)]
+                  [d3 (duckie-drain-energy d2 2)])
+                 d3))))
 
 ;;; ============================================================
 ;;; Memory Operations
@@ -176,12 +176,12 @@
 ;;; Add a new memory to DUCKIE.
 (define (remember! kind details)
   (update-duckie!
-    (lambda (d)
-      (let* ([timestamp (current-time)]
-             [mem (make-memory kind timestamp (duckie-mood d) details)]
-             [mem-hash (store! mem)])
-        (pin! mem-hash)
-        (duckie-add-memory d mem-hash)))))
+   (lambda (d)
+           (let* ([timestamp (current-time)]
+                  [mem (make-memory kind timestamp (duckie-mood d) details)]
+                  [mem-hash (store! mem)])
+                 (pin! mem-hash)
+                 (duckie-add-memory d mem-hash)))))
 
 ;;; recall : Nat → (List Memory)
 ;;; Get DUCKIE's last N memories.
@@ -189,7 +189,7 @@
   (if *current-duckie*
       (let* ([mem-hashes (take n (duckie-memories *current-duckie*))]
              [memories (filter (lambda (x) x) (map fetch mem-hashes))])
-        memories)
+            memories)
       '()))
 
 ;;; ============================================================
@@ -200,24 +200,24 @@
 ;;; Save current session info to file.
 (define (save-session!)
   (when *current-duckie-hash*
-    (call-with-output-file *session-file*
-      (lambda (port)
-        (write `(session (hash . ,(hash->hex *current-duckie-hash*))) port)
-        (newline port))
-      'replace)))
+        (call-with-output-file *session-file*
+                               (lambda (port)
+                                       (write `(session (hash . ,(hash->hex *current-duckie-hash*))) port)
+                                       (newline port))
+                               'replace)))
 
 ;;; load-session! : → Duckie | #f
 ;;; Load session from file, restore DUCKIE.
 (define (load-session!)
   (guard (exn [else #f])
-    (if (file-exists? *session-file*)
-        (call-with-input-file *session-file*
-          (lambda (port)
-            (let* ([data (read port)]
-                   [hash-hex (cdr (assq 'hash (cdr data)))]
-                   [hash (hex->hash hash-hex)])
-              (adopt-duckie! hash))))
-        #f)))
+         (if (file-exists? *session-file*)
+             (call-with-input-file *session-file*
+                                   (lambda (port)
+                                           (let* ([data (read port)]
+                                                  [hash-hex (cdr (assq 'hash (cdr data)))]
+                                                  [hash (hex->hash hash-hex)])
+                                                 (adopt-duckie! hash))))
+             #f)))
 
 ;;; ============================================================
 ;;; Status Display
@@ -228,32 +228,32 @@
 (define (duckie-status)
   (if *current-duckie*
       (let ([d *current-duckie*])
-        (display "\n")
-        (display "  ╭────────────────────────────────────────────────╮\n")
-        (display (format "  │ ~a~a│\n"
-                        (duckie-name d)
-                        (make-string (max 0 (- 46 (string-length (duckie-name d)))) #\space)))
-        (display "  ├────────────────────────────────────────────────┤\n")
-        (display (format "  │ Mood:    ~a~a│\n"
-                        (duckie-mood d)
-                        (make-string (max 0 (- 38 (string-length (symbol->string (duckie-mood d))))) #\space)))
-        (display (format "  │ Energy:  ~a/100~a│\n"
-                        (duckie-energy d)
-                        (make-string (max 0 (- 34 (string-length (number->string (duckie-energy d))))) #\space)))
-        (display (format "  │ Age:     ~a interactions~a│\n"
-                        (duckie-age d)
-                        (make-string (max 0 (- 26 (string-length (number->string (duckie-age d))))) #\space)))
-        (display (format "  │ Memories: ~a~a│\n"
-                        (length (duckie-memories d))
-                        (make-string (max 0 (- 36 (string-length (number->string (length (duckie-memories d)))))) #\space)))
-        (when (pair? (duckie-traits d))
-          (display (format "  │ Traits:  ~a~a│\n"
-                          (apply string-append
-                            (map (lambda (t) (string-append (symbol->string t) " "))
-                                 (duckie-traits d)))
-                          "")))
-        (display "  ╰────────────────────────────────────────────────╯\n")
-        (newline))
+           (display "\n")
+           (display "  ╭────────────────────────────────────────────────╮\n")
+           (display (format "  │ ~a~a│\n"
+                            (duckie-name d)
+                            (make-string (max 0 (- 46 (string-length (duckie-name d)))) #\space)))
+           (display "  ├────────────────────────────────────────────────┤\n")
+           (display (format "  │ Mood:    ~a~a│\n"
+                            (duckie-mood d)
+                            (make-string (max 0 (- 38 (string-length (symbol->string (duckie-mood d))))) #\space)))
+           (display (format "  │ Energy:  ~a/100~a│\n"
+                            (duckie-energy d)
+                            (make-string (max 0 (- 34 (string-length (number->string (duckie-energy d))))) #\space)))
+           (display (format "  │ Age:     ~a interactions~a│\n"
+                            (duckie-age d)
+                            (make-string (max 0 (- 26 (string-length (number->string (duckie-age d))))) #\space)))
+           (display (format "  │ Memories: ~a~a│\n"
+                            (length (duckie-memories d))
+                            (make-string (max 0 (- 36 (string-length (number->string (length (duckie-memories d)))))) #\space)))
+           (when (pair? (duckie-traits d))
+                 (display (format "  │ Traits:  ~a~a│\n"
+                                  (apply string-append
+                                         (map (lambda (t) (string-append (symbol->string t) " "))
+                                              (duckie-traits d)))
+                                  "")))
+           (display "  ╰────────────────────────────────────────────────╯\n")
+           (newline))
       (display "\n  No active DUCKIE. Use (new-duckie! \"name\") to create one.\n\n")))
 
 ;;; ============================================================
@@ -284,13 +284,13 @@
 (define (duckie-store-stats)
   (let ([total (store-count)]
         [gc (gc-stats)])
-    `((total-blocks . ,total)
-      (pinned . ,(cdr (assq 'pinned gc)))
-      (unpinned . ,(cdr (assq 'unpinned gc)))
-      (duckie-active . ,(if *current-duckie* 1 0))
-      (duckie-memories . ,(if *current-duckie*
-                              (length (duckie-memories *current-duckie*))
-                              0)))))
+       `((total-blocks . ,total)
+         (pinned . ,(cdr (assq 'pinned gc)))
+         (unpinned . ,(cdr (assq 'unpinned gc)))
+         (duckie-active . ,(if *current-duckie* 1 0))
+         (duckie-memories . ,(if *current-duckie*
+                                 (length (duckie-memories *current-duckie*))
+                                 0)))))
 
 ;;; ============================================================
 ;;; Help

@@ -25,16 +25,16 @@
   "Roll and describe the results nicely"
   (let* ([results (roll-dice num-dice sides)]
          [total (apply + results)])
-    (display (format "Rolling ~ad~a: " num-dice sides))
-    (display "[")
-    (let loop ([remaining results]
-               [first #t])
-      (when (not (null? remaining))
-        (when (not first) (display " "))
-        (display (car remaining))
-        (loop (cdr remaining) #f)))
-    (display (format "] = ~a\n" total))
-    total))
+        (display (format "Rolling ~ad~a: " num-dice sides))
+        (display "[")
+        (let loop ([remaining results]
+                   [first #t])
+             (when (not (null? remaining))
+                   (when (not first) (display " "))
+                   (display (car remaining))
+                   (loop (cdr remaining) #f)))
+        (display (format "] = ~a\n" total))
+        total))
 
 ;;; ============================================================
 ;;; Common Dice Notations
@@ -113,13 +113,13 @@
          [trait-pair (list-ref *traits* (random (length *traits*)))]
          [hp (roll-and-sum 3 6)]
          [energy (roll-and-sum 2 6)])
-    (display "\n╔════════════════════════════════════════════════════════════╗\n")
-    (display "║                  CHARACTER GENERATED                       ║\n")
-    (display "╚════════════════════════════════════════════════════════════╝\n\n")
-    (display (format "Class: ~a (~a)\n" (car class-pair) (cdr class-pair)))
-    (display (format "Trait: ~a (~a)\n" (car trait-pair) (cdr trait-pair)))
-    (display (format "Health: ~a HP\n" hp))
-    (display (format "Energy: ~a\n\n" energy))))
+        (display "\n╔════════════════════════════════════════════════════════════╗\n")
+        (display "║                  CHARACTER GENERATED                       ║\n")
+        (display "╚════════════════════════════════════════════════════════════╝\n\n")
+        (display (format "Class: ~a (~a)\n" (car class-pair) (cdr class-pair)))
+        (display (format "Trait: ~a (~a)\n" (car trait-pair) (cdr trait-pair)))
+        (display (format "Health: ~a HP\n" hp))
+        (display (format "Energy: ~a\n\n" energy))))
 
 ;;; ============================================================
 ;;; Simple Luck Games
@@ -132,7 +132,7 @@
 (define (display-coin-flip)
   "Display a coin flip result nicely"
   (let ([result (coin-flip)])
-    (display (format "\n*** COIN FLIP: ~a ***\n\n" (string-upcase (symbol->string result))))))
+       (display (format "\n*** COIN FLIP: ~a ***\n\n" (string-upcase (symbol->string result))))))
 
 (define (higher-lower game-number)
   "Simple higher-lower guessing game"
@@ -146,7 +146,7 @@
 (define (play-higher-lower)
   "Play a round of higher-lower"
   (let ([first (d20)])
-    (higher-lower first)))
+       (higher-lower first)))
 
 ;;; ============================================================
 ;;; Probability Fun
@@ -155,26 +155,26 @@
 (define (success-chance percentage)
   "Roll to see if something succeeds given a percentage"
   (let ([roll (d100)])
-    (display (format "Rolling for ~a% success: " percentage))
-    (display (format "[~a] " roll))
-    (if (<= roll percentage)
-        (display "SUCCESS!\n")
-        (display "FAILURE!\n"))))
+       (display (format "Rolling for ~a% success: " percentage))
+       (display (format "[~a] " roll))
+       (if (<= roll percentage)
+           (display "SUCCESS!\n")
+           (display "FAILURE!\n"))))
 
 (define (combat-advantage num-rolls)
   "Roll multiple times and take the highest (advantage mechanic)"
   (let loop ([rolls num-rolls]
              [best 0]
              [all-rolls '()])
-    (if (<= rolls 0)
-        (begin
-          (display (format "Rolls: ~a\n" (reverse all-rolls)))
-          (display (format "Best: ~a\n\n" best))
-          best)
-        (let ([new-roll (d20)])
-          (loop (- rolls 1)
-                (max best new-roll)
-                (cons new-roll all-rolls))))))
+       (if (<= rolls 0)
+           (begin
+            (display (format "Rolls: ~a\n" (reverse all-rolls)))
+            (display (format "Best: ~a\n\n" best))
+            best)
+           (let ([new-roll (d20)])
+                (loop (- rolls 1)
+                      (max best new-roll)
+                      (cons new-roll all-rolls))))))
 
 ;;; ============================================================
 ;;; Help and Navigation
@@ -185,25 +185,25 @@
   (display "\n╔════════════════════════════════════════════════════════════╗\n")
   (display "║              DICE & GAMES UTILITIES HELP                   ║\n")
   (display "╚════════════════════════════════════════════════════════════╝\n\n")
-
+  
   (display "BASIC DICE:\n")
   (display "  (d6)     (d20)    (d100)          Single die rolls\n")
   (display "  (roll-2d6)  (roll-3d6)  (roll-2d10)   Common combinations\n")
   (display "  (roll-dice 4 6)  Roll 4d6\n")
   (display "  (describe-roll 4 6)  Roll with nice output\n\n")
-
+  
   (display "STORYTELLING:\n")
   (display "  (story-starter)          Get a random prompt\n")
   (display "  (display-story-starter)  Show with formatting\n\n")
-
+  
   (display "CHARACTER GENERATION:\n")
   (display "  (generate-character)     Random character with class/trait\n\n")
-
+  
   (display "LUCK GAMES:\n")
   (display "  (coin-flip)              'heads or 'tails\n")
   (display "  (display-coin-flip)      Formatted flip\n")
   (display "  (play-higher-lower)      Simple guessing game\n\n")
-
+  
   (display "PROBABILITY:\n")
   (display "  (success-chance 75)      Roll to beat percentage\n")
   (display "  (combat-advantage 2)     Roll multiple times, take best\n\n"))

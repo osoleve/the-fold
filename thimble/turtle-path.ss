@@ -140,9 +140,9 @@
 ;;; Returns #f for shapes without clear endpoints.
 (define (path-cmd-endpoint cmd)
   (cond
-    [(move-to? cmd) (cons (move-to-x cmd) (move-to-y cmd))]
-    [(line-to? cmd) (cons (line-to-x cmd) (line-to-y cmd))]
-    [else #f]))
+   [(move-to? cmd) (cons (move-to-x cmd) (move-to-y cmd))]
+   [(line-to? cmd) (cons (line-to-x cmd) (line-to-y cmd))]
+   [else #f]))
 
 ;;; ============================================================
 ;;; Path Serialization (for CAS blocks)
@@ -153,67 +153,67 @@
 ;;; Colors are converted to lists for serialization.
 (define (path-cmd->sexpr cmd)
   (case (path-cmd-type cmd)
-    [(move-to)
-     `(move-to ,(move-to-x cmd) ,(move-to-y cmd))]
-
-    [(line-to)
-     `(line-to ,(line-to-x cmd) ,(line-to-y cmd)
-               ,(color12->list (line-to-color cmd))
-               ,(line-to-width cmd))]
-
-    [(arc)
-     `(arc ,(arc-cx cmd) ,(arc-cy cmd) ,(arc-radius cmd)
+        [(move-to)
+         `(move-to ,(move-to-x cmd) ,(move-to-y cmd))]
+        
+        [(line-to)
+         `(line-to ,(line-to-x cmd) ,(line-to-y cmd)
+           ,(color12->list (line-to-color cmd))
+           ,(line-to-width cmd))]
+        
+        [(arc)
+         `(arc ,(arc-cx cmd) ,(arc-cy cmd) ,(arc-radius cmd)
            ,(arc-start-angle cmd) ,(arc-end-angle cmd)
            ,(color12->list (arc-color cmd))
            ,(arc-width cmd))]
-
-    [(circle)
-     `(circle ,(circle-cx cmd) ,(circle-cy cmd) ,(circle-radius cmd)
-              ,(color12->list (circle-color cmd))
-              ,(circle-width cmd)
-              ,(circle-fill? cmd))]
-
-    [(polygon)
-     `(polygon ,(polygon-points cmd)
-               ,(color12->list (polygon-color cmd))
-               ,(polygon-width cmd)
-               ,(polygon-fill? cmd))]
-
-    [else cmd]))
+        
+        [(circle)
+         `(circle ,(circle-cx cmd) ,(circle-cy cmd) ,(circle-radius cmd)
+           ,(color12->list (circle-color cmd))
+           ,(circle-width cmd)
+           ,(circle-fill? cmd))]
+        
+        [(polygon)
+         `(polygon ,(polygon-points cmd)
+           ,(color12->list (polygon-color cmd))
+           ,(polygon-width cmd)
+           ,(polygon-fill? cmd))]
+        
+        [else cmd]))
 
 ;;; sexpr->path-cmd : S-expr -> PathCmd
 ;;; Reconstruct path command from S-expression.
 ;;; Requires color12 functions from turtle-color.ss.
 (define (sexpr->path-cmd sexpr)
   (case (car sexpr)
-    [(move-to)
-     (make-move-to (list-ref sexpr 1) (list-ref sexpr 2))]
-
-    [(line-to)
-     (make-line-to (list-ref sexpr 1)
-                   (list-ref sexpr 2)
-                   (list->color12 (list-ref sexpr 3))
-                   (list-ref sexpr 4))]
-
-    [(arc)
-     (make-arc (list-ref sexpr 1) (list-ref sexpr 2) (list-ref sexpr 3)
-               (list-ref sexpr 4) (list-ref sexpr 5)
-               (list->color12 (list-ref sexpr 6))
-               (list-ref sexpr 7))]
-
-    [(circle)
-     (make-circle (list-ref sexpr 1) (list-ref sexpr 2) (list-ref sexpr 3)
-                  (list->color12 (list-ref sexpr 4))
-                  (list-ref sexpr 5)
-                  (list-ref sexpr 6))]
-
-    [(polygon)
-     (make-polygon (list-ref sexpr 1)
-                   (list->color12 (list-ref sexpr 2))
-                   (list-ref sexpr 3)
-                   (list-ref sexpr 4))]
-
-    [else sexpr]))
+        [(move-to)
+         (make-move-to (list-ref sexpr 1) (list-ref sexpr 2))]
+        
+        [(line-to)
+         (make-line-to (list-ref sexpr 1)
+                       (list-ref sexpr 2)
+                       (list->color12 (list-ref sexpr 3))
+                       (list-ref sexpr 4))]
+        
+        [(arc)
+         (make-arc (list-ref sexpr 1) (list-ref sexpr 2) (list-ref sexpr 3)
+                   (list-ref sexpr 4) (list-ref sexpr 5)
+                   (list->color12 (list-ref sexpr 6))
+                   (list-ref sexpr 7))]
+        
+        [(circle)
+         (make-circle (list-ref sexpr 1) (list-ref sexpr 2) (list-ref sexpr 3)
+                      (list->color12 (list-ref sexpr 4))
+                      (list-ref sexpr 5)
+                      (list-ref sexpr 6))]
+        
+        [(polygon)
+         (make-polygon (list-ref sexpr 1)
+                       (list->color12 (list-ref sexpr 2))
+                       (list-ref sexpr 3)
+                       (list-ref sexpr 4))]
+        
+        [else sexpr]))
 
 ;;; Note: color12->list and list->color12 are defined in turtle-color.ss
 ;;; This file forward-references them; they must be loaded first.

@@ -79,9 +79,9 @@
 
 (define (env-lookup env name)
   (let ([entry (assq name env)])
-    (if entry
-        `(ok ,(cdr entry))
-        `(error unbound-variable ,name))))
+       (if entry
+           `(ok ,(cdr entry))
+           `(error unbound-variable ,name))))
 
 (define (env-extend env name value)
   (cons (cons name value) env))
@@ -109,69 +109,69 @@
 
 (define (eval-expr expr env fuel)
   (cond
-    ;; Out of fuel — suspend
-    [(out-of-fuel? fuel)
-     `(suspended ,expr ,env)]
-
-    [else
-     ;; Consume fuel for this eval call.
-     (let ([remaining (- fuel 1)])
-       (cond
-         ;; Already a value
-         [(value? expr)
-          `(ok ,expr ,remaining)]
-
-         ;; Variable reference
-         [(symbol? expr)
-          (let ([result (env-lookup env expr)])
-            (if (eq? (car result) 'ok)
-                `(ok ,(cadr result) ,remaining)
-                result))]
-
-         ;; Must be a compound form
-         [(not (pair? expr))
-          `(error invalid-expression ,expr)]
-
-         [else
-          (let ([head (car expr)])
-            (cond
-              ;; Quote — return datum as-is
-              [(eq? head 'quote)
-               `(ok ,(cadr expr) ,remaining)]
-
-              ;; Lambda — create closure
-              [(eq? head 'fn)
-               (let ([params (cadr expr)]
-                     [body (caddr expr)])
-                 `(ok ,(make-closure params body env) ,remaining))]
-
-              ;; Let — evaluate bindings, extend env, evaluate body
-              [(eq? head 'let)
-               (eval-let (cadr expr) (caddr expr) env remaining)]
-
-              ;; Fix — recursive binding
-              [(eq? head 'fix)
-               (eval-fix (cadr expr) (caddr expr) env remaining)]
-
-              ;; If — conditional
-              [(eq? head 'if)
-               (eval-if (cadr expr) (caddr expr) (cadddr expr) env remaining)]
-
-              ;; Case — pattern match on block tag
-              [(eq? head 'case)
-               (eval-case (cadr expr) (cddr expr) env remaining)]
-
-              ;; Prim — pure primitive
-              [(eq? head 'prim)
-               (eval-prim (cadr expr) (cddr expr) env remaining)]
-
-              ;; Call — explicit application
-              [(eq? head 'call)
-               (eval-call (cadr expr) (cddr expr) env remaining)]
-
-              ;; Implicit application — (f args...)
-              [else
-               (eval-call (car expr) (cdr expr) env remaining)]))]))]))
+   ;; Out of fuel — suspend
+   [(out-of-fuel? fuel)
+    `(suspended ,expr ,env)]
+   
+   [else
+    ;; Consume fuel for this eval call.
+    (let ([remaining (- fuel 1)])
+         (cond
+          ;; Already a value
+          [(value? expr)
+           `(ok ,expr ,remaining)]
+          
+          ;; Variable reference
+          [(symbol? expr)
+           (let ([result (env-lookup env expr)])
+                (if (eq? (car result) 'ok)
+                    `(ok ,(cadr result) ,remaining)
+                    result))]
+          
+          ;; Must be a compound form
+          [(not (pair? expr))
+           `(error invalid-expression ,expr)]
+          
+          [else
+           (let ([head (car expr)])
+                (cond
+                 ;; Quote — return datum as-is
+                 [(eq? head 'quote)
+                  `(ok ,(cadr expr) ,remaining)]
+                 
+                 ;; Lambda — create closure
+                 [(eq? head 'fn)
+                  (let ([params (cadr expr)]
+                        [body (caddr expr)])
+                       `(ok ,(make-closure params body env) ,remaining))]
+                 
+                 ;; Let — evaluate bindings, extend env, evaluate body
+                 [(eq? head 'let)
+                  (eval-let (cadr expr) (caddr expr) env remaining)]
+                 
+                 ;; Fix — recursive binding
+                 [(eq? head 'fix)
+                  (eval-fix (cadr expr) (caddr expr) env remaining)]
+                 
+                 ;; If — conditional
+                 [(eq? head 'if)
+                  (eval-if (cadr expr) (caddr expr) (cadddr expr) env remaining)]
+                 
+                 ;; Case — pattern match on block tag
+                 [(eq? head 'case)
+                  (eval-case (cadr expr) (cddr expr) env remaining)]
+                 
+                 ;; Prim — pure primitive
+                 [(eq? head 'prim)
+                  (eval-prim (cadr expr) (cddr expr) env remaining)]
+                 
+                 ;; Call — explicit application
+                 [(eq? head 'call)
+                  (eval-call (cadr expr) (cddr expr) env remaining)]
+                 
+                 ;; Implicit application — (f args...)
+                 [else
+                  (eval-call (car expr) (cdr expr) env remaining)]))]))]))
 
 ;;; ============================================================
 ;;; Let Evaluation
@@ -191,15 +191,15 @@
              [name (car binding)]
              [expr (cadr binding)]
              [result (eval-expr expr env fuel)])
-        (cond
-          [(eq? (car result) 'ok)
-           (eval-let-bindings
-             (cdr bindings) body env
-             (cons (cons name (cadr result)) acc)
-             (caddr result))]
-          [(eq? (car result) 'suspended)
-           `(suspended (let ,(cons binding (cdr bindings)) ,body) ,env)]
-          [else result]))))
+            (cond
+             [(eq? (car result) 'ok)
+              (eval-let-bindings
+               (cdr bindings) body env
+               (cons (cons name (cadr result)) acc)
+               (caddr result))]
+             [(eq? (car result) 'suspended)
+              `(suspended (let ,(cons binding (cdr bindings)) ,body) ,env)]
+             [else result]))))
 
 ;;; ============================================================
 ;;; Fix Evaluation (Recursion)
@@ -237,9 +237,9 @@
              ;; Create a recursive closure by including itself in its env
              [rec-env (env-extend env name 'placeholder)]
              [closure (make-closure params body rec-env)])
-        ;; MUTATION: Tie the knot - see rationale above
-        (set-cdr! (car rec-env) closure)
-        `(ok ,closure ,fuel))
+            ;; MUTATION: Tie the knot - see rationale above
+            (set-cdr! (car rec-env) closure)
+            `(ok ,closure ,fuel))
       `(error fix-requires-fn ,fn-expr)))
 
 ;;; ============================================================
@@ -250,17 +250,17 @@
   (if (out-of-fuel? fuel)
       `(suspended (if ,test-expr ,then-expr ,else-expr) ,env)
       (let ([test-result (eval-expr test-expr env fuel)])
-        (cond
-          [(eq? (car test-result) 'ok)
-           (let ([test-val (cadr test-result)]
-                 [remaining (caddr test-result)])
-             (if test-val
-                 (eval-expr then-expr env remaining)
-                 (eval-expr else-expr env remaining)))]
-          [(eq? (car test-result) 'suspended)
-           `(suspended (if ,(cadr test-result) ,then-expr ,else-expr)
-                       ,(caddr test-result))]
-          [else test-result]))))
+           (cond
+            [(eq? (car test-result) 'ok)
+             (let ([test-val (cadr test-result)]
+                   [remaining (caddr test-result)])
+                  (if test-val
+                      (eval-expr then-expr env remaining)
+                      (eval-expr else-expr env remaining)))]
+            [(eq? (car test-result) 'suspended)
+             `(suspended (if ,(cadr test-result) ,then-expr ,else-expr)
+               ,(caddr test-result))]
+            [else test-result]))))
 
 ;;; ============================================================
 ;;; Case Evaluation (Pattern Matching)
@@ -277,17 +277,17 @@
   (if (out-of-fuel? fuel)
       `(suspended (case ,scrutinee ,@clauses) ,env)
       (let ([scrut-result (eval-expr scrutinee env fuel)])
-        (cond
-          [(eq? (car scrut-result) 'ok)
-           (let ([val (cadr scrut-result)]
-                 [remaining (caddr scrut-result)])
-             (if (block? val)
-                 (match-clauses val clauses env remaining)
-                 `(error case-requires-block ,val)))]
-          [(eq? (car scrut-result) 'suspended)
-           `(suspended (case ,(cadr scrut-result) ,@clauses)
-                       ,(caddr scrut-result))]
-          [else scrut-result]))))
+           (cond
+            [(eq? (car scrut-result) 'ok)
+             (let ([val (cadr scrut-result)]
+                   [remaining (caddr scrut-result)])
+                  (if (block? val)
+                      (match-clauses val clauses env remaining)
+                      `(error case-requires-block ,val)))]
+            [(eq? (car scrut-result) 'suspended)
+             `(suspended (case ,(cadr scrut-result) ,@clauses)
+               ,(caddr scrut-result))]
+            [else scrut-result]))))
 
 (define (match-clauses block clauses env fuel)
   (if (null? clauses)
@@ -297,22 +297,22 @@
              [body (cadr clause)]
              [tag (car pattern)]
              [vars (cdr pattern)])
-        (if (eq? tag (block-tag block))
-            ;; Match! Bind refs to vars
-            (let ([refs (block-refs-list block)])
-              (if (= (length vars) (length refs))
-                  (eval-expr body (env-extend* env vars refs) fuel)
-                  `(error pattern-arity-mismatch ,tag)))
-            ;; No match, try next clause
-            (match-clauses block (cdr clauses) env fuel)))))
+            (if (eq? tag (block-tag block))
+                ;; Match! Bind refs to vars
+                (let ([refs (block-refs-list block)])
+                     (if (= (length vars) (length refs))
+                         (eval-expr body (env-extend* env vars refs) fuel)
+                         `(error pattern-arity-mismatch ,tag)))
+                ;; No match, try next clause
+                (match-clauses block (cdr clauses) env fuel)))))
 
 ;;; Helper: get refs as a list
 (define (block-refs-list blk)
   (let ([refs (block-refs blk)])
-    (let loop ([i 0] [acc '()])
-      (if (>= i (vector-length refs))
-          (reverse acc)
-          (loop (+ i 1) (cons (vector-ref refs i) acc))))))
+       (let loop ([i 0] [acc '()])
+            (if (>= i (vector-length refs))
+                (reverse acc)
+                (loop (+ i 1) (cons (vector-ref refs i) acc))))))
 
 ;;; ============================================================
 ;;; Primitive Evaluation
@@ -332,17 +332,17 @@
                          (cadr op)
                          op)]
              [arg-vals (reverse acc)])
-        `(ok ,(apply prim (cons op-sym arg-vals)) ,fuel))
+            `(ok ,(apply prim (cons op-sym arg-vals)) ,fuel))
       ;; Evaluate next arg
       (let ([result (eval-expr (car remaining) env fuel)])
-        (cond
-          [(eq? (car result) 'ok)
-           (eval-prim-args op (cdr remaining) env
-                          (cons (cadr result) acc)
-                          (caddr result))]
-          [(eq? (car result) 'suspended)
-           `(suspended (prim ,op ,@(reverse acc) ,(cadr result) ,@(cdr remaining)) ,env)]
-          [else result]))))
+           (cond
+            [(eq? (car result) 'ok)
+             (eval-prim-args op (cdr remaining) env
+                             (cons (cadr result) acc)
+                             (caddr result))]
+            [(eq? (car result) 'suspended)
+             `(suspended (prim ,op ,@(reverse acc) ,(cadr result) ,@(cdr remaining)) ,env)]
+            [else result]))))
 
 ;;; ============================================================
 ;;; Call Evaluation (Application)
@@ -353,16 +353,16 @@
       `(suspended (call ,fn-expr ,@arg-exprs) ,env)
       ;; Evaluate the function
       (let ([fn-result (eval-expr fn-expr env fuel)])
-        (cond
-          [(eq? (car fn-result) 'ok)
-           (let ([fn-val (cadr fn-result)]
-                 [remaining (caddr fn-result)])
-             (if (closure? fn-val)
-                 (eval-call-args fn-val arg-exprs env '() remaining)
-                 `(error not-a-function ,fn-val)))]
-          [(eq? (car fn-result) 'suspended)
-           `(suspended (call ,(cadr fn-result) ,@arg-exprs) ,(caddr fn-result))]
-          [else fn-result]))))
+           (cond
+            [(eq? (car fn-result) 'ok)
+             (let ([fn-val (cadr fn-result)]
+                   [remaining (caddr fn-result)])
+                  (if (closure? fn-val)
+                      (eval-call-args fn-val arg-exprs env '() remaining)
+                      `(error not-a-function ,fn-val)))]
+            [(eq? (car fn-result) 'suspended)
+             `(suspended (call ,(cadr fn-result) ,@arg-exprs) ,(caddr fn-result))]
+            [else fn-result]))))
 
 (define (eval-call-args closure remaining env acc fuel)
   (if (null? remaining)
@@ -371,19 +371,19 @@
              [body (closure-body closure)]
              [closure-env (closure-env closure)]
              [arg-vals (reverse acc)])
-        (if (= (length params) (length arg-vals))
-            (eval-expr body (env-extend* closure-env params arg-vals) fuel)
-            `(error arity-mismatch (expected ,(length params)) (got ,(length arg-vals)))))
+            (if (= (length params) (length arg-vals))
+                (eval-expr body (env-extend* closure-env params arg-vals) fuel)
+                `(error arity-mismatch (expected ,(length params)) (got ,(length arg-vals)))))
       ;; Evaluate next arg
       (let ([result (eval-expr (car remaining) env fuel)])
-        (cond
-          [(eq? (car result) 'ok)
-           (eval-call-args closure (cdr remaining) env
-                          (cons (cadr result) acc)
-                          (caddr result))]
-          [(eq? (car result) 'suspended)
-           `(suspended (call ,closure ,@(reverse acc) ,(cadr result) ,@(cdr remaining)) ,env)]
-          [else result]))))
+           (cond
+            [(eq? (car result) 'ok)
+             (eval-call-args closure (cdr remaining) env
+                             (cons (cadr result) acc)
+                             (caddr result))]
+            [(eq? (car result) 'suspended)
+             `(suspended (call ,closure ,@(reverse acc) ,(cadr result) ,@(cdr remaining)) ,env)]
+            [else result]))))
 
 ;;; ============================================================
 ;;; Convenience API
@@ -393,28 +393,28 @@
 ;;; Evaluate an expression with empty environment.
 (define (run expr fuel)
   (let ([result (eval-expr expr empty-env fuel)])
-    (cond
-      [(eq? (car result) 'ok)
-       `(ok ,(cadr result))]
-      [(eq? (car result) 'suspended)
-       `(suspended ,(cadr result))]
-      [else result])))
+       (cond
+        [(eq? (car result) 'ok)
+         `(ok ,(cadr result))]
+        [(eq? (car result) 'suspended)
+         `(suspended ,(cadr result))]
+        [else result])))
 
 ;;; run-to-completion : Expr × MaxFuel → (ok Value) | (error ...)
 ;;; Keep running until completion or error (not suspension).
 ;;; Uses max-fuel for each resumption attempt, with a retry limit.
 (define (run-to-completion expr max-fuel)
   (let loop ([expr expr] [retries 100])  ; Limit retries to prevent infinite loops
-    (if (zero? retries)
-        `(error retry-limit-exceeded ,expr)
-        (let ([result (eval-expr expr empty-env max-fuel)])
-          (cond
-            [(eq? (car result) 'ok)
-             `(ok ,(cadr result))]
-            [(eq? (car result) 'suspended)
-             ;; Give fresh fuel budget for resumption
-             (loop (cadr result) (- retries 1))]
-            [else result])))))
+       (if (zero? retries)
+           `(error retry-limit-exceeded ,expr)
+           (let ([result (eval-expr expr empty-env max-fuel)])
+                (cond
+                 [(eq? (car result) 'ok)
+                  `(ok ,(cadr result))]
+                 [(eq? (car result) 'suspended)
+                  ;; Give fresh fuel budget for resumption
+                  (loop (cadr result) (- retries 1))]
+                 [else result])))))
 
 ;;; eval-with-env : Expr × Env × Fuel → Result
 ;;; Evaluate with a given environment.
@@ -436,319 +436,319 @@
     (compose . (fn (f) (fn (g) (fn (x) (f (g x))))))
     (flip    . (fn (f) (fn (x) (fn (y) ((f y) x)))))
     (on      . (fn (f) (fn (g) (fn (x) (fn (y) ((f (g x)) (g y)))))))
-
+    
     ;; Pair operations (pairs as 2-element lists)
     (fst     . (fn (p) (prim 'car p)))
     (snd     . (fn (p) (prim 'car (prim 'cdr p))))
     (pair    . (fn (a) (fn (b) (prim 'list a b))))
-
+    
     ;; Boolean combinators
     (bool-not . (fn (b) (if b #f #t)))
     (bool-and . (fn (a) (fn (b) (if a b #f))))
     (bool-or  . (fn (a) (fn (b) (if a #t b))))
-
+    
     ;; List operations (defined with fix for recursion)
     (map     . (fix map (fn (f xs)
-                  (if (prim 'null? xs)
-                      '()
-                      (prim 'cons (f (prim 'car xs))
-                                  (map f (prim 'cdr xs)))))))
-
+                            (if (prim 'null? xs)
+                                '()
+                                (prim 'cons (f (prim 'car xs))
+                                      (map f (prim 'cdr xs)))))))
+    
     (filter  . (fix filter (fn (p xs)
-                  (if (prim 'null? xs)
-                      '()
-                      (let ((x (prim 'car xs))
-                            (rest (filter p (prim 'cdr xs))))
-                        (if (p x)
-                            (prim 'cons x rest)
-                            rest))))))
-
+                               (if (prim 'null? xs)
+                                   '()
+                                   (let ((x (prim 'car xs))
+                                         (rest (filter p (prim 'cdr xs))))
+                                        (if (p x)
+                                            (prim 'cons x rest)
+                                            rest))))))
+    
     (foldl   . (fix foldl (fn (f acc xs)
-                  (if (prim 'null? xs)
-                      acc
-                      (foldl f (f acc (prim 'car xs)) (prim 'cdr xs))))))
-
+                              (if (prim 'null? xs)
+                                  acc
+                                  (foldl f (f acc (prim 'car xs)) (prim 'cdr xs))))))
+    
     (foldr   . (fix foldr (fn (f acc xs)
-                  (if (prim 'null? xs)
-                      acc
-                      (f (prim 'car xs) (foldr f acc (prim 'cdr xs)))))))
-
+                              (if (prim 'null? xs)
+                                  acc
+                                  (f (prim 'car xs) (foldr f acc (prim 'cdr xs)))))))
+    
     (scanl   . (fix scanl (fn (f acc xs)
-                  (prim 'cons acc
-                        (if (prim 'null? xs)
-                            '()
-                            (let ((new-acc (f acc (prim 'car xs))))
-                              (scanl f new-acc (prim 'cdr xs))))))))
-
+                              (prim 'cons acc
+                                    (if (prim 'null? xs)
+                                        '()
+                                        (let ((new-acc (f acc (prim 'car xs))))
+                                             (scanl f new-acc (prim 'cdr xs))))))))
+    
     (scanr   . (fix scanr (fn (f acc xs)
-                  (if (prim 'null? xs)
-                      (prim 'list acc)
-                      (let ((rest (scanr f acc (prim 'cdr xs))))
-                        (prim 'cons (f (prim 'car xs) (prim 'car rest))
-                                    rest))))))
-
+                              (if (prim 'null? xs)
+                                  (prim 'list acc)
+                                  (let ((rest (scanr f acc (prim 'cdr xs))))
+                                       (prim 'cons (f (prim 'car xs) (prim 'car rest))
+                                             rest))))))
+    
     (take    . (fix take (fn (n xs)
-                  (if (prim 'zero? n)
-                      '()
-                      (if (prim 'null? xs)
-                          '()
-                          (prim 'cons (prim 'car xs)
-                                      (take (prim 'sub n 1) (prim 'cdr xs))))))))
-
+                             (if (prim 'zero? n)
+                                 '()
+                                 (if (prim 'null? xs)
+                                     '()
+                                     (prim 'cons (prim 'car xs)
+                                           (take (prim 'sub n 1) (prim 'cdr xs))))))))
+    
     (drop    . (fix drop (fn (n xs)
-                  (if (prim 'zero? n)
-                      xs
-                      (if (prim 'null? xs)
-                          '()
-                          (drop (prim 'sub n 1) (prim 'cdr xs)))))))
-
+                             (if (prim 'zero? n)
+                                 xs
+                                 (if (prim 'null? xs)
+                                     '()
+                                     (drop (prim 'sub n 1) (prim 'cdr xs)))))))
+    
     (zip     . (fix zip (fn (xs ys)
-                  (if (prim 'null? xs)
-                      '()
-                      (if (prim 'null? ys)
-                          '()
-                          (prim 'cons (prim 'list (prim 'car xs) (prim 'car ys))
-                                      (zip (prim 'cdr xs) (prim 'cdr ys))))))))
-
+                            (if (prim 'null? xs)
+                                '()
+                                (if (prim 'null? ys)
+                                    '()
+                                    (prim 'cons (prim 'list (prim 'car xs) (prim 'car ys))
+                                          (zip (prim 'cdr xs) (prim 'cdr ys))))))))
+    
     (range   . (fix range (fn (start end)
-                  (if (prim 'ge? start end)
-                      '()
-                      (prim 'cons start (range (prim 'add start 1) end))))))
-
+                              (if (prim 'ge? start end)
+                                  '()
+                                  (prim 'cons start (range (prim 'add start 1) end))))))
+    
     (sum     . (fix sum (fn (xs)
-                  (if (prim 'null? xs)
-                      0
-                      (prim 'add (prim 'car xs) (sum (prim 'cdr xs)))))))
-
+                            (if (prim 'null? xs)
+                                0
+                                (prim 'add (prim 'car xs) (sum (prim 'cdr xs)))))))
+    
     (product . (fix product (fn (xs)
-                  (if (prim 'null? xs)
-                      1
-                      (prim 'mul (prim 'car xs) (product (prim 'cdr xs)))))))
-
+                                (if (prim 'null? xs)
+                                    1
+                                    (prim 'mul (prim 'car xs) (product (prim 'cdr xs)))))))
+    
     ;; Advanced list operations
     (flatten . (fix flatten (fn (xss)
-                  (if (prim 'null? xss)
-                      '()
-                      (prim 'append (prim 'car xss)
-                                    (flatten (prim 'cdr xss)))))))
-
+                                (if (prim 'null? xss)
+                                    '()
+                                    (prim 'append (prim 'car xss)
+                                          (flatten (prim 'cdr xss)))))))
+    
     (flatMap . (fn (f)
-                 (fix flatMap-rec (fn (xs)
-                   (if (prim 'null? xs)
-                       '()
-                       (prim 'append (f (prim 'car xs))
-                                     (flatMap-rec (prim 'cdr xs))))))))
-
+                   (fix flatMap-rec (fn (xs)
+                                        (if (prim 'null? xs)
+                                            '()
+                                            (prim 'append (f (prim 'car xs))
+                                                  (flatMap-rec (prim 'cdr xs))))))))
+    
     (any     . (fix any (fn (p xs)
-                  (if (prim 'null? xs)
-                      #f
-                      (if (p (prim 'car xs))
-                          #t
-                          (any p (prim 'cdr xs)))))))
-
+                            (if (prim 'null? xs)
+                                #f
+                                (if (p (prim 'car xs))
+                                    #t
+                                    (any p (prim 'cdr xs)))))))
+    
     (all     . (fix all (fn (p xs)
-                  (if (prim 'null? xs)
-                      #t
-                      (if (p (prim 'car xs))
-                          (all p (prim 'cdr xs))
-                          #f)))))
-
+                            (if (prim 'null? xs)
+                                #t
+                                (if (p (prim 'car xs))
+                                    (all p (prim 'cdr xs))
+                                    #f)))))
+    
     (elem    . (fix elem (fn (x xs)
-                  (if (prim 'null? xs)
-                      #f
-                      (if (prim 'eq? x (prim 'car xs))
-                          #t
-                          (elem x (prim 'cdr xs)))))))
-
+                             (if (prim 'null? xs)
+                                 #f
+                                 (if (prim 'eq? x (prim 'car xs))
+                                     #t
+                                     (elem x (prim 'cdr xs)))))))
+    
     (replicate . (fix replicate (fn (n x)
-                    (if (prim 'zero? n)
-                        '()
-                        (prim 'cons x (replicate (prim 'sub n 1) x))))))
-
+                                    (if (prim 'zero? n)
+                                        '()
+                                        (prim 'cons x (replicate (prim 'sub n 1) x))))))
+    
     (takeWhile . (fix takeWhile (fn (p xs)
-                    (if (prim 'null? xs)
-                        '()
-                        (if (p (prim 'car xs))
-                            (prim 'cons (prim 'car xs)
-                                        (takeWhile p (prim 'cdr xs)))
-                            '())))))
-
+                                    (if (prim 'null? xs)
+                                        '()
+                                        (if (p (prim 'car xs))
+                                            (prim 'cons (prim 'car xs)
+                                                  (takeWhile p (prim 'cdr xs)))
+                                            '())))))
+    
     (dropWhile . (fix dropWhile (fn (p xs)
-                    (if (prim 'null? xs)
-                        '()
-                        (if (p (prim 'car xs))
-                            (dropWhile p (prim 'cdr xs))
-                            xs)))))
-
+                                    (if (prim 'null? xs)
+                                        '()
+                                        (if (p (prim 'car xs))
+                                            (dropWhile p (prim 'cdr xs))
+                                            xs)))))
+    
     (span    . (fix span (fn (p xs)
-                  (if (prim 'null? xs)
-                      (prim 'list '() '())
-                      (if (p (prim 'car xs))
-                          (let ((rest (span p (prim 'cdr xs))))
-                            (prim 'list
-                                  (prim 'cons (prim 'car xs) (prim 'car rest))
-                                  (prim 'car (prim 'cdr rest))))
-                          (prim 'list '() xs))))))
-
+                             (if (prim 'null? xs)
+                                 (prim 'list '() '())
+                                 (if (p (prim 'car xs))
+                                     (let ((rest (span p (prim 'cdr xs))))
+                                          (prim 'list
+                                                (prim 'cons (prim 'car xs) (prim 'car rest))
+                                                (prim 'car (prim 'cdr rest))))
+                                     (prim 'list '() xs))))))
+    
     (break   . (fn (p)
-                 (fix break-rec (fn (xs)
-                   (if (prim 'null? xs)
-                       (prim 'list '() '())
-                       (if (p (prim 'car xs))
-                           (prim 'list '() xs)
-                           (let ((rest (break-rec (prim 'cdr xs))))
-                             (prim 'list
-                                   (prim 'cons (prim 'car xs) (prim 'car rest))
-                                   (prim 'car (prim 'cdr rest))))))))))
-
+                   (fix break-rec (fn (xs)
+                                      (if (prim 'null? xs)
+                                          (prim 'list '() '())
+                                          (if (p (prim 'car xs))
+                                              (prim 'list '() xs)
+                                              (let ((rest (break-rec (prim 'cdr xs))))
+                                                   (prim 'list
+                                                         (prim 'cons (prim 'car xs) (prim 'car rest))
+                                                         (prim 'car (prim 'cdr rest))))))))))
+    
     (partition . (fix partition (fn (p xs)
-                    (if (prim 'null? xs)
-                        (prim 'list '() '())
-                        (let ((x (prim 'car xs))
-                              (rest (partition p (prim 'cdr xs))))
-                          (if (p x)
-                              (prim 'list
-                                    (prim 'cons x (prim 'car rest))
-                                    (prim 'car (prim 'cdr rest)))
-                              (prim 'list
-                                    (prim 'car rest)
-                                    (prim 'cons x (prim 'car (prim 'cdr rest))))))))))
-
+                                    (if (prim 'null? xs)
+                                        (prim 'list '() '())
+                                        (let ((x (prim 'car xs))
+                                              (rest (partition p (prim 'cdr xs))))
+                                             (if (p x)
+                                                 (prim 'list
+                                                       (prim 'cons x (prim 'car rest))
+                                                       (prim 'car (prim 'cdr rest)))
+                                                 (prim 'list
+                                                       (prim 'car rest)
+                                                       (prim 'cons x (prim 'car (prim 'cdr rest))))))))))
+    
     (zipWith . (fix zipWith (fn (f xs ys)
-                  (if (prim 'null? xs)
-                      '()
-                      (if (prim 'null? ys)
-                          '()
-                          (prim 'cons (f (prim 'car xs) (prim 'car ys))
-                                      (zipWith f (prim 'cdr xs) (prim 'cdr ys))))))))
-
+                                (if (prim 'null? xs)
+                                    '()
+                                    (if (prim 'null? ys)
+                                        '()
+                                        (prim 'cons (f (prim 'car xs) (prim 'car ys))
+                                              (zipWith f (prim 'cdr xs) (prim 'cdr ys))))))))
+    
     (unzip   . (fix unzip (fn (pairs)
-                  (if (prim 'null? pairs)
-                      (prim 'list '() '())
-                      (let ((p (prim 'car pairs))
-                            (rest (unzip (prim 'cdr pairs))))
-                        (prim 'list
-                              (prim 'cons (prim 'car p)
-                                          (prim 'car rest))
-                              (prim 'cons (prim 'car (prim 'cdr p))
-                                          (prim 'car (prim 'cdr rest)))))))))
-
+                              (if (prim 'null? pairs)
+                                  (prim 'list '() '())
+                                  (let ((p (prim 'car pairs))
+                                        (rest (unzip (prim 'cdr pairs))))
+                                       (prim 'list
+                                             (prim 'cons (prim 'car p)
+                                                   (prim 'car rest))
+                                             (prim 'cons (prim 'car (prim 'cdr p))
+                                                   (prim 'car (prim 'cdr rest)))))))))
+    
     (intersperse . (fix intersperse (fn (sep xs)
-                      (if (prim 'null? xs)
-                          '()
-                          (if (prim 'null? (prim 'cdr xs))
-                              xs
-                              (prim 'cons (prim 'car xs)
-                                          (prim 'cons sep
-                                                      (intersperse sep (prim 'cdr xs)))))))))
-
+                                        (if (prim 'null? xs)
+                                            '()
+                                            (if (prim 'null? (prim 'cdr xs))
+                                                xs
+                                                (prim 'cons (prim 'car xs)
+                                                      (prim 'cons sep
+                                                            (intersperse sep (prim 'cdr xs)))))))))
+    
     (group   . (fix group (fn (xs)
-                  (if (prim 'null? xs)
-                      '()
-                      (let ((x (prim 'car xs))
-                            (rest-result (span (fn (y) (prim 'eq? x y)) (prim 'cdr xs))))
-                        (prim 'cons
-                              (prim 'cons x (prim 'car rest-result))
-                              (group (prim 'car (prim 'cdr rest-result)))))))))
-
+                              (if (prim 'null? xs)
+                                  '()
+                                  (let ((x (prim 'car xs))
+                                        (rest-result (span (fn (y) (prim 'eq? x y)) (prim 'cdr xs))))
+                                       (prim 'cons
+                                             (prim 'cons x (prim 'car rest-result))
+                                             (group (prim 'car (prim 'cdr rest-result)))))))))
+    
     (nub     . (fix nub (fn (xs)
-                  (if (prim 'null? xs)
-                      '()
-                      (let ((x (prim 'car xs))
-                            (rest (nub (prim 'cdr xs))))
-                        (if (elem x rest)
-                            rest
-                            (prim 'cons x rest)))))))
-
+                            (if (prim 'null? xs)
+                                '()
+                                (let ((x (prim 'car xs))
+                                      (rest (nub (prim 'cdr xs))))
+                                     (if (elem x rest)
+                                         rest
+                                         (prim 'cons x rest)))))))
+    
     (find    . (fix find (fn (p xs)
-                  (if (prim 'null? xs)
-                      'none
-                      (if (p (prim 'car xs))
-                          (prim 'cons 'some (prim 'car xs))
-                          (find p (prim 'cdr xs)))))))
-
+                             (if (prim 'null? xs)
+                                 'none
+                                 (if (p (prim 'car xs))
+                                     (prim 'cons 'some (prim 'car xs))
+                                     (find p (prim 'cdr xs)))))))
+    
     (splitAt . (fix splitAt (fn (n xs)
-                  (if (prim 'zero? n)
-                      (prim 'list '() xs)
-                      (if (prim 'null? xs)
-                          (prim 'list '() '())
-                          (let ((rest (splitAt (prim 'sub n 1) (prim 'cdr xs))))
-                            (prim 'list
-                                  (prim 'cons (prim 'car xs) (prim 'car rest))
-                                  (prim 'car (prim 'cdr rest)))))))))
-
+                                (if (prim 'zero? n)
+                                    (prim 'list '() xs)
+                                    (if (prim 'null? xs)
+                                        (prim 'list '() '())
+                                        (let ((rest (splitAt (prim 'sub n 1) (prim 'cdr xs))))
+                                             (prim 'list
+                                                   (prim 'cons (prim 'car xs) (prim 'car rest))
+                                                   (prim 'car (prim 'cdr rest)))))))))
+    
     ;; ================================================================
     ;; Type Class Method Implementations
     ;; ================================================================
     ;; These implement the methods declared in core/resolve.ss
     ;; Names match those used in instance definitions.
-
+    
     ;; --- Functor ---
     ;; list-fmap is 'map' (already defined above)
     (list-fmap . (fix list-fmap (fn (f xs)
-                   (if (prim 'null? xs)
-                       '()
-                       (prim 'cons (f (prim 'car xs))
-                                   (list-fmap f (prim 'cdr xs)))))))
-
+                                    (if (prim 'null? xs)
+                                        '()
+                                        (prim 'cons (f (prim 'car xs))
+                                              (list-fmap f (prim 'cdr xs)))))))
+    
     ;; option-fmap: Option is (+ (None) (Some a))
     ;; Represented as 'none or ('some . value)
     (option-fmap . (fn (f opt)
-                     (if (prim 'eq? opt 'none)
-                         'none
-                         (prim 'cons 'some (f (prim 'cdr opt))))))
-
+                       (if (prim 'eq? opt 'none)
+                           'none
+                           (prim 'cons 'some (f (prim 'cdr opt))))))
+    
     ;; either-fmap: Either is (+ (Left e) (Right a))
     ;; Represented as ('left . e) or ('right . a)
     (either-fmap . (fn (f e)
-                     (if (prim 'eq? (prim 'car e) 'left)
-                         e
-                         (prim 'cons 'right (f (prim 'cdr e))))))
-
+                       (if (prim 'eq? (prim 'car e) 'left)
+                           e
+                           (prim 'cons 'right (f (prim 'cdr e))))))
+    
     ;; --- Applicative ---
     (list-pure . (fn (x) (prim 'list x)))
-
+    
     ;; list-ap: Apply list of functions to list of values
     (list-ap . (fix list-ap (fn (fs xs)
-                  (if (prim 'null? fs)
-                      '()
-                      (prim 'append
-                            (map (prim 'car fs) xs)
-                            (list-ap (prim 'cdr fs) xs))))))
-
+                                (if (prim 'null? fs)
+                                    '()
+                                    (prim 'append
+                                          (map (prim 'car fs) xs)
+                                          (list-ap (prim 'cdr fs) xs))))))
+    
     (option-pure . (fn (x) (prim 'cons 'some x)))
-
+    
     (option-ap . (fn (mf mx)
-                   (if (prim 'eq? mf 'none)
-                       'none
-                       (if (prim 'eq? mx 'none)
-                           'none
-                           (prim 'cons 'some
-                                       ((prim 'cdr mf) (prim 'cdr mx)))))))
-
+                     (if (prim 'eq? mf 'none)
+                         'none
+                         (if (prim 'eq? mx 'none)
+                             'none
+                             (prim 'cons 'some
+                                   ((prim 'cdr mf) (prim 'cdr mx)))))))
+    
     ;; --- Monad ---
     (list-bind . (fix list-bind (fn (xs f)
-                   (if (prim 'null? xs)
-                       '()
-                       (prim 'append (f (prim 'car xs))
-                                     (list-bind (prim 'cdr xs) f))))))
-
+                                    (if (prim 'null? xs)
+                                        '()
+                                        (prim 'append (f (prim 'car xs))
+                                              (list-bind (prim 'cdr xs) f))))))
+    
     (list-return . (fn (x) (prim 'list x)))
-
+    
     (option-bind . (fn (mx f)
-                     (if (prim 'eq? mx 'none)
-                         'none
-                         (f (prim 'cdr mx)))))
-
+                       (if (prim 'eq? mx 'none)
+                           'none
+                           (f (prim 'cdr mx)))))
+    
     (option-return . (fn (x) (prim 'cons 'some x)))
-
+    
     (either-bind . (fn (mx f)
-                     (if (prim 'eq? (prim 'car mx) 'left)
-                         mx
-                         (f (prim 'cdr mx)))))
-
+                       (if (prim 'eq? (prim 'car mx) 'left)
+                           mx
+                           (f (prim 'cdr mx)))))
+    
     (either-return . (fn (x) (prim 'cons 'right x)))
-
+    
     ;; --- Eq ---
     (nat-eq . (fn (a b) (prim 'eq? a b)))
     (nat-neq . (fn (a b) (prim 'not (prim 'eq? a b))))
@@ -762,61 +762,61 @@
     (string-neq . (fn (a b) (prim 'not (prim 'string=? a b))))
     (symbol-eq . (fn (a b) (prim 'eq? a b)))
     (symbol-neq . (fn (a b) (prim 'not (prim 'eq? a b))))
-
+    
     ;; list-eq: Requires Eq on elements (recursive)
     (list-eq . (fix list-eq (fn (xs ys)
-                  (if (prim 'null? xs)
-                      (prim 'null? ys)
-                      (if (prim 'null? ys)
-                          #f
-                          (if (prim 'eq? (prim 'car xs) (prim 'car ys))
-                              (list-eq (prim 'cdr xs) (prim 'cdr ys))
-                              #f))))))
-
+                                (if (prim 'null? xs)
+                                    (prim 'null? ys)
+                                    (if (prim 'null? ys)
+                                        #f
+                                        (if (prim 'eq? (prim 'car xs) (prim 'car ys))
+                                            (list-eq (prim 'cdr xs) (prim 'cdr ys))
+                                            #f))))))
+    
     (list-neq . (fn (xs ys) (prim 'not (list-eq xs ys))))
-
+    
     ;; option-eq: Requires Eq on element
     (option-eq . (fn (a b)
-                   (if (prim 'eq? a 'none)
-                       (prim 'eq? b 'none)
-                       (if (prim 'eq? b 'none)
-                           #f
-                           (prim 'eq? (prim 'cdr a) (prim 'cdr b))))))
-
+                     (if (prim 'eq? a 'none)
+                         (prim 'eq? b 'none)
+                         (if (prim 'eq? b 'none)
+                             #f
+                             (prim 'eq? (prim 'cdr a) (prim 'cdr b))))))
+    
     ;; --- Ord ---
     ;; compare returns 'LT, 'EQ, or 'GT
     (nat-compare . (fn (a b)
-                     (if (prim 'lt? a b) 'LT
-                         (if (prim 'eq? a b) 'EQ 'GT))))
+                       (if (prim 'lt? a b) 'LT
+                           (if (prim 'eq? a b) 'EQ 'GT))))
     (nat-lt . (fn (a b) (prim 'lt? a b)))
     (nat-lte . (fn (a b) (prim 'le? a b)))
     (nat-gt . (fn (a b) (prim 'gt? a b)))
     (nat-gte . (fn (a b) (prim 'ge? a b)))
-
+    
     (int-compare . (fn (a b)
-                     (if (prim 'lt? a b) 'LT
-                         (if (prim 'eq? a b) 'EQ 'GT))))
+                       (if (prim 'lt? a b) 'LT
+                           (if (prim 'eq? a b) 'EQ 'GT))))
     (int-lt . (fn (a b) (prim 'lt? a b)))
     (int-lte . (fn (a b) (prim 'le? a b)))
     (int-gt . (fn (a b) (prim 'gt? a b)))
     (int-gte . (fn (a b) (prim 'ge? a b)))
-
+    
     (char-compare . (fn (a b)
-                      (if (prim 'char<? a b) 'LT
-                          (if (prim 'char=? a b) 'EQ 'GT))))
+                        (if (prim 'char<? a b) 'LT
+                            (if (prim 'char=? a b) 'EQ 'GT))))
     (char-lt . (fn (a b) (prim 'char<? a b)))
     (char-lte . (fn (a b) (prim 'or (prim 'char<? a b) (prim 'char=? a b))))
     (char-gt . (fn (a b) (prim 'char<? b a)))
     (char-gte . (fn (a b) (prim 'or (prim 'char<? b a) (prim 'char=? a b))))
-
+    
     (string-compare . (fn (a b)
-                        (if (prim 'string<? a b) 'LT
-                            (if (prim 'string=? a b) 'EQ 'GT))))
+                          (if (prim 'string<? a b) 'LT
+                              (if (prim 'string=? a b) 'EQ 'GT))))
     (string-lt . (fn (a b) (prim 'string<? a b)))
     (string-lte . (fn (a b) (prim 'or (prim 'string<? a b) (prim 'string=? a b))))
     (string-gt . (fn (a b) (prim 'string>? a b)))
     (string-gte . (fn (a b) (prim 'or (prim 'string>? a b) (prim 'string=? a b))))
-
+    
     ;; --- Show ---
     ;; Note: These require number->string which we add to prim.ss
     (nat-show . (fn (n) (prim 'number->string n)))
@@ -825,32 +825,32 @@
     (char-show . (fn (c) (prim 'list->string (prim 'list c))))
     (string-show . (fn (s) s))  ; String shows as itself
     (symbol-show . (fn (s) (prim 'symbol->string s)))
-
+    
     ;; list-show: Requires Show on elements
     (list-show . (fix list-show (fn (xs)
-                   (if (prim 'null? xs)
-                       "()"
-                       (prim 'string-append
-                             "("
-                             (prim 'string-append
-                                   (nat-show (prim 'car xs))
-                                   (prim 'string-append
-                                         (list-show-rest (prim 'cdr xs))
-                                         ")")))))))
-
+                                    (if (prim 'null? xs)
+                                        "()"
+                                        (prim 'string-append
+                                              "("
+                                              (prim 'string-append
+                                                    (nat-show (prim 'car xs))
+                                                    (prim 'string-append
+                                                          (list-show-rest (prim 'cdr xs))
+                                                          ")")))))))
+    
     (list-show-rest . (fix list-show-rest (fn (xs)
-                         (if (prim 'null? xs)
-                             ""
-                             (prim 'string-append
-                                   " "
-                                   (prim 'string-append
-                                         (nat-show (prim 'car xs))
-                                         (list-show-rest (prim 'cdr xs))))))))
-
+                                              (if (prim 'null? xs)
+                                                  ""
+                                                  (prim 'string-append
+                                                        " "
+                                                        (prim 'string-append
+                                                              (nat-show (prim 'car xs))
+                                                              (list-show-rest (prim 'cdr xs))))))))
+    
     ;; --- Semigroup ---
     (list-append . (fn (xs ys) (prim 'append xs ys)))
     ;; string-append is already a primitive
-
+    
     ;; --- Monoid ---
     (list-empty . '())
     ;; string-empty would be ""
@@ -859,20 +859,20 @@
 ;;; Build the prelude environment by evaluating definitions
 (define (build-prelude-env fuel)
   (let loop ([defs prelude-defs] [env empty-env] [remaining fuel])
-    (if (null? defs)
-        env
-        (let* ([def (car defs)]
-               [name (car def)]
-               [expr (cdr def)]
-               [result (eval-expr expr env remaining)])
-          (if (eq? (car result) 'ok)
-              (loop (cdr defs)
-                    (env-extend env name (cadr result))
-                    (caddr result))
-              env)))))
+       (if (null? defs)
+           env
+           (let* ([def (car defs)]
+                  [name (car def)]
+                  [expr (cdr def)]
+                  [result (eval-expr expr env remaining)])
+                 (if (eq? (car result) 'ok)
+                     (loop (cdr defs)
+                           (env-extend env name (cadr result))
+                           (caddr result))
+                     env)))))
 
 ;;; run-prelude : Expr × Fuel → Result
 ;;; Evaluate with the standard prelude.
 (define (run-prelude expr fuel)
   (let ([prelude-env (build-prelude-env 1000)])
-    (eval-expr expr prelude-env fuel)))
+       (eval-expr expr prelude-env fuel)))

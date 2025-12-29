@@ -43,4 +43,4 @@
 
 ;;; Optional startup message (respects *quiet* convention used by thimble/repl.ss)
 (when (and (top-level-bound? '*quiet*) (not *quiet*))
-  (display "Quill loaded — text adventure SDK\n"))
+      (display "Quill loaded — text adventure SDK\n"))

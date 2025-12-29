@@ -35,22 +35,22 @@
 
 (define-record-type memory-snapshot
   (fields
-    bytes-allocated   ; Total bytes allocated since startup
-    bytes-in-use      ; Approximate bytes currently live
-    gc-count          ; Number of garbage collections so far
-    timestamp-ns))    ; Nanosecond timestamp when snapshot was taken
+   bytes-allocated   ; Total bytes allocated since startup
+   bytes-in-use      ; Approximate bytes currently live
+   gc-count          ; Number of garbage collections so far
+   timestamp-ns))    ; Nanosecond timestamp when snapshot was taken
 
 ;;; current-memory-snapshot : → MemorySnapshot
 ;;; Capture current memory state.
 (define (current-memory-snapshot)
   (let ([stats (statistics)])
-    (make-memory-snapshot
-      (bytes-allocated)
-      (current-memory-bytes)
-      (+ (sstats-gc-count stats))
-      (let ([t (current-time 'time-monotonic)])
-        (+ (* (time-second t) 1000000000)
-           (time-nanosecond t))))))
+       (make-memory-snapshot
+        (bytes-allocated)
+        (current-memory-bytes)
+        (+ (sstats-gc-count stats))
+        (let ([t (current-time 'time-monotonic)])
+             (+ (* (time-second t) 1000000000)
+                (time-nanosecond t))))))
 
 ;;; ============================================================
 ;;; Memory Delta
@@ -58,19 +58,19 @@
 
 (define-record-type memory-delta
   (fields
-    bytes-allocated   ; Bytes allocated during operation
-    bytes-freed       ; Bytes freed (may be negative if growth)
-    gc-triggered))    ; Number of GCs triggered during operation
+   bytes-allocated   ; Bytes allocated during operation
+   bytes-freed       ; Bytes freed (may be negative if growth)
+   gc-triggered))    ; Number of GCs triggered during operation
 
 ;;; compute-memory-delta : MemorySnapshot × MemorySnapshot → MemoryDelta
 (define (compute-memory-delta before after)
   (make-memory-delta
-    (- (memory-snapshot-bytes-allocated after)
-       (memory-snapshot-bytes-allocated before))
-    (- (memory-snapshot-bytes-in-use before)
-       (memory-snapshot-bytes-in-use after))
-    (- (memory-snapshot-gc-count after)
-       (memory-snapshot-gc-count before))))
+   (- (memory-snapshot-bytes-allocated after)
+      (memory-snapshot-bytes-allocated before))
+   (- (memory-snapshot-bytes-in-use before)
+      (memory-snapshot-bytes-in-use after))
+   (- (memory-snapshot-gc-count after)
+      (memory-snapshot-gc-count before))))
 
 ;;; ============================================================
 ;;; Memory Measurement
@@ -78,10 +78,10 @@
 
 (define-record-type memory-result
   (fields
-    before      ; MemorySnapshot before execution
-    after       ; MemorySnapshot after execution
-    delta       ; MemoryDelta
-    value))     ; Result of the computation
+   before      ; MemorySnapshot before execution
+   after       ; MemorySnapshot after execution
+   delta       ; MemoryDelta
+   value))     ; Result of the computation
 
 ;;; memory-thunk : (→ A) → MemoryResult
 ;;; Execute thunk and measure memory impact.
@@ -90,7 +90,7 @@
          [result (thunk)]
          [after (current-memory-snapshot)]
          [delta (compute-memory-delta before after)])
-    (make-memory-result before after delta result)))
+        (make-memory-result before after delta result)))
 
 ;;; gc-and-measure : → MemorySnapshot
 ;;; Force garbage collection then measure.
@@ -106,11 +106,11 @@
 
 (define-record-type memory-stats
   (fields
-    min-allocated     ; Minimum bytes allocated per iteration
-    max-allocated     ; Maximum bytes allocated per iteration
-    mean-allocated    ; Mean allocation
-    total-allocated   ; Total bytes allocated across all iterations
-    gc-count))        ; Total GCs triggered
+   min-allocated     ; Minimum bytes allocated per iteration
+   max-allocated     ; Maximum bytes allocated per iteration
+   mean-allocated    ; Mean allocation
+   total-allocated   ; Total bytes allocated across all iterations
+   gc-count))        ; Total GCs triggered
 
 ;;; compute-memory-stats : (List MemoryDelta) → MemoryStats
 (define (compute-memory-stats deltas)
@@ -119,48 +119,48 @@
          [sorted (list-sort < allocations)]
          [total (fold-left + 0 allocations)]
          [gc-total (fold-left + 0 (map memory-delta-gc-triggered deltas))])
-    (make-memory-stats
-      (if (> n 0) (car sorted) 0)
-      (if (> n 0) (list-ref sorted (- n 1)) 0)
-      (if (> n 0) (/ total n) 0)
-      total
-      gc-total)))
+        (make-memory-stats
+         (if (> n 0) (car sorted) 0)
+         (if (> n 0) (list-ref sorted (- n 1)) 0)
+         (if (> n 0) (/ total n) 0)
+         total
+         gc-total)))
 
 (define-record-type memory-benchmark-result
   (fields
-    name          ; Benchmark name
-    iterations    ; Number of iterations
-    results       ; List of MemoryResult
-    stats))       ; Computed MemoryStats
+   name          ; Benchmark name
+   iterations    ; Number of iterations
+   results       ; List of MemoryResult
+   stats))       ; Computed MemoryStats
 
 ;;; memory-benchmark : String × Nat × (→ A) → MemoryBenchmarkResult
 ;;; Run a memory benchmark for n iterations.
 (define (memory-benchmark name iterations thunk)
   (let* ([results (let loop ([i 0] [acc '()])
-                    (if (>= i iterations)
-                        (reverse acc)
-                        (begin
-                          ;; Optional: GC between iterations for cleaner data
-                          ;; (collect)
-                          (loop (+ i 1)
-                                (cons (memory-thunk thunk) acc)))))]
+                       (if (>= i iterations)
+                           (reverse acc)
+                           (begin
+                            ;; Optional: GC between iterations for cleaner data
+                            ;; (collect)
+                            (loop (+ i 1)
+                                  (cons (memory-thunk thunk) acc)))))]
          [deltas (map memory-result-delta results)]
          [stats (compute-memory-stats deltas)])
-    (make-memory-benchmark-result name iterations results stats)))
+        (make-memory-benchmark-result name iterations results stats)))
 
 ;;; memory-benchmark-with-gc : String × Nat × (→ A) → MemoryBenchmarkResult
 ;;; Run memory benchmark with GC between iterations for cleaner measurements.
 (define (memory-benchmark-with-gc name iterations thunk)
   (let* ([results (let loop ([i 0] [acc '()])
-                    (if (>= i iterations)
-                        (reverse acc)
-                        (begin
-                          (collect)
-                          (loop (+ i 1)
-                                (cons (memory-thunk thunk) acc)))))]
+                       (if (>= i iterations)
+                           (reverse acc)
+                           (begin
+                            (collect)
+                            (loop (+ i 1)
+                                  (cons (memory-thunk thunk) acc)))))]
          [deltas (map memory-result-delta results)]
          [stats (compute-memory-stats deltas)])
-    (make-memory-benchmark-result name iterations results stats)))
+        (make-memory-benchmark-result name iterations results stats)))
 
 ;;; ============================================================
 ;;; Formatting
@@ -170,13 +170,13 @@
 ;;; Format bytes in human-readable form.
 (define (format-bytes bytes)
   (cond
-    [(>= (abs bytes) (* 1024 1024 1024))
-     (format "~,2fGB" (/ bytes (* 1024.0 1024.0 1024.0)))]
-    [(>= (abs bytes) (* 1024 1024))
-     (format "~,2fMB" (/ bytes (* 1024.0 1024.0)))]
-    [(>= (abs bytes) 1024)
-     (format "~,2fKB" (/ bytes 1024.0))]
-    [else (format "~aB" bytes)]))
+   [(>= (abs bytes) (* 1024 1024 1024))
+    (format "~,2fGB" (/ bytes (* 1024.0 1024.0 1024.0)))]
+   [(>= (abs bytes) (* 1024 1024))
+    (format "~,2fMB" (/ bytes (* 1024.0 1024.0)))]
+   [(>= (abs bytes) 1024)
+    (format "~,2fKB" (/ bytes 1024.0))]
+   [else (format "~aB" bytes)]))
 
 ;;; format-memory-snapshot : MemorySnapshot → String
 (define (format-memory-snapshot snap)
@@ -238,11 +238,11 @@
 ;;; Note: This is a more detailed measurement using statistics.
 (define-record-type allocation-profile
   (fields
-    bytes-allocated
-    gc-real-time-ns     ; Real time spent in GC
-    gc-cpu-time-ns      ; CPU time spent in GC
-    gc-count
-    gc-bytes-reclaimed))
+   bytes-allocated
+   gc-real-time-ns     ; Real time spent in GC
+   gc-cpu-time-ns      ; CPU time spent in GC
+   gc-count
+   gc-bytes-reclaimed))
 
 (define (track-allocations thunk)
   (let* ([stats-before (statistics)]
@@ -250,14 +250,14 @@
          [result (thunk)]
          [alloc-after (bytes-allocated)]
          [stats-after (statistics)])
-    (values
-      result
-      (make-allocation-profile
-        (- alloc-after alloc-before)
-        (- (sstats-gc-real (+ stats-after)) (sstats-gc-real (+ stats-before)))
-        (- (sstats-gc-cpu (+ stats-after)) (sstats-gc-cpu (+ stats-before)))
-        (- (sstats-gc-count stats-after) (sstats-gc-count stats-before))
-        (- (sstats-gc-bytes stats-after) (sstats-gc-bytes stats-before))))))
+        (values
+         result
+         (make-allocation-profile
+          (- alloc-after alloc-before)
+          (- (sstats-gc-real (+ stats-after)) (sstats-gc-real (+ stats-before)))
+          (- (sstats-gc-cpu (+ stats-after)) (sstats-gc-cpu (+ stats-before)))
+          (- (sstats-gc-count stats-after) (sstats-gc-count stats-before))
+          (- (sstats-gc-bytes stats-after) (sstats-gc-bytes stats-before))))))
 
 ;;; ============================================================
 ;;; Memory Pressure Simulation
@@ -273,5 +273,5 @@
 ;;; Useful for testing behavior under memory pressure.
 (define (measure-under-pressure pressure-bytes thunk)
   (let ([_ (allocate-bytes pressure-bytes)])  ; Create pressure
-    (collect)  ; Force the pressure into older generation
-    (memory-thunk thunk)))
+       (collect)  ; Force the pressure into older generation
+       (memory-thunk thunk)))

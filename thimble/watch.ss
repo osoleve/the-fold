@@ -30,19 +30,19 @@
 
 (define-record-type watcher
   (fields
-    id                  ; unique identifier (number)
-    path                ; file or directory being watched
-    pattern             ; glob pattern (for directories) or #f
-    action              ; procedure to call on change
-    last-modified       ; hashtable: path → timestamp
-    last-triggered      ; last time action was triggered
-    running?            ; mutable boolean
-    thread))            ; background thread handle
+   id                  ; unique identifier (number)
+   path                ; file or directory being watched
+   pattern             ; glob pattern (for directories) or #f
+   action              ; procedure to call on change
+   last-modified       ; hashtable: path → timestamp
+   last-triggered      ; last time action was triggered
+   running?            ; mutable boolean
+   thread))            ; background thread handle
 
 ;;; Mutate running? field
 (define (watcher-stop! w)
   (when (watcher-running? w)
-    (set-watcher-running! w #f)))
+        (set-watcher-running! w #f)))
 
 (define (set-watcher-running! w val)
   ;; Chez doesn't have mutable record fields by default,
@@ -76,8 +76,8 @@
   (mutex-acquire *registry-mutex*)
   (set! *watcher-counter* (+ *watcher-counter* 1))
   (let ([id *watcher-counter*])
-    (mutex-release *registry-mutex*)
-    id))
+       (mutex-release *registry-mutex*)
+       id))
 
 ;;; ============================================================
 ;;; File Modification Time
@@ -88,24 +88,24 @@
 ;;; Returns #f if file doesn't exist.
 (define (file-mtime path)
   (guard (e [else #f])
-    (let ([stat (file-stat path)])
-      (if stat
-          (cdr (assq 'mtime stat))
-          #f))))
+         (let ([stat (file-stat path)])
+              (if stat
+                  (cdr (assq 'mtime stat))
+                  #f))))
 
 ;;; file-stat : String → Alist | #f
 ;;; Get file statistics (portable across platforms).
 (define (file-stat path)
   (guard (e [else #f])
-    (if (file-exists? path)
-        (let ([port (open-file-input-port path)])
-          (guard (e2 [else (close-port port) #f])
-            (let* ([info (port-file-descriptor port)]
-                   ;; Use file-modification-time if available
-                   [mtime (time-second (file-modification-time path))])
-              (close-port port)
-              `((mtime . ,mtime)))))
-        #f)))
+         (if (file-exists? path)
+             (let ([port (open-file-input-port path)])
+                  (guard (e2 [else (close-port port) #f])
+                         (let* ([info (port-file-descriptor port)]
+                                ;; Use file-modification-time if available
+                                [mtime (time-second (file-modification-time path))])
+                               (close-port port)
+                               `((mtime . ,mtime)))))
+             #f)))
 
 ;;; ============================================================
 ;;; Path Scanning
@@ -117,54 +117,54 @@
 ;;; If pattern is provided, find all matching files in directory.
 (define (scan-paths path pattern)
   (cond
-    ;; Single file
-    [(not pattern)
-     (if (file-exists? path)
-         (list path)
-         '())]
-    ;; Directory with pattern
-    [(file-directory? path)
-     (find-matching-files path pattern)]
-    ;; Invalid
-    [else '()]))
+   ;; Single file
+   [(not pattern)
+    (if (file-exists? path)
+        (list path)
+        '())]
+   ;; Directory with pattern
+   [(file-directory? path)
+    (find-matching-files path pattern)]
+   ;; Invalid
+   [else '()]))
 
 ;;; find-matching-files : String × String → (Listof String)
 ;;; Find all files in directory matching glob pattern.
 (define (find-matching-files dir pattern)
   (guard (e [else '()])
-    (let ([files (directory-list dir)])
-      (filter (lambda (f)
-                (let ([full-path (string-append dir "/" f)])
-                  (and (file-regular? full-path)
-                       (glob-match? pattern f))))
-              files))))
+         (let ([files (directory-list dir)])
+              (filter (lambda (f)
+                              (let ([full-path (string-append dir "/" f)])
+                                   (and (file-regular? full-path)
+                                        (glob-match? pattern f))))
+                      files))))
 
 ;;; glob-match? : String × String → Boolean
 ;;; Simple glob pattern matching (* and ? wildcards).
 (define (glob-match? pattern str)
   (let ([plen (string-length pattern)]
         [slen (string-length str)])
-    (let loop ([pi 0] [si 0])
-      (cond
-        ;; Both exhausted → match
-        [(and (= pi plen) (= si slen)) #t]
-        ;; Pattern exhausted, string not → no match
-        [(= pi plen) #f]
-        ;; Wildcard *
-        [(char=? (string-ref pattern pi) #\*)
-         (or (loop (+ pi 1) si)           ; match zero chars
-             (and (< si slen)
-                  (loop pi (+ si 1))))]   ; match one+ chars
-        ;; String exhausted, pattern not (and not *) → no match
-        [(= si slen) #f]
-        ;; Wildcard ?
-        [(char=? (string-ref pattern pi) #\?)
-         (loop (+ pi 1) (+ si 1))]
-        ;; Literal char
-        [(char=? (string-ref pattern pi) (string-ref str si))
-         (loop (+ pi 1) (+ si 1))]
-        ;; Mismatch
-        [else #f]))))
+       (let loop ([pi 0] [si 0])
+            (cond
+             ;; Both exhausted → match
+             [(and (= pi plen) (= si slen)) #t]
+             ;; Pattern exhausted, string not → no match
+             [(= pi plen) #f]
+             ;; Wildcard *
+             [(char=? (string-ref pattern pi) #\*)
+              (or (loop (+ pi 1) si)           ; match zero chars
+                  (and (< si slen)
+                       (loop pi (+ si 1))))]   ; match one+ chars
+             ;; String exhausted, pattern not (and not *) → no match
+             [(= si slen) #f]
+             ;; Wildcard ?
+             [(char=? (string-ref pattern pi) #\?)
+              (loop (+ pi 1) (+ si 1))]
+             ;; Literal char
+             [(char=? (string-ref pattern pi) (string-ref str si))
+              (loop (+ pi 1) (+ si 1))]
+             ;; Mismatch
+             [else #f]))))
 
 ;;; file-regular? : String → Boolean
 (define (file-regular? path)
@@ -174,28 +174,28 @@
 ;;; file-directory? : String → Boolean
 (define (file-directory? path)
   (guard (e [else #f])
-    (and (file-exists? path)
-         (let ([port (open-file-input-port path)])
-           (guard (e2 [else (close-port port) #f])
-             (close-port port)
-             ;; If we can open it as a directory, it's a directory
-             (guard (e3 [else #f])
-               (let ([dir-list (directory-list path)])
-                 #t)))))))
+         (and (file-exists? path)
+              (let ([port (open-file-input-port path)])
+                   (guard (e2 [else (close-port port) #f])
+                          (close-port port)
+                          ;; If we can open it as a directory, it's a directory
+                          (guard (e3 [else #f])
+                                 (let ([dir-list (directory-list path)])
+                                      #t)))))))
 
 ;;; directory-list : String → (Listof String)
 (define (directory-list path)
   (guard (e [else '()])
-    (let ([dir (opendir path)])
-      (let loop ([entries '()])
-        (let ([entry (readdir dir)])
-          (if (eof-object? entry)
-              (begin
-                (closedir dir)
-                (reverse entries))
-              (if (or (string=? entry ".") (string=? entry ".."))
-                  (loop entries)
-                  (loop (cons entry entries)))))))))
+         (let ([dir (opendir path)])
+              (let loop ([entries '()])
+                   (let ([entry (readdir dir)])
+                        (if (eof-object? entry)
+                            (begin
+                             (closedir dir)
+                             (reverse entries))
+                            (if (or (string=? entry ".") (string=? entry ".."))
+                                (loop entries)
+                                (loop (cons entry entries)))))))))
 
 ;;; ============================================================
 ;;; Change Detection
@@ -207,18 +207,18 @@
   (let* ([paths (scan-paths (watcher-path w) (watcher-pattern w))]
          [mtimes (watcher-last-modified w)]
          [changed '()])
-    ;; Check each path
-    (for-each
-      (lambda (path)
-        (let ([current-mtime (file-mtime path)]
-              [last-mtime (hashtable-ref mtimes path #f)])
-          (when (and current-mtime
-                     (or (not last-mtime)
-                         (> current-mtime last-mtime)))
-            (set! changed (cons path changed))
-            (hashtable-set! mtimes path current-mtime))))
-      paths)
-    (reverse changed)))
+        ;; Check each path
+        (for-each
+         (lambda (path)
+                 (let ([current-mtime (file-mtime path)]
+                       [last-mtime (hashtable-ref mtimes path #f)])
+                      (when (and current-mtime
+                                 (or (not last-mtime)
+                                     (> current-mtime last-mtime)))
+                            (set! changed (cons path changed))
+                            (hashtable-set! mtimes path current-mtime))))
+         paths)
+        (reverse changed)))
 
 ;;; ============================================================
 ;;; Debouncing
@@ -229,8 +229,8 @@
 (define (should-trigger? w)
   (let ([now (current-time-ms)]
         [last (watcher-last-triggered w)])
-    (or (not last)
-        (>= (- now last) *watch-debounce-delay*))))
+       (or (not last)
+           (>= (- now last) *watch-debounce-delay*))))
 
 ;;; update-trigger-time! : Watcher → void
 (define (update-trigger-time! w)
@@ -243,8 +243,8 @@
 ;;; Get current time in milliseconds.
 (define (current-time-ms)
   (let ([t (current-time)])
-    (+ (* (time-second t) 1000)
-       (quotient (time-nanosecond t) 1000000))))
+       (+ (* (time-second t) 1000)
+          (quotient (time-nanosecond t) 1000000))))
 
 ;;; ============================================================
 ;;; Watch Loop
@@ -254,23 +254,23 @@
 ;;; Main polling loop for a watcher (runs in background thread).
 (define (watch-loop w)
   (let ([running-box (watcher-running? w)])
-    (let loop ()
-      (when (unbox running-box)
-        ;; Check for changes
-        (let ([changed (check-changes w)])
-          (when (and (not (null? changed))
-                     (should-trigger? w))
-            ;; Trigger action
-            (guard (e [else
-                       (display-watch-error w changed e)])
-              (update-trigger-time! w)
-              (display-watch-trigger w changed)
-              ((watcher-action w) changed))))
-        ;; Sleep and continue
-        (sleep (make-time 'time-duration
-                         (* *watch-poll-interval* 1000000)
-                         0))
-        (loop)))))
+       (let loop ()
+            (when (unbox running-box)
+                  ;; Check for changes
+                  (let ([changed (check-changes w)])
+                       (when (and (not (null? changed))
+                                  (should-trigger? w))
+                             ;; Trigger action
+                             (guard (e [else
+                                        (display-watch-error w changed e)])
+                                    (update-trigger-time! w)
+                                    (display-watch-trigger w changed)
+                                    ((watcher-action w) changed))))
+                  ;; Sleep and continue
+                  (sleep (make-time 'time-duration
+                                    (* *watch-poll-interval* 1000000)
+                                    0))
+                  (loop)))))
 
 ;;; ============================================================
 ;;; Visual Feedback
@@ -293,11 +293,11 @@
   (display *ansi-reset*)
   (newline)
   (for-each
-    (lambda (path)
-      (display "  • ")
-      (display path)
-      (newline))
-    changed))
+   (lambda (path)
+           (display "  • ")
+           (display path)
+           (newline))
+   changed))
 
 ;;; display-watch-error : Watcher × (Listof String) × Condition → void
 (define (display-watch-error w changed e)
@@ -319,9 +319,9 @@
   (display (watcher-path w))
   (display *ansi-reset*)
   (when (watcher-pattern w)
-    (display " (pattern: ")
-    (display (watcher-pattern w))
-    (display ")"))
+        (display " (pattern: ")
+        (display (watcher-pattern w))
+        (display ")"))
   (display " [id: ")
   (display (watcher-id w))
   (display "]")
@@ -351,15 +351,15 @@
          [running-box (box #t)]
          [last-trig #f]
          [w (make-watcher id path #f action mtimes last-trig running-box #f)])
-    ;; Initialize modification times
-    (when (file-exists? path)
-      (hashtable-set! mtimes path (file-mtime path)))
-    ;; Start background thread
-    (let ([thread (fork-thread (lambda () (watch-loop w)))])
-      (set-watcher-thread! w thread))
-    (add-watcher! w)
-    (display-watch-started w)
-    w))
+        ;; Initialize modification times
+        (when (file-exists? path)
+              (hashtable-set! mtimes path (file-mtime path)))
+        ;; Start background thread
+        (let ([thread (fork-thread (lambda () (watch-loop w)))])
+             (set-watcher-thread! w thread))
+        (add-watcher! w)
+        (display-watch-started w)
+        w))
 
 (define (set-watcher-thread! w thread)
   ;; Store thread reference (no mutation needed, set during creation)
@@ -371,69 +371,69 @@
 ;;; Watch a directory for files matching pattern.
 (define (watch-dir path pattern action)
   (unless (file-directory? path)
-    (error 'watch-dir "not a directory" path))
+          (error 'watch-dir "not a directory" path))
   (let* ([id (next-watcher-id)]
          [mtimes (make-eq-hashtable)]
          [running-box (box #t)]
          [last-trig #f]
          [w (make-watcher id path pattern action mtimes last-trig running-box #f)])
-    ;; Initialize modification times for all matching files
-    (for-each
-      (lambda (file-path)
-        (hashtable-set! mtimes file-path (file-mtime file-path)))
-      (scan-paths path pattern))
-    ;; Start background thread
-    (let ([thread (fork-thread (lambda () (watch-loop w)))])
-      (set-watcher-thread! w thread))
-    (add-watcher! w)
-    (display-watch-started w)
-    w))
+        ;; Initialize modification times for all matching files
+        (for-each
+         (lambda (file-path)
+                 (hashtable-set! mtimes file-path (file-mtime file-path)))
+         (scan-paths path pattern))
+        ;; Start background thread
+        (let ([thread (fork-thread (lambda () (watch-loop w)))])
+             (set-watcher-thread! w thread))
+        (add-watcher! w)
+        (display-watch-started w)
+        w))
 
 ;;; auto-reload : String → Watcher
 ;;; Watch a module file and reload it when it changes.
 (define (auto-reload module-path)
   (watch-file module-path
-    (lambda (changed)
-      (display *ansi-green*)
-      (display "↻ Reloading ")
-      (display module-path)
-      (display *ansi-reset*)
-      (newline)
-      (guard (e [else
-                 (display *ansi-red*)
-                 (display "✗ Reload failed: ")
-                 (display *ansi-reset*)
-                 (if (condition? e)
-                     (display (condition-message e))
-                     (display e))
-                 (newline)])
-        (load module-path)
-        (display *ansi-green*)
-        (display "✓ Reloaded successfully")
-        (display *ansi-reset*)
-        (newline)))))
+              (lambda (changed)
+                      (display *ansi-green*)
+                      (display "↻ Reloading ")
+                      (display module-path)
+                      (display *ansi-reset*)
+                      (newline)
+                      (guard (e [else
+                                 (display *ansi-red*)
+                                 (display "✗ Reload failed: ")
+                                 (display *ansi-reset*)
+                                 (if (condition? e)
+                                     (display (condition-message e))
+                                     (display e))
+                                 (newline)])
+                             (load module-path)
+                             (display *ansi-green*)
+                             (display "✓ Reloaded successfully")
+                             (display *ansi-reset*)
+                             (newline)))))
 
 ;;; auto-test : String → Watcher
 ;;; Watch a test file and run it when it changes.
 (define (auto-test test-path)
   (watch-file test-path
-    (lambda (changed)
-      (display *ansi-blue*)
-      (display "🧪 Running tests: ")
-      (display test-path)
-      (display *ansi-reset*)
-      (newline)
-      (display "─────────────────────────────────────────\n")
-      (guard (e [else
-                 (display *ansi-red*)
-                 (display "✗ Tests failed with error: ")
-                 (display *ansi-reset*)
-                 (if (condition? e)
-                     (display (condition-message e))
-                     (display e))
-                 (newline)])
-        (system (string-append "scheme --script " test-path))
-        (display "─────────────────────────────────────────\n")))))
+              (lambda (changed)
+                      (display *ansi-blue*)
+                      (display "🧪 Running tests: ")
+                      (display test-path)
+                      (display *ansi-reset*)
+                      (newline)
+                      (display "─────────────────────────────────────────\n")
+                      (guard (e [else
+                                 (display *ansi-red*)
+                                 (display "✗ Tests failed with error: ")
+                                 (display *ansi-reset*)
+                                 (if (condition? e)
+                                     (display (condition-message e))
+                                     (display e))
+                                 (newline)])
+                             (system (string-append "scheme --script " test-path))
+                             (display "─────────────────────────────────────────\n")))))
 
 ;;; stop-watcher! : Watcher → void
 ;;; Stop a specific watcher.
@@ -447,12 +447,12 @@
 (define (stop-watching)
   (mutex-acquire *registry-mutex*)
   (let ([watchers *watcher-registry*])
-    (mutex-release *registry-mutex*)
-    (for-each
-      (lambda (w)
-        (watcher-stop! w)
-        (display-watch-stopped w))
-      watchers))
+       (mutex-release *registry-mutex*)
+       (for-each
+        (lambda (w)
+                (watcher-stop! w)
+                (display-watch-stopped w))
+        watchers))
   (mutex-acquire *registry-mutex*)
   (set! *watcher-registry* '())
   (mutex-release *registry-mutex*)
@@ -463,23 +463,23 @@
 (define (list-watchers)
   (mutex-acquire *registry-mutex*)
   (let ([watchers *watcher-registry*])
-    (mutex-release *registry-mutex*)
-    (if (null? watchers)
-        (display "No active watchers.\n")
-        (begin
-          (display "Active watchers:\n")
-          (for-each
-            (lambda (w)
-              (display "  [")
-              (display (watcher-id w))
-              (display "] ")
-              (display (watcher-path w))
-              (when (watcher-pattern w)
-                (display " (pattern: ")
-                (display (watcher-pattern w))
-                (display ")"))
-              (newline))
-            watchers)))))
+       (mutex-release *registry-mutex*)
+       (if (null? watchers)
+           (display "No active watchers.\n")
+           (begin
+            (display "Active watchers:\n")
+            (for-each
+             (lambda (w)
+                     (display "  [")
+                     (display (watcher-id w))
+                     (display "] ")
+                     (display (watcher-path w))
+                     (when (watcher-pattern w)
+                           (display " (pattern: ")
+                           (display (watcher-pattern w))
+                           (display ")"))
+                     (newline))
+             watchers)))))
 
 ;;; ============================================================
 ;;; Helper: Fork Thread
@@ -496,7 +496,7 @@
              (display "Warning: Threading not available, running synchronously\n")
              (thunk)
              #f])
-    (fork-thread thunk)))
+         (fork-thread thunk)))
 
 ;;; ============================================================
 ;;; REPL Integration

@@ -21,13 +21,13 @@
 (define (test name expected actual)
   (if (equal? expected actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (printf "  [PASS] ~a\n" name))
+       (set! tests-passed (+ tests-passed 1))
+       (printf "  [PASS] ~a\n" name))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (printf "  [FAIL] ~a\n" name)
-        (printf "      Expected: ~s\n" expected)
-        (printf "      Got:      ~s\n" actual))))
+       (set! tests-failed (+ tests-failed 1))
+       (printf "  [FAIL] ~a\n" name)
+       (printf "      Expected: ~s\n" expected)
+       (printf "      Got:      ~s\n" actual))))
 
 (define (test-true name actual)
   (test name #t actual))
@@ -38,12 +38,12 @@
 (define (test-pred name pred actual)
   (if (pred actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (printf "  [PASS] ~a\n" name))
+       (set! tests-passed (+ tests-passed 1))
+       (printf "  [PASS] ~a\n" name))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (printf "  [FAIL] ~a\n" name)
-        (printf "      Value ~s did not satisfy predicate\n" actual))))
+       (set! tests-failed (+ tests-failed 1))
+       (printf "  [FAIL] ~a\n" name)
+       (printf "      Value ~s did not satisfy predicate\n" actual))))
 
 ;;; ============================================================
 ;;; Test Setup - Create test store and blocks
@@ -57,7 +57,7 @@
 
 ;; Clean up any previous test store
 (when (file-exists? test-store-path)
-  (system (format "rm -rf ~a" test-store-path)))
+      (system (format "rm -rf ~a" test-store-path)))
 
 (define fs (mint-fs-capability test-store-path))
 
@@ -200,8 +200,8 @@
 
 (test-pred "store-all-blocks returns actual blocks"
            (lambda (bs)
-             (and (not (null? bs))
-                  (block? (car bs))))
+                   (and (not (null? bs))
+                        (block? (car bs))))
            all-blocks)
 
 (printf "\n")
@@ -288,10 +288,10 @@
 ;; Find blocks with payloads starting with "name:"
 (define name-blocks
   (store-find-by-payload fs
-                          (lambda (bv)
-                            (let ([s (utf8->string bv)])
-                              (and (>= (string-length s) 5)
-                                   (string=? (substring s 0 5) "name:"))))))
+                         (lambda (bv)
+                                 (let ([s (utf8->string bv)])
+                                      (and (>= (string-length s) 5)
+                                           (string=? (substring s 0 5) "name:"))))))
 (test "store-find-by-payload finds name: blocks"
       3
       (length name-blocks))
@@ -299,8 +299,8 @@
 ;; Find blocks with specific payload content
 (define age-blocks
   (store-find-by-payload fs
-                          (lambda (bv)
-                            (string=? (utf8->string bv) "age:30"))))
+                         (lambda (bv)
+                                 (string=? (utf8->string bv) "age:30"))))
 (test "store-find-by-payload finds exact match"
       1
       (length age-blocks))
@@ -308,8 +308,8 @@
 ;; No matches
 (define no-payload-match
   (store-find-by-payload fs
-                          (lambda (bv)
-                            (string=? (utf8->string bv) "nonexistent"))))
+                         (lambda (bv)
+                                 (string=? (utf8->string bv) "nonexistent"))))
 (test "store-find-by-payload with no matches returns empty"
       0
       (length no-payload-match))
@@ -588,7 +588,7 @@
 ;; Empty store test - create a fresh store
 (define empty-fs (mint-fs-capability ".test-store-empty"))
 (when (file-exists? ".test-store-empty")
-  (system "rm -rf .test-store-empty"))
+      (system "rm -rf .test-store-empty"))
 
 (test "store-count on empty store"
       0

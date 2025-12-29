@@ -229,7 +229,7 @@ ALGORITHM CHOICES
      - Slide needle across haystack
      - Compare at each position with string=?
      - Return #t on first match, #f if no match
-   
+
    Why naive? Simple, correct, fast enough for typical strings.
    Future: Boyer-Moore or KMP for O(n+m) if needed.
 
@@ -241,7 +241,7 @@ ALGORITHM CHOICES
      - Extract substring before delimiter
      - Continue from after delimiter
      - Handle edge cases (empty delimiter, no match)
-   
+
    Edge cases:
      - Empty delimiter → split into characters
      - No delimiter found → return single-element list
@@ -254,7 +254,7 @@ ALGORITHM CHOICES
      - Scan from left until non-whitespace
      - Scan from right until non-whitespace
      - Extract middle substring
-   
+
    Whitespace definition: space, tab, newline, return
 
 4. STRING-REPLACE (Tier 5)
@@ -265,7 +265,7 @@ ALGORITHM CHOICES
      - Append chunk before occurrence + new string
      - Continue from after occurrence
      - Append final chunk
-   
+
    Why rebuild? Strings immutable - can't mutate in place
 
 

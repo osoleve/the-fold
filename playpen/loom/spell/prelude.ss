@@ -48,33 +48,33 @@
 ;;; Get entity's HP as a percentage (0-100).
 (define (entity-hp-percent entity)
   (let ([stats (entity-stats entity)])
-    (if stats
-        (let ([hp (stats-hp stats)]
-              [max-hp (stats-max-hp stats)])
-          (if (> max-hp 0)
-              (* 100 (/ hp max-hp))
-              100))
-        100)))
+       (if stats
+           (let ([hp (stats-hp stats)]
+                 [max-hp (stats-max-hp stats)])
+                (if (> max-hp 0)
+                    (* 100 (/ hp max-hp))
+                    100))
+           100)))
 
 ;;; entity-mana-percent : Entity -> Rational
 ;;; Get entity's mana as a percentage (if it has a mana component).
 (define (entity-mana-percent entity)
   (let ([mana (entity-get-component entity 'mana)])
-    (if mana
-        (let ([current (alist-ref mana 'current 0)]
-              [maximum (alist-ref mana 'maximum 100)])
-          (if (> maximum 0)
-              (* 100 (/ current maximum))
-              100))
-        100)))
+       (if mana
+           (let ([current (alist-ref mana 'current 0)]
+                 [maximum (alist-ref mana 'maximum 100)])
+                (if (> maximum 0)
+                    (* 100 (/ current maximum))
+                    100))
+           100)))
 
 ;;; player-in-range? : World × Entity × Nat -> Bool
 ;;; Check if the player is within range of an entity.
 (define (player-in-range? world entity range)
   (let ([player (world-get-player world)])
-    (if player
-        (<= (entity-distance entity player) range)
-        #f)))
+       (if player
+           (<= (entity-distance entity player) range)
+           #f)))
 
 ;;; player-adjacent? : World × Entity -> Bool
 ;;; Check if player is adjacent (within 1 tile) of entity.
@@ -85,34 +85,34 @@
 ;;; Get all entities within range of a point.
 (define (entities-in-range world point range)
   (filter
-    (lambda (e)
-      (let ([pos (entity-position e)])
-        (and pos
-             (<= (manhattan-distance (position->point pos) point) range))))
-    (world-entities world)))
+   (lambda (e)
+           (let ([pos (entity-position e)])
+                (and pos
+                     (<= (manhattan-distance (position->point pos) point) range))))
+   (world-entities world)))
 
 ;;; nearest-enemy : World × Entity -> Entity | #f
 ;;; Find the nearest hostile entity, or #f if none.
 (define (nearest-enemy world entity)
   (let* ([my-faction (entity-faction entity)]
          [enemies (filter
-                    (lambda (e)
-                      (and (not (eq? (entity-id e) (entity-id entity)))
-                           (entity-has-component? e 'faction)
-                           (faction-is-hostile?
-                             (entity-get-component e 'faction)
-                             my-faction)))
-                    (world-entities world))])
-    (if (null? enemies)
-        #f
-        (fold-left
-          (lambda (nearest e)
-            (if (< (entity-distance entity e)
-                   (entity-distance entity nearest))
-                e
-                nearest))
-          (car enemies)
-          (cdr enemies)))))
+                   (lambda (e)
+                           (and (not (eq? (entity-id e) (entity-id entity)))
+                                (entity-has-component? e 'faction)
+                                (faction-is-hostile?
+                                 (entity-get-component e 'faction)
+                                 my-faction)))
+                   (world-entities world))])
+        (if (null? enemies)
+            #f
+            (fold-left
+             (lambda (nearest e)
+                     (if (< (entity-distance entity e)
+                            (entity-distance entity nearest))
+                         e
+                         nearest))
+             (car enemies)
+             (cdr enemies)))))
 
 
 ;;; ============================================================
@@ -130,9 +130,9 @@
 ;;; Returns entity unchanged if component doesn't exist.
 (define (entity-modify-component entity type-symbol transform-fn)
   (let ([comp (entity-get-component entity type-symbol)])
-    (if comp
-        (entity-add-component entity (transform-fn comp))
-        entity)))
+       (if comp
+           (entity-add-component entity (transform-fn comp))
+           entity)))
 
 
 ;;; ============================================================

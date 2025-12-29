@@ -31,9 +31,9 @@
 
 (define (opponent player)
   (case player
-    [(red) 'blue]
-    [(blue) 'red]
-    [else (error "Unknown player" player)]))
+        [(red) 'blue]
+        [(blue) 'red]
+        [else (error "Unknown player" player)]))
 
 ;;; ============================================================
 ;;; Game Setup
@@ -41,7 +41,7 @@
 
 (define (initialize-game)
   (let ([board (make-hex-board 'axial 3)])  ; Small 3-radius board
-    (make-game-state board 'red 1 '() '() 0 0)))
+       (make-game-state board 'red 1 '() '() 0 0)))
 
 ;;; ============================================================
 ;;; Unit Placement Logic
@@ -56,21 +56,21 @@
          [board (game-state-board game)]
          [red-units (game-state-red-units game)]
          [blue-units (game-state-blue-units game)])
-    
-    ; Check if position is valid (empty and in bounds)
-    (if (and (hex-in-bounds? board position)
-             (not (hex-tile-data board position)))
-        ; Valid move - place unit
-        (let ([new-board (hex-set-tile-data board position new-unit)]
-              [new-red-units (if (eq? current-player 'red)
-                                 (add-unit-to-list new-unit red-units)
-                                 red-units)]
-              [new-blue-units (if (eq? current-player 'blue)
-                                  (add-unit-to-list new-unit blue-units)
-                                  blue-units)])
-          (make-game-state new-board current-player 1 new-red-units new-blue-units 0 0))
-        ; Invalid move - return game unchanged
-        game)))
+        
+        ; Check if position is valid (empty and in bounds)
+        (if (and (hex-in-bounds? board position)
+                 (not (hex-tile-data board position)))
+            ; Valid move - place unit
+            (let ([new-board (hex-set-tile-data board position new-unit)]
+                  [new-red-units (if (eq? current-player 'red)
+                                     (add-unit-to-list new-unit red-units)
+                                     red-units)]
+                  [new-blue-units (if (eq? current-player 'blue)
+                                      (add-unit-to-list new-unit blue-units)
+                                      blue-units)])
+                 (make-game-state new-board current-player 1 new-red-units new-blue-units 0 0))
+            ; Invalid move - return game unchanged
+            game)))
 
 ;;; ============================================================
 ;;; Game Display
@@ -109,17 +109,17 @@
   (display "\nBoard Tiles with Units:\n")
   (let ([game-board (game-state-board game)]
         [tiles (board-tiles game-board)])
-    (for-each
-     (lambda (tile)
-       (let ([pos (car tile)]
-             [data (cdr tile)])
-         (when (unit? data)
-           (display "  Tile ")
-           (display pos)
-           (display " has ")
-           (display (unit-player data))
-           (display " unit\n"))))
-     tiles))
+       (for-each
+        (lambda (tile)
+                (let ([pos (car tile)]
+                      [data (cdr tile)])
+                     (when (unit? data)
+                           (display "  Tile ")
+                           (display pos)
+                           (display " has ")
+                           (display (unit-player data))
+                           (display " unit\n"))))
+        tiles))
   
   (newline))
 
@@ -132,32 +132,32 @@
   
   ; Initialize game
   (let ([game (initialize-game)])
-    (display "Initial game state:\n")
-    (display-game-state game)
-    
-    ; Demo some moves
-    (display "Placing Red unit at (0 . 0)...\n")
-    (let ([game2 (place-unit game '(0 . 0))])
-      (display-game-state game2)
-      
-      (display "Placing Blue unit at (1 . 0)...\n")
-      (let ([game3 (place-unit game2 '(1 . 0))])
-        (display-game-state game3)
-        
-        (display "Attempting invalid move - placing unit on occupied tile...\n")
-        (let ([game4 (place-unit game3 '(0 . 0))])
-          (display-game-state game4)
-          
-          (display "Placing another Red unit at (-1 . 1)...\n")
-          (let ([game5 (place-unit game4 '(-1 . 1))])
-            (display-game-state game5)
+       (display "Initial game state:\n")
+       (display-game-state game)
+       
+       ; Demo some moves
+       (display "Placing Red unit at (0 . 0)...\n")
+       (let ([game2 (place-unit game '(0 . 0))])
+            (display-game-state game2)
             
-            (display "Demo complete! Game shows basic unit placement mechanics.\n")
-            (display "This framework could be extended with:\n")
-            (display "  - Territory control rules\n")
-            (display "  - Movement mechanics\n")
-            (display "  - Combat system\n")
-            (display "  - Victory conditions\n")))))))
+            (display "Placing Blue unit at (1 . 0)...\n")
+            (let ([game3 (place-unit game2 '(1 . 0))])
+                 (display-game-state game3)
+                 
+                 (display "Attempting invalid move - placing unit on occupied tile...\n")
+                 (let ([game4 (place-unit game3 '(0 . 0))])
+                      (display-game-state game4)
+                      
+                      (display "Placing another Red unit at (-1 . 1)...\n")
+                      (let ([game5 (place-unit game4 '(-1 . 1))])
+                           (display-game-state game5)
+                           
+                           (display "Demo complete! Game shows basic unit placement mechanics.\n")
+                           (display "This framework could be extended with:\n")
+                           (display "  - Territory control rules\n")
+                           (display "  - Movement mechanics\n")
+                           (display "  - Combat system\n")
+                           (display "  - Victory conditions\n")))))))
 
 ;;; Run the demo
 (demo-game)

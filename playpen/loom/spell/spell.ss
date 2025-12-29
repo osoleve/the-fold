@@ -171,16 +171,16 @@
 
 (def-entity goblin (x y)
   :components
-    (make-stats-component 10   ; hp
-                          10   ; max-hp
-                          5    ; attack
-                          2    ; defense
-                          80)  ; speed
-    (make-renderable-component #\g)
-    (make-name-component "Goblin" "A sneaky creature")
-    (make-ai-component 'hunt)
-    (make-actor-component)           ; needed for turns!
-    (make-faction-component 'monster '(player)))
+  (make-stats-component 10   ; hp
+                        10   ; max-hp
+                        5    ; attack
+                        2    ; defense
+                        80)  ; speed
+  (make-renderable-component #\g)
+  (make-name-component "Goblin" "A sneaky creature")
+  (make-ai-component 'hunt)
+  (make-actor-component)           ; needed for turns!
+  (make-faction-component 'monster '(player)))
 
 ;; Generates: (make-goblin x y) factory function
 
@@ -189,21 +189,21 @@
 
 ;; Preferred form: :do first (binds variables), then :when (uses them)
 (on-event dispatcher entity-died
-  :do (killer victim data)
-    (display "Someone died!\n"))
+          :do (killer victim data)
+          (display "Someone died!\n"))
 
 (on-event dispatcher damage-dealt
-  :do (attacker target data)
-  :when (> (alist-ref data 'amount) 10)
-    (display "Big hit!\n"))
+          :do (attacker target data)
+          :when (> (alist-ref data 'amount) 10)
+          (display "Big hit!\n"))
 
 
 ;;; ========== ENTITY UPDATES ==========
 
 (set! world
-  (with-entity world player-id
-    (-> (entity-damage 10)
-        (entity-heal 5))))
+      (with-entity world player-id
+                   (-> (entity-damage 10)
+                       (entity-heal 5))))
 
 
 ;;; ========== PIPE MACROS ==========
@@ -231,21 +231,21 @@
 (def-behavior coward
   (initial normal)
   (vars [flee-threshold 30])
-
+  
   (state normal
-    (on tick
-      (if (< (self-hp-percent entity) flee-threshold)
-          (-> fleeing)
-          (-> normal)))
-    (action (ai-hunt world entity)))
-
+         (on tick
+             (if (< (self-hp-percent entity) flee-threshold)
+                 (-> fleeing)
+                 (-> normal)))
+         (action (ai-hunt world entity)))
+  
   (state fleeing
-    (on enter (display "Entity starts fleeing!\n"))
-    (on tick
-      (if (> (self-hp-percent entity) 50)
-          (-> normal)
-          (-> fleeing)))
-    (action (ai-flee world entity))))
+         (on enter (display "Entity starts fleeing!\n"))
+         (on tick
+             (if (> (self-hp-percent entity) 50)
+                 (-> normal)
+                 (-> fleeing)))
+         (action (ai-flee world entity))))
 
 
 ;;; ========== CUSTOM ACTIONS ==========
@@ -275,13 +275,13 @@
   (title "Dungeon Escape")
   (description "Find the stairs and escape!")
   (world 80 40)
-
+  
   (player
-    (name "Hero")
-    (char #\@)
-    (stats 100 100 15 8 100)
-    (color 'white))
-
+   (name "Hero")
+   (char #\@)
+   (stats 100 100 15 8 100)
+   (color 'white))
+  
   (win-when (player-at-tile? world 'stairs-up))
   (lose-when (<= (player-hp world) 0)))
 

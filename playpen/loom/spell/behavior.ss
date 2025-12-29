@@ -85,39 +85,39 @@
 ;;; Get the current state of an entity's behavior.
 (define (get-behavior-state entity)
   (let ([ai-comp (entity-ai entity)])
-    (if ai-comp
-        (alist-ref (ai-state ai-comp) 'current-state 'initial)
-        'initial)))
+       (if ai-comp
+           (alist-ref (ai-state ai-comp) 'current-state 'initial)
+           'initial)))
 
 ;;; set-behavior-state : Entity × Symbol -> Entity
 ;;; Set the behavior state (returns new entity).
 (define (set-behavior-state entity new-state)
   (let ([ai-comp (entity-ai entity)])
-    (if ai-comp
-        (let* ([current-state (ai-state ai-comp)]
-               [new-ai-state (alist-set current-state 'current-state new-state)]
-               [new-ai-comp (make-ai-component (ai-behavior ai-comp) new-ai-state)])
-          (entity-add-component entity new-ai-comp))
-        entity)))
+       (if ai-comp
+           (let* ([current-state (ai-state ai-comp)]
+                  [new-ai-state (alist-set current-state 'current-state new-state)]
+                  [new-ai-comp (make-ai-component (ai-behavior ai-comp) new-ai-state)])
+                 (entity-add-component entity new-ai-comp))
+           entity)))
 
 ;;; get-behavior-var : Entity × Symbol × Any -> Any
 ;;; Get a behavior variable from entity's AI state.
 (define (get-behavior-var entity var-name default)
   (let ([ai-comp (entity-ai entity)])
-    (if ai-comp
-        (alist-ref (ai-state ai-comp) var-name default)
-        default)))
+       (if ai-comp
+           (alist-ref (ai-state ai-comp) var-name default)
+           default)))
 
 ;;; set-behavior-var : Entity × Symbol × Any -> Entity
 ;;; Set a behavior variable (returns new entity).
 (define (set-behavior-var entity var-name value)
   (let ([ai-comp (entity-ai entity)])
-    (if ai-comp
-        (let* ([current-state (ai-state ai-comp)]
-               [new-ai-state (alist-set current-state var-name value)]
-               [new-ai-comp (make-ai-component (ai-behavior ai-comp) new-ai-state)])
-          (entity-add-component entity new-ai-comp))
-        entity)))
+       (if ai-comp
+           (let* ([current-state (ai-state ai-comp)]
+                  [new-ai-state (alist-set current-state var-name value)]
+                  [new-ai-comp (make-ai-component (ai-behavior ai-comp) new-ai-state)])
+                 (entity-add-component entity new-ai-comp))
+           entity)))
 
 ;;; ============================================================
 ;;; Action Helpers (for use in behavior bodies)
@@ -143,62 +143,62 @@
          [dx (- (point-x my-pos) (point-x target-pos))]
          [dy (- (point-y my-pos) (point-y target-pos))]
          [dir (cond
-                [(and (> (abs dx) (abs dy)) (> dx 0)) 'east]
-                [(and (> (abs dx) (abs dy)) (< dx 0)) 'west]
-                [(> dy 0) 'south]
-                [else 'north])])
-    (make-ai-action 'move dir)))
+               [(and (> (abs dx) (abs dy)) (> dx 0)) 'east]
+               [(and (> (abs dx) (abs dy)) (< dx 0)) 'west]
+               [(> dy 0) 'south]
+               [else 'north])])
+        (make-ai-action 'move dir)))
 
 ;;; ai-flee : World × Entity -> AIAction
 ;;; Flee from the nearest enemy (wrapper around built-in ai-flee).
 (define (ai-flee world entity)
   (let ([nearest (get-nearest-enemy world entity)])
-    (if nearest
-        (ai-flee-from entity nearest)
-        (ai-wait))))
+       (if nearest
+           (ai-flee-from entity nearest)
+           (ai-wait))))
 
 ;;; ai-hunt : World × Entity -> AIAction
 ;;; Hunt the nearest enemy (wrapper around built-in ai-hunt).
 (define (ai-hunt world entity)
   (let ([nearest (get-nearest-enemy world entity)])
-    (if nearest
-        (if (entity-adjacent? entity nearest)
-            (ai-attack (entity-id nearest))
-            ;; Move toward enemy - calculate direction
-            (let* ([my-pos (entity-point entity)]
-                   [target-pos (entity-point nearest)]
-                   [dx (- (point-x target-pos) (point-x my-pos))]
-                   [dy (- (point-y target-pos) (point-y my-pos))]
-                   [dir (cond
-                          [(and (>= (abs dx) (abs dy)) (> dx 0)) 'east]
-                          [(and (>= (abs dx) (abs dy)) (< dx 0)) 'west]
-                          [(> dy 0) 'south]
-                          [else 'north])])
-              (ai-move dir)))
-        (ai-wait))))
+       (if nearest
+           (if (entity-adjacent? entity nearest)
+               (ai-attack (entity-id nearest))
+               ;; Move toward enemy - calculate direction
+               (let* ([my-pos (entity-point entity)]
+                      [target-pos (entity-point nearest)]
+                      [dx (- (point-x target-pos) (point-x my-pos))]
+                      [dy (- (point-y target-pos) (point-y my-pos))]
+                      [dir (cond
+                            [(and (>= (abs dx) (abs dy)) (> dx 0)) 'east]
+                            [(and (>= (abs dx) (abs dy)) (< dx 0)) 'west]
+                            [(> dy 0) 'south]
+                            [else 'north])])
+                     (ai-move dir)))
+           (ai-wait))))
 
 ;;; ai-guard : World × Entity -> AIAction
 ;;; Stay in place and attack adjacent enemies.
 (define (ai-guard world entity)
   (let ([nearest (get-nearest-enemy world entity)])
-    (if (and nearest (entity-adjacent? entity nearest))
-        (ai-attack (entity-id nearest))
-        (ai-wait))))
+       (if (and nearest (entity-adjacent? entity nearest))
+           (ai-attack (entity-id nearest))
+           (ai-wait))))
 
 ;;; ai-wander-spell : -> AIAction
 ;;; Wander in a random direction.
 (define (ai-wander-spell)
   (let ([dirs '(north south east west)])
-    (ai-move (list-ref dirs (random 4)))))
+       (ai-move (list-ref dirs (random 4)))))
 
 ;;; emote : Entity × String -> Void
 ;;; Display an emote message for an entity.
 (define (emote entity message)
   (let ([name (entity-name entity)])
-    (display (if name name "Entity"))
-    (display " ")
-    (display message)
-    (newline)))
+       (display (if name name "Entity"))
+       (display " ")
+       (display message)
+       (newline)))
 
 ;;; ============================================================
 ;;; Predicate Helpers (for use in behavior conditions)
@@ -208,10 +208,10 @@
 ;;; Get the nearest hostile entity, or #f if none.
 (define (get-nearest-enemy world entity)
   (world-find-nearest world (entity-point entity)
-    (lambda (e)
-      (and (not (= (entity-id e) (entity-id entity)))
-           (entity-alive? e)
-           (is-hostile? entity e)))))
+                      (lambda (e)
+                              (and (not (= (entity-id e) (entity-id entity)))
+                                   (entity-alive? e)
+                                   (is-hostile? entity e)))))
 
 ;;; self-hp-percent : Entity -> Rational
 ;;; Get entity's HP as percentage.
@@ -226,22 +226,22 @@
 ;;; Check if any hostile entity is visible.
 (define (enemy-visible? world entity)
   (let ([nearest (world-find-nearest world (entity-point entity)
-                   (lambda (e)
-                     (and (not (= (entity-id e) (entity-id entity)))
-                          (entity-alive? e)
-                          (is-hostile? entity e))))])
-    (if nearest #t #f)))
+                                     (lambda (e)
+                                             (and (not (= (entity-id e) (entity-id entity)))
+                                                  (entity-alive? e)
+                                                  (is-hostile? entity e))))])
+       (if nearest #t #f)))
 
 ;;; nearest-enemy-distance : World × Entity -> Nat | +inf
 (define (nearest-enemy-distance world entity)
   (let ([nearest (world-find-nearest world (entity-point entity)
-                   (lambda (e)
-                     (and (not (= (entity-id e) (entity-id entity)))
-                          (entity-alive? e)
-                          (is-hostile? entity e))))])
-    (if nearest
-        (entity-distance entity nearest)
-        +inf.0)))
+                                     (lambda (e)
+                                             (and (not (= (entity-id e) (entity-id entity)))
+                                                  (entity-alive? e)
+                                                  (is-hostile? entity e))))])
+       (if nearest
+           (entity-distance entity nearest)
+           +inf.0)))
 
 ;;; ============================================================
 ;;; State Transition Syntax
@@ -252,7 +252,7 @@
 
 (define-syntax ->
   (syntax-rules ()
-    [(_ state) 'state]))
+                [(_ state) 'state]))
 
 ;;; ============================================================
 ;;; Behavior Definition Macro
@@ -265,63 +265,63 @@
 
 (define-syntax def-behavior
   (lambda (stx)
-    (syntax-case stx (initial vars state on action)
-      ;; Full form with vars
-      [(_ name
-          (initial init-state)
-          (vars (var-name var-default) ...)
-          state-clauses ...)
-       #'(begin
-           ;; Define the behavior function
-           (define (name world entity)
-             (behavior-execute 'name 'init-state
-                               '((var-name . var-default) ...)
-                               (list state-clauses ...)
-                               world entity))
-           ;; Register the behavior
-           (behavior-register! 'name name))]
-
-      ;; Form without vars
-      [(_ name
-          (initial init-state)
-          state-clauses ...)
-       #'(begin
-           (define (name world entity)
-             (behavior-execute 'name 'init-state
-                               '()
-                               (list state-clauses ...)
-                               world entity))
-           (behavior-register! 'name name))])))
+          (syntax-case stx (initial vars state on action)
+                       ;; Full form with vars
+                       [(_ name
+                           (initial init-state)
+                           (vars (var-name var-default) ...)
+                           state-clauses ...)
+                        #'(begin
+                           ;; Define the behavior function
+                           (define (name world entity)
+                             (behavior-execute 'name 'init-state
+                                               '((var-name . var-default) ...)
+                                               (list state-clauses ...)
+                                               world entity))
+                           ;; Register the behavior
+                           (behavior-register! 'name name))]
+                       
+                       ;; Form without vars
+                       [(_ name
+                           (initial init-state)
+                           state-clauses ...)
+                        #'(begin
+                           (define (name world entity)
+                             (behavior-execute 'name 'init-state
+                                               '()
+                                               (list state-clauses ...)
+                                               world entity))
+                           (behavior-register! 'name name))])))
 
 ;;; Parse a state clause at runtime
 (define-syntax state
   (syntax-rules (on action)
-    ;; State with enter, tick, and action
-    [(_ state-name
-        (on enter enter-body ...)
-        (on tick tick-body ...)
-        (action action-expr))
-     (list 'state-name
-           (lambda (world entity) enter-body ...)
-           (lambda (world entity) tick-body ...)
-           (lambda (world entity) action-expr))]
-
-    ;; State with tick and action only (no enter)
-    [(_ state-name
-        (on tick tick-body ...)
-        (action action-expr))
-     (list 'state-name
-           (lambda (world entity) (void))
-           (lambda (world entity) tick-body ...)
-           (lambda (world entity) action-expr))]
-
-    ;; State with action only (no transitions)
-    [(_ state-name
-        (action action-expr))
-     (list 'state-name
-           (lambda (world entity) (void))
-           (lambda (world entity) 'state-name)
-           (lambda (world entity) action-expr))]))
+                ;; State with enter, tick, and action
+                [(_ state-name
+                    (on enter enter-body ...)
+                    (on tick tick-body ...)
+                    (action action-expr))
+                 (list 'state-name
+                       (lambda (world entity) enter-body ...)
+                       (lambda (world entity) tick-body ...)
+                       (lambda (world entity) action-expr))]
+                
+                ;; State with tick and action only (no enter)
+                [(_ state-name
+                    (on tick tick-body ...)
+                    (action action-expr))
+                 (list 'state-name
+                       (lambda (world entity) (void))
+                       (lambda (world entity) tick-body ...)
+                       (lambda (world entity) action-expr))]
+                
+                ;; State with action only (no transitions)
+                [(_ state-name
+                    (action action-expr))
+                 (list 'state-name
+                       (lambda (world entity) (void))
+                       (lambda (world entity) 'state-name)
+                       (lambda (world entity) action-expr))]))
 
 ;;; ============================================================
 ;;; Behavior Execution
@@ -340,26 +340,26 @@
   (let* ([current-state (get-behavior-state entity)]
          [current-state (if (eq? current-state 'initial) init-state current-state)]
          [state-def (find-state-def current-state state-defs)])
-    (if state-def
-        (let* ([on-enter (cadr state-def)]
-               [on-tick (caddr state-def)]
-               [get-action (cadddr state-def)]
-               ;; Run tick to determine next state
-               [next-state (on-tick world entity)])
-          ;; If state changed, we'd need to update entity and run on-enter
-          ;; For now, just return the action
-          ;; (State updates happen via world-update-entity in the game loop)
-          (get-action world entity))
-        ;; Unknown state - return wait
-        (ai-wait))))
+        (if state-def
+            (let* ([on-enter (cadr state-def)]
+                   [on-tick (caddr state-def)]
+                   [get-action (cadddr state-def)]
+                   ;; Run tick to determine next state
+                   [next-state (on-tick world entity)])
+                  ;; If state changed, we'd need to update entity and run on-enter
+                  ;; For now, just return the action
+                  ;; (State updates happen via world-update-entity in the game loop)
+                  (get-action world entity))
+            ;; Unknown state - return wait
+            (ai-wait))))
 
 ;;; find-state-def : Symbol × List -> StateDefinition | #f
 (define (find-state-def state-name state-defs)
   (let loop ([defs state-defs])
-    (cond
-      [(null? defs) #f]
-      [(eq? (caar defs) state-name) (car defs)]
-      [else (loop (cdr defs))])))
+       (cond
+        [(null? defs) #f]
+        [(eq? (caar defs) state-name) (car defs)]
+        [else (loop (cdr defs))])))
 
 ;;; ============================================================
 ;;; Example Usage (commented out)
@@ -372,22 +372,22 @@
   (initial normal)
   (vars [flee-threshold 30]
         [recover-threshold 50])
-
+  
   (state normal
-    (on tick
-      (if (< (self-hp-percent entity) 30)
-          (-> fleeing)
-          (-> normal)))
-    (action (ai-hunt world entity)))
-
+         (on tick
+             (if (< (self-hp-percent entity) 30)
+                 (-> fleeing)
+                 (-> normal)))
+         (action (ai-hunt world entity)))
+  
   (state fleeing
-    (on enter
-      (display "Entity starts fleeing!\n"))
-    (on tick
-      (if (> (self-hp-percent entity) 50)
-          (-> normal)
-          (-> fleeing)))
-    (action (ai-flee world entity))))
+         (on enter
+             (display "Entity starts fleeing!\n"))
+         (on tick
+             (if (> (self-hp-percent entity) 50)
+                 (-> normal)
+                 (-> fleeing)))
+         (action (ai-flee world entity))))
 
 
 ;;; A guard behavior that stays near a point
@@ -396,20 +396,20 @@
   (initial watching)
   (vars [guard-radius 5]
         [alert-range 3])
-
+  
   (state watching
-    (on tick
-      (if (< (nearest-enemy-distance world entity) 3)
-          (-> attacking)
-          (-> watching)))
-    (action (ai-wait)))
-
+         (on tick
+             (if (< (nearest-enemy-distance world entity) 3)
+                 (-> attacking)
+                 (-> watching)))
+         (action (ai-wait)))
+  
   (state attacking
-    (on tick
-      (if (> (nearest-enemy-distance world entity) 5)
-          (-> watching)
-          (-> attacking)))
-    (action (ai-hunt world entity))))
+         (on tick
+             (if (> (nearest-enemy-distance world entity) 5)
+                 (-> watching)
+                 (-> attacking)))
+         (action (ai-hunt world entity))))
 
 
 ;;; Usage:
@@ -434,11 +434,11 @@
 (define (ai-decide-action-spell world entity)
   (let* ([ai-comp (entity-ai entity)]
          [behavior (if ai-comp (ai-behavior ai-comp) #f)])
-    (if behavior
-        (let ([behavior-fn (behavior-lookup behavior)])
-          (if behavior-fn
-              ;; Use custom behavior from registry
-              (behavior-fn world entity)
-              ;; Fall back to built-in ai-decide-action
-              (ai-decide-action world entity)))
-        (ai-wait))))
+        (if behavior
+            (let ([behavior-fn (behavior-lookup behavior)])
+                 (if behavior-fn
+                     ;; Use custom behavior from registry
+                     (behavior-fn world entity)
+                     ;; Fall back to built-in ai-decide-action
+                     (ai-decide-action world entity)))
+            (ai-wait))))

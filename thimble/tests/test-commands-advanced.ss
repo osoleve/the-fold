@@ -13,10 +13,10 @@
  "Greet the user"
  "Greet the user with a friendly message.\n  Usage: (cmd 'greet)\n         (cmd 'greet name)"
  (lambda args
-   (if (null? args)
-       (display "Hello, friend!\n")
-       (display (format "Hello, ~a!\n" (car args))))
-   (void)))
+         (if (null? args)
+             (display "Hello, friend!\n")
+             (display (format "Hello, ~a!\n" (car args))))
+         (void)))
 
 (display "Registered. Command list:\n")
 (commands)
@@ -25,8 +25,8 @@
 (display "\nTest 2: Invoke custom command\n")
 (let ([result1 (cmd 'greet)]
       [result2 (cmd 'greet "Alice")])
-  (display (format "Result 1: ~a\n" result1))
-  (display (format "Result 2: ~a\n" result2)))
+     (display (format "Result 1: ~a\n" result1))
+     (display (format "Result 2: ~a\n" result2)))
 
 ;; Test 3: Get help on custom command
 (display "\nTest 3: Help on custom command\n")
@@ -41,7 +41,7 @@
 ;; Test 5: Try to use unregistered command
 (display "\nTest 5: Try to use unregistered command\n")
 (let ([result (cmd 'greet)])
-  (display (format "Result: ~a\n" result)))
+     (display (format "Result: ~a\n" result)))
 
 ;; Test 6: Test error handling in command
 (display "\nTest 6: Command with error\n")
@@ -50,10 +50,10 @@
  "Test error handling"
  "A command that always fails for testing."
  (lambda args
-   (error 'errortest "This is a test error")))
+         (error 'errortest "This is a test error")))
 
 (let ([result (cmd 'errortest)])
-  (display (format "Result: ~a\n" result)))
+     (display (format "Result: ~a\n" result)))
 
 (unregister-command! 'errortest)
 

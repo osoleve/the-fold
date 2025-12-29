@@ -67,32 +67,32 @@
 ;;; kind? : Any → Boolean
 (define (kind? k)
   (cond
-    [(eq? k '*) #t]
-    [(eq? k 'Constraint) #t]
-    [(eq? k 'Row) #t]
-    ;; Kind variable (κ-prefixed symbols)
-    [(kind-var? k) #t]
-    [(not (pair? k)) #f]
-    ;; Kind arrow
-    [(eq? (car k) '⇒)
-     (and (= (length k) 3)
-          (kind? (cadr k))
-          (kind? (caddr k)))]
-    ;; Kind polymorphism
-    [(eq? (car k) 'κ∀)
-     (and (= (length k) 3)
-          (list? (cadr k))
-          (andmap symbol? (cadr k))
-          (kind? (caddr k)))]
-    [else #f]))
+   [(eq? k '*) #t]
+   [(eq? k 'Constraint) #t]
+   [(eq? k 'Row) #t]
+   ;; Kind variable (κ-prefixed symbols)
+   [(kind-var? k) #t]
+   [(not (pair? k)) #f]
+   ;; Kind arrow
+   [(eq? (car k) '⇒)
+    (and (= (length k) 3)
+         (kind? (cadr k))
+         (kind? (caddr k)))]
+   ;; Kind polymorphism
+   [(eq? (car k) 'κ∀)
+    (and (= (length k) 3)
+         (list? (cadr k))
+         (andmap symbol? (cadr k))
+         (kind? (caddr k)))]
+   [else #f]))
 
 ;;; kind-var? : Any → Boolean
 ;;; Kind variables start with κ
 (define (kind-var? k)
   (and (symbol? k)
        (let ([s (symbol->string k)])
-         (and (> (string-length s) 1)
-              (char=? (string-ref s 0) #\κ)))))
+            (and (> (string-length s) 1)
+                 (char=? (string-ref s 0) #\κ)))))
 
 ;;; kind-arrow? : Kind → Boolean
 (define (kind-arrow? k)
@@ -113,12 +113,12 @@
 ;;; kind=? : Kind × Kind → Boolean
 (define (kind=? k1 k2)
   (cond
-    [(and (symbol? k1) (symbol? k2)) (eq? k1 k2)]
-    [(and (pair? k1) (pair? k2))
-     (and (= (length k1) (length k2))
-          (andmap (lambda (pair) (kind=? (car pair) (cdr pair)))
-                  (map cons k1 k2)))]
-    [else #f]))
+   [(and (symbol? k1) (symbol? k2)) (eq? k1 k2)]
+   [(and (pair? k1) (pair? k2))
+    (and (= (length k1) (length k2))
+         (andmap (lambda (pair) (kind=? (car pair) (cdr pair)))
+                 (map cons k1 k2)))]
+   [else #f]))
 
 ;;; ============================================================
 ;;; Type Constructor Representation
@@ -183,7 +183,7 @@
 ;;; lookup-kind : Symbol → Kind | #f
 (define (lookup-kind name)
   (let ([entry (assq name builtin-kinds)])
-    (if entry (cdr entry) #f)))
+       (if entry (cdr entry) #f)))
 
 ;;; ============================================================
 ;;; Kind Inference
@@ -193,102 +193,102 @@
 ;;; Infer the kind of a type expression.
 (define (infer-kind type kenv)
   (cond
-    ;; Type variable — look up in environment
-    [(symbol? type)
-     (let ([builtin (lookup-kind type)])
-       (if builtin
-           builtin
-           (let ([env-entry (assq type kenv)])
-             (if env-entry
-                 (cdr env-entry)
-                 `(error unknown-type ,type)))))]
-
-    ;; Hole — kind is unknown, represented as kind hole
-    [(eq? type '?) 'κ?]
-    [(and (pair? type) (eq? (car type) '?)) 'κ?]
-
-    [(not (pair? type))
-     `(error invalid-type ,type)]
-
-    ;; Type application: (@ F Args...)
-    [(eq? (car type) '@)
-     (infer-app-kind (cadr type) (cddr type) kenv)]
-
-    ;; Universal quantification: (∀ (vars) body)
-    ;; Quantified type has kind * if body has kind *
-    [(eq? (car type) '∀)
-     (let* ([vars (cadr type)]
-            [body (caddr type)]
-            ;; Extend environment with kind * for each variable
-            [new-env (append (map (lambda (v) (cons v K*)) vars) kenv)]
-            [body-kind (infer-kind body new-env)])
-       (if (kind=? body-kind K*)
-           K*
-           `(error quantified-body-not-type ,body-kind)))]
-
-    ;; Recursive type: (μ var body)
-    [(eq? (car type) 'μ)
-     (let* ([var (cadr type)]
-            [body (caddr type)]
-            [new-env (cons (cons var K*) kenv)]
-            [body-kind (infer-kind body new-env)])
-       (if (kind=? body-kind K*)
-           K*
-           `(error recursive-body-not-type ,body-kind)))]
-
-    ;; Function type: (-> T1 ... Tn Tresult)
-    [(eq? (car type) '->)
-     (let ([arg-kinds (map (lambda (t) (infer-kind t kenv)) (cdr type))])
-       (if (andmap (lambda (k) (kind=? k K*)) arg-kinds)
-           K*
-           `(error function-args-not-types ,arg-kinds)))]
-
-    ;; Product type: (× T1 ... Tn)
-    [(eq? (car type) '×)
-     (let ([elem-kinds (map (lambda (t) (infer-kind t kenv)) (cdr type))])
-       (if (andmap (lambda (k) (kind=? k K*)) elem-kinds)
-           K*
-           `(error product-elems-not-types ,elem-kinds)))]
-
-    ;; Sum type: (+ (Tag T...) ...)
-    [(eq? (car type) '+)
-     (let ([variant-kinds
-            (map (lambda (variant)
-                   (map (lambda (t) (infer-kind t kenv)) (cdr variant)))
-                 (cdr type))])
-       (if (andmap (lambda (ks) (andmap (lambda (k) (kind=? k K*)) ks)) variant-kinds)
-           K*
-           `(error sum-variants-not-types ,variant-kinds)))]
-
-    ;; List, Vector, etc. — sugar for application
-    [(eq? (car type) 'List)
-     (infer-app-kind 'List (cdr type) kenv)]
-    [(eq? (car type) 'Vector)
-     (infer-app-kind 'Vector (cdr type) kenv)]
-    [(eq? (car type) 'Ref)
-     (infer-app-kind 'Ref (cdr type) kenv)]
-    [(eq? (car type) 'Block)
-     (let ([tag-kind (if (symbol? (cadr type)) 'Symbol `(error expected-symbol ,(cadr type)))]
-           [payload-kind (infer-kind (caddr type) kenv)])
-       (if (and (eq? tag-kind 'Symbol) (kind=? payload-kind K*))
-           K*
-           `(error block-kind-error ,tag-kind ,payload-kind)))]
-    [(eq? (car type) 'Cap)
-     (let ([cap-kind (if (symbol? (cadr type)) 'Symbol `(error expected-symbol ,(cadr type)))]
-           [inner-kind (infer-kind (caddr type) kenv)])
-       (if (and (eq? cap-kind 'Symbol) (kind=? inner-kind K*))
-           K*
-           `(error cap-kind-error ,cap-kind ,inner-kind)))]
-
-    [else `(error unknown-type-form ,type)]))
+   ;; Type variable — look up in environment
+   [(symbol? type)
+    (let ([builtin (lookup-kind type)])
+         (if builtin
+             builtin
+             (let ([env-entry (assq type kenv)])
+                  (if env-entry
+                      (cdr env-entry)
+                      `(error unknown-type ,type)))))]
+   
+   ;; Hole — kind is unknown, represented as kind hole
+   [(eq? type '?) 'κ?]
+   [(and (pair? type) (eq? (car type) '?)) 'κ?]
+   
+   [(not (pair? type))
+    `(error invalid-type ,type)]
+   
+   ;; Type application: (@ F Args...)
+   [(eq? (car type) '@)
+    (infer-app-kind (cadr type) (cddr type) kenv)]
+   
+   ;; Universal quantification: (∀ (vars) body)
+   ;; Quantified type has kind * if body has kind *
+   [(eq? (car type) '∀)
+    (let* ([vars (cadr type)]
+           [body (caddr type)]
+           ;; Extend environment with kind * for each variable
+           [new-env (append (map (lambda (v) (cons v K*)) vars) kenv)]
+           [body-kind (infer-kind body new-env)])
+          (if (kind=? body-kind K*)
+              K*
+              `(error quantified-body-not-type ,body-kind)))]
+   
+   ;; Recursive type: (μ var body)
+   [(eq? (car type) 'μ)
+    (let* ([var (cadr type)]
+           [body (caddr type)]
+           [new-env (cons (cons var K*) kenv)]
+           [body-kind (infer-kind body new-env)])
+          (if (kind=? body-kind K*)
+              K*
+              `(error recursive-body-not-type ,body-kind)))]
+   
+   ;; Function type: (-> T1 ... Tn Tresult)
+   [(eq? (car type) '->)
+    (let ([arg-kinds (map (lambda (t) (infer-kind t kenv)) (cdr type))])
+         (if (andmap (lambda (k) (kind=? k K*)) arg-kinds)
+             K*
+             `(error function-args-not-types ,arg-kinds)))]
+   
+   ;; Product type: (× T1 ... Tn)
+   [(eq? (car type) '×)
+    (let ([elem-kinds (map (lambda (t) (infer-kind t kenv)) (cdr type))])
+         (if (andmap (lambda (k) (kind=? k K*)) elem-kinds)
+             K*
+             `(error product-elems-not-types ,elem-kinds)))]
+   
+   ;; Sum type: (+ (Tag T...) ...)
+   [(eq? (car type) '+)
+    (let ([variant-kinds
+           (map (lambda (variant)
+                        (map (lambda (t) (infer-kind t kenv)) (cdr variant)))
+                (cdr type))])
+         (if (andmap (lambda (ks) (andmap (lambda (k) (kind=? k K*)) ks)) variant-kinds)
+             K*
+             `(error sum-variants-not-types ,variant-kinds)))]
+   
+   ;; List, Vector, etc. — sugar for application
+   [(eq? (car type) 'List)
+    (infer-app-kind 'List (cdr type) kenv)]
+   [(eq? (car type) 'Vector)
+    (infer-app-kind 'Vector (cdr type) kenv)]
+   [(eq? (car type) 'Ref)
+    (infer-app-kind 'Ref (cdr type) kenv)]
+   [(eq? (car type) 'Block)
+    (let ([tag-kind (if (symbol? (cadr type)) 'Symbol `(error expected-symbol ,(cadr type)))]
+          [payload-kind (infer-kind (caddr type) kenv)])
+         (if (and (eq? tag-kind 'Symbol) (kind=? payload-kind K*))
+             K*
+             `(error block-kind-error ,tag-kind ,payload-kind)))]
+   [(eq? (car type) 'Cap)
+    (let ([cap-kind (if (symbol? (cadr type)) 'Symbol `(error expected-symbol ,(cadr type)))]
+          [inner-kind (infer-kind (caddr type) kenv)])
+         (if (and (eq? cap-kind 'Symbol) (kind=? inner-kind K*))
+             K*
+             `(error cap-kind-error ,cap-kind ,inner-kind)))]
+   
+   [else `(error unknown-type-form ,type)]))
 
 ;;; infer-app-kind : Type × (List Type) × KindEnv → Kind | Error
 ;;; Infer the kind of a type application.
 (define (infer-app-kind head args kenv)
   (let ([head-kind (infer-kind head kenv)])
-    (if (and (pair? head-kind) (eq? (car head-kind) 'error))
-        head-kind
-        (apply-kinds head-kind args kenv))))
+       (if (and (pair? head-kind) (eq? (car head-kind) 'error))
+           head-kind
+           (apply-kinds head-kind args kenv))))
 
 ;;; apply-kinds : Kind × (List Type) × KindEnv → Kind | Error
 ;;; Apply a kind to type arguments.
@@ -299,12 +299,12 @@
           (let* ([param-kind (kind-param kind)]
                  [result-kind (kind-result kind)]
                  [arg-kind (infer-kind (car args) kenv)])
-            (if (kind=? param-kind arg-kind)
-                (apply-kinds result-kind (cdr args) kenv)
-                `(error kind-mismatch
-                        (expected ,param-kind)
-                        (got ,arg-kind)
-                        (in ,(car args)))))
+                (if (kind=? param-kind arg-kind)
+                    (apply-kinds result-kind (cdr args) kenv)
+                    `(error kind-mismatch
+                      (expected ,param-kind)
+                      (got ,arg-kind)
+                      (in ,(car args)))))
           `(error not-a-type-constructor ,kind ,args))))
 
 ;;; ============================================================
@@ -328,10 +328,10 @@
 ;;; Type class definition structure
 (define-record-type typeclass
   (fields
-    name        ; Symbol
-    kind        ; Kind (e.g., (* → *) → Constraint)
-    supers      ; (List Symbol) — superclass constraints
-    methods))   ; (List (name . type-scheme))
+   name        ; Symbol
+   kind        ; Kind (e.g., (* → *) → Constraint)
+   supers      ; (List Symbol) — superclass constraints
+   methods))   ; (List (name . type-scheme))
 
 ;;; make-typeclass : convenient constructor
 ;;; (Already defined by define-record-type)
@@ -339,36 +339,36 @@
 ;;; Built-in type class definitions
 (define TC-Functor
   (make-typeclass
-    'Functor
-    (K=> (K=> K* K*) K-constraint)
-    '()  ; no superclasses
-    `((fmap . (∀ (f a b)
-                 (=> (Functor f)
-                     (-> (-> a b) (@ f a) (@ f b))))))))
+   'Functor
+   (K=> (K=> K* K*) K-constraint)
+   '()  ; no superclasses
+   `((fmap . (∀ (f a b)
+                (=> (Functor f)
+                    (-> (-> a b) (@ f a) (@ f b))))))))
 
 (define TC-Applicative
   (make-typeclass
-    'Applicative
-    (K=> (K=> K* K*) K-constraint)
-    '(Functor)
-    `((pure . (∀ (f a)
-                 (=> (Applicative f)
-                     (-> a (@ f a)))))
-      (<*>  . (∀ (f a b)
-                 (=> (Applicative f)
-                     (-> (@ f (-> a b)) (@ f a) (@ f b))))))))
+   'Applicative
+   (K=> (K=> K* K*) K-constraint)
+   '(Functor)
+   `((pure . (∀ (f a)
+                (=> (Applicative f)
+                    (-> a (@ f a)))))
+     (<*>  . (∀ (f a b)
+                (=> (Applicative f)
+                    (-> (@ f (-> a b)) (@ f a) (@ f b))))))))
 
 (define TC-Monad
   (make-typeclass
-    'Monad
-    (K=> (K=> K* K*) K-constraint)
-    '(Applicative)
-    `((>>= . (∀ (m a b)
-                (=> (Monad m)
-                    (-> (@ m a) (-> a (@ m b)) (@ m b)))))
-      (return . (∀ (m a)
-                   (=> (Monad m)
-                       (-> a (@ m a))))))))
+   'Monad
+   (K=> (K=> K* K*) K-constraint)
+   '(Applicative)
+   `((>>= . (∀ (m a b)
+               (=> (Monad m)
+                   (-> (@ m a) (-> a (@ m b)) (@ m b)))))
+     (return . (∀ (m a)
+                  (=> (Monad m)
+                      (-> a (@ m a))))))))
 
 ;;; ============================================================
 ;;; Value-Level Type Classes
@@ -378,15 +378,15 @@
 ;;;   == : a → a → Bool
 (define TC-Eq
   (make-typeclass
-    'Eq
-    (K=> K* K-constraint)
-    '()
-    `((== . (∀ (a)
-               (=> (Eq a)
-                   (-> a a Bool))))
-      (/= . (∀ (a)
-               (=> (Eq a)
-                   (-> a a Bool)))))))
+   'Eq
+   (K=> K* K-constraint)
+   '()
+   `((== . (∀ (a)
+              (=> (Eq a)
+                  (-> a a Bool))))
+     (/= . (∀ (a)
+              (=> (Eq a)
+                  (-> a a Bool)))))))
 
 ;;; Ord : * → Constraint
 ;;;   requires: Eq a
@@ -394,49 +394,49 @@
 ;;;   <, <=, >, >= : a → a → Bool
 (define TC-Ord
   (make-typeclass
-    'Ord
-    (K=> K* K-constraint)
-    '(Eq)
-    `((compare . (∀ (a)
-                    (=> (Ord a)
-                        (-> a a Symbol))))  ; Returns 'LT, 'EQ, or 'GT
-      (<  . (∀ (a) (=> (Ord a) (-> a a Bool))))
-      (<= . (∀ (a) (=> (Ord a) (-> a a Bool))))
-      (>  . (∀ (a) (=> (Ord a) (-> a a Bool))))
-      (>= . (∀ (a) (=> (Ord a) (-> a a Bool)))))))
+   'Ord
+   (K=> K* K-constraint)
+   '(Eq)
+   `((compare . (∀ (a)
+                   (=> (Ord a)
+                       (-> a a Symbol))))  ; Returns 'LT, 'EQ, or 'GT
+     (<  . (∀ (a) (=> (Ord a) (-> a a Bool))))
+     (<= . (∀ (a) (=> (Ord a) (-> a a Bool))))
+     (>  . (∀ (a) (=> (Ord a) (-> a a Bool))))
+     (>= . (∀ (a) (=> (Ord a) (-> a a Bool)))))))
 
 ;;; Show : * → Constraint
 ;;;   show : a → String
 (define TC-Show
   (make-typeclass
-    'Show
-    (K=> K* K-constraint)
-    '()
-    `((show . (∀ (a)
-                 (=> (Show a)
-                     (-> a String)))))))
+   'Show
+   (K=> K* K-constraint)
+   '()
+   `((show . (∀ (a)
+                (=> (Show a)
+                    (-> a String)))))))
 
 ;;; Semigroup : * → Constraint
 ;;;   <> : a → a → a
 (define TC-Semigroup
   (make-typeclass
-    'Semigroup
-    (K=> K* K-constraint)
-    '()
-    `((<> . (∀ (a)
-               (=> (Semigroup a)
-                   (-> a a a)))))))
+   'Semigroup
+   (K=> K* K-constraint)
+   '()
+   `((<> . (∀ (a)
+              (=> (Semigroup a)
+                  (-> a a a)))))))
 
 ;;; Monoid : * → Constraint
 ;;;   requires: Semigroup a
 ;;;   mempty : a
 (define TC-Monoid
   (make-typeclass
-    'Monoid
-    (K=> K* K-constraint)
-    '(Semigroup)
-    `((mempty . (∀ (a)
-                   (=> (Monoid a) a))))))
+   'Monoid
+   (K=> K* K-constraint)
+   '(Semigroup)
+   `((mempty . (∀ (a)
+                  (=> (Monoid a) a))))))
 
 ;;; ============================================================
 ;;; Type Class Instances
@@ -452,10 +452,10 @@
 
 (define-record-type instance
   (fields
-    class       ; Symbol — which type class
-    type        ; Type — for which type (e.g., List, (@ Either e))
-    context     ; (List Constraint) — required constraints
-    methods))   ; (List (name . expr))
+   class       ; Symbol — which type class
+   type        ; Type — for which type (e.g., List, (@ Either e))
+   context     ; (List Constraint) — required constraints
+   methods))   ; (List (name . expr))
 
 ;;; Note: Instance implementations are deferred.
 ;;; The infrastructure for instances exists (make-instance, instance-*)
@@ -500,17 +500,17 @@
 ;;; kind->string : Kind → String
 (define (kind->string k)
   (cond
-    [(eq? k '*) "*"]
-    [(eq? k 'Constraint) "Constraint"]
-    [(eq? k 'Row) "Row"]
-    [(kind-var? k) (symbol->string k)]
-    [(kind-arrow? k)
-     (let ([param (kind->string (kind-param k))]
-           [result (kind->string (kind-result k))])
-       (if (kind-arrow? (kind-param k))
-           (string-append "(" param ") ⇒ " result)
-           (string-append param " ⇒ " result)))]
-    [(pair? k) (format "~s" k)]
-    [else "?"]))
+   [(eq? k '*) "*"]
+   [(eq? k 'Constraint) "Constraint"]
+   [(eq? k 'Row) "Row"]
+   [(kind-var? k) (symbol->string k)]
+   [(kind-arrow? k)
+    (let ([param (kind->string (kind-param k))]
+          [result (kind->string (kind-result k))])
+         (if (kind-arrow? (kind-param k))
+             (string-append "(" param ") ⇒ " result)
+             (string-append param " ⇒ " result)))]
+   [(pair? k) (format "~s" k)]
+   [else "?"]))
 
 ;;; Note: Utilities (andmap, etc.) are provided by prelude.ss

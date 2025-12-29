@@ -43,16 +43,16 @@
 (newline)
 
 (let ([path (find-path-bfs square-board sq-start sq-goal
-                          (lambda (c) (square-neighbors c 'ortho)))])
-  (if path
-      (begin
-        (display "  Path found! Length: ")
-        (display (length path))
-        (newline)
-        (display "  Path: ")
-        (for-each (lambda (c) (display c) (display " ")) path)
-        (newline))
-      (display "  No path found\n")))
+                           (lambda (c) (square-neighbors c 'ortho)))])
+     (if path
+         (begin
+          (display "  Path found! Length: ")
+          (display (length path))
+          (newline)
+          (display "  Path: ")
+          (for-each (lambda (c) (display c) (display " ")) path)
+          (newline))
+         (display "  No path found\n")))
 (newline)
 
 ;;; ============================================================
@@ -86,16 +86,16 @@
 (newline)
 
 (let ([path (find-path-dijkstra cost-board cost-start cost-goal
-                               (lambda (c) (square-neighbors c 'all)))])
-  (if path
-      (begin
-        (display "  Path found! Length: ")
-        (display (length path))
-        (newline)
-        (display "  Path avoids swamp: ")
-        (for-each (lambda (c) (display c) (display " ")) path)
-        (newline))
-      (display "  No path found\n")))
+                                (lambda (c) (square-neighbors c 'all)))])
+     (if path
+         (begin
+          (display "  Path found! Length: ")
+          (display (length path))
+          (newline)
+          (display "  Path avoids swamp: ")
+          (for-each (lambda (c) (display c) (display " ")) path)
+          (newline))
+         (display "  No path found\n")))
 (newline)
 
 ;;; ============================================================
@@ -124,17 +124,17 @@
 (newline)
 
 (let ([path (find-path-astar hex-board hex-start hex-goal
-                            hex-neighbors
-                            hex-distance)])
-  (if path
-      (begin
-        (display "  A* path found! Length: ")
-        (display (length path))
-        (newline)
-        (display "  Path: ")
-        (for-each (lambda (c) (display c) (display " ")) path)
-        (newline))
-      (display "  No path found\n")))
+                             hex-neighbors
+                             hex-distance)])
+     (if path
+         (begin
+          (display "  A* path found! Length: ")
+          (display (length path))
+          (newline)
+          (display "  Path: ")
+          (for-each (lambda (c) (display c) (display " ")) path)
+          (newline))
+         (display "  No path found\n")))
 (newline)
 
 ;;; ============================================================
@@ -163,14 +163,14 @@
 (newline)
 
 (let ([path (find-path-bfs tri-board tri-start tri-goal
-                          (lambda (c) (triangle-neighbors c 'edge)))])
-  (if path
-      (begin
-        (display "  Path found! Length: ")
-        (display (length path))
-        (newline)
-        (display "  (using edge neighbors only)\n"))
-      (display "  No path found\n")))
+                           (lambda (c) (triangle-neighbors c 'edge)))])
+     (if path
+         (begin
+          (display "  Path found! Length: ")
+          (display (length path))
+          (newline)
+          (display "  (using edge neighbors only)\n"))
+         (display "  No path found\n")))
 (newline)
 
 ;;; ============================================================
@@ -191,20 +191,20 @@
 (display " movement points\n")
 
 (let ([reachable (board-reachable reach-board reach-start movement-points
-                                 (lambda (c) (square-neighbors c 'ortho)))])
-  (display "  Can reach ")
-  (display (length reachable))
-  (display " tiles:\n")
-  (display "  (showing first 10)\n")
-  (let loop ([tiles reachable] [count 0])
-    (when (and (pair? tiles) (< count 10))
-      (let ([entry (car tiles)])
-        (display "    ")
-        (display (car entry))
-        (display " cost=")
-        (display (cdr entry))
-        (newline)
-        (loop (cdr tiles) (+ count 1))))))
+                                  (lambda (c) (square-neighbors c 'ortho)))])
+     (display "  Can reach ")
+     (display (length reachable))
+     (display " tiles:\n")
+     (display "  (showing first 10)\n")
+     (let loop ([tiles reachable] [count 0])
+          (when (and (pair? tiles) (< count 10))
+                (let ([entry (car tiles)])
+                     (display "    ")
+                     (display (car entry))
+                     (display " cost=")
+                     (display (cdr entry))
+                     (newline)
+                     (loop (cdr tiles) (+ count 1))))))
 (newline)
 
 ;;; ============================================================
@@ -234,16 +234,16 @@
 (newline)
 
 (let ([path (find-path-astar maze-board maze-start maze-goal
-                            hex-neighbors
-                            hex-distance)])
-  (if path
-      (begin
-        (display "  Path found! ")
-        (display (length path))
-        (display " hexes:\n  ")
-        (for-each (lambda (c) (display c) (display " ")) path)
-        (newline))
-      (display "  No path exists!\n")))
+                             hex-neighbors
+                             hex-distance)])
+     (if path
+         (begin
+          (display "  Path found! ")
+          (display (length path))
+          (display " hexes:\n  ")
+          (for-each (lambda (c) (display c) (display " ")) path)
+          (newline))
+         (display "  No path exists!\n")))
 (newline)
 
 ;;; ============================================================

@@ -36,18 +36,18 @@
 ;;; Wrap a value in a state computation that passes state through.
 (define state-return-def
   '(state-return . (fn (a)
-                     (fn (s) (prim 'list a s)))))
+                       (fn (s) (prim 'list a s)))))
 
 ;;; state-bind : State s a → (a → State s b) → State s b
 ;;; Sequence two state computations, threading state.
 (define state-bind-def
   '(state-bind . (fn (ma)
-                   (fn (f)
-                     (fn (s)
-                       (let ((result (ma s)))
-                         (let ((a (prim 'car result))
-                               (s1 (prim 'car (prim 'cdr result))))
-                           ((f a) s1))))))))
+                     (fn (f)
+                         (fn (s)
+                             (let ((result (ma s)))
+                                  (let ((a (prim 'car result))
+                                        (s1 (prim 'car (prim 'cdr result))))
+                                       ((f a) s1))))))))
 
 ;;; state-get : State s s
 ;;; Read the current state.
@@ -58,19 +58,19 @@
 ;;; Replace the current state.
 (define state-put-def
   '(state-put . (fn (new-s)
-                  (fn (old-s) (prim 'list '() new-s)))))
+                    (fn (old-s) (prim 'list '() new-s)))))
 
 ;;; state-modify : (s → s) → State s ()
 ;;; Apply a function to the current state.
 (define state-modify-def
   '(state-modify . (fn (f)
-                     (fn (s) (prim 'list '() (f s))))))
+                       (fn (s) (prim 'list '() (f s))))))
 
 ;;; state-gets : (s → a) → State s a
 ;;; Extract a value from the current state.
 (define state-gets-def
   '(state-gets . (fn (f)
-                   (fn (s) (prim 'list (f s) s)))))
+                     (fn (s) (prim 'list (f s) s)))))
 
 ;;; ============================================================
 ;;; State Runners
@@ -80,22 +80,22 @@
 ;;; Run a state computation with an initial state.
 (define run-state-def
   '(run-state . (fn (ma)
-                  (fn (init-s)
-                    (ma init-s)))))
+                    (fn (init-s)
+                        (ma init-s)))))
 
 ;;; eval-state : State s a → s → a
 ;;; Run and return only the final value.
 (define eval-state-def
   '(eval-state . (fn (ma)
-                   (fn (init-s)
-                     (prim 'car (ma init-s))))))
+                     (fn (init-s)
+                         (prim 'car (ma init-s))))))
 
 ;;; exec-state : State s a → s → s
 ;;; Run and return only the final state.
 (define exec-state-def
   '(exec-state . (fn (ma)
-                   (fn (init-s)
-                     (prim 'car (prim 'cdr (ma init-s)))))))
+                     (fn (init-s)
+                         (prim 'car (prim 'cdr (ma init-s)))))))
 
 ;;; ============================================================
 ;;; State Monad Combinators
@@ -105,36 +105,36 @@
 ;;; Apply a function to the result of a state computation.
 (define state-map-def
   '(state-map . (fn (f)
-                  (fn (ma)
-                    (fn (s)
-                      (let ((result (ma s)))
-                        (let ((a (prim 'car result))
-                              (s1 (prim 'car (prim 'cdr result))))
-                          (prim 'list (f a) s1))))))))
+                    (fn (ma)
+                        (fn (s)
+                            (let ((result (ma s)))
+                                 (let ((a (prim 'car result))
+                                       (s1 (prim 'car (prim 'cdr result))))
+                                      (prim 'list (f a) s1))))))))
 
 ;;; state-ap : State s (a → b) → State s a → State s b
 ;;; Applicative application for state computations.
 (define state-ap-def
   '(state-ap . (fn (mf)
-                 (fn (ma)
-                   (fn (s)
-                     (let ((rf (mf s)))
-                       (let ((f (prim 'car rf))
-                             (s1 (prim 'car (prim 'cdr rf))))
-                         (let ((ra (ma s1)))
-                           (let ((a (prim 'car ra))
-                                 (s2 (prim 'car (prim 'cdr ra))))
-                             (prim 'list (f a) s2))))))))))
+                   (fn (ma)
+                       (fn (s)
+                           (let ((rf (mf s)))
+                                (let ((f (prim 'car rf))
+                                      (s1 (prim 'car (prim 'cdr rf))))
+                                     (let ((ra (ma s1)))
+                                          (let ((a (prim 'car ra))
+                                                (s2 (prim 'car (prim 'cdr ra))))
+                                               (prim 'list (f a) s2))))))))))
 
 ;;; state-join : State s (State s a) → State s a
 ;;; Flatten nested state computations.
 (define state-join-def
   '(state-join . (fn (mma)
-                   (fn (s)
-                     (let ((r1 (mma s)))
-                       (let ((ma (prim 'car r1))
-                             (s1 (prim 'car (prim 'cdr r1))))
-                         (ma s1)))))))
+                     (fn (s)
+                         (let ((r1 (mma s)))
+                              (let ((ma (prim 'car r1))
+                                    (s1 (prim 'car (prim 'cdr r1))))
+                                   (ma s1)))))))
 
 ;;; ============================================================
 ;;; Utility: Do-notation via nested binds
@@ -169,56 +169,56 @@
 ;;; Run a list of state computations in sequence.
 (define state-sequence-def
   '(state-sequence . (fix seq (fn (ms)
-                        (if (prim 'null? ms)
-                            (fn (s) (prim 'list '() s))
-                            ((state-bind (prim 'car ms))
-                             (fn (x)
-                               ((state-map (fn (xs) (prim 'cons x xs)))
-                                (seq (prim 'cdr ms))))))))))
+                                  (if (prim 'null? ms)
+                                      (fn (s) (prim 'list '() s))
+                                      ((state-bind (prim 'car ms))
+                                       (fn (x)
+                                           ((state-map (fn (xs) (prim 'cons x xs)))
+                                            (seq (prim 'cdr ms))))))))))
 
 ;;; state-traverse : (a → State s b) → List a → State s (List b)
 ;;; Map a stateful function over a list.
 (define state-traverse-def
   '(state-traverse . (fix trav (fn (f xs)
-                        (if (prim 'null? xs)
-                            (fn (s) (prim 'list '() s))
-                            ((state-bind (f (prim 'car xs)))
-                             (fn (y)
-                               ((state-map (fn (ys) (prim 'cons y ys)))
-                                (trav f (prim 'cdr xs))))))))))
+                                   (if (prim 'null? xs)
+                                       (fn (s) (prim 'list '() s))
+                                       ((state-bind (f (prim 'car xs)))
+                                        (fn (y)
+                                            ((state-map (fn (ys) (prim 'cons y ys)))
+                                             (trav f (prim 'cdr xs))))))))))
 
 ;;; state-replicate : Nat → State s a → State s (List a)
 ;;; Run a computation n times, collecting results.
 ;;; Curried: (state-replicate n) returns a function waiting for ma.
 (define state-replicate-def
   '(state-replicate . (fn (n)
-                        (fn (ma)
-                          (let ((go (fix go (fn (remaining)
-                                       (if (prim 'zero? remaining)
-                                           (fn (s) (prim 'list '() s))
-                                           ((state-bind ma)
-                                            (fn (x)
-                                              ((state-map (fn (xs) (prim 'cons x xs)))
-                                               (go (prim 'sub remaining 1))))))))))
-                            (go n))))))
+                          (fn (ma)
+                              (let ((go (fix go (fn (remaining)
+                                                    (if (prim 'zero? remaining)
+                                                        (fn (s) (prim 'list '() s))
+                                                        ((state-bind ma)
+                                                         (fn (x)
+                                                             ((state-map (fn (xs) (prim 'cons x xs)))
+                                                              (go (prim 'sub remaining 1))))))))))
+                                   (go n))))))
 
 ;;; state-when : Bool → State s () → State s ()
 ;;; Conditionally run a state computation.
 (define state-when-def
   '(state-when . (fn (cond)
-                   (fn (action)
-                     (if cond
-                         action
-                         (fn (s) (prim 'list '() s)))))))
+                     (fn (action)
+                         (if cond
+                             action
+                             (fn (s) (prim 'list '() s)))))))
 
 ;;; state-unless : Bool → State s () → State s ()
 ;;; Run a state computation unless condition is true.
 (define state-unless-def
   '(state-unless . (fn (cond)
-                     (fn (action)
-                       (if cond
-                           (fn (s) (prim 'list '() s))
-                           action)))))
+                       (fn (action)
+                           (if cond
+                               (fn (s) (prim 'list '() s))
+                               action)))))
 
 ;;; ============================================================
 ;;; Stateful Counter Example
@@ -228,13 +228,13 @@
 ;;; Increment a counter and return the old value.
 (define inc-counter-def
   '(inc-counter . (fn (n)
-                    (prim 'list n (prim 'add n 1)))))
+                      (prim 'list n (prim 'add n 1)))))
 
 ;;; dec-counter : State Int Int
 ;;; Decrement a counter and return the old value.
 (define dec-counter-def
   '(dec-counter . (fn (n)
-                    (prim 'list n (prim 'sub n 1)))))
+                      (prim 'list n (prim 'sub n 1)))))
 
 ;;; ============================================================
 ;;; Game State Example: Position
@@ -246,28 +246,28 @@
 ;;; move-right : Int → State (x y) ()
 (define move-right-def
   '(move-right . (fn (dx)
-                   (fn (pos)
-                     (let ((x (prim 'car pos))
-                           (y (prim 'car (prim 'cdr pos))))
-                       (prim 'list '() (prim 'list (prim 'add x dx) y)))))))
+                     (fn (pos)
+                         (let ((x (prim 'car pos))
+                               (y (prim 'car (prim 'cdr pos))))
+                              (prim 'list '() (prim 'list (prim 'add x dx) y)))))))
 
 ;;; move-up : Int → State (x y) ()
 (define move-up-def
   '(move-up . (fn (dy)
-                (fn (pos)
-                  (let ((x (prim 'car pos))
-                        (y (prim 'car (prim 'cdr pos))))
-                    (prim 'list '() (prim 'list x (prim 'add y dy))))))))
+                  (fn (pos)
+                      (let ((x (prim 'car pos))
+                            (y (prim 'car (prim 'cdr pos))))
+                           (prim 'list '() (prim 'list x (prim 'add y dy))))))))
 
 ;;; get-x : State (x y) Int
 (define get-x-def
   '(get-x . (fn (pos)
-              (prim 'list (prim 'car pos) pos))))
+                (prim 'list (prim 'car pos) pos))))
 
 ;;; get-y : State (x y) Int
 (define get-y-def
   '(get-y . (fn (pos)
-              (prim 'list (prim 'car (prim 'cdr pos)) pos))))
+                (prim 'list (prim 'car (prim 'cdr pos)) pos))))
 
 ;;; ============================================================
 ;;; All State Definitions (for prelude)
@@ -275,29 +275,29 @@
 
 (define state-prelude-defs
   (list
-    state-return-def
-    state-bind-def
-    state-get-def
-    state-put-def
-    state-modify-def
-    state-gets-def
-    run-state-def
-    eval-state-def
-    exec-state-def
-    state-map-def
-    state-ap-def
-    state-join-def
-    state-sequence-def
-    state-traverse-def
-    state-replicate-def
-    state-when-def
-    state-unless-def
-    inc-counter-def
-    dec-counter-def
-    move-right-def
-    move-up-def
-    get-x-def
-    get-y-def))
+   state-return-def
+   state-bind-def
+   state-get-def
+   state-put-def
+   state-modify-def
+   state-gets-def
+   run-state-def
+   eval-state-def
+   exec-state-def
+   state-map-def
+   state-ap-def
+   state-join-def
+   state-sequence-def
+   state-traverse-def
+   state-replicate-def
+   state-when-def
+   state-unless-def
+   inc-counter-def
+   dec-counter-def
+   move-right-def
+   move-up-def
+   get-x-def
+   get-y-def))
 
 ;;; ============================================================
 ;;; Type Signatures

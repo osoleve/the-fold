@@ -13,10 +13,10 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-        (display "✗\n    expected: ")
-        (display expected)
-        (display "\n    got: ")
-        (display actual)))
+       (display "✗\n    expected: ")
+       (display expected)
+       (display "\n    got: ")
+       (display actual)))
   (newline))
 
 (define (test-ok name result)
@@ -26,8 +26,8 @@
   (if (ann? result)
       (display "✓")
       (begin
-        (display "✗\n    expected annotated expr, got: ")
-        (display result)))
+       (display "✗\n    expected annotated expr, got: ")
+       (display result)))
   (newline))
 
 (define (test-type name expected-type result)
@@ -38,13 +38,13 @@
       (if (type=? expected-type (ann-type result))
           (display "✓")
           (begin
-            (display "✗\n    expected type: ")
-            (display (type->string expected-type))
-            (display "\n    got type: ")
-            (display (type->string (ann-type result)))))
+           (display "✗\n    expected type: ")
+           (display (type->string expected-type))
+           (display "\n    got type: ")
+           (display (type->string (ann-type result)))))
       (begin
-        (display "✗ not annotated: ")
-        (display result)))
+       (display "✗ not annotated: ")
+       (display result)))
   (newline))
 
 (define (test-error name result)
@@ -54,8 +54,8 @@
   (if (and (pair? result) (eq? (car result) 'error))
       (display "✓")
       (begin
-        (display "✗\n    expected error, got: ")
-        (display result)))
+       (display "✗\n    expected error, got: ")
+       (display result)))
   (newline))
 
 (define (test-section name)
@@ -69,17 +69,17 @@
 (test-section "Basic Annotations")
 
 (let ([result (annotate-expr 42)])
-  (test-ok "integer annotates" result)
-  (test-type "integer is Int" 'Int result))
+     (test-ok "integer annotates" result)
+     (test-type "integer is Int" 'Int result))
 
 (let ([result (annotate-expr #t)])
-  (test-type "true is Bool" 'Bool result))
+     (test-type "true is Bool" 'Bool result))
 
 (let ([result (annotate-expr "hello")])
-  (test-type "string is String" 'String result))
+     (test-type "string is String" 'String result))
 
 (let ([result (annotate-expr '(quote foo))])
-  (test-type "quoted symbol is Symbol" 'Symbol result))
+     (test-type "quoted symbol is Symbol" 'Symbol result))
 
 ;;; ============================================================
 ;;; Lambda Annotations
@@ -88,15 +88,15 @@
 
 ;; Simple identity
 (let ([result (annotate-expr '(fn (x) x))])
-  (test-ok "identity annotates" result)
-  ;; Type should be a function
-  (test "identity is function" '-> (if (pair? (ann-type result))
-                                       (car (ann-type result))
-                                       'not-fn)))
+     (test-ok "identity annotates" result)
+     ;; Type should be a function
+     (test "identity is function" '-> (if (pair? (ann-type result))
+                                          (car (ann-type result))
+                                          'not-fn)))
 
 ;; Lambda with known type from use
 (let ([result (annotate-expr '(fn (x) (prim 'neg x)))])
-  (test-type "neg fn is Int->Int" '(-> Int Int) result))
+     (test-type "neg fn is Int->Int" '(-> Int Int) result))
 
 ;;; ============================================================
 ;;; Application Annotations
@@ -104,10 +104,10 @@
 (test-section "Application Annotations")
 
 (let ([result (annotate-expr '((fn (x) x) 42))])
-  (test-type "apply id to int" 'Int result))
+     (test-type "apply id to int" 'Int result))
 
 (let ([result (annotate-expr '((fn (x) (prim 'add x 1)) 5))])
-  (test-type "apply add fn" 'Int result))
+     (test-type "apply add fn" 'Int result))
 
 ;;; ============================================================
 ;;; Let Annotations
@@ -115,14 +115,14 @@
 (test-section "Let Annotations")
 
 (let ([result (annotate-expr '(let ((x 42)) x))])
-  (test-type "simple let" 'Int result))
+     (test-type "simple let" 'Int result))
 
 (let ([result (annotate-expr '(let ((x 1) (y 2)) (prim 'add x y)))])
-  (test-type "multi-binding let" 'Int result))
+     (test-type "multi-binding let" 'Int result))
 
 ;; Let-polymorphism
 (let ([result (annotate-expr '(let ((id (fn (x) x))) (id 42)))])
-  (test-type "let-polymorphism" 'Int result))
+     (test-type "let-polymorphism" 'Int result))
 
 ;;; ============================================================
 ;;; If Annotations
@@ -130,10 +130,10 @@
 (test-section "If Annotations")
 
 (let ([result (annotate-expr '(if #t 1 2))])
-  (test-type "if branches are Int" 'Int result))
+     (test-type "if branches are Int" 'Int result))
 
 (let ([result (annotate-expr '(if (prim 'lt? 1 2) 'yes 'no))])
-  (test-type "if with symbols" 'Symbol result))
+     (test-type "if with symbols" 'Symbol result))
 
 ;;; ============================================================
 ;;; Prim Annotations
@@ -141,13 +141,13 @@
 (test-section "Prim Annotations")
 
 (let ([result (annotate-expr '(prim 'add 1 2))])
-  (test-type "add is Int" 'Int result))
+     (test-type "add is Int" 'Int result))
 
 (let ([result (annotate-expr '(prim 'lt? 1 2))])
-  (test-type "lt? is Bool" 'Bool result))
+     (test-type "lt? is Bool" 'Bool result))
 
 (let ([result (annotate-expr '(prim 'neg 42))])
-  (test-type "neg is Int" 'Int result))
+     (test-type "neg is Int" 'Int result))
 
 ;;; ============================================================
 ;;; Case Annotations
@@ -156,30 +156,30 @@
 
 ;; Simple case with one clause
 (let ([result (annotate-expr '(fn (blk) (case blk ((Foo x) 42))))])
-  (test-ok "case annotates" result)
-  (test "case result is function" '-> (if (pair? (ann-type result))
-                                          (car (ann-type result))
-                                          'not-fn)))
+     (test-ok "case annotates" result)
+     (test "case result is function" '-> (if (pair? (ann-type result))
+                                             (car (ann-type result))
+                                             'not-fn)))
 
 ;; Case with multiple clauses
 (let ([result (annotate-expr '(fn (blk)
-                                (case blk
-                                  ((True) 1)
-                                  ((False) 0))))])
-  (test-ok "multi-clause case" result))
+                               (case blk
+                                     ((True) 1)
+                                     ((False) 0))))])
+     (test-ok "multi-clause case" result))
 
 ;; Case using bound variable
 (let ([result (annotate-expr '(fn (blk)
-                                (case blk
-                                  ((Wrap ref) ref))))])
-  (test-ok "case binds ref" result))
+                               (case blk
+                                     ((Wrap ref) ref))))])
+     (test-ok "case binds ref" result))
 
 ;; Case with different result types (should unify)
 (let ([result (annotate-expr '(fn (blk)
-                                (case blk
-                                  ((A) (prim 'add 1 2))
-                                  ((B x) (prim 'neg 3)))))])
-  (test-ok "case unifies branches" result))
+                               (case blk
+                                     ((A) (prim 'add 1 2))
+                                     ((B x) (prim 'neg 3)))))])
+     (test-ok "case unifies branches" result))
 
 ;;; ============================================================
 ;;; Type Errors
@@ -195,11 +195,11 @@
 
 (let* ([result (annotate-expr '42)]
        [stripped (strip-ann result)])
-  (test "strip literal" 42 stripped))
+      (test "strip literal" 42 stripped))
 
 (let* ([result (annotate-expr '(prim 'add 1 2))]
        [stripped (strip-ann result)])
-  (test "strip preserves structure" 'prim (car stripped)))
+      (test "strip preserves structure" 'prim (car stripped)))
 
 ;;; ============================================================
 ;;; Pretty Print
@@ -226,7 +226,7 @@
 
 (display "\n--- Annotated complex expression ---\n")
 (show-annotated '(let ((double (fn (x) (prim 'mul x 2))))
-                   (double 21)))
+                  (double 21)))
 
 (newline)
 (display "✓ All annotation tests complete.\n")

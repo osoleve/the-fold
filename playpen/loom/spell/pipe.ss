@@ -38,44 +38,44 @@
 
 (define-syntax ->
   (syntax-rules (:when :unless :let :as)
-    ;; Base case: single value
-    [(_ val) val]
-
-    ;; Conditional threading: only apply if predicate is true
-    [(_ val (:when pred) (fn args ...) rest ...)
-     (let ([v val])
-       (-> (if pred (fn v args ...) v) rest ...))]
-
-    [(_ val (:when pred) fn rest ...)
-     (let ([v val])
-       (-> (if pred (fn v) v) rest ...))]
-
-    ;; Unless: apply if predicate is false
-    [(_ val (:unless pred) (fn args ...) rest ...)
-     (let ([v val])
-       (-> (if pred v (fn v args ...)) rest ...))]
-
-    [(_ val (:unless pred) fn rest ...)
-     (let ([v val])
-       (-> (if pred v (fn v)) rest ...))]
-
-    ;; Let binding: bind current value to name for use in later forms
-    [(_ val (:let name) rest ...)
-     (let ([name val])
-       (-> name rest ...))]
-
-    ;; As: alias for :let (semantic clarity)
-    [(_ val (:as name) rest ...)
-     (let ([name val])
-       (-> name rest ...))]
-
-    ;; Standard threading with arguments
-    [(_ val (fn args ...) rest ...)
-     (-> (fn val args ...) rest ...)]
-
-    ;; Standard threading without arguments
-    [(_ val fn rest ...)
-     (-> (fn val) rest ...)]))
+                ;; Base case: single value
+                [(_ val) val]
+                
+                ;; Conditional threading: only apply if predicate is true
+                [(_ val (:when pred) (fn args ...) rest ...)
+                 (let ([v val])
+                      (-> (if pred (fn v args ...) v) rest ...))]
+                
+                [(_ val (:when pred) fn rest ...)
+                 (let ([v val])
+                      (-> (if pred (fn v) v) rest ...))]
+                
+                ;; Unless: apply if predicate is false
+                [(_ val (:unless pred) (fn args ...) rest ...)
+                 (let ([v val])
+                      (-> (if pred v (fn v args ...)) rest ...))]
+                
+                [(_ val (:unless pred) fn rest ...)
+                 (let ([v val])
+                      (-> (if pred v (fn v)) rest ...))]
+                
+                ;; Let binding: bind current value to name for use in later forms
+                [(_ val (:let name) rest ...)
+                 (let ([name val])
+                      (-> name rest ...))]
+                
+                ;; As: alias for :let (semantic clarity)
+                [(_ val (:as name) rest ...)
+                 (let ([name val])
+                      (-> name rest ...))]
+                
+                ;; Standard threading with arguments
+                [(_ val (fn args ...) rest ...)
+                 (-> (fn val args ...) rest ...)]
+                
+                ;; Standard threading without arguments
+                [(_ val fn rest ...)
+                 (-> (fn val) rest ...)]))
 
 
 ;;; ============================================================
@@ -101,11 +101,11 @@
 
 (define-syntax ->!
   (syntax-rules ()
-    [(_ obj) (void)]
-    [(_ obj (fn args ...) rest ...)
-     (begin
-       (fn obj args ...)
-       (->! obj rest ...))]))
+                [(_ obj) (void)]
+                [(_ obj (fn args ...) rest ...)
+                 (begin
+                  (fn obj args ...)
+                  (->! obj rest ...))]))
 
 
 ;;; ============================================================
@@ -129,11 +129,11 @@
 
 (define-syntax ->>
   (syntax-rules ()
-    [(_ val) val]
-    [(_ val (fn args ...) rest ...)
-     (->> (fn args ... val) rest ...)]
-    [(_ val fn rest ...)
-     (->> (fn val) rest ...)]))
+                [(_ val) val]
+                [(_ val (fn args ...) rest ...)
+                 (->> (fn args ... val) rest ...)]
+                [(_ val fn rest ...)
+                 (->> (fn val) rest ...)]))
 
 
 ;;; ============================================================
@@ -148,16 +148,16 @@
 
 (define-syntax when->
   (syntax-rules ()
-    [(_ pred val forms ...)
-     (if pred
-         (-> val forms ...)
-         val)]))
+                [(_ pred val forms ...)
+                 (if pred
+                     (-> val forms ...)
+                     val)]))
 
 ;;; unless-> : Pred × Value × Forms... -> Value
 ;;; Only thread if predicate is false.
 (define-syntax unless->
   (syntax-rules ()
-    [(_ pred val forms ...)
-     (if pred
-         val
-         (-> val forms ...))]))
+                [(_ pred val forms ...)
+                 (if pred
+                     val
+                     (-> val forms ...))]))

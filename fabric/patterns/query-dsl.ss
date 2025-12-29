@@ -69,7 +69,7 @@
 ;;;   (build-tag-predicate 'entity) -> (lambda (b) (eq? (block-tag b) 'entity))
 (define (build-tag-predicate tag)
   (lambda (block)
-    (eq? (block-tag block) tag)))
+          (eq? (block-tag block) tag)))
 
 ;;; build-payload-contains-predicate : String -> (Block -> Boolean)
 ;;; Creates a predicate that matches blocks whose payload contains a substring.
@@ -80,8 +80,8 @@
 ;;;   -> (lambda (b) (string-contains? (utf8->string (block-payload b)) "Turing"))
 (define (build-payload-contains-predicate substring)
   (lambda (block)
-    (let ([payload-str (utf8->string (block-payload block))])
-      (query-string-contains? payload-str substring))))
+          (let ([payload-str (utf8->string (block-payload block))])
+               (query-string-contains? payload-str substring))))
 
 ;;; build-payload-matches-predicate : (String -> Boolean) -> (Block -> Boolean)
 ;;; Creates a predicate using a custom payload matcher function.
@@ -91,31 +91,31 @@
 ;;;   (build-payload-matches-predicate (lambda (s) (> (string-length s) 100)))
 (define (build-payload-matches-predicate matcher)
   (lambda (block)
-    (let ([payload-str (utf8->string (block-payload block))])
-      (matcher payload-str))))
+          (let ([payload-str (utf8->string (block-payload block))])
+               (matcher payload-str))))
 
 ;;; build-has-refs-predicate : -> (Block -> Boolean)
 ;;; Creates a predicate that matches blocks with at least one reference.
 (define (build-has-refs-predicate)
   (lambda (block)
-    (> (vector-length (block-refs block)) 0)))
+          (> (vector-length (block-refs block)) 0)))
 
 ;;; build-refs-count-predicate : Integer -> (Block -> Boolean)
 ;;; Creates a predicate that matches blocks with exactly n references.
 (define (build-refs-count-predicate n)
   (lambda (block)
-    (= (vector-length (block-refs block)) n)))
+          (= (vector-length (block-refs block)) n)))
 
 ;;; build-refs-to-predicate : FSCap Hash -> (Block -> Boolean)
 ;;; Creates a predicate that matches blocks containing a reference to the given hash.
 (define (build-refs-to-predicate target-hash)
   (lambda (block)
-    (let ([refs (block-refs block)])
-      (let check-refs ([i 0])
-        (cond
-          [(>= i (vector-length refs)) #f]
-          [(bytevector=? (vector-ref refs i) target-hash) #t]
-          [else (check-refs (+ i 1))])))))
+          (let ([refs (block-refs block)])
+               (let check-refs ([i 0])
+                    (cond
+                     [(>= i (vector-length refs)) #f]
+                     [(bytevector=? (vector-ref refs i) target-hash) #t]
+                     [else (check-refs (+ i 1))])))))
 
 ;;; build-payload-size-predicate : (Integer Integer -> Boolean) Integer -> (Block -> Boolean)
 ;;; Creates a predicate that compares payload size using the given comparator.
@@ -124,7 +124,7 @@
 ;;;   (build-payload-size-predicate > 1000) ; Payloads larger than 1000 bytes
 (define (build-payload-size-predicate comparator size)
   (lambda (block)
-    (comparator (bytevector-length (block-payload block)) size)))
+          (comparator (bytevector-length (block-payload block)) size)))
 
 ;;; ============================================================
 ;;; Section 2: Query Expression Interpreter
@@ -155,25 +155,25 @@
 (define (interpret-match pattern)
   (let ([key (car pattern)]
         [value (cdr pattern)])
-    (case key
-      [(tag)
-       (build-tag-predicate value)]
-      [(payload-contains)
-       (build-payload-contains-predicate value)]
-      [(payload-matches)
-       (build-payload-matches-predicate value)]
-      [(has-refs)
-       (build-has-refs-predicate)]
-      [(refs-count)
-       (build-refs-count-predicate value)]
-      [(payload-size-gt)
-       (build-payload-size-predicate > value)]
-      [(payload-size-lt)
-       (build-payload-size-predicate < value)]
-      [(payload-size-eq)
-       (build-payload-size-predicate = value)]
-      [else
-       (error 'interpret-match "Unknown match pattern" key)])))
+       (case key
+             [(tag)
+              (build-tag-predicate value)]
+             [(payload-contains)
+              (build-payload-contains-predicate value)]
+             [(payload-matches)
+              (build-payload-matches-predicate value)]
+             [(has-refs)
+              (build-has-refs-predicate)]
+             [(refs-count)
+              (build-refs-count-predicate value)]
+             [(payload-size-gt)
+              (build-payload-size-predicate > value)]
+             [(payload-size-lt)
+              (build-payload-size-predicate < value)]
+             [(payload-size-eq)
+              (build-payload-size-predicate = value)]
+             [else
+              (error 'interpret-match "Unknown match pattern" key)])))
 
 ;;; interpret-query : QueryExpr -> (Block -> Boolean)
 ;;; Main interpreter entry point. Converts a query expression into a predicate.
@@ -187,58 +187,58 @@
 ;;;   Bare patterns            - Shorthand for (match pattern)
 (define (interpret-query expr)
   (cond
-    ;; Null or empty - match everything
-    [(null? expr)
-     (lambda (block) #t)]
-
-    ;; Match expression
-    [(and (pair? expr) (eq? (car expr) 'match))
-     (interpret-match (cadr expr))]
-
-    ;; AND combinator
-    [(and (pair? expr) (eq? (car expr) 'and))
-     (let ([sub-predicates (map interpret-query (cdr expr))])
-       (lambda (block)
-         (and-all sub-predicates block)))]
-
-    ;; OR combinator
-    [(and (pair? expr) (eq? (car expr) 'or))
-     (let ([sub-predicates (map interpret-query (cdr expr))])
-       (lambda (block)
-         (or-any sub-predicates block)))]
-
-    ;; NOT combinator
-    [(and (pair? expr) (eq? (car expr) 'not))
-     (let ([sub-predicate (interpret-query (cadr expr))])
-       (lambda (block)
-         (not (sub-predicate block))))]
-
-    ;; refs-to query (returns predicate)
-    [(and (pair? expr) (eq? (car expr) 'refs-to))
-     (build-refs-to-predicate (cadr expr))]
-
-    ;; Bare pattern (shorthand for match)
-    [(and (pair? expr) (symbol? (car expr)) (not (memq (car expr) '(match and or not refs-to refs-from select count group-by))))
-     (interpret-match expr)]
-
-    [else
-     (error 'interpret-query "Unknown query expression" expr)]))
+   ;; Null or empty - match everything
+   [(null? expr)
+    (lambda (block) #t)]
+   
+   ;; Match expression
+   [(and (pair? expr) (eq? (car expr) 'match))
+    (interpret-match (cadr expr))]
+   
+   ;; AND combinator
+   [(and (pair? expr) (eq? (car expr) 'and))
+    (let ([sub-predicates (map interpret-query (cdr expr))])
+         (lambda (block)
+                 (and-all sub-predicates block)))]
+   
+   ;; OR combinator
+   [(and (pair? expr) (eq? (car expr) 'or))
+    (let ([sub-predicates (map interpret-query (cdr expr))])
+         (lambda (block)
+                 (or-any sub-predicates block)))]
+   
+   ;; NOT combinator
+   [(and (pair? expr) (eq? (car expr) 'not))
+    (let ([sub-predicate (interpret-query (cadr expr))])
+         (lambda (block)
+                 (not (sub-predicate block))))]
+   
+   ;; refs-to query (returns predicate)
+   [(and (pair? expr) (eq? (car expr) 'refs-to))
+    (build-refs-to-predicate (cadr expr))]
+   
+   ;; Bare pattern (shorthand for match)
+   [(and (pair? expr) (symbol? (car expr)) (not (memq (car expr) '(match and or not refs-to refs-from select count group-by))))
+    (interpret-match expr)]
+   
+   [else
+    (error 'interpret-query "Unknown query expression" expr)]))
 
 ;;; and-all : (List (Block -> Boolean)) Block -> Boolean
 ;;; Return true if ALL predicates match the block.
 (define (and-all predicates block)
   (let loop ([preds predicates])
-    (or (null? preds)
-        (and ((car preds) block)
-             (loop (cdr preds))))))
+       (or (null? preds)
+           (and ((car preds) block)
+                (loop (cdr preds))))))
 
 ;;; or-any : (List (Block -> Boolean)) Block -> Boolean
 ;;; Return true if ANY predicate matches the block.
 (define (or-any predicates block)
   (let loop ([preds predicates])
-    (and (pair? preds)
-         (or ((car preds) block)
-             (loop (cdr preds))))))
+       (and (pair? preds)
+            (or ((car preds) block)
+                (loop (cdr preds))))))
 
 ;;; ============================================================
 ;;; Section 3: Projection System
@@ -268,13 +268,13 @@
 ;;;   refs-count   -> Integer
 (define (extract-field block field)
   (case field
-    [(tag) (block-tag block)]
-    [(payload) (block-payload block)]
-    [(payload-str) (utf8->string (block-payload block))]
-    [(payload-size) (bytevector-length (block-payload block))]
-    [(refs) (block-refs block)]
-    [(refs-count) (vector-length (block-refs block))]
-    [else (error 'extract-field "Unknown field" field)]))
+        [(tag) (block-tag block)]
+        [(payload) (block-payload block)]
+        [(payload-str) (utf8->string (block-payload block))]
+        [(payload-size) (bytevector-length (block-payload block))]
+        [(refs) (block-refs block)]
+        [(refs-count) (vector-length (block-refs block))]
+        [else (error 'extract-field "Unknown field" field)]))
 
 ;;; extract-fields : Block (List Symbol) -> Alist
 ;;; Extract multiple fields from a block, returning an alist.
@@ -284,14 +284,14 @@
 ;;;   -> ((tag . entity) (payload-size . 256))
 (define (extract-fields block fields)
   (map (lambda (field)
-         (cons field (extract-field block field)))
+               (cons field (extract-field block field)))
        fields))
 
 ;;; project : (List Symbol) (List Block) -> (List Alist)
 ;;; Project specific fields from a list of blocks.
 (define (project fields blocks)
   (map (lambda (block)
-         (extract-fields block fields))
+               (extract-fields block fields))
        blocks))
 
 ;;; ============================================================
@@ -311,19 +311,19 @@
 ;;; Returns the blocks pointed to by the given block's refs.
 (define (refs-from-query fs source-hash)
   (let ([source-block (store-get fs source-hash)])
-    (if source-block
-        (let ([refs (block-refs source-block)])
-          (let collect-refs ([i 0]
-                             [result '()])
-            (if (>= i (vector-length refs))
-                (reverse result)
-                (let ([ref-hash (vector-ref refs i)])
-                  (let ([ref-block (store-get fs ref-hash)])
-                    (collect-refs (+ i 1)
-                                  (if ref-block
-                                      (cons ref-block result)
-                                      result)))))))
-        '())))
+       (if source-block
+           (let ([refs (block-refs source-block)])
+                (let collect-refs ([i 0]
+                                   [result '()])
+                     (if (>= i (vector-length refs))
+                         (reverse result)
+                         (let ([ref-hash (vector-ref refs i)])
+                              (let ([ref-block (store-get fs ref-hash)])
+                                   (collect-refs (+ i 1)
+                                                 (if ref-block
+                                                     (cons ref-block result)
+                                                     result)))))))
+           '())))
 
 ;;; refs-transitive : FSCap Hash Integer -> (List Block)
 ;;; Follow references transitively up to max-depth levels.
@@ -331,27 +331,27 @@
 (define (refs-transitive fs start-hash max-depth)
   (let ([visited (make-hashtable bytevector-hash bytevector=?)]
         [result '()])
-    (let bfs ([frontier (list start-hash)]
-              [depth 0])
-      (if (or (null? frontier) (>= depth max-depth))
-          (reverse result)
-          (let ([next-frontier '()])
-            (for-each
-             (lambda (hash)
-               (unless (hashtable-ref visited hash #f)
-                 (hashtable-set! visited hash #t)
-                 (let ([block (store-get fs hash)])
-                   (when block
-                     (set! result (cons block result))
-                     (let ([refs (block-refs block)])
-                       (let add-refs ([i 0])
-                         (when (< i (vector-length refs))
-                           (let ([ref-hash (vector-ref refs i)])
-                             (unless (hashtable-ref visited ref-hash #f)
-                               (set! next-frontier (cons ref-hash next-frontier))))
-                           (add-refs (+ i 1)))))))))
-             frontier)
-            (bfs next-frontier (+ depth 1)))))))
+       (let bfs ([frontier (list start-hash)]
+                 [depth 0])
+            (if (or (null? frontier) (>= depth max-depth))
+                (reverse result)
+                (let ([next-frontier '()])
+                     (for-each
+                      (lambda (hash)
+                              (unless (hashtable-ref visited hash #f)
+                                      (hashtable-set! visited hash #t)
+                                      (let ([block (store-get fs hash)])
+                                           (when block
+                                                 (set! result (cons block result))
+                                                 (let ([refs (block-refs block)])
+                                                      (let add-refs ([i 0])
+                                                           (when (< i (vector-length refs))
+                                                                 (let ([ref-hash (vector-ref refs i)])
+                                                                      (unless (hashtable-ref visited ref-hash #f)
+                                                                              (set! next-frontier (cons ref-hash next-frontier))))
+                                                                 (add-refs (+ i 1)))))))))
+                      frontier)
+                     (bfs next-frontier (+ depth 1)))))))
 
 ;;; ============================================================
 ;;; Section 5: Aggregation Functions
@@ -373,31 +373,31 @@
 ;;;   -> ((entity . [blocks...]) (relation . [blocks...]))
 (define (query-group-by fs field expr)
   (let ([blocks (query fs expr)])
-    (let loop ([blocks blocks]
-               [groups '()])
-      (if (null? blocks)
-          groups
-          (let* ([block (car blocks)]
-                 [key (extract-field block field)]
-                 [existing (assoc-generic key groups)])
-            (if existing
-                (loop (cdr blocks)
-                      (map (lambda (pair)
-                             (if (equal? (car pair) key)
-                                 (cons key (cons block (cdr pair)))
-                                 pair))
-                           groups))
-                (loop (cdr blocks)
-                      (cons (cons key (list block)) groups))))))))
+       (let loop ([blocks blocks]
+                  [groups '()])
+            (if (null? blocks)
+                groups
+                (let* ([block (car blocks)]
+                       [key (extract-field block field)]
+                       [existing (assoc-generic key groups)])
+                      (if existing
+                          (loop (cdr blocks)
+                                (map (lambda (pair)
+                                             (if (equal? (car pair) key)
+                                                 (cons key (cons block (cdr pair)))
+                                                 pair))
+                                     groups))
+                          (loop (cdr blocks)
+                                (cons (cons key (list block)) groups))))))))
 
 ;;; assoc-generic : Any Alist -> (Maybe Pair)
 ;;; Association lookup using equal? for comparison.
 (define (assoc-generic key alist)
   (let loop ([pairs alist])
-    (cond
-      [(null? pairs) #f]
-      [(equal? (caar pairs) key) (car pairs)]
-      [else (loop (cdr pairs))])))
+       (cond
+        [(null? pairs) #f]
+        [(equal? (caar pairs) key) (car pairs)]
+        [else (loop (cdr pairs))])))
 
 ;;; ============================================================
 ;;; Section 6: Main Query Entry Point
@@ -433,46 +433,46 @@
 ;;;     (query-group-by fs 'tag '())
 (define (query fs expr)
   (cond
-    ;; Empty query - return all blocks
-    [(null? expr)
-     (store-all-blocks fs)]
-
-    ;; refs-from special case (not a predicate)
-    [(and (pair? expr) (eq? (car expr) 'refs-from))
-     (refs-from-query fs (cadr expr))]
-
-    ;; refs-to query
-    [(and (pair? expr) (eq? (car expr) 'refs-to))
-     (refs-to-query fs (cadr expr))]
-
-    ;; refs-transitive query
-    [(and (pair? expr) (eq? (car expr) 'refs-transitive))
-     (let ([hash (cadr expr)]
-           [depth (if (> (length expr) 2) (caddr expr) 3)])
-       (refs-transitive fs hash depth))]
-
-    ;; Projection query: (select (fields...) (where query))
-    [(and (pair? expr) (eq? (car expr) 'select))
-     (let* ([fields (cadr expr)]
-            [where-clause (caddr expr)]
-            [sub-query (cadr where-clause)]
-            [blocks (query fs sub-query)])
-       (project fields blocks))]
-
-    ;; Count query: (count query)
-    [(and (pair? expr) (eq? (car expr) 'count))
-     (query-count fs (cadr expr))]
-
-    ;; Group-by query: (group-by field query)
-    [(and (pair? expr) (eq? (car expr) 'group-by))
-     (let ([field (cadr expr)]
-           [sub-query (caddr expr)])
-       (query-group-by fs field sub-query))]
-
-    ;; Standard predicate query
-    [else
-     (let ([predicate (interpret-query expr)])
-       (store-filter fs predicate))]))
+   ;; Empty query - return all blocks
+   [(null? expr)
+    (store-all-blocks fs)]
+   
+   ;; refs-from special case (not a predicate)
+   [(and (pair? expr) (eq? (car expr) 'refs-from))
+    (refs-from-query fs (cadr expr))]
+   
+   ;; refs-to query
+   [(and (pair? expr) (eq? (car expr) 'refs-to))
+    (refs-to-query fs (cadr expr))]
+   
+   ;; refs-transitive query
+   [(and (pair? expr) (eq? (car expr) 'refs-transitive))
+    (let ([hash (cadr expr)]
+          [depth (if (> (length expr) 2) (caddr expr) 3)])
+         (refs-transitive fs hash depth))]
+   
+   ;; Projection query: (select (fields...) (where query))
+   [(and (pair? expr) (eq? (car expr) 'select))
+    (let* ([fields (cadr expr)]
+           [where-clause (caddr expr)]
+           [sub-query (cadr where-clause)]
+           [blocks (query fs sub-query)])
+          (project fields blocks))]
+   
+   ;; Count query: (count query)
+   [(and (pair? expr) (eq? (car expr) 'count))
+    (query-count fs (cadr expr))]
+   
+   ;; Group-by query: (group-by field query)
+   [(and (pair? expr) (eq? (car expr) 'group-by))
+    (let ([field (cadr expr)]
+          [sub-query (caddr expr)])
+         (query-group-by fs field sub-query))]
+   
+   ;; Standard predicate query
+   [else
+    (let ([predicate (interpret-query expr)])
+         (store-filter fs predicate))]))
 
 ;;; ============================================================
 ;;; Section 7: Query Convenience Functions
@@ -512,20 +512,20 @@
   (let* ([all-blocks (store-all-blocks fs)]
          [all-hashes (map hash-block all-blocks)]
          [referenced-hashes (make-hashtable bytevector-hash bytevector=?)])
-    ;; Collect all referenced hashes
-    (for-each
-     (lambda (block)
-       (let ([refs (block-refs block)])
-         (let loop ([i 0])
-           (when (< i (vector-length refs))
-             (hashtable-set! referenced-hashes (vector-ref refs i) #t)
-             (loop (+ i 1))))))
-     all-blocks)
-    ;; Filter to blocks not in referenced set
-    (filter
-     (lambda (block)
-       (not (hashtable-ref referenced-hashes (hash-block block) #f)))
-     all-blocks)))
+        ;; Collect all referenced hashes
+        (for-each
+         (lambda (block)
+                 (let ([refs (block-refs block)])
+                      (let loop ([i 0])
+                           (when (< i (vector-length refs))
+                                 (hashtable-set! referenced-hashes (vector-ref refs i) #t)
+                                 (loop (+ i 1))))))
+         all-blocks)
+        ;; Filter to blocks not in referenced set
+        (filter
+         (lambda (block)
+                 (not (hashtable-ref referenced-hashes (hash-block block) #f)))
+         all-blocks)))
 
 ;;; ============================================================
 ;;; Section 8: Query Composition Helpers
@@ -572,21 +572,21 @@
 (define (query-string-contains? haystack needle)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i n-len) h-len) #f]
-        [(string=? (substring haystack i (+ i n-len)) needle) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i n-len) h-len) #f]
+             [(string=? (substring haystack i (+ i n-len)) needle) #t]
+             [else (loop (+ i 1))]))))
 
 ;;; bytevector-hash : Bytevector -> Integer
 ;;; Hash function for bytevectors (for use in hashtables).
 (define (bytevector-hash bv)
   (let ([len (bytevector-length bv)])
-    (let loop ([i 0] [h 0])
-      (if (>= i len)
-          (modulo (abs h) (expt 2 30))
-          (loop (+ i 1)
-                (+ (* h 31) (bytevector-u8-ref bv i)))))))
+       (let loop ([i 0] [h 0])
+            (if (>= i len)
+                (modulo (abs h) (expt 2 30))
+                (loop (+ i 1)
+                      (+ (* h 31) (bytevector-u8-ref bv i)))))))
 
 ;;; ============================================================
 ;;; Section 10: Query Result Formatting
@@ -600,10 +600,10 @@
   (printf "Query returned ~a result(s):\n" (length blocks))
   (for-each
    (lambda (block)
-     (printf "  [~a] ~a bytes, ~a refs\n"
-             (block-tag block)
-             (bytevector-length (block-payload block))
-             (vector-length (block-refs block))))
+           (printf "  [~a] ~a bytes, ~a refs\n"
+                   (block-tag block)
+                   (bytevector-length (block-payload block))
+                   (vector-length (block-refs block))))
    blocks))
 
 ;;; print-projection-results : (List Alist) -> Void
@@ -612,13 +612,13 @@
   (printf "Query returned ~a result(s):\n" (length results))
   (for-each
    (lambda (alist)
-     (printf "  {")
-     (let loop ([pairs alist] [first #t])
-       (when (pair? pairs)
-         (unless first (printf ", "))
-         (printf "~a: ~a" (caar pairs) (cdar pairs))
-         (loop (cdr pairs) #f)))
-     (printf "}\n"))
+           (printf "  {")
+           (let loop ([pairs alist] [first #t])
+                (when (pair? pairs)
+                      (unless first (printf ", "))
+                      (printf "~a: ~a" (caar pairs) (cdar pairs))
+                      (loop (cdr pairs) #f)))
+           (printf "}\n"))
    results))
 
 ;;; ============================================================

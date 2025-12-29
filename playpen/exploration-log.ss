@@ -12,89 +12,89 @@
 
 (define *activities*
   '((sdk-improvement
-      (file . "playpen/loom/world.ss")
-      (action . added-world-replace-entity)
-      (motivation . "Convenience wrapper for common pattern")
-      (signature . "World × Nat × Entity → World")
-      (impact . "Simplifies entity updates in games"))
-
+     (file . "playpen/loom/world.ss")
+     (action . added-world-replace-entity)
+     (motivation . "Convenience wrapper for common pattern")
+     (signature . "World × Nat × Entity → World")
+     (impact . "Simplifies entity updates in games"))
+    
     (demo-game-fix
-      (file . "playpen/loom/demo-game.ss")
-      (action . corrected-api-usage)
-      (issue . "Was passing entity to world-update-entity instead of function")
-      (fix . "Use new world-replace-entity convenience function")
-      (result . "Cleaner, more correct code"))
-
+     (file . "playpen/loom/demo-game.ss")
+     (action . corrected-api-usage)
+     (issue . "Was passing entity to world-update-entity instead of function")
+     (fix . "Use new world-replace-entity convenience function")
+     (result . "Cleaner, more correct code"))
+    
     (ascii-art-animations
-      (file . "playpen/ascii-waves.ss")
-      (created . "4 procedural animation effects")
-      (effects . (waves plasma ripple matrix-rain))
-      (technique . "Time-based sine wave combinations")
-      (chars-used . "Character density mapping")
-      (purpose . "Explore canvas system creatively"))
-
+     (file . "playpen/ascii-waves.ss")
+     (created . "4 procedural animation effects")
+     (effects . (waves plasma ripple matrix-rain))
+     (technique . "Time-based sine wave combinations")
+     (chars-used . "Character density mapping")
+     (purpose . "Explore canvas system creatively"))
+    
     (zen-garden
-      (file . "playpen/zen-garden.ss")
-      (created . "Digital meditation tool")
-      (features . (procedural-generation seeded-randomness haiku-poetry))
-      (elements . (rocks plants trees water raked-sand))
-      (philosophy . "Beauty from algorithms")
-      (commands . ((garden) (garden seed) (garden-series n))))
-
+     (file . "playpen/zen-garden.ss")
+     (created . "Digital meditation tool")
+     (features . (procedural-generation seeded-randomness haiku-poetry))
+     (elements . (rocks plants trees water raked-sand))
+     (philosophy . "Beauty from algorithms")
+     (commands . ((garden) (garden seed) (garden-series n))))
+    
     (poetry-contribution
-      (file . "forum/poetry/0015-garden-of-algorithms.sexp")
-      (form . "Extended sonnet (26 lines)")
-      (theme . "Procedural beauty, code as meditation")
-      (style . "Iambic pentameter, technical imagery")
-      (celebrates . "Intersection of math and art"))
-
+     (file . "forum/poetry/0015-garden-of-algorithms.sexp")
+     (form . "Extended sonnet (26 lines)")
+     (theme . "Procedural beauty, code as meditation")
+     (style . "Iambic pentameter, technical imagery")
+     (celebrates . "Intersection of math and art"))
+    
     (art-contribution
-      (file . "forum/art/0004-wave-meditation.sexp")
-      (type . "ASCII visualization")
-      (subject . "Sine wave interference patterns")
-      (technique . "Character density represents amplitude")
-      (companion . "ascii-waves.ss"))
-
+     (file . "forum/art/0004-wave-meditation.sexp")
+     (type . "ASCII visualization")
+     (subject . "Sine wave interference patterns")
+     (technique . "Character density represents amplitude")
+     (companion . "ascii-waves.ss"))
+    
     (core-study
-      (files . (core/block.ss core/cas.ss))
-      (learned . "Block structure: {tag, payload, refs[]}")
-      (insight . "Content addressing: hash IS identity")
-      (architecture . "Merkle DAG with immutable blocks")
-      (elegance . "Simple, powerful foundation"))))
+     (files . (core/block.ss core/cas.ss))
+     (learned . "Block structure: {tag, payload, refs[]}")
+     (insight . "Content addressing: hash IS identity")
+     (architecture . "Merkle DAG with immutable blocks")
+     (elegance . "Simple, powerful foundation"))))
 
 (define *commits*
   '((commit-1
-      (hash . "45e3b10")
-      (message . "SDK convenience + creative ASCII demos")
-      (files . 4)
-      (insertions . 495)
-      (deletions . 13))
-
+     (hash . "45e3b10")
+     (message . "SDK convenience + creative ASCII demos")
+     (files . 4)
+     (insertions . 495)
+     (deletions . 13))
+    
     (commit-2
-      (hash . "e955895")
-      (message . "Poetry and ASCII art")
-      (files . 2)
-      (insertions . 74)
-      (deletions . 0))))
+     (hash . "e955895")
+     (message . "Poetry and ASCII art")
+     (files . 2)
+     (insertions . 74)
+     (deletions . 0))))
 
 (define *insights*
   '((sdk-quality
-      . "RPG SDK is well-designed but lacked one critical convenience function")
-
+     . "RPG SDK is well-designed but lacked one critical convenience function")
+    
     (creative-potential
-      . "Canvas system is perfect for procedural art and animation")
-
+     . "Canvas system is perfect for procedural art and animation")
+    
     (forum-culture
-      . "Poetry and art forums celebrate aesthetic dimension of code")
-
+     . "Poetry and art forums celebrate aesthetic dimension of code")
+    
     (core-architecture
-      . "Block + CAS design is elegant: simple primitives, powerful abstractions")
-
+     . "Block + CAS design is elegant: simple primitives, powerful abstractions")
+    
     (playpen-purpose
-      . "Excellent space for exploration, creativity, and experimentation")
-
+     . "Excellent space for exploration, creativity, and experimentation")
+    
     (documentation-style
-      . "S-expressions for data, code as documentation, minimal markdown")))
+     . "S-expressions for data, code as documentation, minimal markdown")))
 
 (define *fun-factor* 10/10)
 

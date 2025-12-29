@@ -30,8 +30,8 @@
 ;; Find all blocks with "poem" or "poetry" in the payload
 (define poetry-blocks
   (query (fs) '(or (payload-contains . "poem")
-                   (payload-contains . "poet")
-                   (payload-contains . "verse"))))
+                (payload-contains . "poet")
+                (payload-contains . "verse"))))
 (printf "Blocks about poetry: ~a\n" (length poetry-blocks))
 
 ;; Find blocks about "standard library"
@@ -51,28 +51,28 @@
 (define hubs (find-hubs (fs) 5))
 (printf "\nTop 5 most connected blocks:\n")
 (for-each
-  (lambda (hub)
-    (let* ([hash (car hub)]
-           [degree (cdr hub)]
-           [block (store-get (fs) hash)]
-           [tag (if block (block-tag block) 'unknown)])
-      (printf "  ~a (~a): degree ~a\n"
-              tag
-              (substring (hash->hex hash) 0 12)
-              degree)))
-  hubs)
+ (lambda (hub)
+         (let* ([hash (car hub)]
+                [degree (cdr hub)]
+                [block (store-get (fs) hash)]
+                [tag (if block (block-tag block) 'unknown)])
+               (printf "  ~a (~a): degree ~a\n"
+                       tag
+                       (substring (hash->hex hash) 0 12)
+                       degree)))
+ hubs)
 
 ;; Pick a block and visualize its neighborhood
 (printf "\n=== ASCII Visualization ===\n\n")
 (let ([all-hashes (store-all-hashes (fs))])
-  (when (> (length all-hashes) 5)
-    (let ([sample-hash (list-ref all-hashes 5)])
-      (let ([block (store-get (fs) sample-hash)])
-        (when block
-          (printf "Block: ~a (~a)\n\n"
-                  (block-tag block)
-                  (substring (hash->hex sample-hash) 0 16))
-          (render-ascii (fs) sample-hash 2))))))
+     (when (> (length all-hashes) 5)
+           (let ([sample-hash (list-ref all-hashes 5)])
+                (let ([block (store-get (fs) sample-hash)])
+                     (when block
+                           (printf "Block: ~a (~a)\n\n"
+                                   (block-tag block)
+                                   (substring (hash->hex sample-hash) 0 16))
+                           (render-ascii (fs) sample-hash 2))))))
 
 ;; Now let's write a fun poem to the forum!
 (printf "\n=== Writing a Poem to the Forum ===\n\n")

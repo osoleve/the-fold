@@ -52,14 +52,14 @@
   (let* ([x (coord-x coord)]
          [y (coord-y coord)]
          [offsets '((-2 -1) (-2 1) (-1 -2) (-1 2)
-                   (1 -2) (1 2) (2 -1) (2 1))]
+                    (1 -2) (1 2) (2 -1) (2 1))]
          [moves (map (lambda (off)
-                      (square-coord (+ x (car off)) (+ y (cadr off))))
-                    offsets)])
-    ;; Filter out moves outside board
-    (filter (lambda (c)
-              (square-in-bounds? board c))
-            moves)))
+                             (square-coord (+ x (car off)) (+ y (cadr off))))
+                     offsets)])
+        ;; Filter out moves outside board
+        (filter (lambda (c)
+                        (square-in-bounds? board c))
+                moves)))
 
 (define knight-pos (square-coord 3 3))
 (display "Knight at ")
@@ -69,11 +69,11 @@
 (display (length (knight-moves knight-pos)))
 (newline)
 (for-each
-  (lambda (move)
-    (display "  ")
-    (display move)
-    (newline))
-  (knight-moves knight-pos))
+ (lambda (move)
+         (display "  ")
+         (display move)
+         (newline))
+ (knight-moves knight-pos))
 (newline)
 
 ;;; ============================================================
@@ -86,15 +86,15 @@
 ;;; Rooks move orthogonally until blocked
 (define (rook-line coord direction)
   (let loop ([current (square-neighbor coord direction)] [moves '()])
-    (if (not (square-in-bounds? board current))
-        (reverse moves)
-        (let ([tile (board-get board current)])
-          (if (and tile (not (eq? (tile-type tile) 'empty)))
-              ;; Blocked by piece
-              (reverse (cons current moves))
-              ;; Continue
-              (loop (square-neighbor current direction)
-                    (cons current moves)))))))
+       (if (not (square-in-bounds? board current))
+           (reverse moves)
+           (let ([tile (board-get board current)])
+                (if (and tile (not (eq? (tile-type tile) 'empty)))
+                    ;; Blocked by piece
+                    (reverse (cons current moves))
+                    ;; Continue
+                    (loop (square-neighbor current direction)
+                          (cons current moves)))))))
 
 (define rook-pos (square-coord 4 4))
 (display "Rook at ")
@@ -124,12 +124,12 @@
                          (square-neighbors-all king-pos))))
 (display " squares:\n")
 (for-each
-  (lambda (move)
-    (when (square-in-bounds? board move)
-      (display "  ")
-      (display move)
-      (newline)))
-  (square-neighbors-all king-pos))
+ (lambda (move)
+         (when (square-in-bounds? board move)
+               (display "  ")
+               (display move)
+               (newline)))
+ (square-neighbors-all king-pos))
 (newline)
 
 ;;; ============================================================
@@ -171,9 +171,9 @@
 (newline)
 (display "Squares within Chebyshev distance 2:\n")
 (let ([area (square-range queen-pos 2 'chebyshev)])
-  (display "  Count: ")
-  (display (length area))
-  (display " squares\n"))
+     (display "  Count: ")
+     (display (length area))
+     (display " squares\n"))
 (newline)
 
 ;;; ============================================================
@@ -192,13 +192,13 @@
 (display to)
 (display ":\n")
 (let ([line (square-line from to)])
-  (display "  ")
-  (for-each
-    (lambda (c)
-      (display c)
-      (display " "))
-    line)
-  (newline))
+     (display "  ")
+     (for-each
+      (lambda (c)
+              (display c)
+              (display " "))
+      line)
+     (newline))
 (newline)
 
 ;;; ============================================================
@@ -211,19 +211,19 @@
 ;;; Place some pieces
 (define board-with-pieces
   (board-set
-    (board-set board
-               (square-coord 4 4)
-               (make-piece 'white 'queen))
-    (square-coord 4 6)
-    (make-piece 'black 'pawn)))
+   (board-set board
+              (square-coord 4 4)
+              (make-piece 'white 'queen))
+   (square-coord 4 6)
+   (make-piece 'black 'pawn)))
 
 (display "Placed white queen at (4,4)\n")
 (display "Placed black pawn at (4,6)\n")
 (display "Total pieces on board: ")
 (display (length (filter
-                   (lambda (entry)
-                     (not (eq? (tile-type (cdr entry)) 'empty)))
-                   (board-tiles board-with-pieces))))
+                  (lambda (entry)
+                          (not (eq? (tile-type (cdr entry)) 'empty)))
+                  (board-tiles board-with-pieces))))
 (newline)
 (newline)
 
@@ -237,16 +237,16 @@
 (define center (square-coord 4 4))
 (display "Squares at exactly distance 2 from center:\n")
 (let ([ring (square-ring center 2)])
-  (display "  Count: ")
-  (display (length ring))
-  (newline)
-  (display "  First few: ")
-  (for-each
-    (lambda (c)
-      (display c)
-      (display " "))
-    (take ring 5))
-  (display "...\n"))
+     (display "  Count: ")
+     (display (length ring))
+     (newline)
+     (display "  First few: ")
+     (for-each
+      (lambda (c)
+              (display c)
+              (display " "))
+      (take ring 5))
+     (display "...\n"))
 (newline)
 
 ;;; ============================================================

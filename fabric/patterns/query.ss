@@ -36,14 +36,14 @@
 ;;;   → list of posts with @status:complete
 (define (find-tagged fs key value)
   (let ([all-posts (collect-all-posts fs)])
-    (filter
-      (lambda (post)
-        (let* ([body (cdr (assq 'body post))]
-               [tags (extract-tags body)])
-          (and (has-tag? tags key)
-               (or (eq? value #t)
-                   (equal? (get-tag tags key) value)))))
-      all-posts)))
+       (filter
+        (lambda (post)
+                (let* ([body (cdr (assq 'body post))]
+                       [tags (extract-tags body)])
+                      (and (has-tag? tags key)
+                           (or (eq? value #t)
+                               (equal? (get-tag tags key) value)))))
+        all-posts)))
 
 ;;; find-tagged-any : FS × Symbol → (Listof Alist)
 ;;; Find all posts that have a tag key, regardless of value.
@@ -54,9 +54,9 @@
 ;;; Collect all posts from all channels.
 (define (collect-all-posts fs)
   (let ([channels (list-channels fs)])
-    (apply append
-           (map (lambda (ch) (collect-channel fs ch))
-                channels))))
+       (apply append
+              (map (lambda (ch) (collect-channel fs ch))
+                   channels))))
 
 ;;; ============================================================
 ;;; Tag Inventory
@@ -68,21 +68,21 @@
   (let* ([all-posts (collect-all-posts fs)]
          [all-tags (apply append
                           (map (lambda (post)
-                                 (let ([body (cdr (assq 'body post))])
-                                   (extract-tags body)))
+                                       (let ([body (cdr (assq 'body post))])
+                                            (extract-tags body)))
                                all-posts))]
          [keys (map car all-tags)])
-    (unique keys)))
+        (unique keys)))
 
 ;;; unique : (Listof α) → (Listof α)
 ;;; Remove duplicates from a list.
 (define (unique lst)
   (let loop ([items lst] [seen '()])
-    (if (null? items)
-        (reverse seen)
-        (if (member (car items) seen)
-            (loop (cdr items) seen)
-            (loop (cdr items) (cons (car items) seen))))))
+       (if (null? items)
+           (reverse seen)
+           (if (member (car items) seen)
+               (loop (cdr items) seen)
+               (loop (cdr items) (cons (car items) seen))))))
 
 ;;; tag-histogram : FS → (Listof (Pair Symbol Nat))
 ;;; Count occurrences of each tag key.
@@ -91,27 +91,27 @@
   (let* ([all-posts (collect-all-posts fs)]
          [all-tags (apply append
                           (map (lambda (post)
-                                 (let ([body (cdr (assq 'body post))])
-                                   (extract-tags body)))
+                                       (let ([body (cdr (assq 'body post))])
+                                            (extract-tags body)))
                                all-posts))]
          [keys (map car all-tags)]
          [counts (count-occurrences keys)])
-    (sort-by-count counts)))
+        (sort-by-count counts)))
 
 ;;; count-occurrences : (Listof Symbol) → (Listof (Pair Symbol Nat))
 ;;; Count how many times each symbol appears.
 (define (count-occurrences symbols)
   (let loop ([syms symbols] [counts '()])
-    (if (null? syms)
-        counts
-        (let* ([sym (car syms)]
-               [existing (assq sym counts)])
-          (if existing
-              (loop (cdr syms)
-                    (cons (cons sym (+ (cdr existing) 1))
-                          (remove-assq sym counts)))
-              (loop (cdr syms)
-                    (cons (cons sym 1) counts)))))))
+       (if (null? syms)
+           counts
+           (let* ([sym (car syms)]
+                  [existing (assq sym counts)])
+                 (if existing
+                     (loop (cdr syms)
+                           (cons (cons sym (+ (cdr existing) 1))
+                                 (remove-assq sym counts)))
+                     (loop (cdr syms)
+                           (cons (cons sym 1) counts)))))))
 
 ;;; remove-assq : Symbol × Alist → Alist
 ;;; Remove first pair with matching key.
@@ -133,13 +133,13 @@
   (let* ([all-posts (collect-all-posts fs)]
          [all-tags (apply append
                           (map (lambda (post)
-                                 (let ([body (cdr (assq 'body post))])
-                                   (extract-tags body)))
+                                       (let ([body (cdr (assq 'body post))])
+                                            (extract-tags body)))
                                all-posts))]
          [matching (filter (lambda (t) (eq? (car t) key)) all-tags)]
          [values (map cdr matching)]
          [string-values (filter string? values)])
-    (unique string-values)))
+        (unique string-values)))
 
 ;;; tag-value-histogram : FS × Symbol → (Listof (Pair String Nat))
 ;;; Count occurrences of each value for a tag key.
@@ -147,27 +147,27 @@
   (let* ([all-posts (collect-all-posts fs)]
          [all-tags (apply append
                           (map (lambda (post)
-                                 (let ([body (cdr (assq 'body post))])
-                                   (extract-tags body)))
+                                       (let ([body (cdr (assq 'body post))])
+                                            (extract-tags body)))
                                all-posts))]
          [matching (filter (lambda (t) (eq? (car t) key)) all-tags)]
          [values (filter string? (map cdr matching))]
          [counts (count-string-occurrences values)])
-    (sort-by-count-strings counts)))
+        (sort-by-count-strings counts)))
 
 ;;; count-string-occurrences : (Listof String) → (Listof (Pair String Nat))
 (define (count-string-occurrences strings)
   (let loop ([strs strings] [counts '()])
-    (if (null? strs)
-        counts
-        (let* ([s (car strs)]
-               [existing (assoc s counts)])
-          (if existing
-              (loop (cdr strs)
-                    (cons (cons s (+ (cdr existing) 1))
-                          (remove-assoc s counts)))
-              (loop (cdr strs)
-                    (cons (cons s 1) counts)))))))
+       (if (null? strs)
+           counts
+           (let* ([s (car strs)]
+                  [existing (assoc s counts)])
+                 (if existing
+                     (loop (cdr strs)
+                           (cons (cons s (+ (cdr existing) 1))
+                                 (remove-assoc s counts)))
+                     (loop (cdr strs)
+                           (cons (cons s 1) counts)))))))
 
 ;;; remove-assoc : String × Alist → Alist
 (define (remove-assoc key alist)
@@ -185,50 +185,50 @@
 ;;; Print all posts with a specific tag.
 (define (print-tagged fs key value)
   (let ([posts (find-tagged fs key value)])
-    (if (null? posts)
-        (display (format "No posts found with @~a~a\n"
-                        key
-                        (if (string? value)
-                            (string-append ":" value)
-                            "")))
-        (begin
-          (display (format "=== Posts with @~a~a (~a found) ===\n\n"
-                          key
-                          (if (string? value)
-                              (string-append ":" value)
-                              "")
-                          (length posts)))
-          (for-each
-            (lambda (post)
-              (display (format-post post))
-              (display "---\n\n"))
-            posts)))))
+       (if (null? posts)
+           (display (format "No posts found with @~a~a\n"
+                            key
+                            (if (string? value)
+                                (string-append ":" value)
+                                "")))
+           (begin
+            (display (format "=== Posts with @~a~a (~a found) ===\n\n"
+                             key
+                             (if (string? value)
+                                 (string-append ":" value)
+                                 "")
+                             (length posts)))
+            (for-each
+             (lambda (post)
+                     (display (format-post post))
+                     (display "---\n\n"))
+             posts)))))
 
 ;;; print-tag-histogram : FS → void
 ;;; Display tag frequency histogram.
 (define (print-tag-histogram fs)
   (let ([hist (tag-histogram fs)])
-    (display "=== Tag Frequency ===\n\n")
-    (if (null? hist)
-        (display "No tags found.\n")
-        (for-each
-          (lambda (pair)
-            (display (format "  @~a: ~a\n" (car pair) (cdr pair))))
-          hist))
-    (newline)))
+       (display "=== Tag Frequency ===\n\n")
+       (if (null? hist)
+           (display "No tags found.\n")
+           (for-each
+            (lambda (pair)
+                    (display (format "  @~a: ~a\n" (car pair) (cdr pair))))
+            hist))
+       (newline)))
 
 ;;; print-tags : FS → void
 ;;; Display all unique tags in use.
 (define (print-tags fs)
   (let ([tags (list-all-tags fs)])
-    (display "=== Tags in Use ===\n\n")
-    (if (null? tags)
-        (display "No tags found.\n")
-        (for-each
-          (lambda (tag)
-            (display (format "  @~a\n" tag)))
-          tags))
-    (newline)))
+       (display "=== Tags in Use ===\n\n")
+       (if (null? tags)
+           (display "No tags found.\n")
+           (for-each
+            (lambda (tag)
+                    (display (format "  @~a\n" tag)))
+            tags))
+       (newline)))
 
 ;;; ============================================================
 ;;; Convenience Aliases

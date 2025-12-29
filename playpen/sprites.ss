@@ -242,25 +242,25 @@
 ;;; Retrieve a mood sprite by name
 (define (get-sprite mood)
   (let ([entry (assq mood duckie-sprites)])
-    (if entry
-        (cdr entry)
-        #f)))
+       (if entry
+           (cdr entry)
+           #f)))
 
 ;;; get-animation : Symbol → (List Sprite) | #f
 ;;; Retrieve animation frames by name
 (define (get-animation anim-name)
   (let ([entry (assq anim-name duckie-animations)])
-    (if entry
-        (cdr entry)
-        #f)))
+       (if entry
+           (cdr entry)
+           #f)))
 
 ;;; get-animation-frame : Symbol × Nat → Sprite | #f
 ;;; Get a specific frame from an animation sequence
 (define (get-animation-frame anim-name frame-index)
   (let ([frames (get-animation anim-name)])
-    (if (and frames (< frame-index (length frames)))
-        (list-ref frames frame-index)
-        #f)))
+       (if (and frames (< frame-index (length frames)))
+           (list-ref frames frame-index)
+           #f)))
 
 ;;; ============================================================
 ;;; Canvas Integration — Drawing Sprites
@@ -276,24 +276,24 @@
 (define (draw-sprite canvas position sprite)
   (let ([x (car position)]
         [y (cdr position)])
-    (let loop ([rows sprite]
-               [current-y y]
-               [current-canvas canvas])
-      (if (null? rows)
-          current-canvas
-          (loop (cdr rows)
-                (+ current-y 1)
-                (draw-string current-canvas
-                           (cons x current-y)
-                           (car rows)))))))
+       (let loop ([rows sprite]
+                  [current-y y]
+                  [current-canvas canvas])
+            (if (null? rows)
+                current-canvas
+                (loop (cdr rows)
+                      (+ current-y 1)
+                      (draw-string current-canvas
+                                   (cons x current-y)
+                                   (car rows)))))))
 
 ;;; draw-sprite-mood : Canvas × Point × Symbol → Canvas
 ;;; Draw DUCKIE in a specific mood at the given position
 (define (draw-sprite-mood canvas position mood)
   (let ([sprite (get-sprite mood)])
-    (if sprite
-        (draw-sprite canvas position sprite)
-        canvas)))  ; If mood not found, return canvas unchanged
+       (if sprite
+           (draw-sprite canvas position sprite)
+           canvas)))  ; If mood not found, return canvas unchanged
 
 ;;; ============================================================
 ;;; Sprite Information
@@ -313,9 +313,9 @@
 ;;; Get the number of frames in an animation
 (define (animation-frame-count anim-name)
   (let ([frames (get-animation anim-name)])
-    (if frames
-        (length frames)
-        0)))
+       (if frames
+           (length frames)
+           0)))
 
 ;;; ============================================================
 ;;; Notes for Future Builders

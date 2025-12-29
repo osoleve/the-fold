@@ -56,12 +56,12 @@
 ;;; Create a new action.
 (define make-action
   (case-lambda
-    [(type actor-id target)
-     (make-action% type actor-id target 100 '())]
-    [(type actor-id target cost)
-     (make-action% type actor-id target cost '())]
-    [(type actor-id target cost data)
-     (make-action% type actor-id target cost data)]))
+   [(type actor-id target)
+    (make-action% type actor-id target 100 '())]
+   [(type actor-id target cost)
+    (make-action% type actor-id target cost '())]
+   [(type actor-id target cost data)
+    (make-action% type actor-id target cost data)]))
 
 ;;; Accessors
 (define action-type action%-type)
@@ -74,10 +74,10 @@
 ;;; Get a value from the action's data alist.
 (define action-get
   (case-lambda
-    [(action key)
-     (alist-ref (action-data action) key)]
-    [(action key default)
-     (alist-ref (action-data action) key default)]))
+   [(action key)
+    (alist-ref (action-data action) key)]
+   [(action key default)
+    (alist-ref (action-data action) key default)]))
 
 ;;; action-set : Action × Symbol × Any -> Action
 ;;; Set a value in the action's data alist (returns new action).
@@ -111,8 +111,8 @@
 ;;; make-validation-result : Bool × [String] -> ValidationResult
 (define make-validation-result
   (case-lambda
-    [(valid?) (make-validation-result% valid? #f)]
-    [(valid? reason) (make-validation-result% valid? reason)]))
+   [(valid?) (make-validation-result% valid? #f)]
+   [(valid? reason) (make-validation-result% valid? reason)]))
 
 ;;; Accessors
 (define validation-result-valid? validation-result%-valid?)
@@ -158,14 +158,14 @@
 ;;; make-action-result : Bool × [List] × [Alist] × [String] -> ActionResult
 (define make-action-result
   (case-lambda
-    [(success?)
-     (make-action-result% success? '() '() #f)]
-    [(success? events)
-     (make-action-result% success? events '() #f)]
-    [(success? events changes)
-     (make-action-result% success? events changes #f)]
-    [(success? events changes message)
-     (make-action-result% success? events changes message)]))
+   [(success?)
+    (make-action-result% success? '() '() #f)]
+   [(success? events)
+    (make-action-result% success? events '() #f)]
+   [(success? events changes)
+    (make-action-result% success? events changes #f)]
+   [(success? events changes message)
+    (make-action-result% success? events changes message)]))
 
 ;;; Accessors
 (define action-result-success? action-result%-success?)
@@ -228,25 +228,25 @@
 ;;; Add an action to the end of the queue.
 (define (queue-action! queue action)
   (action-queue%-actions-set! queue
-    (append (action-queue-actions queue) (list action))))
+                              (append (action-queue-actions queue) (list action))))
 
 ;;; dequeue-action! : ActionQueue -> Action | #f
 ;;; Remove and return the next action from the queue.
 ;;; Returns #f if queue is empty.
 (define (dequeue-action! queue)
   (let ([actions (action-queue-actions queue)])
-    (if (null? actions)
-        #f
-        (let ([next (car actions)])
-          (action-queue%-actions-set! queue (cdr actions))
-          next))))
+       (if (null? actions)
+           #f
+           (let ([next (car actions)])
+                (action-queue%-actions-set! queue (cdr actions))
+                next))))
 
 ;;; peek-action : ActionQueue -> Action | #f
 ;;; Look at the next action without removing it.
 ;;; Returns #f if queue is empty.
 (define (peek-action queue)
   (let ([actions (action-queue-actions queue)])
-    (if (null? actions) #f (car actions))))
+       (if (null? actions) #f (car actions))))
 
 ;;; action-queue-empty? : ActionQueue -> Bool
 ;;; Check if the queue is empty.
@@ -267,16 +267,16 @@
 ;;; Check if queue contains an action matching predicate.
 (define (action-queue-contains? queue pred)
   (let loop ([actions (action-queue-actions queue)])
-    (cond
-      [(null? actions) #f]
-      [(pred (car actions)) #t]
-      [else (loop (cdr actions))])))
+       (cond
+        [(null? actions) #f]
+        [(pred (car actions)) #t]
+        [else (loop (cdr actions))])))
 
 ;;; action-queue-filter! : ActionQueue × (Action -> Bool) -> Void
 ;;; Remove all actions that don't match predicate.
 (define (action-queue-filter! queue pred)
   (action-queue%-actions-set! queue
-    (filter pred (action-queue-actions queue))))
+                              (filter pred (action-queue-actions queue))))
 
 ;;; ============================================================
 ;;; Convenience Constructors
@@ -287,109 +287,109 @@
 ;;; Target can be a direction symbol or a point (x . y).
 (define make-move-action
   (case-lambda
-    [(actor-id target)
-     (make-action 'move actor-id target 100)]
-    [(actor-id target cost)
-     (make-action 'move actor-id target cost)]))
+   [(actor-id target)
+    (make-action 'move actor-id target 100)]
+   [(actor-id target cost)
+    (make-action 'move actor-id target cost)]))
 
 ;;; make-attack-action : Nat × Nat × [Nat] -> Action
 ;;; Create an attack action.
 ;;; Target is the entity ID to attack.
 (define make-attack-action
   (case-lambda
-    [(actor-id target-id)
-     (make-action 'attack actor-id target-id 100)]
-    [(actor-id target-id cost)
-     (make-action 'attack actor-id target-id cost)]))
+   [(actor-id target-id)
+    (make-action 'attack actor-id target-id 100)]
+   [(actor-id target-id cost)
+    (make-action 'attack actor-id target-id cost)]))
 
 ;;; make-use-item-action : Nat × Any × [Any] × [Nat] -> Action
 ;;; Create a use-item action.
 ;;; item-id identifies the item, target is optional.
 (define make-use-item-action
   (case-lambda
-    [(actor-id item-id)
-     (make-action 'use-item actor-id item-id 100)]
-    [(actor-id item-id target)
-     (make-action 'use-item actor-id item-id 100
-                  `((target . ,target)))]
-    [(actor-id item-id target cost)
-     (make-action 'use-item actor-id item-id cost
-                  `((target . ,target)))]))
+   [(actor-id item-id)
+    (make-action 'use-item actor-id item-id 100)]
+   [(actor-id item-id target)
+    (make-action 'use-item actor-id item-id 100
+                 `((target . ,target)))]
+   [(actor-id item-id target cost)
+    (make-action 'use-item actor-id item-id cost
+                 `((target . ,target)))]))
 
 ;;; make-pickup-action : Nat × (Any | Point) × [Nat] -> Action
 ;;; Create a pickup action.
 ;;; Target can be item ID or point where item is located.
 (define make-pickup-action
   (case-lambda
-    [(actor-id target)
-     (make-action 'pickup actor-id target 100)]
-    [(actor-id target cost)
-     (make-action 'pickup actor-id target cost)]))
+   [(actor-id target)
+    (make-action 'pickup actor-id target 100)]
+   [(actor-id target cost)
+    (make-action 'pickup actor-id target cost)]))
 
 ;;; make-drop-action : Nat × Any × [Nat] -> Action
 ;;; Create a drop action.
 ;;; Target is the item ID to drop.
 (define make-drop-action
   (case-lambda
-    [(actor-id item-id)
-     (make-action 'drop actor-id item-id 50)]
-    [(actor-id item-id cost)
-     (make-action 'drop actor-id item-id cost)]))
+   [(actor-id item-id)
+    (make-action 'drop actor-id item-id 50)]
+   [(actor-id item-id cost)
+    (make-action 'drop actor-id item-id cost)]))
 
 ;;; make-open-action : Nat × Point × [Nat] -> Action
 ;;; Create an open action (door, container, etc.).
 ;;; Target is the point to open.
 (define make-open-action
   (case-lambda
-    [(actor-id target-point)
-     (make-action 'open actor-id target-point 100)]
-    [(actor-id target-point cost)
-     (make-action 'open actor-id target-point cost)]))
+   [(actor-id target-point)
+    (make-action 'open actor-id target-point 100)]
+   [(actor-id target-point cost)
+    (make-action 'open actor-id target-point cost)]))
 
 ;;; make-close-action : Nat × Point × [Nat] -> Action
 ;;; Create a close action (door, etc.).
 ;;; Target is the point to close.
 (define make-close-action
   (case-lambda
-    [(actor-id target-point)
-     (make-action 'close actor-id target-point 100)]
-    [(actor-id target-point cost)
-     (make-action 'close actor-id target-point cost)]))
+   [(actor-id target-point)
+    (make-action 'close actor-id target-point 100)]
+   [(actor-id target-point cost)
+    (make-action 'close actor-id target-point cost)]))
 
 ;;; make-wait-action : Nat × [Nat] -> Action
 ;;; Create a wait action (skip turn).
 ;;; Target is #f (no target).
 (define make-wait-action
   (case-lambda
-    [(actor-id)
-     (make-action 'wait actor-id #f 100)]
-    [(actor-id cost)
-     (make-action 'wait actor-id #f cost)]))
+   [(actor-id)
+    (make-action 'wait actor-id #f 100)]
+   [(actor-id cost)
+    (make-action 'wait actor-id #f cost)]))
 
 ;;; make-interact-action : Nat × (Point | Nat) × [Nat] -> Action
 ;;; Create an interact action.
 ;;; Target can be a point or entity ID.
 (define make-interact-action
   (case-lambda
-    [(actor-id target)
-     (make-action 'interact actor-id target 100)]
-    [(actor-id target cost)
-     (make-action 'interact actor-id target cost)]))
+   [(actor-id target)
+    (make-action 'interact actor-id target 100)]
+   [(actor-id target cost)
+    (make-action 'interact actor-id target cost)]))
 
 ;;; make-custom-action : Nat × Symbol × Any × [Nat] × [Alist] -> Action
 ;;; Create a custom game-specific action.
 ;;; subtype identifies the specific custom action.
 (define make-custom-action
   (case-lambda
-    [(actor-id subtype target)
-     (make-action 'custom actor-id target 100
-                  `((subtype . ,subtype)))]
-    [(actor-id subtype target cost)
-     (make-action 'custom actor-id target cost
-                  `((subtype . ,subtype)))]
-    [(actor-id subtype target cost data)
-     (make-action 'custom actor-id target cost
-                  (alist-set data 'subtype subtype))]))
+   [(actor-id subtype target)
+    (make-action 'custom actor-id target 100
+                 `((subtype . ,subtype)))]
+   [(actor-id subtype target cost)
+    (make-action 'custom actor-id target cost
+                 `((subtype . ,subtype)))]
+   [(actor-id subtype target cost data)
+    (make-action 'custom actor-id target cost
+                 (alist-set data 'subtype subtype))]))
 
 ;;; ============================================================
 ;;; Action Predicates
@@ -429,26 +429,26 @@
 ;;; Convert action to human-readable string for debugging.
 (define (action->string action)
   (string-append
-    (symbol->string (action-type action))
-    " by "
-    (number->string (action-actor-id action))
-    " -> "
-    (if (action-target action)
-        (if (pair? (action-target action))
-            (string-append "("
+   (symbol->string (action-type action))
+   " by "
+   (number->string (action-actor-id action))
+   " -> "
+   (if (action-target action)
+       (if (pair? (action-target action))
+           (string-append "("
                           (number->string (car (action-target action)))
                           ", "
                           (number->string (cdr (action-target action)))
                           ")")
-            (if (number? (action-target action))
-                (number->string (action-target action))
-                (if (symbol? (action-target action))
-                    (symbol->string (action-target action))
-                    "#<target>")))
-        "none")
-    " ["
-    (number->string (action-cost action))
-    " AP]"))
+           (if (number? (action-target action))
+               (number->string (action-target action))
+               (if (symbol? (action-target action))
+                   (symbol->string (action-target action))
+                   "#<target>")))
+       "none")
+   " ["
+   (number->string (action-cost action))
+   " AP]"))
 
 ;;; ============================================================
 ;;; Action Comparison

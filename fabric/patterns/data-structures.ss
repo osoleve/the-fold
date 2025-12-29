@@ -94,7 +94,7 @@
 (define (queue-enqueue elem queue)
   (let ([front (car queue)]
         [back (cdr queue)])
-    (make-queue front (cons elem back))))
+       (make-queue front (cons elem back))))
 
 ;;; queue-dequeue : Queue → (Values Queue α)
 ;;; Remove element from front of queue. Returns (new-queue, element).
@@ -102,18 +102,18 @@
 (define (queue-dequeue queue)
   (let ([front (car queue)]
         [back (cdr queue)])
-    (if (null? front)
-        (error 'queue-dequeue "Cannot dequeue from empty queue")
-        (values (make-queue (cdr front) back)
-                (car front)))))
+       (if (null? front)
+           (error 'queue-dequeue "Cannot dequeue from empty queue")
+           (values (make-queue (cdr front) back)
+                   (car front)))))
 
 ;;; queue-peek : Queue → α
 ;;; Get front element without removing. Error if empty.
 (define (queue-peek queue)
   (let ([front (car queue)])
-    (if (null? front)
-        (error 'queue-peek "Cannot peek empty queue")
-        (car front))))
+       (if (null? front)
+           (error 'queue-peek "Cannot peek empty queue")
+           (car front))))
 
 ;;; queue-size : Queue → Nat
 ;;; Get number of elements in queue.
@@ -156,9 +156,9 @@
 ;;; Check if element is in set.
 (define (set-member? elem set)
   (cond
-    [(null? set) #f]
-    [(equal? elem (car set)) #t]
-    [else (set-member? elem (cdr set))]))
+   [(null? set) #f]
+   [(equal? elem (car set)) #t]
+   [else (set-member? elem (cdr set))]))
 
 ;;; set-add : α Set → Set
 ;;; Add element to set. Returns new set.
@@ -172,9 +172,9 @@
 ;;; Remove element from set. Returns new set.
 (define (set-remove elem set)
   (cond
-    [(null? set) '()]
-    [(equal? elem (car set)) (cdr set)]
-    [else (cons (car set) (set-remove elem (cdr set)))]))
+   [(null? set) '()]
+   [(equal? elem (car set)) (cdr set)]
+   [else (cons (car set) (set-remove elem (cdr set)))]))
 
 ;;; set-union : Set Set → Set
 ;;; Union of two sets.
@@ -188,28 +188,28 @@
 ;;; Intersection of two sets.
 (define (set-intersection set1 set2)
   (cond
-    [(null? set1) '()]
-    [(set-member? (car set1) set2)
-     (cons (car set1) (set-intersection (cdr set1) set2))]
-    [else (set-intersection (cdr set1) set2)]))
+   [(null? set1) '()]
+   [(set-member? (car set1) set2)
+    (cons (car set1) (set-intersection (cdr set1) set2))]
+   [else (set-intersection (cdr set1) set2)]))
 
 ;;; set-difference : Set Set → Set
 ;;; Elements in set1 but not in set2.
 (define (set-difference set1 set2)
   (cond
-    [(null? set1) '()]
-    [(set-member? (car set1) set2)
-     (set-difference (cdr set1) set2)]
-    [else (cons (car set1) (set-difference (cdr set1) set2))]))
+   [(null? set1) '()]
+   [(set-member? (car set1) set2)
+    (set-difference (cdr set1) set2)]
+   [else (cons (car set1) (set-difference (cdr set1) set2))]))
 
 ;;; set-subset? : Set Set → Boolean
 ;;; Check if set1 is a subset of set2.
 (define (set-subset? set1 set2)
   (cond
-    [(null? set1) #t]
-    [(set-member? (car set1) set2)
-     (set-subset? (cdr set1) set2)]
-    [else #f]))
+   [(null? set1) #t]
+   [(set-member? (car set1) set2)
+    (set-subset? (cdr set1) set2)]
+   [else #f]))
 
 ;;; set-size : Set → Nat
 ;;; Get number of elements in set.
@@ -253,9 +253,9 @@
 ;;; Look up value by key. Returns #f if not found.
 (define (dict-lookup key dict)
   (let ([pair (assoc key dict)])
-    (if pair
-        (cdr pair)
-        #f)))
+       (if pair
+           (cdr pair)
+           #f)))
 
 ;;; dict-has-key? : κ Dict → Boolean
 ;;; Check if key exists in dictionary.
@@ -273,11 +273,11 @@
 ;;; Remove key from dictionary. Returns new dictionary.
 (define (dict-dissoc key dict)
   (cond
-    [(null? dict) '()]
-    [(equal? key (car (car dict)))
-     (cdr dict)]
-    [else (cons (car dict)
-                (dict-dissoc key (cdr dict)))]))
+   [(null? dict) '()]
+   [(equal? key (car (car dict)))
+    (cdr dict)]
+   [else (cons (car dict)
+               (dict-dissoc key (cdr dict)))]))
 
 ;;; dict-keys : Dict → (List κ)
 ;;; Get list of all keys.
@@ -308,17 +308,17 @@
 ;;; Apply function to all values, keeping keys the same.
 (define (dict-map-values f dict)
   (map (lambda (pair)
-         (cons (car pair) (f (cdr pair))))
+               (cons (car pair) (f (cdr pair))))
        dict))
 
 ;;; dict-filter : (κ ν → Boolean) Dict → Dict
 ;;; Filter dictionary by predicate on key-value pairs.
 (define (dict-filter pred dict)
   (cond
-    [(null? dict) '()]
-    [(pred (car (car dict)) (cdr (car dict)))
-     (cons (car dict) (dict-filter pred (cdr dict)))]
-    [else (dict-filter pred (cdr dict))]))
+   [(null? dict) '()]
+   [(pred (car (car dict)) (cdr (car dict)))
+    (cons (car dict) (dict-filter pred (cdr dict)))]
+   [else (dict-filter pred (cdr dict))]))
 
 ;;; dict-size : Dict → Nat
 ;;; Get number of key-value pairs.

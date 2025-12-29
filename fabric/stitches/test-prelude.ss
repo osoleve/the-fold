@@ -11,14 +11,14 @@
 (define (test name expected actual)
   (if (equal? expected actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (display "  ✓ ") (display name) (newline))
+       (set! tests-passed (+ tests-passed 1))
+       (display "  ✓ ") (display name) (newline))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (display "  ✗ ") (display name)
-        (display " — expected ") (write expected)
-        (display ", got ") (write actual)
-        (newline))))
+       (set! tests-failed (+ tests-failed 1))
+       (display "  ✗ ") (display name)
+       (display " — expected ") (write expected)
+       (display ", got ") (write actual)
+       (newline))))
 
 (display "Testing prelude.ss\n")
 (display "==================\n\n")

@@ -32,21 +32,21 @@
 ;;; A tile blocks vision if blocks-vision-fn returns #t.
 (define (has-line-of-sight? board origin target line-fn blocks-vision-fn)
   (let ([line (line-fn origin target)])
-    (let loop ([coords line])
-      (cond
-        [(null? coords) #t] ; Reached target without blocking
-        [(equal? (car coords) target) #t] ; Reached target
-        [(blocks-vision-fn (car coords)) #f] ; Blocked by this tile
-        [else (loop (cdr coords))])))) ; Continue along line
+       (let loop ([coords line])
+            (cond
+             [(null? coords) #t] ; Reached target without blocking
+             [(equal? (car coords) target) #t] ; Reached target
+             [(blocks-vision-fn (car coords)) #f] ; Blocked by this tile
+             [else (loop (cdr coords))])))) ; Continue along line
 
 ;;; board-has-los? : Board × Coord × Coord × (Coord × Coord → List Coord) → Boolean
 ;;; Check line of sight using board's vision-blocking property
 (define (board-has-los? board origin target line-fn)
   (has-line-of-sight?
-    board origin target line-fn
-    (lambda (coord)
-      (let ([tile (board-get board coord)])
-        (and tile (tile-get-prop tile 'blocks-vision #f))))))
+   board origin target line-fn
+   (lambda (coord)
+           (let ([tile (board-get board coord)])
+                (and tile (tile-get-prop tile 'blocks-vision #f))))))
 
 ;;; ============================================================
 ;;; Field of View
@@ -69,48 +69,48 @@
 ;;; More sophisticated algorithms (shadowcasting) could be added later.
 (define (calculate-fov board origin max-radius neighbor-fn line-fn blocks-vision-fn)
   (let ([visible (make-hashtable equal-hash equal?)])
-    ;; Origin is always visible
-    (hashtable-set! visible origin #t)
-    ;; Use BFS to explore tiles in range
-    (let loop ([queue (list origin)]
-               [visited (make-hashtable equal-hash equal?)]
-               [distance (make-hashtable equal-hash equal?)])
-      (hashtable-set! visited origin #t)
-      (hashtable-set! distance origin 0)
-      (if (null? queue)
-          (vector->list (hashtable-keys visible))
-          (let* ([current (car queue)]
-                 [rest-q (cdr queue)]
-                 [current-dist (hashtable-ref distance current 0)])
-            (if (>= current-dist max-radius)
-                (loop rest-q visited distance)
-                (let* ([neighbors (neighbor-fn current)]
-                       [valid-neighbors
-                         (filter (lambda (n)
-                                  (and (board-get board n) ; Tile exists
-                                       (not (hashtable-ref visited n #f))))
-                                neighbors)])
-                  ;; Check LOS for each neighbor
-                  (for-each
-                    (lambda (n)
-                      (hashtable-set! visited n #t)
-                      (hashtable-set! distance n (+ current-dist 1))
-                      ;; Check if we have LOS to this neighbor
-                      (when (has-line-of-sight? board origin n line-fn blocks-vision-fn)
-                        (hashtable-set! visible n #t)))
-                    valid-neighbors)
-                  (loop (append rest-q valid-neighbors) visited distance))))))))
+       ;; Origin is always visible
+       (hashtable-set! visible origin #t)
+       ;; Use BFS to explore tiles in range
+       (let loop ([queue (list origin)]
+                  [visited (make-hashtable equal-hash equal?)]
+                  [distance (make-hashtable equal-hash equal?)])
+            (hashtable-set! visited origin #t)
+            (hashtable-set! distance origin 0)
+            (if (null? queue)
+                (vector->list (hashtable-keys visible))
+                (let* ([current (car queue)]
+                       [rest-q (cdr queue)]
+                       [current-dist (hashtable-ref distance current 0)])
+                      (if (>= current-dist max-radius)
+                          (loop rest-q visited distance)
+                          (let* ([neighbors (neighbor-fn current)]
+                                 [valid-neighbors
+                                  (filter (lambda (n)
+                                                  (and (board-get board n) ; Tile exists
+                                                       (not (hashtable-ref visited n #f))))
+                                          neighbors)])
+                                ;; Check LOS for each neighbor
+                                (for-each
+                                 (lambda (n)
+                                         (hashtable-set! visited n #t)
+                                         (hashtable-set! distance n (+ current-dist 1))
+                                         ;; Check if we have LOS to this neighbor
+                                         (when (has-line-of-sight? board origin n line-fn blocks-vision-fn)
+                                               (hashtable-set! visible n #t)))
+                                 valid-neighbors)
+                                (loop (append rest-q valid-neighbors) visited distance))))))))
 
 ;;; board-fov : Board × Coord × Integer × (Coord → List Coord) × (Coord × Coord → List Coord) → (List Coord)
 ;;; Calculate field of view using board's vision-blocking property
 (define (board-fov board origin max-radius neighbor-fn line-fn)
   (calculate-fov
-    board origin max-radius
-    neighbor-fn
-    line-fn
-    (lambda (coord)
-      (let ([tile (board-get board coord)])
-        (and tile (tile-get-prop tile 'blocks-vision #f))))))
+   board origin max-radius
+   neighbor-fn
+   line-fn
+   (lambda (coord)
+           (let ([tile (board-get board coord)])
+                (and tile (tile-get-prop tile 'blocks-vision #f))))))
 
 ;;; ============================================================
 ;;; Shadowcast Field of View (Recursive Shadowcasting)
@@ -154,7 +154,7 @@
 ;;; Returns: List of visible enemy coordinates
 (define (visible-enemies board origin max-radius neighbor-fn line-fn is-enemy-fn)
   (let ([visible-tiles (board-fov board origin max-radius neighbor-fn line-fn)])
-    (filter is-enemy-fn visible-tiles)))
+       (filter is-enemy-fn visible-tiles)))
 
 ;;; tiles-in-sight : Board × Coord × Coord × (Coord × Coord → List Coord) → (List Coord)
 ;;; Get all tiles along line of sight from origin to target

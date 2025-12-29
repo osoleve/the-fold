@@ -64,6 +64,6 @@
 ;; Test full query execution
 (display "Testing query-blocks...\n")
 (let ([results (query-blocks (tag-matches "^(expr|test-)"))])
-  (assert (= (length results) 2)))
+     (assert (= (length results) 2)))
 
 (display "All block query tests passed!\n")

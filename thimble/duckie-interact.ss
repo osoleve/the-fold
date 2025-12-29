@@ -32,8 +32,8 @@
 ;;; The message is ignored for now (simple version), response is mood-based.
 (define (to-duckie msg)
   (let ([response (get-talk-response *duckie-mood*)])
-    (display (format "~n  DUCKIE (~a): ~a~n~n" *duckie-mood* response))
-    response))
+       (display (format "~n  DUCKIE (~a): ~a~n~n" *duckie-mood* response))
+       response))
 
 ;;; duckie-mood : → Symbol
 ;;; Show DUCKIE's current mood
@@ -46,20 +46,20 @@
 (define (set-duckie-mood! mood)
   (if (memq mood *duckie-valid-moods*)
       (begin
-        (set! *duckie-mood* mood)
-        (display (format "~nDUCKIE's mood changed to ~a~n~n" mood)))
+       (set! *duckie-mood* mood)
+       (display (format "~nDUCKIE's mood changed to ~a~n~n" mood)))
       (display (format "~nInvalid mood. Valid moods: ~a~n~n" *duckie-valid-moods*))))
 
 ;;; duckie-greet : → String
 ;;; Get a greeting from DUCKIE based on current mood
 (define (duckie-greet)
   (let ([greeting (get-greeting *duckie-mood*)])
-    (display (format "~n  DUCKIE (~a): ~a~n~n" *duckie-mood* greeting))
-    greeting))
+       (display (format "~n  DUCKIE (~a): ~a~n~n" *duckie-mood* greeting))
+       greeting))
 
 ;;; duckie-farewell : → String
 ;;; Get a farewell from DUCKIE based on current mood
 (define (duckie-farewell)
   (let ([farewell (get-farewell *duckie-mood*)])
-    (display (format "~n  DUCKIE (~a): ~a~n~n" *duckie-mood* farewell))
-    farewell))
+       (display (format "~n  DUCKIE (~a): ~a~n~n" *duckie-mood* farewell))
+       farewell))

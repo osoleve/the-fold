@@ -70,30 +70,30 @@
         [tag (block-tag blk)]
         [payload (block-payload blk)]
         [refs (block-refs blk)])
-
-    ;; Index by tag
-    (let ([existing (hashtable-ref tag-table tag '())])
-      (hashtable-set! tag-table tag (cons hash existing)))
-
-    ;; Index references (reverse index)
-    (vector-for-each
-      (lambda (ref-hash)
-        (let ([existing (hashtable-ref ref-table ref-hash '())])
-          (hashtable-set! ref-table ref-hash (cons hash existing))))
-      refs)
-
-    ;; Index content (for text payloads)
-    ;; Convert payload to string if it's text-like
-    (when (bytevector? payload)
-      (let ([content (utf8->string payload)])
-        ;; Index 3-character substrings for search
-        ;; (This is a simple approach; shell can optimize)
-        (let ([len (string-length content)])
-          (do ([i 0 (+ i 1)])
-              ((>= (+ i 3) len))
-            (let ([fragment (substring content i (+ i 3))])
-              (let ([existing (hashtable-ref content-table fragment '())])
-                (hashtable-set! content-table fragment (cons hash existing))))))))))
+       
+       ;; Index by tag
+       (let ([existing (hashtable-ref tag-table tag '())])
+            (hashtable-set! tag-table tag (cons hash existing)))
+       
+       ;; Index references (reverse index)
+       (vector-for-each
+        (lambda (ref-hash)
+                (let ([existing (hashtable-ref ref-table ref-hash '())])
+                     (hashtable-set! ref-table ref-hash (cons hash existing))))
+        refs)
+       
+       ;; Index content (for text payloads)
+       ;; Convert payload to string if it's text-like
+       (when (bytevector? payload)
+             (let ([content (utf8->string payload)])
+                  ;; Index 3-character substrings for search
+                  ;; (This is a simple approach; shell can optimize)
+                  (let ([len (string-length content)])
+                       (do ([i 0 (+ i 1)])
+                           ((>= (+ i 3) len))
+                           (let ([fragment (substring content i (+ i 3))])
+                                (let ([existing (hashtable-ref content-table fragment '())])
+                                     (hashtable-set! content-table fragment (cons hash existing))))))))))
 
 ;;; ============================================================
 ;;; Query Operations (Pure)
@@ -115,15 +115,15 @@
 (define (find-blocks-by-content idx query)
   (let ([content-table (index-content-table idx)]
         [results '()])
-    ;; Search for 3-char fragments
-    (let ([len (string-length query)])
-      (if (< len 3)
-          '()  ; Query too short
-          (begin
-            ;; Get matches for first fragment
-            (let ([fragment (substring query 0 3)])
-              (hashtable-ref content-table fragment '())))))
-    ))
+       ;; Search for 3-char fragments
+       (let ([len (string-length query)])
+            (if (< len 3)
+                '()  ; Query too short
+                (begin
+                 ;; Get matches for first fragment
+                 (let ([fragment (substring query 0 3)])
+                      (hashtable-ref content-table fragment '())))))
+       ))
 
 ;;; ============================================================
 ;;; Index Statistics (Pure queries)
@@ -135,24 +135,24 @@
   (let ([tag-table (index-tag-table idx)]
         [ref-table (index-ref-table idx)]
         [content-table (index-content-table idx)])
-    (list
-      (cons 'tag-count (hashtable-size tag-table))
-      (cons 'ref-count (hashtable-size ref-table))
-      (cons 'content-fragments (hashtable-size content-table)))))
+       (list
+        (cons 'tag-count (hashtable-size tag-table))
+        (cons 'ref-count (hashtable-size ref-table))
+        (cons 'content-fragments (hashtable-size content-table)))))
 
 ;;; get-all-tags : Index -> List[Symbol]
 ;;; Return all tags in the index.
 (define (get-all-tags idx)
   (let ((tag-table (index-tag-table idx)))
-    (vector->list (hashtable-keys tag-table))))
+       (vector->list (hashtable-keys tag-table))))
 
 ;;; get-tag-distribution : Index -> Alist
 ;;; Return tag -> count distribution.
 (define (get-tag-distribution idx)
   (let ((tag-table (index-tag-table idx)))
-    (map (lambda (tag)
-           (cons tag (length (hashtable-ref tag-table tag '()))))
-         (vector->list (hashtable-keys tag-table)))))
+       (map (lambda (tag)
+                    (cons tag (length (hashtable-ref tag-table tag '()))))
+            (vector->list (hashtable-keys tag-table)))))
 
 ;;; ============================================================
 ;;; Graph Traversal Primitives (Use mutation for visited set)
@@ -168,18 +168,18 @@
 (define (traverse-refs fetch start pred depth)
   (let ([visited (make-hashtable equal-hash equal?)]
         [results '()])
-    (define (visit hash d)
-      (when (and (> d 0) (not (hashtable-ref visited hash #f)))
-        (hashtable-set! visited hash #t)
-        (let ([blk (fetch hash)])
-          (when blk
-            (when (pred blk)
-              (set! results (cons hash results)))
-            (vector-for-each
-              (lambda (ref) (visit ref (- d 1)))
-              (block-refs blk))))))
-    (visit start depth)
-    results))
+       (define (visit hash d)
+         (when (and (> d 0) (not (hashtable-ref visited hash #f)))
+               (hashtable-set! visited hash #t)
+               (let ([blk (fetch hash)])
+                    (when blk
+                          (when (pred blk)
+                                (set! results (cons hash results)))
+                          (vector-for-each
+                           (lambda (ref) (visit ref (- d 1)))
+                           (block-refs blk))))))
+       (visit start depth)
+       results))
 
 ;;; find-path : (Hash -> Block) x Hash x Hash x Int -> List[Hash] | #f
 ;;; Find a path from start to target, up to max-depth.
@@ -187,27 +187,27 @@
 ;;; NOTE: Uses mutation for visited set.
 (define (find-path fetch start target max-depth)
   (let ((visited (make-hashtable equal-hash equal?)))
-    (define (search hash depth path)
-      (cond
-        ((equal? hash target) (reverse (cons hash path)))
-        ((<= depth 0) #f)
-        ((hashtable-ref visited hash #f) #f)
-        (else
-         (hashtable-set! visited hash #t)
-         (let ((blk (fetch hash)))
-           (if (not blk)
-               #f
-               (search-refs (block-refs blk) depth (cons hash path)))))))
-    (define (search-refs refs depth path)
-      (let loop ((i 0))
-        (cond
-          ((>= i (vector-length refs)) #f)
+       (define (search hash depth path)
+         (cond
+          ((equal? hash target) (reverse (cons hash path)))
+          ((<= depth 0) #f)
+          ((hashtable-ref visited hash #f) #f)
           (else
-           (let ((result (search (vector-ref refs i) (- depth 1) path)))
-             (if result
-                 result
-                 (loop (+ i 1))))))))
-    (search start max-depth '())))
+           (hashtable-set! visited hash #t)
+           (let ((blk (fetch hash)))
+                (if (not blk)
+                    #f
+                    (search-refs (block-refs blk) depth (cons hash path)))))))
+       (define (search-refs refs depth path)
+         (let loop ((i 0))
+              (cond
+               ((>= i (vector-length refs)) #f)
+               (else
+                (let ((result (search (vector-ref refs i) (- depth 1) path)))
+                     (if result
+                         result
+                         (loop (+ i 1))))))))
+       (search start max-depth '())))
 
 ;;; compute-reference-counts : List[Hash] x (Hash -> Block) -> Hashtable
 ;;; Count how many times each hash is referenced.
@@ -215,21 +215,21 @@
 ;;; NOTE: Uses mutation for counting.
 (define (compute-reference-counts hashes fetch)
   (let ([counts (make-hashtable equal-hash equal?)])
-    ;; Initialize all hashes with count 0
-    (for-each
-      (lambda (h) (hashtable-set! counts h 0))
-      hashes)
-    ;; Count references
-    (for-each
-      (lambda (h)
-        (let ([blk (fetch h)])
-          (when blk
-            (vector-for-each
-              (lambda (ref)
-                (let ([current (hashtable-ref counts ref 0)])
-                  (hashtable-set! counts ref (+ current 1))))
-              (block-refs blk)))))
-      hashes)
-    counts))
+       ;; Initialize all hashes with count 0
+       (for-each
+        (lambda (h) (hashtable-set! counts h 0))
+        hashes)
+       ;; Count references
+       (for-each
+        (lambda (h)
+                (let ([blk (fetch h)])
+                     (when blk
+                           (vector-for-each
+                            (lambda (ref)
+                                    (let ([current (hashtable-ref counts ref 0)])
+                                         (hashtable-set! counts ref (+ current 1))))
+                            (block-refs blk)))))
+        hashes)
+       counts))
 
 ;;; Note: utf8->string and string->utf8 are Chez Scheme built-ins.

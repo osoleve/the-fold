@@ -44,69 +44,69 @@
 
 (define-syntax def-entity
   (lambda (stx)
-    (syntax-case stx (:components :at :extends :with)
-      ;; Standard form with position parameters
-      [(_ name (x y) :components comp ...)
-       (with-syntax
-         ([make-name
-           (datum->syntax #'name
-             (string->symbol
-               (string-append "make-" (symbol->string (syntax->datum #'name)))))])
-         #'(define (make-name x y)
-             (-> (make-entity)
-                 (entity-add-component (make-position-component x y))
-                 (entity-add-component comp) ...)))]
-
-      ;; Form with fixed position
-      [(_ name :at (x y) :components comp ...)
-       (with-syntax
-         ([make-name
-           (datum->syntax #'name
-             (string->symbol
-               (string-append "make-" (symbol->string (syntax->datum #'name)))))])
-         #'(define (make-name)
-             (-> (make-entity)
-                 (entity-add-component (make-position-component x y))
-                 (entity-add-component comp) ...)))]
-
-      ;; Form without position (abstract entity or position added separately)
-      [(_ name () :components comp ...)
-       (with-syntax
-         ([make-name
-           (datum->syntax #'name
-             (string->symbol
-               (string-append "make-" (symbol->string (syntax->datum #'name)))))])
-         #'(define (make-name)
-             (-> (make-entity)
-                 (entity-add-component comp) ...)))]
-
-      ;; Extension form: inherit from another entity and add components
-      [(_ name :extends base :with comp ...)
-       (with-syntax
-         ([make-name
-           (datum->syntax #'name
-             (string->symbol
-               (string-append "make-" (symbol->string (syntax->datum #'name)))))]
-          [make-base
-           (datum->syntax #'base
-             (string->symbol
-               (string-append "make-" (symbol->string (syntax->datum #'base)))))])
-         #'(define (make-name x y)
-             (-> (make-base x y)
-                 (entity-add-component comp) ...)))]
-
-      ;; Extension with no additional components (just alias)
-      [(_ name :extends base)
-       (with-syntax
-         ([make-name
-           (datum->syntax #'name
-             (string->symbol
-               (string-append "make-" (symbol->string (syntax->datum #'name)))))]
-          [make-base
-           (datum->syntax #'base
-             (string->symbol
-               (string-append "make-" (symbol->string (syntax->datum #'base)))))])
-         #'(define make-name make-base))])))
+          (syntax-case stx (:components :at :extends :with)
+                       ;; Standard form with position parameters
+                       [(_ name (x y) :components comp ...)
+                        (with-syntax
+                         ([make-name
+                           (datum->syntax #'name
+                                          (string->symbol
+                                           (string-append "make-" (symbol->string (syntax->datum #'name)))))])
+                         #'(define (make-name x y)
+                            (-> (make-entity)
+                                (entity-add-component (make-position-component x y))
+                                (entity-add-component comp) ...)))]
+                       
+                       ;; Form with fixed position
+                       [(_ name :at (x y) :components comp ...)
+                        (with-syntax
+                         ([make-name
+                           (datum->syntax #'name
+                                          (string->symbol
+                                           (string-append "make-" (symbol->string (syntax->datum #'name)))))])
+                         #'(define (make-name)
+                            (-> (make-entity)
+                                (entity-add-component (make-position-component x y))
+                                (entity-add-component comp) ...)))]
+                       
+                       ;; Form without position (abstract entity or position added separately)
+                       [(_ name () :components comp ...)
+                        (with-syntax
+                         ([make-name
+                           (datum->syntax #'name
+                                          (string->symbol
+                                           (string-append "make-" (symbol->string (syntax->datum #'name)))))])
+                         #'(define (make-name)
+                            (-> (make-entity)
+                                (entity-add-component comp) ...)))]
+                       
+                       ;; Extension form: inherit from another entity and add components
+                       [(_ name :extends base :with comp ...)
+                        (with-syntax
+                         ([make-name
+                           (datum->syntax #'name
+                                          (string->symbol
+                                           (string-append "make-" (symbol->string (syntax->datum #'name)))))]
+                          [make-base
+                           (datum->syntax #'base
+                                          (string->symbol
+                                           (string-append "make-" (symbol->string (syntax->datum #'base)))))])
+                         #'(define (make-name x y)
+                            (-> (make-base x y)
+                                (entity-add-component comp) ...)))]
+                       
+                       ;; Extension with no additional components (just alias)
+                       [(_ name :extends base)
+                        (with-syntax
+                         ([make-name
+                           (datum->syntax #'name
+                                          (string->symbol
+                                           (string-append "make-" (symbol->string (syntax->datum #'name)))))]
+                          [make-base
+                           (datum->syntax #'base
+                                          (string->symbol
+                                           (string-append "make-" (symbol->string (syntax->datum #'base)))))])
+                         #'(define make-name make-base))])))
 
 
 ;;; ============================================================
@@ -136,29 +136,29 @@
 
 (define-syntax with-entity
   (syntax-rules (->)
-    ;; Pipe form: thread entity through transformations
-    [(_ world eid (-> transforms ...))
-     (world-update-entity world eid
-       (lambda (e)
-         (-> e transforms ...)))]
-
-    ;; Named binding form: bind entity to name for complex operations
-    [(_ world eid as name body ...)
-     (let ([entity (world-get-entity world eid)])
-       (if entity
-           (let ([name entity])
-             (let ([result (begin body ...)])
-               (cond
-                 ;; If body returns an entity, replace in world
-                 [(and (list? result) (assq 'id result))
-                  (world-update-entity world eid (lambda (_) result))]
-                 ;; If body returns a component, add it
-                 [(and (list? result) (assq 'type result))
-                  (world-update-entity world eid
-                    (lambda (e) (entity-add-component e result)))]
-                 ;; Otherwise just return the world unchanged
-                 [else world])))
-           world))]))
+                ;; Pipe form: thread entity through transformations
+                [(_ world eid (-> transforms ...))
+                 (world-update-entity world eid
+                                      (lambda (e)
+                                              (-> e transforms ...)))]
+                
+                ;; Named binding form: bind entity to name for complex operations
+                [(_ world eid as name body ...)
+                 (let ([entity (world-get-entity world eid)])
+                      (if entity
+                          (let ([name entity])
+                               (let ([result (begin body ...)])
+                                    (cond
+                                     ;; If body returns an entity, replace in world
+                                     [(and (list? result) (assq 'id result))
+                                      (world-update-entity world eid (lambda (_) result))]
+                                     ;; If body returns a component, add it
+                                     [(and (list? result) (assq 'type result))
+                                      (world-update-entity world eid
+                                                           (lambda (e) (entity-add-component e result)))]
+                                     ;; Otherwise just return the world unchanged
+                                     [else world])))
+                          world))]))
 
 
 ;;; ============================================================
@@ -171,11 +171,11 @@
 ;;; Filter entities that have all specified component types.
 (define-syntax entity-with-components
   (syntax-rules ()
-    [(_ (comp-type ...) entities)
-     (filter
-       (lambda (e)
-         (and (entity-has-component? e 'comp-type) ...))
-       entities)]))
+                [(_ (comp-type ...) entities)
+                 (filter
+                  (lambda (e)
+                          (and (entity-has-component? e 'comp-type) ...))
+                  entities)]))
 
 
 ;;; ============================================================
@@ -186,11 +186,11 @@
 ;;; Define a goblin entity type
 (def-entity goblin (x y)
   :components
-    (make-stats-component 10 10 5 2 80)
-    (make-renderable-component #\g)
-    (make-name-component "Goblin" "A sneaky green creature")
-    (make-ai-component 'hunt)
-    (make-faction-component 'monster '(player)))
+  (make-stats-component 10 10 5 2 80)
+  (make-renderable-component #\g)
+  (make-name-component "Goblin" "A sneaky green creature")
+  (make-ai-component 'hunt)
+  (make-faction-component 'monster '(player)))
 
 ;;; This generates:
 (define (make-goblin x y)
@@ -208,12 +208,12 @@
 ;;; Define a variant using extension
 (def-entity goblin-chief :extends goblin
   :with
-    (make-name-component "Goblin Chief" "Leader of the pack")
-    (make-stats-component 25 25 12 5 60))
+  (make-name-component "Goblin Chief" "Leader of the pack")
+  (make-stats-component 25 25 12 5 60))
 
 ;;; Update entity in world
 (set! world
-  (with-entity world player-id
-    (-> (entity-damage 10)
-        (entity-heal 5))))
+      (with-entity world player-id
+                   (-> (entity-damage 10)
+                       (entity-heal 5))))
 |#

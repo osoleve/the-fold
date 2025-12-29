@@ -47,7 +47,7 @@
   (let* ([hex (hash->hex hash)]
          [prefix (substring hex 0 2)]
          [rest hex])
-    (string-append store-path "/objects/" prefix "/" rest)))
+        (string-append store-path "/objects/" prefix "/" rest)))
 
 ;;; hash->pin-path : Bytevector × String → String
 (define (hash->pin-path hash store-path)
@@ -57,69 +57,69 @@
 ;;; Create parent directory if it doesn't exist.
 (define (ensure-parent-dir! path)
   (let ([parent (path-parent path)])
-    (when (and parent (not (file-exists? parent)))
-      (ensure-parent-dir! parent)
-      (mkdir parent))))
+       (when (and parent (not (file-exists? parent)))
+             (ensure-parent-dir! parent)
+             (mkdir parent))))
 
 ;;; path-parent : String → String | #f
 ;;; Extract parent directory from path.
 (define (path-parent path)
   (let ([sep-pos (find-last-sep path)])
-    (if sep-pos
-        (substring path 0 sep-pos)
-        #f)))
+       (if sep-pos
+           (substring path 0 sep-pos)
+           #f)))
 
 ;;; find-last-sep : String → Nat | #f
 ;;; Find the last path separator (/ or \) in a path.
 (define (find-last-sep path)
   (let loop ([i (- (string-length path) 1)])
-    (cond
-      [(< i 0) #f]
-      [(or (char=? (string-ref path i) #\/)
-           (char=? (string-ref path i) #\\)) i]
-      [else (loop (- i 1))])))
+       (cond
+        [(< i 0) #f]
+        [(or (char=? (string-ref path i) #\/)
+             (char=? (string-ref path i) #\\)) i]
+        [else (loop (- i 1))])))
 
 ;;; path-basename : String → String
 ;;; Get filename from path (after last separator).
 (define (path-basename path)
   (let ([sep-pos (find-last-sep path)])
-    (if sep-pos
-        (substring path (+ sep-pos 1) (string-length path))
-        path)))
+       (if sep-pos
+           (substring path (+ sep-pos 1) (string-length path))
+           path)))
 
 ;;; path-stem : String → String
 ;;; Remove directory and extension from filename.
 (define (path-stem path)
   (let* ([base (path-basename path)]
          [dot-pos (string-rindex base #\.)])
-    (if dot-pos
-        (substring base 0 dot-pos)
-        base)))
+        (if dot-pos
+            (substring base 0 dot-pos)
+            base)))
 
 ;;; string-suffix? : String × String → Boolean
 ;;; Check if str ends with suffix.
 (define (string-suffix? suffix str)
   (let ([slen (string-length suffix)]
         [len (string-length str)])
-    (and (>= len slen)
-         (string=? suffix (substring str (- len slen) len)))))
+       (and (>= len slen)
+            (string=? suffix (substring str (- len slen) len)))))
 
 ;;; string-prefix? : String × String → Boolean
 ;;; Check if str starts with prefix.
 (define (string-prefix? prefix str)
   (let ([plen (string-length prefix)]
         [len (string-length str)])
-    (and (>= len plen)
-         (string=? prefix (substring str 0 plen)))))
+       (and (>= len plen)
+            (string=? prefix (substring str 0 plen)))))
 
 ;;; string-rindex : String × Char → Nat | #f
 ;;; Find last occurrence of char in string.
 (define (string-rindex str char)
   (let loop ([i (- (string-length str) 1)])
-    (cond
-      [(< i 0) #f]
-      [(char=? (string-ref str i) char) i]
-      [else (loop (- i 1))])))
+       (cond
+        [(< i 0) #f]
+        [(char=? (string-ref str i) char) i]
+        [else (loop (- i 1))])))
 
 ;;; ============================================================
 ;;; Store Initialization
@@ -135,12 +135,12 @@
 ;;; ensure-store-structure! : String → void
 (define (ensure-store-structure! store-path)
   (for-each
-    (lambda (subdir)
-      (let ([path (string-append store-path "/" subdir)])
-        (unless (file-exists? path)
-          (ensure-parent-dir! path)
-          (mkdir path))))
-    '("objects" "pins" "heads")))
+   (lambda (subdir)
+           (let ([path (string-append store-path "/" subdir)])
+                (unless (file-exists? path)
+                        (ensure-parent-dir! path)
+                        (mkdir path))))
+   '("objects" "pins" "heads")))
 
 ;;; ============================================================
 ;;; Store Operations
@@ -151,24 +151,24 @@
 (define (fs-store! fs blk)
   (let* ([hash (hash-block blk)]
          [path (hash->object-path hash (fs-capability-store-path fs))])
-    (unless (file-exists? path)
-      (ensure-parent-dir! path)
-      (let ([bytes (block->bytes blk)]
-            [port (open-file-output-port path)])
-        (put-bytevector port bytes)
-        (close-port port)))
-    hash))
+        (unless (file-exists? path)
+                (ensure-parent-dir! path)
+                (let ([bytes (block->bytes blk)]
+                      [port (open-file-output-port path)])
+                     (put-bytevector port bytes)
+                     (close-port port)))
+        hash))
 
 ;;; fs-fetch : FS × Bytevector → Block | #f
 ;;; Load a block from disk by hash.
 (define (fs-fetch fs hash)
   (let ([path (hash->object-path hash (fs-capability-store-path fs))])
-    (if (file-exists? path)
-        (let* ([port (open-file-input-port path)]
-               [bytes (get-bytevector-all port)])
-          (close-port port)
-          (bytes->block bytes))
-        #f)))
+       (if (file-exists? path)
+           (let* ([port (open-file-input-port path)]
+                  [bytes (get-bytevector-all port)])
+                 (close-port port)
+                 (bytes->block bytes))
+           #f)))
 
 ;;; fs-stored? : FS × Bytevector → Boolean
 (define (fs-stored? fs hash)
@@ -178,10 +178,10 @@
 ;;; Mark a hash as pinned (preserved during GC).
 (define (fs-pin! fs hash)
   (let ([path (hash->pin-path hash (fs-capability-store-path fs))])
-    (ensure-parent-dir! path)
-    (call-with-output-file path
-      (lambda (port)
-        (put-string port (hash->hex hash))))))
+       (ensure-parent-dir! path)
+       (call-with-output-file path
+                              (lambda (port)
+                                      (put-string port (hash->hex hash))))))
 
 ;;; fs-pinned? : FS × Bytevector → Boolean
 (define (fs-pinned? fs hash)
@@ -201,34 +201,34 @@
 ;;; Count objects in the store (expensive — scans filesystem).
 (define (fs-object-count fs)
   (let ([objects-path (string-append (fs-capability-store-path fs) "/objects")])
-    (if (file-exists? objects-path)
-        (fold-left
-          (lambda (count prefix-dir)
-            (let ([prefix-path (string-append objects-path "/" prefix-dir)])
-              (if (file-directory? prefix-path)
-                  (+ count (length (directory-list prefix-path)))
-                  count)))
-          0
-          (directory-list objects-path))
-        0)))
+       (if (file-exists? objects-path)
+           (fold-left
+            (lambda (count prefix-dir)
+                    (let ([prefix-path (string-append objects-path "/" prefix-dir)])
+                         (if (file-directory? prefix-path)
+                             (+ count (length (directory-list prefix-path)))
+                             count)))
+            0
+            (directory-list objects-path))
+           0)))
 
 ;;; fs-all-hashes : FS → (List Bytevector)
 ;;; List all object hashes in the store (expensive — scans filesystem).
 ;;; Returns a list of hash bytevectors.
 (define (fs-all-hashes fs)
   (let ([objects-path (string-append (fs-capability-store-path fs) "/objects")])
-    (if (file-exists? objects-path)
-        (apply append
-          (map
-            (lambda (prefix-dir)
-              (let ([prefix-path (string-append objects-path "/" prefix-dir)])
-                (if (file-directory? prefix-path)
-                    (map (lambda (filename)
-                           (hex->hash filename))
-                         (directory-list prefix-path))
-                    '())))
-            (directory-list objects-path)))
-        '())))
+       (if (file-exists? objects-path)
+           (apply append
+                  (map
+                   (lambda (prefix-dir)
+                           (let ([prefix-path (string-append objects-path "/" prefix-dir)])
+                                (if (file-directory? prefix-path)
+                                    (map (lambda (filename)
+                                                 (hex->hash filename))
+                                         (directory-list prefix-path))
+                                    '())))
+                   (directory-list objects-path)))
+           '())))
 
 ;;; ============================================================
 ;;; Head Pointers (for forum channels)
@@ -241,13 +241,13 @@
                              "/heads/"
                              (symbol->string channel)
                              ".head")])
-    (ensure-parent-dir! path)
-    ;; Delete existing file if present
-    (when (file-exists? path)
-      (delete-file path))
-    (call-with-output-file path
-      (lambda (port)
-        (put-string port (hash->hex hash))))))
+       (ensure-parent-dir! path)
+       ;; Delete existing file if present
+       (when (file-exists? path)
+             (delete-file path))
+       (call-with-output-file path
+                              (lambda (port)
+                                      (put-string port (hash->hex hash))))))
 
 ;;; fs-read-head : FS × Symbol → Bytevector | #f
 ;;; Read a channel head pointer.
@@ -256,17 +256,17 @@
                              "/heads/"
                              (symbol->string channel)
                              ".head")])
-    (if (file-exists? path)
-        (call-with-input-file path
-          (lambda (port)
-            (let* ([line (get-line port)]
-                   [len (string-length line)]
-                   [clean (if (and (> len 0)
-                                   (char=? (string-ref line (- len 1)) #\return))
-                              (substring line 0 (- len 1))
-                              line)])
-              (hex->hash clean))))
-        #f)))
+       (if (file-exists? path)
+           (call-with-input-file path
+                                 (lambda (port)
+                                         (let* ([line (get-line port)]
+                                                [len (string-length line)]
+                                                [clean (if (and (> len 0)
+                                                                (char=? (string-ref line (- len 1)) #\return))
+                                                           (substring line 0 (- len 1))
+                                                           line)])
+                                               (hex->hash clean))))
+           #f)))
 
 ;;; ============================================================
 ;;; Batch Operations

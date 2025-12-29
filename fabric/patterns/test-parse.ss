@@ -17,13 +17,13 @@
   (set! *tests-run* (+ *tests-run* 1))
   (if (equal? expected actual)
       (begin
-        (set! *tests-passed* (+ *tests-passed* 1))
-        (display (format "  PASS: ~a\n" name)))
+       (set! *tests-passed* (+ *tests-passed* 1))
+       (display (format "  PASS: ~a\n" name)))
       (begin
-        (set! *tests-failed* (+ *tests-failed* 1))
-        (display (format "  FAIL: ~a\n" name))
-        (display (format "    Expected: ~s\n" expected))
-        (display (format "    Actual:   ~s\n" actual)))))
+       (set! *tests-failed* (+ *tests-failed* 1))
+       (display (format "  FAIL: ~a\n" name))
+       (display (format "    Expected: ~s\n" expected))
+       (display (format "    Actual:   ~s\n" actual)))))
 
 (define (test-summary)
   (display (format "\n~a tests: ~a passed, ~a failed\n"
@@ -136,12 +136,12 @@
 (display "\n=== Position Tests ===\n\n")
 
 (let ([positions (extract-tag-positions "Hello @status:done world")])
-  (test "position start"
-        6
-        (caddr (car positions)))
-  (test "position end"
-        18
-        (cadddr (car positions))))
+     (test "position start"
+           6
+           (caddr (car positions)))
+     (test "position end"
+           18
+           (cadddr (car positions))))
 
 ;;; ============================================================
 ;;; Security Tests

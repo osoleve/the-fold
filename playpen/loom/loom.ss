@@ -74,27 +74,27 @@
 ;;; Create a simple dungeon with walls around the edges and floor in the middle.
 (define (create-simple-dungeon width height)
   (let* ([tm (make-tilemap width height tile-wall)])
-    ;; Fill interior with floor
-    (let loop-y ([y 1])
-      (when (< y (- height 1))
-        (let loop-x ([x 1])
-          (when (< x (- width 1))
-            (tilemap-set-type! tm x y tile-floor)
-            (loop-x (+ x 1))))
-        (loop-y (+ y 1))))
-    (make-world tm)))
+        ;; Fill interior with floor
+        (let loop-y ([y 1])
+             (when (< y (- height 1))
+                   (let loop-x ([x 1])
+                        (when (< x (- width 1))
+                              (tilemap-set-type! tm x y tile-floor)
+                              (loop-x (+ x 1))))
+                   (loop-y (+ y 1))))
+        (make-world tm)))
 
 ;;; spawn-player-at : World × Int × Int × String -> World
 ;;; Create and spawn a player at the given position.
 (define (spawn-player-at world x y name)
   (let ([player (make-player name #\@ x y)])
-    (world-spawn-player world player)))
+       (world-spawn-player world player)))
 
 ;;; spawn-monster-at : World × Int × Int × String × Char × Symbol -> World
 ;;; Create and spawn a monster at the given position.
 (define (spawn-monster-at world x y name char behavior)
   (let ([monster (make-monster name char x y behavior)])
-    (world-add-entity world monster)))
+       (world-add-entity world monster)))
 
 ;;; ============================================================
 ;;; Example Game Setup

@@ -53,7 +53,7 @@
 (define (particle-age p)
   (let ([lifetime (particle-lifetime p)]
         [max-life (particle-max-life p)])
-    (- 1.0 (/ (exact->inexact lifetime) (exact->inexact max-life)))))
+       (- 1.0 (/ (exact->inexact lifetime) (exact->inexact max-life)))))
 
 ;;; ============================================================
 ;;; Particle Update
@@ -71,12 +71,12 @@
          [new-y (+ (point-y pos) (point-y vel))]
          [new-pos (point new-x new-y)]
          [new-lifetime (- (particle-lifetime p) 1)])
-    (list new-pos
-          vel
-          (particle-char p)
-          (particle-color p)
-          new-lifetime
-          (particle-max-life p))))
+        (list new-pos
+              vel
+              (particle-char p)
+              (particle-color p)
+              new-lifetime
+              (particle-max-life p))))
 
 ;;; update-particles : (List Particle) → (List Particle)
 ;;;
@@ -102,14 +102,14 @@
          [age (particle-age p)]
          ;; Fade color as particle ages
          [faded-color (if (> age 0.7)
-                         ;; Fade to darker color near death
-                         (darken color 0.5)
-                         color)])
-    ;; Only render if within canvas bounds
-    (if (and (>= x 0) (< x (canvas-width canvas))
-             (>= y 0) (< y (canvas-height canvas)))
-        (draw-char-colored canvas pos char faded-color color-default)
-        canvas)))
+                          ;; Fade to darker color near death
+                          (darken color 0.5)
+                          color)])
+        ;; Only render if within canvas bounds
+        (if (and (>= x 0) (< x (canvas-width canvas))
+                 (>= y 0) (< y (canvas-height canvas)))
+            (draw-char-colored canvas pos char faded-color color-default)
+            canvas)))
 
 ;;; render-particles : Canvas × (List Particle) → Canvas
 ;;;
@@ -118,7 +118,7 @@
   (if (null? particles)
       canvas
       (render-particles (render-particle canvas (car particles))
-                       (cdr particles))))
+                        (cdr particles))))
 
 ;;; ============================================================
 ;;; Particle Emitters — Hearts
@@ -131,10 +131,10 @@
 (define (emit-hearts origin)
   (let ([x (point-x origin)]
         [y (point-y origin)])
-    (list
-      (make-particle (point (+ x 0) y) (point 0.0 -0.5) #\♥ color-pink 30)
-      (make-particle (point (+ x 2) y) (point 0.2 -0.6) #\♡ color-red 25)
-      (make-particle (point (+ x -1) y) (point -0.1 -0.4) #\♥ color-pink 28))))
+       (list
+        (make-particle (point (+ x 0) y) (point 0.0 -0.5) #\♥ color-pink 30)
+        (make-particle (point (+ x 2) y) (point 0.2 -0.6) #\♡ color-red 25)
+        (make-particle (point (+ x -1) y) (point -0.1 -0.4) #\♥ color-pink 28))))
 
 ;;; ============================================================
 ;;; Particle Emitters — Sparkles
@@ -147,12 +147,12 @@
 (define (emit-sparkles origin)
   (let ([x (point-x origin)]
         [y (point-y origin)])
-    (list
-      (make-particle (point x y) (point 0.5 -0.3) #\* color-yellow 20)
-      (make-particle (point x y) (point -0.5 -0.3) #\✨ color-gold 20)
-      (make-particle (point x y) (point 0.3 0.3) #\* color-yellow 15)
-      (make-particle (point x y) (point -0.3 0.3) #\✦ color-gold 15)
-      (make-particle (point x y) (point 0.0 -0.6) #\✨ color-white 25))))
+       (list
+        (make-particle (point x y) (point 0.5 -0.3) #\* color-yellow 20)
+        (make-particle (point x y) (point -0.5 -0.3) #\✨ color-gold 20)
+        (make-particle (point x y) (point 0.3 0.3) #\* color-yellow 15)
+        (make-particle (point x y) (point -0.3 0.3) #\✦ color-gold 15)
+        (make-particle (point x y) (point 0.0 -0.6) #\✨ color-white 25))))
 
 ;;; ============================================================
 ;;; Particle Emitters — Bubbles
@@ -165,10 +165,10 @@
 (define (emit-bubbles origin)
   (let ([x (point-x origin)]
         [y (point-y origin)])
-    (list
-      (make-particle (point x y) (point 0.1 -0.4) #\○ color-cyan 35)
-      (make-particle (point (+ x 2) y) (point -0.1 -0.5) #\◦ color-blue 30)
-      (make-particle (point (+ x 1) (+ y 2)) (point 0.0 -0.3) #\○ color-cyan 40))))
+       (list
+        (make-particle (point x y) (point 0.1 -0.4) #\○ color-cyan 35)
+        (make-particle (point (+ x 2) y) (point -0.1 -0.5) #\◦ color-blue 30)
+        (make-particle (point (+ x 1) (+ y 2)) (point 0.0 -0.3) #\○ color-cyan 40))))
 
 ;;; ============================================================
 ;;; Particle Emitters — Ripples
@@ -181,12 +181,12 @@
 (define (emit-ripple origin)
   (let ([x (point-x origin)]
         [y (point-y origin)])
-    (list
-      (make-particle (point x y) (point 0.0 0.0) #\○ color-blue 10)
-      (make-particle (point x y) (point 0.8 0.0) #\~ color-cyan 12)
-      (make-particle (point x y) (point -0.8 0.0) #\~ color-cyan 12)
-      (make-particle (point x y) (point 0.0 0.5) #\~ color-blue 11)
-      (make-particle (point x y) (point 0.0 -0.5) #\~ color-blue 11))))
+       (list
+        (make-particle (point x y) (point 0.0 0.0) #\○ color-blue 10)
+        (make-particle (point x y) (point 0.8 0.0) #\~ color-cyan 12)
+        (make-particle (point x y) (point -0.8 0.0) #\~ color-cyan 12)
+        (make-particle (point x y) (point 0.0 0.5) #\~ color-blue 11)
+        (make-particle (point x y) (point 0.0 -0.5) #\~ color-blue 11))))
 
 ;;; ============================================================
 ;;; Particle Emitters — Stars
@@ -199,10 +199,10 @@
 (define (emit-stars origin)
   (let ([x (point-x origin)]
         [y (point-y origin)])
-    (list
-      (make-particle (point (+ x 1) (- y 2)) (point 0.0 0.0) #\★ color-yellow 25)
-      (make-particle (point (+ x -2) (- y 1)) (point 0.0 0.0) #\☆ color-gold 20)
-      (make-particle (point (+ x 3) (- y 3)) (point 0.0 0.0) #\✦ color-white 22))))
+       (list
+        (make-particle (point (+ x 1) (- y 2)) (point 0.0 0.0) #\★ color-yellow 25)
+        (make-particle (point (+ x -2) (- y 1)) (point 0.0 0.0) #\☆ color-gold 20)
+        (make-particle (point (+ x 3) (- y 3)) (point 0.0 0.0) #\✦ color-white 22))))
 
 ;;; ============================================================
 ;;; Particle Emitters — Sleepy Z's
@@ -215,9 +215,9 @@
 (define (emit-zzz origin)
   (let ([x (point-x origin)]
         [y (point-y origin)])
-    (list
-      (make-particle (point (+ x 2) (- y 1)) (point 0.2 -0.3) #\Z color-purple 30)
-      (make-particle (point (+ x 3) (- y 2)) (point 0.1 -0.2) #\z color-purple 25))))
+       (list
+        (make-particle (point (+ x 2) (- y 1)) (point 0.2 -0.3) #\Z color-purple 30)
+        (make-particle (point (+ x 3) (- y 2)) (point 0.1 -0.2) #\z color-purple 25))))
 
 ;;; ============================================================
 ;;; Particle Emitters — Music Notes
@@ -230,10 +230,10 @@
 (define (emit-notes origin)
   (let ([x (point-x origin)]
         [y (point-y origin)])
-    (list
-      (make-particle (point (+ x 1) y) (point 0.3 -0.4) #\♪ color-pink 28)
-      (make-particle (point (+ x 3) (- y 1)) (point -0.2 -0.5) #\♫ color-magenta 25)
-      (make-particle (point (+ x 2) (+ y 1)) (point 0.1 -0.3) #\♬ color-pink 30))))
+       (list
+        (make-particle (point (+ x 1) y) (point 0.3 -0.4) #\♪ color-pink 28)
+        (make-particle (point (+ x 3) (- y 1)) (point -0.2 -0.5) #\♫ color-magenta 25)
+        (make-particle (point (+ x 2) (+ y 1)) (point 0.1 -0.3) #\♬ color-pink 30))))
 
 ;;; ============================================================
 ;;; Particle Emitters — Exclamation
@@ -246,9 +246,9 @@
 (define (emit-exclamation origin)
   (let ([x (point-x origin)]
         [y (point-y origin)])
-    (list
-      (make-particle (point (+ x 1) (- y 2)) (point 0.0 -0.2) #\! color-red 20)
-      (make-particle (point (+ x 2) (- y 2)) (point 0.0 -0.2) #\! color-yellow 20))))
+       (list
+        (make-particle (point (+ x 1) (- y 2)) (point 0.0 -0.2) #\! color-red 20)
+        (make-particle (point (+ x 2) (- y 2)) (point 0.0 -0.2) #\! color-yellow 20))))
 
 ;;; ============================================================
 ;;; Particle System State
@@ -288,22 +288,22 @@
 ;;; Emit particles appropriate for a given mood.
 (define (emit-by-mood origin mood)
   (case mood
-    [(happy)    (emit-sparkles origin)]
-    [(curious)  (emit-stars origin)]
-    [(sleepy)   (emit-zzz origin)]
-    [(content)  (emit-bubbles origin)]
-    [(lonely)   '()]  ; No particles when lonely
-    [(playful)  (emit-notes origin)]
-    [else       '()]))
+        [(happy)    (emit-sparkles origin)]
+        [(curious)  (emit-stars origin)]
+        [(sleepy)   (emit-zzz origin)]
+        [(content)  (emit-bubbles origin)]
+        [(lonely)   '()]  ; No particles when lonely
+        [(playful)  (emit-notes origin)]
+        [else       '()]))
 
 ;;; emit-by-interaction : Point × Symbol → (List Particle)
 ;;;
 ;;; Emit particles for specific interactions.
 (define (emit-by-interaction origin interaction)
   (case interaction
-    [(pet)    (emit-hearts origin)]
-    [(feed)   (emit-sparkles origin)]
-    [(play)   (emit-notes origin)]
-    [(talk)   (emit-bubbles origin)]
-    [(splash) (emit-ripple origin)]
-    [else     '()]))
+        [(pet)    (emit-hearts origin)]
+        [(feed)   (emit-sparkles origin)]
+        [(play)   (emit-notes origin)]
+        [(talk)   (emit-bubbles origin)]
+        [(splash) (emit-ripple origin)]
+        [else     '()]))

@@ -37,45 +37,45 @@
 (define (string-contains? str needle)
   (let ([slen (string-length str)]
         [nlen (string-length needle)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i nlen) slen) #f]
-        [(string=? (substring str i (+ i nlen)) needle) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i nlen) slen) #f]
+             [(string=? (substring str i (+ i nlen)) needle) #t]
+             [else (loop (+ i 1))]))))
 
 (define (windows?)
   (let ([os (getenv "OS")])
-    (and os (string-contains? os "Windows"))))
+       (and os (string-contains? os "Windows"))))
 
 (define (ensure-dirs!)
   (unless (file-exists? *repl-dir*)
-    (mkdir *repl-dir*))
+          (mkdir *repl-dir*))
   (unless (file-exists? *requests-dir*)
-    (mkdir *requests-dir*))
+          (mkdir *requests-dir*))
   (unless (file-exists? *responses-dir*)
-    (mkdir *responses-dir*))
+          (mkdir *responses-dir*))
   (unless (file-exists? *workers-dir*)
-    (mkdir *workers-dir*)))
+          (mkdir *workers-dir*)))
 
 (define (write-ready!)
   (when (file-exists? *ready-file*)
-    (delete-file *ready-file*))
+        (delete-file *ready-file*))
   (call-with-output-file *ready-file*
-    (lambda (p)
-      (display (format "~a" (current-time)) p))))
+                         (lambda (p)
+                                 (display (format "~a" (current-time)) p))))
 
 (define (clear-ready!)
   (when (file-exists? *ready-file*)
-    (delete-file *ready-file*)))
+        (delete-file *ready-file*)))
 
 (define (daemon-running?)
   (file-exists? *ready-file*))
 
 (define (extract-session-id-from-filename filename)
   (let ([len (string-length filename)])
-    (if (and (>= len 3) (string=? (substring filename (- len 3) len) ".ss"))
-        (substring filename 0 (- len 3))
-        filename)))
+       (if (and (>= len 3) (string=? (substring filename (- len 3) len) ".ss"))
+           (substring filename 0 (- len 3))
+           filename)))
 
 (define (pid-path session-id)
   (string-append *workers-dir* "/" session-id ".pid"))
@@ -94,10 +94,10 @@
 
 (define (read-number-file path)
   (guard (e [else #f])
-    (and (file-exists? path)
-         (call-with-input-file path
-           (lambda (p)
-             (string->number (get-line p)))))))
+         (and (file-exists? path)
+              (call-with-input-file path
+                                    (lambda (p)
+                                            (string->number (get-line p)))))))
 
 (define (process-alive? pid)
   (if (windows?)
@@ -108,31 +108,31 @@
   (let* ([now (time-second (current-time))]
          [hb (read-number-file (heartbeat-path session-id))]
          [pid (read-number-file (pid-path session-id))])
-    (cond
-      [(and hb (< (- now hb) *worker-timeout*)) #t]
-      [(and pid (process-alive? pid)) #t]
-      [else #f])))
+        (cond
+         [(and hb (< (- now hb) *worker-timeout*)) #t]
+         [(and pid (process-alive? pid)) #t]
+         [else #f])))
 
 (define (terminate-worker! session-id)
   (let ([pid (read-number-file (pid-path session-id))])
-    (when pid
-      (if (windows?)
-          (system (format "taskkill /PID ~a /F >nul 2>nul" pid))
-          (begin
-            (system (format "kill ~a 2>/dev/null" pid))
-            (when (process-alive? pid)
-              (system (format "kill -9 ~a 2>/dev/null" pid))))))))
+       (when pid
+             (if (windows?)
+                 (system (format "taskkill /PID ~a /F >nul 2>nul" pid))
+                 (begin
+                  (system (format "kill ~a 2>/dev/null" pid))
+                  (when (process-alive? pid)
+                        (system (format "kill -9 ~a 2>/dev/null" pid))))))))
 
 (define (worker-starting? session-id)
   (let* ([now (time-second (current-time))]
          [started (read-number-file (starting-path session-id))])
-    (cond
-      [(and started (< (- now started) *starting-timeout*)) #t]
-      [started
-       (when (file-exists? (starting-path session-id))
-         (delete-file (starting-path session-id)))
-       #f]
-      [else #f])))
+        (cond
+         [(and started (< (- now started) *starting-timeout*)) #t]
+         [started
+          (when (file-exists? (starting-path session-id))
+                (delete-file (starting-path session-id)))
+          #f]
+         [else #f])))
 
 ;;; ============================================================
 ;;; Worker Spawning
@@ -150,15 +150,15 @@
                           scheme script session-id)
                   (format "~a --script ~a ~a > ~a 2>&1 &"
                           scheme script session-id log))])
-    (call-with-output-file (starting-path session-id)
-      (lambda (p)
-        (display (time-second (current-time)) p))
-      'replace)
-    (system cmd)))
+        (call-with-output-file (starting-path session-id)
+                               (lambda (p)
+                                       (display (time-second (current-time)) p))
+                               'replace)
+        (system cmd)))
 
 (define (ensure-worker! session-id)
   (unless (or (worker-alive? session-id) (worker-starting? session-id))
-    (spawn-worker! session-id)))
+          (spawn-worker! session-id)))
 
 ;;; ============================================================
 ;;; Cleanup
@@ -166,29 +166,29 @@
 
 (define (cleanup-stale-workers!)
   (when (file-exists? *workers-dir*)
-    (let ([files (directory-list *workers-dir*)])
-      (for-each
-        (lambda (filename)
-          (when (and (string? filename)
-                     (> (string-length filename) 10)
-                     (string=? (substring filename
-                                         (- (string-length filename) 10)
-                                         (string-length filename))
-                              ".heartbeat"))
-            (let* ([session-id (substring filename 0 (- (string-length filename) 10))]
-                   [hb (read-number-file (heartbeat-path session-id))]
-                   [now (time-second (current-time))])
-              (when (and hb (>= (- now hb) *worker-timeout*))
-                (terminate-worker! session-id)
-                (for-each
-                  (lambda (path)
-                    (when (file-exists? path)
-                      (delete-file path)))
-                  (list (pid-path session-id)
-                        (ready-path session-id)
-                        (heartbeat-path session-id)
-                        (starting-path session-id)))))))
-        files))))
+        (let ([files (directory-list *workers-dir*)])
+             (for-each
+              (lambda (filename)
+                      (when (and (string? filename)
+                                 (> (string-length filename) 10)
+                                 (string=? (substring filename
+                                                      (- (string-length filename) 10)
+                                                      (string-length filename))
+                                           ".heartbeat"))
+                            (let* ([session-id (substring filename 0 (- (string-length filename) 10))]
+                                   [hb (read-number-file (heartbeat-path session-id))]
+                                   [now (time-second (current-time))])
+                                  (when (and hb (>= (- now hb) *worker-timeout*))
+                                        (terminate-worker! session-id)
+                                        (for-each
+                                         (lambda (path)
+                                                 (when (file-exists? path)
+                                                       (delete-file path)))
+                                         (list (pid-path session-id)
+                                               (ready-path session-id)
+                                               (heartbeat-path session-id)
+                                               (starting-path session-id)))))))
+              files))))
 
 ;;; ============================================================
 ;;; Main Daemon Loop
@@ -203,31 +203,31 @@
 
 (define (scan-for-requests!)
   (when (file-exists? *requests-dir*)
-    (let ([files (directory-list *requests-dir*)])
-      (for-each
-        (lambda (filename)
-          (when (and (string? filename)
-                     (> (string-length filename) 3)
-                     (string=? (substring filename
-                                         (- (string-length filename) 3)
-                                         (string-length filename))
-                              ".ss"))
-            (ensure-worker! (extract-session-id-from-filename filename))))
-        files))))
+        (let ([files (directory-list *requests-dir*)])
+             (for-each
+              (lambda (filename)
+                      (when (and (string? filename)
+                                 (> (string-length filename) 3)
+                                 (string=? (substring filename
+                                                      (- (string-length filename) 3)
+                                                      (string-length filename))
+                                           ".ss"))
+                            (ensure-worker! (extract-session-id-from-filename filename))))
+              files))))
 
 (define (periodic-cleanup!)
   (let ([now (time-second (current-time))])
-    (when (> (- now *last-cleanup*) *cleanup-interval*)
-      (cleanup-stale-workers!)
-      (set! *last-cleanup* now))))
+       (when (> (- now *last-cleanup*) *cleanup-interval*)
+             (cleanup-stale-workers!)
+             (set! *last-cleanup* now))))
 
 (define (daemon-loop)
   (when *daemon-running*
-    (scan-for-requests!)
-    (periodic-cleanup!)
-    (when (and *daemon-running* (daemon-running?))
-      (sleep (make-time 'time-duration *poll-interval-ns* 0))
-      (daemon-loop))))
+        (scan-for-requests!)
+        (periodic-cleanup!)
+        (when (and *daemon-running* (daemon-running?))
+              (sleep (make-time 'time-duration *poll-interval-ns* 0))
+              (daemon-loop))))
 
 ;;; ============================================================
 ;;; Startup
@@ -237,7 +237,7 @@
   "Start the session broker daemon."
   (ensure-dirs!)
   (write-ready!)
-
+  
   (display "╔══════════════════════════════════════════════════════════════╗\n")
   (display "║          THE FOLD — SESSION BROKER STARTED                  ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n")
@@ -245,8 +245,8 @@
   (display (format "Output:   ~a\n" *responses-dir*))
   (display (format "Workers:  ~a\n" *workers-dir*))
   (display "Multitenancy enabled. Waiting for requests...\n\n")
-
+  
   (daemon-loop)
-
+  
   (clear-ready!)
   (display "Daemon stopped.\n"))

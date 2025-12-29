@@ -12,13 +12,13 @@
 (define (test name expected actual)
   (if (equal? expected actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (printf "  ✓ ~a\n" name))
+       (set! tests-passed (+ tests-passed 1))
+       (printf "  ✓ ~a\n" name))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (printf "  ✗ ~a\n" name)
-        (printf "      Expected: ~s\n" expected)
-        (printf "      Got:      ~s\n" actual))))
+       (set! tests-failed (+ tests-failed 1))
+       (printf "  ✗ ~a\n" name)
+       (printf "      Expected: ~s\n" expected)
+       (printf "      Got:      ~s\n" actual))))
 
 ;;; ============================================================
 ;;; Test String Search Functions

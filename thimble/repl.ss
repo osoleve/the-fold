@@ -99,16 +99,16 @@
 (define (display-startup)
   ;; Show any system messages first
   (let ([fs (mint-fs-capability ".store")])
-    (display-system-messages fs))
-
+       (display-system-messages fs))
+  
   ;; Session status
   (if (session-exists?)
       (let ([session (read-session)])
-        (display (format "Session: ~a (~a)\n"
-                        (cdr (assq 'name session))
-                        (cdr (assq 'tier session)))))
+           (display (format "Session: ~a (~a)\n"
+                            (cdr (assq 'name session))
+                            (cdr (assq 'tier session)))))
       (display "No session. Login with (hi 'opus 'your-name \"message\")\n"))
-
+  
   ;; Quick commands
   (display "Commands: (digest) (digest-posts) (chat msg) (msg ch title body) (help)\n")
   (display "New to The Fold? Try (start-tutorial) for an interactive guide!\n")
@@ -280,7 +280,7 @@
 ;;; Show the N most-referenced blocks (default 10).
 (define (popular . args)
   (let ([n (if (null? args) 10 (car args))])
-    (find-popular (fs) n)))
+       (find-popular (fs) n)))
 
 ;;; orphans : → void
 ;;; Find blocks with no inbound references.
@@ -291,7 +291,7 @@
 ;;; Visualize block reference tree (default depth 3).
 (define (tree hash-prefix . args)
   (let ([depth (if (null? args) 3 (car args))])
-    (visualize-tree (fs) hash-prefix depth)))
+       (visualize-tree (fs) hash-prefix depth)))
 
 ;;; search : String → void
 ;;; Search blocks with relevance ranking.
@@ -348,36 +348,36 @@
   (if *core-loaded*
       (display "Core modules already loaded.\n")
       (begin
-        (display "Loading Core modules...\n")
-        ;; These modules are standalone (no internal loads)
-        (load "fabric/stitches/normalize.ss")
-        (load "fabric/stitches/expand.ss")
-        (load "fabric/stitches/prim.ss")
-        (load "fabric/stitches/eval.ss")
-        (load "fabric/stitches/types.ss")
-        (load "fabric/stitches/kinds.ss")
-        (load "fabric/stitches/infer.ss")
-        (load "fabric/stitches/annotate.ss")
-        (load "fabric/stitches/typed-eval.ss")
-        ;; Note: cas.ss, parse.ss, validate.ss have internal loads
-        ;; that conflict with repl.ss. Hash/block functions are already
-        ;; available from block.ss and sha256.ss loaded by repl.ss.
-
-        ;; Load Core Playground (depends on normalize/expand)
-        (load "thimble/core-playground.ss")
-
-        (set! *core-loaded* #t)
-        (display "Core loaded. Available: normalize, expand, run, infer, etc.\n")
-        (display "Core Playground loaded. Use (playground-help) for commands.\n")
-        (display "\nExamples:\n")
-        (display "  (run '((fn (x) x) 42) 100)   → (ok 42)\n")
-        (display "  (infer '(fn (x) x) '())      → (ok (-> τ1 τ1) ())\n")
-        (display "  (t '(prim 'add 1 2))         → 3 : Int\n")
-        (display "  (:type '(fn (x) x))          → (∀ (τ1) (τ1 → τ1))\n")
-        (display "\nPlayground:\n")
-        (display "  (try-normalize '(lambda (x) x))  → Show de Bruijn form\n")
-        (display "  (try-hash '(lambda (x) x))       → Show expression hash\n")
-        (display "  (playground-demo)                → See all features\n"))))
+       (display "Loading Core modules...\n")
+       ;; These modules are standalone (no internal loads)
+       (load "fabric/stitches/normalize.ss")
+       (load "fabric/stitches/expand.ss")
+       (load "fabric/stitches/prim.ss")
+       (load "fabric/stitches/eval.ss")
+       (load "fabric/stitches/types.ss")
+       (load "fabric/stitches/kinds.ss")
+       (load "fabric/stitches/infer.ss")
+       (load "fabric/stitches/annotate.ss")
+       (load "fabric/stitches/typed-eval.ss")
+       ;; Note: cas.ss, parse.ss, validate.ss have internal loads
+       ;; that conflict with repl.ss. Hash/block functions are already
+       ;; available from block.ss and sha256.ss loaded by repl.ss.
+       
+       ;; Load Core Playground (depends on normalize/expand)
+       (load "thimble/core-playground.ss")
+       
+       (set! *core-loaded* #t)
+       (display "Core loaded. Available: normalize, expand, run, infer, etc.\n")
+       (display "Core Playground loaded. Use (playground-help) for commands.\n")
+       (display "\nExamples:\n")
+       (display "  (run '((fn (x) x) 42) 100)   → (ok 42)\n")
+       (display "  (infer '(fn (x) x) '())      → (ok (-> τ1 τ1) ())\n")
+       (display "  (t '(prim 'add 1 2))         → 3 : Int\n")
+       (display "  (:type '(fn (x) x))          → (∀ (τ1) (τ1 → τ1))\n")
+       (display "\nPlayground:\n")
+       (display "  (try-normalize '(lambda (x) x))  → Show de Bruijn form\n")
+       (display "  (try-hash '(lambda (x) x))       → Show expression hash\n")
+       (display "  (playground-demo)                → See all features\n"))))
 
 ;;; ============================================================
 ;;; Typed Evaluation Convenience Functions
@@ -389,30 +389,30 @@
 ;;; Typed evaluation: type-check and evaluate, display result with type.
 (define (t expr)
   (unless *core-loaded*
-    (error 't "Core not loaded. Run (load-core) first."))
+          (error 't "Core not loaded. Run (load-core) first."))
   (typed-repl-eval expr))
 
 ;;; :type : Expr → void
 ;;; Show the type of an expression without evaluating.
 (define (:type expr)
   (unless *core-loaded*
-    (error ':type "Core not loaded. Run (load-core) first."))
+          (error ':type "Core not loaded. Run (load-core) first."))
   (reset-fresh!)
   (let ([result (typeof expr)])
-    (if (and (pair? result) (eq? (car result) 'error))
-        (begin
-          (display "Type error: ")
-          (display (format-type-error result))
-          (newline))
-        (begin
-          (display (type->string result))
-          (newline)))))
+       (if (and (pair? result) (eq? (car result) 'error))
+           (begin
+            (display "Type error: ")
+            (display (format-type-error result))
+            (newline))
+           (begin
+            (display (type->string result))
+            (newline)))))
 
 ;;; :ann : Expr → void
 ;;; Show an expression with type annotations at every node.
 (define (:ann expr)
   (unless *core-loaded*
-    (error ':ann "Core not loaded. Run (load-core) first."))
+          (error ':ann "Core not loaded. Run (load-core) first."))
   (show-annotated expr))
 
 ;;; ============================================================
@@ -421,9 +421,9 @@
 
 (define (fold-repl-init)
   (unless *quiet*
-    (display-startup))
+          (display-startup))
   (when *quiet*
-    (display "The Fold loaded.\n")))
+        (display "The Fold loaded.\n")))
 
 ;;; ============================================================
 ;;; Auto-initialize on load

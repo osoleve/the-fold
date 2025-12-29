@@ -49,7 +49,7 @@
 (define (make-transparent-canvas width height)
   (let ([size (* width height)]
         [cells (make-vector (* width height) transparent-char)])
-    (make-canvas% width height cells)))
+       (make-canvas% width height cells)))
 
 ;;; ============================================================
 ;;; Layer Data Structure
@@ -70,12 +70,12 @@
 ;;; Create a new layer with optional depth and offset.
 (define make-layer
   (case-lambda
-    [(name canvas)
-     (make-layer% name canvas #t 0 (point 0 0))]
-    [(name canvas depth)
-     (make-layer% name canvas #t depth (point 0 0))]
-    [(name canvas depth offset)
-     (make-layer% name canvas #t depth offset)]))
+   [(name canvas)
+    (make-layer% name canvas #t 0 (point 0 0))]
+   [(name canvas depth)
+    (make-layer% name canvas #t depth (point 0 0))]
+   [(name canvas depth offset)
+    (make-layer% name canvas #t depth offset)]))
 
 ;;; Re-export accessors with clean names
 (define layer-name layer%-name)
@@ -135,9 +135,9 @@
 ;;; Create a layer stack, optionally with initial layers.
 (define make-layer-stack
   (case-lambda
-    [() (make-layer-stack% '())]
-    [(initial-layers)
-     (make-layer-stack% (sort-layers-by-depth initial-layers))]))
+   [() (make-layer-stack% '())]
+   [(initial-layers)
+    (make-layer-stack% (sort-layers-by-depth initial-layers))]))
 
 ;;; stack-layers : LayerStack → List Layer
 ;;; Get all layers in depth order.
@@ -147,61 +147,61 @@
 ;;; Sort layers by depth (background to foreground).
 (define (sort-layers-by-depth layers)
   (list-sort (lambda (a b)
-               (< (layer-depth a) (layer-depth b)))
+                     (< (layer-depth a) (layer-depth b)))
              layers))
 
 ;;; stack-add-layer : LayerStack × Layer → LayerStack
 ;;; Add a layer to the stack, maintaining depth order.
 (define (stack-add-layer stack layer)
   (make-layer-stack%
-    (sort-layers-by-depth
-      (cons layer (stack-layers stack)))))
+   (sort-layers-by-depth
+    (cons layer (stack-layers stack)))))
 
 ;;; stack-remove-layer : LayerStack × Symbol → LayerStack
 ;;; Remove a layer by name.
 (define (stack-remove-layer stack name)
   (make-layer-stack%
-    (filter (lambda (layer)
-              (not (eq? (layer-name layer) name)))
-            (stack-layers stack))))
+   (filter (lambda (layer)
+                   (not (eq? (layer-name layer) name)))
+           (stack-layers stack))))
 
 ;;; stack-find-layer : LayerStack × Symbol → Layer | #f
 ;;; Find a layer by name.
 (define (stack-find-layer stack name)
   (let loop ([layers (stack-layers stack)])
-    (cond
-      [(null? layers) #f]
-      [(eq? (layer-name (car layers)) name) (car layers)]
-      [else (loop (cdr layers))])))
+       (cond
+        [(null? layers) #f]
+        [(eq? (layer-name (car layers)) name) (car layers)]
+        [else (loop (cdr layers))])))
 
 ;;; stack-update-layer : LayerStack × Symbol × (Layer → Layer) → LayerStack
 ;;; Update a layer by name using a function.
 (define (stack-update-layer stack name update-fn)
   (make-layer-stack%
-    (sort-layers-by-depth
-      (map (lambda (layer)
-             (if (eq? (layer-name layer) name)
-                 (update-fn layer)
-                 layer))
-           (stack-layers stack)))))
+   (sort-layers-by-depth
+    (map (lambda (layer)
+                 (if (eq? (layer-name layer) name)
+                     (update-fn layer)
+                     layer))
+         (stack-layers stack)))))
 
 ;;; stack-show-layer : LayerStack × Symbol → LayerStack
 ;;; Make a layer visible.
 (define (stack-show-layer stack name)
   (stack-update-layer stack name
-    (lambda (layer) (layer-set-visible layer #t))))
+                      (lambda (layer) (layer-set-visible layer #t))))
 
 ;;; stack-hide-layer : LayerStack × Symbol → LayerStack
 ;;; Make a layer invisible.
 (define (stack-hide-layer stack name)
   (stack-update-layer stack name
-    (lambda (layer) (layer-set-visible layer #f))))
+                      (lambda (layer) (layer-set-visible layer #f))))
 
 ;;; stack-reorder : LayerStack × Symbol × Nat → LayerStack
 ;;; Change a layer's depth.
 (define (stack-reorder stack name new-depth)
   (stack-update-layer stack name
-    (lambda (layer) (layer-set-depth layer new-depth))))
+                      (lambda (layer) (layer-set-depth layer new-depth))))
 
 ;;; ============================================================
 ;;; Transparency-Aware Composition
@@ -217,19 +217,19 @@
         [oy (point-y pt)]
         [sw (canvas-width src)]
         [sh (canvas-height src)])
-    (let loop-y ([y 0] [canvas dest])
-      (if (>= y sh)
-          canvas
-          (let loop-x ([x 0] [canvas canvas])
-            (if (>= x sw)
-                (loop-y (+ y 1) canvas)
-                (let ([ch (canvas-ref src x y)])
-                  (if (transparent? ch)
-                      ;; Skip transparent cells
-                      (loop-x (+ x 1) canvas)
-                      ;; Draw opaque cells
-                      (loop-x (+ x 1)
-                              (canvas-set canvas (+ ox x) (+ oy y) ch))))))))))
+       (let loop-y ([y 0] [canvas dest])
+            (if (>= y sh)
+                canvas
+                (let loop-x ([x 0] [canvas canvas])
+                     (if (>= x sw)
+                         (loop-y (+ y 1) canvas)
+                         (let ([ch (canvas-ref src x y)])
+                              (if (transparent? ch)
+                                  ;; Skip transparent cells
+                                  (loop-x (+ x 1) canvas)
+                                  ;; Draw opaque cells
+                                  (loop-x (+ x 1)
+                                          (canvas-set canvas (+ ox x) (+ oy y) ch))))))))))
 
 ;;; ============================================================
 ;;; Layer Flattening
@@ -247,19 +247,19 @@
 ;;; Returns a single canvas with all visible layers composited.
 (define (flatten-layers stack width height)
   (let ([initial-canvas (make-canvas width height)])
-    (let loop ([layers (stack-layers stack)]
-               [canvas initial-canvas])
-      (if (null? layers)
-          canvas
-          (let ([layer (car layers)])
-            (if (layer-visible layer)
-                ;; Composite visible layer
-                (loop (cdr layers)
-                      (composite-transparent canvas
-                                           (layer-canvas layer)
-                                           (layer-offset layer)))
-                ;; Skip invisible layer
-                (loop (cdr layers) canvas)))))))
+       (let loop ([layers (stack-layers stack)]
+                  [canvas initial-canvas])
+            (if (null? layers)
+                canvas
+                (let ([layer (car layers)])
+                     (if (layer-visible layer)
+                         ;; Composite visible layer
+                         (loop (cdr layers)
+                               (composite-transparent canvas
+                                                      (layer-canvas layer)
+                                                      (layer-offset layer)))
+                         ;; Skip invisible layer
+                         (loop (cdr layers) canvas)))))))
 
 ;;; ============================================================
 ;;; Helper Constructors for Common Patterns
@@ -300,25 +300,25 @@
 ;;; Draw a string on a layer's canvas.
 (define (layer-draw-string layer pt str)
   (layer-set-canvas layer
-    (draw-string (layer-canvas layer) pt str)))
+                    (draw-string (layer-canvas layer) pt str)))
 
 ;;; layer-draw-char : Layer × Point × Char → Layer
 ;;; Draw a character on a layer's canvas.
 (define (layer-draw-char layer pt ch)
   (layer-set-canvas layer
-    (draw-char (layer-canvas layer) pt ch)))
+                    (draw-char (layer-canvas layer) pt ch)))
 
 ;;; layer-fill-rect : Layer × Rect × Char → Layer
 ;;; Fill a rectangle on a layer's canvas.
 (define (layer-fill-rect layer rect ch)
   (layer-set-canvas layer
-    (fill-rect (layer-canvas layer) rect ch)))
+                    (fill-rect (layer-canvas layer) rect ch)))
 
 ;;; layer-draw-box : Layer × Rect × Symbol → Layer
 ;;; Draw a box on a layer's canvas.
 (define (layer-draw-box layer rect style)
   (layer-set-canvas layer
-    (draw-box (layer-canvas layer) rect style)))
+                    (draw-box (layer-canvas layer) rect style)))
 
 ;;; ============================================================
 ;;; Sprite Helpers
@@ -331,14 +331,14 @@
   (let loop ([lines sprite-lines]
              [y 0]
              [canvas (layer-canvas layer)])
-    (if (null? lines)
-        (layer-set-canvas layer canvas)
-        (let ([line (car lines)])
-          (loop (cdr lines)
-                (+ y 1)
-                (draw-string canvas
-                            (point (point-x offset) (+ (point-y offset) y))
-                            line))))))
+       (if (null? lines)
+           (layer-set-canvas layer canvas)
+           (let ([line (car lines)])
+                (loop (cdr lines)
+                      (+ y 1)
+                      (draw-string canvas
+                                   (point (point-x offset) (+ (point-y offset) y))
+                                   line))))))
 
 ;;; ============================================================
 ;;; Debug and Inspection
@@ -348,28 +348,28 @@
 ;;; Convert a layer to a string for debugging.
 (define (layer->string layer)
   (string-append
-    "Layer["
-    (symbol->string (layer-name layer))
-    " visible=" (if (layer-visible layer) "#t" "#f")
-    " depth=" (number->string (layer-depth layer))
-    " offset=(" (number->string (point-x (layer-offset layer)))
-    "," (number->string (point-y (layer-offset layer)))
-    ")"
-    " size=" (number->string (canvas-width (layer-canvas layer)))
-    "x" (number->string (canvas-height (layer-canvas layer)))
-    "]"))
+   "Layer["
+   (symbol->string (layer-name layer))
+   " visible=" (if (layer-visible layer) "#t" "#f")
+   " depth=" (number->string (layer-depth layer))
+   " offset=(" (number->string (point-x (layer-offset layer)))
+   "," (number->string (point-y (layer-offset layer)))
+   ")"
+   " size=" (number->string (canvas-width (layer-canvas layer)))
+   "x" (number->string (canvas-height (layer-canvas layer)))
+   "]"))
 
 ;;; stack->string : LayerStack → String
 ;;; Convert a layer stack to a string for debugging.
 (define (stack->string stack)
   (let ([layers (stack-layers stack)])
-    (string-append
-      "LayerStack[\n"
-      (fold-left (lambda (acc layer)
-                   (string-append acc "  " (layer->string layer) "\n"))
-                 ""
-                 layers)
-      "]")))
+       (string-append
+        "LayerStack[\n"
+        (fold-left (lambda (acc layer)
+                           (string-append acc "  " (layer->string layer) "\n"))
+                   ""
+                   layers)
+        "]")))
 
 ;;; ============================================================
 ;;; Export Summary

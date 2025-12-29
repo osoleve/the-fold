@@ -69,28 +69,28 @@
                           'used-in "Scheme in SICP"))
 
 (define people (make-collection 'people "Pioneers"
-                               (list (hash-block turing) (hash-block church)
-                                     (hash-block mccarthy) (hash-block sussman)
-                                     (hash-block abelson))))
+                                (list (hash-block turing) (hash-block church)
+                                      (hash-block mccarthy) (hash-block sussman)
+                                      (hash-block abelson))))
 
 (define concepts (make-collection 'concepts "Core Ideas"
-                                 (list (hash-block turing-machine)
-                                       (hash-block lambda-calculus)
-                                       (hash-block lisp-lang)
-                                       (hash-block scheme-lang)
-                                       (hash-block sicp-book))))
+                                  (list (hash-block turing-machine)
+                                        (hash-block lambda-calculus)
+                                        (hash-block lisp-lang)
+                                        (hash-block scheme-lang)
+                                        (hash-block sicp-book))))
 
 (define relations (make-collection 'relations "Connections"
-                                  (list (hash-block r1) (hash-block r2)
-                                        (hash-block r3) (hash-block r4)
-                                        (hash-block r5) (hash-block r6)
-                                        (hash-block r7) (hash-block r8)
-                                        (hash-block r9))))
+                                   (list (hash-block r1) (hash-block r2)
+                                         (hash-block r3) (hash-block r4)
+                                         (hash-block r5) (hash-block r6)
+                                         (hash-block r7) (hash-block r8)
+                                         (hash-block r9))))
 
 (define kg (make-collection 'knowledge-graph "History of Computation"
-                           (list (hash-block people)
-                                 (hash-block concepts)
-                                 (hash-block relations))))
+                            (list (hash-block people)
+                                  (hash-block concepts)
+                                  (hash-block relations))))
 
 (printf "✓ Created knowledge graph with 23 blocks\n")
 (printf "  Root: ~a\n\n" (hash->hex (hash-block kg)))
@@ -112,8 +112,8 @@
 
 (define stored-count 0)
 (for-each (lambda (block)
-            (fs-store! fs block)
-            (set! stored-count (+ stored-count 1)))
+                  (fs-store! fs block)
+                  (set! stored-count (+ stored-count 1)))
           all-blocks)
 
 (printf "✓ Stored ~a blocks in .store\n\n" stored-count)
@@ -139,7 +139,7 @@
 (printf "─────────────────────────────────────────────────────────────\n\n")
 
 (let ([kg-hash-hex (hash->hex (hash-block kg))])
-  (visualize-tree fs (substring kg-hash-hex 0 8) 3))
+     (visualize-tree fs (substring kg-hash-hex 0 8) 3))
 
 ;;; DEMO 3: Explore a specific block
 (printf "\n─────────────────────────────────────────────────────────────\n")
@@ -147,7 +147,7 @@
 (printf "─────────────────────────────────────────────────────────────\n\n")
 
 (let ([turing-hash-hex (hash->hex (hash-block turing))])
-  (describe-block fs (hash-block turing)))
+     (describe-block fs (hash-block turing)))
 
 ;;; DEMO 4: Find Popular Blocks
 (printf "─────────────────────────────────────────────────────────────\n")

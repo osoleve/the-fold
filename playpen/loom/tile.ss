@@ -31,12 +31,12 @@
 ;;; make-tile-type : Symbol × Char × String × Bool × Bool × [Nat] × [Alist] -> TileType
 (define make-tile-type
   (case-lambda
-    [(id char name walkable opaque)
-     (make-tile-type% id char name walkable opaque 1 '())]
-    [(id char name walkable opaque cost)
-     (make-tile-type% id char name walkable opaque cost '())]
-    [(id char name walkable opaque cost props)
-     (make-tile-type% id char name walkable opaque cost props)]))
+   [(id char name walkable opaque)
+    (make-tile-type% id char name walkable opaque 1 '())]
+   [(id char name walkable opaque cost)
+    (make-tile-type% id char name walkable opaque cost '())]
+   [(id char name walkable opaque cost props)
+    (make-tile-type% id char name walkable opaque cost props)]))
 
 ;;; Accessors
 (define tile-type-id tile-type%-id)
@@ -51,10 +51,10 @@
 ;;; Get a custom property from a tile type.
 (define tile-type-property
   (case-lambda
-    [(tt key)
-     (alist-ref (tile-type-properties tt) key)]
-    [(tt key default)
-     (alist-ref (tile-type-properties tt) key default)]))
+   [(tt key)
+    (alist-ref (tile-type-properties tt) key)]
+   [(tt key default)
+    (alist-ref (tile-type-properties tt) key default)]))
 
 ;;; ============================================================
 ;;; Standard Tile Types
@@ -160,10 +160,10 @@
 ;;; make-tile : TileType × [Bool] × [Bool] × [Alist] -> Tile
 (define make-tile
   (case-lambda
-    [(type) (make-tile% type #f #f '())]
-    [(type explored) (make-tile% type explored #f '())]
-    [(type explored visible) (make-tile% type explored visible '())]
-    [(type explored visible state) (make-tile% type explored visible state)]))
+   [(type) (make-tile% type #f #f '())]
+   [(type explored) (make-tile% type explored #f '())]
+   [(type explored visible) (make-tile% type explored visible '())]
+   [(type explored visible state) (make-tile% type explored visible state)]))
 
 ;;; Accessors
 (define tile-type tile%-type)
@@ -215,17 +215,17 @@
 ;;; Create a tilemap filled with the default tile type.
 (define make-tilemap
   (case-lambda
-    [(width height)
-     (make-tilemap width height tile-void)]
-    [(width height default-type)
-     (let* ([size (* width height)]
-            [tiles (make-vector size)])
-       ;; Initialize with default tiles
-       (let loop ([i 0])
-         (when (< i size)
-           (vector-set! tiles i (make-tile default-type))
-           (loop (+ i 1))))
-       (make-tilemap% width height tiles default-type))]))
+   [(width height)
+    (make-tilemap width height tile-void)]
+   [(width height default-type)
+    (let* ([size (* width height)]
+           [tiles (make-vector size)])
+          ;; Initialize with default tiles
+          (let loop ([i 0])
+               (when (< i size)
+                     (vector-set! tiles i (make-tile default-type))
+                     (loop (+ i 1))))
+          (make-tilemap% width height tiles default-type))]))
 
 ;;; Accessors
 (define tilemap-width tilemap%-width)
@@ -260,14 +260,14 @@
 ;;; Set tile at (x, y). Mutates in place for efficiency.
 (define (tilemap-set! tm x y tile)
   (when (tilemap-in-bounds? tm x y)
-    (vector-set! (tilemap%-tiles tm) (tilemap-index tm x y) tile)))
+        (vector-set! (tilemap%-tiles tm) (tilemap-index tm x y) tile)))
 
 ;;; tilemap-set-type! : TileMap × Int × Int × TileType -> Void
 ;;; Set tile type at (x, y), preserving explored/visible state.
 (define (tilemap-set-type! tm x y tile-type)
   (when (tilemap-in-bounds? tm x y)
-    (let ([old-tile (tilemap-ref tm x y)])
-      (tilemap-set! tm x y (tile-set-type old-tile tile-type)))))
+        (let ([old-tile (tilemap-ref tm x y)])
+             (tilemap-set! tm x y (tile-set-type old-tile tile-type)))))
 
 ;;; tilemap-set-type-point! : TileMap × Point × TileType -> Void
 (define (tilemap-set-type-point! tm pt tile-type)
@@ -297,17 +297,17 @@
 (define (tilemap-find-tiles tm pred)
   (let ([w (tilemap-width tm)]
         [h (tilemap-height tm)])
-    (let loop-y ([y 0] [results '()])
-      (if (>= y h)
-          (reverse results)
-          (let loop-x ([x 0] [results results])
-            (if (>= x w)
-                (loop-y (+ y 1) results)
-                (let ([tile (tilemap-ref tm x y)])
-                  (loop-x (+ x 1)
-                          (if (pred tile)
-                              (cons (cons x y) results)
-                              results)))))))))
+       (let loop-y ([y 0] [results '()])
+            (if (>= y h)
+                (reverse results)
+                (let loop-x ([x 0] [results results])
+                     (if (>= x w)
+                         (loop-y (+ y 1) results)
+                         (let ([tile (tilemap-ref tm x y)])
+                              (loop-x (+ x 1)
+                                      (if (pred tile)
+                                          (cons (cons x y) results)
+                                          results)))))))))
 
 ;;; tilemap-find-by-type : TileMap × Symbol -> List Point
 ;;; Find all tiles of a given type.
@@ -319,13 +319,13 @@
 (define (tilemap-fill! tm tile-type)
   (let ([w (tilemap-width tm)]
         [h (tilemap-height tm)])
-    (let loop-y ([y 0])
-      (when (< y h)
-        (let loop-x ([x 0])
-          (when (< x w)
-            (tilemap-set-type! tm x y tile-type)
-            (loop-x (+ x 1))))
-        (loop-y (+ y 1))))))
+       (let loop-y ([y 0])
+            (when (< y h)
+                  (let loop-x ([x 0])
+                       (when (< x w)
+                             (tilemap-set-type! tm x y tile-type)
+                             (loop-x (+ x 1))))
+                  (loop-y (+ y 1))))))
 
 ;;; ============================================================
 ;;; TileMap Visibility Operations
@@ -336,23 +336,23 @@
 (define (tilemap-clear-visibility! tm)
   (let ([w (tilemap-width tm)]
         [h (tilemap-height tm)])
-    (let loop ([i 0])
-      (when (< i (* w h))
-        (let ([tile (vector-ref (tilemap%-tiles tm) i)])
-          (vector-set! (tilemap%-tiles tm) i
-                       (tile-set-visible tile #f)))
-        (loop (+ i 1))))))
+       (let loop ([i 0])
+            (when (< i (* w h))
+                  (let ([tile (vector-ref (tilemap%-tiles tm) i)])
+                       (vector-set! (tilemap%-tiles tm) i
+                                    (tile-set-visible tile #f)))
+                  (loop (+ i 1))))))
 
 ;;; tilemap-set-visible! : TileMap × Int × Int × Bool -> Void
 ;;; Set visibility for a tile (also marks as explored if visible).
 (define (tilemap-set-visible! tm x y visible)
   (when (tilemap-in-bounds? tm x y)
-    (let* ([tile (tilemap-ref tm x y)]
-           [new-tile (tile-set-visible tile visible)]
-           [new-tile (if visible
-                         (tile-set-explored new-tile #t)
-                         new-tile)])
-      (tilemap-set! tm x y new-tile))))
+        (let* ([tile (tilemap-ref tm x y)]
+               [new-tile (tile-set-visible tile visible)]
+               [new-tile (if visible
+                             (tile-set-explored new-tile #t)
+                             new-tile)])
+              (tilemap-set! tm x y new-tile))))
 
 ;;; ============================================================
 ;;; TileMap Iteration
@@ -363,13 +363,13 @@
 (define (tilemap-for-each tm proc)
   (let ([w (tilemap-width tm)]
         [h (tilemap-height tm)])
-    (let loop-y ([y 0])
-      (when (< y h)
-        (let loop-x ([x 0])
-          (when (< x w)
-            (proc x y (tilemap-ref tm x y))
-            (loop-x (+ x 1))))
-        (loop-y (+ y 1))))))
+       (let loop-y ([y 0])
+            (when (< y h)
+                  (let loop-x ([x 0])
+                       (when (< x w)
+                             (proc x y (tilemap-ref tm x y))
+                             (loop-x (+ x 1))))
+                  (loop-y (+ y 1))))))
 
 ;;; tilemap-map : TileMap × (Int × Int × Tile -> Tile) -> TileMap
 ;;; Create a new tilemap by transforming each tile.
@@ -377,10 +377,10 @@
   (let* ([w (tilemap-width tm)]
          [h (tilemap-height tm)]
          [new-tm (make-tilemap w h (tilemap-default tm))])
-    (tilemap-for-each tm
-      (lambda (x y tile)
-        (tilemap-set! new-tm x y (proc x y tile))))
-    new-tm))
+        (tilemap-for-each tm
+                          (lambda (x y tile)
+                                  (tilemap-set! new-tm x y (proc x y tile))))
+        new-tm))
 
 ;;; ============================================================
 ;;; TileMap Rendering
@@ -391,46 +391,46 @@
 ;;; If show-all? is #f, only shows explored tiles (with dimming for non-visible).
 (define tilemap->canvas
   (case-lambda
-    [(tm) (tilemap->canvas tm #t)]
-    [(tm show-all?)
-     (let* ([w (tilemap-width tm)]
-            [h (tilemap-height tm)]
-            [canvas (make-canvas w h)])
-       (tilemap-for-each tm
-         (lambda (x y tile)
-           (let ([ch (cond
-                       [show-all? (tile-char tile)]
-                       [(tile-visible tile) (tile-char tile)]
-                       [(tile-explored tile) (tile-char tile)]  ; Could dim this
-                       [else #\space])])
-             (set! canvas (canvas-set canvas x y ch)))))
-       canvas)]))
+   [(tm) (tilemap->canvas tm #t)]
+   [(tm show-all?)
+    (let* ([w (tilemap-width tm)]
+           [h (tilemap-height tm)]
+           [canvas (make-canvas w h)])
+          (tilemap-for-each tm
+                            (lambda (x y tile)
+                                    (let ([ch (cond
+                                               [show-all? (tile-char tile)]
+                                               [(tile-visible tile) (tile-char tile)]
+                                               [(tile-explored tile) (tile-char tile)]  ; Could dim this
+                                               [else #\space])])
+                                         (set! canvas (canvas-set canvas x y ch)))))
+          canvas)]))
 
 ;;; tilemap-render-region : TileMap × Rect × [Bool] -> Canvas
 ;;; Render a region of the tilemap to a canvas.
 (define tilemap-render-region
   (case-lambda
-    [(tm region) (tilemap-render-region tm region #t)]
-    [(tm region show-all?)
-     (let* ([rx (point-x (rect-origin region))]
-            [ry (point-y (rect-origin region))]
-            [rw (rect-width region)]
-            [rh (rect-height region)]
-            [canvas (make-canvas rw rh)])
-       (let loop-y ([y 0])
-         (when (< y rh)
-           (let loop-x ([x 0])
-             (when (< x rw)
-               (let* ([tile (tilemap-ref tm (+ rx x) (+ ry y))]
-                      [ch (cond
-                            [show-all? (tile-char tile)]
-                            [(tile-visible tile) (tile-char tile)]
-                            [(tile-explored tile) (tile-char tile)]
-                            [else #\space])])
-                 (set! canvas (canvas-set canvas x y ch)))
-               (loop-x (+ x 1))))
-           (loop-y (+ y 1))))
-       canvas)]))
+   [(tm region) (tilemap-render-region tm region #t)]
+   [(tm region show-all?)
+    (let* ([rx (point-x (rect-origin region))]
+           [ry (point-y (rect-origin region))]
+           [rw (rect-width region)]
+           [rh (rect-height region)]
+           [canvas (make-canvas rw rh)])
+          (let loop-y ([y 0])
+               (when (< y rh)
+                     (let loop-x ([x 0])
+                          (when (< x rw)
+                                (let* ([tile (tilemap-ref tm (+ rx x) (+ ry y))]
+                                       [ch (cond
+                                            [show-all? (tile-char tile)]
+                                            [(tile-visible tile) (tile-char tile)]
+                                            [(tile-explored tile) (tile-char tile)]
+                                            [else #\space])])
+                                      (set! canvas (canvas-set canvas x y ch)))
+                                (loop-x (+ x 1))))
+                     (loop-y (+ y 1))))
+          canvas)]))
 
 ;;; ============================================================
 ;;; TileMap Serialization
@@ -450,28 +450,28 @@
          [h (length lines)]
          [w (if (null? lines) 0 (string-length (car lines)))]
          [tm (make-tilemap w h tile-void)])
-    (let loop-y ([lines lines] [y 0])
-      (unless (null? lines)
-        (let ([line (car lines)])
-          (let loop-x ([x 0])
-            (when (< x (string-length line))
-              (let* ([ch (string-ref line x)]
-                     [type (alist-ref char-map ch tile-void)])
-                (tilemap-set-type! tm x y type))
-              (loop-x (+ x 1)))))
-        (loop-y (cdr lines) (+ y 1))))
-    tm))
+        (let loop-y ([lines lines] [y 0])
+             (unless (null? lines)
+                     (let ([line (car lines)])
+                          (let loop-x ([x 0])
+                               (when (< x (string-length line))
+                                     (let* ([ch (string-ref line x)]
+                                            [type (alist-ref char-map ch tile-void)])
+                                           (tilemap-set-type! tm x y type))
+                                     (loop-x (+ x 1)))))
+                     (loop-y (cdr lines) (+ y 1))))
+        tm))
 
 ;;; Helper: split string by character
 (define (string-split str delim)
   (let loop ([chars (string->list str)] [current '()] [results '()])
-    (cond
-      [(null? chars)
-       (reverse (cons (list->string (reverse current)) results))]
-      [(char=? (car chars) delim)
-       (loop (cdr chars) '() (cons (list->string (reverse current)) results))]
-      [else
-       (loop (cdr chars) (cons (car chars) current) results)])))
+       (cond
+        [(null? chars)
+         (reverse (cons (list->string (reverse current)) results))]
+        [(char=? (car chars) delim)
+         (loop (cdr chars) '() (cons (list->string (reverse current)) results))]
+        [else
+         (loop (cdr chars) (cons (car chars) current) results)])))
 
 ;;; ============================================================
 ;;; Standard Character Map for Parsing

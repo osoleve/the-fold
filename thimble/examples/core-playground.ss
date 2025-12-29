@@ -65,7 +65,7 @@
   (print-boxed "NORMALIZE" "")
   (print-section "Input" (sexpr->string expr))
   (let ([normalized (normalize expr)])
-    (print-section "Normalized (de Bruijn)" (sexpr->string normalized)))
+       (print-section "Normalized (de Bruijn)" (sexpr->string normalized)))
   (display "Note: Variable names become indices, alpha-equivalent forms hash the same.\n"))
 
 ;;; try-free-vars : Expr → void
@@ -74,9 +74,9 @@
   (print-boxed "FREE VARIABLES" "")
   (print-section "Expression" (sexpr->string expr))
   (let ([fv (free-vars expr)])
-    (if (null? fv)
-        (display "  No free variables (closed expression)\n\n")
-        (print-section "Free variables" (sexpr->string fv)))))
+       (if (null? fv)
+           (display "  No free variables (closed expression)\n\n")
+           (print-section "Free variables" (sexpr->string fv)))))
 
 ;;; ============================================================
 ;;; Expansion Experiments
@@ -89,8 +89,8 @@
   (print-section "Canonical form" (sexpr->string canonical))
   (print-section "Symbol supply" (sexpr->string symbols))
   (let ([expanded (expand canonical symbols)])
-    (print-section "Expanded" (sexpr->string expanded))
-    (display "Note: Same canonical form can be spelled many ways.\n")))
+       (print-section "Expanded" (sexpr->string expanded))
+       (display "Note: Same canonical form can be spelled many ways.\n")))
 
 ;;; try-expand-fresh : Expr → void
 ;;; Expand a normalized expression with fresh generated symbols.
@@ -98,7 +98,7 @@
   (print-boxed "EXPAND (FRESH SYMBOLS)" "")
   (print-section "Canonical form" (sexpr->string canonical))
   (let ([expanded (expand-fresh canonical)])
-    (print-section "Expanded with fresh symbols" (sexpr->string expanded))))
+       (print-section "Expanded with fresh symbols" (sexpr->string expanded))))
 
 ;;; ============================================================
 ;;; Round-Trip Testing
@@ -110,22 +110,22 @@
 (define (try-roundtrip expr . symbol-args)
   (print-boxed "ROUND-TRIP (NORMALIZE → EXPAND)" "")
   (print-section "Original" (sexpr->string expr))
-
+  
   (let ([normalized (normalize expr)])
-    (print-section "After normalize" (sexpr->string normalized))
-
-    (let ([expanded (if (null? symbol-args)
-                        (expand-fresh normalized)
-                        (expand normalized (car symbol-args)))])
-      (print-section "After expand" (sexpr->string expanded))
-
-      ;; Check if they're alpha-equivalent by re-normalizing
-      (let ([renormalized (normalize expanded)])
-        (if (equal? normalized renormalized)
-            (display "✓ Round-trip successful: normalized forms match!\n")
-            (begin
-              (display "✗ Round-trip failed: normalized forms differ!\n")
-              (print-section "Re-normalized" (sexpr->string renormalized))))))))
+       (print-section "After normalize" (sexpr->string normalized))
+       
+       (let ([expanded (if (null? symbol-args)
+                           (expand-fresh normalized)
+                           (expand normalized (car symbol-args)))])
+            (print-section "After expand" (sexpr->string expanded))
+            
+            ;; Check if they're alpha-equivalent by re-normalizing
+            (let ([renormalized (normalize expanded)])
+                 (if (equal? normalized renormalized)
+                     (display "✓ Round-trip successful: normalized forms match!\n")
+                     (begin
+                      (display "✗ Round-trip failed: normalized forms differ!\n")
+                      (print-section "Re-normalized" (sexpr->string renormalized))))))))
 
 ;;; ============================================================
 ;;; Hashing Experiments
@@ -137,7 +137,7 @@
   (let* ([normalized (normalize expr)]
          [str (sexpr->string normalized)]
          [bytes (string->utf8 str)])
-    (sha256 bytes)))
+        (sha256 bytes)))
 
 ;;; hash-expr-hex : Expr → String
 ;;; Normalize an expression and return its hash as hex string.
@@ -149,13 +149,13 @@
 (define (try-hash expr)
   (print-boxed "EXPRESSION HASH" "")
   (print-section "Expression" (sexpr->string expr))
-
+  
   (let ([normalized (normalize expr)])
-    (print-section "Normalized" (sexpr->string normalized))
-
-    (let ([hash-hex (hash-expr-hex expr)])
-      (display (format "Hash: ~a\n\n" hash-hex))
-      (display "Note: Alpha-equivalent expressions have the same hash.\n"))))
+       (print-section "Normalized" (sexpr->string normalized))
+       
+       (let ([hash-hex (hash-expr-hex expr)])
+            (display (format "Hash: ~a\n\n" hash-hex))
+            (display "Note: Alpha-equivalent expressions have the same hash.\n"))))
 
 ;;; try-hash-compare : Expr × Expr → void
 ;;; Compare hashes of two expressions.
@@ -163,15 +163,15 @@
   (print-boxed "HASH COMPARISON" "")
   (print-section "Expression 1" (sexpr->string expr1))
   (let ([hash1 (hash-expr-hex expr1)])
-    (display (format "  Hash: ~a\n\n" hash1))
-
-    (print-section "Expression 2" (sexpr->string expr2))
-    (let ([hash2 (hash-expr-hex expr2)])
-      (display (format "  Hash: ~a\n\n" hash2))
-
-      (if (string=? hash1 hash2)
-          (display "✓ Hashes match! Expressions are alpha-equivalent.\n")
-          (display "✗ Hashes differ. Expressions are NOT alpha-equivalent.\n")))))
+       (display (format "  Hash: ~a\n\n" hash1))
+       
+       (print-section "Expression 2" (sexpr->string expr2))
+       (let ([hash2 (hash-expr-hex expr2)])
+            (display (format "  Hash: ~a\n\n" hash2))
+            
+            (if (string=? hash1 hash2)
+                (display "✓ Hashes match! Expressions are alpha-equivalent.\n")
+                (display "✗ Hashes differ. Expressions are NOT alpha-equivalent.\n")))))
 
 ;;; ============================================================
 ;;; Block Experiments
@@ -182,16 +182,16 @@
 (define (try-block tag payload refs)
   (print-boxed "BLOCK CONSTRUCTION" "")
   (let ([blk (make-block tag payload (list->vector refs))])
-    (print-section "Tag" (symbol->string tag))
-    (print-section "Payload size" (format "~a bytes" (bytevector-length payload)))
-    (print-section "Ref count" (format "~a" (length refs)))
-
-    (let ([hash (hash-block blk)])
-      (display (format "Block hash: ~a\n\n" (hash->hex hash)))
-
-      ;; Show serialization size
-      (let ([serialized (block->bytes blk)])
-        (display (format "Serialized size: ~a bytes\n" (bytevector-length serialized)))))))
+       (print-section "Tag" (symbol->string tag))
+       (print-section "Payload size" (format "~a bytes" (bytevector-length payload)))
+       (print-section "Ref count" (format "~a" (length refs)))
+       
+       (let ([hash (hash-block blk)])
+            (display (format "Block hash: ~a\n\n" (hash->hex hash)))
+            
+            ;; Show serialization size
+            (let ([serialized (block->bytes blk)])
+                 (display (format "Serialized size: ~a bytes\n" (bytevector-length serialized)))))))
 
 ;;; inspect-block : Block → void
 ;;; Show detailed information about a block structure.
@@ -200,23 +200,23 @@
   (let ([tag (block-tag blk)]
         [payload (block-payload blk)]
         [refs (block-refs blk)])
-    (print-section "Tag" (symbol->string tag))
-    (print-section "Payload" (format "~a bytes" (bytevector-length payload)))
-    (print-section "References" (format "~a refs" (vector-length refs)))
-
-    (let ([hash (hash-block blk)])
-      (display (format "Hash: ~a\n\n" (hash->hex hash))))
-
-    ;; Show first 64 bytes of payload if available
-    (when (> (bytevector-length payload) 0)
-      (let* ([preview-len (min 64 (bytevector-length payload))]
-             [preview (make-bytevector preview-len)])
-        (bytevector-copy! payload 0 preview 0 preview-len)
-        (display "Payload preview (first 64 bytes):\n  ")
-        (display preview)
-        (display "\n")
-        (when (> (bytevector-length payload) 64)
-          (display "  ... (truncated)\n"))))))
+       (print-section "Tag" (symbol->string tag))
+       (print-section "Payload" (format "~a bytes" (bytevector-length payload)))
+       (print-section "References" (format "~a refs" (vector-length refs)))
+       
+       (let ([hash (hash-block blk)])
+            (display (format "Hash: ~a\n\n" (hash->hex hash))))
+       
+       ;; Show first 64 bytes of payload if available
+       (when (> (bytevector-length payload) 0)
+             (let* ([preview-len (min 64 (bytevector-length payload))]
+                    [preview (make-bytevector preview-len)])
+                   (bytevector-copy! payload 0 preview 0 preview-len)
+                   (display "Payload preview (first 64 bytes):\n  ")
+                   (display preview)
+                   (display "\n")
+                   (when (> (bytevector-length payload) 64)
+                         (display "  ... (truncated)\n"))))))
 
 ;;; try-block-roundtrip : Block → void
 ;;; Serialize and deserialize a block, verify they match.
@@ -226,25 +226,25 @@
   (let ([tag (block-tag blk)]
         [payload (block-payload blk)]
         [refs (block-refs blk)])
-    (display (format "  Tag: ~a\n" tag))
-    (display (format "  Payload: ~a bytes\n" (bytevector-length payload)))
-    (display (format "  Refs: ~a\n\n" (vector-length refs)))
-
-    (let* ([serialized (block->bytes blk)]
-           [deserialized (bytes->block serialized)])
-      (display (format "Serialized to ~a bytes\n\n" (bytevector-length serialized)))
-
-      (let ([tag2 (block-tag deserialized)]
-            [payload2 (block-payload deserialized)]
-            [refs2 (block-refs deserialized)])
-        (display "Deserialized block:\n")
-        (display (format "  Tag: ~a\n" tag2))
-        (display (format "  Payload: ~a bytes\n" (bytevector-length payload2)))
-        (display (format "  Refs: ~a\n\n" (vector-length refs2)))
-
-        (if (block-equal? blk deserialized)
-            (display "✓ Round-trip successful! Blocks match.\n")
-            (display "✗ Round-trip failed! Blocks differ.\n"))))))
+       (display (format "  Tag: ~a\n" tag))
+       (display (format "  Payload: ~a bytes\n" (bytevector-length payload)))
+       (display (format "  Refs: ~a\n\n" (vector-length refs)))
+       
+       (let* ([serialized (block->bytes blk)]
+              [deserialized (bytes->block serialized)])
+             (display (format "Serialized to ~a bytes\n\n" (bytevector-length serialized)))
+             
+             (let ([tag2 (block-tag deserialized)]
+                   [payload2 (block-payload deserialized)]
+                   [refs2 (block-refs deserialized)])
+                  (display "Deserialized block:\n")
+                  (display (format "  Tag: ~a\n" tag2))
+                  (display (format "  Payload: ~a bytes\n" (bytevector-length payload2)))
+                  (display (format "  Refs: ~a\n\n" (vector-length refs2)))
+                  
+                  (if (block-equal? blk deserialized)
+                      (display "✓ Round-trip successful! Blocks match.\n")
+                      (display "✗ Round-trip failed! Blocks differ.\n"))))))
 
 ;;; ============================================================
 ;;; Quick Demos
@@ -258,23 +258,23 @@
   (display "           CORE PLAYGROUND DEMO\n")
   (display "════════════════════════════════════════════════════════════════\n")
   (display "\n")
-
+  
   ;; Normalization
   (try-normalize '(lambda (x) (+ x 1)))
   (display "────────────────────────────────────────────────────────────────\n\n")
-
+  
   ;; Hash comparison
   (try-hash-compare '(lambda (x) x) '(lambda (y) y))
   (display "────────────────────────────────────────────────────────────────\n\n")
-
+  
   ;; Free variables
   (try-free-vars '(+ x y z))
   (display "────────────────────────────────────────────────────────────────\n\n")
-
+  
   ;; Block construction
   (try-block 'example (string->utf8 "Hello, Fold!") '())
   (display "────────────────────────────────────────────────────────────────\n\n")
-
+  
   (display "Demo complete! Try the commands yourself.\n")
   (display "Use (playground-help) for command reference.\n\n"))
 

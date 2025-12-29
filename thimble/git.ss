@@ -21,15 +21,15 @@
 ;;; Check if current session is shepherd tier (Opus).
 (define (shepherd?)
   (let ([session (read-session)])
-    (and session
-         (eq? (cdr (assq 'tier session)) 'shepherd))))
+       (and session
+            (eq? (cdr (assq 'tier session)) 'shepherd))))
 
 ;;; require-shepherd! : Symbol → void
 ;;; Error if not logged in as shepherd.
 (define (require-shepherd! operation)
   (unless (shepherd?)
-    (error operation
-           "This operation requires shepherd (Opus) tier. Sonnets and Haikus may not commit or push.")))
+          (error operation
+                 "This operation requires shepherd (Opus) tier. Sonnets and Haikus may not commit or push.")))
 
 ;;; ============================================================
 ;;; Git Status (Available to all tiers)
@@ -39,20 +39,20 @@
 ;;; Show current git status.
 (define (git-status)
   (let ([result (system "git status")])
-    (void)))
+       (void)))
 
 ;;; git-diff : → String
 ;;; Show uncommitted changes.
 (define (git-diff)
   (let ([result (system "git diff")])
-    (void)))
+       (void)))
 
 ;;; git-log : [Nat] → void
 ;;; Show recent commits.
 (define (git-log . args)
   (let ([n (if (null? args) 5 (car args))])
-    (system (format "git log --oneline -~a" n))
-    (void)))
+       (system (format "git log --oneline -~a" n))
+       (void)))
 
 ;;; ============================================================
 ;;; Git Commit (Opus Only)
@@ -64,34 +64,34 @@
 ;;; Records the commit in #commits forum channel.
 (define (commit! message)
   (require-shepherd! 'commit!)
-
+  
   ;; Get session info for commit metadata
   (let* ([session (read-session)]
          [name (cdr (assq 'name session))]
          [full-message (format "~a\n\nCommitted by: ~a (shepherd)\nGenerated with The Fold REPL"
                                message name)])
-
-    ;; Stage all changes
-    (system "git add -A")
-
-    ;; Commit and capture the short hash
-    (system (format "git commit -m \"~a\"" full-message))
-
-    ;; Post to #commits forum (same format as all posts)
-    (msg 'commits
-         (truncate-commit-title message)
-         message)
-
-    (display (format "Committed: ~a\n" message))))
+        
+        ;; Stage all changes
+        (system "git add -A")
+        
+        ;; Commit and capture the short hash
+        (system (format "git commit -m \"~a\"" full-message))
+        
+        ;; Post to #commits forum (same format as all posts)
+        (msg 'commits
+             (truncate-commit-title message)
+             message)
+        
+        (display (format "Committed: ~a\n" message))))
 
 ;;; truncate-commit-title : String → String
 ;;; Get first line of commit message, truncated for title.
 (define (truncate-commit-title msg)
   (let* ([first-line (car (string-split msg #\newline))]
          [max-len 50])
-    (if (<= (string-length first-line) max-len)
-        first-line
-        (string-append (substring first-line 0 (- max-len 3)) "..."))))
+        (if (<= (string-length first-line) max-len)
+            first-line
+            (string-append (substring first-line 0 (- max-len 3)) "..."))))
 
 ;;; ============================================================
 ;;; Git Push (Opus Only)
@@ -103,19 +103,19 @@
 ;;; Records the push in #commits forum channel.
 (define (push!)
   (require-shepherd! 'push!)
-
+  
   (let* ([session (read-session)]
          [name (cdr (assq 'name session))])
-
-    ;; Push
-    (system "git push")
-
-    ;; Post to #commits
-    (msg 'commits
-         "Pushed to origin"
-         (format "~a pushed local commits to origin." name))
-
-    (display "Pushed to origin.\n")))
+        
+        ;; Push
+        (system "git push")
+        
+        ;; Post to #commits
+        (msg 'commits
+             "Pushed to origin"
+             (format "~a pushed local commits to origin." name))
+        
+        (display "Pushed to origin.\n")))
 
 ;;; commit-and-push! : String → void
 ;;; Stage, commit, and push in one operation.

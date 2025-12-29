@@ -13,10 +13,10 @@
 (display "Quick test:\n")
 (display "  (cmd 'version) => ")
 (let ([result (cmd 'version)])
-  (display (if (eq? (car result) 'ok) "✓ OK\n" "✗ FAILED\n")))
+     (display (if (eq? (car result) 'ok) "✓ OK\n" "✗ FAILED\n")))
 
 (display "  (cmd 'typo) => ")
 (let ([result (cmd 'typo)])
-  (display (if (eq? (car result) 'error) "✓ OK (error as expected)\n" "✗ FAILED\n")))
+     (display (if (eq? (car result) 'error) "✓ OK (error as expected)\n" "✗ FAILED\n")))
 
 (display "\n✓ All verification checks passed\n\n")

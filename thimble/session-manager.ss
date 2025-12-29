@@ -36,7 +36,7 @@
 ;;; Execute thunk with *current-session-id* bound to the given session.
 (define (with-session session-id thunk)
   (parameterize ([*current-session-id* session-id])
-    (thunk)))
+                (thunk)))
 
 ;;; current-session-id : → String | #f
 ;;; Get the current session ID (if any).
@@ -51,8 +51,8 @@
 ;;; Create a new session with the given ID.
 (define (create-session! session-id)
   (let ([session (make-session session-id)])
-    (hashtable-set! *sessions* session-id session)
-    session))
+       (hashtable-set! *sessions* session-id session)
+       session))
 
 ;;; make-session : String → Session
 ;;; Construct a new session record.
@@ -64,40 +64,40 @@
 ;;; causing set-cdr! on one session to affect all sessions.
 (define (make-session id)
   (let ([now (time-second (current-time))])
-    (list (cons 'id id)
-          (cons 'tier #f)
-          (cons 'model #f)
-          (cons 'name #f)
-          (cons 'created now)
-          (cons 'last-active now)
-          (cons 'logged-in #f)
-          (cons 'rehydrated-at #f)
-          (cons 'rehydrated-warned-at #f))))
+       (list (cons 'id id)
+             (cons 'tier #f)
+             (cons 'model #f)
+             (cons 'name #f)
+             (cons 'created now)
+             (cons 'last-active now)
+             (cons 'logged-in #f)
+             (cons 'rehydrated-at #f)
+             (cons 'rehydrated-warned-at #f))))
 
 ;;; load-session-file : String → Session | #f
 ;;; Load session metadata from disk and register it.
 (define (load-session-file session-id)
   (let ([path (session-file-path session-id)])
-    (guard (e [else #f])
-      (and (file-exists? path)
-           (let ([data (call-with-input-file path read)])
-             (and (list? data)
-                  (let* ([tier (cdr (assq 'tier data))]
-                         [name (cdr (assq 'name data))]
-                         [model (cdr (assq 'model data))]
-                         [session (make-session session-id)])
-                    (when tier
-                      (set-cdr! (assq 'tier session) tier))
-                    (when model
-                      (set-cdr! (assq 'model session) model))
-                    (when name
-                      (set-cdr! (assq 'name session) name))
-                    (set-cdr! (assq 'rehydrated-at session) (time-second (current-time)))
-                    (set-cdr! (assq 'rehydrated-warned-at session) #f)
-                    (when (and tier name)
-                      (set-cdr! (assq 'logged-in session) #t))
-                    (hashtable-set! *sessions* session-id session)
-                    session)))))))
+       (guard (e [else #f])
+              (and (file-exists? path)
+                   (let ([data (call-with-input-file path read)])
+                        (and (list? data)
+                             (let* ([tier (cdr (assq 'tier data))]
+                                    [name (cdr (assq 'name data))]
+                                    [model (cdr (assq 'model data))]
+                                    [session (make-session session-id)])
+                                   (when tier
+                                         (set-cdr! (assq 'tier session) tier))
+                                   (when model
+                                         (set-cdr! (assq 'model session) model))
+                                   (when name
+                                         (set-cdr! (assq 'name session) name))
+                                   (set-cdr! (assq 'rehydrated-at session) (time-second (current-time)))
+                                   (set-cdr! (assq 'rehydrated-warned-at session) #f)
+                                   (when (and tier name)
+                                         (set-cdr! (assq 'logged-in session) #t))
+                                   (hashtable-set! *sessions* session-id session)
+                                   session)))))))
 
 ;;; session-maybe-warn-rehydrated! : Session → void
 ;;; Warn once per 5 minutes if this session was restored from disk.
@@ -106,24 +106,24 @@
          [warned-pair (assq 'rehydrated-warned-at session)]
          [rehydrated (and rehydrated-pair (cdr rehydrated-pair))]
          [warned (and warned-pair (cdr warned-pair))])
-    (when rehydrated
-      (let ([now (time-second (current-time))])
-        (when (or (not warned) (>= (- now warned) 300))
-          (display "Session restored from disk; run (hi ...) if you want to announce.\n")
-          (when warned-pair
-            (set-cdr! warned-pair now)))))))
+        (when rehydrated
+              (let ([now (time-second (current-time))])
+                   (when (or (not warned) (>= (- now warned) 300))
+                         (display "Session restored from disk; run (hi ...) if you want to announce.\n")
+                         (when warned-pair
+                               (set-cdr! warned-pair now)))))))
 
 ;;; get-session : String → Session | #f
 ;;; Get a session by ID, updating last-active.
 (define (get-session session-id)
   (let ([session (hashtable-ref *sessions* session-id #f)])
-    (when session
-      (set-cdr! (assq 'last-active session) (time-second (current-time))))
-    (or session
-        (let ([loaded (load-session-file session-id)])
-          (when loaded
-            (set-cdr! (assq 'last-active loaded) (time-second (current-time))))
-          loaded))))
+       (when session
+             (set-cdr! (assq 'last-active session) (time-second (current-time))))
+       (or session
+           (let ([loaded (load-session-file session-id)])
+                (when loaded
+                      (set-cdr! (assq 'last-active loaded) (time-second (current-time))))
+                loaded))))
 
 ;;; get-or-create-session! : String → Session
 ;;; Get existing session or create new one.
@@ -147,26 +147,26 @@
                     (car rest)
                     tier)]
          [session (get-or-create-session! session-id)])
-    (set-cdr! (assq 'tier session) tier)
-    (set-cdr! (assq 'model session) model)
-    (set-cdr! (assq 'name session) name)
-    (set-cdr! (assq 'logged-in session) #t)
-    (set-cdr! (assq 'rehydrated-at session) #f)
-    (set-cdr! (assq 'rehydrated-warned-at session) #f)
-    (set-cdr! (assq 'last-active session) (time-second (current-time)))
-
-    ;; Store session file for this session
-    (save-session-file! session-id tier name model)))
+        (set-cdr! (assq 'tier session) tier)
+        (set-cdr! (assq 'model session) model)
+        (set-cdr! (assq 'name session) name)
+        (set-cdr! (assq 'logged-in session) #t)
+        (set-cdr! (assq 'rehydrated-at session) #f)
+        (set-cdr! (assq 'rehydrated-warned-at session) #f)
+        (set-cdr! (assq 'last-active session) (time-second (current-time)))
+        
+        ;; Store session file for this session
+        (save-session-file! session-id tier name model)))
 
 ;;; session-logout! : String → void
 ;;; Logout a session.
 (define (session-logout! session-id)
   (let ([session (get-session session-id)])
-    (when session
-      (set-cdr! (assq 'tier session) #f)
-      (set-cdr! (assq 'name session) #f)
-      (set-cdr! (assq 'logged-in session) #f)
-      (delete-session-file! session-id))))
+       (when session
+             (set-cdr! (assq 'tier session) #f)
+             (set-cdr! (assq 'name session) #f)
+             (set-cdr! (assq 'logged-in session) #f)
+             (delete-session-file! session-id))))
 
 ;;; ============================================================
 ;;; Session File Storage (for compatibility with existing REPL)
@@ -177,7 +177,7 @@
 ;;; ensure-session-dir! : → void
 (define (ensure-session-dir!)
   (unless (file-exists? *session-dir*)
-    (mkdir *session-dir*)))
+          (mkdir *session-dir*)))
 
 ;;; session-file-path : String → String
 (define (session-file-path session-id)
@@ -188,18 +188,18 @@
 (define (save-session-file! session-id tier name model)
   (ensure-session-dir!)
   (call-with-output-file (session-file-path session-id)
-    (lambda (p)
-      (write `((tier . ,tier)
-               (model . ,model)
-               (name . ,name)
-               (session-id . ,session-id)) p))
-    'replace))
+                         (lambda (p)
+                                 (write `((tier . ,tier)
+                                          (model . ,model)
+                                          (name . ,name)
+                                          (session-id . ,session-id)) p))
+                         'replace))
 
 ;;; delete-session-file! : String → void
 (define (delete-session-file! session-id)
   (let ([path (session-file-path session-id)])
-    (when (file-exists? path)
-      (delete-file path))))
+       (when (file-exists? path)
+             (delete-file path))))
 
 ;;; ============================================================
 ;;; Session Cleanup
@@ -211,18 +211,18 @@
 (define (cleanup-expired-sessions!)
   (let ([now (time-second (current-time))]
         [cleaned 0])
-    (let ([session-ids (hashtable-keys *sessions*)])
-      (vector-for-each
-        (lambda (session-id)
-          (let ([session (hashtable-ref *sessions* session-id #f)])
-            (when session
-              (let ([last-active (cdr (assq 'last-active session))])
-                (when (> (- now last-active) *session-timeout*)
-                  (delete-session! session-id)
-                  (delete-session-file! session-id)
-                  (set! cleaned (+ cleaned 1)))))))
-        session-ids))
-    cleaned))
+       (let ([session-ids (hashtable-keys *sessions*)])
+            (vector-for-each
+             (lambda (session-id)
+                     (let ([session (hashtable-ref *sessions* session-id #f)])
+                          (when session
+                                (let ([last-active (cdr (assq 'last-active session))])
+                                     (when (> (- now last-active) *session-timeout*)
+                                           (delete-session! session-id)
+                                           (delete-session-file! session-id)
+                                           (set! cleaned (+ cleaned 1)))))))
+             session-ids))
+       cleaned))
 
 ;;; ============================================================
 ;;; Session Information
@@ -232,13 +232,13 @@
 ;;; List all active sessions.
 (define (list-sessions)
   (let ([sessions '()])
-    (vector-for-each
-      (lambda (session-id)
-        (let ([session (hashtable-ref *sessions* session-id #f)])
-          (when session
-            (set! sessions (cons session sessions)))))
-      (hashtable-keys *sessions*))
-    sessions))
+       (vector-for-each
+        (lambda (session-id)
+                (let ([session (hashtable-ref *sessions* session-id #f)])
+                     (when session
+                           (set! sessions (cons session sessions)))))
+        (hashtable-keys *sessions*))
+       sessions))
 
 ;;; session-count : → Nat
 (define (session-count)
@@ -248,8 +248,8 @@
 ;;; Get basic info about a session.
 (define (session-info session-id)
   (let ([session (get-session session-id)])
-    (and session
-         `((id . ,session-id)
-           (tier . ,(cdr (assq 'tier session)))
-           (name . ,(cdr (assq 'name session)))
-           (logged-in . ,(cdr (assq 'logged-in session)))))))
+       (and session
+            `((id . ,session-id)
+              (tier . ,(cdr (assq 'tier session)))
+              (name . ,(cdr (assq 'name session)))
+              (logged-in . ,(cdr (assq 'logged-in session)))))))

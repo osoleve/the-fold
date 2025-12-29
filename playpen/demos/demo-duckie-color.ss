@@ -66,14 +66,14 @@
 ;;; Draw a sprite with foreground color.
 (define (draw-sprite-colored c pt sprite fg)
   (let loop ([lines sprite] [row 0] [canvas c])
-    (if (null? lines)
-        canvas
-        (let ([line (car lines)]
-              [y (+ (point-y pt) row)])
-          (loop (cdr lines)
-                (+ row 1)
-                (draw-string-colored canvas (point (point-x pt) y)
-                                    line fg color-default))))))
+       (if (null? lines)
+           canvas
+           (let ([line (car lines)]
+                 [y (+ (point-y pt) row)])
+                (loop (cdr lines)
+                      (+ row 1)
+                      (draw-string-colored canvas (point (point-x pt) y)
+                                           line fg color-default))))))
 
 ;;; ============================================================
 ;;; Render DUCKIE with Mood Colors
@@ -85,49 +85,49 @@
   (let* ([c (make-canvas 50 16)]
          [mood-color (mood->color mood)]
          [energy-color (energy->color energy)]
-
+         
          ;; Draw outer box with mood color
          [c (draw-box-colored c (make-rect (point 0 0) 50 16)
-                             'double mood-color color-default)]
-
+                              'double mood-color color-default)]
+         
          ;; Title with name
          [c (draw-string-colored c (point 2 0)
-                                (string-append "[ " name " ]")
-                                color-bright-white color-default)]
-
+                                 (string-append "[ " name " ]")
+                                 color-bright-white color-default)]
+         
          ;; Mood indicator
          [c (draw-string-colored c (point 30 0)
-                                (string-append "[ " (symbol->string mood) " ]")
-                                mood-color color-default)]
-
+                                 (string-append "[ " (symbol->string mood) " ]")
+                                 mood-color color-default)]
+         
          ;; Draw DUCKIE sprite in mood color
          [c (draw-sprite-colored c (point 18 4) sprite mood-color)]
-
+         
          ;; Energy bar
          [c (draw-string-colored c (point 2 11) "Energy:"
-                                color-default color-default)]
+                                 color-default color-default)]
          [c (draw-box c (make-rect (point 11 11) 32 1) 'light)]
          [bar-len (quotient (* energy 30) 100)]
          [c (let loop ([i 0] [canvas c])
-              (if (>= i bar-len)
-                  canvas
-                  (let ([x (+ 12 i)])
-                    (loop (+ i 1)
-                          (draw-char-colored canvas (point x 11) #\█
-                                           energy-color color-default)))))]
+                 (if (>= i bar-len)
+                     canvas
+                     (let ([x (+ 12 i)])
+                          (loop (+ i 1)
+                                (draw-char-colored canvas (point x 11) #\█
+                                                   energy-color color-default)))))]
          [c (draw-string-colored c (point 44 11)
-                                (string-append (number->string energy) "%")
-                                energy-color color-default)]
-
+                                 (string-append (number->string energy) "%")
+                                 energy-color color-default)]
+         
          ;; Water/ground with cyan color
          [c (draw-string-colored c (point 2 13)
-                                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-                                color-cyan color-default)]
+                                 "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                                 color-cyan color-default)]
          [c (draw-string-colored c (point 2 14)
-                                "  ~ ripples ~    ~ ~ ~       "
-                                (darken color-cyan 0.7) color-default)])
-
-    (display (canvas->string c))))
+                                 "  ~ ripples ~    ~ ~ ~       "
+                                 (darken color-cyan 0.7) color-default)])
+        
+        (display (canvas->string c))))
 
 ;;; ============================================================
 ;;; Mood Selector
@@ -136,13 +136,13 @@
 ;;; Map moods to sprites
 (define (mood->sprite mood)
   (case mood
-    [(happy) duckie-happy]
-    [(curious) duckie-curious]
-    [(sleepy) duckie-sleepy]
-    [(content) duckie-content]
-    [(lonely) duckie-lonely]
-    [(playful) duckie-playful]
-    [else duckie-curious]))
+        [(happy) duckie-happy]
+        [(curious) duckie-curious]
+        [(sleepy) duckie-sleepy]
+        [(content) duckie-content]
+        [(lonely) duckie-lonely]
+        [(playful) duckie-playful]
+        [else duckie-curious]))
 
 ;;; ============================================================
 ;;; Show All Moods

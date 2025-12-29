@@ -193,42 +193,42 @@
 
 (display "Testing query-all-of...\n")
 (let ([pattern (query-all-of (list
-                               (payload-size-between 0 100)
-                               (tag-is 'tiny)))])
-  (assert (pattern tiny-block))
-  (assert (not (pattern small-block))))
+                              (payload-size-between 0 100)
+                              (tag-is 'tiny)))])
+     (assert (pattern tiny-block))
+     (assert (not (pattern small-block))))
 
 (display "Testing query-any-of...\n")
 (let ([pattern (query-any-of (list
-                               (tag-is 'tiny)
-                               (tag-is 'large)))])
-  (assert (pattern tiny-block))
-  (assert (pattern large-block))
-  (assert (not (pattern medium-block))))
+                              (tag-is 'tiny)
+                              (tag-is 'large)))])
+     (assert (pattern tiny-block))
+     (assert (pattern large-block))
+     (assert (not (pattern medium-block))))
 
 (display "Testing query-none-of...\n")
 (let ([pattern (query-none-of (list
-                                (tag-is 'tiny)
-                                (tag-is 'large)))])
-  (assert (pattern medium-block))
-  (assert (not (pattern tiny-block)))
-  (assert (not (pattern large-block))))
+                               (tag-is 'tiny)
+                               (tag-is 'large)))])
+     (assert (pattern medium-block))
+     (assert (not (pattern tiny-block)))
+     (assert (not (pattern large-block))))
 
 (display "Testing query-count...\n")
 (let* ([blocks (list tiny-block small-block medium-block large-block)]
        [counter (query-count (payload-size-between 0 100))])
-  (assert (= (counter blocks) 2)))
+      (assert (= (counter blocks) 2)))
 
 (display "Testing query-limit...\n")
 (let* ([blocks (list tiny-block small-block medium-block large-block)]
        [limiter (query-limit 2)])
-  (assert (= (length (limiter blocks)) 2))
-  (assert (eq? (car (limiter blocks)) tiny-block)))
+      (assert (= (length (limiter blocks)) 2))
+      (assert (eq? (car (limiter blocks)) tiny-block)))
 
 (display "Testing query-map...\n")
 (let* ([blocks (list tiny-block small-block)]
        [mapper (query-map block-tag)])
-  (assert (equal? (mapper blocks) '(tiny small))))
+      (assert (equal? (mapper blocks) '(tiny small))))
 
 (display "Testing query-pipe...\n")
 ;; Pipe multiple transformations
@@ -236,8 +236,8 @@
        [enhanced (query-pipe
                   base-pattern
                   (lambda (p) (query-and p (payload-size-between 400 600))))])
-  (assert (enhanced medium-block))
-  (assert (not (enhanced small-block))))
+      (assert (enhanced medium-block))
+      (assert (not (enhanced small-block))))
 
 ;;; ============================================================
 ;;; Combined Advanced Queries
@@ -248,35 +248,35 @@
 (display "Testing size + depth combination...\n")
 ;; Find blocks that are small AND have depth >= 1
 (let ([pattern (query-all-of (list
-                               (payload-size-between 0 50)
-                               (depth-at-least 1 fetch)))])
-  (assert (pattern branch1-block))
-  (assert (not (pattern leaf-block)))  ;; depth 0
-  (assert (not (pattern medium-block)))) ;; too large
+                              (payload-size-between 0 50)
+                              (depth-at-least 1 fetch)))])
+     (assert (pattern branch1-block))
+     (assert (not (pattern leaf-block)))  ;; depth 0
+     (assert (not (pattern medium-block)))) ;; too large
 
 (display "Testing size + timestamp combination...\n")
 ;; Find medium-sized blocks created in a time range
 (let ([pattern (query-all-of (list
-                               (payload-size-between 100 1000)
-                               (created-between 2500 3500 get-timestamp)))])
-  (assert (pattern medium-block))
-  (assert (not (pattern small-block)))   ;; too small
-  (assert (not (pattern large-block))))  ;; outside time range
+                              (payload-size-between 100 1000)
+                              (created-between 2500 3500 get-timestamp)))])
+     (assert (pattern medium-block))
+     (assert (not (pattern small-block)))   ;; too small
+     (assert (not (pattern large-block))))  ;; outside time range
 
 (display "Testing complex composition...\n")
 ;; Find blocks that are either:
 ;; - Small and created early, OR
 ;; - Large and deep
 (let ([pattern (query-any-of (list
-                               (query-all-of (list
-                                              (payload-size-between 0 100)
-                                              (created-before 2000 get-timestamp)))
-                               (query-all-of (list
-                                              (payload-size-between 1000 10000)
-                                              (depth-at-least 2 fetch)))))])
-  (assert (pattern tiny-block))  ;; small and early
-  ;; Would need a large deep block to test second condition
-  (assert (not (pattern medium-block))))
+                              (query-all-of (list
+                                             (payload-size-between 0 100)
+                                             (created-before 2000 get-timestamp)))
+                              (query-all-of (list
+                                             (payload-size-between 1000 10000)
+                                             (depth-at-least 2 fetch)))))])
+     (assert (pattern tiny-block))  ;; small and early
+     ;; Would need a large deep block to test second condition
+     (assert (not (pattern medium-block))))
 
 ;;; ============================================================
 ;;; Integration with Basic Queries
@@ -287,19 +287,19 @@
 (display "Testing advanced + basic query combination...\n")
 ;; Combine basic query (from shell/block-query.ss) with advanced
 (let ([pattern (query-all-of (list
-                               (tag-matches "^branch")
-                               (depth-at-least 1 fetch)
-                               (payload-size-between 0 100)))])
-  (assert (pattern branch1-block))
-  (assert (pattern branch2-block))
-  (assert (not (pattern leaf-block))))
+                              (tag-matches "^branch")
+                              (depth-at-least 1 fetch)
+                              (payload-size-between 0 100)))])
+     (assert (pattern branch1-block))
+     (assert (pattern branch2-block))
+     (assert (not (pattern leaf-block))))
 
 (display "Testing query-and with size and content...\n")
 ;; Use query-and from basic library with advanced size query
 (let ([pattern (query-and
                 (payload-contains "leaf")
                 (payload-size-between 5 20))])
-  (assert (pattern leaf-block))
-  (assert (not (pattern branch1-block))))
+     (assert (pattern leaf-block))
+     (assert (not (pattern branch1-block))))
 
 (display "\nAll advanced block query tests passed!\n")

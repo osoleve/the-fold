@@ -60,7 +60,7 @@
          [r (bitwise-arithmetic-shift-right clamped 8)]
          [g (bitwise-and (bitwise-arithmetic-shift-right clamped 4) #xF)]
          [b (bitwise-and clamped #xF)])
-    (make-color12 r g b)))
+        (make-color12 r g b)))
 
 ;;; color12->int : Color12 -> Nat
 ;;; Convert Color12 to integer 0-4095.
@@ -77,17 +77,17 @@
          [r (scale (color12-r c))]
          [g (scale (color12-g c))]
          [b (scale (color12-b c))])
-    (string-append "#"
-                   (hex-byte r)
-                   (hex-byte g)
-                   (hex-byte b))))
+        (string-append "#"
+                       (hex-byte r)
+                       (hex-byte g)
+                       (hex-byte b))))
 
 ;;; hex-byte : Nat -> String
 ;;; Convert byte (0-255) to two-character hex string.
 (define (hex-byte n)
   (let* ([hi (bitwise-arithmetic-shift-right n 4)]
          [lo (bitwise-and n #xF)])
-    (string (hex-digit hi) (hex-digit lo))))
+        (string (hex-digit hi) (hex-digit lo))))
 
 ;;; hex-digit : Nat -> Char
 ;;; Convert 0-15 to hex digit.
@@ -129,9 +129,9 @@
 ;;; Look up a named color. Returns #f if not found.
 (define (color12-from-name name)
   (let ([entry (assq name *color12-palette*)])
-    (if entry
-        (apply make-color12 (cdr entry))
-        #f)))
+       (if entry
+           (apply make-color12 (cdr entry))
+           #f)))
 
 ;;; color12-names : -> (List Symbol)
 ;;; Return list of all named colors.
@@ -151,24 +151,24 @@
 ;;; Returns #f if invalid.
 (define (parse-color12 spec)
   (cond
-    ;; Already a Color12
-    [(color12? spec) spec]
-
-    ;; RGB triplet as list
-    [(and (list? spec)
-          (= (length spec) 3)
-          (for-all integer? spec))
-     (apply make-color12 spec)]
-
-    ;; Integer 0-4095
-    [(and (integer? spec) (>= spec 0) (<= spec #xFFF))
-     (color12-from-int spec)]
-
-    ;; Named color
-    [(symbol? spec)
-     (color12-from-name spec)]
-
-    [else #f]))
+   ;; Already a Color12
+   [(color12? spec) spec]
+   
+   ;; RGB triplet as list
+   [(and (list? spec)
+         (= (length spec) 3)
+         (for-all integer? spec))
+    (apply make-color12 spec)]
+   
+   ;; Integer 0-4095
+   [(and (integer? spec) (>= spec 0) (<= spec #xFFF))
+    (color12-from-int spec)]
+   
+   ;; Named color
+   [(symbol? spec)
+    (color12-from-name spec)]
+   
+   [else #f]))
 
 ;;; ============================================================
 ;;; Color Operations
@@ -179,29 +179,29 @@
 ;;; t=0 returns c1, t=1 returns c2.
 (define (color12-lerp c1 c2 t)
   (let* ([lerp-channel (lambda (a b)
-                         (inexact->exact (round (+ a (* (- b a) t)))))]
+                               (inexact->exact (round (+ a (* (- b a) t)))))]
          [r (lerp-channel (color12-r c1) (color12-r c2))]
          [g (lerp-channel (color12-g c1) (color12-g c2))]
          [b (lerp-channel (color12-b c1) (color12-b c2))])
-    (make-color12 r g b)))
+        (make-color12 r g b)))
 
 ;;; color12-darken : Color12 x Real -> Color12
 ;;; Darken a color. factor=0 is black, factor=1 is unchanged.
 (define (color12-darken c factor)
   (let ([f (max 0.0 (min 1.0 factor))])
-    (make-color12
-      (inexact->exact (round (* (color12-r c) f)))
-      (inexact->exact (round (* (color12-g c) f)))
-      (inexact->exact (round (* (color12-b c) f))))))
+       (make-color12
+        (inexact->exact (round (* (color12-r c) f)))
+        (inexact->exact (round (* (color12-g c) f)))
+        (inexact->exact (round (* (color12-b c) f))))))
 
 ;;; color12-lighten : Color12 x Real -> Color12
 ;;; Lighten a color. factor=0 is unchanged, factor=1 is white.
 (define (color12-lighten c factor)
   (let ([f (max 0.0 (min 1.0 factor))])
-    (make-color12
-      (inexact->exact (round (+ (color12-r c) (* (- 15 (color12-r c)) f))))
-      (inexact->exact (round (+ (color12-g c) (* (- 15 (color12-g c)) f))))
-      (inexact->exact (round (+ (color12-b c) (* (- 15 (color12-b c)) f)))))))
+       (make-color12
+        (inexact->exact (round (+ (color12-r c) (* (- 15 (color12-r c)) f))))
+        (inexact->exact (round (+ (color12-g c) (* (- 15 (color12-g c)) f))))
+        (inexact->exact (round (+ (color12-b c) (* (- 15 (color12-b c)) f)))))))
 
 ;;; ============================================================
 ;;; Predefined Colors

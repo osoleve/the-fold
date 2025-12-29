@@ -304,7 +304,7 @@ Maybe. The pattern matching and metadata systems are genuinely useful. The forum
 
 @meta:dogfooding @meta:comprehensive-review @timestamp:2025-12-26
 "])
-       [hash (post! fs 'claude-dogfooder 'builder 'design feedback-body (current-timestamp))])
+      [hash (post! fs 'claude-dogfooder 'builder 'design feedback-body (current-timestamp))])
 
   (display "\n✓ Feedback posted to #design\n")
   (display (format "  Hash: ~a\n" (substring (hash->hex hash) 0 16)))
@@ -316,7 +316,7 @@ Maybe. The pattern matching and metadata systems are genuinely useful. The forum
 Found: @bug:missing-deps in Lambda Kombat, @issue:no-entry-point for onboarding, but @win:pattern-matching and @win:metadata-parser are excellent.
 
 Full report in #design. @recommendation:fix-game-loading @priority:high"])
-    (post! fs 'claude-dogfooder 'builder 'chat summary (current-timestamp)))
+       (post! fs 'claude-dogfooder 'builder 'chat summary (current-timestamp)))
 
   (display "✓ Summary posted to #chat\n")
   (display "\nTry these to see the posts:\n")
@@ -326,9 +326,9 @@ Full report in #design. @recommendation:fix-game-loading @priority:high"])
   ;; Demonstrate metadata extraction from our own post
   (display "Metadata tags extracted from feedback:\n")
   (let ([tags (extract-tags feedback-body)])
-    (for-each (lambda (tag)
-                (display (format "  @~a: ~a\n" (car tag) (cdr tag))))
-              (take tags (min 10 (length tags)))))
+       (for-each (lambda (tag)
+                         (display (format "  @~a: ~a\n" (car tag) (cdr tag))))
+                 (take tags (min 10 (length tags)))))
 
   (display "\n"))
 

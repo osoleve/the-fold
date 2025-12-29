@@ -19,14 +19,14 @@
 
 (define (quill-state-section state key)
   (let ([p (assq key state)])
-    (if p (cdr p) '())))
+       (if p (cdr p) '())))
 
 (define (quill-state-set-section state key value)
   (let ([p (assq key state)])
-    (if p
-        (let ([rest (remq p state)])
-          (cons (cons key value) rest))
-        (cons (cons key value) state))))
+       (if p
+           (let ([rest (remq p state)])
+                (cons (cons key value) rest))
+           (cons (cons key value) state))))
 
 ;;; ------------------------------------------------------------
 ;;; Vars
@@ -34,8 +34,8 @@
 
 (define (quill-state-var state key)
   (let ([vars (quill-state-section state 'vars)])
-    (let ([p (assq key vars)])
-      (and p (cdr p)))))
+       (let ([p (assq key vars)])
+            (and p (cdr p)))))
 
 (define (quill-state-set-var state key value)
   (let* ([vars (quill-state-section state 'vars)]
@@ -43,12 +43,12 @@
          [vars2 (if p
                     (cons (cons key value) (remq p vars))
                     (cons (cons key value) vars))])
-    (quill-state-set-section state 'vars vars2)))
+        (quill-state-set-section state 'vars vars2)))
 
 (define (quill-state-inc-var state key delta)
   (let* ([cur (or (quill-state-var state key) 0)]
          [next (+ cur delta)])
-    (quill-state-set-var state key next)))
+        (quill-state-set-var state key next)))
 
 ;;; ------------------------------------------------------------
 ;;; Flags
@@ -56,8 +56,8 @@
 
 (define (quill-state-flag? state flag)
   (let ([flags (quill-state-section state 'flags)])
-    (let ([p (assq flag flags)])
-      (and p (cdr p)))))
+       (let ([p (assq flag flags)])
+            (and p (cdr p)))))
 
 (define (quill-state-set-flag state flag value)
   (let* ([flags (quill-state-section state 'flags)]
@@ -65,7 +65,7 @@
          [flags2 (if p
                      (cons (cons flag value) (remq p flags))
                      (cons (cons flag value) flags))])
-    (quill-state-set-section state 'flags flags2)))
+        (quill-state-set-section state 'flags flags2)))
 
 (define (quill-state-flag state flag)
   (quill-state-set-flag state flag #t))
@@ -85,10 +85,10 @@
 
 (define (quill-state-add-item state item)
   (let ([inv (quill-state-inventory state)])
-    (if (memq item inv)
-        state
-        (quill-state-set-section state 'inv (cons item inv)))))
+       (if (memq item inv)
+           state
+           (quill-state-set-section state 'inv (cons item inv)))))
 
 (define (quill-state-remove-item state item)
   (let ([inv (quill-state-inventory state)])
-    (quill-state-set-section state 'inv (remq item inv))))
+       (quill-state-set-section state 'inv (remq item inv))))

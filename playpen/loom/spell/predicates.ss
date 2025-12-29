@@ -39,25 +39,25 @@
 ;;; Entity HP is below threshold (default 50%).
 (define wounded?
   (case-lambda
-    [(entity) (wounded? entity 50)]
-    [(entity threshold)
-     (< (entity-hp-percent entity) threshold)]))
+   [(entity) (wounded? entity 50)]
+   [(entity threshold)
+    (< (entity-hp-percent entity) threshold)]))
 
 ;;; critical? : Entity × [Nat] -> Bool
 ;;; Entity HP is below critical threshold (default 25%).
 (define critical?
   (case-lambda
-    [(entity) (critical? entity 25)]
-    [(entity threshold)
-     (< (entity-hp-percent entity) threshold)]))
+   [(entity) (critical? entity 25)]
+   [(entity threshold)
+    (< (entity-hp-percent entity) threshold)]))
 
 ;;; full-hp? : Entity -> Bool
 ;;; Entity HP equals max HP.
 (define (full-hp? entity)
   (let ([stats (entity-stats entity)])
-    (if stats
-        (= (stats-hp stats) (stats-max-hp stats))
-        #t)))
+       (if stats
+           (= (stats-hp stats) (stats-max-hp stats))
+           #t)))
 
 ;;; ============================================================
 ;;; Entity State Predicates
@@ -82,13 +82,13 @@
 ;;; Entity blocks movement.
 (define (is-blocker? entity)
   (let ([blocker (entity-get-component entity 'blocker)])
-    (and blocker (alist-ref blocker 'blocks-movement #f))))
+       (and blocker (alist-ref blocker 'blocks-movement #f))))
 
 ;;; is-opaque? : Entity -> Bool
 ;;; Entity blocks line of sight.
 (define (is-opaque? entity)
   (let ([blocker (entity-get-component entity 'blocker)])
-    (and blocker (alist-ref blocker 'blocks-sight #f))))
+       (and blocker (alist-ref blocker 'blocks-sight #f))))
 
 ;;; ============================================================
 ;;; Position Predicates
@@ -108,17 +108,17 @@
 ;;; Entity is at the given point.
 (define (at-point? entity point)
   (let ([pos (entity-position entity)])
-    (if pos
-        (and (= (position-x pos) (point-x point))
-             (= (position-y pos) (point-y point)))
-        #f)))
+       (if pos
+           (and (= (position-x pos) (point-x point))
+                (= (position-y pos) (point-y point)))
+           #f)))
 
 ;;; same-position? : Entity × Entity -> Bool
 ;;; Entities are at the same position.
 (define (same-position? e1 e2)
   (let ([p1 (entity-point e1)]
         [p2 (entity-point e2)])
-    (and p1 p2 (= (point-x p1) (point-x p2)) (= (point-y p1) (point-y p2)))))
+       (and p1 p2 (= (point-x p1) (point-x p2)) (= (point-y p1) (point-y p2)))))
 
 ;;; distance-from : Entity × Entity -> Nat
 ;;; Get the distance between two entities.
@@ -129,9 +129,9 @@
 ;;; Get the distance from entity to a point.
 (define (distance-from-point entity point)
   (let ([pos (entity-point entity)])
-    (if pos
-        (manhattan-distance pos point)
-        +inf.0)))
+       (if pos
+           (manhattan-distance pos point)
+           +inf.0)))
 
 ;;; min-distance? : Entity × Entity × Nat -> Bool
 ;;; Entity 2 is at least range tiles away from entity 1.
@@ -153,7 +153,7 @@
 (define (friendly? e1 e2)
   (let ([f1 (entity-faction e1)]
         [f2 (entity-faction e2)])
-    (and f1 f2 (eq? f1 f2))))
+       (and f1 f2 (eq? f1 f2))))
 
 ;;; neutral-to? : Entity × Entity -> Bool
 ;;; Entity 1 is neutral to entity 2 (neither hostile nor friendly).
@@ -180,34 +180,34 @@
 ;;; There is a friendly entity within range.
 (define ally-nearby?
   (case-lambda
-    [(world entity) (ally-nearby? world entity 5)]
-    [(world entity range)
-     (not (null? (world-find-entities world
-                   (lambda (e)
-                     (and (not (= (entity-id e) (entity-id entity)))
-                          (alive? e)
-                          (friendly? entity e)
-                          (in-range? entity e range))))))]))
+   [(world entity) (ally-nearby? world entity 5)]
+   [(world entity range)
+    (not (null? (world-find-entities world
+                                     (lambda (e)
+                                             (and (not (= (entity-id e) (entity-id entity)))
+                                                  (alive? e)
+                                                  (friendly? entity e)
+                                                  (in-range? entity e range))))))]))
 
 ;;; allies-in-range : World × Entity × Nat -> (List Entity)
 ;;; Get all friendly entities within range.
 (define (allies-in-range world entity range)
   (world-find-entities world
-    (lambda (e)
-      (and (not (= (entity-id e) (entity-id entity)))
-           (alive? e)
-           (friendly? entity e)
-           (in-range? entity e range)))))
+                       (lambda (e)
+                               (and (not (= (entity-id e) (entity-id entity)))
+                                    (alive? e)
+                                    (friendly? entity e)
+                                    (in-range? entity e range)))))
 
 ;;; enemies-in-range : World × Entity × Nat -> (List Entity)
 ;;; Get all hostile entities within range.
 (define (enemies-in-range world entity range)
   (world-find-entities world
-    (lambda (e)
-      (and (not (= (entity-id e) (entity-id entity)))
-           (alive? e)
-           (hostile? entity e)
-           (in-range? entity e range)))))
+                       (lambda (e)
+                               (and (not (= (entity-id e) (entity-id entity)))
+                                    (alive? e)
+                                    (hostile? entity e)
+                                    (in-range? entity e range)))))
 
 ;;; ============================================================
 ;;; World Position Predicates
@@ -217,7 +217,7 @@
 ;;; Tile at point is of the given type.
 (define (tile-is? world point tile-type)
   (let ([tile (world-get-tile world (point-x point) (point-y point))])
-    (and tile (eq? (tile-type tile) tile-type))))
+       (and tile (eq? (tile-type tile) tile-type))))
 
 ;;; walkable? : World × Point -> Bool
 ;;; Point is walkable (no blocking tiles or entities).
@@ -233,7 +233,7 @@
 ;;; There is an entity at the given point.
 (define (has-entity-at? world point)
   (let ([entities (world-entities-at world (point-x point) (point-y point))])
-    (not (null? entities))))
+       (not (null? entities))))
 
 ;;; ============================================================
 ;;; Player-Relative Predicates
@@ -243,9 +243,9 @@
 ;;; The player is within range of the entity.
 (define player-nearby?
   (case-lambda
-    [(world entity) (player-nearby? world entity 5)]
-    [(world entity range)
-     (player-in-range? world entity range)]))
+   [(world entity) (player-nearby? world entity 5)]
+   [(world entity range)
+    (player-in-range? world entity range)]))
 
 ;;; player-adjacent-to? : World × Entity -> Bool
 ;;; The player is adjacent to the entity.
@@ -257,10 +257,10 @@
 ;;; For now, uses simple distance check. Full FOV would need raycasting.
 (define (player-visible-from? world entity)
   (let ([player (world-get-player world)])
-    (if player
-        (let ([sight-range (or (alist-ref (entity-ai entity) 'sight-range 10) 10)])
-          (<= (entity-distance entity player) sight-range))
-        #f)))
+       (if player
+           (let ([sight-range (or (alist-ref (entity-ai entity) 'sight-range 10) 10)])
+                (<= (entity-distance entity player) sight-range))
+           #f)))
 
 ;;; ============================================================
 ;;; Combat Predicates
@@ -297,11 +297,11 @@
 ;;; No hostile entities nearby.
 (define (safe? world entity)
   (null? (world-find-entities world
-           (lambda (e)
-             (and (not (= (entity-id e) (entity-id entity)))
-                  (alive? e)
-                  (hostile? entity e)
-                  (in-range? entity e 5))))))
+                              (lambda (e)
+                                      (and (not (= (entity-id e) (entity-id entity)))
+                                           (alive? e)
+                                           (hostile? entity e)
+                                           (in-range? entity e 5))))))
 
 ;;; threatened? : World × Entity -> Bool
 ;;; At least one hostile entity nearby.
@@ -312,18 +312,18 @@
 ;;; More hostile entities nearby than friendly.
 (define (outnumbered? world entity)
   (let ([enemies (world-find-entities world
-                   (lambda (e)
-                     (and (not (= (entity-id e) (entity-id entity)))
-                          (alive? e)
-                          (hostile? entity e)
-                          (in-range? entity e 10))))]
+                                      (lambda (e)
+                                              (and (not (= (entity-id e) (entity-id entity)))
+                                                   (alive? e)
+                                                   (hostile? entity e)
+                                                   (in-range? entity e 10))))]
         [allies (world-find-entities world
-                  (lambda (e)
-                    (and (not (= (entity-id e) (entity-id entity)))
-                         (alive? e)
-                         (friendly? entity e)
-                         (in-range? entity e 10))))])
-    (> (length enemies) (+ 1 (length allies)))))
+                                     (lambda (e)
+                                             (and (not (= (entity-id e) (entity-id entity)))
+                                                  (alive? e)
+                                                  (friendly? entity e)
+                                                  (in-range? entity e 10))))])
+       (> (length enemies) (+ 1 (length allies)))))
 
 ;;; ============================================================
 ;;; Item Predicates
@@ -333,27 +333,27 @@
 ;;; Entity has an item with the given tag in inventory.
 (define (has-item? entity item-tag)
   (let ([inv (entity-get-component entity 'inventory)])
-    (if inv
-        (let ([items (alist-ref inv 'items '())])
-          (if (memq item-tag items) #t #f))
-        #f)))
+       (if inv
+           (let ([items (alist-ref inv 'items '())])
+                (if (memq item-tag items) #t #f))
+           #f)))
 
 ;;; inventory-full? : Entity -> Bool
 ;;; Entity's inventory is at capacity.
 (define (inventory-full? entity)
   (let ([inv (entity-get-component entity 'inventory)])
-    (if inv
-        (let ([items (alist-ref inv 'items '())]
-              [capacity (alist-ref inv 'capacity 10)])
-          (>= (length items) capacity))
-        #t)))  ; No inventory = always full
+       (if inv
+           (let ([items (alist-ref inv 'items '())]
+                 [capacity (alist-ref inv 'capacity 10)])
+                (>= (length items) capacity))
+           #t)))  ; No inventory = always full
 
 ;;; inventory-empty? : Entity -> Bool
 (define (inventory-empty? entity)
   (let ([inv (entity-get-component entity 'inventory)])
-    (if inv
-        (null? (alist-ref inv 'items '()))
-        #t)))
+       (if inv
+           (null? (alist-ref inv 'items '()))
+           #t)))
 
 ;;; ============================================================
 ;;; Quick Reference
@@ -362,31 +362,31 @@
 #|
 Entity Health:
   alive?, dead?, hurt?, healthy?, wounded?, critical?, full-hp?
-
-Entity State:
+  
+  Entity State:
   has-component?, is-actor?, is-ai?, is-blocker?, is-opaque?
-
-Position:
+  
+  Position:
   adjacent?, in-range?, min-distance?, at-point?, same-position?
   distance-from, distance-from-point
-
-Faction:
+  
+  Faction:
   hostile?, friendly?, neutral-to?, faction-is?
   is-player?, is-monster?
   ally-nearby?, allies-in-range, enemies-in-range
-
-World:
+  
+  World:
   tile-is?, walkable?, blocked?, has-entity-at?
-
-Player:
+  
+  Player:
   player-nearby?, player-adjacent-to?, player-visible-from?
-
-Combat:
+  
+  Combat:
   can-attack?, can-be-attacked?, stronger-than?, weaker-than?
-
-Composite:
+  
+  Composite:
   safe?, threatened?, outnumbered?
-
-Items:
+  
+  Items:
   has-item?, inventory-full?, inventory-empty?
-|#
+  |#

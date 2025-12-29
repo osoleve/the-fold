@@ -43,5 +43,5 @@
 
 ;; Export tutorial functions for easy access
 (provide interactive-tutorial start-interactive-tutorial tutorial-hint
-         tutorial-next-step show-tutorial-progress display-user-profile 
+         tutorial-next-step show-tutorial-progress display-user-profile
          display-leaderboard)

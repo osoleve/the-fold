@@ -54,15 +54,15 @@
 ;;; Create a turtle with default state.
 (define (make-turtle)
   (make-turtle%
-    *turtle-center-x*     ; x: center
-    *turtle-center-y*     ; y: center
-    0.0                   ; heading: north (up)
-    #t                    ; pen-down: yes
-    color12-black         ; pen-color: black
-    1                     ; pen-width: 1
-    color12-white         ; bg-color: white
-    '()                   ; paths: empty
-    #t))                  ; visible: yes
+   *turtle-center-x*     ; x: center
+   *turtle-center-y*     ; y: center
+   0.0                   ; heading: north (up)
+   #t                    ; pen-down: yes
+   color12-black         ; pen-color: black
+   1                     ; pen-width: 1
+   color12-white         ; bg-color: white
+   '()                   ; paths: empty
+   #t))                  ; visible: yes
 
 ;;; make-default-turtle : -> Turtle
 ;;; Alias for make-turtle.
@@ -211,7 +211,7 @@
                                      (turtle-pen-width t))
                        (make-move-to new-x new-y))]
          [new-paths (cons new-path paths-with-move)])
-    (turtle-with-position t new-x new-y new-paths)))
+        (turtle-with-position t new-x new-y new-paths)))
 
 ;;; forward : Turtle x Real -> Turtle
 ;;; Alias for fd.
@@ -230,7 +230,7 @@
 ;;; Turn right (clockwise) by angle degrees.
 (define (rt t angle)
   (let ([new-heading (mod (+ (turtle-heading t) angle) 360.0)])
-    (turtle-with-heading t new-heading)))
+       (turtle-with-heading t new-heading)))
 
 ;;; right : Turtle x Real -> Turtle
 ;;; Alias for rt.
@@ -248,7 +248,7 @@
 ;;; mod helper for positive modulo
 (define (mod x y)
   (let ([r (remainder x y)])
-    (if (< r 0) (+ r y) r)))
+       (if (< r 0) (+ r y) r)))
 
 ;;; ============================================================
 ;;; Position Commands
@@ -273,7 +273,7 @@
                                      (turtle-pen-width t))
                        (make-move-to x y))]
          [new-paths (cons new-path paths-with-move)])
-    (turtle-with-position t x y new-paths)))
+        (turtle-with-position t x y new-paths)))
 
 ;;; setx : Turtle x Real -> Turtle
 ;;; Move to absolute x, keeping y.
@@ -304,9 +304,9 @@
                                      (turtle-pen-width t))
                        (make-move-to *turtle-center-x* *turtle-center-y*))]
          [new-paths (cons new-path paths-with-move)])
-    (turtle-with-heading
-      (turtle-with-position t *turtle-center-x* *turtle-center-y* new-paths)
-      0.0)))
+        (turtle-with-heading
+         (turtle-with-position t *turtle-center-x* *turtle-center-y* new-paths)
+         0.0)))
 
 ;;; setheading : Turtle x Real -> Turtle
 ;;; Set absolute heading (0 = north, clockwise).
@@ -368,9 +368,9 @@
 ;;; Set pen color. Accepts Color12, (r g b), integer, or symbol.
 (define (setpc t color-spec)
   (let ([color (parse-color12 color-spec)])
-    (if color
-        (turtle-with-pen-color t color)
-        t)))  ; Invalid color, no change
+       (if color
+           (turtle-with-pen-color t color)
+           t)))  ; Invalid color, no change
 
 ;;; setpencolor : Turtle x ColorSpec -> Turtle
 ;;; Alias for setpc.
@@ -393,9 +393,9 @@
 ;;; Set background color.
 (define (setbg t color-spec)
   (let ([color (parse-color12 color-spec)])
-    (if color
-        (turtle-with-bg-color t color)
-        t)))
+       (if color
+           (turtle-with-bg-color t color)
+           t)))
 
 ;;; setbackground : Turtle x ColorSpec -> Turtle
 ;;; Alias for setbg.
@@ -519,9 +519,9 @@
                                 (turtle-pen-color t)
                                 (turtle-pen-width t))]
              [new-paths (cons arc-cmd (turtle-paths t))])
-        (turtle-with-heading
-          (turtle-with-position t end-x end-y new-paths)
-          new-heading))
+            (turtle-with-heading
+             (turtle-with-position t end-x end-y new-paths)
+             new-heading))
       ;; Pen up: just move to where we would end up
       (let* ([heading-rad (deg->rad (turtle-heading t))]
              [start-x (turtle-x t)]
@@ -536,9 +536,9 @@
              [new-heading (mod (+ (turtle-heading t) angle) 360.0)]
              [move-cmd (make-move-to end-x end-y)]
              [new-paths (cons move-cmd (turtle-paths t))])
-        (turtle-with-heading
-          (turtle-with-position t end-x end-y new-paths)
-          new-heading))))
+            (turtle-with-heading
+             (turtle-with-position t end-x end-y new-paths)
+             new-heading))))
 
 ;;; circle : Turtle x Real -> Turtle
 ;;; Draw a circle centered at current position with given radius.
@@ -555,7 +555,7 @@
                                       (turtle-pen-width t)
                                       fill?)]
              [new-paths (cons circle-cmd (turtle-paths t))])
-        (turtle-with-paths t new-paths))
+            (turtle-with-paths t new-paths))
       t))  ; Pen up, do nothing
 
 ;;; filled-circle : Turtle x Real -> Turtle
@@ -579,17 +579,17 @@
 (define (polygon/fill t n side-length fill?)
   (if (and (turtle-pen-down? t) (>= n 3))
       (let* ([points (compute-polygon-points
-                       (turtle-x t)
-                       (turtle-y t)
-                       (turtle-heading t)
-                       n
-                       side-length)]
+                      (turtle-x t)
+                      (turtle-y t)
+                      (turtle-heading t)
+                      n
+                      side-length)]
              [polygon-cmd (make-polygon points
                                         (turtle-pen-color t)
                                         (turtle-pen-width t)
                                         fill?)]
              [new-paths (cons polygon-cmd (turtle-paths t))])
-        (turtle-with-paths t new-paths))
+            (turtle-with-paths t new-paths))
       t))  ; Pen up or invalid n, do nothing
 
 ;;; filled-polygon : Turtle x Nat x Real -> Turtle
@@ -601,22 +601,22 @@
 ;;; Calculate the vertices of a regular polygon.
 (define (compute-polygon-points start-x start-y heading n side-length)
   (let ([turn-angle (/ 360.0 n)])
-    (let loop ([i 0]
-               [x start-x]
-               [y start-y]
-               [h heading]
-               [acc '()])
-      (if (= i n)
-          (reverse acc)
-          (let* ([h-rad (deg->rad h)]
-                 [next-x (+ x (* side-length (sin h-rad)))]
-                 [next-y (- y (* side-length (cos h-rad)))]
-                 [next-h (+ h turn-angle)])
-            (loop (+ i 1)
-                  next-x
-                  next-y
-                  next-h
-                  (cons (cons x y) acc)))))))
+       (let loop ([i 0]
+                  [x start-x]
+                  [y start-y]
+                  [h heading]
+                  [acc '()])
+            (if (= i n)
+                (reverse acc)
+                (let* ([h-rad (deg->rad h)]
+                       [next-x (+ x (* side-length (sin h-rad)))]
+                       [next-y (- y (* side-length (cos h-rad)))]
+                       [next-h (+ h turn-angle)])
+                      (loop (+ i 1)
+                            next-x
+                            next-y
+                            next-h
+                            (cons (cons x y) acc)))))))
 
 ;;; ============================================================
 ;;; Repeat Helper

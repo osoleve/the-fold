@@ -63,20 +63,20 @@
 ;;; Check if the characters after @ look like an email domain
 (define (looks-like-email-domain? chars)
   (let loop ([cs chars] [seen-alpha #f] [seen-dot #f])
-    (cond
-      [(null? cs) (and seen-alpha seen-dot)]
-      [(char=? (car cs) #\.)
-       (if seen-alpha
-           (loop (cdr cs) #f #t)  ; Reset alpha, mark dot
-           #f)]  ; Dot without preceding alpha = not domain
-      [(or (char-alphabetic? (car cs))
-           (char-numeric? (car cs))
-           (char=? (car cs) #\-))
-       (loop (cdr cs) #t seen-dot)]
-      [(char-whitespace? (car cs))
-       (and seen-alpha seen-dot)]  ; End of potential domain
-      [else
-       (and seen-alpha seen-dot)])))  ; Hit other char, check if valid so far
+       (cond
+        [(null? cs) (and seen-alpha seen-dot)]
+        [(char=? (car cs) #\.)
+         (if seen-alpha
+             (loop (cdr cs) #f #t)  ; Reset alpha, mark dot
+             #f)]  ; Dot without preceding alpha = not domain
+        [(or (char-alphabetic? (car cs))
+             (char-numeric? (car cs))
+             (char=? (car cs) #\-))
+         (loop (cdr cs) #t seen-dot)]
+        [(char-whitespace? (car cs))
+         (and seen-alpha seen-dot)]  ; End of potential domain
+        [else
+         (and seen-alpha seen-dot)])))  ; Hit other char, check if valid so far
 
 ;;; preceded-by-email-local? : List Char -> Boolean
 ;;; Check if chars before @ look like email local part
@@ -85,9 +85,9 @@
        (not (char-whitespace? (car preceding)))
        ;; Email local parts contain alphanumeric, dots, etc.
        (let ([c (car preceding)])
-         (or (char-alphabetic? c)
-             (char-numeric? c)
-             (memq c '(#\. #\- #\_ #\+))))))
+            (or (char-alphabetic? c)
+                (char-numeric? c)
+                (memq c '(#\. #\- #\_ #\+))))))
 
 ;;; ============================================================
 ;;; Tag Parsing
@@ -99,25 +99,25 @@
   (if (or (null? chars) (not (tag-start-char? (car chars))))
       #f
       (let loop ([cs chars] [acc '()])
-        (cond
-          [(null? cs)
-           (cons (list->string (reverse acc)) '())]
-          [(tag-char? (car cs))
-           (loop (cdr cs) (cons (car cs) acc))]
-          [else
-           (cons (list->string (reverse acc)) cs)]))))
+           (cond
+            [(null? cs)
+             (cons (list->string (reverse acc)) '())]
+            [(tag-char? (car cs))
+             (loop (cdr cs) (cons (car cs) acc))]
+            [else
+             (cons (list->string (reverse acc)) cs)]))))
 
 ;;; parse-tag-value : List Char -> (value-string . remaining-chars)
 ;;; Parse a tag value (after the colon)
 (define (parse-tag-value chars)
   (let loop ([cs chars] [acc '()])
-    (cond
-      [(null? cs)
-       (cons (list->string (reverse acc)) '())]
-      [(value-char? (car cs))
-       (loop (cdr cs) (cons (car cs) acc))]
-      [else
-       (cons (list->string (reverse acc)) cs)])))
+       (cond
+        [(null? cs)
+         (cons (list->string (reverse acc)) '())]
+        [(value-char? (car cs))
+         (loop (cdr cs) (cons (car cs) acc))]
+        [else
+         (cons (list->string (reverse acc)) cs)])))
 
 ;;; parse-one-tag : List Char -> (tag . remaining) | #f
 ;;; Attempt to parse a tag starting with @
@@ -125,37 +125,37 @@
 ;;; or #f if not a valid tag
 (define (parse-one-tag chars preceding)
   (cond
-    ;; Must start with @
-    [(or (null? chars) (not (char=? (car chars) #\@)))
-     #f]
-    ;; Check word boundary
-    [(not (word-boundary-before? preceding))
-     #f]
-    ;; Check for email pattern
-    [(and (preceded-by-email-local? preceding)
-          (looks-like-email-domain? (cdr chars)))
-     #f]
-    [else
-     (let ([name-result (parse-tag-name (cdr chars))])
-       (if (not name-result)
-           #f
-           (let ([name (car name-result)]
-                 [rest (cdr name-result)])
-             ;; Empty name is invalid
-             (if (string=? name "")
-                 #f
-                 ;; Check for colon (key:value)
-                 (if (and (not (null? rest))
-                          (char=? (car rest) #\:))
-                     ;; Parse value
-                     (let ([value-result (parse-tag-value (cdr rest))])
-                       (if (string=? (car value-result) "")
-                           ;; Empty value - treat as simple tag
-                           (cons (cons name #t) rest)
-                           (cons (cons name (car value-result))
-                                 (cdr value-result))))
-                     ;; Simple tag
-                     (cons (cons name #t) rest))))))]))
+   ;; Must start with @
+   [(or (null? chars) (not (char=? (car chars) #\@)))
+    #f]
+   ;; Check word boundary
+   [(not (word-boundary-before? preceding))
+    #f]
+   ;; Check for email pattern
+   [(and (preceded-by-email-local? preceding)
+         (looks-like-email-domain? (cdr chars)))
+    #f]
+   [else
+    (let ([name-result (parse-tag-name (cdr chars))])
+         (if (not name-result)
+             #f
+             (let ([name (car name-result)]
+                   [rest (cdr name-result)])
+                  ;; Empty name is invalid
+                  (if (string=? name "")
+                      #f
+                      ;; Check for colon (key:value)
+                      (if (and (not (null? rest))
+                               (char=? (car rest) #\:))
+                          ;; Parse value
+                          (let ([value-result (parse-tag-value (cdr rest))])
+                               (if (string=? (car value-result) "")
+                                   ;; Empty value - treat as simple tag
+                                   (cons (cons name #t) rest)
+                                   (cons (cons name (car value-result))
+                                         (cdr value-result))))
+                          ;; Simple tag
+                          (cons (cons name #t) rest))))))]))
 
 ;;; ============================================================
 ;;; Main Extraction
@@ -166,17 +166,17 @@
 ;;; Multiple tags with same key are preserved (later values come first in result).
 (define (extract-tags text)
   (let ([chars (string->list text)])
-    (let loop ([cs chars] [preceding '()] [tags '()])
-      (cond
-        [(null? cs)
-         (reverse tags)]
-        [(char=? (car cs) #\@)
-         (let ([result (parse-one-tag cs preceding)])
-           (if result
-               (loop (cdr result) (list (car cs)) (cons (car result) tags))
-               (loop (cdr cs) (list (car cs)) tags)))]
-        [else
-         (loop (cdr cs) (list (car cs)) tags)]))))
+       (let loop ([cs chars] [preceding '()] [tags '()])
+            (cond
+             [(null? cs)
+              (reverse tags)]
+             [(char=? (car cs) #\@)
+              (let ([result (parse-one-tag cs preceding)])
+                   (if result
+                       (loop (cdr result) (list (car cs)) (cons (car result) tags))
+                       (loop (cdr cs) (list (car cs)) tags)))]
+             [else
+              (loop (cdr cs) (list (car cs)) tags)]))))
 
 ;;; ============================================================
 ;;; Query Functions
@@ -186,7 +186,7 @@
 ;;; Check if text contains a specific tag (by name).
 (define (has-tag? text tag-name)
   (let ([tags (extract-tags text)])
-    (if (assoc tag-name tags) #t #f)))
+       (if (assoc tag-name tags) #t #f)))
 
 ;;; get-tag-value : String x String -> String | #t | #f
 ;;; Get the value for a tag. Returns:
@@ -195,22 +195,22 @@
 ;;;   - #f if tag not found
 (define (get-tag-value text key)
   (let ([tags (extract-tags text)])
-    (let ([entry (assoc key tags)])
-      (if entry
-          (cdr entry)
-          #f))))
+       (let ([entry (assoc key tags)])
+            (if entry
+                (cdr entry)
+                #f))))
 
 ;;; get-all-tag-values : String x String -> List
 ;;; Get all values for a tag (for tags that appear multiple times).
 (define (get-all-tag-values text key)
   (let ([tags (extract-tags text)])
-    (fold-right
-     (lambda (entry acc)
-       (if (string=? (car entry) key)
-           (cons (cdr entry) acc)
-           acc))
-     '()
-     tags)))
+       (fold-right
+        (lambda (entry acc)
+                (if (string=? (car entry) key)
+                    (cons (cdr entry) acc)
+                    acc))
+        '()
+        tags)))
 
 ;;; ============================================================
 ;;; Text Manipulation
@@ -220,20 +220,20 @@
 ;;; Remove all tags from text, leaving clean prose.
 (define (strip-tags text)
   (let ([chars (string->list text)])
-    (let loop ([cs chars] [preceding '()] [acc '()])
-      (cond
-        [(null? cs)
-         (list->string (reverse acc))]
-        [(char=? (car cs) #\@)
-         (let ([result (parse-one-tag cs preceding)])
-           (if result
-               ;; Skip the tag, continue after it
-               ;; Keep preceding as the char before the @ for next potential tag
-               (loop (cdr result) preceding acc)
-               ;; Not a tag, keep the @
-               (loop (cdr cs) (list (car cs)) (cons (car cs) acc))))]
-        [else
-         (loop (cdr cs) (list (car cs)) (cons (car cs) acc))]))))
+       (let loop ([cs chars] [preceding '()] [acc '()])
+            (cond
+             [(null? cs)
+              (list->string (reverse acc))]
+             [(char=? (car cs) #\@)
+              (let ([result (parse-one-tag cs preceding)])
+                   (if result
+                       ;; Skip the tag, continue after it
+                       ;; Keep preceding as the char before the @ for next potential tag
+                       (loop (cdr result) preceding acc)
+                       ;; Not a tag, keep the @
+                       (loop (cdr cs) (list (car cs)) (cons (car cs) acc))))]
+             [else
+              (loop (cdr cs) (list (car cs)) (cons (car cs) acc))]))))
 
 ;;; highlight-tags : String -> String
 ;;; Return text with tags highlighted using brackets.
@@ -241,33 +241,33 @@
 ;;;          "@status:complete" -> "[TAG:status=complete]"
 (define (highlight-tags text)
   (let ([chars (string->list text)])
-    (let loop ([cs chars] [preceding '()] [acc '()])
-      (cond
-        [(null? cs)
-         (list->string (reverse acc))]
-        [(char=? (car cs) #\@)
-         (let ([result (parse-one-tag cs preceding)])
-           (if result
-               ;; Replace tag with highlighted version
-               (let* ([tag (car result)]
-                      [key (car tag)]
-                      [val (cdr tag)]
-                      [highlighted
-                       (if (eq? val #t)
-                           (string-append "[TAG:" key "]")
-                           (string-append "[TAG:" key "=" val "]"))]
-                      [hl-chars (string->list highlighted)]
-                      ;; Last char of highlighted becomes new preceding
-                      [new-preceding (if (null? hl-chars)
-                                         preceding
-                                         (list (car (reverse hl-chars))))])
-                 (loop (cdr result)
-                       new-preceding
-                       (append (reverse hl-chars) acc)))
-               ;; Not a tag, keep the @
-               (loop (cdr cs) (list (car cs)) (cons (car cs) acc))))]
-        [else
-         (loop (cdr cs) (list (car cs)) (cons (car cs) acc))]))))
+       (let loop ([cs chars] [preceding '()] [acc '()])
+            (cond
+             [(null? cs)
+              (list->string (reverse acc))]
+             [(char=? (car cs) #\@)
+              (let ([result (parse-one-tag cs preceding)])
+                   (if result
+                       ;; Replace tag with highlighted version
+                       (let* ([tag (car result)]
+                              [key (car tag)]
+                              [val (cdr tag)]
+                              [highlighted
+                               (if (eq? val #t)
+                                   (string-append "[TAG:" key "]")
+                                   (string-append "[TAG:" key "=" val "]"))]
+                              [hl-chars (string->list highlighted)]
+                              ;; Last char of highlighted becomes new preceding
+                              [new-preceding (if (null? hl-chars)
+                                                 preceding
+                                                 (list (car (reverse hl-chars))))])
+                             (loop (cdr result)
+                                   new-preceding
+                                   (append (reverse hl-chars) acc)))
+                       ;; Not a tag, keep the @
+                       (loop (cdr cs) (list (car cs)) (cons (car cs) acc))))]
+             [else
+              (loop (cdr cs) (list (car cs)) (cons (car cs) acc))]))))
 
 ;;; ============================================================
 ;;; Tag Categories (Convenience)
@@ -287,15 +287,15 @@
 ;;; Get the status tag value, checking both @status:X and @X for status words
 (define (get-status text)
   (let ([explicit (get-tag-value text "status")])
-    (if explicit
-        explicit
-        ;; Check for bare status tags
-        (let loop ([statuses status-tags])
-          (if (null? statuses)
-              #f
-              (if (has-tag? text (car statuses))
-                  (car statuses)
-                  (loop (cdr statuses))))))))
+       (if explicit
+           explicit
+           ;; Check for bare status tags
+           (let loop ([statuses status-tags])
+                (if (null? statuses)
+                    #f
+                    (if (has-tag? text (car statuses))
+                        (car statuses)
+                        (loop (cdr statuses))))))))
 
 ;;; get-priority : String -> String | #f
 ;;; Get the priority tag value
@@ -329,5 +329,5 @@
 ;;; is-high-priority? : String -> Boolean
 (define (is-high-priority? text)
   (let ([p (get-priority text)])
-    (or (equal? p "high")
-        (equal? p "critical"))))
+       (or (equal? p "high")
+           (equal? p "critical"))))

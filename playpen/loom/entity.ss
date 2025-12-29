@@ -97,16 +97,16 @@
 ;;; Core RPG statistics.
 (define make-stats-component
   (case-lambda
-    [() (make-stats-component 10 10 10 10 10)]
-    [(hp max-hp)
-     (make-stats-component hp max-hp 0 0 0)]
-    [(hp max-hp attack defense speed)
-     `((type . stats)
-       (hp . ,hp)
-       (max-hp . ,max-hp)
-       (attack . ,attack)
-       (defense . ,defense)
-       (speed . ,speed))]))
+   [() (make-stats-component 10 10 10 10 10)]
+   [(hp max-hp)
+    (make-stats-component hp max-hp 0 0 0)]
+   [(hp max-hp attack defense speed)
+    `((type . stats)
+      (hp . ,hp)
+      (max-hp . ,max-hp)
+      (attack . ,attack)
+      (defense . ,defense)
+      (speed . ,speed))]))
 
 (define (stats-component? comp)
   (eq? (component-type comp) 'stats))
@@ -130,13 +130,13 @@
 ;;; How the entity appears on screen.
 (define make-renderable-component
   (case-lambda
-    [(char) (make-renderable-component char 50 #f)]
-    [(char layer) (make-renderable-component char layer #f)]
-    [(char layer color)
-     `((type . renderable)
-       (char . ,char)
-       (layer . ,layer)
-       (color . ,color))]))
+   [(char) (make-renderable-component char 50 #f)]
+   [(char layer) (make-renderable-component char layer #f)]
+   [(char layer color)
+    `((type . renderable)
+      (char . ,char)
+      (layer . ,layer)
+      (color . ,color))]))
 
 (define (renderable-component? comp)
   (eq? (component-type comp) 'renderable))
@@ -162,11 +162,11 @@
 ;;; Behavior controller for NPCs.
 (define make-ai-component
   (case-lambda
-    [(behavior) (make-ai-component behavior '())]
-    [(behavior state)
-     `((type . ai)
-       (behavior . ,behavior)
-       (state . ,state))]))
+   [(behavior) (make-ai-component behavior '())]
+   [(behavior state)
+    `((type . ai)
+      (behavior . ,behavior)
+      (state . ,state))]))
 
 (define (ai-component? comp)
   (eq? (component-type comp) 'ai))
@@ -187,12 +187,12 @@
 ;;; Items carried by the entity.
 (define make-inventory-component
   (case-lambda
-    [() (make-inventory-component 20 '())]
-    [(capacity) (make-inventory-component capacity '())]
-    [(capacity items)
-     `((type . inventory)
-       (capacity . ,capacity)
-       (items . ,items))]))
+   [() (make-inventory-component 20 '())]
+   [(capacity) (make-inventory-component capacity '())]
+   [(capacity items)
+    `((type . inventory)
+      (capacity . ,capacity)
+      (items . ,items))]))
 
 (define (inventory-component? comp)
   (eq? (component-type comp) 'inventory))
@@ -243,11 +243,11 @@
 ;;; Team/allegiance for determining hostility.
 (define make-faction-component
   (case-lambda
-    [(faction) (make-faction-component faction '())]
-    [(faction hostile-to)
-     `((type . faction)
-       (faction . ,faction)
-       (hostile-to . ,hostile-to))]))
+   [(faction) (make-faction-component faction '())]
+   [(faction hostile-to)
+    `((type . faction)
+      (faction . ,faction)
+      (hostile-to . ,hostile-to))]))
 
 (define (faction-component? comp)
   (eq? (component-type comp) 'faction))
@@ -262,13 +262,13 @@
 ;;; Marks entities that take turns.
 (define make-actor-component
   (case-lambda
-    [() (make-actor-component 100 0)]
-    [(energy) (make-actor-component energy 0)]
-    [(energy initiative)
-     `((type . actor)
-       (energy . ,energy)
-       (max-energy . 100)
-       (initiative . ,initiative))]))
+   [() (make-actor-component 100 0)]
+   [(energy) (make-actor-component energy 0)]
+   [(energy initiative)
+    `((type . actor)
+      (energy . ,energy)
+      (max-energy . 100)
+      (initiative . ,initiative))]))
 
 (define (actor-component? comp)
   (eq? (component-type comp) 'actor))
@@ -292,12 +292,12 @@
 ;;; Marks entities that block movement.
 (define make-blocker-component
   (case-lambda
-    [() (make-blocker-component #t #t)]
-    [(blocks-movement) (make-blocker-component blocks-movement #t)]
-    [(blocks-movement blocks-sight)
-     `((type . blocker)
-       (blocks-movement . ,blocks-movement)
-       (blocks-sight . ,blocks-sight))]))
+   [() (make-blocker-component #t #t)]
+   [(blocks-movement) (make-blocker-component blocks-movement #t)]
+   [(blocks-movement blocks-sight)
+    `((type . blocker)
+      (blocks-movement . ,blocks-movement)
+      (blocks-sight . ,blocks-sight))]))
 
 (define (blocker-component? comp)
   (eq? (component-type comp) 'blocker))
@@ -320,10 +320,10 @@
 ;;; Create a new entity with optional specific ID.
 (define make-entity
   (case-lambda
-    [() (make-entity (generate-id))]
-    [(id)
-     `((id . ,id)
-       (components . ()))]))
+   [() (make-entity (generate-id))]
+   [(id)
+    `((id . ,id)
+      (components . ()))]))
 
 ;;; entity-id : Entity -> Nat
 (define (entity-id entity)
@@ -339,14 +339,14 @@
   (let* ([comp-type (component-type comp)]
          [comps (entity-components entity)]
          [new-comps (alist-set comps comp-type comp)])
-    (alist-set entity 'components new-comps)))
+        (alist-set entity 'components new-comps)))
 
 ;;; entity-remove-component : Entity × Symbol -> Entity
 ;;; Remove a component by type.
 (define (entity-remove-component entity comp-type)
   (let* ([comps (entity-components entity)]
          [new-comps (alist-remove comps comp-type)])
-    (alist-set entity 'components new-comps)))
+        (alist-set entity 'components new-comps)))
 
 ;;; entity-get-component : Entity × Symbol -> Component | #f
 ;;; Get a component by type.
@@ -361,9 +361,9 @@
 ;;; Update a component using a function.
 (define (entity-update-component entity comp-type update-fn)
   (let ([comp (entity-get-component entity comp-type)])
-    (if comp
-        (entity-add-component entity (update-fn comp))
-        entity)))
+       (if comp
+           (entity-add-component entity (update-fn comp))
+           entity)))
 
 ;;; ============================================================
 ;;; Entity Convenience Accessors
@@ -376,37 +376,37 @@
 
 (define (entity-x entity)
   (let ([pos (entity-position entity)])
-    (if pos (position-x pos) 0)))
+       (if pos (position-x pos) 0)))
 
 (define (entity-y entity)
   (let ([pos (entity-position entity)])
-    (if pos (position-y pos) 0)))
+       (if pos (position-y pos) 0)))
 
 (define (entity-point entity)
   (let ([pos (entity-position entity)])
-    (if pos (position->point pos) (cons 0 0))))
+       (if pos (position->point pos) (cons 0 0))))
 
 (define (entity-stats entity)
   (entity-get-component entity 'stats))
 
 (define (entity-hp entity)
   (let ([stats (entity-stats entity)])
-    (if stats (stats-hp stats) 0)))
+       (if stats (stats-hp stats) 0)))
 
 (define (entity-alive? entity)
   (let ([stats (entity-stats entity)])
-    (if stats (stats-alive? stats) #t)))
+       (if stats (stats-alive? stats) #t)))
 
 (define (entity-renderable entity)
   (entity-get-component entity 'renderable))
 
 (define (entity-char entity)
   (let ([rend (entity-renderable entity)])
-    (if rend (renderable-char rend) #\?)))
+       (if rend (renderable-char rend) #\?)))
 
 (define (entity-name entity)
   (let ([name-comp (entity-get-component entity 'name)])
-    (if name-comp (name-name name-comp) "Unknown")))
+       (if name-comp (name-name name-comp) "Unknown")))
 
 (define (entity-ai entity)
   (entity-get-component entity 'ai))
@@ -419,7 +419,7 @@
 
 (define (entity-faction entity)
   (let ([f (entity-get-component entity 'faction)])
-    (if f (faction-faction f) 'neutral)))
+       (if f (faction-faction f) 'neutral)))
 
 ;;; ============================================================
 ;;; Entity Modification Helpers
@@ -429,7 +429,7 @@
 ;;; Move entity to new position.
 (define (entity-move-to entity x y)
   (entity-update-component entity 'position
-    (lambda (pos) (position-set-xy pos x y))))
+                           (lambda (pos) (position-set-xy pos x y))))
 
 ;;; entity-move-by : Entity × Int × Int -> Entity
 ;;; Move entity by delta.
@@ -442,19 +442,19 @@
 ;;; Move entity in a direction.
 (define (entity-move-dir entity dir)
   (let ([delta (direction->delta dir)])
-    (entity-move-by entity (car delta) (cdr delta))))
+       (entity-move-by entity (car delta) (cdr delta))))
 
 ;;; entity-damage : Entity × Nat -> Entity
 ;;; Apply damage to entity.
 (define (entity-damage entity amount)
   (entity-update-component entity 'stats
-    (lambda (stats) (stats-modify-hp stats (- amount)))))
+                           (lambda (stats) (stats-modify-hp stats (- amount)))))
 
 ;;; entity-heal : Entity × Nat -> Entity
 ;;; Heal entity.
 (define (entity-heal entity amount)
   (entity-update-component entity 'stats
-    (lambda (stats) (stats-modify-hp stats amount))))
+                           (lambda (stats) (stats-modify-hp stats amount))))
 
 ;;; ============================================================
 ;;; Entity Factory Functions
@@ -471,22 +471,22 @@
          [attack (alist-ref stats-alist 'attack 5)]
          [defense (alist-ref stats-alist 'defense 0)]
          [speed (alist-ref stats-alist 'speed 100)])
-    (-> entity
-        (entity-add-component (make-position-component x y))
-        (entity-add-component (make-stats-component hp max-hp attack defense speed))
-        (entity-add-component (make-renderable-component char))
-        (entity-add-component (make-name-component name ""))
-        (entity-add-component (make-actor-component))
-        (entity-add-component (make-blocker-component #t #f)))))
+        (-> entity
+            (entity-add-component (make-position-component x y))
+            (entity-add-component (make-stats-component hp max-hp attack defense speed))
+            (entity-add-component (make-renderable-component char))
+            (entity-add-component (make-name-component name ""))
+            (entity-add-component (make-actor-component))
+            (entity-add-component (make-blocker-component #t #f)))))
 
 ;;; Pipe macro for cleaner chaining
 (define-syntax ->
   (syntax-rules ()
-    [(_ val) val]
-    [(_ val (fn args ...) rest ...)
-     (-> (fn val args ...) rest ...)]
-    [(_ val fn rest ...)
-     (-> (fn val) rest ...)]))
+                [(_ val) val]
+                [(_ val (fn args ...) rest ...)
+                 (-> (fn val args ...) rest ...)]
+                [(_ val fn rest ...)
+                 (-> (fn val) rest ...)]))
 
 ;;; make-player : String × Char × Int × Int -> Entity
 ;;; Create a player entity.
@@ -509,11 +509,11 @@
 ;;; Create an item entity (no movement, can be picked up).
 (define (make-item name char x y item-type)
   (let ([entity (make-entity)])
-    (-> entity
-        (entity-add-component (make-position-component x y))
-        (entity-add-component (make-renderable-component char 30))
-        (entity-add-component (make-name-component name ""))
-        (entity-add-component `((type . item) (item-type . ,item-type))))))
+       (-> entity
+           (entity-add-component (make-position-component x y))
+           (entity-add-component (make-renderable-component char 30))
+           (entity-add-component (make-name-component name ""))
+           (entity-add-component `((type . item) (item-type . ,item-type))))))
 
 ;;; ============================================================
 ;;; Entity Predicates
@@ -533,15 +533,15 @@
 
 (define (entity-can-act? entity)
   (let ([actor (entity-actor entity)])
-    (and actor (actor-can-act? actor))))
+       (and actor (actor-can-act? actor))))
 
 (define (entity-blocks-movement? entity)
   (let ([blocker (entity-get-component entity 'blocker)])
-    (and blocker (blocker-blocks-movement? blocker))))
+       (and blocker (blocker-blocks-movement? blocker))))
 
 (define (entity-blocks-sight? entity)
   (let ([blocker (entity-get-component entity 'blocker)])
-    (and blocker (blocker-blocks-sight? blocker))))
+       (and blocker (blocker-blocks-sight? blocker))))
 
 ;;; ============================================================
 ;;; Entity Distance and Targeting

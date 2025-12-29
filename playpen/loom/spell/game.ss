@@ -95,99 +95,99 @@
 
 (define-syntax def-game
   (lambda (stx)
-    (syntax-case stx (title description version world player
-                      name char stats color
-                      win-when lose-when on-init on-tick)
-      ;; Main form - collect all clauses
-      [(_ game-name clauses ...)
-       #'(begin
-           (define game-name
-             (parse-game-clauses 'game-name (make-game-config) clauses ...))
-           (game-register! 'game-name game-name))])))
+          (syntax-case stx (title description version world player
+                                  name char stats color
+                                  win-when lose-when on-init on-tick)
+                       ;; Main form - collect all clauses
+                       [(_ game-name clauses ...)
+                        #'(begin
+                           (define game-name
+                             (parse-game-clauses 'game-name (make-game-config) clauses ...))
+                           (game-register! 'game-name game-name))])))
 
 ;;; parse-game-clauses : Symbol × GameConfig × Clause... -> GameConfig
 ;;; Parse game definition clauses and build config.
 (define-syntax parse-game-clauses
   (syntax-rules (title description version world player
-                 name char stats color
-                 win-when lose-when on-init on-tick)
-    ;; Base case: no more clauses
-    [(_ game-name config)
-     config]
-
-    ;; Title
-    [(_ game-name config (title str) rest ...)
-     (parse-game-clauses game-name
-       (alist-set config 'title str)
-       rest ...)]
-
-    ;; Description
-    [(_ game-name config (description str) rest ...)
-     (parse-game-clauses game-name
-       (alist-set config 'description str)
-       rest ...)]
-
-    ;; Version
-    [(_ game-name config (version str) rest ...)
-     (parse-game-clauses game-name
-       (alist-set config 'version str)
-       rest ...)]
-
-    ;; World dimensions
-    [(_ game-name config (world w h) rest ...)
-     (parse-game-clauses game-name
-       (alist-set (alist-set config 'world-width w) 'world-height h)
-       rest ...)]
-
-    ;; Player definition
-    [(_ game-name config (player player-clauses ...) rest ...)
-     (parse-game-clauses game-name
-       (alist-set config 'player-spec
-         (parse-player-spec player-clauses ...))
-       rest ...)]
-
-    ;; Win condition
-    [(_ game-name config (win-when condition) rest ...)
-     (parse-game-clauses game-name
-       (alist-set config 'win-condition
-         (lambda (world) condition))
-       rest ...)]
-
-    ;; Lose condition
-    [(_ game-name config (lose-when condition) rest ...)
-     (parse-game-clauses game-name
-       (alist-set config 'lose-condition
-         (lambda (world) condition))
-       rest ...)]
-
-    ;; Init hook
-    [(_ game-name config (on-init body ...) rest ...)
-     (parse-game-clauses game-name
-       (alist-set config 'init-fn
-         (lambda (world) body ... world))
-       rest ...)]
-
-    ;; Tick hook
-    [(_ game-name config (on-tick body ...) rest ...)
-     (parse-game-clauses game-name
-       (alist-set config 'tick-fn
-         (lambda (world) body ... world))
-       rest ...)]))
+                       name char stats color
+                       win-when lose-when on-init on-tick)
+                ;; Base case: no more clauses
+                [(_ game-name config)
+                 config]
+                
+                ;; Title
+                [(_ game-name config (title str) rest ...)
+                 (parse-game-clauses game-name
+                                     (alist-set config 'title str)
+                                     rest ...)]
+                
+                ;; Description
+                [(_ game-name config (description str) rest ...)
+                 (parse-game-clauses game-name
+                                     (alist-set config 'description str)
+                                     rest ...)]
+                
+                ;; Version
+                [(_ game-name config (version str) rest ...)
+                 (parse-game-clauses game-name
+                                     (alist-set config 'version str)
+                                     rest ...)]
+                
+                ;; World dimensions
+                [(_ game-name config (world w h) rest ...)
+                 (parse-game-clauses game-name
+                                     (alist-set (alist-set config 'world-width w) 'world-height h)
+                                     rest ...)]
+                
+                ;; Player definition
+                [(_ game-name config (player player-clauses ...) rest ...)
+                 (parse-game-clauses game-name
+                                     (alist-set config 'player-spec
+                                                (parse-player-spec player-clauses ...))
+                                     rest ...)]
+                
+                ;; Win condition
+                [(_ game-name config (win-when condition) rest ...)
+                 (parse-game-clauses game-name
+                                     (alist-set config 'win-condition
+                                                (lambda (world) condition))
+                                     rest ...)]
+                
+                ;; Lose condition
+                [(_ game-name config (lose-when condition) rest ...)
+                 (parse-game-clauses game-name
+                                     (alist-set config 'lose-condition
+                                                (lambda (world) condition))
+                                     rest ...)]
+                
+                ;; Init hook
+                [(_ game-name config (on-init body ...) rest ...)
+                 (parse-game-clauses game-name
+                                     (alist-set config 'init-fn
+                                                (lambda (world) body ... world))
+                                     rest ...)]
+                
+                ;; Tick hook
+                [(_ game-name config (on-tick body ...) rest ...)
+                 (parse-game-clauses game-name
+                                     (alist-set config 'tick-fn
+                                                (lambda (world) body ... world))
+                                     rest ...)]))
 
 ;;; parse-player-spec : Clause... -> Alist
 (define-syntax parse-player-spec
   (syntax-rules (name char stats color)
-    [(_)
-     '()]
-    [(_ (name str) rest ...)
-     (alist-set (parse-player-spec rest ...) 'name str)]
-    [(_ (char c) rest ...)
-     (alist-set (parse-player-spec rest ...) 'char c)]
-    [(_ (stats hp max-hp atk def spd) rest ...)
-     (alist-set (parse-player-spec rest ...) 'stats
-       (list hp max-hp atk def spd))]
-    [(_ (color col) rest ...)
-     (alist-set (parse-player-spec rest ...) 'color col)]))
+                [(_)
+                 '()]
+                [(_ (name str) rest ...)
+                 (alist-set (parse-player-spec rest ...) 'name str)]
+                [(_ (char c) rest ...)
+                 (alist-set (parse-player-spec rest ...) 'char c)]
+                [(_ (stats hp max-hp atk def spd) rest ...)
+                 (alist-set (parse-player-spec rest ...) 'stats
+                            (list hp max-hp atk def spd))]
+                [(_ (color col) rest ...)
+                 (alist-set (parse-player-spec rest ...) 'color col)]))
 
 ;;; ============================================================
 ;;; Game Instance Creation
@@ -198,24 +198,24 @@
 ;;; Optional player starting position, defaults to center.
 (define game-create
   (case-lambda
-    [(config)
-     (let ([w (alist-ref config 'world-width 80)]
-           [h (alist-ref config 'world-height 40)])
-       (game-create config (cons (quotient w 2) (quotient h 2))))]
-    [(config player-pos)
-     (let* ([w (alist-ref config 'world-width 80)]
-            [h (alist-ref config 'world-height 40)]
-            [player-spec (alist-ref config 'player-spec '())]
-            ;; Create empty world
-            [world (make-world w h)]
-            ;; Create player entity
-            [player (create-player-from-spec player-spec player-pos)]
-            ;; Add player to world
-            [world (world-add-entity world player)]
-            ;; Run init hook if present
-            [init-fn (alist-ref config 'init-fn)]
-            [world (if init-fn (init-fn world) world)])
-       world)]))
+   [(config)
+    (let ([w (alist-ref config 'world-width 80)]
+          [h (alist-ref config 'world-height 40)])
+         (game-create config (cons (quotient w 2) (quotient h 2))))]
+   [(config player-pos)
+    (let* ([w (alist-ref config 'world-width 80)]
+           [h (alist-ref config 'world-height 40)]
+           [player-spec (alist-ref config 'player-spec '())]
+           ;; Create empty world
+           [world (make-world w h)]
+           ;; Create player entity
+           [player (create-player-from-spec player-spec player-pos)]
+           ;; Add player to world
+           [world (world-add-entity world player)]
+           ;; Run init hook if present
+           [init-fn (alist-ref config 'init-fn)]
+           [world (if init-fn (init-fn world) world)])
+          world)]))
 
 ;;; create-player-from-spec : Alist × Point -> Entity
 ;;; Create a player entity from player spec.
@@ -229,15 +229,15 @@
          [atk (if (and (pair? stats) (>= (length stats) 3)) (caddr stats) 10)]
          [def (if (and (pair? stats) (>= (length stats) 4)) (cadddr stats) 5)]
          [spd (if (and (pair? stats) (>= (length stats) 5)) (car (cddddr stats)) 100)])
-    (-> (make-entity)
-        (entity-add-component (make-position-component
-                                (point-x player-pos)
-                                (point-y player-pos)))
-        (entity-add-component (make-stats-component hp max-hp atk def spd))
-        (entity-add-component (make-renderable-component char 100 color))
-        (entity-add-component (make-name-component name "The player character"))
-        (entity-add-component (make-actor-component))
-        (entity-add-component (make-faction-component 'player '(monster))))))
+        (-> (make-entity)
+            (entity-add-component (make-position-component
+                                   (point-x player-pos)
+                                   (point-y player-pos)))
+            (entity-add-component (make-stats-component hp max-hp atk def spd))
+            (entity-add-component (make-renderable-component char 100 color))
+            (entity-add-component (make-name-component name "The player character"))
+            (entity-add-component (make-actor-component))
+            (entity-add-component (make-faction-component 'player '(monster))))))
 
 ;;; ============================================================
 ;;; Game State Checking
@@ -253,13 +253,13 @@
 (define (game-check-state config world)
   (let ([win-fn (alist-ref config 'win-condition)]
         [lose-fn (alist-ref config 'lose-condition)])
-    (cond
-      ;; Check lose first (death is immediate)
-      [(and lose-fn (lose-fn world)) 'lost]
-      ;; Check win
-      [(and win-fn (win-fn world)) 'won]
-      ;; Still playing
-      [else 'playing])))
+       (cond
+        ;; Check lose first (death is immediate)
+        [(and lose-fn (lose-fn world)) 'lost]
+        ;; Check win
+        [(and win-fn (win-fn world)) 'won]
+        ;; Still playing
+        [else 'playing])))
 
 ;;; game-won? : GameConfig × World -> Bool
 (define (game-won? config world)
@@ -284,15 +284,15 @@
 ;;; Get player's current HP.
 (define (player-hp world)
   (let ([player (world-get-player world)])
-    (if player
-        (let ([stats (entity-stats player)])
-          (if stats (stats-hp stats) 0))
-        0)))
+       (if player
+           (let ([stats (entity-stats player)])
+                (if stats (stats-hp stats) 0))
+           0)))
 
 ;;; player-alive? : World -> Bool
 (define (player-alive? world)
   (let ([player (world-get-player world)])
-    (and player (entity-alive? player))))
+       (and player (entity-alive? player))))
 
 ;;; player-dead? : World -> Bool
 (define (player-dead? world)
@@ -302,27 +302,27 @@
 ;;; Check if player is standing on a tile of given type.
 (define (player-at-tile? world tile-type)
   (let ([player (world-get-player world)])
-    (if player
-        (let* ([pos (entity-position player)]
-               [tile (world-get-tile world (position-x pos) (position-y pos))])
-          (and tile (eq? (tile-type tile) tile-type)))
-        #f)))
+       (if player
+           (let* ([pos (entity-position player)]
+                  [tile (world-get-tile world (position-x pos) (position-y pos))])
+                 (and tile (eq? (tile-type tile) tile-type)))
+           #f)))
 
 ;;; all-enemies-dead? : World -> Bool
 ;;; All monster-faction entities are dead.
 (define (all-enemies-dead? world)
   (null? (world-find-entities world
-           (lambda (e)
-             (and (faction-is? e 'monster)
-                  (entity-alive? e))))))
+                              (lambda (e)
+                                      (and (faction-is? e 'monster)
+                                           (entity-alive? e))))))
 
 ;;; enemy-count : World -> Nat
 ;;; Count living monster-faction entities.
 (define (enemy-count world)
   (length (world-find-entities world
-            (lambda (e)
-              (and (faction-is? e 'monster)
-                   (entity-alive? e))))))
+                               (lambda (e)
+                                       (and (faction-is? e 'monster)
+                                            (entity-alive? e))))))
 
 ;;; turn-count : World -> Nat
 ;;; Get current turn number.
@@ -337,9 +337,9 @@
 ;;; Process one game tick, running the on-tick hook if defined.
 (define (game-tick config world)
   (let ([tick-fn (alist-ref config 'tick-fn)])
-    (if tick-fn
-        (tick-fn world)
-        world)))
+       (if tick-fn
+           (tick-fn world)
+           world)))
 
 ;;; ============================================================
 ;;; Example Usage (commented out)
@@ -352,22 +352,22 @@
   (description "Find the stairs and escape the dungeon!")
   (version "1.0")
   (world 80 40)
-
+  
   (player
-    (name "Hero")
-    (char #\@)
-    (stats 100 100 15 8 100)
-    (color 'white))
-
+   (name "Hero")
+   (char #\@)
+   (stats 100 100 15 8 100)
+   (color 'white))
+  
   (win-when (player-at-tile? world 'stairs-up))
   (lose-when (<= (player-hp world) 0))
-
+  
   (on-init
-    (display "Welcome to the dungeon!\n"))
-
+   (display "Welcome to the dungeon!\n"))
+  
   (on-tick
-    (when (= (modulo (turn-count world) 10) 0)
-      (display "The dungeon grows darker...\n"))))
+   (when (= (modulo (turn-count world) 10) 0)
+         (display "The dungeon grows darker...\n"))))
 
 
 ;;; Define a survival game
@@ -375,12 +375,12 @@
   (title "Monster Arena")
   (description "Defeat all monsters to win!")
   (world 40 30)
-
+  
   (player
-    (name "Gladiator")
-    (char #\@)
-    (stats 150 150 20 10 90))
-
+   (name "Gladiator")
+   (char #\@)
+   (stats 150 150 20 10 90))
+  
   (win-when (all-enemies-dead? world))
   (lose-when (player-dead? world)))
 

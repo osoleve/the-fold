@@ -31,7 +31,7 @@
 (display "Invoke commands via (cmd 'name args...):\n\n")
 (display "  (cmd 'version) => ")
 (let ([result (cmd 'version)])
-  (display (format "~a\n" (car result))))
+     (display (format "~a\n" (car result))))
 
 ;; Feature 4: Error Recovery
 (display "\nFEATURE 4: Error Recovery\n")
@@ -39,12 +39,12 @@
 (display "Unknown command with typo detection:\n")
 (display "  (cmd 'whoo) => ")
 (let ([result (cmd 'whoo)])
-  (display (format "~a\n" (cadr result)))
-  (display (format "  Full result: ~a\n" result)))
+     (display (format "~a\n" (cadr result)))
+     (display (format "  Full result: ~a\n" result)))
 
 (display "\n  (cmd 'unknown-cmd) => ")
 (let ([result (cmd 'unknown-cmd)])
-  (display (format "~a\n" (cadr result))))
+     (display (format "~a\n" (cadr result))))
 
 ;; Feature 5: Dynamic Registration
 (display "\nFEATURE 5: Dynamic Command Registration\n")
@@ -56,10 +56,10 @@
  "Say hello"
  "A simple greeting command.\n  Usage: (cmd 'hello [name])"
  (lambda args
-   (if (null? args)
-       (display "Hello, world!\n")
-       (display (format "Hello, ~a!\n" (car args))))
-   "greeting-sent"))
+         (if (null? args)
+             (display "Hello, world!\n")
+             (display (format "Hello, ~a!\n" (car args))))
+         "greeting-sent"))
 
 (display "  Registered 'hello' command.\n")
 (display "  (cmd 'hello) => ")
@@ -72,7 +72,7 @@
 (display "  'hello' unregistered.\n")
 (display "  (cmd 'hello) => ")
 (let ([result (cmd 'hello)])
-  (display (format "~a\n" result)))
+     (display (format "~a\n" result)))
 
 ;; Feature 6: Direct Convenience Functions
 (display "\nFEATURE 6: Direct Convenience Functions\n")

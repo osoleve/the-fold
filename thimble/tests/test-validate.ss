@@ -11,16 +11,16 @@
   (display name)
   (display ": ")
   (let ([result (validator obj)])
-    (cond
-      [(and expected-valid (ok? result))
-       (display "✓")]
-      [(and (not expected-valid) (error? result))
-       (display "✓ (correctly rejected)")]
-      [else
-       (display "✗\n    expected: ")
-       (display (if expected-valid "(ok #t)" "(error ...)"))
-       (display "\n    got: ")
-       (display result)]))
+       (cond
+        [(and expected-valid (ok? result))
+         (display "✓")]
+        [(and (not expected-valid) (error? result))
+         (display "✓ (correctly rejected)")]
+        [else
+         (display "✗\n    expected: ")
+         (display (if expected-valid "(ok #t)" "(error ...)"))
+         (display "\n    got: ")
+         (display result)]))
   (newline))
 
 ;;; Helper to test predicates
@@ -31,10 +31,10 @@
   (if (eq? (pred obj) expected)
       (display "✓")
       (begin
-        (display "✗\n    expected: ")
-        (display expected)
-        (display "\n    got: ")
-        (display (pred obj))))
+       (display "✗\n    expected: ")
+       (display expected)
+       (display "\n    got: ")
+       (display (pred obj))))
   (newline))
 
 (display "Validation Tests (shell/validate.ss)\n")
@@ -165,9 +165,9 @@
 (define serialized-valid (block->bytes valid-block))
 (define too-short (make-bytevector 8))
 (define truncated (let* ([full (block->bytes valid-block)]
-                          [short (make-bytevector (- (bytevector-length full) 5))])
-                     (bytevector-copy! full 0 short 0 (bytevector-length short))
-                     short))
+                         [short (make-bytevector (- (bytevector-length full) 5))])
+                        (bytevector-copy! full 0 short 0 (bytevector-length short))
+                        short))
 
 (test-valid "valid serialized block" validate-serialized serialized-valid #t)
 (test-valid "too short" validate-serialized too-short #f)
@@ -180,22 +180,22 @@
 (define serialized (block->bytes original))
 (display "  serialize then validate: ")
 (let ([valid-result (validate-serialized serialized)])
-  (if (ok? valid-result)
-      (display "✓\n")
-      (begin
-        (display "✗\n    ")
-        (display valid-result)
-        (newline))))
+     (if (ok? valid-result)
+         (display "✓\n")
+         (begin
+          (display "✗\n    ")
+          (display valid-result)
+          (newline))))
 
 (define deserialized (bytes->block serialized))
 (display "  deserialize then validate: ")
 (let ([valid-result (validate-block deserialized)])
-  (if (ok? valid-result)
-      (display "✓\n")
-      (begin
-        (display "✗\n    ")
-        (display valid-result)
-        (newline))))
+     (if (ok? valid-result)
+         (display "✓\n")
+         (begin
+          (display "✗\n    ")
+          (display valid-result)
+          (newline))))
 
 (display "  blocks equal after round-trip: ")
 (if (block-equal? original deserialized)

@@ -13,10 +13,10 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-        (display "✗\n    expected: ")
-        (display expected)
-        (display "\n    got: ")
-        (display actual)))
+       (display "✗\n    expected: ")
+       (display expected)
+       (display "\n    got: ")
+       (display actual)))
   (newline))
 
 (define (test-result name expected-tag result)
@@ -26,10 +26,10 @@
   (if (eq? (car result) expected-tag)
       (display "✓")
       (begin
-        (display "✗\n    expected tag: ")
-        (display expected-tag)
-        (display "\n    got: ")
-        (display result)))
+       (display "✗\n    expected tag: ")
+       (display expected-tag)
+       (display "\n    got: ")
+       (display result)))
   (newline))
 
 (define (test-section name)
@@ -183,12 +183,12 @@
 ;; e.g., Eq a => Eq (List a)
 (define inst-Eq-List-with-context
   (make-instance 'Eq '(@ List a) '((Eq a))
-    '((== . list-eq))))
+                 '((== . list-eq))))
 
 ;; Add Eq Nat as a base instance
 (define inst-Eq-Nat
   (make-instance 'Eq 'Nat '()
-    '((== . nat-eq))))
+                 '((== . nat-eq))))
 
 (define extended-db
   (idb-add* standard-instances (list inst-Eq-List-with-context inst-Eq-Nat)))

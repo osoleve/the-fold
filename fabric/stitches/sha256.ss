@@ -21,8 +21,8 @@
 
 (define (rotr32 x n)
   (u32 (bitwise-ior
-         (bitwise-arithmetic-shift-right x n)
-         (bitwise-arithmetic-shift-left x (- 32 n)))))
+        (bitwise-arithmetic-shift-right x n)
+        (bitwise-arithmetic-shift-left x (- 32 n)))))
 
 (define (shr x n)
   (bitwise-arithmetic-shift-right x n))
@@ -103,17 +103,17 @@
          ;; Need at least 9 bytes: 1 for 0x80, 8 for length
          ;; Pad to next multiple of 64
          [padded-len (let ([rem (modulo (+ len 9) 64)])
-                       (if (= rem 0)
-                           (+ len 9)
-                           (+ len 9 (- 64 rem))))]
+                          (if (= rem 0)
+                              (+ len 9)
+                              (+ len 9 (- 64 rem))))]
          [result (make-bytevector padded-len 0)])
-    ;; Copy message
-    (bytevector-copy! msg 0 result 0 len)
-    ;; Append 0x80
-    (bytevector-u8-set! result len #x80)
-    ;; Append length as 64-bit big-endian
-    (bytevector-u64-set! result (- padded-len 8) bit-len 'big)
-    result))
+        ;; Copy message
+        (bytevector-copy! msg 0 result 0 len)
+        ;; Append 0x80
+        (bytevector-u8-set! result len #x80)
+        ;; Append length as 64-bit big-endian
+        (bytevector-u64-set! result (- padded-len 8) bit-len 'big)
+        result))
 
 ;;; ============================================================
 ;;; Message Schedule
@@ -123,19 +123,19 @@
 ;;; Create 64-word message schedule from 64-byte block at offset.
 (define (make-schedule msg offset)
   (let ([W (make-vector 64)])
-    ;; W[0..15]: 16 32-bit words from block (big-endian)
-    (do ([i 0 (+ i 1)])
-        ((= i 16))
-      (vector-set! W i (bytevector-u32-ref msg (+ offset (* i 4)) 'big)))
-    ;; W[16..63]: extended schedule
-    (do ([i 16 (+ i 1)])
-        ((= i 64))
-      (vector-set! W i
-        (u32+ (sigma1 (vector-ref W (- i 2)))
-              (vector-ref W (- i 7))
-              (sigma0 (vector-ref W (- i 15)))
-              (vector-ref W (- i 16)))))
-    W))
+       ;; W[0..15]: 16 32-bit words from block (big-endian)
+       (do ([i 0 (+ i 1)])
+           ((= i 16))
+           (vector-set! W i (bytevector-u32-ref msg (+ offset (* i 4)) 'big)))
+       ;; W[16..63]: extended schedule
+       (do ([i 16 (+ i 1)])
+           ((= i 64))
+           (vector-set! W i
+                        (u32+ (sigma1 (vector-ref W (- i 2)))
+                              (vector-ref W (- i 7))
+                              (sigma0 (vector-ref W (- i 15)))
+                              (vector-ref W (- i 16)))))
+       W))
 
 ;;; ============================================================
 ;;; Compression
@@ -152,29 +152,29 @@
         [f (vector-ref H 5)]
         [g (vector-ref H 6)]
         [h (vector-ref H 7)])
-    ;; 64 rounds
-    (do ([i 0 (+ i 1)])
-        ((= i 64))
-      (let* ([T1 (u32+ h (Sigma1 e) (Ch e f g)
-                       (vector-ref K i) (vector-ref W i))]
-             [T2 (u32+ (Sigma0 a) (Maj a b c))])
-        (set! h g)
-        (set! g f)
-        (set! f e)
-        (set! e (u32+ d T1))
-        (set! d c)
-        (set! c b)
-        (set! b a)
-        (set! a (u32+ T1 T2))))
-    ;; Add to hash state
-    (vector (u32+ (vector-ref H 0) a)
-            (u32+ (vector-ref H 1) b)
-            (u32+ (vector-ref H 2) c)
-            (u32+ (vector-ref H 3) d)
-            (u32+ (vector-ref H 4) e)
-            (u32+ (vector-ref H 5) f)
-            (u32+ (vector-ref H 6) g)
-            (u32+ (vector-ref H 7) h))))
+       ;; 64 rounds
+       (do ([i 0 (+ i 1)])
+           ((= i 64))
+           (let* ([T1 (u32+ h (Sigma1 e) (Ch e f g)
+                            (vector-ref K i) (vector-ref W i))]
+                  [T2 (u32+ (Sigma0 a) (Maj a b c))])
+                 (set! h g)
+                 (set! g f)
+                 (set! f e)
+                 (set! e (u32+ d T1))
+                 (set! d c)
+                 (set! c b)
+                 (set! b a)
+                 (set! a (u32+ T1 T2))))
+       ;; Add to hash state
+       (vector (u32+ (vector-ref H 0) a)
+               (u32+ (vector-ref H 1) b)
+               (u32+ (vector-ref H 2) c)
+               (u32+ (vector-ref H 3) d)
+               (u32+ (vector-ref H 4) e)
+               (u32+ (vector-ref H 5) f)
+               (u32+ (vector-ref H 6) g)
+               (u32+ (vector-ref H 7) h))))
 
 ;;; ============================================================
 ;;; Main Entry Point
@@ -186,30 +186,30 @@
   (let* ([padded (pad-message msg)]
          [num-blocks (quotient (bytevector-length padded) 64)]
          [H (vector-copy H-init)])
-    ;; Process each 64-byte block
-    (do ([i 0 (+ i 1)])
-        ((= i num-blocks))
-      (let ([W (make-schedule padded (* i 64))])
-        (set! H (compress H W))))
-    ;; Convert final hash to bytevector
-    (let ([result (make-bytevector 32)])
-      (do ([i 0 (+ i 1)])
-          ((= i 8))
-        (bytevector-u32-set! result (* i 4) (vector-ref H i) 'big))
-      result)))
+        ;; Process each 64-byte block
+        (do ([i 0 (+ i 1)])
+            ((= i num-blocks))
+            (let ([W (make-schedule padded (* i 64))])
+                 (set! H (compress H W))))
+        ;; Convert final hash to bytevector
+        (let ([result (make-bytevector 32)])
+             (do ([i 0 (+ i 1)])
+                 ((= i 8))
+                 (bytevector-u32-set! result (* i 4) (vector-ref H i) 'big))
+             result)))
 
 ;;; sha256-hex : Bytevector → String
 ;;; Convenience: return hash as lowercase hexadecimal string.
 (define (sha256-hex msg)
   (let ([hash (sha256 msg)]
         [hex-chars "0123456789abcdef"])
-    (apply string-append
-           (map (lambda (i)
-                  (let ([b (bytevector-u8-ref hash i)])
-                    (string
-                      (string-ref hex-chars (quotient b 16))
-                      (string-ref hex-chars (modulo b 16)))))
-                (iota 32)))))
+       (apply string-append
+              (map (lambda (i)
+                           (let ([b (bytevector-u8-ref hash i)])
+                                (string
+                                 (string-ref hex-chars (quotient b 16))
+                                 (string-ref hex-chars (modulo b 16)))))
+                   (iota 32)))))
 
 ;;; ============================================================
 ;;; Hash/Hex Conversion Utilities
@@ -219,35 +219,35 @@
 ;;; Convert a hash (bytevector) to lowercase hex string.
 (define (hash->hex hash)
   (let ([hex-chars "0123456789abcdef"])
-    (apply string-append
-           (map (lambda (i)
-                  (let ([b (bytevector-u8-ref hash i)])
-                    (string
-                      (string-ref hex-chars (quotient b 16))
-                      (string-ref hex-chars (modulo b 16)))))
-                (iota (bytevector-length hash))))))
+       (apply string-append
+              (map (lambda (i)
+                           (let ([b (bytevector-u8-ref hash i)])
+                                (string
+                                 (string-ref hex-chars (quotient b 16))
+                                 (string-ref hex-chars (modulo b 16)))))
+                   (iota (bytevector-length hash))))))
 
 ;;; hex->hash : String → Bytevector
 ;;; Convert a hex string to bytevector.
 (define (hex->hash hex)
   (let* ([len (string-length hex)]
          [result (make-bytevector (quotient len 2))])
-    (do ([i 0 (+ i 2)])
-        ((>= i len))
-      (bytevector-u8-set! result
-                          (quotient i 2)
-                          (+ (* 16 (hex-digit (string-ref hex i)))
-                             (hex-digit (string-ref hex (+ i 1))))))
-    result))
+        (do ([i 0 (+ i 2)])
+            ((>= i len))
+            (bytevector-u8-set! result
+                                (quotient i 2)
+                                (+ (* 16 (hex-digit (string-ref hex i)))
+                                   (hex-digit (string-ref hex (+ i 1))))))
+        result))
 
 ;;; hex-digit : Char → Nat
 ;;; Convert hex character to number.
 (define (hex-digit c)
   (cond
-    [(char<=? #\0 c #\9) (- (char->integer c) (char->integer #\0))]
-    [(char<=? #\a c #\f) (+ 10 (- (char->integer c) (char->integer #\a)))]
-    [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
-    [else 0]))
+   [(char<=? #\0 c #\9) (- (char->integer c) (char->integer #\0))]
+   [(char<=? #\a c #\f) (+ 10 (- (char->integer c) (char->integer #\a)))]
+   [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
+   [else 0]))
 
 ;;; ============================================================
 ;;; Block Hashing (requires core/block.ss loaded first)
@@ -260,6 +260,6 @@
 (define (hash-block blk)
   (let* ([hash (sha256 (block->bytes blk))]
          [address (make-bytevector address-size)])
-    (bytevector-u8-set! address 0 address-version)
-    (bytevector-copy! hash 0 address 1 hash-size)
-    address))
+        (bytevector-u8-set! address 0 address-version)
+        (bytevector-copy! hash 0 address 1 hash-size)
+        address))

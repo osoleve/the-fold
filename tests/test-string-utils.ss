@@ -20,11 +20,11 @@
   (set! test-count (+ test-count 1))
   (if (equal? expected actual)
       (begin
-        (set! pass-count (+ pass-count 1))
-        (printf "✓ ~a\n" name))
+       (set! pass-count (+ pass-count 1))
+       (printf "✓ ~a\n" name))
       (begin
-        (set! fail-count (+ fail-count 1))
-        (printf "✗ ~a\n  Expected: ~s\n  Got: ~s\n" name expected actual))))
+       (set! fail-count (+ fail-count 1))
+       (printf "✗ ~a\n  Expected: ~s\n  Got: ~s\n" name expected actual))))
 
 (display "═══ STRING SPLITTING ═══\n")
 (test "string-split: basic"
@@ -219,9 +219,9 @@
 (test "split-filter-join: word extraction"
       "one two three"
       (string-join
-        (filter (lambda (s) (not (string-empty? s)))
-                (string-split "one  two  three" #\space))
-        " "))
+       (filter (lambda (s) (not (string-empty? s)))
+               (string-split "one  two  three" #\space))
+       " "))
 
 (display "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║  TEST RESULTS                                              ║\n")

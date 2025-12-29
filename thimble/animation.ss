@@ -63,7 +63,7 @@
 ;;; Decelerating to zero velocity.
 (define (ease-out-cubic t)
   (let ([t1 (- t 1)])
-    (+ (* t1 t1 t1) 1)))
+       (+ (* t1 t1 t1) 1)))
 
 ;;; ease-in-out-cubic : Easing
 ;;; Acceleration until halfway, then deceleration.
@@ -71,7 +71,7 @@
   (if (< t 0.5)
       (* 4 t t t)
       (let ([t1 (- (* 2 t) 2)])
-        (+ (* 0.5 t1 t1 t1) 1))))
+           (+ (* 0.5 t1 t1 t1) 1))))
 
 ;;; ============================================================
 ;;; Quartic Easing (Strong)
@@ -86,7 +86,7 @@
 ;;; Decelerating to zero velocity.
 (define (ease-out-quart t)
   (let ([t1 (- t 1)])
-    (- 1 (* t1 t1 t1 t1))))
+       (- 1 (* t1 t1 t1 t1))))
 
 ;;; ease-in-out-quart : Easing
 ;;; Acceleration until halfway, then deceleration.
@@ -94,7 +94,7 @@
   (if (< t 0.5)
       (* 8 t t t t)
       (let ([t1 (- (* 2 t) 2)])
-        (- 1 (* 0.5 t1 t1 t1 t1)))))
+           (- 1 (* 0.5 t1 t1 t1 t1)))))
 
 ;;; ============================================================
 ;;; Exponential Easing (Very Strong)
@@ -118,10 +118,10 @@
 ;;; Exponential acceleration/deceleration.
 (define (ease-in-out-expo t)
   (cond
-    [(= t 0) 0]
-    [(= t 1) 1]
-    [(< t 0.5) (* 0.5 (expt 2 (* 20 t -10)))]
-    [else (- 1 (* 0.5 (expt 2 (+ (* -20 t) 10))))]))
+   [(= t 0) 0]
+   [(= t 1) 1]
+   [(< t 0.5) (* 0.5 (expt 2 (* 20 t -10)))]
+   [else (- 1 (* 0.5 (expt 2 (+ (* -20 t) 10))))]))
 
 ;;; ============================================================
 ;;; Sine Easing (Smooth)
@@ -150,17 +150,17 @@
 ;;; Bounce effect at the end.
 (define (ease-out-bounce t)
   (cond
-    [(< t (/ 1 2.75))
-     (* 7.5625 t t)]
-    [(< t (/ 2 2.75))
-     (let ([t2 (- t (/ 1.5 2.75))])
-       (+ (* 7.5625 t2 t2) 0.75))]
-    [(< t (/ 2.5 2.75))
-     (let ([t2 (- t (/ 2.25 2.75))])
-       (+ (* 7.5625 t2 t2) 0.9375))]
-    [else
-     (let ([t2 (- t (/ 2.625 2.75))])
-       (+ (* 7.5625 t2 t2) 0.984375))]))
+   [(< t (/ 1 2.75))
+    (* 7.5625 t t)]
+   [(< t (/ 2 2.75))
+    (let ([t2 (- t (/ 1.5 2.75))])
+         (+ (* 7.5625 t2 t2) 0.75))]
+   [(< t (/ 2.5 2.75))
+    (let ([t2 (- t (/ 2.25 2.75))])
+         (+ (* 7.5625 t2 t2) 0.9375))]
+   [else
+    (let ([t2 (- t (/ 2.625 2.75))])
+         (+ (* 7.5625 t2 t2) 0.984375))]))
 
 ;;; ease-in-bounce : Easing
 ;;; Bounce effect at the start.
@@ -197,17 +197,17 @@
 ;;; Elastic at both ends.
 (define (ease-in-out-elastic t)
   (cond
-    [(= t 0) 0]
-    [(= t 1) 1]
-    [(< t 0.5)
-     (* -0.5
-        (expt 2 (- (* 20 t) 10))
-        (sin (* (- (* 20 t) 11.125) (/ (* 2 3.141592653589793) 4.5))))]
-    [else
-     (+ (* 0.5
-           (expt 2 (+ (* -20 t) 10))
-           (sin (* (- (* 20 t) 11.125) (/ (* 2 3.141592653589793) 4.5))))
-        1)]))
+   [(= t 0) 0]
+   [(= t 1) 1]
+   [(< t 0.5)
+    (* -0.5
+       (expt 2 (- (* 20 t) 10))
+       (sin (* (- (* 20 t) 11.125) (/ (* 2 3.141592653589793) 4.5))))]
+   [else
+    (+ (* 0.5
+          (expt 2 (+ (* -20 t) 10))
+          (sin (* (- (* 20 t) 11.125) (/ (* 2 3.141592653589793) 4.5))))
+       1)]))
 
 ;;; ============================================================
 ;;; Back Easing (Anticipation)
@@ -218,7 +218,7 @@
 (define (ease-in-back t)
   (let ([c1 1.70158]
         [c3 (+ 1.70158 1)])
-    (- (* c3 t t t) (* c1 t t))))
+       (- (* c3 t t t) (* c1 t t))))
 
 ;;; ease-out-back : Easing
 ;;; Overshoot target, then settle.
@@ -226,18 +226,18 @@
   (let ([c1 1.70158]
         [c3 (+ 1.70158 1)]
         [t1 (- t 1)])
-    (+ 1 (* c3 t1 t1 t1) (* c1 t1 t1))))
+       (+ 1 (* c3 t1 t1 t1) (* c1 t1 t1))))
 
 ;;; ease-in-out-back : Easing
 ;;; Anticipation at both ends.
 (define (ease-in-out-back t)
   (let ([c1 1.70158]
         [c2 (* 1.70158 1.525)])
-    (if (< t 0.5)
-        (let ([t2 (* 2 t)])
-          (* 0.5 (* t2 t2 (- (* (+ c2 1) t2) c2))))
-        (let ([t2 (- (* 2 t) 2)])
-          (+ 1 (* 0.5 (* t2 t2 (+ (* (+ c2 1) t2) c2))))))))
+       (if (< t 0.5)
+           (let ([t2 (* 2 t)])
+                (* 0.5 (* t2 t2 (- (* (+ c2 1) t2) c2))))
+           (let ([t2 (- (* 2 t) 2)])
+                (+ 1 (* 0.5 (* t2 t2 (+ (* (+ c2 1) t2) c2))))))))
 
 ;;; ============================================================
 ;;; Animation Utilities
@@ -257,7 +257,7 @@
 ;;;   Interpolated value between start and end
 (define (animate easing t start end)
   (let ([eased-t (easing t)])
-    (+ start (* (- end start) eased-t))))
+       (+ start (* (- end start) eased-t))))
 
 ;;; animate-clamped : Easing × Real × Real × Real → Real
 ;;;
@@ -303,7 +303,7 @@
 ;;; Requires color.ss for lerp-color.
 (define (animate-color easing t color-start color-end)
   (let ([eased-t (easing t)])
-    (lerp-color color-start color-end eased-t)))
+       (lerp-color color-start color-end eased-t)))
 
 ;;; ============================================================
 ;;; Point Animation
@@ -318,8 +318,8 @@
         [y-start (point-y p-start)]
         [x-end (point-x p-end)]
         [y-end (point-y p-end)])
-    (point (inexact->exact (round (+ x-start (* (- x-end x-start) eased-t))))
-           (inexact->exact (round (+ y-start (* (- y-end y-start) eased-t)))))))
+       (point (inexact->exact (round (+ x-start (* (- x-end x-start) eased-t))))
+              (inexact->exact (round (+ y-start (* (- y-end y-start) eased-t)))))))
 
 ;;; ============================================================
 ;;; Presets

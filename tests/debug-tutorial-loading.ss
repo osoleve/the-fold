@@ -44,25 +44,25 @@
 ;; Check what files are actually loaded
 (display "\n6. Checking loaded modules...\n")
 (display "Tutorial simple: ")
-(if (top-level-bound? 'start-tutorial) 
+(if (top-level-bound? 'start-tutorial)
     (display "✅ Loaded\n")
     (begin
-      (display "❌ Not loaded - attempting manual load...\n")
-      (load "thimble/tutorial-simple.ss")
-      (test-function "start-tutorial (after manual load)" 'start-tutorial)))
+     (display "❌ Not loaded - attempting manual load...\n")
+     (load "thimble/tutorial-simple.ss")
+     (test-function "start-tutorial (after manual load)" 'start-tutorial)))
 
 (display "Interactive tutorial: ")
 (if (top-level-bound? 'interactive-tutorial)
     (display "✅ Loaded\n")
     (begin
-      (display "❌ Not loaded - attempting manual load...\n")
-      (load "thimble/interactive-tutorial.ss")
-      (test-function "interactive-tutorial (after manual load)" 'interactive-tutorial)))
+     (display "❌ Not loaded - attempting manual load...\n")
+     (load "thimble/interactive-tutorial.ss")
+     (test-function "interactive-tutorial (after manual load)" 'interactive-tutorial)))
 
 ;; Test if we can call the functions after manual loading
 (display "\n7. Testing function execution after manual loading...\n")
 (when (top-level-bound? 'interactive-tutorial)
-  (display "Calling interactive-tutorial...\n")
-  (interactive-tutorial))
+      (display "Calling interactive-tutorial...\n")
+      (interactive-tutorial))
 
 (display "\n🔍 Debug complete! Check results above.\n")

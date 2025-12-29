@@ -32,12 +32,12 @@
 
 (display "6 neighbors of center:\n")
 (let ([neighbors (hex-neighbors center)])
-  (for-each
-    (lambda (n)
-      (display "  ")
-      (display n)
-      (newline))
-    neighbors))
+     (for-each
+      (lambda (n)
+              (display "  ")
+              (display n)
+              (newline))
+      neighbors))
 (newline)
 
 ;;; ============================================================
@@ -69,13 +69,13 @@
 (display "──────────────────────────────────\n")
 
 (let ([line (hex-line hex-a hex-b)])
-  (display "Path: ")
-  (for-each
-    (lambda (hex)
-      (display hex)
-      (display " "))
-    line)
-  (newline))
+     (display "Path: ")
+     (for-each
+      (lambda (hex)
+              (display hex)
+              (display " "))
+      line)
+     (newline))
 (newline)
 
 ;;; ============================================================
@@ -87,16 +87,16 @@
 
 (display "Hexes within 2 steps of center:\n")
 (let ([hexes (hex-range center 2)])
-  (display "  Count: ")
-  (display (length hexes))
-  (newline)
-  (display "  Hexes: ")
-  (for-each
-    (lambda (h)
-      (display h)
-      (display " "))
-    (take hexes 10))
-  (display "...\n"))
+     (display "  Count: ")
+     (display (length hexes))
+     (newline)
+     (display "  Hexes: ")
+     (for-each
+      (lambda (h)
+              (display h)
+              (display " "))
+      (take hexes 10))
+     (display "...\n"))
 (newline)
 
 ;;; ============================================================
@@ -107,10 +107,10 @@
 (display "──────────────────────────────────\n")
 
 (let ([ring (hex-ring center 2)])
-  (display "  Count: ")
-  (display (length ring))
-  (newline)
-  (display "  Expected: 12 hexes (6 × 2)\n"))
+     (display "  Count: ")
+     (display (length ring))
+     (newline)
+     (display "  Expected: 12 hexes (6 × 2)\n"))
 (newline)
 
 ;;; ============================================================

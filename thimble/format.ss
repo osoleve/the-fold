@@ -58,29 +58,29 @@
 (define (format-file path)
   (guard (e [else
              (display (format "Error formatting ~a: ~a\n"
-                             path
-                             (if (condition? e)
-                                 (condition-message e)
-                                 e)))
+                              path
+                              (if (condition? e)
+                                  (condition-message e)
+                                  e)))
              #f])
-    (let* ([original (read-file-as-string path)]
-           [formatted (format-string original)])
-      (if (string=? original formatted)
-          (begin
-            (display (format "~a: already formatted\n" path))
-            #f)
-          (begin
-            (write-file-as-string path formatted)
-            (display (format "~a: formatted\n" path))
-            #t)))))
+         (let* ([original (read-file-as-string path)]
+                [formatted (format-string original)])
+               (if (string=? original formatted)
+                   (begin
+                    (display (format "~a: already formatted\n" path))
+                    #f)
+                   (begin
+                    (write-file-as-string path formatted)
+                    (display (format "~a: formatted\n" path))
+                    #t)))))
 
 ;;; format-string : String → String
 ;;; Format a string of Scheme code.
 (define (format-string code)
   (guard (e [else code])  ; Return original on error
-    (let* ([lines (string-split code #\newline)]
-           [formatted-lines (format-lines lines 0)])
-      (string-join formatted-lines "\n"))))
+         (let* ([lines (string-split code #\newline)]
+                [formatted-lines (format-lines lines 0)])
+               (string-join formatted-lines "\n"))))
 
 ;;; format-expr : Sexpr → String
 ;;; Format an s-expression.
@@ -92,7 +92,7 @@
 (define (format-check path)
   (let* ([original (read-file-as-string path)]
          [formatted (format-string original)])
-    (not (string=? original formatted))))
+        (not (string=? original formatted))))
 
 ;;; ============================================================
 ;;; Line-by-Line Formatting
@@ -106,21 +106,21 @@
       (let* ([line (car lines)]
              [trimmed (string-trim line)]
              [depth (calculate-depth trimmed current-depth)])
-        (if (empty-line? trimmed)
-            (cons "" (format-lines (cdr lines) current-depth))
-            (cons
-              (indent-line trimmed depth)
-              (format-lines (cdr lines)
-                           (update-depth trimmed current-depth)))))))
+            (if (empty-line? trimmed)
+                (cons "" (format-lines (cdr lines) current-depth))
+                (cons
+                 (indent-line trimmed depth)
+                 (format-lines (cdr lines)
+                               (update-depth trimmed current-depth)))))))
 
 ;;; calculate-depth : String × Nat → Nat
 ;;; Calculate indentation depth for a line.
 (define (calculate-depth line current-depth)
   (cond
-    [(comment-line? line) current-depth]
-    [(starts-with-close-paren? line)
-     (max 0 (- current-depth 1))]
-    [else current-depth]))
+   [(comment-line? line) current-depth]
+   [(starts-with-close-paren? line)
+    (max 0 (- current-depth 1))]
+   [else current-depth]))
 
 ;;; update-depth : String × Nat → Nat
 ;;; Update depth based on parens in line.
@@ -132,8 +132,8 @@
 ;;; indent-line : String × Nat → String
 (define (indent-line line depth)
   (string-append
-    (make-spaces (* depth *indent-width*))
-    line))
+   (make-spaces (* depth *indent-width*))
+   line))
 
 ;;; ============================================================
 ;;; S-Expression Formatting
@@ -143,21 +143,21 @@
 ;;; Format an s-expression with indentation.
 (define (format-sexpr expr depth)
   (cond
-    [(null? expr) "()"]
-    [(pair? expr)
-     (format-list expr depth)]
-    [(symbol? expr)
-     (symbol->string expr)]
-    [(string? expr)
-     (format "\"~a\"" expr)]
-    [(number? expr)
-     (number->string expr)]
-    [(boolean? expr)
-     (if expr "#t" "#f")]
-    [(vector? expr)
-     (format-vector expr depth)]
-    [else
-     (format "~s" expr)]))
+   [(null? expr) "()"]
+   [(pair? expr)
+    (format-list expr depth)]
+   [(symbol? expr)
+    (symbol->string expr)]
+   [(string? expr)
+    (format "\"~a\"" expr)]
+   [(number? expr)
+    (number->string expr)]
+   [(boolean? expr)
+    (if expr "#t" "#f")]
+   [(vector? expr)
+    (format-vector expr depth)]
+   [else
+    (format "~s" expr)]))
 
 ;;; format-list : List × Nat → String
 (define (format-list lst depth)
@@ -165,58 +165,58 @@
       "()"
       (let* ([head (car lst)]
              [is-special? (and (symbol? head)
-                              (assq head *special-forms*))]
+                               (assq head *special-forms*))]
              [special-indent (if is-special?
-                                (cdr (assq head *special-forms*))
-                                0)])
-        (case *format-style*
-          [(compact)
-           (format-compact-list lst depth special-indent)]
-          [(expanded)
-           (format-expanded-list lst depth)]
-          [(canonical)
-           (format-canonical-list lst depth)]
-          [else
-           (format-compact-list lst depth special-indent)]))))
+                                 (cdr (assq head *special-forms*))
+                                 0)])
+            (case *format-style*
+                  [(compact)
+                   (format-compact-list lst depth special-indent)]
+                  [(expanded)
+                   (format-expanded-list lst depth)]
+                  [(canonical)
+                   (format-canonical-list lst depth)]
+                  [else
+                   (format-compact-list lst depth special-indent)]))))
 
 ;;; format-compact-list : List × Nat × Nat → String
 ;;; Compact formatting (keep on one line if short enough).
 (define (format-compact-list lst depth special-indent)
   (let ([one-line (format-one-line lst)])
-    (if (<= (string-length one-line)
-            (- *max-line-length* (* depth *indent-width*)))
-        one-line
-        (format-multi-line lst depth special-indent))))
+       (if (<= (string-length one-line)
+               (- *max-line-length* (* depth *indent-width*)))
+           one-line
+           (format-multi-line lst depth special-indent))))
 
 ;;; format-one-line : List → String
 (define (format-one-line lst)
   (string-append
-    "("
-    (string-join
-      (map (lambda (x) (format-sexpr x 0))
-           lst)
-      " ")
-    ")"))
+   "("
+   (string-join
+    (map (lambda (x) (format-sexpr x 0))
+         lst)
+    " ")
+   ")"))
 
 ;;; format-multi-line : List × Nat × Nat → String
 (define (format-multi-line lst depth special-indent)
   (if (null? lst)
       "()"
       (string-append
-        "("
-        (format-sexpr (car lst) depth)
-        (format-rest (cdr lst) (+ depth 1 special-indent))
-        ")")))
+       "("
+       (format-sexpr (car lst) depth)
+       (format-rest (cdr lst) (+ depth 1 special-indent))
+       ")")))
 
 ;;; format-rest : List × Nat → String
 (define (format-rest lst depth)
   (if (null? lst)
       ""
       (string-append
-        "\n"
-        (make-spaces (* depth *indent-width*))
-        (format-sexpr (car lst) depth)
-        (format-rest (cdr lst) depth))))
+       "\n"
+       (make-spaces (* depth *indent-width*))
+       (format-sexpr (car lst) depth)
+       (format-rest (cdr lst) depth))))
 
 ;;; format-expanded-list : List × Nat → String
 ;;; Always use multiple lines.
@@ -229,25 +229,25 @@
   (if (null? lst)
       "()"
       (string-append
-        "("
-        (string-join
-          (map (lambda (x)
-                 (string-append
-                   (make-spaces (* (+ depth 1) *indent-width*))
-                   (format-sexpr x (+ depth 1))))
-               lst)
-          "\n")
-        ")")))
+       "("
+       (string-join
+        (map (lambda (x)
+                     (string-append
+                      (make-spaces (* (+ depth 1) *indent-width*))
+                      (format-sexpr x (+ depth 1))))
+             lst)
+        "\n")
+       ")")))
 
 ;;; format-vector : Vector × Nat → String
 (define (format-vector vec depth)
   (string-append
-    "#("
-    (string-join
-      (map (lambda (x) (format-sexpr x depth))
-           (vector->list vec))
-      " ")
-    ")"))
+   "#("
+   (string-join
+    (map (lambda (x) (format-sexpr x depth))
+         (vector->list vec))
+    " ")
+   ")"))
 
 ;;; ============================================================
 ;;; Helper Functions
@@ -267,26 +267,26 @@
 ;;; count-open-parens : String → Nat
 (define (count-open-parens str)
   (let ([len (string-length str)])
-    (let loop ([i 0] [count 0])
-      (if (>= i len)
-          count
-          (loop (+ i 1)
-                (if (or (char=? (string-ref str i) #\()
-                       (char=? (string-ref str i) #\[))
-                    (+ count 1)
-                    count))))))
+       (let loop ([i 0] [count 0])
+            (if (>= i len)
+                count
+                (loop (+ i 1)
+                      (if (or (char=? (string-ref str i) #\()
+                              (char=? (string-ref str i) #\[))
+                          (+ count 1)
+                          count))))))
 
 ;;; count-close-parens : String → Nat
 (define (count-close-parens str)
   (let ([len (string-length str)])
-    (let loop ([i 0] [count 0])
-      (if (>= i len)
-          count
-          (loop (+ i 1)
-                (if (or (char=? (string-ref str i) #\))
-                       (char=? (string-ref str i) #\]))
-                    (+ count 1)
-                    count))))))
+       (let loop ([i 0] [count 0])
+            (if (>= i len)
+                count
+                (loop (+ i 1)
+                      (if (or (char=? (string-ref str i) #\))
+                              (char=? (string-ref str i) #\]))
+                          (+ count 1)
+                          count))))))
 
 ;;; make-spaces : Nat → String
 (define (make-spaces n)
@@ -309,19 +309,19 @@
 ;;; read-file-as-string : Path → String
 (define (read-file-as-string path)
   (call-with-input-file path
-    (lambda (port)
-      (let loop ([lines '()])
-        (let ([line (get-line port)])
-          (if (eof-object? line)
-              (string-join (reverse lines) "\n")
-              (loop (cons line lines))))))))
+                        (lambda (port)
+                                (let loop ([lines '()])
+                                     (let ([line (get-line port)])
+                                          (if (eof-object? line)
+                                              (string-join (reverse lines) "\n")
+                                              (loop (cons line lines))))))))
 
 ;;; write-file-as-string : Path × String → void
 (define (write-file-as-string path content)
   (call-with-output-file path
-    (lambda (port)
-      (display content port))
-    'replace))
+                         (lambda (port)
+                                 (display content port))
+                         'replace))
 
 ;;; ============================================================
 ;;; Batch Operations
@@ -332,9 +332,9 @@
 ;;; Returns list of (path . was-modified?) pairs.
 (define (format-dir dir pattern)
   (let ([files (find-scheme-files dir)])
-    (map (lambda (file)
-           (cons file (format-file file)))
-         files)))
+       (map (lambda (file)
+                    (cons file (format-file file)))
+            files)))
 
 ;;; find-scheme-files : Path → (List Path)
 (define (find-scheme-files dir)
@@ -350,16 +350,16 @@
 (define (format-diff path)
   (let* ([original (read-file-as-string path)]
          [formatted (format-string original)])
-    (if (string=? original formatted)
-        "No changes needed\n"
-        (generate-diff original formatted))))
+        (if (string=? original formatted)
+            "No changes needed\n"
+            (generate-diff original formatted))))
 
 ;;; generate-diff : String × String → String
 (define (generate-diff original formatted)
   (string-append
-    "--- original\n"
-    "+++ formatted\n"
-    "Changes would be made\n"))
+   "--- original\n"
+   "+++ formatted\n"
+   "Changes would be made\n"))
 
 ;;; ============================================================
 ;;; Utility Functions
@@ -369,16 +369,16 @@
 (define (string-trim str)
   (let* ([len (string-length str)]
          [start (let loop ([i 0])
-                  (cond
-                    [(>= i len) len]
-                    [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
-                    [else i]))]
+                     (cond
+                      [(>= i len) len]
+                      [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
+                      [else i]))]
          [end (let loop ([i (- len 1)])
-                (cond
-                  [(< i start) start]
-                  [(char-whitespace? (string-ref str i)) (loop (- i 1))]
-                  [else (+ i 1)]))])
-    (substring str start end)))
+                   (cond
+                    [(< i start) start]
+                    [(char-whitespace? (string-ref str i)) (loop (- i 1))]
+                    [else (+ i 1)]))])
+        (substring str start end)))
 
 ;;; string-join : (List String) × String → String
 (define (string-join strs sep)
@@ -386,26 +386,26 @@
       ""
       (let loop ([ss (cdr strs)]
                  [result (car strs)])
-        (if (null? ss)
-            result
-            (loop (cdr ss)
-                  (string-append result sep (car ss)))))))
+           (if (null? ss)
+               result
+               (loop (cdr ss)
+                     (string-append result sep (car ss)))))))
 
 ;;; string-split : String × Char → (List String)
 (define (string-split str sep)
   (let ([len (string-length str)])
-    (let loop ([i 0] [start 0] [parts '()])
-      (cond
-        [(>= i len)
-         (if (= start i)
-             (reverse parts)
-             (reverse (cons (substring str start i) parts)))]
-        [(char=? (string-ref str i) sep)
-         (loop (+ i 1)
-               (+ i 1)
-               (cons (substring str start i) parts))]
-        [else
-         (loop (+ i 1) start parts)]))))
+       (let loop ([i 0] [start 0] [parts '()])
+            (cond
+             [(>= i len)
+              (if (= start i)
+                  (reverse parts)
+                  (reverse (cons (substring str start i) parts)))]
+             [(char=? (string-ref str i) sep)
+              (loop (+ i 1)
+                    (+ i 1)
+                    (cons (substring str start i) parts))]
+             [else
+              (loop (+ i 1) start parts)]))))
 
 (display "\n")
 (display "Code formatter loaded.\n")

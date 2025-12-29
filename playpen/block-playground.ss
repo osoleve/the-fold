@@ -4,9 +4,9 @@
 
 ;; Change to the fabric/stitches directory for loading
 (parameterize ([current-directory "/home/oso/the-fold/fabric/stitches"])
-  (load "prelude.ss")
-  (load "sha256.ss")
-  (load "block.ss"))
+              (load "prelude.ss")
+              (load "sha256.ss")
+              (load "block.ss"))
 
 ;; Load string utilities and security functions
 (load "thimble/string-utils.ss")
@@ -22,15 +22,15 @@
 ;;; Helper to display hash in hex
 (define (hash->hex h)
   (let ([hex-chars "0123456789abcdef"])
-    (list->string
-      (let loop ([i 0] [acc '()])
-        (if (= i (bytevector-length h))
-            (reverse acc)
-            (let ([byte (bytevector-u8-ref h i)])
-              (loop (+ i 1)
-                    (cons (string-ref hex-chars (bitwise-and byte #x0F))
-                          (cons (string-ref hex-chars (bitwise-arithmetic-shift-right byte 4))
-                                acc)))))))))
+       (list->string
+        (let loop ([i 0] [acc '()])
+             (if (= i (bytevector-length h))
+                 (reverse acc)
+                 (let ([byte (bytevector-u8-ref h i)])
+                      (loop (+ i 1)
+                            (cons (string-ref hex-chars (bitwise-and byte #x0F))
+                                  (cons (string-ref hex-chars (bitwise-arithmetic-shift-right byte 4))
+                                        acc)))))))))
 
 ;;; ============================================================
 ;;; Experiment 1: Creating Simple Blocks
@@ -43,12 +43,12 @@
 (define hello-block
   (if (validate-block-content "Hello, Fold!")
       (make-block
-        'text
-        (string->utf8 "Hello, Fold!")
-        (vector))
+       'text
+       (string->utf8 "Hello, Fold!")
+       (vector))
       (begin
-        (log-security-event 'invalid-block-content "Hello, Fold!")
-        (make-block 'error (string->utf8 "Invalid content") (vector)))))
+       (log-security-event 'invalid-block-content "Hello, Fold!")
+       (make-block 'error (string->utf8 "Invalid content") (vector)))))
 
 (printf "Block 1: Simple text\n")
 (printf "  Tag:     ~a\n" (block-tag hello-block))
@@ -60,12 +60,12 @@
 (define poem-block
   (if (validate-block-content poem-content)
       (make-block
-        'poem
-        (string->utf8 poem-content)
-        (vector))
+       'poem
+       (string->utf8 poem-content)
+       (vector))
       (begin
-        (log-security-event 'invalid-block-content poem-content)
-        (make-block 'error (string->utf8 "Invalid poem content") (vector)))))
+       (log-security-event 'invalid-block-content poem-content)
+       (make-block 'error (string->utf8 "Invalid poem content") (vector)))))
 
 (printf "Block 2: A poem\n")
 (printf "  Tag:     ~a\n" (block-tag poem-block))
@@ -84,8 +84,8 @@
            (validate-block-content content))
       (make-block tag (string->utf8 content) (vector))
       (begin
-        (log-invalid-input "block-content" (cons tag content))
-        (make-block 'error (string->utf8 "Invalid block parameters") (vector)))))
+       (log-invalid-input "block-content" (cons tag content))
+       (make-block 'error (string->utf8 "Invalid block parameters") (vector)))))
 
 (define msg1 (safe-make-content-block 'data "test"))
 (define msg2 (safe-make-content-block 'data "test"))
@@ -128,9 +128,9 @@
 ;; Create a parent block that references the leaves
 (define parent
   (make-block
-    'parent
-    (string->utf8 "I am the parent")
-    (vector leaf1-hash leaf2-hash leaf3-hash)))
+   'parent
+   (string->utf8 "I am the parent")
+   (vector leaf1-hash leaf2-hash leaf3-hash)))
 
 (define parent-hash (hash-block parent))
 
@@ -141,9 +141,9 @@
 ;; Create a grandparent
 (define grandparent
   (make-block
-    'root
-    (string->utf8 "Family tree root")
-    (vector parent-hash)))
+   'root
+   (string->utf8 "Family tree root")
+   (vector parent-hash)))
 
 (define grandparent-hash (hash-block grandparent))
 
@@ -167,9 +167,9 @@
 
 (define original
   (make-block
-    'test
-    (string->utf8 "Round-trip test")
-    (vector leaf1-hash)))
+   'test
+   (string->utf8 "Round-trip test")
+   (vector leaf1-hash)))
 
 (printf "Original block:\n")
 (printf "  Tag: ~a\n" (block-tag original))
@@ -211,9 +211,9 @@
 ;; Relation: Turing invented the Turing Machine
 (define invented-relation
   (make-block
-    'relation
-    (string->utf8 "invented")
-    (vector turing-hash tm-hash)))
+   'relation
+   (string->utf8 "invented")
+   (vector turing-hash tm-hash)))
 
 (define relation-hash (hash-block invented-relation))
 
@@ -254,14 +254,14 @@
   (let loop ([chars (string->list str)]
              [current '()]
              [result '()])
-    (cond
-      [(null? chars)
-       (reverse (cons (list->string (reverse current)) result))]
-      [(char=? (car chars) delim)
-       (loop (cdr chars)
-             '()
-             (cons (list->string (reverse current)) result))]
-      [else
-       (loop (cdr chars)
-             (cons (car chars) current)
-             result)])))
+       (cond
+        [(null? chars)
+         (reverse (cons (list->string (reverse current)) result))]
+        [(char=? (car chars) delim)
+         (loop (cdr chars)
+               '()
+               (cons (list->string (reverse current)) result))]
+        [else
+         (loop (cdr chars)
+               (cons (car chars) current)
+               result)])))

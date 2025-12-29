@@ -38,18 +38,18 @@
 ;;; max-actions: hashtable mapping unit-id → max action points
 (define (make-turn-state unit-order max-actions)
   (let ([ap-table (make-hashtable equal-hash equal?)])
-    ;; Initialize action points
-    (for-each
-      (lambda (uid)
-        (hashtable-set! ap-table uid
-                       (hashtable-ref max-actions uid 2)))
-      unit-order)
-    (make-turn-state% 1  ; turn-number
-                     (if (null? unit-order) #f (car unit-order))  ; active-unit
-                     unit-order
-                     ap-table
-                     'movement  ; initial phase
-                     '())))  ; empty history
+       ;; Initialize action points
+       (for-each
+        (lambda (uid)
+                (hashtable-set! ap-table uid
+                                (hashtable-ref max-actions uid 2)))
+        unit-order)
+       (make-turn-state% 1  ; turn-number
+                         (if (null? unit-order) #f (car unit-order))  ; active-unit
+                         unit-order
+                         ap-table
+                         'movement  ; initial phase
+                         '())))  ; empty history
 
 ;;; make-turn-state-from-game : GameState → TurnState
 ;;; Create turn state from game state with default action points
@@ -57,12 +57,12 @@
   (let* ([units (game-all-units gs)]
          [unit-ids (map (lambda (entry) (unit%-id (cdr entry))) units)]
          [max-actions (make-hashtable equal-hash equal?)])
-    ;; Default 2 action points per unit
-    (for-each
-      (lambda (uid)
-        (hashtable-set! max-actions uid 2))
-      unit-ids)
-    (make-turn-state unit-ids max-actions)))
+        ;; Default 2 action points per unit
+        (for-each
+         (lambda (uid)
+                 (hashtable-set! max-actions uid 2))
+         unit-ids)
+        (make-turn-state unit-ids max-actions)))
 
 ;;; ============================================================
 ;;; Turn Queries
@@ -103,28 +103,28 @@
 (define (turn-spend-action ts unit-id cost)
   (let ([ap-table (hashtable-copy (turn-state%-action-points ts) #t)]
         [current (hashtable-ref (turn-state%-action-points ts) unit-id 0)])
-    (hashtable-set! ap-table unit-id (max 0 (- current cost)))
-    (make-turn-state% (turn-state%-turn-number ts)
-                     (turn-state%-active-unit ts)
-                     (turn-state%-turn-order ts)
-                     ap-table
-                     (turn-state%-phase ts)
-                     (turn-state%-history ts))))
+       (hashtable-set! ap-table unit-id (max 0 (- current cost)))
+       (make-turn-state% (turn-state%-turn-number ts)
+                         (turn-state%-active-unit ts)
+                         (turn-state%-turn-order ts)
+                         ap-table
+                         (turn-state%-phase ts)
+                         (turn-state%-history ts))))
 
 ;;; turn-log-action : TurnState × Symbol × Any → TurnState
 ;;; Add action to history
 (define (turn-log-action ts action-type details)
   (let ([entry (list (turn-state%-turn-number ts)
-                    (turn-state%-active-unit ts)
-                    action-type
-                    details)]
-        [history (turn-state%-history ts)])
-    (make-turn-state% (turn-state%-turn-number ts)
                      (turn-state%-active-unit ts)
-                     (turn-state%-turn-order ts)
-                     (turn-state%-action-points ts)
-                     (turn-state%-phase ts)
-                     (cons entry history))))
+                     action-type
+                     details)]
+        [history (turn-state%-history ts)])
+       (make-turn-state% (turn-state%-turn-number ts)
+                         (turn-state%-active-unit ts)
+                         (turn-state%-turn-order ts)
+                         (turn-state%-action-points ts)
+                         (turn-state%-phase ts)
+                         (cons entry history))))
 
 ;;; ============================================================
 ;;; Turn Advancement
@@ -134,15 +134,15 @@
 ;;; Advance to next phase in turn
 (define (turn-next-phase ts)
   (let ([current-phase (turn-state%-phase ts)])
-    (make-turn-state% (turn-state%-turn-number ts)
-                     (turn-state%-active-unit ts)
-                     (turn-state%-turn-order ts)
-                     (turn-state%-action-points ts)
-                     (case current-phase
-                       [(movement) 'action]
-                       [(action) 'end]
-                       [(end) 'movement])
-                     (turn-state%-history ts))))
+       (make-turn-state% (turn-state%-turn-number ts)
+                         (turn-state%-active-unit ts)
+                         (turn-state%-turn-order ts)
+                         (turn-state%-action-points ts)
+                         (case current-phase
+                               [(movement) 'action]
+                               [(action) 'end]
+                               [(end) 'movement])
+                         (turn-state%-history ts))))
 
 ;;; turn-next-unit : TurnState × Hashtable → TurnState
 ;;; Advance to next unit in turn order
@@ -152,25 +152,25 @@
   (let* ([order (turn-state%-turn-order ts)]
          [current (turn-state%-active-unit ts)]
          [current-idx (let loop ([idx 0] [lst order])
-                       (cond
-                         [(null? lst) -1]
-                         [(eq? (car lst) current) idx]
-                         [else (loop (+ idx 1) (cdr lst))]))]
+                           (cond
+                            [(null? lst) -1]
+                            [(eq? (car lst) current) idx]
+                            [else (loop (+ idx 1) (cdr lst))]))]
          [next-idx (modulo (+ current-idx 1) (length order))]
          [next-unit (list-ref order next-idx)]
          [new-turn? (= next-idx 0)]  ; Wrapped around to start
          [ap-table (hashtable-copy (turn-state%-action-points ts) #t)])
-    ;; Refresh action points for next unit
-    (hashtable-set! ap-table next-unit
-                   (hashtable-ref max-actions next-unit 2))
-    (make-turn-state% (if new-turn?
-                         (+ (turn-state%-turn-number ts) 1)
-                         (turn-state%-turn-number ts))
-                     next-unit
-                     order
-                     ap-table
-                     'movement  ; Reset to movement phase
-                     (turn-state%-history ts))))
+        ;; Refresh action points for next unit
+        (hashtable-set! ap-table next-unit
+                        (hashtable-ref max-actions next-unit 2))
+        (make-turn-state% (if new-turn?
+                              (+ (turn-state%-turn-number ts) 1)
+                              (turn-state%-turn-number ts))
+                          next-unit
+                          order
+                          ap-table
+                          'movement  ; Reset to movement phase
+                          (turn-state%-history ts))))
 
 ;;; turn-end-turn : TurnState × Hashtable → TurnState
 ;;; End current unit's turn and advance to next
@@ -190,11 +190,11 @@
 ;;; Get N most recent actions
 (define (turn-recent-actions ts n)
   (let loop ([actions (turn-state%-history ts)]
-            [count 0]
-            [result '()])
-    (if (or (null? actions) (>= count n))
-        (reverse result)
-        (loop (cdr actions) (+ count 1) (cons (car actions) result)))))
+             [count 0]
+             [result '()])
+       (if (or (null? actions) (>= count n))
+           (reverse result)
+           (loop (cdr actions) (+ count 1) (cons (car actions) result)))))
 
 ;;; ============================================================
 ;;; Initiative System
@@ -207,15 +207,15 @@
 ;;; Ties are broken by unit ID.
 (define (calculate-initiative-order units)
   (let ([sorted
-          (sort (lambda (u1 u2)
-                 (let ([init1 (unit-get-prop u1 'initiative 0)]
-                      [init2 (unit-get-prop u2 'initiative 0)])
-                   (if (= init1 init2)
-                       (string<? (symbol->string (unit%-id u1))
-                                (symbol->string (unit%-id u2)))
-                       (> init1 init2))))
+         (sort (lambda (u1 u2)
+                       (let ([init1 (unit-get-prop u1 'initiative 0)]
+                             [init2 (unit-get-prop u2 'initiative 0)])
+                            (if (= init1 init2)
+                                (string<? (symbol->string (unit%-id u1))
+                                          (symbol->string (unit%-id u2)))
+                                (> init1 init2))))
                units)])
-    (map unit%-id sorted)))
+       (map unit%-id sorted)))
 
 ;;; make-turn-state-with-initiative : GameState → TurnState
 ;;; Create turn state with initiative-based order
@@ -224,13 +224,13 @@
          [units (map cdr units-with-coords)]
          [initiative-order (calculate-initiative-order units)]
          [max-actions (make-hashtable equal-hash equal?)])
-    ;; Set max actions based on unit properties
-    (for-each
-      (lambda (unit)
-        (let ([actions (unit-get-prop unit 'actions-per-turn 2)])
-          (hashtable-set! max-actions (unit%-id unit) actions)))
-      units)
-    (make-turn-state initiative-order max-actions)))
+        ;; Set max actions based on unit properties
+        (for-each
+         (lambda (unit)
+                 (let ([actions (unit-get-prop unit 'actions-per-turn 2)])
+                      (hashtable-set! max-actions (unit%-id unit) actions)))
+         units)
+        (make-turn-state initiative-order max-actions)))
 
 ;;; ============================================================
 ;;; Integrated Turn System
@@ -260,15 +260,15 @@
   (let* ([ts (game-with-turns%-turns gwt)]
          [gs (game-with-turns%-game gwt)]
          [active (turn-current-unit ts)])
-    (if (and active (turn-can-act? ts active))
-        (let ([new-gs (action-fn gs)])
-          (if new-gs
-              (let* ([new-ts (turn-spend-action ts active cost)]
-                     [new-ts-with-log (turn-log-action new-ts action-type
-                                                      (turn-number new-ts))])
-                (make-game-with-turns% new-gs new-ts-with-log))
-              #f))  ; Action failed
-        #f)))  ; Can't act
+        (if (and active (turn-can-act? ts active))
+            (let ([new-gs (action-fn gs)])
+                 (if new-gs
+                     (let* ([new-ts (turn-spend-action ts active cost)]
+                            [new-ts-with-log (turn-log-action new-ts action-type
+                                                              (turn-number new-ts))])
+                           (make-game-with-turns% new-gs new-ts-with-log))
+                     #f))  ; Action failed
+            #f)))  ; Can't act
 
 ;;; ============================================================
 ;;; Exports Summary

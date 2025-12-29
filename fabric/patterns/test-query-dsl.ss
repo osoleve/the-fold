@@ -22,13 +22,13 @@
 (define (test name expected actual)
   (if (equal? expected actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (printf "  [PASS] ~a\n" name))
+       (set! tests-passed (+ tests-passed 1))
+       (printf "  [PASS] ~a\n" name))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (printf "  [FAIL] ~a\n" name)
-        (printf "      Expected: ~s\n" expected)
-        (printf "      Got:      ~s\n" actual))))
+       (set! tests-failed (+ tests-failed 1))
+       (printf "  [FAIL] ~a\n" name)
+       (printf "      Expected: ~s\n" expected)
+       (printf "      Got:      ~s\n" actual))))
 
 (define (test-true name actual)
   (test name #t actual))
@@ -39,12 +39,12 @@
 (define (test-pred name pred actual)
   (if (pred actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (printf "  [PASS] ~a\n" name))
+       (set! tests-passed (+ tests-passed 1))
+       (printf "  [PASS] ~a\n" name))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (printf "  [FAIL] ~a\n" name)
-        (printf "      Value ~s did not satisfy predicate\n" actual))))
+       (set! tests-failed (+ tests-failed 1))
+       (printf "  [FAIL] ~a\n" name)
+       (printf "      Value ~s did not satisfy predicate\n" actual))))
 
 ;;; ============================================================
 ;;; Test Setup - Create test store and blocks
@@ -58,7 +58,7 @@
 
 ;; Clean up any previous test store
 (when (file-exists? test-store-path)
-  (system (format "rm -rf ~a" test-store-path)))
+      (system (format "rm -rf ~a" test-store-path)))
 
 (define fs (mint-fs-capability test-store-path))
 
@@ -265,8 +265,8 @@
 ;; AND with three conditions
 (define triple-and-results
   (query fs '(and (tag . entity)
-                  (payload-contains . "name:")
-                  (payload-contains . "scientist"))))
+              (payload-contains . "name:")
+              (payload-contains . "scientist"))))
 (test "query with triple AND finds matching blocks"
       2  ;; Alice and Charlie
       (length triple-and-results))
@@ -482,8 +482,8 @@
 
 (test-pred "select (tag) returns alists with tag field"
            (lambda (results)
-             (and (pair? results)
-                  (assq 'tag (car results))))
+                   (and (pair? results)
+                        (assq 'tag (car results))))
            select-tags)
 
 ;; Select multiple fields
@@ -495,10 +495,10 @@
 
 (test-pred "select results have both fields"
            (lambda (results)
-             (and (pair? results)
-                  (let ([first-result (car results)])
-                    (and (assq 'tag first-result)
-                         (assq 'payload-size first-result)))))
+                   (and (pair? results)
+                        (let ([first-result (car results)])
+                             (and (assq 'tag first-result)
+                                  (assq 'payload-size first-result)))))
            select-multiple)
 
 ;; Select with refs-count
@@ -510,9 +510,9 @@
 
 (test-pred "relations have 2 refs each"
            (lambda (results)
-             (andmap (lambda (r)
-                       (= (cdr (assq 'refs-count r)) 2))
-                     results))
+                   (andmap (lambda (r)
+                                   (= (cdr (assq 'refs-count r)) 2))
+                           results))
            select-refs-count)
 
 ;; Select payload-str field
@@ -524,9 +524,9 @@
 
 (test-pred "payload-str contains Alice"
            (lambda (results)
-             (and (pair? results)
-                  (let ([payload (cdr (assq 'payload-str (car results)))])
-                    (query-string-contains? payload "Alice"))))
+                   (and (pair? results)
+                        (let ([payload (cdr (assq 'payload-str (car results)))])
+                             (query-string-contains? payload "Alice"))))
            select-payload-str)
 
 (printf "\n")
@@ -634,7 +634,7 @@
 
 (test-pred "has-refs results all have refs"
            (lambda (bs)
-             (andmap (lambda (b) (> (vector-length (block-refs b)) 0)) bs))
+                   (andmap (lambda (b) (> (vector-length (block-refs b)) 0)) bs))
            has-refs-results)
 
 ;; Find blocks with exactly 2 refs
@@ -676,7 +676,7 @@
   (query fs '(match (payload-size-gt . 100))))
 (test-pred "query (payload-size-gt . 100) finds large payloads"
            (lambda (bs)
-             (andmap (lambda (b) (> (bytevector-length (block-payload b)) 100)) bs))
+                   (andmap (lambda (b) (> (bytevector-length (block-payload b)) 100)) bs))
            large-payload-results)
 
 ;; Find blocks with payload < 10 bytes
@@ -684,7 +684,7 @@
   (query fs '(match (payload-size-lt . 10))))
 (test-pred "query (payload-size-lt . 10) finds small payloads"
            (lambda (bs)
-             (andmap (lambda (b) (< (bytevector-length (block-payload b)) 10)) bs))
+                   (andmap (lambda (b) (< (bytevector-length (block-payload b)) 10)) bs))
            small-payload-results)
 
 ;; Find empty payload blocks
@@ -750,7 +750,7 @@
 ;; (things that aren't referenced by other blocks)
 (test-pred "find-orphans includes unreferenced blocks"
            (lambda (orphans)
-             (>= (length orphans) 1))
+                   (>= (length orphans) 1))
            found-orphans)
 
 (printf "\n")
@@ -848,7 +848,7 @@
 ;; Query on empty store
 (define empty-store-path ".test-query-dsl-empty")
 (when (file-exists? empty-store-path)
-  (system (format "rm -rf ~a" empty-store-path)))
+      (system (format "rm -rf ~a" empty-store-path)))
 (define empty-fs (mint-fs-capability empty-store-path))
 
 (define empty-entity-results (query empty-fs '(tag . entity)))
@@ -869,15 +869,15 @@
 ;; Nested compound queries
 (define complex-nested
   (query fs '(and (or (tag . entity) (tag . relation))
-                  (not (payload-contains . "Diana")))))
+              (not (payload-contains . "Diana")))))
 (test-pred "complex nested query returns results"
            (lambda (bs)
-             (andmap (lambda (b)
-                       (and (or (eq? (block-tag b) 'entity)
-                                (eq? (block-tag b) 'relation))
-                            (not (query-string-contains?
-                                  (utf8->string (block-payload b)) "Diana"))))
-                     bs))
+                   (andmap (lambda (b)
+                                   (and (or (eq? (block-tag b) 'entity)
+                                            (eq? (block-tag b) 'relation))
+                                        (not (query-string-contains?
+                                              (utf8->string (block-payload b)) "Diana"))))
+                           bs))
            complex-nested)
 
 ;; Query with special characters in content (ensure no crashes)
@@ -890,7 +890,7 @@
 ;; Deep AND nesting
 (define deep-and-results
   (query fs '(and (and (tag . entity) (payload-contains . "name:"))
-                  (and (payload-contains . "scientist") (payload-contains . "Alice")))))
+              (and (payload-contains . "scientist") (payload-contains . "Alice")))))
 (test "deeply nested AND works"
       1  ;; Only Alice the scientist
       (length deep-and-results))
@@ -898,7 +898,7 @@
 ;; Deep OR nesting
 (define deep-or-results
   (query fs '(or (or (tag . marker) (tag . document))
-                 (or (tag . note) (tag . attribute)))))
+              (or (tag . note) (tag . attribute)))))
 (test "deeply nested OR works"
       5  ;; 1 marker + 1 document + 1 note + 2 attributes
       (length deep-or-results))

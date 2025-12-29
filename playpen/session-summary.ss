@@ -31,9 +31,9 @@
 
 (printf "📦 DELIVERABLES:\n\n")
 (for-each
-  (lambda (d)
-    (printf "  ✓ ~a\n    ~a\n\n" (car d) (cadr d)))
-  deliverables)
+ (lambda (d)
+         (printf "  ✓ ~a\n    ~a\n\n" (car d) (cadr d)))
+ deliverables)
 
 (printf "══════════════════════════════════════════════════════════════\n")
 (printf "PART 2: THE PLAY\n")
@@ -51,9 +51,9 @@
 
 (printf "🎮 EXPERIMENTS:\n\n")
 (for-each
-  (lambda (e)
-    (printf "  ✓ ~a\n    ~a\n\n" (car e) (cadr e)))
-  experiments)
+ (lambda (e)
+         (printf "  ✓ ~a\n    ~a\n\n" (car e) (cadr e)))
+ experiments)
 
 (printf "══════════════════════════════════════════════════════════════\n")
 (printf "PART 3: THE DISCOVERIES\n")
@@ -73,9 +73,9 @@
 
 (printf "💡 KEY INSIGHTS:\n\n")
 (let loop ([n 1] [items insights])
-  (when (pair? items)
-    (printf "  ~a. ~a\n" n (car items))
-    (loop (+ n 1) (cdr items))))
+     (when (pair? items)
+           (printf "  ~a. ~a\n" n (car items))
+           (loop (+ n 1) (cdr items))))
 
 (printf "\n")
 
@@ -97,12 +97,12 @@
 
 (printf "📊 BY THE NUMBERS:\n\n")
 (for-each
-  (lambda (stat)
-    (printf "  • ~a~a~a\n"
-            (car stat)
-            (make-string (max 1 (- 45 (string-length (car stat)))) #\.)
-            (cdr stat)))
-  impact-stats)
+ (lambda (stat)
+         (printf "  • ~a~a~a\n"
+                 (car stat)
+                 (make-string (max 1 (- 45 (string-length (car stat)))) #\.)
+                 (cdr stat)))
+ impact-stats)
 
 (printf "\n")
 
@@ -156,8 +156,8 @@
 
 (printf "🎯 REMAINING HIGH-PRIORITY WISHLIST ITEMS:\n\n")
 (for-each
-  (lambda (item) (printf "  ☐ ~a\n" item))
-  next-wishlist-items)
+ (lambda (item) (printf "  ☐ ~a\n" item))
+ next-wishlist-items)
 
 (printf "\n")
 

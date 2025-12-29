@@ -8,37 +8,37 @@
 (define (hash-block blk)
   (let* ([hash (sha256 (block->bytes blk))]
          [address (make-bytevector address-size)])
-    (bytevector-u8-set! address 0 address-version)
-    (bytevector-copy! hash 0 address 1 hash-size)
-    address))
+        (bytevector-u8-set! address 0 address-version)
+        (bytevector-copy! hash 0 address 1 hash-size)
+        address))
 
 (define (hash->hex hash)
   (let ([hex-chars "0123456789abcdef"])
-    (apply string-append
-           (map (lambda (i)
-                  (let ([b (bytevector-u8-ref hash i)])
-                    (string
-                      (string-ref hex-chars (quotient b 16))
-                      (string-ref hex-chars (modulo b 16)))))
-                (iota (bytevector-length hash))))))
+       (apply string-append
+              (map (lambda (i)
+                           (let ([b (bytevector-u8-ref hash i)])
+                                (string
+                                 (string-ref hex-chars (quotient b 16))
+                                 (string-ref hex-chars (modulo b 16)))))
+                   (iota (bytevector-length hash))))))
 
 (define (hex->hash str)
   (let* ([len (string-length str)]
          [result (make-bytevector (quotient len 2))])
-    (do ([i 0 (+ i 1)])
-        ((= i (bytevector-length result)))
-      (let* ([j (* i 2)]
-             [hi (char->hex-digit (string-ref str j))]
-             [lo (char->hex-digit (string-ref str (+ j 1)))])
-        (bytevector-u8-set! result i (+ (* hi 16) lo))))
-    result))
+        (do ([i 0 (+ i 1)])
+            ((= i (bytevector-length result)))
+            (let* ([j (* i 2)]
+                   [hi (char->hex-digit (string-ref str j))]
+                   [lo (char->hex-digit (string-ref str (+ j 1)))])
+                  (bytevector-u8-set! result i (+ (* hi 16) lo))))
+        result))
 
 (define (char->hex-digit c)
   (cond
-    [(char<=? #\0 c #\9) (- (char->integer c) (char->integer #\0))]
-    [(char<=? #\a c #\f) (+ 10 (- (char->integer c) (char->integer #\a)))]
-    [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
-    [else (error 'char->hex-digit "invalid hex character" c)]))
+   [(char<=? #\0 c #\9) (- (char->integer c) (char->integer #\0))]
+   [(char<=? #\a c #\f) (+ 10 (- (char->integer c) (char->integer #\a)))]
+   [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
+   [else (error 'char->hex-digit "invalid hex character" c)]))
 
 (load "thimble/fs.ss")
 (load "forum/tools.ss")
@@ -50,10 +50,10 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-        (display "✗\n    expected: ")
-        (display expected)
-        (display "\n    got: ")
-        (display actual)))
+       (display "✗\n    expected: ")
+       (display expected)
+       (display "\n    got: ")
+       (display actual)))
   (newline))
 
 ;;; Test store path
@@ -61,7 +61,7 @@
 
 (define (clean-test-store!)
   (when (file-exists? test-store-path)
-    (system (string-append "rm -rf " test-store-path))))
+        (system (string-append "rm -rf " test-store-path))))
 
 (display "Forum Tools Tests\n")
 (display "=================\n\n")
@@ -104,8 +104,8 @@
 (display "\nTest 5: Walk channel\n")
 (define walked-posts '())
 (walk-channel fs 'test-channel
-  (lambda (post)
-    (set! walked-posts (cons (cdr (assq 'body post)) walked-posts))))
+              (lambda (post)
+                      (set! walked-posts (cons (cdr (assq 'body post)) walked-posts))))
 (test "walked 2 posts" 2 (length walked-posts))
 (test "order newest first" "This is the second post." (car (reverse walked-posts)))
 

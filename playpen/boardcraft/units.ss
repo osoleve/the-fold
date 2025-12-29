@@ -47,21 +47,21 @@
 ;;; Get unit property with default
 (define (unit-get-prop unit prop default)
   (let ([props (unit%-properties unit)])
-    (if (assq prop props)
-        (cdr (assq prop props))
-        default)))
+       (if (assq prop props)
+           (cdr (assq prop props))
+           default)))
 
 ;;; unit-set-prop : Unit × Symbol × Any → Unit
 ;;; Set unit property (returns new unit)
 (define (unit-set-prop unit prop value)
   (let* ([props (unit%-properties unit)]
          [new-props (cons (cons prop value)
-                         (filter (lambda (p) (not (eq? (car p) prop)))
-                                props))])
-    (make-unit% (unit%-id unit)
-               (unit%-type unit)
-               (unit%-team unit)
-               new-props)))
+                          (filter (lambda (p) (not (eq? (car p) prop)))
+                                  props))])
+        (make-unit% (unit%-id unit)
+                    (unit%-type unit)
+                    (unit%-team unit)
+                    new-props)))
 
 ;;; ============================================================
 ;;; Game State (Board + Units)
@@ -82,8 +82,8 @@
 ;;; Create initial game state with empty units
 (define (make-game-state board)
   (make-game-state% board
-                   (make-hashtable equal-hash equal?)
-                   (make-hashtable equal-hash equal?)))
+                    (make-hashtable equal-hash equal?)
+                    (make-hashtable equal-hash equal?)))
 
 ;;; game-board : GameState → Board
 ;;; Get the board from game state
@@ -95,14 +95,14 @@
 (define (game-place-unit gs unit coord)
   (let ([c->u (hashtable-copy (game-state%-coord->unit gs) #t)]
         [u->c (hashtable-copy (game-state%-unit->coord gs) #t)])
-    ;; Remove unit from old position if it exists
-    (let ([old-coord (hashtable-ref u->c (unit%-id unit) #f)])
-      (when old-coord
-        (hashtable-delete! c->u old-coord)))
-    ;; Place unit at new position
-    (hashtable-set! c->u coord unit)
-    (hashtable-set! u->c (unit%-id unit) coord)
-    (make-game-state% (game-state%-board gs) c->u u->c)))
+       ;; Remove unit from old position if it exists
+       (let ([old-coord (hashtable-ref u->c (unit%-id unit) #f)])
+            (when old-coord
+                  (hashtable-delete! c->u old-coord)))
+       ;; Place unit at new position
+       (hashtable-set! c->u coord unit)
+       (hashtable-set! u->c (unit%-id unit) coord)
+       (make-game-state% (game-state%-board gs) c->u u->c)))
 
 ;;; game-remove-unit : GameState × Symbol → GameState
 ;;; Remove a unit by ID
@@ -110,10 +110,10 @@
   (let ([c->u (hashtable-copy (game-state%-coord->unit gs) #t)]
         [u->c (hashtable-copy (game-state%-unit->coord gs) #t)]
         [coord (hashtable-ref (game-state%-unit->coord gs) unit-id #f)])
-    (when coord
-      (hashtable-delete! c->u coord)
-      (hashtable-delete! u->c unit-id))
-    (make-game-state% (game-state%-board gs) c->u u->c)))
+       (when coord
+             (hashtable-delete! c->u coord)
+             (hashtable-delete! u->c unit-id))
+       (make-game-state% (game-state%-board gs) c->u u->c)))
 
 ;;; game-get-unit-at : GameState × Coord → Unit | #f
 ;;; Get unit at coordinate
@@ -129,16 +129,16 @@
 ;;; Get all units with their positions
 (define (game-all-units gs)
   (let ([c->u (game-state%-coord->unit gs)])
-    (map (lambda (coord)
-          (cons coord (hashtable-ref c->u coord #f)))
-         (vector->list (hashtable-keys c->u)))))
+       (map (lambda (coord)
+                    (cons coord (hashtable-ref c->u coord #f)))
+            (vector->list (hashtable-keys c->u)))))
 
 ;;; game-units-by-team : GameState × Symbol → (List (Coord . Unit))
 ;;; Get all units of a specific team
 (define (game-units-by-team gs team)
   (filter (lambda (entry)
-           (eq? (unit%-team (cdr entry)) team))
-         (game-all-units gs)))
+                  (eq? (unit%-team (cdr entry)) team))
+          (game-all-units gs)))
 
 ;;; ============================================================
 ;;; Unit Movement
@@ -152,13 +152,13 @@
   (let* ([board (game-board gs)]
          [start (game-get-unit-coord gs unit-id)]
          [unit (game-get-unit-at gs start)])
-    (if (and start unit)
-        (let* ([movement (unit-get-prop unit 'movement 999)]
-               [path (find-path-dijkstra board start dest neighbor-fn)])
-          (if (and path (<= (length path) (+ movement 1))) ; +1 for including start
-              (game-place-unit gs unit dest)
-              #f)) ; Path too long or doesn't exist
-        #f))) ; Unit not found
+        (if (and start unit)
+            (let* ([movement (unit-get-prop unit 'movement 999)]
+                   [path (find-path-dijkstra board start dest neighbor-fn)])
+                  (if (and path (<= (length path) (+ movement 1))) ; +1 for including start
+                      (game-place-unit gs unit dest)
+                      #f)) ; Path too long or doesn't exist
+            #f))) ; Unit not found
 
 ;;; game-unit-can-reach : GameState × Symbol × Coord × (Coord → List Coord) → Boolean
 ;;; Check if unit can reach destination
@@ -166,12 +166,12 @@
   (let* ([board (game-board gs)]
          [start (game-get-unit-coord gs unit-id)]
          [unit (game-get-unit-at gs start)])
-    (if (and start unit)
-        (let* ([movement (unit-get-prop unit 'movement 999)]
-               [reachable (board-reachable board start movement neighbor-fn)]
-               [reachable-coords (map car reachable)])
-          (member dest reachable-coords))
-        #f)))
+        (if (and start unit)
+            (let* ([movement (unit-get-prop unit 'movement 999)]
+                   [reachable (board-reachable board start movement neighbor-fn)]
+                   [reachable-coords (map car reachable)])
+                  (member dest reachable-coords))
+            #f)))
 
 ;;; ============================================================
 ;;; Unit Visibility
@@ -183,21 +183,21 @@
   (let* ([board (game-board gs)]
          [viewer-coord (game-get-unit-coord gs unit-id)]
          [viewer (game-get-unit-at gs viewer-coord)])
-    (if (and viewer-coord viewer)
-        (let* ([vision-range (unit-get-prop viewer 'vision 999)]
-               [visible-coords (board-fov board viewer-coord vision-range
-                                         neighbor-fn line-fn)]
-               [all-units (game-all-units gs)])
-          (filter-map
-            (lambda (entry)
-              (let ([coord (car entry)]
-                   [unit (cdr entry)])
-                (if (and (member coord visible-coords)
-                        (not (eq? (unit%-id unit) unit-id)))
-                    unit
-                    #f)))
-            all-units))
-        '())))
+        (if (and viewer-coord viewer)
+            (let* ([vision-range (unit-get-prop viewer 'vision 999)]
+                   [visible-coords (board-fov board viewer-coord vision-range
+                                              neighbor-fn line-fn)]
+                   [all-units (game-all-units gs)])
+                  (filter-map
+                   (lambda (entry)
+                           (let ([coord (car entry)]
+                                 [unit (cdr entry)])
+                                (if (and (member coord visible-coords)
+                                         (not (eq? (unit%-id unit) unit-id)))
+                                    unit
+                                    #f)))
+                   all-units))
+            '())))
 
 ;;; game-units-can-see-each-other : GameState × Symbol × Symbol × (Coord × Coord → List Coord) → Boolean
 ;;; Check if two units can see each other
@@ -205,9 +205,9 @@
   (let ([coord1 (game-get-unit-coord gs unit1-id)]
         [coord2 (game-get-unit-coord gs unit2-id)]
         [board (game-board gs)])
-    (if (and coord1 coord2)
-        (board-has-los? board coord1 coord2 line-fn)
-        #f)))
+       (if (and coord1 coord2)
+           (board-has-los? board coord1 coord2 line-fn)
+           #f)))
 
 ;;; ============================================================
 ;;; Rendering Integration
@@ -217,7 +217,7 @@
 ;;; Get character representation of unit
 (define (unit-char unit)
   (unit-get-prop unit 'char
-                (substring (symbol->string (unit%-type unit)) 0 1)))
+                 (substring (symbol->string (unit%-type unit)) 0 1)))
 
 ;;; game-render-with-units : GameState × StyleFn → String
 ;;; Render board with units shown

@@ -11,12 +11,12 @@
 ;; Test that easing functions are in valid range
 (define (test-easing-range name ease-fn)
   (let loop ([i 0])
-    (when (<= i 100)
-      (let* ([t (/ i 100.0)]
-             [result (ease-fn t)])
-        (assert (<= 0 result))
-        (assert (<= result 1))
-        (loop (+ i 1))))))
+       (when (<= i 100)
+             (let* ([t (/ i 100.0)]
+                    [result (ease-fn t)])
+                   (assert (<= 0 result))
+                   (assert (<= result 1))
+                   (loop (+ i 1))))))
 
 (test-easing-range "linear" ease-linear)
 (test-easing-range "in-quad" ease-in-quad)
@@ -37,6 +37,6 @@
 
 ;; Test interpolation with easing
 (let ([result (interpolate 0 100 0.5 ease-in-quad)])
-  (assert (= result 25))) ; ease-in-quad at 0.5 is 0.25
+     (assert (= result 25))) ; ease-in-quad at 0.5 is 0.25
 
 (display "All easing tests passed!\n")

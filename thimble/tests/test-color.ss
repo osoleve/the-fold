@@ -43,9 +43,9 @@
 (display "  rgb convenience: ")
 (define c-test (rgb 100 150 200))
 (display (and (color-rgb? c-test)
-             (= (list-ref c-test 1) 100)
-             (= (list-ref c-test 2) 150)
-             (= (list-ref c-test 3) 200)))
+              (= (list-ref c-test 1) 100)
+              (= (list-ref c-test 2) 150)
+              (= (list-ref c-test 3) 200)))
 (display " (expected #t)\n")
 
 (display "  ✓ Color constants accessible\n")

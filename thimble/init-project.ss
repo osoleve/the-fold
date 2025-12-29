@@ -43,7 +43,7 @@
 ;;; Initialize new project with defaults.
 (define (init-project name)
   (let ([config (make-default-config name)])
-    (create-project config)))
+       (create-project config)))
 
 ;;; init-project-interactive : → Bool
 ;;; Interactive wizard for project setup.
@@ -53,7 +53,7 @@
   (display "║              THE FOLD PROJECT INITIALIZATION                 ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n")
   (display "\n")
-
+  
   (let* ([name (prompt "Project name")]
          [type (prompt-choice "Project type" (map car *project-types*))]
          [description (prompt "Description")]
@@ -62,11 +62,11 @@
          [with-git? (prompt-bool "Initialize git?" #t)]
          [with-ci? (prompt-bool "Add CI/CD config?" #f)]
          [config (make-config name type description author
-                            with-tests? with-git? with-ci?)])
-
-    (display "\n")
-    (display "Creating project...\n")
-    (create-project config)))
+                              with-tests? with-git? with-ci?)])
+        
+        (display "\n")
+        (display "Creating project...\n")
+        (create-project config)))
 
 ;;; make-config : String × Symbol × String × String × Bool × Bool × Bool → Alist
 (define (make-config name type desc author tests? git? ci?)
@@ -89,73 +89,73 @@
 ;;; create-project : Alist → Bool
 (define (create-project config)
   (let ([name (assoc-ref config 'name)])
-    ;; Create directory structure
-    (create-directories config)
-
-    ;; Create files
-    (create-project-files config)
-
-    ;; Initialize git
-    (when (assoc-ref config 'with-git)
-      (init-git config))
-
-    ;; Display completion message
-    (display-completion name)
-    #t))
+       ;; Create directory structure
+       (create-directories config)
+       
+       ;; Create files
+       (create-project-files config)
+       
+       ;; Initialize git
+       (when (assoc-ref config 'with-git)
+             (init-git config))
+       
+       ;; Display completion message
+       (display-completion name)
+       #t))
 
 ;;; create-directories : Alist → void
 (define (create-directories config)
   (let ([name (assoc-ref config 'name)]
         [type (assoc-ref config 'type)])
-    (display (format "Creating directory structure for ~a...\n" name))
-
-    ;; Base directories
-    (make-directory name)
-
-    (case type
-      [(core-module)
-       (make-directory (path-join name "core"))
-       (make-directory (path-join name "tests"))]
-      [(shell-tool)
-       (make-directory (path-join name "shell"))
-       (make-directory (path-join name "tests"))]
-      [(application)
-       (make-directory (path-join name "core"))
-       (make-directory (path-join name "shell"))
-       (make-directory (path-join name "tests"))
-       (make-directory (path-join name "docs"))]
-      [(library)
-       (make-directory (path-join name "src"))
-       (make-directory (path-join name "tests"))
-       (make-directory (path-join name "examples"))]
-      [(playground)
-       (make-directory (path-join name "experiments"))])))
+       (display (format "Creating directory structure for ~a...\n" name))
+       
+       ;; Base directories
+       (make-directory name)
+       
+       (case type
+             [(core-module)
+              (make-directory (path-join name "core"))
+              (make-directory (path-join name "tests"))]
+             [(shell-tool)
+              (make-directory (path-join name "shell"))
+              (make-directory (path-join name "tests"))]
+             [(application)
+              (make-directory (path-join name "core"))
+              (make-directory (path-join name "shell"))
+              (make-directory (path-join name "tests"))
+              (make-directory (path-join name "docs"))]
+             [(library)
+              (make-directory (path-join name "src"))
+              (make-directory (path-join name "tests"))
+              (make-directory (path-join name "examples"))]
+             [(playground)
+              (make-directory (path-join name "experiments"))])))
 
 ;;; create-project-files : Alist → void
 (define (create-project-files config)
   (let ([name (assoc-ref config 'name)])
-    (display "Creating project files...\n")
-
-    ;; README
-    (create-readme config)
-
-    ;; CLAUDE.md (instructions for Claude Code)
-    (create-claude-md config)
-
-    ;; Main module file
-    (create-main-file config)
-
-    ;; Test file (if requested)
-    (when (assoc-ref config 'with-tests)
-      (create-test-file config))
-
-    ;; .gitignore (if git enabled)
-    (when (assoc-ref config 'with-git)
-      (create-gitignore config))
-
-    ;; CI config (if requested)
-    (when (assoc-ref config 'with-ci)
-      (create-ci-config config))))
+       (display "Creating project files...\n")
+       
+       ;; README
+       (create-readme config)
+       
+       ;; CLAUDE.md (instructions for Claude Code)
+       (create-claude-md config)
+       
+       ;; Main module file
+       (create-main-file config)
+       
+       ;; Test file (if requested)
+       (when (assoc-ref config 'with-tests)
+             (create-test-file config))
+       
+       ;; .gitignore (if git enabled)
+       (when (assoc-ref config 'with-git)
+             (create-gitignore config))
+       
+       ;; CI config (if requested)
+       (when (assoc-ref config 'with-ci)
+             (create-ci-config config))))
 
 ;;; create-readme : Alist → void
 (define (create-readme config)
@@ -163,28 +163,28 @@
          [desc (assoc-ref config 'description)]
          [path (path-join name "README.md")]
          [content (format-readme name desc)])
-    (write-file path content)
-    (display (format "  Created ~a\n" path))))
+        (write-file path content)
+        (display (format "  Created ~a\n" path))))
 
 ;;; format-readme : String × String → String
 (define (format-readme name desc)
   (string-append
-    "# " name "\n\n"
-    "> " desc "\n\n"
-    "## Installation\n\n"
-    "Load the module in your Scheme environment:\n\n"
-    "```scheme\n"
-    "(load \"" name ".ss\")\n"
-    "```\n\n"
-    "## Usage\n\n"
-    "TODO: Add usage examples\n\n"
-    "## Development\n\n"
-    "Run tests:\n\n"
-    "```bash\n"
-    "scheme --script run-tests.ss\n"
-    "```\n\n"
-    "## License\n\n"
-    "See LICENSE file.\n"))
+   "# " name "\n\n"
+   "> " desc "\n\n"
+   "## Installation\n\n"
+   "Load the module in your Scheme environment:\n\n"
+   "```scheme\n"
+   "(load \"" name ".ss\")\n"
+   "```\n\n"
+   "## Usage\n\n"
+   "TODO: Add usage examples\n\n"
+   "## Development\n\n"
+   "Run tests:\n\n"
+   "```bash\n"
+   "scheme --script run-tests.ss\n"
+   "```\n\n"
+   "## License\n\n"
+   "See LICENSE file.\n"))
 
 ;;; create-claude-md : Alist → void
 (define (create-claude-md config)
@@ -192,28 +192,28 @@
          [desc (assoc-ref config 'description)]
          [path (path-join name "CLAUDE.md")]
          [content (format-claude-md name desc)])
-    (write-file path content)
-    (display (format "  Created ~a\n" path))))
+        (write-file path content)
+        (display (format "  Created ~a\n" path))))
 
 ;;; format-claude-md : String × String → String
 (define (format-claude-md name desc)
   (string-append
-    "# CLAUDE.md\n\n"
-    "Instructions for Claude Code when working with this project.\n\n"
-    "## Project Overview\n\n"
-    "**" name "**: " desc "\n\n"
-    "## Architecture\n\n"
-    "TODO: Describe project architecture\n\n"
-    "## Development Guidelines\n\n"
-    "- Write pure functions in core/\n"
-    "- Handle effects in shell/\n"
-    "- Include tests for all new functionality\n"
-    "- Follow The Fold's conventions\n\n"
-    "## Testing\n\n"
-    "Run tests with:\n\n"
-    "```bash\n"
-    "scheme --script run-tests.ss\n"
-    "```\n"))
+   "# CLAUDE.md\n\n"
+   "Instructions for Claude Code when working with this project.\n\n"
+   "## Project Overview\n\n"
+   "**" name "**: " desc "\n\n"
+   "## Architecture\n\n"
+   "TODO: Describe project architecture\n\n"
+   "## Development Guidelines\n\n"
+   "- Write pure functions in core/\n"
+   "- Handle effects in shell/\n"
+   "- Include tests for all new functionality\n"
+   "- Follow The Fold's conventions\n\n"
+   "## Testing\n\n"
+   "Run tests with:\n\n"
+   "```bash\n"
+   "scheme --script run-tests.ss\n"
+   "```\n"))
 
 ;;; create-main-file : Alist → void
 (define (create-main-file config)
@@ -221,63 +221,63 @@
          [type (assoc-ref config 'type)]
          [desc (assoc-ref config 'description)]
          [path (case type
-                 [(core-module) (path-join name "core" (string-append name ".ss"))]
-                 [(shell-tool) (path-join name "shell" (string-append name ".ss"))]
-                 [else (path-join name (string-append name ".ss"))])]
+                     [(core-module) (path-join name "core" (string-append name ".ss"))]
+                     [(shell-tool) (path-join name "shell" (string-append name ".ss"))]
+                     [else (path-join name (string-append name ".ss"))])]
          [content (format-main-file name desc type)])
-    (write-file path content)
-    (display (format "  Created ~a\n" path))))
+        (write-file path content)
+        (display (format "  Created ~a\n" path))))
 
 ;;; format-main-file : String × String × Symbol → String
 (define (format-main-file name desc type)
   (string-append
-    ";;; " (case type
-             [(core-module) "core/"]
-             [(shell-tool) "shell/"]
-             [else ""]) name ".ss — " desc "\n"
-    ";;;\n"
-    ";;; TODO: Add detailed description\n"
-    ";;;\n"
-    (case type
-      [(core-module) ";;; This is Core code: pure, typed, total.\n"]
-      [(shell-tool) ";;; This is Shell code: impure, effectful.\n"]
-      [else ""])
-    "\n"
-    ";;; ============================================================\n"
-    ";;; Main Implementation\n"
-    ";;; ============================================================\n"
-    "\n"
-    ";;; TODO: Implement functionality\n"
-    "\n"
-    "(display \"" name " loaded\\n\")\n"))
+   ";;; " (case type
+                [(core-module) "core/"]
+                [(shell-tool) "shell/"]
+                [else ""]) name ".ss — " desc "\n"
+   ";;;\n"
+   ";;; TODO: Add detailed description\n"
+   ";;;\n"
+   (case type
+         [(core-module) ";;; This is Core code: pure, typed, total.\n"]
+         [(shell-tool) ";;; This is Shell code: impure, effectful.\n"]
+         [else ""])
+   "\n"
+   ";;; ============================================================\n"
+   ";;; Main Implementation\n"
+   ";;; ============================================================\n"
+   "\n"
+   ";;; TODO: Implement functionality\n"
+   "\n"
+   "(display \"" name " loaded\\n\")\n"))
 
 ;;; create-test-file : Alist → void
 (define (create-test-file config)
   (let* ([name (assoc-ref config 'name)]
          [path (path-join name "tests" (string-append "test-" name ".ss"))]
          [content (format-test-file name)])
-    (write-file path content)
-    (display (format "  Created ~a\n" path))))
+        (write-file path content)
+        (display (format "  Created ~a\n" path))))
 
 ;;; format-test-file : String → String
 (define (format-test-file name)
   (string-append
-    ";;; tests/test-" name ".ss — Tests for " name "\n\n"
-    "(load \"../" name ".ss\")\n\n"
-    ";;; Test assertions\n"
-    "(define (assert condition msg)\n"
-    "  (unless condition\n"
-    "    (error 'test msg)))\n\n"
-    ";;; TODO: Add tests\n\n"
-    "(display \"All tests passed\\n\")\n"))
+   ";;; tests/test-" name ".ss — Tests for " name "\n\n"
+   "(load \"../" name ".ss\")\n\n"
+   ";;; Test assertions\n"
+   "(define (assert condition msg)\n"
+   "  (unless condition\n"
+   "    (error 'test msg)))\n\n"
+   ";;; TODO: Add tests\n\n"
+   "(display \"All tests passed\\n\")\n"))
 
 ;;; create-gitignore : Alist → void
 (define (create-gitignore config)
   (let* ([name (assoc-ref config 'name)]
          [path (path-join name ".gitignore")]
          [content (format-gitignore)])
-    (write-file path content)
-    (display (format "  Created ~a\n" path))))
+        (write-file path content)
+        (display (format "  Created ~a\n" path))))
 
 ;;; format-gitignore : → String
 (define (format-gitignore)
@@ -288,25 +288,25 @@
   (let* ([name (assoc-ref config 'name)]
          [path (path-join name ".github" "workflows" "ci.yml")]
          [content (format-ci-config name)])
-    (make-directory (path-join name ".github"))
-    (make-directory (path-join name ".github" "workflows"))
-    (write-file path content)
-    (display (format "  Created ~a\n" path))))
+        (make-directory (path-join name ".github"))
+        (make-directory (path-join name ".github" "workflows"))
+        (write-file path content)
+        (display (format "  Created ~a\n" path))))
 
 ;;; format-ci-config : String → String
 (define (format-ci-config name)
   (string-append
-    "name: CI\n\n"
-    "on: [push, pull_request]\n\n"
-    "jobs:\n"
-    "  test:\n"
-    "    runs-on: ubuntu-latest\n"
-    "    steps:\n"
-    "      - uses: actions/checkout@v2\n"
-    "      - name: Install Chez Scheme\n"
-    "        run: sudo apt-get install chezscheme\n"
-    "      - name: Run tests\n"
-    "        run: scheme --script run-tests.ss\n"))
+   "name: CI\n\n"
+   "on: [push, pull_request]\n\n"
+   "jobs:\n"
+   "  test:\n"
+   "    runs-on: ubuntu-latest\n"
+   "    steps:\n"
+   "      - uses: actions/checkout@v2\n"
+   "      - name: Install Chez Scheme\n"
+   "        run: sudo apt-get install chezscheme\n"
+   "      - name: Run tests\n"
+   "        run: scheme --script run-tests.ss\n"))
 
 ;;; ============================================================
 ;;; Git Initialization
@@ -315,10 +315,10 @@
 ;;; init-git : Alist → void
 (define (init-git config)
   (let ([name (assoc-ref config 'name)])
-    (display "Initializing git repository...\n")
-    (system (format "cd ~a && git init" name))
-    (system (format "cd ~a && git add ." name))
-    (system (format "cd ~a && git commit -m \"Initial commit\"" name))))
+       (display "Initializing git repository...\n")
+       (system (format "cd ~a && git init" name))
+       (system (format "cd ~a && git add ." name))
+       (system (format "cd ~a && git commit -m \"Initial commit\"" name))))
 
 ;;; ============================================================
 ;;; Completion Display
@@ -351,37 +351,37 @@
 ;;; prompt-bool : String × Bool → Bool
 (define (prompt-bool question default)
   (let ([default-str (if default "Y/n" "y/N")])
-    (display (format "~a [~a]: " question default-str))
-    (flush-output-port)
-    (let ([response (get-line (current-input-port))])
-      (cond
-        [(string=? response "") default]
-        [(or (string=? response "y") (string=? response "Y")) #t]
-        [(or (string=? response "n") (string=? response "N")) #f]
-        [else default]))))
+       (display (format "~a [~a]: " question default-str))
+       (flush-output-port)
+       (let ([response (get-line (current-input-port))])
+            (cond
+             [(string=? response "") default]
+             [(or (string=? response "y") (string=? response "Y")) #t]
+             [(or (string=? response "n") (string=? response "N")) #f]
+             [else default]))))
 
 ;;; prompt-choice : String × (List Symbol) → Symbol
 (define (prompt-choice question choices)
   (display (format "~a:\n" question))
   (for-each
-    (lambda (choice i)
-      (display (format "  ~a. ~a\n" i choice)))
-    choices
-    (enumerate choices))
+   (lambda (choice i)
+           (display (format "  ~a. ~a\n" i choice)))
+   choices
+   (enumerate choices))
   (display "Choice: ")
   (flush-output-port)
   (let ([response (get-line (current-input-port))])
-    (let ([idx (string->number response)])
-      (if (and idx (>= idx 1) (<= idx (length choices)))
-          (list-ref choices (- idx 1))
-          (car choices)))))
+       (let ([idx (string->number response)])
+            (if (and idx (>= idx 1) (<= idx (length choices)))
+                (list-ref choices (- idx 1))
+                (car choices)))))
 
 ;;; enumerate : (List α) → (List Nat)
 (define (enumerate lst)
   (let loop ([i 1] [l lst] [result '()])
-    (if (null? l)
-        (reverse result)
-        (loop (+ i 1) (cdr l) (cons i result)))))
+       (if (null? l)
+           (reverse result)
+           (loop (+ i 1) (cdr l) (cons i result)))))
 
 ;;; ============================================================
 ;;; Utility Functions
@@ -390,7 +390,7 @@
 ;;; assoc-ref : Alist × Symbol → Any
 (define (assoc-ref alist key)
   (let ([entry (assq key alist)])
-    (if entry (cdr entry) #f)))
+       (if entry (cdr entry) #f)))
 
 ;;; path-join : String* → String
 (define (path-join . parts)
@@ -402,22 +402,22 @@
       ""
       (let loop ([ss (cdr strs)]
                  [result (car strs)])
-        (if (null? ss)
-            result
-            (loop (cdr ss)
-                  (string-append result sep (car ss)))))))
+           (if (null? ss)
+               result
+               (loop (cdr ss)
+                     (string-append result sep (car ss)))))))
 
 ;;; make-directory : Path → void
 (define (make-directory path)
   (guard (e [else (void)])
-    (system (format "mkdir -p ~a" path))))
+         (system (format "mkdir -p ~a" path))))
 
 ;;; write-file : Path × String → void
 (define (write-file path content)
   (call-with-output-file path
-    (lambda (port)
-      (display content port))
-    'replace))
+                         (lambda (port)
+                                 (display content port))
+                         'replace))
 
 (display "\n")
 (display "Project initialization wizard loaded.\n")

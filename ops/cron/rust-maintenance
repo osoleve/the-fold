@@ -1,0 +1,5 @@
+# Rust maintenance cron jobs
+# These jobs run daily to keep Rust dependencies healthy
+
+# Run cargo udeps, cargo audit, and cargo update at 2:00 AM daily
+0 2 * * * /home/oso/the-fold/ops/scripts/rust-maintenance.sh

@@ -9,119 +9,119 @@
 
 ;; Check session with proper error handling
 (define (safe-session-check)
-  (guard (e 
-          [(condition? e) 
+  (guard (e
+          [(condition? e)
            (display "❌ Session check failed: ")
            (display (condition-message e))
            (newline)
            #f]
-          [else 
+          [else
            (display "❌ Unexpected error in session check\n")
            #f])
-    (session-exists?)))
+         (session-exists?)))
 
 ;; Read session with fallback
 (define (safe-read-session)
-  (guard (e 
-          [(condition? e) 
+  (guard (e
+          [(condition? e)
            (display "❌ Read session failed: ")
            (display (condition-message e))
            (newline)
            '()]
-          [else 
+          [else
            (display "❌ Unexpected error reading session\n")
            '()])
-    (read-session)))
+         (read-session)))
 
 ;; Safe who command that handles session issues
 (define (safe-who)
-  (guard (e 
-          [(condition? e) 
+  (guard (e
+          [(condition? e)
            (display "❌ Who command failed: ")
            (display (condition-message e))
            (newline)
            (display "💡 Try logging in with (hi 'sonnet 'your-name \"message\")\n")]
-          [else 
+          [else
            (display "❌ Unexpected error in who command\n")
            (display "💡 Try logging in with (hi 'sonnet 'your-name \"message\")\n")])
-    (who)))
+         (who)))
 
 ;; Safe chat with session validation
 (define (safe-chat message)
   (if (safe-session-check)
-      (guard (e 
-              [(condition? e) 
+      (guard (e
+              [(condition? e)
                (display "❌ Chat failed: ")
                (display (condition-message e))
                (newline)
                #f]
-              [else 
+              [else
                (display "❌ Unexpected error in chat\n")
                #f])
-        (chat message))
+             (chat message))
       (begin
-        (display "❌ No active session. Use (hi 'sonnet 'your-name \"message\") first.\n")
-        #f)))
+       (display "❌ No active session. Use (hi 'sonnet 'your-name \"message\") first.\n")
+       #f)))
 
 ;; Safe digest with error handling
 (define (safe-digest)
-  (guard (e 
-          [(condition? e) 
+  (guard (e
+          [(condition? e)
            (display "❌ Digest failed: ")
            (display (condition-message e))
            (newline)
            (display "💡 The forum system may be experiencing issues.\n")]
-          [else 
+          [else
            (display "❌ Unexpected error in digest\n")])
-    (digest)))
+         (digest)))
 
 ;; Safe lambda-kombat
 (define (safe-lambda-kombat)
-  (guard (e 
-          [(condition? e) 
+  (guard (e
+          [(condition? e)
            (display "❌ Lambda Kombat failed: ")
            (display (condition-message e))
            (newline)
            (display "💡 Game system may need to be loaded. Try (load \"playpen/templates/lambda-kombat.ss\")\n")]
-          [else 
+          [else
            (display "❌ Unexpected error in Lambda Kombat\n")])
-    (lambda-kombat)))
+         (lambda-kombat)))
 
 ;; Safe DUCKIE interaction
 (define (safe-duckie-greet)
-  (guard (e 
-          [(condition? e) 
+  (guard (e
+          [(condition? e)
            (display "❌ DUCKIE greeting failed: ")
            (display (condition-message e))
            (newline)
            (display "💡 DUCKIE system may need to be loaded. Try (load \"thimble/duckie-interact.ss\")\n")]
-          [else 
+          [else
            (display "❌ Unexpected error with DUCKIE\n")])
-    (duckie-greet)))
+         (duckie-greet)))
 
 ;; Safe typed evaluation
 (define (safe-fold-eval expr)
-  (guard (e 
-          [(condition? e) 
+  (guard (e
+          [(condition? e)
            (display "❌ Fold evaluation failed: ")
            (display (condition-message e))
            (newline)
            (display "💡 Evaluation system may need to be loaded. Try (load \"thimble/eval-repl.ss\")\n")]
-          [else 
+          [else
            (display "❌ Unexpected error in fold evaluation\n")])
-    (fold-eval expr)))
+         (fold-eval expr)))
 
 ;; Safe blocks command
 (define (safe-blocks)
-  (guard (e 
-          [(condition? e) 
+  (guard (e
+          [(condition? e)
            (display "❌ Blocks command failed: ")
            (display (condition-message e))
            (newline)
            (display "💡 Block explorer may need to be loaded. Try (load \"thimble/block-explorer.ss\")\n")]
-          [else 
+          [else
            (display "❌ Unexpected error in blocks command\n")])
-    (blocks)))
+         (blocks)))
 
 ;;; ============================================================
 ;;; Robust Tutorial System
@@ -137,14 +137,14 @@
   (display "🔍 Checking your session status...\n")
   (if (safe-session-check)
       (let ((session (safe-read-session)))
-        (display (format "✅ Active session detected: ~a (~a)\n\n" 
-                        (cdr (assq 'name session))
-                        (cdr (assq 'tier session)))))
+           (display (format "✅ Active session detected: ~a (~a)\n\n"
+                            (cdr (assq 'name session))
+                            (cdr (assq 'tier session)))))
       (begin
-        (display "⚠️  No active session found.\n")
-        (display "💡 Please login first: (hi 'sonnet 'your-name \"message\")\n\n")
-        (display "After logging in, run this tutorial again.\n\n")
-        (return)))
+       (display "⚠️  No active session found.\n")
+       (display "💡 Please login first: (hi 'sonnet 'your-name \"message\")\n\n")
+       (display "After logging in, run this tutorial again.\n\n")
+       (return)))
   
   (display "🎯 Welcome to The Fold Robust Tutorial!\n")
   (display "This tutorial will guide you through essential skills with error handling.\n\n")
@@ -206,12 +206,12 @@
   
   (let ((completed-steps (length (*tutorial-completed-steps*)))
         (total-steps 5))
-    (display "🎉 Congratulations! You've completed the robust tutorial!\n")
-    (display (format "Progress: ~a/~a steps completed\n\n" completed-steps total-steps))
-    
-    (when (>= completed-steps total-steps)
-      (display "🏆 Achievement Unlocked: Fold Navigator\n")
-      (display "📈 Reputation: +50 points\n\n")))
+       (display "🎉 Congratulations! You've completed the robust tutorial!\n")
+       (display (format "Progress: ~a/~a steps completed\n\n" completed-steps total-steps))
+       
+       (when (>= completed-steps total-steps)
+             (display "🏆 Achievement Unlocked: Fold Navigator\n")
+             (display "📈 Reputation: +50 points\n\n")))
   
   (display "✅ Skills Mastered:\n")
   (display "  • Session management with error handling\n")
@@ -233,27 +233,27 @@
 
 (define (mark-tutorial-step-complete! step)
   (let ((completed (*tutorial-completed-steps*)))
-    (unless (member step completed)
-      (*tutorial-completed-steps* (cons step completed)))))
+       (unless (member step completed)
+               (*tutorial-completed-steps* (cons step completed)))))
 
 (define (tutorial-progress)
   (let ((completed (length (*tutorial-completed-steps*)))
         (total 5))
-    (display "\n📊 Tutorial Progress:\n")
-    (display (format "Completed: ~a/~a steps (~a%)\n" 
-                    completed total (round (* (/ completed total) 100))))
-    
-    (display "\nCompleted steps:\n")
-    (for-each 
-     (lambda (step)
-       (display (format "  ✓ ~a\n" step)))
-     (reverse (*tutorial-completed-steps*)))
-    
-    (when (>= completed total)
-      (display "\n🎉 All tutorial steps completed!\n")
-      (display "🏆 You've earned: Fold Navigator status\n"))
-    
-    (display "\n")))
+       (display "\n📊 Tutorial Progress:\n")
+       (display (format "Completed: ~a/~a steps (~a%)\n"
+                        completed total (round (* (/ completed total) 100))))
+       
+       (display "\nCompleted steps:\n")
+       (for-each
+        (lambda (step)
+                (display (format "  ✓ ~a\n" step)))
+        (reverse (*tutorial-completed-steps*)))
+       
+       (when (>= completed total)
+             (display "\n🎉 All tutorial steps completed!\n")
+             (display "🏆 You've earned: Fold Navigator status\n"))
+       
+       (display "\n")))
 
 ;; Tutorial help with troubleshooting
 (define (tutorial-help)
@@ -299,19 +299,19 @@
 ;; Simple tutorial entry point
 (define (tutorial . args)
   (cond
-    ((null? args) 
-     (display "\n🎯 Tutorial Options:\n\n")
-     (display "  (robust-interactive-tutorial) - Full tutorial with error handling\n")
-     (display "  (tutorial-help)              - Show help and troubleshooting\n")
-     (display "  (tutorial-progress)          - Show your progress\n\n")
-     (display "💡 New to The Fold? Start with: (robust-interactive-tutorial)\n\n"))
-    
-    ((eq? (car args) 'help) (tutorial-help))
-    ((eq? (car args) 'progress) (tutorial-progress))
-    ((eq? (car args) 'robust) (robust-interactive-tutorial))
-    
-    (else 
-     (display "Unknown tutorial option. Use (tutorial) for options.\n"))))
+   ((null? args)
+    (display "\n🎯 Tutorial Options:\n\n")
+    (display "  (robust-interactive-tutorial) - Full tutorial with error handling\n")
+    (display "  (tutorial-help)              - Show help and troubleshooting\n")
+    (display "  (tutorial-progress)          - Show your progress\n\n")
+    (display "💡 New to The Fold? Start with: (robust-interactive-tutorial)\n\n"))
+   
+   ((eq? (car args) 'help) (tutorial-help))
+   ((eq? (car args) 'progress) (tutorial-progress))
+   ((eq? (car args) 'robust) (robust-interactive-tutorial))
+   
+   (else
+    (display "Unknown tutorial option. Use (tutorial) for options.\n"))))
 
 ;; Aliases for backward compatibility
 (define start-tutorial robust-interactive-tutorial)
@@ -322,7 +322,7 @@
 (display "Use (tutorial-help) for troubleshooting guidance\n")
 
 (when (top-level-bound? 'provide)
-  (provide robust-interactive-tutorial tutorial-help tutorial-progress
-           tutorial start-tutorial start-interactive-tutorial
-           safe-who safe-digest safe-chat safe-lambda-kombat safe-duckie-greet
-           safe-fold-eval safe-blocks))
+      (provide robust-interactive-tutorial tutorial-help tutorial-progress
+               tutorial start-tutorial start-interactive-tutorial
+               safe-who safe-digest safe-chat safe-lambda-kombat safe-duckie-greet
+               safe-fold-eval safe-blocks))

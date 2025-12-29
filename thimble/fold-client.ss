@@ -31,9 +31,9 @@
 ;;; Create a request S-expression string for the given session and expression.
 (define (make-request session-id expr)
   (format "~s"
-    `((session-id . ,session-id)
-      (expression . ,expr)
-      (timestamp . ,(time-second (current-time))))))
+          `((session-id . ,session-id)
+            (expression . ,expr)
+            (timestamp . ,(time-second (current-time))))))
 
 ;;; request-path : String → String
 ;;; Get the file path for a session's request.
@@ -56,28 +56,28 @@
 (define (fold-eval session-id expr)
   (let ([req-path (request-path session-id)]
         [resp-path (response-path session-id)])
-
-    ;; Clear any stale response
-    (when (file-exists? resp-path)
-      (delete-file resp-path))
-
-    ;; Write request
-    (call-with-output-file req-path
-      (lambda (p)
-        (display (make-request session-id expr) p)))
-
-    ;; Poll for response (max 30 seconds)
-    (let loop ([attempts 300])
-      (cond
-        [(file-exists? resp-path)
-         (let ([response (call-with-input-file resp-path get-string-all)])
-           (delete-file resp-path)
-           response)]
-        [(= attempts 0)
-         "ERROR: Timeout waiting for response"]
-        [else
-         (sleep (make-time 'time-duration 100000000 0))  ; 100ms
-         (loop (- attempts 1))]))))
+       
+       ;; Clear any stale response
+       (when (file-exists? resp-path)
+             (delete-file resp-path))
+       
+       ;; Write request
+       (call-with-output-file req-path
+                              (lambda (p)
+                                      (display (make-request session-id expr) p)))
+       
+       ;; Poll for response (max 30 seconds)
+       (let loop ([attempts 300])
+            (cond
+             [(file-exists? resp-path)
+              (let ([response (call-with-input-file resp-path get-string-all)])
+                   (delete-file resp-path)
+                   response)]
+             [(= attempts 0)
+              "ERROR: Timeout waiting for response"]
+             [else
+              (sleep (make-time 'time-duration 100000000 0))  ; 100ms
+              (loop (- attempts 1))]))))
 
 ;;; ============================================================
 ;;; Session Management

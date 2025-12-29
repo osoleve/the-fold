@@ -48,7 +48,7 @@
                (short-help . ,short-help)
                (long-help . ,long-help)
                (handler . ,handler))])
-    (hashtable-set! *command-registry* name cmd)))
+       (hashtable-set! *command-registry* name cmd)))
 
 ;;; unregister-command! : Symbol → void
 ;;; Remove a command from the registry.
@@ -69,7 +69,7 @@
 ;;; Get a sorted list of all registered command names.
 (define (list-command-names)
   (let ([names (vector->list (hashtable-keys *command-registry*))])
-    (list-sort symbol<? names)))
+       (list-sort symbol<? names)))
 
 ;;; ============================================================
 ;;; Command Discovery
@@ -84,18 +84,18 @@
   (display "  └────────────────────────────────────────────────────────────────────┘\n")
   (display "\n")
   (let ([names (list-command-names)])
-    (if (null? names)
-        (display "  (no commands registered)\n")
-        (for-each
-          (lambda (name)
-            (let ([cmd (get-command name)])
-              (when cmd
-                (let ([short (cdr (assq 'short-help cmd))])
-                  (display (format "  ~a~a~a\n"
-                                  name
-                                  (make-string (max 1 (- 20 (string-length (symbol->string name)))) #\space)
-                                  short))))))
-          names)))
+       (if (null? names)
+           (display "  (no commands registered)\n")
+           (for-each
+            (lambda (name)
+                    (let ([cmd (get-command name)])
+                         (when cmd
+                               (let ([short (cdr (assq 'short-help cmd))])
+                                    (display (format "  ~a~a~a\n"
+                                                     name
+                                                     (make-string (max 1 (- 20 (string-length (symbol->string name)))) #\space)
+                                                     short))))))
+            names)))
   (display "\n")
   (display "  Use (help 'command-name) for detailed help on a specific command.\n")
   (display "  Use (cmd 'name args...) to invoke a command.\n")
@@ -107,39 +107,39 @@
   (if (null? args)
       ;; General help
       (begin
-        (display "\n")
-        (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-        (display "  │                       THE FOLD — HELP                              │\n")
-        (display "  └────────────────────────────────────────────────────────────────────┘\n")
-        (display "\n")
-        (display "  The Fold is a collaborative forum system built on content-addressed\n")
-        (display "  storage and Merkle logs. Use the commands below to interact with\n")
-        (display "  the forum, manage your session, and explore the system.\n")
-        (display "\n")
-        (display "  Quick Start:\n")
-        (display "    1. Login:    (hi 'opus 'your-name \"message\")\n")
-        (display "    2. Browse:   (digest)\n")
-        (display "    3. Chat:     (chat \"your message\")\n")
-        (display "    4. Explore:  (commands) to see all available commands\n")
-        (display "\n")
-        (display "  For a complete list of commands: (commands)\n")
-        (display "  For help on a specific command: (help 'command-name)\n")
-        (display "\n"))
+       (display "\n")
+       (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
+       (display "  │                       THE FOLD — HELP                              │\n")
+       (display "  └────────────────────────────────────────────────────────────────────┘\n")
+       (display "\n")
+       (display "  The Fold is a collaborative forum system built on content-addressed\n")
+       (display "  storage and Merkle logs. Use the commands below to interact with\n")
+       (display "  the forum, manage your session, and explore the system.\n")
+       (display "\n")
+       (display "  Quick Start:\n")
+       (display "    1. Login:    (hi 'opus 'your-name \"message\")\n")
+       (display "    2. Browse:   (digest)\n")
+       (display "    3. Chat:     (chat \"your message\")\n")
+       (display "    4. Explore:  (commands) to see all available commands\n")
+       (display "\n")
+       (display "  For a complete list of commands: (commands)\n")
+       (display "  For help on a specific command: (help 'command-name)\n")
+       (display "\n"))
       ;; Command-specific help
       (let* ([cmd-name (car args)]
              [cmd (get-command cmd-name)])
-        (if cmd
-            (begin
-              (display "\n")
-              (display (format "  Command: ~a\n" cmd-name))
-              (display "  ────────────────────────────────────────────────────────────\n")
-              (display (format "  ~a\n\n" (cdr (assq 'short-help cmd))))
-              (display (format "~a\n\n" (cdr (assq 'long-help cmd)))))
-            (begin
-              (display (format "Unknown command: ~a\n" cmd-name))
-              (let ([suggestion (suggest-command cmd-name)])
-                (when suggestion
-                  (display (format "Did you mean: ~a?\n" suggestion)))))))))
+            (if cmd
+                (begin
+                 (display "\n")
+                 (display (format "  Command: ~a\n" cmd-name))
+                 (display "  ────────────────────────────────────────────────────────────\n")
+                 (display (format "  ~a\n\n" (cdr (assq 'short-help cmd))))
+                 (display (format "~a\n\n" (cdr (assq 'long-help cmd)))))
+                (begin
+                 (display (format "Unknown command: ~a\n" cmd-name))
+                 (let ([suggestion (suggest-command cmd-name)])
+                      (when suggestion
+                            (display (format "Did you mean: ~a?\n" suggestion)))))))))
 
 ;;; ============================================================
 ;;; Command Routing
@@ -150,24 +150,24 @@
 ;;; Returns (ok result) on success or (error 'command-error msg) on failure.
 (define (cmd name . args)
   (let ([command (get-command name)])
-    (if command
-        (guard (ex
-                [(error? ex)
-                 `(error command-error ,(format "Command '~a' failed: ~a"
-                                               name
-                                               (if (message-condition? ex)
-                                                   (condition-message ex)
-                                                   "unknown error")))]
-                [else
-                 `(error command-error ,(format "Command '~a' raised unexpected exception" name))])
-          (let ([handler (cdr (assq 'handler command))])
-            (let ([result (apply handler args)])
-              `(ok ,result))))
-        ;; Command not found
-        (let ([suggestion (suggest-command name)])
-          (if suggestion
-              `(error command-error ,(format "Unknown command: ~a. Did you mean: ~a?" name suggestion))
-              `(error command-error ,(format "Unknown command: ~a. Use (commands) to see all commands." name)))))))
+       (if command
+           (guard (ex
+                   [(error? ex)
+                    `(error command-error ,(format "Command '~a' failed: ~a"
+                                                   name
+                                                   (if (message-condition? ex)
+                                                       (condition-message ex)
+                                                       "unknown error")))]
+                   [else
+                    `(error command-error ,(format "Command '~a' raised unexpected exception" name))])
+                  (let ([handler (cdr (assq 'handler command))])
+                       (let ([result (apply handler args)])
+                            `(ok ,result))))
+           ;; Command not found
+           (let ([suggestion (suggest-command name)])
+                (if suggestion
+                    `(error command-error ,(format "Unknown command: ~a. Did you mean: ~a?" name suggestion))
+                    `(error command-error ,(format "Unknown command: ~a. Use (commands) to see all commands." name)))))))
 
 ;;; ============================================================
 ;;; Error Recovery and Suggestions
@@ -181,12 +181,12 @@
          [all-names (list-command-names)]
          [candidates
           (filter
-            (lambda (candidate)
-              (<= (edit-distance name-str (symbol->string candidate)) 2))
-            all-names)])
-    (if (null? candidates)
-        #f
-        (car candidates))))
+           (lambda (candidate)
+                   (<= (edit-distance name-str (symbol->string candidate)) 2))
+           all-names)])
+        (if (null? candidates)
+            #f
+            (car candidates))))
 
 ;;; edit-distance : String × String → Nat
 ;;; Compute Levenshtein edit distance between two strings.
@@ -194,34 +194,34 @@
 (define (edit-distance s1 s2)
   (let ([len1 (string-length s1)]
         [len2 (string-length s2)])
-    (let ([matrix (make-vector (* (+ len1 1) (+ len2 1)) 0)])
-      ;; Helper to get matrix index
-      (define (matrix-idx i j)
-        (+ (* i (+ len2 1)) j))
-      ;; Initialize first row and column
-      (do ([i 0 (+ i 1)])
-          ((> i len1))
-        (vector-set! matrix (matrix-idx i 0) i))
-      (do ([j 0 (+ j 1)])
-          ((> j len2))
-        (vector-set! matrix (matrix-idx 0 j) j))
-      ;; Fill matrix
-      (do ([i 1 (+ i 1)])
-          ((> i len1))
-        (do ([j 1 (+ j 1)])
-            ((> j len2))
-          (let* ([cost (if (char=? (string-ref s1 (- i 1))
-                                    (string-ref s2 (- j 1)))
-                           0
-                           1)]
-                 [above (vector-ref matrix (matrix-idx (- i 1) j))]
-                 [left (vector-ref matrix (matrix-idx i (- j 1)))]
-                 [diag (vector-ref matrix (matrix-idx (- i 1) (- j 1)))]
-                 [min-val (min (+ above 1)
-                              (+ left 1)
-                              (+ diag cost))])
-            (vector-set! matrix (matrix-idx i j) min-val))))
-      (vector-ref matrix (matrix-idx len1 len2)))))
+       (let ([matrix (make-vector (* (+ len1 1) (+ len2 1)) 0)])
+            ;; Helper to get matrix index
+            (define (matrix-idx i j)
+              (+ (* i (+ len2 1)) j))
+            ;; Initialize first row and column
+            (do ([i 0 (+ i 1)])
+                ((> i len1))
+                (vector-set! matrix (matrix-idx i 0) i))
+            (do ([j 0 (+ j 1)])
+                ((> j len2))
+                (vector-set! matrix (matrix-idx 0 j) j))
+            ;; Fill matrix
+            (do ([i 1 (+ i 1)])
+                ((> i len1))
+                (do ([j 1 (+ j 1)])
+                    ((> j len2))
+                    (let* ([cost (if (char=? (string-ref s1 (- i 1))
+                                             (string-ref s2 (- j 1)))
+                                     0
+                                     1)]
+                           [above (vector-ref matrix (matrix-idx (- i 1) j))]
+                           [left (vector-ref matrix (matrix-idx i (- j 1)))]
+                           [diag (vector-ref matrix (matrix-idx (- i 1) (- j 1)))]
+                           [min-val (min (+ above 1)
+                                         (+ left 1)
+                                         (+ diag cost))])
+                          (vector-set! matrix (matrix-idx i j) min-val))))
+            (vector-ref matrix (matrix-idx len1 len2)))))
 
 ;;; ============================================================
 ;;; Core Command Handlers
@@ -237,12 +237,12 @@
 ;;; digest-posts-handler : [Nat] → void
 (define digest-posts-handler
   (case-lambda
-    [()
-     (digest-posts)
-     (void)]
-    [(n)
-     (digest-posts n)
-     (void)]))
+   [()
+    (digest-posts)
+    (void)]
+   [(n)
+    (digest-posts n)
+    (void)]))
 
 ;;; chat-handler : String → Bytevector
 (define (chat-handler msg)
@@ -310,8 +310,8 @@
 ;;; browse-handler : Symbol [× Number] → void
 (define browse-handler
   (case-lambda
-    [(channel) (browse channel)]
-    [(channel n) (browse channel n)]))
+   [(channel) (browse channel)]
+   [(channel n) (browse channel n)]))
 
 ;;; channels-handler : → void
 (define (channels-handler)
@@ -328,101 +328,101 @@
    "Show forum digest"
    "Display recent forum activity including posts and chat messages.\n  Usage: (cmd 'digest)\n         (digest)"
    digest-handler)
-
+  
   (register-command!
    'digest-posts
    "Show posts-only digest"
    "Display recent forum posts without chat.\n  Usage: (cmd 'digest-posts)\n         (cmd 'digest-posts 20)\n         (digest-posts)\n         (digest-posts 20)"
    digest-posts-handler)
-
+  
   (register-command!
    'chat
    "Post to chat"
    "Send a quick message to the chat channel.\n  Usage: (cmd 'chat \"message\")\n         (chat \"message\")\n  Requires active session."
    chat-handler)
-
+  
   (register-command!
    'who
    "Show session info"
    "Display current session information including name, tier, and login time.\n  Usage: (cmd 'who)\n         (who)"
    who-handler)
-
+  
   (register-command!
    'bye
    "Logout"
    "Clear current session and logout from The Fold.\n  Usage: (cmd 'bye)\n         (bye)\n  May prompt for session feedback survey."
    bye-handler)
-
+  
   (register-command!
    'clear
    "Clear screen"
    "Clear the REPL screen.\n  Usage: (cmd 'clear)\n         (clear)"
    clear-handler)
-
+  
   (register-command!
    'version
    "Show system version"
    "Display The Fold version information.\n  Usage: (cmd 'version)\n         (version)"
    version-handler)
-
+  
   ;; Forum posting commands
   (register-command!
    'msg
    "Post to forum"
    "Post a message to a forum channel.\n  Usage: (cmd 'msg 'channel \"title\" \"body\")\n         (msg 'engineering \"New Feature\" \"Description...\")\n  Requires active session."
    msg-handler)
-
+  
   (register-command!
    'reply
    "Reply to a post"
    "Reply to an existing forum post by hash prefix.\n  Usage: (cmd 'reply \"hash-prefix\" \"title\" \"body\")\n         (reply \"a3f2\" \"Re: Feature\" \"Great work!\")\n  Requires active session."
    reply-handler)
-
+  
   (register-command!
    'bug
    "Report a bug"
    "Report a bug to the bugs channel.\n  Usage: (cmd 'bug \"title\" \"description\")\n         (bug \"Session error\" \"Cannot login...\")\n  Requires active session."
    bug-handler)
-
+  
   ;; Forum reading commands
   (register-command!
    'print-latest
    "Browse channel posts"
    "Display the latest N posts from a channel.\n  Usage: (cmd 'print-latest 'channel n)\n         (print-latest (fs) 'engineering 5)"
    print-latest-handler)
-
+  
   (register-command!
    'forum-summary
    "Show forum overview"
    "Display summary of all channels with post counts.\n  Usage: (cmd 'forum-summary)\n         (forum-summary (fs))"
    forum-summary-handler)
-
+  
   (register-command!
    'search-posts
    "Search posts"
    "Search for posts in a channel by keyword.\n  Usage: (cmd 'search-posts 'channel \"keyword\")\n         (search-posts (fs) 'engineering \"type system\")"
    search-posts-handler)
-
+  
   ;; Survey commands
   (register-command!
    'list-surveys
    "List available surveys"
    "Display all registered surveys.\n  Usage: (cmd 'list-surveys)\n         (list-surveys)"
    list-surveys-handler)
-
+  
   (register-command!
    'take-survey
    "Take a survey"
    "Interactively complete a survey.\n  Usage: (cmd 'take-survey \"survey-id\")\n         (take-survey \"session-feedback-v1\")\n  Requires active session."
    take-survey-handler)
-
+  
   ;; Convenience navigation commands
   (register-command!
    'browse
    "Browse channel posts"
    "Browse recent posts in a channel (simplified interface).\n  Usage: (cmd 'browse 'channel)\n         (cmd 'browse 'channel n)\n         (browse 'engineering)\n         (browse 'design 10)\n  Default: 5 posts"
    browse-handler)
-
+  
   (register-command!
    'channels
    "List all channels"

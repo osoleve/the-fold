@@ -61,13 +61,13 @@
   (display ": ")
   (if (equal? expected actual)
       (begin
-        (set! *test-passed* (+ *test-passed* 1))
-        (display "✓"))
+       (set! *test-passed* (+ *test-passed* 1))
+       (display "✓"))
       (begin
-        (display "✗\n    expected: ")
-        (display expected)
-        (display "\n    got: ")
-        (display actual)))
+       (display "✗\n    expected: ")
+       (display expected)
+       (display "\n    got: ")
+       (display actual)))
   (newline))
 
 ;;; ============================================================
@@ -96,10 +96,10 @@
      (content . "Name: {{NAME}}\nVar1: {{VAR1}}\nVar2: {{VAR2}}"))))
 
 (let ([tmpl (get-template 'test-template)])
-  (test "template registered" #t (not (not tmpl)))
-  (test "template has description"
-        "A test template"
-        (cdr (assq 'description tmpl))))
+     (test "template registered" #t (not (not tmpl)))
+     (test "template has description"
+           "A test template"
+           (cdr (assq 'description tmpl))))
 
 ;;; Test 2: String search
 (display "\nTest 2: String search utility\n")
@@ -112,34 +112,34 @@
 (display "\nTest 3: Variable substitution\n")
 (let ([template "Hello {{NAME}}, your score is {{SCORE}}"]
       [bindings '(("NAME" . "Alice") ("SCORE" . "100"))])
-  (test "substitutes variables"
-        "Hello Alice, your score is 100"
-        (substitute-vars template bindings)))
+     (test "substitutes variables"
+           "Hello Alice, your score is 100"
+           (substitute-vars template bindings)))
 
 (let ([template "{{VAR1}} and {{VAR2}} and {{VAR1}} again"]
       [bindings '(("VAR1" . "first") ("VAR2" . "second"))])
-  (test "substitutes repeated variables"
-        "first and second and first again"
-        (substitute-vars template bindings)))
+     (test "substitutes repeated variables"
+           "first and second and first again"
+           (substitute-vars template bindings)))
 
 (let ([template "No variables here"]
       [bindings '(("NAME" . "Alice"))])
-  (test "handles no variables"
-        "No variables here"
-        (substitute-vars template bindings)))
+     (test "handles no variables"
+           "No variables here"
+           (substitute-vars template bindings)))
 
 ;;; Test 4: Build bindings
 (display "\nTest 4: Build bindings from name and options\n")
 (let ([bindings (build-bindings "my-module"
-                                 '((description . ("Desc" . "Default description")))
-                                 '((description . "Custom description")))])
-  (test "includes NAME" "my-module" (cdr (assoc "NAME" bindings)))
-  (test "includes NAME-UPPER" "MY-MODULE" (cdr (assoc "NAME-UPPER" bindings)))
-  (test "includes NAME-LOWER" "my-module" (cdr (assoc "NAME-LOWER" bindings)))
-  (test "includes custom var" "Custom description" (cdr (assoc "DESCRIPTION" bindings)))
-  (test "includes author" "TestAuthor" (cdr (assoc "AUTHOR" bindings)))
-  (test "includes timestamp" #t (string? (cdr (assoc "TIMESTAMP" bindings))))
-  (test "includes year" #t (string? (cdr (assoc "YEAR" bindings)))))
+                                '((description . ("Desc" . "Default description")))
+                                '((description . "Custom description")))])
+     (test "includes NAME" "my-module" (cdr (assoc "NAME" bindings)))
+     (test "includes NAME-UPPER" "MY-MODULE" (cdr (assoc "NAME-UPPER" bindings)))
+     (test "includes NAME-LOWER" "my-module" (cdr (assoc "NAME-LOWER" bindings)))
+     (test "includes custom var" "Custom description" (cdr (assoc "DESCRIPTION" bindings)))
+     (test "includes author" "TestAuthor" (cdr (assoc "AUTHOR" bindings)))
+     (test "includes timestamp" #t (string? (cdr (assoc "TIMESTAMP" bindings))))
+     (test "includes year" #t (string? (cdr (assoc "YEAR" bindings)))))
 
 ;;; Test 5: Template existence
 (display "\nTest 5: Built-in templates\n")
@@ -153,13 +153,13 @@
 ;;; Test 6: Template structure validation
 (display "\nTest 6: Template structure\n")
 (let ([shell-tmpl (get-template 'shell-module)])
-  (test "has description" #t (not (not (assq 'description shell-tmpl))))
-  (test "has variables" #t (not (not (assq 'variables shell-tmpl))))
-  (test "has files" #t (not (not (assq 'files shell-tmpl))))
-  (let ([files (cdr (assq 'files shell-tmpl))])
-    (test "generates at least 2 files" #t (>= (length files) 2))
-    (test "first file has path" #t (not (not (assq 'path (car files)))))
-    (test "first file has content" #t (not (not (assq 'content (car files)))))))
+     (test "has description" #t (not (not (assq 'description shell-tmpl))))
+     (test "has variables" #t (not (not (assq 'variables shell-tmpl))))
+     (test "has files" #t (not (not (assq 'files shell-tmpl))))
+     (let ([files (cdr (assq 'files shell-tmpl))])
+          (test "generates at least 2 files" #t (>= (length files) 2))
+          (test "first file has path" #t (not (not (assq 'path (car files)))))
+          (test "first file has content" #t (not (not (assq 'content (car files)))))))
 
 ;;; Test 7: Content generation for shell-module
 (display "\nTest 7: Shell module content generation\n")
@@ -170,10 +170,10 @@
        [main-file (car files)]
        [content-template (cdr (assq 'content main-file))]
        [content (substitute-vars content-template bindings)])
-  (test "contains module name" #t (string-contains? content "test-mod"))
-  (test "contains description" #t (string-contains? content "Test module"))
-  (test "contains author" #t (string-contains? content "TestAuthor"))
-  (test "has Shell marker" #t (string-contains? content "This is Shell code")))
+      (test "contains module name" #t (string-contains? content "test-mod"))
+      (test "contains description" #t (string-contains? content "Test module"))
+      (test "contains author" #t (string-contains? content "TestAuthor"))
+      (test "has Shell marker" #t (string-contains? content "This is Shell code")))
 
 ;;; Test 8: Content generation for core-module
 (display "\nTest 8: Core module content generation\n")
@@ -184,10 +184,10 @@
        [main-file (car files)]
        [content-template (cdr (assq 'content main-file))]
        [content (substitute-vars content-template bindings)])
-  (test "contains module name" #t (string-contains? content "pure-fn"))
-  (test "contains description" #t (string-contains? content "Pure computation"))
-  (test "has Core marker" #t (string-contains? content "This is Core code"))
-  (test "loads prelude" #t (string-contains? content "prelude.ss")))
+      (test "contains module name" #t (string-contains? content "pure-fn"))
+      (test "contains description" #t (string-contains? content "Pure computation"))
+      (test "has Core marker" #t (string-contains? content "This is Core code"))
+      (test "loads prelude" #t (string-contains? content "prelude.ss")))
 
 ;;; Test 9: Edge cases
 (display "\nTest 9: Edge cases\n")
@@ -210,18 +210,18 @@
 (let* ([file (car *test-files-written*)]
        [path (car file)]
        [content (cdr file)])
-  (test "path contains name" #t (string-contains? path "my-test"))
-  (test "content has var1" #t (string-contains? content "value1"))
-  (test "content has var2" #t (string-contains? content "value2")))
+      (test "path contains name" #t (string-contains? path "my-test"))
+      (test "content has var1" #t (string-contains? content "value1"))
+      (test "content has var2" #t (string-contains? content "value2")))
 
 ;;; Test 11: Timestamp utilities
 (display "\nTest 11: Timestamp utilities\n")
 (let ([ts (current-timestamp)])
-  (test "timestamp is string" #t (string? ts))
-  (test "timestamp non-empty" #t (> (string-length ts) 0))
-  (let ([year (timestamp-year ts)])
-    (test "year is 4 chars" 4 (string-length year))
-    (test "year value" "2025" year)))
+     (test "timestamp is string" #t (string? ts))
+     (test "timestamp non-empty" #t (> (string-length ts) 0))
+     (let ([year (timestamp-year ts)])
+          (test "year is 4 chars" 4 (string-length year))
+          (test "year value" "2025" year)))
 
 ;;; ============================================================
 ;;; Test Summary

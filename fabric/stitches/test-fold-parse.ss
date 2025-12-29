@@ -13,36 +13,36 @@
 (define (test name expected actual)
   (if (equal? expected actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (display "  ✓ ") (display name) (newline))
+       (set! tests-passed (+ tests-passed 1))
+       (display "  ✓ ") (display name) (newline))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (display "  ✗ ") (display name)
-        (display " — expected ") (write expected)
-        (display ", got ") (write actual)
-        (newline))))
+       (set! tests-failed (+ tests-failed 1))
+       (display "  ✗ ") (display name)
+       (display " — expected ") (write expected)
+       (display ", got ") (write actual)
+       (newline))))
 
 (define (test-parse name input expected)
   (let ([result (parse-fold-expr input)])
-    (if (eq? (car result) 'ok)
-        (test name expected (strip-spans (cadr result)))
-        (begin
-          (set! tests-failed (+ tests-failed 1))
-          (display "  ✗ ") (display name)
-          (display " — parse failed: ") (write result)
-          (newline)))))
+       (if (eq? (car result) 'ok)
+           (test name expected (strip-spans (cadr result)))
+           (begin
+            (set! tests-failed (+ tests-failed 1))
+            (display "  ✗ ") (display name)
+            (display " — parse failed: ") (write result)
+            (newline)))))
 
 (define (test-parse-error name input)
   (let ([result (parse-fold-expr input)])
-    (if (eq? (car result) 'error)
-        (begin
-          (set! tests-passed (+ tests-passed 1))
-          (display "  ✓ ") (display name) (display " (correctly failed)") (newline))
-        (begin
-          (set! tests-failed (+ tests-failed 1))
-          (display "  ✗ ") (display name)
-          (display " — should have failed, got: ") (write result)
-          (newline)))))
+       (if (eq? (car result) 'error)
+           (begin
+            (set! tests-passed (+ tests-passed 1))
+            (display "  ✓ ") (display name) (display " (correctly failed)") (newline))
+           (begin
+            (set! tests-failed (+ tests-failed 1))
+            (display "  ✗ ") (display name)
+            (display " — should have failed, got: ") (write result)
+            (newline)))))
 
 ;;; ============================================================
 ;;; Span Tests
@@ -97,21 +97,21 @@
       (state-column (initial-state "hello")))
 
 (let ([s (advance-state (initial-state "ab") #\a)])
-  (test "advance-state input"
-        "b"
-        (state-input s))
-  (test "advance-state column"
-        2
-        (state-column s)))
+     (test "advance-state input"
+           "b"
+           (state-input s))
+     (test "advance-state column"
+           2
+           (state-column s)))
 
 (let ([s (advance-state (initial-state "a\nb") #\a)])
-  (let ([s2 (advance-state s #\newline)])
-    (test "advance-state newline line"
-          2
-          (state-line s2))
-    (test "advance-state newline column"
-          1
-          (state-column s2))))
+     (let ([s2 (advance-state s #\newline)])
+          (test "advance-state newline line"
+                2
+                (state-line s2))
+          (test "advance-state newline column"
+                1
+                (state-column s2))))
 
 ;;; ============================================================
 ;;; Basic Parser Tests
@@ -120,27 +120,27 @@
 (display "\nBasic Parsers:\n")
 
 (let ([result (run-spanned s-item "abc")])
-  (test "s-item success"
-        #\a
-        (spanned-value result))
-  (test "s-item remaining"
-        "bc"
-        (state-input (spanned-state result))))
+     (test "s-item success"
+           #\a
+           (spanned-value result))
+     (test "s-item remaining"
+           "bc"
+           (state-input (spanned-state result))))
 
 (let ([result (run-spanned s-item "")])
-  (test "s-item empty fails"
-        #t
-        (spanned-err? result)))
+     (test "s-item empty fails"
+           #t
+           (spanned-err? result)))
 
 (let ([result (run-spanned s-eof "")])
-  (test "s-eof at end"
-        #t
-        (spanned-ok? result)))
+     (test "s-eof at end"
+           #t
+           (spanned-ok? result)))
 
 (let ([result (run-spanned s-eof "x")])
-  (test "s-eof not at end"
-        #t
-        (spanned-err? result)))
+     (test "s-eof not at end"
+           #t
+           (spanned-err? result)))
 
 ;;; ============================================================
 ;;; Number Parsing
@@ -241,33 +241,33 @@
 (display "\nSpan Tracking:\n")
 
 (let ([result (parse-fold-expr "42" "test.ss")])
-  (if (eq? (car result) 'ok)
-      (let ([ast (cadr result)])
-        (test "span preserved"
-              #t
-              (spanned-value? ast))
-        (test "span file"
-              "test.ss"
-              (span-file (get-value-span ast)))
-        (test "span line"
-              1
-              (span-line (get-value-span ast)))
-        (test "span column"
-              1
-              (span-column (get-value-span ast))))
-      (begin
-        (set! tests-failed (+ tests-failed 1))
-        (display "  ✗ span tracking failed to parse\n"))))
+     (if (eq? (car result) 'ok)
+         (let ([ast (cadr result)])
+              (test "span preserved"
+                    #t
+                    (spanned-value? ast))
+              (test "span file"
+                    "test.ss"
+                    (span-file (get-value-span ast)))
+              (test "span line"
+                    1
+                    (span-line (get-value-span ast)))
+              (test "span column"
+                    1
+                    (span-column (get-value-span ast))))
+         (begin
+          (set! tests-failed (+ tests-failed 1))
+          (display "  ✗ span tracking failed to parse\n"))))
 
 (let ([result (parse-fold-expr "  42" "test.ss")])
-  (if (eq? (car result) 'ok)
-      (let ([ast (cadr result)])
-        (test "span after whitespace column"
-              3
-              (span-column (get-value-span ast))))
-      (begin
-        (set! tests-failed (+ tests-failed 1))
-        (display "  ✗ span after whitespace failed to parse\n"))))
+     (if (eq? (car result) 'ok)
+         (let ([ast (cadr result)])
+              (test "span after whitespace column"
+                    3
+                    (span-column (get-value-span ast))))
+         (begin
+          (set! tests-failed (+ tests-failed 1))
+          (display "  ✗ span after whitespace failed to parse\n"))))
 
 ;;; ============================================================
 ;;; Error Cases

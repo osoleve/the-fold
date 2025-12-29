@@ -23,11 +23,11 @@
              (set! fail-count (+ fail-count 1))
              (display "FAIL\n")
              (display (format "  Error: ~a\n" (if (condition? e)
-                                                 (condition-message e)
-                                                 e)))])
-    (thunk)
-    (set! pass-count (+ pass-count 1))
-    (display "PASS\n")))
+                                                  (condition-message e)
+                                                  e)))])
+         (thunk)
+         (set! pass-count (+ pass-count 1))
+         (display "PASS\n")))
 
 ;;; ============================================================
 ;;; Test Module Dependency Analyzer
@@ -38,21 +38,21 @@
 (display "─────────────────────────────────────────────────────────\n")
 
 (test-case "Load module-deps.ss"
-  (lambda ()
-    (load "module-deps.ss")))
+           (lambda ()
+                   (load "module-deps.ss")))
 
 (test-case "Extract loads from string"
-  (lambda ()
-    (let ([code "(load \"foo.ss\") (load \"bar.ss\")"])
-      (let ([loads (extract-loads code)])
-        (unless (= (length loads) 2)
-          (error 'test "Expected 2 loads"))))))
+           (lambda ()
+                   (let ([code "(load \"foo.ss\") (load \"bar.ss\")"])
+                        (let ([loads (extract-loads code)])
+                             (unless (= (length loads) 2)
+                                     (error 'test "Expected 2 loads"))))))
 
 (test-case "Normalize path"
-  (lambda ()
-    (let ([result (normalize-path "shell/repl.ss" "fs.ss")])
-      (unless (string=? result "shell/fs.ss")
-        (error 'test (format "Expected shell/fs.ss, got ~a" result))))))
+           (lambda ()
+                   (let ([result (normalize-path "shell/repl.ss" "fs.ss")])
+                        (unless (string=? result "shell/fs.ss")
+                                (error 'test (format "Expected shell/fs.ss, got ~a" result))))))
 
 ;;; ============================================================
 ;;; Test Cross-Referencer
@@ -63,20 +63,20 @@
 (display "─────────────────────────────────────────────────────────\n")
 
 (test-case "Load xref.ss"
-  (lambda ()
-    (load "xref.ss")))
+           (lambda ()
+                   (load "xref.ss")))
 
 (test-case "Find symbol in expression"
-  (lambda ()
-    (let ([result (find-symbol-in-expr 'foo '(lambda (x) (+ x foo)))])
-      (unless result
-        (error 'test "Should find 'foo in expression")))))
+           (lambda ()
+                   (let ([result (find-symbol-in-expr 'foo '(lambda (x) (+ x foo)))])
+                        (unless result
+                                (error 'test "Should find 'foo in expression")))))
 
 (test-case "Extract defined name from define"
-  (lambda ()
-    (let ([name (extract-defined-name '(define (foo x) x))])
-      (unless (eq? name 'foo)
-        (error 'test (format "Expected 'foo, got ~a" name))))))
+           (lambda ()
+                   (let ([name (extract-defined-name '(define (foo x) x))])
+                        (unless (eq? name 'foo)
+                                (error 'test (format "Expected 'foo, got ~a" name))))))
 
 ;;; ============================================================
 ;;; Test Block Diff
@@ -87,24 +87,24 @@
 (display "─────────────────────────────────────────────────────────\n")
 
 (test-case "Load block-diff.ss"
-  (lambda ()
-    (load "block-diff.ss")))
+           (lambda ()
+                   (load "block-diff.ss")))
 
 (test-case "Blocks equal comparison"
-  (lambda ()
-    (load "block.ss")
-    (let ([b1 (make-block 'test #vu8(1 2 3) '#())]
-          [b2 (make-block 'test #vu8(1 2 3) '#())])
-      (unless (block-equal? b1 b2)
-        (error 'test "Identical blocks should be equal")))))
+           (lambda ()
+                   (load "block.ss")
+                   (let ([b1 (make-block 'test #vu8(1 2 3) '#())]
+                         [b2 (make-block 'test #vu8(1 2 3) '#())])
+                        (unless (block-equal? b1 b2)
+                                (error 'test "Identical blocks should be equal")))))
 
 (test-case "Compute block similarity"
-  (lambda ()
-    (let ([b1 (make-block 'test #vu8(1 2 3 4) '#())]
-          [b2 (make-block 'test #vu8(1 2 3 4) '#())])
-      (let ([sim (compute-block-similarity b1 b2)])
-        (unless (= sim 1.0)
-          (error 'test "Identical blocks should have similarity 1.0"))))))
+           (lambda ()
+                   (let ([b1 (make-block 'test #vu8(1 2 3 4) '#())]
+                         [b2 (make-block 'test #vu8(1 2 3 4) '#())])
+                        (let ([sim (compute-block-similarity b1 b2)])
+                             (unless (= sim 1.0)
+                                     (error 'test "Identical blocks should have similarity 1.0"))))))
 
 ;;; ============================================================
 ;;; Test Type Inspector
@@ -115,20 +115,20 @@
 (display "─────────────────────────────────────────────────────────\n")
 
 (test-case "Load type-inspect.ss"
-  (lambda ()
-    (load "type-inspect.ss")))
+           (lambda ()
+                   (load "type-inspect.ss")))
 
 (test-case "Type to string conversion"
-  (lambda ()
-    (let ([type-str (type->string 'Int)])
-      (unless (string=? type-str "Int")
-        (error 'test "Type->string failed")))))
+           (lambda ()
+                   (let ([type-str (type->string 'Int)])
+                        (unless (string=? type-str "Int")
+                                (error 'test "Type->string failed")))))
 
 (test-case "Function type to string"
-  (lambda ()
-    (let ([type-str (type->string '(→ (Int Int) Bool))])
-      (unless (string-contains? type-str "→")
-        (error 'test "Function type should contain arrow")))))
+           (lambda ()
+                   (let ([type-str (type->string '(→ (Int Int) Bool))])
+                        (unless (string-contains? type-str "→")
+                                (error 'test "Function type should contain arrow")))))
 
 ;;; ============================================================
 ;;; Test Fuel Profiler
@@ -139,15 +139,15 @@
 (display "─────────────────────────────────────────────────────────\n")
 
 (test-case "Load fuel-profile.ss"
-  (lambda ()
-    (load "fuel-profile.ss")))
+           (lambda ()
+                   (load "fuel-profile.ss")))
 
 (test-case "Find minimum fuel for simple expression"
-  (lambda ()
-    (load "eval.ss")
-    (let ([min-fuel (find-min-fuel '(+ 1 2) 1000)])
-      (unless (and (> min-fuel 0) (< min-fuel 1000))
-        (error 'test "Min fuel should be reasonable")))))
+           (lambda ()
+                   (load "eval.ss")
+                   (let ([min-fuel (find-min-fuel '(+ 1 2) 1000)])
+                        (unless (and (> min-fuel 0) (< min-fuel 1000))
+                                (error 'test "Min fuel should be reasonable")))))
 
 ;;; ============================================================
 ;;; Test Store Analyzer
@@ -158,20 +158,20 @@
 (display "─────────────────────────────────────────────────────────\n")
 
 (test-case "Load store-analyze.ss"
-  (lambda ()
-    (load "store-analyze.ss")))
+           (lambda ()
+                   (load "store-analyze.ss")))
 
 (test-case "Create hash set"
-  (lambda ()
-    (let ([hs (make-hash-set (list #vu8(1 2 3) #vu8(4 5 6)))])
-      (unless (hash-set-contains? hs #vu8(1 2 3))
-        (error 'test "Hash set should contain added hash")))))
+           (lambda ()
+                   (let ([hs (make-hash-set (list #vu8(1 2 3) #vu8(4 5 6)))])
+                        (unless (hash-set-contains? hs #vu8(1 2 3))
+                                (error 'test "Hash set should contain added hash")))))
 
 (test-case "Make histogram buckets"
-  (lambda ()
-    (let ([buckets (make-buckets '(50 150 600 3000))])
-      (unless (= (length buckets) 6)
-        (error 'test "Should create 6 buckets")))))
+           (lambda ()
+                   (let ([buckets (make-buckets '(50 150 600 3000))])
+                        (unless (= (length buckets) 6)
+                                (error 'test "Should create 6 buckets")))))
 
 ;;; ============================================================
 ;;; Test Toolkit Index
@@ -182,8 +182,8 @@
 (display "─────────────────────────────────────────────────────────\n")
 
 (test-case "Load toolkit.ss"
-  (lambda ()
-    (load "toolkit.ss")))
+           (lambda ()
+                   (load "toolkit.ss")))
 
 ;;; ============================================================
 ;;; Summary
@@ -199,8 +199,8 @@
 
 (if (= fail-count 0)
     (begin
-      (display "All tests passed! ✓\n")
-      (exit 0))
+     (display "All tests passed! ✓\n")
+     (exit 0))
     (begin
-      (display "Some tests failed. ✗\n")
-      (exit 1)))
+     (display "Some tests failed. ✗\n")
+     (exit 1)))

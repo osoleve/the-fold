@@ -92,15 +92,15 @@
   (let ([row (triangle-row t)]
         [col (triangle-col t)]
         [ori (triangle-orientation t)])
-    (if (eq? ori 'up)
-        ;; Up triangle: left-down, right-down, below-up
-        (list (triangle-coord row (- col 1) 'down)
-              (triangle-coord row (+ col 1) 'down)
-              (triangle-coord (+ row 1) col 'up))
-        ;; Down triangle: left-up, right-up, above-down
-        (list (triangle-coord row (- col 1) 'up)
-              (triangle-coord row (+ col 1) 'up)
-              (triangle-coord (- row 1) col 'down)))))
+       (if (eq? ori 'up)
+           ;; Up triangle: left-down, right-down, below-up
+           (list (triangle-coord row (- col 1) 'down)
+                 (triangle-coord row (+ col 1) 'down)
+                 (triangle-coord (+ row 1) col 'up))
+           ;; Down triangle: left-up, right-up, above-down
+           (list (triangle-coord row (- col 1) 'up)
+                 (triangle-coord row (+ col 1) 'up)
+                 (triangle-coord (- row 1) col 'down)))))
 
 ;;; triangle-neighbors-vertex : TriangleCoord → (List TriangleCoord)
 ;;; Get vertex-adjacent neighbors (sharing a corner but not edge)
@@ -110,15 +110,15 @@
   (let ([row (triangle-row t)]
         [col (triangle-col t)]
         [ori (triangle-orientation t)])
-    (if (eq? ori 'up)
-        ;; Up triangle vertex neighbors
-        (list (triangle-coord (- row 1) (- col 1) 'down)
-              (triangle-coord (- row 1) col 'up)
-              (triangle-coord (- row 1) (+ col 1) 'down))
-        ;; Down triangle vertex neighbors
-        (list (triangle-coord (+ row 1) (- col 1) 'up)
-              (triangle-coord (+ row 1) col 'down)
-              (triangle-coord (+ row 1) (+ col 1) 'up)))))
+       (if (eq? ori 'up)
+           ;; Up triangle vertex neighbors
+           (list (triangle-coord (- row 1) (- col 1) 'down)
+                 (triangle-coord (- row 1) col 'up)
+                 (triangle-coord (- row 1) (+ col 1) 'down))
+           ;; Down triangle vertex neighbors
+           (list (triangle-coord (+ row 1) (- col 1) 'up)
+                 (triangle-coord (+ row 1) col 'down)
+                 (triangle-coord (+ row 1) (+ col 1) 'up)))))
 
 ;;; triangle-neighbors-all : TriangleCoord → (List TriangleCoord)
 ;;; Get all neighbors (edge + vertex)
@@ -135,10 +135,10 @@
 ;;;   'all — all 7 neighbors (edge + vertex + flip)
 (define (triangle-neighbors coord mode)
   (case mode
-    [(edge)   (triangle-neighbors-edge coord)]
-    [(vertex) (triangle-neighbors-vertex coord)]
-    [(all)    (triangle-neighbors-all coord)]
-    [else     (error 'triangle-neighbors "Invalid mode" mode)]))
+        [(edge)   (triangle-neighbors-edge coord)]
+        [(vertex) (triangle-neighbors-vertex coord)]
+        [(all)    (triangle-neighbors-all coord)]
+        [else     (error 'triangle-neighbors "Invalid mode" mode)]))
 
 ;;; ============================================================
 ;;; Distance Metrics
@@ -179,17 +179,17 @@
          [dr (- r2 r1)]
          [dc (- c2 c1)]
          [steps (max (abs dr) (abs dc))])
-    (if (= steps 0)
-        (list t1)
-        (let loop ([i 0] [coords '()])
-          (if (> i steps)
-              (reverse coords)
-              (let* ([t (/ i steps)]
-                     [r (round (+ r1 (* dr t)))]
-                     [c (round (+ c1 (* dc t)))]
-                     [ori (triangle-default-orientation r c)]
-                     [coord (triangle-coord r c ori)])
-                (loop (+ i 1) (cons coord coords))))))))
+        (if (= steps 0)
+            (list t1)
+            (let loop ([i 0] [coords '()])
+                 (if (> i steps)
+                     (reverse coords)
+                     (let* ([t (/ i steps)]
+                            [r (round (+ r1 (* dr t)))]
+                            [c (round (+ c1 (* dc t)))]
+                            [ori (triangle-default-orientation r c)]
+                            [coord (triangle-coord r c ori)])
+                           (loop (+ i 1) (cons coord coords))))))))
 
 ;;; ============================================================
 ;;; Range and Area
@@ -201,22 +201,22 @@
 (define (triangle-range center radius)
   (let ([cr (triangle-row center)]
         [cc (triangle-col center)])
-    (let loop ([r (- cr radius)] [c (- cc radius)] [coords '()])
-      (cond
-        [(> r (+ cr radius)) coords]
-        [(> c (+ cc radius)) (loop (+ r 1) (- cc radius) coords)]
-        [else
-         (let* ([ori-up (triangle-coord r c 'up)]
-                [ori-down (triangle-coord r c 'down)]
-                [new-coords
-                  (append
-                    (if (<= (triangle-distance-manhattan center ori-up) radius)
-                        (list ori-up)
-                        '())
-                    (if (<= (triangle-distance-manhattan center ori-down) radius)
-                        (list ori-down)
-                        '()))])
-           (loop r (+ c 1) (append new-coords coords)))]))))
+       (let loop ([r (- cr radius)] [c (- cc radius)] [coords '()])
+            (cond
+             [(> r (+ cr radius)) coords]
+             [(> c (+ cc radius)) (loop (+ r 1) (- cc radius) coords)]
+             [else
+              (let* ([ori-up (triangle-coord r c 'up)]
+                     [ori-down (triangle-coord r c 'down)]
+                     [new-coords
+                      (append
+                       (if (<= (triangle-distance-manhattan center ori-up) radius)
+                           (list ori-up)
+                           '())
+                       (if (<= (triangle-distance-manhattan center ori-down) radius)
+                           (list ori-down)
+                           '()))])
+                    (loop r (+ c 1) (append new-coords coords)))]))))
 
 ;;; ============================================================
 ;;; Board Creation
@@ -229,25 +229,25 @@
 ;;;   Each (row, col) contains 2 triangles (up and down)
 (define make-triangle-board
   (case-lambda
-    [(rows cols)
-     (make-board 'triangle
-                 `((rows . ,rows) (cols . ,cols))
-                 triangle-coord-hash
-                 triangle-coord-equal?)]
-    [(rows cols default-tile)
-     (let ([board (make-board 'triangle
-                              `((rows . ,rows) (cols . ,cols))
-                              triangle-coord-hash
-                              triangle-coord-equal?)])
-       (let loop-r ([r 0] [b board])
-         (if (>= r rows)
-             b
-             (let loop-c ([c 0] [board2 b])
-               (if (>= c cols)
-                   (loop-r (+ r 1) board2)
-                   (let* ([b1 (board-set board2 (triangle-coord r c 'up) default-tile)]
-                          [b2 (board-set b1 (triangle-coord r c 'down) default-tile)])
-                     (loop-c (+ c 1) b2)))))))]))
+   [(rows cols)
+    (make-board 'triangle
+                `((rows . ,rows) (cols . ,cols))
+                triangle-coord-hash
+                triangle-coord-equal?)]
+   [(rows cols default-tile)
+    (let ([board (make-board 'triangle
+                             `((rows . ,rows) (cols . ,cols))
+                             triangle-coord-hash
+                             triangle-coord-equal?)])
+         (let loop-r ([r 0] [b board])
+              (if (>= r rows)
+                  b
+                  (let loop-c ([c 0] [board2 b])
+                       (if (>= c cols)
+                           (loop-r (+ r 1) board2)
+                           (let* ([b1 (board-set board2 (triangle-coord r c 'up) default-tile)]
+                                  [b2 (board-set b1 (triangle-coord r c 'down) default-tile)])
+                                 (loop-c (+ c 1) b2)))))))]))
 
 ;;; triangle-board-rows : Board → Integer
 (define (triangle-board-rows board)
@@ -263,7 +263,7 @@
         [c (triangle-col coord)]
         [rows (triangle-board-rows board)]
         [cols (triangle-board-cols board)])
-    (and (>= r 0) (< r rows) (>= c 0) (< c cols))))
+       (and (>= r 0) (< r rows) (>= c 0) (< c cols))))
 
 ;;; ============================================================
 ;;; Rotation and Reflection
@@ -276,9 +276,9 @@
   (let ([r (triangle-row coord)]
         [c (triangle-col coord)]
         [ori (triangle-orientation coord)])
-    (triangle-coord (- (* 2 center-r) r)
-                    (- (* 2 center-c) c)
-                    (if (eq? ori 'up) 'down 'up))))
+       (triangle-coord (- (* 2 center-r) r)
+                       (- (* 2 center-c) c)
+                       (if (eq? ori 'up) 'down 'up))))
 
 ;;; triangle-reflect-horizontal : TriangleCoord × Integer → TriangleCoord
 ;;; Reflect triangle across vertical axis at column C
@@ -286,9 +286,9 @@
   (let ([r (triangle-row coord)]
         [c (triangle-col coord)]
         [ori (triangle-orientation coord)])
-    (triangle-coord r
-                    (- (* 2 axis-col) c)
-                    ori)))
+       (triangle-coord r
+                       (- (* 2 axis-col) c)
+                       ori)))
 
 ;;; triangle-reflect-vertical : TriangleCoord × Integer → TriangleCoord
 ;;; Reflect triangle across horizontal axis at row R
@@ -296,9 +296,9 @@
   (let ([r (triangle-row coord)]
         [c (triangle-col coord)]
         [ori (triangle-orientation coord)])
-    (triangle-coord (- (* 2 axis-row) r)
-                    c
-                    (if (eq? ori 'up) 'down 'up))))
+       (triangle-coord (- (* 2 axis-row) r)
+                       c
+                       (if (eq? ori 'up) 'down 'up))))
 
 ;;; ============================================================
 ;;; Exports Summary

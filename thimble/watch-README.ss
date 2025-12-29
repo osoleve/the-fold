@@ -50,15 +50,15 @@
 
 ;;; Watch a single file:
 (watch-file "core/block.ss"
-  (lambda (changed-files)
-    (display "Block module changed!\n")
-    (load "fabric/stitches/block.ss")))
+            (lambda (changed-files)
+                    (display "Block module changed!\n")
+                    (load "fabric/stitches/block.ss")))
 
 ;;; Watch a directory with pattern:
 (watch-dir "core" "*.ss"
-  (lambda (changed-files)
-    (display "Core module(s) changed:\n")
-    (for-each display changed-files)))
+           (lambda (changed-files)
+                   (display "Core module(s) changed:\n")
+                   (for-each display changed-files)))
 
 ;;; Auto-reload convenience function:
 (auto-reload "shell/fs.ss")
@@ -274,20 +274,20 @@
 ;;; Custom Actions with Error Handling:
 
 (watch-file "core/block.ss"
-  (lambda (changed-files)
-    (guard (e [else
-               (display "Error reloading: ")
-               (if (condition? e)
-                   (display (condition-message e))
-                   (display e))
-               (newline)])
-      (load "fabric/stitches/block.ss")
-      (display "Reloaded successfully\n")
-      ;; Run smoke test
-      (let ([test-block (make-block 'test #vu8(1 2 3) empty-refs)])
-        (unless (block? test-block)
-          (error 'smoke-test "block creation failed")))
-      (display "Tests passed\n"))))
+            (lambda (changed-files)
+                    (guard (e [else
+                               (display "Error reloading: ")
+                               (if (condition? e)
+                                   (display (condition-message e))
+                                   (display e))
+                               (newline)])
+                           (load "fabric/stitches/block.ss")
+                           (display "Reloaded successfully\n")
+                           ;; Run smoke test
+                           (let ([test-block (make-block 'test #vu8(1 2 3) empty-refs)])
+                                (unless (block? test-block)
+                                        (error 'smoke-test "block creation failed")))
+                           (display "Tests passed\n"))))
 
 ;;; Smart Reload (reload module + dependents):
 
@@ -305,17 +305,17 @@
 (define *reload-in-progress* #f)
 
 (watch-file "core/block.ss"
-  (lambda (files)
-    (unless *reload-in-progress*
-      (set! *reload-in-progress* #t)
-      (guard (e [else
-                 (set! *reload-in-progress* #f)
-                 (raise e)])
-        (load "fabric/stitches/block.ss")
-        (load "fabric/stitches/normalize.ss")  ; depends on block
-        (load "thimble/fs.ss")         ; depends on block
-        (set! *reload-in-progress* #f)
-        (display "Cascade reload complete\n")))))
+            (lambda (files)
+                    (unless *reload-in-progress*
+                            (set! *reload-in-progress* #t)
+                            (guard (e [else
+                                       (set! *reload-in-progress* #f)
+                                       (raise e)])
+                                   (load "fabric/stitches/block.ss")
+                                   (load "fabric/stitches/normalize.ss")  ; depends on block
+                                   (load "thimble/fs.ss")         ; depends on block
+                                   (set! *reload-in-progress* #f)
+                                   (display "Cascade reload complete\n")))))
 
 ;;; ============================================================
 ;;; VISUAL FEEDBACK

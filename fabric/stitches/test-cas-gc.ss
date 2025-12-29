@@ -13,14 +13,14 @@
 (define (test name expected actual)
   (if (equal? expected actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (display "  ✓ ") (display name) (newline))
+       (set! tests-passed (+ tests-passed 1))
+       (display "  ✓ ") (display name) (newline))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (display "  ✗ ") (display name)
-        (display " — expected ") (write expected)
-        (display ", got ") (write actual)
-        (newline))))
+       (set! tests-failed (+ tests-failed 1))
+       (display "  ✗ ") (display name)
+       (display " — expected ") (write expected)
+       (display ", got ") (write actual)
+       (newline))))
 
 ;;; ============================================================
 ;;; Setup: Create test blocks
@@ -79,7 +79,7 @@
 
 ;; pin-tree! should pin root and all descendants
 (let ([count (pin-tree! root-hash)])
-  (test "pin-tree! returns count" 4 count))
+     (test "pin-tree! returns count" 4 count))
 
 (test "root pinned after pin-tree!" #t (pinned? root-hash))
 (test "child1 pinned after pin-tree!" #t (pinned? child1-hash))
@@ -89,7 +89,7 @@
 
 ;; unpin-tree! should unpin root and all descendants
 (let ([count (unpin-tree! root-hash)])
-  (test "unpin-tree! returns count" 4 count))
+     (test "unpin-tree! returns count" 4 count))
 
 (test "root unpinned after unpin-tree!" #f (pinned? root-hash))
 (test "child1 unpinned" #f (pinned? child1-hash))
@@ -106,9 +106,9 @@
 (pin! child1-hash)
 
 (let ([stats (gc-stats)])
-  (test "stats total" 5 (cdr (assq 'total stats)))
-  (test "stats pinned" 2 (cdr (assq 'pinned stats)))
-  (test "stats unpinned" 3 (cdr (assq 'unpinned stats))))
+     (test "stats total" 5 (cdr (assq 'total stats)))
+     (test "stats pinned" 2 (cdr (assq 'pinned stats)))
+     (test "stats unpinned" 3 (cdr (assq 'unpinned stats))))
 
 ;;; ============================================================
 ;;; Garbage Collection
@@ -123,8 +123,8 @@
 
 (test "before gc: 5 blocks" 5 (store-count))
 (let-values ([(collected remaining) (gc!)])
-  (test "gc collected unpinned" 1 collected)
-  (test "gc remaining" 4 remaining))
+            (test "gc collected unpinned" 1 collected)
+            (test "gc remaining" 4 remaining))
 
 (test "after gc: 4 blocks" 4 (store-count))
 (test "standalone removed" #f (stored? standalone-hash))
@@ -145,8 +145,8 @@
 
 ;; GC with only child2 as root should keep child2, remove others
 (let-values ([(collected remaining) (gc-with-roots! (list child2-hash))])
-  (test "gc-with-roots collected" 4 collected)
-  (test "gc-with-roots remaining" 1 remaining))
+            (test "gc-with-roots collected" 4 collected)
+            (test "gc-with-roots remaining" 1 remaining))
 
 (test "child2 survives" #t (stored? child2-hash))
 (test "root gone" #f (stored? root-hash))
@@ -165,19 +165,19 @@
 (hashtable-clear! *pinned*)
 
 (let-values ([(collected remaining) (gc!)])
-  (test "gc empty store collected" 0 collected)
-  (test "gc empty store remaining" 0 remaining))
+            (test "gc empty store collected" 0 collected)
+            (test "gc empty store remaining" 0 remaining))
 
 ;; Pin non-existent hash
 (let ([fake-hash (make-bytevector address-size 0)])
-  (pin! fake-hash)
-  (test "can pin non-existent" #t (pinned? fake-hash))
-  (unpin! fake-hash))
+     (pin! fake-hash)
+     (test "can pin non-existent" #t (pinned? fake-hash))
+     (unpin! fake-hash))
 
 ;; pin-tree! on non-existent
 (let ([fake-hash (make-bytevector address-size 1)])
-  (let ([count (pin-tree! fake-hash)])
-    (test "pin-tree! on missing returns 1" 1 count)))
+     (let ([count (pin-tree! fake-hash)])
+          (test "pin-tree! on missing returns 1" 1 count)))
 
 ;;; ============================================================
 ;;; Summary

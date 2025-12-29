@@ -35,15 +35,15 @@
 
 ;; Entities: People
 (define turing (make-entity 'person "Alan Turing"
-                           '((birth . 1912) (death . 1954))))
+                            '((birth . 1912) (death . 1954))))
 (define church (make-entity 'person "Alonzo Church"
-                           '((birth . 1903) (death . 1995))))
+                            '((birth . 1903) (death . 1995))))
 (define mccarthy (make-entity 'person "John McCarthy"
-                             '((birth . 1927) (death . 2011))))
+                              '((birth . 1927) (death . 2011))))
 (define sussman (make-entity 'person "Gerald Sussman"
-                            '((birth . 1947))))
+                             '((birth . 1947))))
 (define abelson (make-entity 'person "Hal Abelson"
-                            '((birth . 1947))))
+                             '((birth . 1947))))
 
 ;; Entities: Concepts
 (define turing-machine (make-entity 'concept "Turing Machine" '((year . 1936))))
@@ -74,28 +74,28 @@
 
 ;; Collections
 (define people (make-collection 'people "Pioneers"
-                               (list (hash-block turing) (hash-block church)
-                                     (hash-block mccarthy) (hash-block sussman)
-                                     (hash-block abelson))))
+                                (list (hash-block turing) (hash-block church)
+                                      (hash-block mccarthy) (hash-block sussman)
+                                      (hash-block abelson))))
 
 (define concepts (make-collection 'concepts "Core Ideas"
-                                 (list (hash-block turing-machine)
-                                       (hash-block lambda-calculus)
-                                       (hash-block lisp-lang)
-                                       (hash-block scheme-lang)
-                                       (hash-block sicp-book))))
+                                  (list (hash-block turing-machine)
+                                        (hash-block lambda-calculus)
+                                        (hash-block lisp-lang)
+                                        (hash-block scheme-lang)
+                                        (hash-block sicp-book))))
 
 (define relations (make-collection 'relations "Connections"
-                                  (list (hash-block r1) (hash-block r2)
-                                        (hash-block r3) (hash-block r4)
-                                        (hash-block r5) (hash-block r6)
-                                        (hash-block r7) (hash-block r8)
-                                        (hash-block r9))))
+                                   (list (hash-block r1) (hash-block r2)
+                                         (hash-block r3) (hash-block r4)
+                                         (hash-block r5) (hash-block r6)
+                                         (hash-block r7) (hash-block r8)
+                                         (hash-block r9))))
 
 (define kg (make-collection 'knowledge-graph "History of Computation"
-                           (list (hash-block people)
-                                 (hash-block concepts)
-                                 (hash-block relations))))
+                            (list (hash-block people)
+                                  (hash-block concepts)
+                                  (hash-block relations))))
 
 (printf "✓ Created 10 entities (5 people, 5 concepts)\n")
 (printf "✓ Created 9 relations\n")
@@ -116,30 +116,30 @@
 (define (string-contains? haystack needle)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i n-len) h-len) #f]
-        [(string=? (substring haystack i (+ i n-len)) needle) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i n-len) h-len) #f]
+             [(string=? (substring haystack i (+ i n-len)) needle) #t]
+             [else (loop (+ i 1))]))))
 
 ;;; find-outgoing : (List Block) Hash Symbol → (List Block)
 ;;; Find all relations from source with given type
 (define (find-outgoing relation-blocks source-hash rel-type)
   (filter (lambda (r)
-            (and (eq? (block-tag r) 'relation)
-                 (equal? (vector-ref (block-refs r) 0) source-hash)
-                 (let ([payload-str (utf8->string (block-payload r))])
-                   (string-contains? payload-str (symbol->string rel-type)))))
+                  (and (eq? (block-tag r) 'relation)
+                       (equal? (vector-ref (block-refs r) 0) source-hash)
+                       (let ([payload-str (utf8->string (block-payload r))])
+                            (string-contains? payload-str (symbol->string rel-type)))))
           relation-blocks))
 
 ;;; find-incoming : (List Block) Hash Symbol → (List Block)
 ;;; Find all relations to target with given type
 (define (find-incoming relation-blocks target-hash rel-type)
   (filter (lambda (r)
-            (and (eq? (block-tag r) 'relation)
-                 (equal? (vector-ref (block-refs r) 1) target-hash)
-                 (let ([payload-str (utf8->string (block-payload r))])
-                   (string-contains? payload-str (symbol->string rel-type)))))
+                  (and (eq? (block-tag r) 'relation)
+                       (equal? (vector-ref (block-refs r) 1) target-hash)
+                       (let ([payload-str (utf8->string (block-payload r))])
+                            (string-contains? payload-str (symbol->string rel-type)))))
           relation-blocks))
 
 ;;; transitive-closure : (List Block) Hash Symbol → (List Hash)
@@ -147,17 +147,17 @@
 (define (transitive-closure relation-blocks source-hash rel-type)
   (let loop ([frontier (list source-hash)]
              [visited '()])
-    (if (null? frontier)
-        visited
-        (let* ([current (car frontier)]
-               [rest-frontier (cdr frontier)])
-          (if (member current visited)
-              (loop rest-frontier visited)
-              (let* ([outgoing (find-outgoing relation-blocks current rel-type)]
-                     [targets (map (lambda (r) (vector-ref (block-refs r) 1))
-                                 outgoing)]
-                     [new-frontier (append rest-frontier targets)])
-                (loop new-frontier (cons current visited))))))))
+       (if (null? frontier)
+           visited
+           (let* ([current (car frontier)]
+                  [rest-frontier (cdr frontier)])
+                 (if (member current visited)
+                     (loop rest-frontier visited)
+                     (let* ([outgoing (find-outgoing relation-blocks current rel-type)]
+                            [targets (map (lambda (r) (vector-ref (block-refs r) 1))
+                                          outgoing)]
+                            [new-frontier (append rest-frontier targets)])
+                           (loop new-frontier (cons current visited))))))))
 
 (printf "Query functions defined:\n")
 (printf "  • find-outgoing       - find relations FROM an entity\n")
@@ -178,7 +178,7 @@
 (define turing-inventions (find-outgoing all-relations (hash-block turing) 'invented))
 (printf "A: Found ~a inventions\n" (length turing-inventions))
 (when (not (null? turing-inventions))
-  (printf "   Target: ~a\n" (hash->hex (vector-ref (block-refs (car turing-inventions)) 1))))
+      (printf "   Target: ~a\n" (hash->hex (vector-ref (block-refs (car turing-inventions)) 1))))
 (printf "\n")
 
 ;; Query 2: Who created SICP?
@@ -186,8 +186,8 @@
 (define sicp-authors (find-incoming all-relations (hash-block sicp-book) 'co-authored))
 (printf "A: Found ~a authors\n" (length sicp-authors))
 (for-each (lambda (r)
-            (printf "   Source: ~a\n"
-                    (hash->hex (vector-ref (block-refs r) 0))))
+                  (printf "   Source: ~a\n"
+                          (hash->hex (vector-ref (block-refs r) 0))))
           sicp-authors)
 (printf "\n")
 

@@ -10,42 +10,42 @@
 (display "TEST 1: Available Commands\n")
 (display "  (commands) => \n")
 (guard (e (else (display "    [ERROR] ")))
-  (commands))
+       (commands))
 (display "\n")
 
 ;;; Test 2: Help system
 (display "\nTEST 2: Help System\n")
 (display "  (help) => \n")
 (guard (e (else (display "    [ERROR] ")))
-  (help))
+       (help))
 (display "\n")
 
 ;;; Test 3: Version command
 (display "\nTEST 3: Version Command\n")
 (display "  (version) => ")
 (guard (e (else (display "[ERROR]")))
-  (version))
+       (version))
 (display "\n")
 
 ;;; Test 4: Session info
 (display "\nTEST 4: Who Command\n")
 (display "  (who) => ")
 (guard (e (else (display "[ERROR]")))
-  (who))
+       (who))
 (display "\n")
 
 ;;; Test 5: Chat command
 (display "\nTEST 5: Chat Command\n")
 (display "  (chat \"test message\") => ")
 (guard (e (else (display "[ERROR or NOT AVAILABLE]")))
-  (display (chat "test message")))
+       (display (chat "test message")))
 (display "\n")
 
 ;;; Test 6: String utilities if loaded
 (display "\nTEST 6: String Utilities\n")
 (display "  (string-pad \"hello\" 10) => ")
 (guard (e (else (display "[NOT AVAILABLE]")))
-  (display (string-pad "hello" 10)))
+       (display (string-pad "hello" 10)))
 (display "\n")
 
 ;;; Test 7: Multi-line strings
@@ -61,10 +61,10 @@ line 3")
 (display "\nTEST 8: Syntax Error Handling\n")
 (display "  Testing invalid syntax: (+ 1 2\n")
 (guard (e (else
-  (display "    [CAUGHT ERROR] ")
-  (display (condition-message e))
-  (display "\n")))
-  (eval (read)))
+           (display "    [CAUGHT ERROR] ")
+           (display (condition-message e))
+           (display "\n")))
+       (eval (read)))
 (display "\n")
 
 ;;; Test 9: Define function and use it
@@ -80,7 +80,7 @@ line 3")
 (define data '((name "Alice") (age 30) (city "NYC")))
 (display "  Processing alist: ")
 (guard (e (else (display "[ERROR]")))
-  (display (assoc 'name data)))
+       (display (assoc 'name data)))
 (display "\n")
 
 ;;; Test 11: Tail recursion
@@ -97,7 +97,7 @@ line 3")
 (display "\nTEST 12: Let* Bindings\n")
 (display "  (let* ((x 1) (y (+ x 1))) (+ x y)) => ")
 (guard (e (else (display "[ERROR]")))
-  (display (let* ((x 1) (y (+ x 1))) (+ x y))))
+       (display (let* ((x 1) (y (+ x 1))) (+ x y))))
 (display "\n")
 
 ;;; Test 13: Lambda with multiple args
@@ -106,35 +106,35 @@ line 3")
   (foldr + 0 args))
 (display "  Attempting (sum-args 1 2 3 4)...\n")
 (guard (e (else
-  (display "    [ERROR - foldr may not be available] ")))
-  (display "    Result: ")
-  (display (sum-args 1 2 3 4))
-  (display "\n"))
+           (display "    [ERROR - foldr may not be available] ")))
+       (display "    Result: ")
+       (display (sum-args 1 2 3 4))
+       (display "\n"))
 
 ;;; Test 14: Named let
 (display "\nTEST 14: Named Let (Loop)\n")
 (display "  Testing named let for countdown...\n")
 (guard (e (else (display "    [ERROR]")))
-  (let countdown ((n 3))
-    (display "    ")
-    (display n)
-    (if (> n 1)
-        (countdown (- n 1))
-        (display " done!")))
-  (display "\n"))
+       (let countdown ((n 3))
+            (display "    ")
+            (display n)
+            (if (> n 1)
+                (countdown (- n 1))
+                (display " done!")))
+       (display "\n"))
 
 ;;; Test 15: String utilities - split/join
 (display "\nTEST 15: String Manipulation\n")
 (display "  (string-split \"a,b,c\" \",\") => ")
 (guard (e (else (display "[NOT AVAILABLE]")))
-  (display (string-split "a,b,c" ",")))
+       (display (string-split "a,b,c" ",")))
 (display "\n")
 
 ;;; Test 16: Map with multiple lists
 (display "\nTEST 16: Map with Multiple Lists\n")
 (display "  (map + '(1 2 3) '(10 20 30)) => ")
 (guard (e (else (display "[ERROR]")))
-  (display (map + '(1 2 3) '(10 20 30))))
+       (display (map + '(1 2 3) '(10 20 30))))
 (display "\n")
 
 ;;; Test 17: For-each
@@ -142,33 +142,33 @@ line 3")
 (display "  (for-each (lambda (x) (display x) (display \" \")) '(a b c))\n")
 (display "  Output: ")
 (guard (e (else (display "[ERROR]")))
-  (for-each (lambda (x) (display x) (display " ")) '(a b c)))
+       (for-each (lambda (x) (display x) (display " ")) '(a b c)))
 (display "\n")
 
 ;;; Test 18: Partition lists
 (display "\nTEST 18: List Partition\n")
 (display "  Testing partition of '(1 2 3 4 5) into odds/evens...\n")
 (let ((nums '(1 2 3 4 5)))
-  (define odds (filter (lambda (x) (= 1 (modulo x 2))) nums))
-  (define evens (filter (lambda (x) (= 0 (modulo x 2))) nums))
-  (display "    Odds: ")
-  (display odds)
-  (display "\n    Evens: ")
-  (display evens)
-  (display "\n"))
+     (define odds (filter (lambda (x) (= 1 (modulo x 2))) nums))
+     (define evens (filter (lambda (x) (= 0 (modulo x 2))) nums))
+     (display "    Odds: ")
+     (display odds)
+     (display "\n    Evens: ")
+     (display evens)
+     (display "\n"))
 
 ;;; Test 19: Nested map
 (display "\nTEST 19: Nested Map\n")
 (display "  (map (lambda (x) (map (lambda (y) (* x y)) '(1 2 3))) '(1 2 3)) => \n    ")
 (guard (e (else (display "[ERROR]")))
-  (display (map (lambda (x) (map (lambda (y) (* x y)) '(1 2 3))) '(1 2 3))))
+       (display (map (lambda (x) (map (lambda (y) (* x y)) '(1 2 3))) '(1 2 3))))
 (display "\n")
 
 ;;; Test 20: Try using common list predicates
 (display "\nTEST 20: List Predicates\n")
 (display "  (member 2 '(1 2 3)) => ")
 (guard (e (else (display "[NOT AVAILABLE]")))
-  (display (member 2 '(1 2 3))))
+       (display (member 2 '(1 2 3))))
 (display "\n")
 
 (display "\n╔════════════════════════════════════════════════════════════╗\n")

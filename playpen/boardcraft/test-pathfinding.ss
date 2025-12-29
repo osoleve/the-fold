@@ -14,12 +14,12 @@
 (display "Finding path...\n")
 
 (let ([path (find-path-bfs board start goal
-                          (lambda (c) (square-neighbors c 'ortho)))])
-  (if path
-      (begin
-        (display "Path found! Length: ")
-        (display (length path))
-        (newline))
-      (display "No path\n")))
+                           (lambda (c) (square-neighbors c 'ortho)))])
+     (if path
+         (begin
+          (display "Path found! Length: ")
+          (display (length path))
+          (newline))
+         (display "No path\n")))
 
 (display "Done\n")

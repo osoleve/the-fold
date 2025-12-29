@@ -19,14 +19,14 @@
   (display ": ")
   (if (equal? expected actual)
       (begin
-        (set! *tests-passed* (+ *tests-passed* 1))
-        (display "PASS"))
+       (set! *tests-passed* (+ *tests-passed* 1))
+       (display "PASS"))
       (begin
-        (set! *tests-failed* (+ *tests-failed* 1))
-        (display "FAIL\n    expected: ")
-        (write expected)
-        (display "\n    got: ")
-        (write actual)))
+       (set! *tests-failed* (+ *tests-failed* 1))
+       (display "FAIL\n    expected: ")
+       (write expected)
+       (display "\n    got: ")
+       (write actual)))
   (newline))
 
 (define (test-true name actual)
@@ -113,19 +113,19 @@
 
 (display "\nTest 5: Analyze actual module (fabric/stitches/prelude.ss)\n")
 (let ([mod (analyze-module "fabric/stitches/prelude.ss")])
-  (test-true "module analyzed" (and mod #t))
-  (test "module name" "prelude" (cdr (assq 'name mod)))
-  ;; prelude.ss has no loads
-  (test "prelude loads" '() (cdr (assq 'loads mod)))
-  ;; prelude.ss defines many functions
-  (test-true "prelude has defines" (> (length (cdr (assq 'defines mod))) 5)))
+     (test-true "module analyzed" (and mod #t))
+     (test "module name" "prelude" (cdr (assq 'name mod)))
+     ;; prelude.ss has no loads
+     (test "prelude loads" '() (cdr (assq 'loads mod)))
+     ;; prelude.ss defines many functions
+     (test-true "prelude has defines" (> (length (cdr (assq 'defines mod))) 5)))
 
 (display "\nTest 6: Analyze module with loads (fabric/stitches/block.ss)\n")
 (let ([mod (analyze-module "fabric/stitches/block.ss")])
-  (test-true "module analyzed" (and mod #t))
-  (test "module name" "block" (cdr (assq 'name mod)))
-  ;; block.ss loads prelude.ss
-  (test "block loads prelude" '("prelude.ss") (cdr (assq 'loads mod))))
+     (test-true "module analyzed" (and mod #t))
+     (test "module name" "block" (cdr (assq 'name mod)))
+     ;; block.ss loads prelude.ss
+     (test "block loads prelude" '("prelude.ss") (cdr (assq 'loads mod))))
 
 ;;; ============================================================
 ;;; Test Directory Analysis
@@ -133,9 +133,9 @@
 
 (display "\nTest 7: Analyze directory (fabric/stitches/)\n")
 (let ([modules (analyze-directory "fabric/stitches")])
-  (test-true "found modules" (> (length modules) 5))
-  (test-true "found prelude" (ormap (lambda (m) (string=? "prelude" (cdr (assq 'name m)))) modules))
-  (test-true "found block" (ormap (lambda (m) (string=? "block" (cdr (assq 'name m)))) modules)))
+     (test-true "found modules" (> (length modules) 5))
+     (test-true "found prelude" (ormap (lambda (m) (string=? "prelude" (cdr (assq 'name m)))) modules))
+     (test-true "found block" (ormap (lambda (m) (string=? "block" (cdr (assq 'name m)))) modules)))
 
 ;;; ============================================================
 ;;; Test Graph Building
@@ -144,15 +144,15 @@
 (display "\nTest 8: Build dependency graph\n")
 (let* ([modules (analyze-directory "fabric/stitches")]
        [graph (build-dependency-graph modules)])
-  (let ([nodes (cdr (assq 'nodes graph))]
-        [edges (cdr (assq 'edges graph))])
-    (test-true "has nodes" (> (length nodes) 5))
-    (test-true "has edges" (> (length edges) 0))
-    ;; block depends on prelude
-    (test-true "block->prelude edge"
-               (ormap (lambda (e) (and (string=? (car e) "block")
-                                       (string=? (cdr e) "prelude")))
-                      edges))))
+      (let ([nodes (cdr (assq 'nodes graph))]
+            [edges (cdr (assq 'edges graph))])
+           (test-true "has nodes" (> (length nodes) 5))
+           (test-true "has edges" (> (length edges) 0))
+           ;; block depends on prelude
+           (test-true "block->prelude edge"
+                      (ormap (lambda (e) (and (string=? (car e) "block")
+                                              (string=? (cdr e) "prelude")))
+                             edges))))
 
 ;;; ============================================================
 ;;; Test Cycle Detection
@@ -164,14 +164,14 @@
        [edges '(("a" . "b") ("b" . "c") ("c" . "a"))]
        [graph `((nodes . ,nodes) (edges . ,edges))]
        [cycles (find-cycles graph)])
-  (test-true "found cycle" (> (length cycles) 0)))
+      (test-true "found cycle" (> (length cycles) 0)))
 
 ;; Create a test graph without cycles: a -> b -> c
 (let* ([nodes '("a" "b" "c")]
        [edges '(("a" . "b") ("b" . "c"))]
        [graph `((nodes . ,nodes) (edges . ,edges))]
        [cycles (find-cycles graph)])
-  (test "no cycles in DAG" '() cycles))
+      (test "no cycles in DAG" '() cycles))
 
 ;;; ============================================================
 ;;; Test Critical Modules
@@ -182,8 +182,8 @@
        [edges '(("a" . "c") ("b" . "c"))]  ; c has 2 dependents
        [graph `((nodes . ,nodes) (edges . ,edges))]
        [critical (critical-modules graph)])
-  (test "most critical" "c" (caar critical))
-  (test "c has 2 dependents" 2 (cdar critical)))
+      (test "most critical" "c" (caar critical))
+      (test "c has 2 dependents" 2 (cdar critical)))
 
 ;;; ============================================================
 ;;; Test ASCII Rendering
@@ -194,10 +194,10 @@
        [edges '(("foo" . "bar"))]
        [graph `((nodes . ,nodes) (edges . ,edges))]
        [output (render-graph-ascii graph)])
-  (test-true "output is string" (string? output))
-  (test-true "contains foo" (string-contains output "foo"))
-  (test-true "contains bar" (string-contains output "bar"))
-  (test-true "contains arrow" (string-contains output "-->")))
+      (test-true "output is string" (string? output))
+      (test-true "contains foo" (string-contains output "foo"))
+      (test-true "contains bar" (string-contains output "bar"))
+      (test-true "contains arrow" (string-contains output "-->")))
 
 ;;; ============================================================
 ;;; Integration Test: Full Report
@@ -205,12 +205,12 @@
 
 (display "\nTest 12: Full report generation\n")
 (let ([report (archextract-report "fabric/stitches")])
-  (test-true "report is string" (string? report))
-  (test-true "report has header" (string-contains report "ARCHITECTURE REPORT"))
-  (test-true "report has modules" (string-contains report "MODULES"))
-  (test-true "report has graph" (string-contains report "DEPENDENCY GRAPH"))
-  (test-true "report has cycles section" (string-contains report "CYCLES"))
-  (test-true "report has critical section" (string-contains report "CRITICAL MODULES")))
+     (test-true "report is string" (string? report))
+     (test-true "report has header" (string-contains report "ARCHITECTURE REPORT"))
+     (test-true "report has modules" (string-contains report "MODULES"))
+     (test-true "report has graph" (string-contains report "DEPENDENCY GRAPH"))
+     (test-true "report has cycles section" (string-contains report "CYCLES"))
+     (test-true "report has critical section" (string-contains report "CRITICAL MODULES")))
 
 ;;; ============================================================
 ;;; Summary

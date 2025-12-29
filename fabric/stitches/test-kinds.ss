@@ -11,10 +11,10 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-        (display "✗\n    expected: ")
-        (display expected)
-        (display "\n    got: ")
-        (display actual)))
+       (display "✗\n    expected: ")
+       (display expected)
+       (display "\n    got: ")
+       (display actual)))
   (newline))
 
 (define (test-section name)
@@ -152,7 +152,7 @@
 (test-section "Constrained Types")
 (define fmap-type
   '(=> ((Functor f))
-       (∀ (a b) (-> (-> a b) (@ f a) (@ f b)))))
+    (∀ (a b) (-> (-> a b) (@ f a) (@ f b)))))
 (test "constrained-type?" #t (constrained-type? fmap-type))
 (test "get-constraints" '((Functor f)) (get-constraints fmap-type))
 (test "get-underlying-type" '(∀ (a b) (-> (-> a b) (@ f a) (@ f b)))

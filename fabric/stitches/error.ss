@@ -103,15 +103,15 @@
 ;;; lookup-error-message : Phase × Code → String
 (define (lookup-error-message phase code)
   (let* ([table (case phase
-                  [(parse) *parse-errors*]
-                  [(infer) *infer-errors*]
-                  [(eval)  *eval-errors*]
-                  [(block cas) *block-errors*]
-                  [else '()])]
+                      [(parse) *parse-errors*]
+                      [(infer) *infer-errors*]
+                      [(eval)  *eval-errors*]
+                      [(block cas) *block-errors*]
+                      [else '()])]
          [entry (assq code table)])
-    (if entry
-        (cdr entry)
-        (symbol->string code))))
+        (if entry
+            (cdr entry)
+            (symbol->string code))))
 
 ;;; ============================================================
 ;;; Error Formatting
@@ -128,12 +128,12 @@
              [details (error-details err)]
              [message (lookup-error-message phase code)]
              [location (format-location ctx)])
-        (string-append
-         location
-         (format-phase phase)
-         message
-         (format-details code details)
-         (format-suggestion phase code details)))))
+            (string-append
+             location
+             (format-phase phase)
+             message
+             (format-details code details)
+             (format-suggestion phase code details)))))
 
 ;;; format-phase : Symbol → String
 (define (format-phase phase)
@@ -142,39 +142,39 @@
 ;;; format-location : Context → String
 (define (format-location ctx)
   (cond
-    [(span? ctx)
-     (let ([file (span-file ctx)]
-           [line (span-line ctx)]
-           [col (span-column ctx)])
-       (if (and (> line 0) (> col 0))
-           (format "~a:~a:~a: " file line col)
-           ""))]
-    [(string? ctx) (format "~a: " ctx)]
-    [else ""]))
+   [(span? ctx)
+    (let ([file (span-file ctx)]
+          [line (span-line ctx)]
+          [col (span-column ctx)])
+         (if (and (> line 0) (> col 0))
+             (format "~a:~a:~a: " file line col)
+             ""))]
+   [(string? ctx) (format "~a: " ctx)]
+   [else ""]))
 
 ;;; format-details : Code × Details → String
 (define (format-details code details)
   (if (null? details)
       ""
       (case code
-        [(unbound-variable)
-         (format ": '~a'" (car details))]
-        [(type-mismatch)
-         (if (>= (length details) 2)
-             (format "\n  expected: ~a\n  actual:   ~a"
-                     (car details) (cadr details))
-             "")]
-        [(arity-mismatch)
-         (if (>= (length details) 2)
-             (format " (expected ~a, got ~a)"
-                     (car details) (cadr details))
-             "")]
-        [(unknown-primitive)
-         (format ": '~a'" (car details))]
-        [else
-         (if (pair? details)
-             (format ": ~a" (car details))
-             "")])))
+            [(unbound-variable)
+             (format ": '~a'" (car details))]
+            [(type-mismatch)
+             (if (>= (length details) 2)
+                 (format "\n  expected: ~a\n  actual:   ~a"
+                         (car details) (cadr details))
+                 "")]
+            [(arity-mismatch)
+             (if (>= (length details) 2)
+                 (format " (expected ~a, got ~a)"
+                         (car details) (cadr details))
+                 "")]
+            [(unknown-primitive)
+             (format ": '~a'" (car details))]
+            [else
+             (if (pair? details)
+                 (format ": ~a" (car details))
+                 "")])))
 
 ;;; ============================================================
 ;;; Suggestions
@@ -183,35 +183,35 @@
 ;;; format-suggestion : Phase × Code × Details → String
 (define (format-suggestion phase code details)
   (let ([suggestion (get-suggestion phase code details)])
-    (if suggestion
-        (format "\n  hint: ~a" suggestion)
-        "")))
+       (if suggestion
+           (format "\n  hint: ~a" suggestion)
+           "")))
 
 ;;; get-suggestion : Phase × Code × Details → String | #f
 (define (get-suggestion phase code details)
   (case code
-    [(unbound-variable)
-     (cond
-       [(and (pair? details) (similar-to? (car details) 'define))
-        "Did you mean 'fn' for function definition?"]
-       [(and (pair? details) (similar-to? (car details) 'lambda))
-        "Use 'fn' instead of 'lambda' in The Fold"]
-       [else
-        "Check spelling or add a binding with 'let' or 'fix'"])]
-    [(type-mismatch)
-     "Ensure the expression returns the expected type"]
-    [(not-a-function)
-     "Only closures can be called. Check that the first element is a function."]
-    [(unknown-primitive)
-     (if (and (pair? details)
-              (memq (car details) '(+ - * /)))
-         (format "Use 'add', 'sub', 'mul', 'div' instead of ~a" (car details))
-         "See (help 'primitives) for available operations")]
-    [(unclosed-list)
-     "Count your parentheses - every ( needs a matching )"]
-    [(unclosed-string)
-     "Add a closing \" to complete the string"]
-    [else #f]))
+        [(unbound-variable)
+         (cond
+          [(and (pair? details) (similar-to? (car details) 'define))
+           "Did you mean 'fn' for function definition?"]
+          [(and (pair? details) (similar-to? (car details) 'lambda))
+           "Use 'fn' instead of 'lambda' in The Fold"]
+          [else
+           "Check spelling or add a binding with 'let' or 'fix'"])]
+        [(type-mismatch)
+         "Ensure the expression returns the expected type"]
+        [(not-a-function)
+         "Only closures can be called. Check that the first element is a function."]
+        [(unknown-primitive)
+         (if (and (pair? details)
+                  (memq (car details) '(+ - * /)))
+             (format "Use 'add', 'sub', 'mul', 'div' instead of ~a" (car details))
+             "See (help 'primitives) for available operations")]
+        [(unclosed-list)
+         "Count your parentheses - every ( needs a matching )"]
+        [(unclosed-string)
+         "Add a closing \" to complete the string"]
+        [else #f]))
 
 ;;; similar-to? : Symbol × Symbol → Boolean
 ;;; Check if two symbols are similar (for typo detection).
@@ -219,7 +219,7 @@
   (and (symbol? s1) (symbol? s2)
        (let ([str1 (symbol->string s1)]
              [str2 (symbol->string s2)])
-         (<= (edit-distance str1 str2) 2))))
+            (<= (edit-distance str1 str2) 2))))
 
 ;;; edit-distance : String × String → Int
 ;;; Levenshtein distance between two strings.
@@ -227,24 +227,24 @@
   (let* ([len1 (string-length s1)]
          [len2 (string-length s2)]
          [matrix (make-vector (* (+ len1 1) (+ len2 1)) 0)])
-    ;; Initialize first row and column
-    (do ([i 0 (+ i 1)]) ((> i len1))
-      (vector-set! matrix (* i (+ len2 1)) i))
-    (do ([j 0 (+ j 1)]) ((> j len2))
-      (vector-set! matrix j j))
-    ;; Fill matrix
-    (do ([i 1 (+ i 1)]) ((> i len1))
-      (do ([j 1 (+ j 1)]) ((> j len2))
-        (let* ([cost (if (char=? (string-ref s1 (- i 1))
-                                  (string-ref s2 (- j 1)))
-                         0 1)]
-               [idx (+ (* i (+ len2 1)) j)]
-               [del (+ 1 (vector-ref matrix (+ (* (- i 1) (+ len2 1)) j)))]
-               [ins (+ 1 (vector-ref matrix (+ (* i (+ len2 1)) (- j 1))))]
-               [sub (+ cost (vector-ref matrix (+ (* (- i 1) (+ len2 1)) (- j 1))))])
-          (vector-set! matrix idx (min del ins sub)))))
-    ;; Return final distance
-    (vector-ref matrix (+ (* len1 (+ len2 1)) len2))))
+        ;; Initialize first row and column
+        (do ([i 0 (+ i 1)]) ((> i len1))
+            (vector-set! matrix (* i (+ len2 1)) i))
+        (do ([j 0 (+ j 1)]) ((> j len2))
+            (vector-set! matrix j j))
+        ;; Fill matrix
+        (do ([i 1 (+ i 1)]) ((> i len1))
+            (do ([j 1 (+ j 1)]) ((> j len2))
+                (let* ([cost (if (char=? (string-ref s1 (- i 1))
+                                         (string-ref s2 (- j 1)))
+                                 0 1)]
+                       [idx (+ (* i (+ len2 1)) j)]
+                       [del (+ 1 (vector-ref matrix (+ (* (- i 1) (+ len2 1)) j)))]
+                       [ins (+ 1 (vector-ref matrix (+ (* i (+ len2 1)) (- j 1))))]
+                       [sub (+ cost (vector-ref matrix (+ (* (- i 1) (+ len2 1)) (- j 1))))])
+                      (vector-set! matrix idx (min del ins sub)))))
+        ;; Return final distance
+        (vector-ref matrix (+ (* len1 (+ len2 1)) len2))))
 
 ;;; ============================================================
 ;;; Pretty Printing
@@ -260,42 +260,42 @@
 ;;; Print error with source code context.
 (define (print-error-with-source err source)
   (let ([ctx (error-context err)])
-    (display (format-error err))
-    (newline)
-    (when (and (span? ctx) (> (span-line ctx) 0))
-      (display-source-context source (span-line ctx) (span-column ctx)))
-    (newline)))
+       (display (format-error err))
+       (newline)
+       (when (and (span? ctx) (> (span-line ctx) 0))
+             (display-source-context source (span-line ctx) (span-column ctx)))
+       (newline)))
 
 ;;; display-source-context : String × Int × Int → void
 ;;; Show the relevant line with an underline pointer.
 (define (display-source-context source line col)
   (let ([lines (string-split source #\newline)])
-    (when (and (> line 0) (<= line (length lines)))
-      (let ([src-line (list-ref lines (- line 1))])
-        (display "    ")
-        (display src-line)
-        (newline)
-        (display "    ")
-        (display (make-string (max 0 (- col 1)) #\space))
-        (display "^")
-        (newline)))))
+       (when (and (> line 0) (<= line (length lines)))
+             (let ([src-line (list-ref lines (- line 1))])
+                  (display "    ")
+                  (display src-line)
+                  (newline)
+                  (display "    ")
+                  (display (make-string (max 0 (- col 1)) #\space))
+                  (display "^")
+                  (newline)))))
 
 ;;; string-split : String × Char → (List String)
 (define (string-split str delim)
   (let loop ([chars (string->list str)]
              [current '()]
              [result '()])
-    (cond
-      [(null? chars)
-       (reverse (cons (list->string (reverse current)) result))]
-      [(char=? (car chars) delim)
-       (loop (cdr chars)
-             '()
-             (cons (list->string (reverse current)) result))]
-      [else
-       (loop (cdr chars)
-             (cons (car chars) current)
-             result)])))
+       (cond
+        [(null? chars)
+         (reverse (cons (list->string (reverse current)) result))]
+        [(char=? (car chars) delim)
+         (loop (cdr chars)
+               '()
+               (cons (list->string (reverse current)) result))]
+        [else
+         (loop (cdr chars)
+               (cons (car chars) current)
+               result)])))
 
 ;;; ============================================================
 ;;; Error Helpers for Common Cases

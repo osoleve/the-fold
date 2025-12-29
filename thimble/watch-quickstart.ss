@@ -83,23 +83,23 @@
 
 ;;; Watch a file with custom action:
 (watch-file "core/block.ss"
-  (lambda (changed-files)
-    (display "Block module changed! Running tests...\n")
-    (load "fabric/stitches/block.ss")
-    (system "scheme --script core/test-block.ss")))
+            (lambda (changed-files)
+                    (display "Block module changed! Running tests...\n")
+                    (load "fabric/stitches/block.ss")
+                    (system "scheme --script core/test-block.ss")))
 
 ;;; Watch directory with pattern:
 (watch-dir "core" "test-*.ss"
-  (lambda (changed-files)
-    (display "Test file(s) changed:\n")
-    (for-each
-      (lambda (f)
-        (display "  • ")
-        (display f)
-        (newline))
-      changed-files)
-    (display "Running test suite...\n")
-    (system "scheme --script test-all.ss")))
+           (lambda (changed-files)
+                   (display "Test file(s) changed:\n")
+                   (for-each
+                    (lambda (f)
+                            (display "  • ")
+                            (display f)
+                            (newline))
+                    changed-files)
+                   (display "Running test suite...\n")
+                   (system "scheme --script test-all.ss")))
 
 ;;; ============================================================
 ;;; CONFIGURATION
@@ -117,41 +117,41 @@
 
 ;;; Pattern 1: Watch and reload with error handling
 (watch-file "shell/custom.ss"
-  (lambda (files)
-    (guard (e [else
-               (display "✗ Reload failed: ")
-               (if (condition? e)
-                   (display (condition-message e))
-                   (display e))
-               (newline)])
-      (load "thimble/custom.ss")
-      (display "✓ Reloaded successfully\n"))))
+            (lambda (files)
+                    (guard (e [else
+                               (display "✗ Reload failed: ")
+                               (if (condition? e)
+                                   (display (condition-message e))
+                                   (display e))
+                               (newline)])
+                           (load "thimble/custom.ss")
+                           (display "✓ Reloaded successfully\n"))))
 
 ;;; Pattern 2: Watch multiple related files
 (for-each auto-reload
-  '("core/block.ss"
-    "core/normalize.ss"
-    "core/expand.ss"))
+          '("core/block.ss"
+            "core/normalize.ss"
+            "core/expand.ss"))
 
 ;;; Pattern 3: Watch and run specific tests
 (watch-file "core/block.ss"
-  (lambda (files)
-    (load "fabric/stitches/block.ss")
-    (system "scheme --script core/test-block.ss")))
+            (lambda (files)
+                    (load "fabric/stitches/block.ss")
+                    (system "scheme --script core/test-block.ss")))
 
 ;;; Pattern 4: Conditional reload (only if no syntax errors)
 (watch-file "shell/experimental.ss"
-  (lambda (files)
-    ;; First, try to compile without loading
-    (guard (e [else
-               (display "✗ Syntax error, not loading\n")
-               (if (condition? e)
-                   (display (condition-message e))
-                   (display e))
-               (newline)])
-      ;; If compilation succeeds, load it
-      (load "thimble/experimental.ss")
-      (display "✓ Loaded successfully\n"))))
+            (lambda (files)
+                    ;; First, try to compile without loading
+                    (guard (e [else
+                               (display "✗ Syntax error, not loading\n")
+                               (if (condition? e)
+                                   (display (condition-message e))
+                                   (display e))
+                               (newline)])
+                           ;; If compilation succeeds, load it
+                           (load "thimble/experimental.ss")
+                           (display "✓ Loaded successfully\n"))))
 
 ;;; ============================================================
 ;;; HELP

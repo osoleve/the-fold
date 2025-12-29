@@ -48,10 +48,10 @@
 ;;; Check if hash is in visited set.
 (define (visited-contains? visited hash)
   (let loop ([vs visited])
-    (cond
-      [(null? vs) #f]
-      [(bytevector=? (car vs) hash) #t]
-      [else (loop (cdr vs))])))
+       (cond
+        [(null? vs) #f]
+        [(bytevector=? (car vs) hash) #t]
+        [else (loop (cdr vs))])))
 
 ;;; --- Queue Operations (for BFS) ---
 
@@ -118,10 +118,10 @@
 ;;; Check if hash is in a list of hashes.
 (define (hash-in-list? hash lst)
   (let loop ([l lst])
-    (cond
-      [(null? l) #f]
-      [(bytevector=? (car l) hash) #t]
-      [else (loop (cdr l))])))
+       (cond
+        [(null? l) #f]
+        [(bytevector=? (car l) hash) #t]
+        [else (loop (cdr l))])))
 
 ;;; remove-hash : Hash (List Hash) → (List Hash)
 ;;; Remove a hash from a list.
@@ -134,14 +134,14 @@
   (let loop ([remaining hashes]
              [seen '()]
              [result '()])
-    (if (null? remaining)
-        (reverse result)
-        (let ([h (car remaining)])
-          (if (hash-in-list? h seen)
-              (loop (cdr remaining) seen result)
-              (loop (cdr remaining)
-                    (cons h seen)
-                    (cons h result)))))))
+       (if (null? remaining)
+           (reverse result)
+           (let ([h (car remaining)])
+                (if (hash-in-list? h seen)
+                    (loop (cdr remaining) seen result)
+                    (loop (cdr remaining)
+                          (cons h seen)
+                          (cons h result)))))))
 
 ;;; --- Block Reference Helpers ---
 
@@ -150,9 +150,9 @@
 ;;; Returns empty list if block not found.
 (define (get-outgoing-hashes fs hash)
   (let ([block (store-get fs hash)])
-    (if block
-        (vector->list (block-refs block))
-        '())))
+       (if block
+           (vector->list (block-refs block))
+           '())))
 
 ;;; get-incoming-hashes : FSCap Hash → (List Hash)
 ;;; Get hashes of all blocks that reference the given hash.
@@ -176,19 +176,19 @@
 (define (bfs-traverse fs start-hash visit-fn)
   (let loop ([queue (queue-enqueue (make-queue) start-hash)]
              [visited (make-visited)])
-    (unless (queue-empty? queue)
-      (let-values ([(current rest-queue) (queue-dequeue queue)])
-        (if (visited-contains? visited current)
-            (loop rest-queue visited)
-            (let ([block (store-get fs current)])
-              (when block
-                (visit-fn current block)
-                (let* ([neighbors (get-outgoing-hashes fs current)]
-                       [unvisited (filter (lambda (h)
-                                           (not (visited-contains? visited h)))
-                                         neighbors)])
-                  (loop (queue-enqueue-all rest-queue unvisited)
-                        (visited-add visited current))))))))))
+       (unless (queue-empty? queue)
+               (let-values ([(current rest-queue) (queue-dequeue queue)])
+                           (if (visited-contains? visited current)
+                               (loop rest-queue visited)
+                               (let ([block (store-get fs current)])
+                                    (when block
+                                          (visit-fn current block)
+                                          (let* ([neighbors (get-outgoing-hashes fs current)]
+                                                 [unvisited (filter (lambda (h)
+                                                                            (not (visited-contains? visited h)))
+                                                                    neighbors)])
+                                                (loop (queue-enqueue-all rest-queue unvisited)
+                                                      (visited-add visited current))))))))))
 
 ;;; dfs-traverse : FSCap Hash (Hash Block → Void) → Void
 ;;; Depth-first traversal starting from start-hash.
@@ -201,38 +201,38 @@
 (define (dfs-traverse fs start-hash visit-fn)
   (let loop ([stack (stack-push (make-stack) start-hash)]
              [visited (make-visited)])
-    (unless (stack-empty? stack)
-      (let-values ([(current rest-stack) (stack-pop stack)])
-        (if (visited-contains? visited current)
-            (loop rest-stack visited)
-            (let ([block (store-get fs current)])
-              (when block
-                (visit-fn current block)
-                (let* ([neighbors (get-outgoing-hashes fs current)]
-                       [unvisited (filter (lambda (h)
-                                           (not (visited-contains? visited h)))
-                                         neighbors)])
-                  (loop (stack-push-all rest-stack unvisited)
-                        (visited-add visited current))))))))))
+       (unless (stack-empty? stack)
+               (let-values ([(current rest-stack) (stack-pop stack)])
+                           (if (visited-contains? visited current)
+                               (loop rest-stack visited)
+                               (let ([block (store-get fs current)])
+                                    (when block
+                                          (visit-fn current block)
+                                          (let* ([neighbors (get-outgoing-hashes fs current)]
+                                                 [unvisited (filter (lambda (h)
+                                                                            (not (visited-contains? visited h)))
+                                                                    neighbors)])
+                                                (loop (stack-push-all rest-stack unvisited)
+                                                      (visited-add visited current))))))))))
 
 ;;; bfs-traverse-reverse : FSCap Hash (Hash Block → Void) → Void
 ;;; BFS following incoming edges (referrers) instead of outgoing.
 (define (bfs-traverse-reverse fs start-hash visit-fn)
   (let loop ([queue (queue-enqueue (make-queue) start-hash)]
              [visited (make-visited)])
-    (unless (queue-empty? queue)
-      (let-values ([(current rest-queue) (queue-dequeue queue)])
-        (if (visited-contains? visited current)
-            (loop rest-queue visited)
-            (let ([block (store-get fs current)])
-              (when block
-                (visit-fn current block)
-                (let* ([referrers (get-incoming-hashes fs current)]
-                       [unvisited (filter (lambda (h)
-                                           (not (visited-contains? visited h)))
-                                         referrers)])
-                  (loop (queue-enqueue-all rest-queue unvisited)
-                        (visited-add visited current))))))))))
+       (unless (queue-empty? queue)
+               (let-values ([(current rest-queue) (queue-dequeue queue)])
+                           (if (visited-contains? visited current)
+                               (loop rest-queue visited)
+                               (let ([block (store-get fs current)])
+                                    (when block
+                                          (visit-fn current block)
+                                          (let* ([referrers (get-incoming-hashes fs current)]
+                                                 [unvisited (filter (lambda (h)
+                                                                            (not (visited-contains? visited h)))
+                                                                    referrers)])
+                                                (loop (queue-enqueue-all rest-queue unvisited)
+                                                      (visited-add visited current))))))))))
 
 
 ;;; ============================================================
@@ -252,28 +252,28 @@
       (list from-hash)  ; Same node, trivial path
       (let loop ([queue (queue-enqueue (make-queue) (list from-hash))]
                  [visited (make-visited)])
-        (if (queue-empty? queue)
-            #f  ; No path found
-            (let-values ([(current-path rest-queue) (queue-dequeue queue)])
-              (let ([current (car current-path)])
-                (if (visited-contains? visited current)
-                    (loop rest-queue visited)
-                    (let ([neighbors (get-outgoing-hashes fs current)])
-                      ;; Check if we found the target
-                      (let ([found (filter (lambda (h) (bytevector=? h to-hash))
-                                          neighbors)])
-                        (if (not (null? found))
-                            (reverse (cons to-hash current-path))  ; Found!
-                            ;; Continue searching
-                            (let* ([new-visited (visited-add visited current)]
-                                   [unvisited (filter
-                                               (lambda (h)
-                                                 (not (visited-contains? new-visited h)))
-                                               neighbors)]
-                                   [new-paths (map (lambda (h) (cons h current-path))
-                                                  unvisited)])
-                              (loop (queue-enqueue-all rest-queue new-paths)
-                                    new-visited))))))))))))
+           (if (queue-empty? queue)
+               #f  ; No path found
+               (let-values ([(current-path rest-queue) (queue-dequeue queue)])
+                           (let ([current (car current-path)])
+                                (if (visited-contains? visited current)
+                                    (loop rest-queue visited)
+                                    (let ([neighbors (get-outgoing-hashes fs current)])
+                                         ;; Check if we found the target
+                                         (let ([found (filter (lambda (h) (bytevector=? h to-hash))
+                                                              neighbors)])
+                                              (if (not (null? found))
+                                                  (reverse (cons to-hash current-path))  ; Found!
+                                                  ;; Continue searching
+                                                  (let* ([new-visited (visited-add visited current)]
+                                                         [unvisited (filter
+                                                                     (lambda (h)
+                                                                             (not (visited-contains? new-visited h)))
+                                                                     neighbors)]
+                                                         [new-paths (map (lambda (h) (cons h current-path))
+                                                                         unvisited)])
+                                                        (loop (queue-enqueue-all rest-queue new-paths)
+                                                              new-visited))))))))))))
 
 ;;; all-paths : FSCap Hash Hash Integer → (List (List Hash))
 ;;; Find all paths from from-hash to to-hash up to max-depth.
@@ -285,29 +285,29 @@
 ;;;   => (((path1...)) ((path2...)))
 (define (all-paths fs from-hash to-hash max-depth)
   (let ([results '()])
-    (let dfs ([current from-hash]
-              [path (list from-hash)]
-              [visited (visited-add (make-visited) from-hash)]
-              [depth 0])
-      (cond
-        ;; Found target
-        [(bytevector=? current to-hash)
-         (set! results (cons (reverse path) results))]
-        ;; Depth limit reached
-        [(>= depth max-depth)
-         (void)]
-        ;; Continue searching
-        [else
-         (let ([neighbors (get-outgoing-hashes fs current)])
-           (for-each
-            (lambda (neighbor)
-              (unless (visited-contains? visited neighbor)
-                (dfs neighbor
-                     (cons neighbor path)
-                     (visited-add visited neighbor)
-                     (+ depth 1))))
-            neighbors))]))
-    results))
+       (let dfs ([current from-hash]
+                 [path (list from-hash)]
+                 [visited (visited-add (make-visited) from-hash)]
+                 [depth 0])
+            (cond
+             ;; Found target
+             [(bytevector=? current to-hash)
+              (set! results (cons (reverse path) results))]
+             ;; Depth limit reached
+             [(>= depth max-depth)
+              (void)]
+             ;; Continue searching
+             [else
+              (let ([neighbors (get-outgoing-hashes fs current)])
+                   (for-each
+                    (lambda (neighbor)
+                            (unless (visited-contains? visited neighbor)
+                                    (dfs neighbor
+                                         (cons neighbor path)
+                                         (visited-add visited neighbor)
+                                         (+ depth 1))))
+                    neighbors))]))
+       results))
 
 ;;; path-exists? : FSCap Hash Hash → Boolean
 ;;; Check if any path exists from from-hash to to-hash.
@@ -319,12 +319,12 @@
   (if (bytevector=? from-hash to-hash)
       #t
       (let/ec return
-        (bfs-traverse fs from-hash
-          (lambda (h b)
-            (let ([refs (vector->list (block-refs b))])
-              (when (hash-in-list? to-hash refs)
-                (return #t)))))
-        #f)))
+              (bfs-traverse fs from-hash
+                            (lambda (h b)
+                                    (let ([refs (vector->list (block-refs b))])
+                                         (when (hash-in-list? to-hash refs)
+                                               (return #t)))))
+              #f)))
 
 
 ;;; ============================================================
@@ -343,31 +343,31 @@
   (let ([all-hashes (store-all-hashes fs)]
         [visited (make-visited)]
         [components '()])
-    ;; For each unvisited node, find its component
-    (for-each
-     (lambda (start-hash)
-       (unless (visited-contains? visited start-hash)
-         (let ([component '()])
-           ;; BFS to find all connected nodes (undirected)
-           (let loop ([queue (queue-enqueue (make-queue) start-hash)])
-             (unless (queue-empty? queue)
-               (let-values ([(current rest-queue) (queue-dequeue queue)])
-                 (if (visited-contains? visited current)
-                     (loop rest-queue)
-                     (begin
-                       (set! visited (visited-add visited current))
-                       (set! component (cons current component))
-                       ;; Get both outgoing and incoming edges
-                       (let* ([outgoing (get-outgoing-hashes fs current)]
-                              [incoming (get-incoming-hashes fs current)]
-                              [all-neighbors (unique-hashes (append outgoing incoming))]
-                              [unvisited (filter (lambda (h)
-                                                  (not (visited-contains? visited h)))
-                                                all-neighbors)])
-                         (loop (queue-enqueue-all rest-queue unvisited))))))))
-           (set! components (cons component components)))))
-     all-hashes)
-    components))
+       ;; For each unvisited node, find its component
+       (for-each
+        (lambda (start-hash)
+                (unless (visited-contains? visited start-hash)
+                        (let ([component '()])
+                             ;; BFS to find all connected nodes (undirected)
+                             (let loop ([queue (queue-enqueue (make-queue) start-hash)])
+                                  (unless (queue-empty? queue)
+                                          (let-values ([(current rest-queue) (queue-dequeue queue)])
+                                                      (if (visited-contains? visited current)
+                                                          (loop rest-queue)
+                                                          (begin
+                                                           (set! visited (visited-add visited current))
+                                                           (set! component (cons current component))
+                                                           ;; Get both outgoing and incoming edges
+                                                           (let* ([outgoing (get-outgoing-hashes fs current)]
+                                                                  [incoming (get-incoming-hashes fs current)]
+                                                                  [all-neighbors (unique-hashes (append outgoing incoming))]
+                                                                  [unvisited (filter (lambda (h)
+                                                                                             (not (visited-contains? visited h)))
+                                                                                     all-neighbors)])
+                                                                 (loop (queue-enqueue-all rest-queue unvisited))))))))
+                             (set! components (cons component components)))))
+        all-hashes)
+       components))
 
 ;;; find-cycles : FSCap → (List (List Hash))
 ;;; Find all cycles in the directed graph.
@@ -381,41 +381,41 @@
   (let ([all-hashes (store-all-hashes fs)]
         [cycles '()]
         [global-visited (make-visited)])
-    (for-each
-     (lambda (start-hash)
-       (unless (visited-contains? global-visited start-hash)
-         ;; DFS with path tracking
-         (let dfs ([current start-hash]
-                   [path '()]
-                   [path-set (make-visited)])
-           (cond
-             ;; Found a cycle back to a node in current path
-             [(visited-contains? path-set current)
-              (let ([cycle-start-idx
-                     (let find-idx ([p (reverse path)] [idx 0])
-                       (if (bytevector=? (car p) current)
-                           idx
-                           (find-idx (cdr p) (+ idx 1))))])
-                ;; Extract cycle from path
-                (let ([cycle (cons current
-                                   (reverse (list-tail (reverse path)
-                                                       cycle-start-idx)))])
-                  (set! cycles (cons cycle cycles))))]
-             ;; Already fully processed this node
-             [(visited-contains? global-visited current)
-              (void)]
-             ;; Process this node
-             [else
-              (let ([new-path (cons current path)]
-                    [new-path-set (visited-add path-set current)])
-                (for-each
-                 (lambda (neighbor)
-                   (dfs neighbor new-path new-path-set))
-                 (get-outgoing-hashes fs current))
-                (set! global-visited (visited-add global-visited current)))]))))
-     all-hashes)
-    ;; Remove duplicate cycles (same cycle may be found from different starts)
-    (unique-cycles cycles)))
+       (for-each
+        (lambda (start-hash)
+                (unless (visited-contains? global-visited start-hash)
+                        ;; DFS with path tracking
+                        (let dfs ([current start-hash]
+                                  [path '()]
+                                  [path-set (make-visited)])
+                             (cond
+                              ;; Found a cycle back to a node in current path
+                              [(visited-contains? path-set current)
+                               (let ([cycle-start-idx
+                                      (let find-idx ([p (reverse path)] [idx 0])
+                                           (if (bytevector=? (car p) current)
+                                               idx
+                                               (find-idx (cdr p) (+ idx 1))))])
+                                    ;; Extract cycle from path
+                                    (let ([cycle (cons current
+                                                       (reverse (list-tail (reverse path)
+                                                                           cycle-start-idx)))])
+                                         (set! cycles (cons cycle cycles))))]
+                              ;; Already fully processed this node
+                              [(visited-contains? global-visited current)
+                               (void)]
+                              ;; Process this node
+                              [else
+                               (let ([new-path (cons current path)]
+                                     [new-path-set (visited-add path-set current)])
+                                    (for-each
+                                     (lambda (neighbor)
+                                             (dfs neighbor new-path new-path-set))
+                                     (get-outgoing-hashes fs current))
+                                    (set! global-visited (visited-add global-visited current)))]))))
+        all-hashes)
+       ;; Remove duplicate cycles (same cycle may be found from different starts)
+       (unique-cycles cycles)))
 
 ;;; unique-cycles : (List (List Hash)) → (List (List Hash))
 ;;; Remove duplicate cycles from list.
@@ -423,34 +423,34 @@
 (define (unique-cycles cycles)
   (let loop ([remaining cycles]
              [result '()])
-    (if (null? remaining)
-        result
-        (let ([cycle (car remaining)])
-          (if (cycle-in-list? cycle result)
-              (loop (cdr remaining) result)
-              (loop (cdr remaining) (cons cycle result)))))))
+       (if (null? remaining)
+           result
+           (let ([cycle (car remaining)])
+                (if (cycle-in-list? cycle result)
+                    (loop (cdr remaining) result)
+                    (loop (cdr remaining) (cons cycle result)))))))
 
 ;;; cycle-in-list? : (List Hash) (List (List Hash)) → Boolean
 ;;; Check if cycle is already in list (as same set of nodes).
 (define (cycle-in-list? cycle cycles)
   (let ([cycle-set (cdr cycle)])  ; Remove duplicate endpoint
-    (let loop ([cs cycles])
-      (if (null? cs)
-          #f
-          (let ([other-set (cdr (car cs))])
-            (if (same-hash-set? cycle-set other-set)
-                #t
-                (loop (cdr cs))))))))
+       (let loop ([cs cycles])
+            (if (null? cs)
+                #f
+                (let ([other-set (cdr (car cs))])
+                     (if (same-hash-set? cycle-set other-set)
+                         #t
+                         (loop (cdr cs))))))))
 
 ;;; same-hash-set? : (List Hash) (List Hash) → Boolean
 ;;; Check if two lists contain the same hashes (as sets).
 (define (same-hash-set? lst1 lst2)
   (and (= (length lst1) (length lst2))
        (let loop ([l lst1])
-         (if (null? l)
-             #t
-             (and (hash-in-list? (car l) lst2)
-                  (loop (cdr l)))))))
+            (if (null? l)
+                #t
+                (and (hash-in-list? (car l) lst2)
+                     (loop (cdr l)))))))
 
 ;;; topological-sort : FSCap → (Maybe (List Hash))
 ;;; Perform topological sort on the directed graph.
@@ -467,38 +467,38 @@
         [permanent-mark (make-visited)]
         [temporary-mark (make-visited)]
         [has-cycle #f])
-    (let visit ([nodes all-hashes])
-      (unless (or has-cycle (null? nodes))
-        (let ([node (car nodes)])
-          (cond
-            [(visited-contains? permanent-mark node)
-             (visit (cdr nodes))]
-            [(visited-contains? temporary-mark node)
-             (set! has-cycle #t)]  ; Cycle detected
-            [else
-             ;; Visit this node
-             (set! temporary-mark (visited-add temporary-mark node))
-             ;; Visit all neighbors
-             (let neighbor-loop ([neighbors (get-outgoing-hashes fs node)])
-               (unless (or has-cycle (null? neighbors))
-                 (let ([n (car neighbors)])
-                   (cond
-                     [(visited-contains? permanent-mark n)
-                      (neighbor-loop (cdr neighbors))]
-                     [(visited-contains? temporary-mark n)
-                      (set! has-cycle #t)]
-                     [else
-                      (visit (list n))
-                      (neighbor-loop (cdr neighbors))]))))
-             ;; Mark as permanently visited
-             (unless has-cycle
-               (set! permanent-mark (visited-add permanent-mark node))
-               (set! result (cons node result)))
-             ;; Continue with remaining nodes
-             (visit (cdr nodes))]))))
-    (if has-cycle
-        #f
-        result)))
+       (let visit ([nodes all-hashes])
+            (unless (or has-cycle (null? nodes))
+                    (let ([node (car nodes)])
+                         (cond
+                          [(visited-contains? permanent-mark node)
+                           (visit (cdr nodes))]
+                          [(visited-contains? temporary-mark node)
+                           (set! has-cycle #t)]  ; Cycle detected
+                          [else
+                           ;; Visit this node
+                           (set! temporary-mark (visited-add temporary-mark node))
+                           ;; Visit all neighbors
+                           (let neighbor-loop ([neighbors (get-outgoing-hashes fs node)])
+                                (unless (or has-cycle (null? neighbors))
+                                        (let ([n (car neighbors)])
+                                             (cond
+                                              [(visited-contains? permanent-mark n)
+                                               (neighbor-loop (cdr neighbors))]
+                                              [(visited-contains? temporary-mark n)
+                                               (set! has-cycle #t)]
+                                              [else
+                                               (visit (list n))
+                                               (neighbor-loop (cdr neighbors))]))))
+                           ;; Mark as permanently visited
+                           (unless has-cycle
+                                   (set! permanent-mark (visited-add permanent-mark node))
+                                   (set! result (cons node result)))
+                           ;; Continue with remaining nodes
+                           (visit (cdr nodes))]))))
+       (if has-cycle
+           #f
+           result)))
 
 
 ;;; ============================================================
@@ -522,9 +522,9 @@
 ;;;   (out-degree fs some-hash) => 3
 (define (out-degree fs hash)
   (let ([block (store-get fs hash)])
-    (if block
-        (vector-length (block-refs block))
-        0)))
+       (if block
+           (vector-length (block-refs block))
+           0)))
 
 ;;; total-degree : FSCap Hash → Integer
 ;;; Sum of in-degree and out-degree.
@@ -541,19 +541,19 @@
 (define (find-hubs fs n)
   (let* ([all-hashes (store-all-hashes fs)]
          [with-degrees (map (lambda (h)
-                             (cons h (total-degree fs h)))
-                           all-hashes)]
+                                    (cons h (total-degree fs h)))
+                            all-hashes)]
          [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b)))
-                           with-degrees)])
-    (take-up-to sorted n)))
+                            with-degrees)])
+        (take-up-to sorted n)))
 
 ;;; take-up-to : (List A) Integer → (List A)
 ;;; Take up to n elements from list.
 (define (take-up-to lst n)
   (let loop ([l lst] [count n] [result '()])
-    (if (or (null? l) (<= count 0))
-        (reverse result)
-        (loop (cdr l) (- count 1) (cons (car l) result)))))
+       (if (or (null? l) (<= count 0))
+           (reverse result)
+           (loop (cdr l) (- count 1) (cons (car l) result)))))
 
 ;;; find-roots : FSCap → (List Hash)
 ;;; Find all blocks with no incoming references.
@@ -564,8 +564,8 @@
 ;;;   => (#vu8(...) #vu8(...))  ; Root nodes
 (define (find-roots fs)
   (let ([all-hashes (store-all-hashes fs)])
-    (filter (lambda (h) (= (in-degree fs h) 0))
-            all-hashes)))
+       (filter (lambda (h) (= (in-degree fs h) 0))
+               all-hashes)))
 
 ;;; find-leaves : FSCap → (List Hash)
 ;;; Find all blocks with no outgoing references.
@@ -576,8 +576,8 @@
 ;;;   => (#vu8(...) #vu8(...))  ; Leaf nodes
 (define (find-leaves fs)
   (let ([all-hashes (store-all-hashes fs)])
-    (filter (lambda (h) (= (out-degree fs h) 0))
-            all-hashes)))
+       (filter (lambda (h) (= (out-degree fs h) 0))
+               all-hashes)))
 
 
 ;;; ============================================================
@@ -593,10 +593,10 @@
 ;;;   => (#vu8(...) #vu8(...) ...)  ; All descendants
 (define (reachable-from fs hash)
   (let ([result '()])
-    (bfs-traverse fs hash
-      (lambda (h b)
-        (set! result (cons h result))))
-    result))
+       (bfs-traverse fs hash
+                     (lambda (h b)
+                             (set! result (cons h result))))
+       result))
 
 ;;; ancestors-of : FSCap Hash → (List Hash)
 ;;; Find all blocks that can reach the given hash (following incoming refs).
@@ -607,10 +607,10 @@
 ;;;   => (#vu8(...) #vu8(...) ...)  ; All ancestors
 (define (ancestors-of fs hash)
   (let ([result '()])
-    (bfs-traverse-reverse fs hash
-      (lambda (h b)
-        (set! result (cons h result))))
-    result))
+       (bfs-traverse-reverse fs hash
+                             (lambda (h b)
+                                     (set! result (cons h result))))
+       result))
 
 ;;; subgraph : FSCap (List Hash) → (List (Pair Hash (List Hash)))
 ;;; Extract subgraph containing only specified hashes.
@@ -622,10 +622,10 @@
 ;;;   => ((hash1 . (hash2)) (hash2 . (hash3)) (hash3 . ()))
 (define (subgraph fs hash-list)
   (map (lambda (h)
-         (let* ([outgoing (get-outgoing-hashes fs h)]
-                [filtered (filter (lambda (n) (hash-in-list? n hash-list))
-                                 outgoing)])
-           (cons h filtered)))
+               (let* ([outgoing (get-outgoing-hashes fs h)]
+                      [filtered (filter (lambda (n) (hash-in-list? n hash-list))
+                                        outgoing)])
+                     (cons h filtered)))
        hash-list))
 
 ;;; induced-subgraph-blocks : FSCap (List Hash) → (List Block)
@@ -649,25 +649,25 @@
 (define (neighborhood fs hash n)
   (let ([result (list hash)]
         [visited (visited-add (make-visited) hash)])
-    (let level-loop ([current-level (list hash)]
-                     [depth 0])
-      (when (< depth n)
-        (let ([next-level '()])
-          (for-each
-           (lambda (h)
-             (let* ([outgoing (get-outgoing-hashes fs h)]
-                    [incoming (get-incoming-hashes fs h)]
-                    [all-neighbors (unique-hashes (append outgoing incoming))])
-               (for-each
-                (lambda (neighbor)
-                  (unless (visited-contains? visited neighbor)
-                    (set! visited (visited-add visited neighbor))
-                    (set! result (cons neighbor result))
-                    (set! next-level (cons neighbor next-level))))
-                all-neighbors)))
-           current-level)
-          (level-loop next-level (+ depth 1)))))
-    result))
+       (let level-loop ([current-level (list hash)]
+                        [depth 0])
+            (when (< depth n)
+                  (let ([next-level '()])
+                       (for-each
+                        (lambda (h)
+                                (let* ([outgoing (get-outgoing-hashes fs h)]
+                                       [incoming (get-incoming-hashes fs h)]
+                                       [all-neighbors (unique-hashes (append outgoing incoming))])
+                                      (for-each
+                                       (lambda (neighbor)
+                                               (unless (visited-contains? visited neighbor)
+                                                       (set! visited (visited-add visited neighbor))
+                                                       (set! result (cons neighbor result))
+                                                       (set! next-level (cons neighbor next-level))))
+                                       all-neighbors)))
+                        current-level)
+                       (level-loop next-level (+ depth 1)))))
+       result))
 
 
 ;;; ============================================================
@@ -686,30 +686,30 @@
   (let* ([all-hashes (store-all-hashes fs)]
          [node-count (length all-hashes)]
          [edge-count (fold-left (lambda (acc h)
-                                 (+ acc (out-degree fs h)))
-                               0 all-hashes)]
+                                        (+ acc (out-degree fs h)))
+                                0 all-hashes)]
          [roots (find-roots fs)]
          [leaves (find-leaves fs)]
          [components (connected-components fs)]
          [topo (topological-sort fs)])
-    `((nodes . ,node-count)
-      (edges . ,edge-count)
-      (roots . ,(length roots))
-      (leaves . ,(length leaves))
-      (components . ,(length components))
-      (cyclic . ,(not topo)))))
+        `((nodes . ,node-count)
+          (edges . ,edge-count)
+          (roots . ,(length roots))
+          (leaves . ,(length leaves))
+          (components . ,(length components))
+          (cyclic . ,(not topo)))))
 
 ;;; print-graph-stats : FSCap → Void
 ;;; Print human-readable graph statistics.
 (define (print-graph-stats fs)
   (let ([stats (graph-stats fs)])
-    (printf "Graph Statistics:\n")
-    (printf "  Nodes:      ~a\n" (cdr (assq 'nodes stats)))
-    (printf "  Edges:      ~a\n" (cdr (assq 'edges stats)))
-    (printf "  Roots:      ~a\n" (cdr (assq 'roots stats)))
-    (printf "  Leaves:     ~a\n" (cdr (assq 'leaves stats)))
-    (printf "  Components: ~a\n" (cdr (assq 'components stats)))
-    (printf "  Cyclic:     ~a\n" (if (cdr (assq 'cyclic stats)) "yes" "no"))))
+       (printf "Graph Statistics:\n")
+       (printf "  Nodes:      ~a\n" (cdr (assq 'nodes stats)))
+       (printf "  Edges:      ~a\n" (cdr (assq 'edges stats)))
+       (printf "  Roots:      ~a\n" (cdr (assq 'roots stats)))
+       (printf "  Leaves:     ~a\n" (cdr (assq 'leaves stats)))
+       (printf "  Components: ~a\n" (cdr (assq 'components stats)))
+       (printf "  Cyclic:     ~a\n" (if (cdr (assq 'cyclic stats)) "yes" "no"))))
 
 ;;; path-length : (List Hash) → Integer
 ;;; Get length of a path (number of edges).
@@ -722,17 +722,17 @@
 ;;; Format a path as human-readable string showing block tags.
 (define (format-path fs path)
   (let ([tags (map (lambda (h)
-                    (let ([b (store-get fs h)])
-                      (if b
-                          (symbol->string (block-tag b))
-                          "???")))
-                  path)])
-    (let loop ([ts tags] [result ""])
-      (if (null? ts)
-          result
-          (if (string=? result "")
-              (loop (cdr ts) (car ts))
-              (loop (cdr ts) (string-append result " -> " (car ts))))))))
+                           (let ([b (store-get fs h)])
+                                (if b
+                                    (symbol->string (block-tag b))
+                                    "???")))
+                   path)])
+       (let loop ([ts tags] [result ""])
+            (if (null? ts)
+                result
+                (if (string=? result "")
+                    (loop (cdr ts) (car ts))
+                    (loop (cdr ts) (string-append result " -> " (car ts))))))))
 
 
 ;;; ============================================================

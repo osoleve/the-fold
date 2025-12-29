@@ -49,15 +49,15 @@
   (display (format "Committing: ~a\n" msg))
   (git-commit msg)
   (when *auto-push*
-    (display "Pushing to remote...\n")
-    (git-push))
+        (display "Pushing to remote...\n")
+        (git-push))
   #t)
 
 ;;; checkpoint : String → Bool
 ;;; Save work-in-progress with timestamp.
 (define (checkpoint desc)
   (let ([msg (format "WIP: ~a [~a]" desc (format-timestamp))])
-    (quick-commit msg)))
+       (quick-commit msg)))
 
 ;;; sync : → Bool
 ;;; Pull from remote, push local changes.
@@ -65,16 +65,16 @@
   (display "Syncing with remote...\n")
   (display "Pulling changes...\n")
   (let ([pull-result (git-pull)])
-    (if (has-conflicts? pull-result)
-        (begin
-          (display "⚠ Conflicts detected. Resolve manually:\n")
-          (display-conflicts)
-          #f)
-        (begin
-          (display "Pushing changes...\n")
-          (git-push)
-          (display "✓ Sync complete\n")
-          #t))))
+       (if (has-conflicts? pull-result)
+           (begin
+            (display "⚠ Conflicts detected. Resolve manually:\n")
+            (display-conflicts)
+            #f)
+           (begin
+            (display "Pushing changes...\n")
+            (git-push)
+            (display "✓ Sync complete\n")
+            #t))))
 
 ;;; ============================================================
 ;;; Feature Branch Workflow
@@ -84,33 +84,33 @@
 ;;; Create and switch to new feature branch.
 (define (feature-start name)
   (let ([branch-name (string-append *feature-prefix* name)])
-    (display (format "Creating feature branch: ~a\n" branch-name))
-    (git-checkout-new branch-name)
-    (display (format "✓ Now on ~a\n" branch-name))
-    #t))
+       (display (format "Creating feature branch: ~a\n" branch-name))
+       (git-checkout-new branch-name)
+       (display (format "✓ Now on ~a\n" branch-name))
+       #t))
 
 ;;; feature-finish : String → Bool
 ;;; Merge feature branch into main and clean up.
 (define (feature-finish name)
   (let ([branch-name (string-append *feature-prefix* name)])
-    (when (and *require-confirmation*
-               (not (confirm (format "Merge ~a into ~a?" branch-name *default-branch*))))
-      (error 'feature-finish "Merge cancelled"))
-
-    (display (format "Switching to ~a...\n" *default-branch*))
-    (git-checkout *default-branch*)
-
-    (display (format "Merging ~a...\n" branch-name))
-    (let ([merge-result (git-merge branch-name)])
-      (if (has-conflicts? merge-result)
-          (begin
-            (display "⚠ Merge conflicts. Resolve manually.\n")
-            #f)
-          (begin
-            (display (format "Deleting branch ~a...\n" branch-name))
-            (git-delete-branch branch-name)
-            (display "✓ Feature merged and cleaned up\n")
-            #t)))))
+       (when (and *require-confirmation*
+                  (not (confirm (format "Merge ~a into ~a?" branch-name *default-branch*))))
+             (error 'feature-finish "Merge cancelled"))
+       
+       (display (format "Switching to ~a...\n" *default-branch*))
+       (git-checkout *default-branch*)
+       
+       (display (format "Merging ~a...\n" branch-name))
+       (let ([merge-result (git-merge branch-name)])
+            (if (has-conflicts? merge-result)
+                (begin
+                 (display "⚠ Merge conflicts. Resolve manually.\n")
+                 #f)
+                (begin
+                 (display (format "Deleting branch ~a...\n" branch-name))
+                 (git-delete-branch branch-name)
+                 (display "✓ Feature merged and cleaned up\n")
+                 #t)))))
 
 ;;; ============================================================
 ;;; Undo Operations
@@ -121,8 +121,8 @@
 (define (undo-last)
   (when (and *require-confirmation*
              (not (confirm "Undo last commit? (changes will be kept)")))
-    (error 'undo-last "Undo cancelled"))
-
+        (error 'undo-last "Undo cancelled"))
+  
   (display "Undoing last commit...\n")
   (git-reset-soft "HEAD~1")
   (display "✓ Last commit undone (changes preserved)\n")
@@ -133,8 +133,8 @@
 (define (amend msg)
   (when (and *require-confirmation*
              (not (confirm (format "Amend last commit with: ~a?" msg))))
-    (error 'amend "Amend cancelled"))
-
+        (error 'amend "Amend cancelled"))
+  
   (display "Amending last commit...\n")
   (git-commit-amend msg)
   (display "✓ Commit amended\n")
@@ -145,8 +145,8 @@
 (define (discard-changes)
   (when (and *require-confirmation*
              (not (confirm "Discard ALL uncommitted changes? THIS CANNOT BE UNDONE!")))
-    (error 'discard-changes "Discard cancelled"))
-
+        (error 'discard-changes "Discard cancelled"))
+  
   (display "Discarding all changes...\n")
   (git-reset-hard "HEAD")
   (display "✓ All changes discarded\n")
@@ -187,36 +187,36 @@
 (define (branch-cleanup)
   (when (and *require-confirmation*
              (not (confirm "Delete all merged branches?")))
-    (error 'branch-cleanup "Cleanup cancelled"))
-
+        (error 'branch-cleanup "Cleanup cancelled"))
+  
   (display "Finding merged branches...\n")
   (let ([merged (git-merged-branches)])
-    (if (null? merged)
-        (begin
-          (display "No merged branches to clean up\n")
-          #t)
-        (begin
-          (display (format "Deleting ~a merged branches...\n" (length merged)))
-          (for-each
-            (lambda (branch)
-              (display (format "  Deleting ~a\n" branch))
-              (git-delete-branch branch))
-            merged)
-          (display "✓ Cleanup complete\n")
-          #t))))
+       (if (null? merged)
+           (begin
+            (display "No merged branches to clean up\n")
+            #t)
+           (begin
+            (display (format "Deleting ~a merged branches...\n" (length merged)))
+            (for-each
+             (lambda (branch)
+                     (display (format "  Deleting ~a\n" branch))
+                     (git-delete-branch branch))
+             merged)
+            (display "✓ Cleanup complete\n")
+            #t))))
 
 ;;; branch-info : → void
 ;;; Display current branch and status.
 (define (branch-info)
   (let ([current (git-current-branch)]
         [status (git-status-summary)])
-    (display "╔══════════════════════════════════════════════════════════╗\n")
-    (display "║                    BRANCH INFO                           ║\n")
-    (display "╚══════════════════════════════════════════════════════════╝\n")
-    (display "\n")
-    (display (format "Current Branch: ~a\n" current))
-    (display (format "Status: ~a\n" status))
-    (display "\n")))
+       (display "╔══════════════════════════════════════════════════════════╗\n")
+       (display "║                    BRANCH INFO                           ║\n")
+       (display "╚══════════════════════════════════════════════════════════╝\n")
+       (display "\n")
+       (display (format "Current Branch: ~a\n" current))
+       (display (format "Status: ~a\n" status))
+       (display "\n")))
 
 ;;; ============================================================
 ;;; Conflict Resolution
@@ -232,10 +232,10 @@
 (define (display-conflicts)
   (display "\nConflicting files:\n")
   (let ([conflicts (git-list-conflicts)])
-    (for-each
-      (lambda (file)
-        (display (format "  • ~a\n" file)))
-      conflicts))
+       (for-each
+        (lambda (file)
+                (display (format "  • ~a\n" file)))
+        conflicts))
   (display "\nResolve conflicts, then run: (continue-merge)\n"))
 
 ;;; continue-merge : → Bool
@@ -243,18 +243,18 @@
 (define (continue-merge)
   (display "Checking if conflicts are resolved...\n")
   (let ([conflicts (git-list-conflicts)])
-    (if (null? conflicts)
-        (begin
-          (display "Adding resolved files...\n")
-          (git-add-all)
-          (display "Committing merge...\n")
-          (git-commit "Merge conflicts resolved")
-          (display "✓ Merge complete\n")
-          #t)
-        (begin
-          (display "⚠ Still has conflicts:\n")
-          (display-conflicts)
-          #f))))
+       (if (null? conflicts)
+           (begin
+            (display "Adding resolved files...\n")
+            (git-add-all)
+            (display "Committing merge...\n")
+            (git-commit "Merge conflicts resolved")
+            (display "✓ Merge complete\n")
+            #t)
+           (begin
+            (display "⚠ Still has conflicts:\n")
+            (display-conflicts)
+            #f))))
 
 ;;; ============================================================
 ;;; Git Command Wrappers
@@ -276,9 +276,9 @@
 
 (define (git-pull)
   (let ([output (open-output-string)])
-    (parameterize ([current-output-port output])
-      (system "git pull"))
-    (get-output-string output)))
+       (parameterize ([current-output-port output])
+                     (system "git pull"))
+       (get-output-string output)))
 
 (define (git-checkout branch)
   (system (format "git checkout ~a" branch)))
@@ -288,9 +288,9 @@
 
 (define (git-merge branch)
   (let ([output (open-output-string)])
-    (parameterize ([current-output-port output])
-      (system (format "git merge ~a" branch)))
-    (get-output-string output)))
+       (parameterize ([current-output-port output])
+                     (system (format "git merge ~a" branch)))
+       (get-output-string output)))
 
 (define (git-delete-branch branch)
   (system (format "git branch -d ~a" branch)))
@@ -312,18 +312,18 @@
 
 (define (git-current-branch)
   (let ([output (open-output-string)])
-    (parameterize ([current-output-port output])
-      (system "git branch --show-current"))
-    (string-trim (get-output-string output))))
+       (parameterize ([current-output-port output])
+                     (system "git branch --show-current"))
+       (string-trim (get-output-string output))))
 
 (define (git-status-summary)
   (let ([output (open-output-string)])
-    (parameterize ([current-output-port output])
-      (system "git status --short"))
-    (let ([result (get-output-string output)])
-      (if (string=? result "")
-          "clean"
-          "modified"))))
+       (parameterize ([current-output-port output])
+                     (system "git status --short"))
+       (let ([result (get-output-string output)])
+            (if (string=? result "")
+                "clean"
+                "modified"))))
 
 (define (git-merged-branches)
   ;; Returns list of merged branch names
@@ -342,40 +342,40 @@
   (display (format "~a [y/N]: " prompt))
   (flush-output-port)
   (let ([response (get-line (current-input-port))])
-    (or (string=? response "y")
-        (string=? response "Y")
-        (string=? response "yes")
-        (string=? response "Yes"))))
+       (or (string=? response "y")
+           (string=? response "Y")
+           (string=? response "yes")
+           (string=? response "Yes"))))
 
 ;;; format-timestamp : → String
 (define (format-timestamp)
   (let ([t (current-time 'time-utc)])
-    (format "~a" (time-second t))))
+       (format "~a" (time-second t))))
 
 ;;; string-contains? : String × String → Bool
 (define (string-contains? str needle)
   (let ([nlen (string-length needle)]
         [slen (string-length str)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i nlen) slen) #f]
-        [(string=? needle (substring str i (+ i nlen))) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i nlen) slen) #f]
+             [(string=? needle (substring str i (+ i nlen))) #t]
+             [else (loop (+ i 1))]))))
 
 ;;; string-trim : String → String
 (define (string-trim str)
   (let* ([len (string-length str)]
          [start (let loop ([i 0])
-                  (cond
-                    [(>= i len) len]
-                    [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
-                    [else i]))]
+                     (cond
+                      [(>= i len) len]
+                      [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
+                      [else i]))]
          [end (let loop ([i (- len 1)])
-                (cond
-                  [(< i start) start]
-                  [(char-whitespace? (string-ref str i)) (loop (- i 1))]
-                  [else (+ i 1)]))])
-    (substring str start end)))
+                   (cond
+                    [(< i start) start]
+                    [(char-whitespace? (string-ref str i)) (loop (- i 1))]
+                    [else (+ i 1)]))])
+        (substring str start end)))
 
 (display "\n")
 (display "Git workflow helpers loaded.\n")

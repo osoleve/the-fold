@@ -28,8 +28,8 @@
          [t (setpw t 2)]
          [t (square t 100)]
          [d (turtle->drawing t)])
-    (save-svg d "turtle-square.svg")
-    (display "  Saved to turtle-square.svg\n")))
+        (save-svg d "turtle-square.svg")
+        (display "  Saved to turtle-square.svg\n")))
 
 ;;; ============================================================
 ;;; Demo 2: Colorful Star
@@ -43,8 +43,8 @@
          [t (setpw t 3)]
          [t (star t 150)]
          [d (turtle->drawing t)])
-    (save-svg d "turtle-star.svg")
-    (display "  Saved to turtle-star.svg\n")))
+        (save-svg d "turtle-star.svg")
+        (display "  Saved to turtle-star.svg\n")))
 
 ;;; ============================================================
 ;;; Demo 3: Spiral
@@ -57,8 +57,8 @@
          [t (setpw t 1)]
          [t (spiral t 5 3 50)]
          [d (turtle->drawing t)])
-    (save-svg d "turtle-spiral.svg")
-    (display "  Saved to turtle-spiral.svg\n")))
+        (save-svg d "turtle-spiral.svg")
+        (display "  Saved to turtle-spiral.svg\n")))
 
 ;;; ============================================================
 ;;; Demo 4: Nested Squares
@@ -72,7 +72,7 @@
              [t (fd t 10)]
              [t (rt t 5)]
              [t (pd t)])
-        (nested-squares t (- n 1) (- size 15)))))
+            (nested-squares t (- n 1) (- size 15)))))
 
 (define (demo-nested-squares)
   (display "Demo 4: Drawing nested squares...\n")
@@ -81,8 +81,8 @@
          [t (setpw t 1)]
          [t (nested-squares t 10 200)]
          [d (turtle->drawing t)])
-    (save-svg d "turtle-nested.svg")
-    (display "  Saved to turtle-nested.svg\n")))
+        (save-svg d "turtle-nested.svg")
+        (display "  Saved to turtle-nested.svg\n")))
 
 ;;; ============================================================
 ;;; Demo 5: Flower Pattern
@@ -94,15 +94,15 @@
          [t (rt t 120)]
          [t (arc t 60 size)]
          [t (rt t 120)])
-    t))
+        t))
 
 (define (flower t petals size)
   (let loop ([t t] [n petals])
-    (if (<= n 0)
-        t
-        (let* ([t (flower-petal t size)]
-               [t (rt t (/ 360 petals))])
-          (loop t (- n 1))))))
+       (if (<= n 0)
+           t
+           (let* ([t (flower-petal t size)]
+                  [t (rt t (/ 360 petals))])
+                 (loop t (- n 1))))))
 
 (define (demo-flower)
   (display "Demo 5: Drawing a flower...\n")
@@ -112,8 +112,8 @@
          [t (setpw t 2)]
          [t (flower t 8 50)]
          [d (turtle->drawing t)])
-    (save-svg d "turtle-flower.svg")
-    (display "  Saved to turtle-flower.svg\n")))
+        (save-svg d "turtle-flower.svg")
+        (display "  Saved to turtle-flower.svg\n")))
 
 ;;; ============================================================
 ;;; Demo 6: Polygon Gallery
@@ -160,8 +160,8 @@
          [t (setpc t 'magenta)]
          [t (circle t 40)]
          [d (turtle->drawing t)])
-    (save-svg d "turtle-polygons.svg")
-    (display "  Saved to turtle-polygons.svg\n")))
+        (save-svg d "turtle-polygons.svg")
+        (display "  Saved to turtle-polygons.svg\n")))
 
 ;;; ============================================================
 ;;; Demo 7: Koch Snowflake (Fractal)
@@ -171,20 +171,20 @@
   (if (= depth 0)
       (fd t length)
       (let ([len3 (/ length 3)])
-        (let* ([t (koch-segment t len3 (- depth 1))]
-               [t (lt t 60)]
-               [t (koch-segment t len3 (- depth 1))]
-               [t (rt t 120)]
-               [t (koch-segment t len3 (- depth 1))]
-               [t (lt t 60)]
-               [t (koch-segment t len3 (- depth 1))])
-          t))))
+           (let* ([t (koch-segment t len3 (- depth 1))]
+                  [t (lt t 60)]
+                  [t (koch-segment t len3 (- depth 1))]
+                  [t (rt t 120)]
+                  [t (koch-segment t len3 (- depth 1))]
+                  [t (lt t 60)]
+                  [t (koch-segment t len3 (- depth 1))])
+                 t))))
 
 (define (koch-snowflake t size depth)
   (let loop ([t t] [i 0])
-    (if (= i 3)
-        t
-        (loop (rt (koch-segment t size depth) 120) (+ i 1)))))
+       (if (= i 3)
+           t
+           (loop (rt (koch-segment t size depth) 120) (+ i 1)))))
 
 (define (demo-koch)
   (display "Demo 7: Drawing Koch snowflake (depth 3)...\n")
@@ -199,8 +199,8 @@
          [t (pd t)]
          [t (koch-snowflake t 300 3)]
          [d (turtle->drawing t)])
-    (save-svg d "turtle-koch.svg")
-    (display "  Saved to turtle-koch.svg\n")))
+        (save-svg d "turtle-koch.svg")
+        (display "  Saved to turtle-koch.svg\n")))
 
 ;;; ============================================================
 ;;; Demo 8: Colorful Circles
@@ -208,17 +208,17 @@
 
 (define (color-wheel t n radius)
   (let loop ([t t] [i 0])
-    (if (>= i n)
-        t
-        (let* ([hue (inexact->exact (floor (* 15 (/ i n))))]
-               [color (make-color12 15 hue 0)]
-               [t (setpc t color)]
-               [t (circle t radius)]
-               [t (rt t (/ 360 n))]
-               [t (pu t)]
-               [t (fd t 20)]
-               [t (pd t)])
-          (loop t (+ i 1))))))
+       (if (>= i n)
+           t
+           (let* ([hue (inexact->exact (floor (* 15 (/ i n))))]
+                  [color (make-color12 15 hue 0)]
+                  [t (setpc t color)]
+                  [t (circle t radius)]
+                  [t (rt t (/ 360 n))]
+                  [t (pu t)]
+                  [t (fd t 20)]
+                  [t (pd t)])
+                 (loop t (+ i 1))))))
 
 (define (demo-circles)
   (display "Demo 8: Drawing color wheel of circles...\n")
@@ -227,8 +227,8 @@
          [t (setpw t 2)]
          [t (color-wheel t 18 30)]
          [d (turtle->drawing t)])
-    (save-svg d "turtle-circles.svg")
-    (display "  Saved to turtle-circles.svg\n")))
+        (save-svg d "turtle-circles.svg")
+        (display "  Saved to turtle-circles.svg\n")))
 
 ;;; ============================================================
 ;;; Run All Demos

@@ -14,12 +14,12 @@
 ;;; start-tutorial-handler : [Symbol] → void
 (define start-tutorial-handler
   (case-lambda
-    [()
-     (start-tutorial)
-     (void)]
-    [(tutorial-id)
-     (start-tutorial tutorial-id)
-     (void)]))
+   [()
+    (start-tutorial)
+    (void)]
+   [(tutorial-id)
+    (start-tutorial tutorial-id)
+    (void)]))
 
 ;;; tutorial-next-handler : → void
 (define (tutorial-next-handler)
@@ -49,12 +49,12 @@
 ;;; list-tutorials-handler : [Symbol] → void
 (define list-tutorials-handler
   (case-lambda
-    [()
-     (list-tutorials)
-     (void)]
-    [(tier)
-     (list-tutorials tier)
-     (void)]))
+   [()
+    (list-tutorials)
+    (void)]
+   [(tier)
+    (list-tutorials tier)
+    (void)]))
 
 ;;; export-tutorial-progress-handler : → void
 (define (export-tutorial-progress-handler)

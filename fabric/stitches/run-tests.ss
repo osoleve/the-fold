@@ -16,29 +16,29 @@
 ;;; Get the directory containing this script
 (define script-dir
   (let ([args (command-line-arguments)])
-    (if (and (pair? args) (string? (car args)))
-        (let* ([script-path (car args)]
-               [slash-pos (let loop ([i (- (string-length script-path) 1)])
-                            (cond
-                              [(< i 0) #f]
-                              [(or (char=? (string-ref script-path i) #\\)
-                                   (char=? (string-ref script-path i) #\/)) i]
-                              [else (loop (- i 1))]))])
-          (if slash-pos
-              (substring script-path 0 (+ slash-pos 1))
-              "./"))
-        "./")))
+       (if (and (pair? args) (string? (car args)))
+           (let* ([script-path (car args)]
+                  [slash-pos (let loop ([i (- (string-length script-path) 1)])
+                                  (cond
+                                   [(< i 0) #f]
+                                   [(or (char=? (string-ref script-path i) #\\)
+                                        (char=? (string-ref script-path i) #\/)) i]
+                                   [else (loop (- i 1))]))])
+                 (if slash-pos
+                     (substring script-path 0 (+ slash-pos 1))
+                     "./"))
+           "./")))
 
 ;;; Change to fabric/stitches directory if we're not already there
 (when (or (string=? script-dir "fabric/stitches/")
           (string=? script-dir "fabric/stitches\\")
           (string=? script-dir "fabric\\stitches\\"))
-  (current-directory (path-parent (path-parent (current-directory)))))
+      (current-directory (path-parent (path-parent (current-directory)))))
 
 ;;; Ensure fabric/stitches/ is in source-directories
 (let ([core-path (string-append (current-directory) "/fabric/stitches")])
-  (unless (member core-path (source-directories))
-    (source-directories (cons core-path (source-directories)))))
+     (unless (member core-path (source-directories))
+             (source-directories (cons core-path (source-directories)))))
 
 ;;; ============================================================
 ;;; Load Test Framework
@@ -63,8 +63,8 @@
                (display "FAILED: ")
                (display (condition-message exn))
                (newline)])
-    (load (string-append "fabric/stitches/" filename))
-    (set! pass-count (+ pass-count 1))))
+         (load (string-append "fabric/stitches/" filename))
+         (set! pass-count (+ pass-count 1))))
 
 ;;; ============================================================
 ;;; Run Tests in Dependency Order
@@ -122,5 +122,5 @@
 (if (= fail-count 0)
     (display "\n✓ All core tests passed!\n")
     (begin
-      (display "\n✗ Some tests failed!\n")
-      (exit 1)))
+     (display "\n✗ Some tests failed!\n")
+     (exit 1)))

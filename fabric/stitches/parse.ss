@@ -74,18 +74,18 @@
 ;;; Parse and return value on success, #f on failure.
 (define (parse parser input)
   (let ([result (run-parser parser input)])
-    (if (parse-ok? result)
-        (result-value result)
-        #f)))
+       (if (parse-ok? result)
+           (result-value result)
+           #f)))
 
 ;;; parse-complete : Parser a × String → a | #f
 ;;; Parse and require full consumption of input.
 (define (parse-complete parser input)
   (let ([result (run-parser parser input)])
-    (if (and (parse-ok? result)
-             (string=? (result-remaining result) ""))
-        (result-value result)
-        #f)))
+       (if (and (parse-ok? result)
+                (string=? (result-remaining result) ""))
+           (result-value result)
+           #f)))
 
 ;;; ============================================================
 ;;; Primitive Parsers
@@ -95,41 +95,41 @@
 ;;; Always succeeds with the given value, consumes nothing.
 (define (pure value)
   (lambda (input)
-    (success value input)))
+          (success value input)))
 
 ;;; fail : String → Parser a
 ;;; Always fails with the given message.
 (define (fail msg)
   (lambda (input)
-    (failure msg (string-length input))))
+          (failure msg (string-length input))))
 
 ;;; item : Parser Char
 ;;; Consume one character, fail on empty input.
 (define item
   (lambda (input)
-    (if (= (string-length input) 0)
-        (failure "any character" 0)
-        (success (string-ref input 0)
-                 (substring input 1 (string-length input))))))
+          (if (= (string-length input) 0)
+              (failure "any character" 0)
+              (success (string-ref input 0)
+                       (substring input 1 (string-length input))))))
 
 ;;; eof : Parser Unit
 ;;; Succeed only at end of input.
 (define eof
   (lambda (input)
-    (if (= (string-length input) 0)
-        (success '() input)
-        (failure "end of input" (string-length input)))))
+          (if (= (string-length input) 0)
+              (success '() input)
+              (failure "end of input" (string-length input)))))
 
 ;;; satisfy : (Char → Bool) × String → Parser Char
 ;;; Consume a character if predicate holds.
 (define (satisfy pred label)
   (lambda (input)
-    (if (= (string-length input) 0)
-        (failure label 0)
-        (let ([c (string-ref input 0)])
-          (if (pred c)
-              (success c (substring input 1 (string-length input)))
-              (failure label (string-length input)))))))
+          (if (= (string-length input) 0)
+              (failure label 0)
+              (let ([c (string-ref input 0)])
+                   (if (pred c)
+                       (success c (substring input 1 (string-length input)))
+                       (failure label (string-length input)))))))
 
 ;;; ============================================================
 ;;; Character Parsers
@@ -176,14 +176,14 @@
 ;;; Match an exact string.
 (define (string-p target)
   (lambda (input)
-    (let ([tlen (string-length target)]
-          [ilen (string-length input)])
-      (if (< ilen tlen)
-          (failure target (string-length input))
-          (let ([prefix (substring input 0 tlen)])
-            (if (string=? prefix target)
-                (success target (substring input tlen ilen))
-                (failure target (string-length input))))))))
+          (let ([tlen (string-length target)]
+                [ilen (string-length input)])
+               (if (< ilen tlen)
+                   (failure target (string-length input))
+                   (let ([prefix (substring input 0 tlen)])
+                        (if (string=? prefix target)
+                            (success target (substring input tlen ilen))
+                            (failure target (string-length input))))))))
 
 ;;; ============================================================
 ;;; Parser Combinators — Sequencing
@@ -194,12 +194,12 @@
 ;;; This is the heart of parser composition.
 (define (bind parser f)
   (lambda (input)
-    (let ([result (parser input)])
-      (if (parse-ok? result)
-          (let ([value (result-value result)]
-                [remaining (result-remaining result)])
-            ((f value) remaining))
-          result))))
+          (let ([result (parser input)])
+               (if (parse-ok? result)
+                   (let ([value (result-value result)]
+                         [remaining (result-remaining result)])
+                        ((f value) remaining))
+                   result))))
 
 ;;; seq : Parser a × Parser b → Parser b
 ;;; Run both parsers, keep second result (>>).
@@ -210,8 +210,8 @@
 ;;; Run both parsers, keep first result (<<).
 (define (seq-left p1 p2)
   (bind p1 (lambda (a)
-    (bind p2 (lambda (_)
-      (pure a))))))
+                   (bind p2 (lambda (_)
+                                    (pure a))))))
 
 ;;; ============================================================
 ;;; Parser Combinators — Choice
@@ -221,10 +221,10 @@
 ;;; Try first parser, on failure try second (<|>).
 (define (alt p1 p2)
   (lambda (input)
-    (let ([result (p1 input)])
-      (if (parse-ok? result)
-          result
-          (p2 input)))))
+          (let ([result (p1 input)])
+               (if (parse-ok? result)
+                   result
+                   (p2 input)))))
 
 ;;; choice : (List (Parser a)) → Parser a
 ;;; Try parsers in order until one succeeds.
@@ -252,52 +252,52 @@
 ;;; Helper for many — accumulate results until parser fails.
 (define (many-helper parser acc input)
   (let ([result (parser input)])
-    (if (parse-ok? result)
-        (many-helper parser
-                     (cons (result-value result) acc)
-                     (result-remaining result))
-        ;; Parser failed, return accumulated results
-        (cons (reverse acc) input))))
+       (if (parse-ok? result)
+           (many-helper parser
+                        (cons (result-value result) acc)
+                        (result-remaining result))
+           ;; Parser failed, return accumulated results
+           (cons (reverse acc) input))))
 
 ;;; many : Parser a → Parser (List a)
 ;;; Zero or more, greedy.
 (define (many parser)
   (lambda (input)
-    (let ([result (many-helper parser '() input)])
-      (success (car result) (cdr result)))))
+          (let ([result (many-helper parser '() input)])
+               (success (car result) (cdr result)))))
 
 ;;; many1 : Parser a → Parser (List a)
 ;;; One or more.
 (define (many1 parser)
   (bind parser (lambda (first)
-    (bind (many parser) (lambda (rest)
-      (pure (cons first rest)))))))
+                       (bind (many parser) (lambda (rest)
+                                                   (pure (cons first rest)))))))
 
 ;;; sep-by : Parser a × Parser sep → Parser (List a)
 ;;; Parse items separated by separator.
 (define (sep-by parser sep)
   (alt
-    ;; Try to parse first item, then zero or more (sep item) pairs
-    (bind parser (lambda (first)
-      (bind (many (seq sep parser)) (lambda (rest)
-        (pure (cons first rest))))))
-    ;; Or return empty list
-    (pure '())))
+   ;; Try to parse first item, then zero or more (sep item) pairs
+   (bind parser (lambda (first)
+                        (bind (many (seq sep parser)) (lambda (rest)
+                                                              (pure (cons first rest))))))
+   ;; Or return empty list
+   (pure '())))
 
 ;;; sep-by1 : Parser a × Parser sep → Parser (List a)
 ;;; Parse one or more items separated by separator.
 (define (sep-by1 parser sep)
   (bind parser (lambda (first)
-    (bind (many (seq sep parser)) (lambda (rest)
-      (pure (cons first rest)))))))
+                       (bind (many (seq sep parser)) (lambda (rest)
+                                                             (pure (cons first rest)))))))
 
 ;;; optional : Parser a → Parser (Maybe a)
 ;;; Parse or return nothing.
 ;;; Maybe a = '() | (a)
 (define (optional parser)
   (alt
-    (map-p (lambda (x) (list x)) parser)
-    (pure '())))
+   (map-p (lambda (x) (list x)) parser)
+   (pure '())))
 
 ;;; ============================================================
 ;;; Parser Combinators — Delimiters
@@ -307,7 +307,7 @@
 ;;; Parse something between delimiters.
 (define (between open close parser)
   (seq open
-    (seq-left parser close)))
+       (seq-left parser close)))
 
 ;;; ============================================================
 ;;; Utility Parsers
@@ -356,14 +356,14 @@
 ;;; Parse a natural number (sequence of digits).
 (define nat
   (bind (many1 digit) (lambda (digits)
-    (pure (string->number (list->string digits))))))
+                              (pure (string->number (list->string digits))))))
 
 ;;; int : Parser Int
 ;;; Parse an integer (optional minus sign followed by digits).
 (define int
   (bind (optional (char #\-)) (lambda (sign)
-    (bind nat (lambda (n)
-      (pure (if (null? sign) n (- n))))))))
+                                      (bind nat (lambda (n)
+                                                        (pure (if (null? sign) n (- n))))))))
 
 ;;; ============================================================
 ;;; Word and Identifier Parsers
@@ -378,8 +378,8 @@
 ;;; Parse an identifier (letter followed by alphanumerics/underscores).
 (define identifier
   (bind alpha (lambda (first)
-    (bind (many (alt alphanum (char #\_))) (lambda (rest)
-      (pure (list->string (cons first rest))))))))
+                      (bind (many (alt alphanum (char #\_))) (lambda (rest)
+                                                                     (pure (list->string (cons first rest))))))))
 
 ;;; ============================================================
 ;;; Chainl and Chainr — Operator Parsing
@@ -389,23 +389,23 @@
 ;;; Parse one or more items separated by left-associative operators.
 (define (chainl1 parser op)
   (letrec
-    ([rest (lambda (x)
-             (alt
-               (bind op (lambda (f)
-                 (bind parser (lambda (y)
-                   (rest (f x y))))))
-               (pure x)))])
-    (bind parser rest)))
+   ([rest (lambda (x)
+                  (alt
+                   (bind op (lambda (f)
+                                    (bind parser (lambda (y)
+                                                         (rest (f x y))))))
+                   (pure x)))])
+   (bind parser rest)))
 
 ;;; chainr1 : Parser a × Parser (a × a → a) → Parser a
 ;;; Parse one or more items separated by right-associative operators.
 (define (chainr1 parser op)
   (bind parser (lambda (x)
-    (alt
-      (bind op (lambda (f)
-        (bind (chainr1 parser op) (lambda (y)
-          (pure (f x y))))))
-      (pure x)))))
+                       (alt
+                        (bind op (lambda (f)
+                                         (bind (chainr1 parser op) (lambda (y)
+                                                                           (pure (f x y))))))
+                        (pure x)))))
 
 ;;; ============================================================
 ;;; Helpers
@@ -415,22 +415,22 @@
 ;;; Match any character in the given string.
 (define (one-of chars)
   (satisfy (lambda (c)
-             (let loop ([i 0])
-               (cond
-                 [(>= i (string-length chars)) #f]
-                 [(char=? c (string-ref chars i)) #t]
-                 [else (loop (+ i 1))])))
+                   (let loop ([i 0])
+                        (cond
+                         [(>= i (string-length chars)) #f]
+                         [(char=? c (string-ref chars i)) #t]
+                         [else (loop (+ i 1))])))
            (string-append "one of: " chars)))
 
 ;;; none-of : String → Parser Char
 ;;; Match any character not in the given string.
 (define (none-of chars)
   (satisfy (lambda (c)
-             (let loop ([i 0])
-               (cond
-                 [(>= i (string-length chars)) #t]
-                 [(char=? c (string-ref chars i)) #f]
-                 [else (loop (+ i 1))])))
+                   (let loop ([i 0])
+                        (cond
+                         [(>= i (string-length chars)) #t]
+                         [(char=? c (string-ref chars i)) #f]
+                         [else (loop (+ i 1))])))
            (string-append "none of: " chars)))
 
 ;;; end-by : Parser a × Parser sep → Parser (List a)
@@ -449,5 +449,5 @@
   (if (zero? n)
       (pure '())
       (bind parser (lambda (x)
-        (bind (count (- n 1) parser) (lambda (xs)
-          (pure (cons x xs))))))))
+                           (bind (count (- n 1) parser) (lambda (xs)
+                                                                (pure (cons x xs))))))))

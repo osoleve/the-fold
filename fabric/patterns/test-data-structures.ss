@@ -13,14 +13,14 @@
 (define (test name expected actual)
   (if (equal? expected actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (display "  ✓ ") (display name) (newline))
+       (set! tests-passed (+ tests-passed 1))
+       (display "  ✓ ") (display name) (newline))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (display "  ✗ ") (display name)
-        (display " — expected ") (write expected)
-        (display ", got ") (write actual)
-        (newline))))
+       (set! tests-failed (+ tests-failed 1))
+       (display "  ✗ ") (display name)
+       (display " — expected ") (write expected)
+       (display ", got ") (write actual)
+       (newline))))
 
 (define (test-error name thunk)
   (guard (ex
@@ -30,9 +30,9 @@
           [else
            (set! tests-failed (+ tests-failed 1))
            (display "  ✗ ") (display name) (display " (wrong exception type)") (newline)])
-    (thunk)
-    (set! tests-failed (+ tests-failed 1))
-    (display "  ✗ ") (display name) (display " (no error raised)") (newline)))
+         (thunk)
+         (set! tests-failed (+ tests-failed 1))
+         (display "  ✗ ") (display name) (display " (no error raised)") (newline)))
 
 (display "Testing data-structures.ss\n")
 (display "===========================\n\n")
@@ -258,8 +258,8 @@
 
 (if (= tests-failed 0)
     (begin
-      (display "\n✓ All tests passed!\n")
-      (exit 0))
+     (display "\n✓ All tests passed!\n")
+     (exit 0))
     (begin
-      (display "\n✗ Some tests failed.\n")
-      (exit 1)))
+     (display "\n✗ Some tests failed.\n")
+     (exit 1)))

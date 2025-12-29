@@ -27,11 +27,11 @@
 
 ;;; Create units
 (define unit1 (make-unit 'u1 'warrior 'player
-                        '((actions-per-turn . 2))))
+                         '((actions-per-turn . 2))))
 (define unit2 (make-unit 'u2 'archer 'player
-                        '((actions-per-turn . 2))))
+                         '((actions-per-turn . 2))))
 (define unit3 (make-unit 'u3 'mage 'player
-                        '((actions-per-turn . 3))))
+                         '((actions-per-turn . 3))))
 
 ;;; Place units
 (define game (game-place-unit game unit1 (square-coord 2 4)))
@@ -154,17 +154,17 @@
 
 (display "Recent actions (last 3):\n")
 (for-each
-  (lambda (entry)
-    (display "  Turn ")
-    (display (car entry))
-    (display ", Unit ")
-    (display (cadr entry))
-    (display ": ")
-    (display (caddr entry))
-    (display " - ")
-    (display (cadddr entry))
-    (newline))
-  (turn-recent-actions turns 3))
+ (lambda (entry)
+         (display "  Turn ")
+         (display (car entry))
+         (display ", Unit ")
+         (display (cadr entry))
+         (display ": ")
+         (display (caddr entry))
+         (display " - ")
+         (display (cadddr entry))
+         (newline))
+ (turn-recent-actions turns 3))
 (newline)
 
 ;;; ============================================================
@@ -176,11 +176,11 @@
 
 ;;; Create units with initiative stats
 (define fast-unit (make-unit 'fast 'rogue 'player
-                            '((initiative . 15))))
+                             '((initiative . 15))))
 (define normal-unit (make-unit 'normal 'warrior 'player
-                              '((initiative . 10))))
+                               '((initiative . 10))))
 (define slow-unit (make-unit 'slow 'tank 'player
-                            '((initiative . 5))))
+                             '((initiative . 5))))
 
 (define init-order (calculate-initiative-order
                     (list slow-unit normal-unit fast-unit)))
@@ -209,8 +209,8 @@
 (define gs (make-game-state game-board))
 
 (define hero (make-unit 'hero 'knight 'player
-                       '((movement . 3)
-                         (actions-per-turn . 2))))
+                        '((movement . 3)
+                          (actions-per-turn . 2))))
 
 (define gs (game-place-unit gs hero (square-coord 1 3)))
 

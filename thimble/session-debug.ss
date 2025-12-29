@@ -10,10 +10,10 @@
   (display "Current session check:\n")
   (if (session-exists?)
       (let ((session (read-session)))
-        (display (format "  Session exists: ✅\n"))
-        (display (format "  Name: ~a\n" (cdr (assq 'name session))))
-        (display (format "  Tier: ~a\n" (cdr (assq 'tier session))))
-        (display (format "  Login time: ~a\n" (cdr (assq 'login-time session)))))
+           (display (format "  Session exists: ✅\n"))
+           (display (format "  Name: ~a\n" (cdr (assq 'name session))))
+           (display (format "  Tier: ~a\n" (cdr (assq 'tier session))))
+           (display (format "  Login time: ~a\n" (cdr (assq 'login-time session)))))
       (display "  Session exists: ❌\n")))
 
 (test-session-state)
@@ -34,12 +34,12 @@
 ;; Test the actual session data structure
 (display "\n4. Raw session data inspection...\n")
 (when (session-exists?)
-  (let ((session (read-session)))
-    (display "Raw session alist:\n")
-    (for-each 
-     (lambda (pair)
-       (display (format "  ~a: ~a\n" (car pair) (cdr pair))))
-     session)))
+      (let ((session (read-session)))
+           (display "Raw session alist:\n")
+           (for-each
+            (lambda (pair)
+                    (display (format "  ~a: ~a\n" (car pair) (cdr pair))))
+            session)))
 
 ;; Test session clearing and re-establishment
 (display "\n5. Testing session robustness...\n")

@@ -70,40 +70,40 @@
 ;;; Is this a well-formed type expression?
 (define (type? t)
   (cond
-    ;; Base types
-    [(base-type? t) #t]
-    ;; Hole
-    [(eq? t '?) #t]
-    ;; Named hole
-    [(and (pair? t) (eq? (car t) '?) (symbol? (cadr t))) #t]
-    ;; Type variable (lowercase symbol)
-    [(and (symbol? t) (char-lower-case? (string-ref (symbol->string t) 0))) #t]
-    ;; Compound types
-    [(not (pair? t)) #f]
-    ;; Function type: (-> T1 ... Tn Tresult)
-    [(eq? (car t) '->) (and (>= (length t) 3) (andmap type? (cdr t)))]
-    ;; Product type: (× T1 ... Tn)
-    [(eq? (car t) '×) (andmap type? (cdr t))]
-    ;; Sum type: (+ (Tag T...) ...)
-    [(eq? (car t) '+) (andmap variant? (cdr t))]
-    ;; List type: (List T)
-    [(eq? (car t) 'List) (and (= (length t) 2) (type? (cadr t)))]
-    ;; Vector type: (Vector T)
-    [(eq? (car t) 'Vector) (and (= (length t) 2) (type? (cadr t)))]
-    ;; Block type: (Block Tag PayloadType)
-    [(eq? (car t) 'Block) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
-    ;; Ref type: (Ref T)
-    [(eq? (car t) 'Ref) (and (= (length t) 2) (type? (cadr t)))]
-    ;; Universal: (∀ (vars...) T)
-    [(eq? (car t) '∀) (and (= (length t) 3)
-                           (list? (cadr t))
-                           (andmap symbol? (cadr t))
-                           (type? (caddr t)))]
-    ;; Recursive: (μ var T)
-    [(eq? (car t) 'μ) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
-    ;; Capability: (Cap name T)
-    [(eq? (car t) 'Cap) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
-    [else #f]))
+   ;; Base types
+   [(base-type? t) #t]
+   ;; Hole
+   [(eq? t '?) #t]
+   ;; Named hole
+   [(and (pair? t) (eq? (car t) '?) (symbol? (cadr t))) #t]
+   ;; Type variable (lowercase symbol)
+   [(and (symbol? t) (char-lower-case? (string-ref (symbol->string t) 0))) #t]
+   ;; Compound types
+   [(not (pair? t)) #f]
+   ;; Function type: (-> T1 ... Tn Tresult)
+   [(eq? (car t) '->) (and (>= (length t) 3) (andmap type? (cdr t)))]
+   ;; Product type: (× T1 ... Tn)
+   [(eq? (car t) '×) (andmap type? (cdr t))]
+   ;; Sum type: (+ (Tag T...) ...)
+   [(eq? (car t) '+) (andmap variant? (cdr t))]
+   ;; List type: (List T)
+   [(eq? (car t) 'List) (and (= (length t) 2) (type? (cadr t)))]
+   ;; Vector type: (Vector T)
+   [(eq? (car t) 'Vector) (and (= (length t) 2) (type? (cadr t)))]
+   ;; Block type: (Block Tag PayloadType)
+   [(eq? (car t) 'Block) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
+   ;; Ref type: (Ref T)
+   [(eq? (car t) 'Ref) (and (= (length t) 2) (type? (cadr t)))]
+   ;; Universal: (∀ (vars...) T)
+   [(eq? (car t) '∀) (and (= (length t) 3)
+                          (list? (cadr t))
+                          (andmap symbol? (cadr t))
+                          (type? (caddr t)))]
+   ;; Recursive: (μ var T)
+   [(eq? (car t) 'μ) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
+   ;; Capability: (Cap name T)
+   [(eq? (car t) 'Cap) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
+   [else #f]))
 
 ;;; variant? : Any → Boolean
 ;;; Is this a valid sum type variant?
@@ -225,12 +225,12 @@
 ;;; Structural equality of types.
 (define (type=? t1 t2)
   (cond
-    [(and (symbol? t1) (symbol? t2)) (eq? t1 t2)]
-    [(and (pair? t1) (pair? t2))
-     (and (= (length t1) (length t2))
-          (andmap (lambda (pair) (type=? (car pair) (cdr pair)))
-                  (map cons t1 t2)))]
-    [else #f]))
+   [(and (symbol? t1) (symbol? t2)) (eq? t1 t2)]
+   [(and (pair? t1) (pair? t2))
+    (and (= (length t1) (length t2))
+         (andmap (lambda (pair) (type=? (car pair) (cdr pair)))
+                 (map cons t1 t2)))]
+   [else #f]))
 
 ;;; ============================================================
 ;;; Free Type Variables
@@ -243,18 +243,18 @@
 
 (define (free-tvars-with bound t)
   (cond
-    [(type-var? t)
-     (if (memq t bound) '() (list t))]
-    [(or (base-type? t) (hole? t)) '()]
-    [(not (pair? t)) '()]
-    [(eq? (car t) '∀)
-     (let ([new-bound (append (cadr t) bound)])
-       (free-tvars-with new-bound (caddr t)))]
-    [(eq? (car t) 'μ)
-     (let ([new-bound (cons (cadr t) bound)])
-       (free-tvars-with new-bound (caddr t)))]
-    [else
-     (apply append (map (lambda (sub) (free-tvars-with bound sub)) (cdr t)))]))
+   [(type-var? t)
+    (if (memq t bound) '() (list t))]
+   [(or (base-type? t) (hole? t)) '()]
+   [(not (pair? t)) '()]
+   [(eq? (car t) '∀)
+    (let ([new-bound (append (cadr t) bound)])
+         (free-tvars-with new-bound (caddr t)))]
+   [(eq? (car t) 'μ)
+    (let ([new-bound (cons (cadr t) bound)])
+         (free-tvars-with new-bound (caddr t)))]
+   [else
+    (apply append (map (lambda (sub) (free-tvars-with bound sub)) (cdr t)))]))
 
 ;;; ============================================================
 ;;; Type Substitution
@@ -264,22 +264,22 @@
 ;;; Substitute tvar with replacement in type.
 (define (subst-type type tvar replacement)
   (cond
-    [(eq? type tvar) replacement]
-    [(or (base-type? type) (hole? type)) type]
-    [(type-var? type) type]
-    [(not (pair? type)) type]
-    ;; Don't substitute under binders that shadow
-    [(eq? (car type) '∀)
-     (if (memq tvar (cadr type))
-         type  ; tvar is bound, don't substitute
-         `(∀ ,(cadr type) ,(subst-type (caddr type) tvar replacement)))]
-    [(eq? (car type) 'μ)
-     (if (eq? tvar (cadr type))
-         type  ; tvar is bound
-         `(μ ,(cadr type) ,(subst-type (caddr type) tvar replacement)))]
-    [else
-     (cons (car type)
-           (map (lambda (sub) (subst-type sub tvar replacement)) (cdr type)))]))
+   [(eq? type tvar) replacement]
+   [(or (base-type? type) (hole? type)) type]
+   [(type-var? type) type]
+   [(not (pair? type)) type]
+   ;; Don't substitute under binders that shadow
+   [(eq? (car type) '∀)
+    (if (memq tvar (cadr type))
+        type  ; tvar is bound, don't substitute
+        `(∀ ,(cadr type) ,(subst-type (caddr type) tvar replacement)))]
+   [(eq? (car type) 'μ)
+    (if (eq? tvar (cadr type))
+        type  ; tvar is bound
+        `(μ ,(cadr type) ,(subst-type (caddr type) tvar replacement)))]
+   [else
+    (cons (car type)
+          (map (lambda (sub) (subst-type sub tvar replacement)) (cdr type)))]))
 
 ;;; ============================================================
 ;;; Common Type Patterns
@@ -320,23 +320,23 @@
 ;;; Pretty-print a type.
 (define (type->string t)
   (cond
-    [(symbol? t) (symbol->string t)]
-    [(eq? t '?) "?"]
-    [(and (pair? t) (eq? (car t) '?))
-     (string-append "?" (symbol->string (cadr t)))]
-    [(and (pair? t) (eq? (car t) '->))
-     (string-append "("
-                    (join-strings " → " (map type->string (cdr t)))
-                    ")")]
-    [(and (pair? t) (eq? (car t) '×))
-     (string-append "("
-                    (join-strings " × " (map type->string (cdr t)))
-                    ")")]
-    [(pair? t)
-     (string-append "("
-                    (join-strings " " (map type->string t))
-                    ")")]
-    [else (format "~s" t)]))
+   [(symbol? t) (symbol->string t)]
+   [(eq? t '?) "?"]
+   [(and (pair? t) (eq? (car t) '?))
+    (string-append "?" (symbol->string (cadr t)))]
+   [(and (pair? t) (eq? (car t) '->))
+    (string-append "("
+                   (join-strings " → " (map type->string (cdr t)))
+                   ")")]
+   [(and (pair? t) (eq? (car t) '×))
+    (string-append "("
+                   (join-strings " × " (map type->string (cdr t)))
+                   ")")]
+   [(pair? t)
+    (string-append "("
+                   (join-strings " " (map type->string t))
+                   ")")]
+   [else (format "~s" t)]))
 
 ;;; join-strings : String × (List String) → String
 (define (join-strings sep strs)
@@ -365,5 +365,5 @@
 (define (block->type blk)
   (if (eq? (block-tag blk) 'type)
       (let ([t (read (open-input-string (utf8->string (block-payload blk))))])
-        (if (type? t) t #f))
+           (if (type? t) t #f))
       #f))

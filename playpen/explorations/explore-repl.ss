@@ -28,12 +28,12 @@
 (display "\nTEST 2: Error Handling - Division by Zero\n")
 (display "  Attempting (/ 5 0)...\n")
 (guard (e (else
-  (display "  [CAUGHT ERROR] ")
-  (display (format-exploration-error e))
-  (display "\n")))
-  (display "  Result: ")
-  (display (/ 5 0))
-  (display "\n"))
+           (display "  [CAUGHT ERROR] ")
+           (display (format-exploration-error e))
+           (display "\n")))
+       (display "  Result: ")
+       (display (/ 5 0))
+       (display "\n"))
 
 ;;; Test 3: String operations
 (display "\nTEST 3: String Operations\n")
@@ -166,16 +166,16 @@
 (display '(1 2 3))
 (display "\n")
 (let ((x 5))
-  (display "  `(a ,x b) where x=5 => ")
-  (display `(a ,x b))
-  (display "\n"))
+     (display "  `(a ,x b) where x=5 => ")
+     (display `(a ,x b))
+     (display "\n"))
 
 ;;; Test 15: Multiple value returns (attempt)
 (display "\nTEST 15: Control Flow - Let Bindings\n")
 (let ((a 1) (b 2) (c 3))
-  (display "  (let ((a 1) (b 2) (c 3)) (+ a b c)) => ")
-  (display (+ a b c))
-  (display "\n"))
+     (display "  (let ((a 1) (b 2) (c 3)) (+ a b c)) => ")
+     (display (+ a b c))
+     (display "\n"))
 
 ;;; Test 16: Map and reduce patterns
 (display "\nTEST 16: Fold/Reduce Operations\n")
@@ -207,10 +207,10 @@
 ;;; Test 19: Variable reassignment/mutation
 (display "\nTEST 19: Testing set!\n")
 (let ((x 1))
-  (set! x 2)
-  (display "  After (set! x 2), x => ")
-  (display x)
-  (display "\n"))
+     (set! x 2)
+     (display "  After (set! x 2), x => ")
+     (display x)
+     (display "\n"))
 
 ;;; Test 20: String edge cases
 (display "\nTEST 20: String Edge Cases\n")
@@ -219,8 +219,8 @@
 (display "\n")
 (display "  (string-upcase \"hello\") => ")
 (catch (c (else
-  (display "[Function not available]")))
-  (display (string-upcase "hello")))
+           (display "[Function not available]")))
+       (display (string-upcase "hello")))
 (display "\n")
 
 (display "\n╔════════════════════════════════════════════════════════════╗\n")

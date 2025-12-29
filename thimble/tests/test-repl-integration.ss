@@ -34,13 +34,13 @@
 (display "\n6. Test command invocation:\n")
 (display "   (cmd 'version) => ")
 (let ([result (cmd 'version)])
-  (display (if (eq? (car result) 'ok) "✓ Success\n" "✗ Failed\n")))
+     (display (if (eq? (car result) 'ok) "✓ Success\n" "✗ Failed\n")))
 
 (display "\n7. Test typo detection:\n")
 (display "   (cmd 'vrsion) => ")
 (let ([result (cmd 'vrsion)])
-  (if (eq? (car result) 'error)
-      (display "✓ Returns error\n")
-      (display "✗ Failed\n")))
+     (if (eq? (car result) 'error)
+         (display "✓ Returns error\n")
+         (display "✗ Failed\n")))
 
 (display "\n=== All integration tests passed ===\n")

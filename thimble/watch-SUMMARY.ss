@@ -332,10 +332,10 @@
 
 ;;; Example 3: Watch directory
 (watch-dir "core" "*.ss"
-  (lambda (files)
-    (display "Core changed: ")
-    (display files)
-    (newline)))
+           (lambda (files)
+                   (display "Core changed: ")
+                   (display files)
+                   (newline)))
 
 ;;; Example 4: Development mode
 (load "thimble/watch-daemon-integration.ss")
@@ -343,15 +343,15 @@
 
 ;;; Example 5: Custom action
 (watch-file "core/block.ss"
-  (lambda (files)
-    (load "fabric/stitches/block.ss")
-    (system "scheme --script core/test-block.ss")))
+            (lambda (files)
+                    (load "fabric/stitches/block.ss")
+                    (system "scheme --script core/test-block.ss")))
 
 ;;; Example 6: Multiple watchers
 (for-each auto-reload
-  '("core/block.ss"
-    "core/normalize.ss"
-    "shell/fs.ss"))
+          '("core/block.ss"
+            "core/normalize.ss"
+            "shell/fs.ss"))
 
 ;;; Example 7: Smart reload
 (load "thimble/watch-daemon-integration.ss")

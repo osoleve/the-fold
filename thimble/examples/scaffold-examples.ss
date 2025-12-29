@@ -187,7 +187,7 @@ TODO: Add details
 
 TODO: Add examples
 "))))
-
+  
   ;; Use the custom template
   (scaffold 'doc-file "scaffolding-guide"
             '((topic . "Scaffolding System")
@@ -201,13 +201,13 @@ TODO: Add examples
 (define (example-10-batch-scaffolding)
   ;; Create a suite of related utilities
   (for-each
-    (lambda (spec)
-      (let ([name (car spec)]
-            [desc (cadr spec)])
-        (scaffold 'shell-module name `((description . ,desc)))))
-    '(("json-utils" "JSON parsing and generation")
-      ("xml-utils" "XML parsing and generation")
-      ("csv-utils" "CSV parsing and generation"))))
+   (lambda (spec)
+           (let ([name (car spec)]
+                 [desc (cadr spec)])
+                (scaffold 'shell-module name `((description . ,desc)))))
+   '(("json-utils" "JSON parsing and generation")
+     ("xml-utils" "XML parsing and generation")
+     ("csv-utils" "CSV parsing and generation"))))
 
 ;;; This creates 6 files:
 ;;;   shell/json-utils.ss + test-json-utils.ss
@@ -223,11 +223,11 @@ TODO: Add examples
   ;; Tool names should be descriptive
   (scaffold 'tool "dependency-visualizer"
             '((category . introspection)))
-
+  
   ;; Core modules use simple, clear names
   (scaffold 'core-module "tree"
             '((description . "Pure tree operations")))
-
+  
   ;; Shell modules can be more specific
   (scaffold 'shell-module "git-integration"
             '((description . "Git operations wrapper"))))
@@ -246,47 +246,47 @@ TODO: Add examples
 (define (post-scaffold-checklist module-type)
   (display "\nPost-Scaffolding Checklist:\n")
   (display "===========================\n\n")
-
+  
   (case module-type
-    [(shell-module)
-     (display "1. [ ] Implement functions in shell/<name>.ss\n")
-     (display "2. [ ] Add tests in shell/test-<name>.ss\n")
-     (display "3. [ ] Run tests: scheme --script shell/test-<name>.ss\n")
-     (display "4. [ ] Document usage in module header\n")
-     (display "5. [ ] Add to shell/repl.ss if needed\n")
-     (display "6. [ ] Commit changes\n")]
-
-    [(core-module)
-     (display "1. [ ] Implement pure functions in core/<name>.ss\n")
-     (display "2. [ ] Ensure totality (use fuel for recursion)\n")
-     (display "3. [ ] Add tests in core/test-<name>.ss\n")
-     (display "4. [ ] Run tests: scheme --script core/test-<name>.ss\n")
-     (display "5. [ ] Update fabric/stitches/MODULES.md dependency graph\n")
-     (display "6. [ ] Commit changes\n")]
-
-    [(tool)
-     (display "1. [ ] Implement tool logic in shell/<name>.ss\n")
-     (display "2. [ ] Add to shell/toolkit.ss registry\n")
-     (display "3. [ ] Add tests in shell/test-<name>.ss\n")
-     (display "4. [ ] Run tests: scheme --script shell/test-<name>.ss\n")
-     (display "5. [ ] Test in REPL: (load \"shell/toolkit.ss\") then use tool\n")
-     (display "6. [ ] Update toolkit help documentation\n")
-     (display "7. [ ] Commit changes\n")]
-
-    [(playground)
-     (display "1. [ ] Implement game/tool logic in playpen/templates/<name>.ss\n")
-     (display "2. [ ] Test in REPL: (load \"playpen/templates/<name>.ss\")\n")
-     (display "3. [ ] Play/use the creation\n")
-     (display "4. [ ] Document how to use in file header\n")
-     (display "5. [ ] Add to shell/repl.ss if loading by default\n")
-     (display "6. [ ] Commit changes\n")]
-
-    [else
-     (display "1. [ ] Review generated files\n")
-     (display "2. [ ] Implement TODOs\n")
-     (display "3. [ ] Test thoroughly\n")
-     (display "4. [ ] Document\n")
-     (display "5. [ ] Commit\n")]))
+        [(shell-module)
+         (display "1. [ ] Implement functions in shell/<name>.ss\n")
+         (display "2. [ ] Add tests in shell/test-<name>.ss\n")
+         (display "3. [ ] Run tests: scheme --script shell/test-<name>.ss\n")
+         (display "4. [ ] Document usage in module header\n")
+         (display "5. [ ] Add to shell/repl.ss if needed\n")
+         (display "6. [ ] Commit changes\n")]
+        
+        [(core-module)
+         (display "1. [ ] Implement pure functions in core/<name>.ss\n")
+         (display "2. [ ] Ensure totality (use fuel for recursion)\n")
+         (display "3. [ ] Add tests in core/test-<name>.ss\n")
+         (display "4. [ ] Run tests: scheme --script core/test-<name>.ss\n")
+         (display "5. [ ] Update fabric/stitches/MODULES.md dependency graph\n")
+         (display "6. [ ] Commit changes\n")]
+        
+        [(tool)
+         (display "1. [ ] Implement tool logic in shell/<name>.ss\n")
+         (display "2. [ ] Add to shell/toolkit.ss registry\n")
+         (display "3. [ ] Add tests in shell/test-<name>.ss\n")
+         (display "4. [ ] Run tests: scheme --script shell/test-<name>.ss\n")
+         (display "5. [ ] Test in REPL: (load \"shell/toolkit.ss\") then use tool\n")
+         (display "6. [ ] Update toolkit help documentation\n")
+         (display "7. [ ] Commit changes\n")]
+        
+        [(playground)
+         (display "1. [ ] Implement game/tool logic in playpen/templates/<name>.ss\n")
+         (display "2. [ ] Test in REPL: (load \"playpen/templates/<name>.ss\")\n")
+         (display "3. [ ] Play/use the creation\n")
+         (display "4. [ ] Document how to use in file header\n")
+         (display "5. [ ] Add to shell/repl.ss if loading by default\n")
+         (display "6. [ ] Commit changes\n")]
+        
+        [else
+         (display "1. [ ] Review generated files\n")
+         (display "2. [ ] Implement TODOs\n")
+         (display "3. [ ] Test thoroughly\n")
+         (display "4. [ ] Document\n")
+         (display "5. [ ] Commit\n")]))
 
 ;;; ============================================================
 ;;; Help Functions

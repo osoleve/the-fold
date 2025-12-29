@@ -87,47 +87,47 @@
 ;;; Generate ANSI foreground color escape sequence.
 (define (ansi-fg color)
   (cond
-    [(color-default? color)
-     "\x1B;[39m"]  ; Default foreground
-
-    [(color-rgb? color)
-     (let ([r (list-ref color 1)]
-           [g (list-ref color 2)]
-           [b (list-ref color 3)])
-       (string-append "\x1B;[38;2;"
-                     (number->string r) ";"
-                     (number->string g) ";"
-                     (number->string b) "m"))]
-
-    [(color-palette? color)
-     (let ([n (list-ref color 1)])
-       (string-append "\x1B;[38;5;"
-                     (number->string n) "m"))]
-
-    [else "\x1B;[39m"]))  ; Fallback to default
+   [(color-default? color)
+    "\x1B;[39m"]  ; Default foreground
+   
+   [(color-rgb? color)
+    (let ([r (list-ref color 1)]
+          [g (list-ref color 2)]
+          [b (list-ref color 3)])
+         (string-append "\x1B;[38;2;"
+                        (number->string r) ";"
+                        (number->string g) ";"
+                        (number->string b) "m"))]
+   
+   [(color-palette? color)
+    (let ([n (list-ref color 1)])
+         (string-append "\x1B;[38;5;"
+                        (number->string n) "m"))]
+   
+   [else "\x1B;[39m"]))  ; Fallback to default
 
 ;;; ansi-bg : Color → String
 ;;; Generate ANSI background color escape sequence.
 (define (ansi-bg color)
   (cond
-    [(color-default? color)
-     "\x1B;[49m"]  ; Default background
-
-    [(color-rgb? color)
-     (let ([r (list-ref color 1)]
-           [g (list-ref color 2)]
-           [b (list-ref color 3)])
-       (string-append "\x1B;[48;2;"
-                     (number->string r) ";"
-                     (number->string g) ";"
-                     (number->string b) "m"))]
-
-    [(color-palette? color)
-     (let ([n (list-ref color 1)])
-       (string-append "\x1B;[48;5;"
-                     (number->string n) "m"))]
-
-    [else "\x1B;[49m"]))  ; Fallback to default
+   [(color-default? color)
+    "\x1B;[49m"]  ; Default background
+   
+   [(color-rgb? color)
+    (let ([r (list-ref color 1)]
+          [g (list-ref color 2)]
+          [b (list-ref color 3)])
+         (string-append "\x1B;[48;2;"
+                        (number->string r) ";"
+                        (number->string g) ";"
+                        (number->string b) "m"))]
+   
+   [(color-palette? color)
+    (let ([n (list-ref color 1)])
+         (string-append "\x1B;[48;5;"
+                        (number->string n) "m"))]
+   
+   [else "\x1B;[49m"]))  ; Fallback to default
 
 ;;; ansi-reset : String
 ;;; Reset all text attributes to default.
@@ -179,23 +179,23 @@
 ;;; t ranges from 0.0 (color1) to 1.0 (color2).
 (define (lerp-color c1 c2 t)
   (cond
-    [(or (not (color-rgb? c1)) (not (color-rgb? c2)))
-     c1]  ; Can't lerp non-RGB colors
-
-    [else
-     (let* ([r1 (list-ref c1 1)]
-            [g1 (list-ref c1 2)]
-            [b1 (list-ref c1 3)]
-            [r2 (list-ref c2 1)]
-            [g2 (list-ref c2 2)]
-            [b2 (list-ref c2 3)]
-            [lerp (lambda (a b t)
-                    (inexact->exact
-                      (round (+ a (* (- b a) t)))))])
-       (make-color-rgb
-         (lerp r1 r2 t)
-         (lerp g1 g2 t)
-         (lerp b1 b2 t)))]))
+   [(or (not (color-rgb? c1)) (not (color-rgb? c2)))
+    c1]  ; Can't lerp non-RGB colors
+   
+   [else
+    (let* ([r1 (list-ref c1 1)]
+           [g1 (list-ref c1 2)]
+           [b1 (list-ref c1 3)]
+           [r2 (list-ref c2 1)]
+           [g2 (list-ref c2 2)]
+           [b2 (list-ref c2 3)]
+           [lerp (lambda (a b t)
+                         (inexact->exact
+                          (round (+ a (* (- b a) t)))))])
+          (make-color-rgb
+           (lerp r1 r2 t)
+           (lerp g1 g2 t)
+           (lerp b1 b2 t)))]))
 
 ;;; darken : Color × Float → Color
 ;;; Darken an RGB color by factor (0.0 = black, 1.0 = unchanged).
@@ -204,10 +204,10 @@
       (let ([r (list-ref color 1)]
             [g (list-ref color 2)]
             [b (list-ref color 3)])
-        (make-color-rgb
-          (inexact->exact (round (* r factor)))
-          (inexact->exact (round (* g factor)))
-          (inexact->exact (round (* b factor)))))
+           (make-color-rgb
+            (inexact->exact (round (* r factor)))
+            (inexact->exact (round (* g factor)))
+            (inexact->exact (round (* b factor)))))
       color))
 
 ;;; lighten : Color × Float → Color
@@ -217,10 +217,10 @@
       (let ([r (list-ref color 1)]
             [g (list-ref color 2)]
             [b (list-ref color 3)])
-        (make-color-rgb
-          (inexact->exact (round (+ r (* (- 255 r) factor))))
-          (inexact->exact (round (+ g (* (- 255 g) factor))))
-          (inexact->exact (round (+ b (* (- 255 b) factor))))))
+           (make-color-rgb
+            (inexact->exact (round (+ r (* (- 255 r) factor))))
+            (inexact->exact (round (+ g (* (- 255 g) factor))))
+            (inexact->exact (round (+ b (* (- 255 b) factor))))))
       color))
 
 ;;; ============================================================
@@ -243,9 +243,9 @@
 ;;; Get the signature color for a mood.
 (define (mood->color mood)
   (let ([entry (assq mood mood-colors)])
-    (if entry
-        (cdr entry)
-        color-default)))
+       (if entry
+           (cdr entry)
+           color-default)))
 
 ;;; energy->color : Nat → Color
 ;;; Map energy level (0-100) to a color gradient.
@@ -255,7 +255,7 @@
          [t (/ e 100.0)]                 ; Normalize to 0.0-1.0
          [low (rgb 80 80 150)]           ; Dark blue (low energy)
          [high (rgb 255 220 100)])       ; Bright yellow (high energy)
-    (lerp-color low high t)))
+        (lerp-color low high t)))
 
 ;;; ============================================================
 ;;; Export Summary

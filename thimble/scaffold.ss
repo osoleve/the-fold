@@ -43,23 +43,23 @@
 ;;; Register a new template in the registry.
 (define (define-template name description variables files)
   (let ([existing (assq name *scaffold-templates*)])
-    (if existing
-        (set! *scaffold-templates*
-              (cons `(,name . ((description . ,description)
-                               (variables . ,variables)
-                               (files . ,files)))
-                    (filter (lambda (x) (not (eq? (car x) name)))
-                            *scaffold-templates*)))
-        (set! *scaffold-templates*
-              (cons `(,name . ((description . ,description)
-                               (variables . ,variables)
-                               (files . ,files)))
-                    *scaffold-templates*)))))
+       (if existing
+           (set! *scaffold-templates*
+                 (cons `(,name . ((description . ,description)
+                                  (variables . ,variables)
+                                  (files . ,files)))
+                       (filter (lambda (x) (not (eq? (car x) name)))
+                               *scaffold-templates*)))
+           (set! *scaffold-templates*
+                 (cons `(,name . ((description . ,description)
+                                  (variables . ,variables)
+                                  (files . ,files)))
+                       *scaffold-templates*)))))
 
 ;;; get-template : Symbol → Alist | #f
 (define (get-template name)
   (let ([entry (assq name *scaffold-templates*)])
-    (if entry (cdr entry) #f)))
+       (if entry (cdr entry) #f)))
 
 ;;; ============================================================
 ;;; String Substitution
@@ -69,28 +69,28 @@
 ;;; Replace {{VAR}} placeholders with values from bindings.
 (define (substitute-vars template bindings)
   (let loop ([str template])
-    (let ([start (string-search "{{" str)])
-      (if (not start)
-          str
-          (let ([end (string-search "}}" str)])
-            (if (not end)
-                str  ; Malformed template, return as-is
-                (let* ([var-name (substring str (+ start 2) end)]
-                       [value (cdr (assoc var-name bindings))]
-                       [before (substring str 0 start)]
-                       [after (substring str (+ end 2) (string-length str))])
-                  (loop (string-append before value after)))))))))
+       (let ([start (string-search "{{" str)])
+            (if (not start)
+                str
+                (let ([end (string-search "}}" str)])
+                     (if (not end)
+                         str  ; Malformed template, return as-is
+                         (let* ([var-name (substring str (+ start 2) end)]
+                                [value (cdr (assoc var-name bindings))]
+                                [before (substring str 0 start)]
+                                [after (substring str (+ end 2) (string-length str))])
+                               (loop (string-append before value after)))))))))
 
 ;;; string-search : String × String → Nat | #f
 ;;; Find first occurrence of needle in haystack.
 (define (string-search needle haystack)
   (let ([nlen (string-length needle)]
         [hlen (string-length haystack)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i nlen) hlen) #f]
-        [(string=? needle (substring haystack i (+ i nlen))) i]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i nlen) hlen) #f]
+             [(string=? needle (substring haystack i (+ i nlen))) i]
+             [else (loop (+ i 1))]))))
 
 ;;; ============================================================
 ;;; Variable Resolution
@@ -106,40 +106,40 @@
                  ("YEAR" . ,(timestamp-year (current-timestamp))))]
          [from-session (if (session-exists?)
                            (let ([session (read-session)])
-                             `(("AUTHOR" . ,(symbol->string (cdr (assq 'name session))))))
+                                `(("AUTHOR" . ,(symbol->string (cdr (assq 'name session))))))
                            '())]
          [from-options (map (lambda (opt)
-                              (cons (string-upcase (symbol->string (car opt)))
-                                    (if (symbol? (cdr opt))
-                                        (symbol->string (cdr opt))
-                                        (cdr opt))))
+                                    (cons (string-upcase (symbol->string (car opt)))
+                                          (if (symbol? (cdr opt))
+                                              (symbol->string (cdr opt))
+                                              (cdr opt))))
                             options)]
          [from-template (map (lambda (var)
-                               (let* ([var-name (car var)]
-                                      [var-spec (cdr var)]
-                                      [default (cdr var-spec)]
-                                      [opt-value (assq var-name options)])
-                                 (cons (string-upcase (symbol->string var-name))
-                                       (if opt-value
-                                           (if (symbol? (cdr opt-value))
-                                               (symbol->string (cdr opt-value))
-                                               (cdr opt-value))
-                                           default))))
+                                     (let* ([var-name (car var)]
+                                            [var-spec (cdr var)]
+                                            [default (cdr var-spec)]
+                                            [opt-value (assq var-name options)])
+                                           (cons (string-upcase (symbol->string var-name))
+                                                 (if opt-value
+                                                     (if (symbol? (cdr opt-value))
+                                                         (symbol->string (cdr opt-value))
+                                                         (cdr opt-value))
+                                                     default))))
                              template-vars)])
-    (append base from-session from-options from-template)))
+        (append base from-session from-options from-template)))
 
 ;;; current-timestamp : → String
 ;;; Get current timestamp in ISO format.
 (define (current-timestamp)
   (let* ([t (current-time)]
          [d (time-utc->date t)])
-    (format "~4,'0d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d UTC"
-            (date-year d)
-            (date-month d)
-            (date-day d)
-            (date-hour d)
-            (date-minute d)
-            (date-second d))))
+        (format "~4,'0d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d UTC"
+                (date-year d)
+                (date-month d)
+                (date-day d)
+                (date-hour d)
+                (date-minute d)
+                (date-second d))))
 
 ;;; timestamp-year : String → String
 ;;; Extract year from timestamp.
@@ -155,27 +155,27 @@
 (define (scaffold template-name name . options)
   (let ([opts (if (null? options) '() (car options))]
         [template (get-template template-name)])
-    (if (not template)
-        (begin
-          (display (format "Error: Unknown template '~a'\n" template-name))
-          (display "Available templates:\n")
-          (list-templates))
-        (let* ([description (cdr (assq 'description template))]
-               [variables (cdr (assq 'variables template))]
-               [files (cdr (assq 'files template))]
-               [bindings (build-bindings name variables opts)])
-          (display (format "Scaffolding ~a: ~a\n" template-name name))
-          (for-each
-            (lambda (file-spec)
-              (let* ([path-template (cdr (assq 'path file-spec))]
-                     [content-template (cdr (assq 'content file-spec))]
-                     [path (substitute-vars path-template bindings)]
-                     [content (substitute-vars content-template bindings)])
-                (display (format "  Creating ~a\n" path))
-                (let ([fs (mint-fs-capability ".")])
-                  (write-text-file! fs path content))))
-            files)
-          (display "Done.\n")))))
+       (if (not template)
+           (begin
+            (display (format "Error: Unknown template '~a'\n" template-name))
+            (display "Available templates:\n")
+            (list-templates))
+           (let* ([description (cdr (assq 'description template))]
+                  [variables (cdr (assq 'variables template))]
+                  [files (cdr (assq 'files template))]
+                  [bindings (build-bindings name variables opts)])
+                 (display (format "Scaffolding ~a: ~a\n" template-name name))
+                 (for-each
+                  (lambda (file-spec)
+                          (let* ([path-template (cdr (assq 'path file-spec))]
+                                 [content-template (cdr (assq 'content file-spec))]
+                                 [path (substitute-vars path-template bindings)]
+                                 [content (substitute-vars content-template bindings)])
+                                (display (format "  Creating ~a\n" path))
+                                (let ([fs (mint-fs-capability ".")])
+                                     (write-text-file! fs path content))))
+                  files)
+                 (display "Done.\n")))))
 
 ;;; list-templates : → void
 ;;; Display all available templates.
@@ -183,15 +183,15 @@
   (display "\nAvailable Scaffolding Templates:\n")
   (display "=================================\n\n")
   (for-each
-    (lambda (entry)
-      (let* ([name (car entry)]
-             [spec (cdr entry)]
-             [description (cdr (assq 'description spec))])
-        (display (format "  ~a~a~a\n"
-                        name
-                        (make-string (max 1 (- 20 (string-length (symbol->string name)))) #\space)
-                        description))))
-    *scaffold-templates*)
+   (lambda (entry)
+           (let* ([name (car entry)]
+                  [spec (cdr entry)]
+                  [description (cdr (assq 'description spec))])
+                 (display (format "  ~a~a~a\n"
+                                  name
+                                  (make-string (max 1 (- 20 (string-length (symbol->string name)))) #\space)
+                                  description))))
+   *scaffold-templates*)
   (display "\nUsage: (scaffold 'template-name \"module-name\" '((option . value) ...))\n")
   (display "       (scaffold-interactive)\n\n"))
 
@@ -202,32 +202,32 @@
   (list-templates)
   (display "\nEnter template name (or 'quit'): ")
   (let ([template-name (read)])
-    (if (eq? template-name 'quit)
-        (display "Cancelled.\n")
-        (let ([template (get-template template-name)])
-          (if (not template)
-              (begin
-                (display (format "Unknown template: ~a\n" template-name))
-                (scaffold-interactive))
-              (begin
-                (display "\nEnter module/component name: ")
-                (let ([name (symbol->string (read))])
-                  (display "\nEnter values for template variables (press Enter for defaults):\n")
-                  (let* ([variables (cdr (assq 'variables template))]
-                         [options (map (lambda (var)
-                                        (let* ([var-name (car var)]
-                                               [var-spec (cdr var)]
-                                               [prompt (car var-spec)]
-                                               [default (cdr var-spec)])
-                                          (display (format "  ~a [~a]: " prompt default))
-                                          (let ([input (get-line (current-input-port))])
-                                            (cons var-name
-                                                  (if (or (eof-object? input)
-                                                          (string=? input ""))
-                                                      default
-                                                      input)))))
-                                      variables)])
-                    (scaffold template-name name options)))))))))
+       (if (eq? template-name 'quit)
+           (display "Cancelled.\n")
+           (let ([template (get-template template-name)])
+                (if (not template)
+                    (begin
+                     (display (format "Unknown template: ~a\n" template-name))
+                     (scaffold-interactive))
+                    (begin
+                     (display "\nEnter module/component name: ")
+                     (let ([name (symbol->string (read))])
+                          (display "\nEnter values for template variables (press Enter for defaults):\n")
+                          (let* ([variables (cdr (assq 'variables template))]
+                                 [options (map (lambda (var)
+                                                       (let* ([var-name (car var)]
+                                                              [var-spec (cdr var)]
+                                                              [prompt (car var-spec)]
+                                                              [default (cdr var-spec)])
+                                                             (display (format "  ~a [~a]: " prompt default))
+                                                             (let ([input (get-line (current-input-port))])
+                                                                  (cons var-name
+                                                                        (if (or (eof-object? input)
+                                                                                (string=? input ""))
+                                                                            default
+                                                                            input)))))
+                                               variables)])
+                                (scaffold template-name name options)))))))))
 
 ;;; ============================================================
 ;;; Built-in Templates

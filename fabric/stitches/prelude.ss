@@ -38,18 +38,18 @@
 ;;; Uses eq? for comparison.
 (define (unique lst)
   (let loop ([lst lst] [seen '()] [acc '()])
-    (cond
-      [(null? lst) (reverse acc)]
-      [(memq (car lst) seen) (loop (cdr lst) seen acc)]
-      [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
+       (cond
+        [(null? lst) (reverse acc)]
+        [(memq (car lst) seen) (loop (cdr lst) seen acc)]
+        [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
 
 ;;; filter : (α → Bool) × (List α) → (List α)
 ;;; Keep only elements satisfying predicate.
 (define (filter pred lst)
   (cond
-    [(null? lst) '()]
-    [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
-    [else (filter pred (cdr lst))]))
+   [(null? lst) '()]
+   [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
+   [else (filter pred (cdr lst))]))
 
 ;;; fold-left : (β × α → β) × β × (List α) → β
 ;;; Left-associative fold.
@@ -77,9 +77,9 @@
 ;;; Generate list [0, 1, ..., n-1].
 (define (iota n)
   (let loop ([i 0] [acc '()])
-    (if (= i n)
-        (reverse acc)
-        (loop (+ i 1) (cons i acc)))))
+       (if (= i n)
+           (reverse acc)
+           (loop (+ i 1) (cons i acc)))))
 
 ;;; take : Nat × (List α) → (List α)
 ;;; Take first n elements.
@@ -112,10 +112,10 @@
 ;;; Partition list into two lists: those satisfying predicate, and those that don't.
 (define (partition pred lst)
   (let loop ([lst lst] [yes '()] [no '()])
-    (cond
-      [(null? lst) (list (reverse yes) (reverse no))]
-      [(pred (car lst)) (loop (cdr lst) (cons (car lst) yes) no)]
-      [else (loop (cdr lst) yes (cons (car lst) no))])))
+       (cond
+        [(null? lst) (list (reverse yes) (reverse no))]
+        [(pred (car lst)) (loop (cdr lst) (cons (car lst) yes) no)]
+        [else (loop (cdr lst) yes (cons (car lst) no))])))
 
 ;;; group-by : (α → β) × (List α) → (List (Pair β (List α)))
 ;;; Group consecutive elements by key function result.
@@ -123,29 +123,29 @@
   (if (null? lst)
       '()
       (let ([first-key (key-fn (car lst))])
-        (let loop ([remaining lst] [current-key first-key] [current-group '()] [result '()])
-          (cond
-            [(null? remaining)
-             (reverse (cons (cons current-key (reverse current-group)) result))]
-            [(equal? (key-fn (car remaining)) current-key)
-             (loop (cdr remaining) current-key (cons (car remaining) current-group) result)]
-            [else
-             (let ([new-key (key-fn (car remaining))])
-               (loop (cdr remaining) new-key (list (car remaining)) 
-                     (cons (cons current-key (reverse current-group)) result)))])))))
+           (let loop ([remaining lst] [current-key first-key] [current-group '()] [result '()])
+                (cond
+                 [(null? remaining)
+                  (reverse (cons (cons current-key (reverse current-group)) result))]
+                 [(equal? (key-fn (car remaining)) current-key)
+                  (loop (cdr remaining) current-key (cons (car remaining) current-group) result)]
+                 [else
+                  (let ([new-key (key-fn (car remaining))])
+                       (loop (cdr remaining) new-key (list (car remaining))
+                             (cons (cons current-key (reverse current-group)) result)))])))))
 
 ;;; distinct-by : (α → β) × (List α) → (List α)
 ;;; Remove duplicates based on key function, preserving first occurrence order.
 (define (distinct-by key-fn lst)
   (let loop ([lst lst] [seen '()] [result '()])
-    (cond
-      [(null? lst) (reverse result)]
-      [else
-       (let* ([elem (car lst)]
-              [key (key-fn elem)])
-         (if (member key seen)
-             (loop (cdr lst) seen result)
-             (loop (cdr lst) (cons key seen) (cons elem result))))])))
+       (cond
+        [(null? lst) (reverse result)]
+        [else
+         (let* ([elem (car lst)]
+                [key (key-fn elem)])
+               (if (member key seen)
+                   (loop (cdr lst) seen result)
+                   (loop (cdr lst) (cons key seen) (cons elem result))))])))
 
 ;;; ============================================================
 ;;; Result Type (Standardized Error Handling)
@@ -198,12 +198,12 @@
   (if (null? results)
       '(ok ())
       (let ([first (car results)])
-        (if (error? first)
-            first
-            (let ([rest (result-sequence (cdr results))])
-              (if (error? rest)
-                  rest
-                  `(ok ,(cons (unwrap-ok first) (unwrap-ok rest)))))))))
+           (if (error? first)
+               first
+               (let ([rest (result-sequence (cdr results))])
+                    (if (error? rest)
+                        rest
+                        `(ok ,(cons (unwrap-ok first) (unwrap-ok rest)))))))))
 
 ;;; ============================================================
 ;;; String Utilities

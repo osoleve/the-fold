@@ -22,18 +22,18 @@
 
 (define (current-time-ms)
   (let ([t (current-time)])
-    (+ (* (time-second t) 1000)
-       (quotient (time-nanosecond t) 1000000))))
+       (+ (* (time-second t) 1000)
+          (quotient (time-nanosecond t) 1000000))))
 
 (define (format-duration-ms ms)
   (cond
-    [(< ms 1000) (string-append (number->string ms) "ms")]
-    [(< ms 60000)
-     (string-append (number->string (quotient ms 1000)) "."
-                    (number->string (quotient (remainder ms 1000) 100)) "s")]
-    [else
-     (string-append (number->string (quotient ms 60000)) "m "
-                    (number->string (quotient (remainder ms 60000) 1000)) "s")]))
+   [(< ms 1000) (string-append (number->string ms) "ms")]
+   [(< ms 60000)
+    (string-append (number->string (quotient ms 1000)) "."
+                   (number->string (quotient (remainder ms 1000) 100)) "s")]
+   [else
+    (string-append (number->string (quotient ms 60000)) "m "
+                   (number->string (quotient (remainder ms 60000) 1000)) "s")]))
 
 ;;; ============================================================
 ;;; Test Registry
@@ -54,22 +54,22 @@
 (define (run-test-file base-dir filename)
   (let ([start (current-time-ms)]
         [path (string-append base-dir "/" filename)])
-    (display (string-append "  " filename " "))
-    (flush-output-port)
-    (guard (exn [else
-                 (let ([duration (- (current-time-ms) start)]
-                       [msg (if (condition? exn) (condition-message exn) "Unknown error")])
-                   (record-result! filename 'failed duration msg)
-                   (display "FAILED")
-                   (display (string-append " (" (format-duration-ms duration) ")"))
-                   (newline)
-                   (display (string-append "    Error: " msg))
-                   (newline))])
-      (load path)
-      (let ([duration (- (current-time-ms) start)])
-        (record-result! filename 'passed duration)
-        (display (string-append " (" (format-duration-ms duration) ") ok"))
-        (newline)))))
+       (display (string-append "  " filename " "))
+       (flush-output-port)
+       (guard (exn [else
+                    (let ([duration (- (current-time-ms) start)]
+                          [msg (if (condition? exn) (condition-message exn) "Unknown error")])
+                         (record-result! filename 'failed duration msg)
+                         (display "FAILED")
+                         (display (string-append " (" (format-duration-ms duration) ")"))
+                         (newline)
+                         (display (string-append "    Error: " msg))
+                         (newline))])
+              (load path)
+              (let ([duration (- (current-time-ms) start)])
+                   (record-result! filename 'passed duration)
+                   (display (string-append " (" (format-duration-ms duration) ") ok"))
+                   (newline)))))
 
 ;;; ============================================================
 ;;; Test Categories
@@ -148,42 +148,42 @@
          [failed (count-status 'failed)]
          [total (length *test-results*)]
          [duration (- (current-time-ms) total-start-time)])
-
-    (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-    (display "║                      FINAL SUMMARY                           ║\n")
-    (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-
-    (display (string-append "  Test files:  " (number->string total) "\n"))
-    (display (string-append "  Passed:      " (number->string passed) "\n"))
-    (display (string-append "  Failed:      " (number->string failed) "\n"))
-    (display (string-append "  Duration:    " (format-duration-ms duration) "\n\n"))
-
-    ;; Show slowest tests
-    (let ([sorted (sort (lambda (a b) (> (caddr a) (caddr b))) *test-results*)])
-      (display "  Slowest tests:\n")
-      (for-each
-        (lambda (r)
-          (display (string-append "    " (format-duration-ms (caddr r)) "  " (car r) "\n")))
-        (take 5 sorted)))
-
-    (newline)
-    (if (= failed 0)
-        (begin
-          (display "╔══════════════════════════════════════════════════════════════╗\n")
-          (display "║              ✓ ALL TESTS PASSED                              ║\n")
-          (display "╚══════════════════════════════════════════════════════════════╝\n"))
-        (begin
-          (display "╔══════════════════════════════════════════════════════════════╗\n")
-          (display "║              ✗ SOME TESTS FAILED                             ║\n")
-          (display "╚══════════════════════════════════════════════════════════════╝\n")
-          (newline)
-          (display "  Failed tests:\n")
-          (for-each
-            (lambda (r)
-              (when (eq? (cadr r) 'failed)
-                (display (string-append "    ✗ " (car r) ": " (cadddr r) "\n"))))
-            *test-results*)
-          (exit 1)))))
+        
+        (display "\n╔══════════════════════════════════════════════════════════════╗\n")
+        (display "║                      FINAL SUMMARY                           ║\n")
+        (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+        
+        (display (string-append "  Test files:  " (number->string total) "\n"))
+        (display (string-append "  Passed:      " (number->string passed) "\n"))
+        (display (string-append "  Failed:      " (number->string failed) "\n"))
+        (display (string-append "  Duration:    " (format-duration-ms duration) "\n\n"))
+        
+        ;; Show slowest tests
+        (let ([sorted (sort (lambda (a b) (> (caddr a) (caddr b))) *test-results*)])
+             (display "  Slowest tests:\n")
+             (for-each
+              (lambda (r)
+                      (display (string-append "    " (format-duration-ms (caddr r)) "  " (car r) "\n")))
+              (take 5 sorted)))
+        
+        (newline)
+        (if (= failed 0)
+            (begin
+             (display "╔══════════════════════════════════════════════════════════════╗\n")
+             (display "║              ✓ ALL TESTS PASSED                              ║\n")
+             (display "╚══════════════════════════════════════════════════════════════╝\n"))
+            (begin
+             (display "╔══════════════════════════════════════════════════════════════╗\n")
+             (display "║              ✗ SOME TESTS FAILED                             ║\n")
+             (display "╚══════════════════════════════════════════════════════════════╝\n")
+             (newline)
+             (display "  Failed tests:\n")
+             (for-each
+              (lambda (r)
+                      (when (eq? (cadr r) 'failed)
+                            (display (string-append "    ✗ " (car r) ": " (cadddr r) "\n"))))
+              *test-results*)
+             (exit 1)))))
 
 ;;; ============================================================
 ;;; Main Entry Point
@@ -191,40 +191,40 @@
 
 (define (main args)
   (let ([mode (if (null? args) 'all (string->symbol (car args)))])
-
-    (display "\n")
-    (display "╔══════════════════════════════════════════════════════════════╗\n")
-    (display "║         THE FOLD — UNIFIED TEST SUITE                        ║\n")
-    (display "╚══════════════════════════════════════════════════════════════╝\n")
-    (display (string-append "\nWorking directory: " (current-directory) "\n"))
-    (display (string-append "Mode: " (symbol->string mode) "\n\n"))
-
-    (set! total-start-time (current-time-ms))
-
-    (case mode
-      [(all)
-       (run-test-category "CORE TESTS" "fabric/stitches" core-tests)
+       
        (display "\n")
-       (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
-
-      [(core)
-       (run-test-category "CORE TESTS" "fabric/stitches" core-tests)]
-
-      [(shell)
-       (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
-
-      [(quick)
-       (let ([quick-core (filter (lambda (t) (not (member t slow-tests))) core-tests)])
-         (run-test-category "CORE TESTS (quick)" "fabric/stitches" quick-core))
-       (display "\n")
-       (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
-
-      [else
-       (display (string-append "Unknown mode: " (symbol->string mode) "\n"))
-       (display "Valid modes: all, quick, core, shell\n")
-       (exit 1)])
-
-    (print-final-summary)))
+       (display "╔══════════════════════════════════════════════════════════════╗\n")
+       (display "║         THE FOLD — UNIFIED TEST SUITE                        ║\n")
+       (display "╚══════════════════════════════════════════════════════════════╝\n")
+       (display (string-append "\nWorking directory: " (current-directory) "\n"))
+       (display (string-append "Mode: " (symbol->string mode) "\n\n"))
+       
+       (set! total-start-time (current-time-ms))
+       
+       (case mode
+             [(all)
+              (run-test-category "CORE TESTS" "fabric/stitches" core-tests)
+              (display "\n")
+              (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
+             
+             [(core)
+              (run-test-category "CORE TESTS" "fabric/stitches" core-tests)]
+             
+             [(shell)
+              (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
+             
+             [(quick)
+              (let ([quick-core (filter (lambda (t) (not (member t slow-tests))) core-tests)])
+                   (run-test-category "CORE TESTS (quick)" "fabric/stitches" quick-core))
+              (display "\n")
+              (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
+             
+             [else
+              (display (string-append "Unknown mode: " (symbol->string mode) "\n"))
+              (display "Valid modes: all, quick, core, shell\n")
+              (exit 1)])
+       
+       (print-final-summary)))
 
 ;;; Run with command line args
 (main (cdr (command-line)))

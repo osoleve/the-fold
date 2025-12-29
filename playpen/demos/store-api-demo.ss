@@ -30,11 +30,11 @@
 
 ;; Create some entities
 (define dijkstra (make-entity 'person "Edsger Dijkstra"
-                             '((birth . 1930) (death . 2002))))
+                              '((birth . 1930) (death . 2002))))
 (define goto-harmful (make-entity 'paper "Go To Statement Considered Harmful"
-                                 '((year . 1968))))
+                                  '((year . 1968))))
 (define structured-prog (make-entity 'concept "Structured Programming"
-                                    '((year . 1968))))
+                                     '((year . 1968))))
 
 ;; Create relations
 (define r1 (make-relation (hash-block dijkstra) (hash-block goto-harmful)
@@ -101,7 +101,7 @@
 (printf "Total relations in store: ~a\n" (length all-relations))
 (printf "\nEntities found:\n")
 (for-each (lambda (e)
-            (printf "  • ~a\n" (utf8->string (block-payload e))))
+                  (printf "  • ~a\n" (utf8->string (block-payload e))))
           all-entities)
 (printf "\n")
 
@@ -112,9 +112,9 @@
 (define structured-blocks (store-find-by-payload-contains fs "Structured"))
 (printf "Blocks containing 'Structured': ~a\n" (length structured-blocks))
 (for-each (lambda (b)
-            (printf "  • [~a] ~a\n"
-                    (block-tag b)
-                    (utf8->string (block-payload b))))
+                  (printf "  • [~a] ~a\n"
+                          (block-tag b)
+                          (utf8->string (block-payload b))))
           structured-blocks)
 (printf "\n")
 
@@ -125,9 +125,9 @@
 (define dijkstra-referrers (store-get-referrers fs dijkstra-hash))
 (printf "Blocks referencing Dijkstra: ~a\n" (length dijkstra-referrers))
 (for-each (lambda (b)
-            (printf "  • [~a] ~a\n"
-                    (block-tag b)
-                    (utf8->string (block-payload b))))
+                  (printf "  • [~a] ~a\n"
+                          (block-tag b)
+                          (utf8->string (block-payload b))))
           dijkstra-referrers)
 (printf "\n")
 
@@ -138,9 +138,9 @@
 (define r1-refs (store-get-refs fs r1))
 (printf "Relation r1 references ~a blocks:\n" (length r1-refs))
 (for-each (lambda (b)
-            (printf "  • [~a] ~a\n"
-                    (block-tag b)
-                    (utf8->string (block-payload b))))
+                  (printf "  • [~a] ~a\n"
+                          (block-tag b)
+                          (utf8->string (block-payload b))))
           r1-refs)
 (printf "\n")
 
@@ -162,7 +162,7 @@
 (define new-hashes (store-put-many! fs new-entities))
 (printf "Stored ~a new entities in batch\n" (length new-hashes))
 (printf "  Hashes: ~a\n" (map (lambda (h) (substring (hash->hex h) 0 8))
-                                new-hashes))
+                              new-hashes))
 
 (define retrieved-many (store-get-many fs new-hashes))
 (printf "Retrieved ~a blocks in batch\n" (length retrieved-many))

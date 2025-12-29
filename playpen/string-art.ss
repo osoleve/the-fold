@@ -24,15 +24,15 @@
 
 (printf "Duck line-by-line:\n")
 (for-each
-  (lambda (line)
-    (printf "  [~a] ~s\n" (string-length line) line))
-  duck-lines)
+ (lambda (line)
+         (printf "  [~a] ~s\n" (string-length line) line))
+ duck-lines)
 
 (printf "\nIndented duck:\n")
 (define indented-duck
   (string-join
-    (map (lambda (line) (string-append "    " line)) duck-lines)
-    "\n"))
+   (map (lambda (line) (string-append "    " line)) duck-lines)
+   "\n"))
 (printf "~a\n\n" indented-duck)
 
 ;;; ============================================================
@@ -87,25 +87,25 @@
 
 (define mystery-strings
   (list
-    ""
-    " "
-    "  "
-    "\t"
-    "\n"
-    "\r\n"
-    " \t\n\r "
-    "invisible"
-    " visible "))
+   ""
+   " "
+   "  "
+   "\t"
+   "\n"
+   "\r\n"
+   " \t\n\r "
+   "invisible"
+   " visible "))
 
 (printf "Testing string-blank? on various inputs:\n")
 (for-each
-  (lambda (s)
-    (printf "  ~s → blank? ~a, empty? ~a, len: ~a\n"
-            s
-            (string-blank? s)
-            (string-empty? s)
-            (string-length s)))
-  mystery-strings)
+ (lambda (s)
+         (printf "  ~s → blank? ~a, empty? ~a, len: ~a\n"
+                 s
+                 (string-blank? s)
+                 (string-empty? s)
+                 (string-length s)))
+ mystery-strings)
 
 (printf "\n")
 
@@ -122,13 +122,13 @@
 (printf "Haystack: ~s\n\n" haystack)
 (printf "Searching for patterns:\n")
 (for-each
-  (lambda (needle)
-    (printf "  ~s → contains? ~a, starts? ~a, ends? ~a\n"
-            needle
-            (string-contains? haystack needle)
-            (string-starts-with? haystack needle)
-            (string-ends-with? haystack needle)))
-  needles)
+ (lambda (needle)
+         (printf "  ~s → contains? ~a, starts? ~a, ends? ~a\n"
+                 needle
+                 (string-contains? haystack needle)
+                 (string-starts-with? haystack needle)
+                 (string-ends-with? haystack needle)))
+ needles)
 
 (printf "\n")
 
@@ -148,17 +148,17 @@
 
 (printf "Testing split→join identity:\n")
 (for-each
-  (lambda (test)
-    (let* ([original (car test)]
-           [delim (cadr test)]
-           [parts (string-split original delim)]
-           [rejoined (string-join parts (string delim))])
-      (printf "  ~s → ~s → ~s [~a]\n"
-              original
-              parts
-              rejoined
-              (if (string=? original rejoined) "✓" "✗"))))
-  test-cases)
+ (lambda (test)
+         (let* ([original (car test)]
+                [delim (cadr test)]
+                [parts (string-split original delim)]
+                [rejoined (string-join parts (string delim))])
+               (printf "  ~s → ~s → ~s [~a]\n"
+                       original
+                       parts
+                       rejoined
+                       (if (string=? original rejoined) "✓" "✗"))))
+ test-cases)
 
 (printf "\n")
 
@@ -181,7 +181,7 @@
              [value (cdr binding)]
              [placeholder (string-append "{{" key "}}")]
              [replaced (string-replace tmpl placeholder value)])
-        (render replaced (cdr bindings)))))
+            (render replaced (cdr bindings)))))
 
 (define bindings
   '(("name" . "Alice")
@@ -192,7 +192,7 @@
 
 (define result (render template bindings))
 (when (string-empty? result)
-  (log-security-event 'template-render-failed "Template rendering produced empty result"))
+      (log-security-event 'template-render-failed "Template rendering produced empty result"))
 (printf "Rendered:\n~a\n\n" result)
 
 ;;; ============================================================
@@ -229,8 +229,8 @@
 (define greetings (string-split multilingual #\,))
 (printf "Split into ~a languages:\n" (length greetings))
 (for-each
-  (lambda (g) (printf "  • ~a\n" g))
-  greetings)
+ (lambda (g) (printf "  • ~a\n" g))
+ greetings)
 
 (printf "\n")
 
@@ -252,14 +252,14 @@
 
 (printf "Trim results:\n")
 (for-each
-  (lambda (s)
-    (let ([trimmed (string-trim s)])
-      (printf "  ~s\n    → ~s (~a chars → ~a chars)\n"
-              s
-              trimmed
-              (string-length s)
-              (string-length trimmed))))
-  trim-challenges)
+ (lambda (s)
+         (let ([trimmed (string-trim s)])
+              (printf "  ~s\n    → ~s (~a chars → ~a chars)\n"
+                      s
+                      trimmed
+                      (string-length s)
+                      (string-length trimmed))))
+ trim-challenges)
 
 (printf "\n")
 

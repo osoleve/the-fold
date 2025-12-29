@@ -16,13 +16,13 @@
 (define (test name expected actual)
   (if (equal? expected actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (printf "  ✓ ~a\n" name))
+       (set! tests-passed (+ tests-passed 1))
+       (printf "  ✓ ~a\n" name))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (printf "  ✗ ~a\n" name)
-        (printf "      Expected: ~s\n" expected)
-        (printf "      Got:      ~s\n" actual))))
+       (set! tests-failed (+ tests-failed 1))
+       (printf "  ✗ ~a\n" name)
+       (printf "      Expected: ~s\n" expected)
+       (printf "      Got:      ~s\n" actual))))
 
 ;;; Setup: Create test blocks and store
 (define fs (mint-fs-capability ".store"))
@@ -42,14 +42,14 @@
 (define test-coll (make-block 'collection
                               (string->utf8 "test collection")
                               (vector (hash-block b1)
-                                     (hash-block b2)
-                                     (hash-block b3))))
+                                      (hash-block b2)
+                                      (hash-block b3))))
 
 (define mixed-coll (make-block 'collection
                                (string->utf8 "mixed collection")
                                (vector (hash-block b1)
-                                      (hash-block b4)
-                                      (hash-block b5))))
+                                       (hash-block b4)
+                                       (hash-block b5))))
 
 ;;; ============================================================
 ;;; Test General List Utilities
@@ -86,8 +86,8 @@
       2
       (foldr - 0 '(1 2 3)))
       ; 1 - (2 - (3 - 0)) = 1 - (2 - 3) = 1 - (-1) = 2
-
-(printf "\n")
+      
+      (printf "\n")
 
 ;;; ============================================================
 ;;; Test Core Collection Operations
@@ -132,41 +132,41 @@
 (test "filter-collection - entities only"
       1
       (length (filter-collection fs
-                                (lambda (b) (eq? (block-tag b) 'entity))
-                                mixed-coll)))
+                                 (lambda (b) (eq? (block-tag b) 'entity))
+                                 mixed-coll)))
 
 (test "fold-collection - count"
       3
       (fold-collection fs
-                      (lambda (acc b) (+ acc 1))
-                      0
-                      test-coll))
+                       (lambda (acc b) (+ acc 1))
+                       0
+                       test-coll))
 
 (test "foldr-collection - count"
       3
       (foldr-collection fs
-                       (lambda (b acc) (+ acc 1))
-                       0
-                       test-coll))
+                        (lambda (b acc) (+ acc 1))
+                        0
+                        test-coll))
 
 (test "foldr-collection - collect tags"
       '(entity entity entity)
       (foldr-collection fs
-                       (lambda (b acc) (cons (block-tag b) acc))
-                       '()
-                       test-coll))
+                        (lambda (b acc) (cons (block-tag b) acc))
+                        '()
+                        test-coll))
 
 (test "foldr-collection vs fold-collection - order difference"
       #t
       (let ([left-result (fold-collection fs
-                                         (lambda (acc b) (cons (block-tag b) acc))
-                                         '()
-                                         test-coll)]
+                                          (lambda (acc b) (cons (block-tag b) acc))
+                                          '()
+                                          test-coll)]
             [right-result (foldr-collection fs
-                                           (lambda (b acc) (cons (block-tag b) acc))
-                                           '()
-                                           test-coll)])
-        (equal? left-result (reverse right-result))))
+                                            (lambda (b acc) (cons (block-tag b) acc))
+                                            '()
+                                            test-coll)])
+           (equal? left-result (reverse right-result))))
 
 (printf "\n")
 
@@ -180,45 +180,45 @@
 (test "collection-find - found"
       'entity
       (let ([result (collection-find fs
-                                    (lambda (b) (eq? (block-tag b) 'entity))
-                                    test-coll)])
-        (if result (block-tag result) #f)))
+                                     (lambda (b) (eq? (block-tag b) 'entity))
+                                     test-coll)])
+           (if result (block-tag result) #f)))
 
 (test "collection-find - not found"
       #f
       (collection-find fs
-                      (lambda (b) (eq? (block-tag b) 'nonexistent))
-                      test-coll))
+                       (lambda (b) (eq? (block-tag b) 'nonexistent))
+                       test-coll))
 
 (test "collection-any? - true"
       #t
       (collection-any? fs
-                      (lambda (b) (eq? (block-tag b) 'entity))
-                      mixed-coll))
+                       (lambda (b) (eq? (block-tag b) 'entity))
+                       mixed-coll))
 
 (test "collection-any? - false"
       #f
       (collection-any? fs
-                      (lambda (b) (eq? (block-tag b) 'nonexistent))
-                      test-coll))
+                       (lambda (b) (eq? (block-tag b) 'nonexistent))
+                       test-coll))
 
 (test "collection-all? - true"
       #t
       (collection-all? fs
-                      (lambda (b) (eq? (block-tag b) 'entity))
-                      test-coll))
+                       (lambda (b) (eq? (block-tag b) 'entity))
+                       test-coll))
 
 (test "collection-all? - false"
       #f
       (collection-all? fs
-                      (lambda (b) (eq? (block-tag b) 'entity))
-                      mixed-coll))
+                       (lambda (b) (eq? (block-tag b) 'entity))
+                       mixed-coll))
 
 (test "collection-count-matching"
       2
       (collection-count-matching fs
-                                (lambda (b) (eq? (block-tag b) 'relation))
-                                mixed-coll))
+                                 (lambda (b) (eq? (block-tag b) 'relation))
+                                 mixed-coll))
 
 (printf "\n")
 
@@ -231,14 +231,14 @@
 
 (let-values ([(entities relations)
               (collection-partition fs
-                                   (lambda (b) (eq? (block-tag b) 'entity))
-                                   mixed-coll)])
-  (test "collection-partition - entities"
-        1
-        (length entities))
-  (test "collection-partition - relations"
-        2
-        (length relations)))
+                                    (lambda (b) (eq? (block-tag b) 'entity))
+                                    mixed-coll)])
+            (test "collection-partition - entities"
+                  1
+                  (length entities))
+            (test "collection-partition - relations"
+                  2
+                  (length relations)))
 
 (test "collection-group-by - by tag"
       2

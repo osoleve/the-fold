@@ -30,29 +30,29 @@
 ;;;
 (define calculate-damage
   (case-lambda
-    [(attacker defender)
-     (calculate-damage attacker defender '())]
-    [(attacker defender options)
-     (let* ([attacker-stats (entity-stats attacker)]
-            [defender-stats (entity-stats defender)])
-       (if (and attacker-stats defender-stats)
-           (let* ([attack (stats-attack attacker-stats)]
-                  [defense (stats-defense defender-stats)]
-                  [variance (alist-ref options 'variance 2)]
-                  [min-damage (alist-ref options 'min-damage 1)]
-                  [crit-chance (alist-ref options 'critical-chance 10)]
-                  [crit-mult (alist-ref options 'critical-mult 2)]
-                  ;; Base damage
-                  [base (max min-damage (- attack defense))]
-                  ;; Add variance
-                  [with-variance (+ base (random-int (+ variance 1)))]
-                  ;; Critical hit check
-                  [is-critical? (< (random-int 100) crit-chance)]
-                  [final (if is-critical?
-                             (* with-variance crit-mult)
-                             with-variance)])
-             final)
-           0))]))
+   [(attacker defender)
+    (calculate-damage attacker defender '())]
+   [(attacker defender options)
+    (let* ([attacker-stats (entity-stats attacker)]
+           [defender-stats (entity-stats defender)])
+          (if (and attacker-stats defender-stats)
+              (let* ([attack (stats-attack attacker-stats)]
+                     [defense (stats-defense defender-stats)]
+                     [variance (alist-ref options 'variance 2)]
+                     [min-damage (alist-ref options 'min-damage 1)]
+                     [crit-chance (alist-ref options 'critical-chance 10)]
+                     [crit-mult (alist-ref options 'critical-mult 2)]
+                     ;; Base damage
+                     [base (max min-damage (- attack defense))]
+                     ;; Add variance
+                     [with-variance (+ base (random-int (+ variance 1)))]
+                     ;; Critical hit check
+                     [is-critical? (< (random-int 100) crit-chance)]
+                     [final (if is-critical?
+                                (* with-variance crit-mult)
+                                with-variance)])
+                    final)
+              0))]))
 
 ;;; calculate-damage-simple : Nat × Nat -> Nat
 ;;; Simplified damage calculation: attack - defense, minimum 1.
@@ -83,34 +83,34 @@
 ;;;
 (define entity-attack
   (case-lambda
-    [(attacker defender)
-     (entity-attack attacker defender '())]
-    [(attacker defender options)
-     (let* ([variance (alist-ref options 'variance 2)]
-            [min-damage (alist-ref options 'min-damage 1)]
-            [crit-chance (alist-ref options 'critical-chance 10)]
-            [crit-mult (alist-ref options 'critical-mult 2)]
-            ;; Calculate damage
-            [damage (calculate-damage attacker defender options)]
-            [is-critical? (< (random-int 100) crit-chance)]
-            ;; Apply damage
-            [new-defender (entity-damage defender damage)]
-            [killed? (not (entity-alive? new-defender))]
-            ;; Generate message
-            [attacker-name (entity-name attacker)]
-            [defender-name (entity-name defender)]
-            [message (format "~a attacks ~a for ~a damage~a~a"
+   [(attacker defender)
+    (entity-attack attacker defender '())]
+   [(attacker defender options)
+    (let* ([variance (alist-ref options 'variance 2)]
+           [min-damage (alist-ref options 'min-damage 1)]
+           [crit-chance (alist-ref options 'critical-chance 10)]
+           [crit-mult (alist-ref options 'critical-mult 2)]
+           ;; Calculate damage
+           [damage (calculate-damage attacker defender options)]
+           [is-critical? (< (random-int 100) crit-chance)]
+           ;; Apply damage
+           [new-defender (entity-damage defender damage)]
+           [killed? (not (entity-alive? new-defender))]
+           ;; Generate message
+           [attacker-name (entity-name attacker)]
+           [defender-name (entity-name defender)]
+           [message (format "~a attacks ~a for ~a damage~a~a"
                             attacker-name
                             defender-name
                             damage
                             (if is-critical? " (CRITICAL!)" "")
                             (if killed? " [KILLED]" ""))])
-       `((attacker . ,attacker)
-         (defender . ,new-defender)
-         (damage . ,damage)
-         (killed? . ,killed?)
-         (critical? . ,is-critical?)
-         (message . ,message)))]))
+          `((attacker . ,attacker)
+            (defender . ,new-defender)
+            (damage . ,damage)
+            (killed? . ,killed?)
+            (critical? . ,is-critical?)
+            (message . ,message)))]))
 
 ;;; combat-result-attacker : CombatResult -> Entity
 (define (combat-result-attacker result)

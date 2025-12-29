@@ -39,21 +39,21 @@
         [fuel (if (and (pair? opts) (pair? (cdr opts)))
                   (cadr opts)
                   10000)])
-    `(debugger
-      (expr . ,expr)
-      (env . ,env)
-      (fuel . ,fuel)
-      (breakpoints . ())
-      (trace . ())
-      (history . ())
-      (status . ready))))
+       `(debugger
+         (expr . ,expr)
+         (env . ,env)
+         (fuel . ,fuel)
+         (breakpoints . ())
+         (trace . ())
+         (history . ())
+         (status . ready))))
 
 (define (debugger? d)
   (and (pair? d) (eq? (car d) 'debugger)))
 
 (define (debugger-get d key)
   (let ([entry (assq key (cdr d))])
-    (and entry (cdr entry))))
+       (and entry (cdr entry))))
 
 (define (debugger-expr d) (debugger-get d 'expr))
 (define (debugger-env d) (debugger-get d 'env))
@@ -66,14 +66,14 @@
 (define (debugger-set d key value)
   (cons 'debugger
         (map (lambda (entry)
-               (if (eq? (car entry) key)
-                   (cons key value)
-                   entry))
+                     (if (eq? (car entry) key)
+                         (cons key value)
+                         entry))
              (cdr d))))
 
 (define (debugger-update d updates)
   (fold-left (lambda (d update)
-               (debugger-set d (car update) (cdr update)))
+                     (debugger-set d (car update) (cdr update)))
              d
              updates))
 
@@ -93,44 +93,44 @@
         [fuel (debugger-fuel d)]
         [trace (debugger-trace d)]
         [history (debugger-history d)])
-
-    (if (zero? fuel)
-        (debugger-set d 'status 'out-of-fuel)
-
-        ;; Execute with step-fuel budget (min of available and step budget)
-        (let* ([step-budget (min fuel *step-fuel*)]
-               [result (eval-expr expr env step-budget)])
-          (cond
-            ;; Completed
-            [(eq? (car result) 'ok)
-             (let* ([value (cadr result)]
-                    [remaining (caddr result)]
-                    [used (- step-budget remaining)])
-               (debugger-update d
-                 `((expr . ,value)
-                   (fuel . ,(- fuel used))
-                   (trace . ,(cons `(step ,expr -> ,value) trace))
-                   (history . ,(cons (list expr env fuel) history))
-                   (status . ,(if (value? value) 'complete 'ready)))))]
-
-            ;; Suspended (expr reduced but not to value - ran out of step budget)
-            [(eq? (car result) 'suspended)
-             (let ([new-expr (cadr result)]
-                   [new-env (caddr result)])
-               (debugger-update d
-                 `((expr . ,new-expr)
-                   (env . ,new-env)
-                   (fuel . ,(- fuel step-budget))
-                   (trace . ,(cons `(step ,expr -> suspended) trace))
-                   (history . ,(cons (list expr env fuel) history))
-                   (status . ready))))]
-
-            ;; Error
-            [else
-             (debugger-update d
-               `((trace . ,(cons `(error ,(cadr result) ,(caddr result)) trace))
-                 (status . error)
-                 (error . ,result)))])))))
+       
+       (if (zero? fuel)
+           (debugger-set d 'status 'out-of-fuel)
+           
+           ;; Execute with step-fuel budget (min of available and step budget)
+           (let* ([step-budget (min fuel *step-fuel*)]
+                  [result (eval-expr expr env step-budget)])
+                 (cond
+                  ;; Completed
+                  [(eq? (car result) 'ok)
+                   (let* ([value (cadr result)]
+                          [remaining (caddr result)]
+                          [used (- step-budget remaining)])
+                         (debugger-update d
+                                          `((expr . ,value)
+                                            (fuel . ,(- fuel used))
+                                            (trace . ,(cons `(step ,expr -> ,value) trace))
+                                            (history . ,(cons (list expr env fuel) history))
+                                            (status . ,(if (value? value) 'complete 'ready)))))]
+                  
+                  ;; Suspended (expr reduced but not to value - ran out of step budget)
+                  [(eq? (car result) 'suspended)
+                   (let ([new-expr (cadr result)]
+                         [new-env (caddr result)])
+                        (debugger-update d
+                                         `((expr . ,new-expr)
+                                           (env . ,new-env)
+                                           (fuel . ,(- fuel step-budget))
+                                           (trace . ,(cons `(step ,expr -> suspended) trace))
+                                           (history . ,(cons (list expr env fuel) history))
+                                           (status . ready))))]
+                  
+                  ;; Error
+                  [else
+                   (debugger-update d
+                                    `((trace . ,(cons `(error ,(cadr result) ,(caddr result)) trace))
+                                      (status . error)
+                                      (error . ,result)))])))))
 
 ;;; step-n : Debugger × Nat → Debugger
 ;;; Execute n reduction steps.
@@ -151,27 +151,27 @@
 ;;; Run until predicate matches or completion/error.
 (define (run-until d pred)
   (let loop ([d d])
-    (let ([status (debugger-status d)]
-          [expr (debugger-expr d)])
-      (cond
-        [(eq? status 'complete) d]
-        [(eq? status 'error) d]
-        [(eq? status 'out-of-fuel) d]
-        [(pred expr)
-         (debugger-set d 'status 'breakpoint)]
-        [else
-         (loop (step d))]))))
+       (let ([status (debugger-status d)]
+             [expr (debugger-expr d)])
+            (cond
+             [(eq? status 'complete) d]
+             [(eq? status 'error) d]
+             [(eq? status 'out-of-fuel) d]
+             [(pred expr)
+              (debugger-set d 'status 'breakpoint)]
+             [else
+              (loop (step d))]))))
 
 ;;; continue : Debugger → Debugger
 ;;; Run until completion, error, or breakpoint.
 (define (continue d)
   (let ([breakpoints (debugger-breakpoints d)])
-    (if (null? breakpoints)
-        ;; No breakpoints - run to completion
-        (run-until d (lambda (e) #f))
-        ;; Check breakpoints
-        (run-until d (lambda (e)
-                       (ormap (lambda (bp) (bp e)) breakpoints))))))
+       (if (null? breakpoints)
+           ;; No breakpoints - run to completion
+           (run-until d (lambda (e) #f))
+           ;; Check breakpoints
+           (run-until d (lambda (e)
+                                (ormap (lambda (bp) (bp e)) breakpoints))))))
 
 ;;; run-debug : Expr × Fuel → Debugger
 ;;; Create and run a debugger session.
@@ -186,7 +186,7 @@
 ;;; Add a breakpoint predicate.
 (define (add-breakpoint d pred)
   (let ([bps (debugger-breakpoints d)])
-    (debugger-set d 'breakpoints (cons pred bps))))
+       (debugger-set d 'breakpoints (cons pred bps))))
 
 ;;; clear-breakpoints : Debugger → Debugger
 (define (clear-breakpoints d)
@@ -198,7 +198,7 @@
 ;;; Break when expression starts with given form.
 (define (break-on-form sym)
   (lambda (e)
-    (and (pair? e) (eq? (car e) sym))))
+          (and (pair? e) (eq? (car e) sym))))
 
 ;;; break-on-var : Symbol → (Expr → Bool)
 ;;; Break when expression is a variable reference.
@@ -209,10 +209,10 @@
 ;;; Break when calling a specific function.
 (define (break-on-call name)
   (lambda (e)
-    (and (pair? e)
-         (or (eq? (car e) name)
-             (and (eq? (car e) 'call)
-                  (eq? (cadr e) name))))))
+          (and (pair? e)
+               (or (eq? (car e) name)
+                   (and (eq? (car e) 'call)
+                        (eq? (cadr e) name))))))
 
 ;;; break-on-value : → (Expr → Bool)
 ;;; Break when expression is a value.
@@ -227,15 +227,15 @@
 ;;; Undo the last step.
 (define (undo d)
   (let ([history (debugger-history d)])
-    (if (null? history)
-        d
-        (let ([prev (car history)])
-          (debugger-update d
-            `((expr . ,(car prev))
-              (env . ,(cadr prev))
-              (fuel . ,(caddr prev))
-              (history . ,(cdr history))
-              (status . ready)))))))
+       (if (null? history)
+           d
+           (let ([prev (car history)])
+                (debugger-update d
+                                 `((expr . ,(car prev))
+                                   (env . ,(cadr prev))
+                                   (fuel . ,(caddr prev))
+                                   (history . ,(cdr history))
+                                   (status . ready)))))))
 
 ;;; undo-n : Debugger × Nat → Debugger
 ;;; Undo n steps.
@@ -248,16 +248,16 @@
 ;;; Reset to initial state (from history).
 (define (reset d)
   (let ([history (debugger-history d)])
-    (if (null? history)
-        d
-        (let ([initial (last history)])
-          (debugger-update d
-            `((expr . ,(car initial))
-              (env . ,(cadr initial))
-              (fuel . ,(caddr initial))
-              (history . ())
-              (trace . ())
-              (status . ready)))))))
+       (if (null? history)
+           d
+           (let ([initial (last history)])
+                (debugger-update d
+                                 `((expr . ,(car initial))
+                                   (env . ,(cadr initial))
+                                   (fuel . ,(caddr initial))
+                                   (history . ())
+                                   (trace . ())
+                                   (status . ready)))))))
 
 ;;; Helper: get last element
 (define (last lst)
@@ -305,41 +305,41 @@
         [expr (debugger-expr d)]
         [fuel (debugger-fuel d)]
         [steps (length (debugger-trace d))])
-    (display "┌─────────────────────────────────────────────────────────────┐\n")
-    (display "│ DEBUGGER                                                    │\n")
-    (display "├─────────────────────────────────────────────────────────────┤\n")
-    (display (format "│ Status: ~a~a│\n"
-                     status
-                     (make-string (max 0 (- 51 (string-length (symbol->string status)))) #\space)))
-    (display (format "│ Fuel: ~a~a│\n"
-                     fuel
-                     (make-string (max 0 (- 53 (string-length (number->string fuel)))) #\space)))
-    (display (format "│ Steps: ~a~a│\n"
-                     steps
-                     (make-string (max 0 (- 52 (string-length (number->string steps)))) #\space)))
-    (display "├─────────────────────────────────────────────────────────────┤\n")
-    (display "│ Expression:                                                 │\n")
-    (display "│   ")
-    (write expr)
-    (newline)
-    (display "└─────────────────────────────────────────────────────────────┘\n")))
+       (display "┌─────────────────────────────────────────────────────────────┐\n")
+       (display "│ DEBUGGER                                                    │\n")
+       (display "├─────────────────────────────────────────────────────────────┤\n")
+       (display (format "│ Status: ~a~a│\n"
+                        status
+                        (make-string (max 0 (- 51 (string-length (symbol->string status)))) #\space)))
+       (display (format "│ Fuel: ~a~a│\n"
+                        fuel
+                        (make-string (max 0 (- 53 (string-length (number->string fuel)))) #\space)))
+       (display (format "│ Steps: ~a~a│\n"
+                        steps
+                        (make-string (max 0 (- 52 (string-length (number->string steps)))) #\space)))
+       (display "├─────────────────────────────────────────────────────────────┤\n")
+       (display "│ Expression:                                                 │\n")
+       (display "│   ")
+       (write expr)
+       (newline)
+       (display "└─────────────────────────────────────────────────────────────┘\n")))
 
 ;;; print-trace : Debugger → void
 ;;; Display execution trace.
 (define (print-trace d)
   (let ([trace (debugger-trace d)])
-    (display "┌─────────────────────────────────────────────────────────────┐\n")
-    (display "│ EXECUTION TRACE                                             │\n")
-    (display "├─────────────────────────────────────────────────────────────┤\n")
-    (if (null? trace)
-        (display "│ (no steps taken)                                            │\n")
-        (for-each
-          (lambda (entry)
-            (display "│ ")
-            (write entry)
-            (newline))
-          (reverse trace)))
-    (display "└─────────────────────────────────────────────────────────────┘\n")))
+       (display "┌─────────────────────────────────────────────────────────────┐\n")
+       (display "│ EXECUTION TRACE                                             │\n")
+       (display "├─────────────────────────────────────────────────────────────┤\n")
+       (if (null? trace)
+           (display "│ (no steps taken)                                            │\n")
+           (for-each
+            (lambda (entry)
+                    (display "│ ")
+                    (write entry)
+                    (newline))
+            (reverse trace)))
+       (display "└─────────────────────────────────────────────────────────────┘\n")))
 
 ;;; ============================================================
 ;;; Convenience Commands
@@ -349,19 +349,19 @@
 ;;; Interactive debugger session.
 (define (debug-repl expr)
   (let ([d (make-debugger expr empty-env 10000)])
-    (print-debugger d)
-    (display "\nCommands: (s)tep, (c)ontinue, (r)eset, (u)ndo, (t)race, (q)uit\n")
-    d))
+       (print-debugger d)
+       (display "\nCommands: (s)tep, (c)ontinue, (r)eset, (u)ndo, (t)race, (q)uit\n")
+       d))
 
 ;;; step-show : Debugger → Debugger
 ;;; Step and display state.
 (define (step-show d)
   (let ([d2 (step d)])
-    (print-debugger d2)
-    d2))
+       (print-debugger d2)
+       d2))
 
 ;;; trace-expr : Expr × Fuel → List
 ;;; Evaluate and return full trace.
 (define (trace-expr expr fuel)
   (let ([d (run-debug expr fuel)])
-    (reverse (debugger-trace d))))
+       (reverse (debugger-trace d))))

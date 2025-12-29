@@ -120,10 +120,10 @@
 ;; Create interesting patterns with bit operations
 (define (bit-pattern n)
   (let loop ([i 0] [result '()])
-    (if (>= i 8)
-        (reverse result)
-        (loop (+ i 1)
-              (cons (bitand (shr n i) 1) result)))))
+       (if (>= i 8)
+           (reverse result)
+           (loop (+ i 1)
+                 (cons (bitand (shr n i) 1) result)))))
 
 (printf "Binary patterns:\n")
 (printf "  170 = #b10101010 -> ~a\n" (bit-pattern 170))

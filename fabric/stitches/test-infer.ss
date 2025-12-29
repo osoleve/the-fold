@@ -12,10 +12,10 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-        (display "✗\n    expected: ")
-        (display expected)
-        (display "\n    got: ")
-        (display actual)))
+       (display "✗\n    expected: ")
+       (display expected)
+       (display "\n    got: ")
+       (display actual)))
   (newline))
 
 (define (test-type name expected expr)
@@ -24,18 +24,18 @@
   (display ": ")
   (reset-fresh!)
   (let ([result (typeof expr)])
-    (if (and (pair? result) (eq? (car result) 'error))
-        (begin
-          (display "✗ Error: ")
-          (display result))
-        (if (type=? expected result)
-            (display "✓")
-            (begin
-              (display "✗\n    expected: ")
-              (display (type->string expected))
-              (display "\n    got: ")
-              (display (type->string result)))))
-    (newline)))
+       (if (and (pair? result) (eq? (car result) 'error))
+           (begin
+            (display "✗ Error: ")
+            (display result))
+           (if (type=? expected result)
+               (display "✓")
+               (begin
+                (display "✗\n    expected: ")
+                (display (type->string expected))
+                (display "\n    got: ")
+                (display (type->string result)))))
+       (newline)))
 
 (define (test-error name expr)
   (display "  ")
@@ -43,12 +43,12 @@
   (display ": ")
   (reset-fresh!)
   (let ([result (typeof expr)])
-    (if (and (pair? result) (eq? (car result) 'error))
-        (display "✓")
-        (begin
-          (display "✗ expected error, got: ")
-          (display result)))
-    (newline)))
+       (if (and (pair? result) (eq? (car result) 'error))
+           (display "✓")
+           (begin
+            (display "✗ expected error, got: ")
+            (display result)))
+       (newline)))
 
 (define (test-section name)
   (newline)
@@ -71,17 +71,17 @@
 ;;; ============================================================
 (test-section "Unification")
 (let ([r (unify 'Int 'Int)])
-  (test "same base type" 'ok (car r)))
+     (test "same base type" 'ok (car r)))
 (let ([r (unify 'Int 'Bool)])
-  (test "different base types" 'error (car r)))
+     (test "different base types" 'error (car r)))
 (let ([r (unify 'a 'Int)])
-  (test "var with type" 'ok (car r))
-  (test "var bound to Int" 'Int (apply-subst (cadr r) 'a)))
+     (test "var with type" 'ok (car r))
+     (test "var bound to Int" 'Int (apply-subst (cadr r) 'a)))
 (let ([r (unify '(-> a a) '(-> Int Int))])
-  (test "function unification" 'ok (car r))
-  (test "unified type var" 'Int (apply-subst (cadr r) 'a)))
+     (test "function unification" 'ok (car r))
+     (test "unified type var" 'Int (apply-subst (cadr r) 'a)))
 (let ([r (unify 'a '(List a))])
-  (test "occurs check" 'error (car r)))
+     (test "occurs check" 'error (car r)))
 
 ;;; ============================================================
 ;;; Instantiation
@@ -89,8 +89,8 @@
 (test-section "Instantiation")
 (reset-fresh!)
 (let ([inst (instantiate '(∀ (a) (-> a a)))])
-  (test "instantiate structure" '-> (car inst))
-  (test "instantiate same var" (cadr inst) (caddr inst)))
+     (test "instantiate structure" '-> (car inst))
+     (test "instantiate same var" (cadr inst) (caddr inst)))
 
 ;;; ============================================================
 ;;; Literal Inference
@@ -109,7 +109,7 @@
 ;; Identity function — polymorphic
 (reset-fresh!)
 (let ([result (typeof '(fn (x) x))])
-  (test "identity is polymorphic" '∀ (car result)))
+     (test "identity is polymorphic" '∀ (car result)))
 
 ;; Lambda with primitive use
 (test-type "neg function" '(-> Int Int) '(fn (x) (prim 'neg x)))
@@ -121,13 +121,13 @@
 ;; Apply identity to int
 (reset-fresh!)
 (let ([result (typeof '((fn (x) x) 42))])
-  (test "apply identity to int" 'Int result))
+     (test "apply identity to int" 'Int result))
 
 ;; Nested application
 (reset-fresh!)
 (let ([result (typeof '((fn (f) (fn (x) (f x))) (fn (y) y)))])
-  ;; Should be polymorphic: ∀ a. a → a
-  (test "nested app is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+     ;; Should be polymorphic: ∀ a. a → a
+     (test "nested app is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
 
 ;;; ============================================================
 ;;; Let Inference
@@ -138,14 +138,14 @@
 ;; Let with polymorphism
 (reset-fresh!)
 (let ([result (typeof '(let ((id (fn (x) x))) (id 42)))])
-  (test "let-polymorphism" 'Int result))
+     (test "let-polymorphism" 'Int result))
 
 ;; Use same let-bound var at different types
 (reset-fresh!)
 (let ([result (typeof '(let ((id (fn (x) x)))
-                         (let ((a (id 42)))
-                           (id #t))))])
-  (test "let-polymorphism different types" 'Bool result))
+                        (let ((a (id 42)))
+                             (id #t))))])
+     (test "let-polymorphism different types" 'Bool result))
 
 ;;; ============================================================
 ;;; Primitive Inference
@@ -161,7 +161,7 @@
 ;; List primitives
 (reset-fresh!)
 (let ([result (typeof '(prim 'null? (quote ())))])
-  (test "null? returns Bool" 'Bool result))
+     (test "null? returns Bool" 'Bool result))
 
 ;;; ============================================================
 ;;; Type Annotation
@@ -185,20 +185,20 @@
 ;; Recursive identity (silly but tests fix)
 (reset-fresh!)
 (let ([result (typeof '(fix (f) (fn (x) x)))])
-  ;; Should be polymorphic function
-  (test "fix returns function" '∀ (if (pair? result) (car result) 'not-pair)))
+     ;; Should be polymorphic function
+     (test "fix returns function" '∀ (if (pair? result) (car result) 'not-pair)))
 
 ;;; ============================================================
 ;;; Generalization
 ;;; ============================================================
 (test-section "Generalization")
 (let ([gen (generalize '() '(-> a a))])
-  (test "generalize free vars" '∀ (car gen))
-  (test "generalize binds a" '(a) (cadr gen)))
+     (test "generalize free vars" '∀ (car gen))
+     (test "generalize binds a" '(a) (cadr gen)))
 (let ([gen (generalize '((x . a)) '(-> a b))])
-  ;; Only b should be generalized (a is in env)
-  (test "generalize respects env" '∀ (car gen))
-  (test "generalize only free" '(b) (cadr gen)))
+     ;; Only b should be generalized (a is in env)
+     (test "generalize respects env" '∀ (car gen))
+     (test "generalize only free" '(b) (cadr gen)))
 
 ;;; ============================================================
 ;;; Complex Expressions
@@ -208,17 +208,17 @@
 ;; Compose-like
 (reset-fresh!)
 (let ([result (typeof '(fn (f) (fn (g) (fn (x) (f (g x))))))])
-  (test "compose is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+     (test "compose is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
 
 ;; K combinator
 (reset-fresh!)
 (let ([result (typeof '(fn (x) (fn (y) x)))])
-  (test "K is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+     (test "K is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
 
 ;; S combinator (partial — full S needs application)
 (reset-fresh!)
 (let ([result (typeof '(fn (x) (fn (y) (fn (z) ((x z) (y z))))))])
-  (test "S is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+     (test "S is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
 
 ;;; ============================================================
 ;;; Extended Primitive Inference
@@ -248,11 +248,11 @@
 ;; reverse xs returns a list, and the fn wraps it
 (reset-fresh!)
 (let ([result (typeof '(fn (xs) (prim 'reverse xs)))])
-  (test "reverse is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+     (test "reverse is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
 ;; append takes two lists and returns one
 (reset-fresh!)
 (let ([result (typeof '(fn (xs) (prim 'append xs xs)))])
-  (test "append is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
+     (test "append is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
 (test-type "list-ref" 'Int '(prim 'list-ref (quote (1 2 3)) 0))
 
 ;; Type predicates
@@ -267,22 +267,22 @@
 ;; Simple case with one clause
 (reset-fresh!)
 (let ([result (typeof '(fn (blk) (case blk ((Foo x) 42))))])
-  (test "case returns Int" '∀ (if (pair? result) (car result) 'not-pair)))
+     (test "case returns Int" '∀ (if (pair? result) (car result) 'not-pair)))
 
 ;; Case with multiple clauses (same type)
 (reset-fresh!)
 (let ([result (typeof '(fn (blk)
-                         (case blk
-                           ((True) 1)
-                           ((False) 0))))])
-  (test "multi-clause case" '∀ (if (pair? result) (car result) 'not-pair)))
+                        (case blk
+                              ((True) 1)
+                              ((False) 0))))])
+     (test "multi-clause case" '∀ (if (pair? result) (car result) 'not-pair)))
 
 ;; Case using bound variable
 (reset-fresh!)
 (let ([result (typeof '(fn (blk)
-                         (case blk
-                           ((Wrap ref) ref))))])
-  (test "case binds ref" '∀ (if (pair? result) (car result) 'not-pair)))
+                        (case blk
+                              ((Wrap ref) ref))))])
+     (test "case binds ref" '∀ (if (pair? result) (car result) 'not-pair)))
 
 (newline)
 (display "✓ All type inference tests complete.\n")

@@ -24,8 +24,8 @@
 ;;; A function that computes (x + 5) * 2
 (define (compute-simple x)
   (prim-instrumented 'mul
-    (prim-instrumented 'add x 5)
-    2))
+                     (prim-instrumented 'add x 5)
+                     2))
 
 (display "Function: (compute-simple x) = (x + 5) * 2\n")
 (print-analysis (analyze-fuel compute-simple 10))
@@ -59,12 +59,12 @@
 
 (display "Operation: car (get first)\n")
 (print-complexity-analysis
-  (estimate-complexity get-first make-list '(10 100 1000)))
+ (estimate-complexity get-first make-list '(10 100 1000)))
 (display "\n")
 
 (display "Operation: get-last\n")
 (print-complexity-analysis
-  (estimate-complexity get-last make-list '(10 100 1000)))
+ (estimate-complexity get-last make-list '(10 100 1000)))
 (display "\n")
 
 ;;; ============================================================
@@ -80,12 +80,12 @@
   (if (prim-instrumented 'null? lst)
       0
       (prim-instrumented 'add
-        (prim-instrumented 'car lst)
-        (sum-recursive (prim-instrumented 'cdr lst)))))
+                         (prim-instrumented 'car lst)
+                         (sum-recursive (prim-instrumented 'cdr lst)))))
 
 (display "Function: sum-recursive - sums all elements in a list\n")
 (print-complexity-analysis
-  (estimate-complexity sum-recursive make-list '(5 10 20 40)))
+ (estimate-complexity sum-recursive make-list '(5 10 20 40)))
 (display "\n")
 
 ;;; ============================================================
@@ -99,8 +99,8 @@
 ;;; A function that uses division (more expensive than addition)
 (define (avg-with-10 x)
   (prim-instrumented 'div
-    (prim-instrumented 'add x 10)
-    2))
+                     (prim-instrumented 'add x 10)
+                     2))
 
 (display "Function: avg-with-10 - computes (x + 10) / 2\n")
 (display "Note: division (cost 3) is more expensive than addition (cost 2)\n")
@@ -120,7 +120,7 @@
   (if (prim-instrumented 'null? lst)
       0
       (prim-instrumented 'add 1
-        (count-elements (prim-instrumented 'cdr lst)))))
+                         (count-elements (prim-instrumented 'cdr lst)))))
 
 ;;; Check if empty (constant)
 (define (is-empty lst)
@@ -132,12 +132,12 @@
 
 (display "count-elements complexity:\n")
 (print-complexity-analysis
-  (estimate-complexity count-elements make-list '(10 20 40)))
+ (estimate-complexity count-elements make-list '(10 20 40)))
 (display "\n")
 
 (display "is-empty complexity:\n")
 (print-complexity-analysis
-  (estimate-complexity is-empty make-list '(10 100 1000)))
+ (estimate-complexity is-empty make-list '(10 100 1000)))
 (display "\n")
 
 ;;; ============================================================

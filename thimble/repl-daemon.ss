@@ -33,16 +33,16 @@
 
 (define (ensure-repl-dir!)
   (unless (file-exists? *repl-dir*)
-    (mkdir *repl-dir*)))
+          (mkdir *repl-dir*)))
 
 (define (write-ready!)
   (call-with-output-file *ready-file*
-    (lambda (p)
-      (display (format "~a" (current-time)) p))))
+                         (lambda (p)
+                                 (display (format "~a" (current-time)) p))))
 
 (define (clear-ready!)
   (when (file-exists? *ready-file*)
-    (delete-file *ready-file*)))
+        (delete-file *ready-file*)))
 
 (define (daemon-running?)
   (file-exists? *ready-file*))
@@ -53,33 +53,33 @@
 
 (define (read-request)
   (when (file-exists? *request-file*)
-    (call-with-input-file *request-file*
-      (lambda (p)
-        (get-string-all p)))))
+        (call-with-input-file *request-file*
+                              (lambda (p)
+                                      (get-string-all p)))))
 
 (define (clear-request!)
   (when (file-exists? *request-file*)
-    (delete-file *request-file*)))
+        (delete-file *request-file*)))
 
 (define (write-response result)
   (when (file-exists? *response-file*)
-    (delete-file *response-file*))
+        (delete-file *response-file*))
   (call-with-output-file *response-file*
-    (lambda (p)
-      (if (string? result)
-          (display result p)
-          (pretty-print result p)))))
+                         (lambda (p)
+                                 (if (string? result)
+                                     (display result p)
+                                     (pretty-print result p)))))
 
 (define (write-error msg)
   (when (file-exists? *error-file*)
-    (delete-file *error-file*))
+        (delete-file *error-file*))
   (call-with-output-file *error-file*
-    (lambda (p)
-      (display msg p))))
+                         (lambda (p)
+                                 (display msg p))))
 
 (define (clear-error!)
   (when (file-exists? *error-file*)
-    (delete-file *error-file*)))
+        (delete-file *error-file*)))
 
 ;;; ============================================================
 ;;; Expression Evaluation
@@ -93,61 +93,61 @@
   "Evaluate a string containing Scheme expressions.
    Returns the result of the last expression."
   (let ([port (open-input-string str)])
-    (let loop ([last-result (void)])
-      (let ([expr (read port)])
-        (if (eof-object? expr)
-            last-result
-            (loop (eval expr)))))))
+       (let loop ([last-result (void)])
+            (let ([expr (read port)])
+                 (if (eof-object? expr)
+                     last-result
+                     (loop (eval expr)))))))
 
 (define (scheme-eval-and-capture str)
   "Evaluate expressions and capture both stdout and return value.
    Returns a string with output followed by the result."
   (let ([output-port (open-output-string)])
-    (let ([result
-           (parameterize ([current-output-port output-port])
-             (scheme-eval-string str))])
-      (let ([output (get-output-string output-port)])
-        (cond
-          ;; Only output, no meaningful return value
-          [(and (eq? result (void)) (> (string-length output) 0))
-           output]
-          ;; Both output and result
-          [(> (string-length output) 0)
-           (string-append output
-                         (if (eq? result (void))
-                             ""
-                             (string-append "\n=> " (format "~a" result))))]
-          ;; Only result, no output
-          [(not (eq? result (void)))
-           (format "~a" result)]
-          ;; Nothing
-          [else ""])))))
+       (let ([result
+              (parameterize ([current-output-port output-port])
+                            (scheme-eval-string str))])
+            (let ([output (get-output-string output-port)])
+                 (cond
+                  ;; Only output, no meaningful return value
+                  [(and (eq? result (void)) (> (string-length output) 0))
+                   output]
+                  ;; Both output and result
+                  [(> (string-length output) 0)
+                   (string-append output
+                                  (if (eq? result (void))
+                                      ""
+                                      (string-append "\n=> " (format "~a" result))))]
+                  ;; Only result, no output
+                  [(not (eq? result (void)))
+                   (format "~a" result)]
+                  ;; Nothing
+                  [else ""])))))
 
 (define (format-condition e)
   "Format a condition with its irritants properly filled in.
    Handles the ~s placeholders in condition messages."
   (if (condition? e)
       (guard (e2 [else (condition-message e)])  ; fallback to template
-        (let ([template (condition-message e)]
-              [irritants (if (irritants-condition? e)
-                            (condition-irritants e)
-                            '())])
-          (if (null? irritants)
-              template
-              (apply format template irritants))))
+             (let ([template (condition-message e)]
+                   [irritants (if (irritants-condition? e)
+                                  (condition-irritants e)
+                                  '())])
+                  (if (null? irritants)
+                      template
+                      (apply format template irritants))))
       (format "~a" e)))
 
 (define (process-request!)
   (let ([request (read-request)])
-    (when request
-      (clear-error!)
-      (guard (e [else
-                 (let ([msg (format-condition e)])
-                   (write-error msg)
-                   (write-response (format "ERROR: ~a" msg)))])
-        (let ([result (scheme-eval-and-capture request)])
-          (write-response result)))
-      (clear-request!))))
+       (when request
+             (clear-error!)
+             (guard (e [else
+                        (let ([msg (format-condition e)])
+                             (write-error msg)
+                             (write-response (format "ERROR: ~a" msg)))])
+                    (let ([result (scheme-eval-and-capture request)])
+                         (write-response result)))
+             (clear-request!))))
 
 ;;; ============================================================
 ;;; Main Daemon Loop
@@ -162,12 +162,12 @@
 
 (define (daemon-loop)
   (when *daemon-running*
-    (when (file-exists? *request-file*)
-      (process-request!))
-    ;; Check if we should keep running
-    (when (and *daemon-running* (daemon-running?))
-      (sleep (make-time 'time-duration *poll-interval-ns* 0))
-      (daemon-loop))))
+        (when (file-exists? *request-file*)
+              (process-request!))
+        ;; Check if we should keep running
+        (when (and *daemon-running* (daemon-running?))
+              (sleep (make-time 'time-duration *poll-interval-ns* 0))
+              (daemon-loop))))
 
 ;;; ============================================================
 ;;; Startup
@@ -177,26 +177,26 @@
   "Load the REPL environment and start the daemon loop."
   (load "thimble/repl.ss")
   (ensure-repl-dir!)
-
+  
   ;; Clear any stale files
   (clear-request!)
   (when (file-exists? *response-file*)
-    (delete-file *response-file*))
+        (delete-file *response-file*))
   (clear-error!)
-
+  
   ;; Mark as ready
   (write-ready!)
-
+  
   (display "╔══════════════════════════════════════════════════════════════╗\n")
   (display "║              THE FOLD — REPL DAEMON STARTED                  ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n")
   (display (format "Watching: ~a\n" *request-file*))
   (display (format "Output:   ~a\n" *response-file*))
   (display "Waiting for requests...\n\n")
-
+  
   ;; Enter the loop
   (daemon-loop)
-
+  
   ;; Cleanup on exit
   (clear-ready!)
   (display "Daemon stopped.\n"))

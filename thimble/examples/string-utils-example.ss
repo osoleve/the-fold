@@ -37,10 +37,10 @@
 (printf "Processing ~a log lines:\n" (length log-lines))
 
 (for-each
-  (lambda (line)
-    (when (string-contains? line "ERROR")
-      (printf "  ! ~a\n" line)))
-  log-lines)
+ (lambda (line)
+         (when (string-contains? line "ERROR")
+               (printf "  ! ~a\n" line)))
+ log-lines)
 
 (printf "\n")
 
@@ -83,8 +83,8 @@
 (define template "Hello {{name}}, welcome to {{place}}!")
 (define personalized
   (string-replace
-    (string-replace template "{{name}}" "Alice")
-    "{{place}}" "The Fold"))
+   (string-replace template "{{name}}" "Alice")
+   "{{place}}" "The Fold"))
 
 (printf "Template: ~a\n" template)
 (printf "Result: ~a\n\n" personalized)
@@ -100,17 +100,17 @@
 
 (printf "Scheme files:\n")
 (for-each
-  (lambda (file)
-    (when (string-ends-with? file ".ss")
-      (printf "  • ~a\n" file)))
-  files)
+ (lambda (file)
+         (when (string-ends-with? file ".ss")
+               (printf "  • ~a\n" file)))
+ files)
 
 (printf "\nMarkdown files:\n")
 (for-each
-  (lambda (file)
-    (when (string-ends-with? file ".md")
-      (printf "  • ~a\n" file)))
-  files)
+ (lambda (file)
+         (when (string-ends-with? file ".md")
+               (printf "  • ~a\n" file)))
+ files)
 
 (printf "\n")
 

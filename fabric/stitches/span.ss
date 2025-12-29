@@ -81,7 +81,7 @@
 ;;; Create initial parser state from input.
 (define (initial-state input . file-arg)
   (let ([file (if (null? file-arg) "<input>" (car file-arg))])
-    (make-state input 0 1 1 file)))
+       (make-state input 0 1 1 file)))
 
 ;;; state-span : State → Span
 ;;; Get current position as a zero-width span.
@@ -100,17 +100,17 @@
         [line (state-line s)]
         [col (state-column s)]
         [file (state-file s)])
-    (if (char=? char #\newline)
-        (make-state (substring input 1 (string-length input))
-                    (+ offset 1)
-                    (+ line 1)
-                    1
-                    file)
-        (make-state (substring input 1 (string-length input))
-                    (+ offset 1)
-                    line
-                    (+ col 1)
-                    file))))
+       (if (char=? char #\newline)
+           (make-state (substring input 1 (string-length input))
+                       (+ offset 1)
+                       (+ line 1)
+                       1
+                       file)
+           (make-state (substring input 1 (string-length input))
+                       (+ offset 1)
+                       line
+                       (+ col 1)
+                       file))))
 
 ;;; ============================================================
 ;;; Spanned Parse Results
@@ -144,7 +144,7 @@
 ;;; run-spanned : SpannedParser a × String [× String] → SpannedResult a
 (define (run-spanned parser input . file-arg)
   (let ([file (if (null? file-arg) "<input>" (car file-arg))])
-    (parser (initial-state input file))))
+       (parser (initial-state input file))))
 
 ;;; ============================================================
 ;;; Primitive Spanned Parsers
@@ -154,50 +154,50 @@
 ;;; Always succeeds with value, zero-width span at current position.
 (define (s-pure value)
   (lambda (state)
-    (spanned-success value state (state-span state))))
+          (spanned-success value state (state-span state))))
 
 ;;; s-fail : String → SpannedParser a
 ;;; Always fails with message.
 (define (s-fail msg)
   (lambda (state)
-    (spanned-failure msg state)))
+          (spanned-failure msg state)))
 
 ;;; s-item : SpannedParser Char
 ;;; Consume one character.
 (define s-item
   (lambda (state)
-    (let ([input (state-input state)])
-      (if (= (string-length input) 0)
-          (spanned-failure "any character" state)
-          (let* ([char (string-ref input 0)]
-                 [start-span (state-span state)]
-                 [next-state (advance-state state char)]
-                 [end-span (state-span next-state)])
-            (spanned-success char next-state (merge-spans start-span end-span)))))))
+          (let ([input (state-input state)])
+               (if (= (string-length input) 0)
+                   (spanned-failure "any character" state)
+                   (let* ([char (string-ref input 0)]
+                          [start-span (state-span state)]
+                          [next-state (advance-state state char)]
+                          [end-span (state-span next-state)])
+                         (spanned-success char next-state (merge-spans start-span end-span)))))))
 
 ;;; s-eof : SpannedParser Unit
 ;;; Succeed only at end of input.
 (define s-eof
   (lambda (state)
-    (let ([input (state-input state)])
-      (if (= (string-length input) 0)
-          (spanned-success '() state (state-span state))
-          (spanned-failure "end of input" state)))))
+          (let ([input (state-input state)])
+               (if (= (string-length input) 0)
+                   (spanned-success '() state (state-span state))
+                   (spanned-failure "end of input" state)))))
 
 ;;; s-satisfy : (Char → Bool) × String → SpannedParser Char
 ;;; Consume a character if predicate holds.
 (define (s-satisfy pred label)
   (lambda (state)
-    (let ([input (state-input state)])
-      (if (= (string-length input) 0)
-          (spanned-failure label state)
-          (let ([char (string-ref input 0)])
-            (if (pred char)
-                (let* ([start-span (state-span state)]
-                       [next-state (advance-state state char)]
-                       [end-span (state-span next-state)])
-                  (spanned-success char next-state (merge-spans start-span end-span)))
-                (spanned-failure label state)))))))
+          (let ([input (state-input state)])
+               (if (= (string-length input) 0)
+                   (spanned-failure label state)
+                   (let ([char (string-ref input 0)])
+                        (if (pred char)
+                            (let* ([start-span (state-span state)]
+                                   [next-state (advance-state state char)]
+                                   [end-span (state-span next-state)])
+                                  (spanned-success char next-state (merge-spans start-span end-span)))
+                            (spanned-failure label state)))))))
 
 ;;; ============================================================
 ;;; Character Parsers (Spanned)
@@ -224,18 +224,18 @@
 ;;; Match an exact string.
 (define (s-string target)
   (lambda (state)
-    (let ([tlen (string-length target)]
-          [input (state-input state)])
-      (if (< (string-length input) tlen)
-          (spanned-failure target state)
-          (let ([prefix (substring input 0 tlen)])
-            (if (string=? prefix target)
-                (let loop ([s state] [chars (string->list target)])
-                  (if (null? chars)
-                      (spanned-success target s
-                                       (merge-spans (state-span state) (state-span s)))
-                      (loop (advance-state s (car chars)) (cdr chars))))
-                (spanned-failure target state)))))))
+          (let ([tlen (string-length target)]
+                [input (state-input state)])
+               (if (< (string-length input) tlen)
+                   (spanned-failure target state)
+                   (let ([prefix (substring input 0 tlen)])
+                        (if (string=? prefix target)
+                            (let loop ([s state] [chars (string->list target)])
+                                 (if (null? chars)
+                                     (spanned-success target s
+                                                      (merge-spans (state-span state) (state-span s)))
+                                     (loop (advance-state s (car chars)) (cdr chars))))
+                            (spanned-failure target state)))))))
 
 ;;; ============================================================
 ;;; Spanned Combinators — Core
@@ -245,19 +245,19 @@
 ;;; Monadic bind with span merging.
 (define (s-bind parser f)
   (lambda (state)
-    (let ([result (parser state)])
-      (if (spanned-ok? result)
-          (let* ([value (spanned-value result)]
-                 [next-state (spanned-state result)]
-                 [span1 (spanned-span result)]
-                 [result2 ((f value) next-state)])
-            (if (spanned-ok? result2)
-                ;; Merge spans from first and second parse
-                (spanned-success (spanned-value result2)
-                                 (spanned-state result2)
-                                 (merge-spans span1 (spanned-span result2)))
-                result2))
-          result))))
+          (let ([result (parser state)])
+               (if (spanned-ok? result)
+                   (let* ([value (spanned-value result)]
+                          [next-state (spanned-state result)]
+                          [span1 (spanned-span result)]
+                          [result2 ((f value) next-state)])
+                         (if (spanned-ok? result2)
+                             ;; Merge spans from first and second parse
+                             (spanned-success (spanned-value result2)
+                                              (spanned-state result2)
+                                              (merge-spans span1 (spanned-span result2)))
+                             result2))
+                   result))))
 
 ;;; s-seq : SpannedParser a × SpannedParser b → SpannedParser b
 (define (s-seq p1 p2)
@@ -266,16 +266,16 @@
 ;;; s-seq-left : SpannedParser a × SpannedParser b → SpannedParser a
 (define (s-seq-left p1 p2)
   (s-bind p1 (lambda (a)
-    (s-bind p2 (lambda (_)
-      (s-pure a))))))
+                     (s-bind p2 (lambda (_)
+                                        (s-pure a))))))
 
 ;;; s-alt : SpannedParser a × SpannedParser a → SpannedParser a
 (define (s-alt p1 p2)
   (lambda (state)
-    (let ([result (p1 state)])
-      (if (spanned-ok? result)
-          result
-          (p2 state)))))
+          (let ([result (p1 state)])
+               (if (spanned-ok? result)
+                   result
+                   (p2 state)))))
 
 ;;; s-choice : (List SpannedParser) → SpannedParser a
 (define (s-choice parsers)
@@ -295,27 +295,27 @@
 
 (define (s-many-helper parser acc state)
   (let ([result (parser state)])
-    (if (spanned-ok? result)
-        (s-many-helper parser
-                       (cons (spanned-value result) acc)
-                       (spanned-state result))
-        (cons (reverse acc) state))))
+       (if (spanned-ok? result)
+           (s-many-helper parser
+                          (cons (spanned-value result) acc)
+                          (spanned-state result))
+           (cons (reverse acc) state))))
 
 ;;; s-many : SpannedParser a → SpannedParser (List a)
 (define (s-many parser)
   (lambda (state)
-    (let* ([start-span (state-span state)]
-           [result (s-many-helper parser '() state)]
-           [values (car result)]
-           [end-state (cdr result)]
-           [end-span (state-span end-state)])
-      (spanned-success values end-state (merge-spans start-span end-span)))))
+          (let* ([start-span (state-span state)]
+                 [result (s-many-helper parser '() state)]
+                 [values (car result)]
+                 [end-state (cdr result)]
+                 [end-span (state-span end-state)])
+                (spanned-success values end-state (merge-spans start-span end-span)))))
 
 ;;; s-many1 : SpannedParser a → SpannedParser (List a)
 (define (s-many1 parser)
   (s-bind parser (lambda (first)
-    (s-bind (s-many parser) (lambda (rest)
-      (s-pure (cons first rest)))))))
+                         (s-bind (s-many parser) (lambda (rest)
+                                                         (s-pure (cons first rest)))))))
 
 ;;; s-optional : SpannedParser a → SpannedParser (Maybe a)
 (define (s-optional parser)
@@ -325,10 +325,10 @@
 ;;; s-sep-by : SpannedParser a × SpannedParser sep → SpannedParser (List a)
 (define (s-sep-by parser sep)
   (s-alt
-    (s-bind parser (lambda (first)
-      (s-bind (s-many (s-seq sep parser)) (lambda (rest)
-        (s-pure (cons first rest))))))
-    (s-pure '())))
+   (s-bind parser (lambda (first)
+                          (s-bind (s-many (s-seq sep parser)) (lambda (rest)
+                                                                      (s-pure (cons first rest))))))
+   (s-pure '())))
 
 ;;; ============================================================
 ;;; Spanned Utility Parsers
@@ -355,19 +355,19 @@
 ;;; s-nat : SpannedParser Nat
 (define s-nat
   (s-bind (s-many1 s-digit) (lambda (digits)
-    (s-pure (string->number (list->string digits))))))
+                                    (s-pure (string->number (list->string digits))))))
 
 ;;; s-int : SpannedParser Int
 (define s-int
   (s-bind (s-optional (s-char #\-)) (lambda (sign)
-    (s-bind s-nat (lambda (n)
-      (s-pure (if (null? sign) n (- n))))))))
+                                            (s-bind s-nat (lambda (n)
+                                                                  (s-pure (if (null? sign) n (- n))))))))
 
 ;;; s-identifier : SpannedParser String
 (define s-identifier
   (s-bind s-alpha (lambda (first)
-    (s-bind (s-many (s-alt s-alphanum (s-char #\_))) (lambda (rest)
-      (s-pure (list->string (cons first rest))))))))
+                          (s-bind (s-many (s-alt s-alphanum (s-char #\_))) (lambda (rest)
+                                                                                   (s-pure (list->string (cons first rest))))))))
 
 ;;; ============================================================
 ;;; Spanned Value Wrapper
@@ -392,13 +392,13 @@
 ;;; Wrap a parser to return a spanned value.
 (define (s-spanned parser)
   (lambda (state)
-    (let ([result (parser state)])
-      (if (spanned-ok? result)
-          (spanned-success (spanned (spanned-value result)
+          (let ([result (parser state)])
+               (if (spanned-ok? result)
+                   (spanned-success (spanned (spanned-value result)
+                                             (spanned-span result))
+                                    (spanned-state result)
                                     (spanned-span result))
-                           (spanned-state result)
-                           (spanned-span result))
-          result))))
+                   result))))
 
 ;;; ============================================================
 ;;; Error Formatting
@@ -410,5 +410,5 @@
       (let* ([expected (spanned-expected result)]
              [state (spanned-error-state result)]
              [loc (format-span (state-span state))])
-        (string-append loc ": expected " expected))
+            (string-append loc ": expected " expected))
       "no error"))

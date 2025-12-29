@@ -21,13 +21,13 @@
 
 (define (default-tile-char tile)
   (case (tile-type tile)
-    [(floor empty) "."]
-    [(wall) "#"]
-    [(grass) ","]
-    [(swamp water) "~"]
-    [(mountain) "^"]
-    [(forest) "T"]
-    [else "?"]))
+        [(floor empty) "."]
+        [(wall) "#"]
+        [(grass) ","]
+        [(swamp water) "~"]
+        [(mountain) "^"]
+        [(forest) "T"]
+        [else "?"]))
 
 ;;; ============================================================
 ;;; Square Grid Rendering
@@ -45,21 +45,21 @@
 (define (render-square-board board meta style-fn)
   (let ([width (cdr (assq 'width meta))]
         [height (cdr (assq 'height meta))])
-    (let loop-y ([y 0] [lines '()])
-      (if (>= y height)
-          (apply string-append (reverse lines))
-          (let loop-x ([x 0] [chars '()])
-            (if (>= x width)
-                (loop-y (+ y 1)
-                       (cons (apply string-append
-                                   (reverse (cons "\n" chars)))
-                             lines))
-                (let* ([coord (cons x y)]
-                       [tile (board-get board coord)]
-                       [char (if tile
-                                 (style-fn tile)
-                                 " ")])
-                  (loop-x (+ x 1) (cons char chars)))))))))
+       (let loop-y ([y 0] [lines '()])
+            (if (>= y height)
+                (apply string-append (reverse lines))
+                (let loop-x ([x 0] [chars '()])
+                     (if (>= x width)
+                         (loop-y (+ y 1)
+                                 (cons (apply string-append
+                                              (reverse (cons "\n" chars)))
+                                       lines))
+                         (let* ([coord (cons x y)]
+                                [tile (board-get board coord)]
+                                [char (if tile
+                                          (style-fn tile)
+                                          " ")])
+                               (loop-x (+ x 1) (cons char chars)))))))))
 
 ;;; render-square-board-with-overlay : Board × MetaData × StyleFn × (List Coord) × String → String
 ;;; Render square board with highlighted coordinates
@@ -74,25 +74,25 @@
   (let ([width (cdr (assq 'width meta))]
         [height (cdr (assq 'height meta))]
         [overlay-set (let ([ht (make-hashtable equal-hash equal?)])
-                      (for-each (lambda (c) (hashtable-set! ht c #t)) overlay)
-                      ht)])
-    (let loop-y ([y 0] [lines '()])
-      (if (>= y height)
-          (apply string-append (reverse lines))
-          (let loop-x ([x 0] [chars '()])
-            (if (>= x width)
-                (loop-y (+ y 1)
-                       (cons (apply string-append
-                                   (reverse (cons "\n" chars)))
-                             lines))
-                (let* ([coord (cons x y)]
-                       [in-overlay? (hashtable-ref overlay-set coord #f)]
-                       [tile (board-get board coord)]
-                       [char (cond
-                              [in-overlay? overlay-char]
-                              [tile (style-fn tile)]
-                              [else " "])])
-                  (loop-x (+ x 1) (cons char chars)))))))))
+                          (for-each (lambda (c) (hashtable-set! ht c #t)) overlay)
+                          ht)])
+       (let loop-y ([y 0] [lines '()])
+            (if (>= y height)
+                (apply string-append (reverse lines))
+                (let loop-x ([x 0] [chars '()])
+                     (if (>= x width)
+                         (loop-y (+ y 1)
+                                 (cons (apply string-append
+                                              (reverse (cons "\n" chars)))
+                                       lines))
+                         (let* ([coord (cons x y)]
+                                [in-overlay? (hashtable-ref overlay-set coord #f)]
+                                [tile (board-get board coord)]
+                                [char (cond
+                                       [in-overlay? overlay-char]
+                                       [tile (style-fn tile)]
+                                       [else " "])])
+                               (loop-x (+ x 1) (cons char chars)))))))))
 
 ;;; ============================================================
 ;;; Hexagonal Grid Rendering
@@ -119,38 +119,38 @@
          [coords (board-tiles board)]
          ;; Find bounds
          [min-q (apply min (map (lambda (entry)
-                                 (let ([c (car entry)])
-                                   (car c)))
-                               coords))]
+                                        (let ([c (car entry)])
+                                             (car c)))
+                                coords))]
          [max-q (apply max (map (lambda (entry)
-                                 (let ([c (car entry)])
-                                   (car c)))
-                               coords))]
+                                        (let ([c (car entry)])
+                                             (car c)))
+                                coords))]
          [min-r (apply min (map (lambda (entry)
-                                 (let ([c (car entry)])
-                                   (cdr c)))
-                               coords))]
+                                        (let ([c (car entry)])
+                                             (cdr c)))
+                                coords))]
          [max-r (apply max (map (lambda (entry)
-                                 (let ([c (car entry)])
-                                   (cdr c)))
-                               coords))])
-    (let loop-r ([r min-r] [lines '()])
-      (if (> r max-r)
-          (apply string-append (reverse lines))
-          (let* ([offset (if (even? r) "" " ")]
-                 [row-chars (list offset)])
-            (let loop-q ([q min-q] [chars row-chars])
-              (if (> q max-q)
-                  (loop-r (+ r 1)
-                         (cons (apply string-append
-                                     (reverse (cons "\n" chars)))
-                               lines))
-                  (let* ([coord (cons q r)]
-                        [tile (board-get board coord)]
-                        [char (if tile
-                                  (string-append (style-fn tile) " ")
-                                  "  ")])
-                    (loop-q (+ q 1) (cons char chars))))))))))
+                                        (let ([c (car entry)])
+                                             (cdr c)))
+                                coords))])
+        (let loop-r ([r min-r] [lines '()])
+             (if (> r max-r)
+                 (apply string-append (reverse lines))
+                 (let* ([offset (if (even? r) "" " ")]
+                        [row-chars (list offset)])
+                       (let loop-q ([q min-q] [chars row-chars])
+                            (if (> q max-q)
+                                (loop-r (+ r 1)
+                                        (cons (apply string-append
+                                                     (reverse (cons "\n" chars)))
+                                              lines))
+                                (let* ([coord (cons q r)]
+                                       [tile (board-get board coord)]
+                                       [char (if tile
+                                                 (string-append (style-fn tile) " ")
+                                                 "  ")])
+                                      (loop-q (+ q 1) (cons char chars))))))))))
 
 ;;; render-hex-board-with-overlay : Board × MetaData × StyleFn × (List Coord) × String → String
 ;;; Render hex board with highlighted coordinates
@@ -158,44 +158,44 @@
   (let* ([radius (cdr (assq 'radius meta))]
          [coords (board-tiles board)]
          [overlay-set (let ([ht (make-hashtable equal-hash equal?)])
-                       (for-each (lambda (c) (hashtable-set! ht c #t)) overlay)
-                       ht)]
+                           (for-each (lambda (c) (hashtable-set! ht c #t)) overlay)
+                           ht)]
          ;; Find bounds
          [min-q (apply min (map (lambda (entry)
-                                 (let ([c (car entry)])
-                                   (car c)))
-                               coords))]
+                                        (let ([c (car entry)])
+                                             (car c)))
+                                coords))]
          [max-q (apply max (map (lambda (entry)
-                                 (let ([c (car entry)])
-                                   (car c)))
-                               coords))]
+                                        (let ([c (car entry)])
+                                             (car c)))
+                                coords))]
          [min-r (apply min (map (lambda (entry)
-                                 (let ([c (car entry)])
-                                   (cdr c)))
-                               coords))]
+                                        (let ([c (car entry)])
+                                             (cdr c)))
+                                coords))]
          [max-r (apply max (map (lambda (entry)
-                                 (let ([c (car entry)])
-                                   (cdr c)))
-                               coords))])
-    (let loop-r ([r min-r] [lines '()])
-      (if (> r max-r)
-          (apply string-append (reverse lines))
-          (let* ([offset (if (even? r) "" " ")]
-                 [row-chars (list offset)])
-            (let loop-q ([q min-q] [chars row-chars])
-              (if (> q max-q)
-                  (loop-r (+ r 1)
-                         (cons (apply string-append
-                                     (reverse (cons "\n" chars)))
-                               lines))
-                  (let* ([coord (cons q r)]
-                        [in-overlay? (hashtable-ref overlay-set coord #f)]
-                        [tile (board-get board coord)]
-                        [char (cond
-                               [in-overlay? (string-append overlay-char " ")]
-                               [tile (string-append (style-fn tile) " ")]
-                               [else "  "])])
-                    (loop-q (+ q 1) (cons char chars))))))))))
+                                        (let ([c (car entry)])
+                                             (cdr c)))
+                                coords))])
+        (let loop-r ([r min-r] [lines '()])
+             (if (> r max-r)
+                 (apply string-append (reverse lines))
+                 (let* ([offset (if (even? r) "" " ")]
+                        [row-chars (list offset)])
+                       (let loop-q ([q min-q] [chars row-chars])
+                            (if (> q max-q)
+                                (loop-r (+ r 1)
+                                        (cons (apply string-append
+                                                     (reverse (cons "\n" chars)))
+                                              lines))
+                                (let* ([coord (cons q r)]
+                                       [in-overlay? (hashtable-ref overlay-set coord #f)]
+                                       [tile (board-get board coord)]
+                                       [char (cond
+                                              [in-overlay? (string-append overlay-char " ")]
+                                              [tile (string-append (style-fn tile) " ")]
+                                              [else "  "])])
+                                      (loop-q (+ q 1) (cons char chars))))))))))
 
 ;;; ============================================================
 ;;; High-Level Rendering
@@ -206,20 +206,20 @@
 (define (render-board board style-fn)
   (let ([shape (board%-shape board)]
         [meta (board%-meta board)])
-    (case shape
-      [(square) (render-square-board board meta style-fn)]
-      [(hex hexagonal) (render-hex-board board meta style-fn)]
-      [else (error 'render-board "Unsupported shape" shape)])))
+       (case shape
+             [(square) (render-square-board board meta style-fn)]
+             [(hex hexagonal) (render-hex-board board meta style-fn)]
+             [else (error 'render-board "Unsupported shape" shape)])))
 
 ;;; render-board-with-overlay : Board × StyleFn × (List Coord) × String → String
 ;;; Render board with overlay
 (define (render-board-with-overlay board style-fn overlay overlay-char)
   (let ([shape (board%-shape board)]
         [meta (board%-meta board)])
-    (case shape
-      [(square) (render-square-board-with-overlay board meta style-fn overlay overlay-char)]
-      [(hex hexagonal) (render-hex-board-with-overlay board meta style-fn overlay overlay-char)]
-      [else (error 'render-board-with-overlay "Unsupported shape" shape)])))
+       (case shape
+             [(square) (render-square-board-with-overlay board meta style-fn overlay overlay-char)]
+             [(hex hexagonal) (render-hex-board-with-overlay board meta style-fn overlay overlay-char)]
+             [else (error 'render-board-with-overlay "Unsupported shape" shape)])))
 
 ;;; display-board : Board × StyleFn → Void
 ;;; Display board to stdout

@@ -19,8 +19,8 @@
                (display e))
            (newline)
            (exit 1)])
-  (load "thimble/watch.ss")
-  (display "✓\n"))
+       (load "thimble/watch.ss")
+       (display "✓\n"))
 
 ;;; ============================================================
 ;;; Test 2: Verify exports
@@ -28,26 +28,26 @@
 
 (display "Test 2: Verifying exports... ")
 (let ([required-bindings
-        '(watch-file
-          watch-dir
-          auto-reload
-          auto-test
-          stop-watcher!
-          stop-watching
-          list-watchers
-          watch-help
-          *watch-poll-interval*
-          *watch-debounce-delay*)])
-  (for-each
-    (lambda (binding)
-      (unless (top-level-bound? binding)
-        (display "✗\n")
-        (display "Missing binding: ")
-        (display binding)
-        (newline)
-        (exit 1)))
-    required-bindings)
-  (display "✓\n"))
+       '(watch-file
+         watch-dir
+         auto-reload
+         auto-test
+         stop-watcher!
+         stop-watching
+         list-watchers
+         watch-help
+         *watch-poll-interval*
+         *watch-debounce-delay*)])
+     (for-each
+      (lambda (binding)
+              (unless (top-level-bound? binding)
+                      (display "✗\n")
+                      (display "Missing binding: ")
+                      (display binding)
+                      (newline)
+                      (exit 1)))
+      required-bindings)
+     (display "✓\n"))
 
 ;;; ============================================================
 ;;; Test 3: Configuration values
@@ -56,14 +56,14 @@
 (display "Test 3: Checking configuration... ")
 (unless (and (number? *watch-poll-interval*)
              (> *watch-poll-interval* 0))
-  (display "✗\n")
-  (display "Invalid *watch-poll-interval*\n")
-  (exit 1))
+        (display "✗\n")
+        (display "Invalid *watch-poll-interval*\n")
+        (exit 1))
 (unless (and (number? *watch-debounce-delay*)
              (>= *watch-debounce-delay* 0))
-  (display "✗\n")
-  (display "Invalid *watch-debounce-delay*\n")
-  (exit 1))
+        (display "✗\n")
+        (display "Invalid *watch-debounce-delay*\n")
+        (exit 1))
 (display "✓\n")
 
 ;;; ============================================================
@@ -79,27 +79,27 @@
                (display e))
            (newline)
            (exit 1)])
-  ;; Create test file
-  (call-with-output-file "test-integration-tmp.txt"
-    (lambda (port)
-      (display "test content" port)))
-
-  ;; Create watcher
-  (let ([w (watch-file "test-integration-tmp.txt"
-                       (lambda (files) (void)))])
-    (unless (watcher? w)
-      (display "✗\n")
-      (display "watch-file did not return watcher\n")
-      (exit 1))
-
-    ;; Stop watcher
-    (stop-watcher! w))
-
-  ;; Cleanup
-  (when (file-exists? "test-integration-tmp.txt")
-    (delete-file "test-integration-tmp.txt"))
-
-  (display "✓\n"))
+       ;; Create test file
+       (call-with-output-file "test-integration-tmp.txt"
+                              (lambda (port)
+                                      (display "test content" port)))
+       
+       ;; Create watcher
+       (let ([w (watch-file "test-integration-tmp.txt"
+                            (lambda (files) (void)))])
+            (unless (watcher? w)
+                    (display "✗\n")
+                    (display "watch-file did not return watcher\n")
+                    (exit 1))
+            
+            ;; Stop watcher
+            (stop-watcher! w))
+       
+       ;; Cleanup
+       (when (file-exists? "test-integration-tmp.txt")
+             (delete-file "test-integration-tmp.txt"))
+       
+       (display "✓\n"))
 
 ;;; ============================================================
 ;;; Test 5: Load daemon integration
@@ -114,8 +114,8 @@
                (display e))
            (newline)
            (exit 1)])
-  (load "thimble/watch-daemon-integration.ss")
-  (display "✓\n"))
+       (load "thimble/watch-daemon-integration.ss")
+       (display "✓\n"))
 
 ;;; ============================================================
 ;;; Test 6: Verify daemon integration exports
@@ -123,24 +123,24 @@
 
 (display "Test 6: Verifying daemon integration... ")
 (let ([required-bindings
-        '(dev-mode-on
-          dev-mode-off
-          dev-status
-          watch-tests
-          stop-test-watchers
-          smart-reload
-          watch-with-smart-reload
-          dev-help)])
-  (for-each
-    (lambda (binding)
-      (unless (top-level-bound? binding)
-        (display "✗\n")
-        (display "Missing binding: ")
-        (display binding)
-        (newline)
-        (exit 1)))
-    required-bindings)
-  (display "✓\n"))
+       '(dev-mode-on
+         dev-mode-off
+         dev-status
+         watch-tests
+         stop-test-watchers
+         smart-reload
+         watch-with-smart-reload
+         dev-help)])
+     (for-each
+      (lambda (binding)
+              (unless (top-level-bound? binding)
+                      (display "✗\n")
+                      (display "Missing binding: ")
+                      (display binding)
+                      (newline)
+                      (exit 1)))
+      required-bindings)
+     (display "✓\n"))
 
 ;;; ============================================================
 ;;; Test 7: Load examples
@@ -155,8 +155,8 @@
                (display e))
            (newline)
            (exit 1)])
-  (load "thimble/watch-example.ss")
-  (display "✓\n"))
+       (load "thimble/watch-example.ss")
+       (display "✓\n"))
 
 ;;; ============================================================
 ;;; Test 8: Verify example exports
@@ -164,24 +164,24 @@
 
 (display "Test 8: Verifying examples... ")
 (let ([required-bindings
-        '(example-1-auto-reload
-          example-2-auto-test
-          example-3-watch-core
-          example-4-rebuild-on-change
-          example-5-multi-watch
-          example-6-custom-action
-          example-7-debounce-demo
-          watch-examples-help)])
-  (for-each
-    (lambda (binding)
-      (unless (top-level-bound? binding)
-        (display "✗\n")
-        (display "Missing binding: ")
-        (display binding)
-        (newline)
-        (exit 1)))
-    required-bindings)
-  (display "✓\n"))
+       '(example-1-auto-reload
+         example-2-auto-test
+         example-3-watch-core
+         example-4-rebuild-on-change
+         example-5-multi-watch
+         example-6-custom-action
+         example-7-debounce-demo
+         watch-examples-help)])
+     (for-each
+      (lambda (binding)
+              (unless (top-level-bound? binding)
+                      (display "✗\n")
+                      (display "Missing binding: ")
+                      (display binding)
+                      (newline)
+                      (exit 1)))
+      required-bindings)
+     (display "✓\n"))
 
 ;;; ============================================================
 ;;; Test 9: Verify glob matching
@@ -193,9 +193,9 @@
              (glob-match? "test-*.ss" "test-watch.ss")
              (glob-match? "???.ss" "foo.ss")
              (not (glob-match? "???.ss" "foobar.ss")))
-  (display "✗\n")
-  (display "Glob matching failed\n")
-  (exit 1))
+        (display "✗\n")
+        (display "Glob matching failed\n")
+        (exit 1))
 (display "✓\n")
 
 ;;; ============================================================
@@ -206,8 +206,8 @@
 (guard (e [else
            (display "✗\n")
            (display "Warning: Cleanup failed\n")])
-  (stop-watching)
-  (display "✓\n"))
+       (stop-watching)
+       (display "✓\n"))
 
 ;;; ============================================================
 ;;; Summary

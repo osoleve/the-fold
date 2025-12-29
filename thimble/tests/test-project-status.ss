@@ -24,8 +24,8 @@
   (display ": ")
   (if passed?
       (begin
-        (set! *tests-passed* (+ *tests-passed* 1))
-        (display "PASS\n"))
+       (set! *tests-passed* (+ *tests-passed* 1))
+       (display "PASS\n"))
       (display "FAIL\n")))
 
 ;;; test-equal : String x Any x Any -> void
@@ -155,83 +155,83 @@
 (display "\nTest 6: Git status parsing\n")
 
 (let ([clean-result (parse-git-status "")])
-  (test-equal "clean status detected"
-              "clean"
-              (cdr (assq 'status clean-result))))
+     (test-equal "clean status detected"
+                 "clean"
+                 (cdr (assq 'status clean-result))))
 
 (let ([dirty-result (parse-git-status " M modified.ss\n")])
-  (test-equal "dirty status detected"
-              "dirty"
-              (cdr (assq 'status dirty-result))))
+     (test-equal "dirty status detected"
+                 "dirty"
+                 (cdr (assq 'status dirty-result))))
 
 (let ([untracked-result (parse-git-status "?? new-file.ss\n")])
-  (test-true "untracked file captured"
-             (member "new-file.ss" (cdr (assq 'untracked untracked-result)))))
+     (test-true "untracked file captured"
+                (member "new-file.ss" (cdr (assq 'untracked untracked-result)))))
 
 ;;; ----- Commit Parsing -----
 
 (display "\nTest 7: Commit parsing\n")
 
 (let ([commit (parse-commit-line "abc123|Fix bug|2 hours ago")])
-  (test-equal "commit hash parsed"
-              "abc123"
-              (cdr (assq 'hash commit)))
-  (test-equal "commit message parsed"
-              "Fix bug"
-              (cdr (assq 'message commit)))
-  (test-equal "commit time parsed"
-              "2 hours ago"
-              (cdr (assq 'time commit))))
+     (test-equal "commit hash parsed"
+                 "abc123"
+                 (cdr (assq 'hash commit)))
+     (test-equal "commit message parsed"
+                 "Fix bug"
+                 (cdr (assq 'message commit)))
+     (test-equal "commit time parsed"
+                 "2 hours ago"
+                 (cdr (assq 'time commit))))
 
 ;;; ----- Integration Tests (on actual repo) -----
 
 (display "\nTest 8: Integration tests (counting in current directory)\n")
 
 (let ([test-info (count-tests ".")])
-  (test-alist-has-key "count-tests returns files" 'files test-info)
-  (test-alist-has-key "count-tests returns cases" 'cases test-info)
-  (test-true "found at least 1 test file"
-             (> (cdr (assq 'files test-info)) 0)))
+     (test-alist-has-key "count-tests returns files" 'files test-info)
+     (test-alist-has-key "count-tests returns cases" 'cases test-info)
+     (test-true "found at least 1 test file"
+                (> (cdr (assq 'files test-info)) 0)))
 
 (let ([line-info (count-lines ".")])
-  (test-alist-has-key "count-lines returns files" 'files line-info)
-  (test-alist-has-key "count-lines returns code-lines" 'code-lines line-info)
-  (test-true "found at least 1 file"
-             (> (cdr (assq 'files line-info)) 0))
-  (test-true "found at least 100 lines"
-             (> (cdr (assq 'code-lines line-info)) 100)))
+     (test-alist-has-key "count-lines returns files" 'files line-info)
+     (test-alist-has-key "count-lines returns code-lines" 'code-lines line-info)
+     (test-true "found at least 1 file"
+                (> (cdr (assq 'files line-info)) 0))
+     (test-true "found at least 100 lines"
+                (> (cdr (assq 'code-lines line-info)) 100)))
 
 (let ([git-info (git-status-info)])
-  (test-alist-has-key "git-status-info returns status" 'status git-info)
-  (test-alist-has-key "git-status-info returns modified" 'modified git-info))
+     (test-alist-has-key "git-status-info returns status" 'status git-info)
+     (test-alist-has-key "git-status-info returns modified" 'modified git-info))
 
 (let ([commits (recent-commits 3)])
-  (test-true "recent-commits returns list"
-             (list? commits))
-  (test-true "recent-commits has at least 1 commit"
-             (> (length commits) 0)))
+     (test-true "recent-commits returns list"
+                (list? commits))
+     (test-true "recent-commits has at least 1 commit"
+                (> (length commits) 0)))
 
 ;;; ----- Full Status Test -----
 
 (display "\nTest 9: Full project status\n")
 
 (let ([status (project-status)])
-  (test-alist-has-key "status has files" 'files status)
-  (test-alist-has-key "status has code-lines" 'code-lines status)
-  (test-alist-has-key "status has test-files" 'test-files status)
-  (test-alist-has-key "status has test-cases" 'test-cases status)
-  (test-alist-has-key "status has git-status" 'git-status status)
-  (test-alist-has-key "status has last-commit" 'last-commit status))
+     (test-alist-has-key "status has files" 'files status)
+     (test-alist-has-key "status has code-lines" 'code-lines status)
+     (test-alist-has-key "status has test-files" 'test-files status)
+     (test-alist-has-key "status has test-cases" 'test-cases status)
+     (test-alist-has-key "status has git-status" 'git-status status)
+     (test-alist-has-key "status has last-commit" 'last-commit status))
 
 ;;; ----- Health Check -----
 
 (display "\nTest 10: Health check\n")
 
 (let ([h (health)])
-  (test-true "health returns symbol"
-             (symbol? h))
-  (test-true "health is valid value"
-             (memq h '(healthy dirty unknown))))
+     (test-true "health returns symbol"
+                (symbol? h))
+     (test-true "health is valid value"
+                (memq h '(healthy dirty unknown))))
 
 ;;; ============================================================
 ;;; Summary
@@ -248,8 +248,8 @@
 (if (= *tests-run* *tests-passed*)
     (display "\n  All tests passed!\n\n")
     (begin
-      (display "\n  Some tests failed!\n\n")
-      (exit 1)))
+     (display "\n  Some tests failed!\n\n")
+     (exit 1)))
 
 ;;; ----- Demo: Show the report -----
 

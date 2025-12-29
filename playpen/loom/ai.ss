@@ -69,9 +69,9 @@
          [delta (direction->delta random-dir)]
          [new-x (+ (entity-x entity) (car delta))]
          [new-y (+ (entity-y entity) (cdr delta))])
-    (if (world-can-move-to? world entity new-x new-y)
-        (make-ai-action 'move random-dir)
-        (make-ai-action 'wait #f))))
+        (if (world-can-move-to? world entity new-x new-y)
+            (make-ai-action 'move random-dir)
+            (make-ai-action 'wait #f))))
 
 ;;; ai-wander-8 : World × Entity -> AIAction
 ;;; Wander in 8 directions (including diagonals).
@@ -81,9 +81,9 @@
          [delta (direction->delta random-dir)]
          [new-x (+ (entity-x entity) (car delta))]
          [new-y (+ (entity-y entity) (cdr delta))])
-    (if (world-can-move-to? world entity new-x new-y)
-        (make-ai-action 'move random-dir)
-        (make-ai-action 'wait #f))))
+        (if (world-can-move-to? world entity new-x new-y)
+            (make-ai-action 'move random-dir)
+            (make-ai-action 'wait #f))))
 
 ;;; ============================================================
 ;;; Guard Behavior
@@ -104,30 +104,30 @@
          [current-pos (entity-point entity)]
          ;; Check for nearby enemies
          [enemies (world-find-entities world
-                    (lambda (e)
-                      (and (not (= (entity-id e) (entity-id entity)))
-                           (entity-alive? e)
-                           (is-hostile? entity e))))]
+                                       (lambda (e)
+                                               (and (not (= (entity-id e) (entity-id entity)))
+                                                    (entity-alive? e)
+                                                    (is-hostile? entity e))))]
          [nearby-enemies (filter
-                           (lambda (e)
-                             (< (entity-distance entity e) 2))
-                           enemies)])
-    (cond
-      ;; Attack adjacent enemy
-      [(not (null? nearby-enemies))
-       (make-ai-action 'attack (entity-id (car nearby-enemies)))]
-      ;; Too far from guard point - return
-      [(> (manhattan-distance current-pos guard-point) guard-radius)
-       (let ([path (world-find-path world current-pos guard-point #f)])
-         (if (and path (not (null? path)))
-             (let* ([next-pos (car path)]
-                    [delta (point-sub next-pos current-pos)]
-                    [dir (delta->direction delta)])
-               (make-ai-action 'move dir))
-             (make-ai-action 'wait #f)))]
-      ;; At guard point - wait
-      [else
-       (make-ai-action 'wait #f)])))
+                          (lambda (e)
+                                  (< (entity-distance entity e) 2))
+                          enemies)])
+        (cond
+         ;; Attack adjacent enemy
+         [(not (null? nearby-enemies))
+          (make-ai-action 'attack (entity-id (car nearby-enemies)))]
+         ;; Too far from guard point - return
+         [(> (manhattan-distance current-pos guard-point) guard-radius)
+          (let ([path (world-find-path world current-pos guard-point #f)])
+               (if (and path (not (null? path)))
+                   (let* ([next-pos (car path)]
+                          [delta (point-sub next-pos current-pos)]
+                          [dir (delta->direction delta)])
+                         (make-ai-action 'move dir))
+                   (make-ai-action 'wait #f)))]
+         ;; At guard point - wait
+         [else
+          (make-ai-action 'wait #f)])))
 
 ;;; ============================================================
 ;;; Hunt Behavior
@@ -141,41 +141,41 @@
   (let* ([current-pos (entity-point entity)]
          ;; Find all hostile entities
          [enemies (world-find-entities world
-                    (lambda (e)
-                      (and (not (= (entity-id e) (entity-id entity)))
-                           (entity-alive? e)
-                           (is-hostile? entity e))))]
+                                       (lambda (e)
+                                               (and (not (= (entity-id e) (entity-id entity)))
+                                                    (entity-alive? e)
+                                                    (is-hostile? entity e))))]
          ;; Find nearest enemy
          [nearest (world-find-nearest world current-pos
-                    (lambda (e)
-                      (and (not (= (entity-id e) (entity-id entity)))
-                           (entity-alive? e)
-                           (is-hostile? entity e))))])
-    (cond
-      ;; No enemies - wander
-      [(not nearest)
-       (ai-wander world entity)]
-      ;; Enemy adjacent - attack
-      [(entity-adjacent? entity nearest)
-       (make-ai-action 'attack (entity-id nearest))]
-      ;; Enemy visible - chase
-      [else
-       (let* ([target-pos (entity-point nearest)]
-              [path (world-find-path world current-pos target-pos #f)])
-         (if (and path (not (null? path)))
-             ;; Use pathfinding
-             (let* ([next-pos (car path)]
-                    [delta (point-sub next-pos current-pos)]
-                    [dir (delta->direction delta)])
-               (make-ai-action 'move dir))
-             ;; No path - move directly toward target
-             (let* ([delta (point-sub target-pos current-pos)]
-                    [dir (delta->direction delta)])
-               (if (world-can-move-to? world entity
-                                       (+ (entity-x entity) (car (direction->delta dir)))
-                                       (+ (entity-y entity) (cdr (direction->delta dir))))
-                   (make-ai-action 'move dir)
-                   (make-ai-action 'wait #f)))))])))
+                                      (lambda (e)
+                                              (and (not (= (entity-id e) (entity-id entity)))
+                                                   (entity-alive? e)
+                                                   (is-hostile? entity e))))])
+        (cond
+         ;; No enemies - wander
+         [(not nearest)
+          (ai-wander world entity)]
+         ;; Enemy adjacent - attack
+         [(entity-adjacent? entity nearest)
+          (make-ai-action 'attack (entity-id nearest))]
+         ;; Enemy visible - chase
+         [else
+          (let* ([target-pos (entity-point nearest)]
+                 [path (world-find-path world current-pos target-pos #f)])
+                (if (and path (not (null? path)))
+                    ;; Use pathfinding
+                    (let* ([next-pos (car path)]
+                           [delta (point-sub next-pos current-pos)]
+                           [dir (delta->direction delta)])
+                          (make-ai-action 'move dir))
+                    ;; No path - move directly toward target
+                    (let* ([delta (point-sub target-pos current-pos)]
+                           [dir (delta->direction delta)])
+                          (if (world-can-move-to? world entity
+                                                  (+ (entity-x entity) (car (direction->delta dir)))
+                                                  (+ (entity-y entity) (cdr (direction->delta dir))))
+                              (make-ai-action 'move dir)
+                              (make-ai-action 'wait #f)))))])))
 
 ;;; ============================================================
 ;;; Flee Behavior
@@ -188,33 +188,33 @@
   (let* ([current-pos (entity-point entity)]
          ;; Find nearest enemy
          [nearest (world-find-nearest world current-pos
-                    (lambda (e)
-                      (and (not (= (entity-id e) (entity-id entity)))
-                           (entity-alive? e)
-                           (is-hostile? entity e))))])
-    (cond
-      ;; No enemies - wander
-      [(not nearest)
-       (ai-wander world entity)]
-      ;; Run away from enemy
-      [else
-       (let* ([enemy-pos (entity-point nearest)]
-              ;; Calculate direction away from enemy
-              [delta (point-sub current-pos enemy-pos)]
-              [dx (car delta)]
-              [dy (cdr delta)]
-              ;; Normalize to a direction
-              [dir (cond
-                     [(and (> (abs dx) (abs dy)) (> dx 0)) 'east]
-                     [(and (> (abs dx) (abs dy)) (< dx 0)) 'west]
-                     [(and (<= (abs dx) (abs dy)) (> dy 0)) 'south]
-                     [else 'north])]
-              [dir-delta (direction->delta dir)]
-              [new-x (+ (entity-x entity) (car dir-delta))]
-              [new-y (+ (entity-y entity) (cdr dir-delta))])
-         (if (world-can-move-to? world entity new-x new-y)
-             (make-ai-action 'move dir)
-             (make-ai-action 'wait #f)))])))
+                                      (lambda (e)
+                                              (and (not (= (entity-id e) (entity-id entity)))
+                                                   (entity-alive? e)
+                                                   (is-hostile? entity e))))])
+        (cond
+         ;; No enemies - wander
+         [(not nearest)
+          (ai-wander world entity)]
+         ;; Run away from enemy
+         [else
+          (let* ([enemy-pos (entity-point nearest)]
+                 ;; Calculate direction away from enemy
+                 [delta (point-sub current-pos enemy-pos)]
+                 [dx (car delta)]
+                 [dy (cdr delta)]
+                 ;; Normalize to a direction
+                 [dir (cond
+                       [(and (> (abs dx) (abs dy)) (> dx 0)) 'east]
+                       [(and (> (abs dx) (abs dy)) (< dx 0)) 'west]
+                       [(and (<= (abs dx) (abs dy)) (> dy 0)) 'south]
+                       [else 'north])]
+                 [dir-delta (direction->delta dir)]
+                 [new-x (+ (entity-x entity) (car dir-delta))]
+                 [new-y (+ (entity-y entity) (cdr dir-delta))])
+                (if (world-can-move-to? world entity new-x new-y)
+                    (make-ai-action 'move dir)
+                    (make-ai-action 'wait #f)))])))
 
 ;;; ============================================================
 ;;; AI Behavior Dispatcher
@@ -225,20 +225,20 @@
 ;;;
 (define (ai-decide-action world entity)
   (let ([ai-comp (entity-ai entity)])
-    (if ai-comp
-        (let ([behavior (ai-behavior ai-comp)])
-          (case behavior
-            ((idle) (ai-idle world entity))
-            ((wander) (ai-wander world entity))
-            ((wander-8) (ai-wander-8 world entity))
-            ((guard) (ai-guard world entity))
-            ((hunt) (ai-hunt world entity))
-            ((flee) (ai-flee world entity))
-            (else
-             ;; Unknown behavior - default to idle
-             (ai-idle world entity))))
-        ;; No AI component - idle
-        (ai-idle world entity))))
+       (if ai-comp
+           (let ([behavior (ai-behavior ai-comp)])
+                (case behavior
+                      ((idle) (ai-idle world entity))
+                      ((wander) (ai-wander world entity))
+                      ((wander-8) (ai-wander-8 world entity))
+                      ((guard) (ai-guard world entity))
+                      ((hunt) (ai-hunt world entity))
+                      ((flee) (ai-flee world entity))
+                      (else
+                       ;; Unknown behavior - default to idle
+                       (ai-idle world entity))))
+           ;; No AI component - idle
+           (ai-idle world entity))))
 
 ;;; ============================================================
 ;;; AI Utilities
@@ -250,9 +250,9 @@
   (let ([faction1 (entity-faction entity1)]
         [faction2 (entity-faction entity2)]
         [faction-comp1 (entity-get-component entity1 'faction)])
-    (if faction-comp1
-        (faction-is-hostile? faction-comp1 faction2)
-        #f)))
+       (if faction-comp1
+           (faction-is-hostile? faction-comp1 faction2)
+           #f)))
 
 ;;; delta->direction : Point -> Direction
 ;;; Convert a delta (dx . dy) to a cardinal direction.
@@ -260,16 +260,16 @@
 (define (delta->direction delta)
   (let ([dx (car delta)]
         [dy (cdr delta)])
-    (cond
-      ;; No movement
-      [(and (= dx 0) (= dy 0)) 'north]
-      ;; Diagonal - pick strongest component
-      [(and (> (abs dx) (abs dy)) (> dx 0)) 'east]
-      [(and (> (abs dx) (abs dy)) (< dx 0)) 'west]
-      [(and (<= (abs dx) (abs dy)) (> dy 0)) 'south]
-      [(<= (abs dx) (abs dy)) 'north]
-      ;; Fallback
-      [else 'north])))
+       (cond
+        ;; No movement
+        [(and (= dx 0) (= dy 0)) 'north]
+        ;; Diagonal - pick strongest component
+        [(and (> (abs dx) (abs dy)) (> dx 0)) 'east]
+        [(and (> (abs dx) (abs dy)) (< dx 0)) 'west]
+        [(and (<= (abs dx) (abs dy)) (> dy 0)) 'south]
+        [(<= (abs dx) (abs dy)) 'north]
+        ;; Fallback
+        [else 'north])))
 
 ;;; ============================================================
 ;;; Advanced AI (Optional Extensions)

@@ -25,7 +25,7 @@
 (display "╚════════════════════════════════════════════════════════════╝\n\n")
 
 (msg 'engineering "Chez Scheme Installation & Haiku Crew Adventures"
-"INSTALLATION SUCCESS! 🎉
+     "INSTALLATION SUCCESS! 🎉
 
 Just got Chez Scheme 9.5.8 running and spawned three haiku agents to explore The Fold.
 The results were amazing:

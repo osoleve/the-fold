@@ -36,45 +36,45 @@
 ;;; Note: Y increases downward (standard screen coordinates).
 (define (direction->delta dir)
   (case dir
-    [(north)     (cons  0 -1)]
-    [(south)     (cons  0  1)]
-    [(east)      (cons  1  0)]
-    [(west)      (cons -1  0)]
-    [(northeast) (cons  1 -1)]
-    [(northwest) (cons -1 -1)]
-    [(southeast) (cons  1  1)]
-    [(southwest) (cons -1  1)]
-    [(none)      (cons  0  0)]
-    [else        (cons  0  0)]))
+        [(north)     (cons  0 -1)]
+        [(south)     (cons  0  1)]
+        [(east)      (cons  1  0)]
+        [(west)      (cons -1  0)]
+        [(northeast) (cons  1 -1)]
+        [(northwest) (cons -1 -1)]
+        [(southeast) (cons  1  1)]
+        [(southwest) (cons -1  1)]
+        [(none)      (cons  0  0)]
+        [else        (cons  0  0)]))
 
 ;;; delta->direction : Int × Int -> Direction
 ;;; Convert a delta to the closest direction.
 (define (delta->direction dx dy)
   (cond
-    [(and (= dx 0) (< dy 0)) 'north]
-    [(and (= dx 0) (> dy 0)) 'south]
-    [(and (> dx 0) (= dy 0)) 'east]
-    [(and (< dx 0) (= dy 0)) 'west]
-    [(and (> dx 0) (< dy 0)) 'northeast]
-    [(and (< dx 0) (< dy 0)) 'northwest]
-    [(and (> dx 0) (> dy 0)) 'southeast]
-    [(and (< dx 0) (> dy 0)) 'southwest]
-    [else 'none]))
+   [(and (= dx 0) (< dy 0)) 'north]
+   [(and (= dx 0) (> dy 0)) 'south]
+   [(and (> dx 0) (= dy 0)) 'east]
+   [(and (< dx 0) (= dy 0)) 'west]
+   [(and (> dx 0) (< dy 0)) 'northeast]
+   [(and (< dx 0) (< dy 0)) 'northwest]
+   [(and (> dx 0) (> dy 0)) 'southeast]
+   [(and (< dx 0) (> dy 0)) 'southwest]
+   [else 'none]))
 
 ;;; opposite-direction : Direction -> Direction
 ;;; Get the opposite direction.
 (define (opposite-direction dir)
   (case dir
-    [(north) 'south]
-    [(south) 'north]
-    [(east) 'west]
-    [(west) 'east]
-    [(northeast) 'southwest]
-    [(northwest) 'southeast]
-    [(southeast) 'northwest]
-    [(southwest) 'northeast]
-    [(none) 'none]
-    [else 'none]))
+        [(north) 'south]
+        [(south) 'north]
+        [(east) 'west]
+        [(west) 'east]
+        [(northeast) 'southwest]
+        [(northwest) 'southeast]
+        [(southeast) 'northwest]
+        [(southwest) 'northeast]
+        [(none) 'none]
+        [else 'none]))
 
 ;;; cardinal-directions : List Direction
 ;;; The four cardinal directions.
@@ -108,7 +108,7 @@
 (define (euclidean-distance-squared p1 p2)
   (let ([dx (- (car p1) (car p2))]
         [dy (- (cdr p1) (cdr p2))])
-    (+ (* dx dx) (* dy dy))))
+       (+ (* dx dx) (* dy dy))))
 
 ;;; ============================================================
 ;;; Numeric Utilities
@@ -137,35 +137,35 @@
 ;;; Get value from alist, with optional default.
 (define alist-ref
   (case-lambda
-    [(alist key)
-     (let ([pair (assq key alist)])
-       (if pair (cdr pair) #f))]
-    [(alist key default)
-     (let ([pair (assq key alist)])
-       (if pair (cdr pair) default))]))
+   [(alist key)
+    (let ([pair (assq key alist)])
+         (if pair (cdr pair) #f))]
+   [(alist key default)
+    (let ([pair (assq key alist)])
+         (if pair (cdr pair) default))]))
 
 ;;; alist-set : Alist × Symbol × Any -> Alist
 ;;; Set or add a key-value pair in alist.
 (define (alist-set alist key value)
   (let ([found #f])
-    (let ([result (map (lambda (pair)
-                         (if (eq? (car pair) key)
-                             (begin (set! found #t)
-                                    (cons key value))
-                             pair))
-                       alist)])
-      (if found
-          result
-          (cons (cons key value) alist)))))
+       (let ([result (map (lambda (pair)
+                                  (if (eq? (car pair) key)
+                                      (begin (set! found #t)
+                                             (cons key value))
+                                      pair))
+                          alist)])
+            (if found
+                result
+                (cons (cons key value) alist)))))
 
 ;;; alist-update : Alist × Symbol × (Any -> Any) × [Any] -> Alist
 ;;; Update a value in alist using a function.
 (define alist-update
   (case-lambda
-    [(alist key fn)
-     (alist-set alist key (fn (alist-ref alist key)))]
-    [(alist key fn default)
-     (alist-set alist key (fn (alist-ref alist key default)))]))
+   [(alist key fn)
+    (alist-set alist key (fn (alist-ref alist key)))]
+   [(alist key fn default)
+    (alist-set alist key (fn (alist-ref alist key default)))]))
 
 ;;; alist-remove : Alist × Symbol -> Alist
 ;;; Remove a key from alist.
@@ -181,7 +181,7 @@
 ;;; Merge two alists, second takes precedence.
 (define (alist-merge base override)
   (fold-left (lambda (acc pair)
-               (alist-set acc (car pair) (cdr pair)))
+                     (alist-set acc (car pair) (cdr pair)))
              base
              override))
 
@@ -198,8 +198,8 @@
 ;;; Generate a unique entity ID.
 (define (generate-id)
   (let ([id *next-entity-id*])
-    (set! *next-entity-id* (+ *next-entity-id* 1))
-    id))
+       (set! *next-entity-id* (+ *next-entity-id* 1))
+       id))
 
 ;;; reset-id-counter! : -> Void
 ;;; Reset the ID counter (for testing).
@@ -238,9 +238,9 @@
 ;;; Get neighboring points (4 or 8 directions).
 (define (point-neighbors pt include-diagonals?)
   (let ([dirs (if include-diagonals? all-directions cardinal-directions)])
-    (map (lambda (dir)
-           (point-add pt (direction->delta dir)))
-         dirs)))
+       (map (lambda (dir)
+                    (point-add pt (direction->delta dir)))
+            dirs)))
 
 ;;; ============================================================
 ;;; Random Utilities
@@ -262,27 +262,27 @@
 ;;; Shuffle a list (Fisher-Yates).
 (define (shuffle lst)
   (let ([vec (list->vector lst)])
-    (let loop ([i (- (vector-length vec) 1)])
-      (if (<= i 0)
-          (vector->list vec)
-          (let* ([j (random (+ i 1))]
-                 [temp (vector-ref vec i)])
-            (vector-set! vec i (vector-ref vec j))
-            (vector-set! vec j temp)
-            (loop (- i 1)))))))
+       (let loop ([i (- (vector-length vec) 1)])
+            (if (<= i 0)
+                (vector->list vec)
+                (let* ([j (random (+ i 1))]
+                       [temp (vector-ref vec i)])
+                      (vector-set! vec i (vector-ref vec j))
+                      (vector-set! vec j temp)
+                      (loop (- i 1)))))))
 
 ;;; weighted-choice : List (× Any Num) -> Any
 ;;; Pick from weighted options. Each option is (value . weight).
 (define (weighted-choice options)
   (let* ([total (fold-left (lambda (sum opt) (+ sum (cdr opt))) 0 options)]
          [roll (random total)])
-    (let loop ([opts options] [cumulative 0])
-      (if (null? opts)
-          #f
-          (let ([new-cumulative (+ cumulative (cdar opts))])
-            (if (< roll new-cumulative)
-                (caar opts)
-                (loop (cdr opts) new-cumulative)))))))
+        (let loop ([opts options] [cumulative 0])
+             (if (null? opts)
+                 #f
+                 (let ([new-cumulative (+ cumulative (cdar opts))])
+                      (if (< roll new-cumulative)
+                          (caar opts)
+                          (loop (cdr opts) new-cumulative)))))))
 
 ;;; ============================================================
 ;;; Export Summary

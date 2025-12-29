@@ -255,27 +255,27 @@
     ("*quacks happily*" . happy)
     ("Ooooh that feels nice!" . happy)
     ("*wiggles with joy*" . happy)
-
+    
     ;; curious
     ("*tilts head* Mmm?" . curious)
     ("Oh! That tickles!" . curious)
     ("*looks at you while being petted*" . curious)
-
+    
     ;; sleepy
     ("*purrs like a tiny motor*" . sleepy)
     ("That's so soothing... *yawn*" . sleepy)
     ("Mmm... niiiice..." . sleepy)
-
+    
     ;; content
     ("*nods gratefully*" . content)
     ("That's very kind." . content)
     ("*soft quack of thanks*" . content)
-
+    
     ;; lonely
     ("*presses against your hand*" . lonely)
     ("Don't stop... please..." . lonely)
     ("*tears of happiness*" . lonely)
-
+    
     ;; playful
     ("*bounces away then comes back for more*" . playful)
     ("More! More! More!" . playful)
@@ -287,27 +287,27 @@
     ("QUACK! Food! You remembered!" . happy)
     ("*eats enthusiastically*" . happy)
     ("The best thing ever!" . happy)
-
+    
     ;; curious
     ("*smells it carefully*" . curious)
     ("What is this? It looks interesting..." . curious)
     ("*pecks at it cautiously*" . curious)
-
+    
     ;; sleepy
     ("*eats slowly while half-asleep*" . sleepy)
     ("Mmm... thank you... *yawn*" . sleepy)
     ("So... full... and sleepy..." . sleepy)
-
+    
     ;; content
     ("*eats peacefully*" . content)
     ("This is nourishing." . content)
     ("*grateful quack*" . content)
-
+    
     ;; lonely
     ("You brought me food? You care?" . lonely)
     ("*eats while watching you carefully*" . lonely)
     ("Thank you for remembering me..." . lonely)
-
+    
     ;; playful
     ("YES YES YES! *gobbles quickly*" . playful)
     ("Food is the best toy!" . playful)
@@ -319,27 +319,27 @@
     ("Oh! Let's play! What game?" . happy)
     ("*bounces excitedly*" . happy)
     ("I'm ready! I'm so ready!" . happy)
-
+    
     ;; curious
     ("*perks up* What did you have in mind?" . curious)
     ("Play? How do we do that?" . curious)
     ("*looks interested*" . curious)
-
+    
     ;; sleepy
     ("*yawns* Can we play sleepily?" . sleepy)
     ("I'm not sure I have the energy..." . sleepy)
     ("Maybe just a quiet game?" . sleepy)
-
+    
     ;; content
     ("That sounds pleasant." . content)
     ("*stands up slowly*" . content)
     ("Alright. I'm ready." . content)
-
+    
     ;; lonely
     ("*suddenly energized*" . lonely)
     ("Yes! You want to play with me?" . lonely)
     ("*jumps up hopefully*" . lonely)
-
+    
     ;; playful
     ("QUACKQUACKQUACK! YES!" . playful)
     ("I was WAITING for this!" . playful)
@@ -351,27 +351,27 @@
     ("I love hearing your voice!" . happy)
     ("Tell me more! Tell me everything!" . happy)
     ("*listens intently*" . happy)
-
+    
     ;; curious
     ("*listens with tilted head*" . curious)
     ("What are you saying? Tell me more..." . curious)
     ("Hmm. Interesting." . curious)
-
+    
     ;; sleepy
     ("*eyes slowly closing*" . sleepy)
     ("Your voice is so soothing..." . sleepy)
     ("Mmm... yes... keep talking..." . sleepy)
-
+    
     ;; content
     ("*nods while listening*" . content)
     ("I hear you. That matters." . content)
     ("*soft quack of acknowledgment*" . content)
-
+    
     ;; lonely
     ("*moves closer to listen*" . lonely)
     ("Your voice... I missed it." . lonely)
     ("Please don't stop talking." . lonely)
-
+    
     ;; playful
     ("Oh oh oh! Tell me more!" . playful)
     ("*hops around excitedly while listening*" . playful)
@@ -452,25 +452,25 @@
 ;;; Randomly select a greeting for the current mood
 (define (get-greeting mood)
   (case mood
-    [(happy) (list-ref greetings-happy (random 8))]
-    [(curious) (list-ref greetings-curious (random 8))]
-    [(sleepy) (list-ref greetings-sleepy (random 8))]
-    [(content) (list-ref greetings-content (random 8))]
-    [(lonely) (list-ref greetings-lonely (random 8))]
-    [(playful) (list-ref greetings-playful (random 8))]
-    [else "*quack*"]))
+        [(happy) (list-ref greetings-happy (random 8))]
+        [(curious) (list-ref greetings-curious (random 8))]
+        [(sleepy) (list-ref greetings-sleepy (random 8))]
+        [(content) (list-ref greetings-content (random 8))]
+        [(lonely) (list-ref greetings-lonely (random 8))]
+        [(playful) (list-ref greetings-playful (random 8))]
+        [else "*quack*"]))
 
 ;;; get-farewell : Mood → String
 ;;; Randomly select a farewell for the current mood
 (define (get-farewell mood)
   (case mood
-    [(happy) (list-ref farewells-happy (random 8))]
-    [(curious) (list-ref farewells-curious (random 8))]
-    [(sleepy) (list-ref farewells-sleepy (random 8))]
-    [(content) (list-ref farewells-content (random 8))]
-    [(lonely) (list-ref farewells-lonely (random 8))]
-    [(playful) (list-ref farewells-playful (random 8))]
-    [else "*quack*"]))
+        [(happy) (list-ref farewells-happy (random 8))]
+        [(curious) (list-ref farewells-curious (random 8))]
+        [(sleepy) (list-ref farewells-sleepy (random 8))]
+        [(content) (list-ref farewells-content (random 8))]
+        [(lonely) (list-ref farewells-lonely (random 8))]
+        [(playful) (list-ref farewells-playful (random 8))]
+        [else "*quack*"]))
 
 ;;; get-idle : Void → String
 ;;; Randomly select an idle thought
@@ -481,43 +481,43 @@
                           idle-content
                           idle-lonely
                           idle-playful)))
-    (list-ref all-idle (random (length all-idle)))))
+       (list-ref all-idle (random (length all-idle)))))
 
 ;;; get-pet-response : Mood → String
 ;;; Get a response to being petted
 (define (get-pet-response mood)
   (let ((options (filter (lambda (pair) (eq? (cdr pair) mood))
                          responses-pet)))
-    (if (> (length options) 0)
-        (car (list-ref options (random (length options))))
-        "*appreciative quack*")))
+       (if (> (length options) 0)
+           (car (list-ref options (random (length options))))
+           "*appreciative quack*")))
 
 ;;; get-feed-response : Mood → String
 ;;; Get a response to being fed
 (define (get-feed-response mood)
   (let ((options (filter (lambda (pair) (eq? (cdr pair) mood))
                          responses-feed)))
-    (if (> (length options) 0)
-        (car (list-ref options (random (length options))))
-        "*happy eating sounds*")))
+       (if (> (length options) 0)
+           (car (list-ref options (random (length options))))
+           "*happy eating sounds*")))
 
 ;;; get-play-response : Mood → String
 ;;; Get a response to play invitation
 (define (get-play-response mood)
   (let ((options (filter (lambda (pair) (eq? (cdr pair) mood))
                          responses-play)))
-    (if (> (length options) 0)
-        (car (list-ref options (random (length options))))
-        "*looks at you*")))
+       (if (> (length options) 0)
+           (car (list-ref options (random (length options))))
+           "*looks at you*")))
 
 ;;; get-talk-response : Mood → String
 ;;; Get a response to being talked to
 (define (get-talk-response mood)
   (let ((options (filter (lambda (pair) (eq? (cdr pair) mood))
                          responses-talk)))
-    (if (> (length options) 0)
-        (car (list-ref options (random (length options))))
-        "*listens*")))
+       (if (> (length options) 0)
+           (car (list-ref options (random (length options))))
+           "*listens*")))
 
 ;;; ============================================================
 ;;; Notes
@@ -546,4 +546,3 @@
 ;;;
 ;;; This is the voice that will echo in the window.
 ;;; This is how DUCKIE thinks out loud.
-

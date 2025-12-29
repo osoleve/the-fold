@@ -15,17 +15,17 @@
 ;; Test 3: Test cmd function with valid command
 (display "\n=== Test 3: Invoke version via cmd ===\n")
 (let ([result (cmd 'version)])
-  (display (format "Result: ~a\n" result)))
+     (display (format "Result: ~a\n" result)))
 
 ;; Test 4: Test unknown command with suggestion
 (display "\n=== Test 4: Unknown command (typo) ===\n")
 (let ([result (cmd 'chatt "test")])
-  (display (format "Result: ~a\n" result)))
+     (display (format "Result: ~a\n" result)))
 
 ;; Test 5: Test unknown command without good suggestion
 (display "\n=== Test 5: Unknown command (no suggestion) ===\n")
 (let ([result (cmd 'foobar)])
-  (display (format "Result: ~a\n" result)))
+     (display (format "Result: ~a\n" result)))
 
 ;; Test 6: Direct function call
 (display "\n=== Test 6: Direct version call ===\n")

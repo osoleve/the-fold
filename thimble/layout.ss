@@ -56,7 +56,7 @@
 (define (make-canvas width height)
   (let ([size (* width height)]
         [cells (make-vector (* width height) #\space)])
-    (make-canvas% width height cells)))
+       (make-canvas% width height cells)))
 
 ;;; canvas-width : Canvas → Nat
 ;;; canvas-height : Canvas → Nat
@@ -70,9 +70,9 @@
 (define (canvas-ref c x y)
   (let ([w (canvas-width c)]
         [h (canvas-height c)])
-    (if (or (< x 0) (< y 0) (>= x w) (>= y h))
-        #\space
-        (vector-ref (canvas-cells c) (+ (* y w) x)))))
+       (if (or (< x 0) (< y 0) (>= x w) (>= y h))
+           #\space
+           (vector-ref (canvas-cells c) (+ (* y w) x)))))
 
 ;;; canvas-set : Canvas × Nat × Nat × Char → Canvas
 ;;; Set character at (x, y). Returns new canvas.
@@ -80,12 +80,12 @@
 (define (canvas-set c x y ch)
   (let ([w (canvas-width c)]
         [h (canvas-height c)])
-    (if (or (< x 0) (< y 0) (>= x w) (>= y h))
-        c  ; Out of bounds, return unchanged
-        (let ([cells (vector-copy (canvas-cells c))]
-              [idx (+ (* y w) x)])
-          (vector-set! cells idx ch)
-          (make-canvas% w h cells)))))
+       (if (or (< x 0) (< y 0) (>= x w) (>= y h))
+           c  ; Out of bounds, return unchanged
+           (let ([cells (vector-copy (canvas-cells c))]
+                 [idx (+ (* y w) x)])
+                (vector-set! cells idx ch)
+                (make-canvas% w h cells)))))
 
 ;;; canvas-set! : Canvas × Nat × Nat × Char → void
 ;;; Set character at (x, y). Mutates canvas in-place (imperative).
@@ -93,10 +93,10 @@
 (define (canvas-set! c x y ch)
   (let ([w (canvas-width c)]
         [h (canvas-height c)])
-    (unless (or (< x 0) (< y 0) (>= x w) (>= y h))
-      (let ([cells (canvas-cells c)]
-            [idx (+ (* y w) x)])
-        (vector-set! cells idx ch)))))
+       (unless (or (< x 0) (< y 0) (>= x w) (>= y h))
+               (let ([cells (canvas-cells c)]
+                     [idx (+ (* y w) x)])
+                    (vector-set! cells idx ch)))))
 
 ;;; ============================================================
 ;;; Drawing Primitives
@@ -115,11 +115,11 @@
         [y (point-y pt)]
         [w (canvas-width c)]
         [len (string-length str)])
-    (let loop ([i 0] [canvas c])
-      (if (or (>= i len) (>= (+ x i) w))
-          canvas
-          (loop (+ i 1)
-                (canvas-set canvas (+ x i) y (string-ref str i)))))))
+       (let loop ([i 0] [canvas c])
+            (if (or (>= i len) (>= (+ x i) w))
+                canvas
+                (loop (+ i 1)
+                      (canvas-set canvas (+ x i) y (string-ref str i)))))))
 
 ;;; draw-string-v : Canvas × Point × String → Canvas
 ;;; Draw string vertically, top-to-bottom.
@@ -128,11 +128,11 @@
         [y (point-y pt)]
         [h (canvas-height c)]
         [len (string-length str)])
-    (let loop ([i 0] [canvas c])
-      (if (or (>= i len) (>= (+ y i) h))
-          canvas
-          (loop (+ i 1)
-                (canvas-set canvas x (+ y i) (string-ref str i)))))))
+       (let loop ([i 0] [canvas c])
+            (if (or (>= i len) (>= (+ y i) h))
+                canvas
+                (loop (+ i 1)
+                      (canvas-set canvas x (+ y i) (string-ref str i)))))))
 
 ;;; draw-rect : Canvas × Rect × Char → Canvas
 ;;; Draw rectangle outline using the given character.
@@ -143,30 +143,30 @@
          [h (rect-height r)]
          [right (+ ox w -1)]
          [bottom (+ oy h -1)])
-    (if (or (<= w 0) (<= h 0))
-        c  ; Empty rect, no-op
-        (let* ([canvas c]
-               ;; Draw top edge
-               [canvas (let loop ([x ox] [canvas canvas])
-                         (if (>= x (+ ox w))
-                             canvas
-                             (loop (+ x 1) (canvas-set canvas x oy ch))))]
-               ;; Draw bottom edge
-               [canvas (let loop ([x ox] [canvas canvas])
-                         (if (>= x (+ ox w))
-                             canvas
-                             (loop (+ x 1) (canvas-set canvas x bottom ch))))]
-               ;; Draw left edge
-               [canvas (let loop ([y oy] [canvas canvas])
-                         (if (>= y (+ oy h))
-                             canvas
-                             (loop (+ y 1) (canvas-set canvas ox y ch))))]
-               ;; Draw right edge
-               [canvas (let loop ([y oy] [canvas canvas])
-                         (if (>= y (+ oy h))
-                             canvas
-                             (loop (+ y 1) (canvas-set canvas right y ch))))])
-          canvas))))
+        (if (or (<= w 0) (<= h 0))
+            c  ; Empty rect, no-op
+            (let* ([canvas c]
+                   ;; Draw top edge
+                   [canvas (let loop ([x ox] [canvas canvas])
+                                (if (>= x (+ ox w))
+                                    canvas
+                                    (loop (+ x 1) (canvas-set canvas x oy ch))))]
+                   ;; Draw bottom edge
+                   [canvas (let loop ([x ox] [canvas canvas])
+                                (if (>= x (+ ox w))
+                                    canvas
+                                    (loop (+ x 1) (canvas-set canvas x bottom ch))))]
+                   ;; Draw left edge
+                   [canvas (let loop ([y oy] [canvas canvas])
+                                (if (>= y (+ oy h))
+                                    canvas
+                                    (loop (+ y 1) (canvas-set canvas ox y ch))))]
+                   ;; Draw right edge
+                   [canvas (let loop ([y oy] [canvas canvas])
+                                (if (>= y (+ oy h))
+                                    canvas
+                                    (loop (+ y 1) (canvas-set canvas right y ch))))])
+                  canvas))))
 
 ;;; fill-rect : Canvas × Rect × Char → Canvas
 ;;; Fill rectangle interior with the given character.
@@ -175,15 +175,15 @@
         [oy (point-y (rect-origin r))]
         [w (rect-width r)]
         [h (rect-height r)])
-    (if (or (<= w 0) (<= h 0))
-        c  ; Empty rect, no-op
-        (let loop-y ([y oy] [canvas c])
-          (if (>= y (+ oy h))
-              canvas
-              (let loop-x ([x ox] [canvas canvas])
-                (if (>= x (+ ox w))
-                    (loop-y (+ y 1) canvas)
-                    (loop-x (+ x 1) (canvas-set canvas x y ch)))))))))
+       (if (or (<= w 0) (<= h 0))
+           c  ; Empty rect, no-op
+           (let loop-y ([y oy] [canvas c])
+                (if (>= y (+ oy h))
+                    canvas
+                    (let loop-x ([x ox] [canvas canvas])
+                         (if (>= x (+ ox w))
+                             (loop-y (+ y 1) canvas)
+                             (loop-x (+ x 1) (canvas-set canvas x y ch)))))))))
 
 ;;; ============================================================
 ;;; Composition
@@ -200,15 +200,15 @@
         [oy (point-y pt)]
         [sw (canvas-width src)]
         [sh (canvas-height src)])
-    (let loop-y ([y 0] [canvas dest])
-      (if (>= y sh)
-          canvas
-          (let loop-x ([x 0] [canvas canvas])
-            (if (>= x sw)
-                (loop-y (+ y 1) canvas)
-                (let ([ch (canvas-ref src x y)])
-                  (loop-x (+ x 1)
-                          (canvas-set canvas (+ ox x) (+ oy y) ch)))))))))
+       (let loop-y ([y 0] [canvas dest])
+            (if (>= y sh)
+                canvas
+                (let loop-x ([x 0] [canvas canvas])
+                     (if (>= x sw)
+                         (loop-y (+ y 1) canvas)
+                         (let ([ch (canvas-ref src x y)])
+                              (loop-x (+ x 1)
+                                      (canvas-set canvas (+ ox x) (+ oy y) ch)))))))))
 
 ;;; composite-with-transparency : Canvas × Canvas × Point × Char → Canvas
 ;;; Overlay source onto destination, skipping cells that match transparent-char.
@@ -224,19 +224,19 @@
         [oy (point-y pt)]
         [sw (canvas-width src)]
         [sh (canvas-height src)])
-    (let loop-y ([y 0] [canvas dest])
-      (if (>= y sh)
-          canvas
-          (let loop-x ([x 0] [canvas canvas])
-            (if (>= x sw)
-                (loop-y (+ y 1) canvas)
-                (let ([ch (canvas-ref src x y)])
-                  (if (char=? ch transparent-char)
-                      ;; Skip transparent cells
-                      (loop-x (+ x 1) canvas)
-                      ;; Draw opaque cells
-                      (loop-x (+ x 1)
-                              (canvas-set canvas (+ ox x) (+ oy y) ch))))))))))
+       (let loop-y ([y 0] [canvas dest])
+            (if (>= y sh)
+                canvas
+                (let loop-x ([x 0] [canvas canvas])
+                     (if (>= x sw)
+                         (loop-y (+ y 1) canvas)
+                         (let ([ch (canvas-ref src x y)])
+                              (if (char=? ch transparent-char)
+                                  ;; Skip transparent cells
+                                  (loop-x (+ x 1) canvas)
+                                  ;; Draw opaque cells
+                                  (loop-x (+ x 1)
+                                          (canvas-set canvas (+ ox x) (+ oy y) ch))))))))))
 
 ;;; blit : Canvas × Canvas × Rect × Point → Canvas
 ;;; Copy region from source to dest at point.
@@ -247,15 +247,15 @@
         [rh (rect-height region)]
         [dx (point-x pt)]
         [dy (point-y pt)])
-    (let loop-y ([y 0] [canvas dest])
-      (if (>= y rh)
-          canvas
-          (let loop-x ([x 0] [canvas canvas])
-            (if (>= x rw)
-                (loop-y (+ y 1) canvas)
-                (let ([ch (canvas-ref src (+ rx x) (+ ry y))])
-                  (loop-x (+ x 1)
-                          (canvas-set canvas (+ dx x) (+ dy y) ch)))))))))
+       (let loop-y ([y 0] [canvas dest])
+            (if (>= y rh)
+                canvas
+                (let loop-x ([x 0] [canvas canvas])
+                     (if (>= x rw)
+                         (loop-y (+ y 1) canvas)
+                         (let ([ch (canvas-ref src (+ rx x) (+ ry y))])
+                              (loop-x (+ x 1)
+                                      (canvas-set canvas (+ dx x) (+ dy y) ch)))))))))
 
 ;;; ============================================================
 ;;; Rendering
@@ -267,22 +267,22 @@
 (define (canvas->string c)
   (let ([w (canvas-width c)]
         [h (canvas-height c)])
-    (let loop ([y 0] [lines '()])
-      (if (>= y h)
-          (if (null? lines)
-              ""
-              (fold-left (lambda (acc line)
-                          (if (string=? acc "")
-                              line
-                              (string-append acc "\n" line)))
-                        ""
-                        (reverse lines)))
-          (let ([line (let loop-x ([x 0] [chars '()])
-                        (if (>= x w)
-                            (list->string (reverse chars))
-                            (loop-x (+ x 1)
-                                   (cons (canvas-ref c x y) chars))))])
-            (loop (+ y 1) (cons line lines)))))))
+       (let loop ([y 0] [lines '()])
+            (if (>= y h)
+                (if (null? lines)
+                    ""
+                    (fold-left (lambda (acc line)
+                                       (if (string=? acc "")
+                                           line
+                                           (string-append acc "\n" line)))
+                               ""
+                               (reverse lines)))
+                (let ([line (let loop-x ([x 0] [chars '()])
+                                 (if (>= x w)
+                                     (list->string (reverse chars))
+                                     (loop-x (+ x 1)
+                                             (cons (canvas-ref c x y) chars))))])
+                     (loop (+ y 1) (cons line lines)))))))
 
 ;;; ============================================================
 ;;; String Utilities
@@ -293,10 +293,10 @@
 ;;; If string is already longer, return as-is.
 (define (string-pad str target-len pad-char)
   (let ([current-len (string-length str)])
-    (if (>= current-len target-len)
-        str
-        (string-append str
-                      (make-string (- target-len current-len) pad-char)))))
+       (if (>= current-len target-len)
+           str
+           (string-append str
+                          (make-string (- target-len current-len) pad-char)))))
 
 ;;; ============================================================
 ;;; Box Drawing (Optional Enhancement)
@@ -322,50 +322,50 @@
 ;;; get-box-style : Symbol → Alist | #f
 (define (get-box-style style)
   (case style
-    [(ascii) box-style-ascii]
-    [(light) box-style-light]
-    [(heavy) box-style-heavy]
-    [(double) box-style-double]
-    [else #f]))
+        [(ascii) box-style-ascii]
+        [(light) box-style-light]
+        [(heavy) box-style-heavy]
+        [(double) box-style-double]
+        [else #f]))
 
 ;;; draw-box : Canvas × Rect × Symbol → Canvas
 ;;; Draw rectangle using Unicode box-drawing characters.
 (define (draw-box c r style-name)
   (let ([style (get-box-style style-name)])
-    (if (not style)
-        (draw-rect c r #\#)  ; Fallback
-        (let* ([ox (point-x (rect-origin r))]
-               [oy (point-y (rect-origin r))]
-               [w (rect-width r)]
-               [h (rect-height r)]
-               [right (+ ox w -1)]
-               [bottom (+ oy h -1)]
-               [tl (cdr (assq 'tl style))]
-               [tr (cdr (assq 'tr style))]
-               [bl (cdr (assq 'bl style))]
-               [br (cdr (assq 'br style))]
-               [hz (cdr (assq 'h style))]
-               [vt (cdr (assq 'v style))])
-          (if (or (<= w 1) (<= h 1))
-              c  ; Too small for corners
-              (let* ([canvas c]
-                     ;; Draw corners
-                     [canvas (canvas-set canvas ox oy tl)]
-                     [canvas (canvas-set canvas right oy tr)]
-                     [canvas (canvas-set canvas ox bottom bl)]
-                     [canvas (canvas-set canvas right bottom br)]
-                     ;; Draw horizontal edges
-                     [canvas (let loop ([x (+ ox 1)] [canvas canvas])
-                               (if (>= x right)
-                                   canvas
-                                   (loop (+ x 1)
-                                        (canvas-set (canvas-set canvas x oy hz)
-                                                   x bottom hz))))]
-                     ;; Draw vertical edges
-                     [canvas (let loop ([y (+ oy 1)] [canvas canvas])
-                               (if (>= y bottom)
-                                   canvas
-                                   (loop (+ y 1)
-                                        (canvas-set (canvas-set canvas ox y vt)
-                                                   right y vt))))])
-                canvas))))))
+       (if (not style)
+           (draw-rect c r #\#)  ; Fallback
+           (let* ([ox (point-x (rect-origin r))]
+                  [oy (point-y (rect-origin r))]
+                  [w (rect-width r)]
+                  [h (rect-height r)]
+                  [right (+ ox w -1)]
+                  [bottom (+ oy h -1)]
+                  [tl (cdr (assq 'tl style))]
+                  [tr (cdr (assq 'tr style))]
+                  [bl (cdr (assq 'bl style))]
+                  [br (cdr (assq 'br style))]
+                  [hz (cdr (assq 'h style))]
+                  [vt (cdr (assq 'v style))])
+                 (if (or (<= w 1) (<= h 1))
+                     c  ; Too small for corners
+                     (let* ([canvas c]
+                            ;; Draw corners
+                            [canvas (canvas-set canvas ox oy tl)]
+                            [canvas (canvas-set canvas right oy tr)]
+                            [canvas (canvas-set canvas ox bottom bl)]
+                            [canvas (canvas-set canvas right bottom br)]
+                            ;; Draw horizontal edges
+                            [canvas (let loop ([x (+ ox 1)] [canvas canvas])
+                                         (if (>= x right)
+                                             canvas
+                                             (loop (+ x 1)
+                                                   (canvas-set (canvas-set canvas x oy hz)
+                                                               x bottom hz))))]
+                            ;; Draw vertical edges
+                            [canvas (let loop ([y (+ oy 1)] [canvas canvas])
+                                         (if (>= y bottom)
+                                             canvas
+                                             (loop (+ y 1)
+                                                   (canvas-set (canvas-set canvas ox y vt)
+                                                               right y vt))))])
+                           canvas))))))

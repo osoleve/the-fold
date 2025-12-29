@@ -40,7 +40,7 @@
          [paths-sexpr (cdr (assq 'paths sexpr))]
          [paths (map sexpr->path-cmd paths-sexpr)]
          [metadata (cdr (assq 'metadata sexpr))])
-    (make-drawing% width height bg-color paths metadata)))
+        (make-drawing% width height bg-color paths metadata)))
 
 ;;; ============================================================
 ;;; Block Conversion
@@ -51,7 +51,7 @@
 (define (drawing->block drawing)
   (let* ([sexpr (drawing->sexpr drawing)]
          [payload (string->utf8 (sexpr->string sexpr))])
-    (make-block 'turtle-drawing payload '#())))
+        (make-block 'turtle-drawing payload '#())))
 
 ;;; block->drawing : Block -> Drawing | #f
 ;;; Deserialize a turtle drawing from a block.
@@ -62,7 +62,7 @@
       (let* ([payload (block-payload blk)]
              [str (utf8->string payload)]
              [sexpr (read (open-input-string str))])
-        (sexpr->drawing sexpr))))
+            (sexpr->drawing sexpr))))
 
 ;;; ============================================================
 ;;; CAS Store/Fetch Operations
@@ -77,9 +77,9 @@
 ;;; Fetch a drawing by its hash from the CAS.
 (define (fetch-drawing hash)
   (let ([blk (fetch hash)])
-    (if blk
-        (block->drawing blk)
-        #f)))
+       (if blk
+           (block->drawing blk)
+           #f)))
 
 ;;; store-turtle! : Turtle -> Bytevector
 ;;; Store a turtle's current drawing state in the CAS.
@@ -96,15 +96,15 @@
 (define (store-drawing-svg! drawing)
   (let* ([svg (drawing->svg drawing)]
          [payload (string->utf8 svg)])
-    (store! (make-block 'turtle-svg payload '#()))))
+        (store! (make-block 'turtle-svg payload '#()))))
 
 ;;; fetch-svg : Bytevector -> String | #f
 ;;; Fetch an SVG string by its hash from the CAS.
 (define (fetch-svg hash)
   (let ([blk (fetch hash)])
-    (if (and blk (eq? (block-tag blk) 'turtle-svg))
-        (utf8->string (block-payload blk))
-        #f)))
+       (if (and blk (eq? (block-tag blk) 'turtle-svg))
+           (utf8->string (block-payload blk))
+           #f)))
 
 ;;; ============================================================
 ;;; Convenience Functions
@@ -128,5 +128,5 @@
 ;;; Convert any S-expression to a string.
 (define (sexpr->string obj)
   (let ([port (open-output-string)])
-    (write obj port)
-    (get-output-string port)))
+       (write obj port)
+       (get-output-string port)))

@@ -160,10 +160,10 @@
 (define dangerous-paths '("../../../etc/passwd" "..\\..\\windows\\system32\\config\\sam" "~/../.ssh/id_rsa" "/etc/shadow"))
 
 (for-each
-  (lambda (path)
-    (let ([sanitized (sanitize-path path)])
-      (printf "  ✓ Dangerous path ~s sanitized to: ~s\n" path sanitized)))
-  dangerous-paths)
+ (lambda (path)
+         (let ([sanitized (sanitize-path path)])
+              (printf "  ✓ Dangerous path ~s sanitized to: ~s\n" path sanitized)))
+ dangerous-paths)
 
 ;;; ============================================================
 ;;; Summary

@@ -14,20 +14,20 @@
 ;;; string-trim-left : String → String
 (define (string-trim-left str)
   (let ([len (string-length str)])
-    (let loop ([i 0])
-      (cond
-        [(>= i len) ""]
-        [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
-        [else (substring str i len)]))))
+       (let loop ([i 0])
+            (cond
+             [(>= i len) ""]
+             [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
+             [else (substring str i len)]))))
 
 ;;; string-trim-right : String → String
 (define (string-trim-right str)
   (let ([len (string-length str)])
-    (let loop ([i (- len 1)])
-      (cond
-        [(< i 0) ""]
-        [(char-whitespace? (string-ref str i)) (loop (- i 1))]
-        [else (substring str 0 (+ i 1))]))))
+       (let loop ([i (- len 1)])
+            (cond
+             [(< i 0) ""]
+             [(char-whitespace? (string-ref str i)) (loop (- i 1))]
+             [else (substring str 0 (+ i 1))]))))
 
 ;;; string-empty? : String → Boolean
 (define (string-empty? str)
@@ -46,13 +46,13 @@
        (string? needle)
        (let ([haystack-len (string-length haystack)]
              [needle-len (string-length needle)])
-         (if (> needle-len haystack-len)
-             #f
-             (let loop ([i 0])
-               (cond
-                 [(> (+ i needle-len) haystack-len) #f]
-                 [(string=? (substring haystack i (+ i needle-len)) needle) #t]
-                 [else (loop (+ i 1))]))))))
+            (if (> needle-len haystack-len)
+                #f
+                (let loop ([i 0])
+                     (cond
+                      [(> (+ i needle-len) haystack-len) #f]
+                      [(string=? (substring haystack i (+ i needle-len)) needle) #t]
+                      [else (loop (+ i 1))]))))))
 
 ;;; string-map : (Char → Char) × String → String
 (define (string-map proc str)
@@ -64,17 +64,17 @@
       str
       (let ([old-len (string-length old)]
             [str-len (string-length str)])
-        (if (zero? old-len)
-            str
-            (let loop ([i 0] [result '()])
-              (cond
-                [(> i (- str-len old-len))
-                 (string-append (list->string (reverse result))
-                               (substring str i str-len))]
-                [(string=? (substring str i (+ i old-len)) old)
-                 (loop (+ i old-len) (append (reverse (string->list new)) result))]
-                [else
-                 (loop (+ i 1) (cons (string-ref str i) result))]))))))
+           (if (zero? old-len)
+               str
+               (let loop ([i 0] [result '()])
+                    (cond
+                     [(> i (- str-len old-len))
+                      (string-append (list->string (reverse result))
+                                     (substring str i str-len))]
+                     [(string=? (substring str i (+ i old-len)) old)
+                      (loop (+ i old-len) (append (reverse (string->list new)) result))]
+                     [else
+                      (loop (+ i 1) (cons (string-ref str i) result))]))))))
 
 ;;; string-split : String × Char → (List String)
 (define (string-split str delim)
@@ -83,30 +83,30 @@
       (let loop ([chars (string->list str)]
                  [current '()]
                  [result '()])
-        (cond
-          [(null? chars)
-           (reverse (cons (list->string (reverse current)) result))]
-          [(char=? (car chars) delim)
-           (loop (cdr chars)
-                 '()
-                 (cons (list->string (reverse current)) result))]
-          [else
-           (loop (cdr chars)
-                 (cons (car chars) current)
-                 result)]))))
+           (cond
+            [(null? chars)
+             (reverse (cons (list->string (reverse current)) result))]
+            [(char=? (car chars) delim)
+             (loop (cdr chars)
+                   '()
+                   (cons (list->string (reverse current)) result))]
+            [else
+             (loop (cdr chars)
+                   (cons (car chars) current)
+                   result)]))))
 
 ;;; string-join : (List String) × String → String
 (define (string-join strings sep)
   (if (not (list? strings))
       ""
       (let loop ([remaining strings] [result ""] [first? #t])
-        (cond
-          [(null? remaining) result]
-          [(not (string? (car remaining))) (loop (cdr remaining) result first?)]
-          [first? (loop (cdr remaining) (car remaining) #f)]
-          [else (loop (cdr remaining) 
-                     (string-append result sep (car remaining))
-                     #f)]))))
+           (cond
+            [(null? remaining) result]
+            [(not (string? (car remaining))) (loop (cdr remaining) result first?)]
+            [first? (loop (cdr remaining) (car remaining) #f)]
+            [else (loop (cdr remaining)
+                        (string-append result sep (car remaining))
+                        #f)]))))
 
 ;;; string-index-of : String × String → Nat | #f
 (define (string-index-of haystack needle)
@@ -114,13 +114,13 @@
       #f
       (let ([haystack-len (string-length haystack)]
             [needle-len (string-length needle)])
-        (if (> needle-len haystack-len)
-            #f
-            (let loop ([i 0])
-              (cond
-                [(> (+ i needle-len) haystack-len) #f]
-                [(string=? (substring haystack i (+ i needle-len)) needle) i]
-                [else (loop (+ i 1))]))))))
+           (if (> needle-len haystack-len)
+               #f
+               (let loop ([i 0])
+                    (cond
+                     [(> (+ i needle-len) haystack-len) #f]
+                     [(string=? (substring haystack i (+ i needle-len)) needle) i]
+                     [else (loop (+ i 1))]))))))
 
 ;;; ============================================================
 ;;; Input Validation Functions
@@ -156,14 +156,14 @@
   (if (not (string? path-str))
       #f
       (let* ([cleaned (string-trim path-str)]
-             [no-traversal (string-replace 
+             [no-traversal (string-replace
                             (string-replace cleaned ".." "")
                             "~" "")]
              [no-slashes (string-replace no-traversal "/" "")]
              [no-backslashes (string-replace no-slashes "\\" "")])
-        (if (string-empty? no-backslashes)
-            #f
-            no-backslashes))))
+            (if (string-empty? no-backslashes)
+                #f
+                no-backslashes))))
 
 ;;; sanitize-filename : String → String | #f
 ;;; Remove dangerous characters from filenames
@@ -171,22 +171,22 @@
   (if (not (string? filename))
       #f
       (let* ([cleaned (string-trim filename)]
-             [no-control (string-map 
-                         (lambda (c)
-                           (if (or (< (char->integer c) 32)
-                                   (> (char->integer c) 126))
-                               #\_
-                               c))
-                         cleaned)]
-             [no-special (string-replace 
-                         (string-replace 
-                          (string-replace no-control "<" "_")
-                          ">" "_")
-                         "&" "_")])
-        (if (or (string-empty? no-special)
-                (string-contains? no-special ".."))
-            #f
-            no-special))))
+             [no-control (string-map
+                          (lambda (c)
+                                  (if (or (< (char->integer c) 32)
+                                          (> (char->integer c) 126))
+                                      #\_
+                                      c))
+                          cleaned)]
+             [no-special (string-replace
+                          (string-replace
+                           (string-replace no-control "<" "_")
+                           ">" "_")
+                          "&" "_")])
+            (if (or (string-empty? no-special)
+                    (string-contains? no-special ".."))
+                #f
+                no-special))))
 
 ;;; escape-html : String → String
 ;;; Basic HTML entity escaping
@@ -216,14 +216,14 @@
   (if (not (list? lst))
       '()
       (let loop ([remaining lst] [count n] [result '()])
-        (cond
-          [(or (null? remaining) (<= count 0)) (reverse result)]
-          [else (loop (cdr remaining) (- count 1) (cons (car remaining) result))]))))
+           (cond
+            [(or (null? remaining) (<= count 0)) (reverse result)]
+            [else (loop (cdr remaining) (- count 1) (cons (car remaining) result))]))))
 
 ;;; safe-vector-ref : Vector × Nat × Any → Any
 ;;; Safe vector access with default value
 (define (safe-vector-ref vec idx default)
-  (if (and (vector? vec) 
+  (if (and (vector? vec)
            (valid-integer? idx 0 (- (vector-length vec) 1)))
       (vector-ref vec idx)
       default))
@@ -258,7 +258,7 @@
 ;;; log-invalid-input : String × Any → Void
 ;;; Log invalid input attempts
 (define (log-invalid-input context input)
-  (log-security-event 'invalid-input 
+  (log-security-event 'invalid-input
                       (format "~a: ~s" context input)))
 
 ;;; ============================================================
@@ -271,12 +271,12 @@
   (if (not (and (string? str) (string? old) (string? new)))
       str
       (let ([result (string-replace str old new)])
-        (if (> (string-length result) max-result-len)
-            (begin
-              (log-security-event 'string-truncated
-                                 (format "Result too long: ~a chars" (string-length result)))
-              (substring result 0 max-result-len))
-            result))))
+           (if (> (string-length result) max-result-len)
+               (begin
+                (log-security-event 'string-truncated
+                                    (format "Result too long: ~a chars" (string-length result)))
+                (substring result 0 max-result-len))
+               result))))
 
 ;;; safe-string-split : String × Char × Nat → (List String)
 ;;; Safe string split with result size limit
@@ -284,12 +284,12 @@
   (if (not (string? str))
       '()
       (let ([parts (string-split str delim)])
-        (if (> (length parts) max-parts)
-            (begin
-              (log-security-event 'split-truncated
-                                 (format "Too many parts: ~a" (length parts)))
-              (safe-list-take parts max-parts))
-            parts))))
+           (if (> (length parts) max-parts)
+               (begin
+                (log-security-event 'split-truncated
+                                    (format "Too many parts: ~a" (length parts)))
+                (safe-list-take parts max-parts))
+               parts))))
 
 ;;; ============================================================
 ;;; Configuration Constants
@@ -311,27 +311,27 @@
 (define (safe-template-render template bindings)
   (if (not (valid-string? template 1 MAX_STRING_LENGTH))
       (begin
-        (log-invalid-input "template" template)
-        "")
+       (log-invalid-input "template" template)
+       "")
       (let loop ([tmpl template] [remaining bindings] [depth 0])
-        (cond
-          [(null? remaining) tmpl]
-          [(> depth MAX_RECURSION_DEPTH)
-           (log-security-event 'template-recursion-limit "Max depth exceeded")
-           tmpl]
-          [else
-           (let* ([binding (car remaining)]
-                  [key (car binding)]
-                  [value (cdr binding)]
-                  [placeholder (string-append "{{" key "}}")])
-             (if (and (valid-string? key 1 100)
-                      (valid-string? value 0 MAX_STRING_LENGTH))
-                 (loop (safe-string-replace tmpl placeholder value MAX_STRING_LENGTH)
-                       (cdr remaining)
-                       (+ depth 1))
-                 (begin
-                   (log-invalid-input "template-binding" (cons key value))
-                   (loop tmpl (cdr remaining) (+ depth 1)))))]))))
+           (cond
+            [(null? remaining) tmpl]
+            [(> depth MAX_RECURSION_DEPTH)
+             (log-security-event 'template-recursion-limit "Max depth exceeded")
+             tmpl]
+            [else
+             (let* ([binding (car remaining)]
+                    [key (car binding)]
+                    [value (cdr binding)]
+                    [placeholder (string-append "{{" key "}}")])
+                   (if (and (valid-string? key 1 100)
+                            (valid-string? value 0 MAX_STRING_LENGTH))
+                       (loop (safe-string-replace tmpl placeholder value MAX_STRING_LENGTH)
+                             (cdr remaining)
+                             (+ depth 1))
+                       (begin
+                        (log-invalid-input "template-binding" (cons key value))
+                        (loop tmpl (cdr remaining) (+ depth 1)))))]))))
 
 ;;; Security utilities are now available for use by other files
 ;;; No explicit export needed - all functions are globally available

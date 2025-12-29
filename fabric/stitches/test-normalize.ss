@@ -10,10 +10,10 @@
   (if (equal? expected actual)
       (display "✓")
       (begin
-        (display "✗\n    expected: ")
-        (display expected)
-        (display "\n    got: ")
-        (display actual)))
+       (display "✗\n    expected: ")
+       (display expected)
+       (display "\n    got: ")
+       (display actual)))
   (newline))
 
 ;;; Test 1: Identity function
@@ -82,7 +82,7 @@
 (display "\nTest 8: Complex expression\n")
 (define complex-expr
   '(let ((compose (fn (f) (fn (g) (fn (x) (f (g x)))))))
-     (compose inc inc)))
+    (compose inc inc)))
 (define norm-complex (normalize complex-expr))
 (display "  normalized: ") (display norm-complex) (newline)
 

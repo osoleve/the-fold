@@ -13,14 +13,14 @@
 (define (test name expected actual)
   (if (equal? expected actual)
       (begin
-        (set! tests-passed (+ tests-passed 1))
-        (display "  ✓ ") (display name) (newline))
+       (set! tests-passed (+ tests-passed 1))
+       (display "  ✓ ") (display name) (newline))
       (begin
-        (set! tests-failed (+ tests-failed 1))
-        (display "  ✗ ") (display name)
-        (display " — expected ") (write expected)
-        (display ", got ") (write actual)
-        (newline))))
+       (set! tests-failed (+ tests-failed 1))
+       (display "  ✗ ") (display name)
+       (display " — expected ") (write expected)
+       (display ", got ") (write actual)
+       (newline))))
 
 ;;; ============================================================
 ;;; Dependency Declaration Tests
@@ -44,10 +44,10 @@
 
 ;; eval depends on prelude, block, prim
 (let ([deps (all-deps 'eval)])
-  (test "all-deps eval includes prelude"
-        #t (if (member 'prelude deps) #t #f))
-  (test "all-deps eval includes block"
-        #t (if (member 'block deps) #t #f)))
+     (test "all-deps eval includes prelude"
+           #t (if (member 'prelude deps) #t #f))
+     (test "all-deps eval includes block"
+           #t (if (member 'block deps) #t #f)))
 
 ;;; ============================================================
 ;;; Module Loading
@@ -80,10 +80,10 @@
 (display "\nLoad Times:\n")
 
 (let ([time (module-load-time 'prelude)])
-  (test "prelude has load time" #t (and time (>= time 0))))
+     (test "prelude has load time" #t (and time (>= time 0))))
 
 (let ([time (module-load-time 'compile)])
-  (test "compile has load time" #t (and time (> time 0))))
+     (test "compile has load time" #t (and time (> time 0))))
 
 ;;; ============================================================
 ;;; Summary

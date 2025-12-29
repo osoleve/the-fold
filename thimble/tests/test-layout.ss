@@ -150,7 +150,7 @@
                      [c (draw-string c (point 0 0) "SRC")]
                      [c (draw-string c (point 0 1) "BOX")]
                      [c (draw-string c (point 0 2) "!!!")])
-                c))
+                    c))
 (define c11 (composite c-dest c-src (point 5 2)))
 (display "Canvas:\n")
 (display (canvas->string c11))
@@ -194,7 +194,7 @@
                    [c (draw-string c (point 0 1) "Line 2")]
                    [c (draw-string c (point 0 2) "Line 3")]
                    [c (draw-string c (point 0 3) "Line 4")])
-              c))
+                  c))
 (define str13 (canvas->string c13))
 (display "Output:\n")
 (display str13)
@@ -208,11 +208,11 @@
 (define (string-contains? str pattern)
   (let ([str-len (string-length str)]
         [pat-len (string-length pattern)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i pat-len) str-len) #f]
-        [(string=? (substring str i (+ i pat-len)) pattern) #t]
-        [else (loop (+ i 1))]))))
+       (let loop ([i 0])
+            (cond
+             [(> (+ i pat-len) str-len) #f]
+             [(string=? (substring str i (+ i pat-len)) pattern) #t]
+             [else (loop (+ i 1))]))))
 
 ;;; ============================================================
 ;;; Test 13: DUCKIE Example from Spec
@@ -227,7 +227,7 @@
          [c (draw-string c (point 2 5) " (o>")]
          [c (draw-string c (point 2 6) " (()")]
          [c (draw-string c (point 2 7) "  ^^")])
-    c))
+        c))
 (display (canvas->string c-duckie))
 (newline)
 (display "  ✓ DUCKIE appears in the window!\n")
@@ -240,29 +240,29 @@
 
 (display "  ASCII style:\n")
 (define c-box-ascii (draw-box (make-canvas 12 5)
-                               (make-rect (point 1 1) 10 3)
-                               'ascii))
+                              (make-rect (point 1 1) 10 3)
+                              'ascii))
 (display (canvas->string c-box-ascii))
 (newline)
 
 (display "  Light style:\n")
 (define c-box-light (draw-box (make-canvas 12 5)
-                               (make-rect (point 1 1) 10 3)
-                               'light))
+                              (make-rect (point 1 1) 10 3)
+                              'light))
 (display (canvas->string c-box-light))
 (newline)
 
 (display "  Heavy style:\n")
 (define c-box-heavy (draw-box (make-canvas 12 5)
-                               (make-rect (point 1 1) 10 3)
-                               'heavy))
+                              (make-rect (point 1 1) 10 3)
+                              'heavy))
 (display (canvas->string c-box-heavy))
 (newline)
 
 (display "  Double style:\n")
 (define c-box-double (draw-box (make-canvas 12 5)
-                                (make-rect (point 1 1) 10 3)
-                                'double))
+                               (make-rect (point 1 1) 10 3)
+                               'double))
 (display (canvas->string c-box-double))
 (newline)
 
@@ -290,7 +290,7 @@
          [c (draw-string c (point 18 6) "  ^^")]
          ;; Footer
          [c (draw-string c (point 8 11) " Press any key ")])
-    c))
+        c))
 (display (canvas->string c-complex))
 (newline)
 (display "  ✓ Complex composition works!\n")

@@ -38,57 +38,57 @@
 
 (define-syntax def-component
   (lambda (stx)
-    (syntax-case stx ()
-      [(_ name ((field default) ...))
-       (with-syntax
-         ([make-name
-           (datum->syntax #'name
-             (string->symbol
-               (string-append "make-" (symbol->string (syntax->datum #'name)) "-component")))]
-          [name?
-           (datum->syntax #'name
-             (string->symbol
-               (string-append (symbol->string (syntax->datum #'name)) "-component?")))]
-          [(accessor ...)
-           (map (lambda (f)
-                  (datum->syntax #'name
-                    (string->symbol
-                      (string-append (symbol->string (syntax->datum #'name)) "-"
-                                    (symbol->string (syntax->datum f))))))
-                (syntax->list #'(field ...)))]
-          [(setter ...)
-           (map (lambda (f)
-                  (datum->syntax #'name
-                    (string->symbol
-                      (string-append (symbol->string (syntax->datum #'name)) "-set-"
-                                    (symbol->string (syntax->datum f))))))
-                (syntax->list #'(field ...)))]
-          [type-sym (syntax->datum #'name)])
-         #'(begin
-             ;; Predicate: name-component?
-             (define (name? comp)
-               (and (component? comp)
-                    (eq? (component-type comp) 'type-sym)))
-
-             ;; Constructor: make-name-component with case-lambda for defaults
-             (define make-name
-               (case-lambda
-                 [() (make-name default ...)]
-                 [(field ...)
-                  `((type . type-sym)
-                    (field . ,field) ...)]))
-
-             ;; Accessors: name-field
-             (define (accessor comp)
-               (alist-ref comp 'field default)) ...
-
-             ;; Setters: name-set-field (functional)
-             (define (setter comp val)
-               (alist-set comp 'field val)) ...))]
-
-      ;; Shorthand without defaults (all #f)
-      [(_ name (field ...))
-       #'(def-component name ((field #f) ...))])))
+          (syntax-case stx ()
+                       [(_ name ((field default) ...))
+                        (with-syntax
+                         ([make-name
+                           (datum->syntax #'name
+                                          (string->symbol
+                                           (string-append "make-" (symbol->string (syntax->datum #'name)) "-component")))]
+                          [name?
+                           (datum->syntax #'name
+                                          (string->symbol
+                                           (string-append (symbol->string (syntax->datum #'name)) "-component?")))]
+                          [(accessor ...)
+                           (map (lambda (f)
+                                        (datum->syntax #'name
+                                                       (string->symbol
+                                                        (string-append (symbol->string (syntax->datum #'name)) "-"
+                                                                       (symbol->string (syntax->datum f))))))
+                                (syntax->list #'(field ...)))]
+                          [(setter ...)
+                           (map (lambda (f)
+                                        (datum->syntax #'name
+                                                       (string->symbol
+                                                        (string-append (symbol->string (syntax->datum #'name)) "-set-"
+                                                                       (symbol->string (syntax->datum f))))))
+                                (syntax->list #'(field ...)))]
+                          [type-sym (syntax->datum #'name)])
+                         #'(begin
+                            ;; Predicate: name-component?
+                            (define (name? comp)
+                              (and (component? comp)
+                                   (eq? (component-type comp) 'type-sym)))
+                            
+                            ;; Constructor: make-name-component with case-lambda for defaults
+                            (define make-name
+                              (case-lambda
+                               [() (make-name default ...)]
+                               [(field ...)
+                                `((type . type-sym)
+                                  (field . ,field) ...)]))
+                            
+                            ;; Accessors: name-field
+                            (define (accessor comp)
+                              (alist-ref comp 'field default)) ...
+                            
+                            ;; Setters: name-set-field (functional)
+                            (define (setter comp val)
+                              (alist-set comp 'field val)) ...))]
+                       
+                       ;; Shorthand without defaults (all #f)
+                       [(_ name (field ...))
+                        #'(def-component name ((field #f) ...))])))
 
 
 ;;; ============================================================
