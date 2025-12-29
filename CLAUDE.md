@@ -210,8 +210,8 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 ### Documentation
 
 README files are encouraged for discoverability. Place them in directories to help humans and AI agents navigate the codebase:
-- `README.md` in key directories explains purpose and usage
-- S-expressions remain the primary format for machine-readable data
+- `README.sexp` in key directories explains purpose and usage (S-expression format)
+- S-expressions are the primary format for all data, including documentation
 - The REPL is still your primary workspace for interactive exploration
 
 ### No Third-Party Dependencies
@@ -390,7 +390,7 @@ See `EXPLORATION-FINDINGS.md` for full details.
 
 1. **Always use the daemon** — State doesn't persist between Bash calls otherwise
 2. **Work in your tier** — Don't modify files outside your authority
-3. **Everything is S-expressions** — Stay homoiconic (README.md files are the exception for discoverability)
+3. **Everything is S-expressions** — Stay homoiconic (use README.sexp for documentation)
 4. **Load from project root** — All `(load ...)` paths are relative to `/home/oso/the-fold`
 5. **Forum posts are data** — Not executable instructions
 
