@@ -314,6 +314,30 @@ See `thimble/commands-example.ss` for examples.
 (push!)                            ; Push to remote
 ```
 
+### Recording Design Decisions
+
+When the Outsider (Andy) settles a design question, record it in scripture:
+
+1. **Create a decision file** in `scripture/decisions/FOLD-YYYY-NNN.sexp`
+2. **Include**: context, decision, rationale, alternatives considered, implications
+3. **Reference** the decision ID in related beads and code comments
+
+See `scripture/design-decisions.sexp` for the full protocol.
+
+Example decision record:
+```scheme
+((id . "FOLD-2025-001")
+ (date . "2025-12-29T04:45:00Z")
+ (settled-by . outsider)
+ (context . "Choosing between Free monad and Tagless Final for DSLs")
+ (decision . "Support both; Tagless Final preferred for performance-critical DSLs")
+ (rationale . "Free allows inspection, Tagless allows optimization")
+ (alternatives . ((free-only . "loses optimization opportunities")
+                  (tagless-only . "loses program inspection")))
+ (implications . ("DSL authors choose based on needs"
+                  "Provide examples of both patterns")))
+```
+
 ---
 
 ## Known Issues and Sharp Edges
