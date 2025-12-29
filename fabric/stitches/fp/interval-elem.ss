@@ -416,35 +416,70 @@
 ;;; Floating Type Class Instance
 ;;; ============================================================
 
+;;; Helper: unwrap Maybe-returning functions for type class
+(define (interval-asin-unsafe iv)
+  (let ([result (interval-asin iv)])
+       (if (just? result)
+           (from-just result)
+           ;; Outside domain: return conservative bounds
+           (make-interval -1.5707963267948966 1.5707963267948966))))
+
+(define (interval-acos-unsafe iv)
+  (let ([result (interval-acos iv)])
+       (if (just? result)
+           (from-just result)
+           ;; Outside domain: return conservative bounds
+           (make-interval 0 3.141592653589793))))
+
+(define (interval-acosh-unsafe iv)
+  (let ([result (interval-acosh iv)])
+       (if (just? result)
+           (from-just result)
+           ;; Outside domain: return very wide bounds
+           (make-interval 0 1e308))))
+
+(define (interval-atanh-unsafe iv)
+  (let ([result (interval-atanh iv)])
+       (if (just? result)
+           (from-just result)
+           ;; Outside domain: return very wide bounds
+           (make-interval -1e308 1e308))))
+
+;;; Fractional instance for intervals
+(define interval-fractional
+  (make-fractional interval-num
+                   interval-div-unsafe
+                   (lambda (iv)  ; recip
+                           (let ([result (interval-reciprocal iv)])
+                                (if (just? result)
+                                    (from-just result)
+                                    (make-interval -1e308 1e308))))
+                   (lambda (r)  ; from-rational
+                           (let ([x (exact->inexact r)])
+                                (interval-singleton x)))))
+
 ;;; interval-floating : Floating Interval
 ;;; Floating instance for intervals.
 (define interval-floating
   (make-floating
-   (make-fractional interval-num
-                    interval-div-unsafe
-                    (lambda (iv)  ; recip
-                            (let ([result (interval-reciprocal iv)])
-                                 (if (just? result)
-                                     (from-just result)
-                                     (make-interval -1e308 1e308)))))
-   (lambda () interval-pi)    ; pi
+   interval-fractional        ; Fractional instance
+   interval-pi                ; pi (value, not thunk)
    interval-exp               ; exp
-   interval-log-unsafe        ; log (unsafe version for type class)
-   interval-sqrt-unsafe       ; sqrt (unsafe version)
-   (lambda (iv n) (interval-pow-real iv n))  ; **
-   (lambda (iv n) (interval-pow-real iv n))  ; logBase (approximate)
+   interval-log-unsafe        ; log
+   interval-sqrt-unsafe       ; sqrt
+   interval-pow               ; ** (power)
    interval-sin               ; sin
    interval-cos               ; cos
-   interval-tan-unsafe        ; tan (unsafe)
-   interval-asin              ; asin (returns Maybe - need wrapper)
-   interval-acos              ; acos (returns Maybe - need wrapper)
+   interval-tan-unsafe        ; tan
+   interval-asin-unsafe       ; asin (wrapped)
+   interval-acos-unsafe       ; acos (wrapped)
    interval-atan              ; atan
    interval-sinh              ; sinh
    interval-cosh              ; cosh
    interval-tanh              ; tanh
    interval-asinh             ; asinh
-   interval-acosh             ; acosh (returns Maybe - need wrapper)
-   interval-atanh))           ; atanh (returns Maybe - need wrapper)
+   interval-acosh-unsafe      ; acosh (wrapped)
+   interval-atanh-unsafe))    ; atanh (wrapped)
 
 ;;; ============================================================
 ;;; Export Summary
@@ -468,12 +503,14 @@
 ;;;
 ;;; Inverse Trigonometric:
 ;;;   interval-asin, interval-acos, interval-atan, interval-atan2
+;;;   interval-asin-unsafe, interval-acos-unsafe
 ;;;
 ;;; Hyperbolic:
 ;;;   interval-sinh, interval-cosh, interval-tanh
 ;;;
 ;;; Inverse Hyperbolic:
 ;;;   interval-asinh, interval-acosh, interval-atanh
+;;;   interval-acosh-unsafe, interval-atanh-unsafe
 ;;;
-;;; Type Class:
-;;;   interval-floating
+;;; Type Classes:
+;;;   interval-fractional, interval-floating

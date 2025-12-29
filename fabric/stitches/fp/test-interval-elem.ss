@@ -338,6 +338,45 @@
                     (assert-interval-contains sum 1.0 0.01))))
 
 ;;; ============================================================
+;;; Type Class Instance Tests
+;;; ============================================================
+
+(test-group type-class-tests
+            ;; Test interval-fractional exists and has correct structure
+            (define-test fractional-instance-test
+              (assert-true (fractional? interval-fractional)))
+            
+            ;; Test interval-floating exists and has correct structure
+            (define-test floating-instance-test
+              (assert-true (floating? interval-floating)))
+            
+            ;; Test generic operations via type class
+            (define-test float-pi-test
+              (let ([pi-val (float-pi interval-floating)])
+                   (assert-interval-contains pi-val 3.14159 0.001)))
+            
+            ;; Test generic exp via type class
+            (define-test float-exp-test
+              (let* ([iv (interval-singleton 1)]
+                     [result (float-exp interval-floating iv)])
+                    (assert-interval-contains result 2.71828 0.001)))
+            
+            ;; Test generic sin via type class
+            (define-test float-sin-test
+              (let* ([iv (interval-singleton 0)]
+                     [result (float-sin interval-floating iv)])
+                    (assert-within 0.001 0.0 (interval-lo result))
+                    (assert-within 0.001 0.0 (interval-hi result))))
+            
+            ;; Test frac/ via Fractional instance
+            (define-test frac-div-test
+              (let* ([a (make-interval 4 8)]
+                     [b (make-interval 2 2)]
+                     [result (frac/ interval-fractional a b)])
+                    (assert-within 0.001 2.0 (interval-lo result))
+                    (assert-within 0.001 4.0 (interval-hi result)))))
+
+;;; ============================================================
 ;;; Run Tests
 ;;; ============================================================
 
