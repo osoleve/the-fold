@@ -328,6 +328,176 @@
 ")
 
 ;;; ============================================================
+;;; Centrality and Importance Metrics
+;;; ============================================================
+
+(printf "Centrality metrics:
+")
+(printf "----------------------------------------------------------------
+")
+
+;; in-degree: number of blocks referencing this block
+;; D is referenced by B and C
+(test "in-degree of D" 2 (in-degree fs hash-d))
+;; E is referenced by C and D
+(test "in-degree of E" 2 (in-degree fs hash-e))
+;; A is not referenced by anyone (root)
+(test "in-degree of A" 0 (in-degree fs hash-a))
+;; H is isolated (no references in or out)
+(test "in-degree of H" 0 (in-degree fs hash-h))
+
+;; out-degree: number of refs from this block
+;; A references B and C
+(test "out-degree of A" 2 (out-degree fs hash-a))
+;; C references D and E
+(test "out-degree of C" 2 (out-degree fs hash-c))
+;; E references nothing (leaf)
+(test "out-degree of E" 0 (out-degree fs hash-e))
+;; H is isolated
+(test "out-degree of H" 0 (out-degree fs hash-h))
+
+;; total-degree
+;; D refs E (1 out) and is referenced by B,C (2 in) = 3 total
+(test "total-degree of D (in:2 + out:1)" 3 (total-degree fs hash-d))
+(test "total-degree of A (in:0 + out:2)" 2 (total-degree fs hash-a))
+
+;; find-roots: blocks with no incoming references
+(define root-hashes (find-roots fs))
+(define root-tags (map (lambda (h) (block-tag (store-get fs h))) root-hashes))
+(test-true "find-roots includes A (no incoming)"
+           (if (memq 'node-a root-tags) #t #f))
+(test-true "find-roots includes F (no incoming)"
+           (if (memq 'node-f root-tags) #t #f))
+(test-true "find-roots includes H (isolated)"
+           (if (memq 'node-h root-tags) #t #f))
+(test-false "find-roots excludes D (has incoming)"
+            (if (memq 'node-d root-tags) #t #f))
+
+;; find-leaves: blocks with no outgoing references
+(define leaf-hashes (find-leaves fs))
+(define leaf-tags (map (lambda (h) (block-tag (store-get fs h))) leaf-hashes))
+(test-true "find-leaves includes E (no outgoing)"
+           (if (memq 'node-e leaf-tags) #t #f))
+(test-true "find-leaves includes G (no outgoing)"
+           (if (memq 'node-g leaf-tags) #t #f))
+(test-true "find-leaves includes H (isolated)"
+           (if (memq 'node-h leaf-tags) #t #f))
+(test-false "find-leaves excludes A (has outgoing)"
+            (if (memq 'node-a leaf-tags) #t #f))
+
+;; find-hubs: top n by total degree
+(define hubs (find-hubs fs 3))
+(test "find-hubs returns 3 results" 3 (length hubs))
+(test-true "find-hubs results are pairs"
+           (and (pair? (car hubs))
+                (bytevector? (caar hubs))
+                (number? (cdar hubs))))
+;; Degrees sorted descending
+(test-true "find-hubs sorted descending"
+           (let ([degrees (map cdr hubs)])
+                (>= (car degrees) (cadr degrees))))
+
+(printf "
+")
+
+;;; ============================================================
+;;; Subgraph Operations
+;;; ============================================================
+
+(printf "Subgraph operations:
+")
+(printf "----------------------------------------------------------------
+")
+
+;; reachable-from: all blocks reachable following outgoing refs
+(define reachable-from-a (reachable-from fs hash-a))
+(define reachable-tags-a (map (lambda (h) (block-tag (store-get fs h))) reachable-from-a))
+(test-true "reachable-from A includes A"
+           (if (memq 'node-a reachable-tags-a) #t #f))
+(test-true "reachable-from A includes E"
+           (if (memq 'node-e reachable-tags-a) #t #f))
+(test "reachable-from A count" 5 (length reachable-from-a))
+(test-false "reachable-from A excludes F"
+            (if (memq 'node-f reachable-tags-a) #t #f))
+
+;; reachable-from leaf (just itself)
+(define reachable-from-e (reachable-from fs hash-e))
+(test "reachable-from E (leaf)" 1 (length reachable-from-e))
+
+;; ancestors-of: all blocks that can reach this one (following incoming)
+(define ancestors-e (ancestors-of fs hash-e))
+(define ancestor-tags-e (map (lambda (h) (block-tag (store-get fs h))) ancestors-e))
+(test-true "ancestors-of E includes E"
+           (if (memq 'node-e ancestor-tags-e) #t #f))
+(test-true "ancestors-of E includes A"
+           (if (memq 'node-a ancestor-tags-e) #t #f))
+(test-true "ancestors-of E includes C"
+           (if (memq 'node-c ancestor-tags-e) #t #f))
+(test-true "ancestors-of E includes D"
+           (if (memq 'node-d ancestor-tags-e) #t #f))
+(test-false "ancestors-of E excludes F"
+            (if (memq 'node-f ancestor-tags-e) #t #f))
+
+;; subgraph: extract adjacency list for subset of nodes
+(define sub-hashes (list hash-a hash-b hash-c))
+(define sub (subgraph fs sub-hashes))
+(test "subgraph returns 3 entries" 3 (length sub))
+;; Check that A's neighbors are filtered to only include B and C (both in subset)
+(define a-entry (assoc hash-a sub))
+(test "subgraph A has 2 neighbors in subset" 2 (length (cdr a-entry)))
+;; B points to D which is not in subset, so B has 0 neighbors
+(define b-entry (assoc hash-b sub))
+(test "subgraph B has 0 neighbors (D not in subset)" 0 (length (cdr b-entry)))
+
+;; neighborhood: all nodes within n hops (both directions)
+(define neighbors-d-1 (neighborhood fs hash-d 1))
+(define neighbor-tags-d-1 (map (lambda (h) (block-tag (store-get fs h))) neighbors-d-1))
+(test-true "neighborhood D radius 1 includes D"
+           (if (memq 'node-d neighbor-tags-d-1) #t #f))
+(test-true "neighborhood D radius 1 includes B (incoming)"
+           (if (memq 'node-b neighbor-tags-d-1) #t #f))
+(test-true "neighborhood D radius 1 includes C (incoming)"
+           (if (memq 'node-c neighbor-tags-d-1) #t #f))
+(test-true "neighborhood D radius 1 includes E (outgoing)"
+           (if (memq 'node-e neighbor-tags-d-1) #t #f))
+(test-false "neighborhood D radius 1 excludes A (2 hops away)"
+            (if (memq 'node-a neighbor-tags-d-1) #t #f))
+
+(define neighbors-d-2 (neighborhood fs hash-d 2))
+(define neighbor-tags-d-2 (map (lambda (h) (block-tag (store-get fs h))) neighbors-d-2))
+(test-true "neighborhood D radius 2 includes A (2 hops)"
+           (if (memq 'node-a neighbor-tags-d-2) #t #f))
+
+;; induced-subgraph-blocks
+(define induced (induced-subgraph-blocks fs (list hash-a hash-b hash-c)))
+(test "induced-subgraph-blocks count" 3 (length induced))
+(test-true "induced-subgraph-blocks are blocks"
+           (and (block? (car induced))
+                (block? (cadr induced))))
+
+(printf "
+")
+
+;;; ============================================================
+;;; Graph Stats
+;;; ============================================================
+
+(printf "Graph stats:
+")
+(printf "----------------------------------------------------------------
+")
+
+(define stats (graph-stats fs))
+(test "graph-stats nodes" 8 (cdr (assq 'nodes stats)))
+(test "graph-stats roots" 3 (cdr (assq 'roots stats)))
+(test "graph-stats leaves" 3 (cdr (assq 'leaves stats)))
+(test "graph-stats components" 3 (cdr (assq 'components stats)))
+(test-false "graph-stats cyclic" (cdr (assq 'cyclic stats)))
+
+(printf "
+")
+
+;;; ============================================================
 ;;; Cleanup
 ;;; ============================================================
 
