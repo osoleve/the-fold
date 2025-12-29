@@ -22,7 +22,7 @@
                                   (cond
                                    [(< i 0) #f]
                                    [(or (char=? (string-ref script-path i) #\/)
-                                        (char=? (string-ref script-path i) #\\) i]
+                                        (char=? (string-ref script-path i) #\)) i]
                                    [else (loop (- i 1))]))])
                  (if slash-pos
                      (substring script-path 0 (+ slash-pos 1))
@@ -31,8 +31,8 @@
 
 ;;; Change to fabric/stitches directory if we're not already there
 (when (or (string=? script-dir "fabric/stitches/")
-          (string=? script-dir "fabric/stitches\\")
-          (string=? script-dir "fabric\\stitches\\"))
+          (string=? script-dir "fabric/stitches\")
+          (string=? script-dir "fabric\stitches\"))
       (current-directory (path-parent (path-parent (current-directory)))))
 
 ;;; Ensure fabric/stitches/ is in source-directories

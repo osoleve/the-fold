@@ -170,7 +170,7 @@
            (apply append (map (lambda (f) (map f as)) fs)))))
 
 ;;; maybe-applicative : Applicative Maybe
-(define maybe-applicative-full
+(define maybe-applicative
   (make-applicative-full
    maybe-functor
    just
@@ -180,6 +180,9 @@
                (if (nothing? ma)
                    nothing
                    (just ((from-just mf) (from-just ma))))))))
+
+;;; Alias for backwards compatibility
+(define maybe-applicative-full maybe-applicative)
 
 ;;; either-applicative : Applicative (Either e)
 (define either-applicative
@@ -192,6 +195,16 @@
                (if (left? ea)
                    ea
                    (right ((from-right ef) (from-right ea))))))))
+
+;;; function-applicative : Applicative ((->) r)
+;;; The Reader applicative.
+(define function-applicative
+  (make-applicative-full
+   function-functor
+   const                                          ; pure:  ->  -> a
+   (lambda (ff fa)                                ; ap: f fa r -> ff r (fa r)
+           (lambda (r)
+                   ((ff r) (fa r))))))
 
 ;;; ============================================================
 ;;; Monad
@@ -462,3 +475,309 @@
   (if (<= n 0)
       '()
       (cons x (make-list (- n 1) x))))
+
+;;; ============================================================
+;;; Semigroupoid
+;;; ============================================================
+;;;
+;;; A Semigroupoid is a Category without identity - just composition.
+;;; Useful as the base for Arrow composition.
+;;;
+;;; class Semigroupoid c where
+;;;   (.) :: c j k -> c i j -> c i k
+;;;
+;;; Laws:
+;;;   (f . g) . h = f . (g . h)   (associativity)
+
+;;; make-semigroupoid : ((c j k) -> (c i j) -> (c i k)) -> Semigroupoid c
+(define (make-semigroupoid compose-fn)
+  (list 'semigroupoid compose-fn))
+
+;;; semigroupoid? : Any -> Boolean
+(define (semigroupoid? x)
+  (and (pair? x) (eq? (car x) 'semigroupoid)))
+
+;;; semigroupoid-compose : Semigroupoid c -> c j k -> c i j -> c i k
+(define (semigroupoid-compose sg)
+  (list-ref sg 1))
+
+;;; (.) : Semigroupoid c -> c j k -> c i j -> c i k
+;;; Compose two morphisms.
+(define (semigroup-compose sg f g)
+  ((semigroupoid-compose sg) f g))
+
+;;; ============================================================
+;;; Semigroupoid Instances
+;;; ============================================================
+
+;;; function-semigroupoid : Semigroupoid (->)
+(define function-semigroupoid
+  (make-semigroupoid compose))
+
+;;; ============================================================
+;;; Apply (Applicative without pure)
+;;; ============================================================
+;;;
+;;; Apply is Applicative without pure. Useful for types that can
+;;; combine but not create from nothing (e.g., NonEmpty lists).
+;;;
+;;; class Functor f => Apply f where
+;;;   (<*>) :: f (a -> b) -> f a -> f b
+;;;
+;;; Laws:
+;;;   (.) <$> u <*> v <*> w = u <*> (v <*> w)   (composition)
+
+;;; make-apply : Functor f -> (f (a -> b) -> f a -> f b) -> Apply f
+(define (make-apply functor ap-fn)
+  (list 'apply functor ap-fn))
+
+;;; apply? : Any -> Boolean
+(define (apply? x)
+  (and (pair? x) (eq? (car x) 'apply)))
+
+;;; apply-functor : Apply f -> Functor f
+(define (apply-functor a)
+  (list-ref a 1))
+
+;;; apply-ap : Apply f -> f (a -> b) -> f a -> f b
+(define (apply-ap a)
+  (list-ref a 2))
+
+;;; (<*>) : Apply f -> f (a -> b) -> f a -> f b
+(define (ap-apply ap ff fa)
+  ((apply-ap ap) ff fa))
+
+;;; (<*) : Apply f -> f a -> f b -> f a
+;;; Sequence, keep left.
+(define (ap-left ap fa fb)
+  (ap-apply ap (fmap (apply-functor ap) const fa) fb))
+
+;;; (*>) : Apply f -> f a -> f b -> f b
+;;; Sequence, keep right.
+(define (ap-right ap fa fb)
+  (ap-apply ap (fmap (apply-functor ap) (lambda (a) identity) fa) fb))
+
+;;; lift-apply2 : Apply f -> (a -> b -> c) -> f a -> f b -> f c
+;;; Lift a binary function.
+(define (lift-apply2 ap f fa fb)
+  (ap-apply ap (fmap (apply-functor ap) f fa) fb))
+
+;;; ============================================================
+;;; Apply Instances
+;;; ============================================================
+
+;;; list-apply : Apply List
+(define list-apply
+  (make-apply
+   list-functor
+   (lambda (fs as)
+           (apply append (map (lambda (f) (map f as)) fs)))))
+
+;;; maybe-apply : Apply Maybe
+(define maybe-apply
+  (make-apply
+   maybe-functor
+   (lambda (mf ma)
+           (if (or (nothing? mf) (nothing? ma))
+               nothing
+               (just ((from-just mf) (from-just ma)))))))
+
+;;; either-apply : Apply (Either e)
+(define either-apply
+  (make-apply
+   either-functor
+   (lambda (ef ea)
+           (cond
+            [(left? ef) ef]
+            [(left? ea) ea]
+            [else (right ((from-right ef) (from-right ea)))]))))
+
+;;; ============================================================
+;;; Bind (Monad without return)
+;;; ============================================================
+;;;
+;;; Bind is Monad without return. Useful for types with sequencing
+;;; but no trivial construction.
+;;;
+;;; class Apply m => Bind m where
+;;;   (>>=) :: m a -> (a -> m b) -> m b
+;;;
+;;; Laws:
+;;;   (m >>= f) >>= g = m >>= (\x -> f x >>= g)   (associativity)
+
+;;; make-bind : Apply m -> (m a -> (a -> m b) -> m b) -> Bind m
+(define (make-bind apply-inst bind-fn)
+  (list 'bind apply-inst bind-fn))
+
+;;; bind? : Any -> Boolean
+(define (bind? x)
+  (and (pair? x) (eq? (car x) 'bind)))
+
+;;; bind-apply : Bind m -> Apply m
+(define (bind-apply b)
+  (list-ref b 1))
+
+;;; bind-bind : Bind m -> m a -> (a -> m b) -> m b
+(define (bind-bind b)
+  (list-ref b 2))
+
+;;; (>>=) : Bind m -> m a -> (a -> m b) -> m b
+(define (bind-seq b ma f)
+  ((bind-bind b) ma f))
+
+;;; (>>) : Bind m -> m a -> m b -> m b
+;;; Sequence, discarding first result.
+(define (bind-then b ma mb)
+  (bind-seq b ma (lambda (_) mb)))
+
+;;; join-bind : Bind m -> m (m a) -> m a
+;;; Flatten nested bind.
+(define (join-bind b mma)
+  (bind-seq b mma identity))
+
+;;; ============================================================
+;;; Bind Instances
+;;; ============================================================
+
+;;; list-bind : Bind List
+(define list-bind
+  (make-bind
+   list-apply
+   (lambda (as f)
+           (apply append (map f as)))))
+
+;;; maybe-bind : Bind Maybe
+(define maybe-bind
+  (make-bind
+   maybe-apply
+   (lambda (ma f)
+           (if (nothing? ma)
+               nothing
+               (f (from-just ma))))))
+
+;;; either-bind : Bind (Either e)
+(define either-bind
+  (make-bind
+   either-apply
+   (lambda (ea f)
+           (if (left? ea)
+               ea
+               (f (from-right ea))))))
+
+;;; ============================================================
+;;; Selective (between Applicative and Monad)
+;;; ============================================================
+;;;
+;;; Selective functors allow conditional execution of effects based
+;;; on runtime values, without requiring full Monad power.
+;;;
+;;; class Applicative f => Selective f where
+;;;   select :: f (Either a b) -> f (a -> b) -> f b
+;;;
+;;; Laws:
+;;;   select (pure (Right b)) f = pure b                    (identity)
+;;;   select (pure (Left a)) (pure f) = pure (f a)          (distributivity)
+;;;   select x (pure id) = either id id <$> x               (idempotence)
+;;;
+;;; Reference: https://hackage.haskell.org/package/selective
+
+;;; make-selective : Applicative f -> (f (Either a b) -> f (a -> b) -> f b) -> Selective f
+(define (make-selective applicative select-fn)
+  (list 'selective applicative select-fn))
+
+;;; selective? : Any -> Boolean
+(define (selective? x)
+  (and (pair? x) (eq? (car x) 'selective)))
+
+;;; selective-applicative : Selective f -> Applicative f
+(define (selective-applicative s)
+  (list-ref s 1))
+
+;;; selective-select : Selective f -> f (Either a b) -> f (a -> b) -> f b
+(define (selective-select s)
+  (list-ref s 2))
+
+;;; select : Selective f -> f (Either a b) -> f (a -> b) -> f b
+;;; The core selective operation.
+(define (select sel feab fab)
+  ((selective-select sel) feab fab))
+
+;;; branch : Selective f -> f (Either a b) -> f (a -> c) -> f (b -> c) -> f c
+;;; Branch on Either, applying the appropriate function.
+(define (branch sel feab fac fbc)
+  (let* ([app (selective-applicative sel)]
+         [func (applicative-functor app)]
+         ;; Transform Either a b to Either a (Either () b)
+         [feab* (fmap func (lambda (eab)
+                                   (either (lambda (a) (left a))
+                                           (lambda (b) (right (right b)))
+                                           eab))
+                      feab)]
+         ;; First select: handle Left a
+         [fac* (fmap func (lambda (f) (lambda (a) (right (f a)))) fac)]
+         ;; Result is f (Either () c) or f (Either (Either () b) c)
+         [intermediate (select sel feab* fac*)])
+        ;; Second select: handle Right b -> c
+        (select sel intermediate (fmap func (lambda (f) (lambda (u) (f '()))) fbc))))
+
+;;; ifS : Selective f -> f Boolean -> f a -> f a -> f a
+;;; Selective if-then-else.
+(define (ifS sel fcond fthen felse)
+  (let* ([app (selective-applicative sel)]
+         [func (applicative-functor app)]
+         ;; Convert Bool to Either () ()
+         [feither (fmap func (lambda (b) (if b (left '()) (right '()))) fcond)])
+        (branch sel feither
+                (fmap func (lambda (a) (lambda (_) a)) fthen)
+                (fmap func (lambda (a) (lambda (_) a)) felse))))
+
+;;; whenS : Selective f -> f Boolean -> f () -> f ()
+;;; Selective when.
+(define (whenS sel fcond faction)
+  (let* ([app (selective-applicative sel)]
+         [func (applicative-functor app)])
+        (ifS sel fcond faction (pure app '()))))
+
+;;; (<*?) : Selective f -> f (Either a b) -> f (a -> b) -> f b
+;;; Operator alias for select.
+(define <*? select)
+
+;;; ============================================================
+;;; Selective Instances
+;;; ============================================================
+
+;;; maybe-selective : Selective Maybe
+;;; Rigid selective - always evaluates both branches.
+(define maybe-selective
+  (make-selective
+   maybe-applicative
+   (lambda (meab mf)
+           (cond
+            [(nothing? meab) nothing]
+            [(right? (from-just meab)) (just (from-right (from-just meab)))]
+            [(nothing? mf) nothing]
+            [else (just ((from-just mf) (from-left (from-just meab))))]))))
+
+;;; either-selective : Selective (Either e)
+;;; Rigid selective for Either.
+(define either-selective
+  (make-selective
+   either-applicative
+   (lambda (eeab ef)
+           (cond
+            [(left? eeab) eeab]
+            [(right? (from-right eeab)) (right (from-right (from-right eeab)))]
+            [(left? ef) ef]
+            [else (right ((from-right ef) (from-left (from-right eeab))))]))))
+
+;;; function-selective : Selective ((->) r)
+;;; Functions have a selective instance.
+(define function-selective
+  (make-selective
+   function-applicative
+   (lambda (feab fab)
+           (lambda (r)
+                   (let ([eab (feab r)])
+                        (if (right? eab)
+                            (from-right eab)
+                            ((fab r) (from-left eab))))))))

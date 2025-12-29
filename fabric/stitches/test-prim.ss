@@ -43,6 +43,15 @@
 (test "neg" -7 (prim 'neg 7))
 (test "abs positive" 5 (prim 'abs 5))
 (test "abs negative" 5 (prim 'abs -5))
+(test "sqrt" 3 (prim 'sqrt 9))
+(test "expt" 32 (prim 'expt 2 5))
+(test "log 1" 0 (prim 'log 1))
+(test "sin 0" 0 (prim 'sin 0))
+(test "cos 0" 1 (prim 'cos 0))
+(test "tan 0" 0 (prim 'tan 0))
+(test "floor" 3 (prim 'floor 3.7))
+(test "ceiling" 4 (prim 'ceiling 3.2))
+(test "round" 4 (prim 'round 3.6))
 
 ;;; ============================================================
 ;;; Comparison
@@ -66,6 +75,7 @@
 (test "bitand" #b1010 (prim 'bitand #b1111 #b1010))
 (test "bitor" #b1111 (prim 'bitor #b1100 #b0011))
 (test "bitxor" #b0110 (prim 'bitxor #b1100 #b1010))
+(test "bitnot" -1 (prim 'bitnot 0))
 (test "shl" 8 (prim 'shl 1 3))
 (test "shr" 4 (prim 'shr 32 3))
 
@@ -75,6 +85,8 @@
 (test-section "Boolean")
 (test "not true" #f (prim 'not #t))
 (test "not false" #t (prim 'not #f))
+(test "and" #f (prim 'and #t #f))
+(test "or" #t (prim 'or #f #t))
 
 ;;; ============================================================
 ;;; Block operations
@@ -116,6 +128,14 @@
 (define sliced (prim 'bv-slice combined 0 5))
 (test "bv-slice" "hello" (utf8->string sliced))
 
+(define copy-src (string->utf8 "abcde"))
+(define copy-dst (make-bytevector 5 0))
+(define copy-result (prim 'bv-copy copy-src 1 copy-dst 0 3))
+(test "bv-copy returns dst" copy-dst copy-result)
+(test "bv-copy first" (char->integer #) (prim 'bv-ref copy-dst 0))
+(test "bv-copy third" (char->integer #\d) (prim 'bv-ref copy-dst 2))
+(test "bv-copy untouched" 0 (prim 'bv-ref copy-dst 4))
+
 ;;; ============================================================
 ;;; String/Bytevector conversion
 ;;; ============================================================
@@ -123,6 +143,8 @@
 (test "string->utf8->string" "test" (prim 'utf8->string (prim 'string->utf8 "test")))
 (test "symbol->string" "foo" (prim 'symbol->string 'foo))
 (test "string->symbol" 'bar (prim 'string->symbol "bar"))
+(test "number->string" "42" (prim 'number->string 42))
+(test "string->number" 123 (prim 'string->number "123"))
 
 ;;; ============================================================
 ;;; List operations
@@ -148,6 +170,7 @@
 (test-section "Vector operations")
 (define v (prim 'vec-make 1 2 3))
 (test "vec-make" (vector 1 2 3) v)
+(test "vec-empty" (vector) (prim 'vec-empty))
 (test "vec-ref" 2 (prim 'vec-ref v 1))
 (test "vec-length" 3 (prim 'vec-length v))
 (test "vec->list" '(1 2 3) (prim 'vec->list v))
@@ -168,4 +191,27 @@
 (test "string<?" #t (prim 'string<? "abc" "abd"))
 (test "string>?" #t (prim 'string>? "xyz" "abc"))
 (test "make-string" "   " (prim 'make-string 3 #\space))
-(test "string->list" '(# # #
+(test "string->list" '(#\h # #\l #\l #\o) (prim 'string->list "hello"))
+(test "list->string" "hi" (prim 'list->string '(#\h #\i)))
+
+;;; ============================================================
+;;; Character operations
+;;; ============================================================
+(test-section "Character operations")
+(test "char->integer" 65 (prim 'char->integer #\A))
+(test "integer->char" #\A (prim 'integer->char 65))
+(test "char=?" #t (prim 'char=? # #))
+(test "char<?" #t (prim 'char<? # #))
+(test "char-alphabetic?" #t (prim 'char-alphabetic? #\q))
+(test "char-numeric?" #t (prim 'char-numeric? #))
+(test "char-whitespace?" #t (prim 'char-whitespace? #\space))
+(test "char-upper-case?" #t (prim 'char-upper-case? #\Z))
+(test "char-lower-case?" #t (prim 'char-lower-case? #\z))
+(test "char-upcase" #\A (prim 'char-upcase #))
+(test "char-downcase" # (prim 'char-downcase #\A))
+
+;;; ============================================================
+;;; Primitive errors
+;;; ============================================================
+(test-section "Primitive errors")
+(test "unknown primitive" '(error unknown-primitive nope) (prim 'nope 1))
