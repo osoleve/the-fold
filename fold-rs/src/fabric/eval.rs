@@ -149,7 +149,9 @@ impl Frame {
                     args: rebuilt,
                 }
             }
-            Frame::Case { arms, else_body, .. } => Expr::Case {
+            Frame::Case {
+                arms, else_body, ..
+            } => Expr::Case {
                 expr: Box::new(current),
                 arms: arms.clone(),
                 else_body: else_body.clone(),
@@ -284,7 +286,11 @@ pub fn eval_loop(expr: Expr, env: EnvRef, fuel: usize) -> Result<EvalOutcome, Ev
                 }
                 _ => return Err(EvalError::FixRequiresFn),
             },
-            Expr::Case { expr: scrutinee, arms, else_body } => {
+            Expr::Case {
+                expr: scrutinee,
+                arms,
+                else_body,
+            } => {
                 frames.push(Frame::Case {
                     arms,
                     else_body,
@@ -355,7 +361,10 @@ fn unwind(
                 *env = Env::extend(frame_env, new_bindings);
                 return Ok(Unwind::Continue(body));
             }
-            Frame::CallFunc { args, env: frame_env } => {
+            Frame::CallFunc {
+                args,
+                env: frame_env,
+            } => {
                 let func = value;
                 if args.is_empty() {
                     let (next_expr, next_env) = apply_closure(func, Vec::new())?;
@@ -419,7 +428,11 @@ fn unwind(
                 }
                 value = apply_prim(&op, &values)?;
             }
-            Frame::Case { arms, else_body, env: frame_env } => {
+            Frame::Case {
+                arms,
+                else_body,
+                env: frame_env,
+            } => {
                 let (next_expr, next_env) = apply_case(value, arms, else_body, frame_env)?;
                 *env = next_env;
                 return Ok(Unwind::Continue(next_expr));
@@ -441,12 +454,7 @@ fn apply_closure(func: Value, args: Vec<Value>) -> Result<(Expr, EnvRef), EvalEr
         });
     }
 
-    let bindings = closure
-        .params
-        .iter()
-        .cloned()
-        .zip(args)
-        .collect::<Vec<_>>();
+    let bindings = closure.params.iter().cloned().zip(args).collect::<Vec<_>>();
 
     let new_env = Env::extend(closure.env.clone(), bindings);
     Ok(((*closure.body).clone(), new_env))
@@ -497,9 +505,15 @@ fn is_truthy(value: &Value) -> bool {
 }
 
 fn reify(expr: Expr, frames: &[Frame]) -> Expr {
-    frames.iter().rev().fold(expr, |current, frame| frame.reify(current))
+    frames
+        .iter()
+        .rev()
+        .fold(expr, |current, frame| frame.reify(current))
 }
 
 fn base_env(current: &EnvRef, frames: &[Frame]) -> EnvRef {
-    frames.first().map(|frame| frame.env().clone()).unwrap_or_else(|| current.clone())
+    frames
+        .first()
+        .map(|frame| frame.env().clone())
+        .unwrap_or_else(|| current.clone())
 }

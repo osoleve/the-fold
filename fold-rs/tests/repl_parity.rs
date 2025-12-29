@@ -168,7 +168,8 @@ fn repl_parity_arithmetic() {
     ];
 
     for expr in cases {
-        let legacy = legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
+        let legacy =
+            legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
         let rust = rust_eval(expr).unwrap_or_else(|_| panic!("rust eval failed for: {}", expr));
         assert_eq!(legacy, rust, "expr: {expr}");
     }
@@ -202,7 +203,8 @@ fn repl_parity_list_ops() {
     ];
 
     for expr in cases {
-        let legacy = legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
+        let legacy =
+            legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
         let rust = rust_eval(expr).unwrap_or_else(|_| panic!("rust eval failed for: {}", expr));
         assert_eq!(legacy, rust, "expr: {expr}");
     }
@@ -232,7 +234,8 @@ fn repl_parity_string_ops() {
     ];
 
     for expr in cases {
-        let legacy = legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
+        let legacy =
+            legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
         let rust = rust_eval(expr).unwrap_or_else(|_| panic!("rust eval failed for: {}", expr));
         assert_eq!(legacy, rust, "expr: {expr}");
     }
@@ -263,7 +266,8 @@ fn repl_parity_char_ops() {
     ];
 
     for expr in cases {
-        let legacy = legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
+        let legacy =
+            legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
         let rust = rust_eval(expr).unwrap_or_else(|_| panic!("rust eval failed for: {}", expr));
         assert_eq!(legacy, rust, "expr: {expr}");
     }
@@ -289,7 +293,8 @@ fn repl_parity_vector_ops() {
     ];
 
     for expr in cases {
-        let legacy = legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
+        let legacy =
+            legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
         let rust = rust_eval(expr).unwrap_or_else(|_| panic!("rust eval failed for: {}", expr));
         assert_eq!(legacy, rust, "expr: {expr}");
     }
@@ -314,7 +319,8 @@ fn repl_parity_bytevector_ops() {
     ];
 
     for expr in cases {
-        let legacy = legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
+        let legacy =
+            legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
         let rust = rust_eval(expr).unwrap_or_else(|_| panic!("rust eval failed for: {}", expr));
         assert_eq!(legacy, rust, "expr: {expr}");
     }
@@ -348,7 +354,8 @@ fn repl_parity_type_predicates() {
     ];
 
     for expr in cases {
-        let legacy = legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
+        let legacy =
+            legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
         let rust = rust_eval(expr).unwrap_or_else(|_| panic!("rust eval failed for: {}", expr));
         assert_eq!(legacy, rust, "expr: {expr}");
     }
@@ -376,7 +383,8 @@ fn repl_parity_block_ops() {
     ];
 
     for expr in cases {
-        let legacy = legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
+        let legacy =
+            legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
         let rust = rust_eval(expr).unwrap_or_else(|_| panic!("rust eval failed for: {}", expr));
         assert_eq!(legacy, rust, "expr: {expr}");
     }
@@ -400,7 +408,8 @@ fn repl_parity_hash_ops() {
     ];
 
     for expr in cases {
-        let legacy = legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
+        let legacy =
+            legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
         let rust = rust_eval(expr).unwrap_or_else(|_| panic!("rust eval failed for: {}", expr));
         assert_eq!(legacy, rust, "expr: {expr}");
     }
@@ -426,7 +435,8 @@ fn repl_parity_closures_and_recursion() {
     ];
 
     for expr in cases {
-        let legacy = legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
+        let legacy =
+            legacy_eval(expr).unwrap_or_else(|_| panic!("legacy eval failed for: {}", expr));
         let rust = rust_eval(expr).unwrap_or_else(|_| panic!("rust eval failed for: {}", expr));
         assert_eq!(legacy, rust, "expr: {expr}");
     }

@@ -1,8 +1,8 @@
 use std::fmt;
 use std::path::Path;
 
-use crate::fabric::{eval_loop, Env, EvalError, EvalOutcome, Expr, Value};
-use crate::tools::fold_load::{load_fold_program, LoadError};
+use crate::fabric::{Env, EvalError, EvalOutcome, Expr, Value, eval_loop};
+use crate::tools::fold_load::{LoadError, load_fold_program};
 
 #[derive(Debug)]
 pub enum RunError {

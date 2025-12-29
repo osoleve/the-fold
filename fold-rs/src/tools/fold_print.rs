@@ -19,10 +19,7 @@ pub fn format_value(value: &Value) -> String {
                 "#<closure/0>".to_string()
             } else if closure.params.len() <= 3 {
                 // Show params for small arities
-                format!(
-                    "#<closure ({})>",
-                    closure.params.join(" ")
-                )
+                format!("#<closure ({})>", closure.params.join(" "))
             } else {
                 // Just show arity for larger closures
                 format!("#<closure/{}>", closure.params.len())

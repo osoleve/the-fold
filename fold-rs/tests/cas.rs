@@ -1,6 +1,6 @@
 use fold_rs::fabric::{
-    address_to_hex, hash_block, hex_to_address, Address, Block, Store, ADDRESS_SIZE,
-    ADDRESS_VERSION,
+    ADDRESS_SIZE, ADDRESS_VERSION, Address, Block, Store, address_to_hex, hash_block,
+    hex_to_address,
 };
 
 #[test]

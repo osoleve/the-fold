@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::fabric::{
-    address::{Address, ADDRESS_SIZE},
+    address::{ADDRESS_SIZE, Address},
     symbol::Symbol,
 };
 
@@ -57,7 +57,8 @@ impl Block {
 
         let tag_len = read_u32(bytes, &mut pos)? as usize;
         let tag_bytes = read_bytes(bytes, &mut pos, tag_len)?;
-        let tag = String::from_utf8(tag_bytes.to_vec()).map_err(|_| BlockDecodeError::InvalidUtf8)?;
+        let tag =
+            String::from_utf8(tag_bytes.to_vec()).map_err(|_| BlockDecodeError::InvalidUtf8)?;
 
         let payload_len = read_u32(bytes, &mut pos)? as usize;
         let payload = read_bytes(bytes, &mut pos, payload_len)?.to_vec();

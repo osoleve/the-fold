@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::fabric::{CaseArm, Expr, Value};
-use crate::tools::fold_parse::{NumberLit, Span, Spanned, Sexp};
+use crate::tools::fold_parse::{NumberLit, Sexp, Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LowerError {
@@ -72,7 +72,10 @@ fn lower_quote(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Exp
 }
 
 /// Expand quasiquote - handles unquote (,) and unquote-splicing (,@)
-fn lower_quasiquote(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
+fn lower_quasiquote(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<Expr, LowerError> {
     if items.len() != 2 {
         return Err(error(list_expr, "quasiquote expects 1 argument"));
     }
@@ -210,7 +213,10 @@ fn lower_let(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr,
 /// (let* ((a 1) (b (+ a 1))) body) => (let ((a 1)) (let ((b (+ a 1))) body))
 fn lower_let_star(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
     if items.len() != 3 {
-        return Err(error(list_expr, "let* expects (let* ((name expr) ...) body)"));
+        return Err(error(
+            list_expr,
+            "let* expects (let* ((name expr) ...) body)",
+        ));
     }
     let bindings_list = match &items[1].value {
         Sexp::List(list) => list,
@@ -277,7 +283,10 @@ fn lower_if(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, 
 
 fn lower_case(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
     if items.len() < 2 {
-        return Err(error(list_expr, "case expects (case expr (pattern body) ...)"));
+        return Err(error(
+            list_expr,
+            "case expects (case expr (pattern body) ...)",
+        ));
     }
     let scrutinee = lower_expr(&items[1])?;
     let mut arms = Vec::with_capacity(items.len().saturating_sub(2));
@@ -286,7 +295,12 @@ fn lower_case(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr
     for clause in &items[2..] {
         let clause_items = match &clause.value {
             Sexp::List(list) if list.len() == 2 => list,
-            _ => return Err(error(clause, "case clause must be (pattern body) or (else body)")),
+            _ => {
+                return Err(error(
+                    clause,
+                    "case clause must be (pattern body) or (else body)",
+                ));
+            }
         };
 
         // Check for (else body) clause
@@ -303,7 +317,12 @@ fn lower_case(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Expr
         // Regular pattern clause: ((tag vars...) body)
         let pattern_items = match &clause_items[0].value {
             Sexp::List(list) if !list.is_empty() => list,
-            _ => return Err(error(&clause_items[0], "case pattern must be (tag vars...) or else")),
+            _ => {
+                return Err(error(
+                    &clause_items[0],
+                    "case pattern must be (tag vars...) or else",
+                ));
+            }
         };
         let tag = match &pattern_items[0].value {
             Sexp::Symbol(sym) => sym.clone(),

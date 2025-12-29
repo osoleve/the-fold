@@ -4,9 +4,9 @@ use std::{
 };
 
 use crate::fabric::{
-    address::{Address, ADDRESS_SIZE},
+    address::{ADDRESS_SIZE, Address},
     block::Block,
-    cas::{address_to_hex, hash_block, hex_to_address, Store},
+    cas::{Store, address_to_hex, hash_block, hex_to_address},
     error::EvalError,
     sha256::sha256,
     symbol::Symbol,
@@ -22,9 +22,7 @@ fn cas_store() -> &'static Mutex<Store> {
 pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
     match op.as_str() {
         // Arithmetic
-        "add" => {
-            fold_numeric(args, 0, 0.0, |a, b| a + b, |a, b| a + b)
-        }
+        "add" => fold_numeric(args, 0, 0.0, |a, b| a + b, |a, b| a + b),
         "sub" => {
             if args.is_empty() {
                 return Err(EvalError::TypeMismatch("sub expects at least 1 arg"));
@@ -35,9 +33,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             reduce_numeric(first, &args[1..], |a, b| a - b, |a, b| a - b)
         }
-        "mul" => {
-            fold_numeric(args, 1, 1.0, |a, b| a * b, |a, b| a * b)
-        }
+        "mul" => fold_numeric(args, 1, 1.0, |a, b| a * b, |a, b| a * b),
         "div" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch("div expects 2 args"));
@@ -99,9 +95,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let base = expect_number(&args[0])?;
             let exp = expect_number(&args[1])?;
             match (base, exp) {
-                (Numeric::Int(b), Numeric::Int(e)) if e >= 0 => {
-                    Ok(Value::Number(b.pow(e as u32)))
-                }
+                (Numeric::Int(b), Numeric::Int(e)) if e >= 0 => Ok(Value::Number(b.pow(e as u32))),
                 _ => Ok(Value::Float(base.as_f64().powf(exp.as_f64()))),
             }
         }
@@ -473,7 +467,8 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 return Err(EvalError::TypeMismatch("integer->char expects 1 arg"));
             }
             let code = expect_integer(&args[0])?;
-            let code = u32::try_from(code).map_err(|_| EvalError::TypeMismatch("invalid char code"))?;
+            let code =
+                u32::try_from(code).map_err(|_| EvalError::TypeMismatch("invalid char code"))?;
             let ch = char::from_u32(code).ok_or(EvalError::TypeMismatch("invalid char code"))?;
             Ok(Value::Char(ch))
         }
@@ -542,7 +537,8 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 return Err(EvalError::TypeMismatch("utf8->string expects 1 arg"));
             }
             let bytes = expect_bytevector(&args[0])?;
-            let s = String::from_utf8(bytes).map_err(|_| EvalError::TypeMismatch("invalid utf8"))?;
+            let s =
+                String::from_utf8(bytes).map_err(|_| EvalError::TypeMismatch("invalid utf8"))?;
             Ok(Value::String(s))
         }
         "symbol->string" => {
@@ -1130,9 +1126,10 @@ fn to_address(value: &Value) -> Result<Address, EvalError> {
             if bytes.len() != ADDRESS_SIZE {
                 return Err(EvalError::TypeMismatch("expected address bytes"));
             }
-            let array: [u8; ADDRESS_SIZE] = bytes.as_slice().try_into().map_err(|_| {
-                EvalError::TypeMismatch("expected address bytes")
-            })?;
+            let array: [u8; ADDRESS_SIZE] = bytes
+                .as_slice()
+                .try_into()
+                .map_err(|_| EvalError::TypeMismatch("expected address bytes"))?;
             Ok(Address::from(array))
         }
         _ => Err(EvalError::TypeMismatch("expected address")),

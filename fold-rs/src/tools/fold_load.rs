@@ -1,24 +1,34 @@
 use std::{
-    fmt,
-    fs,
+    fmt, fs,
     path::{Path, PathBuf},
 };
 
 use crate::fabric::Expr;
-use crate::tools::fold_lower::{lower_expr, lower_program, LowerError};
-use crate::tools::fold_parse::{parse_fold_expr, parse_fold_program, ParseError};
+use crate::tools::fold_lower::{LowerError, lower_expr, lower_program};
+use crate::tools::fold_parse::{ParseError, parse_fold_expr, parse_fold_program};
 
 #[derive(Debug)]
 pub enum LoadError {
-    Io { path: PathBuf, source: std::io::Error },
-    Parse { path: PathBuf, source: ParseError },
-    Lower { path: PathBuf, source: LowerError },
+    Io {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    Parse {
+        path: PathBuf,
+        source: ParseError,
+    },
+    Lower {
+        path: PathBuf,
+        source: LowerError,
+    },
 }
 
 impl fmt::Display for LoadError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LoadError::Io { path, source } => write!(f, "failed to read {}: {}", path.display(), source),
+            LoadError::Io { path, source } => {
+                write!(f, "failed to read {}: {}", path.display(), source)
+            }
             LoadError::Parse { path, source } => {
                 write!(f, "failed to parse {}: {}", path.display(), source)
             }

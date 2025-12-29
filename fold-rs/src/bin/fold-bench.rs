@@ -16,16 +16,8 @@ fn main() {
     println!("Iterations per test: {}", iterations);
     println!();
 
-    let test_list = list_from_values(
-        &(1..=10)
-            .map(Value::Number)
-            .collect::<Vec<_>>(),
-    );
-    let test_vec = Value::Vector(
-        (1..=10)
-            .map(Value::Number)
-            .collect::<Vec<_>>(),
-    );
+    let test_list = list_from_values(&(1..=10).map(Value::Number).collect::<Vec<_>>());
+    let test_vec = Value::Vector((1..=10).map(Value::Number).collect::<Vec<_>>());
     let test_bv = Value::Bytevector(vec![42u8; 32]);
     let test_string = Value::String("hello world".to_string());
     let test_block = Value::Block(Block::new(
@@ -61,17 +53,26 @@ fn main() {
     bench_prim("null?", &[Value::Nil], iterations);
     bench_prim(
         "pair?",
-        &[Value::Pair(Box::new(Value::Number(1)), Box::new(Value::Number(2)))],
+        &[Value::Pair(
+            Box::new(Value::Number(1)),
+            Box::new(Value::Number(2)),
+        )],
         iterations,
     );
     bench_prim(
         "car",
-        &[Value::Pair(Box::new(Value::Number(1)), Box::new(Value::Number(2)))],
+        &[Value::Pair(
+            Box::new(Value::Number(1)),
+            Box::new(Value::Number(2)),
+        )],
         iterations,
     );
     bench_prim(
         "cdr",
-        &[Value::Pair(Box::new(Value::Number(1)), Box::new(Value::Number(2)))],
+        &[Value::Pair(
+            Box::new(Value::Number(1)),
+            Box::new(Value::Number(2)),
+        )],
         iterations,
     );
     bench_prim("not", &[Value::Bool(false)], iterations);
@@ -95,30 +96,56 @@ fn main() {
         &[test_string.clone(), Value::Number(5)],
         iterations,
     );
-    bench_prim("string-length", std::slice::from_ref(&test_string), iterations);
+    bench_prim(
+        "string-length",
+        std::slice::from_ref(&test_string),
+        iterations,
+    );
     bench_prim("vec-length", std::slice::from_ref(&test_vec), iterations);
 
     println!();
     println!("--- Tier 3 (Cost 3) - O(1) moderate ---");
     bench_prim("div", &[Value::Number(100), Value::Number(7)], iterations);
     bench_prim("mod", &[Value::Number(100), Value::Number(7)], iterations);
-    bench_prim("bitand", &[Value::Number(0xFF00), Value::Number(0x0FF0)], iterations);
-    bench_prim("bitor", &[Value::Number(0xFF00), Value::Number(0x00FF)], iterations);
-    bench_prim("bitxor", &[Value::Number(0xAAAA), Value::Number(0x5555)], iterations);
+    bench_prim(
+        "bitand",
+        &[Value::Number(0xFF00), Value::Number(0x0FF0)],
+        iterations,
+    );
+    bench_prim(
+        "bitor",
+        &[Value::Number(0xFF00), Value::Number(0x00FF)],
+        iterations,
+    );
+    bench_prim(
+        "bitxor",
+        &[Value::Number(0xAAAA), Value::Number(0x5555)],
+        iterations,
+    );
     bench_prim("shl", &[Value::Number(1), Value::Number(10)], iterations);
     bench_prim("shr", &[Value::Number(1024), Value::Number(5)], iterations);
     bench_prim(
         "string=?",
-        &[Value::String("hello".to_string()), Value::String("hello".to_string())],
+        &[
+            Value::String("hello".to_string()),
+            Value::String("hello".to_string()),
+        ],
         iterations,
     );
     bench_prim(
         "string<?",
-        &[Value::String("aaa".to_string()), Value::String("bbb".to_string())],
+        &[
+            Value::String("aaa".to_string()),
+            Value::String("bbb".to_string()),
+        ],
         iterations,
     );
     bench_prim("memq", &[Value::Number(5), test_list.clone()], iterations);
-    bench_prim("assq", &[Value::Symbol("b".to_string()), alist.clone()], iterations);
+    bench_prim(
+        "assq",
+        &[Value::Symbol("b".to_string()), alist.clone()],
+        iterations,
+    );
 
     println!();
     println!("--- Tier 4 (Cost 5) - O(n) linear ---");
@@ -126,7 +153,11 @@ fn main() {
     bench_prim("reverse", std::slice::from_ref(&test_list), iterations);
     bench_prim("vec->list", std::slice::from_ref(&test_vec), iterations);
     bench_prim("list->vec", std::slice::from_ref(&test_list), iterations);
-    bench_prim("string->list", std::slice::from_ref(&test_string), iterations);
+    bench_prim(
+        "string->list",
+        std::slice::from_ref(&test_string),
+        iterations,
+    );
     bench_prim(
         "list->string",
         &[list_from_values(&[
@@ -138,8 +169,16 @@ fn main() {
         ])],
         iterations,
     );
-    bench_prim("symbol->string", &[Value::Symbol("hello".to_string())], iterations);
-    bench_prim("string->symbol", &[Value::String("hello".to_string())], iterations);
+    bench_prim(
+        "symbol->string",
+        &[Value::Symbol("hello".to_string())],
+        iterations,
+    );
+    bench_prim(
+        "string->symbol",
+        &[Value::String("hello".to_string())],
+        iterations,
+    );
 
     println!();
     println!("--- Tier 5 (Cost 10) - O(n) with allocation ---");
@@ -157,17 +196,40 @@ fn main() {
         &[test_string.clone(), Value::Number(0), Value::Number(5)],
         iterations,
     );
-    bench_prim("bv-slice", &[test_bv.clone(), Value::Number(0), Value::Number(16)], iterations);
-    bench_prim("string->utf8", std::slice::from_ref(&test_string), iterations);
-    bench_prim("utf8->string", &[Value::Bytevector(b"hello world".to_vec())], iterations);
-    bench_prim("block->bytes", std::slice::from_ref(&test_block), iterations);
-    let block_bytes = match apply_prim(&"block->bytes".to_string(), std::slice::from_ref(&test_block)) {
+    bench_prim(
+        "bv-slice",
+        &[test_bv.clone(), Value::Number(0), Value::Number(16)],
+        iterations,
+    );
+    bench_prim(
+        "string->utf8",
+        std::slice::from_ref(&test_string),
+        iterations,
+    );
+    bench_prim(
+        "utf8->string",
+        &[Value::Bytevector(b"hello world".to_vec())],
+        iterations,
+    );
+    bench_prim(
+        "block->bytes",
+        std::slice::from_ref(&test_block),
+        iterations,
+    );
+    let block_bytes = match apply_prim(
+        &"block->bytes".to_string(),
+        std::slice::from_ref(&test_block),
+    ) {
         Ok(Value::Bytevector(bytes)) => Value::Bytevector(bytes),
         Ok(_) => panic!("block->bytes did not return bytevector"),
         Err(err) => panic!("block->bytes failed: {err:?}"),
     };
     bench_prim("bytes->block", &[block_bytes], iterations);
-    bench_prim("string->number", &[Value::String("12345".to_string())], iterations);
+    bench_prim(
+        "string->number",
+        &[Value::String("12345".to_string())],
+        iterations,
+    );
 
     println!();
     println!("--- Tier 6 (Cost 15) - Expensive conversions ---");

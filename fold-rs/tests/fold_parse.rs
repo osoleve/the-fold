@@ -1,6 +1,4 @@
-use fold_rs::tools::{
-    parse_fold_expr, parse_fold_program, strip_spans, NumberLit, PlainSexp,
-};
+use fold_rs::tools::{NumberLit, PlainSexp, parse_fold_expr, parse_fold_program, strip_spans};
 
 fn parse_plain(input: &str) -> PlainSexp {
     let expr = parse_fold_expr(input, None).expect("parse failed");

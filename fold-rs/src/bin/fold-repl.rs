@@ -2,10 +2,9 @@ use std::env;
 use std::io::{self, Read};
 use std::process;
 
-use fold_rs::fabric::{eval_loop, Env, EvalOutcome, Expr};
+use fold_rs::fabric::{Env, EvalOutcome, Expr, eval_loop};
 use fold_rs::tools::{
-    format_value, lower_expr, lower_program, parse_fold_expr, parse_fold_program,
-    run_fold_file,
+    format_value, lower_expr, lower_program, parse_fold_expr, parse_fold_program, run_fold_file,
 };
 
 fn main() {

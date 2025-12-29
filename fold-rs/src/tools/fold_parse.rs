@@ -85,7 +85,11 @@ pub struct ParseError {
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "parse error: expected {} at {}", self.expected, self.span)
+        write!(
+            f,
+            "parse error: expected {} at {}",
+            self.expected, self.span
+        )
     }
 }
 
@@ -324,7 +328,10 @@ impl Parser {
         }
         let literal: String = self.chars[self.index..idx].iter().collect();
         if is_float {
-            literal.parse::<f64>().ok().map(|n| (NumberLit::Float(n), idx))
+            literal
+                .parse::<f64>()
+                .ok()
+                .map(|n| (NumberLit::Float(n), idx))
         } else {
             literal
                 .parse::<i64>()
@@ -406,8 +413,21 @@ fn is_symbol_initial(c: char) -> bool {
     c.is_alphabetic()
         || matches!(
             c,
-            '!' | '$' | '%' | '&' | '*' | '/' | ':' | '<' | '=' | '>' | '?' | '^' | '_'
-                | '~' | '+' | '-'
+            '!' | '$'
+                | '%'
+                | '&'
+                | '*'
+                | '/'
+                | ':'
+                | '<'
+                | '='
+                | '>'
+                | '?'
+                | '^'
+                | '_'
+                | '~'
+                | '+'
+                | '-'
         )
 }
 

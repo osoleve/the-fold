@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use fold_rs::fabric::{eval_loop, Env, EnvRef, EvalOutcome, Value};
+use fold_rs::fabric::{Env, EnvRef, EvalOutcome, Value, eval_loop};
 use fold_rs::tools::{format_value, lower_program, parse_fold_program};
 
 const REPL_DIR: &str = ".fold-repl";

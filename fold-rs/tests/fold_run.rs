@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use fold_rs::fabric::EvalOutcome;
-use fold_rs::tools::{run_fold_file, LoadError, RunError};
+use fold_rs::tools::{LoadError, RunError, run_fold_file};
 
 struct TempPath {
     path: PathBuf,

@@ -1,11 +1,11 @@
 use fold_rs::fabric::{
+    Address,
     block::Block,
     env::Env,
-    eval::{eval_loop, EvalOutcome},
+    eval::{EvalOutcome, eval_loop},
     expr::{CaseArm, Expr},
     symbol::Symbol,
     value::Value,
-    Address,
 };
 
 fn sym(name: &str) -> Symbol {
@@ -83,11 +83,7 @@ fn case_matches_block() {
         expr: Box::new(Expr::Value(Value::Block(block))),
         arms: vec![
             CaseArm::new(sym("Nothing"), Vec::new(), Expr::Value(Value::Number(0))),
-            CaseArm::new(
-                sym("Just"),
-                vec![sym("ref")],
-                Expr::Var(sym("ref")),
-            ),
+            CaseArm::new(sym("Just"), vec![sym("ref")], Expr::Var(sym("ref"))),
         ],
         else_body: None,
     };

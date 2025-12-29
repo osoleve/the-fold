@@ -1,11 +1,13 @@
 use std::sync::{Mutex, OnceLock};
 
-use fold_rs::fabric::{symbol::Symbol, value::Value, Address, ADDRESS_SIZE};
+use fold_rs::fabric::{ADDRESS_SIZE, Address, symbol::Symbol, value::Value};
 use fold_rs::thimble::apply_prim;
 
 fn store_test_guard() -> std::sync::MutexGuard<'static, ()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(())).lock().expect("store lock")
+    LOCK.get_or_init(|| Mutex::new(()))
+        .lock()
+        .expect("store lock")
 }
 
 fn sym(name: &str) -> Symbol {
@@ -105,10 +107,7 @@ fn list_ops() {
     assert!(matches!(values[1], Value::Number(2)));
     assert!(matches!(values[2], Value::Number(1)));
 
-    let appended = prim(
-        "append",
-        &[list.clone(), prim("list", &[Value::Number(4)])],
-    );
+    let appended = prim("append", &[list.clone(), prim("list", &[Value::Number(4)])]);
     let values = list_to_vec(&appended);
     assert_eq!(values.len(), 4);
     assert!(matches!(values[3], Value::Number(4)));
@@ -157,10 +156,7 @@ fn bytevector_ops() {
 
     let concat = prim(
         "bv-concat",
-        &[
-            Value::Bytevector(vec![1, 2]),
-            Value::Bytevector(vec![3]),
-        ],
+        &[Value::Bytevector(vec![1, 2]), Value::Bytevector(vec![3])],
     );
     match concat {
         Value::Bytevector(bytes) => assert_eq!(bytes, vec![1, 2, 3]),
@@ -245,9 +241,18 @@ fn memq_and_assq_ops() {
     let missing = prim("memq", &[Value::Number(9), list]);
     assert!(matches!(missing, Value::Bool(false)));
 
-    let pair_a = Value::Pair(Box::new(Value::Symbol("a".to_string())), Box::new(Value::Number(1)));
-    let pair_b = Value::Pair(Box::new(Value::Symbol("b".to_string())), Box::new(Value::Number(2)));
-    let pair_c = Value::Pair(Box::new(Value::Symbol("c".to_string())), Box::new(Value::Number(3)));
+    let pair_a = Value::Pair(
+        Box::new(Value::Symbol("a".to_string())),
+        Box::new(Value::Number(1)),
+    );
+    let pair_b = Value::Pair(
+        Box::new(Value::Symbol("b".to_string())),
+        Box::new(Value::Number(2)),
+    );
+    let pair_c = Value::Pair(
+        Box::new(Value::Symbol("c".to_string())),
+        Box::new(Value::Number(3)),
+    );
     let alist = Value::Pair(
         Box::new(pair_a),
         Box::new(Value::Pair(
@@ -310,7 +315,10 @@ fn cas_prims() {
         other => panic!("expected block, got {:?}", other),
     }
 
-    let missing = prim("fetch", &[Value::Address(Address::from([0u8; ADDRESS_SIZE]))]);
+    let missing = prim(
+        "fetch",
+        &[Value::Address(Address::from([0u8; ADDRESS_SIZE]))],
+    );
     assert!(matches!(missing, Value::Bool(false)));
 }
 
@@ -318,8 +326,10 @@ fn cas_prims() {
 fn cas_store_helpers() {
     let _guard = store_test_guard();
 
-    let child_payload =
-        prim("string->utf8", &[Value::String("cas-helper-child".to_string())]);
+    let child_payload = prim(
+        "string->utf8",
+        &[Value::String("cas-helper-child".to_string())],
+    );
     let child_block = prim(
         "make-block",
         &[
@@ -330,8 +340,10 @@ fn cas_store_helpers() {
     );
     let child_addr = expect_address(&prim("store!", &[child_block]));
 
-    let parent_payload =
-        prim("string->utf8", &[Value::String("cas-helper-parent".to_string())]);
+    let parent_payload = prim(
+        "string->utf8",
+        &[Value::String("cas-helper-parent".to_string())],
+    );
     let parent_refs = prim("vec-make", &[Value::Address(child_addr)]);
     let parent_block = prim(
         "make-block",
@@ -366,8 +378,16 @@ fn cas_store_helpers() {
 
     let hashes = prim("store-hashes", &[]);
     let values = list_to_vec(&hashes);
-    assert!(values.iter().any(|v| matches!(v, Value::Address(a) if *a == child_addr)));
-    assert!(values.iter().any(|v| matches!(v, Value::Address(a) if *a == parent_addr)));
+    assert!(
+        values
+            .iter()
+            .any(|v| matches!(v, Value::Address(a) if *a == child_addr))
+    );
+    assert!(
+        values
+            .iter()
+            .any(|v| matches!(v, Value::Address(a) if *a == parent_addr))
+    );
 }
 
 #[test]

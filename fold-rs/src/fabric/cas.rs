@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::fabric::{
-    address::{Address, ADDRESS_SIZE, ADDRESS_VERSION},
+    address::{ADDRESS_SIZE, ADDRESS_VERSION, Address},
     block::Block,
-    hex::{bytes_to_hex, hex_to_bytes, HexError},
+    hex::{HexError, bytes_to_hex, hex_to_bytes},
     sha256::sha256,
 };
 
