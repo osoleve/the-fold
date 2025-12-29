@@ -3,6 +3,7 @@
 #
 # This script installs git hooks that enforce code quality:
 # - bd sync (beads integration)
+# - typos (spell checking)
 # - scmindent (Scheme indentation)
 # - cargo fmt --check (Rust formatting)
 # - cargo clippy (Rust linting)
@@ -28,9 +29,10 @@ cat > "$HOOK_FILE" << 'EOF'
 #
 # This hook:
 # 1. Delegates to 'bd hooks run pre-commit' for bd sync
-# 2. Checks Scheme indentation (scmindent)
-# 3. Runs cargo fmt --check (Rust formatting)
-# 4. Runs clippy (Rust linting)
+# 2. Checks spelling with typos
+# 3. Checks Scheme indentation (scmindent)
+# 4. Runs cargo fmt --check (Rust formatting)
+# 5. Runs clippy (Rust linting)
 
 # Check if bd is available and run bd hooks
 if command -v bd >/dev/null 2>&1; then
@@ -42,6 +44,21 @@ if command -v bd >/dev/null 2>&1; then
     fi
 else
     echo "Warning: bd command not found in PATH, skipping bd sync" >&2
+fi
+
+# Check spelling with typos
+if command -v typos >/dev/null 2>&1; then
+    echo "Checking spelling with typos..."
+    if ! typos; then
+        echo "" >&2
+        echo "❌ Spelling check failed!" >&2
+        echo "Run: typos (to see errors) or typos --write-changes (to fix)" >&2
+        exit 1
+    fi
+    echo "✓ Spelling check passed"
+else
+    echo "Warning: typos not found, skipping spell check" >&2
+    echo "  Install with: cargo install typos-cli" >&2
 fi
 
 # Check Scheme formatting on staged .ss and .scm files
@@ -134,9 +151,11 @@ echo "✓ Git hooks installed successfully"
 echo ""
 echo "The pre-commit hook will now:"
 echo "  1. Sync beads (bd) changes"
-echo "  2. Check Scheme indentation (scmindent)"
-echo "  3. Check Rust formatting (cargo fmt --check)"
-echo "  4. Run Rust linting (cargo clippy)"
+echo "  2. Check spelling (typos)"
+echo "  3. Check Scheme indentation (scmindent)"
+echo "  4. Check Rust formatting (cargo fmt --check)"
+echo "  5. Run Rust linting (cargo clippy)"
 echo ""
-echo "Note: Install scmindent for Scheme checking:"
-echo "  sudo npm install -g scmindent"
+echo "Note: Install additional tools if needed:"
+echo "  typos:     cargo install typos-cli"
+echo "  scmindent: sudo npm install -g scmindent"
