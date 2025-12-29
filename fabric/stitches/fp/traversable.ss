@@ -99,19 +99,26 @@
 ;;; Applicative Interface (for Traversable)
 ;;; ============================================================
 ;;;
-;;; We represent applicatives as: (pure . ap)
+;;; Applicatives are represented as tagged lists for consistency
+;;; with other typeclass dictionaries in the FP toolkit:
+;;;   (list 'applicative pure ap)
+;;;
 ;;; pure : a -> f a
 ;;; ap   : f (a -> b) -> f a -> f b
 
 ;;; make-applicative : (a -> f a) -> (f (a -> b) -> f a -> f b) -> Applicative f
 (define (make-applicative pure ap)
-  (cons pure ap))
+  (list 'applicative pure ap))
+
+;;; applicative? : Any -> Boolean
+(define (applicative? x)
+  (and (pair? x) (eq? (car x) 'applicative)))
 
 ;;; app-pure : Applicative f -> a -> f a
-(define (app-pure app) (car app))
+(define (app-pure app) (list-ref app 1))
 
 ;;; app-ap : Applicative f -> f (a -> b) -> f a -> f b
-(define (app-ap app) (cdr app))
+(define (app-ap app) (list-ref app 2))
 
 ;;; app-fmap : Applicative f -> (a -> b) -> f a -> f b
 ;;; Derived from pure and ap.
