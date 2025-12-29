@@ -211,42 +211,63 @@
                 (error 'start-tutorial "No tier specified and no session tier available"))
         
         (if (null? available-tutorials)
-            (display (format "No tutorials available for tier '~a.\n" tier))
+            (display (format "No tutorials available for tier '~a.
+" tier))
             (begin
-             (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-             (display "║                    THE FOLD TUTORIAL SYSTEM                  ║\n")
-             (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-             (display "Available tutorials for your tier ('~a):\n\n" tier)
+             (display "
+╔══════════════════════════════════════════════════════════════╗
+")
+             (display "║                    THE FOLD TUTORIAL SYSTEM                  ║
+")
+             (display "╚══════════════════════════════════════════════════════════════╝
+
+")
+             (display "Available tutorials for your tier ('~a):
+
+" tier)
              
              (for-each
               (lambda (tutorial i)
                       (let ((id (list-ref tutorial 0))
                             (title (list-ref tutorial 1))
                             (description (list-ref tutorial 3)))
-                           (display (format "~a. ~a\n   ~a\n\n" (+ i 1) title description))))
+                           (display (format "~a. ~a
+   ~a
+
+" (+ i 1) title description))))
               available-tutorials
               (iota (length available-tutorials)))
              
-             (display "Use (start-tutorial 'tutorial-name) to begin a specific tutorial.\n")
-             (display "Or use (start-tutorial 'basic-navigation) to start with the basics.\n\n")))))
+             (display "Use (start-tutorial 'tutorial-name) to begin a specific tutorial.
+")
+             (display "Or use (start-tutorial 'basic-navigation) to start with the basics.
+
+")))))
 
 ;;; Start a specific tutorial by ID
 (define (start-tutorial tutorial-id)
   (let ((tutorial (assoc tutorial-id *tutorials*)))
        (unless tutorial
-               (error 'start-tutorial "Unknown tutorial: ~a" tutorial-id))
+               (error 'start-tutorial (format "Unknown tutorial: ~a" tutorial-id)))
        
        (*current-tutorial* tutorial-id)
        (*current-step* 0)
        (*tutorial-session* #t)
        
-       (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-       (display (format "║ Starting Tutorial: ~a~a║\n"
+       (display "
+╔══════════════════════════════════════════════════════════════╗
+")
+       (display (format "║ Starting Tutorial: ~a~a║
+"
                         (list-ref tutorial 1)
                         (make-string (- 52 (string-length (list-ref tutorial 1))) #\space)))
-       (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+       (display "╚══════════════════════════════════════════════════════════════╝
+
+")
        (display (list-ref tutorial 3))
-       (display "\n\n")
+       (display "
+
+")
        
        (tutorial-next)))
 
@@ -263,11 +284,18 @@
         (cond
          ((not current-step-obj)
           ;; Tutorial completed
-          (display "\n🎉 Tutorial completed! 🎉\n\n")
-          (display "You've successfully completed the '~a' tutorial.\n"
+          (display "
+🎉 Tutorial completed! 🎉
+
+")
+          (display "You've successfully completed the '~a' tutorial.
+"
                    (list-ref tutorial 1))
-          (display "You can start another tutorial with (start-tutorial 'tutorial-name)\n")
-          (display "Or explore The Fold on your own!\n\n")
+          (display "You can start another tutorial with (start-tutorial 'tutorial-name)
+")
+          (display "Or explore The Fold on your own!
+
+")
           
           ;; Award completion badge (could be stored in user profile)
           (award-tutorial-badge! (*current-tutorial*))
@@ -285,27 +313,39 @@
                 (step-exercise (list-ref current-step-obj 3))
                 (step-help (list-ref current-step-obj 5)))
                
-               (display "┌─────────────────────────────────────────────────────────────┐\n")
-               (display (format "│ Step ~a: ~a~a│\n"
+               (display "┌─────────────────────────────────────────────────────────────┐
+")
+               (display (format "│ Step ~a: ~a~a│
+"
                                 (+ (*current-step*) 1)
                                 step-title
                                 (make-string (- 55 (string-length step-title)
                                                 (string-length (number->string (+ (*current-step*) 1)))) #\space)))
-               (display "└─────────────────────────────────────────────────────────────┘\n\n")
+               (display "└─────────────────────────────────────────────────────────────┘
+
+")
                
                (display step-description)
-               (display "\n\n")
+               (display "
+
+")
                
                (if (procedure? step-exercise)
                    (begin
                     (display "💡 Exercise: ")
                     (display step-help)
-                    (display "\n\n")
-                    (display "When you're ready, use (tutorial-do) to attempt this step.\n")
-                    (display "Or use (tutorial-skip) to skip this step.\n"))
+                    (display "
+
+")
+                    (display "When you're ready, use (tutorial-do) to attempt this step.
+")
+                    (display "Or use (tutorial-skip) to skip this step.
+"))
                    (begin
-                    (display "✓ This is an informational step.\n")
-                    (display "Use (tutorial-next) to continue.\n")))))))
+                    (display "✓ This is an informational step.
+")
+                    (display "Use (tutorial-next) to continue.
+")))))))
   
   ;;; tutorial-do : → void
   ;;; Attempt to complete the current tutorial step
@@ -320,27 +360,36 @@
           (unless (procedure? step-exercise)
                   (error 'tutorial-do "Current step has no exercise. Use (tutorial-next) to continue."))
           
-          (display "Attempting exercise...\n")
+          (display "Attempting exercise...
+")
           
           (guard (e
                   [(condition? e)
                    (display "❌ Error during exercise: ")
                    (display (format-condition e))
-                   (display "\nUse (tutorial-help) for guidance or (tutorial-skip) to skip.\n")]
+                   (display "
+Use (tutorial-help) for guidance or (tutorial-skip) to skip.
+")]
                   [else
-                   (display "❌ Unexpected error occurred.\n")
-                   (display "Use (tutorial-help) for guidance or (tutorial-skip) to skip.\n")])
+                   (display "❌ Unexpected error occurred.
+")
+                   (display "Use (tutorial-help) for guidance or (tutorial-skip) to skip.
+")])
                  
                  (let ((result (step-exercise)))
                       (if (step-validation result)
                           (begin
-                           (display "✅ Success! Step completed.\n\n")
+                           (display "✅ Success! Step completed.
+
+")
                            (*current-step* (+ (*current-step*) 1))
                            (set-tutorial-progress! (*current-tutorial*) (*current-step*))
                            (tutorial-next))
                           (begin
-                           (display "❌ Step not completed correctly.\n")
-                           (display "Use (tutorial-help) for guidance or (tutorial-skip) to skip.\n")))))))
+                           (display "❌ Step not completed correctly.
+")
+                           (display "Use (tutorial-help) for guidance or (tutorial-skip) to skip.
+")))))))
   
   ;;; tutorial-skip : → void
   ;;; Skip the current tutorial step
@@ -348,7 +397,9 @@
     (unless (tutorial-session-active?)
             (error 'tutorial-skip "No active tutorial session. Use (start-tutorial) first."))
     
-    (display "⏭ Skipping current step...\n\n")
+    (display "⏭ Skipping current step...
+
+")
     (*current-step* (+ (*current-step*) 1))
     (set-tutorial-progress! (*current-tutorial*) (*current-step*))
     (tutorial-next))
@@ -362,10 +413,15 @@
     (let ((current-step-obj (get-current-step)))
          (if current-step-obj
              (let ((step-help (list-ref current-step-obj 5)))
-                  (display "\n📚 Help for current step:\n")
+                  (display "
+📚 Help for current step:
+")
                   (display step-help)
-                  (display "\n\n"))
-             (display "No help available - tutorial may be completed.\n"))))
+                  (display "
+
+"))
+             (display "No help available - tutorial may be completed.
+"))))
   
   ;;; tutorial-status : → void
   ;;; Show current tutorial progress
@@ -377,18 +433,26 @@
                (current-step-num (*current-step*))
                (progress-percent (round (* (/ current-step-num total-steps) 100))))
               
-              (display "\n📊 Tutorial Status:\n")
-              (display (format "Tutorial: ~a\n" (list-ref tutorial 1)))
-              (display (format "Progress: ~a/~a steps (~a%)\n"
+              (display "
+📊 Tutorial Status:
+")
+              (display (format "Tutorial: ~a
+" (list-ref tutorial 1)))
+              (display (format "Progress: ~a/~a steps (~a%)
+"
                                current-step-num total-steps progress-percent))
               
               (if (< current-step-num total-steps)
                   (let ((current-step-obj (get-current-step)))
-                       (display (format "Current step: ~a\n" (list-ref current-step-obj 1))))
-                  (display "Status: Tutorial completed!\n"))
+                       (display (format "Current step: ~a
+" (list-ref current-step-obj 1))))
+                  (display "Status: Tutorial completed!
+"))
               
-              (display "\n"))
-        (display "No active tutorial session.\n")))
+              (display "
+"))
+        (display "No active tutorial session.
+")))
   
   ;;; list-tutorials : [Symbol] → void
   ;;; List available tutorials, optionally filtered by tier
@@ -405,12 +469,17 @@
                                      *tutorials*)
                                     *tutorials*)))
           
-          (display "\n📚 Available Tutorials:\n\n")
+          (display "
+📚 Available Tutorials:
+
+")
           
           (if (null? available-tutorials)
               (if tier
-                  (display (format "No tutorials available for tier '~a.\n" tier))
-                  (display "No tutorials available.\n"))
+                  (display (format "No tutorials available for tier '~a.
+" tier))
+                  (display "No tutorials available.
+"))
               
               (for-each
                (lambda (tutorial)
@@ -420,31 +489,44 @@
                              (description (list-ref tutorial 3))
                              (progress (get-tutorial-progress (list-ref tutorial 0))))
                             
-                            (display (format "~a (~a)\n" title (string-join (map symbol->string tiers) "/")))
-                            (display (format "  ID: ~a\n" id))
-                            (display (format "  Description: ~a\n" description))
-                            (display (format "  Progress: ~a% complete\n" progress))
-                            (display "\n")))
+                            (display (format "~a (~a)
+" title (string-join (map symbol->string tiers) "/")))
+                            (display (format "  ID: ~a
+" id))
+                            (display (format "  Description: ~a
+" description))
+                            (display (format "  Progress: ~a% complete
+" progress))
+                            (display "
+")))
                available-tutorials))
           
-          (display "Use (start-tutorial 'tutorial-id) to begin a tutorial.\n\n")))
+          (display "Use (start-tutorial 'tutorial-id) to begin a tutorial.
+
+")))
   
   ;;; Award tutorial completion badge (placeholder - could integrate with user profile system)
   (define (award-tutorial-badge! tutorial-id)
-    (display (format "🏆 Tutorial badge awarded: ~a\n" tutorial-id))
+    (display (format "🏆 Tutorial badge awarded: ~a
+" tutorial-id))
     ;; This could store completion status in user profile, update forum reputation, etc.
     )
   
   ;;; Export tutorial completion data
   (define (export-tutorial-progress)
     (let ((progress (*tutorial-progress*)))
-         (display "Tutorial Progress Export:\n")
-         (display "========================\n\n")
+         (display "Tutorial Progress Export:
+")
+         (display "========================
+
+")
          (hash-table-walk
           progress
           (lambda (tutorial-id step-count)
-                  (display (format "~a: ~a steps completed\n" tutorial-id step-count))))
-         (display "\n")))
+                  (display (format "~a: ~a steps completed
+" tutorial-id step-count))))
+         (display "
+")))
   
   ;;; Note: `provide` is Racket-specific. Functions are available after load.
   ;;; Exported: start-tutorial tutorial-next tutorial-do tutorial-skip tutorial-help

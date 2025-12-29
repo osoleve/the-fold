@@ -57,6 +57,24 @@
   (make-error-level 'info *color-blue* "INFO"))
 
 ;;; ============================================================
+;;; Error with Format Helper
+;;; ============================================================
+
+;;; errorf : Symbol × String × Any... → ⊥
+;;; Raise an error with a formatted message.
+;;; This prevents the common bug of using format placeholders (~a, ~s)
+;;; directly in (error ...) which doesn't do substitution.
+;;;
+;;; WRONG: (error 'foo "Unknown value: ~a" value)  ; Shows literal ~a
+;;; RIGHT: (errorf 'foo "Unknown value: ~a" value) ; Substitutes value
+;;;
+;;; Example:
+;;;   (errorf 'start-tutorial "Unknown tutorial: ~a" tutorial-id)
+;;;   => Exception in start-tutorial: Unknown tutorial: basic-intro
+(define (errorf who fmt-string . args)
+  (error who (apply format fmt-string args)))
+
+;;; ============================================================
 ;;; Main Formatting API
 ;;; ============================================================
 
@@ -96,10 +114,12 @@
   (string-append
    ;; Header line
    (format-error-header level who file line col)
-   "\n"
+   "
+"
    ;; Message (with fixed formatting)
    (format-message msg irritants)
-   "\n"
+   "
+"
    ;; Source context (if available)
    (if (and file line)
        (format-source-context file line col)
@@ -109,7 +129,8 @@
        (format-suggestions msg)
        "")
    ;; Footer
-   "\n"))
+   "
+"))
 
 ;;; ============================================================
 ;;; Header Formatting
@@ -231,9 +252,11 @@
                 [end (min (length lines) (+ line *max-context-lines*))]
                 [context-lines (list-slice lines (- start 1) end)])
                (string-append
-                "\n"
+                "
+"
                 (colorize "Source:" *color-gray* "")
-                "\n"
+                "
+"
                 (format-lines-with-numbers context-lines start line col)))))
 
 ;;; format-lines-with-numbers : (List String) × Nat × Nat × Nat → String
@@ -250,13 +273,15 @@
                                       (colorize line *color-red* "")
                                       (colorize line *color-gray* ""))]
                   [pointer (if is-error-line?
-                               (format "     | ~a~a\n"
+                               (format "     | ~a~a
+"
                                        (make-string (max 0 (- error-col 1)) #\space)
                                        (colorize "^" *color-red* *color-bold*))
                                "")])
                  (loop (cdr ls)
                        (+ num 1)
-                       (string-append result prefix formatted-line "\n" pointer))))))
+                       (string-append result prefix formatted-line "
+" pointer))))))
 
 ;;; ============================================================
 ;;; Suggestions
@@ -269,15 +294,19 @@
        (if (null? suggestions)
            ""
            (string-append
-            "\n"
+            "
+"
             (colorize "Suggestions:" *color-blue* *color-bold*)
-            "\n"
+            "
+"
             (string-join
              (map (lambda (s)
                           (format "  • ~a" s))
                   suggestions)
-             "\n")
-            "\n"))))
+             "
+")
+            "
+"))))
 
 ;;; suggest-fixes : String → (List String)
 ;;; Analyze error and suggest fixes.
@@ -374,22 +403,41 @@
 (define (error-to-string condition)
   (format-error condition))
 
-(display "\n")
-(display "Enhanced error formatter loaded.\n")
-(display "\n")
-(display "Features:\n")
-(display "  • Fixes ~s and ~:s placeholder bugs\n")
-(display "  • Color-coded severity levels\n")
-(display "  • Source location highlighting\n")
-(display "  • Contextual suggestions\n")
-(display "\n")
-(display "Usage:\n")
-(display "  (format-error condition)                 - Format condition\n")
-(display "  (format-error-simple \"message\")          - Simple error\n")
-(display "  (format-error-with-location msg f l c)   - With location\n")
-(display "  (error-to-string condition)              - Convert to string\n")
-(display "\n")
-(display "Configuration:\n")
-(display "  (set! *use-colors* #f)                   - Disable colors\n")
-(display "  (set! *show-suggestions* #f)             - Disable suggestions\n")
-(display "\n")
+(display "
+")
+(display "Enhanced error formatter loaded.
+")
+(display "
+")
+(display "Features:
+")
+(display "  • Fixes ~s and ~:s placeholder bugs
+")
+(display "  • Color-coded severity levels
+")
+(display "  • Source location highlighting
+")
+(display "  • Contextual suggestions
+")
+(display "
+")
+(display "Usage:
+")
+(display "  (format-error condition)                 - Format condition
+")
+(display "  (format-error-simple \"message\")          - Simple error
+")
+(display "  (format-error-with-location msg f l c)   - With location
+")
+(display "  (error-to-string condition)              - Convert to string
+")
+(display "
+")
+(display "Configuration:
+")
+(display "  (set! *use-colors* #f)                   - Disable colors
+")
+(display "  (set! *show-suggestions* #f)             - Disable suggestions
+")
+(display "
+")

@@ -1,409 +1,54 @@
-;;; thimble/docgen.ss — Documentation Generator
+;;; thimble/docgen.ss -- API Documentation Generator
 ;;;
 ;;; Extracts documentation from Scheme source files and generates
-;;; structured documentation in multiple formats.
+;;; structured documentation as S-expressions.
 ;;;
 ;;; This is Shell code: reads files, parses comments, generates output.
 ;;;
+;;; Documentation Patterns Recognized:
+;;;   - ;;; Triple-semicolon doc comments
+;;;   - ;;; function-name : Type -> Type -> Result
+;;;   - ;;; Export Summary sections
+;;;   - (define (function-name ...)) definitions
+;;;
+;;; Output Format:
+;;;   ((module . "module-name")
+;;;    (exports . ((name . "function-name")
+;;;                (signature . "Type -> Type -> Result")
+;;;                (doc . "Description")
+;;;                (file . "path/to/file.ss")
+;;;                (line . 42))))
+;;;
+;;; Key Functions:
+;;;   (docgen-file path)           -- Generate docs for single file
+;;;   (docgen-directory path)      -- Generate docs for all .ss files
+;;;   (docgen-index docs)          -- Create searchable index by name
+;;;   (docgen-summary docs)        -- Create human-readable summary
+;;;
 ;;; Dependencies:
-;;;   shell/fs.ss (for file operations)
-;;;   shell/text.ss (for text utilities)
+;;;   - prelude.ss (for result types)
 ;;;
-;;; Operations:
-;;;   (docgen-file path) — Extract docs from a single file
-;;;   (docgen-dir path pattern) — Extract docs from directory
-;;;   (docgen-module module-name) — Extract docs from module
-;;;   (docgen-render docs format) — Render docs in format
-;;;   (docgen-toolkit) — Generate toolkit documentation
-;;;
-;;; Features:
-;;;   - Extracts header comments (;;; style)
-;;;   - Parses function signatures and type annotations
-;;;   - Identifies dependencies and usage examples
-;;;   - Multiple output formats (scheme, markdown, text)
-;;;   - Automatic cross-referencing
-;;;   - Index generation
+;;; NOTE: Run from project root directory.
+
+;;; Set up source-directories for module loading
+(source-directories (cons "fabric/stitches" (source-directories)))
+
+(load "prelude.ss")
 
 ;;; ============================================================
 ;;; Configuration
 ;;; ============================================================
 
 (define *doc-comment-prefix* ";;;")
-(define *section-marker* ";;;")
-
-;;; Documentation record structure
-(define-record-type module-doc
-  (fields
-   name              ; Module name (string)
-   file-path         ; Source file path
-   summary           ; One-line summary
-   description       ; Full description
-   dependencies      ; List of dependency paths
-   operations        ; List of operation-doc records
-   features          ; List of feature strings
-   examples          ; List of example strings
-   categories))      ; List of category symbols
-
-(define-record-type operation-doc
-  (fields
-   name              ; Operation name (symbol)
-   signature         ; Type signature string
-   parameters        ; List of parameter descriptions
-   return-type       ; Return type description
-   description       ; What it does
-   examples))        ; Usage examples
+(define *export-summary-marker* "Export Summary")
+(define *section-marker-prefix* ";;; ===")
 
 ;;; ============================================================
-;;; Documentation Extraction
+;;; String Utilities
 ;;; ============================================================
 
-;;; docgen-file : Path → ModuleDoc
-;;; Extract documentation from a single Scheme file.
-(define (docgen-file path)
-  (guard (e [else
-             (make-module-doc
-              (path->module-name path)
-              path
-              "Error extracting documentation"
-              (format "~a" (if (condition? e)
-                               (condition-message e)
-                               e))
-              '() '() '() '() '())])
-         (let* ([lines (read-file-lines path)]
-                [header (extract-header lines)]
-                [operations (extract-operations lines)])
-               (make-module-doc
-                (or (header-get header 'module-name)
-                    (path->module-name path))
-                path
-                (or (header-get header 'summary) "")
-                (or (header-get header 'description) "")
-                (or (header-get header 'dependencies) '())
-                operations
-                (or (header-get header 'features) '())
-                (or (header-get header 'examples) '())
-                (or (header-get header 'categories) '())))))
-
-;;; path->module-name : Path → String
-;;; Extract module name from file path.
-(define (path->module-name path)
-  (let* ([basename (path-basename path)]
-         [name (path-strip-extension basename)])
-        name))
-
-;;; path-basename : Path → String
-(define (path-basename path)
-  (let ([parts (string-split path #\/)])
-       (if (null? parts)
-           path
-           (car (reverse parts)))))
-
-;;; path-strip-extension : String → String
-(define (path-strip-extension name)
-  (let ([idx (string-index-right name #\.)])
-       (if idx
-           (substring name 0 idx)
-           name)))
-
-;;; string-index-right : String × Char → Nat | #f
-(define (string-index-right str ch)
-  (let ([len (string-length str)])
-       (let loop ([i (- len 1)])
-            (cond
-             [(< i 0) #f]
-             [(char=? (string-ref str i) ch) i]
-             [else (loop (- i 1))]))))
-
-;;; ============================================================
-;;; Header Extraction
-;;; ============================================================
-
-;;; extract-header : (List String) → Alist
-;;; Extract header documentation from comment lines.
-(define (extract-header lines)
-  (let loop ([ls lines]
-             [header '()]
-             [in-header? #t])
-       (cond
-        [(null? ls) (reverse header)]
-        [(not in-header?) (reverse header)]
-        [else
-         (let ([line (car ls)])
-              (cond
-               [(doc-comment? line)
-                (let* ([content (doc-comment-content line)]
-                       [parsed (parse-header-line content)])
-                      (if parsed
-                          (loop (cdr ls) (cons parsed header) #t)
-                          (loop (cdr ls) header #t)))]
-               [(empty-line? line)
-                (loop (cdr ls) header #t)]
-               [else
-                (loop (cdr ls) header #f)]))])))
-
-;;; parse-header-line : String → (Pair Symbol Any) | #f
-;;; Parse a header line looking for structured data.
-(define (parse-header-line line)
-  (cond
-   [(string-prefix? "Dependencies:" line)
-    (cons 'dependencies-marker #t)]
-   [(string-prefix? "Operations:" line)
-    (cons 'operations-marker #t)]
-   [(string-prefix? "Features:" line)
-    (cons 'features-marker #t)]
-   [(string-prefix? "Examples:" line)
-    (cons 'examples-marker #t)]
-   [(string-prefix? "  " line)  ; Indented item
-    (cons 'item (string-trim (substring line 2 (string-length line))))]
-   [else
-    (cons 'description line)]))
-
-;;; header-get : Alist × Symbol → Any
-;;; Get structured data from header by key.
-(define (header-get header key)
-  (let ([items (collect-items header key)])
-       (if (null? items) #f items)))
-
-;;; collect-items : Alist × Symbol → (List String)
-(define (collect-items header marker-key)
-  (let loop ([entries header]
-             [collecting? #f]
-             [items '()])
-       (cond
-        [(null? entries)
-         (reverse items)]
-        [else
-         (let ([entry (car entries)])
-              (cond
-               [(eq? (car entry) marker-key)
-                (loop (cdr entries) #t items)]
-               [(and collecting? (eq? (car entry) 'item))
-                (loop (cdr entries) #t (cons (cdr entry) items))]
-               [(and collecting? (symbol-suffix? "-marker" (car entry)))
-                (reverse items)]  ; Hit next section
-               [else
-                (loop (cdr entries) collecting? items)]))])))
-
-;;; symbol-suffix? : String × Symbol → Bool
-(define (symbol-suffix? suffix sym)
-  (string-suffix? suffix (symbol->string sym)))
-
-;;; string-suffix? : String × String → Bool
-(define (string-suffix? suffix str)
-  (let ([slen (string-length suffix)]
-        [len (string-length str)])
-       (and (>= len slen)
-            (string=? suffix (substring str (- len slen) len)))))
-
-;;; ============================================================
-;;; Operation Extraction
-;;; ============================================================
-
-;;; extract-operations : (List String) → (List OperationDoc)
-;;; Extract function/operation documentation from source.
-(define (extract-operations lines)
-  (let loop ([ls lines]
-             [ops '()]
-             [current-comment '()])
-       (cond
-        [(null? ls)
-         (reverse ops)]
-        [else
-         (let ([line (car ls)])
-              (cond
-               [(doc-comment? line)
-                (loop (cdr ls)
-                      ops
-                      (cons (doc-comment-content line) current-comment))]
-               [(and (not (null? current-comment))
-                     (function-definition? line))
-                (let ([op-doc (make-operation-from-comment-and-def
-                               (reverse current-comment)
-                               line)])
-                     (loop (cdr ls)
-                           (if op-doc (cons op-doc ops) ops)
-                           '()))]
-               [else
-                (loop (cdr ls) ops '())]))])))
-
-;;; function-definition? : String → Bool
-(define (function-definition? line)
-  (or (string-contains? line "(define ")
-      (string-contains? line "(define-record-type ")))
-
-;;; make-operation-from-comment-and-def : (List String) × String → OperationDoc | #f
-(define (make-operation-from-comment-and-def comments defn-line)
-  (let ([signature (extract-signature comments)]
-        [name (extract-function-name defn-line)]
-        [desc (extract-description comments)])
-       (if (and signature name)
-           (make-operation-doc
-            name
-            signature
-            '()  ; params (could parse from signature)
-            ""   ; return type (could parse from signature)
-            desc
-            '()) ; examples
-           #f)))
-
-;;; extract-signature : (List String) → String | #f
-(define (extract-signature comments)
-  (let loop ([cs comments])
-       (cond
-        [(null? cs) #f]
-        [(and (string-contains? (car cs) ":")
-              (string-contains? (car cs) "→"))
-         (car cs)]
-        [else (loop (cdr cs))])))
-
-;;; extract-function-name : String → Symbol | #f
-(define (extract-function-name defn-line)
-  (guard (e [else #f])
-         (let ([trimmed (string-trim defn-line)])
-              (cond
-               [(string-prefix? "(define (" trimmed)
-                (let* ([start (string-length "(define (")]
-                       [rest (substring trimmed start (string-length trimmed))]
-                       [end (string-index rest #\space)])
-                      (if end
-                          (string->symbol (substring rest 0 end))
-                          #f))]
-               [(string-prefix? "(define " trimmed)
-                (let* ([start (string-length "(define ")]
-                       [rest (substring trimmed start (string-length trimmed))]
-                       [end (or (string-index rest #\space)
-                                (string-index rest #\newline))])
-                      (if end
-                          (string->symbol (substring rest 0 end))
-                          #f))]
-               [else #f]))))
-
-;;; extract-description : (List String) → String
-(define (extract-description comments)
-  (string-join
-   (filter (lambda (c)
-                   (and (not (string-contains? c "→"))
-                        (not (string-contains? c ":"))))
-           comments)
-   " "))
-
-;;; ============================================================
-;;; Documentation Rendering
-;;; ============================================================
-
-;;; docgen-render : ModuleDoc × Symbol → String
-;;; Render documentation in specified format.
-(define (docgen-render doc format)
-  (case format
-        [(scheme) (render-scheme doc)]
-        [(markdown) (render-markdown doc)]
-        [(text) (render-text doc)]
-        [else (error 'docgen-render "Unknown format" format)]))
-
-;;; render-scheme : ModuleDoc → String
-;;; Render as Scheme data structure.
-(define (render-scheme doc)
-  (format "~s" doc))
-
-;;; render-text : ModuleDoc → String
-;;; Render as plain text.
-(define (render-text doc)
-  (string-append
-   "Module: " (module-doc-name doc) "\n"
-   "File: " (module-doc-file-path doc) "\n"
-   "\n"
-   (module-doc-description doc) "\n"
-   "\n"
-   "Operations:\n"
-   (string-join
-    (map (lambda (op)
-                 (string-append
-                  "  " (symbol->string (operation-doc-name op))
-                  " : " (operation-doc-signature op) "\n"
-                  "    " (operation-doc-description op)))
-         (module-doc-operations doc))
-    "\n")
-   "\n"))
-
-;;; render-markdown : ModuleDoc → String
-;;; Render as Markdown.
-(define (render-markdown doc)
-  (string-append
-   "# " (module-doc-name doc) "\n\n"
-   "> " (module-doc-summary doc) "\n\n"
-   "**File:** `" (module-doc-file-path doc) "`\n\n"
-   (module-doc-description doc) "\n\n"
-   "## Operations\n\n"
-   (string-join
-    (map (lambda (op)
-                 (string-append
-                  "### `" (symbol->string (operation-doc-name op)) "`\n\n"
-                  "**Signature:** `" (operation-doc-signature op) "`\n\n"
-                  (operation-doc-description op) "\n"))
-         (module-doc-operations doc))
-    "\n")
-   "\n"))
-
-;;; ============================================================
-;;; High-Level API
-;;; ============================================================
-
-;;; docgen-toolkit : → (List ModuleDoc)
-;;; Generate documentation for all toolkit modules.
-(define (docgen-toolkit)
-  (docgen-dir "shell" "*.ss"))
-
-;;; docgen-dir : Path × Pattern → (List ModuleDoc)
-;;; Extract documentation from all matching files in directory.
-(define (docgen-dir path pattern)
-  (let ([files (find-files path pattern)])
-       (map docgen-file files)))
-
-;;; find-files : Path × Pattern → (List Path)
-;;; Find all files matching pattern (simplified glob).
-(define (find-files dir pattern)
-  (guard (e [else '()])
-         ;; Simplified: just return hardcoded for now
-         ;; In real implementation, would use fs.ss directory listing
-         '("shell/toolkit.ss"
-           "shell/test-runner.ss"
-           "shell/watch.ss"
-           "shell/scaffold.ss"
-           "shell/perf-monitor.ss"
-           "shell/history.ss")))
-
-;;; ============================================================
-;;; Utility Functions
-;;; ============================================================
-
-;;; read-file-lines : Path → (List String)
-(define (read-file-lines path)
-  (guard (e [else '()])
-         (call-with-input-file path
-                               (lambda (port)
-                                       (let loop ([lines '()])
-                                            (let ([line (get-line port)])
-                                                 (if (eof-object? line)
-                                                     (reverse lines)
-                                                     (loop (cons line lines)))))))))
-
-;;; doc-comment? : String → Bool
-(define (doc-comment? line)
-  (string-prefix? *doc-comment-prefix* (string-trim line)))
-
-;;; doc-comment-content : String → String
-(define (doc-comment-content line)
-  (let* ([trimmed (string-trim line)]
-         [prefix-len (string-length *doc-comment-prefix*)])
-        (if (string-prefix? *doc-comment-prefix* trimmed)
-            (string-trim (substring trimmed prefix-len (string-length trimmed)))
-            "")))
-
-;;; empty-line? : String → Bool
-(define (empty-line? line)
-  (= 0 (string-length (string-trim line))))
-
-;;; string-trim : String → String
+;;; string-trim : String -> String
+;;; Remove leading and trailing whitespace.
 (define (string-trim str)
   (let* ([len (string-length str)]
          [start (let loop ([i 0])
@@ -418,14 +63,14 @@
                     [else (+ i 1)]))])
         (substring str start end)))
 
-;;; string-prefix? : String × String → Bool
+;;; string-prefix? : String x String -> Boolean
 (define (string-prefix? prefix str)
   (let ([plen (string-length prefix)]
         [slen (string-length str)])
        (and (>= slen plen)
             (string=? prefix (substring str 0 plen)))))
 
-;;; string-contains? : String × String → Bool
+;;; string-contains? : String x String -> Boolean
 (define (string-contains? str needle)
   (let ([nlen (string-length needle)]
         [slen (string-length str)])
@@ -435,7 +80,7 @@
              [(string=? needle (substring str i (+ i nlen))) #t]
              [else (loop (+ i 1))]))))
 
-;;; string-index : String × Char → Nat | #f
+;;; string-index : String x Char -> Nat | #f
 (define (string-index str ch)
   (let ([len (string-length str)])
        (let loop ([i 0])
@@ -444,18 +89,16 @@
              [(char=? (string-ref str i) ch) i]
              [else (loop (+ i 1))]))))
 
-;;; string-join : (List String) × String → String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([ss (cdr strs)]
-                 [result (car strs)])
-           (if (null? ss)
-               result
-               (loop (cdr ss)
-                     (string-append result sep (car ss)))))))
+;;; string-index-right : String x Char -> Nat | #f
+(define (string-index-right str ch)
+  (let ([len (string-length str)])
+       (let loop ([i (- len 1)])
+            (cond
+             [(< i 0) #f]
+             [(char=? (string-ref str i) ch) i]
+             [else (loop (- i 1))]))))
 
-;;; string-split : String × Char → (List String)
+;;; string-split : String x Char -> (List String)
 (define (string-split str sep)
   (let ([len (string-length str)])
        (let loop ([i 0] [start 0] [parts '()])
@@ -471,8 +114,401 @@
              [else
               (loop (+ i 1) start parts)]))))
 
-(display "Documentation generator loaded.\n")
-(display "Usage:\n")
-(display "  (docgen-file \"path/to/file.ss\")     - Extract docs from file\n")
-(display "  (docgen-toolkit)                     - Generate toolkit docs\n")
-(display "  (docgen-render doc 'markdown)        - Render in format\n")
+;;; string-join : (List String) x String -> String
+(define (string-join strs sep)
+  (if (null? strs)
+      ""
+      (let loop ([ss (cdr strs)]
+                 [result (car strs)])
+           (if (null? ss)
+               result
+               (loop (cdr ss)
+                     (string-append result sep (car ss)))))))
+
+;;; ============================================================
+;;; Path Utilities
+;;; ============================================================
+
+;;; path-basename : Path -> String
+(define (path-basename path)
+  (let ([parts (string-split path #\/)])
+       (if (null? parts)
+           path
+           (let loop ([ps parts])
+                (if (null? (cdr ps))
+                    (car ps)
+                    (loop (cdr ps)))))))
+
+;;; path-strip-extension : String -> String
+(define (path-strip-extension name)
+  (let ([idx (string-index-right name #\.)])
+       (if idx
+           (substring name 0 idx)
+           name)))
+
+;;; path->module-name : Path -> String
+(define (path->module-name path)
+  (path-strip-extension (path-basename path)))
+
+;;; ============================================================
+;;; File Reading
+;;; ============================================================
+
+;;; read-file-lines : Path -> (List String)
+(define (read-file-lines path)
+  (guard (e [else '()])
+         (call-with-input-file path
+                               (lambda (port)
+                                       (let loop ([lines '()])
+                                            (let ([line (get-line port)])
+                                                 (if (eof-object? line)
+                                                     (reverse lines)
+                                                     (loop (cons line lines)))))))))
+
+;;; ============================================================
+;;; Doc Comment Parsing
+;;; ============================================================
+
+;;; doc-comment? : String -> Boolean
+;;; True if line is a doc comment (starts with ;;;).
+(define (doc-comment? line)
+  (let ([trimmed (string-trim line)])
+       (string-prefix? *doc-comment-prefix* trimmed)))
+
+;;; doc-comment-content : String -> String
+;;; Extract content from doc comment (after ;;;).
+(define (doc-comment-content line)
+  (let* ([trimmed (string-trim line)]
+         [prefix-len (string-length *doc-comment-prefix*)])
+        (if (and (>= (string-length trimmed) prefix-len)
+                 (string-prefix? *doc-comment-prefix* trimmed))
+            (string-trim (substring trimmed prefix-len (string-length trimmed)))
+            "")))
+
+;;; empty-line? : String -> Boolean
+(define (empty-line? line)
+  (= 0 (string-length (string-trim line))))
+
+;;; section-header? : String -> Boolean
+;;; True if line is a section header (;;; ===...).
+(define (section-header? line)
+  (let ([trimmed (string-trim line)])
+       (string-prefix? *section-marker-prefix* trimmed)))
+
+;;; ============================================================
+;;; Signature Parsing
+;;; ============================================================
+
+;;; parse-signature : String -> (List Symbol String) | #f
+;;; Parse "function-name : Type -> Type" into (name . signature).
+;;; Returns (name . signature) or #f if not a signature line.
+(define (parse-signature line)
+  (let ([content (doc-comment-content line)])
+       (if (and (string-contains? content " : ")
+                (string-contains? content "->"))  ; Arrow indicator
+           (let* ([colon-idx (let loop ([i 0])
+                                  (cond
+                                   [(>= i (- (string-length content) 2)) #f]
+                                   [(and (char=? (string-ref content i) #\:)
+                                         (char-whitespace? (string-ref content (+ i 1))))
+                                    i]
+                                   [else (loop (+ i 1))]))]
+                  [name (and colon-idx
+                             (string-trim (substring content 0 colon-idx)))]
+                  [signature (and colon-idx
+                                  (string-trim
+                                   (substring content (+ colon-idx 1) (string-length content))))])
+                 (if (and name signature (> (string-length name) 0))
+                     (cons (string->symbol name) signature)
+                     #f))
+           #f)))
+
+;;; ============================================================
+;;; Function Definition Parsing
+;;; ============================================================
+
+;;; function-definition? : String -> Boolean
+(define (function-definition? line)
+  (let ([trimmed (string-trim line)])
+       (or (string-prefix? "(define (" trimmed)
+           (string-prefix? "(define-record-type " trimmed))))
+
+;;; extract-function-name : String -> Symbol | #f
+;;; Extract function name from definition line.
+(define (extract-function-name defn-line)
+  (guard (e [else #f])
+         (let ([trimmed (string-trim defn-line)])
+              (cond
+               [(string-prefix? "(define (" trimmed)
+                (let* ([start (string-length "(define (")]
+                       [rest (substring trimmed start (string-length trimmed))]
+                       [end (string-index rest #\space)])
+                      (if end
+                          (string->symbol (substring rest 0 end))
+                          ;; Handle single-char functions or closing paren
+                          (let ([paren (string-index rest #\))])
+                               (if paren
+                                   (string->symbol (substring rest 0 paren))
+                                   #f))))]
+               [(string-prefix? "(define " trimmed)
+                (let* ([start (string-length "(define ")]
+                       [rest (substring trimmed start (string-length trimmed))]
+                       [end (or (string-index rest #\space)
+                                (string-index rest #
+ewline)
+                                (string-index rest #\)))])
+                      (if (and end (> end 0))
+                          (string->symbol (substring rest 0 end))
+                          #f))]
+               [else #f]))))
+
+;;; ============================================================
+;;; Export Summary Parsing
+;;; ============================================================
+
+;;; find-export-summary : (List String) -> (List String)
+;;; Find and extract the Export Summary section.
+;;; Handles the pattern: ;;; Export Summary / ;;; === / ;;; content...
+(define (find-export-summary lines)
+  (let loop ([ls lines] [in-summary #f] [skip-next-header #f] [items '()])
+       (cond
+        [(null? ls) (reverse items)]
+        [else
+         (let ([line (car ls)])
+              (cond
+               ;; Start of export summary
+               [(and (not in-summary)
+                     (doc-comment? line)
+                     (string-contains? (doc-comment-content line) *export-summary-marker*))
+                ;; Skip the section header that typically follows
+                (loop (cdr ls) #t #t items)]
+               ;; Skip the first section header after Export Summary marker
+               [(and in-summary skip-next-header (section-header? line))
+                (loop (cdr ls) #t #f items)]
+               ;; Inside export summary - subsequent section header ends it
+               [(and in-summary (not skip-next-header) (section-header? line))
+                (reverse items)]
+               ;; Inside export summary - collect doc comment items
+               [(and in-summary (doc-comment? line))
+                (let ([content (doc-comment-content line)])
+                     (if (> (string-length content) 0)
+                         (loop (cdr ls) #t #f (cons content items))
+                         (loop (cdr ls) #t #f items)))]
+               ;; Inside summary - non-doc-comment/non-empty line ends it
+               [(and in-summary (not (empty-line? line)) (not (doc-comment? line)))
+                (reverse items)]
+               [else
+                (loop (cdr ls) in-summary skip-next-header items)]))])))
+
+;;; parse-export-line : String -> (List Symbol) | '()
+;;; Parse an export summary line for function names.
+(define (parse-export-line line)
+  (let* ([clean (string-trim line)]
+         ;; Remove category prefixes like "Type:", "Properties:", etc.
+         [content (if (string-contains? clean ":")
+                      (let ([idx (string-index clean #\:)])
+                           (string-trim (substring clean (+ idx 1) (string-length clean))))
+                      clean)]
+         ;; Split by comma and parse each name
+         [parts (string-split content #\,)])
+        (filter symbol?
+                (map (lambda (p)
+                             (let ([trimmed (string-trim p)])
+                                  (if (> (string-length trimmed) 0)
+                                      (guard (e [else #f])
+                                             (string->symbol trimmed))
+                                      #f)))
+                     parts))))
+
+;;; ============================================================
+;;; Documentation Extraction
+;;; ============================================================
+
+;;; extract-exports : (List String) -> (List (name signature doc line))
+;;; Extract all documented exports from lines.
+(define (extract-exports lines)
+  (let loop ([ls lines]
+             [line-num 1]
+             [current-doc '()]
+             [current-sig #f]
+             [exports '()])
+       (cond
+        [(null? ls) (reverse exports)]
+        [else
+         (let ([line (car ls)])
+              (cond
+               ;; Doc comment - might be signature or description
+               [(doc-comment? line)
+                (let ([sig (parse-signature line)])
+                     (if sig
+                         ;; Found a signature
+                         (loop (cdr ls) (+ line-num 1)
+                               current-doc sig exports)
+                         ;; Regular doc comment
+                         (loop (cdr ls) (+ line-num 1)
+                               (cons (doc-comment-content line) current-doc)
+                               current-sig exports)))]
+               ;; Function definition following doc comments
+               [(and (or current-sig (not (null? current-doc)))
+                     (function-definition? line))
+                (let* ([def-name (extract-function-name line)]
+                       [name (if current-sig (car current-sig) def-name)]
+                       [sig (if current-sig (cdr current-sig) "")]
+                       [doc (string-join (reverse current-doc) " ")]
+                       [export `((name . ,name)
+                                 (signature . ,sig)
+                                 (doc . ,doc)
+                                 (line . ,line-num))])
+                      (loop (cdr ls) (+ line-num 1)
+                            '() #f (cons export exports)))]
+               ;; Empty line - might reset doc accumulator
+               [(empty-line? line)
+                (loop (cdr ls) (+ line-num 1)
+                      current-doc current-sig exports)]
+               ;; Other content - reset doc accumulator
+               [else
+                (loop (cdr ls) (+ line-num 1)
+                      '() #f exports)]))])))
+
+;;; ============================================================
+;;; Main API
+;;; ============================================================
+
+;;; docgen-file : Path -> ModuleDoc
+;;; Generate documentation for a single file.
+;;; Returns an S-expression with module documentation.
+(define (docgen-file path)
+  (guard (e [else
+             `((module . ,(path->module-name path))
+               (file . ,path)
+               (error . ,(if (condition? e)
+                             (condition-message e)
+                             (format "~a" e)))
+               (exports . ()))])
+         (let* ([lines (read-file-lines path)]
+                [exports (extract-exports lines)]
+                [export-summary (find-export-summary lines)]
+                ;; Add file path to each export
+                [exports-with-path
+                 (map (lambda (exp)
+                              (cons (cons 'file path) exp))
+                      exports)])
+               `((module . ,(path->module-name path))
+                 (file . ,path)
+                 (export-summary . ,export-summary)
+                 (exports . ,exports-with-path)))))
+
+;;; docgen-directory : Path -> (List ModuleDoc)
+;;; Generate documentation for all .ss files in a directory.
+(define (docgen-directory path)
+  (guard (e [else '()])
+         (let* ([entries (directory-list path)]
+                [ss-files (filter (lambda (f)
+                                          (string-contains? f ".ss"))
+                                  entries)]
+                [full-paths (map (lambda (f)
+                                         (string-append path "/" f))
+                                 ss-files)])
+               (map docgen-file full-paths))))
+
+;;; docgen-index : (List ModuleDoc) -> Alist
+;;; Create a searchable index from documentation.
+;;; Returns alist mapping function names to their doc entries.
+(define (docgen-index docs)
+  (let loop ([ds docs] [index '()])
+       (cond
+        [(null? ds) index]
+        [else
+         (let* ([doc (car ds)]
+                [exports (cdr (assq 'exports doc))]
+                [new-entries
+                 (map (lambda (exp)
+                              (let ([name (cdr (assq 'name exp))])
+                                   (cons name exp)))
+                      exports)])
+               (loop (cdr ds) (append new-entries index)))])))
+
+;;; docgen-summary : (List ModuleDoc) -> String
+;;; Create a human-readable summary of documentation.
+(define (docgen-summary docs)
+  (string-join
+   (map (lambda (doc)
+                (let* ([module-name (cdr (assq 'module doc))]
+                       [file (cdr (assq 'file doc))]
+                       [exports (cdr (assq 'exports doc))]
+                       [export-count (length exports)]
+                       [header (format "~%=== ~a (~a) ===~%  ~a exports~%"
+                                       module-name file export-count)]
+                       [export-lines
+                        (map (lambda (exp)
+                                     (let ([name (cdr (assq 'name exp))]
+                                           [sig (cdr (assq 'signature exp))]
+                                           [doc-str (cdr (assq 'doc exp))])
+                                          (if (> (string-length sig) 0)
+                                              (format "    ~a : ~a~%      ~a"
+                                                      name sig
+                                                      (if (> (string-length doc-str) 60)
+                                                          (string-append
+                                                           (substring doc-str 0 57) "...")
+                                                          doc-str))
+                                              (format "    ~a~%      ~a"
+                                                      name doc-str))))
+                             exports)])
+                      (string-append header (string-join export-lines "
+"))))
+        docs)
+   "
+"))
+
+;;; ============================================================
+;;; Query Functions
+;;; ============================================================
+
+;;; docgen-find : (List ModuleDoc) x Symbol -> (List Export) | '()
+;;; Find all exports matching a name.
+(define (docgen-find docs name)
+  (let ([index (docgen-index docs)])
+       (filter (lambda (entry)
+                       (eq? (car entry) name))
+               index)))
+
+;;; docgen-search : (List ModuleDoc) x String -> (List Export)
+;;; Search exports by substring in name or doc.
+(define (docgen-search docs query)
+  (let* ([index (docgen-index docs)]
+         [query-lower query])  ; Could lowercase if we had string-downcase
+        (filter (lambda (entry)
+                        (let ([name-str (symbol->string (car entry))]
+                              [doc-str (cdr (assq 'doc (cdr entry)))])
+                             (or (string-contains? name-str query)
+                                 (string-contains? doc-str query))))
+                index)))
+
+;;; ============================================================
+;;; Export Summary
+;;; ============================================================
+;;;
+;;; Main API:
+;;;   docgen-file, docgen-directory, docgen-index, docgen-summary
+;;;
+;;; Query Functions:
+;;;   docgen-find, docgen-search
+;;;
+;;; Parsing Utilities:
+;;;   parse-signature, extract-exports, find-export-summary
+;;;
+;;; String Utilities:
+;;;   string-trim, string-prefix?, string-contains?, string-split, string-join
+
+(display "Documentation generator loaded.
+")
+(display "Usage:
+")
+(display "  (docgen-file \"path/to/file.ss\")         - Generate docs for file
+")
+(display "  (docgen-directory \"fabric/stitches\")    - Generate docs for directory
+")
+(display "  (docgen-index docs)                      - Create searchable index
+")
+(display "  (docgen-summary docs)                    - Create readable summary
+")
