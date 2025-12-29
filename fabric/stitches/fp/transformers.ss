@@ -58,15 +58,14 @@
 (define (maybe-t-pure m-pure x)
   (make-maybe-t (m-pure (just x))))
 
-;;; maybe-t-bind : (m a -> (a -> m b) -> m b) -> MaybeT m a -> (a -> MaybeT m b) -> MaybeT m b
+;;; maybe-t-bind : (m a -> (a -> m b) -> m b) -> (a -> m a) -> MaybeT m a -> (a -> MaybeT m b) -> MaybeT m b
 ;;; Sequence MaybeT computations.
-(define (maybe-t-bind m-bind mt f)
+(define (maybe-t-bind m-bind m-pure mt f)
   (make-maybe-t
    (m-bind (run-maybe-t mt)
            (lambda (maybe-a)
                    (if (nothing? maybe-a)
-                       ((lambda (pure) (pure nothing))
-                        (lambda (x) x))  ; Need m-pure, but it's tricky without it
+                       (m-pure nothing)
                        (run-maybe-t (f (from-just maybe-a))))))))
 
 ;;; maybe-t-fail : (a -> m a) -> MaybeT m a
@@ -316,9 +315,9 @@
 (define (monoid-empty m) (car m))
 (define (monoid-append m) (cdr m))
 
-;;; writer-t-bind : (m a -> (a -> m b) -> m b) -> WriterT w m a -> (a -> WriterT w m b) -> WriterT w m b
+;;; writer-t-bind : (m a -> (a -> m b) -> m b) -> (a -> m a) -> WriterT w m a -> (a -> WriterT w m b) -> WriterT w m b
 ;;; Sequence WriterT computations.
-(define (writer-t-bind m-bind wt f)
+(define (writer-t-bind m-bind m-pure wt f)
   (let ([monoid (writer-t-monoid wt)])
        (make-writer-t
         monoid
@@ -332,8 +331,7 @@
                                               (let* ([b (car pair2)]
                                                      [w2 (cdr pair2)]
                                                      [combined ((monoid-append monoid) w1 w2)])
-                                                    ((lambda (pure) (pure (cons b combined)))
-                                                     (lambda (x) x)))))))))))  ; Assume identity for inner pure
+                                                    (m-pure (cons b combined)))))))))))
 
 ;;; writer-t-tell : (a -> m a) -> Monoid w -> w -> WriterT w m ()
 ;;; Output a value.

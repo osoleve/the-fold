@@ -508,3 +508,54 @@
 (define (Y f)
   ((lambda (x) (f (lambda (v) ((x x) v))))
    (lambda (x) (f (lambda (v) ((x x) v))))))
+
+;;; ============================================================
+;;; Monadic Do-Notation
+;;; ============================================================
+
+;;; do-monad : Macro for monadic computation
+;;;
+;;; Transforms:
+;;;   (do-monad bind
+;;;     [x <- mx]
+;;;     [y <- (f x)]
+;;;     (pure (+ x y)))
+;;;
+;;; Into:
+;;;   (bind mx (lambda (x)
+;;;     (bind (f x) (lambda (y)
+;;;       (pure (+ x y))))))
+;;;
+;;; Syntax:
+;;;   (do-monad bind clause ... final-expr)
+;;;   where clause is either:
+;;;     [var <- monadic-expr]   ; bind the result
+;;;     monadic-expr            ; sequence (discard result)
+
+(define-syntax do-monad
+  (syntax-rules (<-)
+                ;; Base case: just the final expression
+                [(_ bind expr)
+                 expr]
+                ;; Binding form: [var <- mexpr]
+                [(_ bind [var <- mexpr] rest ...)
+                 (bind mexpr (lambda (var) (do-monad bind rest ...)))]
+                ;; Sequencing form: mexpr (no binding)
+                [(_ bind mexpr rest ...)
+                 (bind mexpr (lambda (_) (do-monad bind rest ...)))]))
+
+;;; do-monad* : Variant that passes pure along with bind
+;;; Useful when you need pure inside the computation.
+;;;
+;;; (do-monad* bind pure
+;;;   [x <- mx]
+;;;   (pure x))
+
+(define-syntax do-monad*
+  (syntax-rules (<-)
+                [(_ bind pure expr)
+                 expr]
+                [(_ bind pure [var <- mexpr] rest ...)
+                 (bind mexpr (lambda (var) (do-monad* bind pure rest ...)))]
+                [(_ bind pure mexpr rest ...)
+                 (bind mexpr (lambda (_) (do-monad* bind pure rest ...)))]))

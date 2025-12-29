@@ -515,10 +515,13 @@
 (define (when-monoid m condition value)
   (if condition value (monoid-empty m)))
 
-;;; guard-monoid : Monoid a -> Bool -> a
-;;; Return mempty if condition is true, used with filter semantics.
+;;; guard-monoid : Monoid () -> Bool -> ()
+;;; Return unit if condition is true, mempty (unit) otherwise.
+;;; For use with Alternative/MonadPlus style filtering.
+;;; Note: In a monoid context, this is mainly for documentation/intent.
+;;; For practical filtering, use when-monoid with an explicit value.
 (define (guard-monoid m condition)
-  (if condition (monoid-empty m) (monoid-empty m)))
+  (if condition '() (monoid-empty m)))
 
 ;;; ============================================================
 ;;; Monoid Actions

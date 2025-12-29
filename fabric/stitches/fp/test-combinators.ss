@@ -386,6 +386,47 @@
                    (assert-= (factorial 10) 3628800 0))))
 
 ;;; ============================================================
+;;; Do-Monad Tests
+;;; ============================================================
+
+(test-group do-monad-tests
+            ;; Test with Maybe monad
+            (define-test do-monad-maybe-success-test
+              (let ([result (do-monad bind-maybe
+                                      [x <- (just 3)]
+                                      [y <- (just 4)]
+                                      (just (+ x y)))])
+                   (assert-equal (just 7) result)))
+            
+            (define-test do-monad-maybe-failure-test
+              (let ([result (do-monad bind-maybe
+                                      [x <- (just 3)]
+                                      [y <- nothing]
+                                      (just (+ x y)))])
+                   (assert-equal nothing result)))
+            
+            ;; Test sequencing (no binding)
+            (define-test do-monad-sequence-test
+              (let ([side-effect 0])
+                   (define (set-effect! v)
+                     (set! side-effect v)
+                     (just v))
+                   (let ([result (do-monad bind-maybe
+                                           (set-effect! 1)
+                                           [x <- (just 10)]
+                                           (just (+ x side-effect)))])
+                        (assert-equal (just 11) result))))
+            
+            ;; Test with list monad (non-determinism)
+            (define-test do-monad-list-test
+              (let* ([list-bind (lambda (m f) (apply append (map f m)))]
+                     [result (do-monad list-bind
+                                       [x <- '(1 2)]
+                                       [y <- '(10 20)]
+                                       (list (+ x y)))])
+                    (assert-equal '(11 21 12 22) result))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 
