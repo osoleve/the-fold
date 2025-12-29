@@ -21,12 +21,30 @@
 (load "fabric/stitches/prelude.ss")
 
 ;;; ============================================================
+;;; Pair Convention
+;;; ============================================================
+;;;
+;;; Throughout this module, 2-element pairs use Scheme's native cons cells:
+;;;   (cons a b) produces (a . b)
+;;;   car extracts the first element
+;;;   cdr extracts the second element
+;;;
+;;; For 3+ element tuples, we use lists: (list a b c)
+;;;
+;;; This is consistent with the rest of the FP toolkit.
+
+;;; ============================================================
 ;;; Classic Combinators (SKI + friends)
 ;;; ============================================================
 
 ;;; id : a → a
 ;;; Identity function (I combinator).
+;;; Note: `identity` is also available from prelude.ss
 (define (id x) x)
+
+;;; identity : a → a
+;;; Alias for id, for consistency with other modules.
+(define identity id)
 
 ;;; const : a → b → a
 ;;; Constant function (K combinator).
@@ -91,9 +109,10 @@
 
 ;;; uncurry2 : (a → b → c) → ((a × b) → c)
 ;;; Uncurry a curried binary function.
+;;; Note: pairs are (cons a b), so cdr gets second element.
 (define (uncurry2 f)
   (lambda (xy)
-          ((f (car xy)) (cadr xy))))
+          ((f (car xy)) (cdr xy))))
 
 ;;; curry3 : ((a × b × c) → d) → a → b → c → d
 ;;; Curry a ternary function.
@@ -136,9 +155,10 @@
 
 ;;; both : (a → b) → (a × a) → (b × b)
 ;;; Apply function to both elements of a pair.
+;;; Note: pairs are (cons a b), returns (cons (f a) (f b)).
 (define (both f)
   (lambda (pair)
-          (list (f (car pair)) (f (cadr pair)))))
+          (cons (f (car pair)) (f (cdr pair)))))
 
 ;;; first : (a → b) → (a × c) → (b × c)
 ;;; Apply function to first element of pair.
@@ -148,15 +168,17 @@
 
 ;;; second : (b → c) → (a × b) → (a × c)
 ;;; Apply function to second element of pair.
+;;; Note: pairs are (cons a b), returns (cons a (f b)).
 (define (second f)
   (lambda (pair)
-          (list (car pair) (f (cadr pair)))))
+          (cons (car pair) (f (cdr pair)))))
 
 ;;; bimap : (a → c) → (b → d) → (a × b) → (c × d)
 ;;; Apply two functions to elements of a pair.
+;;; Note: pairs are (cons a b), returns (cons (f a) (g b)).
 (define (bimap f g)
   (lambda (pair)
-          (list (f (car pair)) (g (cadr pair)))))
+          (cons (f (car pair)) (g (cdr pair)))))
 
 ;;; ============================================================
 ;;; Logical Combinators
@@ -190,22 +212,27 @@
 ;;; ============================================================
 
 ;;; fst : (a × b) → a
+;;; Note: pairs are (cons a b).
 (define fst car)
 
 ;;; snd : (a × b) → b
-(define snd cadr)
+;;; Note: pairs are (cons a b).
+(define snd cdr)
 
 ;;; swap : (a × b) → (b × a)
+;;; Note: pairs are (cons a b).
 (define (swap pair)
-  (list (cadr pair) (car pair)))
+  (cons (cdr pair) (car pair)))
 
 ;;; dup : a → (a × a)
+;;; Note: returns (cons x x).
 (define (dup x)
-  (list x x))
+  (cons x x))
 
 ;;; pair : a → b → (a × b)
+;;; Note: returns (cons x y).
 (define (pair x y)
-  (list x y))
+  (cons x y))
 
 ;;; ============================================================
 ;;; Maybe/Option Type Operations

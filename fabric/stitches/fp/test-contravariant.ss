@@ -145,19 +145,19 @@
 ;;; ============================================================
 
 (test-group utility-tests
-            (define-test sort-by-test
+            (define-test sort-with-comparison-test
               (assert-equal '(1 1 2 3 4 5)
-                            (sort-by default-comparison '(3 1 4 1 5 2))))
+                            (sort-with-comparison default-comparison '(3 1 4 1 5 2))))
             
-            (define-test sort-by-descending-test
+            (define-test sort-with-comparison-descending-test
               (assert-equal '(5 4 3 2 1)
-                            (sort-by (reverse-comparison default-comparison) '(3 1 4 2 5))))
+                            (sort-with-comparison (reverse-comparison default-comparison) '(3 1 4 2 5))))
             
-            (define-test sort-by-field-test
+            (define-test sort-with-comparison-field-test
               (let* ([people '(("Alice" . 30) ("Bob" . 25) ("Carol" . 35))]
                      [by-age (comparing cdr default-comparison)])
                     (assert-equal '(("Bob" . 25) ("Alice" . 30) ("Carol" . 35))
-                                  (sort-by by-age people))))
+                                  (sort-with-comparison by-age people))))
             
             (define-test filter-by-test
               (let ([is-even (make-predicate (lambda (x) (= 0 (modulo x 2))))])

@@ -1,0 +1,464 @@
+;;; fabric/stitches/fp/typeclasses.ss — Unified Typeclass Hierarchy
+;;;
+;;; This module provides a unified interface for the standard FP typeclass
+;;; hierarchy: Functor, Applicative, Monad, and their duals.
+;;;
+;;; Since Scheme lacks typeclasses, we represent them as data structures
+;;; containing the required operations. This allows:
+;;;   - Generic programming over any type implementing a typeclass
+;;;   - Instance derivation (e.g., derive Applicative from Monad)
+;;;   - Unified law verification
+;;;
+;;; This is Core code: pure, total, assumes reasonable input.
+;;;
+;;; Dependencies:
+;;;   - prelude.ss
+;;;   - fp/combinators.ss
+
+(load "fabric/stitches/prelude.ss")
+(load "fabric/stitches/fp/combinators.ss")
+
+;;; ============================================================
+;;; Functor
+;;; ============================================================
+;;;
+;;; class Functor f where
+;;;   fmap :: (a -> b) -> f a -> f b
+;;;
+;;; Laws:
+;;;   fmap id = id                           (identity)
+;;;   fmap (f . g) = fmap f . fmap g         (composition)
+
+;;; make-functor : ((a -> b) -> f a -> f b) -> Functor f
+(define (make-functor fmap-fn)
+  (list 'functor fmap-fn))
+
+;;; functor? : Any -> Boolean
+(define (functor? x)
+  (and (pair? x) (eq? (car x) 'functor)))
+
+;;; functor-fmap : Functor f -> (a -> b) -> f a -> f b
+(define (functor-fmap f)
+  (list-ref f 1))
+
+;;; fmap : Functor f -> (a -> b) -> f a -> f b
+(define (fmap functor f fa)
+  ((functor-fmap functor) f fa))
+
+;;; (<$>) : Functor f -> (a -> b) -> f a -> f b
+;;; Operator alias for fmap.
+(define <$> fmap)
+
+;;; (<$) : Functor f -> a -> f b -> f a
+;;; Replace all values with a constant.
+(define (const-fmap functor a fb)
+  (fmap functor (const a) fb))
+
+;;; void-fmap : Functor f -> f a -> f ()
+;;; Discard the value.
+(define (void-fmap functor fa)
+  (fmap functor (const '()) fa))
+
+;;; ============================================================
+;;; Standard Functor Instances
+;;; ============================================================
+
+;;; list-functor : Functor List
+(define list-functor
+  (make-functor map))
+
+;;; maybe-functor : Functor Maybe
+(define maybe-functor
+  (make-functor
+   (lambda (f m)
+           (if (nothing? m)
+               nothing
+               (just (f (from-just m)))))))
+
+;;; either-functor : Functor (Either e)
+;;; Maps over the Right value.
+(define either-functor
+  (make-functor
+   (lambda (f e)
+           (if (left? e)
+               e
+               (right (f (from-right e)))))))
+
+;;; pair-functor : Functor ((,) a)
+;;; Maps over the second element.
+(define pair-functor
+  (make-functor
+   (lambda (f p)
+           (cons (car p) (f (cdr p))))))
+
+;;; function-functor : Functor ((->) r)
+;;; Maps over the result of functions.
+(define function-functor
+  (make-functor compose))
+
+;;; ============================================================
+;;; Applicative
+;;; ============================================================
+;;;
+;;; class Functor f => Applicative f where
+;;;   pure :: a -> f a
+;;;   (<*>) :: f (a -> b) -> f a -> f b
+;;;
+;;; Laws:
+;;;   pure id <*> v = v                                   (identity)
+;;;   pure (.) <*> u <*> v <*> w = u <*> (v <*> w)       (composition)
+;;;   pure f <*> pure x = pure (f x)                      (homomorphism)
+;;;   u <*> pure y = pure ($ y) <*> u                    (interchange)
+
+;;; make-applicative-full : Functor f -> (a -> f a) -> (f (a->b) -> f a -> f b) -> Applicative f
+(define (make-applicative-full functor pure-fn ap-fn)
+  (list 'applicative functor pure-fn ap-fn))
+
+;;; applicative? : Any -> Boolean
+(define (applicative? x)
+  (and (pair? x) (eq? (car x) 'applicative)))
+
+;;; applicative-functor : Applicative f -> Functor f
+(define (applicative-functor a)
+  (list-ref a 1))
+
+;;; applicative-pure : Applicative f -> a -> f a
+(define (applicative-pure a)
+  (list-ref a 2))
+
+;;; applicative-ap : Applicative f -> f (a -> b) -> f a -> f b
+(define (applicative-ap a)
+  (list-ref a 3))
+
+;;; pure : Applicative f -> a -> f a
+(define (pure app a)
+  ((applicative-pure app) a))
+
+;;; ap : Applicative f -> f (a -> b) -> f a -> f b
+(define (ap app ff fa)
+  ((applicative-ap app) ff fa))
+
+;;; lift2 : Applicative f -> (a -> b -> c) -> f a -> f b -> f c
+;;; Note: function must be curried.
+(define (lift2 app f fa fb)
+  (ap app (fmap (applicative-functor app) f fa) fb))
+
+;;; lift3 : Applicative f -> (a -> b -> c -> d) -> f a -> f b -> f c -> f d
+(define (lift3 app f fa fb fc)
+  (ap app (lift2 app f fa fb) fc))
+
+;;; (*>) : Applicative f -> f a -> f b -> f b
+;;; Sequence, discarding first result.
+(define (seq-right app fa fb)
+  (lift2 app (lambda (a) (lambda (b) b)) fa fb))
+
+;;; (<*) : Applicative f -> f a -> f b -> f a
+;;; Sequence, discarding second result.
+(define (seq-left app fa fb)
+  (lift2 app (lambda (a) (lambda (b) a)) fa fb))
+
+;;; ============================================================
+;;; Standard Applicative Instances
+;;; ============================================================
+
+;;; list-applicative : Applicative List
+(define list-applicative
+  (make-applicative-full
+   list-functor
+   list
+   (lambda (fs as)
+           (apply append (map (lambda (f) (map f as)) fs)))))
+
+;;; maybe-applicative : Applicative Maybe
+(define maybe-applicative-full
+  (make-applicative-full
+   maybe-functor
+   just
+   (lambda (mf ma)
+           (if (nothing? mf)
+               nothing
+               (if (nothing? ma)
+                   nothing
+                   (just ((from-just mf) (from-just ma))))))))
+
+;;; either-applicative : Applicative (Either e)
+(define either-applicative
+  (make-applicative-full
+   either-functor
+   right
+   (lambda (ef ea)
+           (if (left? ef)
+               ef
+               (if (left? ea)
+                   ea
+                   (right ((from-right ef) (from-right ea))))))))
+
+;;; ============================================================
+;;; Monad
+;;; ============================================================
+;;;
+;;; class Applicative m => Monad m where
+;;;   (>>=) :: m a -> (a -> m b) -> m b
+;;;   return :: a -> m a  -- same as pure
+;;;
+;;; Laws:
+;;;   return a >>= f = f a                         (left identity)
+;;;   m >>= return = m                             (right identity)
+;;;   (m >>= f) >>= g = m >>= (\x -> f x >>= g)   (associativity)
+
+;;; make-monad : Applicative m -> (m a -> (a -> m b) -> m b) -> Monad m
+(define (make-monad applicative bind-fn)
+  (list 'monad applicative bind-fn))
+
+;;; monad? : Any -> Boolean
+(define (monad? x)
+  (and (pair? x) (eq? (car x) 'monad)))
+
+;;; monad-applicative : Monad m -> Applicative m
+(define (monad-applicative m)
+  (list-ref m 1))
+
+;;; monad-bind : Monad m -> m a -> (a -> m b) -> m b
+(define (monad-bind m)
+  (list-ref m 2))
+
+;;; return : Monad m -> a -> m a
+(define (return m a)
+  (pure (monad-applicative m) a))
+
+;;; bind : Monad m -> m a -> (a -> m b) -> m b
+(define (bind m ma f)
+  ((monad-bind m) ma f))
+
+;;; (>>=) : Monad m -> m a -> (a -> m b) -> m b
+(define >>= bind)
+
+;;; (>>) : Monad m -> m a -> m b -> m b
+;;; Sequence, discarding first result.
+(define (then m ma mb)
+  (bind m ma (lambda (_) mb)))
+
+;;; join : Monad m -> m (m a) -> m a
+(define (join m mma)
+  (bind m mma identity))
+
+;;; ============================================================
+;;; Deriving Applicative from Monad
+;;; ============================================================
+
+;;; monad->applicative : Monad m -> Applicative m
+;;; Derive applicative instance from monad.
+(define (monad->applicative m)
+  (let* ([app (monad-applicative m)]
+         [functor (applicative-functor app)]
+         [pure-fn (applicative-pure app)])
+        (make-applicative-full
+         functor
+         pure-fn
+         (lambda (mf ma)
+                 (bind m mf (lambda (f)
+                                    (bind m ma (lambda (a)
+                                                       (pure-fn (f a))))))))))
+
+;;; ============================================================
+;;; Standard Monad Instances
+;;; ============================================================
+
+;;; list-monad : Monad List
+(define list-monad
+  (make-monad
+   list-applicative
+   (lambda (ma f)
+           (apply append (map f ma)))))
+
+;;; maybe-monad : Monad Maybe
+(define maybe-monad-full
+  (make-monad
+   maybe-applicative-full
+   (lambda (ma f)
+           (if (nothing? ma)
+               nothing
+               (f (from-just ma))))))
+
+;;; either-monad : Monad (Either e)
+(define either-monad
+  (make-monad
+   either-applicative
+   (lambda (ea f)
+           (if (left? ea)
+               ea
+               (f (from-right ea))))))
+
+;;; ============================================================
+;;; Comonad
+;;; ============================================================
+;;;
+;;; class Functor w => Comonad w where
+;;;   extract :: w a -> a
+;;;   extend :: (w a -> b) -> w a -> w b
+;;;   duplicate :: w a -> w (w a)  -- derived: extend id
+;;;
+;;; Laws:
+;;;   extract . extend f = f
+;;;   extend extract = id
+;;;   extend f . extend g = extend (f . extend g)
+
+;;; make-comonad : Functor w -> (w a -> a) -> ((w a -> b) -> w a -> w b) -> Comonad w
+(define (make-comonad functor extract-fn extend-fn)
+  (list 'comonad functor extract-fn extend-fn))
+
+;;; comonad? : Any -> Boolean
+(define (comonad? x)
+  (and (pair? x) (eq? (car x) 'comonad)))
+
+;;; comonad-functor : Comonad w -> Functor w
+(define (comonad-functor c)
+  (list-ref c 1))
+
+;;; comonad-extract : Comonad w -> w a -> a
+(define (comonad-extract c)
+  (list-ref c 2))
+
+;;; comonad-extend : Comonad w -> (w a -> b) -> w a -> w b
+(define (comonad-extend c)
+  (list-ref c 3))
+
+;;; extract : Comonad w -> w a -> a
+(define (extract comonad wa)
+  ((comonad-extract comonad) wa))
+
+;;; extend : Comonad w -> (w a -> b) -> w a -> w b
+(define (extend comonad f wa)
+  ((comonad-extend comonad) f wa))
+
+;;; duplicate : Comonad w -> w a -> w (w a)
+(define (duplicate comonad wa)
+  (extend comonad identity wa))
+
+;;; (=>>) : Comonad w -> w a -> (w a -> b) -> w b
+;;; Flipped extend.
+(define (=>> comonad wa f)
+  (extend comonad f wa))
+
+;;; ============================================================
+;;; Standard Comonad Instances
+;;; ============================================================
+
+;;; pair-comonad : Comonad ((,) e)
+;;; The Env comonad - a value with an environment.
+(define pair-comonad
+  (make-comonad
+   pair-functor
+   cdr
+   (lambda (f p)
+           (cons (car p) (f p)))))
+
+;;; function-comonad : Comonad ((->) e) for Monoid e
+;;; The Traced comonad - functions from a monoid.
+;;; Note: Requires monoid operations for extend.
+(define (function-comonad-from-monoid mempty mappend)
+  (make-comonad
+   function-functor
+   (lambda (f) (f mempty))
+   (lambda (wab f)
+           (lambda (m1)
+                   (wab (lambda (m2) (f (lambda (m3) (wab (mappend m1 m2))))))))))
+
+;;; ============================================================
+;;; Law Verification
+;;; ============================================================
+
+;;; verify-functor-identity : Functor f -> f a -> (f a -> f a -> Boolean) -> Boolean
+(define (verify-functor-identity functor fa eq?)
+  (eq? fa (fmap functor identity fa)))
+
+;;; verify-functor-composition : Functor f -> (b -> c) -> (a -> b) -> f a -> (f c -> f c -> Boolean) -> Boolean
+(define (verify-functor-composition functor f g fa eq?)
+  (eq? (fmap functor (compose f g) fa)
+       (fmap functor f (fmap functor g fa))))
+
+;;; verify-monad-left-identity : Monad m -> a -> (a -> m b) -> (m b -> m b -> Boolean) -> Boolean
+(define (verify-monad-left-identity m a f eq?)
+  (eq? (bind m (return m a) f)
+       (f a)))
+
+;;; verify-monad-right-identity : Monad m -> m a -> (m a -> m a -> Boolean) -> Boolean
+(define (verify-monad-right-identity m ma eq?)
+  (eq? (bind m ma (lambda (a) (return m a)))
+       ma))
+
+;;; verify-monad-associativity : Monad m -> m a -> (a -> m b) -> (b -> m c) -> (m c -> m c -> Boolean) -> Boolean
+(define (verify-monad-associativity m ma f g eq?)
+  (eq? (bind m (bind m ma f) g)
+       (bind m ma (lambda (x) (bind m (f x) g)))))
+
+;;; verify-comonad-left-identity : Comonad w -> w a -> (w a -> w a -> Boolean) -> Boolean
+(define (verify-comonad-left-identity c wa eq?)
+  (eq? (extend c (lambda (w) (extract c w)) wa)
+       wa))
+
+;;; verify-comonad-right-identity : Comonad w -> (w a -> b) -> w a -> Boolean
+(define (verify-comonad-right-identity c f wa)
+  (equal? (extract c (extend c f wa))
+          (f wa)))
+
+;;; ============================================================
+;;; Utility Combinators
+;;; ============================================================
+
+;;; sequence-monad : Monad m -> (List (m a)) -> m (List a)
+;;; Sequence a list of monadic values.
+(define (sequence-monad m mas)
+  (if (null? mas)
+      (return m '())
+      (bind m (car mas)
+            (lambda (a)
+                    (bind m (sequence-monad m (cdr mas))
+                          (lambda (as)
+                                  (return m (cons a as))))))))
+
+;;; map-monad : Monad m -> (a -> m b) -> (List a) -> m (List b)
+;;; Map a monadic function over a list.
+(define (map-monad m f as)
+  (sequence-monad m (map f as)))
+
+;;; filter-monad : Monad m -> (a -> m Boolean) -> (List a) -> m (List a)
+;;; Monadic filter.
+(define (filter-monad m pred as)
+  (if (null? as)
+      (return m '())
+      (bind m (pred (car as))
+            (lambda (keep?)
+                    (bind m (filter-monad m pred (cdr as))
+                          (lambda (rest)
+                                  (return m (if keep? (cons (car as) rest) rest))))))))
+
+;;; fold-monad : Monad m -> (b -> a -> m b) -> b -> (List a) -> m b
+;;; Monadic fold.
+(define (fold-monad m f init as)
+  (if (null? as)
+      (return m init)
+      (bind m (f init (car as))
+            (lambda (acc)
+                    (fold-monad m f acc (cdr as))))))
+
+;;; when-monad : Monad m -> Boolean -> m () -> m ()
+;;; Conditional execution.
+(define (when-monad m cond action)
+  (if cond action (return m '())))
+
+;;; unless-monad : Monad m -> Boolean -> m () -> m ()
+(define (unless-monad m cond action)
+  (when-monad m (not cond) action))
+
+;;; replicate-monad : Monad m -> Int -> m a -> m (List a)
+;;; Repeat an action n times.
+(define (replicate-monad m n action)
+  (sequence-monad m (make-list n action)))
+
+;;; make-list : Int -> a -> List a
+;;; Helper to create a list of n copies.
+(define (make-list n x)
+  (if (<= n 0)
+      '()
+      (cons x (make-list (- n 1) x))))

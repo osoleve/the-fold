@@ -40,6 +40,11 @@
 (display "  ✓ algebraic (Semigroup, Monoid, Group)
 ")
 
+;; Unified typeclass hierarchy
+(load "fabric/stitches/fp/typeclasses.ss")
+(display "  ✓ typeclasses (Functor, Applicative, Monad, Comonad)
+")
+
 ;;; ============================================================
 ;;; Functor Variants
 ;;; ============================================================
@@ -164,6 +169,8 @@
 (display "  • Combinators: id, const, compose, pipe, curry, flip
 ")
 (display "  • Algebraic: Semigroup, Monoid, Group (+ instances)
+")
+(display "  • Typeclasses: Functor, Applicative, Monad, Comonad (unified)
 ")
 (display "  • Functors: Bifunctor, Contravariant, Profunctor
 ")

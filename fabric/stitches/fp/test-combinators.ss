@@ -121,9 +121,10 @@
                         (assert-= (add5 10) 15 0))))
             
             (define-test uncurry2-test
+              ;; Note: uncurry2 works with (cons a b) pairs, not 2-element lists
               (let ([curried (lambda (x) (lambda (y) (+ x y)))]
                     [uncurried (uncurry2 (lambda (x) (lambda (y) (+ x y))))])
-                   (assert-= (uncurried '(3 4)) 7 0)))
+                   (assert-= (uncurried (cons 3 4)) 7 0)))
             
             (define-test curry3-test
               (let ([f (curry3 (lambda (x y z) (+ x (* y z))))])
@@ -148,25 +149,26 @@
                    (assert-true (compare-by-length '(1) '(1 2 3)))
                    (assert-false (compare-by-length '(1 2 3) '(1)))))
             
+            ;; Note: both, first, second, bimap work with (cons a b) pairs
             (define-test both-test
-              (let ([double-both ((both (lambda (x) (* x 2))) '(3 4))])
-                   (assert-equal? double-both '(6 8))))
+              (let ([double-both ((both (lambda (x) (* x 2))) (cons 3 4))])
+                   (assert-equal? double-both (cons 6 8))))
             
             (define-test first-test
-              (let ([result ((first (lambda (x) (* x 2))) '(3 4))])
+              (let ([result ((first (lambda (x) (* x 2))) (cons 3 4))])
                    (assert-= (car result) 6 0)
-                   (assert-equal? (cdr result) '(4))))
+                   (assert-= (cdr result) 4 0)))
             
             (define-test second-test
-              (let ([result ((second (lambda (x) (* x 2))) '(3 4))])
+              (let ([result ((second (lambda (x) (* x 2))) (cons 3 4))])
                    (assert-= (car result) 3 0)
-                   (assert-= (cadr result) 8 0)))
+                   (assert-= (cdr result) 8 0)))
             
             (define-test bimap-test
               (let ([result ((bimap (lambda (x) (+ x 1))
                                     (lambda (x) (* x 2)))
-                             '(3 4))])
-                   (assert-equal? result '(4 8)))))
+                             (cons 3 4))])
+                   (assert-equal? result (cons 4 8)))))
 
 ;;; ============================================================
 ;;; Logical Combinators Tests
@@ -196,18 +198,19 @@
 ;;; ============================================================
 
 (test-group tuple
+            ;; Note: fst, snd, swap, dup, pair work with (cons a b) pairs
             (define-test fst-snd-test
-              (assert-= (fst '(1 2)) 1 0)
-              (assert-= (snd '(1 2)) 2 0))
+              (assert-= (fst (cons 1 2)) 1 0)
+              (assert-= (snd (cons 1 2)) 2 0))
             
             (define-test swap-test
-              (assert-equal? (swap '(1 2)) '(2 1)))
+              (assert-equal? (swap (cons 1 2)) (cons 2 1)))
             
             (define-test dup-test
-              (assert-equal? (dup 5) '(5 5)))
+              (assert-equal? (dup 5) (cons 5 5)))
             
             (define-test pair-test
-              (assert-equal? (pair 'a 'b) '(a b))))
+              (assert-equal? (pair 'a 'b) (cons 'a 'b))))
 
 ;;; ============================================================
 ;;; Maybe Tests

@@ -189,6 +189,97 @@
   (bf-second validation-bifunctor g v))
 
 ;;; ============================================================
+;;; Validation Applicative (Error-Accumulating)
+;;; ============================================================
+;;;
+;;; Unlike Either which short-circuits on the first error,
+;;; Validation accumulates all errors. This is the key feature
+;;; that distinguishes Validation from Either.
+;;;
+;;; Note: Validation cannot be a Monad because bind would need
+;;; to short-circuit (the continuation needs the success value).
+
+;;; validation-fmap : (a -> b) -> Validation e a -> Validation e b
+;;; Functor instance for Validation.
+(define (validation-fmap f v)
+  (if (validation-is-success? v)
+      (validation-mk-success (f (from-validation-success v)))
+      v))
+
+;;; validation-pure : a -> Validation e a
+;;; Wrap a value in Success.
+(define (validation-pure x)
+  (validation-mk-success x))
+
+;;; validation-ap : Validation e (a -> b) -> Validation e a -> Validation e b
+;;; Apply function wrapped in Validation, accumulating errors.
+;;; Key difference from Either: both sides are evaluated and errors combined.
+(define (validation-ap vf va)
+  (cond
+   ;; Both Success: apply the function
+   [(and (validation-is-success? vf) (validation-is-success? va))
+    (validation-mk-success ((from-validation-success vf)
+                            (from-validation-success va)))]
+   ;; Both Failure: combine error lists
+   [(and (validation-is-failure? vf) (validation-is-failure? va))
+    (validation-mk-failure (append (from-validation-failure vf)
+                                   (from-validation-failure va)))]
+   ;; One Success, one Failure: return the Failure
+   [(validation-is-failure? vf) vf]
+   [else va]))
+
+;;; validation-lift2 : (a -> b -> c) -> Validation e a -> Validation e b -> Validation e c
+;;; Lift a binary function over Validations.
+(define (validation-lift2 f va vb)
+  (validation-ap (validation-fmap (lambda (a) (lambda (b) (f a b))) va) vb))
+
+;;; validation-lift3 : (a -> b -> c -> d) -> Validation e a -> Validation e b -> Validation e c -> Validation e d
+(define (validation-lift3 f va vb vc)
+  (validation-ap (validation-lift2 f va vb) vc))
+
+;;; validation-sequence : (List (Validation e a)) -> Validation e (List a)
+;;; Sequence a list of validations, accumulating all errors.
+(define (validation-sequence vs)
+  (if (null? vs)
+      (validation-pure '())
+      (validation-lift2 cons (car vs) (validation-sequence (cdr vs)))))
+
+;;; validation-traverse : (a -> Validation e b) -> (List a) -> Validation e (List b)
+;;; Map a validation-producing function over a list.
+(define (validation-traverse f as)
+  (validation-sequence (map f as)))
+
+;;; validation-from-either : Either e a -> Validation e a
+;;; Convert Either to Validation (wrapping error in list).
+(define (validation-from-either e)
+  (if (left? e)
+      (validation-mk-failure (list (from-left e)))
+      (validation-mk-success (from-right e))))
+
+;;; validation-to-either : Validation e a -> Either (List e) a
+;;; Convert Validation to Either.
+(define (validation-to-either v)
+  (if (validation-is-success? v)
+      (right (from-validation-success v))
+      (left (from-validation-failure v))))
+
+;;; validate : (a -> Boolean) -> e -> a -> Validation e a
+;;; Validate a value against a predicate.
+(define (validate pred err x)
+  (if (pred x)
+      (validation-mk-success x)
+      (validation-mk-failure (list err))))
+
+;;; validate-all : (List (Pair (a -> Boolean) e)) -> a -> Validation e a
+;;; Run multiple validations, accumulating all errors.
+(define (validate-all validators x)
+  (let* ([results (map (lambda (v) (validate (car v) (cdr v) x)) validators)]
+         [failures (filter validation-is-failure? results)])
+        (if (null? failures)
+            (validation-mk-success x)
+            (validation-mk-failure (apply append (map from-validation-failure failures))))))
+
+;;; ============================================================
 ;;; These (Const/Tagged) Bifunctor
 ;;; ============================================================
 ;;;
@@ -292,6 +383,167 @@
 ;;; Replace right contents with a constant value.
 (define (bf-void-right bf x p)
   (bf-second bf (const x) p))
+
+;;; ============================================================
+;;; Bifoldable
+;;; ============================================================
+;;;
+;;; class Bifoldable p where
+;;;   bifoldMap :: Monoid m => (a -> m) -> (b -> m) -> p a b -> m
+;;;
+;;; Bifoldable allows folding over both type parameters of a bifunctor.
+
+;;; make-bifoldable : ((a -> m) -> (b -> m) -> Monoid m -> p a b -> m) -> Bifoldable p
+(define (make-bifoldable bifold-map-fn)
+  (list 'bifoldable bifold-map-fn))
+
+;;; bifoldable? : Any -> Boolean
+(define (bifoldable? x)
+  (and (pair? x) (eq? (car x) 'bifoldable)))
+
+;;; bifoldable-bifold-map : Bifoldable p -> ((a -> m) -> (b -> m) -> Monoid m -> p a b -> m)
+(define (bifoldable-bifold-map bf)
+  (list-ref bf 1))
+
+;;; bifold-map : Bifoldable p -> (a -> m) -> (b -> m) -> Monoid m -> p a b -> m
+(define (bifold-map bf f g monoid pab)
+  ((bifoldable-bifold-map bf) f g monoid pab))
+
+;;; bifold : Bifoldable p -> Monoid m -> p m m -> m
+;;; Fold both sides using their own values.
+(define (bifold bf monoid pmm)
+  (bifold-map bf identity identity monoid pmm))
+
+;;; bifold-left : Bifoldable p -> (a -> m) -> Monoid m -> p a b -> m
+;;; Fold only the left side.
+(define (bifold-left bf f monoid pab)
+  (bifold-map bf f (const (monoid-empty monoid)) monoid pab))
+
+;;; bifold-right : Bifoldable p -> (b -> m) -> Monoid m -> p a b -> m
+;;; Fold only the right side.
+(define (bifold-right bf g monoid pab)
+  (bifold-map bf (const (monoid-empty monoid)) g monoid pab))
+
+;;; bitoList : Bifoldable p -> p a a -> List a
+;;; Collect all values into a list.
+(define (bitoList bf paa)
+  (bifold-map bf list list list-monoid paa))
+
+;;; bilength : Bifoldable p -> p a b -> Int
+;;; Count the number of elements.
+(define (bilength bf pab)
+  (bifold-map bf (const 1) (const 1) sum-monoid pab))
+
+;;; binull : Bifoldable p -> p a b -> Boolean
+;;; Check if both sides are "empty" (no values).
+(define (binull bf pab)
+  (bifold-map bf (const #f) (const #f) all-monoid pab))
+
+;;; ============================================================
+;;; Bifoldable Instances
+;;; ============================================================
+
+;;; pair-bifoldable : Bifoldable Pair
+(define pair-bifoldable
+  (make-bifoldable
+   (lambda (f g monoid p)
+           (mappend monoid (f (car p)) (g (cdr p))))))
+
+;;; either-bifoldable : Bifoldable Either
+(define either-bifoldable
+  (make-bifoldable
+   (lambda (f g monoid e)
+           (if (left? e)
+               (f (from-left e))
+               (g (from-right e))))))
+
+;;; these-bifoldable : Bifoldable These
+(define these-bifoldable
+  (make-bifoldable
+   (lambda (f g monoid t)
+           (cond
+            [(this? t) (f (from-this t))]
+            [(that? t) (g (from-that t))]
+            [else (mappend monoid (f (from-this-both t)) (g (from-that-both t)))]))))
+
+;;; ============================================================
+;;; Bitraversable
+;;; ============================================================
+;;;
+;;; class (Bifunctor p, Bifoldable p) => Bitraversable p where
+;;;   bitraverse :: Applicative f => (a -> f c) -> (b -> f d) -> p a b -> f (p c d)
+;;;
+;;; Bitraversable allows effectful traversal over both type parameters.
+
+;;; make-bitraversable : Bifunctor p -> Bifoldable p -> ((a -> f c) -> (b -> f d) -> Applicative f -> p a b -> f (p c d)) -> Bitraversable p
+(define (make-bitraversable bifunctor bifoldable bitraverse-fn)
+  (list 'bitraversable bifunctor bifoldable bitraverse-fn))
+
+;;; bitraversable? : Any -> Boolean
+(define (bitraversable? x)
+  (and (pair? x) (eq? (car x) 'bitraversable)))
+
+;;; bitraversable-bifunctor : Bitraversable p -> Bifunctor p
+(define (bitraversable-bifunctor bt)
+  (list-ref bt 1))
+
+;;; bitraversable-bifoldable : Bitraversable p -> Bifoldable p
+(define (bitraversable-bifoldable bt)
+  (list-ref bt 2))
+
+;;; bitraversable-bitraverse : Bitraversable p -> ((a -> f c) -> (b -> f d) -> Applicative f -> p a b -> f (p c d))
+(define (bitraversable-bitraverse bt)
+  (list-ref bt 3))
+
+;;; bitraverse : Bitraversable p -> (a -> f c) -> (b -> f d) -> Applicative f -> p a b -> f (p c d)
+(define (bitraverse bt f g app pab)
+  ((bitraversable-bitraverse bt) f g app pab))
+
+;;; bisequence : Bitraversable p -> Applicative f -> p (f a) (f b) -> f (p a b)
+;;; Sequence both sides.
+(define (bisequence bt app pff)
+  (bitraverse bt identity identity app pff))
+
+;;; bifor : Bitraversable p -> Applicative f -> p a b -> (a -> f c) -> (b -> f d) -> f (p c d)
+;;; Flipped bitraverse.
+(define (bifor bt app pab f g)
+  (bitraverse bt f g app pab))
+
+;;; ============================================================
+;;; Bitraversable Instances
+;;; ============================================================
+
+;;; pair-bitraversable : Bitraversable Pair
+(define pair-bitraversable
+  (make-bitraversable
+   pair-bifunctor
+   pair-bifoldable
+   (lambda (f g app p)
+           ;; Traverse both elements, combine with pair constructor
+           (app-lift2-uncurried app cons (f (car p)) (g (cdr p))))))
+
+;;; either-bitraversable : Bitraversable Either
+(define either-bitraversable
+  (make-bitraversable
+   either-bifunctor
+   either-bifoldable
+   (lambda (f g app e)
+           (if (left? e)
+               (app-fmap app left (f (from-left e)))
+               (app-fmap app right (g (from-right e)))))))
+
+;;; these-bitraversable : Bitraversable These
+(define these-bitraversable
+  (make-bitraversable
+   these-bifunctor
+   these-bifoldable
+   (lambda (f g app t)
+           (cond
+            [(this? t) (app-fmap app make-this (f (from-this t)))]
+            [(that? t) (app-fmap app make-that (g (from-that t)))]
+            [else (app-lift2-uncurried app make-these
+                                       (f (from-this-both t))
+                                       (g (from-that-both t)))]))))
 
 ;;; ============================================================
 ;;; Example Usage (for documentation)

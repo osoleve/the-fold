@@ -387,12 +387,125 @@
                               (run-equivalence ec (cdr bc1) (cdr bc2)))))))))
 
 ;;; ============================================================
+;;; Decidable (Contravariant Alternative)
+;;; ============================================================
+;;;
+;;; Decidable is to Divisible as Alternative is to Applicative.
+;;; It adds the ability to handle sum types (Either).
+;;;
+;;; class Divisible f => Decidable f where
+;;;   lose   :: (a -> Void) -> f a
+;;;   choose :: (a -> Either b c) -> f b -> f c -> f a
+;;;
+;;; Laws:
+;;;   choose f (lose g) m = contramap (either absurd id . f) m
+;;;   choose f m (lose g) = contramap (either id absurd . f) m
+;;;   choose f (choose g m n) o =
+;;;     choose ( -> assocE (either (Left . g) Right (f a))) m (choose id n o)
+
+;;; make-decidable : Divisible f -> (f a) -> ((a -> Either b c) -> f b -> f c -> f a) -> Decidable f
+(define (make-decidable divisible lose-val choose-fn)
+  (list 'decidable divisible lose-val choose-fn))
+
+;;; decidable? : Any -> Boolean
+(define (decidable? x)
+  (and (pair? x) (eq? (car x) 'decidable)))
+
+;;; decidable-divisible : Decidable f -> Divisible f
+(define (decidable-divisible d)
+  (list-ref d 1))
+
+;;; decidable-lose : Decidable f -> f a
+;;; The "impossible" value - handles cases that can't occur.
+(define (decidable-lose d)
+  (list-ref d 2))
+
+;;; decidable-choose : Decidable f -> (a -> Either b c) -> f b -> f c -> f a
+(define (decidable-choose d)
+  (list-ref d 3))
+
+;;; lose : Decidable f -> f a
+(define (lose d)
+  (decidable-lose d))
+
+;;; choose : Decidable f -> (a -> Either b c) -> f b -> f c -> f a
+(define (choose d f fb fc)
+  ((decidable-choose d) f fb fc))
+
+;;; chosen : Decidable f -> f a -> f b -> f (Either a b)
+;;; Handle Either directly without a projection function.
+(define (chosen d fa fb)
+  (choose d identity fa fb))
+
+;;; ============================================================
+;;; Decidable Instances
+;;; ============================================================
+
+;;; predicate-decidable : Decidable Predicate
+(define predicate-decidable
+  (make-decidable
+   predicate-divisible
+   ;; lose: always false (handles impossible cases)
+   (make-predicate (lambda (x) #f))
+   ;; choose: test left predicate if Left, right if Right
+   (lambda (f pb pc)
+           (make-predicate
+            (lambda (a)
+                    (let ([e (f a)])
+                         (if (left? e)
+                             (run-predicate pb (from-left e))
+                             (run-predicate pc (from-right e)))))))))
+
+;;; comparison-decidable : Decidable Comparison
+(define comparison-decidable
+  (make-decidable
+   comparison-divisible
+   ;; lose: always equal (vacuously true for impossible cases)
+   (make-comparison (lambda (x y) 'eq))
+   ;; choose: compare using appropriate comparison based on which branch
+   (lambda (f cb cc)
+           (make-comparison
+            (lambda (a1 a2)
+                    (let ([e1 (f a1)]
+                          [e2 (f a2)])
+                         (cond
+                          ;; Both Left: use left comparison
+                          [(and (left? e1) (left? e2))
+                           (run-comparison cb (from-left e1) (from-left e2))]
+                          ;; Both Right: use right comparison
+                          [(and (right? e1) (right? e2))
+                           (run-comparison cc (from-right e1) (from-right e2))]
+                          ;; Left < Right by convention
+                          [(left? e1) 'lt]
+                          [else 'gt])))))))
+
+;;; equivalence-decidable : Decidable Equivalence
+(define equivalence-decidable
+  (make-decidable
+   equivalence-divisible
+   ;; lose: always true (vacuously true for impossible cases)
+   (make-equivalence (lambda (x y) #t))
+   ;; choose: equivalent iff same branch and values equivalent
+   (lambda (f eb ec)
+           (make-equivalence
+            (lambda (a1 a2)
+                    (let ([e1 (f a1)]
+                          [e2 (f a2)])
+                         (cond
+                          [(and (left? e1) (left? e2))
+                           (run-equivalence eb (from-left e1) (from-left e2))]
+                          [(and (right? e1) (right? e2))
+                           (run-equivalence ec (from-right e1) (from-right e2))]
+                          [else #f])))))))
+
+;;; ============================================================
 ;;; Practical Utilities
 ;;; ============================================================
 
-;;; sort-by : Comparison a -> List a -> List a
-;;; Sort a list using the given comparison.
-(define (sort-by cmp lst)
+;;; sort-with-comparison : Comparison a -> List a -> List a
+;;; Sort a list using the given Comparison object.
+;;; Note: Use sort-by from combinators.ss for key-function based sorting.
+(define (sort-with-comparison cmp lst)
   (define (merge l1 l2)
     (cond [(null? l1) l2]
           [(null? l2) l1]
@@ -410,8 +523,8 @@
   (if (or (null? lst) (null? (cdr lst)))
       lst
       (let ([halves (split lst)])
-           (merge (sort-by cmp (car halves))
-                  (sort-by cmp (cdr halves))))))
+           (merge (sort-with-comparison cmp (car halves))
+                  (sort-with-comparison cmp (cdr halves))))))
 
 ;;; filter-by : Predicate a -> List a -> List a
 ;;; Filter a list using the given predicate.
@@ -444,7 +557,7 @@
 ;;; ;; Comparison: sort people by age
 ;;; (define person-age-cmp (comparing (lambda (p) (cdr (assoc 'age p)))
 ;;;                                   default-comparison))
-;;; (sort-by person-age-cmp
+;;; (sort-with-comparison person-age-cmp
 ;;;          '(((name . "Alice") (age . 30))
 ;;;            ((name . "Bob") (age . 25))
 ;;;            ((name . "Carol") (age . 35))))
@@ -456,5 +569,5 @@
 ;;; ; => (("apple" "ant" "apricot") ("banana"))  ; if pre-sorted
 ;;;
 ;;; ;; Reverse comparison for descending sort
-;;; (sort-by (reverse-comparison default-comparison) '(3 1 4 1 5 9))
+;;; (sort-with-comparison (reverse-comparison default-comparison) '(3 1 4 1 5 9))
 ;;; ; => (9 5 4 3 1 1)

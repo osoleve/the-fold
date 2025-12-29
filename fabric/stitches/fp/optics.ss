@@ -264,9 +264,12 @@
 ;;;
 ;;; A Traversal focuses on zero or more targets.
 ;;; Traversal s t a b = forall f. Applicative f => (a -> f b) -> s -> f t
+;;;
+;;; Since Scheme lacks typeclasses, traversals take an applicative bundle
+;;; containing pure, ap, and fmap operations for the functor being used.
 
-;;; make-traversal : ((a -> f b) -> s -> f t) -> Traversal s t a b
-;;; Where the function should work for any applicative f.
+;;; make-traversal : ((a -> f b) -> Applicative f -> s -> f t) -> Traversal s t a b
+;;; Where the function should work for any applicative f passed as second arg.
 (define (make-traversal traverse-fn)
   (list 'traversal traverse-fn))
 
@@ -274,7 +277,7 @@
 (define (traversal? x)
   (and (pair? x) (eq? (car x) 'traversal)))
 
-;;; get-traversal : Traversal s t a b -> ((a -> f b) -> s -> f t)
+;;; get-traversal : Traversal s t a b -> ((a -> f b) -> Applicative f -> s -> f t)
 (define (get-traversal trav)
   (list-ref trav 1))
 
@@ -293,7 +296,7 @@
   (run-identity
    ((get-traversal trav)
     (lambda (a) (make-identity (f a)))
-    identity-fmap
+    identity-applicative
     s)))
 
 ;;; traversal-set : Traversal s t a b -> b -> s -> t
@@ -487,30 +490,25 @@
 ;;; Traverse each element of a list.
 (define each
   (make-traversal
-   (lambda (a->fb fmap s)
-           ;; This is list-traverse but we need to pass applicative ops
+   (lambda (a->fb app s)
+           ;; Use the passed applicative's pure, ap, and fmap
            (if (null? s)
-               (make-identity '())
-               (identity-fmap
-                (lambda (pair) (cons (car pair) (cdr pair)))
-                ((app-ap identity-applicative)
-                 (identity-fmap
-                  (lambda (h) (lambda (t) (cons h t)))
-                  (a->fb (car s)))
-                 ((get-traversal each) a->fb fmap (cdr s))))))))
+               ((app-pure app) '())
+               ((app-ap app)
+                (app-fmap app (lambda (h) (lambda (t) (cons h t)))
+                          (a->fb (car s)))
+                ((get-traversal each) a->fb app (cdr s)))))))
 
 ;;; both : Traversal (a, a) (b, b) a b
 ;;; Traverse both elements of a homogeneous pair.
 (define both
   (make-traversal
-   (lambda (a->fb fmap p)
-           (identity-fmap
-            (lambda (pair) pair)
-            ((app-ap identity-applicative)
-             (identity-fmap
-              (lambda (a) (lambda (b) (cons a b)))
-              (a->fb (car p)))
-             (a->fb (cdr p)))))))
+   (lambda (a->fb app p)
+           ;; Use the passed applicative's fmap and ap
+           ((app-ap app)
+            (app-fmap app (lambda (a) (lambda (b) (cons a b)))
+                      (a->fb (car p)))
+            (a->fb (cdr p))))))
 
 ;;; ============================================================
 ;;; Getter/Setter Only Optics
