@@ -931,6 +931,42 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let values: Vec<Value> = vars.into_iter().map(Value::Symbol).collect();
             Ok(list_from_values(&values))
         }
+
+        // REPL commands
+        "version" => {
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("version expects 0 args"));
+            }
+            Ok(Value::String(
+                "The Fold GENESIS\nContent-Addressed Storage and Merkle Log Forum System"
+                    .to_string(),
+            ))
+        }
+        "who" => {
+            // Return session info - for now just indicate no active session
+            // The session system is Scheme-specific, so in Rust we just return a placeholder
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("who expects 0 args"));
+            }
+            Ok(Value::String(
+                "Rust daemon session (use Scheme daemon for full session management)".to_string(),
+            ))
+        }
+        "help" => {
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("help expects 0 args"));
+            }
+            Ok(Value::String(
+                "The Fold - Available Commands:\n\
+                  (version)  - Show system version\n\
+                  (who)      - Show session info\n\
+                  (help)     - Show this help\n\
+                \n\
+                For full functionality, use the Scheme daemon (FOLD_USE_SCHEME=1).\n\
+                The Rust daemon supports the core Fold language primitives."
+                    .to_string(),
+            ))
+        }
         _ => Err(EvalError::UnknownPrimitive(op.clone())),
     }
 }

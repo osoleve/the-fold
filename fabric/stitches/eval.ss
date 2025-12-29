@@ -645,20 +645,17 @@
     (group   . (fix group (fn (xs)
                               (if (prim 'null? xs)
                                   '()
-                                  (let ((x (prim 'car xs))
-                                        (rest-result (span (fn (y) (prim 'eq? x y)) (prim 'cdr xs))))
-                                       (prim 'cons
-                                             (prim 'cons x (prim 'car rest-result))
-                                             (group (prim 'car (prim 'cdr rest-result)))))))))
+                                  (let ((x (prim 'car xs)))
+                                       (let ((rest-result (span (fn (y) (prim 'eq? x y)) (prim 'cdr xs))))
+                                            (prim 'cons
+                                                  (prim 'cons x (prim 'car rest-result))
+                                                  (group (prim 'car (prim 'cdr rest-result))))))))))
     
     (nub     . (fix nub (fn (xs)
                             (if (prim 'null? xs)
                                 '()
-                                (let ((x (prim 'car xs))
-                                      (rest (nub (prim 'cdr xs))))
-                                     (if (elem x rest)
-                                         rest
-                                         (prim 'cons x rest)))))))
+                                (let ((x (prim 'car xs)))
+                                     (prim 'cons x (nub (filter (fn (y) (prim 'not (prim 'eq? x y))) (prim 'cdr xs)))))))))
     
     (find    . (fix find (fn (p xs)
                              (if (prim 'null? xs)

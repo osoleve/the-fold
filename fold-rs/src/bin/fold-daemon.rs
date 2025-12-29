@@ -20,7 +20,8 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use fold_rs::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
+use fold_rs::fabric::expr::{Expr, SpannedExpr};
+use fold_rs::fabric::{Closure, Env, EnvRef, EvalOutcome, Value, eval_spanned};
 use fold_rs::tools::{format_value, lower_program, parse_fold_program};
 
 const REPL_DIR: &str = ".fold-repl";
@@ -36,10 +37,38 @@ struct Session {
     last_active: Instant,
 }
 
+/// Create a closure that invokes a primitive with no arguments.
+fn make_nullary_prim(name: &str, env: EnvRef) -> Value {
+    let body = SpannedExpr::unspanned(Expr::Prim {
+        op: name.to_string(),
+        args: Vec::new(),
+    });
+    Value::Closure(Closure::new(Vec::new(), body, env))
+}
+
 impl Session {
     fn new(_id: String) -> Self {
+        let env = Env::new();
+
+        // Pre-populate the environment with REPL commands
+        Env::insert(
+            &env,
+            "version".to_string(),
+            make_nullary_prim("version", env.clone()),
+        );
+        Env::insert(
+            &env,
+            "who".to_string(),
+            make_nullary_prim("who", env.clone()),
+        );
+        Env::insert(
+            &env,
+            "help".to_string(),
+            make_nullary_prim("help", env.clone()),
+        );
+
         Self {
-            env: Env::new(),
+            env,
             last_active: Instant::now(),
         }
     }
