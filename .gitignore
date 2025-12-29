@@ -32,3 +32,8 @@ archive/
 
 # bv (beads viewer) local config and caches
 .bv/
+
+# Coverage reports
+coverage.lcov
+fold-rs/coverage.lcov
+fold-rs/target/llvm-cov/
