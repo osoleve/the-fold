@@ -143,10 +143,12 @@
            [(string=? (string-downcase name) "title") (quill-story-title story)]
            [else *quill-template-missing*])]
          [(string=? prefix "node")
-          (cond
-           [(string=? (string-downcase name) "id") (quill-node-id node)]
-           [(string=? (string-downcase name) "title") (quill-node-title node)]
-           [else *quill-template-missing*])]
+          (if node
+              (cond
+               [(string=? (string-downcase name) "id") (quill-node-id node)]
+               [(string=? (string-downcase name) "title") (quill-node-title node)]
+               [else *quill-template-missing*])
+              *quill-template-missing*)]
          [else
           (cond
            [(string=? (string-downcase name) "inventory") (quill-template-inventory state)]
@@ -154,9 +156,16 @@
            [(string=? (string-downcase name) "inv-count")
             (length (quill-state-inventory state))]
            [(string=? (string-downcase name) "flags") (quill-template-flag-list state)]
-           [(string=? (string-downcase name) "node") (quill-node-id node)]
-           [(string=? (string-downcase name) "node-id") (quill-node-id node)]
-           [(string=? (string-downcase name) "node-title") (quill-node-title node)]
+           [(string=? (string-downcase name) "clock")
+            (quill-state-meta-get state 'clock 0)]
+           [(string=? (string-downcase name) "time")
+            (quill-state-meta-get state 'clock 0)]
+           [(string=? (string-downcase name) "node")
+            (if node (quill-node-id node) *quill-template-missing*)]
+           [(string=? (string-downcase name) "node-id")
+            (if node (quill-node-id node) *quill-template-missing*)]
+           [(string=? (string-downcase name) "node-title")
+            (if node (quill-node-title node) *quill-template-missing*)]
            [(string=? (string-downcase name) "story") (quill-story-id story)]
            [(string=? (string-downcase name) "story-id") (quill-story-id story)]
            [(string=? (string-downcase name) "story-title") (quill-story-title story)]
@@ -220,6 +229,45 @@
                   [block (string-join lines "\n")])
                  (loop (cdr cs) (+ i 1) (cons block acc))))))
 
+(define (quill-dialogue-choice->lines choice i story run node width)
+  (let* ([prefix (string-append "  " (number->string i) ". ")]
+         [label-raw (format "~a" (quill-dialogue-choice-label choice))]
+         [label (quill-render-template label-raw story run #f choice)]
+         [avail (if (and width (> width (string-length prefix)))
+                    (- width (string-length prefix))
+                    width)]
+         [wrapped (quill-wrap-text label avail)]
+         [lines (quill-split-lines wrapped)])
+        (quill-prefix-lines prefix lines)))
+
+(define (quill-dialogue-choices->string choices story run node width)
+  (let loop ([cs choices] [i 1] [acc '()])
+       (if (null? cs)
+           (if (null? acc) "" (string-append (string-join (reverse acc) "\n") "\n"))
+           (let* ([lines (quill-dialogue-choice->lines (car cs) i story run node width)]
+                  [block (string-join lines "\n")])
+                 (loop (cdr cs) (+ i 1) (cons block acc))))))
+
+(define (quill-render-dialogue story run node width)
+  (let* ([speaker-raw (format "~a" (quill-dialogue-node-speaker node))]
+         [speaker (quill-render-template speaker-raw story run #f node)]
+         [text-raw (format "~a" (quill-dialogue-node-text node))]
+         [text (quill-render-template text-raw story run #f node)]
+         [choices (quill-dialogue-visible-choices node (quill-run-state run))]
+         [choices-text (if (null? choices)
+                           ""
+                           (quill-dialogue-choices->string choices story run node width))])
+        (string-append
+         (if (and speaker (not (string-blank? speaker)))
+             (string-append speaker "\n" (make-string (string-length (quill-first-line speaker)) #\-) "\n\n")
+             "")
+         (quill-wrap-text text width)
+         "\n\n"
+         choices-text
+         (if (null? choices)
+             "\n(Type 'quit' to exit dialogue)\n"
+             "\n(Choose a number, or 'help')\n"))))
+
 (define (quill-render story run . width-opt)
   (let* ([node (quill-story-node story (quill-run-node-id run))]
          [width (if (null? width-opt) *quill-wrap-width* (car width-opt))]
@@ -231,7 +279,8 @@
                          (format "~a" (quill-run-node-id run))
                          "\n")]
          [else
-          (let* ([title-raw (format "~a" (quill-node-title node))]
+          (let* ([dialogue-node (quill-dialogue-current-node story run)]
+                 [title-raw (format "~a" (quill-node-title node))]
                  [title (quill-render-template title-raw story run node #f)]
                  [body (quill-node-body->string (quill-node-body node) story run node)]
                  [choices (quill-visible-choices node state)]
@@ -241,16 +290,19 @@
                  [msg-block (if msg-text (string-append (quill-wrap-text msg-text width) "\n\n") "")])
                 (string-append
                  msg-block
-                 (if (and title (not (string-blank? title)))
-                     (string-append title "\n" (make-string (string-length (quill-first-line title)) #\-) "\n\n")
-                     "")
-                 (quill-wrap-text body width)
-                 "\n\n"
-                 choices-text
-                 (cond
-                  [(quill-run-done? run) "\n[The End]\n"]
-                  [(null? choices) "\n(Type 'quit' to exit)\n"]
-                  [else "\n(Choose a number, or 'help')\n"])))])))
+                 (if dialogue-node
+                     (quill-render-dialogue story run dialogue-node width)
+                     (string-append
+                      (if (and title (not (string-blank? title)))
+                          (string-append title "\n" (make-string (string-length (quill-first-line title)) #\-) "\n\n")
+                          "")
+                      (quill-wrap-text body width)
+                      "\n\n"
+                      choices-text
+                      (cond
+                       [(quill-run-done? run) "\n[The End]\n"]
+                       [(null? choices) "\n(Type 'quit' to exit)\n"]
+                       [else "\n(Choose a number, or 'help')\n"]))))) ])))
 
 ;;; ============================================================
 ;;; Transcript rendering

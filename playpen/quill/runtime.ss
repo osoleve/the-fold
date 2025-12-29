@@ -128,6 +128,8 @@
          [run1
           (cond
            [(quill-run-done? run0) run0]
+           [(quill-dialogue-active? run0)
+            (quill-dialogue-handle story run0 intent quill-apply-effects)]
            [(eq? (quill-intent-type intent) 'choose)
             (quill-choose story run0 (quill-intent-arg intent))]
            [(eq? (quill-intent-type intent) 'look)
@@ -171,13 +173,14 @@
             (quill-run-with-message run0 (format "You say: ~a" (quill-intent-arg intent)))]
            [else
             (quill-run-with-message run0 (format "I didn't understand: ~a" (quill-intent-arg intent)))] )]
-         [out (quill-render story run1)]
+         [run1a (if (quill-run-done? run1) run1 (quill-narrative-advance story run1 quill-apply-effects))]
+         [out (quill-render story run1a)]
          [entry
           (quill-transcript-entry
            'turn
-           `((node . ,(quill-run-node-id run1))
+           `((node . ,(quill-run-node-id run1a))
              (input . ,(if (string? input) input (format "~a" input)))
              (intent . ,intent)
              (output . ,out)))]
-         [run2 (quill-run-append-transcript run1 entry)])
+         [run2 (quill-run-append-transcript run1a entry)])
         (values run2 out)))
