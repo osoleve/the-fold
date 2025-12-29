@@ -79,7 +79,25 @@
               (let ([curried-add (lambda (a) (lambda (b) (+ a b)))])
                    (assert-equal (just 7)
                                  (lift-apply2 maybe-apply curried-add (just 3) (just 4)))
-                   (assert-true (nothing? (lift-apply2 maybe-apply curried-add nothing (just 4)))))))
+                   (assert-true (nothing? (lift-apply2 maybe-apply curried-add nothing (just 4))))))
+
+            (define-test lift4-test
+              (let ([curried-sum4 (lambda (a) (lambda (b) (lambda (c) (lambda (d) (+ a b c d)))))])
+                   (assert-equal (just 10)
+                                 (lift4 maybe-applicative curried-sum4 (just 1) (just 2) (just 3) (just 4)))
+                   (assert-true (nothing? (lift4 maybe-applicative curried-sum4 nothing (just 2) (just 3) (just 4))))))
+
+            (define-test lift5-test
+              (let ([curried-sum5 (lambda (a) (lambda (b) (lambda (c) (lambda (d) (lambda (e) (+ a b c d e))))))])
+                   (assert-equal (just 15)
+                                 (lift5 maybe-applicative curried-sum5 (just 1) (just 2) (just 3) (just 4) (just 5)))
+                   (assert-true (nothing? (lift5 maybe-applicative curried-sum5 (just 1) nothing (just 3) (just 4) (just 5))))))
+
+            (define-test lift6-test
+              (let ([curried-sum6 (lambda (a) (lambda (b) (lambda (c) (lambda (d) (lambda (e) (lambda (f) (+ a b c d e f)))))))])
+                   (assert-equal (just 21)
+                                 (lift6 maybe-applicative curried-sum6 (just 1) (just 2) (just 3) (just 4) (just 5) (just 6)))
+                   (assert-true (nothing? (lift6 maybe-applicative curried-sum6 (just 1) (just 2) nothing (just 4) (just 5) (just 6)))))))
 
 ;;; ============================================================
 ;;; Bind Tests

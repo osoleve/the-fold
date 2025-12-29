@@ -147,6 +147,18 @@
 (define (lift3 app f fa fb fc)
   (ap app (lift2 app f fa fb) fc))
 
+;;; lift4 : Applicative f -> (a -> b -> c -> d -> e) -> f a -> f b -> f c -> f d -> f e
+(define (lift4 app f fa fb fc fd)
+  (ap app (lift3 app f fa fb fc) fd))
+
+;;; lift5 : Applicative f -> (a -> b -> c -> d -> e -> g) -> f a -> f b -> f c -> f d -> f e -> f g
+(define (lift5 app f fa fb fc fd fe)
+  (ap app (lift4 app f fa fb fc fd) fe))
+
+;;; lift6 : Applicative f -> (a -> b -> c -> d -> e -> g -> h) -> ...
+(define (lift6 app f fa fb fc fd fe fg)
+  (ap app (lift5 app f fa fb fc fd fe) fg))
+
 ;;; (*>) : Applicative f -> f a -> f b -> f b
 ;;; Sequence, discarding first result.
 (define (seq-right app fa fb)
