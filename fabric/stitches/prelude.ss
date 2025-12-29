@@ -58,12 +58,20 @@
       acc
       (fold-left f (f acc (car lst)) (cdr lst))))
 
+;;; foldl : (β × α → β) × β × (List α) → β
+;;; Alias for fold-left (Haskell naming convention).
+(define foldl fold-left)
+
 ;;; fold-right : (α × β → β) × β × (List α) → β
 ;;; Right-associative fold.
 (define (fold-right f acc lst)
   (if (null? lst)
       acc
       (f (car lst) (fold-right f acc (cdr lst)))))
+
+;;; foldr : (α × β → β) × β × (List α) → β
+;;; Alias for fold-right (Haskell naming convention).
+(define foldr fold-right)
 
 ;;; zip : (List α) × (List β) → (List (Pair α β))
 ;;; Zip two lists together. Stops at shorter list.
