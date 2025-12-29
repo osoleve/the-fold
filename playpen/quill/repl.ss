@@ -4,6 +4,7 @@
 ;;; lands in a dedicated tooling file later.
 
 (define (quill-run story . state-opt)
+  (quill-assert-valid! story)
   (let ([run (apply quill-start story state-opt)])
     ;; Apply on-enter for the start node once.
     (let loop ([r (quill-enter-node story run)])

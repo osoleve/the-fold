@@ -111,6 +111,13 @@
                  (quill-run-done? run)
                  (quill-run-message run)))
 
+;;; Transcript entry helpers
+;;; Entries are intended to be stable, structured data for assessment/debugging.
+;;; A typical entry is:
+;;;   ((kind . turn) (node . <symbol>) (input . <string>) (intent . <sexp>) (output . <string>))
+(define (quill-transcript-entry kind fields)
+  (cons (cons 'kind kind) fields))
+
 ;;; ============================================================
 ;;; Intent (input model)
 ;;; ============================================================
