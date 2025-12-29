@@ -269,10 +269,10 @@
 ;;; Simple Collision Detection Helpers
 ;;; ============================================================
 
-;;; circle-circle-manifold : Body2D × Number × Body2D × Number → Manifold | #f
-;;; Generate collision manifold for two circles.
+;;; body-circle-circle-manifold : Body2D × Number × Body2D × Number → Manifold | #f
+;;; Generate collision manifold for two circles using bodies.
 ;;; Returns #f if no collision.
-(define (circle-circle-manifold body-a radius-a body-b radius-b)
+(define (body-circle-circle-manifold body-a radius-a body-b radius-b)
   (let* ([pos-a (body-pos body-a)]
          [pos-b (body-pos body-b)]
          [diff (vec2-sub pos-b pos-a)]
@@ -289,10 +289,10 @@
                    [contact (vec2-add pos-a (vec2-scale normal radius-a))])
                   (make-manifold body-a body-b normal penetration contact)))))
 
-;;; circle-aabb-manifold : Body2D × Number × Vec2 × Vec2 → Manifold | #f
-;;; Generate manifold for circle vs axis-aligned bounding box.
+;;; body-circle-aabb-manifold : Body2D × Number × Vec2 × Vec2 → Manifold | #f
+;;; Generate manifold for circle vs axis-aligned bounding box using bodies.
 ;;; aabb-min and aabb-max define the box corners.
-(define (circle-aabb-manifold body radius aabb-min aabb-max)
+(define (body-circle-aabb-manifold body radius aabb-min aabb-max)
   (let* ([pos (body-pos body)]
          [px (vec2-x pos)]
          [py (vec2-y pos)]

@@ -247,7 +247,7 @@
             (define-test circle-circle-collision
               (let* ([a (make-body-2d (vec2 0 0) (vec2 0 0) 1)]
                      [b (make-body-2d (vec2 1.5 0) (vec2 0 0) 1)]
-                     [m (circle-circle-manifold a 1 b 1)])
+                     [m (body-circle-circle-manifold a 1 b 1)])
                     (assert-true (manifold? m))
                     (assert-= (manifold-penetration m) 0.5 0.0001)
                     (assert-vec2-= (manifold-normal m) (vec2 1 0) 0.0001)))
@@ -255,13 +255,13 @@
             (define-test circle-circle-no-collision
               (let* ([a (make-body-2d (vec2 0 0) (vec2 0 0) 1)]
                      [b (make-body-2d (vec2 3 0) (vec2 0 0) 1)]
-                     [m (circle-circle-manifold a 1 b 1)])
+                     [m (body-circle-circle-manifold a 1 b 1)])
                     (assert-false m)))
             
             (define-test circle-circle-touching
               (let* ([a (make-body-2d (vec2 0 0) (vec2 0 0) 1)]
                      [b (make-body-2d (vec2 2 0) (vec2 0 0) 1)]
-                     [m (circle-circle-manifold a 1 b 1)])
+                     [m (body-circle-circle-manifold a 1 b 1)])
                     ;; Exactly touching = no penetration
                     (if m
                         (assert-= (manifold-penetration m) 0 0.0001)
