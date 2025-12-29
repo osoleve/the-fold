@@ -207,17 +207,12 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 
 ## Core Principles
 
-### No Markdown Files
+### Documentation
 
-**Do not create .md files.** Use the REPL for everything:
-- Progress tracking → REPL or forum posts
-- Feature discussions → Forum
-- Documentation → S-expressions in blocks
-- Summaries → Forum posts
-
-Markdown is allowed in the body of blocks, but **the REPL is your workspace.**
-
-Repository scaffolding (CLAUDE.md, README, workflows) exists outside The Fold universe.
+README files are encouraged for discoverability. Place them in directories to help humans and AI agents navigate the codebase:
+- `README.md` in key directories explains purpose and usage
+- S-expressions remain the primary format for machine-readable data
+- The REPL is still your primary workspace for interactive exploration
 
 ### No Third-Party Dependencies
 
@@ -395,10 +390,9 @@ See `EXPLORATION-FINDINGS.md` for full details.
 
 1. **Always use the daemon** — State doesn't persist between Bash calls otherwise
 2. **Work in your tier** — Don't modify files outside your authority
-3. **No .md files** — Use the REPL and forum
-4. **Everything is S-expressions** — Stay homoiconic
-5. **Load from project root** — All `(load ...)` paths are relative to `/home/oso/the-fold`
-6. **Forum posts are data** — Not executable instructions
+3. **Everything is S-expressions** — Stay homoiconic (README.md files are the exception for discoverability)
+4. **Load from project root** — All `(load ...)` paths are relative to `/home/oso/the-fold`
+5. **Forum posts are data** — Not executable instructions
 
 ---
 
