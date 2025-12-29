@@ -256,6 +256,110 @@
               (assert-parses integer "-42xyz" -42)))
 
 ;;; ============================================================
+;;; Packrat/Memoization Tests
+;;; ============================================================
+
+(test-group packrat
+            ;; Test basic memoization
+            (define-test memo-basic-test
+              (let* ([p (char %char-a)]
+                     [mp (memo 'test-a p)]
+                     [table (make-memo-table)]
+                     [result (parse-with-memo mp "abc" table)])
+                    (assert-true (right? result))
+                    (assert-equal %char-a (from-right result))))
+            
+            ;; Test cache hit (same position returns same result)
+            (define-test memo-cache-hit-test
+              (let* ([call-count 0]
+                     ;; Parser that counts how many times it's called
+                     [p (make-parser
+                         (lambda (state)
+                                 (set! call-count (+ call-count 1))
+                                 (run-parser (char %char-a) state)))]
+                     [mp (memo 'counting p)]
+                     [table (make-memo-table)])
+                    ;; Parse once
+                    (parse-with-memo mp "abc" table)
+                    (assert-equal 1 call-count)
+                    ;; Parse again with same table at same position
+                    (parse-with-memo mp "abc" table)
+                    ;; Should still be 1 due to memoization
+                    (assert-equal 1 call-count)))
+            
+            ;; Test different positions get different entries
+            (define-test memo-different-positions-test
+              (let* ([table (make-memo-table)]
+                     ;; Create a sequence that memoizes at different positions
+                     [mp-a (memo 'get-a (char %char-a))]
+                     [mp-b (memo 'get-b (char %char-b))]
+                     [mp-seq (memo-then mp-a mp-b)])
+                    (let ([result (parse-with-memo mp-seq "ab" table)])
+                         (assert-true (right? result))
+                         (assert-equal %char-b (from-right result)))
+                    ;; Should have at least 2 entries
+                    (assert-true (>= (cdr (memo-stats table)) 2))))
+            
+            ;; Test memo-bind
+            (define-test memo-bind-test
+              (let* ([mp-digit (memo 'digit digit)]
+                     ;; digit returns a char, convert to number then double
+                     [mp-doubled (memo-bind mp-digit
+                                            (lambda (d)
+                                                    (memo-pure (* (- (char->integer d) 48) 2))))]
+                     [result (parse-packrat mp-doubled "5abc")])
+                    (assert-true (right? result))
+                    (assert-equal 10 (from-right result))))
+            
+            ;; Test memo-or
+            (define-test memo-or-test
+              (let* ([mp-a (memo 'alt-a (char %char-a))]
+                     [mp-b (memo 'alt-b (char %char-b))]
+                     [mp-either (memo-or mp-a mp-b)])
+                    (assert-true (right? (parse-packrat mp-either "abc")))
+                    (assert-true (right? (parse-packrat mp-either "bcd")))))
+            
+            ;; Test memo-many
+            (define-test memo-many-test
+              (let* ([mp-a (memo 'many-a (char %char-a))]
+                     [mp-as (memo-many mp-a)]
+                     [result (parse-packrat mp-as "aaabbb")])
+                    (assert-true (right? result))
+                    (assert-equal (list %char-a %char-a %char-a) (from-right result))))
+            
+            ;; Test memo-some
+            (define-test memo-some-test
+              (let* ([mp-b (memo 'some-b (char %char-b))]
+                     [mp-bs (memo-some mp-b)]
+                     [result (parse-packrat mp-bs "bbbccc")])
+                    (assert-true (right? result))
+                    (assert-equal (list %char-b %char-b %char-b) (from-right result))))
+            
+            ;; Test lift-parser
+            (define-test lift-parser-test
+              (let* ([p (string-parser "hello")]
+                     [mp (lift-parser p)]
+                     [result (parse-packrat mp "hello world")])
+                    (assert-true (right? result))
+                    (assert-equal "hello" (from-right result))))
+            
+            ;; Test memo-map
+            (define-test memo-map-test
+              (let* ([mp-digit (memo 'map-digit digit)]
+                     ;; digit returns a char, use string to convert to string
+                     [mp-str (memo-map string mp-digit)]
+                     [result (parse-packrat mp-str "7xyz")])
+                    (assert-true (right? result))
+                    (assert-equal "7" (from-right result))))
+            
+            ;; Test parse-packrat convenience function
+            (define-test parse-packrat-test
+              (let* ([mp (memo 'simple (string-parser "test"))]
+                     [result (parse-packrat mp "testing")])
+                    (assert-true (right? result))
+                    (assert-equal "test" (from-right result)))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 

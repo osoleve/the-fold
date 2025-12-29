@@ -879,3 +879,141 @@
                     (display "FAILURE"))
                 (newline)
                 result))))
+
+;;; ============================================================
+;;; Packrat Parsing (Memoization)
+;;; ============================================================
+;;;
+;;; Packrat parsing memoizes parser results by (rule-key, position).
+;;; This ensures O(n) parsing time for grammars that would otherwise
+;;; have exponential backtracking.
+;;;
+;;; Usage:
+;;;   1. Create a memo table: (make-memo-table)
+;;;   2. Wrap rules with memo: (memo 'rule-name parser)
+;;;   3. Parse with the memo table: (parse-with-memo parser input table)
+;;;
+;;; Note: Memoization uses mutation internally but the interface
+;;; remains pure from the caller's perspective.
+
+;;; make-memo-table : () → MemoTable
+;;; Create a new memoization table.
+(define (make-memo-table)
+  (make-hashtable equal-hash equal?))
+
+;;; memo-key : Symbol × Nat → MemoKey
+;;; Create a memoization key from rule name and position.
+(define (memo-key name offset)
+  (cons name offset))
+
+;;; memo-lookup : MemoTable × Symbol × Nat → (Maybe Result)
+;;; Look up a cached result.
+(define (memo-lookup table name offset)
+  (let ([result (hashtable-ref table (memo-key name offset) 'not-found)])
+       (if (eq? result 'not-found)
+           nothing
+           (just result))))
+
+;;; memo-store! : MemoTable × Symbol × Nat × Result → ()
+;;; Store a result in the cache.
+(define (memo-store! table name offset result)
+  (hashtable-set! table (memo-key name offset) result))
+
+;;; memo : Symbol × Parser a → MemoTable → Parser a
+;;; Create a memoizing parser. The memo table is passed at parse time.
+;;; This allows the same parser definition to be reused with different tables.
+(define (memo name parser)
+  (lambda (table)
+          (make-parser
+           (lambda (state)
+                   (let ([offset (pos-offset (state-pos state))])
+                        (let ([cached (memo-lookup table name offset)])
+                             (if (just? cached)
+                                 ;; Cache hit - return cached result
+                                 (from-just cached)
+                                 ;; Cache miss - compute and store
+                                 (let ([result (run-parser parser state)])
+                                      (memo-store! table name offset result)
+                                      result))))))))
+
+;;; memo-ref : (MemoTable → Parser a) × MemoTable → Parser a
+;;; Resolve a memoized parser with its table.
+(define (memo-ref memo-parser table)
+  (memo-parser table))
+
+;;; parse-with-memo : (MemoTable → Parser a) × String × MemoTable → Either Error Value
+;;; Parse using memoization.
+(define (parse-with-memo memo-parser input table)
+  (let* ([parser (memo-ref memo-parser table)]
+         [result (run-parser parser (initial-state input))])
+        (if (right? result)
+            (right (car (from-right result)))
+            result)))
+
+;;; parse-packrat : (MemoTable → Parser a) × String → Either Error Value
+;;; Parse with a fresh memo table (convenience function).
+(define (parse-packrat memo-parser input)
+  (parse-with-memo memo-parser input (make-memo-table)))
+
+;;; ============================================================
+;;; Packrat Combinators
+;;; ============================================================
+;;;
+;;; These combinators work with memoized parsers.
+
+;;; memo-bind : (MemoTable → Parser a) × (a → MemoTable → Parser b) → MemoTable → Parser b
+;;; Monadic bind for memoized parsers.
+(define (memo-bind mp f)
+  (lambda (table)
+          (parser-bind (memo-ref mp table)
+                       (lambda (x) (memo-ref (f x) table)))))
+
+;;; memo-then : (MemoTable → Parser a) × (MemoTable → Parser b) → MemoTable → Parser b
+;;; Sequence memoized parsers, discarding first result.
+(define (memo-then mp1 mp2)
+  (lambda (table)
+          (parser-then (memo-ref mp1 table) (memo-ref mp2 table))))
+
+;;; memo-or : (MemoTable → Parser a) × (MemoTable → Parser a) → MemoTable → Parser a
+;;; Try memoized parsers in order.
+(define (memo-or mp1 mp2)
+  (lambda (table)
+          (parser-or (memo-ref mp1 table) (memo-ref mp2 table))))
+
+;;; memo-pure : a → MemoTable → Parser a
+;;; Lift a value into the memoized parser context.
+(define (memo-pure x)
+  (lambda (table) (parser-pure x)))
+
+;;; memo-map : (a → b) → (MemoTable → Parser a) → MemoTable → Parser b
+;;; Map over a memoized parser.
+(define (memo-map f mp)
+  (lambda (table)
+          (parser-map f (memo-ref mp table))))
+
+;;; memo-many : (MemoTable → Parser a) → MemoTable → Parser (List a)
+;;; Zero or more of a memoized parser.
+(define (memo-many mp)
+  (lambda (table)
+          (many (memo-ref mp table))))
+
+;;; memo-some : (MemoTable → Parser a) → MemoTable → Parser (List a)
+;;; One or more of a memoized parser.
+(define (memo-some mp)
+  (lambda (table)
+          (some (memo-ref mp table))))
+
+;;; lift-parser : Parser a → MemoTable → Parser a
+;;; Lift a regular parser to work with memo combinators.
+(define (lift-parser p)
+  (lambda (table) p))
+
+;;; ============================================================
+;;; Packrat Statistics (for debugging)
+;;; ============================================================
+
+;;; memo-stats : MemoTable → (hits . entries)
+;;; Get statistics about memo table usage.
+;;; Note: This counts entries, not hits (hits require instrumentation).
+(define (memo-stats table)
+  (cons 0 (hashtable-size table)))
