@@ -104,6 +104,32 @@
                      (matrix-approx-equal? u i3 1e-10)))
           (test "LU: Identity fails" #t #f)))
 
+;; Test: LU solve - simple 2×2 system
+(let* ([a (matrix-from-lists '((2 1) (1 3)))]
+       [b '#(5 6)]  ; Solution should be x = [2.2, 0.6] approximately
+       [result (matrix-lu a)])
+      (if (pair? result)
+          (let* ([x (matrix-lu-solve result b)]
+                 ;; Verify Ax = b
+                 [ax0 (+ (* (matrix-ref a 0 0) (vector-ref x 0))
+                         (* (matrix-ref a 0 1) (vector-ref x 1)))]
+                 [ax1 (+ (* (matrix-ref a 1 0) (vector-ref x 0))
+                         (* (matrix-ref a 1 1) (vector-ref x 1)))])
+                (test-approx "LU solve: Ax=b component 0" (vector-ref b 0) ax0 1e-10)
+                (test-approx "LU solve: Ax=b component 1" (vector-ref b 1) ax1 1e-10))
+          (test "LU solve: decomposition failed" #t #f)))
+
+;; Test: LU solve - 3×3 system
+(let* ([a (matrix-from-lists '((1 2 3) (4 5 6) (7 8 10)))]
+       [b '#(14 32 53)]  ; Known solution x = [1, 2, 3]
+       [result (matrix-lu a)])
+      (if (pair? result)
+          (let ([x (matrix-lu-solve result b)])
+               (test-approx "LU solve: 3×3 x[0]" 1.0 (vector-ref x 0) 1e-10)
+               (test-approx "LU solve: 3×3 x[1]" 2.0 (vector-ref x 1) 1e-10)
+               (test-approx "LU solve: 3×3 x[2]" 3.0 (vector-ref x 2) 1e-10))
+          (test "LU solve: 3×3 decomposition failed" #t #f)))
+
 ;;; ============================================================
 ;;; QR Decomposition Tests
 ;;; ============================================================
@@ -153,8 +179,8 @@
 ;; Test 7: Simple 2×2 positive definite matrix
 (let* ([a (matrix-from-lists '((4 12) (12 37)))]
        [result (matrix-cholesky a)])
-      (if (pair? result)
-          (let ([l result])
+      (if (and (pair? result) (not (eq? (car result) 'error)))
+          (let ([l (car result)])
                (test "Cholesky: 2×2 PD matrix succeeds" #t #t)
                ;; Verify L is lower triangular
                (test-approx "Cholesky: L is lower triangular"
@@ -172,8 +198,8 @@
 ;; Test 8: 3×3 positive definite matrix
 (let* ([a (matrix-from-lists '((25 15 -5) (15 18 0) (-5 0 11)))]
        [result (matrix-cholesky a)])
-      (if (pair? result)
-          (let ([l result])
+      (if (and (pair? result) (not (eq? (car result) 'error)))
+          (let ([l (car result)])
                (test "Cholesky: 3×3 PD matrix succeeds" #t #t)
                ;; Verify reconstruction
                (let* ([lt (matrix-transpose l)]
@@ -186,10 +212,10 @@
 ;; Test 9: Identity matrix
 (let* ([i3 (identity 3)]
        [result (matrix-cholesky i3)])
-      (if (pair? result)
+      (if (and (pair? result) (not (eq? (car result) 'error)))
           (test "Cholesky: Identity → L = I"
                 #t
-                (matrix-approx-equal? result i3 1e-10))
+                (matrix-approx-equal? (car result) i3 1e-10))
           (test "Cholesky: Identity fails" #t #f)))
 
 ;;; ============================================================
@@ -217,7 +243,7 @@
        [result (matrix-cholesky a)])
       (test "Cholesky: Barely PD matrix"
             #t
-            (pair? result)))
+            (and (pair? result) (not (eq? (car result) 'error)))))
 
 ;;; ============================================================
 ;;; Error Handling Tests

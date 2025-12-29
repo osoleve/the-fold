@@ -15,8 +15,18 @@
 ;;; Do NOT load dependencies here to avoid redefinition issues.
 
 ;;; ============================================================
+;;; Numerical Tolerance
+;;; ============================================================
+
+;;; Threshold for numerical stability checks (singularity, linear dependence)
+(define *matrix-tolerance* 1e-10)
+
+;;; ============================================================
 ;;; Helper Functions
 ;;; ============================================================
+
+;;; Note: vec-norm and vec-dot are defined in vec.ss
+;;; This file assumes vec.ss is loaded (via matrix.ss dependency)
 
 ;;; matrix-copy : Matrix → Matrix
 (define (matrix-copy m)
@@ -42,18 +52,6 @@
             [(= i rows) result]
             (vector-set! result i (matrix-ref m i j)))))
 
-;;; vec-norm : Vec → Num
-(define (vec-norm v)
-  (sqrt (vec-dot-product v v)))
-
-;;; vec-dot-product : Vec × Vec → Num
-(define (vec-dot-product v1 v2)
-  (let ([n (vector-length v1)])
-       (let loop ([i 0] [sum 0])
-            (if (= i n)
-                sum
-                (loop (+ i 1)
-                      (+ sum (* (vector-ref v1 i) (vector-ref v2 i))))))))
 
 ;;; ============================================================
 ;;; LU Decomposition
@@ -92,7 +90,7 @@
                            (let find-pivot ([i (+ k 1)] [max-row k] [max-val (abs (matrix-ref lu k k))])
                                 (if (= i n)
                                     ;; Check for singularity and continue
-                                    (if (< max-val 1e-10)
+                                    (if (< max-val *matrix-tolerance*)
                                         `(error singular-matrix ,k)
                                         (begin
                                          ;; Swap rows if needed
@@ -126,6 +124,43 @@
                                              (find-pivot (+ i 1) i val)
                                              (find-pivot (+ i 1) max-row max-val)))))))))))
 
+;;; matrix-lu-solve : (L × U × P) × Vec → Vec
+;;; Solve Ax = b given LU decomposition with permutation.
+;;; Algorithm: 1) Apply P to b, 2) Forward substitute Ly = Pb, 3) Back substitute Ux = y
+(define (matrix-lu-solve lu-result b)
+  (let* ([l (car lu-result)]
+         [u (cadr lu-result)]
+         [p (caddr lu-result)]
+         [n (vector-length b)]
+         ;; Step 1: Apply permutation to b
+         [pb (make-vector n 0)]
+         [_ (do ([i 0 (+ i 1)])
+                [(= i n)]
+                (vector-set! pb i (vector-ref b (vector-ref p i))))]
+         ;; Step 2: Forward substitution (Ly = Pb)
+         [y (make-vector n 0)]
+         [_ (do ([i 0 (+ i 1)])
+                [(= i n)]
+                (let ([sum (let loop ([j 0] [s 0])
+                                (if (= j i)
+                                    s
+                                    (loop (+ j 1)
+                                          (+ s (* (matrix-ref l i j)
+                                                  (vector-ref y j))))))])
+                     (vector-set! y i (- (vector-ref pb i) sum))))]
+         ;; Step 3: Back substitution (Ux = y)
+         [x (make-vector n 0)])
+        (do ([i (- n 1) (- i 1)])
+            [(< i 0) x]
+            (let ([sum (let loop ([j (+ i 1)] [s 0])
+                            (if (= j n)
+                                s
+                                (loop (+ j 1)
+                                      (+ s (* (matrix-ref u i j)
+                                              (vector-ref x j))))))])
+                 (vector-set! x i (/ (- (vector-ref y i) sum)
+                                     (matrix-ref u i i)))))))
+
 ;;; ============================================================
 ;;; QR Decomposition
 ;;; ============================================================
@@ -144,7 +179,7 @@
                           (let* ([col-j (matrix-column q j)]
                                  [norm (vec-norm col-j)])
                                 (matrix-set! r j j norm)
-                                (if (< norm 1e-10)
+                                (if (< norm *matrix-tolerance*)
                                     `(error linearly-dependent ,j)
                                     (begin
                                      ;; Normalize column j
@@ -156,7 +191,7 @@
                                          [(= i n)]
                                          (let* ([col-i (matrix-column q i)]
                                                 [col-j-norm (matrix-column q j)]
-                                                [proj (vec-dot-product col-j-norm col-i)])
+                                                [proj (vec-dot col-j-norm col-i)])
                                                (matrix-set! r j i proj)
                                                (do ([row 0 (+ row 1)])
                                                    [(= row m)]
@@ -169,7 +204,8 @@
 ;;; Cholesky Decomposition
 ;;; ============================================================
 
-;;; matrix-cholesky : Matrix → Matrix | Error
+;;; matrix-cholesky : Matrix → (List Matrix) | Error
+;;; Returns (list L) where A = L × L^T for positive-definite A.
 (define (matrix-cholesky a)
   (let ([n (matrix-rows a)])
        (if (not (= n (matrix-cols a)))
@@ -177,7 +213,7 @@
            (let ([l (make-matrix n n 0)])
                 (let row-loop ([i 0])
                      (if (= i n)
-                         l
+                         (list l)
                          (let col-loop ([j 0])
                               (if (> j i)
                                   (row-loop (+ i 1))
