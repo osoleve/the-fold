@@ -244,7 +244,7 @@
                     (parser-then sql-minus
                                  (parser-pure (lambda (l r) (make-binary-op no-span '- l r))))
                     (parser-then sql-concat
-                                 (parser-pure (lambda (l r) (make-binary-op no-span '|| l r))))))))
+                                 (parser-pure (lambda (l r) (make-binary-op no-span 'concat l r))))))))
 
 ;;; sql-comparison-op : Parser Symbol
 (define sql-comparison-op

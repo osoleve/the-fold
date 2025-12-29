@@ -467,6 +467,7 @@
         [(and) (format-keyword "AND" opts)]
         [(or) (format-keyword "OR" opts)]
         [(not) (format-keyword "NOT" opts)]
+        [(concat) "||"]
         [else (symbol->string op)]))
 
 ;;; format-function-call : AST × Alist → String
