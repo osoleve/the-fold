@@ -6,6 +6,13 @@ pub fn format_value(value: &Value) -> String {
         Value::Number(n) => n.to_string(),
         Value::Float(n) => n.to_string(),
         Value::BigInt(n) => n.to_string(),
+        Value::BigRational(r) => {
+            if r.is_integer() {
+                r.numer().to_string()
+            } else {
+                format!("{}/{}", r.numer(), r.denom())
+            }
+        }
         Value::String(s) => format_string(s),
         Value::Symbol(sym) => sym.clone(),
         Value::Bool(true) => "#t".to_string(),

@@ -3,8 +3,12 @@ use std::{
     sync::{Mutex, OnceLock},
 };
 
+use num_bigint::BigInt;
+use num_rational::BigRational;
+
 use crate::fabric::{
     address::{ADDRESS_SIZE, Address},
+    bigint, bigrational,
     block::Block,
     cas::{Store, address_to_hex, hash_block, hex_to_address},
     error::EvalError,
@@ -365,8 +369,22 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
         }
 
         // Type predicates
-        "number?" => type_predicate(args, |v| matches!(v, Value::Number(_) | Value::Float(_))),
+        "number?" => type_predicate(args, |v| {
+            matches!(
+                v,
+                Value::Number(_) | Value::Float(_) | Value::BigInt(_) | Value::BigRational(_)
+            )
+        }),
         "integer?" => type_predicate(args, |v| matches!(v, Value::Number(_))),
+        "bigint?" => type_predicate(args, |v| matches!(v, Value::BigInt(_))),
+        "rational?" => type_predicate(args, |v| matches!(v, Value::BigRational(_))),
+        "exact?" => type_predicate(args, |v| {
+            matches!(
+                v,
+                Value::Number(_) | Value::BigInt(_) | Value::BigRational(_)
+            )
+        }),
+        "inexact?" => type_predicate(args, |v| matches!(v, Value::Float(_))),
         "symbol?" => type_predicate(args, |v| matches!(v, Value::Symbol(_))),
         "string?" => type_predicate(args, |v| matches!(v, Value::String(_))),
         "char?" => type_predicate(args, |v| matches!(v, Value::Char(_))),
@@ -932,6 +950,349 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             Ok(list_from_values(&values))
         }
 
+        // ============================================================
+        // BigInt operations
+        // ============================================================
+
+        // Construction
+        "bigint" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("bigint expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Number(n) => Ok(Value::BigInt(bigint::bigint_from_i64(*n))),
+                Value::BigInt(n) => Ok(Value::BigInt(n.clone())),
+                Value::String(s) => bigint::bigint_from_string(s)
+                    .map(Value::BigInt)
+                    .map_err(|_| EvalError::TypeMismatch("invalid bigint string")),
+                _ => Err(EvalError::TypeMismatch("bigint expects number or string")),
+            }
+        }
+        "bigint->string" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("bigint->string expects 1 arg"));
+            }
+            let n = expect_bigint(&args[0])?;
+            Ok(Value::String(bigint::bigint_to_string(n)))
+        }
+        "bigint->number" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("bigint->number expects 1 arg"));
+            }
+            let n = expect_bigint(&args[0])?;
+            match bigint::bigint_to_i64(n) {
+                Some(i) => Ok(Value::Number(i)),
+                None => Err(EvalError::TypeMismatch("bigint too large for i64")),
+            }
+        }
+
+        // Arithmetic
+        "bigint-add" => bigint_binary(args, bigint::bigint_add),
+        "bigint-sub" => bigint_binary(args, bigint::bigint_sub),
+        "bigint-mul" => bigint_binary(args, bigint::bigint_mul),
+        "bigint-neg" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("bigint-neg expects 1 arg"));
+            }
+            let n = expect_bigint(&args[0])?;
+            Ok(Value::BigInt(bigint::bigint_neg(n)))
+        }
+        "bigint-abs" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("bigint-abs expects 1 arg"));
+            }
+            let n = expect_bigint(&args[0])?;
+            Ok(Value::BigInt(bigint::bigint_abs(n)))
+        }
+
+        // Division
+        "bigint-quotient" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("bigint-quotient expects 2 args"));
+            }
+            let a = expect_bigint(&args[0])?;
+            let b = expect_bigint(&args[1])?;
+            bigint::bigint_quotient(a, b)
+                .map(Value::BigInt)
+                .map_err(|_| EvalError::DivisionByZero)
+        }
+        "bigint-remainder" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("bigint-remainder expects 2 args"));
+            }
+            let a = expect_bigint(&args[0])?;
+            let b = expect_bigint(&args[1])?;
+            bigint::bigint_remainder(a, b)
+                .map(Value::BigInt)
+                .map_err(|_| EvalError::DivisionByZero)
+        }
+        "bigint-divmod" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("bigint-divmod expects 2 args"));
+            }
+            let a = expect_bigint(&args[0])?;
+            let b = expect_bigint(&args[1])?;
+            let (q, r) = bigint::bigint_divmod(a, b).map_err(|_| EvalError::DivisionByZero)?;
+            Ok(Value::Pair(
+                Box::new(Value::BigInt(q)),
+                Box::new(Value::BigInt(r)),
+            ))
+        }
+
+        // Comparison
+        "bigint=?" => bigint_cmp(args, bigint::bigint_eq),
+        "bigint<?" => bigint_cmp(args, bigint::bigint_lt),
+        "bigint<=?" => bigint_cmp(args, bigint::bigint_le),
+        "bigint>?" => bigint_cmp(args, bigint::bigint_gt),
+        "bigint>=?" => bigint_cmp(args, bigint::bigint_ge),
+        "bigint-zero?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("bigint-zero? expects 1 arg"));
+            }
+            let n = expect_bigint(&args[0])?;
+            Ok(Value::Bool(bigint::bigint_is_zero(n)))
+        }
+        "bigint-positive?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("bigint-positive? expects 1 arg"));
+            }
+            let n = expect_bigint(&args[0])?;
+            Ok(Value::Bool(bigint::bigint_is_positive(n)))
+        }
+        "bigint-negative?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("bigint-negative? expects 1 arg"));
+            }
+            let n = expect_bigint(&args[0])?;
+            Ok(Value::Bool(bigint::bigint_is_negative(n)))
+        }
+
+        // GCD/LCM
+        "bigint-gcd" => bigint_binary(args, bigint::bigint_gcd),
+        "bigint-lcm" => bigint_binary(args, bigint::bigint_lcm),
+        "bigint-extended-gcd" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "bigint-extended-gcd expects 2 args",
+                ));
+            }
+            let a = expect_bigint(&args[0])?;
+            let b = expect_bigint(&args[1])?;
+            let (gcd, x, y) = bigint::bigint_extended_gcd(a, b);
+            let values = [Value::BigInt(gcd), Value::BigInt(x), Value::BigInt(y)];
+            Ok(list_from_values(&values))
+        }
+
+        // Bitwise
+        "bigint-and" => bigint_binary(args, bigint::bigint_and),
+        "bigint-or" => bigint_binary(args, bigint::bigint_or),
+        "bigint-xor" => bigint_binary(args, bigint::bigint_xor),
+        "bigint-shl" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("bigint-shl expects 2 args"));
+            }
+            let n = expect_bigint(&args[0])?;
+            let shift = expect_u32(&args[1])?;
+            Ok(Value::BigInt(bigint::bigint_shl(n, shift)))
+        }
+        "bigint-shr" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("bigint-shr expects 2 args"));
+            }
+            let n = expect_bigint(&args[0])?;
+            let shift = expect_u32(&args[1])?;
+            Ok(Value::BigInt(bigint::bigint_shr(n, shift)))
+        }
+        "bigint-bits" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("bigint-bits expects 1 arg"));
+            }
+            let n = expect_bigint(&args[0])?;
+            Ok(Value::Number(bigint::bigint_bits(n) as i64))
+        }
+
+        // Power
+        "bigint-pow" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("bigint-pow expects 2 args"));
+            }
+            let base = expect_bigint(&args[0])?;
+            let exp = expect_u32(&args[1])?;
+            Ok(Value::BigInt(bigint::bigint_pow(base, exp)))
+        }
+        "bigint-modpow" => {
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch("bigint-modpow expects 3 args"));
+            }
+            let base = expect_bigint(&args[0])?;
+            let exp = expect_bigint(&args[1])?;
+            let modulus = expect_bigint(&args[2])?;
+            bigint::bigint_modpow(base, exp, modulus)
+                .map(Value::BigInt)
+                .map_err(|_| EvalError::DivisionByZero)
+        }
+
+        // ============================================================
+        // BigRational operations
+        // ============================================================
+
+        // Construction
+        "make-rational" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("make-rational expects 2 args"));
+            }
+            let numer = to_bigint(&args[0])?;
+            let denom = to_bigint(&args[1])?;
+            bigrational::bigrational_new(numer, denom)
+                .map(Value::BigRational)
+                .map_err(|_| EvalError::DivisionByZero)
+        }
+        "rational" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational expects 1 arg"));
+            }
+            match &args[0] {
+                Value::BigRational(r) => Ok(Value::BigRational(r.clone())),
+                Value::BigInt(n) => Ok(Value::BigRational(bigrational::bigrational_from_bigint(
+                    n.clone(),
+                ))),
+                Value::Number(n) => Ok(Value::BigRational(bigrational::bigrational_from_i64(*n))),
+                _ => Err(EvalError::TypeMismatch(
+                    "rational expects number or rational",
+                )),
+            }
+        }
+
+        // Accessors
+        "rational-numerator" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-numerator expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::BigInt(bigrational::bigrational_numer(r)))
+        }
+        "rational-denominator" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "rational-denominator expects 1 arg",
+                ));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::BigInt(bigrational::bigrational_denom(r)))
+        }
+
+        // Arithmetic
+        "rational-add" => rational_binary(args, bigrational::bigrational_add),
+        "rational-sub" => rational_binary(args, bigrational::bigrational_sub),
+        "rational-mul" => rational_binary(args, bigrational::bigrational_mul),
+        "rational-div" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("rational-div expects 2 args"));
+            }
+            let a = expect_rational(&args[0])?;
+            let b = expect_rational(&args[1])?;
+            bigrational::bigrational_div(a, b)
+                .map(Value::BigRational)
+                .map_err(|_| EvalError::DivisionByZero)
+        }
+        "rational-neg" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-neg expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::BigRational(bigrational::bigrational_neg(r)))
+        }
+        "rational-abs" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-abs expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::BigRational(bigrational::bigrational_abs(r)))
+        }
+        "rational-recip" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-recip expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            bigrational::bigrational_recip(r)
+                .map(Value::BigRational)
+                .map_err(|_| EvalError::DivisionByZero)
+        }
+
+        // Comparison
+        "rational=?" => rational_cmp(args, bigrational::bigrational_eq),
+        "rational<?" => rational_cmp(args, bigrational::bigrational_lt),
+        "rational<=?" => rational_cmp(args, bigrational::bigrational_le),
+        "rational>?" => rational_cmp(args, bigrational::bigrational_gt),
+        "rational>=?" => rational_cmp(args, bigrational::bigrational_ge),
+        "rational-zero?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-zero? expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::Bool(bigrational::bigrational_is_zero(r)))
+        }
+        "rational-positive?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-positive? expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::Bool(bigrational::bigrational_is_positive(r)))
+        }
+        "rational-negative?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-negative? expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::Bool(bigrational::bigrational_is_negative(r)))
+        }
+        "rational-integer?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-integer? expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::Bool(bigrational::bigrational_is_integer(r)))
+        }
+
+        // Rounding
+        "rational-floor" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-floor expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::BigInt(bigrational::bigrational_floor(r)))
+        }
+        "rational-ceiling" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-ceiling expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::BigInt(bigrational::bigrational_ceil(r)))
+        }
+        "rational-truncate" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-truncate expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::BigInt(bigrational::bigrational_trunc(r)))
+        }
+        "rational-round" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational-round expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::BigInt(bigrational::bigrational_round(r)))
+        }
+
+        // Conversion
+        "rational->float" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rational->float expects 1 arg"));
+            }
+            let r = expect_rational(&args[0])?;
+            Ok(Value::Float(bigrational::bigrational_to_f64(r)))
+        }
+
         // REPL commands
         "version" => {
             if !args.is_empty() {
@@ -1108,6 +1469,83 @@ fn expect_usize(value: &Value) -> Result<usize, EvalError> {
         return Err(EvalError::TypeMismatch("expected non-negative index"));
     }
     Ok(n as usize)
+}
+
+fn expect_u32(value: &Value) -> Result<u32, EvalError> {
+    let n = expect_integer(value)?;
+    u32::try_from(n).map_err(|_| EvalError::TypeMismatch("expected u32"))
+}
+
+fn expect_bigint(value: &Value) -> Result<&BigInt, EvalError> {
+    match value {
+        Value::BigInt(n) => Ok(n),
+        _ => Err(EvalError::TypeMismatch("expected bigint")),
+    }
+}
+
+fn expect_rational(value: &Value) -> Result<&BigRational, EvalError> {
+    match value {
+        Value::BigRational(r) => Ok(r),
+        _ => Err(EvalError::TypeMismatch("expected rational")),
+    }
+}
+
+fn to_bigint(value: &Value) -> Result<BigInt, EvalError> {
+    match value {
+        Value::BigInt(n) => Ok(n.clone()),
+        Value::Number(n) => Ok(BigInt::from(*n)),
+        _ => Err(EvalError::TypeMismatch("expected bigint or number")),
+    }
+}
+
+fn bigint_binary<F>(args: &[Value], f: F) -> Result<Value, EvalError>
+where
+    F: Fn(&BigInt, &BigInt) -> BigInt,
+{
+    if args.len() != 2 {
+        return Err(EvalError::TypeMismatch("bigint op expects 2 args"));
+    }
+    let a = expect_bigint(&args[0])?;
+    let b = expect_bigint(&args[1])?;
+    Ok(Value::BigInt(f(a, b)))
+}
+
+fn bigint_cmp<F>(args: &[Value], f: F) -> Result<Value, EvalError>
+where
+    F: Fn(&BigInt, &BigInt) -> bool,
+{
+    if args.len() != 2 {
+        return Err(EvalError::TypeMismatch("bigint comparison expects 2 args"));
+    }
+    let a = expect_bigint(&args[0])?;
+    let b = expect_bigint(&args[1])?;
+    Ok(Value::Bool(f(a, b)))
+}
+
+fn rational_binary<F>(args: &[Value], f: F) -> Result<Value, EvalError>
+where
+    F: Fn(&BigRational, &BigRational) -> BigRational,
+{
+    if args.len() != 2 {
+        return Err(EvalError::TypeMismatch("rational op expects 2 args"));
+    }
+    let a = expect_rational(&args[0])?;
+    let b = expect_rational(&args[1])?;
+    Ok(Value::BigRational(f(a, b)))
+}
+
+fn rational_cmp<F>(args: &[Value], f: F) -> Result<Value, EvalError>
+where
+    F: Fn(&BigRational, &BigRational) -> bool,
+{
+    if args.len() != 2 {
+        return Err(EvalError::TypeMismatch(
+            "rational comparison expects 2 args",
+        ));
+    }
+    let a = expect_rational(&args[0])?;
+    let b = expect_rational(&args[1])?;
+    Ok(Value::Bool(f(a, b)))
 }
 
 fn expect_symbol(value: &Value) -> Result<Symbol, EvalError> {
@@ -1291,6 +1729,10 @@ fn value_eq(left: &Value, right: &Value) -> bool {
         (Value::Float(a), Value::Float(b)) => a == b,
         (Value::Number(a), Value::Float(b)) => (*a as f64) == *b,
         (Value::Float(a), Value::Number(b)) => *a == (*b as f64),
+        (Value::BigInt(a), Value::BigInt(b)) => bigint::bigint_eq(a, b),
+        (Value::BigInt(a), Value::Number(b)) => bigint::bigint_eq(a, &BigInt::from(*b)),
+        (Value::Number(a), Value::BigInt(b)) => bigint::bigint_eq(&BigInt::from(*a), b),
+        (Value::BigRational(a), Value::BigRational(b)) => bigrational::bigrational_eq(a, b),
         (Value::String(a), Value::String(b)) => a == b,
         (Value::Symbol(a), Value::Symbol(b)) => a == b,
         (Value::Bool(a), Value::Bool(b)) => a == b,
