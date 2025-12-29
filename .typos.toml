@@ -8,6 +8,7 @@ helo = "helo"   # Edit distance test
 hel = "hel"     # Parser test
 vrsion = "vrsion"  # Command test
 strng = "strng"  # Help system typo suggestion test
+ba = "ba"       # Regex test (not matching "ab")
 
 [default.extend-words]
 # Fold-specific terminology
