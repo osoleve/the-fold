@@ -16,7 +16,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 
-(load "fabric/stitches/prelude.ss")
+(load "prelude.ss")
 
 ;;; ============================================================
 ;;; Node Types

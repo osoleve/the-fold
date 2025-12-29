@@ -17,7 +17,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss (for result types)
 
-(load "./fabric/stitches/prelude.ss")
+(load "prelude.ss")
 
 ;;; ============================================================
 ;;; Test Registry

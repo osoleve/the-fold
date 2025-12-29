@@ -15,8 +15,8 @@
 ;;;   - prelude.ss
 ;;;   - comp-graph.ss (for tape infrastructure)
 
-(load "fabric/stitches/prelude.ss")
-(load "fabric/stitches/comp-graph.ss")
+(load "prelude.ss")
+(load "comp-graph.ss")
 
 ;;; ============================================================
 ;;; Traced Values
