@@ -4,11 +4,8 @@
 
 (load "fabric/stitches/fold-parse.ss")
 
-(display "Fold Parser Tests
-")
-(display "=================
-
-")
+(display "Fold Parser Tests\n")
+(display "=================\n\n")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -51,8 +48,7 @@
 ;;; Span Tests
 ;;; ============================================================
 
-(display "Spans:
-")
+(display "Spans:\n")
 
 (test "make-span"
       '(span "test.ss" 1 5 2 10)
@@ -82,9 +78,7 @@
 ;;; State Tests
 ;;; ============================================================
 
-(display "
-Parser State:
-")
+(display "\nParser State:\n")
 
 (test "initial-state"
       #t
@@ -102,7 +96,7 @@ Parser State:
       1
       (state-column (initial-state "hello")))
 
-(let ([s (advance-state (initial-state "ab") #)])
+(let ([s (advance-state (initial-state "ab") #\a)])
      (test "advance-state input"
            "b"
            (state-input s))
@@ -110,10 +104,8 @@ Parser State:
            2
            (state-column s)))
 
-(let ([s (advance-state (initial-state "a
-b") #)])
-     (let ([s2 (advance-state s #
-ewline)])
+(let ([s (advance-state (initial-state "a\nb") #\a)])
+     (let ([s2 (advance-state s #\newline)])
           (test "advance-state newline line"
                 2
                 (state-line s2))
@@ -125,13 +117,11 @@ ewline)])
 ;;; Basic Parser Tests
 ;;; ============================================================
 
-(display "
-Basic Parsers:
-")
+(display "\nBasic Parsers:\n")
 
 (let ([result (run-spanned s-item "abc")])
      (test "s-item success"
-           #
+           #\a
            (spanned-value result))
      (test "s-item remaining"
            "bc"
@@ -156,9 +146,7 @@ Basic Parsers:
 ;;; Number Parsing
 ;;; ============================================================
 
-(display "
-Numbers:
-")
+(display "\nNumbers:\n")
 
 (test-parse "integer" "42" 42)
 (test-parse "negative integer" "-17" -17)
@@ -170,24 +158,19 @@ Numbers:
 ;;; String Parsing
 ;;; ============================================================
 
-(display "
-Strings:
-")
+(display "\nStrings:\n")
 
 (test-parse "empty string" "\"\"" "")
 (test-parse "simple string" "\"hello\"" "hello")
 (test-parse "string with spaces" "\"hello world\"" "hello world")
-(test-parse "string with escape" "\"a\nb\"" "a
-b")
-(test-parse "string with quote" "\"say \\"hi\\"\"" "say \"hi\"")
+(test-parse "string with escape" "\"a\\nb\"" "a\nb")
+(test-parse "string with quote" "\"say \\\"hi\\\"\"" "say \"hi\"")
 
 ;;; ============================================================
 ;;; Boolean Parsing
 ;;; ============================================================
 
-(display "
-Booleans:
-")
+(display "\nBooleans:\n")
 
 (test-parse "true" "#t" #t)
 (test-parse "false" "#f" #f)
@@ -196,9 +179,7 @@ Booleans:
 ;;; Symbol Parsing
 ;;; ============================================================
 
-(display "
-Symbols:
-")
+(display "\nSymbols:\n")
 
 (test-parse "simple symbol" "foo" 'foo)
 (test-parse "symbol with dash" "foo-bar" 'foo-bar)
@@ -211,9 +192,7 @@ Symbols:
 ;;; List Parsing
 ;;; ============================================================
 
-(display "
-Lists:
-")
+(display "\nLists:\n")
 
 (test-parse "empty list" "()" '())
 (test-parse "single element" "(x)" '(x))
@@ -227,9 +206,7 @@ Lists:
 ;;; Quote Parsing
 ;;; ============================================================
 
-(display "
-Quotes:
-")
+(display "\nQuotes:\n")
 
 (test-parse "quoted symbol" "'x" '(quote x))
 (test-parse "quoted list" "'(1 2 3)" '(quote (1 2 3)))
@@ -241,36 +218,27 @@ Quotes:
 ;;; Comments
 ;;; ============================================================
 
-(display "
-Comments:
-")
+(display "\nComments:\n")
 
-(test-parse "after comment" "; comment
-42" 42)
+(test-parse "after comment" "; comment\n42" 42)
 (test-parse "inline comment" "42 ; comment" 42)
 
 ;;; ============================================================
 ;;; Whitespace Handling
 ;;; ============================================================
 
-(display "
-Whitespace:
-")
+(display "\nWhitespace:\n")
 
 (test-parse "leading space" "  42" 42)
 (test-parse "trailing space" "42  " 42)
-(test-parse "multiline" "(a
-  b
-  c)" '(a b c))
-(test-parse "tabs" "(	a	b	)" '(a b))
+(test-parse "multiline" "(a\n  b\n  c)" '(a b c))
+(test-parse "tabs" "(\ta\tb\t)" '(a b))
 
 ;;; ============================================================
 ;;; Span Tracking
 ;;; ============================================================
 
-(display "
-Span Tracking:
-")
+(display "\nSpan Tracking:\n")
 
 (let ([result (parse-fold-expr "42" "test.ss")])
      (if (eq? (car result) 'ok)
@@ -289,8 +257,7 @@ Span Tracking:
                     (span-column (get-value-span ast))))
          (begin
           (set! tests-failed (+ tests-failed 1))
-          (display "  ✗ span tracking failed to parse
-"))))
+          (display "  ✗ span tracking failed to parse\n"))))
 
 (let ([result (parse-fold-expr "  42" "test.ss")])
      (if (eq? (car result) 'ok)
@@ -300,16 +267,13 @@ Span Tracking:
                     (span-column (get-value-span ast))))
          (begin
           (set! tests-failed (+ tests-failed 1))
-          (display "  ✗ span after whitespace failed to parse
-"))))
+          (display "  ✗ span after whitespace failed to parse\n"))))
 
 ;;; ============================================================
 ;;; Error Cases
 ;;; ============================================================
 
-(display "
-Error Cases:
-")
+(display "\nError Cases:\n")
 
 (test-parse-error "unclosed string" "\"hello")
 (test-parse-error "unclosed paren" "(a b")
@@ -321,9 +285,7 @@ Error Cases:
 ;;; Complex Examples
 ;;; ============================================================
 
-(display "
-Complex Examples:
-")
+(display "\nComplex Examples:\n")
 
 (test-parse "factorial"
             "(fix fact (fn (n) (if (= n 0) 1 (* n (fact (- n 1))))))"
@@ -342,17 +304,10 @@ Complex Examples:
 ;;; ============================================================
 
 (newline)
-(display "==================
-")
-(display (string-append "Passed: " (number->string tests-passed) "
-"))
-(display (string-append "Failed: " (number->string tests-failed) "
-"))
+(display "==================\n")
+(display (string-append "Passed: " (number->string tests-passed) "\n"))
+(display (string-append "Failed: " (number->string tests-failed) "\n"))
 
 (if (= tests-failed 0)
-    (display "
-✓ All Fold parser tests passed!
-")
-    (display "
-✗ Some tests failed!
-"))
+    (display "\n✓ All Fold parser tests passed!\n")
+    (display "\n✗ Some tests failed!\n"))
