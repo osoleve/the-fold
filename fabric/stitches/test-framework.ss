@@ -17,7 +17,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss (for result types)
 
-(load "prelude.ss")
+(load "./fabric/stitches/prelude.ss")
 
 ;;; ============================================================
 ;;; Test Registry
@@ -198,9 +198,13 @@
 ;;; Run tests in a specific named group.
 (define (run-tests group-name)
   (reset-statistics!)
-  (display "\n╔══════════════════════════════════════════════════════════╗\n")
-  (display "║              Running Test Group                          ║\n")
-  (display "╚══════════════════════════════════════════════════════════╝\n")
+  (display "
+╔══════════════════════════════════════════════════════════╗
+")
+  (display "║              Running Test Group                          ║
+")
+  (display "╚══════════════════════════════════════════════════════════╝
+")
   (run-group group-name)
   (print-summary))
 
@@ -208,9 +212,13 @@
 ;;; Run all registered tests, grouped by category.
 (define (run-all-tests)
   (reset-statistics!)
-  (display "\n╔══════════════════════════════════════════════════════════╗\n")
-  (display "║           Running All Registered Tests                   ║\n")
-  (display "╚══════════════════════════════════════════════════════════╝\n")
+  (display "
+╔══════════════════════════════════════════════════════════╗
+")
+  (display "║           Running All Registered Tests                   ║
+")
+  (display "╚══════════════════════════════════════════════════════════╝
+")
   (newline)
   (for-each (lambda (group-entry)
                     (run-group (car group-entry)))
@@ -232,12 +240,16 @@
 ;;; Print test run summary.
 (define (print-summary)
   (newline)
-  (display "╔══════════════════════════════════════════════════════════╗\n")
-  (display "║                    TEST SUMMARY                          ║\n")
-  (display "╚══════════════════════════════════════════════════════════╝\n")
+  (display "╔══════════════════════════════════════════════════════════╗
+")
+  (display "║                    TEST SUMMARY                          ║
+")
+  (display "╚══════════════════════════════════════════════════════════╝
+")
   (display "  Total:  ")
   (display *tests-run*)
-  (display " tests\n")
+  (display " tests
+")
   (display "  Passed: ")
   (display *tests-passed*)
   (newline)
@@ -246,8 +258,10 @@
   (newline)
   (newline)
   (if (= *tests-failed* 0)
-      (display "✓ All tests passed!\n")
-      (display "✗ Some tests failed!\n")))
+      (display "✓ All tests passed!
+")
+      (display "✗ Some tests failed!
+")))
 
 ;;; exit-with-summary : Unit → Unit
 ;;; Print summary and exit with appropriate code.

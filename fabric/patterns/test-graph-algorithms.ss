@@ -1,4 +1,4 @@
-;;; test-graph-algorithms.ss — Tests for traversal + pathfinding primitives
+;;; test-graph-algorithms.ss — Tests for traversal, pathfinding, and analysis
 
 (source-directories (cons "fabric/stitches" (source-directories)))
 (load "fabric/stitches/block.ss")
@@ -73,6 +73,55 @@
              [(member (car xs) b) (loop (cdr xs))]
              [else #f]))))
 
+(define (any? pred xs)
+  (cond
+   [(null? xs) #f]
+   [(pred (car xs)) #t]
+   [else (any? pred (cdr xs))]))
+
+(define (component->tags fs component)
+  (list-unique
+   (map (lambda (h)
+                (let ([b (store-get fs h)])
+                     (if b (block-tag b) 'missing)))
+        component)))
+
+(define (components->tag-sets fs components)
+  (map (lambda (c) (component->tags fs c)) components))
+
+(define (same-component-set? actual expected)
+  (and (= (length actual) (length expected))
+       (let loop ([es expected])
+            (cond
+             [(null? es) #t]
+             [(any? (lambda (a) (same-set? a (car es))) actual)
+              (loop (cdr es))]
+             [else #f]))))
+
+(define (hash-index-of xs target)
+  (let loop ([rest xs] [i 0])
+       (cond
+        [(null? rest) #f]
+        [(bytevector=? (car rest) target) i]
+        [else (loop (cdr rest) (+ i 1))])))
+
+(define (edge-order-ok? order edge)
+  (let ([from-idx (hash-index-of order (car edge))]
+        [to-idx (hash-index-of order (cdr edge))])
+       (and from-idx to-idx (< from-idx to-idx))))
+
+(define (all-edges-ordered? order edges)
+  (let loop ([es edges])
+       (cond
+        [(null? es) #t]
+        [(edge-order-ok? order (car es)) (loop (cdr es))]
+        [else #f])))
+
+(define (topo-order-valid? order edges total)
+  (and (list? order)
+       (= (length order) total)
+       (all-edges-ordered? order edges)))
+
 (printf "
 ")
 (printf "================================================================
@@ -115,8 +164,17 @@
 (define block-a (make-block 'node-a (string->utf8 "A") (vector hash-b hash-c)))
 (define hash-a (hash-block block-a))
 
+(define block-g (make-block 'node-g (string->utf8 "G") (vector)))
+(define hash-g (hash-block block-g))
+
+(define block-f (make-block 'node-f (string->utf8 "F") (vector hash-g)))
+(define hash-f (hash-block block-f))
+
+(define block-h (make-block 'node-h (string->utf8 "H") (vector)))
+(define hash-h (hash-block block-h))
+
 (for-each (lambda (b) (store-put! fs b))
-          (list block-a block-b block-c block-d block-e))
+          (list block-a block-b block-c block-d block-e block-f block-g block-h))
 
 (printf "Test blocks created and stored: ~a blocks
 
@@ -230,6 +288,41 @@
            (path-exists? fs hash-a hash-a))
 (test-false "path-exists? missing start"
             (path-exists? fs missing-hash hash-a))
+
+(printf "
+")
+
+;;; ============================================================
+;;; Graph Analysis
+;;; ============================================================
+
+(printf "Graph analysis:
+")
+(printf "----------------------------------------------------------------
+")
+
+(define component-tags (components->tag-sets fs (connected-components fs)))
+(test-true "connected-components splits into expected sets"
+           (same-component-set? component-tags
+                                '((node-a node-b node-c node-d node-e)
+                                  (node-f node-g)
+                                  (node-h))))
+
+(test-true "find-cycles reports none for DAGs"
+           (null? (find-cycles fs)))
+
+(define topo-order (topological-sort fs))
+(define topo-edges
+  (list (cons hash-a hash-b)
+        (cons hash-a hash-c)
+        (cons hash-b hash-d)
+        (cons hash-c hash-d)
+        (cons hash-c hash-e)
+        (cons hash-d hash-e)
+        (cons hash-f hash-g)))
+
+(test-true "topological-sort returns a valid ordering"
+           (topo-order-valid? topo-order topo-edges (store-count fs)))
 
 (printf "
 ")

@@ -172,8 +172,9 @@
 ;;;
 ;;; Example:
 ;;;   (bfs-traverse fs root-hash
-;;;     (lambda (h b) (printf "Visiting: ~a
-" (block-tag b))))
+;;;     (lambda (h b)
+;;;       (printf "Visiting: ~a" (block-tag b))
+;;;       (newline)))
 (define (bfs-traverse fs start-hash visit-fn)
   (let loop ([queue (queue-enqueue (make-queue) start-hash)]
              [visited (make-visited)])
@@ -198,8 +199,9 @@
 ;;;
 ;;; Example:
 ;;;   (dfs-traverse fs root-hash
-;;;     (lambda (h b) (printf "Visiting: ~a
-" (block-tag b))))
+;;;     (lambda (h b)
+;;;       (printf "Visiting: ~a" (block-tag b))
+;;;       (newline)))
 (define (dfs-traverse fs start-hash visit-fn)
   (let loop ([stack (stack-push (make-stack) start-hash)]
              [visited (make-visited)])
