@@ -34,6 +34,7 @@
 
 (load "playpen/quill/types.ss")
 (load "playpen/quill/state.ss")
+(load "playpen/quill/persist.ss")
 (load "playpen/quill/parse.ss")
 (load "playpen/quill/validate.ss")
 (load "playpen/quill/dsl.ss")
@@ -43,4 +44,5 @@
 
 ;;; Optional startup message (respects *quiet* convention used by thimble/repl.ss)
 (when (and (top-level-bound? '*quiet*) (not *quiet*))
-      (display "Quill loaded — text adventure SDK\n"))
+      (display "Quill loaded — text adventure SDK")
+      (newline))

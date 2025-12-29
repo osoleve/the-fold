@@ -92,3 +92,30 @@
 (define (quill-state-remove-item state item)
   (let ([inv (quill-state-inventory state)])
        (quill-state-set-section state 'inv (remq item inv))))
+
+;;; ------------------------------------------------------------
+;;; Meta
+;;; ------------------------------------------------------------
+
+(define (quill-state-meta state)
+  (quill-state-section state 'meta))
+
+(define (quill-state-meta-get state key default)
+  (let* ([meta (quill-state-meta state)]
+         [p (assq key meta)])
+        (if p (cdr p) default)))
+
+(define (quill-state-meta-set state key value)
+  (let* ([meta (quill-state-meta state)]
+         [p (assq key meta)]
+         [meta2 (if p
+                    (cons (cons key value) (remq p meta))
+                    (cons (cons key value) meta))])
+        (quill-state-set-section state 'meta meta2)))
+
+(define (quill-state-meta-remove state key)
+  (let* ([meta (quill-state-meta state)]
+         [p (assq key meta)])
+        (if p
+            (quill-state-set-section state 'meta (remq p meta))
+            state)))
