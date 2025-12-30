@@ -1524,6 +1524,46 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let s = expect_string(&args[0])?;
             Ok(Value::String(s.to_lowercase()))
         }
+        "upcase" | "upcase-string" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("upcase expects 1 arg"));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.to_uppercase()))
+        }
+        "downcase" | "downcase-string" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("downcase expects 1 arg"));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.to_lowercase()))
+        }
+        "string-starts-with?" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "string-starts-with? expects 2 args",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let prefix = expect_string(&args[1])?;
+            Ok(Value::Bool(s.starts_with(&prefix)))
+        }
+        "string-ends-with?" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("string-ends-with? expects 2 args"));
+            }
+            let s = expect_string(&args[0])?;
+            let suffix = expect_string(&args[1])?;
+            Ok(Value::Bool(s.ends_with(&suffix)))
+        }
+        "string-contains?" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("string-contains? expects 2 args"));
+            }
+            let s = expect_string(&args[0])?;
+            let substring = expect_string(&args[1])?;
+            Ok(Value::Bool(s.contains(&substring)))
+        }
         "string-split" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch("string-split expects 2 args"));

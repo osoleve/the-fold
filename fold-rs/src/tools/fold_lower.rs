@@ -58,8 +58,10 @@ fn is_builtin_prim(name: &str) -> bool {
             | "string-append" | "string-length" | "string-ref" | "substring"
             | "string->list" | "string->number" | "string->symbol" | "string->utf8"
             | "string=?" | "string<?" | "string>?"
-            | "string-upcase" | "string-downcase" | "string-split"
+            | "string-upcase" | "string-downcase" | "upcase" | "upcase-string"
+            | "downcase" | "downcase-string" | "string-split"
             | "string-trim" | "string-ltrim" | "string-rtrim" | "string-pad"
+            | "string-starts-with?" | "string-ends-with?" | "string-contains?"
             | "format" | "number->string" | "symbol->string"
             // Vector operations
             | "vec-length" | "vec-ref" | "vec-make" | "vec->list"
