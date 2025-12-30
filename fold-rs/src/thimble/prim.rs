@@ -223,6 +223,69 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 Ok(Value::Number((a / gcd_impl(a, b)) * b))
             }
         }
+        "clamp" => {
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "clamp expects 3 args: (clamp val min max)",
+                ));
+            }
+            let val = expect_number(&args[0])?;
+            let min_val = expect_number(&args[1])?;
+            let max_val = expect_number(&args[2])?;
+            let val_f = val.as_f64();
+            let min_f = min_val.as_f64();
+            let max_f = max_val.as_f64();
+            let clamped = val_f.max(min_f).min(max_f);
+            if clamped.fract() == 0.0 && clamped.is_finite() {
+                Ok(Value::Number(clamped as i64))
+            } else {
+                Ok(Value::Float(clamped))
+            }
+        }
+        "between?" => {
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "between? expects 3 args: (between? val min max)",
+                ));
+            }
+            let val = expect_number(&args[0])?;
+            let min_val = expect_number(&args[1])?;
+            let max_val = expect_number(&args[2])?;
+            let result = val.as_f64() >= min_val.as_f64() && val.as_f64() <= max_val.as_f64();
+            Ok(Value::Bool(result))
+        }
+        "sign" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("sign expects 1 arg"));
+            }
+            let val = expect_number(&args[0])?.as_f64();
+            let sign = if val > 0.0 {
+                1
+            } else if val < 0.0 {
+                -1
+            } else {
+                0
+            };
+            Ok(Value::Number(sign))
+        }
+        "divmod" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "divmod expects 2 args: (divmod a b)",
+                ));
+            }
+            let a = expect_integer(&args[0])?;
+            let b = expect_integer(&args[1])?;
+            if b == 0 {
+                return Err(EvalError::DivisionByZero);
+            }
+            let quotient = a / b;
+            let remainder = a % b;
+            Ok(list_from_values(&vec![
+                Value::Number(quotient),
+                Value::Number(remainder),
+            ]))
+        }
         "log" => {
             if args.len() != 1 {
                 return Err(EvalError::TypeMismatch("log expects 1 arg"));
