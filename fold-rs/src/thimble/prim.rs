@@ -1817,6 +1817,18 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
 
             Ok(list_from_values(&result))
         }
+        "repeat" => {
+            // (repeat n elem) - creates a list with elem repeated n times
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "repeat expects 2 args: (repeat count elem)",
+                ));
+            }
+            let count = expect_integer(&args[0])? as usize;
+            let elem = &args[1];
+            let result: Vec<Value> = (0..count).map(|_| elem.clone()).collect();
+            Ok(list_from_values(&result))
+        }
         "sum" => {
             if args.len() != 1 {
                 return Err(EvalError::TypeMismatch("sum expects 1 arg: a list"));
