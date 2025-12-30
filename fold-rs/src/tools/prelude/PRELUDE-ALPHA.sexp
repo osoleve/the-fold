@@ -1,18 +1,24 @@
 ; PRELUDE-ALPHA.sexp
-; Comprehensive Prelude Refactoring Plan v2.0
+; Comprehensive Prelude Refactoring Plan v3.0
 ; Goal: Transform prelude from monolithic chaos to clean semantic taxonomy
-; Status: In Progress (missing.ss still exists, needs complete elimination)
-; Target: Zero-line missing.ss, all functions properly categorized
+; Status: In Progress (missing.ss + exports.ss both exceed 1000 lines)
+; Target: Zero-line missing.ss, programmatic exports, no file >1000 lines
 
 ((metadata
   (created . "2025-12-30")
-  (version . "2.0")
-  (goal . "Complete prelude refactoring to eliminate missing.ss")
-  (critical-promise . "missing.ss must be completely eliminated, not just reduced")))
+  (updated . "2025-12-30T22:00:00Z")
+  (version . "3.0")
+  (goal . "Complete prelude refactoring to eliminate missing.ss AND reduce exports.ss")
+  (critical-promises
+    ("missing.ss must be completely eliminated, not just reduced")
+    ("exports.ss must be <1000 lines (ideally auto-generated)")
+    ("No .ss file may exceed 1000 lines in final state"))))
 
 (current-state
   ((total-prelude-lines . 18500)  ; All .ss files combined
+   (files-exceeding-1000-lines . 2)
    (missing-ss-lines . 13054)     ; 71% of entire prelude!
+   (exports-ss-lines . 2161)      ; Hand-maintained export list
    (shadow-conflicts . 800+)      ; Functions defined 3-5+ times
    (test-passing . "430/512 (84%)")
    (test-failing . 82)))
@@ -38,7 +44,14 @@
     (title . "Test Failures")
     (description . "82 tests failing, many due to wrong function versions")
     (impact . "Cannot reach >90% pass rate without fixing shadowing")
-    (evidence . "test_group_by returns wrong structure, test_all_equal has type errors"))))
+    (evidence . "test_group_by returns wrong structure, test_all_equal has type errors")))
+
+  ((issue-4
+    (title . "Oversized exports.ss (2,161 lines)")
+    (description . "Hand-maintained export list exceeds 1000 line limit")
+    (impact . "Violates file size constraint, error-prone to maintain")
+    (root-cause . "Manually listing ~570 function exports as (cons 'name name)")
+    (resolution . "Replace with programmatic export generation"))))
 
 (current-module-taxonomy
   (note . "Existing modules (organized by semantic domain)")
@@ -368,41 +381,85 @@
       ("Delete commented sections once verified")
       ("Repeat until missing.ss is empty")))
 
-  (step-5-cleanup
+  (step-5-exports-refactor
+    (duration . "2-3 hours")
+    (task . "Replace exports.ss with programmatic generation")
+    (approach . "Auto-generate exports from module metadata")
+    (options
+      (option-1-codegen
+        (description . "Generate exports.ss at build time from module scanning")
+        (pros . ("No manual maintenance" "Catches missing/extra exports"))
+        (cons . ("Requires build script" "Slightly more complex")))
+      (option-2-per-module-exports
+        (description . "Each module exports its own list, concat at end")
+        (pros . ("Clear ownership" "Easy to verify"))
+        (cons . ("Slightly more verbose" "Manual per-module lists"))
+      (option-3-macro-based
+        (description . "Define-and-export macro auto-adds to export list")
+        (pros . ("Single source of truth" "Zero duplication"))
+        (cons . ("Requires macro system extension")))
+      (recommended . option-2-per-module-exports))
+    (implementation
+      (step-1 . "Add (exports ...) section to end of each module")
+      (step-2 . "In mod.rs, append all module exports into single list")
+      (step-3 . "Delete standalone exports.ss file")
+      (step-4 . "Result: exports distributed across ~28 modules, <100 lines each"))
+    (criteria-for-success
+      ("exports.ss deleted")
+      ("Each module declares own exports (<100 lines)")
+      ("Total export logic < 1000 lines distributed")
+      ("All exports still work in tests")))
+
+  (step-6-cleanup
     (duration . "1-2 hours")
     (task . "Final verification and documentation")
     (steps
       ("Delete now-empty missing.ss file")
-      ("Update mod.rs to remove MISSING constant")
+      ("Delete now-obsolete exports.ss file")
+      ("Update mod.rs to remove MISSING and EXPORTS constants")
+      ("Verify NO .ss file exceeds 1000 lines")
       ("Run full test suite")
       ("Update EXPORTS.md documentation")))
 
-  (total-estimated-time . "11-17 hours on beefier machine"))
+  (total-estimated-time . "13-20 hours on beefier machine"))
 
 (success-criteria
-  (primary-goal . "missing.ss must be eliminated completely")
-  (not-acceptable . ("Just shrinking it", "Moving functions but keeping file",
-                    "Partial migration"))
+  (primary-goals
+    ("missing.ss must be eliminated completely")
+    ("exports.ss must be eliminated (replaced with per-module exports)")
+    ("NO .ss file may exceed 1000 lines"))
+
+  (not-acceptable
+    ("Just shrinking missing.ss")
+    ("Moving functions but keeping file")
+    ("Partial migration")
+    ("Keeping 2161-line exports.ss"))
 
   (must-achieve
     ((missing-ss-deleted . true)
+     (exports-ss-deleted . true)
      (all-functions-homed . true)
+     (no-file-exceeds-1000-lines . true)
      (no-shadowing-in-new-structure . true)
      (tests-passing >= 450)
-     (each-module < 350 lines)))
+     (each-module < 1000 lines)
+     (typical-module < 350 lines)))
 
   (quality-gates
     ("Run find-shadows.py after each module: expect 0 in new code")
     ("No duplicate function definitions across any pair of files")
     ("Each module has clear semantic purpose documented in comments")
     ("Test pass rate never decreases during refactoring")
-    ("Load order preserves all dependencies")))
+    ("Load order preserves all dependencies")
+    ("Verify: wc -l *.ss | awk '$1 > 1000' returns empty")))
 
 (critical-dependencies
   (must-complete-before-deletion
     ("All functions extracted from missing.ss to proper homes")
     ("All new modules created and integrated")
-    ("All tests passing or only test semantic bugs remain")))
+    ("Per-module exports implemented before deleting exports.ss")
+    ("All tests passing or only test semantic bugs remain")
+    ("Verify wc -l *.ss shows no files >1000 lines")))
 
 (risk-mitigation
   (risk-1
@@ -418,27 +475,59 @@
   (risk-3
     (description . "Test regressions during refactoring")
     (mitigation . "Run full test suite after each step")
-    (validation . "Test count never decreases")))
+    (validation . "Test count never decreases"))
+
+  (risk-4
+    (description . "Breaking exports when switching from exports.ss to per-module")
+    (mitigation . "Implement per-module exports first, verify, THEN delete exports.ss")
+    (validation . "All 570+ functions still exported and accessible in tests")))
 
 (final-state-vision
   (prelude-structure
     (total-modules . 28)
-    (max-module-size . 300-350)
-    (total-prelude-lines . "~5500-6000 (vs current 18500)")
+    (max-module-size . "< 1000 lines (hard limit)")
+    (typical-module-size . "200-400 lines")
+    (total-prelude-lines . "~6000-7000 (vs current 18500)")
     (missing-ss . "DELETED")
-    (shadowing-conflicts . 0)))
+    (exports-ss . "DELETED (replaced with per-module exports)")
+    (files-over-1000-lines . 0)
+    (shadowing-conflicts . 0)
+    (test-pass-rate . "~90%+ (450+/512)"))
+
+  (file-size-enforcement
+    (hard-limit . 1000)
+    (verification-command . "wc -l *.ss | awk '$1 > 1000'")
+    (expected-output . "empty (no files over limit)")
+    (largest-remaining-file . "~500-800 lines (misc-utilities.ss)")))
 
 (commit-message
-  ("refactor(fold-rs): Complete prelude taxonomy refactoring
+  ("refactor(fold-rs): Complete prelude taxonomy refactoring v3.0
 
-- Eliminate missing.ss by distributing 13,054 lines across 11 new semantic modules
-- Create: intervals, lenses, arrows, sequences, predicates, formatting,
-  math-advanced, bags, partitioning, validation-extended, misc-utilities
-- Update mod.rs with new dependency-ordered load sequence
+BREAKING CHANGES:
+- Eliminate missing.ss: distribute 13,054 lines across 11 new semantic modules
+- Eliminate exports.ss: replace with per-module export lists
+- Enforce file size limit: NO .ss file may exceed 1000 lines
+
+New modules created:
+- intervals.ss, lenses.ss, arrows.ss, sequences.ss, predicates.ss
+- formatting.ss, math-advanced.ss, bags.ss, partitioning.ss
+- validation-extended.ss, misc-utilities.ss
+
+Changes:
+- Replace centralized 2161-line exports.ss with per-module exports
+- Update mod.rs to concatenate module exports programmatically
 - All functions now have proper semantic homes
-- Deduplication eliminates shadowing conflicts
-- Tests: ~450+/512 expected to pass (up from 430/512)
+- Deduplication eliminates 800+ shadowing conflicts
+- File size enforcement: all files < 1000 lines
 
-Target: Zero missing.ss, clean prelude taxonomy, <95% test pass rate
+Tests: ~450+/512 expected to pass (up from 430/512)
+Files over 1000 lines: 0 (down from 2)
 
-Generated with Ralph Loop iteration")))
+Success criteria met:
+✓ missing.ss deleted
+✓ exports.ss deleted
+✓ No file exceeds 1000 lines
+✓ Clean semantic taxonomy
+✓ ~90%+ test pass rate
+
+Generated with Ralph Loop v3.0")))
