@@ -12647,6 +12647,67 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; glob-filter: Filter list of strings by glob pattern
    (glob-filter (fn (pat strs)
      (filter (fn (s) (glob-match? pat s)) strs)))
+
+   ; ============================================================
+   ; Hash and Checksum Utilities
+   ; ============================================================
+
+   ; djb2-hash: DJB2 string hash algorithm
+   ; Returns a positive integer hash value
+   (djb2-hash (fn (s)
+     (foldl (fn (h c)
+              (bitand (+ (* h 33) (char->integer c)) 4294967295))
+            5381
+            (string->list s))))
+
+   ; fnv1a-hash: FNV-1a string hash algorithm
+   ; Returns a positive integer hash value
+   (fnv1a-hash (fn (s)
+     (foldl (fn (h c)
+              (bitand (* (bitxor h (char->integer c)) 16777619) 4294967295))
+            2166136261
+            (string->list s))))
+
+   ; simple-checksum: Simple additive checksum of bytes
+   (simple-checksum (fn (bytes)
+     (mod (foldl + 0 bytes) 256)))
+
+   ; xor-checksum: XOR checksum of bytes
+   (xor-checksum (fn (bytes)
+     (foldl bitxor 0 bytes)))
+
+   ; fletcher16: Fletcher-16 checksum
+   (fletcher16 (fn (bytes)
+     ((fix fletcher-rec
+        (fn (bs sum1 sum2)
+          (if (null? bs)
+              (+ (* sum2 256) sum1)
+              (let ((new-sum1 (mod (+ sum1 (car bs)) 255))
+                    (new-sum2 (mod (+ sum2 new-sum1) 255)))
+                (fletcher-rec (cdr bs) new-sum1 new-sum2)))))
+      bytes 0 0)))
+
+   ; adler32: Adler-32 checksum
+   (adler32 (fn (bytes)
+     ((fix adler-rec
+        (fn (bs a b)
+          (if (null? bs)
+              (+ (* b 65536) a)
+              (let ((new-a (mod (+ a (car bs)) 65521))
+                    (new-b (mod (+ b new-a) 65521)))
+                (adler-rec (cdr bs) new-a new-b)))))
+      bytes 1 0)))
+
+   ; hash-combine: Combine two hash values (boost-style)
+   (hash-combine (fn (h1 h2)
+     (bitxor h1 (+ h2 2654435769 (shl h1 6) (shr h1 2)))))
+
+   ; hash-list: Hash a list of values
+   (hash-list (fn (lst hash-fn)
+     (foldl (fn (h x) (hash-combine h (hash-fn x))) 0 lst)))
+
+   ; string-hash: Convenience alias for djb2-hash
+   (string-hash djb2-hash)
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -14799,6 +14860,16 @@ pub const PRELUDE_SOURCE: &str = r#"
     ; Glob Pattern Matching
     (cons 'glob-match? glob-match?)
     (cons 'glob-filter glob-filter)
+    ; Hash and Checksum
+    (cons 'djb2-hash djb2-hash)
+    (cons 'fnv1a-hash fnv1a-hash)
+    (cons 'simple-checksum simple-checksum)
+    (cons 'xor-checksum xor-checksum)
+    (cons 'fletcher16 fletcher16)
+    (cons 'adler32 adler32)
+    (cons 'hash-combine hash-combine)
+    (cons 'hash-list hash-list)
+    (cons 'string-hash string-hash)
 ))
 "#;
 
