@@ -190,3 +190,90 @@
 ; some-pred: Create predicate that checks if any predicate holds (takes list)
 (some-pred (fn (predicates)
                (fn (x) (any (fn (p) (p x)) predicates))))
+
+; -- Extended Control Flow --
+
+; when-let: Execute body if value is truthy, with value bound
+(when-let (fn (val f)
+              (if val (f val) #f)))
+
+; if-let: Like when-let but with else clause
+(if-let (fn (val then-fn else-val)
+            (if val (then-fn val) else-val)))
+
+; when-not: Execute body when condition is false
+(when-not (fn (cond body)
+              (if cond #f body)))
+
+; if-not: Inverted if
+(if-not (fn (cond then-val else-val)
+            (if cond else-val then-val)))
+
+; when-pred: Apply function only if predicate holds
+(when-pred (fn (p f x)
+               (if (p x) (f x) x)))
+
+; unless-pred: Apply function only if predicate fails
+(unless-pred (fn (p f x)
+                 (if (p x) x (f x))))
+
+; -- Monad Utilities --
+
+; Reader Monad (Reader r a = r -> a)
+
+; reader-return: Wrap value in reader monad
+(reader-return (fn (x)
+                   (fn (env) x)))
+
+; reader-bind: Bind for reader monad
+(reader-bind (fn (m f)
+                 (fn (env)
+                     ((f (m env)) env))))
+
+; reader-ask: Get environment
+(reader-ask (fn (env) env))
+
+; reader-local: Run with modified environment
+(reader-local (fn (f m)
+                  (fn (env) (m (f env)))))
+
+; State Monad (State s a = s -> (a, s))
+
+; state-return: Wrap value in state monad
+(state-return (fn (x)
+                  (fn (s) (list x s))))
+
+; state-bind: Bind for state monad
+(state-bind (fn (m f)
+                (fn (s)
+                    (let ((result (m s)))
+                         ((f (car result)) (cadr result))))))
+
+; state-get: Get current state
+(state-get (fn (s) (list s s)))
+
+; state-put: Set new state
+(state-put (fn (new-state)
+               (fn (s) (list '() new-state))))
+
+; state-modify: Modify state with function
+(state-modify (fn (f)
+                  (fn (s) (list '() (f s)))))
+
+; Writer Monad (Writer w a = (a, [w]))
+
+; writer-return: Wrap value in writer monad
+(writer-return (fn (x)
+                   (list x '())))
+
+; writer-bind: Bind for writer monad
+(writer-bind (fn (m f)
+                 (let ((result (f (car m))))
+                      (list (car result) (append (cadr m) (cadr result))))))
+
+; writer-tell: Write to log
+(writer-tell (fn (w)
+                 (list '() (list w))))
+
+; run-writer: Run writer, returning (value log) pair
+(run-writer id)

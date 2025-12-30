@@ -16,6 +16,11 @@
 //! - collection.ss: dict, set, alist operations
 //! - control.ss: control flow, iteration
 //! - validation.ss: assertions, testing, validators
+//! - stream.ss: lazy stream utilities
+//! - datastructures.ss: queue, stack, deque, priority queue
+//! - graph.ss: graph algorithms (BFS, DFS, etc.)
+//! - tree.ss: tree traversal and manipulation
+//! - missing.ss: comprehensive collection of remaining utility functions
 //! - path.ss: filesystem path manipulation
 //! - encoding.ss: base64, hex, checksums
 //! - compat.ss: Scheme compatibility aliases
@@ -37,6 +42,11 @@ const STRING: &str = include_str!("string.ss");
 const COLLECTION: &str = include_str!("collection.ss");
 const CONTROL: &str = include_str!("control.ss");
 const VALIDATION: &str = include_str!("validation.ss");
+const STREAM: &str = include_str!("stream.ss");
+const DATASTRUCTURES: &str = include_str!("datastructures.ss");
+const GRAPH: &str = include_str!("graph.ss");
+const TREE: &str = include_str!("tree.ss");
+const MISSING: &str = include_str!("missing.ss");
 const PATH: &str = include_str!("path.ss");
 const ENCODING: &str = include_str!("encoding.ss");
 const COMPAT: &str = include_str!("compat.ss");
@@ -78,6 +88,16 @@ fn assemble_prelude() -> String {
     source.push_str(CONTROL);
     source.push('\n');
     source.push_str(VALIDATION);
+    source.push('\n');
+    source.push_str(STREAM);
+    source.push('\n');
+    source.push_str(DATASTRUCTURES);
+    source.push('\n');
+    source.push_str(GRAPH);
+    source.push('\n');
+    source.push_str(TREE);
+    source.push('\n');
+    source.push_str(MISSING);
     source.push('\n');
     source.push_str(PATH);
     source.push('\n');

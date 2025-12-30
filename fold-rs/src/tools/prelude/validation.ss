@@ -193,3 +193,35 @@
 ; spy: Log and return value (alias for trace without label)
 (spy (fn (x)
          (begin (write x) (newline) x)))
+
+; -- Extended Validation Functions --
+
+; validate-all: Check all predicates pass
+(validate-all (fn (preds val)
+                  (if (all (fn (p) (p val)) preds) val #f)))
+
+; validate-type: Validate value has expected type
+(validate-type (fn (type-pred value msg)
+                   (if (type-pred value)
+                       (right value)
+                       (left msg))))
+
+; validate-range: Validate number is in range
+(validate-range (fn (lo hi value)
+                    (if (and (>= value lo) (<= value hi))
+                        (right value)
+                        (left (list 'out-of-range lo hi value)))))
+
+; validate-length: Validate list has expected length
+(validate-length (fn (n lst)
+                     (if (= (length lst) n)
+                         (right lst)
+                         (left (list 'wrong-length n (length lst))))))
+
+; validate-not-empty: Validate list/string is not empty
+(validate-not-empty (fn (value)
+                        (if (if (string? value)
+                                (not (string-empty? value))
+                                (not (null? value)))
+                            (right value)
+                            (left 'empty-value))))

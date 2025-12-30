@@ -192,6 +192,48 @@
 ; alist-values: Get all values
 (alist-values (fn (alist) (map cdr alist)))
 
+; assoc-ref: Get value for key (or #f)
+(assoc-ref (fn (key alist)
+               (let ((pair (assoc key alist)))
+                    (if pair (cdr pair) #f))))
+
+; assoc-set: Set value for key (returns new alist)
+(assoc-set (fn (key val alist)
+               (cons (cons key val)
+                     (filter (fn (p) (not (eq? key (car p)))) alist))))
+
+; assoc-remove: Remove key from alist
+(assoc-remove (fn (key alist)
+                  (filter (fn (p) (not (eq? key (car p)))) alist)))
+
+; assoc-keys: Get all keys from alist
+(assoc-keys (fn (alist)
+                (map car alist)))
+
+; assoc-values: Get all values from alist
+(assoc-values (fn (alist)
+                  (map cdr alist)))
+
+; alist-map: Apply function to all values in alist
+(alist-map (fn (f alist)
+               (map (fn (pair) (cons (car pair) (f (cdr pair)))) alist)))
+
+; alist-filter: Keep pairs where predicate holds on value
+(alist-filter (fn (p alist)
+                  (filter (fn (pair) (p (cdr pair))) alist)))
+
+; alist-merge: Merge two alists (second takes precedence)
+(alist-merge (fn (a1 a2)
+                 (let ((keys1 (map car a1))
+                       (keys2 (map car a2)))
+                      (append
+                       (filter (fn (pair) (not (elem? (car pair) keys2))) a1)
+                       a2))))
+
+; alist-invert: Swap keys and values
+(alist-invert (fn (alist)
+                  (map (fn (pair) (cons (cdr pair) (car pair))) alist)))
+
 ; alist->hash: Convert to hashtable-like structure (still alist, but cleaned)
 (alist->hash (fn (alist)
                  (foldl (fn (acc pair)
@@ -279,3 +321,44 @@
 ; alist->plist: Convert alist to property list
 (alist->plist (fn (alist)
                   (concat (map (fn (pair) (list (car pair) (cdr pair))) alist))))
+
+; ============================================
+; Multiset/Bag Operations (alist of element -> count)
+; ============================================
+
+; multiset-add: Add element to multiset (alist of counts)
+(multiset-add (fn (ms x)
+                  (let ((found (assoc-ref x ms)))
+                       (let ((count (if found found 0)))
+                            (assoc-set x (+ count 1) ms)))))
+
+; multiset-remove: Remove one occurrence from multiset
+(multiset-remove (fn (ms x)
+                     (let ((found (assoc-ref x ms)))
+                          (let ((count (if found found 0)))
+                               (if (<= count 1)
+                                   (assoc-remove x ms)
+                                   (assoc-set x (- count 1) ms))))))
+
+; multiset-count: Get count of element in multiset
+(multiset-count (fn (ms x)
+                    (let ((found (assoc-ref x ms)))
+                         (if found found 0))))
+
+; multiset-from-list: Create multiset from list
+(multiset-from-list (fn (lst)
+                        (foldl multiset-add '() lst)))
+
+; multiset-to-list: Convert multiset to list (with repetitions)
+(multiset-to-list (fn (ms)
+                      (flat-map (fn (pair)
+                                    (replicate (cdr pair) (car pair)))
+                                ms)))
+
+; bag-union: Union of two multisets
+(bag-union (fn (ms1 ms2)
+               (foldl (fn (acc pair)
+                          (let ((count (+ (multiset-count acc (car pair)) (cdr pair))))
+                               (assoc-set (car pair) count acc)))
+                      ms1
+                      ms2)))

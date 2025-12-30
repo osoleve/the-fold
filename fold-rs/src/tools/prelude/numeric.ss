@@ -83,6 +83,15 @@
                           (idx (/ (* p (- n 1)) 100)))
                          (nth sorted (floor idx))))))
 
+; covariance: Calculate covariance of two lists
+(covariance (fn (xs ys)
+                (let ((mx (mean xs))
+                      (my (mean ys))
+                      (n (length xs)))
+                     (/ (sum-list (zip-with * (map (fn (x) (- x mx)) xs)
+                                            (map (fn (y) (- y my)) ys)))
+                        (- n 1)))))
+
 ; correlation: Pearson correlation coefficient
 (correlation (fn (xs ys)
                  (let ((n (length xs))
@@ -97,6 +106,12 @@
                            (if (or (= denom-x 0) (= denom-y 0))
                                0
                                (/ num (* denom-x denom-y)))))))
+
+; z-score: Calculate z-score of value
+(z-score (fn (x lst)
+             (let ((m (mean lst)))
+                  (let ((std (sqrt (variance lst))))
+                       (if (= std 0) 0 (/ (- x m) std))))))
 
 ; linear-regression: Simple linear regression (returns (slope . intercept))
 (linear-regression (fn (xs ys)
@@ -371,3 +386,93 @@
 ; iterate-n: Apply function n times, collecting results
 (iterate-n (fn (f n x)
                (iterate f n x)))
+
+; -- Complex Numbers --
+
+; complex-new: Create complex number as (real . imag)
+(complex-new (fn (r i) (cons r i)))
+
+; complex-real: Get real part
+(complex-real car)
+
+; complex-imag: Get imaginary part
+(complex-imag cdr)
+
+; complex-real-imag: Get both real and imaginary parts as a pair
+(complex-real-imag (fn (c) (cons (complex-real c) (complex-imag c))))
+
+; complex-add: Add two complex numbers
+(complex-add (fn (c1 c2)
+                 (complex-new (+ (complex-real c1) (complex-real c2))
+                              (+ (complex-imag c1) (complex-imag c2)))))
+
+; complex-sub: Subtract complex numbers
+(complex-sub (fn (c1 c2)
+                 (complex-new (- (complex-real c1) (complex-real c2))
+                              (- (complex-imag c1) (complex-imag c2)))))
+
+; complex-mul: Multiply complex numbers
+(complex-mul (fn (c1 c2)
+                 (let ((r1 (complex-real c1)) (i1 (complex-imag c1))
+                       (r2 (complex-real c2)) (i2 (complex-imag c2)))
+                      (complex-new (- (* r1 r2) (* i1 i2))
+                                   (+ (* r1 i2) (* i1 r2))))))
+
+; complex-magnitude: Magnitude of complex number
+(complex-magnitude (fn (c)
+                       (sqrt (+ (* (complex-real c) (complex-real c))
+                                (* (complex-imag c) (complex-imag c))))))
+
+; complex-conjugate: Complex conjugate
+(complex-conjugate (fn (c)
+                       (complex-new (complex-real c) (- (complex-imag c)))))
+
+; -- Matrix Operations --
+
+; matrix-rows: Get number of rows
+(matrix-rows (fn (m)
+                 (length m)))
+
+; matrix-cols: Get number of columns
+(matrix-cols (fn (m)
+                 (if (null? m) 0 (length (car m)))))
+
+; matrix-ref: Get element at (row, col)
+(matrix-ref (fn (m row col)
+                (list-ref (list-ref m row) col)))
+
+; matrix-row: Get row at index
+(matrix-row list-ref)
+
+; matrix-col: Get column at index
+(matrix-col (fn (m col)
+                (map (fn (row) (list-ref row col)) m)))
+
+; matrix-transpose: Transpose matrix
+(matrix-transpose (fix matrix-transpose
+                       (fn (m)
+                           (if (or (null? m) (null? (car m)))
+                               '()
+                               (cons (map car m)
+                                     (matrix-transpose (map cdr m)))))))
+
+; matrix-map: Map function over all elements
+(matrix-map (fn (f m)
+                (map (fn (row) (map f row)) m)))
+
+; matrix-add: Add two matrices
+(matrix-add (fn (m1 m2)
+                (map (fn (r1 r2) (zip-with + r1 r2)) m1 m2)))
+
+; matrix-scale: Scale matrix by scalar
+(matrix-scale (fn (k m)
+                  (matrix-map (fn (x) (* k x)) m)))
+
+; matrix-multiply: Matrix multiplication
+(matrix-multiply (fn (a b)
+                     (let ((bt (matrix-transpose b)))
+                          (map (fn (row-a)
+                                   (map (fn (col-b)
+                                            (foldl + 0 (zip-with * row-a col-b)))
+                                        bt))
+                               a))))

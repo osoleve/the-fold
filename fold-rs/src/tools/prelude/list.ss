@@ -9,6 +9,63 @@
 ; product-list: Product of a list of numbers
 (product-list (fn (lst) (foldl * 1 lst)))
 
+; take-n: Take first n elements (HOF version)
+(take-n (fix take-n
+             (fn (n lst)
+                 (if (<= n 0)
+                     '()
+                     (if (null? lst)
+                         '()
+                         (cons (car lst) (take-n (- n 1) (cdr lst))))))))
+
+; drop-n: Drop first n elements (HOF version)
+(drop-n (fix drop-n
+             (fn (n lst)
+                 (if (<= n 0)
+                     lst
+                     (if (null? lst)
+                         '()
+                         (drop-n (- n 1) (cdr lst)))))))
+
+; take-right: Take n elements from end
+(take-right (fn (n lst)
+                (drop-n (- (length lst) n) lst)))
+
+; drop-right: Drop n elements from end
+(drop-right (fn (n lst)
+                (take-n (- (length lst) n) lst)))
+
+; take-last: Take n elements from end (alias)
+(take-last take-right)
+
+; drop-last: Drop n elements from end (alias)
+(drop-last drop-right)
+
+; butlast: Remove last n elements
+(butlast (fn (n lst)
+             (let ((len (length lst)))
+                  (take-n (- len n) lst))))
+
+; snoc: Append element to end of list
+(snoc (fn (lst x) (append lst (list x))))
+
+; before: Get elements before first match
+(before (fn (f lst)
+            (car (span (complement f) lst))))
+
+; after: Get elements after first match (excluding match)
+(after (fn (f lst)
+           (let ((tail (drop-while (complement f) lst)))
+                (if (null? tail) '() (cdr tail)))))
+
+; adjacent-pairs: Get all adjacent pairs
+(adjacent-pairs (fn (lst)
+                    (if (null? lst)
+                        '()
+                        (if (null? (cdr lst))
+                            '()
+                            (zip lst (cdr lst))))))
+
 ; concat: Concatenate a list of lists
 (concat (fn (lists) (foldl append '() lists)))
 
@@ -387,3 +444,12 @@
 
 ; subsets: Alias for power-set
 (subsets power-set)
+
+; insert-sorted-by: Insert element into sorted list using comparison function
+(insert-sorted-by (fix insert-sorted-by
+                       (fn (cmp x lst)
+                           (if (null? lst)
+                               (list x)
+                               (if (<= (cmp x) (cmp (car lst)))
+                                   (cons x lst)
+                                   (cons (car lst) (insert-sorted-by cmp x (cdr lst))))))))
