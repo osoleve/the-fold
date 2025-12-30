@@ -227,6 +227,62 @@
                     (assert-= d2f 12 0.5))))
 
 ;;; ============================================================
+;;; Exact Hessian Tests (via Hyperdual Numbers)
+;;; ============================================================
+
+(test-group exact-hessian-tests
+            (define-test hessian-exact-quadratic
+              ;; f(x,y) = x² + y², H = [[2, 0], [0, 2]]
+              ;; Should be EXACT (no tolerance needed)
+              (let* ([f (lambda (x y) (hd-add (hd-sq x) (hd-sq y)))]
+                     [h (hessian-exact f '(3 4))])
+                    (assert-equal 2 (matrix-ref h 0 0))
+                    (assert-equal 0 (matrix-ref h 0 1))
+                    (assert-equal 0 (matrix-ref h 1 0))
+                    (assert-equal 2 (matrix-ref h 1 1))))
+            
+            (define-test hessian-exact-mixed
+              ;; f(x,y) = x*y, H = [[0, 1], [1, 0]]
+              ;; Should be EXACT
+              (let* ([f (lambda (x y) (hd-mul x y))]
+                     [h (hessian-exact f '(5 7))])
+                    (assert-equal 0 (matrix-ref h 0 0))
+                    (assert-equal 1 (matrix-ref h 0 1))
+                    (assert-equal 1 (matrix-ref h 1 0))
+                    (assert-equal 0 (matrix-ref h 1 1))))
+            
+            (define-test hessian-exact-vs-numerical-precision
+              ;; Compare exact vs numerical for f(x,y) = x²y + y³
+              ;; H = [[2y, 2x], [2x, 6y]] at (2,3): [[6, 4], [4, 18]]
+              ;; Exact should be precise; numerical has ~1e-6 error
+              (let* ([f-hd (lambda (x y) (hd-add (hd-mul (hd-sq x) y)
+                                                 (hd-pow y 3)))]
+                     [h-exact (hessian-exact f-hd '(2 3))])
+                    ;; These should be exactly correct
+                    (assert-equal 6 (matrix-ref h-exact 0 0))
+                    (assert-equal 4 (matrix-ref h-exact 0 1))
+                    (assert-equal 4 (matrix-ref h-exact 1 0))
+                    (assert-equal 18 (matrix-ref h-exact 1 1))))
+            
+            (define-test second-derivative-exact-polynomial
+              ;; f(x) = x³, f''(x) = 6x
+              ;; At x=2: f''(2) = 12 EXACTLY
+              (let ([d2f (second-derivative-exact (lambda (x) (hd-pow x 3)) 2)])
+                   (assert-equal 12 d2f)))
+            
+            (define-test second-derivative-exact-exp
+              ;; f(x) = e^x, f''(x) = e^x
+              ;; At x=0: f''(0) = 1 (very close)
+              (let ([d2f (second-derivative-exact hd-exp 0)])
+                   (assert-= d2f 1.0 1e-15)))
+            
+            (define-test second-derivative-exact-sin
+              ;; f(x) = sin(x), f''(x) = -sin(x)
+              ;; At x=0: f''(0) = 0
+              (let ([d2f (second-derivative-exact hd-sin 0)])
+                   (assert-= d2f 0.0 1e-15))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 

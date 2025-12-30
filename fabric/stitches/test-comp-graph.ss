@@ -330,6 +330,130 @@
                                                              (assert-equal 3 (length order)))))))))
 
 ;;; ============================================================
+;;; Hyperdual Numbers
+;;; ============================================================
+
+(test-group hyperdual-tests
+            (define-test hyperdual-construction
+              (let ([h (hyperdual 2 3 4 5)])
+                   (assert-true (hyperdual? h))
+                   (assert-equal 2 (hd-value h))
+                   (assert-equal 3 (hd-deriv1 h))
+                   (assert-equal 4 (hd-deriv2 h))
+                   (assert-equal 5 (hd-deriv12 h))))
+            
+            (define-test hyperdual-lift-constant
+              (let ([h (hd-lift 5)])
+                   (assert-true (hyperdual? h))
+                   (assert-equal 5 (hd-value h))
+                   (assert-equal 0 (hd-deriv1 h))
+                   (assert-equal 0 (hd-deriv2 h))
+                   (assert-equal 0 (hd-deriv12 h))))
+            
+            (define-test hyperdual-var1
+              (let ([h (hd-var1 3)])
+                   (assert-equal 3 (hd-value h))
+                   (assert-equal 1 (hd-deriv1 h))
+                   (assert-equal 0 (hd-deriv2 h))))
+            
+            (define-test hyperdual-var2
+              (let ([h (hd-var2 3)])
+                   (assert-equal 3 (hd-value h))
+                   (assert-equal 0 (hd-deriv1 h))
+                   (assert-equal 1 (hd-deriv2 h))))
+            
+            (define-test hyperdual-add
+              ;; (2 + 1*ε₁) + (3 + 1*ε₂) = 5 + 1*ε₁ + 1*ε₂
+              (let ([h (hd-add (hd-var1 2) (hd-var2 3))])
+                   (assert-equal 5 (hd-value h))
+                   (assert-equal 1 (hd-deriv1 h))
+                   (assert-equal 1 (hd-deriv2 h))
+                   (assert-equal 0 (hd-deriv12 h))))
+            
+            (define-test hyperdual-mul-gives-mixed-partial
+              ;; f(x,y) = x*y, ∂²f/∂x∂y = 1
+              ;; (x + ε₁) * (y + ε₂) = xy + y*ε₁ + x*ε₂ + 1*ε₁ε₂
+              (let ([h (hd-mul (hd-var1 2) (hd-var2 3))])
+                   (assert-equal 6 (hd-value h))    ; 2*3
+                   (assert-equal 3 (hd-deriv1 h))   ; ∂f/∂x = y = 3
+                   (assert-equal 2 (hd-deriv2 h))   ; ∂f/∂y = x = 2
+                   (assert-equal 1 (hd-deriv12 h)))) ; ∂²f/∂x∂y = 1
+            
+            (define-test hyperdual-sq-second-derivative
+              ;; f(x) = x², d²f/dx² = 2
+              (let ([h (hd-sq (hd-var12 3))])
+                   (assert-equal 9 (hd-value h))    ; 3²
+                   (assert-equal 6 (hd-deriv1 h))   ; 2*3 = 6
+                   (assert-equal 6 (hd-deriv2 h))
+                   (assert-equal 2 (hd-deriv12 h)))) ; d²(x²)/dx² = 2
+            
+            (define-test hyperdual-exp-second-derivative
+              ;; f(x) = e^x, d²f/dx² = e^x
+              (let* ([h (hd-exp (hd-var12 0))]
+                     [expected 1.0]) ; e^0 = 1
+                    (assert-= (hd-value h) expected 1e-10)
+                    (assert-= (hd-deriv12 h) expected 1e-10)))
+            
+            (define-test hyperdual-sin-second-derivative
+              ;; f(x) = sin(x), d²f/dx² = -sin(x)
+              ;; At x = π/2: sin(π/2) = 1, d²/dx² = -1
+              (let* ([x (/ 3.141592653589793 2)]
+                     [h (hd-sin (hd-var12 x))])
+                    (assert-= (hd-value h) 1.0 1e-10)
+                    (assert-= (hd-deriv12 h) -1.0 1e-10)))
+            
+            (define-test hyperdual-polynomial-hessian
+              ;; f(x,y) = x²y, H[0,1] = ∂²f/∂x∂y = 2x
+              ;; At (3, 4): H[0,1] = 6
+              (let* ([x (hd-var1 3)]
+                     [y (hd-var2 4)]
+                     [f (hd-mul (hd-sq x) y)])
+                    (assert-equal 36 (hd-value f))   ; 9*4
+                    (assert-equal 6 (hd-deriv12 f))))) ; 2*3 = 6
+
+(test-group hessian-forward-tests
+            (define-test hessian-forward-quadratic
+              ;; f(x,y) = x² + y², H = [[2, 0], [0, 2]]
+              (let* ([f (lambda (x y) (hd-add (hd-sq x) (hd-sq y)))]
+                     [h (hessian-forward f '(1 1))])
+                    (assert-equal 'matrix (car h))
+                    (let ([data (cadddr h)])
+                         (assert-equal 2 (vector-ref data 0))  ; H[0,0]
+                         (assert-equal 0 (vector-ref data 1))  ; H[0,1]
+                         (assert-equal 0 (vector-ref data 2))  ; H[1,0]
+                         (assert-equal 2 (vector-ref data 3))))) ; H[1,1]
+            
+            (define-test hessian-forward-mixed
+              ;; f(x,y) = x*y, H = [[0, 1], [1, 0]]
+              (let* ([f (lambda (x y) (hd-mul x y))]
+                     [h (hessian-forward f '(2 3))])
+                    (let ([data (cadddr h)])
+                         (assert-equal 0 (vector-ref data 0))  ; H[0,0]
+                         (assert-equal 1 (vector-ref data 1))  ; H[0,1]
+                         (assert-equal 1 (vector-ref data 2))  ; H[1,0]
+                         (assert-equal 0 (vector-ref data 3))))) ; H[1,1]
+            
+            (define-test hessian-forward-cubic
+              ;; f(x,y) = x²y + y³, H = [[2y, 2x], [2x, 6y]]
+              ;; At (2, 3): H = [[6, 4], [4, 18]]
+              (let* ([f (lambda (x y) (hd-add (hd-mul (hd-sq x) y)
+                                              (hd-pow y 3)))]
+                     [h (hessian-forward f '(2 3))])
+                    (let ([data (cadddr h)])
+                         (assert-equal 6 (vector-ref data 0))   ; 2*3
+                         (assert-equal 4 (vector-ref data 1))   ; 2*2
+                         (assert-equal 4 (vector-ref data 2))   ; 2*2
+                         (assert-equal 18 (vector-ref data 3))))) ; 6*3
+            
+            (define-test second-derivative-forward-cubic
+              ;; f(x) = x³, d²f/dx² = 6x
+              ;; At x = 2: d²f/dx² = 12
+              (let ([result (second-derivative-forward
+                             (lambda (x) (hd-pow x 3))
+                             2)])
+                   (assert-equal 12 result))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 

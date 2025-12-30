@@ -374,6 +374,252 @@
                  (loop (+ i 1))))))
 
 ;;; ============================================================
+;;; Hyperdual Numbers for Second Derivatives
+;;; ============================================================
+
+;;; A hyperdual number represents: a + b*ε₁ + c*ε₂ + d*ε₁ε₂
+;;; where ε₁² = ε₂² = 0 (nilpotent) but ε₁ε₂ ≠ 0.
+;;;
+;;; For f(x,y), evaluating at hyperdual point gives:
+;;;   f(a + ε₁, b + ε₂) = f(a,b) + (∂f/∂x)ε₁ + (∂f/∂y)ε₂ + (∂²f/∂x∂y)ε₁ε₂
+;;;
+;;; This allows exact computation of mixed second partial derivatives.
+
+;;; hyperdual : Number × Number × Number × Number → Hyperdual
+;;; Create hyperdual a + b*ε₁ + c*ε₂ + d*ε₁ε₂
+(define (hyperdual val d1 d2 d12)
+  (list 'hyperdual val d1 d2 d12))
+
+;;; hyperdual? : Any → Boolean
+(define (hyperdual? x)
+  (and (pair? x) (eq? (car x) 'hyperdual)))
+
+;;; Accessors
+(define (hd-value h)   (if (hyperdual? h) (cadr h) h))
+(define (hd-deriv1 h)  (if (hyperdual? h) (caddr h) 0))
+(define (hd-deriv2 h)  (if (hyperdual? h) (cadddr h) 0))
+(define (hd-deriv12 h) (if (hyperdual? h) (car (cddddr h)) 0))
+
+;;; hd-lift : Number → Hyperdual
+;;; Lift a constant (all derivatives = 0).
+(define (hd-lift x)
+  (if (hyperdual? x) x (hyperdual x 0 0 0)))
+
+;;; hd-var1 : Number → Hyperdual
+;;; Variable with ε₁ = 1 (for differentiating w.r.t. first variable).
+(define (hd-var1 x)
+  (hyperdual x 1 0 0))
+
+;;; hd-var2 : Number → Hyperdual
+;;; Variable with ε₂ = 1 (for differentiating w.r.t. second variable).
+(define (hd-var2 x)
+  (hyperdual x 0 1 0))
+
+;;; hd-var12 : Number → Hyperdual
+;;; Variable with both ε₁ = ε₂ = 1 (for computing diagonal Hessian entry).
+(define (hd-var12 x)
+  (hyperdual x 1 1 0))
+
+;;; ============================================================
+;;; Hyperdual Arithmetic
+;;; ============================================================
+
+;;; hd-add : Hyperdual × Hyperdual → Hyperdual
+(define (hd-add a b)
+  (let ([a (hd-lift a)]
+        [b (hd-lift b)])
+       (hyperdual (+ (hd-value a) (hd-value b))
+                  (+ (hd-deriv1 a) (hd-deriv1 b))
+                  (+ (hd-deriv2 a) (hd-deriv2 b))
+                  (+ (hd-deriv12 a) (hd-deriv12 b)))))
+
+;;; hd-sub : Hyperdual × Hyperdual → Hyperdual
+(define (hd-sub a b)
+  (let ([a (hd-lift a)]
+        [b (hd-lift b)])
+       (hyperdual (- (hd-value a) (hd-value b))
+                  (- (hd-deriv1 a) (hd-deriv1 b))
+                  (- (hd-deriv2 a) (hd-deriv2 b))
+                  (- (hd-deriv12 a) (hd-deriv12 b)))))
+
+;;; hd-mul : Hyperdual × Hyperdual → Hyperdual
+;;; (a + b*ε₁ + c*ε₂ + d*ε₁ε₂) * (a' + b'*ε₁ + c'*ε₂ + d'*ε₁ε₂)
+;;; = aa' + (ab'+ba')ε₁ + (ac'+ca')ε₂ + (ad'+da'+bc'+cb')ε₁ε₂
+(define (hd-mul a b)
+  (let* ([a (hd-lift a)]
+         [b (hd-lift b)]
+         [av (hd-value a)]   [bv (hd-value b)]
+         [a1 (hd-deriv1 a)]  [b1 (hd-deriv1 b)]
+         [a2 (hd-deriv2 a)]  [b2 (hd-deriv2 b)]
+         [a12 (hd-deriv12 a)] [b12 (hd-deriv12 b)])
+        (hyperdual (* av bv)
+                   (+ (* av b1) (* a1 bv))
+                   (+ (* av b2) (* a2 bv))
+                   (+ (* av b12) (* a12 bv) (* a1 b2) (* a2 b1)))))
+
+;;; hd-div : Hyperdual × Hyperdual → Hyperdual
+;;; Uses quotient rule and chain rule.
+(define (hd-div a b)
+  (let* ([a (hd-lift a)]
+         [b (hd-lift b)]
+         [av (hd-value a)]   [bv (hd-value b)]
+         [a1 (hd-deriv1 a)]  [b1 (hd-deriv1 b)]
+         [a2 (hd-deriv2 a)]  [b2 (hd-deriv2 b)]
+         [a12 (hd-deriv12 a)] [b12 (hd-deriv12 b)]
+         [bv2 (* bv bv)]
+         [bv3 (* bv2 bv)])
+        (hyperdual (/ av bv)
+                   (/ (- (* a1 bv) (* av b1)) bv2)
+                   (/ (- (* a2 bv) (* av b2)) bv2)
+                   (/ (- (+ (* a12 bv2)
+                            (* 2 av b1 b2))
+                         (+ (* av b12 bv)
+                            (* a1 b2 bv)
+                            (* a2 b1 bv)))
+                      bv3))))
+
+;;; hd-neg : Hyperdual → Hyperdual
+(define (hd-neg a)
+  (let ([a (hd-lift a)])
+       (hyperdual (- (hd-value a))
+                  (- (hd-deriv1 a))
+                  (- (hd-deriv2 a))
+                  (- (hd-deriv12 a)))))
+
+;;; hd-sq : Hyperdual → Hyperdual
+(define (hd-sq a)
+  (hd-mul a a))
+
+;;; hd-sqrt : Hyperdual → Hyperdual
+;;; d√x/dx = 1/(2√x), d²√x/dx² = -1/(4x^(3/2))
+(define (hd-sqrt a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [sv (sqrt av)]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)]
+         [d1 (/ a1 (* 2 sv))]
+         [d2 (/ a2 (* 2 sv))]
+         ;; ∂²√f/∂x∂y = (f₁₂)/(2√f) - (f₁f₂)/(4f^(3/2))
+         [d12 (- (/ a12 (* 2 sv))
+                 (/ (* a1 a2) (* 4 av sv)))])
+        (hyperdual sv d1 d2 d12)))
+
+;;; hd-exp : Hyperdual → Hyperdual
+;;; d(e^f)/dx = f'e^f, d²(e^f)/dxdy = (f₁₂ + f₁f₂)e^f
+(define (hd-exp a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [ev (exp av)]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)])
+        (hyperdual ev
+                   (* a1 ev)
+                   (* a2 ev)
+                   (* (+ a12 (* a1 a2)) ev))))
+
+;;; hd-log : Hyperdual → Hyperdual
+;;; d(ln f)/dx = f'/f, d²(ln f)/dxdy = (f₁₂f - f₁f₂)/f²
+(define (hd-log a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)])
+        (hyperdual (log av)
+                   (/ a1 av)
+                   (/ a2 av)
+                   (/ (- (* a12 av) (* a1 a2)) (* av av)))))
+
+;;; hd-sin : Hyperdual → Hyperdual
+;;; d(sin f)/dx = f'cos f
+;;; d²(sin f)/dxdy = f₁₂ cos f - f₁f₂ sin f
+(define (hd-sin a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [sv (sin av)]
+         [cv (cos av)]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)])
+        (hyperdual sv
+                   (* a1 cv)
+                   (* a2 cv)
+                   (- (* a12 cv) (* a1 a2 sv)))))
+
+;;; hd-cos : Hyperdual → Hyperdual
+;;; d(cos f)/dx = -f'sin f
+;;; d²(cos f)/dxdy = -f₁₂ sin f - f₁f₂ cos f
+(define (hd-cos a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [sv (sin av)]
+         [cv (cos av)]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)])
+        (hyperdual cv
+                   (- (* a1 sv))
+                   (- (* a2 sv))
+                   (- (- (* a12 sv)) (* a1 a2 cv)))))
+
+;;; hd-pow : Hyperdual × Number → Hyperdual
+;;; d(f^n)/dx = n*f^(n-1)*f'
+;;; d²(f^n)/dxdy = n*f^(n-2)*(f₁₂*f + (n-1)*f₁*f₂)
+(define (hd-pow base exp)
+  (let* ([b (hd-lift base)]
+         [n exp]
+         [bv (hd-value b)]
+         [b1 (hd-deriv1 b)]
+         [b2 (hd-deriv2 b)]
+         [b12 (hd-deriv12 b)]
+         [pv (expt bv n)]
+         [pv1 (expt bv (- n 1))]
+         [pv2 (expt bv (- n 2))])
+        (hyperdual pv
+                   (* n pv1 b1)
+                   (* n pv1 b2)
+                   (* n pv2 (+ (* b12 bv) (* (- n 1) b1 b2))))))
+
+;;; ============================================================
+;;; Hessian via Hyperdual Numbers
+;;; ============================================================
+
+;;; hessian-forward : ((List Hyperdual) → Hyperdual) × (List Number) → Matrix
+;;; Compute exact Hessian using hyperdual numbers.
+;;; H[i,j] = ∂²f/∂x_i∂x_j is the ε₁ε₂ coefficient when
+;;; x_i has ε₁=1 and x_j has ε₂=1.
+(define (hessian-forward f args)
+  (let* ([n (length args)]
+         [result (make-vector (* n n) 0)])
+        (do ([i 0 (+ i 1)])
+            ((= i n) (list 'matrix n n result))
+            (do ([j i (+ j 1)])  ; Only compute upper triangle (Hessian is symmetric)
+                ((= j n))
+                (let* ([hd-args (let loop ([xs args] [k 0])
+                                     (if (null? xs)
+                                         '()
+                                         (cons (cond
+                                                [(and (= k i) (= k j)) (hd-var12 (car xs))]  ; diagonal
+                                                [(= k i) (hd-var1 (car xs))]
+                                                [(= k j) (hd-var2 (car xs))]
+                                                [else (hd-lift (car xs))])
+                                               (loop (cdr xs) (+ k 1)))))]
+                       [result-hd (apply f hd-args)]
+                       [h-ij (hd-deriv12 result-hd)])
+                      ;; Set both H[i,j] and H[j,i] (symmetric)
+                      (vector-set! result (+ (* i n) j) h-ij)
+                      (when (not (= i j))
+                            (vector-set! result (+ (* j n) i) h-ij)))))))
+
+;;; second-derivative-forward : (Hyperdual → Hyperdual) × Number → Number
+;;; Compute d²f/dx² at a point using hyperdual numbers.
+(define (second-derivative-forward f x)
+  (hd-deriv12 (f (hd-var12 x))))
+
+;;; ============================================================
 ;;; Gradient Tape (for Reverse Mode)
 ;;; ============================================================
 

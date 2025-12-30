@@ -7,9 +7,11 @@
 ;;;
 ;;; Key operations:
 ;;;   - jacobian: Compute full Jacobian matrix
-;;;   - hessian: Compute Hessian matrix (second derivatives)
+;;;   - hessian: Compute Hessian matrix (uses finite differences for outer derivative)
+;;;   - hessian-exact: Compute exact Hessian using hyperdual numbers
 ;;;   - jvp: Jacobian-vector product (forward mode)
 ;;;   - vjp: Vector-Jacobian product (reverse mode)
+;;;   - second-derivative-exact: Exact d²f/dx² via hyperdual numbers
 ;;;
 ;;; Dependencies:
 ;;;   - prelude.ss
@@ -283,10 +285,47 @@
 
 ;;; second-derivative : (Traced → Traced) × Number → Number
 ;;; Compute d²f/dx² at x for a single-variable function.
+;;; NOTE: Uses finite differences internally. For exact results, use second-derivative-exact.
 (define (second-derivative f x)
   ;; f takes a single argument, hessian expects variadic
   (let ([h (hessian (lambda (x) (f x)) (list x))])
        (matrix-ref h 0 0)))
+
+;;; ============================================================
+;;; Exact Hessian via Hyperdual Numbers
+;;; ============================================================
+
+;;; The functions below use hyperdual numbers (from comp-graph.ss) to compute
+;;; exact second derivatives without finite difference approximation.
+;;;
+;;; Use these when:
+;;;   - You need high numerical precision
+;;;   - Your function can be expressed using hd-* operations
+;;;   - You want reproducible, exact derivatives
+;;;
+;;; The standard `hessian` function uses finite differences for the outer
+;;; derivative, which introduces O(ε) error. These exact versions eliminate
+;;; that error entirely.
+
+;;; hessian-exact : ((List Hyperdual) → Hyperdual) × (List Number) → Matrix
+;;; Compute exact Hessian using hyperdual numbers.
+;;; The function f should use hd-add, hd-mul, hd-sin, etc. instead of
+;;; traced-add, traced-mul, traced-sin, etc.
+;;;
+;;; Example:
+;;;   (hessian-exact (lambda (x y) (hd-add (hd-sq x) (hd-sq y))) '(1 2))
+;;;   → Matrix with H[0,0]=2, H[1,1]=2, H[0,1]=H[1,0]=0
+(define (hessian-exact f args)
+  (hessian-forward f args))
+
+;;; second-derivative-exact : (Hyperdual → Hyperdual) × Number → Number
+;;; Compute exact d²f/dx² at x using hyperdual numbers.
+;;;
+;;; Example:
+;;;   (second-derivative-exact hd-sin 0)  ; → -sin(0) = 0
+;;;   (second-derivative-exact hd-exp 0)  ; → e^0 = 1
+(define (second-derivative-exact f x)
+  (second-derivative-forward f x))
 
 ;;; ============================================================
 ;;; Helper Functions
