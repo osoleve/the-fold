@@ -71,7 +71,7 @@ fn is_builtin_prim(name: &str) -> bool {
             // List operations
             | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
             | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "init" | "flatten" | "range"
-            | "list-copy" | "make-list" | "first" | "rest" | "second" | "third"
+            | "list-copy" | "make-list" | "first" | "rest" | "second" | "third" | "head" | "tail"
             | "repeat" | "sum" | "product" | "sum-of" | "max-of" | "min-of"
             | "sort" | "unique" | "find-index" | "index-of" | "count"
             | "find" | "position" | "contains?" | "min-list" | "max-list"
