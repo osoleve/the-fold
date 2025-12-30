@@ -13126,6 +13126,172 @@ pub const PRELUDE_SOURCE: &str = r#"
                                (string-append (number->words thousands) " thousand "
                                              (number->words rest))))
                          "number too large")))))))
+
+   ; ============================================================
+   ; Color Conversion Utilities
+   ; ============================================================
+
+   ; rgb->hex: Convert RGB values (0-255) to hex string
+   ; (rgb->hex 255 128 0) => "ff8000"
+   (rgb->hex (fn (r g b)
+     (string-append (byte->hex r) (byte->hex g) (byte->hex b))))
+
+   ; hex->rgb: Convert hex string to RGB list
+   ; (hex->rgb "ff8000") => (255 128 0)
+   (hex->rgb (fn (hex)
+     (let ((h (if (= (char->integer (string-ref hex 0)) 35)
+                  (string-drop 1 hex)
+                  hex)))
+       (if (= (string-length h) 6)
+           (list (hex->byte (substring h 0 2))
+                 (hex->byte (substring h 2 4))
+                 (hex->byte (substring h 4 6)))
+           (if (= (string-length h) 3)
+               ; Short form: "f80" -> "ff8800"
+               (list (hex->byte (string-append (substring h 0 1) (substring h 0 1)))
+                     (hex->byte (string-append (substring h 1 2) (substring h 1 2)))
+                     (hex->byte (string-append (substring h 2 3) (substring h 2 3))))
+               '(0 0 0))))))
+
+   ; color-blend: Blend two RGB colors
+   ; (color-blend '(255 0 0) '(0 0 255) 0.5) => (128 0 128)
+   (color-blend (fn (c1 c2 t)
+     (list (round (+ (* (- 1 t) (car c1)) (* t (car c2))))
+           (round (+ (* (- 1 t) (cadr c1)) (* t (cadr c2))))
+           (round (+ (* (- 1 t) (car (cdr (cdr c1)))) (* t (car (cdr (cdr c2)))))))))
+
+   ; color-lighten: Lighten a color by percentage
+   (color-lighten (fn (rgb pct)
+     (color-blend rgb '(255 255 255) (/ pct 100))))
+
+   ; color-darken: Darken a color by percentage
+   (color-darken (fn (rgb pct)
+     (color-blend rgb '(0 0 0) (/ pct 100))))
+
+   ; color-grayscale: Convert RGB to grayscale
+   (color-grayscale (fn (r g b)
+     (let ((gray (round (+ (* 0.299 r) (* 0.587 g) (* 0.114 b)))))
+       (list gray gray gray))))
+
+   ; color-invert: Invert a color
+   (color-invert (fn (rgb)
+     (list (- 255 (car rgb))
+           (- 255 (cadr rgb))
+           (- 255 (car (cdr (cdr rgb)))))))
+
+   ; ============================================================
+   ; INI/Config File Parsing
+   ; ============================================================
+
+   ; ini-parse-line: Parse single INI line
+   ; Returns: ('section . name) | ('key key value) | ('comment . text) | ('empty)
+   (ini-parse-line (fn (line)
+     (let ((trimmed (string-trim line)))
+       (if (string-empty? trimmed)
+           '(empty)
+           (let ((first-char (string-ref trimmed 0)))
+             (if (or (= (char->integer first-char) 59)   ; semicolon
+                     (= (char->integer first-char) 35))  ; hash
+                 (cons 'comment (string-drop 1 trimmed))
+                 (if (eq? first-char #\[)
+                     (let ((end-idx (string-index "]" trimmed)))
+                       (if (> end-idx 0)
+                           (cons 'section (substring trimmed 1 end-idx))
+                           (cons 'error "Invalid section")))
+                     (let ((eq-idx (string-index "=" trimmed)))
+                       (if (>= eq-idx 0)
+                           (list 'key
+                                 (string-trim (string-take eq-idx trimmed))
+                                 (string-trim (string-drop (+ eq-idx 1) trimmed)))
+                           (cons 'error "Invalid line"))))))))))
+
+   ; ini-parse: Parse INI string to nested alist
+   ; Returns: ((section1 . ((key1 . val1) (key2 . val2))) ...)
+   (ini-parse (fn (text)
+     ((fix parse-rec
+        (fn (lines current-section sections)
+          (if (null? lines)
+              (reverse (if (null? (cdr current-section))
+                          sections
+                          (cons current-section sections)))
+              (let ((parsed (ini-parse-line (car lines))))
+                (let ((type (car parsed)))
+                  (if (eq? type 'section)
+                      (parse-rec (cdr lines)
+                                (cons (cdr parsed) '())
+                                (if (null? (cdr current-section))
+                                    sections
+                                    (cons current-section sections)))
+                      (if (eq? type 'key)
+                          (parse-rec (cdr lines)
+                                    (cons (car current-section)
+                                          (cons (cons (cadr parsed) (car (cdr (cdr parsed))))
+                                                (cdr current-section)))
+                                    sections)
+                          (parse-rec (cdr lines) current-section sections))))))))
+      (string-split "\n" text) (cons "" '()) '())))
+
+   ; ini-get: Get value from parsed INI
+   ; (ini-get parsed "section" "key") => value or #f
+   (ini-get (fn (ini section key)
+     (let ((sect (assoc section ini)))
+       (if sect
+           (let ((kv (assoc key (cdr sect))))
+             (if kv (cdr kv) #f))
+           #f))))
+
+   ; ini-build: Build INI string from nested alist
+   (ini-build (fn (ini)
+     (string-join
+       (flat-map (fn (section)
+                   (cons (string-append "[" (car section) "]")
+                         (map (fn (kv)
+                                (string-append (car kv) "=" (cdr kv)))
+                              (cdr section))))
+                 ini)
+       "\n")))
+
+   ; ============================================================
+   ; Unit Conversion Utilities
+   ; ============================================================
+
+   ; Temperature conversions
+   (celsius->fahrenheit (fn (c) (+ (* c 1.8) 32)))
+   (fahrenheit->celsius (fn (f) (/ (- f 32) 1.8)))
+   (celsius->kelvin (fn (c) (+ c 273.15)))
+   (kelvin->celsius (fn (k) (- k 273.15)))
+
+   ; Length conversions
+   (meters->feet (fn (m) (* m 3.28084)))
+   (feet->meters (fn (ft) (/ ft 3.28084)))
+   (miles->km (fn (mi) (* mi 1.60934)))
+   (km->miles (fn (km) (/ km 1.60934)))
+   (inches->cm (fn (inch) (* inch 2.54)))
+   (cm->inches (fn (cm) (/ cm 2.54)))
+
+   ; Weight conversions
+   (kg->lbs (fn (kg) (* kg 2.20462)))
+   (lbs->kg (fn (lbs) (/ lbs 2.20462)))
+   (oz->grams (fn (oz) (* oz 28.3495)))
+   (grams->oz (fn (g) (/ g 28.3495)))
+
+   ; Volume conversions
+   (liters->gallons (fn (l) (* l 0.264172)))
+   (gallons->liters (fn (gal) (/ gal 0.264172)))
+   (ml->floz (fn (ml) (* ml 0.033814)))
+   (floz->ml (fn (oz) (/ oz 0.033814)))
+
+   ; Angle conversions
+   (degrees->radians (fn (d) (* d (/ 3.14159265358979 180))))
+   (radians->degrees (fn (r) (* r (/ 180 3.14159265358979))))
+
+   ; Data size conversions
+   (bytes->kb (fn (b) (/ b 1024)))
+   (kb->bytes (fn (kb) (* kb 1024)))
+   (bytes->mb (fn (b) (/ b 1048576)))
+   (mb->bytes (fn (mb) (* mb 1048576)))
+   (bytes->gb (fn (b) (/ b 1073741824)))
+   (gb->bytes (fn (gb) (* gb 1073741824)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -15325,6 +15491,51 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'ones-words ones-words)
     (cons 'tens-words tens-words)
     (cons 'number->words number->words)
+    ; Color Utilities
+    (cons 'rgb->hex rgb->hex)
+    (cons 'hex->rgb hex->rgb)
+    (cons 'color-blend color-blend)
+    (cons 'color-lighten color-lighten)
+    (cons 'color-darken color-darken)
+    (cons 'color-grayscale color-grayscale)
+    (cons 'color-invert color-invert)
+    ; INI/Config Parsing
+    (cons 'ini-parse-line ini-parse-line)
+    (cons 'ini-parse ini-parse)
+    (cons 'ini-get ini-get)
+    (cons 'ini-build ini-build)
+    ; Unit Conversions - Temperature
+    (cons 'celsius->fahrenheit celsius->fahrenheit)
+    (cons 'fahrenheit->celsius fahrenheit->celsius)
+    (cons 'celsius->kelvin celsius->kelvin)
+    (cons 'kelvin->celsius kelvin->celsius)
+    ; Unit Conversions - Length
+    (cons 'meters->feet meters->feet)
+    (cons 'feet->meters feet->meters)
+    (cons 'miles->km miles->km)
+    (cons 'km->miles km->miles)
+    (cons 'inches->cm inches->cm)
+    (cons 'cm->inches cm->inches)
+    ; Unit Conversions - Weight
+    (cons 'kg->lbs kg->lbs)
+    (cons 'lbs->kg lbs->kg)
+    (cons 'oz->grams oz->grams)
+    (cons 'grams->oz grams->oz)
+    ; Unit Conversions - Volume
+    (cons 'liters->gallons liters->gallons)
+    (cons 'gallons->liters gallons->liters)
+    (cons 'ml->floz ml->floz)
+    (cons 'floz->ml floz->ml)
+    ; Unit Conversions - Angle
+    (cons 'degrees->radians degrees->radians)
+    (cons 'radians->degrees radians->degrees)
+    ; Unit Conversions - Data Size
+    (cons 'bytes->kb bytes->kb)
+    (cons 'kb->bytes kb->bytes)
+    (cons 'bytes->mb bytes->mb)
+    (cons 'mb->bytes mb->bytes)
+    (cons 'bytes->gb bytes->gb)
+    (cons 'gb->bytes gb->bytes)
 ))
 "#;
 
