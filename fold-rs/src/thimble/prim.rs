@@ -1924,6 +1924,42 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 }
             }
         }
+        "sort" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "sort expects 1 arg: a list of numbers",
+                ));
+            }
+            let mut list = list_to_vec(&args[0])?;
+            // Sort numbers numerically
+            list.sort_by(|a, b| {
+                let a_num = match expect_number(a) {
+                    Ok(n) => n.as_f64(),
+                    Err(_) => f64::NAN,
+                };
+                let b_num = match expect_number(b) {
+                    Ok(n) => n.as_f64(),
+                    Err(_) => f64::NAN,
+                };
+                a_num
+                    .partial_cmp(&b_num)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+            Ok(list_from_values(&list))
+        }
+        "unique" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("unique expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            let mut seen = Vec::new();
+            for item in list {
+                if !seen.iter().any(|v| value_eq(v, &item)) {
+                    seen.push(item);
+                }
+            }
+            Ok(list_from_values(&seen))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
