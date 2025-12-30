@@ -1960,6 +1960,32 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(list_from_values(&seen))
         }
+        "find-index" | "index-of" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "find-index expects 2 args: (find-index lst elem)",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let needle = &args[1];
+            for (i, item) in list.iter().enumerate() {
+                if value_eq(item, needle) {
+                    return Ok(Value::Number(i as i64));
+                }
+            }
+            Ok(Value::Nil)
+        }
+        "count" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "count expects 2 args: (count lst elem)",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let needle = &args[1];
+            let count = list.iter().filter(|item| value_eq(item, needle)).count();
+            Ok(Value::Number(count as i64))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(

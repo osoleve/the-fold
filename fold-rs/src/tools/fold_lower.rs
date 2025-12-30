@@ -55,7 +55,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
             | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "flatten" | "range"
             | "repeat" | "sum" | "product" | "sum-of" | "max-of" | "min-of"
-            | "sort" | "unique"
+            | "sort" | "unique" | "find-index" | "index-of" | "count"
             | "filter"
             // String operations
             | "string-append" | "string-length" | "string-ref" | "substring"
