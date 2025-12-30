@@ -281,7 +281,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             let quotient = a / b;
             let remainder = a % b;
-            Ok(list_from_values(&vec![
+            Ok(list_from_values(&[
                 Value::Number(quotient),
                 Value::Number(remainder),
             ]))
