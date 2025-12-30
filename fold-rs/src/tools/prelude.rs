@@ -12071,6 +12071,274 @@ pub const PRELUDE_SOURCE: &str = r#"
               (reverse acc)
               (iter-rec (fn-1 cur) (- count 1) (cons cur acc)))))
       start n '())))
+
+   ; ============================================================
+   ; Encoding Utilities
+   ; ============================================================
+
+   ; hex-chars: Hex character lookup
+   (hex-chars "0123456789abcdef")
+
+   ; nibble->hex: Convert 0-15 to hex char
+   (nibble->hex (fn (n)
+     (string-ref hex-chars (mod n 16))))
+
+   ; hex->nibble: Convert hex char to 0-15
+   (hex->nibble (fn (c)
+     (let ((code (char->integer c)))
+       (if (and (>= code 48) (<= code 57))
+           (- code 48)  ; 0-9
+           (if (and (>= code 97) (<= code 102))
+               (- code 87)  ; a-f
+               (if (and (>= code 65) (<= code 70))
+                   (- code 55)  ; A-F
+                   0))))))
+
+   ; byte->hex: Convert byte (0-255) to two hex chars
+   (byte->hex (fn (b)
+     (list->string (list (nibble->hex (/ b 16)) (nibble->hex (mod b 16))))))
+
+   ; hex->byte: Convert two hex chars to byte
+   (hex->byte (fn (h1 h2)
+     (+ (* 16 (hex->nibble h1)) (hex->nibble h2))))
+
+   ; bytes->hex: Convert list of bytes to hex string
+   (bytes->hex (fn (bytes)
+     (apply string-append (map byte->hex bytes))))
+
+   ; hex->bytes: Convert hex string to list of bytes
+   (hex->bytes (fn (hex-str)
+     (let ((chars (string->list hex-str)))
+       ((fix hex-rec
+          (fn (remaining acc)
+            (if (null? remaining)
+                (reverse acc)
+                (if (null? (cdr remaining))
+                    (reverse acc)
+                    (let ((h1 (car remaining))
+                          (h2 (cadr remaining))
+                          (rest (cdr (cdr remaining))))
+                      (hex-rec rest (cons (hex->byte h1 h2) acc)))))))
+        chars '()))))
+
+   ; string->bytes: Convert string to list of byte values
+   (string->bytes (fn (s)
+     (map char->integer (string->list s))))
+
+   ; bytes->string: Convert list of byte values to string
+   (bytes->string (fn (bytes)
+     (list->string (map integer->char bytes))))
+
+   ; string->hex: Convert string to hex encoding
+   (string->hex (fn (s)
+     (bytes->hex (string->bytes s))))
+
+   ; hex->string: Convert hex encoding to string
+   (hex->string (fn (hex-str)
+     (bytes->string (hex->bytes hex-str))))
+
+   ; ============================================================
+   ; Memoization Utilities
+   ; ============================================================
+
+   ; memo-table: Create empty memoization table
+   (memo-table (fn () '()))
+
+   ; memo-lookup: Look up value in memo table
+   (memo-lookup (fn (key table)
+     (assoc key table)))
+
+   ; memo-insert: Insert value into memo table
+   (memo-insert (fn (key val table)
+     (cons (cons key val) table)))
+
+   ; with-memo: Execute with memoization (returns (result . new-table))
+   (with-memo (fn (key compute-fn table)
+     (let ((cached (memo-lookup key table)))
+       (if cached
+           (cons (cdr cached) table)
+           (let ((result (compute-fn)))
+             (cons result (memo-insert key result table)))))))
+
+   ; ============================================================
+   ; Advanced Math Utilities
+   ; ============================================================
+
+   ; newton-sqrt: Square root via Newton's method
+   (newton-sqrt (fn (n)
+     (if (< n 0) 'error
+       (if (= n 0) 0
+         ((fix newton
+            (fn (guess)
+              (let ((next (/ (+ guess (/ n guess)) 2)))
+                (if (< (abs (- next guess)) 0.0001)
+                    next
+                    (newton next)))))
+          (/ n 2))))))
+
+   ; nth-root: Nth root via Newton's method
+   (nth-root (fn (x n)
+     (if (< x 0) 'error
+       ((fix newton
+          (fn (guess)
+            (let ((next (/ (+ (* (- n 1) guess) (/ x (expt guess (- n 1)))) n)))
+              (if (< (abs (- next guess)) 0.0001)
+                  next
+                  (newton next)))))
+        (/ x n)))))
+
+   ; mean: Arithmetic mean
+   (mean (fn (lst)
+     (if (null? lst) 0
+       (/ (sum-list lst) (length lst)))))
+
+   ; variance: Population variance
+   (variance (fn (lst)
+     (if (null? lst) 0
+       (let ((m (mean lst)))
+         (mean (map (fn (x) (* (- x m) (- x m))) lst))))))
+
+   ; std-dev: Standard deviation
+   (std-dev (fn (lst)
+     (newton-sqrt (variance lst))))
+
+   ; median: Middle value of sorted list
+   (median (fn (lst)
+     (let ((sorted (merge-sort lst <))
+           (n (length lst)))
+       (if (= n 0) 0
+         (if (odd? n)
+             (nth (/ n 2) sorted)
+             (/ (+ (nth (- (/ n 2) 1) sorted) (nth (/ n 2) sorted)) 2))))))
+
+   ; mode: Most frequent value
+   (mode (fn (lst)
+     (if (null? lst) '()
+       (let ((freqs (frequencies lst)))
+         (car (car (merge-sort freqs (fn (a b) (> (cdr a) (cdr b))))))))))
+
+   ; percentile: Value at given percentile (0-100)
+   (percentile (fn (p lst)
+     (let ((sorted (merge-sort lst <))
+           (n (length lst)))
+       (if (= n 0) 0
+         (let ((idx (min (- n 1) (floor (* (/ p 100) n)))))
+           (nth idx sorted))))))
+
+   ; correlation: Pearson correlation coefficient
+   (correlation (fn (xs ys)
+     (let ((n (length xs))
+           (mx (mean xs))
+           (my (mean ys))
+           (sx (std-dev xs))
+           (sy (std-dev ys)))
+       (if (or (= sx 0) (= sy 0)) 0
+         (/ (mean (map (fn (pair)
+                         (* (- (car pair) mx) (- (cdr pair) my)))
+                       (zip xs ys)))
+            (* sx sy))))))
+
+   ; linear-regression: Simple linear regression, returns (slope . intercept)
+   (linear-regression (fn (xs ys)
+     (let ((n (length xs))
+           (mx (mean xs))
+           (my (mean ys)))
+       (let ((num (sum-list (map (fn (pair)
+                                   (* (- (car pair) mx) (- (cdr pair) my)))
+                                 (zip xs ys))))
+             (denom (sum-list (map (fn (x) (* (- x mx) (- x mx))) xs))))
+         (if (= denom 0)
+             (cons 0 my)
+             (let ((slope (/ num denom)))
+               (cons slope (- my (* slope mx)))))))))
+
+   ; ============================================================
+   ; Combinatorial Utilities
+   ; ============================================================
+
+   ; permutations: Generate all permutations of list
+   (permutations (fn (lst)
+     (if (null? lst)
+         '(())
+         (flat-map
+           (fn (x)
+             (map (fn (p) (cons x p))
+                  (permutations (filter (fn (y) (not (eq? x y))) lst))))
+           lst))))
+
+   ; combinations: Generate all k-combinations
+   (combinations (fn (k lst)
+     (if (= k 0)
+         '(())
+         (if (null? lst)
+             '()
+             (append
+               (map (fn (c) (cons (car lst) c))
+                    (combinations (- k 1) (cdr lst)))
+               (combinations k (cdr lst)))))))
+
+   ; subsets: Generate all subsets
+   (subsets (fn (lst)
+     (if (null? lst)
+         '(())
+         (let ((rest-subsets (subsets (cdr lst))))
+           (append rest-subsets
+                   (map (fn (s) (cons (car lst) s)) rest-subsets))))))
+
+   ; cartesian-product: Cartesian product of two lists
+   (cartesian-product (fn (l1 l2)
+     (flat-map (fn (x) (map (fn (y) (cons x y)) l2)) l1)))
+
+   ; power-set: Alias for subsets
+   (power-set subsets)
+
+   ; ============================================================
+   ; Functional Patterns
+   ; ============================================================
+
+   ; trampoline: Execute thunks until non-thunk result
+   ; Thunks are functions tagged with 'bounce
+   (bounce (fn (thunk) (list 'bounce thunk)))
+
+   (bounce? (fn (x)
+     (and (pair? x) (eq? (car x) 'bounce))))
+
+   (trampoline (fn (val)
+     ((fix tramp
+        (fn (v)
+          (if (bounce? v)
+              (tramp ((cadr v)))
+              v)))
+      val)))
+
+   ; Y combinator (for reference, fix is preferred)
+   (Y (fn (f)
+     ((fn (x) (f (fn (v) ((x x) v))))
+      (fn (x) (f (fn (v) ((x x) v)))))))
+
+   ; compose-n: Compose n functions
+   (compose-n (fn (fns)
+     (foldr compose id fns)))
+
+   ; pipe-n: Pipe value through n functions (left to right)
+   (pipe-n (fn (fns)
+     (foldl (fn (acc f) (compose f acc)) id fns)))
+
+   ; constantly: Return a function that always returns val
+   (constantly (fn (val)
+     (fn (ignored) val)))
+
+   ; negate-pred: Return negation of predicate (complement already exists)
+   (negate-pred (fn (f)
+     (fn (x) (not (f x)))))
+
+   ; juxtapose: Apply multiple functions to same argument
+   (juxtapose (fn (fns x)
+     (map (fn (f) (f x)) fns)))
+
+   ; converge: Apply functions to arg, combine results
+   (converge (fn (combiner fns x)
+     (apply combiner (map (fn (f) (f x)) fns))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -14146,6 +14414,51 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'convergent-seq convergent-seq)
     (cons 'cycle-detect cycle-detect)
     (cons 'iterate-n iterate-n)
+    ; Encoding Utilities
+    (cons 'hex-chars hex-chars)
+    (cons 'nibble->hex nibble->hex)
+    (cons 'hex->nibble hex->nibble)
+    (cons 'byte->hex byte->hex)
+    (cons 'hex->byte hex->byte)
+    (cons 'bytes->hex bytes->hex)
+    (cons 'hex->bytes hex->bytes)
+    (cons 'string->bytes string->bytes)
+    (cons 'bytes->string bytes->string)
+    (cons 'string->hex string->hex)
+    (cons 'hex->string hex->string)
+    ; Memoization
+    (cons 'memo-table memo-table)
+    (cons 'memo-lookup memo-lookup)
+    (cons 'memo-insert memo-insert)
+    (cons 'with-memo with-memo)
+    ; Advanced Math
+    (cons 'newton-sqrt newton-sqrt)
+    (cons 'nth-root nth-root)
+    (cons 'mean mean)
+    (cons 'variance variance)
+    (cons 'std-dev std-dev)
+    (cons 'median median)
+    (cons 'mode mode)
+    (cons 'percentile percentile)
+    (cons 'correlation correlation)
+    (cons 'linear-regression linear-regression)
+    ; Combinatorics
+    (cons 'permutations permutations)
+    (cons 'combinations combinations)
+    (cons 'subsets subsets)
+    (cons 'cartesian-product cartesian-product)
+    (cons 'power-set power-set)
+    ; Functional Patterns
+    (cons 'bounce bounce)
+    (cons 'bounce? bounce?)
+    (cons 'trampoline trampoline)
+    (cons 'Y Y)
+    (cons 'compose-n compose-n)
+    (cons 'pipe-n pipe-n)
+    (cons 'constantly constantly)
+    (cons 'negate-pred negate-pred)
+    (cons 'juxtapose juxtapose)
+    (cons 'converge converge)
 ))
 "#;
 
