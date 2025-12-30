@@ -49,7 +49,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "number?" | "integer?" | "string?" | "list?" | "pair?" | "null?" | "boolean?"
             | "symbol?" | "procedure?" | "char?" | "vector?" | "bytevector?"
             // List operations
-            | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
+            | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "memq"
             | "list-ref" | "list->string" | "list->vec"
             // String operations
             | "string-append" | "string-length" | "string-ref" | "substring"
@@ -64,7 +64,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "hash-block" | "sha256" | "fetch" | "store!" | "pin!" | "pinned?"
             // Byte operations
             | "bv-make" | "bv-length" | "bv-ref" | "bv-slice" | "bv-concat" | "bv-copy"
-            | "bytes->block" | "block->bytes" | "bytevector?"
+            | "bytes->block"
             // Character operations
             | "integer->char" | "char->integer" | "char=?" | "char<?"
             // Logic
