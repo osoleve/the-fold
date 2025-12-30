@@ -2357,14 +2357,14 @@ pub const PRELUDE_SOURCE: &str = r#"
      (let ((len (string-length s)))
        (if (>= len width)
            s
-           (string-append (string-repeat-fn (- width len) (string pad-char)) s)))))
+           (string-append (make-string (- width len) pad-char) s)))))
 
    ; string-pad-right: Pad string on right to width
    (string-pad-right (fn (width pad-char s)
      (let ((len (string-length s)))
        (if (>= len width)
            s
-           (string-append s (string-repeat-fn (- width len) (string pad-char)))))))
+           (string-append s (make-string (- width len) pad-char))))))
 
    ; string-center-fn: Center string to width
    (string-center-fn (fn (width pad-char s)
@@ -2375,9 +2375,9 @@ pub const PRELUDE_SOURCE: &str = r#"
              (let ((left-pad (/ total-pad 2)))
                (let ((right-pad (- total-pad left-pad)))
                  (string-append
-                   (string-repeat-fn left-pad (string pad-char))
+                   (make-string left-pad pad-char)
                    s
-                   (string-repeat-fn right-pad (string pad-char))))))))))
+                   (make-string right-pad pad-char)))))))))
 
    ; -- Safe operations --
 
@@ -2479,6 +2479,376 @@ pub const PRELUDE_SOURCE: &str = r#"
 
    ; map-err: Map over error value
    (map-err map-left)
+
+   ; -- Sorting utilities --
+
+   ; insertion-sort: Sort list using insertion sort (stable)
+   (insertion-sort (fn (lst)
+     (foldl (fn (sorted x) (insert-sorted x sorted)) '() lst)))
+
+   ; insertion-sort-by: Sort by key function
+   (insertion-sort-by (fn (key-fn lst)
+     (foldl (fn (sorted x) (insert-sorted-by key-fn x sorted)) '() lst)))
+
+   ; merge-sort: Sort list using merge sort (stable, O(n log n))
+   (merge-sort (fix merge-sort
+     (fn (lst)
+       (if (null? lst)
+           '()
+           (if (null? (cdr lst))
+               lst
+               (let ((mid (/ (length lst) 2)))
+                 (let ((left (take-n mid lst))
+                       (right (drop-n mid lst)))
+                   (merge-sorted (merge-sort left) (merge-sort right)))))))))
+
+   ; sort-descending: Sort in descending order
+   (sort-descending (fn (lst)
+     (reverse (sort lst))))
+
+   ; sort-by-descending: Sort by key in descending order
+   (sort-by-descending (fn (f lst)
+     (reverse (sort-by f lst))))
+
+   ; top-k: Get k largest elements
+   (top-k (fn (k lst)
+     (take-n k (sort-descending lst))))
+
+   ; bottom-k: Get k smallest elements
+   (bottom-k (fn (k lst)
+     (take-n k (sort lst))))
+
+   ; rank: Get rank of each element (1-indexed position in sorted order)
+   (rank (fn (lst)
+     (let ((sorted (sort lst)))
+       (map (fn (x) (+ 1 (position x sorted))) lst))))
+
+   ; -- Binary search utilities --
+
+   ; binary-search: Search sorted list for element, return index or #f
+   (binary-search (fix binary-search
+     (fn (x sorted-lst)
+       (let ((helper (fix helper
+               (fn (lo hi)
+                 (if (> lo hi)
+                     #f
+                     (let ((mid (/ (+ lo hi) 2)))
+                       (let ((mid-val (list-ref sorted-lst mid)))
+                         (if (= x mid-val)
+                             mid
+                             (if (< x mid-val)
+                                 (helper lo (- mid 1))
+                                 (helper (+ mid 1) hi))))))))))
+         (helper 0 (- (length sorted-lst) 1))))))
+
+   ; lower-bound: Find first position where element could be inserted
+   (lower-bound (fix lower-bound
+     (fn (x sorted-lst)
+       (let ((helper (fix helper
+               (fn (lst idx)
+                 (if (null? lst)
+                     idx
+                     (if (< (car lst) x)
+                         (helper (cdr lst) (+ idx 1))
+                         idx))))))
+         (helper sorted-lst 0)))))
+
+   ; upper-bound: Find last position where element could be inserted
+   (upper-bound (fix upper-bound
+     (fn (x sorted-lst)
+       (let ((helper (fix helper
+               (fn (lst idx)
+                 (if (null? lst)
+                     idx
+                     (if (<= (car lst) x)
+                         (helper (cdr lst) (+ idx 1))
+                         idx))))))
+         (helper sorted-lst 0)))))
+
+   ; -- More list utilities --
+
+   ; rotate: Rotate list by n positions
+   (rotate-list (fn (n lst)
+     (if (null? lst)
+         '()
+         (let ((len (length lst)))
+           (let ((n-normalized (mod n len)))
+             (append (drop-n n-normalized lst) (take-n n-normalized lst)))))))
+
+   ; shuffle: Deterministic shuffle based on seed (not truly random)
+   (shuffle (fn (seed lst)
+     (let ((pairs (zip (map (fn (x) (mod (* x seed) 1000003)) (iota (length lst) 1)) lst)))
+       (map cadr (sort-by car pairs)))))
+
+   ; dedup-consecutive: Remove consecutive duplicates (like Unix uniq)
+   (dedup-consecutive (fix dedup-consecutive
+     (fn (lst)
+       (if (null? lst)
+           '()
+           (if (null? (cdr lst))
+               lst
+               (if (eq? (car lst) (cadr lst))
+                   (dedup-consecutive (cdr lst))
+                   (cons (car lst) (dedup-consecutive (cdr lst)))))))))
+
+   ; run-length-encode: Encode consecutive runs
+   (run-length-encode (fn (lst)
+     (map (fn (group) (list (car group) (length group)))
+          (group-consecutive lst))))
+
+   ; run-length-decode: Decode run-length encoding
+   (run-length-decode (fn (encoded)
+     (concat (map (fn (pair) (replicate (cadr pair) (car pair))) encoded))))
+
+   ; -- Statistics utilities --
+
+   ; percentile: Get nth percentile of list
+   (percentile (fn (p lst)
+     (let ((sorted (sort lst)))
+       (let ((idx (/ (* p (- (length sorted) 1)) 100)))
+         (list-ref sorted idx)))))
+
+   ; quartiles: Get Q1, Q2 (median), Q3
+   (quartiles (fn (lst)
+     (list (percentile 25 lst)
+           (percentile 50 lst)
+           (percentile 75 lst))))
+
+   ; interquartile-range: Q3 - Q1
+   (interquartile-range (fn (lst)
+     (let ((qs (quartiles lst)))
+       (- (caddr qs) (car qs)))))
+
+   ; z-score: Calculate z-score of value
+   (z-score (fn (x lst)
+     (let ((m (mean lst)))
+       (let ((std (sqrt (variance lst))))
+         (if (= std 0) 0 (/ (- x m) std))))))
+
+   ; normalize-list: Normalize list to [0, 1] range
+   (normalize-list (fn (lst)
+     (let ((mn (apply min lst))
+           (mx (apply max lst)))
+       (let ((range (- mx mn)))
+         (if (= range 0)
+             (replicate (length lst) 0)
+             (map (fn (x) (/ (- x mn) range)) lst))))))
+
+   ; standardize: Standardize list (z-scores)
+   (standardize (fn (lst)
+     (let ((m (mean lst)))
+       (let ((std (sqrt (variance lst))))
+         (if (= std 0)
+             (replicate (length lst) 0)
+             (map (fn (x) (/ (- x m) std)) lst))))))
+
+   ; covariance: Calculate covariance of two lists
+   (covariance (fn (xs ys)
+     (let ((mx (mean xs))
+           (my (mean ys))
+           (n (length xs)))
+       (/ (sum-list (zip-with * (map (fn (x) (- x mx)) xs)
+                                 (map (fn (y) (- y my)) ys)))
+          (- n 1)))))
+
+   ; correlation: Calculate Pearson correlation coefficient
+   (correlation (fn (xs ys)
+     (let ((cov (covariance xs ys))
+           (sx (sqrt (variance xs)))
+           (sy (sqrt (variance ys))))
+       (if (or (= sx 0) (= sy 0))
+           0
+           (/ cov (* sx sy))))))
+
+   ; -- Matrix operations (lists of lists) --
+
+   ; matrix-ref: Get element at row, col
+   (matrix-ref (fn (m row col)
+     (list-ref (list-ref m row) col)))
+
+   ; matrix-rows: Get number of rows
+   (matrix-rows length)
+
+   ; matrix-cols: Get number of columns
+   (matrix-cols (fn (m)
+     (if (null? m) 0 (length (car m)))))
+
+   ; matrix-row: Get row at index
+   (matrix-row list-ref)
+
+   ; matrix-col: Get column at index
+   (matrix-col (fn (m col)
+     (map (fn (row) (list-ref row col)) m)))
+
+   ; matrix-map: Map function over all elements
+   (matrix-map (fn (f m)
+     (map (fn (row) (map f row)) m)))
+
+   ; matrix-add: Add two matrices
+   (matrix-add (fn (a b)
+     (zip-with (fn (row-a row-b) (zip-with + row-a row-b)) a b)))
+
+   ; matrix-scale: Multiply matrix by scalar
+   (matrix-scale (fn (k m)
+     (matrix-map (fn (x) (* k x)) m)))
+
+   ; matrix-transpose: Transpose matrix (uses existing transpose)
+   (matrix-transpose transpose)
+
+   ; dot-product: Dot product of two vectors (lists)
+   (dot-product (fn (a b)
+     (sum-list (zip-with * a b))))
+
+   ; matrix-multiply: Multiply two matrices
+   (matrix-multiply (fn (a b)
+     (let ((b-t (transpose b)))
+       (map (fn (row-a)
+              (map (fn (col-b) (dot-product row-a col-b)) b-t))
+            a))))
+
+   ; identity-matrix: Create n×n identity matrix
+   (identity-matrix (fn (n)
+     (map (fn (i)
+            (map (fn (j) (if (= i j) 1 0))
+                 (iota n 0)))
+          (iota n 0))))
+
+   ; zero-matrix: Create m×n zero matrix
+   (zero-matrix (fn (m n)
+     (replicate m (replicate n 0))))
+
+   ; -- Functional patterns --
+
+   ; Y combinator: Note - use the 'fix' special form directly for recursion
+   ; Example: (fix factorial (fn (n) (if (= n 0) 1 (* n (factorial (- n 1))))))
+   ; Y is provided as id for compatibility, but fix is the preferred approach
+   (Y id)
+
+   ; memoize: Placeholder for memoization (requires mutation, not fully supported)
+   ; Use memoize-1 instead for basic single-value memoization
+   (memoize id)
+
+   ; trampoline: Execute trampolined function
+   (trampoline (fix trampoline
+     (fn (f)
+       (if (procedure? f)
+           (trampoline (f))
+           f))))
+
+   ; -- Tree utilities --
+
+   ; tree-leaves: Get all leaves of tree
+   (tree-leaves (fix tree-leaves
+     (fn (tree)
+       (if (not (pair? tree))
+           (list tree)
+           (concat (map tree-leaves tree))))))
+
+   ; tree-count: Count nodes in tree
+   (tree-count (fix tree-count
+     (fn (tree)
+       (if (not (pair? tree))
+           1
+           (+ 1 (sum-list (map tree-count tree)))))))
+
+   ; tree-height: Alias for tree-depth
+   (tree-height tree-depth)
+
+   ; tree-paths: Get all paths from root to leaves
+   (tree-paths (fix tree-paths
+     (fn (tree)
+       (if (not (pair? tree))
+           (list (list tree))
+           (concat (map (fn (subtree)
+                          (map (fn (path) (cons (car tree) path))
+                               (tree-paths subtree)))
+                        (cdr tree)))))))
+
+   ; -- Format utilities --
+
+   ; number->string-padded: Convert number to string with padding
+   (number->string-padded (fn (width n)
+     (string-pad-left width #\0 (number->string n))))
+
+   ; format-list: Format list as string with separator
+   (format-list (fn (sep lst)
+     (string-join (map (fn (x) (if (string? x) x (number->string x))) lst) sep)))
+
+   ; format-table: Format list of lists as table
+   (format-table (fn (rows)
+     (string-join (map (fn (row) (format-list " " row)) rows) "\n")))
+
+   ; pluralize: Simple pluralization
+   (pluralize (fn (n singular plural)
+     (if (= n 1) singular plural)))
+
+   ; -- Boolean utilities --
+
+   ; bool->int: Convert boolean to integer
+   (bool->int (fn (b) (if b 1 0)))
+
+   ; int->bool: Convert integer to boolean
+   (int->bool (fn (n) (not (= n 0))))
+
+   ; -- List predicates --
+
+   ; sublist?: Check if xs is a sublist of ys
+   (sublist? (fix sublist?
+     (fn (xs ys)
+       (if (null? xs)
+           #t
+           (if (null? ys)
+               #f
+               (if (eq? (car xs) (car ys))
+                   (sublist? (cdr xs) (cdr ys))
+                   (sublist? xs (cdr ys))))))))
+
+   ; prefix?: Check if xs is a prefix of ys
+   (prefix? (fix prefix?
+     (fn (xs ys)
+       (if (null? xs)
+           #t
+           (if (null? ys)
+               #f
+               (if (eq? (car xs) (car ys))
+                   (prefix? (cdr xs) (cdr ys))
+                   #f))))))
+
+   ; suffix?: Check if xs is a suffix of ys
+   (suffix? (fn (xs ys)
+     (prefix? (reverse xs) (reverse ys))))
+
+   ; -- Misc utilities --
+
+   ; clamp-index: Clamp index to valid range for list
+   (clamp-index (fn (idx lst)
+     (clamp-val 0 (- (length lst) 1) idx)))
+
+   ; circular-ref: Get element at index with wrap-around
+   (circular-ref (fn (lst idx)
+     (list-ref lst (mod idx (length lst)))))
+
+   ; repeat-fn-n: Apply function n times, collecting results
+   (repeat-fn-n (fn (n f init)
+     (let ((helper (fix helper
+             (fn (n acc val)
+               (if (<= n 0)
+                   (reverse acc)
+                   (let ((new-val (f val)))
+                     (helper (- n 1) (cons new-val acc) new-val)))))))
+       (helper n (list init) init))))
+
+   ; fixed-point-iterate: Iterate until fixed point or max iterations
+   (fixed-point-iterate (fn (f max-iter x)
+     (let ((helper (fix helper
+             (fn (iter val)
+               (if (>= iter max-iter)
+                   val
+                   (let ((new-val (f val)))
+                     (if (eq? val new-val)
+                         val
+                         (helper (+ iter 1) new-val))))))))
+       (helper 0 x))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -2926,7 +3296,74 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'unwrap unwrap)
     (cons 'unwrap-or unwrap-or)
     (cons 'map-ok map-ok)
-    (cons 'map-err map-err)))
+    (cons 'map-err map-err)
+    ; Sorting utilities
+    (cons 'insertion-sort insertion-sort)
+    (cons 'merge-sort merge-sort)
+    (cons 'sort-descending sort-descending)
+    (cons 'sort-by-descending sort-by-descending)
+    (cons 'top-k top-k)
+    (cons 'bottom-k bottom-k)
+    (cons 'rank rank)
+    ; Binary search utilities
+    (cons 'binary-search binary-search)
+    (cons 'lower-bound lower-bound)
+    (cons 'upper-bound upper-bound)
+    ; More list utilities
+    (cons 'rotate-list rotate-list)
+    (cons 'shuffle shuffle)
+    (cons 'dedup-consecutive dedup-consecutive)
+    (cons 'run-length-encode run-length-encode)
+    (cons 'run-length-decode run-length-decode)
+    ; Statistics utilities
+    (cons 'percentile percentile)
+    (cons 'quartiles quartiles)
+    (cons 'interquartile-range interquartile-range)
+    (cons 'z-score z-score)
+    (cons 'normalize-list normalize-list)
+    (cons 'standardize standardize)
+    (cons 'covariance covariance)
+    (cons 'correlation correlation)
+    ; Matrix operations
+    (cons 'matrix-ref matrix-ref)
+    (cons 'matrix-rows matrix-rows)
+    (cons 'matrix-cols matrix-cols)
+    (cons 'matrix-row matrix-row)
+    (cons 'matrix-col matrix-col)
+    (cons 'matrix-map matrix-map)
+    (cons 'matrix-add matrix-add)
+    (cons 'matrix-scale matrix-scale)
+    (cons 'matrix-transpose matrix-transpose)
+    (cons 'dot-product dot-product)
+    (cons 'matrix-multiply matrix-multiply)
+    (cons 'identity-matrix identity-matrix)
+    (cons 'zero-matrix zero-matrix)
+    ; Functional patterns
+    (cons 'Y Y)
+    (cons 'memoize memoize)
+    (cons 'trampoline trampoline)
+    ; Tree utilities
+    (cons 'tree-leaves tree-leaves)
+    (cons 'tree-count tree-count)
+    (cons 'tree-height tree-height)
+    (cons 'tree-paths tree-paths)
+    ; Format utilities
+    (cons 'number->string-padded number->string-padded)
+    (cons 'format-list format-list)
+    (cons 'format-table format-table)
+    (cons 'pluralize pluralize)
+    ; Boolean utilities
+    (cons 'bool->int bool->int)
+    (cons 'int->bool int->bool)
+    ; List predicates
+    (cons 'sublist? sublist?)
+    (cons 'prefix? prefix?)
+    (cons 'suffix? suffix?)
+    ; Misc utilities
+    (cons 'clamp-index clamp-index)
+    (cons 'circular-ref circular-ref)
+    (cons 'repeat-fn-n repeat-fn-n)
+    (cons 'fixed-point-iterate fixed-point-iterate)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
@@ -3182,6 +3619,7 @@ const PRIMITIVE_NAMES: &[&str] = &[
     "string-length",
     "string-ref",
     "substring",
+    "make-string",
     "string->list",
     "string->number",
     "string->symbol",

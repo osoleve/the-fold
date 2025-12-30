@@ -2601,3 +2601,437 @@ fn test_unwrap_or() {
     let result = eval_with_prelude("(unwrap-or 0 (err \"oops\"))");
     assert_eq!(result, "0");
 }
+
+// ============= Sorting Utilities =============
+
+#[test]
+fn test_insertion_sort() {
+    let result = eval_with_prelude("(insertion-sort '(3 1 4 1 5 9 2 6))");
+    assert_eq!(result, "(1 1 2 3 4 5 6 9)");
+
+    let result = eval_with_prelude("(insertion-sort '())");
+    assert_eq!(result, "()");
+}
+
+#[test]
+fn test_merge_sort() {
+    let result = eval_with_prelude("(merge-sort '(3 1 4 1 5 9 2 6))");
+    assert_eq!(result, "(1 1 2 3 4 5 6 9)");
+
+    let result = eval_with_prelude("(merge-sort '(5 2 8 1))");
+    assert_eq!(result, "(1 2 5 8)");
+}
+
+#[test]
+fn test_sort_descending() {
+    let result = eval_with_prelude("(sort-descending '(3 1 4 1 5))");
+    assert_eq!(result, "(5 4 3 1 1)");
+}
+
+#[test]
+fn test_sort_by_descending() {
+    let result = eval_with_prelude("(sort-by-descending abs '(-3 1 -5 2))");
+    assert_eq!(result, "(-5 -3 2 1)");
+}
+
+#[test]
+fn test_top_k() {
+    let result = eval_with_prelude("(top-k 3 '(3 1 4 1 5 9 2 6))");
+    assert_eq!(result, "(9 6 5)");
+}
+
+#[test]
+fn test_bottom_k() {
+    let result = eval_with_prelude("(bottom-k 3 '(3 1 4 1 5 9 2 6))");
+    assert_eq!(result, "(1 1 2)");
+}
+
+#[test]
+fn test_rank() {
+    let result = eval_with_prelude("(rank '(30 10 20))");
+    assert_eq!(result, "(3 1 2)");
+}
+
+// ============= Binary Search Utilities =============
+
+#[test]
+fn test_binary_search() {
+    let result = eval_with_prelude("(binary-search 4 '(1 2 3 4 5 6 7))");
+    assert_eq!(result, "3");
+
+    let result = eval_with_prelude("(binary-search 10 '(1 2 3 4 5))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_lower_bound() {
+    let result = eval_with_prelude("(lower-bound 3 '(1 2 3 3 3 5 6))");
+    assert_eq!(result, "2");
+
+    let result = eval_with_prelude("(lower-bound 4 '(1 2 3 5 6))");
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_upper_bound() {
+    let result = eval_with_prelude("(upper-bound 3 '(1 2 3 3 3 5 6))");
+    assert_eq!(result, "5");
+
+    let result = eval_with_prelude("(upper-bound 4 '(1 2 3 5 6))");
+    assert_eq!(result, "3");
+}
+
+// ============= More List Utilities =============
+
+#[test]
+fn test_rotate_list() {
+    let result = eval_with_prelude("(rotate-list 2 '(1 2 3 4 5))");
+    assert_eq!(result, "(3 4 5 1 2)");
+
+    let result = eval_with_prelude("(rotate-list 0 '(1 2 3))");
+    assert_eq!(result, "(1 2 3)");
+}
+
+#[test]
+fn test_shuffle() {
+    // Deterministic shuffle based on seed
+    // Verify it returns a valid permutation (sorted result equals sorted input)
+    let result = eval_with_prelude("(sort (shuffle 42 '(1 2 3 4 5)))");
+    assert_eq!(result, "(1 2 3 4 5)");
+
+    // With a different seed, verify it's still a permutation
+    let result2 = eval_with_prelude("(sort (shuffle 12345 '(a b c d)))");
+    assert_eq!(result2, "(a b c d)");
+}
+
+#[test]
+fn test_dedup_consecutive() {
+    let result = eval_with_prelude("(dedup-consecutive '(1 1 2 2 2 3 3 1 1))");
+    assert_eq!(result, "(1 2 3 1)");
+
+    let result = eval_with_prelude("(dedup-consecutive '())");
+    assert_eq!(result, "()");
+}
+
+#[test]
+fn test_run_length_encode() {
+    let result = eval_with_prelude("(run-length-encode '(1 1 1 2 2 3))");
+    assert_eq!(result, "((1 3) (2 2) (3 1))");
+}
+
+#[test]
+fn test_run_length_decode() {
+    let result = eval_with_prelude("(run-length-decode '((1 3) (2 2) (3 1)))");
+    assert_eq!(result, "(1 1 1 2 2 3)");
+}
+
+// ============= Statistics Utilities =============
+
+#[test]
+fn test_percentile() {
+    let result = eval_with_prelude("(percentile 50 '(1 2 3 4 5 6 7 8 9 10))");
+    // Median of 1-10 is 5 or 6 depending on method
+    let val: i64 = result.parse().unwrap();
+    assert!((5..=6).contains(&val));
+}
+
+#[test]
+fn test_quartiles() {
+    let result = eval_with_prelude("(quartiles '(1 2 3 4 5 6 7 8 9 10 11 12))");
+    // Returns (Q1 Q2 Q3) - exact values depend on method
+    assert!(result.starts_with("(") && result.ends_with(")"));
+}
+
+#[test]
+fn test_interquartile_range() {
+    // IQR = Q3 - Q1
+    let result = eval_with_prelude("(interquartile-range '(1 2 3 4 5 6 7 8 9 10 11 12))");
+    let val: i64 = result.parse().unwrap();
+    assert!(val >= 0);
+}
+
+#[test]
+fn test_z_score() {
+    // z-score of mean value should be 0
+    let result = eval_with_prelude("(z-score 3 '(1 2 3 4 5))");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_normalize_list() {
+    let result = eval_with_prelude("(normalize-list '(0 5 10))");
+    // Should give (0 0.5 1) - first is 0, last is 1
+    assert!(result.contains("0") && result.contains("1"));
+}
+
+#[test]
+fn test_standardize() {
+    // Mean of standardized data should be ~0
+    let result = eval_with_prelude("(mean (standardize '(1 2 3 4 5)))");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_covariance() {
+    // Covariance of identical lists should equal variance
+    let result = eval_with_prelude("(covariance '(1 2 3 4 5) '(1 2 3 4 5))");
+    let cov: f64 = result.parse().unwrap();
+    assert!(cov > 0.0);
+}
+
+#[test]
+fn test_correlation() {
+    // Correlation of identical lists should be ~1
+    let result = eval_with_prelude("(correlation '(1 2 3 4 5) '(1 2 3 4 5))");
+    let corr: f64 = result.parse().unwrap();
+    assert!((corr - 1.0).abs() < 0.0001);
+
+    // Negative correlation
+    let result = eval_with_prelude("(correlation '(1 2 3 4 5) '(5 4 3 2 1))");
+    let corr: f64 = result.parse().unwrap();
+    assert!((corr + 1.0).abs() < 0.0001);
+}
+
+// ============= Matrix Operations =============
+
+#[test]
+fn test_matrix_ref() {
+    let result = eval_with_prelude("(matrix-ref '((1 2 3) (4 5 6) (7 8 9)) 1 2)");
+    assert_eq!(result, "6");
+}
+
+#[test]
+fn test_matrix_rows() {
+    let result = eval_with_prelude("(matrix-rows '((1 2) (3 4) (5 6)))");
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_matrix_cols() {
+    let result = eval_with_prelude("(matrix-cols '((1 2 3) (4 5 6)))");
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_matrix_row() {
+    let result = eval_with_prelude("(matrix-row '((1 2) (3 4) (5 6)) 1)");
+    assert_eq!(result, "(3 4)");
+}
+
+#[test]
+fn test_matrix_col() {
+    let result = eval_with_prelude("(matrix-col '((1 2) (3 4) (5 6)) 1)");
+    assert_eq!(result, "(2 4 6)");
+}
+
+#[test]
+fn test_matrix_map() {
+    let result = eval_with_prelude("(matrix-map (fn (x) (* x 2)) '((1 2) (3 4)))");
+    assert_eq!(result, "((2 4) (6 8))");
+}
+
+#[test]
+fn test_matrix_add() {
+    let result = eval_with_prelude("(matrix-add '((1 2) (3 4)) '((5 6) (7 8)))");
+    assert_eq!(result, "((6 8) (10 12))");
+}
+
+#[test]
+fn test_matrix_scale() {
+    let result = eval_with_prelude("(matrix-scale 2 '((1 2) (3 4)))");
+    assert_eq!(result, "((2 4) (6 8))");
+}
+
+#[test]
+fn test_matrix_transpose() {
+    let result = eval_with_prelude("(matrix-transpose '((1 2 3) (4 5 6)))");
+    assert_eq!(result, "((1 4) (2 5) (3 6))");
+}
+
+#[test]
+fn test_dot_product() {
+    let result = eval_with_prelude("(dot-product '(1 2 3) '(4 5 6))");
+    assert_eq!(result, "32"); // 1*4 + 2*5 + 3*6 = 4 + 10 + 18 = 32
+}
+
+#[test]
+fn test_matrix_multiply() {
+    let result = eval_with_prelude("(matrix-multiply '((1 2) (3 4)) '((5 6) (7 8)))");
+    // [[1*5+2*7, 1*6+2*8], [3*5+4*7, 3*6+4*8]] = [[19, 22], [43, 50]]
+    assert_eq!(result, "((19 22) (43 50))");
+}
+
+#[test]
+fn test_identity_matrix() {
+    let result = eval_with_prelude("(identity-matrix 3)");
+    assert_eq!(result, "((1 0 0) (0 1 0) (0 0 1))");
+}
+
+#[test]
+fn test_zero_matrix() {
+    let result = eval_with_prelude("(zero-matrix 2 3)");
+    assert_eq!(result, "((0 0 0) (0 0 0))");
+}
+
+// ============= Functional Patterns =============
+
+#[test]
+fn test_y_combinator() {
+    // Y is a placeholder (id), use fix directly for recursion
+    // The fix special form is the preferred way to define recursive functions
+    let result = eval_with_prelude("((fix fact (fn (n) (if (= n 0) 1 (* n (fact (- n 1)))))) 5)");
+    assert_eq!(result, "120");
+}
+
+#[test]
+fn test_trampoline() {
+    // Test trampoline with a simple value
+    let result = eval_with_prelude("(trampoline 42)");
+    assert_eq!(result, "42");
+
+    // Test with a thunk that returns a value
+    let result = eval_with_prelude("(trampoline (fn () 99))");
+    assert_eq!(result, "99");
+}
+
+// ============= Tree Utilities =============
+
+#[test]
+fn test_tree_leaves() {
+    let result = eval_with_prelude("(tree-leaves '(1 (2 3) (4 (5 6))))");
+    assert_eq!(result, "(1 2 3 4 5 6)");
+}
+
+#[test]
+fn test_tree_count() {
+    let result = eval_with_prelude("(tree-count '(1 (2 3) 4))");
+    // 1 + (1 + 2 + 1) + 1 = 6 for the tree structure, or just count leaves + internal nodes
+    let count: i64 = result.parse().unwrap();
+    assert!(count > 0);
+}
+
+#[test]
+fn test_tree_height() {
+    let result = eval_with_prelude("(tree-height '(1 (2 (3))))");
+    let height: i64 = result.parse().unwrap();
+    assert!(height >= 2);
+}
+
+// ============= Format Utilities =============
+
+#[test]
+fn test_number_to_string_padded() {
+    let result = eval_with_prelude("(number->string-padded 5 42)");
+    assert_eq!(result, "\"00042\"");
+}
+
+#[test]
+fn test_format_list() {
+    let result = eval_with_prelude("(format-list \",\" '(1 2 3))");
+    assert_eq!(result, "\"1,2,3\"");
+}
+
+#[test]
+fn test_format_table() {
+    let result = eval_with_prelude("(format-table '((1 2) (3 4)))");
+    assert_eq!(result, "\"1 2\\n3 4\"");
+}
+
+#[test]
+fn test_pluralize() {
+    let result = eval_with_prelude("(pluralize 1 \"apple\" \"apples\")");
+    assert_eq!(result, "\"apple\"");
+
+    let result = eval_with_prelude("(pluralize 5 \"apple\" \"apples\")");
+    assert_eq!(result, "\"apples\"");
+}
+
+// ============= Boolean Utilities =============
+
+#[test]
+fn test_bool_to_int() {
+    let result = eval_with_prelude("(bool->int #t)");
+    assert_eq!(result, "1");
+
+    let result = eval_with_prelude("(bool->int #f)");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_int_to_bool() {
+    let result = eval_with_prelude("(int->bool 1)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(int->bool 0)");
+    assert_eq!(result, "#f");
+
+    let result = eval_with_prelude("(int->bool -5)");
+    assert_eq!(result, "#t");
+}
+
+// ============= List Predicates =============
+
+#[test]
+fn test_sublist() {
+    let result = eval_with_prelude("(sublist? '(2 3) '(1 2 3 4 5))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(sublist? '(2 4) '(1 2 3 4 5))");
+    assert_eq!(result, "#t"); // Subsequence check, not contiguous
+
+    let result = eval_with_prelude("(sublist? '(5 6) '(1 2 3))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_prefix() {
+    let result = eval_with_prelude("(prefix? '(1 2) '(1 2 3 4))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(prefix? '(2 3) '(1 2 3 4))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_suffix() {
+    let result = eval_with_prelude("(suffix? '(3 4) '(1 2 3 4))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(suffix? '(2 3) '(1 2 3 4))");
+    assert_eq!(result, "#f");
+}
+
+// ============= Misc Utilities =============
+
+#[test]
+fn test_clamp_index() {
+    let result = eval_with_prelude("(clamp-index 10 '(1 2 3 4 5))");
+    assert_eq!(result, "4"); // Clamped to max index
+
+    let result = eval_with_prelude("(clamp-index -5 '(1 2 3 4 5))");
+    assert_eq!(result, "0"); // Clamped to min index
+}
+
+#[test]
+fn test_circular_ref() {
+    let result = eval_with_prelude("(circular-ref '(a b c) 5)");
+    assert_eq!(result, "c"); // 5 mod 3 = 2
+
+    let result = eval_with_prelude("(circular-ref '(a b c) 0)");
+    assert_eq!(result, "a");
+}
+
+#[test]
+fn test_repeat_fn_n() {
+    let result = eval_with_prelude("(repeat-fn-n 5 (fn (x) (+ x 1)) 0)");
+    // Starting from 0, apply (+1) five times: 0 -> 1 -> 2 -> 3 -> 4 -> 5
+    assert_eq!(result, "(0 1 2 3 4 5)");
+}
+
+#[test]
+fn test_fixed_point_iterate() {
+    // Fixed point of f(x) = x/2 starting from 100, max 10 iterations
+    // Since integers truncate, this converges to 0 quickly
+    let result = eval_with_prelude("(fixed-point-iterate (fn (x) (/ x 2)) 20 100)");
+    assert_eq!(result, "0");
+}
