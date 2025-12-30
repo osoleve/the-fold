@@ -116,7 +116,11 @@
 ;;; Layer 4: Type Inference
 (run-test-file "test-infer.ss")
 (run-test-file "test-resolve.ss")
+(run-test-file "test-infer-constraints.ss")
 (run-test-file "test-annotate.ss")
+
+;;; Layer 4.5: Automatic Differentiation Type Class
+(run-test-file "test-differentiable.ss")
 
 ;;; Layer 5: Evaluation
 (run-test-file "test-eval.ss")

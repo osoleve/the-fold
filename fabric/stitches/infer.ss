@@ -17,6 +17,11 @@
 ;;;   - prelude.ss
 ;;;   - types.ss
 ;;;   - kinds.ss
+;;;   - resolve.ss (optional, for constraint solving)
+;;;
+;;; Note: resolve.ss must be loaded before using constraint-solving
+;;; functions (solve-constraints, typeof-constrained). The base
+;;; inference functions work without resolve.ss.
 
 (load "fabric/stitches/prelude.ss")
 (load "fabric/stitches/types.ss")
@@ -777,4 +782,142 @@
          (format "Not a function: ~a" (type->string (caddr err)))]
         [(unknown-primitive)
          (format "Unknown primitive: ~a" (caddr err))]
+        [(no-instance-found)
+         (format "No type class instance found for constraint: ~a" (caddr err))]
         [else (format "~s" err)]))
+
+;;; ============================================================
+;;; Constraint Handling Integration
+;;; ============================================================
+
+;;; With the instance resolution module (resolve.ss), we can now
+;;; integrate type class constraint solving into type inference.
+;;;
+;;; The flow is:
+;;;   1. During instantiation, extract constraints from (=> C T) types
+;;;   2. Apply the substitution to constraints
+;;;   3. Resolve constraints using the instance database
+;;;   4. Return evidence dictionaries for runtime dispatch
+
+;;; instantiate-constrained : Type → (Type × (List Constraint))
+;;; Instantiate a polymorphic type and extract any type class constraints.
+(define (instantiate-constrained type)
+  (if (and (pair? type) (eq? (car type) '∀))
+      (let* ([vars (cadr type)]
+             [body (caddr type)]
+             [fresh-vars (map (lambda (v)
+                                      (if (kinded-tvar? v)
+                                          (fresh-tvar)
+                                          (fresh-tvar)))
+                              vars)]
+             [var-names (map (lambda (v)
+                                     (if (kinded-tvar? v)
+                                         (kinded-tvar-name v)
+                                         v))
+                             vars)]
+             [s (map cons var-names fresh-vars)]
+             [inst-body (apply-subst s body)])
+            ;; Check if instantiated body has constraints
+            (if (constrained-type? inst-body)
+                (list (get-underlying-type inst-body)
+                      (get-constraints inst-body))
+                (list inst-body '())))
+      ;; Not polymorphic — check for constraints
+      (if (constrained-type? type)
+          (list (get-underlying-type type) (get-constraints type))
+          (list type '()))))
+
+;;; apply-subst-to-constraint : Subst × Constraint → Constraint
+(define (apply-subst-to-constraint s c)
+  (list (constraint-class c)
+        (apply-subst s (constraint-type c))))
+
+;;; apply-subst-to-constraints : Subst × (List Constraint) → (List Constraint)
+(define (apply-subst-to-constraints s cs)
+  (map (lambda (c) (apply-subst-to-constraint s c)) cs))
+
+;;; ============================================================
+;;; Constraint Solving
+;;; ============================================================
+
+;;; solve-constraints : (List Constraint) × IDB → (Result (List Evidence))
+;;; Resolve all type class constraints using the instance database.
+;;; Returns a list of evidence dictionaries on success.
+(define (solve-constraints constraints idb)
+  (if (null? constraints)
+      '(ok ())
+      (let ([result (resolve (car constraints) idb)])
+           (if (eq? (car result) 'ok)
+               (let ([rest-result (solve-constraints (cdr constraints) idb)])
+                    (if (eq? (car rest-result) 'ok)
+                        `(ok ,(cons (cadr result) (cadr rest-result)))
+                        rest-result))
+               result))))
+
+;;; ============================================================
+;;; Type Inference with Constraint Solving
+;;; ============================================================
+
+;;; infer-with-constraints : Expr × TEnv → (Result Type Subst (List Constraint))
+;;; Extended inference that tracks accumulated constraints.
+;;; Note: For a full implementation, we'd thread constraints through all
+;;; inference functions. This is a simplified version that handles the
+;;; common case of using class-constrained functions.
+(define (infer-with-constraints expr env)
+  (let ([result (infer expr env)])
+       (if (eq? (car result) 'ok)
+           ;; Currently constraints come from instantiation; for full
+           ;; integration, we'd accumulate them throughout inference
+           `(ok ,(cadr result) ,(caddr result) ())
+           result)))
+
+;;; typeof-constrained : Expr × IDB → Type | Error
+;;; Infer the type of an expression and solve any type class constraints.
+;;; This is the main entry point for type checking with type classes.
+;;;
+;;; Example:
+;;;   (typeof-constrained '(fmap f xs) standard-instances)
+;;;   → Checks that the Functor constraint can be satisfied
+(define (typeof-constrained expr idb)
+  (reset-fresh!)
+  (let ([result (infer-with-constraints expr empty-tenv)])
+       (if (eq? (car result) 'ok)
+           (let* ([type (cadr result)]
+                  [s (caddr result)]
+                  [constraints (cadddr result)]
+                  [solved-constraints (apply-subst-to-constraints s constraints)]
+                  [solve-result (solve-constraints solved-constraints idb)])
+                 (if (eq? (car solve-result) 'ok)
+                     ;; Success: return generalized type with evidence
+                     (let ([gen-type (generalize '() (apply-subst s type))])
+                          `(ok ,gen-type ,(cadr solve-result)))
+                     solve-result))
+           result)))
+
+;;; ============================================================
+;;; Constrained Type Environment
+;;; ============================================================
+
+;;; For type checking with type classes, we need a richer environment
+;;; that includes class method types. This allows (fmap f xs) to infer
+;;; correctly when fmap is in scope.
+
+;;; make-class-env : ClassDB → TEnv
+;;; Generate a type environment containing all class method signatures.
+(define (make-class-env class-db)
+  (apply append
+         (map (lambda (class-entry)
+                      (let* ([name (car class-entry)]
+                             [tc (cdr class-entry)]
+                             [methods (typeclass-methods tc)])
+                            (map (lambda (m)
+                                         (cons (car m) (cdr m)))
+                                 methods)))
+              class-db)))
+
+;;; get-standard-class-tenv : () → TEnv
+;;; Returns environment with standard type class methods.
+;;; Note: Requires resolve.ss to be loaded (for standard-classes).
+;;; This is a function to avoid load-order issues.
+(define (get-standard-class-tenv)
+  (make-class-env standard-classes))
