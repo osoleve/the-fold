@@ -32,7 +32,11 @@ use crate::tools::{lower_expr, parse_fold_expr};
 // Include module files at compile time
 const CORE: &str = include_str!("core.ss");
 const FUNCTION: &str = include_str!("function.ss");
-const LIST: &str = include_str!("list.ss");
+const LIST: &str = include_str!("list.ss"); // Marker file
+const LIST_CORE: &str = include_str!("list-core.ss");
+const LIST_SEARCH: &str = include_str!("list-search.ss");
+const LIST_TRANSFORM: &str = include_str!("list-transform.ss");
+const LIST_PARTITION: &str = include_str!("list-partition.ss");
 const EQUALITY: &str = include_str!("equality.ss");
 const MAYBE: &str = include_str!("maybe.ss");
 const EITHER: &str = include_str!("either.ss");
@@ -79,7 +83,15 @@ fn assemble_prelude() -> String {
     source.push('\n');
     source.push_str(FUNCTION);
     source.push('\n');
-    source.push_str(LIST);
+    source.push_str(LIST); // Marker comment
+    source.push('\n');
+    source.push_str(LIST_CORE);
+    source.push('\n');
+    source.push_str(LIST_SEARCH);
+    source.push('\n');
+    source.push_str(LIST_TRANSFORM);
+    source.push('\n');
+    source.push_str(LIST_PARTITION);
     source.push('\n');
     source.push_str(EQUALITY);
     source.push('\n');
