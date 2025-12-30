@@ -6152,6 +6152,400 @@ pub const PRELUDE_SOURCE: &str = r#"
            (let ((rest (power-set (cdr lst))))
              (append rest
                      (map (fn (s) (cons (car lst) s)) rest)))))))
+
+   ; ============================================
+   ; Queue (FIFO) - represented as (front . back)
+   ; ============================================
+
+   ; queue-empty: Create empty queue
+   (queue-empty (cons '() '()))
+
+   ; queue-empty?: Check if queue is empty
+   (queue-empty? (fn (q)
+     (and (null? (car q)) (null? (cdr q)))))
+
+   ; queue-enqueue: Add element to back of queue
+   (queue-enqueue (fn (x q)
+     (cons (car q) (cons x (cdr q)))))
+
+   ; queue-normalize: Move back to front if front is empty
+   (queue-normalize (fn (q)
+     (if (null? (car q))
+         (cons (reverse (cdr q)) '())
+         q)))
+
+   ; queue-dequeue: Remove and return (element . new-queue)
+   (queue-dequeue (fn (q)
+     (let ((nq (queue-normalize q)))
+       (if (null? (car nq))
+           (cons #f q)
+           (cons (car (car nq)) (cons (cdr (car nq)) (cdr nq)))))))
+
+   ; queue-front: Peek at front element
+   (queue-front (fn (q)
+     (let ((nq (queue-normalize q)))
+       (if (null? (car nq)) #f (car (car nq))))))
+
+   ; queue-size: Get queue size
+   (queue-size (fn (q)
+     (+ (length (car q)) (length (cdr q)))))
+
+   ; queue-to-list: Convert queue to list
+   (queue-to-list (fn (q)
+     (append (car q) (reverse (cdr q)))))
+
+   ; queue-from-list: Create queue from list
+   (queue-from-list (fn (lst)
+     (cons lst '())))
+
+   ; ============================================
+   ; Min-Heap (using list, not efficient but functional)
+   ; ============================================
+
+   ; heap-empty: Empty heap
+   (heap-empty '())
+
+   ; heap-empty?: Check if heap is empty
+   (heap-empty? null?)
+
+   ; heap-insert: Insert element maintaining heap property
+   (heap-insert (fn (x heap)
+     (sort (cons x heap))))
+
+   ; heap-min: Get minimum element
+   (heap-min (fn (heap)
+     (if (null? heap) #f (car heap))))
+
+   ; heap-pop: Remove min, return (min . new-heap)
+   (heap-pop (fn (heap)
+     (if (null? heap)
+         (cons #f '())
+         (cons (car heap) (cdr heap)))))
+
+   ; heap-from-list: Create heap from list
+   (heap-from-list (fn (lst)
+     (sort lst)))
+
+   ; heap-size: Get heap size
+   (heap-size length)
+
+   ; ============================================
+   ; Priority Queue (element . priority pairs)
+   ; ============================================
+
+   ; pq-empty: Empty priority queue
+   (pq-empty '())
+
+   ; pq-empty?: Check if empty
+   (pq-empty? null?)
+
+   ; pq-insert: Insert with priority (lower = higher priority)
+   (pq-insert (fn (elem priority pq)
+     (let ((insert-sorted (fix insert-sorted
+             (fn (lst)
+               (if (null? lst)
+                   (list (cons elem priority))
+                   (if (<= priority (cdr (car lst)))
+                       (cons (cons elem priority) lst)
+                       (cons (car lst) (insert-sorted (cdr lst)))))))))
+       (insert-sorted pq))))
+
+   ; pq-pop: Remove highest priority, return (element . new-pq)
+   (pq-pop (fn (pq)
+     (if (null? pq)
+         (cons #f '())
+         (cons (car (car pq)) (cdr pq)))))
+
+   ; pq-peek: Peek at highest priority element
+   (pq-peek (fn (pq)
+     (if (null? pq) #f (car (car pq)))))
+
+   ; ============================================
+   ; Deque (Double-ended queue)
+   ; ============================================
+
+   ; deque-empty: Empty deque
+   (deque-empty (cons '() '()))
+
+   ; deque-empty?: Check if empty
+   (deque-empty? (fn (d)
+     (and (null? (car d)) (null? (cdr d)))))
+
+   ; deque-push-front: Add to front
+   (deque-push-front (fn (x d)
+     (cons (cons x (car d)) (cdr d))))
+
+   ; deque-push-back: Add to back
+   (deque-push-back (fn (x d)
+     (cons (car d) (cons x (cdr d)))))
+
+   ; deque-pop-front: Remove from front
+   (deque-pop-front (fn (d)
+     (if (null? (car d))
+         (if (null? (cdr d))
+             (cons #f d)
+             (let ((new-front (reverse (cdr d))))
+               (cons (car new-front) (cons (cdr new-front) '()))))
+         (cons (car (car d)) (cons (cdr (car d)) (cdr d))))))
+
+   ; deque-pop-back: Remove from back
+   (deque-pop-back (fn (d)
+     (if (null? (cdr d))
+         (if (null? (car d))
+             (cons #f d)
+             (let ((new-back (reverse (car d))))
+               (cons (car new-back) (cons '() (cdr new-back)))))
+         (cons (car (cdr d)) (cons (car d) (cdr (cdr d)))))))
+
+   ; ============================================
+   ; Stack Operations (simple list-based)
+   ; ============================================
+
+   ; stack-empty: Empty stack
+   (stack-empty '())
+
+   ; stack-empty?: Check if empty
+   (stack-empty? null?)
+
+   ; stack-push: Push element
+   (stack-push cons)
+
+   ; stack-pop: Pop element, return (element . new-stack)
+   (stack-pop (fn (s)
+     (if (null? s)
+         (cons #f '())
+         (cons (car s) (cdr s)))))
+
+   ; stack-peek: Peek at top
+   (stack-peek (fn (s)
+     (if (null? s) #f (car s))))
+
+   ; stack-size: Get size
+   (stack-size length)
+
+   ; ============================================
+   ; Number Parsing and Formatting
+   ; ============================================
+
+   ; digits: Get list of digits from number
+   (digits (fn (n)
+     (let ((get-digits (fix get-digits
+             (fn (n acc)
+               (if (= n 0)
+                   (if (null? acc) '(0) acc)
+                   (get-digits (/ n 10) (cons (mod n 10) acc)))))))
+       (get-digits (abs n) '()))))
+
+   ; from-digits: Convert list of digits to number
+   (from-digits (fn (ds)
+     (foldl (fn (acc d) (+ (* acc 10) d)) 0 ds)))
+
+   ; digit-sum: Sum of digits
+   (digit-sum (fn (n)
+     (foldl + 0 (digits n))))
+
+   ; digit-count: Count digits
+   (digit-count (fn (n)
+     (length (digits n))))
+
+   ; reverse-number: Reverse digits of number
+   (reverse-number (fn (n)
+     (from-digits (reverse (digits n)))))
+
+   ; palindrome-number?: Check if number is palindrome
+   (palindrome-number? (fn (n)
+     (let ((ds (digits n)))
+       (equal? ds (reverse ds)))))
+
+   ; ============================================
+   ; Base Conversion
+   ; ============================================
+
+   ; to-base: Convert number to list of digits in given base
+   (to-base (fn (n base)
+     (let ((convert (fix convert
+             (fn (n acc)
+               (if (= n 0)
+                   (if (null? acc) '(0) acc)
+                   (convert (/ n base) (cons (mod n base) acc)))))))
+       (convert (abs n) '()))))
+
+   ; from-base: Convert list of digits from given base to number
+   (from-base (fn (digits base)
+     (foldl (fn (acc d) (+ (* acc base) d)) 0 digits)))
+
+   ; to-binary: Convert to binary digits
+   (to-binary (fn (n) (to-base n 2)))
+
+   ; from-binary: Convert from binary digits
+   (from-binary (fn (bits) (from-base bits 2)))
+
+   ; to-hex-digits: Convert to hex digits (0-15)
+   (to-hex-digits (fn (n) (to-base n 16)))
+
+   ; from-hex-digits: Convert from hex digits
+   (from-hex-digits (fn (digits) (from-base digits 16)))
+
+   ; ============================================
+   ; List Searching and Manipulation
+   ; ============================================
+
+   ; binary-search: Binary search on sorted list, returns index or -1
+   (binary-search (fn (target lst)
+     (let ((search (fix search
+             (fn (lo hi)
+               (if (> lo hi)
+                   -1
+                   (let ((mid (/ (+ lo hi) 2)))
+                     (let ((elem (list-ref lst mid)))
+                       (if (= elem target)
+                           mid
+                           (if (< elem target)
+                               (search (+ mid 1) hi)
+                               (search lo (- mid 1)))))))))))
+       (search 0 (- (length lst) 1)))))
+
+   ; lower-bound: First index where element >= target
+   (lower-bound (fn (target lst)
+     (let ((search (fix search
+             (fn (lo hi)
+               (if (>= lo hi)
+                   lo
+                   (let ((mid (/ (+ lo hi) 2)))
+                     (if (< (list-ref lst mid) target)
+                         (search (+ mid 1) hi)
+                         (search lo mid))))))))
+       (search 0 (length lst)))))
+
+   ; upper-bound: First index where element > target
+   (upper-bound (fn (target lst)
+     (let ((search (fix search
+             (fn (lo hi)
+               (if (>= lo hi)
+                   lo
+                   (let ((mid (/ (+ lo hi) 2)))
+                     (if (<= (list-ref lst mid) target)
+                         (search (+ mid 1) hi)
+                         (search lo mid))))))))
+       (search 0 (length lst)))))
+
+   ; ============================================
+   ; Sliding Window Operations
+   ; ============================================
+
+   ; sliding-max: Maximum of each window of size k
+   (sliding-max (fn (k lst)
+     (if (< (length lst) k)
+         '()
+         (let ((windows (fix windows
+                 (fn (lst acc)
+                   (if (< (length lst) k)
+                       (reverse acc)
+                       (windows (cdr lst) (cons (take lst k) acc)))))))
+           (map (fn (w) (apply max w)) (windows lst '()))))))
+
+   ; sliding-min: Minimum of each window of size k
+   (sliding-min (fn (k lst)
+     (if (< (length lst) k)
+         '()
+         (let ((windows (fix windows
+                 (fn (lst acc)
+                   (if (< (length lst) k)
+                       (reverse acc)
+                       (windows (cdr lst) (cons (take lst k) acc)))))))
+           (map (fn (w) (apply min w)) (windows lst '()))))))
+
+   ; sliding-sum: Sum of each window of size k
+   (sliding-sum (fn (k lst)
+     (if (< (length lst) k)
+         '()
+         (let ((windows (fix windows
+                 (fn (lst acc)
+                   (if (< (length lst) k)
+                       (reverse acc)
+                       (windows (cdr lst) (cons (take lst k) acc)))))))
+           (map (fn (w) (apply + w)) (windows lst '()))))))
+
+   ; ============================================
+   ; Run-Length Encoding
+   ; ============================================
+
+   ; rle-encode: Run-length encode list
+   (rle-encode (fn (lst)
+     (if (null? lst)
+         '()
+         (let ((encode (fix encode
+                 (fn (lst current count acc)
+                   (if (null? lst)
+                       (reverse (cons (cons current count) acc))
+                       (if (eq? (car lst) current)
+                           (encode (cdr lst) current (+ count 1) acc)
+                           (encode (cdr lst) (car lst) 1
+                                   (cons (cons current count) acc))))))))
+           (encode (cdr lst) (car lst) 1 '())))))
+
+   ; rle-decode: Decode run-length encoded list
+   (rle-decode (fn (rle)
+     (flat-map (fn (pair) (replicate (cdr pair) (car pair))) rle)))
+
+   ; ============================================
+   ; More Functional Patterns
+   ; ============================================
+
+   ; unfold-right: Build list from right (like unfoldr in Haskell)
+   (unfold-right (fn (p f g seed)
+     (let ((build (fix build
+             (fn (seed)
+               (if (p seed)
+                   '()
+                   (cons (f seed) (build (g seed))))))))
+       (build seed))))
+
+   ; until: Apply f until predicate is true
+   (until (fn (p f x)
+     (if (p x) x (until p f (f x)))))
+
+   ; while-fn: Apply f while predicate is true
+   (while-fn (fn (p f x)
+     (if (p x) (while-fn p f (f x)) x)))
+
+   ; iterate-collect: Collect n iterations of f starting from x
+   (iterate-collect (fn (f n x)
+     (if (<= n 0)
+         '()
+         (cons x (iterate-collect f (- n 1) (f x))))))
+
+   ; converge-to: Apply f until value stops changing
+   (converge-to (fn (f x)
+     (let ((next (f x)))
+       (if (equal? x next) x (converge-to f next)))))
+
+   ; ============================================
+   ; Association List Extensions
+   ; ============================================
+
+   ; alist-merge: Merge two alists (second overwrites first)
+   (alist-merge (fn (a1 a2)
+     (foldl (fn (acc pair)
+              (assoc-set (car pair) (cdr pair) acc))
+            a1
+            a2)))
+
+   ; alist-map-values: Map function over values
+   (alist-map-values (fn (f alist)
+     (map (fn (pair) (cons (car pair) (f (cdr pair)))) alist)))
+
+   ; alist-map-keys: Map function over keys
+   (alist-map-keys (fn (f alist)
+     (map (fn (pair) (cons (f (car pair)) (cdr pair))) alist)))
+
+   ; alist-find: Find first pair matching predicate
+   (alist-find (fn (p alist)
+     (find-if p alist)))
+
+   ; alist-count: Count pairs matching predicate
+   (alist-count (fn (p alist)
+     (count-if p alist)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -7240,6 +7634,80 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'combinations combinations)
     (cons 'cartesian-product cartesian-product)
     (cons 'power-set power-set)
+    ; Queue operations
+    (cons 'queue-empty queue-empty)
+    (cons 'queue-empty? queue-empty?)
+    (cons 'queue-enqueue queue-enqueue)
+    (cons 'queue-dequeue queue-dequeue)
+    (cons 'queue-front queue-front)
+    (cons 'queue-size queue-size)
+    (cons 'queue-to-list queue-to-list)
+    (cons 'queue-from-list queue-from-list)
+    ; Heap operations
+    (cons 'heap-empty heap-empty)
+    (cons 'heap-empty? heap-empty?)
+    (cons 'heap-insert heap-insert)
+    (cons 'heap-min heap-min)
+    (cons 'heap-pop heap-pop)
+    (cons 'heap-from-list heap-from-list)
+    (cons 'heap-size heap-size)
+    ; Priority queue
+    (cons 'pq-empty pq-empty)
+    (cons 'pq-empty? pq-empty?)
+    (cons 'pq-insert pq-insert)
+    (cons 'pq-pop pq-pop)
+    (cons 'pq-peek pq-peek)
+    ; Deque operations
+    (cons 'deque-empty deque-empty)
+    (cons 'deque-empty? deque-empty?)
+    (cons 'deque-push-front deque-push-front)
+    (cons 'deque-push-back deque-push-back)
+    (cons 'deque-pop-front deque-pop-front)
+    (cons 'deque-pop-back deque-pop-back)
+    ; Stack operations
+    (cons 'stack-empty stack-empty)
+    (cons 'stack-empty? stack-empty?)
+    (cons 'stack-push stack-push)
+    (cons 'stack-pop stack-pop)
+    (cons 'stack-peek stack-peek)
+    (cons 'stack-size stack-size)
+    ; Number parsing
+    (cons 'digits digits)
+    (cons 'from-digits from-digits)
+    (cons 'digit-sum digit-sum)
+    (cons 'digit-count digit-count)
+    (cons 'reverse-number reverse-number)
+    (cons 'palindrome-number? palindrome-number?)
+    ; Base conversion
+    (cons 'to-base to-base)
+    (cons 'from-base from-base)
+    (cons 'to-binary to-binary)
+    (cons 'from-binary from-binary)
+    (cons 'to-hex-digits to-hex-digits)
+    (cons 'from-hex-digits from-hex-digits)
+    ; List searching
+    (cons 'binary-search binary-search)
+    (cons 'lower-bound lower-bound)
+    (cons 'upper-bound upper-bound)
+    ; Sliding window
+    (cons 'sliding-max sliding-max)
+    (cons 'sliding-min sliding-min)
+    (cons 'sliding-sum sliding-sum)
+    ; Run-length encoding
+    (cons 'rle-encode rle-encode)
+    (cons 'rle-decode rle-decode)
+    ; More functional patterns
+    (cons 'unfold-right unfold-right)
+    (cons 'until until)
+    (cons 'while-fn while-fn)
+    (cons 'iterate-collect iterate-collect)
+    (cons 'converge-to converge-to)
+    ; Alist extensions
+    (cons 'alist-merge alist-merge)
+    (cons 'alist-map-values alist-map-values)
+    (cons 'alist-map-keys alist-map-keys)
+    (cons 'alist-find alist-find)
+    (cons 'alist-count alist-count)
 ))
 "#;
 
