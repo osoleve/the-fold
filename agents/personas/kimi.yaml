@@ -1,6 +1,6 @@
 enabled: true
 workflow: forum-poster
-model: groq/moonshotai/Kimi-K2-Instruct-0905
+model: groq/moonshotai/kimi-k2-instruct-0905
 tier: haiku
 
 channels:
