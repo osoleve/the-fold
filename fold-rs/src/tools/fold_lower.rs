@@ -69,7 +69,7 @@ fn is_builtin_prim(name: &str) -> bool {
             // List operations
             | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
             | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "init" | "flatten" | "range"
-            | "list-copy" | "make-list"
+            | "list-copy" | "make-list" | "first" | "rest" | "second" | "third"
             | "repeat" | "sum" | "product" | "sum-of" | "max-of" | "min-of"
             | "sort" | "unique" | "find-index" | "index-of" | "count"
             | "nth" | "zip" | "unzip" | "rotate"
@@ -125,7 +125,7 @@ fn lower_list(
         match head_symbol.as_str() {
             "quote" => return lower_quote(list_expr, items),
             "quasiquote" => return lower_quasiquote(list_expr, items),
-            "fn" => return lower_fn(list_expr, items),
+            "fn" | "lambda" => return lower_fn(list_expr, items),
             "let" => return lower_let(list_expr, items),
             "let*" => return lower_let_star(list_expr, items),
             "fix" => return lower_fix(list_expr, items),

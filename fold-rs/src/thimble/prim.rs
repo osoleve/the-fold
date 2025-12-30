@@ -2459,6 +2459,52 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let all_match = list.iter().all(|item| value_eq(item, check_value));
             Ok(Value::Bool(all_match))
         }
+        "first" => {
+            // Get first element of list (alias for car)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("first expects 1 arg: a list"));
+            }
+            match &args[0] {
+                Value::Pair(head, _) => Ok((**head).clone()),
+                Value::Nil => Ok(Value::Nil),
+                _ => Err(EvalError::TypeMismatch("first expects a list")),
+            }
+        }
+        "rest" => {
+            // Get rest of list (alias for cdr)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("rest expects 1 arg: a list"));
+            }
+            match &args[0] {
+                Value::Pair(_, tail) => Ok((**tail).clone()),
+                Value::Nil => Ok(Value::Nil),
+                _ => Err(EvalError::TypeMismatch("rest expects a list")),
+            }
+        }
+        "second" => {
+            // Get second element (nth 1)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("second expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            if list.len() > 1 {
+                Ok(list[1].clone())
+            } else {
+                Ok(Value::Nil)
+            }
+        }
+        "third" => {
+            // Get third element (nth 2)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("third expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            if list.len() > 2 {
+                Ok(list[2].clone())
+            } else {
+                Ok(Value::Nil)
+            }
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
