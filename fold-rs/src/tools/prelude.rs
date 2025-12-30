@@ -11259,6 +11259,575 @@ pub const PRELUDE_SOURCE: &str = r#"
        (if (= n 1)
            steps
            (coll-rec (collatz n) (+ steps 1))))))
+
+   ; ============================================================
+   ; Parser Combinators
+   ; A parser is: input -> 'nothing | (value . remaining-input)
+   ; ============================================================
+
+   ; parse-return: Always succeed with value
+   (parse-return (fn (x)
+     (fn (input) (cons x input))))
+
+   ; parse-fail: Always fail
+   (parse-fail (fn (input) 'nothing))
+
+   ; parse-item: Consume one item from input
+   (parse-item (fn (input)
+     (if (null? input)
+         'nothing
+         (cons (car input) (cdr input)))))
+
+   ; parse-satisfy: Consume item matching predicate
+   (parse-satisfy (fn (test-fn)
+     (fn (input)
+       (if (null? input)
+           'nothing
+           (if (test-fn (car input))
+               (cons (car input) (cdr input))
+               'nothing)))))
+
+   ; parse-bind: Monadic bind for parsers
+   (parse-bind (fn (p f)
+     (fn (input)
+       (let ((result (p input)))
+         (if (eq? result 'nothing)
+             'nothing
+             ((f (car result)) (cdr result)))))))
+
+   ; parse-map: Apply function to parser result
+   (parse-map (fn (f p)
+     (parse-bind p (fn (x) (parse-return (f x))))))
+
+   ; parse-or: Try first parser, if fails try second
+   (parse-or (fn (p1 p2)
+     (fn (input)
+       (let ((result (p1 input)))
+         (if (eq? result 'nothing)
+             (p2 input)
+             result)))))
+
+   ; parse-seq2: Sequence two parsers, return pair
+   (parse-seq2 (fn (p1 p2)
+     (parse-bind p1 (fn (a)
+       (parse-bind p2 (fn (b)
+         (parse-return (cons a b))))))))
+
+   ; parse-left: Sequence two parsers, keep left result
+   (parse-left (fn (p1 p2)
+     (parse-bind p1 (fn (a)
+       (parse-bind p2 (fn (b)
+         (parse-return a)))))))
+
+   ; parse-right: Sequence two parsers, keep right result
+   (parse-right (fn (p1 p2)
+     (parse-bind p1 (fn (a)
+       (parse-bind p2 (fn (b)
+         (parse-return b)))))))
+
+   ; parse-many: Zero or more matches
+   (parse-many (fn (p)
+     (fn (input)
+       ((fix many-rec
+          (fn (inp acc)
+            (let ((result (p inp)))
+              (if (eq? result 'nothing)
+                  (cons (reverse acc) inp)
+                  (many-rec (cdr result) (cons (car result) acc))))))
+        input '()))))
+
+   ; parse-many1: One or more matches
+   (parse-many1 (fn (p)
+     (parse-bind p (fn (first)
+       (parse-bind (parse-many p) (fn (rest)
+         (parse-return (cons first rest))))))))
+
+   ; parse-optional: Zero or one match
+   (parse-optional (fn (p default)
+     (parse-or p (parse-return default))))
+
+   ; parse-between: Parser between open and close
+   (parse-between (fn (open close p)
+     (parse-right open (parse-left p close))))
+
+   ; parse-sep-by: Zero or more separated by delimiter
+   (parse-sep-by (fn (p sep)
+     (parse-or
+       (parse-bind p (fn (first)
+         (parse-bind (parse-many (parse-right sep p)) (fn (rest)
+           (parse-return (cons first rest))))))
+       (parse-return '()))))
+
+   ; parse-sep-by1: One or more separated by delimiter
+   (parse-sep-by1 (fn (p sep)
+     (parse-bind p (fn (first)
+       (parse-bind (parse-many (parse-right sep p)) (fn (rest)
+         (parse-return (cons first rest))))))))
+
+   ; parse-char: Match specific character
+   (parse-char (fn (c)
+     (parse-satisfy (fn (x) (eq? x c)))))
+
+   ; parse-not-char: Match any character except
+   (parse-not-char (fn (c)
+     (parse-satisfy (fn (x) (not (eq? x c))))))
+
+   ; parse-one-of: Match any of the given characters
+   (parse-one-of (fn (chars)
+     (parse-satisfy (fn (c) (member? c chars)))))
+
+   ; parse-none-of: Match none of the given characters
+   (parse-none-of (fn (chars)
+     (parse-satisfy (fn (c) (not (member? c chars))))))
+
+   ; parse-string: Match a sequence of characters
+   (parse-string (fn (str)
+     ((fix str-rec
+        (fn (chars)
+          (if (null? chars)
+              (parse-return '())
+              (parse-bind (parse-char (car chars)) (fn (c)
+                (parse-bind (str-rec (cdr chars)) (fn (cs)
+                  (parse-return (cons c cs)))))))))
+      (string->list str))))
+
+   ; parse-digit: Match a digit character
+   (parse-digit (parse-satisfy char-digit?))
+
+   ; parse-alpha: Match an alphabetic character
+   (parse-alpha (parse-satisfy char-alpha?))
+
+   ; parse-alphanum: Match alphanumeric character
+   (parse-alphanum (parse-satisfy char-alphanumeric?))
+
+   ; parse-space: Match whitespace character
+   (parse-space (parse-satisfy char-whitespace?))
+
+   ; parse-spaces: Match zero or more spaces
+   (parse-spaces (parse-many parse-space))
+
+   ; parse-token: Parse p surrounded by spaces
+   (parse-token (fn (p)
+     (parse-between parse-spaces parse-spaces p)))
+
+   ; digits->number: Convert list of digit chars to number
+   (digits->number (fn (digits)
+     ((fix d2n-rec
+        (fn (ds acc)
+          (if (null? ds)
+              acc
+              (d2n-rec (cdr ds) (+ (* acc 10) (- (char->integer (car ds)) 48))))))
+      digits 0)))
+
+   ; parse-natural: Parse natural number
+   (parse-natural
+     (parse-bind (parse-many1 parse-digit) (fn (digits)
+       (parse-return (digits->number digits)))))
+
+   ; parse-integer: Parse integer (with optional minus)
+   (parse-integer
+     (parse-or
+       (parse-bind (parse-char (car (string->list "-"))) (fn (unused)
+         (parse-bind parse-natural (fn (n)
+           (parse-return (neg n))))))
+       parse-natural))
+
+   ; parse-run: Run parser on string input
+   (parse-run (fn (p str)
+     (p (string->list str))))
+
+   ; parse-result: Get just the value from parse result
+   (parse-result (fn (result)
+     (if (eq? result 'nothing)
+         'nothing
+         (car result))))
+
+   ; ============================================================
+   ; Control Flow Utilities
+   ; ============================================================
+
+   ; when-fn: Execute thunk if condition true, return result or nil
+   (when-fn (fn (condition thunk)
+     (if condition (thunk) '())))
+
+   ; unless-fn: Execute thunk if condition false
+   (unless-fn (fn (condition thunk)
+     (if condition '() (thunk))))
+
+   ; if-let: Bind value and branch on it being truthy
+   ; (if-let val (get-val) then-expr else-expr)
+   (if-let-fn (fn (val then-fn else-fn)
+     (if val (then-fn val) (else-fn))))
+
+   ; when-let-fn: Execute with value if truthy
+   (when-let-fn (fn (val then-fn)
+     (if val (then-fn val) '())))
+
+   ; cond-helper: Process list of (pred . result-fn) pairs
+   (cond-helper (fix cond-rec
+     (fn (clauses)
+       (if (null? clauses)
+           '()
+           (let ((clause (car clauses)))
+             (if ((car clause))
+                 ((cdr clause))
+                 (cond-rec (cdr clauses))))))))
+
+   ; case-eq: Match value against cases ((val . result-fn) ...)
+   (case-eq (fn (val cases)
+     ((fix case-rec
+        (fn (remaining)
+          (if (null? remaining)
+              (fn () '())
+              (let ((c (car remaining)))
+                (if (eq? val (car c))
+                    (cdr c)
+                    (case-rec (cdr remaining)))))))
+      cases)))
+
+   ; do-times: Execute thunk n times, return list of results
+   (do-times (fn (n thunk)
+     ((fix times-rec
+        (fn (i acc)
+          (if (>= i n)
+              (reverse acc)
+              (times-rec (+ i 1) (cons (thunk) acc)))))
+      0 '())))
+
+   ; do-while: Execute while condition holds, return final value
+   (do-while (fn (init step-fn done-fn)
+     ((fix while-rec
+        (fn (val)
+          (if (done-fn val)
+              val
+              (while-rec (step-fn val)))))
+      init)))
+
+   ; repeat-until: Execute until condition becomes true
+   (repeat-until (fn (init step-fn stop-fn)
+     ((fix until-rec
+        (fn (val)
+          (let ((next (step-fn val)))
+            (if (stop-fn next)
+                next
+                (until-rec next)))))
+      init)))
+
+   ; for-each-indexed: Apply fn to each element with index
+   (for-each-indexed (fn (fn-2 lst)
+     ((fix each-rec
+        (fn (i remaining)
+          (if (null? remaining)
+              '()
+              (begin
+                (fn-2 i (car remaining))
+                (each-rec (+ i 1) (cdr remaining))))))
+      0 lst)))
+
+   ; loop-collect: Loop collecting results while condition holds
+   (loop-collect (fn (init step-fn done-fn val-fn)
+     ((fix loop-rec
+        (fn (state acc)
+          (if (done-fn state)
+              (reverse acc)
+              (loop-rec (step-fn state) (cons (val-fn state) acc)))))
+      init '())))
+
+   ; try-catch: Try thunk, on error call error-fn with error
+   ; Note: Limited error handling in pure context
+   (try-catch (fn (thunk error-fn)
+     (thunk)))
+
+   ; default: Return default if value is falsy
+   (default (fn (val def)
+     (if val val def)))
+
+   ; first-truthy: Return first truthy value from list
+   (first-truthy (fn (vals)
+     ((fix coal-rec
+        (fn (remaining)
+          (if (null? remaining)
+              #f
+              (if (car remaining)
+                  (car remaining)
+                  (coal-rec (cdr remaining))))))
+      vals)))
+
+   ; short-circuit-and: Lazy and with thunks
+   (short-and (fn (thunks)
+     ((fix and-rec
+        (fn (remaining)
+          (if (null? remaining)
+              #t
+              (if ((car remaining))
+                  (and-rec (cdr remaining))
+                  #f))))
+      thunks)))
+
+   ; short-circuit-or: Lazy or with thunks
+   (short-or (fn (thunks)
+     ((fix or-rec
+        (fn (remaining)
+          (if (null? remaining)
+              #f
+              (let ((v ((car remaining))))
+                (if v v (or-rec (cdr remaining)))))))
+      thunks)))
+
+   ; guard: Return value only if predicate holds, else default
+   (guard (fn (val predicate-fn default-val)
+     (if (predicate-fn val) val default-val)))
+
+   ; ensure: Assert predicate holds, return value or error symbol
+   (ensure (fn (val predicate-fn)
+     (if (predicate-fn val) val 'assertion-failed)))
+
+   ; chain-guards: Apply sequence of guards, short-circuit on failure
+   (chain-guards (fn (val guards)
+     ((fix guard-rec
+        (fn (v remaining)
+          (if (null? remaining)
+              v
+              (let ((g (car remaining)))
+                (let ((result ((car g) v)))
+                  (if result
+                      (guard-rec v (cdr remaining))
+                      (cdr g)))))))
+      val guards)))
+
+   ; ============================================================
+   ; Advanced List Utilities
+   ; ============================================================
+
+   ; frequencies: Count occurrences of each element
+   (frequencies (fn (lst)
+     ((fix freq-rec
+        (fn (remaining acc)
+          (if (null? remaining)
+              acc
+              (let ((x (car remaining)))
+                (let ((current (assoc x acc)))
+                  (freq-rec (cdr remaining)
+                    (if current
+                        (alist-set x (+ 1 (cdr current)) acc)
+                        (cons (cons x 1) acc))))))))
+      lst '())))
+
+   ; dedupe: Remove consecutive duplicates
+   (dedupe (fn (lst)
+     (if (null? lst)
+         '()
+         ((fix dedup-rec
+            (fn (prev remaining acc)
+              (if (null? remaining)
+                  (reverse (cons prev acc))
+                  (if (equal? prev (car remaining))
+                      (dedup-rec prev (cdr remaining) acc)
+                      (dedup-rec (car remaining) (cdr remaining) (cons prev acc))))))
+          (car lst) (cdr lst) '()))))
+
+   ; dedupe-by: Remove consecutive duplicates by key
+   (dedupe-by (fn (key-fn lst)
+     (if (null? lst)
+         '()
+         ((fix dedup-rec
+            (fn (prev prev-key remaining acc)
+              (if (null? remaining)
+                  (reverse (cons prev acc))
+                  (let ((cur-key (key-fn (car remaining))))
+                    (if (equal? prev-key cur-key)
+                        (dedup-rec prev prev-key (cdr remaining) acc)
+                        (dedup-rec (car remaining) cur-key (cdr remaining) (cons prev acc)))))))
+          (car lst) (key-fn (car lst)) (cdr lst) '()))))
+
+   ; interleave: Interleave two lists
+   (interleave (fn (l1 l2)
+     ((fix inter-rec
+        (fn (a b acc)
+          (if (null? a)
+              (append (reverse acc) b)
+              (if (null? b)
+                  (append (reverse acc) a)
+                  (inter-rec (cdr a) (cdr b) (cons (car b) (cons (car a) acc)))))))
+      l1 l2 '())))
+
+   ; take-nth: Take every nth element
+   (take-nth (fn (n lst)
+     ((fix nth-rec
+        (fn (i remaining acc)
+          (if (null? remaining)
+              (reverse acc)
+              (if (= (mod i n) 0)
+                  (nth-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))
+                  (nth-rec (+ i 1) (cdr remaining) acc)))))
+      0 lst '())))
+
+   ; drop-nth: Drop every nth element
+   (drop-nth (fn (n lst)
+     ((fix nth-rec
+        (fn (i remaining acc)
+          (if (null? remaining)
+              (reverse acc)
+              (if (= (mod i n) 0)
+                  (nth-rec (+ i 1) (cdr remaining) acc)
+                  (nth-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))))))
+      0 lst '())))
+
+   ; rotate-left: Rotate list left by n positions
+   (rotate-left (fn (n lst)
+     (if (null? lst)
+         '()
+         (let ((len (length lst)))
+           (let ((n-mod (mod n len)))
+             (append (drop lst n-mod) (take lst n-mod)))))))
+
+   ; rotate-right: Rotate list right by n positions
+   (rotate-right (fn (n lst)
+     (if (null? lst)
+         '()
+         (let ((len (length lst)))
+           (rotate-left (- len (mod n len)) lst)))))
+
+   ; split-when: Split list when predicate becomes true
+   (split-when (fn (pred-fn lst)
+     ((fix split-rec
+        (fn (remaining current acc)
+          (if (null? remaining)
+              (reverse (if (null? current) acc (cons (reverse current) acc)))
+              (if (pred-fn (car remaining))
+                  (split-rec (cdr remaining) '()
+                    (cons (reverse current) acc))
+                  (split-rec (cdr remaining) (cons (car remaining) current) acc)))))
+      lst '() '())))
+
+   ; split-with: Split list at first element matching predicate
+   (split-with (fn (pred-fn lst)
+     ((fix split-rec
+        (fn (remaining before)
+          (if (null? remaining)
+              (cons (reverse before) '())
+              (if (pred-fn (car remaining))
+                  (cons (reverse before) remaining)
+                  (split-rec (cdr remaining) (cons (car remaining) before))))))
+      lst '())))
+
+   ; group-runs: Group consecutive runs of equal elements
+   (group-runs (fn (lst)
+     (if (null? lst)
+         '()
+         ((fix run-rec
+            (fn (remaining current-run acc)
+              (if (null? remaining)
+                  (reverse (cons (reverse current-run) acc))
+                  (if (equal? (car remaining) (car current-run))
+                      (run-rec (cdr remaining) (cons (car remaining) current-run) acc)
+                      (run-rec (cdr remaining) (list (car remaining))
+                        (cons (reverse current-run) acc))))))
+          (cdr lst) (list (car lst)) '()))))
+
+   ; map-runs: Apply function to runs of consecutive equal elements
+   (map-runs (fn (fn-1 lst)
+     (map fn-1 (group-runs lst))))
+
+   ; find-indices: Find all indices matching predicate
+   (find-indices (fn (pred-fn lst)
+     ((fix find-rec
+        (fn (i remaining acc)
+          (if (null? remaining)
+              (reverse acc)
+              (if (pred-fn (car remaining))
+                  (find-rec (+ i 1) (cdr remaining) (cons i acc))
+                  (find-rec (+ i 1) (cdr remaining) acc)))))
+      0 lst '())))
+
+   ; replace-at: Replace element at index
+   (replace-at (fn (idx val lst)
+     ((fix rep-rec
+        (fn (i remaining acc)
+          (if (null? remaining)
+              (reverse acc)
+              (if (= i idx)
+                  (rep-rec (+ i 1) (cdr remaining) (cons val acc))
+                  (rep-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))))))
+      0 lst '())))
+
+   ; insert-at: Insert element at index
+   (insert-at (fn (idx val lst)
+     ((fix ins-rec
+        (fn (i remaining acc)
+          (if (= i idx)
+              (append (reverse (cons val acc)) remaining)
+              (if (null? remaining)
+                  (reverse (cons val acc))
+                  (ins-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))))))
+      0 lst '())))
+
+   ; remove-at: Remove element at index
+   (remove-at (fn (idx lst)
+     ((fix rem-rec
+        (fn (i remaining acc)
+          (if (null? remaining)
+              (reverse acc)
+              (if (= i idx)
+                  (rem-rec (+ i 1) (cdr remaining) acc)
+                  (rem-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))))))
+      0 lst '())))
+
+   ; swap-at: Swap elements at two indices
+   (swap-at (fn (i j lst)
+     (let ((vi (nth i lst))
+           (vj (nth j lst)))
+       (replace-at j vi (replace-at i vj lst)))))
+
+   ; prefix?: Check if first list is prefix of second
+   (prefix? (fn (pre lst)
+     ((fix pre-rec
+        (fn (p l)
+          (if (null? p)
+              #t
+              (if (null? l)
+                  #f
+                  (if (equal? (car p) (car l))
+                      (pre-rec (cdr p) (cdr l))
+                      #f)))))
+      pre lst)))
+
+   ; suffix?: Check if first list is suffix of second
+   (suffix? (fn (suf lst)
+     (prefix? (reverse suf) (reverse lst))))
+
+   ; sublist?: Check if first list appears in second
+   (sublist? (fn (sub lst)
+     ((fix sub-rec
+        (fn (l)
+          (if (null? l)
+              #f
+              (if (prefix? sub l)
+                  #t
+                  (sub-rec (cdr l))))))
+      lst)))
+
+   ; count-occurrences: Count how many times sublist appears
+   (count-occurrences (fn (sub lst)
+     ((fix count-rec
+        (fn (l acc)
+          (if (null? l)
+              acc
+              (if (prefix? sub l)
+                  (count-rec (cdr l) (+ acc 1))
+                  (count-rec (cdr l) acc)))))
+      lst 0)))
+
+   ; windowed: Generate overlapping windows
+   (windowed (fn (n lst)
+     (if (< (length lst) n)
+         '()
+         ((fix win-rec
+            (fn (remaining acc)
+              (if (< (length remaining) n)
+                  (reverse acc)
+                  (win-rec (cdr remaining) (cons (take remaining n) acc)))))
+          lst '()))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -13231,6 +13800,82 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'digital-root digital-root)
     (cons 'collatz collatz)
     (cons 'collatz-length collatz-length)
+    ; Parser Combinators
+    (cons 'parse-return parse-return)
+    (cons 'parse-fail parse-fail)
+    (cons 'parse-item parse-item)
+    (cons 'parse-satisfy parse-satisfy)
+    (cons 'parse-bind parse-bind)
+    (cons 'parse-map parse-map)
+    (cons 'parse-or parse-or)
+    (cons 'parse-seq2 parse-seq2)
+    (cons 'parse-left parse-left)
+    (cons 'parse-right parse-right)
+    (cons 'parse-many parse-many)
+    (cons 'parse-many1 parse-many1)
+    (cons 'parse-optional parse-optional)
+    (cons 'parse-between parse-between)
+    (cons 'parse-sep-by parse-sep-by)
+    (cons 'parse-sep-by1 parse-sep-by1)
+    (cons 'parse-char parse-char)
+    (cons 'parse-not-char parse-not-char)
+    (cons 'parse-one-of parse-one-of)
+    (cons 'parse-none-of parse-none-of)
+    (cons 'parse-string parse-string)
+    (cons 'parse-digit parse-digit)
+    (cons 'parse-alpha parse-alpha)
+    (cons 'parse-alphanum parse-alphanum)
+    (cons 'parse-space parse-space)
+    (cons 'parse-spaces parse-spaces)
+    (cons 'parse-token parse-token)
+    (cons 'digits->number digits->number)
+    (cons 'parse-natural parse-natural)
+    (cons 'parse-integer parse-integer)
+    (cons 'parse-run parse-run)
+    (cons 'parse-result parse-result)
+    ; Control Flow
+    (cons 'when-fn when-fn)
+    (cons 'unless-fn unless-fn)
+    (cons 'if-let-fn if-let-fn)
+    (cons 'when-let-fn when-let-fn)
+    (cons 'cond-helper cond-helper)
+    (cons 'case-eq case-eq)
+    (cons 'do-times do-times)
+    (cons 'do-while do-while)
+    (cons 'repeat-until repeat-until)
+    (cons 'for-each-indexed for-each-indexed)
+    (cons 'loop-collect loop-collect)
+    (cons 'try-catch try-catch)
+    (cons 'default default)
+    (cons 'first-truthy first-truthy)
+    (cons 'short-and short-and)
+    (cons 'short-or short-or)
+    (cons 'guard guard)
+    (cons 'ensure ensure)
+    (cons 'chain-guards chain-guards)
+    ; Advanced List Utilities
+    (cons 'frequencies frequencies)
+    (cons 'dedupe dedupe)
+    (cons 'dedupe-by dedupe-by)
+    (cons 'interleave interleave)
+    (cons 'take-nth take-nth)
+    (cons 'drop-nth drop-nth)
+    (cons 'rotate-left rotate-left)
+    (cons 'rotate-right rotate-right)
+    (cons 'split-when split-when)
+    (cons 'split-with split-with)
+    (cons 'group-runs group-runs)
+    (cons 'map-runs map-runs)
+    (cons 'find-indices find-indices)
+    (cons 'replace-at replace-at)
+    (cons 'insert-at insert-at)
+    (cons 'remove-at remove-at)
+    (cons 'swap-at swap-at)
+    (cons 'prefix? prefix?)
+    (cons 'suffix? suffix?)
+    (cons 'sublist? sublist?)
+    (cons 'count-occurrences count-occurrences)
+    (cons 'windowed windowed)
 ))
 "#;
 
