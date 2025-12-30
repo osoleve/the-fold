@@ -11828,6 +11828,249 @@ pub const PRELUDE_SOURCE: &str = r#"
                   (reverse acc)
                   (win-rec (cdr remaining) (cons (take remaining n) acc)))))
           lst '()))))
+
+   ; ============================================================
+   ; String Algorithms
+   ; ============================================================
+
+   ; edit-distance: Levenshtein distance between two strings
+   (edit-distance (fn (s1 s2)
+     (let ((l1 (string->list s1))
+           (l2 (string->list s2)))
+       (let ((len1 (length l1))
+             (len2 (length l2)))
+         (if (= len1 0) len2
+           (if (= len2 0) len1
+             ((fix ed-rec
+                (fn (i j memo)
+                  (if (> i len1)
+                      (cdr (assoc (cons len1 len2) memo))
+                      (if (> j len2)
+                          (ed-rec (+ i 1) 1 memo)
+                          (let ((c1 (nth (- i 1) l1))
+                                (c2 (nth (- j 1) l2)))
+                            (let ((cost (if (eq? c1 c2) 0 1)))
+                              (let ((above (if (= i 1) j
+                                             (+ 1 (cdr (assoc (cons (- i 1) j) memo)))))
+                                    (left (if (= j 1) i
+                                            (+ 1 (cdr (assoc (cons i (- j 1)) memo)))))
+                                    (diag (if (or (= i 1) (= j 1))
+                                              (+ (max (- i 1) (- j 1)) cost)
+                                              (+ cost (cdr (assoc (cons (- i 1) (- j 1)) memo))))))
+                                (ed-rec i (+ j 1)
+                                  (cons (cons (cons i j) (min above (min left diag))) memo)))))))))
+              1 1 '())))))))
+
+   ; hamming-distance: Count differing positions (same-length strings)
+   (hamming-distance (fn (s1 s2)
+     (let ((l1 (string->list s1))
+           (l2 (string->list s2)))
+       (if (not (= (length l1) (length l2)))
+           -1  ; undefined for different lengths
+           ((fix ham-rec
+              (fn (a b count)
+                (if (null? a)
+                    count
+                    (ham-rec (cdr a) (cdr b)
+                      (if (eq? (car a) (car b)) count (+ count 1))))))
+            l1 l2 0)))))
+
+   ; longest-common-prefix: Find longest common prefix of two strings
+   (longest-common-prefix (fn (s1 s2)
+     (let ((l1 (string->list s1))
+           (l2 (string->list s2)))
+       (list->string
+         ((fix lcp-rec
+            (fn (a b acc)
+              (if (or (null? a) (null? b))
+                  (reverse acc)
+                  (if (eq? (car a) (car b))
+                      (lcp-rec (cdr a) (cdr b) (cons (car a) acc))
+                      (reverse acc)))))
+          l1 l2 '())))))
+
+   ; longest-common-suffix: Find longest common suffix
+   (longest-common-suffix (fn (s1 s2)
+     (string-reverse (longest-common-prefix (string-reverse s1) (string-reverse s2)))))
+
+   ; string-similarity: Similarity ratio (0.0 to 1.0)
+   (string-similarity (fn (s1 s2)
+     (let ((max-len (max (string-length s1) (string-length s2))))
+       (if (= max-len 0)
+           1
+           (/ (- max-len (edit-distance s1 s2)) max-len)))))
+
+   ; fuzzy-match?: Check if strings are similar within threshold
+   (fuzzy-match? (fn (s1 s2 threshold)
+     (>= (string-similarity s1 s2) threshold)))
+
+   ; string-normalize: Lowercase and trim whitespace
+   (string-normalize (fn (s)
+     (string-trim (string-map char-downcase s))))
+
+   ; string-tokenize: Split on whitespace, remove empty
+   (string-tokenize (fn (s)
+     (filter (fn (tok) (not (string-empty? tok)))
+       (string-split s " "))))
+
+   ; ============================================================
+   ; Testing and Assertion Utilities
+   ; ============================================================
+
+   ; assert-eq: Assert two values are equal
+   (assert-eq (fn (expected actual msg)
+     (if (equal? expected actual)
+         (list 'pass msg)
+         (list 'fail msg 'expected expected 'got actual))))
+
+   ; assert-true: Assert value is truthy
+   (assert-true (fn (val msg)
+     (if val
+         (list 'pass msg)
+         (list 'fail msg 'expected 'truthy 'got val))))
+
+   ; assert-false: Assert value is falsy
+   (assert-false (fn (val msg)
+     (if val
+         (list 'fail msg 'expected 'falsy 'got val)
+         (list 'pass msg))))
+
+   ; assert-throws: Assert thunk throws (returns error symbol)
+   (assert-throws (fn (thunk msg)
+     (let ((result (thunk)))
+       (if (and (symbol? result) (eq? result 'error))
+           (list 'pass msg)
+           (list 'fail msg 'expected 'error 'got result)))))
+
+   ; run-tests: Run list of test thunks, return summary
+   (run-tests (fn (tests)
+     (let ((results (map (fn (t) (t)) tests)))
+       (let ((passed (filter (fn (r) (eq? (car r) 'pass)) results))
+             (failed (filter (fn (r) (eq? (car r) 'fail)) results)))
+         (list
+           (cons 'total (length results))
+           (cons 'passed (length passed))
+           (cons 'failed (length failed))
+           (cons 'failures failed))))))
+
+   ; test-case: Create a named test case
+   (test-case (fn (name thunk)
+     (fn () (cons name (thunk)))))
+
+   ; ============================================================
+   ; Sequence Generation Utilities
+   ; ============================================================
+
+   ; arithmetic-seq: Generate arithmetic sequence
+   (arithmetic-seq (fn (start step count)
+     ((fix arith-rec
+        (fn (cur n acc)
+          (if (<= n 0)
+              (reverse acc)
+              (arith-rec (+ cur step) (- n 1) (cons cur acc)))))
+      start count '())))
+
+   ; geometric-seq: Generate geometric sequence
+   (geometric-seq (fn (start ratio count)
+     ((fix geom-rec
+        (fn (cur n acc)
+          (if (<= n 0)
+              (reverse acc)
+              (geom-rec (* cur ratio) (- n 1) (cons cur acc)))))
+      start count '())))
+
+   ; fibonacci-seq: Generate first n Fibonacci numbers
+   (fibonacci-seq (fn (n)
+     (if (<= n 0) '()
+       (if (= n 1) '(0)
+         (if (= n 2) '(0 1)
+           ((fix fib-rec
+              (fn (a b count acc)
+                (if (<= count 0)
+                    (reverse acc)
+                    (fib-rec b (+ a b) (- count 1) (cons a acc)))))
+            0 1 n '()))))))
+
+   ; primes-up-to: Generate primes up to n (simple sieve)
+   (primes-up-to (fn (n)
+     (if (< n 2) '()
+       ((fix sieve
+          (fn (candidates primes)
+            (if (null? candidates)
+                (reverse primes)
+                (let ((p (car candidates)))
+                  (sieve
+                    (filter (fn (x) (not (= 0 (mod x p)))) (cdr candidates))
+                    (cons p primes))))))
+        (range-list 2 (+ n 1)) '()))))
+
+   ; powers-of: Generate powers of base up to limit
+   (powers-of (fn (base limit)
+     ((fix pow-rec
+        (fn (cur acc)
+          (if (> cur limit)
+              (reverse acc)
+              (pow-rec (* cur base) (cons cur acc)))))
+      1 '())))
+
+   ; factorials-up-to: Generate factorials up to n
+   (factorials-up-to (fn (n)
+     ((fix fact-rec
+        (fn (i cur acc)
+          (if (> i n)
+              (reverse acc)
+              (fact-rec (+ i 1) (* cur i) (cons cur acc)))))
+      1 1 '())))
+
+   ; triangular-numbers: Generate first n triangular numbers
+   (triangular-numbers (fn (n)
+     ((fix tri-rec
+        (fn (i sum acc)
+          (if (> i n)
+              (reverse acc)
+              (tri-rec (+ i 1) (+ sum i) (cons sum acc)))))
+      1 0 '())))
+
+   ; convergent-seq: Generate sequence until convergence
+   (convergent-seq (fn (start step-fn converged-fn max-iter)
+     ((fix conv-rec
+        (fn (cur iter acc)
+          (if (or (converged-fn cur) (>= iter max-iter))
+              (reverse (cons cur acc))
+              (conv-rec (step-fn cur) (+ iter 1) (cons cur acc)))))
+      start 0 '())))
+
+   ; cycle-detect: Detect cycle in sequence, return (mu . lambda)
+   ; mu = start of cycle, lambda = length of cycle
+   (cycle-detect (fn (start step-fn)
+     ((fix floyd
+        (fn (tortoise hare power lambda mu)
+          (if (equal? tortoise hare)
+              (if (= lambda 0)
+                  ; Find actual start
+                  ((fix find-mu
+                     (fn (t h m)
+                       (if (equal? t h)
+                           (cons m lambda)
+                           (find-mu (step-fn t) (step-fn h) (+ m 1)))))
+                   start
+                   ((fix advance (fn (x n) (if (= n 0) x (advance (step-fn x) (- n 1)))))
+                    start lambda)
+                   0)
+                  (cons mu lambda))
+              (if (= power lambda)
+                  (floyd hare (step-fn hare) (* power 2) 1 mu)
+                  (floyd tortoise (step-fn hare) power (+ lambda 1) mu)))))
+      start (step-fn start) 1 1 0)))
+
+   ; iterate-n: Apply function n times, collect results
+   (iterate-n (fn (fn-1 start n)
+     ((fix iter-rec
+        (fn (cur count acc)
+          (if (<= count 0)
+              (reverse acc)
+              (iter-rec (fn-1 cur) (- count 1) (cons cur acc)))))
+      start n '())))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -13876,6 +14119,33 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'sublist? sublist?)
     (cons 'count-occurrences count-occurrences)
     (cons 'windowed windowed)
+    ; String Algorithms
+    (cons 'edit-distance edit-distance)
+    (cons 'hamming-distance hamming-distance)
+    (cons 'longest-common-prefix longest-common-prefix)
+    (cons 'longest-common-suffix longest-common-suffix)
+    (cons 'string-similarity string-similarity)
+    (cons 'fuzzy-match? fuzzy-match?)
+    (cons 'string-normalize string-normalize)
+    (cons 'string-tokenize string-tokenize)
+    ; Testing Utilities
+    (cons 'assert-eq assert-eq)
+    (cons 'assert-true assert-true)
+    (cons 'assert-false assert-false)
+    (cons 'assert-throws assert-throws)
+    (cons 'run-tests run-tests)
+    (cons 'test-case test-case)
+    ; Sequence Generation
+    (cons 'arithmetic-seq arithmetic-seq)
+    (cons 'geometric-seq geometric-seq)
+    (cons 'fibonacci-seq fibonacci-seq)
+    (cons 'primes-up-to primes-up-to)
+    (cons 'powers-of powers-of)
+    (cons 'factorials-up-to factorials-up-to)
+    (cons 'triangular-numbers triangular-numbers)
+    (cons 'convergent-seq convergent-seq)
+    (cons 'cycle-detect cycle-detect)
+    (cons 'iterate-n iterate-n)
 ))
 "#;
 
