@@ -60,12 +60,14 @@ fn is_builtin_prim(name: &str) -> bool {
             | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "log" | "exp" | "min" | "max"
             | "gcd" | "lcm" | "clamp" | "between?" | "sign" | "divmod"
             | "int->float" | "float->int" | "truncate"
+            | "inc" | "dec" | "succ" | "pred"
             // Comparison
             | "<" | ">" | "<=" | ">=" | "=" | "eq?" | "lt?" | "gt?" | "le?" | "ge?"
             // Type checks and predicates
             | "number?" | "integer?" | "string?" | "list?" | "pair?" | "null?" | "boolean?"
             | "symbol?" | "procedure?" | "char?" | "vector?" | "bytevector?"
             | "zero?" | "positive?" | "negative?" | "even?" | "odd?"
+            | "atom?" | "atomic?" | "not-null?"
             // List operations
             | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
             | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "init" | "flatten" | "range"

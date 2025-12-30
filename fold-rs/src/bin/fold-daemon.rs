@@ -73,6 +73,84 @@ fn handle_define_form(sexp: &Sexp, env: &EnvRef) -> Result<String, String> {
     }
 }
 
+/// Check if an S-expression is a load form: (load "path")
+fn is_load_form(sexp: &Sexp) -> bool {
+    matches!(sexp, Sexp::List(items) if items.len() == 2 &&
+        matches!(&items[0].value, Sexp::Symbol(s) if s == "load"))
+}
+
+/// Handle a load form: load file, evaluate in current environment
+fn handle_load_form(sexp: &Sexp, env: &EnvRef, _session_id: &str) -> Result<String, String> {
+    if let Sexp::List(items) = sexp {
+        if items.len() != 2 {
+            return Err("load expects 1 argument: (load \"path\")".to_string());
+        }
+
+        // Extract the path
+        let path = match &items[1].value {
+            Sexp::String(s) => s.clone(),
+            _ => return Err("load: argument must be a string".to_string()),
+        };
+
+        // Read and parse the file
+        let source = fs::read_to_string(&path)
+            .map_err(|err| format!("load: failed to read {}: {}", path, err))?;
+
+        let parsed = parse_fold_program(&source, Some(&path))
+            .map_err(|err| format!("load: parse error in {}: {}", path, err))?;
+
+        // Process the parsed expressions, handling define and load forms specially
+        let mut remaining = Vec::new();
+
+        for spanned_sexp in parsed {
+            if is_define_form(&spanned_sexp.value) {
+                // Handle define form
+                match handle_define_form(&spanned_sexp.value, env) {
+                    Ok(_msg) => {
+                        // Define succeeded
+                    }
+                    Err(e) => return Err(format!("load: {} in {}", e, path)),
+                }
+            } else if is_load_form(&spanned_sexp.value) {
+                // Handle nested load form (recursive)
+                match handle_load_form(&spanned_sexp.value, env, _session_id) {
+                    Ok(_msg) => {
+                        // Nested load succeeded
+                    }
+                    Err(e) => return Err(format!("load: {} in {}", e, path)),
+                }
+            } else {
+                // Keep non-define/non-load expressions for normal evaluation
+                remaining.push(spanned_sexp);
+            }
+        }
+
+        // Lower and evaluate remaining expressions
+        if !remaining.is_empty() {
+            let exprs = lower_program(&remaining)
+                .map_err(|err| format!("load: lower error in {}: {}", path, err))?;
+
+            for expr in exprs {
+                match eval_spanned(expr, env.clone(), DEFAULT_FUEL) {
+                    Ok(EvalOutcome::Done(_value)) => {
+                        // Expression evaluated successfully, continue
+                    }
+                    Ok(EvalOutcome::Suspended { .. }) => {
+                        return Err(format!("load: suspended during {}", path));
+                    }
+                    Err(err) => {
+                        return Err(format!("load: error in {}: {}", path, err));
+                    }
+                }
+            }
+        }
+
+        Ok(format!("; loaded {}", path))
+    } else {
+        Err("load expects a list form".to_string())
+    }
+}
+
 /// Session state for a connected client.
 struct Session {
     env: EnvRef,
@@ -144,8 +222,15 @@ impl Daemon {
                     }
                     Err(e) => return Err(e),
                 }
+            } else if is_load_form(&spanned_sexp.value) {
+                match handle_load_form(&spanned_sexp.value, &env, session_id) {
+                    Ok(msg) => {
+                        responses.push(msg);
+                    }
+                    Err(e) => return Err(e),
+                }
             } else {
-                // Keep non-define expressions for normal evaluation
+                // Keep non-define/non-load expressions for normal evaluation
                 remaining.push(spanned_sexp);
             }
         }

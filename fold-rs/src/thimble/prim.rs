@@ -2598,6 +2598,90 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(max_val)
         }
+        "inc" => {
+            // Increment number by 1
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("inc expects 1 arg: a number"));
+            }
+            let n = expect_number(&args[0])?;
+            match n {
+                Numeric::Int(i) => Ok(Value::Number(i + 1)),
+                Numeric::Float(f) => Ok(Value::Float(f + 1.0)),
+            }
+        }
+        "dec" => {
+            // Decrement number by 1
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("dec expects 1 arg: a number"));
+            }
+            let n = expect_number(&args[0])?;
+            match n {
+                Numeric::Int(i) => Ok(Value::Number(i - 1)),
+                Numeric::Float(f) => Ok(Value::Float(f - 1.0)),
+            }
+        }
+        "succ" => {
+            // Successor (alias for inc)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("succ expects 1 arg: an integer"));
+            }
+            let n = expect_integer(&args[0])?;
+            Ok(Value::Number(n + 1))
+        }
+        "pred" => {
+            // Predecessor (alias for dec)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("pred expects 1 arg: an integer"));
+            }
+            let n = expect_integer(&args[0])?;
+            Ok(Value::Number(n - 1))
+        }
+        "head" => {
+            // Alias for first/car
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("head expects 1 arg: a list"));
+            }
+            match &args[0] {
+                Value::Pair(head, _) => Ok((**head).clone()),
+                Value::Nil => Ok(Value::Nil),
+                _ => Err(EvalError::TypeMismatch("head expects a list")),
+            }
+        }
+        "tail" => {
+            // Alias for rest/cdr
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("tail expects 1 arg: a list"));
+            }
+            match &args[0] {
+                Value::Pair(_, tail) => Ok((**tail).clone()),
+                Value::Nil => Ok(Value::Nil),
+                _ => Err(EvalError::TypeMismatch("tail expects a list")),
+            }
+        }
+        "atom?" => {
+            // Check if value is an atom (not a pair and not nil)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("atom? expects 1 arg"));
+            }
+            let is_atom = !matches!(&args[0], Value::Pair(_, _) | Value::Nil);
+            Ok(Value::Bool(is_atom))
+        }
+        "atomic?" => {
+            // Alias for atom?
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("atomic? expects 1 arg"));
+            }
+            let is_atomic = !matches!(&args[0], Value::Pair(_, _) | Value::Nil);
+            Ok(Value::Bool(is_atomic))
+        }
+        "not-null?" => {
+            // Check if list is not empty/nil
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("not-null? expects 1 arg"));
+            }
+            let is_not_nil = !matches!(args[0], Value::Nil);
+            Ok(Value::Bool(is_not_nil))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
