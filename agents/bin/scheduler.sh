@@ -97,13 +97,27 @@ sample_persona() {
     echo "${personas[$idx]}"
 }
 
-# Run a single persona
+# Run a single persona with optional workflow override
 run_persona() {
     local persona="$1"
-    log "Running persona: $persona"
-    "$AGENTS_DIR/bin/run-agent.sh" "$persona" 2>&1 | while read -r line; do
-        log "  [$persona] $line"
-    done
+    local workflow="${2:-}"
+    if [[ -n "$workflow" ]]; then
+        log "Running persona: $persona (workflow: $workflow)"
+        "$AGENTS_DIR/bin/run-agent.sh" "$persona" "$workflow" 2>&1 | while read -r line; do
+            log "  [$persona:$workflow] $line"
+        done
+    else
+        log "Running persona: $persona"
+        "$AGENTS_DIR/bin/run-agent.sh" "$persona" 2>&1 | while read -r line; do
+            log "  [$persona] $line"
+        done
+    fi
+}
+
+# Check if monk duty is due (hourly at :17)
+is_monk_due() {
+    local now_min=$(date +%M | sed 's/^0//')
+    [[ "$now_min" -eq 17 ]]
 }
 
 # Commands
@@ -129,47 +143,64 @@ cmd_status() {
     echo "Process Pool Status:"
     echo "===================="
     echo "Enabled personas: $count"
-    echo "Process count: $procs (ceil(sqrt($count)))"
-    echo "Base interval: every ${interval} minutes"
-    echo "Process offset: ${offset} minutes"
     echo ""
-    echo "Process schedule:"
+    echo "Forum Posters:"
+    echo "  Process count: $procs (ceil(sqrt($count)))"
+    echo "  Base interval: every ${interval} minutes"
+    echo "  Process offset: ${offset} minutes"
+    echo "  Schedule:"
     for ((i=0; i<procs; i++)); do
         local slot_offset=$((i * offset))
-        echo "  Process $i: :$(printf '%02d' $slot_offset), :$(printf '%02d' $((slot_offset + interval))), ..."
+        echo "    Process $i: :$(printf '%02d' $slot_offset), :$(printf '%02d' $((slot_offset + interval))), ..."
     done
+    echo ""
+    echo "Young Monk:"
+    echo "  Schedule: hourly at :17"
+    echo "  Samples one persona for tidying duties"
 }
 
 cmd_run_due() {
     local count=$(count_personas)
     local procs=$(calc_process_count "$count")
-
-    log "Checking $procs process slots..."
     local ran=0
 
+    # Check forum poster slots
     for ((slot=0; slot<procs; slot++)); do
         if is_slot_due "$slot"; then
             local persona=$(sample_persona)
             if [[ -n "$persona" ]]; then
-                log "Slot $slot due, sampled: $persona"
+                log "Forum slot $slot due, sampled: $persona"
                 run_persona "$persona" &
                 ((ran++))
             fi
         fi
     done
 
+    # Check monk duty (hourly at :17)
+    if is_monk_due; then
+        local monk=$(sample_persona)
+        if [[ -n "$monk" ]]; then
+            log "Monk duty due, summoned: $monk"
+            run_persona "$monk" "monk" &
+            ((ran++))
+        fi
+    fi
+
     wait
-    log "Ran $ran process(es)"
+    if [[ $ran -gt 0 ]]; then
+        log "Ran $ran process(es)"
+    fi
 }
 
 cmd_test() {
-    local persona="${1:?Usage: scheduler.sh test <persona-name>}"
+    local persona="${1:?Usage: scheduler.sh test <persona-name> [workflow]}"
+    local workflow="${2:-}"
 
     if [[ ! -f "$PERSONAS_DIR/$persona.yaml" ]]; then
         die "Persona not found: $persona"
     fi
 
-    run_persona "$persona"
+    run_persona "$persona" "$workflow"
 }
 
 cmd_daemon() {
@@ -212,7 +243,7 @@ case "${1:-help}" in
     list)       cmd_list ;;
     status)     cmd_status ;;
     run-due)    cmd_run_due ;;
-    test)       cmd_test "${2:-}" ;;
+    test)       cmd_test "${2:-}" "${3:-}" ;;
     daemon)     cmd_daemon ;;
     daemon-status) cmd_daemon_status ;;
     help|*)
@@ -222,18 +253,27 @@ Process Pool Agent Scheduler
 Usage: scheduler.sh <command>
 
 Commands:
-    list           List all registered personas
-    status         Show process pool configuration
-    run-due        Run processes due now (for cron)
-    test NAME      Run a specific persona (ignores schedule)
-    daemon         Run as continuous daemon
-    daemon-status  Check if daemon is running
+    list               List all registered personas
+    status             Show process pool configuration
+    run-due            Run processes due now (for cron)
+    test NAME [WORK]   Run a specific persona, optionally with workflow override
+    daemon             Run as continuous daemon
+    daemon-status      Check if daemon is running
 
-Process Pool Model:
-    - process_count = ceil(sqrt(persona_count))
-    - Each process samples a random persona when due
-    - First process: every 30 min at :00, :30
-    - Each additional process: offset by 3 minutes
+Examples:
+    scheduler.sh test bluegown           # Run bluegown's default workflow
+    scheduler.sh test bluegown monk      # Run bluegown as Young Monk
+
+Scheduling Model:
+    Forum Posters:
+      - process_count = ceil(sqrt(persona_count))
+      - Each process samples a random persona when due
+      - First process: every 30 min at :00, :30
+      - Each additional process: offset by 3 minutes
+
+    Young Monk:
+      - Hourly at :17
+      - Samples one persona for tidying duties
 
 Cron setup:
     * * * * * /path/to/agents/bin/scheduler.sh run-due

@@ -2,17 +2,19 @@
 #
 # run-agent.sh - Execute a persona's workflow
 #
-# Usage: run-agent.sh <persona-name>
+# Usage: run-agent.sh <persona-name> [workflow-override]
 #
 # Reads persona configuration from personas/<name>.yaml,
 # merges with defaults.yaml, and executes the workflow.
+# Optional workflow-override runs a different workflow than persona's default.
 
 set -euo pipefail
 
 AGENTS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 source "$AGENTS_DIR/lib/common.sh"
 
-PERSONA_NAME="${1:?Usage: run-agent.sh <persona-name>}"
+PERSONA_NAME="${1:?Usage: run-agent.sh <persona-name> [workflow]}"
+WORKFLOW_OVERRIDE="${2:-}"
 PERSONA_FILE="$AGENTS_DIR/personas/$PERSONA_NAME.yaml"
 DEFAULTS_FILE="$AGENTS_DIR/defaults.yaml"
 
@@ -42,7 +44,13 @@ get_config() {
 
 MODEL=$(get_config '.model' 'opencode/big-pickle')
 TIER=$(get_config '.tier' 'haiku')
-WORKFLOW_TYPE=$(get_config '.workflow' 'forum-poster')
+
+# Use workflow override if provided, otherwise use persona's default
+if [[ -n "$WORKFLOW_OVERRIDE" ]]; then
+    WORKFLOW_TYPE="$WORKFLOW_OVERRIDE"
+else
+    WORKFLOW_TYPE=$(get_config '.workflow' 'forum-poster')
+fi
 
 # Load workflow template
 WORKFLOW_FILE="$AGENTS_DIR/workflows/${WORKFLOW_TYPE}.yaml"
@@ -190,6 +198,18 @@ $PROMPT"
             STEP_OUTPUTS[$STEP_NAME]="$OUTPUT"
             echo "$OUTPUT" > "$STATE_DIR/step-${STEP_NAME}.json"
             log "  -> saved to step-${STEP_NAME}.json"
+            ;;
+
+        shell)
+            COMMAND=$(yq -r ".steps[$i].command" "$WORKFLOW_FILE")
+            COMMAND=$(substitute_vars "$COMMAND")
+
+            OUTPUT=$(bash -c "$COMMAND" 2>&1) || {
+                log "  -> shell command failed: $OUTPUT"
+                [[ "$STEP_ALWAYS" == "true" ]] || exit 1
+            }
+            STEP_OUTPUTS[$STEP_NAME]="$OUTPUT"
+            log "  -> ${OUTPUT:0:80}..."
             ;;
 
         *)
