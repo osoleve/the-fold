@@ -10400,6 +10400,590 @@ pub const PRELUDE_SOURCE: &str = r#"
                0
                (/ (mean (zip-with (fn (x y) (* (- x mx) (- y my))) xs ys))
                   (* sx sy)))))))
+
+   ; ============================================
+   ; Rose Trees (Multi-way Trees)
+   ; ============================================
+
+   ; rose-node: Create a rose tree node with value and list of children
+   (rose-node (fn (value children)
+     (cons value children)))
+
+   ; rose-leaf: Create a leaf node (no children)
+   (rose-leaf (fn (value)
+     (cons value '())))
+
+   ; rose-value: Get value at node
+   (rose-value car)
+
+   ; rose-children: Get children list
+   (rose-children cdr)
+
+   ; rose-leaf?: Check if node is a leaf
+   (rose-leaf? (fn (t)
+     (null? (cdr t))))
+
+   ; rose-map: Map function over all values in tree
+   (rose-map (fix rose-map-rec
+     (fn (f t)
+       (rose-node (f (rose-value t))
+                  (map (fn (child) (rose-map-rec f child))
+                       (rose-children t))))))
+
+   ; rose-fold: Fold over tree (post-order)
+   ; f takes (value, list-of-child-results) -> result
+   (rose-fold (fix rose-fold-rec
+     (fn (f t)
+       (f (rose-value t)
+          (map (fn (child) (rose-fold-rec f child))
+               (rose-children t))))))
+
+   ; rose-flatten: Get all values as flat list (pre-order)
+   (rose-flatten (fix rose-flatten-rec
+     (fn (t)
+       (cons (rose-value t)
+             (concat (map rose-flatten-rec (rose-children t)))))))
+
+   ; rose-depth: Maximum depth of tree
+   (rose-depth (fix rose-depth-rec
+     (fn (t)
+       (if (rose-leaf? t)
+           1
+           (+ 1 (apply max (map rose-depth-rec (rose-children t))))))))
+
+   ; rose-size: Count all nodes in tree
+   (rose-size (fix rose-size-rec
+     (fn (t)
+       (+ 1 (sum-list (map rose-size-rec (rose-children t)))))))
+
+   ; rose-find: Find first node matching predicate (pre-order)
+   (rose-find (fix rose-find-rec
+     (fn (pred t)
+       (if (pred (rose-value t))
+           (just (rose-value t))
+           (let ((child-results (map (fn (c) (rose-find-rec pred c))
+                                     (rose-children t))))
+             (let ((found (find-if (fn (r) (not (nothing? r))) child-results)))
+               (if found found (nothing))))))))
+
+   ; rose-filter: Keep only nodes matching predicate (and their ancestors)
+   (rose-filter (fix rose-filter-rec
+     (fn (pred t)
+       (let ((filtered-children (filter id
+                                        (map (fn (c) (rose-filter-rec pred c))
+                                             (rose-children t)))))
+         (if (or (pred (rose-value t))
+                 (not (null? filtered-children)))
+             (rose-node (rose-value t) filtered-children)
+             #f)))))
+
+   ; rose-paths: Get all root-to-leaf paths
+   (rose-paths (fix rose-paths-rec
+     (fn (t)
+       (if (rose-leaf? t)
+           (list (list (rose-value t)))
+           (concat (map (fn (c)
+                          (map (fn (path) (cons (rose-value t) path))
+                               (rose-paths-rec c)))
+                        (rose-children t)))))))
+
+   ; rose-from-nested: Create rose tree from nested list structure
+   ; ((1 (2) (3 (4)))) -> rose tree with 1 at root, children 2 and 3
+   (rose-from-nested (fix rose-from-nested-rec
+     (fn (nested)
+       (if (pair? nested)
+           (rose-node (car nested)
+                      (map rose-from-nested-rec (cdr nested)))
+           (rose-leaf nested)))))
+
+   ; ============================================
+   ; Heap (Priority Queue) - Min Heap
+   ; ============================================
+
+   ; heap-empty: Empty heap
+   (heap-empty '())
+
+   ; heap-empty?: Check if heap is empty
+   (heap-empty? null?)
+
+   ; heap-singleton: Single element heap
+   (heap-singleton (fn (x)
+     (list x '() '())))
+
+   ; heap-value: Get value at node
+   (heap-value car)
+
+   ; heap-left: Get left child
+   (heap-left cadr)
+
+   ; heap-right: Get right child
+   (heap-right caddr)
+
+   ; heap-merge: Merge two heaps (leftist merge)
+   (heap-merge (fix heap-merge-rec
+     (fn (h1 h2)
+       (if (null? h1) h2
+           (if (null? h2) h1
+               (if (< (heap-value h1) (heap-value h2))
+                   (list (heap-value h1)
+                         (heap-merge-rec (heap-right h1) h2)
+                         (heap-left h1))
+                   (list (heap-value h2)
+                         (heap-merge-rec h1 (heap-right h2))
+                         (heap-left h2))))))))
+
+   ; heap-insert: Insert element
+   (heap-insert (fn (x h)
+     (heap-merge (heap-singleton x) h)))
+
+   ; heap-find-min: Get minimum element
+   (heap-find-min (fn (h)
+     (if (null? h) #f (heap-value h))))
+
+   ; heap-delete-min: Remove minimum element
+   (heap-delete-min (fn (h)
+     (if (null? h) '()
+         (heap-merge (heap-left h) (heap-right h)))))
+
+   ; heap-from-list: Build heap from list
+   (heap-build (fn (lst)
+     (foldl (fn (h x) (heap-insert x h)) heap-empty lst)))
+
+   ; heap-sort: Sort using heap
+   (heap-sort (fn (lst)
+     ((fix extract-rec
+        (fn (h acc)
+          (if (heap-empty? h)
+              (reverse acc)
+              (extract-rec (heap-delete-min h)
+                          (cons (heap-find-min h) acc)))))
+      (heap-build lst) '())))
+
+   ; ============================================
+   ; Ring Buffer (Circular Buffer)
+   ; ============================================
+
+   ; ring-make: Create ring buffer with capacity
+   ; Stored as (capacity write-pos read-pos buffer)
+   (ring-make (fn (capacity)
+     (list capacity 0 0 (replicate capacity #f))))
+
+   ; ring-capacity: Get buffer capacity
+   (ring-capacity car)
+
+   ; ring-write-pos: Get write position
+   (ring-write-pos cadr)
+
+   ; ring-read-pos: Get read position
+   (ring-read-pos caddr)
+
+   ; ring-buffer: Get buffer list
+   (ring-buffer cadddr)
+
+   ; ring-empty?: Check if buffer is empty
+   (ring-empty? (fn (r)
+     (= (ring-write-pos r) (ring-read-pos r))))
+
+   ; ring-full?: Check if buffer is full
+   (ring-full? (fn (r)
+     (= (mod (+ (ring-write-pos r) 1) (ring-capacity r))
+        (ring-read-pos r))))
+
+   ; ring-size: Current number of elements
+   (ring-size (fn (r)
+     (mod (- (ring-write-pos r) (ring-read-pos r) (- (ring-capacity r)))
+          (ring-capacity r))))
+
+   ; ring-write: Write element to buffer
+   (ring-write (fn (x r)
+     (if (ring-full? r)
+         r  ; Buffer full, drop write
+         (let ((cap (ring-capacity r))
+               (wp (ring-write-pos r))
+               (rp (ring-read-pos r))
+               (buf (ring-buffer r)))
+           (list cap
+                 (mod (+ wp 1) cap)
+                 rp
+                 (list-set wp x buf))))))
+
+   ; ring-read: Read element from buffer
+   ; Returns (new-ring . value) or (ring . #f) if empty
+   (ring-read (fn (r)
+     (if (ring-empty? r)
+         (cons r #f)
+         (let ((cap (ring-capacity r))
+               (wp (ring-write-pos r))
+               (rp (ring-read-pos r))
+               (buf (ring-buffer r)))
+           (cons (list cap wp (mod (+ rp 1) cap) buf)
+                 (list-ref buf rp))))))
+
+   ; ring-peek: Peek at next element without removing
+   (ring-peek (fn (r)
+     (if (ring-empty? r)
+         #f
+         (list-ref (ring-buffer r) (ring-read-pos r)))))
+
+   ; ring-to-list: Convert to list (oldest first)
+   (ring-to-list (fn (r)
+     ((fix collect-rec
+        (fn (rng acc)
+          (if (ring-empty? rng)
+              (reverse acc)
+              (let ((result (ring-read rng)))
+                (collect-rec (car result) (cons (cdr result) acc))))))
+      r '())))
+
+   ; ============================================
+   ; Arrow Combinators
+   ; ============================================
+
+   ; arr: Lift function to arrow (identity for functions)
+   (arr id)
+
+   ; >>>: Arrow composition (left to right)
+   (arrow-compose (fn (f g)
+     (fn (x) (g (f x)))))
+
+   ; first: Apply arrow to first element of pair
+   (arrow-first (fn (f)
+     (fn (pair) (cons (f (car pair)) (cdr pair)))))
+
+   ; second: Apply arrow to second element of pair
+   (arrow-second (fn (f)
+     (fn (pair) (cons (car pair) (f (cdr pair))))))
+
+   ; ***: Product arrow (parallel composition)
+   (arrow-split (fn (f g)
+     (fn (pair) (cons (f (car pair)) (g (cdr pair))))))
+
+   ; &&&: Fanout - apply both arrows to same input
+   (arrow-fanout (fn (f g)
+     (fn (x) (cons (f x) (g x)))))
+
+   ; |||: Fanin - apply appropriate arrow based on sum type
+   (arrow-fanin (fn (f g)
+     (fn (either)
+       (if (left? either)
+           (left (f (from-left either)))
+           (right (g (from-right either)))))))
+
+   ; arrow-loop: Feedback loop (requires initial state)
+   (arrow-loop (fn (f init)
+     ((fix loop-rec
+        (fn (state)
+          (fn (x)
+            (let ((result (f (cons x state))))
+              (cons (car result)
+                    (loop-rec (cdr result)))))))
+      init)))
+
+   ; ============================================
+   ; Applicative Functor Utilities
+   ; ============================================
+
+   ; pure: Wrap value in minimal context (for lists, singleton)
+   (pure-list (fn (x) (list x)))
+
+   ; <*>: Applicative apply for lists
+   (ap-list (fn (fs xs)
+     (concat (map (fn (f) (map f xs)) fs))))
+
+   ; lift-a2: Lift binary function to applicative
+   (lift-a2 (fn (f ma mb)
+     (ap-list (map (fn (a) (fn (b) (f a b))) ma) mb)))
+
+   ; lift-a3: Lift ternary function to applicative
+   (lift-a3 (fn (f ma mb mc)
+     (ap-list (ap-list (map (fn (a) (fn (b) (fn (c) (f a b c)))) ma) mb) mc)))
+
+   ; sequence-a: Sequence list of applicatives (for lists)
+   (sequence-a (fn (xs)
+     (foldr (fn (x acc) (lift-a2 cons x acc))
+            (pure-list '())
+            xs)))
+
+   ; traverse: Map then sequence
+   (traverse-list (fn (f xs)
+     (sequence-a (map f xs))))
+
+   ; zip-list-ap: ZipList applicative (pairwise application)
+   (zip-list-ap (fn (fs xs)
+     (zip-with (fn (f x) (f x)) fs xs)))
+
+   ; ============================================
+   ; Comonad Utilities (for zippers/streams)
+   ; ============================================
+
+   ; extract: Get focused value
+   (comonad-extract zipper-focus)
+
+   ; duplicate: Create zipper of zippers
+   (comonad-duplicate (fn (z)
+     (let ((lefts ((fix collect-left
+                    (fn (zp)
+                      (if (null? (zipper-left zp))
+                          '()
+                          (let ((moved (zipper-move-left zp)))
+                            (cons moved (collect-left moved))))))
+                   z))
+           (rights ((fix collect-right
+                     (fn (zp)
+                       (if (null? (zipper-right zp))
+                           '()
+                           (let ((moved (zipper-move-right zp)))
+                             (cons moved (collect-right moved))))))
+                    z)))
+       (list (reverse lefts) z rights))))
+
+   ; extend: Apply function in all positions
+   (comonad-extend (fn (f z)
+     (let ((dup (comonad-duplicate z)))
+       (list (map f (zipper-left dup))
+             (f (zipper-focus dup))
+             (map f (zipper-right dup))))))
+
+   ; ============================================
+   ; Profunctor Utilities
+   ; ============================================
+
+   ; dimap: Map over both input and output of function
+   (dimap (fn (f g h)
+     (compose g (compose h f))))
+
+   ; lmap: Map over input only
+   (lmap (fn (f h)
+     (compose h f)))
+
+   ; rmap: Map over output only (same as compose)
+   (rmap compose)
+
+   ; ============================================
+   ; Catamorphism / Recursion Schemes Basics
+   ; ============================================
+
+   ; list-cata: List catamorphism (generalized fold)
+   (list-cata (fn (nil-case cons-case lst)
+     ((fix cata-rec
+        (fn (l)
+          (if (null? l)
+              nil-case
+              (cons-case (car l) (cata-rec (cdr l))))))
+      lst)))
+
+   ; list-ana: List anamorphism (generalized unfold)
+   (list-ana (fn (stop? head-fn tail-fn seed)
+     ((fix ana-rec
+        (fn (s)
+          (if (stop? s)
+              '()
+              (cons (head-fn s) (ana-rec (tail-fn s))))))
+      seed)))
+
+   ; list-hylo: Hylomorphism (unfold then fold)
+   (list-hylo (fn (nil-case cons-case stop? head-fn tail-fn seed)
+     ((fix hylo-rec
+        (fn (s)
+          (if (stop? s)
+              nil-case
+              (cons-case (head-fn s) (hylo-rec (tail-fn s))))))
+      seed)))
+
+   ; tree-cata: Rose tree catamorphism
+   (tree-cata (fn (f t)
+     (rose-fold f t)))
+
+   ; ============================================
+   ; Difference Lists
+   ; ============================================
+
+   ; dlist-empty: Empty difference list (identity function)
+   (dlist-empty id)
+
+   ; dlist-singleton: Single element difference list
+   (dlist-singleton (fn (x)
+     (fn (rest) (cons x rest))))
+
+   ; dlist-append: O(1) append for difference lists
+   (dlist-append compose)
+
+   ; dlist-cons: Prepend element
+   (dlist-cons (fn (x dl)
+     (compose (dlist-singleton x) dl)))
+
+   ; dlist-snoc: Append element to end
+   (dlist-snoc (fn (dl x)
+     (compose dl (dlist-singleton x))))
+
+   ; dlist-to-list: Convert to regular list
+   (dlist-to-list (fn (dl)
+     (dl '())))
+
+   ; list-to-dlist: Convert from regular list
+   (list-to-dlist (fn (lst)
+     (fn (rest) (append lst rest))))
+
+   ; dlist-concat: Concatenate list of dlists
+   (dlist-concat (fn (dls)
+     (foldl dlist-append dlist-empty dls)))
+
+   ; ============================================
+   ; Finger Trees (simplified - just deque operations)
+   ; ============================================
+
+   ; finger-empty: Empty finger tree
+   (finger-empty (list 'empty))
+
+   ; finger-empty?: Check if empty
+   (finger-empty? (fn (ft)
+     (eq? (car ft) 'empty)))
+
+   ; finger-single: Single element tree
+   (finger-single (fn (x)
+     (list 'single x)))
+
+   ; finger-single?: Check if single
+   (finger-single? (fn (ft)
+     (eq? (car ft) 'single)))
+
+   ; finger-deep: Deep tree with prefix, middle, suffix
+   (finger-deep (fn (prefix middle suffix)
+     (list 'deep prefix middle suffix)))
+
+   ; finger-push-front: Add to front
+   (finger-push-front (fn (x ft)
+     (if (finger-empty? ft)
+         (finger-single x)
+         (if (finger-single? ft)
+             (finger-deep (list x) finger-empty (list (cadr ft)))
+             (finger-deep (cons x (cadr ft))
+                         (caddr ft)
+                         (cadddr ft))))))
+
+   ; finger-push-back: Add to back
+   (finger-push-back (fn (x ft)
+     (if (finger-empty? ft)
+         (finger-single x)
+         (if (finger-single? ft)
+             (finger-deep (list (cadr ft)) finger-empty (list x))
+             (finger-deep (cadr ft)
+                         (caddr ft)
+                         (snoc (cadddr ft) x))))))
+
+   ; finger-peek-front: Get front element
+   (finger-peek-front (fn (ft)
+     (if (finger-empty? ft)
+         #f
+         (if (finger-single? ft)
+             (cadr ft)
+             (car (cadr ft))))))
+
+   ; finger-peek-back: Get back element
+   (finger-peek-back (fn (ft)
+     (if (finger-empty? ft)
+         #f
+         (if (finger-single? ft)
+             (cadr ft)
+             (last (cadddr ft))))))
+
+   ; ============================================
+   ; Additional String Utilities
+   ; ============================================
+
+   ; string-words: Split on whitespace
+   (string-words (fn (s)
+     (filter (fn (w) (not (string=? w "")))
+             (string-split s " "))))
+
+   ; string-lines: Split on newlines
+   (string-lines (fn (s)
+     (string-split s "\n")))
+
+   ; string-unwords: Join with spaces
+   (string-unwords (fn (words)
+     (string-join words " ")))
+
+   ; string-unlines: Join with newlines
+   (string-unlines (fn (lines)
+     (string-join lines "\n")))
+
+   ; string-pad-left: Pad string to length on left
+   (string-pad-left (fn (len char s)
+     (let ((pad-len (- len (string-length s))))
+       (if (<= pad-len 0)
+           s
+           (string-append (make-string pad-len char) s)))))
+
+   ; string-pad-right: Pad string to length on right
+   (string-pad-right (fn (len char s)
+     (let ((pad-len (- len (string-length s))))
+       (if (<= pad-len 0)
+           s
+           (string-append s (make-string pad-len char))))))
+
+   ; string-center: Center string with padding
+   (string-center (fn (len char s)
+     (let ((pad-len (- len (string-length s))))
+       (if (<= pad-len 0)
+           s
+           (let ((left-pad (/ pad-len 2))
+                 (right-pad (- pad-len (/ pad-len 2))))
+             (string-append (make-string left-pad char)
+                           s
+                           (make-string right-pad char)))))))
+
+   ; string-repeat: Repeat string n times
+   (string-repeat (fn (n s)
+     (string-join (replicate n s) "")))
+
+   ; string-take-while: Take chars while predicate holds
+   (string-take-while (fn (pred s)
+     (list->string (take-while pred (string->list s)))))
+
+   ; string-drop-while: Drop chars while predicate holds
+   (string-drop-while (fn (pred s)
+     (list->string (drop-while pred (string->list s)))))
+
+   ; ============================================
+   ; Logic and Constraint Utilities
+   ; ============================================
+
+   ; all-different?: Check all elements are unique
+   (all-different? (fn (lst)
+     (= (length lst) (length (nub lst)))))
+
+   ; exactly-one?: Check exactly one element satisfies pred
+   (exactly-one? (fn (pred lst)
+     (= 1 (count-if pred lst))))
+
+   ; at-most-one?: Check at most one element satisfies pred
+   (at-most-one? (fn (pred lst)
+     (<= (count-if pred lst) 1)))
+
+   ; at-least-one?: Check at least one element satisfies pred
+   (at-least-one? any)
+
+   ; count-equal: Count how many elements equal value
+   (count-equal (fn (val lst)
+     (count-if (fn (x) (equal? x val)) lst)))
+
+   ; all-equal?: Check all elements are equal
+   (all-equal? (fn (lst)
+     (or (null? lst)
+         (all (fn (x) (equal? x (car lst))) (cdr lst)))))
+
+   ; implies: Logical implication
+   (implies (fn (p q)
+     (or (not p) q)))
+
+   ; iff: Logical biconditional
+   (iff (fn (p q)
+     (eq? p q)))
+
+   ; xor: Exclusive or
+   (xor (fn (p q)
+     (not (eq? p q))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -12205,6 +12789,117 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'percentile percentile)
     (cons 'quartiles quartiles)
     (cons 'correlation correlation)
+    ; Rose trees
+    (cons 'rose-node rose-node)
+    (cons 'rose-leaf rose-leaf)
+    (cons 'rose-value rose-value)
+    (cons 'rose-children rose-children)
+    (cons 'rose-leaf? rose-leaf?)
+    (cons 'rose-map rose-map)
+    (cons 'rose-fold rose-fold)
+    (cons 'rose-flatten rose-flatten)
+    (cons 'rose-depth rose-depth)
+    (cons 'rose-size rose-size)
+    (cons 'rose-find rose-find)
+    (cons 'rose-filter rose-filter)
+    (cons 'rose-paths rose-paths)
+    (cons 'rose-from-nested rose-from-nested)
+    ; Heap (Priority Queue)
+    (cons 'heap-empty heap-empty)
+    (cons 'heap-empty? heap-empty?)
+    (cons 'heap-singleton heap-singleton)
+    (cons 'heap-value heap-value)
+    (cons 'heap-left heap-left)
+    (cons 'heap-right heap-right)
+    (cons 'heap-merge heap-merge)
+    (cons 'heap-insert heap-insert)
+    (cons 'heap-find-min heap-find-min)
+    (cons 'heap-delete-min heap-delete-min)
+    (cons 'heap-build heap-build)
+    (cons 'heap-sort heap-sort)
+    ; Ring Buffer
+    (cons 'ring-make ring-make)
+    (cons 'ring-capacity ring-capacity)
+    (cons 'ring-write-pos ring-write-pos)
+    (cons 'ring-read-pos ring-read-pos)
+    (cons 'ring-buffer ring-buffer)
+    (cons 'ring-empty? ring-empty?)
+    (cons 'ring-full? ring-full?)
+    (cons 'ring-size ring-size)
+    (cons 'ring-write ring-write)
+    (cons 'ring-read ring-read)
+    (cons 'ring-peek ring-peek)
+    (cons 'ring-to-list ring-to-list)
+    ; Arrow Combinators
+    (cons 'arr arr)
+    (cons 'arrow-compose arrow-compose)
+    (cons 'arrow-first arrow-first)
+    (cons 'arrow-second arrow-second)
+    (cons 'arrow-split arrow-split)
+    (cons 'arrow-fanout arrow-fanout)
+    (cons 'arrow-fanin arrow-fanin)
+    (cons 'arrow-loop arrow-loop)
+    ; Applicative
+    (cons 'pure-list pure-list)
+    (cons 'ap-list ap-list)
+    (cons 'lift-a2 lift-a2)
+    (cons 'lift-a3 lift-a3)
+    (cons 'sequence-a sequence-a)
+    (cons 'traverse-list traverse-list)
+    (cons 'zip-list-ap zip-list-ap)
+    ; Comonad
+    (cons 'comonad-extract comonad-extract)
+    (cons 'comonad-duplicate comonad-duplicate)
+    (cons 'comonad-extend comonad-extend)
+    ; Profunctor
+    (cons 'dimap dimap)
+    (cons 'lmap lmap)
+    (cons 'rmap rmap)
+    ; Recursion Schemes
+    (cons 'list-cata list-cata)
+    (cons 'list-ana list-ana)
+    (cons 'list-hylo list-hylo)
+    (cons 'tree-cata tree-cata)
+    ; Difference Lists
+    (cons 'dlist-empty dlist-empty)
+    (cons 'dlist-singleton dlist-singleton)
+    (cons 'dlist-append dlist-append)
+    (cons 'dlist-cons dlist-cons)
+    (cons 'dlist-snoc dlist-snoc)
+    (cons 'dlist-to-list dlist-to-list)
+    (cons 'list-to-dlist list-to-dlist)
+    (cons 'dlist-concat dlist-concat)
+    ; Finger Trees
+    (cons 'finger-empty finger-empty)
+    (cons 'finger-empty? finger-empty?)
+    (cons 'finger-single finger-single)
+    (cons 'finger-single? finger-single?)
+    (cons 'finger-deep finger-deep)
+    (cons 'finger-push-front finger-push-front)
+    (cons 'finger-push-back finger-push-back)
+    (cons 'finger-peek-front finger-peek-front)
+    (cons 'finger-peek-back finger-peek-back)
+    ; Additional String Utilities
+    (cons 'string-words string-words)
+    (cons 'string-lines string-lines)
+    (cons 'string-unwords string-unwords)
+    (cons 'string-unlines string-unlines)
+    (cons 'string-pad-left string-pad-left)
+    (cons 'string-pad-right string-pad-right)
+    (cons 'string-center string-center)
+    (cons 'string-repeat string-repeat)
+    (cons 'string-take-while string-take-while)
+    (cons 'string-drop-while string-drop-while)
+    ; Logic and Constraints
+    (cons 'all-different? all-different?)
+    (cons 'exactly-one? exactly-one?)
+    (cons 'at-most-one? at-most-one?)
+    (cons 'at-least-one? at-least-one?)
+    (cons 'count-equal count-equal)
+    (cons 'all-equal? all-equal?)
+    (cons 'implies implies)
+    (cons 'iff iff)
+    (cons 'xor xor)
 ))
 "#;
 
