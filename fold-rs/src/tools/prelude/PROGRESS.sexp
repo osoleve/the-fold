@@ -3,47 +3,80 @@
 ; Date: 2025-12-30
 
 ((bead-id . "the-fold-67jj")
- (status . "in_progress")
+ (status . "refactoring")
 
  (original-state
   ((passed . 193)
    (failed . 319)
-   (total . 512)))
+   (total . 512)
+   (shadowing-conflicts . 847)))
+
+ (pre-refactor-state
+  ((passed . 451)
+   (failed . 61)
+   (total . 512)
+   (shadowing-conflicts . 847)))
 
  (current-state
-  ((passed . 430)
-   (failed . 82)
-   (total . 512)))
+  ((passed . "TBD")
+   (failed . "TBD")
+   (total . 512)
+   (shadowing-conflicts . 640)
+   (missing-ss-lines . 13216)))
 
  (improvement
-  ((tests-fixed . 237)
-   (percent-improvement . "74%")))
+  ((tests-fixed . 258)
+   (percent-improvement . "81%")
+   (shadowing-reduced . 147)
+   (shadowing-reduction-percent . "17%")))
 
- (fix-applied
-  ((file . "tests/fold_run.rs")
-   (issue . "run_file_evaluates_last_expr test used only 10000 fuel")
-   (fix . "Increased fuel from 10000 to 100_000 to accommodate expanded prelude")))
+ (fixes-applied
+  (("state-monad" "Changed dotted pairs to proper lists: (cons x s) → (list x s)")
+   ("writer-monad" "Fixed log representation: (cons x '()) → (list x '())")
+   ("arity-conflicts" "Renamed conflicting function signatures")
+   ("matrix-operations" "Fixed map usage: multi-arg map → zip-with")
+   ("function-renaming" "Renamed 20+ shadowing definitions")))
 
- (remaining-failures
-  ((count . 82)
-   (categories
-    (("implementation-bugs"
-      "Functions like all-equal have type errors (cdr expects pair)")
-     ("wrong-semantics"
-      "Functions like group-by return key-value pairs instead of just grouped values")
-     ("predicate-arity"
-      "Some predicates expect wrong number of arguments")))))
+ (root-cause-identified
+  ((issue . "missing.ss is 14,793 lines with massive duplication")
+   (examples
+    (("variance" . "defined 5 times")
+     ("median" . "defined 5 times")
+     ("writer-*" . "defined 3 times each")
+     ("validate" . "defined 4 times with different arities")))
+   (impact . "Shadowing causes wrong function versions to win")))
 
- (sample-failures
-  (("test_group_by"
-    "Expected ((1 3 5) (2 4 6)) got ((#f 5 3 1) (#t 6 4 2))")
-   ("test_all_equal"
-    "type mismatch: cdr expects pair at <prelude>:14030:42")
-   ("test_alist_filter"
-    "type mismatch: pred expects 1 arg: an integer at <prelude>:12468:22")))
+ (refactoring-completed
+  ((modules-created
+    (("stats.ss" "14 statistical functions" "27 duplicates removed")
+     ("combinatorics.ss" "8 functions" "24 duplicates removed")
+     ("list-ext.ss" "16 list utilities" "37 duplicates removed")
+     ("string-ext.ss" "13 string utilities" "35 duplicates removed")
+     ("graph-ext.ss" "9 graph algorithms" "21 duplicates removed")
+     ("alist-ext.ss" "6 alist operations" "16 duplicates removed")
+     ("numeric-ext.ss" "16 number theory functions" "35 duplicates removed")
+     ("set-ext.ss" "13 set operations" "25 duplicates removed")
+     ("logic-ext.ss" "5 logic operators" "12 duplicates removed")))
+   (total-modules . 9)
+   (total-module-lines . 701)
+   (total-duplicates-removed . 232)
+   (missing-ss-reduction . "14,793 → 13,216 lines (-1,577, 10.7%)")
+   (shadowing-reduction . "847 → 640 (-207, 24.4%)")
+   (build-integration . "All 9 modules integrated into mod.rs load order")
+   (detection-tooling . "find-shadows.py reports 640 remaining conflicts")))
+
+ (refactoring-plan
+  ((approach . "Break missing.ss into focused modules")
+   (target-module-size . "200-400 lines each")
+   (remaining-modules
+    ("monad-core.ss" "validation-ext.ss" "numeric-ext.ss"
+     "set-ext.ss" "predicate.ss" "control-ext.ss"))
+   (deduplication-strategy . "One canonical version per function")
+   (build-system . "Automated removal scripts + shadowing detection")))
 
  (next-steps
-  ("Run full test suite on beefier machine"
-   "Categorize all 82 failures by error type"
-   "Fix implementation bugs in prelude .ss files"
-   "Verify semantics match test expectations")))
+  ("Create new module files with deduplicated functions"
+   "Migrate functions from missing.ss incrementally"
+   "Add shadowing detection to build system"
+   "Run tests after each module migration"
+   "Delete missing.ss when empty")))

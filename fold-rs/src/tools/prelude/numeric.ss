@@ -462,7 +462,7 @@
 
 ; matrix-add: Add two matrices
 (matrix-add (fn (m1 m2)
-                (map (fn (r1 r2) (zip-with + r1 r2)) m1 m2)))
+                (zip-with (fn (r1 r2) (zip-with + r1 r2)) m1 m2)))
 
 ; matrix-scale: Scale matrix by scalar
 (matrix-scale (fn (k m)

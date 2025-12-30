@@ -488,12 +488,6 @@
 ; (equal-by length "abc" "xyz") => #t
 (equal-by (fn (f a b) (= (f a) (f b))))
 
-; group-by: Group elements by key function
-; (group-by even? '(1 2 3 4 5 6)) => ((2 4 6) (1 3 5))
-(group-by (fn (key-fn lst)
-              (let ((keys (nub (map key-fn lst))))
-                   (map (fn (k) (filter (fn (x) (eq? (key-fn x) k)) lst)) keys))))
-
 ; -- More function combinators --
 
 ; apply-n: Apply function n times to initial value (like repeat-fn but returns all intermediates)
@@ -538,57 +532,6 @@
 (neither (fn (p1 p2) (fn (x) (not (or (p1 x) (p2 x))))))
 
 ; -- More list utilities --
-
-; frequencies: Count occurrences of each element
-; (frequencies '(a b a c b a)) => ((a 3) (b 2) (c 1))
-(frequencies (fn (lst)
-                 (let ((unique (nub lst)))
-                      (map (fn (x) (list x (count-if (fn (y) (eq? x y)) lst))) unique))))
-
-; index-where: Find index of first element matching predicate, or #f
-; (index-where even? '(1 3 4 5)) => 2
-(index-where (fix index-where
-                  (fn (p lst)
-                      (let ((go (fix go
-                                     (fn (i xs)
-                                         (if (null? xs)
-                                             #f
-                                             (if (p (car xs))
-                                                 i
-                                                 (go (+ i 1) (cdr xs))))))))
-                           (go 0 lst)))))
-
-; indices-where: Find all indices of elements matching predicate
-; (indices-where even? '(1 2 3 4 5 6)) => (1 3 5)
-(indices-where (fn (p lst)
-                   (map-maybe (fn (pair) (if (p (cdr pair)) (car pair) #f))
-                              (map-indexed (fn (i x) (cons i x)) lst))))
-
-; last-where: Find last element matching predicate
-; (last-where even? '(1 2 3 4 5)) => 4
-(last-where (fn (p lst)
-                (foldr (fn (x acc) (if (and (not acc) (p x)) x acc)) #f lst)))
-
-; update-at: Update element at index with function
-; (update-at 1 inc '(1 2 3)) => (1 3 3)
-(update-at (fn (idx f lst)
-               (map-indexed (fn (i x) (if (= i idx) (f x) x)) lst)))
-
-; insert-at: Insert element at index
-; (insert-at 1 'x '(a b c)) => (a x b c)
-(insert-at (fix insert-at
-                (fn (idx elem lst)
-                    (if (= idx 0)
-                        (cons elem lst)
-                        (if (null? lst)
-                            (list elem)
-                            (cons (car lst) (insert-at (- idx 1) elem (cdr lst))))))))
-
-; remove-at: Remove element at index
-; (remove-at 1 '(a b c)) => (a c)
-(remove-at (fn (idx lst)
-               (map-maybe (fn (pair) (if (= (car pair) idx) #f (cdr pair)))
-                          (map-indexed (fn (i x) (cons i x)) lst))))
 
 ; -- String higher-order functions --
 
@@ -715,69 +658,7 @@
 
 ; -- Set operations (lists as sets) --
 
-; union: Combine two lists, removing duplicates
-; (union '(1 2 3) '(2 3 4)) => (1 2 3 4)
-(union (fn (xs ys)
-           (nub (append xs ys))))
-
-; intersection: Elements in both lists
-; (intersection '(1 2 3) '(2 3 4)) => (2 3)
-(intersection (fn (xs ys)
-                  (filter (fn (x) (elem? x ys)) xs)))
-
-; difference: Elements in first list but not second
-; (difference '(1 2 3) '(2 3 4)) => (1)
-(difference (fn (xs ys)
-                (filter (fn (x) (not (elem? x ys))) xs)))
-
-; symmetric-difference: Elements in either list but not both
-; (symmetric-difference '(1 2 3) '(2 3 4)) => (1 4)
-(symmetric-difference (fn (xs ys)
-                          (append (difference xs ys) (difference ys xs))))
-
-; subset?: Check if first list is subset of second
-; (subset? '(1 2) '(1 2 3)) => #t
-(subset? (fn (xs ys)
-             (all (fn (x) (elem? x ys)) xs)))
-
-; disjoint?: Check if lists have no common elements
-; (disjoint? '(1 2) '(3 4)) => #t
-(disjoint? (fn (xs ys)
-               (null? (intersection xs ys))))
-
 ; -- Association list utilities --
-
-; alist-map: Apply function to all values in alist
-; (alist-map inc '((a . 1) (b . 2))) => ((a . 2) (b . 3))
-(alist-map (fn (f alist)
-               (map (fn (pair) (cons (car pair) (f (cdr pair)))) alist)))
-
-; alist-filter: Keep pairs where predicate holds on value
-; (alist-filter even? '((a . 1) (b . 2) (c . 3))) => ((b . 2))
-(alist-filter (fn (p alist)
-                  (filter (fn (pair) (p (cdr pair))) alist)))
-
-; alist-find: Find first pair where predicate holds on value
-(alist-find (fn (p alist)
-                (find-if (fn (pair) (p (cdr pair))) alist)))
-
-; alist-update: Update value for key using function
-; (alist-update 'a inc '((a . 1) (b . 2))) => ((a . 2) (b . 2))
-(alist-update (fn (key f alist)
-                  (map (fn (pair)
-                           (if (eq? (car pair) key)
-                               (cons key (f (cdr pair)))
-                               pair))
-                       alist)))
-
-; alist-merge: Merge two alists (second takes precedence)
-; (alist-merge '((a . 1) (b . 2)) '((b . 3) (c . 4))) => ((a . 1) (b . 3) (c . 4))
-(alist-merge (fn (a1 a2)
-                 (let ((keys1 (map car a1))
-                       (keys2 (map car a2)))
-                      (append
-                       (filter (fn (pair) (not (elem? (car pair) keys2))) a1)
-                       a2))))
 
 ; alist-invert: Swap keys and values
 ; (alist-invert '((a . 1) (b . 2))) => ((1 . a) (2 . b))
@@ -867,20 +748,6 @@
                          (zip-with - (cdr lst) lst)))))
 
 ; -- List rotation and shuffling --
-
-; rotate-left: Rotate list left by n positions
-; (rotate-left 2 '(1 2 3 4 5)) => (3 4 5 1 2)
-(rotate-left (fn (n lst)
-                 (if (null? lst)
-                     '()
-                     (let ((len (length lst))
-                           (n-mod (mod n (length lst))))
-                          (append (drop lst n-mod) (take lst n-mod))))))
-
-; rotate-right: Rotate list right by n positions
-; (rotate-right 2 '(1 2 3 4 5)) => (4 5 1 2 3)
-(rotate-right (fn (n lst)
-                  (rotate-left (- (length lst) (mod n (length lst))) lst)))
 
 ; -- Predicate utilities --
 
@@ -1020,14 +887,6 @@
 
 ; -- Math utilities --
 
-; factorial: n! = 1 * 2 * ... * n
-; (factorial 5) => 120
-(factorial (fix factorial
-                (fn (n)
-                    (if (<= n 1)
-                        1
-                        (* n (factorial (- n 1)))))))
-
 ; fibonacci: nth Fibonacci number
 ; (fibonacci 10) => 55
 (fibonacci (fix fibonacci
@@ -1060,28 +919,6 @@
                                                    #f
                                                    (check (+ d 1))))))))
                           (check 2))))))
-
-; divisors: List all divisors of n
-; (divisors 12) => (1 2 3 4 6 12)
-(divisors (fn (n)
-              (filter (fn (d) (= 0 (mod n d)))
-                      (range 1 (+ n 1)))))
-
-; perfect?: Check if number equals sum of proper divisors
-; (perfect? 6) => #t (1+2+3=6)
-(perfect? (fn (n)
-              (= n (- (sum-list (divisors n)) n))))
-
-; pow-int: Integer exponentiation
-; (pow-int 2 10) => 1024
-(pow-int (fix pow-int
-              (fn (base exp)
-                  (if (= exp 0)
-                      1
-                      (if (even? exp)
-                          (let ((half (pow-int base (/ exp 2))))
-                               (* half half))
-                          (* base (pow-int base (- exp 1))))))))
 
 ; -- Validation utilities --
 
@@ -1118,18 +955,6 @@
                  (predicate val)))
 
 ; -- Logical utilities --
-
-; xor: Exclusive or of two booleans
-(xor (fn (a b)
-         (if a (not b) b)))
-
-; implies: Logical implication (a => b)
-(implies (fn (a b)
-             (if a b #t)))
-
-; iff: If and only if (biconditional)
-(iff (fn (a b)
-         (= a b)))
 
 ; -- More list utilities --
 
@@ -1221,14 +1046,6 @@
                   (map cdr alist)))
 
 ; -- More string utilities --
-
-; string-reverse: Reverse a string
-(string-reverse (fn (s)
-                    (list->string (reverse (string->list s)))))
-
-; string-empty?: Check if string is empty
-(string-empty? (fn (s)
-                   (= (string-length s) 0)))
 
 ; Note: string-contains? is a primitive (haystack needle) - uses Rust's contains()
 
@@ -1397,14 +1214,6 @@
 (append-map flat-map)
 
 ; -- Boolean utilities --
-
-; nand: Not and
-(nand (fn (a b)
-          (not (if a b #f))))
-
-; nor: Not or
-(nor (fn (a b)
-         (not (if a #t b))))
 
 ; -- More numeric utilities --
 
@@ -1659,30 +1468,8 @@
 ; product: Product of list (alias for product-list)
 (product product-list)
 
-; mean: Arithmetic mean
-(mean (fn (lst)
-          (if (null? lst)
-              0
-              (/ (sum-list lst) (length lst)))))
-
-; variance: Sample variance
-(variance (fn (lst)
-              (if (null? lst)
-                  0
-                  (let ((m (mean lst))
-                        (n (length lst)))
-                       (/ (sum-list (map (fn (x) (square (- x m))) lst))
-                          (- n 1))))))
-
-; median: Middle value (for sorted list)
-(median (fn (lst)
-            (if (null? lst)
-                0
-                (let ((n (length lst)))
-                     (let ((mid (/ n 2)))
-                          (if (even? n)
-                              (/ (+ (nth (- mid 1) lst) (nth mid lst)) 2)
-                              (nth mid lst)))))))
+; REMOVED: Duplicates now in stats.ss
+; mean, variance, median (lines 1663-1685)
 
 ; clamp-val: Clamp value to range [lo, hi]
 (clamp-val (fn (lo hi x)
@@ -2029,17 +1816,6 @@
                                   (rest (drop-while (fn (x) (eq? (f x) first-val)) lst)))
                                  (cons same (chunk-by f rest))))))))
 
-; split-when: Split list when predicate is true
-(split-when (fix split-when
-                 (fn (f lst)
-                     (if (null? lst)
-                         '(())
-                         (if (f (car lst))
-                             (cons '() (split-when f (cdr lst)))
-                             (let ((rest (split-when f (cdr lst))))
-                                  (cons (cons (car lst) (car rest))
-                                        (cdr rest))))))))
-
 ; before: Get elements before first match
 (before (fn (f lst)
             (car (span (complement f) lst))))
@@ -2259,48 +2035,7 @@
                             (iterate-while f continue? (f x))
                             x))))
 
-; iterate-n: Apply function n times
-(iterate-n (fix iterate-n
-                (fn (n f x)
-                    (if (<= n 0)
-                        x
-                        (iterate-n (- n 1) f (f x))))))
-
-; generate: Generate list using function and seed
-(generate (fix generate
-               (fn (n f seed)
-                   (if (<= n 0)
-                       '()
-                       (cons seed (generate (- n 1) f (f seed)))))))
-
-; unfold-right: Right unfold
-(unfold-right (fix unfold-right
-                   (fn (stop? f seed)
-                       (if (stop? seed)
-                           '()
-                           (snoc (unfold-right stop? f (f seed)) seed)))))
-
 ; -- Accumulator patterns --
-
-; scan-right: Right scan (like scanl but from right)
-(scan-right (fix scan-right
-                 (fn (f init lst)
-                     (if (null? lst)
-                         (list init)
-                         (let ((rest (scan-right f init (cdr lst))))
-                              (cons (f (car lst) (car rest)) rest))))))
-
-; running-max: Running maximum
-(running-max (fn (lst)
-                 (if (null? lst)
-                     '()
-                     (scanl max (car lst) (cdr lst)))))
-
-; running-min: Running minimum
-(running-min (fn (lst)
-                 (if (null? lst)
-                     '()
-                     (scanl min (car lst) (cdr lst)))))
 
 ; -- Conditional list builders --
 
@@ -2335,18 +2070,6 @@
                                                        (fib-helper (- n 1) b (+ a b) (cons a acc)))))))
                              (fib-helper n 0 1 '()))))
 
-; primes-up-to: Generate primes up to n using sieve
-(primes-up-to (fn (n)
-                  (let ((sieve (fix sieve
-                                    (fn (candidates)
-                                        (if (null? candidates)
-                                            '()
-                                            (let ((p (car candidates)))
-                                                 (cons p
-                                                       (sieve (filter (fn (x) (not (= 0 (mod x p))))
-                                                                      (cdr candidates))))))))))
-                       (sieve (range 2 (+ n 1))))))
-
 ; -- List searching --
 
 ; find-all: Find all elements matching predicate
@@ -2368,33 +2091,6 @@
 ; string-repeat-fn: Repeat string n times
 (string-repeat-fn (fn (n s)
                       (string-repeat s n)))
-
-; string-pad-left: Pad string on left to width
-(string-pad-left (fn (width pad-char s)
-                     (let ((len (string-length s)))
-                          (if (>= len width)
-                              s
-                              (string-append (make-string (- width len) pad-char) s)))))
-
-; string-pad-right: Pad string on right to width
-(string-pad-right (fn (width pad-char s)
-                      (let ((len (string-length s)))
-                           (if (>= len width)
-                               s
-                               (string-append s (make-string (- width len) pad-char))))))
-
-; string-center-fn: Center string to width
-(string-center-fn (fn (width pad-char s)
-                      (let ((len (string-length s)))
-                           (if (>= len width)
-                               s
-                               (let ((total-pad (- width len)))
-                                    (let ((left-pad (/ total-pad 2)))
-                                         (let ((right-pad (- total-pad left-pad)))
-                                              (string-append
-                                               (make-string left-pad pad-char)
-                                               s
-                                               (make-string right-pad pad-char)))))))))
 
 ; -- Safe operations --
 
@@ -2625,63 +2321,9 @@
 
 ; -- Statistics utilities --
 
-; percentile: Get nth percentile of list
-(percentile (fn (p lst)
-                (let ((sorted (sort lst)))
-                     (let ((idx (/ (* p (- (length sorted) 1)) 100)))
-                          (list-ref sorted idx)))))
-
-; quartiles: Get Q1, Q2 (median), Q3
-(quartiles (fn (lst)
-               (list (percentile 25 lst)
-                     (percentile 50 lst)
-                     (percentile 75 lst))))
-
-; interquartile-range: Q3 - Q1
-(interquartile-range (fn (lst)
-                         (let ((qs (quartiles lst)))
-                              (- (caddr qs) (car qs)))))
-
-; z-score: Calculate z-score of value
-(z-score (fn (x lst)
-             (let ((m (mean lst)))
-                  (let ((std (sqrt (variance lst))))
-                       (if (= std 0) 0 (/ (- x m) std))))))
-
-; normalize-list: Normalize list to [0, 1] range
-(normalize-list (fn (lst)
-                    (let ((mn (apply min lst))
-                          (mx (apply max lst)))
-                         (let ((range (- mx mn)))
-                              (if (= range 0)
-                                  (replicate (length lst) 0)
-                                  (map (fn (x) (/ (- x mn) range)) lst))))))
-
-; standardize: Standardize list (z-scores)
-(standardize (fn (lst)
-                 (let ((m (mean lst)))
-                      (let ((std (sqrt (variance lst))))
-                           (if (= std 0)
-                               (replicate (length lst) 0)
-                               (map (fn (x) (/ (- x m) std)) lst))))))
-
-; covariance: Calculate covariance of two lists
-(covariance (fn (xs ys)
-                (let ((mx (mean xs))
-                      (my (mean ys))
-                      (n (length xs)))
-                     (/ (sum-list (zip-with * (map (fn (x) (- x mx)) xs)
-                                            (map (fn (y) (- y my)) ys)))
-                        (- n 1)))))
-
-; correlation: Calculate Pearson correlation coefficient
-(correlation (fn (xs ys)
-                 (let ((cov (covariance xs ys))
-                       (sx (sqrt (variance xs)))
-                       (sy (sqrt (variance ys))))
-                      (if (or (= sx 0) (= sy 0))
-                          0
-                          (/ cov (* sx sy))))))
+; REMOVED: Duplicates now in stats.ss
+; percentile, quartiles, interquartile-range, z-score, normalize-list,
+; standardize, covariance, correlation (lines 2607-2662)
 
 ; -- Matrix operations (lists of lists) --
 
@@ -2947,25 +2589,6 @@
 ; set-to-list: Convert set to list
 (set-to-list id)
 
-; set-union: Union of two sets
-(set-union union)
-
-; set-intersection: Intersection of two sets
-(set-intersection intersection)
-
-; set-difference: Difference of two sets
-(set-difference difference)
-
-; set-symmetric-difference: Symmetric difference
-(set-symmetric-difference symmetric-difference)
-
-; set-subset?: Check if s1 is subset of s2
-(set-subset? subset?)
-
-; set-equal?: Check if two sets have same elements
-(set-equal? (fn (s1 s2)
-                (and (set-subset? s1 s2) (set-subset? s2 s1))))
-
 ; ============================================
 ; More Numeric Utilities
 ; ============================================
@@ -2995,64 +2618,9 @@
                                (mod (+ (cadr result) m) m)
                                #f)))))
 
-; coprime?: Check if two numbers are coprime
-(coprime? (fn (a b) (= (gcd a b) 1)))
-
-; totient: Euler's totient function (count of coprimes less than n)
-(totient (fn (n)
-             (length (filter (fn (k) (coprime? k n)) (iota n 1)))))
-
-; digits: Get list of digits of a number
-(digits (fix digits
-             (fn (n)
-                 (if (< n 10)
-                     (list n)
-                     (append (digits (/ n 10)) (list (mod n 10)))))))
-
-; from-digits: Convert list of digits to number
-(from-digits (fn (ds)
-                 (foldl (fn (acc d) (+ (* acc 10) d)) 0 ds)))
-
-; digit-sum: Sum of digits
-(digit-sum (fn (n) (sum-list (digits n))))
-
-; digit-count: Number of digits
-(digit-count (fn (n) (length (digits n))))
-
-; reverse-number: Reverse digits of a number
-(reverse-number (fn (n) (from-digits (reverse (digits n)))))
-
-; palindrome-number?: Check if number is a palindrome
-(palindrome-number? (fn (n) (= n (reverse-number n))))
-
-; is-power-of-2?: Check if n is a power of 2
-(is-power-of-2? (fn (n)
-                    (and (> n 0) (= (mod n 2) 0) (or (= n 1) (is-power-of-2? (/ n 2))))))
-
-; next-power-of-2: Find next power of 2 >= n
-(next-power-of-2 (fix next-power-of-2
-                      (fn (n)
-                          (if (<= n 1) 1
-                              (let ((helper (fix helper
-                                                 (fn (p) (if (>= p n) p (helper (* p 2)))))))
-                                   (helper 1))))))
-
-; log2-int: Integer log base 2 (floor)
-(log2-int (fix log2-int
-               (fn (n)
-                   (if (<= n 1) 0 (+ 1 (log2-int (/ n 2)))))))
-
 ; ============================================
 ; Combinatorics
 ; ============================================
-
-; binomial: Binomial coefficient (n choose k)
-(binomial (fn (n k)
-              (if (or (< k 0) (> k n))
-                  0
-                  (if (or (= k 0) (= k n))
-                      1
-                      (/ (factorial n) (* (factorial k) (factorial (- n k))))))))
 
 ; permutations-count: Number of permutations P(n,k)
 (permutations-count (fn (n k)
@@ -3087,40 +2655,6 @@
 ; ============================================
 ; More List Utilities
 ; ============================================
-
-; cartesian-product: Cartesian product of two lists
-(cartesian-product (fn (xs ys)
-                       (concat (map (fn (x) (map (fn (y) (list x y)) ys)) xs))))
-
-; power-set: All subsets of a list
-(power-set (fix power-set
-                (fn (lst)
-                    (if (null? lst)
-                        (list '())
-                        (let ((rest (power-set (cdr lst))))
-                             (append rest (map (fn (s) (cons (car lst) s)) rest)))))))
-
-; permutations: All permutations of a list
-(permutations (fix permutations
-                   (fn (lst)
-                       (if (null? lst)
-                           (list '())
-                           (concat (map (fn (x)
-                                            (map (fn (p) (cons x p))
-                                                 (permutations (remove x lst))))
-                                        lst))))))
-
-; combinations: All k-combinations of a list
-(combinations (fix combinations
-                   (fn (k lst)
-                       (if (= k 0)
-                           (list '())
-                           (if (null? lst)
-                               '()
-                               (append
-                                (map (fn (c) (cons (car lst) c))
-                                     (combinations (- k 1) (cdr lst)))
-                                (combinations k (cdr lst))))))))
 
 ; list-product: Cartesian product of list of lists
 (list-product (fix list-product
@@ -3158,16 +2692,10 @@
 
 ; mode: Most frequent element
 ; frequencies returns ((elem count) ...), so use cadr to get count
-(mode (fn (lst)
-          (let ((freqs (frequencies lst)))
-               (car (max-by cadr freqs)))))
+; REMOVED: mode (duplicate, now in stats.ss)
 
 ; majority: Element appearing more than n/2 times (or #f)
-(majority (fn (lst)
-              (let ((n (length lst))
-                    (freqs (frequencies lst)))
-                   (let ((candidates (filter (fn (p) (> (cadr p) (/ n 2))) freqs)))
-                        (if (null? candidates) #f (caar candidates))))))
+; REMOVED: majority (duplicate, now in stats.ss)
 
 ; ============================================
 ; String Utilities (additional)
@@ -3263,17 +2791,9 @@
 ; cubes: Generate cube numbers
 (cubes (fn (n) (map (fn (x) (* x x x)) (iota n 0))))
 
-; powers-of: Generate powers of base
-(powers-of (fn (base n)
-               (map (fn (i) (pow-int base i)) (iota n 0))))
-
 ; factorials-up-to: Generate factorials up to n!
 (factorials-up-to (fn (n)
                       (map factorial (iota (+ n 1) 0))))
-
-; triangular-numbers: Generate triangular numbers
-(triangular-numbers (fn (n)
-                        (map triangular (iota n 1))))
 
 ; ============================================
 ; Reduction Utilities
@@ -3458,67 +2978,8 @@
 (graph-add-vertex (fn (g v)
                       (if (dict-has? g v) g (dict-set g v '()))))
 
-; graph-add-edge: Add directed edge from u to v
-(graph-add-edge (fn (g u v)
-                    (let ((g1 (graph-add-vertex g u)))
-                         (let ((g2 (graph-add-vertex g1 v)))
-                              (let ((neighbors (dict-get g2 u '())))
-                                   (if (member? v neighbors)
-                                       g2
-                                       (dict-set g2 u (cons v neighbors))))))))
-
-; graph-add-undirected-edge: Add undirected edge
-(graph-add-undirected-edge (fn (g u v)
-                               (graph-add-edge (graph-add-edge g u v) v u)))
-
-; graph-neighbors: Get neighbors of vertex
-(graph-neighbors (fn (g v)
-                     (dict-get g v '())))
-
 ; graph-vertices: Get all vertices
 (graph-vertices dict-keys)
-
-; graph-has-edge?: Check if edge exists
-(graph-has-edge? (fn (g u v)
-                     (member? v (graph-neighbors g u))))
-
-; graph-degree: Get degree of vertex
-(graph-degree (fn (g v)
-                  (length (graph-neighbors g v))))
-
-; graph-bfs: Breadth-first search from start (returns list of visited vertices)
-(graph-bfs (fix graph-bfs
-                (fn (g start)
-                    (let ((bfs-helper (fix bfs-helper
-                                           (fn (queue visited)
-                                               (if (null? queue)
-                                                   (reverse visited)
-                                                   (let ((current (car queue))
-                                                         (rest-queue (cdr queue)))
-                                                        (if (member? current visited)
-                                                            (bfs-helper rest-queue visited)
-                                                            (let ((neighbors (filter (fn (n) (not (member? n visited)))
-                                                                                     (graph-neighbors g current))))
-                                                                 (bfs-helper (append rest-queue neighbors)
-                                                                             (cons current visited))))))))))
-                         (bfs-helper (list start) '())))))
-
-; graph-dfs: Depth-first search from start
-(graph-dfs (fix graph-dfs
-                (fn (g start)
-                    (let ((dfs-helper (fix dfs-helper
-                                           (fn (stack visited)
-                                               (if (null? stack)
-                                                   (reverse visited)
-                                                   (let ((current (car stack))
-                                                         (rest-stack (cdr stack)))
-                                                        (if (member? current visited)
-                                                            (dfs-helper rest-stack visited)
-                                                            (let ((neighbors (filter (fn (n) (not (member? n visited)))
-                                                                                     (graph-neighbors g current))))
-                                                                 (dfs-helper (append neighbors rest-stack)
-                                                                             (cons current visited))))))))))
-                         (dfs-helper (list start) '())))))
 
 ; graph-path-exists?: Check if path exists from u to v
 (graph-path-exists? (fn (g u v)
@@ -4371,35 +3832,6 @@
 ; chars-string: Convert list of characters to string
 (chars-string list->string)
 
-; string-empty?: Check if string is empty
-(string-empty? (fn (s) (= (string-length s) 0)))
-
-; string-first: Get first character of string
-(string-first (fn (s)
-                  (if (string-empty? s) #f (string-ref s 0))))
-
-; string-last: Get last character of string
-(string-last (fn (s)
-                 (if (string-empty? s) #f (string-ref s (- (string-length s) 1)))))
-
-; string-take: Take first n characters
-(string-take (fn (n s)
-                 (substring s 0 (min n (string-length s)))))
-
-; string-drop: Drop first n characters
-(string-drop (fn (n s)
-                 (substring s (min n (string-length s)) (string-length s))))
-
-; string-take-right: Take last n characters
-(string-take-right (fn (n s)
-                       (let ((len (string-length s)))
-                            (substring s (max 0 (- len n)) len))))
-
-; string-drop-right: Drop last n characters
-(string-drop-right (fn (n s)
-                       (let ((len (string-length s)))
-                            (substring s 0 (max 0 (- len n))))))
-
 ; string-contains?: Check if haystack contains needle
 (string-contains? (fn (haystack needle)
                       (let ((needle-len (string-length needle))
@@ -4485,11 +3917,11 @@
                    (ok #t)
                    (err (list 'assertion-failed 'expected expected 'got actual)))))
 
-; ensure: Ensure condition, return value or error
-(ensure (fn (p value msg)
-            (if (p value)
-                (ok value)
-                (err msg))))
+; ensure-result: Ensure condition, return result type (ok value) or (err msg)
+(ensure-result (fn (p value msg)
+                   (if (p value)
+                       (ok value)
+                       (err msg))))
 
 ; coerce: Try to coerce value, return default on failure
 (coerce (fn (f default value)
@@ -4499,11 +3931,6 @@
 ; ============================================
 ; More Numeric Utilities
 ; ============================================
-
-; factorial: Compute n!
-(factorial (fix factorial
-                (fn (n)
-                    (if (<= n 1) 1 (* n (factorial (- n 1)))))))
 
 ; fibonacci: Compute nth Fibonacci number
 (fibonacci (fix fibonacci
@@ -4526,11 +3953,6 @@
                                                            #f
                                                            (checker (+ i 6))))))))
                                 (checker 5)))))))
-
-; divisors: Get all divisors of n
-(divisors (fn (n)
-              (filter (fn (d) (= 0 (remainder n d)))
-                      (range 1 (+ n 1)))))
 
 ; proper-divisors: Get divisors of n excluding n itself
 (proper-divisors (fn (n)
@@ -4657,14 +4079,6 @@
 ; Association List Utilities (Extended)
 ; ============================================
 
-; alist-map: Map over alist values
-(alist-map (fn (f alist)
-               (map (fn (pair) (cons (car pair) (f (cdr pair)))) alist)))
-
-; alist-filter: Filter alist by predicate on pairs
-(alist-filter (fn (p alist)
-                  (filter p alist)))
-
 ; alist-filter-keys: Filter alist by predicate on keys
 (alist-filter-keys (fn (p alist)
                        (filter (fn (pair) (p (car pair))) alist)))
@@ -4685,17 +4099,10 @@
 (alist-has-key? (fn (key alist)
                     (not (not (assoc key alist)))))
 
-; alist-update: Update value at key with function
-(alist-update (fn (key f default alist)
-                  (let ((current (assoc-ref key alist)))
-                       (assoc-set key (f (if current current default)) alist))))
-
-; alist-merge: Merge two alists (second takes precedence)
-(alist-merge (fn (a1 a2)
-                 (foldl (fn (acc pair)
-                            (assoc-set (car pair) (cdr pair) acc))
-                        a1
-                        a2)))
+; alist-update-with-default: Update value at key with function
+(alist-update-with-default (fn (key f default alist)
+                               (let ((current (assoc-ref key alist)))
+                                    (assoc-set key (f (if current current default)) alist))))
 
 ; ============================================
 ; Validation/Predicate Utilities (Extended)
@@ -4758,14 +4165,6 @@
                (let ((vi (list-ref lst i))
                      (vj (list-ref lst j)))
                     (list-set (list-set lst i vj) j vi))))
-
-; group-by-key: Group list elements by key function
-(group-by-key (fn (key-fn lst)
-                  (foldl (fn (acc x)
-                             (let ((k (key-fn x)))
-                                  (alist-update k (fn (group) (cons x group)) '() acc)))
-                         '()
-                         lst)))
 
 ; partition-by: Partition list by predicate into (pass fail)
 (partition-by (fn (p lst)
@@ -4951,32 +4350,6 @@
 ; Additional String Utilities
 ; ============================================
 
-; string-pad-left: Pad string on left to reach length (pad-char must be a char like #\space)
-(string-pad-left (fn (s len pad-char)
-                     (let ((slen (string-length s)))
-                          (if (>= slen len)
-                              s
-                              (string-append (make-string (- len slen) pad-char) s)))))
-
-; string-pad-right: Pad string on right to reach length (pad-char must be a char)
-(string-pad-right (fn (s len pad-char)
-                      (let ((slen (string-length s)))
-                           (if (>= slen len)
-                               s
-                               (string-append s (make-string (- len slen) pad-char))))))
-
-; string-center: Center string in field of given length (pad-char must be a char)
-(string-center (fn (s len pad-char)
-                   (let ((slen (string-length s)))
-                        (if (>= slen len)
-                            s
-                            (let ((total-pad (- len slen)))
-                                 (let ((left-pad (quotient total-pad 2))
-                                       (right-pad (- total-pad (quotient total-pad 2))))
-                                      (string-append (make-string left-pad pad-char)
-                                                     s
-                                                     (make-string right-pad pad-char))))))))
-
 ; string-repeat: Repeat string n times
 (string-repeat (fn (s n)
                    (let ((builder (fix builder
@@ -5007,14 +4380,6 @@
                (if (null? lst)
                    (list init)
                    (cons init (scan f (f init (car lst)) (cdr lst)))))))
-
-; scan-right: Like foldr but collects all intermediate results
-(scan-right (fix scan-right
-                 (fn (f init lst)
-                     (if (null? lst)
-                         (list init)
-                         (let ((rest-scan (scan-right f init (cdr lst))))
-                              (cons (f (car lst) (car rest-scan)) rest-scan))))))
 
 ; windows: Sliding windows of size n
 (windows (fn (n lst)
@@ -5056,63 +4421,25 @@
 ; ============================================
 
 ; mean: Arithmetic mean of list
-(mean (fn (lst)
-          (if (null? lst)
-              0
-              (/ (sum-list lst) (length lst)))))
+; REMOVED: mean (duplicate, now in stats.ss)
 
 ; median: Median of list
-(median (fn (lst)
-            (if (null? lst)
-                #f
-                (let ((sorted (quicksort lst))
-                      (n (length lst)))
-                     (if (odd? n)
-                         (list-ref sorted (quotient n 2))
-                         (/ (+ (list-ref sorted (- (quotient n 2) 1))
-                               (list-ref sorted (quotient n 2)))
-                            2))))))
+; REMOVED: median (duplicate, now in stats.ss)
 
 ; mode: Most frequent element
-(mode (fn (lst)
-          (if (null? lst)
-              #f
-              (let ((freqs (frequencies lst)))
-                   (car (foldl (fn (best pair)
-                                   (if (> (cdr pair) (cdr best))
-                                       pair
-                                       best))
-                               (car freqs)
-                               (cdr freqs)))))))
+; REMOVED: mode (duplicate, now in stats.ss)
 
 ; variance: Population variance
-(variance (fn (lst)
-              (if (or (null? lst) (null? (cdr lst)))
-                  0
-                  (let ((m (mean lst)))
-                       (mean (map (fn (x) (sq (- x m))) lst))))))
+; REMOVED: variance (duplicate, now in stats.ss)
 
 ; std-dev: Standard deviation
-(std-dev (fn (lst)
-             (sqrt (variance lst))))
+; REMOVED: std-dev (duplicate, now in stats.ss)
 
 ; normalize-list: Normalize list to [0, 1] range
-(normalize-list (fn (lst)
-                    (if (null? lst)
-                        '()
-                        (let ((lo (apply min lst))
-                              (hi (apply max lst)))
-                             (if (= lo hi)
-                                 (map (const 0.5) lst)
-                                 (map (fn (x) (/ (- x lo) (- hi lo))) lst))))))
+; REMOVED: normalize-list (duplicate, now in stats.ss)
 
-; z-score: Convert to z-scores (standard scores)
-(z-score (fn (lst)
-             (let ((m (mean lst))
-                   (sd (std-dev lst)))
-                  (if (= sd 0)
-                      (map (const 0) lst)
-                      (map (fn (x) (/ (- x m) sd)) lst)))))
+; z-scores: Convert list to z-scores (standard scores for all elements)
+; REMOVED: z-scores (duplicate, now in stats.ss)
 
 ; ============================================
 ; Bitwise Operation Wrappers
@@ -5223,9 +4550,9 @@
         (fn (x y)
             (f (g x) (g y)))))
 
-; both: Apply same function to both elements of a pair
-(both (fn (f pair)
-          (cons (f (car pair)) (f (cdr pair)))))
+; map-pair: Apply same function to both elements of a pair
+(map-pair (fn (f pair)
+              (cons (f (car pair)) (f (cdr pair)))))
 
 ; ============================================
 ; Currying and Partial Application
@@ -5286,15 +4613,6 @@
 ; ============================================
 ; Iteration Utilities
 ; ============================================
-
-; iterate-n: Apply function n times, return final result
-(iterate-n (fn (f n x)
-               (let ((iter (fix iter
-                                (fn (i acc)
-                                    (if (= i 0)
-                                        acc
-                                        (iter (- i 1) (f acc)))))))
-                    (iter n x))))
 
 ; iterate-until: Apply function until predicate is true
 (iterate-until (fn (f pred x)
@@ -5358,36 +4676,6 @@
 ; substitute: Replace old value with new value
 (substitute (fn (old new lst)
                 (map (fn (x) (if (eq? x old) new x)) lst)))
-
-; split-when: Split list when predicate becomes true
-(split-when (fn (p lst)
-                (let ((helper (fix helper
-                                   (fn (lst current groups)
-                                       (if (null? lst)
-                                           (if (null? current)
-                                               (reverse groups)
-                                               (reverse (cons (reverse current) groups)))
-                                           (if (p (car lst))
-                                               (helper (cdr lst)
-                                                       (list (car lst))
-                                                       (if (null? current)
-                                                           groups
-                                                           (cons (reverse current) groups)))
-                                               (helper (cdr lst)
-                                                       (cons (car lst) current)
-                                                       groups)))))))
-                     (helper lst '() '()))))
-
-; interleave: Interleave elements from two lists
-(interleave (fix interleave
-                 (fn (xs ys)
-                     (if (null? xs)
-                         ys
-                         (if (null? ys)
-                             xs
-                             (cons (car xs)
-                                   (cons (car ys)
-                                         (interleave (cdr xs) (cdr ys)))))))))
 
 ; ============================================
 ; Numeric Range Utilities
@@ -5474,15 +4762,6 @@
 ; Mathematical Utilities
 ; ============================================
 
-; factorial: Compute n!
-(factorial (fn (n)
-               (let ((fact (fix fact
-                                (fn (n acc)
-                                    (if (<= n 1)
-                                        acc
-                                        (fact (- n 1) (* n acc)))))))
-                    (fact n 1))))
-
 ; fibonacci: Compute nth Fibonacci number
 (fibonacci (fn (n)
                (let ((fib (fix fib
@@ -5509,19 +4788,6 @@
                                                       (check (+ i 6))))))))
                              (check 5)))))))
 
-; divisors: Get all divisors of n
-(divisors (fn (n)
-              (let ((find-divs (fix find-divs
-                                    (fn (i acc)
-                                        (if (> (* i i) n)
-                                            acc
-                                            (if (= 0 (mod n i))
-                                                (if (= i (/ n i))
-                                                    (find-divs (+ i 1) (cons i acc))
-                                                    (find-divs (+ i 1) (cons (/ n i) (cons i acc))))
-                                                (find-divs (+ i 1) acc)))))))
-                   (sort (find-divs 1 '())))))
-
 ; sum-range: Sum of integers from a to b
 (sum-range (fn (a b)
                (* (/ (+ (- b a) 1) 2) (+ a b))))
@@ -5534,14 +4800,6 @@
                                             acc
                                             (prod (+ i 1) (* acc i)))))))
                         (prod a 1))))
-
-; binomial: Binomial coefficient (n choose k)
-(binomial (fn (n k)
-              (if (or (< k 0) (> k n))
-                  0
-                  (if (or (= k 0) (= k n))
-                      1
-                      (/ (product-range (+ (- n k) 1) n) (factorial k))))))
 
 ; ============================================
 ; More List Utilities
@@ -5571,17 +4829,6 @@
 (find-last (fn (p lst)
                (foldl (fn (acc x) (if (p x) x acc)) #f lst)))
 
-; index-where: Find index of first element satisfying predicate
-(index-where (fn (p lst)
-                 (let ((finder (fix finder
-                                    (fn (lst i)
-                                        (if (null? lst)
-                                            -1
-                                            (if (p (car lst))
-                                                i
-                                                (finder (cdr lst) (+ i 1))))))))
-                      (finder lst 0))))
-
 ; last-index-where: Find index of last element satisfying predicate
 (last-index-where (fn (p lst)
                       (let ((finder (fix finder
@@ -5590,16 +4837,6 @@
                                                  last-found
                                                  (finder (cdr lst) (+ i 1) (if (p (car lst)) i last-found)))))))
                            (finder lst 0 -1))))
-
-; indices-where: Find all indices satisfying predicate
-(indices-where (fn (p lst)
-                   (let ((finder (fix finder
-                                      (fn (lst i acc)
-                                          (if (null? lst)
-                                              (reverse acc)
-                                              (finder (cdr lst) (+ i 1)
-                                                      (if (p (car lst)) (cons i acc) acc)))))))
-                        (finder lst 0 '()))))
 
 ; take-last: Take last n elements
 (take-last (fn (n lst)
@@ -5615,47 +4852,9 @@
                         lst
                         (take lst (max 0 (- len n)))))))
 
-; insert-at: Insert element at index
-(insert-at (fn (idx elem lst)
-               (if (<= idx 0)
-                   (cons elem lst)
-                   (if (null? lst)
-                       (list elem)
-                       (cons (car lst) (insert-at (- idx 1) elem (cdr lst)))))))
-
-; remove-at: Remove element at index
-(remove-at (fn (idx lst)
-               (if (null? lst)
-                   '()
-                   (if (= idx 0)
-                       (cdr lst)
-                       (cons (car lst) (remove-at (- idx 1) (cdr lst)))))))
-
-; update-at: Update element at index
-(update-at (fn (idx f lst)
-               (if (null? lst)
-                   '()
-                   (if (= idx 0)
-                       (cons (f (car lst)) (cdr lst))
-                       (cons (car lst) (update-at (- idx 1) f (cdr lst)))))))
-
 ; set-at: Set element at index
 (set-at (fn (idx val lst)
             (update-at idx (const val) lst)))
-
-; rotate-left: Rotate list left by n positions
-(rotate-left (fn (n lst)
-                 (if (or (null? lst) (<= n 0))
-                     lst
-                     (let ((len (length lst)))
-                          (let ((n-mod (mod n len)))
-                               (append (drop lst n-mod) (take lst n-mod)))))))
-
-; rotate-right: Rotate list right by n positions
-(rotate-right (fn (n lst)
-                  (if (or (null? lst) (<= n 0))
-                      lst
-                      (rotate-left (- (length lst) (mod n (length lst))) lst))))
 
 ; ============================================
 ; String Utilities (Extended)
@@ -5669,35 +4868,6 @@
                                                acc
                                                (builder (- i 1) (string-append acc s)))))))
                         (builder n ""))))
-
-; string-reverse: Reverse a string
-(string-reverse (fn (s)
-                    (list->string (reverse (string->list s)))))
-
-; string-take: Take first n characters
-(string-take (fn (n s)
-                 (substring s 0 (min n (string-length s)))))
-
-; string-drop: Drop first n characters
-(string-drop (fn (n s)
-                 (let ((len (string-length s)))
-                      (if (>= n len)
-                          ""
-                          (substring s n len)))))
-
-; string-take-right: Take last n characters
-(string-take-right (fn (s n)
-                       (let ((len (string-length s)))
-                            (if (>= n len)
-                                s
-                                (substring s (- len n) len)))))
-
-; string-drop-right: Drop last n characters
-(string-drop-right (fn (s n)
-                       (let ((len (string-length s)))
-                            (if (>= n len)
-                                ""
-                                (substring s 0 (- len n))))))
 
 ; string-trim-left: Remove leading whitespace
 (string-trim-left (fn (s)
@@ -5720,10 +4890,6 @@
 ; string-trim: Remove leading and trailing whitespace
 (string-trim (fn (s)
                  (string-trim-left (string-trim-right s))))
-
-; string-empty?: Check if string is empty
-(string-empty? (fn (s)
-                   (= (string-length s) 0)))
 
 ; string-blank?: Check if string is empty or only whitespace
 (string-blank? (fn (s)
@@ -5804,30 +4970,6 @@
 (set-remove (fn (x set)
                 (filter (fn (y) (not (eq? x y))) set)))
 
-; set-union: Union of two sets
-(set-union (fn (s1 s2)
-               (set-from-list (append s1 s2))))
-
-; set-intersection: Intersection of two sets
-(set-intersection (fn (s1 s2)
-                      (filter (fn (x) (member? x s2)) s1)))
-
-; set-difference: Elements in s1 but not s2
-(set-difference (fn (s1 s2)
-                    (filter (fn (x) (not (member? x s2))) s1)))
-
-; set-symmetric-difference: Elements in exactly one set
-(set-symmetric-difference (fn (s1 s2)
-                              (set-union (set-difference s1 s2) (set-difference s2 s1))))
-
-; set-subset?: Check if s1 is subset of s2
-(set-subset? (fn (s1 s2)
-                 (all (fn (x) (member? x s2)) s1)))
-
-; set-equal?: Check if two sets are equal
-(set-equal? (fn (s1 s2)
-                (and (set-subset? s1 s2) (set-subset? s2 s1))))
-
 ; set-empty?: Check if set is empty
 (set-empty? (fn (set)
                 (null? set)))
@@ -5907,26 +5049,6 @@
 (graph-nodes (fn (graph)
                  (map car graph)))
 
-; graph-neighbors: Get neighbors of node
-(graph-neighbors (fn (node graph)
-                     (let ((entry (assoc node graph)))
-                          (if entry (cdr entry) '()))))
-
-; graph-has-edge?: Check if edge exists
-(graph-has-edge? (fn (from to graph)
-                     (member? to (graph-neighbors from graph))))
-
-; graph-add-edge: Add directed edge
-(graph-add-edge (fn (from to graph)
-                    (let ((entry (assoc from graph)))
-                         (if entry
-                             (map (fn (pair)
-                                      (if (eq? (car pair) from)
-                                          (cons from (set-add to (cdr pair)))
-                                          pair))
-                                  graph)
-                             (cons (cons from (list to)) graph)))))
-
 ; graph-remove-edge: Remove directed edge
 (graph-remove-edge (fn (from to graph)
                        (map (fn (pair)
@@ -5944,36 +5066,6 @@
                                      (cdr pair)))
                           '()
                           graph)))
-
-; graph-bfs: Breadth-first search, return visited nodes in order
-(graph-bfs (fn (start graph)
-               (let ((bfs-loop (fix bfs-loop
-                                    (fn (queue visited)
-                                        (if (null? queue)
-                                            (reverse visited)
-                                            (let ((current (car queue))
-                                                  (rest-queue (cdr queue)))
-                                                 (if (member? current visited)
-                                                     (bfs-loop rest-queue visited)
-                                                     (let ((neighbors (graph-neighbors current graph)))
-                                                          (bfs-loop (append rest-queue neighbors)
-                                                                    (cons current visited))))))))))
-                    (bfs-loop (list start) '()))))
-
-; graph-dfs: Depth-first search, return visited nodes in order
-(graph-dfs (fn (start graph)
-               (let ((dfs-loop (fix dfs-loop
-                                    (fn (stack visited)
-                                        (if (null? stack)
-                                            (reverse visited)
-                                            (let ((current (car stack))
-                                                  (rest-stack (cdr stack)))
-                                                 (if (member? current visited)
-                                                     (dfs-loop rest-stack visited)
-                                                     (let ((neighbors (graph-neighbors current graph)))
-                                                          (dfs-loop (append neighbors rest-stack)
-                                                                    (cons current visited))))))))))
-                    (dfs-loop (list start) '()))))
 
 ; ============================================
 ; More Numeric Utilities
@@ -5999,32 +5091,6 @@
 (mod-positive (fn (a b)
                   (let ((r (mod a b)))
                        (if (< r 0) (+ r (abs b)) r))))
-
-; is-power-of-2?: Check if n is a power of 2
-(is-power-of-2? (fn (n)
-                    (and (> n 0) (= 0 (bit-and n (- n 1))))))
-
-; next-power-of-2: Find smallest power of 2 >= n
-(next-power-of-2 (fn (n)
-                     (if (<= n 1)
-                         1
-                         (let ((find-pow (fix find-pow
-                                              (fn (p)
-                                                  (if (>= p n)
-                                                      p
-                                                      (find-pow (* 2 p)))))))
-                              (find-pow 1)))))
-
-; log2-int: Integer log base 2 (floor)
-(log2-int (fn (n)
-              (if (<= n 0)
-                  -1
-                  (let ((counter (fix counter
-                                      (fn (x acc)
-                                          (if (<= x 1)
-                                              acc
-                                              (counter (shr x 1) (+ acc 1)))))))
-                       (counter n 0)))))
 
 ; integer-sqrt: Integer square root (floor)
 (integer-sqrt (fn (n)
@@ -6063,21 +5129,6 @@
 ; Sequence Generators
 ; ============================================
 
-; primes-up-to: Generate primes up to n using sieve
-(primes-up-to (fn (n)
-                  (if (< n 2)
-                      '()
-                      (let ((sieve (fix sieve
-                                        (fn (candidates)
-                                            (if (null? candidates)
-                                                '()
-                                                (let ((p (car candidates)))
-                                                     (if (> (* p p) n)
-                                                         candidates
-                                                         (cons p (sieve (filter (fn (x) (not (= 0 (mod x p))))
-                                                                                (cdr candidates)))))))))))
-                           (sieve (range 2 (+ n 1)))))))
-
 ; fibonacci-sequence: Generate first n Fibonacci numbers
 (fibonacci-sequence (fn (n)
                         (if (<= n 0)
@@ -6091,27 +5142,9 @@
                                                             (builder (+ count 1) b (+ a b) (cons a acc)))))))
                                      (builder 0 0 1 '()))))))
 
-; powers-of: Generate powers of base: base^0, base^1, ..., base^(n-1)
-(powers-of (fn (base n)
-               (build-list n (fn (i) (expt base i)))))
-
-; triangular-numbers: First n triangular numbers
-(triangular-numbers (fn (n)
-                        (build-list n (fn (i) (/ (* i (+ i 1)) 2)))))
-
 ; ============================================
 ; Combinatorics
 ; ============================================
-
-; permutations: Generate all permutations of list
-(permutations (fix permutations
-                   (fn (lst)
-                       (if (null? lst)
-                           '(())
-                           (flat-map (fn (x)
-                                         (map (fn (p) (cons x p))
-                                              (permutations (remove-first x lst))))
-                                     lst)))))
 
 ; remove-first: Remove first occurrence of element
 (remove-first (fn (x lst)
@@ -6120,32 +5153,6 @@
                       (if (eq? x (car lst))
                           (cdr lst)
                           (cons (car lst) (remove-first x (cdr lst)))))))
-
-; combinations: Generate all k-combinations
-(combinations (fix combinations
-                   (fn (k lst)
-                       (if (= k 0)
-                           '(())
-                           (if (null? lst)
-                               '()
-                               (append (map (fn (c) (cons (car lst) c))
-                                            (combinations (- k 1) (cdr lst)))
-                                       (combinations k (cdr lst))))))))
-
-; cartesian-product: Cartesian product of two lists
-(cartesian-product (fn (xs ys)
-                       (flat-map (fn (x)
-                                     (map (fn (y) (list x y)) ys))
-                                 xs)))
-
-; power-set: Generate all subsets
-(power-set (fix power-set
-                (fn (lst)
-                    (if (null? lst)
-                        '(())
-                        (let ((rest (power-set (cdr lst))))
-                             (append rest
-                                     (map (fn (s) (cons (car lst) s)) rest)))))))
 
 ; ============================================
 ; Queue (FIFO) - Simple list-based implementation
@@ -6310,36 +5317,6 @@
 ; Number Parsing and Formatting
 ; ============================================
 
-; digits: Get list of digits from number
-(digits (fn (n)
-            (let ((get-digits (fix get-digits
-                                   (fn (n acc)
-                                       (if (= n 0)
-                                           (if (null? acc) '(0) acc)
-                                           (get-digits (/ n 10) (cons (mod n 10) acc)))))))
-                 (get-digits (abs n) '()))))
-
-; from-digits: Convert list of digits to number
-(from-digits (fn (ds)
-                 (foldl (fn (acc d) (+ (* acc 10) d)) 0 ds)))
-
-; digit-sum: Sum of digits
-(digit-sum (fn (n)
-               (foldl + 0 (digits n))))
-
-; digit-count: Count digits
-(digit-count (fn (n)
-                 (length (digits n))))
-
-; reverse-number: Reverse digits of number
-(reverse-number (fn (n)
-                    (from-digits (reverse (digits n)))))
-
-; palindrome-number?: Check if number is palindrome
-(palindrome-number? (fn (n)
-                        (let ((ds (digits n)))
-                             (equal? ds (reverse ds)))))
-
 ; ============================================
 ; Base Conversion
 ; ============================================
@@ -6475,15 +5452,6 @@
 ; More Functional Patterns
 ; ============================================
 
-; unfold-right: Build list from right (like unfoldr in Haskell)
-(unfold-right (fn (p f g seed)
-                  (let ((build (fix build
-                                    (fn (seed)
-                                        (if (p seed)
-                                            '()
-                                            (cons (f seed) (build (g seed))))))))
-                       (build seed))))
-
 ; until: Apply f until predicate is true
 (until (fn (p f x)
            (if (p x) x (until p f (f x)))))
@@ -6507,13 +5475,6 @@
 ; Association List Extensions
 ; ============================================
 
-; alist-merge: Merge two alists (second overwrites first)
-(alist-merge (fn (a1 a2)
-                 (foldl (fn (acc pair)
-                            (assoc-set (car pair) (cdr pair) acc))
-                        a1
-                        a2)))
-
 ; alist-map-values: Map function over values
 (alist-map-values (fn (f alist)
                       (map (fn (pair) (cons (car pair) (f (cdr pair)))) alist)))
@@ -6521,10 +5482,6 @@
 ; alist-map-keys: Map function over keys
 (alist-map-keys (fn (f alist)
                     (map (fn (pair) (cons (f (car pair)) (cdr pair))) alist)))
-
-; alist-find: Find first pair matching predicate
-(alist-find (fn (p alist)
-                (find-if p alist)))
 
 ; alist-count: Count pairs matching predicate
 (alist-count (fn (p alist)
@@ -6608,19 +5565,19 @@
 ; Validation Combinators
 ; ============================================
 
-; validate: Basic validation - returns (ok value) or (err message)
-(validate (fn (p msg value)
-              (if (p value)
-                  (ok value)
-                  (err msg))))
+; validate-with-message: Validation with custom message - returns (ok value) or (err message)
+(validate-with-message (fn (p msg value)
+                           (if (p value)
+                               (ok value)
+                               (err msg))))
 
-; validate-all: Run all validations, collect all errors
-(validate-all (fn (validators value)
-                  (let ((results (map (fn (v) (v value)) validators)))
-                       (let ((errors (filter err? results)))
-                            (if (null? errors)
-                                (ok value)
-                                (err (map err-value errors)))))))
+; validate-all-with-errors: Run all validations, collect all errors (returns result type)
+(validate-all-with-errors (fn (validators value)
+                              (let ((results (map (fn (v) (v value)) validators)))
+                                   (let ((errors (filter err? results)))
+                                        (if (null? errors)
+                                            (ok value)
+                                            (err (map err-value errors)))))))
 
 ; validate-chain: Run validations in sequence, stop on first error
 (validate-chain (fix validate-chain
@@ -6770,18 +5727,6 @@
                                (car lines)
                                (cdr lines)))))
 
-; string-center: Center string to width with padding
-(string-center (fn (width s)
-                   (let ((len (string-length s)))
-                        (if (>= len width)
-                            s
-                            (let ((pad-total (- width len)))
-                                 (let ((pad-left (/ pad-total 2))
-                                       (pad-right (- pad-total (/ pad-total 2))))
-                                      (string-append (string-repeat " " pad-left)
-                                                     s
-                                                     (string-repeat " " pad-right))))))))
-
 ; string-ljust: Left-justify string to width
 (string-ljust (fn (width s)
                   (let ((len (string-length s)))
@@ -6845,7 +5790,7 @@
 
 ; matrix-zip-with: Zip two matrices with function
 (matrix-zip-with (fn (f m1 m2)
-                     (map (fn (r1 r2) (zip-with f r1 r2)) m1 m2)))
+                     (zip-with (fn (r1 r2) (zip-with f r1 r2)) m1 m2)))
 
 ; matrix-add: Add two matrices
 (matrix-add (fn (m1 m2)
@@ -6877,22 +5822,6 @@
 ; Logic and Boolean Utilities
 ; ============================================
 
-; implies: Logical implication (p -> q)
-(implies (fn (p q)
-             (or (not p) q)))
-
-; iff: Logical biconditional (p <-> q)
-(iff (fn (p q)
-         (eq? p q)))
-
-; nand: Not-and
-(nand (fn (p q)
-          (not (and p q))))
-
-; nor: Not-or
-(nor (fn (p q)
-         (not (or p q))))
-
 ; bool->int: Convert boolean to 0/1
 (bool->int (fn (b)
                (if b 1 0)))
@@ -6908,24 +5837,24 @@
 
 ; state-return: Wrap value in state monad
 (state-return (fn (a)
-                  (fn (s) (cons a s))))
+                  (fn (s) (list a s))))
 
 ; state-bind: Bind/flatMap for state monad
 (state-bind (fn (ma f)
                 (fn (s)
                     (let ((result (ma s)))
-                         ((f (car result)) (cdr result))))))
+                         ((f (car result)) (cadr result))))))
 
 ; state-get: Get current state
-(state-get (fn (s) (cons s s)))
+(state-get (fn (s) (list s s)))
 
 ; state-put: Set new state
 (state-put (fn (new-s)
-               (fn (s) (cons #f new-s))))
+               (fn (s) (list '() new-s))))
 
 ; state-modify: Modify state with function
 (state-modify (fn (f)
-                  (fn (s) (cons #f (f s)))))
+                  (fn (s) (list '() (f s)))))
 
 ; state-run: Run state computation
 (state-run (fn (ma s)
@@ -6937,7 +5866,7 @@
 
 ; state-exec: Run and get final state only
 (state-exec (fn (ma s)
-                (cdr (ma s))))
+                (cadr (ma s))))
 
 ; ============================================
 ; Reader Monad Utilities
@@ -6975,20 +5904,20 @@
 
 ; writer-return: Wrap value in writer monad
 (writer-return (fn (a)
-                   (cons a '())))
+                   (list a '())))
 
 ; writer-bind: Bind/flatMap for writer monad
 (writer-bind (fn (wa f)
                  (let ((result (f (car wa))))
-                      (cons (car result) (append (cdr wa) (cdr result))))))
+                      (list (car result) (append (cadr wa) (cadr result))))))
 
 ; writer-tell: Write to log
 (writer-tell (fn (w)
-                 (cons #f (list w))))
+                 (list '() (list w))))
 
 ; writer-listen: Get the log
 (writer-listen (fn (wa)
-                   (cons (cons (car wa) (cdr wa)) (cdr wa))))
+                   (list (list (car wa) (cadr wa)) (cadr wa))))
 
 ; writer-run: Extract result and log
 (writer-run id)
@@ -6996,20 +5925,6 @@
 ; ============================================
 ; More List Utilities
 ; ============================================
-
-; rotate-left: Rotate list left by n positions
-(rotate-left (fn (n lst)
-                 (if (or (null? lst) (= n 0))
-                     lst
-                     (let ((len (length lst)))
-                          (let ((n-mod (mod n len)))
-                               (append (drop lst n-mod) (take lst n-mod)))))))
-
-; rotate-right: Rotate list right by n positions
-(rotate-right (fn (n lst)
-                  (if (null? lst)
-                      lst
-                      (rotate-left (- (length lst) (mod n (length lst))) lst))))
 
 ; tails: All suffixes of a list
 (tails (fix tails
@@ -7068,13 +5983,6 @@
                       '()
                       (cons (take lst n) (windows n (cdr lst)))))))
 
-; interleave: Interleave two lists
-(interleave (fix interleave
-                 (fn (lst1 lst2)
-                     (if (null? lst1)
-                         lst2
-                         (cons (car lst1) (interleave lst2 (cdr lst1)))))))
-
 ; dedup-consecutive: Remove consecutive duplicates
 (dedup-consecutive (fix dedup-consecutive
                         (fn (lst)
@@ -7085,27 +5993,6 @@
                                     (if (equal? (car lst) (car (cdr lst)))
                                         (dedup-consecutive (cdr lst))
                                         (cons (car lst) (dedup-consecutive (cdr lst)))))))))
-
-; group-by: Group elements by key function
-(group-by (fn (key-fn lst)
-              (foldl (fn (acc x)
-                         (let ((k (key-fn x)))
-                              (let ((existing (assoc k acc)))
-                                   (if existing
-                                       (assoc-set k (cons x (cdr existing)) acc)
-                                       (cons (cons k (list x)) acc)))))
-                     '()
-                     lst)))
-
-; frequencies: Count occurrences
-(frequencies (fn (lst)
-                 (foldl (fn (acc x)
-                            (let ((existing (assoc x acc)))
-                                 (if existing
-                                     (assoc-set x (+ 1 (cdr existing)) acc)
-                                     (cons (cons x 1) acc))))
-                        '()
-                        lst)))
 
 ; ============================================
 ; Polynomial Operations (coefficients as lists, lowest degree first)
@@ -7278,39 +6165,21 @@
                  (/ (sum-list lst) (length lst)))))
 
 ; variance: Variance of a list of numbers
-(variance (fn (lst)
-              (if (null? lst)
-                  0
-                  (let ((avg (average lst)))
-                       (average (map (fn (x) (let ((d (- x avg))) (* d d))) lst))))))
+; REMOVED: variance (duplicate, now in stats.ss)
 
 ; stddev: Standard deviation
 (stddev (fn (lst)
             (sqrt (variance lst))))
 
 ; median: Median of a list
-(median (fn (lst)
-            (let ((sorted (sort lst)))
-                 (let ((n (length sorted)))
-                      (if (odd? n)
-                          (list-ref sorted (/ n 2))
-                          (/ (+ (list-ref sorted (- (/ n 2) 1))
-                                (list-ref sorted (/ n 2)))
-                             2))))))
+; REMOVED: median (duplicate, now in stats.ss)
 
 ; clamp-list: Clamp all values in list to range
 (clamp-list (fn (lo hi lst)
                 (map (fn (x) (clamp lo hi x)) lst)))
 
 ; normalize-list: Normalize list to [0, 1] range
-(normalize-list (fn (lst)
-                    (if (null? lst)
-                        '()
-                        (let ((lo (apply min lst))
-                              (hi (apply max lst)))
-                             (if (= lo hi)
-                                 (replicate (length lst) 0)
-                                 (map (fn (x) (/ (- x lo) (- hi lo))) lst))))))
+; REMOVED: normalize-list (duplicate, now in stats.ss)
 
 ; dot: Alias for dot-product
 (dot dot-product)
@@ -7335,14 +6204,6 @@
 ; ============================================
 ; Association List Extensions
 ; ============================================
-
-; alist-update: Update value at key with function
-(alist-update (fn (key f alist)
-                  (map (fn (pair)
-                           (if (equal? (car pair) key)
-                               (cons key (f (cdr pair)))
-                               pair))
-                       alist)))
 
 ; alist-insert-with: Insert or update with combining function
 (alist-insert-with (fn (f key val alist)
@@ -7832,9 +6693,9 @@
 ; Control Flow Extensions
 ; ============================================
 
-; guard: Return value if condition true, else empty list
-(guard (fn (condition value)
-           (if condition (list value) '())))
+; guard-list: Return value in list if condition true, else empty list (for list monad)
+(guard-list (fn (condition value)
+                (if condition (list value) '())))
 
 ; when-just: Execute function only if Just
 (when-just (fn (m f)
@@ -7916,10 +6777,6 @@
 ; divisible-by?: Check if n is divisible by d
 (divisible-by? (fn (n d)
                    (= 0 (mod n d))))
-
-; coprime?: Check if two numbers are coprime
-(coprime? (fn (a b)
-              (= 1 (gcd a b))))
 
 ; perfect-square?: Check if n is a perfect square
 (perfect-square? (fn (n)
@@ -8072,24 +6929,6 @@
 
 ; graph-nodes: Get all nodes in graph
 (graph-nodes alist-keys)
-
-; graph-neighbors: Get neighbors of node
-(graph-neighbors (fn (g node)
-                     (let ((entry (assoc node g)))
-                          (if entry (cdr entry) '()))))
-
-; graph-add-edge: Add directed edge
-(graph-add-edge (fn (g from to)
-                    (let ((neighbors (graph-neighbors g from)))
-                         (assoc-set from (cons to neighbors) g))))
-
-; graph-add-undirected-edge: Add undirected edge
-(graph-add-undirected-edge (fn (g a b)
-                               (graph-add-edge (graph-add-edge g a b) b a)))
-
-; graph-has-edge?: Check if edge exists
-(graph-has-edge? (fn (g from to)
-                     (member to (graph-neighbors g from))))
 
 ; graph-in-degree: Count incoming edges
 (graph-in-degree (fn (g node)
@@ -8427,23 +7266,6 @@
                                               (find (shr n 1) (+ pos 1)
                                                     (if (= (bitand n 1) 1) pos highest)))))))
                           (find n 0 -1))))
-
-; is-power-of-2?: Check if n is a power of 2
-(is-power-of-2? (fn (n)
-                    (if (<= n 0)
-                        #f
-                        (= 0 (bitand n (- n 1))))))
-
-; next-power-of-2: Next power of 2 >= n
-(next-power-of-2 (fn (n)
-                     (if (<= n 1)
-                         1
-                         (let ((find (fix find
-                                          (fn (p)
-                                              (if (>= p n)
-                                                  p
-                                                  (find (shl p 1)))))))
-                              (find 1)))))
 
 ; ============================================
 ; Ring Buffer (fixed-size circular buffer)
@@ -9084,37 +7906,12 @@
 (string-null? (fn (s)
                   (= (string-length s) 0)))
 
-; string-take: Take first n characters
-(string-take (fn (n s)
-                 (substring s 0 (min n (string-length s)))))
-
-; string-drop: Drop first n characters
-(string-drop (fn (n s)
-                 (substring s (min n (string-length s)) (string-length s))))
-
-; string-take-right: Take last n characters
-(string-take-right (fn (n s)
-                       (let ((len (string-length s)))
-                            (substring s (max 0 (- len n)) len))))
-
-; string-drop-right: Drop last n characters
-(string-drop-right (fn (n s)
-                       (let ((len (string-length s)))
-                            (substring s 0 (max 0 (- len n))))))
-
 ; string-pad: Pad string on left to width
 (string-pad (fn (s width char)
                 (let ((len (string-length s)))
                      (if (>= len width)
                          s
                          (string-append (make-string (- width len) char) s)))))
-
-; string-pad-right: Pad string on right to width
-(string-pad-right (fn (s width char)
-                      (let ((len (string-length s)))
-                           (if (>= len width)
-                               s
-                               (string-append s (make-string (- width len) char))))))
 
 ; string-trim-left: Remove leading chars matching predicate
 (string-trim-left (fix trim-left-rec
@@ -9201,10 +7998,6 @@
                                           (string-append new (replace-all-rec (string-drop len-old s) old new))
                                           (string-append (string-take 1 s)
                                                          (replace-all-rec (string-drop 1 s) old new))))))))
-
-; string-reverse: Reverse a string
-(string-reverse (fn (s)
-                    (list->string (reverse (string->list s)))))
 
 ; string-join: Join list of strings with separator
 (string-join (fix join-rec
@@ -9322,20 +8115,6 @@
 ; alist-values: Get all values
 (alist-values (fn (alist) (map cdr alist)))
 
-; alist-map: Map over values
-(alist-map (fn (f alist)
-               (map (fn (pair) (cons (car pair) (f (cdr pair)))) alist)))
-
-; alist-filter: Filter pairs by predicate on key-value
-(alist-filter (fn (pred alist)
-                  (filter (fn (pair) (pred (car pair) (cdr pair))) alist)))
-
-; alist-merge: Merge two alists (second takes precedence)
-(alist-merge (fn (alist1 alist2)
-                 (foldl (fn (acc pair) (alist-set (car pair) (cdr pair) acc))
-                        alist1
-                        alist2)))
-
 ; alist->list: Convert alist to list of key-value lists
 (alist->list (fn (alist)
                  (map (fn (pair) (list (car pair) (cdr pair))) alist)))
@@ -9348,10 +8127,10 @@
 (alist-has-key? (fn (key alist)
                     (not (eq? (assoc key alist) #f))))
 
-; alist-update: Update value for key using function
-(alist-update (fn (key f default alist)
-                  (let ((old-val (alist-ref key alist default)))
-                       (alist-set key (f old-val) alist))))
+; alist-update-default: Update value for key using function, with default if key missing
+(alist-update-default (fn (key f default alist)
+                          (let ((old-val (alist-ref key alist default)))
+                               (alist-set key (f old-val) alist))))
 
 ; ============================================
 ; Set Operations (using sorted lists)
@@ -9381,36 +8160,6 @@
 ; set-delete: Remove element
 (set-delete (fn (x s)
                 (filter (fn (y) (not (equal? x y))) s)))
-
-; set-union: Union of two sets
-(set-union (fn (s1 s2)
-               (foldl (fn (acc x) (set-insert x acc)) s1 s2)))
-
-; set-intersection: Intersection of two sets
-(set-intersection (fn (s1 s2)
-                      (filter (fn (x) (set-member? x s2)) s1)))
-
-; set-difference: Set difference (s1 - s2)
-(set-difference (fn (s1 s2)
-                    (filter (fn (x) (not (set-member? x s2))) s1)))
-
-; set-symmetric-difference: Symmetric difference
-(set-symmetric-difference (fn (s1 s2)
-                              (set-union (set-difference s1 s2)
-                                         (set-difference s2 s1))))
-
-; set-subset?: Check if s1 is subset of s2
-(set-subset? (fn (s1 s2)
-                 (all (fn (x) (set-member? x s2)) s1)))
-
-; set-superset?: Check if s1 is superset of s2
-(set-superset? (fn (s1 s2)
-                   (set-subset? s2 s1)))
-
-; set-equal?: Check if sets are equal
-(set-equal? (fn (s1 s2)
-                (and (set-subset? s1 s2)
-                     (set-subset? s2 s1))))
 
 ; set-disjoint?: Check if sets have no common elements
 (set-disjoint? (fn (s1 s2)
@@ -9522,18 +8271,18 @@
 ; Sorting Algorithms
 ; ============================================
 
-; insert-sorted: Insert into sorted list
-(insert-sorted (fix insert-rec
-                    (fn (x lst cmp)
-                        (if (null? lst)
-                            (list x)
-                            (if (cmp x (car lst))
-                                (cons x lst)
-                                (cons (car lst) (insert-rec x (cdr lst) cmp)))))))
+; insert-sorted-cmp: Insert into sorted list with custom comparator
+(insert-sorted-cmp (fix insert-rec
+                        (fn (x lst cmp)
+                            (if (null? lst)
+                                (list x)
+                                (if (cmp x (car lst))
+                                    (cons x lst)
+                                    (cons (car lst) (insert-rec x (cdr lst) cmp)))))))
 
 ; insertion-sort-cmp: Insertion sort with comparator (use insertion-sort for default <=)
 (insertion-sort-cmp (fn (lst cmp)
-                        (foldl (fn (acc x) (insert-sorted x acc cmp)) '() lst)))
+                        (foldl (fn (acc x) (insert-sorted-cmp x acc cmp)) '() lst)))
 
 ; merge-sorted-cmp: Merge two sorted lists with comparator
 (merge-sorted-cmp (fix merge-rec
@@ -9833,15 +8582,6 @@
 (chunks-exact (fn (n lst)
                   (filter (fn (chunk) (= (length chunk) n)) (chunks n lst))))
 
-; interleave: Interleave two lists
-(interleave (fix interleave-rec
-                 (fn (l1 l2)
-                     (if (null? l1)
-                         l2
-                         (if (null? l2)
-                             l1
-                             (cons (car l1) (cons (car l2) (interleave-rec (cdr l1) (cdr l2)))))))))
-
 ; interleave-all: Interleave multiple lists
 (interleave-all (fn (lists)
                     ((fix interleave-all-rec
@@ -9852,33 +8592,6 @@
                                    (map cdr (filter (fn (l) (not (null? l))) lsts))
                                    (append (reverse (filter-map (fn (l) (if (null? l) #f (car l))) lsts)) acc)))))
                      lists '())))
-
-; rotate-left: Rotate list left by n positions
-(rotate-left (fn (n lst)
-                 (let ((len (length lst)))
-                      (if (= len 0)
-                          lst
-                          (let ((n-mod (mod n len)))
-                               (append (drop-n n-mod lst) (take-n n-mod lst)))))))
-
-; rotate-right: Rotate list right by n positions
-(rotate-right (fn (n lst)
-                  (rotate-left (- (length lst) (mod n (length lst))) lst)))
-
-; frequencies: Count occurrences of each element
-(frequencies (fn (lst)
-                 (foldl (fn (acc x)
-                            (alist-update x (fn (c) (+ c 1)) 0 acc))
-                        '()
-                        lst)))
-
-; group-by: Group elements by key function
-(group-by (fn (key-fn lst)
-              (foldl (fn (acc x)
-                         (let ((k (key-fn x)))
-                              (alist-update k (fn (vs) (cons x vs)) '() acc)))
-                     '()
-                     lst)))
 
 ; partition-all: Partition into groups of n (including remainder)
 (partition-all chunks)
@@ -9893,18 +8606,6 @@
                                      (cons (reverse before) remaining)
                                      (split-rec (cdr remaining) (cons (car remaining) before))))))
                     lst '())))
-
-; split-when: Split list whenever predicate is true
-(split-when (fn (pred lst)
-                ((fix split-rec
-                      (fn (remaining current acc)
-                          (if (null? remaining)
-                              (reverse (if (null? current) acc (cons (reverse current) acc)))
-                              (if (pred (car remaining))
-                                  (split-rec (cdr remaining) '()
-                                             (if (null? current) acc (cons (reverse current) acc)))
-                                  (split-rec (cdr remaining) (cons (car remaining) current) acc)))))
-                 lst '() '())))
 
 ; dedupe: Remove consecutive duplicates
 (dedupe (fn (lst)
@@ -10087,18 +8788,18 @@
                            vf
                            (validation-err (append (validation-value vf) (validation-value va)))))))
 
-; validate-all: Run all validations, collecting errors
-(validate-all (fn (validations)
-                  (foldl (fn (acc v)
-                             (if (validation-ok? acc)
-                                 (if (validation-ok? v)
-                                     (validation-ok (cons (validation-value v) (validation-value acc)))
-                                     v)
-                                 (if (validation-ok? v)
-                                     acc
-                                     (validation-err (append (validation-value acc) (validation-value v))))))
-                         (validation-ok '())
-                         validations)))
+; validate-all-results: Run all validations, collecting errors (for validation-ok/err results)
+(validate-all-results (fn (validations)
+                          (foldl (fn (acc v)
+                                     (if (validation-ok? acc)
+                                         (if (validation-ok? v)
+                                             (validation-ok (cons (validation-value v) (validation-value acc)))
+                                             v)
+                                         (if (validation-ok? v)
+                                             acc
+                                             (validation-err (append (validation-value acc) (validation-value v))))))
+                                 (validation-ok '())
+                                 validations)))
 
 ; validate-when: Conditional validation
 (validate-when (fn (pred err-msg val)
@@ -10244,41 +8945,19 @@
 ; ============================================
 
 ; mean: Calculate arithmetic mean
-(mean (fn (lst)
-          (if (null? lst)
-              0
-              (/ (sum-list lst) (length lst)))))
+; REMOVED: mean (duplicate, now in stats.ss)
 
 ; variance: Calculate population variance
-(variance (fn (lst)
-              (if (null? lst)
-                  0
-                  (let ((m (mean lst)))
-                       (mean (map (fn (x) (* (- x m) (- x m))) lst))))))
+; REMOVED: variance (duplicate, now in stats.ss)
 
 ; std-dev: Calculate population standard deviation
-(std-dev (fn (lst)
-             (sqrt (variance lst))))
+; REMOVED: std-dev (duplicate, now in stats.ss)
 
 ; median: Calculate median
-(median (fn (lst)
-            (if (null? lst)
-                0
-                (let ((sorted (sort lst))
-                      (n (length lst)))
-                     (if (odd? n)
-                         (list-ref sorted (quotient n 2))
-                         (/ (+ (list-ref sorted (- (quotient n 2) 1))
-                               (list-ref sorted (quotient n 2)))
-                            2))))))
+; REMOVED: median (duplicate, now in stats.ss)
 
 ; mode: Find most common element(s)
-(mode (fn (lst)
-          (if (null? lst)
-              '()
-              (let ((freqs (frequencies lst)))
-                   (let ((max-count (maximum (map cdr freqs))))
-                        (map car (filter (fn (p) (= (cdr p) max-count)) freqs)))))))
+; REMOVED: mode (duplicate, now in stats.ss)
 
 ; range-stat: Calculate range (max - min)
 (range-stat (fn (lst)
@@ -10287,38 +8966,13 @@
                     (- (maximum lst) (minimum lst)))))
 
 ; percentile: Calculate nth percentile
-(percentile (fn (n lst)
-                (if (null? lst)
-                    0
-                    (let ((sorted (sort lst))
-                          (k (/ (* n (- (length lst) 1)) 100)))
-                         (let ((floor-k (floor k))
-                               (ceil-k (ceiling k)))
-                              (if (= floor-k ceil-k)
-                                  (list-ref sorted floor-k)
-                                  (lerp (list-ref sorted floor-k)
-                                        (list-ref sorted ceil-k)
-                                        (- k floor-k))))))))
+; REMOVED: percentile (duplicate, now in stats.ss)
 
 ; quartiles: Calculate Q1, Q2 (median), Q3
-(quartiles (fn (lst)
-               (list (percentile 25 lst)
-                     (percentile 50 lst)
-                     (percentile 75 lst))))
+; REMOVED: quartiles (duplicate, now in stats.ss)
 
 ; correlation: Pearson correlation coefficient
-(correlation (fn (xs ys)
-                 (if (or (null? xs) (null? ys))
-                     0
-                     (let ((n (length xs))
-                           (mx (mean xs))
-                           (my (mean ys))
-                           (sx (std-dev xs))
-                           (sy (std-dev ys)))
-                          (if (or (= sx 0) (= sy 0))
-                              0
-                              (/ (mean (zip-with (fn (x y) (* (- x mx) (- y my))) xs ys))
-                                 (* sx sy)))))))
+; REMOVED: correlation (duplicate, now in stats.ss)
 
 ; ============================================
 ; Rose Trees (Multi-way Trees)
@@ -10565,17 +9219,17 @@
 (arrow-compose (fn (f g)
                    (fn (x) (g (f x)))))
 
-; first: Apply arrow to first element of pair
-(arrow-first (fn (f)
-                 (fn (pair) (cons (f (car pair)) (cdr pair)))))
+; arrow-first-curried: Apply arrow to first element of pair (curried)
+(arrow-first-curried (fn (f)
+                         (fn (pair) (cons (f (car pair)) (cdr pair)))))
 
-; second: Apply arrow to second element of pair
-(arrow-second (fn (f)
-                  (fn (pair) (cons (car pair) (f (cdr pair))))))
+; arrow-second-curried: Apply arrow to second element of pair (curried)
+(arrow-second-curried (fn (f)
+                          (fn (pair) (cons (car pair) (f (cdr pair))))))
 
-; ***: Product arrow (parallel composition)
-(arrow-split (fn (f g)
-                 (fn (pair) (cons (f (car pair)) (g (cdr pair))))))
+; arrow-split-curried: Product arrow - parallel composition (curried)
+(arrow-split-curried (fn (f g)
+                         (fn (pair) (cons (f (car pair)) (g (cdr pair))))))
 
 ; &&&: Fanout - apply both arrows to same input
 (arrow-fanout (fn (f g)
@@ -10827,31 +9481,6 @@
 (string-unlines (fn (lines)
                     (string-join lines "\n")))
 
-; string-pad-left: Pad string to length on left
-(string-pad-left (fn (len char s)
-                     (let ((pad-len (- len (string-length s))))
-                          (if (<= pad-len 0)
-                              s
-                              (string-append (make-string pad-len char) s)))))
-
-; string-pad-right: Pad string to length on right
-(string-pad-right (fn (len char s)
-                      (let ((pad-len (- len (string-length s))))
-                           (if (<= pad-len 0)
-                               s
-                               (string-append s (make-string pad-len char))))))
-
-; string-center: Center string with padding
-(string-center (fn (len char s)
-                   (let ((pad-len (- len (string-length s))))
-                        (if (<= pad-len 0)
-                            s
-                            (let ((left-pad (/ pad-len 2))
-                                  (right-pad (- pad-len (/ pad-len 2))))
-                                 (string-append (make-string left-pad char)
-                                                s
-                                                (make-string right-pad char)))))))
-
 ; string-repeat: Repeat string n times
 (string-repeat (fn (n s)
                    (string-join (replicate n s) "")))
@@ -10891,18 +9520,6 @@
 (all-equal? (fn (lst)
                 (or (null? lst)
                     (all (fn (x) (equal? x (car lst))) (cdr lst)))))
-
-; implies: Logical implication
-(implies (fn (p q)
-             (or (not p) q)))
-
-; iff: Logical biconditional
-(iff (fn (p q)
-         (eq? p q)))
-
-; xor: Exclusive or
-(xor (fn (p q)
-         (not (eq? p q))))
 
 ; ============================================
 ; Character Predicates
@@ -10964,23 +9581,8 @@
                         g
                         (cons (cons node '()) g))))
 
-; graph-add-edge: Add directed edge
-(graph-add-edge (fn (from to g)
-                    (let ((g1 (graph-add-node from g)))
-                         (let ((g2 (graph-add-node to g1)))
-                              (alist-set from (cons to (cdr (assoc from g2))) g2)))))
-
-; graph-neighbors: Get neighbors of node
-(graph-neighbors (fn (node g)
-                     (let ((entry (assoc node g)))
-                          (if entry (cdr entry) '()))))
-
 ; graph-nodes: Get all nodes
 (graph-nodes (fn (g) (map car g)))
-
-; graph-has-edge?: Check if edge exists
-(graph-has-edge? (fn (from to g)
-                     (member? to (graph-neighbors from g))))
 
 ; graph-from-edges: Build from edge list
 (graph-from-edges (fn (edges)
@@ -11028,24 +9630,24 @@
 
 ; state-return: Wrap value in state
 (state-return (fn (x)
-                  (fn (s) (cons x s))))
+                  (fn (s) (list x s))))
 
 ; state-bind: Bind for state monad
 (state-bind (fn (ma f)
                 (fn (s)
                     (let ((result (ma s)))
-                         ((f (car result)) (cdr result))))))
+                         ((f (car result)) (cadr result))))))
 
 ; state-get: Get current state
-(state-get (fn (s) (cons s s)))
+(state-get (fn (s) (list s s)))
 
 ; state-put: Replace state
 (state-put (fn (new-s)
-               (fn (s) (cons '() new-s))))
+               (fn (s) (list '() new-s))))
 
 ; state-modify: Modify state with function
 (state-modify (fn (f)
-                  (fn (s) (cons '() (f s)))))
+                  (fn (s) (list '() (f s)))))
 
 ; state-run: Run state computation
 (state-run (fn (ma s) (ma s)))
@@ -11054,7 +9656,7 @@
 (state-eval (fn (ma s) (car (ma s))))
 
 ; state-exec: Run and return state
-(state-exec (fn (ma s) (cdr (ma s))))
+(state-exec (fn (ma s) (cadr (ma s))))
 
 ; ============================================
 ; Reader Monad
@@ -11084,15 +9686,15 @@
 ; Writer w a = (a, w) where w is monoid (list)
 
 ; writer-return: Wrap value with empty log
-(writer-return (fn (x) (cons x '())))
+(writer-return (fn (x) (list x '())))
 
 ; writer-bind: Bind for writer
 (writer-bind (fn (ma f)
                  (let ((result (f (car ma))))
-                      (cons (car result) (append (cdr ma) (cdr result))))))
+                      (list (car result) (append (cadr ma) (cadr result))))))
 
 ; writer-tell: Write to log
-(writer-tell (fn (w) (cons '() (list w))))
+(writer-tell (fn (w) (list '() (list w))))
 
 ; writer-run: Get value and log
 (writer-run id)
@@ -11101,7 +9703,7 @@
 (writer-value car)
 
 ; writer-log: Get just log
-(writer-log cdr)
+(writer-log cadr)
 
 ; ============================================
 ; Numeric Extensions
@@ -11109,9 +9711,6 @@
 
 ; divides?: Check if a divides b
 (divides? (fn (a b) (= 0 (mod b a))))
-
-; coprime?: Check if gcd is 1
-(coprime? (fn (a b) (= 1 (gcd a b))))
 
 ; perfect-square?: Check if n is perfect square
 (perfect-square? (fn (n)
@@ -11126,13 +9725,6 @@
 
 ; hexagonal: nth hexagonal number
 (hexagonal (fn (n) (* n (- (* 2 n) 1))))
-
-; binomial: n choose k
-(binomial (fn (n k)
-              (if (or (< k 0) (> k n))
-                  0
-                  (/ (factorial n)
-                     (* (factorial k) (factorial (- n k)))))))
 
 ; catalan: nth Catalan number
 (catalan (fn (n)
@@ -11493,13 +10085,13 @@
                                  (if v v (or-rec (cdr remaining)))))))
                thunks)))
 
-; guard: Return value only if predicate holds, else default
-(guard (fn (val predicate-fn default-val)
-           (if (predicate-fn val) val default-val)))
+; guard-value: Return value only if predicate holds, else default
+(guard-value (fn (val predicate-fn default-val)
+                 (if (predicate-fn val) val default-val)))
 
-; ensure: Assert predicate holds, return value or error symbol
-(ensure (fn (val predicate-fn)
-            (if (predicate-fn val) val 'assertion-failed)))
+; ensure-or-fail: Assert predicate holds, return value or 'assertion-failed symbol
+(ensure-or-fail (fn (val predicate-fn)
+                    (if (predicate-fn val) val 'assertion-failed)))
 
 ; chain-guards: Apply sequence of guards, short-circuit on failure
 (chain-guards (fn (val guards)
@@ -11517,20 +10109,6 @@
 ; ============================================================
 ; Advanced List Utilities
 ; ============================================================
-
-; frequencies: Count occurrences of each element
-(frequencies (fn (lst)
-                 ((fix freq-rec
-                       (fn (remaining acc)
-                           (if (null? remaining)
-                               acc
-                               (let ((x (car remaining)))
-                                    (let ((current (assoc x acc)))
-                                         (freq-rec (cdr remaining)
-                                                   (if current
-                                                       (alist-set x (+ 1 (cdr current)) acc)
-                                                       (cons (cons x 1) acc))))))))
-                  lst '())))
 
 ; dedupe: Remove consecutive duplicates
 (dedupe (fn (lst)
@@ -11559,17 +10137,6 @@
                                           (dedup-rec (car remaining) cur-key (cdr remaining) (cons prev acc)))))))
                     (car lst) (key-fn (car lst)) (cdr lst) '()))))
 
-; interleave: Interleave two lists
-(interleave (fn (l1 l2)
-                ((fix inter-rec
-                      (fn (a b acc)
-                          (if (null? a)
-                              (append (reverse acc) b)
-                              (if (null? b)
-                                  (append (reverse acc) a)
-                                  (inter-rec (cdr a) (cdr b) (cons (car b) (cons (car a) acc)))))))
-                 l1 l2 '())))
-
 ; take-nth: Take every nth element
 (take-nth (fn (n lst)
               ((fix nth-rec
@@ -11591,33 +10158,6 @@
                                 (nth-rec (+ i 1) (cdr remaining) acc)
                                 (nth-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))))))
                0 lst '())))
-
-; rotate-left: Rotate list left by n positions
-(rotate-left (fn (n lst)
-                 (if (null? lst)
-                     '()
-                     (let ((len (length lst)))
-                          (let ((n-mod (mod n len)))
-                               (append (drop lst n-mod) (take lst n-mod)))))))
-
-; rotate-right: Rotate list right by n positions
-(rotate-right (fn (n lst)
-                  (if (null? lst)
-                      '()
-                      (let ((len (length lst)))
-                           (rotate-left (- len (mod n len)) lst)))))
-
-; split-when: Split list when predicate becomes true
-(split-when (fn (pred-fn lst)
-                ((fix split-rec
-                      (fn (remaining current acc)
-                          (if (null? remaining)
-                              (reverse (if (null? current) acc (cons (reverse current) acc)))
-                              (if (pred-fn (car remaining))
-                                  (split-rec (cdr remaining) '()
-                                             (cons (reverse current) acc))
-                                  (split-rec (cdr remaining) (cons (car remaining) current) acc)))))
-                 lst '() '())))
 
 ; split-with: Split list at first element matching predicate
 (split-with (fn (pred-fn lst)
@@ -11669,28 +10209,6 @@
                                   (rep-rec (+ i 1) (cdr remaining) (cons val acc))
                                   (rep-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))))))
                  0 lst '())))
-
-; insert-at: Insert element at index
-(insert-at (fn (idx val lst)
-               ((fix ins-rec
-                     (fn (i remaining acc)
-                         (if (= i idx)
-                             (append (reverse (cons val acc)) remaining)
-                             (if (null? remaining)
-                                 (reverse (cons val acc))
-                                 (ins-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))))))
-                0 lst '())))
-
-; remove-at: Remove element at index
-(remove-at (fn (idx lst)
-               ((fix rem-rec
-                     (fn (i remaining acc)
-                         (if (null? remaining)
-                             (reverse acc)
-                             (if (= i idx)
-                                 (rem-rec (+ i 1) (cdr remaining) acc)
-                                 (rem-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))))))
-                0 lst '())))
 
 ; swap-at: Swap elements at two indices
 (swap-at (fn (i j lst)
@@ -11836,11 +10354,11 @@
 ; Testing and Assertion Utilities
 ; ============================================================
 
-; assert-eq: Assert two values are equal
-(assert-eq (fn (expected actual msg)
-               (if (equal? expected actual)
-                   (list 'pass msg)
-                   (list 'fail msg 'expected expected 'got actual))))
+; assert-eq-msg: Assert two values are equal (with message for test framework)
+(assert-eq-msg (fn (expected actual msg)
+                   (if (equal? expected actual)
+                       (list 'pass msg)
+                       (list 'fail msg 'expected expected 'got actual))))
 
 ; assert-true: Assert value is truthy
 (assert-true (fn (val msg)
@@ -11910,28 +10428,6 @@
                                              (fib-rec b (+ a b) (- count 1) (cons a acc)))))
                                 0 1 n '()))))))
 
-; primes-up-to: Generate primes up to n (simple sieve)
-(primes-up-to (fn (n)
-                  (if (< n 2) '()
-                      ((fix sieve
-                            (fn (candidates primes)
-                                (if (null? candidates)
-                                    (reverse primes)
-                                    (let ((p (car candidates)))
-                                         (sieve
-                                          (filter (fn (x) (not (= 0 (mod x p)))) (cdr candidates))
-                                          (cons p primes))))))
-                       (range-list 2 (+ n 1)) '()))))
-
-; powers-of: Generate powers of base up to limit
-(powers-of (fn (base limit)
-               ((fix pow-rec
-                     (fn (cur acc)
-                         (if (> cur limit)
-                             (reverse acc)
-                             (pow-rec (* cur base) (cons cur acc)))))
-                1 '())))
-
 ; factorials-up-to: Generate factorials up to n
 (factorials-up-to (fn (n)
                       ((fix fact-rec
@@ -11940,15 +10436,6 @@
                                     (reverse acc)
                                     (fact-rec (+ i 1) (* cur i) (cons cur acc)))))
                        1 1 '())))
-
-; triangular-numbers: Generate first n triangular numbers
-(triangular-numbers (fn (n)
-                        ((fix tri-rec
-                              (fn (i sum acc)
-                                  (if (> i n)
-                                      (reverse acc)
-                                      (tri-rec (+ i 1) (+ sum i) (cons sum acc)))))
-                         1 0 '())))
 
 ; convergent-seq: Generate sequence until convergence
 (convergent-seq (fn (start step-fn converged-fn max-iter)
@@ -11981,15 +10468,6 @@
                                     (floyd hare (step-fn hare) (* power 2) 1 mu)
                                     (floyd tortoise (step-fn hare) power (+ lambda 1) mu)))))
                    start (step-fn start) 1 1 0)))
-
-; iterate-n: Apply function n times, collect results
-(iterate-n (fn (fn-1 start n)
-               ((fix iter-rec
-                     (fn (cur count acc)
-                         (if (<= count 0)
-                             (reverse acc)
-                             (iter-rec (fn-1 cur) (- count 1) (cons cur acc)))))
-                start n '())))
 
 ; ============================================================
 ; Encoding Utilities
@@ -12107,55 +10585,25 @@
                    (/ x n)))))
 
 ; mean: Arithmetic mean
-(mean (fn (lst)
-          (if (null? lst) 0
-              (/ (sum-list lst) (length lst)))))
+; REMOVED: mean (duplicate, now in stats.ss)
 
 ; variance: Population variance
-(variance (fn (lst)
-              (if (null? lst) 0
-                  (let ((m (mean lst)))
-                       (mean (map (fn (x) (* (- x m) (- x m))) lst))))))
+; REMOVED: variance (duplicate, now in stats.ss)
 
 ; std-dev: Standard deviation
-(std-dev (fn (lst)
-             (newton-sqrt (variance lst))))
+; REMOVED: std-dev (duplicate, now in stats.ss)
 
 ; median: Middle value of sorted list
-(median (fn (lst)
-            (let ((sorted (merge-sort-cmp lst <))
-                  (n (length lst)))
-                 (if (= n 0) 0
-                     (if (odd? n)
-                         (nth (/ n 2) sorted)
-                         (/ (+ (nth (- (/ n 2) 1) sorted) (nth (/ n 2) sorted)) 2))))))
+; REMOVED: median (duplicate, now in stats.ss)
 
 ; mode: Most frequent value
-(mode (fn (lst)
-          (if (null? lst) '()
-              (let ((freqs (frequencies lst)))
-                   (car (car (merge-sort-cmp freqs (fn (a b) (> (cdr a) (cdr b))))))))))
+; REMOVED: mode (duplicate, now in stats.ss)
 
 ; percentile: Value at given percentile (0-100)
-(percentile (fn (p lst)
-                (let ((sorted (merge-sort-cmp lst <))
-                      (n (length lst)))
-                     (if (= n 0) 0
-                         (let ((idx (min (- n 1) (floor (* (/ p 100) n)))))
-                              (nth idx sorted))))))
+; REMOVED: percentile (duplicate, now in stats.ss)
 
 ; correlation: Pearson correlation coefficient
-(correlation (fn (xs ys)
-                 (let ((n (length xs))
-                       (mx (mean xs))
-                       (my (mean ys))
-                       (sx (std-dev xs))
-                       (sy (std-dev ys)))
-                      (if (or (= sx 0) (= sy 0)) 0
-                          (/ (mean (map (fn (pair)
-                                            (* (- (car pair) mx) (- (cdr pair) my)))
-                                        (zip xs ys)))
-                             (* sx sy))))))
+; REMOVED: correlation (duplicate, now in stats.ss)
 
 ; linear-regression: Simple linear regression, returns (slope . intercept)
 (linear-regression (fn (xs ys)
@@ -12175,27 +10623,6 @@
 ; Combinatorial Utilities
 ; ============================================================
 
-; permutations: Generate all permutations of list
-(permutations (fn (lst)
-                  (if (null? lst)
-                      '(())
-                      (flat-map
-                       (fn (x)
-                           (map (fn (p) (cons x p))
-                                (permutations (filter (fn (y) (not (eq? x y))) lst))))
-                       lst))))
-
-; combinations: Generate all k-combinations
-(combinations (fn (k lst)
-                  (if (= k 0)
-                      '(())
-                      (if (null? lst)
-                          '()
-                          (append
-                           (map (fn (c) (cons (car lst) c))
-                                (combinations (- k 1) (cdr lst)))
-                           (combinations k (cdr lst)))))))
-
 ; subsets: Generate all subsets
 (subsets (fn (lst)
              (if (null? lst)
@@ -12203,10 +10630,6 @@
                  (let ((rest-subsets (subsets (cdr lst))))
                       (append rest-subsets
                               (map (fn (s) (cons (car lst) s)) rest-subsets))))))
-
-; cartesian-product: Cartesian product of two lists
-(cartesian-product (fn (l1 l2)
-                       (flat-map (fn (x) (map (fn (y) (cons x y)) l2)) l1)))
 
 ; power-set: Alias for subsets
 (power-set subsets)
@@ -12255,9 +10678,10 @@
 (juxtapose (fn (fns x)
                (map (fn (f) (f x)) fns)))
 
-; converge: Apply functions to arg, combine results
-(converge (fn (combiner fns x)
-              (apply combiner (map (fn (f) (f x)) fns))))
+; converge-with: Apply two functions to arg, combine results with combiner
+; ((converge-with + f1 f2) x) => (+ (f1 x) (f2 x))
+(converge-with (fn (combiner f1 f2)
+                   (fn (x) (combiner (f1 x) (f2 x)))))
 
 ; ============================================================
 ; Path Manipulation Utilities
