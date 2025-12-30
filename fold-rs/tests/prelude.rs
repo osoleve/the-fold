@@ -669,3 +669,123 @@ fn test_remove_at() {
     let result = eval_with_prelude("(remove-at 1 '(a b c))");
     assert_eq!(result, "(a c)");
 }
+
+// ========== String Higher-Order Function Tests ==========
+
+#[test]
+fn test_string_map() {
+    let result = eval_with_prelude("(string-map char-upcase \"hello\")");
+    assert_eq!(result, "\"HELLO\"");
+}
+
+#[test]
+fn test_string_filter() {
+    let result = eval_with_prelude("(string-filter char-alphabetic? \"a1b2c3\")");
+    assert_eq!(result, "\"abc\"");
+}
+
+#[test]
+fn test_string_any() {
+    let result = eval_with_prelude("(string-any char-numeric? \"abc123\")");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(string-any char-numeric? \"abc\")");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_string_all() {
+    let result = eval_with_prelude("(string-all char-alphabetic? \"abc\")");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(string-all char-alphabetic? \"abc123\")");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_string_foldl() {
+    // Count characters
+    let result = eval_with_prelude("(string-foldl (fn (acc c) (+ acc 1)) 0 \"hello\")");
+    assert_eq!(result, "5");
+}
+
+#[test]
+fn test_words() {
+    let result = eval_with_prelude("(words \"hello world foo\")");
+    assert_eq!(result, "(\"hello\" \"world\" \"foo\")");
+}
+
+#[test]
+fn test_unwords() {
+    let result = eval_with_prelude("(unwords '(\"hello\" \"world\"))");
+    assert_eq!(result, "\"hello world\"");
+
+    // Empty list
+    let result = eval_with_prelude("(unwords '())");
+    assert_eq!(result, "\"\"");
+}
+
+#[test]
+fn test_join() {
+    let result = eval_with_prelude("(join \", \" '(\"a\" \"b\" \"c\"))");
+    assert_eq!(result, "\"a, b, c\"");
+}
+
+#[test]
+fn test_string_take_while() {
+    let result = eval_with_prelude("(string-take-while char-alphabetic? \"abc123\")");
+    assert_eq!(result, "\"abc\"");
+}
+
+#[test]
+fn test_string_drop_while() {
+    let result = eval_with_prelude("(string-drop-while char-alphabetic? \"abc123\")");
+    assert_eq!(result, "\"123\"");
+}
+
+#[test]
+fn test_string_find() {
+    let result = eval_with_prelude("(string-find char-numeric? \"abc123\")");
+    assert_eq!(result, "#\\1");
+
+    // No match
+    let result = eval_with_prelude("(string-find char-numeric? \"abc\")");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_string_count() {
+    let result = eval_with_prelude("(string-count char-numeric? \"a1b2c3\")");
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_char_predicates() {
+    // char-alphabetic?
+    let result = eval_with_prelude("(char-alphabetic? #\\a)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(char-alphabetic? #\\1)");
+    assert_eq!(result, "#f");
+
+    // char-numeric?
+    let result = eval_with_prelude("(char-numeric? #\\5)");
+    assert_eq!(result, "#t");
+
+    // char-whitespace?
+    let result = eval_with_prelude("(char-whitespace? #\\space)");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_char_case_conversion() {
+    let result = eval_with_prelude("(char-upcase #\\a)");
+    assert_eq!(result, "#\\A");
+
+    let result = eval_with_prelude("(char-downcase #\\A)");
+    assert_eq!(result, "#\\a");
+
+    // Non-letters unchanged
+    let result = eval_with_prelude("(char-upcase #\\1)");
+    assert_eq!(result, "#\\1");
+}

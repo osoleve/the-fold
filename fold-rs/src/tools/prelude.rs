@@ -553,6 +553,129 @@ pub const PRELUDE_SOURCE: &str = r#"
    (remove-at (fn (idx lst)
      (map-maybe (fn (pair) (if (= (car pair) idx) #f (cdr pair)))
                 (map-indexed (fn (i x) (cons i x)) lst))))
+
+   ; -- String higher-order functions --
+
+   ; string-map: Apply function to each character of string
+   ; (string-map char-upcase "hello") => "HELLO"
+   (string-map (fn (f str)
+     (list->string (map f (string->list str)))))
+
+   ; string-filter: Keep characters matching predicate
+   ; (string-filter char-alphabetic? "a1b2c3") => "abc"
+   (string-filter (fn (p str)
+     (list->string (filter p (string->list str)))))
+
+   ; string-any: Check if any character satisfies predicate
+   ; (string-any char-numeric? "abc123") => #t
+   (string-any (fn (p str)
+     (any p (string->list str))))
+
+   ; string-all: Check if all characters satisfy predicate
+   ; (string-all char-alphabetic? "abc") => #t
+   (string-all (fn (p str)
+     (all p (string->list str))))
+
+   ; string-foldl: Left fold over string characters
+   ; (string-foldl (fn (acc c) (+ acc 1)) 0 "hello") => 5
+   (string-foldl (fn (f acc str)
+     (foldl f acc (string->list str))))
+
+   ; string-foldr: Right fold over string characters
+   (string-foldr (fn (f acc str)
+     (foldr f acc (string->list str))))
+
+   ; words: Split string on whitespace
+   ; (words "hello world  foo") => ("hello" "world" "foo")
+   (words (fn (str)
+     (filter (fn (s) (not (string-empty? s))) (string-split str " "))))
+
+   ; unwords: Join strings with spaces
+   ; (unwords '("hello" "world")) => "hello world"
+   (unwords (fn (strs)
+     (if (null? strs)
+         ""
+         (foldl (fn (acc s) (string-append acc " " s))
+                (car strs)
+                (cdr strs)))))
+
+   ; lines: Split string on newlines
+   ; (lines "a\nb\nc") => ("a" "b" "c")
+   (lines (fn (str)
+     (string-split str "\n")))
+
+   ; unlines: Join strings with newlines
+   ; (unlines '("a" "b" "c")) => "a\nb\nc"
+   (unlines (fn (strs)
+     (if (null? strs)
+         ""
+         (foldl (fn (acc s) (string-append acc "\n" s))
+                (car strs)
+                (cdr strs)))))
+
+   ; join: Join strings with separator
+   ; (join ", " '("a" "b" "c")) => "a, b, c"
+   (join (fn (sep strs)
+     (if (null? strs)
+         ""
+         (foldl (fn (acc s) (string-append acc sep s))
+                (car strs)
+                (cdr strs)))))
+
+   ; string-take-while: Take characters while predicate holds
+   (string-take-while (fn (p str)
+     (list->string (take-while p (string->list str)))))
+
+   ; string-drop-while: Drop characters while predicate holds
+   (string-drop-while (fn (p str)
+     (list->string (drop-while p (string->list str)))))
+
+   ; string-find: Find first character matching predicate
+   (string-find (fn (p str)
+     (find-if p (string->list str))))
+
+   ; string-count: Count characters matching predicate
+   (string-count (fn (p str)
+     (count-if p (string->list str))))
+
+   ; string-partition: Split string into matching and non-matching chars
+   (string-partition (fn (p str)
+     (let ((parts (partition p (string->list str))))
+       (cons (list->string (car parts))
+             (list->string (cdr parts))))))
+
+   ; char-between?: Check if character code is in range
+   (char-between? (fn (lo hi c)
+     (let ((code (char->integer c)))
+       (and (>= code (char->integer lo))
+            (<= code (char->integer hi))))))
+
+   ; char-alphabetic?: Check if character is a letter
+   (char-alphabetic? (fn (c)
+     (or (char-between? #\a #\z c)
+         (char-between? #\A #\Z c))))
+
+   ; char-numeric?: Check if character is a digit
+   (char-numeric? (fn (c)
+     (char-between? #\0 #\9 c)))
+
+   ; char-whitespace?: Check if character is whitespace
+   (char-whitespace? (fn (c)
+     (or (eq? c #\space)
+         (or (eq? c #\tab)
+             (eq? c #\newline)))))
+
+   ; char-upcase: Convert character to uppercase
+   (char-upcase (fn (c)
+     (if (char-between? #\a #\z c)
+         (integer->char (- (char->integer c) 32))
+         c)))
+
+   ; char-downcase: Convert character to lowercase
+   (char-downcase (fn (c)
+     (if (char-between? #\A #\Z c)
+         (integer->char (+ (char->integer c) 32))
+         c)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -637,7 +760,29 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'last-where last-where)
     (cons 'update-at update-at)
     (cons 'insert-at insert-at)
-    (cons 'remove-at remove-at)))
+    (cons 'remove-at remove-at)
+    (cons 'string-map string-map)
+    (cons 'string-filter string-filter)
+    (cons 'string-any string-any)
+    (cons 'string-all string-all)
+    (cons 'string-foldl string-foldl)
+    (cons 'string-foldr string-foldr)
+    (cons 'words words)
+    (cons 'unwords unwords)
+    (cons 'lines lines)
+    (cons 'unlines unlines)
+    (cons 'join join)
+    (cons 'string-take-while string-take-while)
+    (cons 'string-drop-while string-drop-while)
+    (cons 'string-find string-find)
+    (cons 'string-count string-count)
+    (cons 'string-partition string-partition)
+    (cons 'char-between? char-between?)
+    (cons 'char-alphabetic? char-alphabetic?)
+    (cons 'char-numeric? char-numeric?)
+    (cons 'char-whitespace? char-whitespace?)
+    (cons 'char-upcase char-upcase)
+    (cons 'char-downcase char-downcase)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
