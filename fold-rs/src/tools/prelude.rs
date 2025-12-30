@@ -2680,38 +2680,9 @@ pub const PRELUDE_SOURCE: &str = r#"
    (matrix-col (fn (m col)
      (map (fn (row) (list-ref row col)) m)))
 
-   ; matrix-map: Map function over all elements
-   (matrix-map (fn (f m)
-     (map (fn (row) (map f row)) m)))
-
-   ; matrix-add: Add two matrices
-   (matrix-add (fn (a b)
-     (zip-with (fn (row-a row-b) (zip-with + row-a row-b)) a b)))
-
-   ; matrix-scale: Multiply matrix by scalar
-   (matrix-scale (fn (k m)
-     (matrix-map (fn (x) (* k x)) m)))
-
-   ; matrix-transpose: Transpose matrix (uses existing transpose)
-   (matrix-transpose transpose)
-
    ; dot-product: Dot product of two vectors (lists)
    (dot-product (fn (a b)
      (sum-list (zip-with * a b))))
-
-   ; matrix-multiply: Multiply two matrices
-   (matrix-multiply (fn (a b)
-     (let ((b-t (transpose b)))
-       (map (fn (row-a)
-              (map (fn (col-b) (dot-product row-a col-b)) b-t))
-            a))))
-
-   ; identity-matrix: Create n×n identity matrix
-   (identity-matrix (fn (n)
-     (map (fn (i)
-            (map (fn (j) (if (= i j) 1 0))
-                 (iota n 0)))
-          (iota n 0))))
 
    ; zero-matrix: Create m×n zero matrix
    (zero-matrix (fn (m n)
@@ -6546,6 +6517,377 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; alist-count: Count pairs matching predicate
    (alist-count (fn (p alist)
      (count-if p alist)))
+
+   ; ============================================
+   ; List Zipper (for efficient traversal)
+   ; Zipper = (left-reversed . (focus . right))
+   ; ============================================
+
+   ; zipper-from-list: Create zipper from list, focus on first element
+   (zipper-from-list (fn (lst)
+     (if (null? lst)
+         (cons '() (cons #f '()))
+         (cons '() (cons (car lst) (cdr lst))))))
+
+   ; zipper-to-list: Convert zipper back to list
+   (zipper-to-list (fn (z)
+     (append (reverse (car z))
+             (if (eq? (car (cdr z)) #f)
+                 '()
+                 (cons (car (cdr z)) (cdr (cdr z)))))))
+
+   ; zipper-focus: Get focused element
+   (zipper-focus (fn (z)
+     (car (cdr z))))
+
+   ; zipper-right: Move focus right
+   (zipper-right (fn (z)
+     (let ((left (car z))
+           (focus (car (cdr z)))
+           (right (cdr (cdr z))))
+       (if (null? right)
+           z
+           (cons (cons focus left)
+                 (cons (car right) (cdr right)))))))
+
+   ; zipper-left: Move focus left
+   (zipper-left (fn (z)
+     (let ((left (car z))
+           (focus (car (cdr z)))
+           (right (cdr (cdr z))))
+       (if (null? left)
+           z
+           (cons (cdr left)
+                 (cons (car left) (cons focus right)))))))
+
+   ; zipper-update: Update focused element with function
+   (zipper-update (fn (f z)
+     (let ((left (car z))
+           (focus (car (cdr z)))
+           (right (cdr (cdr z))))
+       (cons left (cons (f focus) right)))))
+
+   ; zipper-set: Set focused element
+   (zipper-set (fn (val z)
+     (zipper-update (const val) z)))
+
+   ; zipper-insert-left: Insert element to the left of focus
+   (zipper-insert-left (fn (val z)
+     (cons (cons val (car z)) (cdr z))))
+
+   ; zipper-insert-right: Insert element to the right of focus
+   (zipper-insert-right (fn (val z)
+     (let ((left (car z))
+           (focus (car (cdr z)))
+           (right (cdr (cdr z))))
+       (cons left (cons focus (cons val right))))))
+
+   ; zipper-delete: Delete focused element, focus moves right
+   (zipper-delete (fn (z)
+     (let ((left (car z))
+           (right (cdr (cdr z))))
+       (if (null? right)
+           (if (null? left)
+               (cons '() (cons #f '()))
+               (cons (cdr left) (cons (car left) '())))
+           (cons left (cons (car right) (cdr right)))))))
+
+   ; ============================================
+   ; Validation Combinators
+   ; ============================================
+
+   ; validate: Basic validation - returns (ok value) or (err message)
+   (validate (fn (p msg value)
+     (if (p value)
+         (ok value)
+         (err msg))))
+
+   ; validate-all: Run all validations, collect all errors
+   (validate-all (fn (validators value)
+     (let ((results (map (fn (v) (v value)) validators)))
+       (let ((errors (filter err? results)))
+         (if (null? errors)
+             (ok value)
+             (err (map err-value errors)))))))
+
+   ; validate-chain: Run validations in sequence, stop on first error
+   (validate-chain (fix validate-chain
+     (fn (validators value)
+       (if (null? validators)
+           (ok value)
+           (let ((result ((car validators) value)))
+             (if (ok? result)
+                 (validate-chain (cdr validators) (ok-value result))
+                 result))))))
+
+   ; validator: Create a validator from predicate and message
+   (validator (fn (p msg)
+     (fn (value) (validate p msg value))))
+
+   ; not-empty: Validate not empty (for lists/strings)
+   (not-empty-validator (validator (fn (x) (not (or (null? x) (and (string? x) (string-empty? x)))))
+                                   "must not be empty"))
+
+   ; positive-validator: Validate positive number
+   (positive-validator (validator positive? "must be positive"))
+
+   ; non-negative-validator: Validate non-negative number
+   (non-negative-validator (validator (fn (x) (>= x 0)) "must be non-negative"))
+
+   ; in-range-validator: Validate number in range
+   (in-range-validator (fn (lo hi)
+     (validator (fn (x) (and (>= x lo) (<= x hi)))
+                (string-append "must be between " (number->string lo) " and " (number->string hi)))))
+
+   ; ============================================
+   ; Lens-like Utilities (for nested data access)
+   ; ============================================
+
+   ; lens-get: Get value at path in nested structure
+   (lens-get (fix lens-get
+     (fn (path data)
+       (if (null? path)
+           data
+           (let ((key (car path)))
+             (if (number? key)
+                 (lens-get (cdr path) (list-ref data key))
+                 (lens-get (cdr path) (assoc-ref key data))))))))
+
+   ; lens-set: Set value at path in nested structure
+   (lens-set (fix lens-set
+     (fn (path value data)
+       (if (null? path)
+           value
+           (let ((key (car path)))
+             (if (number? key)
+                 (update-at key (fn (old) (lens-set (cdr path) value old)) data)
+                 (assoc-set key (lens-set (cdr path) value (assoc-ref key data)) data)))))))
+
+   ; lens-update: Update value at path with function
+   (lens-update (fn (path f data)
+     (lens-set path (f (lens-get path data)) data)))
+
+   ; ============================================
+   ; Applicative Functor Utilities
+   ; ============================================
+
+   ; ap: Apply wrapped function to wrapped value (for Maybe/Either)
+   (ap (fn (wf wa)
+     (if (ok? wf)
+         (if (ok? wa)
+             (ok ((ok-value wf) (ok-value wa)))
+             wa)
+         wf)))
+
+   ; lift2: Lift binary function to work on wrapped values
+   (lift2 (fn (f wa wb)
+     (ap (ap (ok f) wa) wb)))
+
+   ; lift3: Lift ternary function to work on wrapped values
+   (lift3 (fn (f wa wb wc)
+     (ap (ap (ap (ok f) wa) wb) wc)))
+
+   ; sequence-list: Turn list of (ok x) into (ok list-of-x)
+   (sequence-list (fn (lst)
+     (foldr (fn (wx acc)
+              (if (err? wx)
+                  wx
+                  (if (err? acc)
+                      acc
+                      (ok (cons (ok-value wx) (ok-value acc))))))
+            (ok '())
+            lst)))
+
+   ; traverse-list: Map and sequence
+   (traverse-list (fn (f lst)
+     (sequence-list (map f lst))))
+
+   ; ============================================
+   ; More String Utilities
+   ; ============================================
+
+   ; string-split-at: Split string at index
+   (string-split-at (fn (idx s)
+     (cons (string-take s idx) (string-drop s idx))))
+
+   ; string-words: Split string into words (by whitespace)
+   (string-words (fn (s)
+     (let ((chars (string->list s)))
+       (let ((split-words (fix split-words
+               (fn (chars current words)
+                 (if (null? chars)
+                     (if (null? current)
+                         (reverse words)
+                         (reverse (cons (list->string (reverse current)) words)))
+                     (if (or (eq? (car chars) #\space)
+                             (eq? (car chars) #\tab)
+                             (eq? (car chars) #\newline))
+                         (if (null? current)
+                             (split-words (cdr chars) '() words)
+                             (split-words (cdr chars) '()
+                                         (cons (list->string (reverse current)) words)))
+                         (split-words (cdr chars) (cons (car chars) current) words)))))))
+         (split-words chars '() '())))))
+
+   ; string-unwords: Join words with space
+   (string-unwords (fn (words)
+     (if (null? words)
+         ""
+         (foldl (fn (acc w) (string-append acc " " w))
+                (car words)
+                (cdr words)))))
+
+   ; string-lines: Split string into lines
+   (string-lines (fn (s)
+     (let ((chars (string->list s)))
+       (let ((split-lines (fix split-lines
+               (fn (chars current lines)
+                 (if (null? chars)
+                     (reverse (cons (list->string (reverse current)) lines))
+                     (if (eq? (car chars) #\newline)
+                         (split-lines (cdr chars) '()
+                                     (cons (list->string (reverse current)) lines))
+                         (split-lines (cdr chars) (cons (car chars) current) lines)))))))
+         (split-lines chars '() '())))))
+
+   ; string-unlines: Join lines with newline
+   (string-unlines (fn (lines)
+     (if (null? lines)
+         ""
+         (foldl (fn (acc l) (string-append acc "\n" l))
+                (car lines)
+                (cdr lines)))))
+
+   ; string-center: Center string to width with padding
+   (string-center (fn (width s)
+     (let ((len (string-length s)))
+       (if (>= len width)
+           s
+           (let ((pad-total (- width len)))
+             (let ((pad-left (/ pad-total 2))
+                   (pad-right (- pad-total (/ pad-total 2))))
+               (string-append (string-repeat " " pad-left)
+                             s
+                             (string-repeat " " pad-right))))))))
+
+   ; string-ljust: Left-justify string to width
+   (string-ljust (fn (width s)
+     (let ((len (string-length s)))
+       (if (>= len width)
+           s
+           (string-append s (string-repeat " " (- width len)))))))
+
+   ; string-rjust: Right-justify string to width
+   (string-rjust (fn (width s)
+     (let ((len (string-length s)))
+       (if (>= len width)
+           s
+           (string-append (string-repeat " " (- width len)) s)))))
+
+   ; ============================================
+   ; Memoization Helpers
+   ; ============================================
+
+   ; make-memo-table: Create empty memo table (alist)
+   (make-memo-table (fn () '()))
+
+   ; memo-lookup: Look up in memo table
+   (memo-lookup (fn (key table)
+     (assoc key table)))
+
+   ; memo-insert: Insert into memo table
+   (memo-insert (fn (key value table)
+     (cons (cons key value) table)))
+
+   ; ============================================
+   ; Matrix Operations (2D list)
+   ; ============================================
+
+   ; matrix-rows: Get number of rows
+   (matrix-rows (fn (m)
+     (length m)))
+
+   ; matrix-cols: Get number of columns
+   (matrix-cols (fn (m)
+     (if (null? m) 0 (length (car m)))))
+
+   ; matrix-ref: Get element at (row, col)
+   (matrix-ref (fn (m row col)
+     (list-ref (list-ref m row) col)))
+
+   ; matrix-set: Set element at (row, col)
+   (matrix-set (fn (m row col val)
+     (update-at row (fn (r) (set-at col val r)) m)))
+
+   ; matrix-transpose: Transpose matrix
+   (matrix-transpose (fix matrix-transpose
+     (fn (m)
+       (if (or (null? m) (null? (car m)))
+           '()
+           (cons (map car m)
+                 (matrix-transpose (map cdr m)))))))
+
+   ; matrix-map: Map function over all elements
+   (matrix-map (fn (f m)
+     (map (fn (row) (map f row)) m)))
+
+   ; matrix-zip-with: Zip two matrices with function
+   (matrix-zip-with (fn (f m1 m2)
+     (map (fn (r1 r2) (zip-with f r1 r2)) m1 m2)))
+
+   ; matrix-add: Add two matrices
+   (matrix-add (fn (m1 m2)
+     (matrix-zip-with + m1 m2)))
+
+   ; matrix-scale: Scale matrix by scalar
+   (matrix-scale (fn (k m)
+     (matrix-map (fn (x) (* k x)) m)))
+
+   ; matrix-multiply: Matrix multiplication
+   (matrix-multiply (fn (a b)
+     (let ((bt (matrix-transpose b)))
+       (map (fn (row-a)
+              (map (fn (col-b)
+                     (foldl + 0 (zip-with * row-a col-b)))
+                   bt))
+            a))))
+
+   ; make-matrix: Create m x n matrix filled with value
+   (make-matrix (fn (rows cols val)
+     (build-list rows (fn (i) (build-list cols (fn (j) val))))))
+
+   ; identity-matrix: Create n x n identity matrix
+   (identity-matrix (fn (n)
+     (build-list n (fn (i)
+       (build-list n (fn (j) (if (= i j) 1 0)))))))
+
+   ; ============================================
+   ; Logic and Boolean Utilities
+   ; ============================================
+
+   ; implies: Logical implication (p -> q)
+   (implies (fn (p q)
+     (or (not p) q)))
+
+   ; iff: Logical biconditional (p <-> q)
+   (iff (fn (p q)
+     (eq? p q)))
+
+   ; nand: Not-and
+   (nand (fn (p q)
+     (not (and p q))))
+
+   ; nor: Not-or
+   (nor (fn (p q)
+     (not (or p q))))
+
+   ; bool->int: Convert boolean to 0/1
+   (bool->int (fn (b)
+     (if b 1 0)))
+
+   ; int->bool: Convert 0/1 to boolean
+   (int->bool (fn (n)
+     (not (= n 0))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -7708,6 +8050,68 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'alist-map-keys alist-map-keys)
     (cons 'alist-find alist-find)
     (cons 'alist-count alist-count)
+    ; Zipper operations
+    (cons 'zipper-from-list zipper-from-list)
+    (cons 'zipper-to-list zipper-to-list)
+    (cons 'zipper-focus zipper-focus)
+    (cons 'zipper-right zipper-right)
+    (cons 'zipper-left zipper-left)
+    (cons 'zipper-update zipper-update)
+    (cons 'zipper-set zipper-set)
+    (cons 'zipper-insert-left zipper-insert-left)
+    (cons 'zipper-insert-right zipper-insert-right)
+    (cons 'zipper-delete zipper-delete)
+    ; Validation combinators
+    (cons 'validate validate)
+    (cons 'validate-all validate-all)
+    (cons 'validate-chain validate-chain)
+    (cons 'validator validator)
+    (cons 'not-empty-validator not-empty-validator)
+    (cons 'positive-validator positive-validator)
+    (cons 'non-negative-validator non-negative-validator)
+    (cons 'in-range-validator in-range-validator)
+    ; Lens-like utilities
+    (cons 'lens-get lens-get)
+    (cons 'lens-set lens-set)
+    (cons 'lens-update lens-update)
+    ; Applicative functor utilities
+    (cons 'ap ap)
+    (cons 'lift2 lift2)
+    (cons 'lift3 lift3)
+    (cons 'sequence-list sequence-list)
+    (cons 'traverse-list traverse-list)
+    ; More string utilities
+    (cons 'string-split-at string-split-at)
+    (cons 'string-words string-words)
+    (cons 'string-unwords string-unwords)
+    (cons 'string-lines string-lines)
+    (cons 'string-unlines string-unlines)
+    (cons 'string-center string-center)
+    (cons 'string-ljust string-ljust)
+    (cons 'string-rjust string-rjust)
+    ; Memoization helpers
+    (cons 'make-memo-table make-memo-table)
+    (cons 'memo-lookup memo-lookup)
+    (cons 'memo-insert memo-insert)
+    ; Matrix operations
+    (cons 'matrix-rows matrix-rows)
+    (cons 'matrix-cols matrix-cols)
+    (cons 'matrix-ref matrix-ref)
+    (cons 'matrix-set matrix-set)
+    (cons 'matrix-map matrix-map)
+    (cons 'matrix-zip-with matrix-zip-with)
+    (cons 'matrix-add matrix-add)
+    (cons 'matrix-scale matrix-scale)
+    (cons 'matrix-multiply matrix-multiply)
+    (cons 'make-matrix make-matrix)
+    (cons 'identity-matrix identity-matrix)
+    ; Logic utilities
+    (cons 'implies implies)
+    (cons 'iff iff)
+    (cons 'nand nand)
+    (cons 'nor nor)
+    (cons 'bool->int bool->int)
+    (cons 'int->bool int->bool)
 ))
 "#;
 
