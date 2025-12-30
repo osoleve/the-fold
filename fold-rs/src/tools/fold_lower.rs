@@ -103,7 +103,10 @@ fn is_builtin_prim(name: &str) -> bool {
             | "integer->char" | "char->integer" | "char=?" | "char<?"
             // Logic
             | "and" | "or" | "not"
+            // Logical operations
+            | "xor" | "gensym"
             // Utilities
+            | "identity"
             | "assq" | "assoc"
             // REPL commands
             | "version" | "who" | "help" | "display" | "write" | "newline"

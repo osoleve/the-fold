@@ -2408,6 +2408,34 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let f = expect_number(&args[0])?.as_f64();
             Ok(Value::Number(f as i64))
         }
+        "identity" => {
+            // Return first argument unchanged (useful as a default/identity function)
+            if args.is_empty() {
+                Ok(Value::Nil)
+            } else {
+                Ok(args[0].clone())
+            }
+        }
+        "xor" => {
+            // Logical XOR: true if exactly one argument is truthy
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("xor expects 2 args"));
+            }
+            let a_truthy = !matches!(args[0], Value::Bool(false));
+            let b_truthy = !matches!(args[1], Value::Bool(false));
+            Ok(Value::Bool(a_truthy ^ b_truthy))
+        }
+        "gensym" => {
+            // Generate a unique symbol (simple version using a counter)
+            // This is a simplified version - real implementation would track global state
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("gensym expects 0 args"));
+            }
+            use std::sync::atomic::{AtomicU64, Ordering};
+            static GENSYM_COUNTER: AtomicU64 = AtomicU64::new(0);
+            let id = GENSYM_COUNTER.fetch_add(1, Ordering::SeqCst);
+            Ok(Value::Symbol(format!("g{}", id)))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
