@@ -111,12 +111,13 @@ fn is_builtin_prim(name: &str) -> bool {
             | "alist-get" | "alist-set" | "alist-keys" | "alist-values"
             // List operations
             | "car" | "cdr" | "cons" | "set-car!" | "set-cdr!"
-            | "list" | "append" | "length" | "reverse" | "member" | "memq"
+            | "list" | "append" | "length" | "reverse" | "memq"
             | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "init" | "flatten" | "range"
             | "list-copy" | "make-list" | "first" | "rest" | "second" | "third" | "head" | "tail"
             | "repeat" | "sum" | "product" | "sum-of" | "max-of" | "min-of"
             | "sort" | "unique" | "find-index" | "index-of" | "count"
-            | "find" | "position" | "contains?" | "min-list" | "max-list"
+            | "find" | "contains?" | "min-list" | "max-list"
+            // Note: member and position removed - implemented in prelude with Scheme-standard argument order
             | "nth" | "zip" | "unzip" | "rotate"
             | "list->set" | "interleave" | "list->pairs"
             | "list->symbols" | "list->numbers"

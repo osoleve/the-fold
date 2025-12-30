@@ -115,12 +115,12 @@ pub const PRELUDE_SOURCE: &str = r#"
    (partition (fix partition
      (fn (p lst)
        (if (null? lst)
-           (cons '() '())
+           (list '() '())
            (let ((rest-result (partition p (cdr lst)))
                  (x (car lst)))
              (if (p x)
-                 (cons (cons x (car rest-result)) (cdr rest-result))
-                 (cons (car rest-result) (cons x (cdr rest-result)))))))))
+                 (list (cons x (car rest-result)) (cadr rest-result))
+                 (list (car rest-result) (cons x (cadr rest-result)))))))))
 
    ; find-if: Find first element matching predicate, or #f
    (find-if (fix find-if
@@ -343,6 +343,25 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; (cat-maybes '(1 #f 2 #f 3)) => (1 2 3)
    (cat-maybes (fn (lst) (filter id lst)))
 
+   ; -- Tagged Maybe type (alternative to #f-as-None) --
+
+   ; just: Create a Just value
+   ; (just 42) => (just 42)
+   (just (fn (x) (list 'just x)))
+
+   ; nothing: Create a Nothing value
+   ; (nothing) => (nothing)
+   (nothing (fn () (list 'nothing)))
+
+   ; nothing?: Check if a value is Nothing
+   ; (nothing? (nothing)) => #t
+   ; (nothing? (just 5)) => #f
+   (nothing? (fn (m) (eq? (car m) 'nothing)))
+
+   ; from-just: Extract value from Just
+   ; (from-just (just 42)) => 42
+   (from-just (fn (m) (cadr m)))
+
    ; -- Chunking and windowing --
 
    ; chunks: Split list into chunks of size n
@@ -494,9 +513,9 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; ((both positive? even?) 4) => #t
    (both (fn (p1 p2) (fn (x) (and (p1 x) (p2 x)))))
 
-   ; either: Combine two predicates with or
-   ; ((either positive? even?) -2) => #t
-   (either (fn (p1 p2) (fn (x) (or (p1 x) (p2 x)))))
+   ; either-pred: Combine two predicates with or
+   ; ((either-pred positive? even?) -2) => #t
+   (either-pred (fn (p1 p2) (fn (x) (or (p1 x) (p2 x)))))
 
    ; neither: Combine two predicates with nor
    (neither (fn (p1 p2) (fn (x) (not (or (p1 x) (p2 x))))))
@@ -1514,6 +1533,208 @@ pub const PRELUDE_SOURCE: &str = r#"
 
    ; halve: Divide by 2
    (halve (fn (x) (/ x 2)))
+
+   ; -- Scheme compatibility aliases --
+
+   ; fold-left: Alias for foldl (Scheme naming)
+   (fold-left foldl)
+
+   ; fold-right: Alias for foldr (Scheme naming)
+   (fold-right foldr)
+
+   ; member: Check membership (like elem but returns tail or #f)
+   (member (fix member
+     (fn (x lst)
+       (if (null? lst)
+           #f
+           (if (eq? x (car lst))
+               lst
+               (member x (cdr lst)))))))
+
+   ; member?: Boolean membership check
+   (member? (fn (x lst)
+     (if (member x lst) #t #f)))
+
+   ; position: Find index of element (or #f)
+   (position (fix position
+     (fn (x lst)
+       (let ((helper (fix helper
+               (fn (lst idx)
+                 (if (null? lst)
+                     #f
+                     (if (eq? x (car lst))
+                         idx
+                         (helper (cdr lst) (+ idx 1))))))))
+         (helper lst 0)))))
+
+   ; -- Either monad utilities --
+
+   ; left: Create left value (error case)
+   (left (fn (x) (list 'left x)))
+
+   ; right: Create right value (success case)
+   (right (fn (x) (list 'right x)))
+
+   ; left?: Check if left
+   (left? (fn (e) (eq? (car e) 'left)))
+
+   ; right?: Check if right
+   (right? (fn (e) (eq? (car e) 'right)))
+
+   ; from-left: Extract left value
+   (from-left (fn (e) (cadr e)))
+
+   ; from-right: Extract right value
+   (from-right (fn (e) (cadr e)))
+
+   ; either: Apply one of two functions based on Either
+   (either (fn (left-fn right-fn e)
+     (if (left? e)
+         (left-fn (from-left e))
+         (right-fn (from-right e)))))
+
+   ; -- List utilities from Scheme SRFI --
+
+   ; list-index: Find index where predicate holds
+   (list-index (fix list-index
+     (fn (f lst)
+       (let ((helper (fix helper
+               (fn (lst idx)
+                 (if (null? lst)
+                     #f
+                     (if (f (car lst))
+                         idx
+                         (helper (cdr lst) (+ idx 1))))))))
+         (helper lst 0)))))
+
+   ; partition-all: Split list into chunks of n
+   (partition-all (fn (n lst)
+     (if (null? lst)
+         '()
+         (cons (take-n n lst)
+               (partition-all n (drop-n n lst))))))
+
+   ; take-right: Take n elements from end
+   (take-right (fn (n lst)
+     (drop-n (- (length lst) n) lst)))
+
+   ; drop-right: Drop n elements from end
+   (drop-right (fn (n lst)
+     (take-n (- (length lst) n) lst)))
+
+   ; split-at-pred: Split list at first element matching predicate
+   (split-at-pred (fix split-at-pred
+     (fn (f lst)
+       (let ((helper (fix helper
+               (fn (lst acc)
+                 (if (null? lst)
+                     (list (reverse acc) '())
+                     (if (f (car lst))
+                         (list (reverse acc) lst)
+                         (helper (cdr lst) (cons (car lst) acc))))))))
+         (helper lst '())))))
+
+   ; -- Numeric utilities --
+
+   ; sum: Sum of list (alias for sum-list)
+   (sum sum-list)
+
+   ; product: Product of list (alias for product-list)
+   (product product-list)
+
+   ; mean: Arithmetic mean
+   (mean (fn (lst)
+     (if (null? lst)
+         0
+         (/ (sum-list lst) (length lst)))))
+
+   ; variance: Sample variance
+   (variance (fn (lst)
+     (if (null? lst)
+         0
+         (let ((m (mean lst))
+               (n (length lst)))
+           (/ (sum-list (map (fn (x) (square (- x m))) lst))
+              (- n 1))))))
+
+   ; median: Middle value (for sorted list)
+   (median (fn (lst)
+     (if (null? lst)
+         0
+         (let ((n (length lst)))
+           (let ((mid (/ n 2)))
+             (if (even? n)
+                 (/ (+ (nth (- mid 1) lst) (nth mid lst)) 2)
+                 (nth mid lst)))))))
+
+   ; clamp-val: Clamp value to range [lo, hi]
+   (clamp-val (fn (lo hi x)
+     (if (< x lo) lo (if (> x hi) hi x))))
+
+   ; lerp: Linear interpolation
+   (lerp (fn (a b t)
+     (+ a (* t (- b a)))))
+
+   ; -- Predicate utilities --
+
+   ; and-fn: Combine predicates with and
+   (and-fn (fn (f g)
+     (fn (x) (if (f x) (g x) #f))))
+
+   ; or-fn: Combine predicates with or
+   (or-fn (fn (f g)
+     (fn (x) (if (f x) #t (g x)))))
+
+   ; not-fn: Negate a predicate (alias for complement)
+   (not-fn complement)
+
+   ; -- More list operations --
+
+   ; interpose: Insert separator between elements
+   (interpose (fn (sep lst)
+     (if (null? lst)
+         '()
+         (if (null? (cdr lst))
+             lst
+             (cons (car lst)
+                   (cons sep
+                         (interpose sep (cdr lst))))))))
+
+   ; separate: Separate list by predicate into two lists
+   (separate partition)
+
+   ; keep: Alias for filter
+   (keep filter)
+
+   ; reject: Alias for filter-not
+   (reject filter-not)
+
+   ; distinct: Remove duplicates (alias for nub)
+   (distinct nub)
+
+   ; group-runs: Group consecutive equal elements
+   (group-runs group-consecutive)
+
+   ; -- Applicative utilities --
+
+   ; lift2: Lift binary function to Maybe
+   (lift2 (fn (f ma mb)
+     (if (nothing? ma)
+         ma
+         (if (nothing? mb)
+             mb
+             (just (f (from-just ma) (from-just mb)))))))
+
+   ; sequence-list: Convert list of Maybes to Maybe of list
+   (sequence-list (fn (lst)
+     (foldr (fn (ma acc)
+              (if (nothing? ma)
+                  ma
+                  (if (nothing? acc)
+                      acc
+                      (just (cons (from-just ma) (from-just acc))))))
+            (just '())
+            lst)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -1568,6 +1789,11 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'from-maybe from-maybe)
     (cons 'map-maybe map-maybe)
     (cons 'cat-maybes cat-maybes)
+    ; Tagged Maybe type
+    (cons 'just just)
+    (cons 'nothing nothing)
+    (cons 'nothing? nothing?)
+    (cons 'from-just from-just)
     (cons 'chunks chunks)
     (cons 'sliding sliding)
     (cons 'pairs pairs)
@@ -1590,7 +1816,7 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'converge converge)
     (cons 'fixed-point fixed-point)
     (cons 'both both)
-    (cons 'either either)
+    (cons 'either-pred either-pred)
     (cons 'neither neither)
     (cons 'frequencies frequencies)
     (cons 'index-where index-where)
@@ -1761,7 +1987,49 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'succ succ)
     (cons 'pred-fn pred-fn)
     (cons 'double double)
-    (cons 'halve halve)))
+    (cons 'halve halve)
+    ; Scheme compatibility
+    (cons 'fold-left fold-left)
+    (cons 'fold-right fold-right)
+    (cons 'member member)
+    (cons 'member? member?)
+    (cons 'position position)
+    ; Either monad
+    (cons 'left left)
+    (cons 'right right)
+    (cons 'left? left?)
+    (cons 'right? right?)
+    (cons 'from-left from-left)
+    (cons 'from-right from-right)
+    (cons 'either either)
+    ; SRFI list utilities
+    (cons 'list-index list-index)
+    (cons 'partition-all partition-all)
+    (cons 'take-right take-right)
+    (cons 'drop-right drop-right)
+    (cons 'split-at-pred split-at-pred)
+    ; Numeric utilities
+    (cons 'sum sum)
+    (cons 'product product)
+    (cons 'mean mean)
+    (cons 'variance variance)
+    (cons 'median median)
+    (cons 'clamp-val clamp-val)
+    (cons 'lerp-fn lerp)
+    ; Predicate utilities
+    (cons 'and-fn and-fn)
+    (cons 'or-fn or-fn)
+    (cons 'not-fn not-fn)
+    ; List aliases
+    (cons 'interpose interpose)
+    (cons 'separate separate)
+    (cons 'keep keep)
+    (cons 'reject reject)
+    (cons 'distinct distinct)
+    (cons 'group-runs group-runs)
+    ; Applicative utilities
+    (cons 'lift2 lift2)
+    (cons 'sequence-list sequence-list)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
