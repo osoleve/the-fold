@@ -3880,6 +3880,492 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; retry-n: Retry function n times (placeholder - needs error handling)
    (retry-n (fn (n f x)
      (f x)))
+
+   ; ============================================
+   ; Pattern Matching Utilities
+   ; ============================================
+
+   ; match-pred: Match value against predicates with corresponding handlers
+   ; Cases is an alist of (predicate . handler) pairs
+   (match-pred (fn (value cases)
+     (let ((finder (fix finder
+             (fn (cases)
+               (if (null? cases)
+                   #f
+                   (let ((case (car cases)))
+                     (if ((car case) value)
+                         (cdr case)
+                         (finder (cdr cases)))))))))
+       (finder cases))))
+
+   ; match-equal: Match value for equality with corresponding handlers
+   ; Cases is an alist of (key . value) pairs
+   (match-equal (fn (value cases default)
+     (let ((finder (fix finder
+             (fn (cases)
+               (if (null? cases)
+                   default
+                   (let ((case (car cases)))
+                     (if (eq? (car case) value)
+                         (cdr case)
+                         (finder (cdr cases)))))))))
+       (finder cases))))
+
+   ; case-of: Case expression (list of (pattern handler) pairs)
+   (case-of (fn (value cases)
+     (match-equal value cases #f)))
+
+   ; guard: Guard expressions (list of (condition . value) pairs)
+   (guard (fn (cases)
+     (let ((finder (fix finder
+             (fn (cases)
+               (if (null? cases)
+                   #f
+                   (let ((case (car cases)))
+                     (if (car case)
+                         (cdr case)
+                         (finder (cdr cases)))))))))
+       (finder cases))))
+
+   ; destructure-list: Destructure list into head and tail
+   (destructure-list (fn (lst on-empty on-pair)
+     (if (null? lst)
+         on-empty
+         (on-pair (car lst) (cdr lst)))))
+
+   ; destructure-pair: Destructure pair
+   (destructure-pair (fn (p f)
+     (f (car p) (cdr p))))
+
+   ; let-pair: Bind car and cdr of pair to names
+   (let-pair (fn (p f)
+     (f (car p) (cdr p))))
+
+   ; ============================================
+   ; Lazy Evaluation / Streams
+   ; ============================================
+
+   ; thunk: Create a thunk (delayed computation)
+   (thunk (fn (f) (list 'thunk f #f #f)))
+
+   ; force: Force a thunk
+   (force (fn (t)
+     (if (and (pair? t) (eq? (car t) 'thunk))
+         (if (caddr t)
+             (cadddr t)
+             (let ((result ((cadr t))))
+               result))
+         t)))
+
+   ; stream-cons: Create a lazy stream node
+   (stream-cons (fn (head tail-thunk)
+     (list 'stream head tail-thunk)))
+
+   ; stream-head: Get head of stream
+   (stream-head (fn (s)
+     (if (and (pair? s) (eq? (car s) 'stream))
+         (cadr s)
+         (error "not a stream"))))
+
+   ; stream-tail: Get tail of stream (forces thunk)
+   (stream-tail (fn (s)
+     (if (and (pair? s) (eq? (car s) 'stream))
+         ((caddr s))
+         (error "not a stream"))))
+
+   ; stream-null: Empty stream marker
+   (stream-null (list 'stream-null))
+
+   ; stream-null?: Check if stream is empty
+   (stream-null? (fn (s)
+     (and (pair? s) (eq? (car s) 'stream-null))))
+
+   ; stream-take: Take n elements from stream
+   (stream-take (fix stream-take
+     (fn (n s)
+       (if (or (<= n 0) (stream-null? s))
+           '()
+           (cons (stream-head s) (stream-take (- n 1) (stream-tail s)))))))
+
+   ; stream-map: Map function over stream
+   (stream-map (fix stream-map
+     (fn (f s)
+       (if (stream-null? s)
+           stream-null
+           (stream-cons (f (stream-head s))
+                        (fn () (stream-map f (stream-tail s))))))))
+
+   ; stream-filter: Filter stream by predicate
+   (stream-filter (fix stream-filter
+     (fn (p s)
+       (if (stream-null? s)
+           stream-null
+           (if (p (stream-head s))
+               (stream-cons (stream-head s)
+                            (fn () (stream-filter p (stream-tail s))))
+               (stream-filter p (stream-tail s)))))))
+
+   ; stream-from: Infinite stream starting at n
+   (stream-from (fix stream-from
+     (fn (n)
+       (stream-cons n (fn () (stream-from (+ n 1)))))))
+
+   ; stream-iterate: Infinite stream by iterating function
+   (stream-iterate (fix stream-iterate
+     (fn (f x)
+       (stream-cons x (fn () (stream-iterate f (f x)))))))
+
+   ; stream-repeat: Infinite stream of same value
+   (stream-repeat (fix stream-repeat
+     (fn (x)
+       (stream-cons x (fn () (stream-repeat x))))))
+
+   ; stream-zip-with: Zip two streams with function
+   (stream-zip-with (fix stream-zip-with
+     (fn (f s1 s2)
+       (if (or (stream-null? s1) (stream-null? s2))
+           stream-null
+           (stream-cons (f (stream-head s1) (stream-head s2))
+                        (fn () (stream-zip-with f (stream-tail s1) (stream-tail s2))))))))
+
+   ; ============================================
+   ; More Monad Utilities
+   ; ============================================
+
+   ; bind-maybe: Monadic bind for Maybe
+   (bind-maybe (fn (m f)
+     (if (nothing? m)
+         m
+         (f (from-just m)))))
+
+   ; bind-either: Monadic bind for Either
+   (bind-either (fn (m f)
+     (if (left? m)
+         m
+         (f (from-right m)))))
+
+   ; sequence-maybes: Sequence list of maybes into maybe of list
+   (sequence-maybes (fn (ms)
+     (foldl (fn (acc m)
+              (if (nothing? acc)
+                  acc
+                  (if (nothing? m)
+                      m
+                      (just (append (from-just acc) (list (from-just m)))))))
+            (just '())
+            ms)))
+
+   ; sequence-eithers: Sequence list of eithers into either of list
+   (sequence-eithers (fn (es)
+     (foldl (fn (acc e)
+              (if (left? acc)
+                  acc
+                  (if (left? e)
+                      e
+                      (right (append (from-right acc) (list (from-right e)))))))
+            (right '())
+            es)))
+
+   ; traverse-maybe: Map and sequence for Maybe
+   (traverse-maybe (fn (f lst)
+     (sequence-maybes (map f lst))))
+
+   ; traverse-either: Map and sequence for Either
+   (traverse-either (fn (f lst)
+     (sequence-eithers (map f lst))))
+
+   ; ap-maybe: Applicative apply for Maybe
+   (ap-maybe (fn (mf mx)
+     (if (nothing? mf)
+         mf
+         (if (nothing? mx)
+             mx
+             (just ((from-just mf) (from-just mx)))))))
+
+   ; ap-either: Applicative apply for Either
+   (ap-either (fn (ef ex)
+     (if (left? ef)
+         ef
+         (if (left? ex)
+             ex
+             (right ((from-right ef) (from-right ex)))))))
+
+   ; ============================================
+   ; State Monad Utilities
+   ; ============================================
+
+   ; state-return: Return value in state monad
+   (state-return (fn (x)
+     (fn (s) (list x s))))
+
+   ; state-bind: Bind for state monad
+   (state-bind (fn (m f)
+     (fn (s)
+       (let ((result (m s)))
+         ((f (car result)) (cadr result))))))
+
+   ; state-get: Get current state
+   (state-get (fn (s) (list s s)))
+
+   ; state-put: Set new state
+   (state-put (fn (new-state)
+     (fn (s) (list '() new-state))))
+
+   ; state-modify: Modify state with function
+   (state-modify (fn (f)
+     (fn (s) (list '() (f s)))))
+
+   ; run-state: Run state monad with initial state
+   (run-state (fn (m init-state)
+     (m init-state)))
+
+   ; eval-state: Evaluate state monad, returning value
+   (eval-state (fn (m init-state)
+     (car (m init-state))))
+
+   ; exec-state: Execute state monad, returning final state
+   (exec-state (fn (m init-state)
+     (cadr (m init-state))))
+
+   ; ============================================
+   ; Reader Monad Utilities
+   ; ============================================
+
+   ; reader-return: Return value in reader monad
+   (reader-return (fn (x)
+     (fn (env) x)))
+
+   ; reader-bind: Bind for reader monad
+   (reader-bind (fn (m f)
+     (fn (env)
+       ((f (m env)) env))))
+
+   ; reader-ask: Get environment
+   (reader-ask (fn (env) env))
+
+   ; reader-local: Run with modified environment
+   (reader-local (fn (f m)
+     (fn (env) (m (f env)))))
+
+   ; run-reader: Run reader with environment
+   (run-reader (fn (m env)
+     (m env)))
+
+   ; ============================================
+   ; Writer Monad Utilities
+   ; ============================================
+
+   ; writer-return: Return value in writer monad
+   (writer-return (fn (x)
+     (list x '())))
+
+   ; writer-bind: Bind for writer monad (log is list)
+   (writer-bind (fn (m f)
+     (let ((result (f (car m))))
+       (list (car result) (append (cadr m) (cadr result))))))
+
+   ; writer-tell: Write to log
+   (writer-tell (fn (w)
+     (list '() (list w))))
+
+   ; run-writer: Run writer, returning (value log) pair
+   (run-writer id)
+
+   ; ============================================
+   ; More Collection Utilities
+   ; ============================================
+
+   ; multiset-add: Add element to multiset (alist of counts)
+   (multiset-add (fn (ms x)
+     (let ((found (assoc-ref x ms)))
+       (let ((count (if found found 0)))
+         (assoc-set x (+ count 1) ms)))))
+
+   ; multiset-remove: Remove one occurrence from multiset
+   (multiset-remove (fn (ms x)
+     (let ((found (assoc-ref x ms)))
+       (let ((count (if found found 0)))
+         (if (<= count 1)
+             (assoc-remove x ms)
+             (assoc-set x (- count 1) ms))))))
+
+   ; multiset-count: Get count of element in multiset
+   (multiset-count (fn (ms x)
+     (let ((found (assoc-ref x ms)))
+       (if found found 0))))
+
+   ; multiset-from-list: Create multiset from list
+   (multiset-from-list (fn (lst)
+     (foldl multiset-add '() lst)))
+
+   ; multiset-to-list: Convert multiset to list (with repetitions)
+   (multiset-to-list (fn (ms)
+     (flat-map (fn (pair)
+                 (replicate (cdr pair) (car pair)))
+               ms)))
+
+   ; filter-map: Map and filter in one pass (returns list of unwrapped just values)
+   (filter-map (fn (f lst)
+     (foldr (fn (x acc)
+              (let ((result (f x)))
+                (if (nothing? result)
+                    acc
+                    (cons (from-just result) acc))))
+            '()
+            lst)))
+
+   ; bag-union: Union of two multisets
+   (bag-union (fn (ms1 ms2)
+     (foldl (fn (acc pair)
+              (let ((count (+ (multiset-count acc (car pair)) (cdr pair))))
+                (assoc-set (car pair) count acc)))
+            ms1
+            ms2)))
+
+   ; bag-intersection: Intersection of two multisets
+   (bag-intersection (fn (ms1 ms2)
+     (filter-map (fn (pair)
+                   (let ((c1 (cdr pair))
+                         (c2 (multiset-count ms2 (car pair))))
+                     (if (> c2 0)
+                         (just (cons (car pair) (min c1 c2)))
+                         (nothing))))
+                 ms1)))
+
+   ; ============================================
+   ; More Functional Programming Patterns
+   ; ============================================
+
+   ; fix-with-memo: Fixed-point combinator (memoization requires mutable state)
+   ; This is just an alias for fix in pure environment
+   (fix-with-memo (fn (f)
+     (fix rec
+       (fn (x)
+         ((f rec) x)))))
+
+   ; memo-rec: Recursive function helper (memoization requires mutable state)
+   ; This is equivalent to fix in pure environment
+   (memo-rec (fn (f)
+     (fix rec
+       (fn (x)
+         ((f rec) x)))))
+
+   ; trampoline-call: Call trampolined function until done
+   (trampoline-call (fix trampoline-call
+     (fn (f)
+       (let ((result (f)))
+         (if (pair? result)
+             (if (eq? (car result) 'bounce)
+                 (trampoline-call (cadr result))
+                 result)
+             result)))))
+
+   ; bounce: Create a bounce for trampolining
+   (bounce (fn (f) (list 'bounce f)))
+
+   ; done: Mark value as done for trampolining
+   (done (fn (x) x))
+
+   ; ============================================
+   ; More Numeric Utilities
+   ; ============================================
+
+   ; complex-new: Create complex number as (real . imag)
+   (complex-new (fn (r i) (cons r i)))
+
+   ; complex-real: Get real part
+   (complex-real car)
+
+   ; complex-imag: Get imaginary part
+   (complex-imag cdr)
+
+   ; complex-add: Add two complex numbers
+   (complex-add (fn (c1 c2)
+     (complex-new (+ (complex-real c1) (complex-real c2))
+                  (+ (complex-imag c1) (complex-imag c2)))))
+
+   ; complex-sub: Subtract complex numbers
+   (complex-sub (fn (c1 c2)
+     (complex-new (- (complex-real c1) (complex-real c2))
+                  (- (complex-imag c1) (complex-imag c2)))))
+
+   ; complex-mul: Multiply complex numbers
+   (complex-mul (fn (c1 c2)
+     (let ((r1 (complex-real c1)) (i1 (complex-imag c1))
+           (r2 (complex-real c2)) (i2 (complex-imag c2)))
+       (complex-new (- (* r1 r2) (* i1 i2))
+                    (+ (* r1 i2) (* i1 r2))))))
+
+   ; complex-magnitude: Magnitude of complex number
+   (complex-magnitude (fn (c)
+     (sqrt (+ (* (complex-real c) (complex-real c))
+              (* (complex-imag c) (complex-imag c))))))
+
+   ; complex-conjugate: Complex conjugate
+   (complex-conjugate (fn (c)
+     (complex-new (complex-real c) (- (complex-imag c)))))
+
+   ; NOTE: Simple pair-based rationals removed - use built-in rational type
+   ; Built-in functions: make-rational, rational-numerator, rational-denominator,
+   ; rational-add, rational-sub, rational-mul, rational-div, rational->float
+
+   ; ============================================
+   ; Format/Display Utilities
+   ; ============================================
+
+   ; format-number: Format number with precision
+   (format-number (fn (n precision)
+     (let ((factor (pow-int 10 precision)))
+       (/ (round (* n factor)) factor))))
+
+   ; pad-number: Pad number to width with zeros
+   (pad-number (fn (n width)
+     (let ((s (number->string n)))
+       (if (>= (string-length s) width)
+           s
+           (string-append (make-string (- width (string-length s)) #\0) s)))))
+
+   ; format-hex: Format number as hex string
+   (format-hex (fix format-hex
+     (fn (n)
+       (if (< n 16)
+           (string-ref "0123456789abcdef" n)
+           (string-append (format-hex (quotient n 16))
+                          (string (string-ref "0123456789abcdef" (remainder n 16))))))))
+
+   ; format-binary: Format number as binary string
+   (format-binary (fix format-binary
+     (fn (n)
+       (if (< n 2)
+           (number->string n)
+           (string-append (format-binary (quotient n 2))
+                          (number->string (remainder n 2)))))))
+
+   ; format-with-commas: Format number with thousand separators
+   (format-with-commas (fn (n)
+     (let ((s (number->string (abs n))))
+       (let ((helper (fix helper
+               (fn (chars count result)
+                 (if (null? chars)
+                     result
+                     (let ((new-result (cons (car chars) result)))
+                       (helper (cdr chars)
+                               (+ count 1)
+                               (if (and (= (remainder (+ count 1) 3) 0) (not (null? (cdr chars))))
+                                   (cons #\, new-result)
+                                   new-result))))))))
+         (let ((formatted (list->string (helper (reverse (string->list s)) 0 '()))))
+           (if (< n 0)
+               (string-append "-" formatted)
+               formatted))))))
+
+   ; format-ordinal: Format number as ordinal (1st, 2nd, 3rd, etc.)
+   (format-ordinal (fn (n)
+     (let ((suffix (if (and (>= (remainder n 100) 11) (<= (remainder n 100) 13))
+                       "th"
+                       (case-of (remainder n 10)
+                         (list (list 1 "st") (list 2 "nd") (list 3 "rd"))))))
+       (string-append (number->string n) (if suffix suffix "th")))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -4597,7 +5083,89 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'with-default with-default)
     (cons 'null-coalesce null-coalesce)
     (cons 'safe-apply safe-apply)
-    (cons 'retry-n retry-n)))
+    (cons 'retry-n retry-n)
+    ; Pattern matching utilities
+    (cons 'match-pred match-pred)
+    (cons 'match-equal match-equal)
+    (cons 'case-of case-of)
+    (cons 'guard guard)
+    (cons 'destructure-list destructure-list)
+    (cons 'destructure-pair destructure-pair)
+    (cons 'let-pair let-pair)
+    ; Lazy evaluation / streams
+    (cons 'thunk thunk)
+    (cons 'force force)
+    (cons 'stream-cons stream-cons)
+    (cons 'stream-head stream-head)
+    (cons 'stream-tail stream-tail)
+    (cons 'stream-null stream-null)
+    (cons 'stream-null? stream-null?)
+    (cons 'stream-take stream-take)
+    (cons 'stream-map stream-map)
+    (cons 'stream-filter stream-filter)
+    (cons 'stream-from stream-from)
+    (cons 'stream-iterate stream-iterate)
+    (cons 'stream-repeat stream-repeat)
+    (cons 'stream-zip-with stream-zip-with)
+    ; Monad utilities
+    (cons 'bind-either bind-either)
+    (cons 'sequence-maybes sequence-maybes)
+    (cons 'sequence-eithers sequence-eithers)
+    (cons 'traverse-maybe traverse-maybe)
+    (cons 'traverse-either traverse-either)
+    (cons 'ap-maybe ap-maybe)
+    (cons 'ap-either ap-either)
+    ; State monad
+    (cons 'state-return state-return)
+    (cons 'state-bind state-bind)
+    (cons 'state-get state-get)
+    (cons 'state-put state-put)
+    (cons 'state-modify state-modify)
+    (cons 'run-state run-state)
+    (cons 'eval-state eval-state)
+    (cons 'exec-state exec-state)
+    ; Reader monad
+    (cons 'reader-return reader-return)
+    (cons 'reader-bind reader-bind)
+    (cons 'reader-ask reader-ask)
+    (cons 'reader-local reader-local)
+    (cons 'run-reader run-reader)
+    ; Writer monad
+    (cons 'writer-return writer-return)
+    (cons 'writer-bind writer-bind)
+    (cons 'writer-tell writer-tell)
+    (cons 'run-writer run-writer)
+    ; Multiset / bag utilities
+    (cons 'multiset-add multiset-add)
+    (cons 'multiset-remove multiset-remove)
+    (cons 'multiset-count multiset-count)
+    (cons 'multiset-from-list multiset-from-list)
+    (cons 'multiset-to-list multiset-to-list)
+    (cons 'bag-union bag-union)
+    (cons 'bag-intersection bag-intersection)
+    ; FP patterns
+    (cons 'filter-map filter-map)
+    (cons 'fix-with-memo fix-with-memo)
+    (cons 'memo-rec memo-rec)
+    (cons 'trampoline-call trampoline-call)
+    (cons 'bounce bounce)
+    (cons 'done done)
+    ; Complex numbers (simple representation)
+    (cons 'complex-new complex-new)
+    (cons 'complex-real complex-real)
+    (cons 'complex-imag complex-imag)
+    (cons 'complex-add complex-add)
+    (cons 'complex-sub complex-sub)
+    (cons 'complex-mul complex-mul)
+    (cons 'complex-magnitude complex-magnitude)
+    (cons 'complex-conjugate complex-conjugate)
+    ; Format utilities
+    (cons 'format-number format-number)
+    (cons 'pad-number pad-number)
+    (cons 'format-hex format-hex)
+    (cons 'format-binary format-binary)
+    (cons 'format-with-commas format-with-commas)
+    (cons 'format-ordinal format-ordinal)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};

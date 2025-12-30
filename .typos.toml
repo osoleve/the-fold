@@ -18,6 +18,9 @@ strats = "strats" # Plural of strat
 numer = "numer"  # Abbreviation for numerator (as in rational numbers)
 denom = "denom"  # Abbreviation for denominator
 
+# Ordinal suffixes
+nd = "nd"  # Ordinal suffix (2nd)
+
 # Fold-specific terminology
 REPL = "REPL"
 sexp = "sexp"

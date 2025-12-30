@@ -3750,3 +3750,393 @@ fn test_null_coalesce() {
     let result = eval_with_prelude("(null-coalesce '(#f #f 42 #f))");
     assert_eq!(result, "42");
 }
+
+// ============= Pattern Matching Utilities =============
+
+#[test]
+fn test_match_pred() {
+    let result =
+        eval_with_prelude("(match-pred 5 (list (cons positive? 'pos) (cons negative? 'neg)))");
+    assert_eq!(result, "pos");
+}
+
+#[test]
+fn test_match_equal() {
+    let result = eval_with_prelude(
+        "(match-equal 2 (list (cons 1 'one) (cons 2 'two) (cons 3 'three)) 'default)",
+    );
+    assert_eq!(result, "two");
+    let result = eval_with_prelude("(match-equal 99 (list (cons 1 'one) (cons 2 'two)) 'default)");
+    assert_eq!(result, "default");
+}
+
+#[test]
+fn test_case_of() {
+    let result = eval_with_prelude("(case-of 'b (list (cons 'a 1) (cons 'b 2) (cons 'c 3)))");
+    assert_eq!(result, "2");
+}
+
+#[test]
+fn test_guard() {
+    let result = eval_with_prelude("(guard (list (cons #f 'no) (cons #t 'yes) (cons #f 'maybe)))");
+    assert_eq!(result, "yes");
+}
+
+#[test]
+fn test_destructure_list() {
+    let result = eval_with_prelude("(destructure-list '(1 2 3) 'empty (fn (h t) h))");
+    assert_eq!(result, "1");
+    let result = eval_with_prelude("(destructure-list '() 'empty (fn (h t) h))");
+    assert_eq!(result, "empty");
+}
+
+#[test]
+fn test_let_pair() {
+    let result = eval_with_prelude("(let-pair (cons 3 4) (fn (a b) (+ a b)))");
+    assert_eq!(result, "7");
+}
+
+// ============= Lazy Evaluation / Streams =============
+
+#[test]
+fn test_thunk_force() {
+    let result = eval_with_prelude("(force (thunk (fn () (+ 1 2))))");
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_stream_cons_head() {
+    let result = eval_with_prelude("(stream-head (stream-cons 1 (fn () stream-null)))");
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_stream_null() {
+    let result = eval_with_prelude("(stream-null? stream-null)");
+    assert_eq!(result, "#t");
+    let result = eval_with_prelude("(stream-null? (stream-cons 1 (fn () stream-null)))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_stream_take() {
+    let result = eval_with_prelude("(stream-take 3 (stream-from 0))");
+    assert_eq!(result, "(0 1 2)");
+}
+
+#[test]
+fn test_stream_map() {
+    let result = eval_with_prelude("(stream-take 3 (stream-map (fn (x) (* x 2)) (stream-from 1)))");
+    assert_eq!(result, "(2 4 6)");
+}
+
+#[test]
+fn test_stream_filter() {
+    let result = eval_with_prelude("(stream-take 3 (stream-filter even? (stream-from 0)))");
+    assert_eq!(result, "(0 2 4)");
+}
+
+#[test]
+fn test_stream_iterate() {
+    let result = eval_with_prelude("(stream-take 4 (stream-iterate (fn (x) (* x 2)) 1))");
+    assert_eq!(result, "(1 2 4 8)");
+}
+
+#[test]
+fn test_stream_repeat() {
+    let result = eval_with_prelude("(stream-take 3 (stream-repeat 42))");
+    assert_eq!(result, "(42 42 42)");
+}
+
+#[test]
+fn test_stream_zip_with() {
+    let result =
+        eval_with_prelude("(stream-take 3 (stream-zip-with + (stream-from 1) (stream-from 10)))");
+    assert_eq!(result, "(11 13 15)");
+}
+
+// ============= Monad Utilities =============
+
+#[test]
+fn test_bind_either() {
+    let result = eval_with_prelude("(bind-either (right 5) (fn (x) (right (* x 2))))");
+    assert_eq!(result, "(right 10)");
+    let result = eval_with_prelude("(bind-either (left 'err) (fn (x) (right (* x 2))))");
+    assert_eq!(result, "(left err)");
+}
+
+#[test]
+fn test_sequence_maybes() {
+    // sequence-maybes collects values into a list wrapped in just
+    let result = eval_with_prelude("(sequence-maybes (list (just 1) (just 2) (just 3)))");
+    assert_eq!(result, "(just (1 2 3))");
+    let result = eval_with_prelude("(sequence-maybes (list (just 1) (nothing) (just 3)))");
+    assert_eq!(result, "(nothing)");
+}
+
+#[test]
+fn test_sequence_eithers() {
+    let result = eval_with_prelude("(sequence-eithers (list (right 1) (right 2)))");
+    assert_eq!(result, "(right (1 2))");
+    let result = eval_with_prelude("(sequence-eithers (list (right 1) (left 'err)))");
+    assert_eq!(result, "(left err)");
+}
+
+#[test]
+fn test_traverse_maybe() {
+    let result =
+        eval_with_prelude("(traverse-maybe (fn (x) (if (> x 0) (just x) (nothing))) '(1 2 3))");
+    assert_eq!(result, "(just (1 2 3))");
+}
+
+#[test]
+fn test_ap_maybe() {
+    let result = eval_with_prelude("(ap-maybe (just (fn (x) (* x 2))) (just 5))");
+    assert_eq!(result, "(just 10)");
+    let result = eval_with_prelude("(ap-maybe (nothing) (just 5))");
+    assert_eq!(result, "(nothing)");
+}
+
+#[test]
+fn test_ap_either() {
+    let result = eval_with_prelude("(ap-either (right (fn (x) (* x 2))) (right 5))");
+    assert_eq!(result, "(right 10)");
+}
+
+// ============= State Monad =============
+
+#[test]
+fn test_state_return() {
+    let result = eval_with_prelude("(run-state (state-return 42) 0)");
+    assert_eq!(result, "(42 0)");
+}
+
+#[test]
+fn test_state_get() {
+    let result = eval_with_prelude("(run-state state-get 100)");
+    assert_eq!(result, "(100 100)");
+}
+
+#[test]
+fn test_state_put() {
+    let result = eval_with_prelude("(run-state (state-put 50) 0)");
+    assert_eq!(result, "(() 50)");
+}
+
+#[test]
+fn test_state_modify() {
+    let result = eval_with_prelude("(run-state (state-modify (fn (s) (+ s 10))) 5)");
+    assert_eq!(result, "(() 15)");
+}
+
+#[test]
+fn test_state_bind() {
+    let result =
+        eval_with_prelude("(run-state (state-bind state-get (fn (x) (state-return (* x 2)))) 21)");
+    assert_eq!(result, "(42 21)");
+}
+
+#[test]
+fn test_eval_state() {
+    let result = eval_with_prelude("(eval-state (state-return 42) 0)");
+    assert_eq!(result, "42");
+}
+
+#[test]
+fn test_exec_state() {
+    let result = eval_with_prelude("(exec-state (state-put 99) 0)");
+    assert_eq!(result, "99");
+}
+
+// ============= Reader Monad =============
+
+#[test]
+fn test_reader_return() {
+    let result = eval_with_prelude("(run-reader (reader-return 42) 'env)");
+    assert_eq!(result, "42");
+}
+
+#[test]
+fn test_reader_ask() {
+    let result = eval_with_prelude("(run-reader reader-ask 'my-env)");
+    assert_eq!(result, "my-env");
+}
+
+#[test]
+fn test_reader_local() {
+    let result = eval_with_prelude("(run-reader (reader-local (fn (e) (+ e 10)) reader-ask) 5)");
+    assert_eq!(result, "15");
+}
+
+#[test]
+fn test_reader_bind() {
+    let result = eval_with_prelude(
+        "(run-reader (reader-bind reader-ask (fn (x) (reader-return (* x 2)))) 21)",
+    );
+    assert_eq!(result, "42");
+}
+
+// ============= Writer Monad =============
+
+#[test]
+fn test_writer_return() {
+    // Writer returns (value log) pair, initially empty log
+    let result = eval_with_prelude("(run-writer (writer-return 42))");
+    assert_eq!(result, "(42 ())");
+}
+
+#[test]
+fn test_writer_tell() {
+    // writer-tell returns (() (msg)) - unit value with msg in log
+    let result = eval_with_prelude("(run-writer (writer-tell 'msg))");
+    assert_eq!(result, "(() (msg))");
+}
+
+#[test]
+fn test_writer_bind() {
+    let result = eval_with_prelude(
+        "(run-writer (writer-bind (writer-return 5) (fn (x) (writer-return (* x 2)))))",
+    );
+    assert_eq!(result, "(10 ())");
+}
+
+// ============= Multiset / Bag Utilities =============
+
+#[test]
+fn test_multiset_add() {
+    // Build up a multiset step by step
+    let result = eval_with_prelude("(multiset-add (list) 'a)");
+    assert_eq!(result, "((a . 1))");
+}
+
+#[test]
+fn test_multiset_count() {
+    let result = eval_with_prelude("(multiset-count (list (cons 'a 3) (cons 'b 1)) 'a)");
+    assert_eq!(result, "3");
+    let result = eval_with_prelude("(multiset-count (list (cons 'a 3)) 'x)");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_multiset_from_list() {
+    let result =
+        eval_with_prelude("(multiset-count (multiset-from-list (list 'a 'a 'a 'b 'b)) 'a)");
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_bag_union() {
+    let result =
+        eval_with_prelude("(multiset-count (bag-union (list (cons 'a 2)) (list (cons 'a 3))) 'a)");
+    assert_eq!(result, "5");
+}
+
+// ============= FP Patterns =============
+
+#[test]
+fn test_filter_map() {
+    let result = eval_with_prelude(
+        "(filter-map (fn (x) (if (> x 0) (just (* x 2)) (nothing))) '(-1 2 -3 4))",
+    );
+    assert_eq!(result, "(4 8)");
+}
+
+#[test]
+fn test_fix_with_memo() {
+    // Just test that it works like fix
+    let result = eval_with_prelude(
+        "((fix-with-memo (fn (self) (fn (n) (if (<= n 1) n (+ (self (- n 1)) (self (- n 2))))))) 10)",
+    );
+    assert_eq!(result, "55");
+}
+
+#[test]
+fn test_trampoline_call() {
+    let result = eval_with_prelude("(trampoline-call (fn () 42))");
+    assert_eq!(result, "42");
+    let result = eval_with_prelude("(trampoline-call (fn () (bounce (fn () 99))))");
+    assert_eq!(result, "99");
+}
+
+#[test]
+fn test_bounce_done() {
+    let result = eval_with_prelude("(done 42)");
+    assert_eq!(result, "42");
+}
+
+// ============= Complex Numbers =============
+
+#[test]
+fn test_complex_new() {
+    let result = eval_with_prelude("(complex-new 3 4)");
+    assert_eq!(result, "(3 . 4)");
+}
+
+#[test]
+fn test_complex_real_imag() {
+    let result = eval_with_prelude("(complex-real (complex-new 3 4))");
+    assert_eq!(result, "3");
+    let result = eval_with_prelude("(complex-imag (complex-new 3 4))");
+    assert_eq!(result, "4");
+}
+
+#[test]
+fn test_complex_add() {
+    let result = eval_with_prelude("(complex-add (complex-new 1 2) (complex-new 3 4))");
+    assert_eq!(result, "(4 . 6)");
+}
+
+#[test]
+fn test_complex_sub() {
+    let result = eval_with_prelude("(complex-sub (complex-new 5 6) (complex-new 2 3))");
+    assert_eq!(result, "(3 . 3)");
+}
+
+#[test]
+fn test_complex_mul() {
+    // (1+2i)(3+4i) = 3 + 4i + 6i + 8i^2 = 3 + 10i - 8 = -5 + 10i
+    let result = eval_with_prelude("(complex-mul (complex-new 1 2) (complex-new 3 4))");
+    assert_eq!(result, "(-5 . 10)");
+}
+
+#[test]
+fn test_complex_magnitude() {
+    // |3+4i| = 5
+    let result = eval_with_prelude("(complex-magnitude (complex-new 3 4))");
+    // sqrt(25) = 5, may return int or float depending on implementation
+    assert!(result == "5" || result == "5.0");
+}
+
+#[test]
+fn test_complex_conjugate() {
+    let result = eval_with_prelude("(complex-conjugate (complex-new 3 4))");
+    assert_eq!(result, "(3 . -4)");
+}
+
+// ============= Built-in Rational Numbers =============
+
+#[test]
+fn test_builtin_rational() {
+    // Use built-in make-rational
+    let result = eval_with_prelude("(rational? (make-rational 3 4))");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_builtin_rational_ops() {
+    // Test built-in rational operations
+    let result = eval_with_prelude("(rational->float (make-rational 1 2))");
+    assert_eq!(result, "0.5");
+}
+
+// ============= Format Utilities =============
+// Note: Some format functions have limitations due to integer division
+// and lack of string formatting primitives. Testing simple cases only.
+
+#[test]
+fn test_format_binary() {
+    let result = eval_with_prelude("(format-binary 5)");
+    assert_eq!(result, "\"101\"");
+    let result = eval_with_prelude("(format-binary 8)");
+    assert_eq!(result, "\"1000\"");
+}
