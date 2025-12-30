@@ -789,3 +789,195 @@ fn test_char_case_conversion() {
     let result = eval_with_prelude("(char-upcase #\\1)");
     assert_eq!(result, "#\\1");
 }
+
+// ========== Set Operations Tests ==========
+
+#[test]
+fn test_union() {
+    let result = eval_with_prelude("(union '(1 2 3) '(2 3 4))");
+    assert_eq!(result, "(1 2 3 4)");
+}
+
+#[test]
+fn test_intersection() {
+    let result = eval_with_prelude("(intersection '(1 2 3) '(2 3 4))");
+    assert_eq!(result, "(2 3)");
+}
+
+#[test]
+fn test_difference() {
+    let result = eval_with_prelude("(difference '(1 2 3) '(2 3 4))");
+    assert_eq!(result, "(1)");
+}
+
+#[test]
+fn test_symmetric_difference() {
+    let result = eval_with_prelude("(symmetric-difference '(1 2 3) '(2 3 4))");
+    assert_eq!(result, "(1 4)");
+}
+
+#[test]
+fn test_subset() {
+    let result = eval_with_prelude("(subset? '(1 2) '(1 2 3))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(subset? '(1 4) '(1 2 3))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_disjoint() {
+    let result = eval_with_prelude("(disjoint? '(1 2) '(3 4))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(disjoint? '(1 2) '(2 3))");
+    assert_eq!(result, "#f");
+}
+
+// ========== Association List Tests ==========
+
+#[test]
+fn test_alist_map() {
+    // Use cons to create pairs since dotted pair syntax may not parse in quotes
+    let result = eval_with_prelude("(alist-map inc (list (cons 'a 1) (cons 'b 2)))");
+    assert_eq!(result, "((a . 2) (b . 3))");
+}
+
+#[test]
+fn test_alist_filter() {
+    let result =
+        eval_with_prelude("(alist-filter even? (list (cons 'a 1) (cons 'b 2) (cons 'c 3)))");
+    assert_eq!(result, "((b . 2))");
+}
+
+#[test]
+fn test_alist_update() {
+    let result = eval_with_prelude("(alist-update 'a inc (list (cons 'a 1) (cons 'b 2)))");
+    assert_eq!(result, "((a . 2) (b . 2))");
+}
+
+#[test]
+fn test_alist_merge() {
+    let result = eval_with_prelude(
+        "(alist-merge (list (cons 'a 1) (cons 'b 2)) (list (cons 'b 3) (cons 'c 4)))",
+    );
+    assert_eq!(result, "((a . 1) (b . 3) (c . 4))");
+}
+
+#[test]
+fn test_alist_invert() {
+    let result = eval_with_prelude("(alist-invert (list (cons 'a 1) (cons 'b 2)))");
+    assert_eq!(result, "((1 . a) (2 . b))");
+}
+
+// ========== Control Flow Tests ==========
+
+#[test]
+fn test_when_let() {
+    let result = eval_with_prelude("(when-let 5 inc)");
+    assert_eq!(result, "6");
+
+    let result = eval_with_prelude("(when-let #f inc)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_if_let() {
+    let result = eval_with_prelude("(if-let 5 inc 0)");
+    assert_eq!(result, "6");
+
+    let result = eval_with_prelude("(if-let #f inc 0)");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_thread_first() {
+    let result = eval_with_prelude("(thread-first 5 (list inc double))");
+    assert_eq!(result, "12");
+}
+
+#[test]
+fn test_cond_fn() {
+    let result =
+        eval_with_prelude("((cond-fn (list (cons even? \"even\") (cons odd? \"odd\"))) 3)");
+    assert_eq!(result, "\"odd\"");
+
+    let result =
+        eval_with_prelude("((cond-fn (list (cons even? \"even\") (cons odd? \"odd\"))) 4)");
+    assert_eq!(result, "\"even\"");
+}
+
+// ========== More Numeric Tests ==========
+
+#[test]
+fn test_clamp_list() {
+    let result = eval_with_prelude("(clamp-list 0 10 '(-5 5 15))");
+    assert_eq!(result, "(0 5 10)");
+}
+
+#[test]
+fn test_running_sum() {
+    let result = eval_with_prelude("(running-sum '(1 2 3 4))");
+    assert_eq!(result, "(1 3 6 10)");
+}
+
+#[test]
+fn test_running_product() {
+    let result = eval_with_prelude("(running-product '(1 2 3 4))");
+    assert_eq!(result, "(1 2 6 24)");
+}
+
+#[test]
+fn test_differences() {
+    let result = eval_with_prelude("(differences '(1 3 6 10))");
+    assert_eq!(result, "(2 3 4)");
+}
+
+// ========== List Rotation Tests ==========
+
+#[test]
+fn test_rotate_left() {
+    let result = eval_with_prelude("(rotate-left 2 '(1 2 3 4 5))");
+    assert_eq!(result, "(3 4 5 1 2)");
+}
+
+#[test]
+fn test_rotate_right() {
+    let result = eval_with_prelude("(rotate-right 2 '(1 2 3 4 5))");
+    assert_eq!(result, "(4 5 1 2 3)");
+}
+
+// ========== Predicate Tests ==========
+
+#[test]
+fn test_all_equal() {
+    let result = eval_with_prelude("(all-equal? '(1 1 1))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(all-equal? '(1 2 1))");
+    assert_eq!(result, "#f");
+
+    let result = eval_with_prelude("(all-equal? '())");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_sorted() {
+    let result = eval_with_prelude("(sorted? '(1 2 3))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(sorted? '(1 3 2))");
+    assert_eq!(result, "#f");
+
+    let result = eval_with_prelude("(sorted? '())");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_palindrome() {
+    let result = eval_with_prelude("(palindrome? '(1 2 1))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(palindrome? '(1 2 3))");
+    assert_eq!(result, "#f");
+}

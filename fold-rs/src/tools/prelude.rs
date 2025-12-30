@@ -676,6 +676,212 @@ pub const PRELUDE_SOURCE: &str = r#"
      (if (char-between? #\A #\Z c)
          (integer->char (+ (char->integer c) 32))
          c)))
+
+   ; -- Set operations (lists as sets) --
+
+   ; union: Combine two lists, removing duplicates
+   ; (union '(1 2 3) '(2 3 4)) => (1 2 3 4)
+   (union (fn (xs ys)
+     (nub (append xs ys))))
+
+   ; intersection: Elements in both lists
+   ; (intersection '(1 2 3) '(2 3 4)) => (2 3)
+   (intersection (fn (xs ys)
+     (filter (fn (x) (elem? x ys)) xs)))
+
+   ; difference: Elements in first list but not second
+   ; (difference '(1 2 3) '(2 3 4)) => (1)
+   (difference (fn (xs ys)
+     (filter (fn (x) (not (elem? x ys))) xs)))
+
+   ; symmetric-difference: Elements in either list but not both
+   ; (symmetric-difference '(1 2 3) '(2 3 4)) => (1 4)
+   (symmetric-difference (fn (xs ys)
+     (append (difference xs ys) (difference ys xs))))
+
+   ; subset?: Check if first list is subset of second
+   ; (subset? '(1 2) '(1 2 3)) => #t
+   (subset? (fn (xs ys)
+     (all (fn (x) (elem? x ys)) xs)))
+
+   ; disjoint?: Check if lists have no common elements
+   ; (disjoint? '(1 2) '(3 4)) => #t
+   (disjoint? (fn (xs ys)
+     (null? (intersection xs ys))))
+
+   ; -- Association list utilities --
+
+   ; alist-map: Apply function to all values in alist
+   ; (alist-map inc '((a . 1) (b . 2))) => ((a . 2) (b . 3))
+   (alist-map (fn (f alist)
+     (map (fn (pair) (cons (car pair) (f (cdr pair)))) alist)))
+
+   ; alist-filter: Keep pairs where predicate holds on value
+   ; (alist-filter even? '((a . 1) (b . 2) (c . 3))) => ((b . 2))
+   (alist-filter (fn (p alist)
+     (filter (fn (pair) (p (cdr pair))) alist)))
+
+   ; alist-find: Find first pair where predicate holds on value
+   (alist-find (fn (p alist)
+     (find-if (fn (pair) (p (cdr pair))) alist)))
+
+   ; alist-update: Update value for key using function
+   ; (alist-update 'a inc '((a . 1) (b . 2))) => ((a . 2) (b . 2))
+   (alist-update (fn (key f alist)
+     (map (fn (pair)
+            (if (eq? (car pair) key)
+                (cons key (f (cdr pair)))
+                pair))
+          alist)))
+
+   ; alist-merge: Merge two alists (second takes precedence)
+   ; (alist-merge '((a . 1) (b . 2)) '((b . 3) (c . 4))) => ((a . 1) (b . 3) (c . 4))
+   (alist-merge (fn (a1 a2)
+     (let ((keys1 (map car a1))
+           (keys2 (map car a2)))
+       (append
+         (filter (fn (pair) (not (elem? (car pair) keys2))) a1)
+         a2))))
+
+   ; alist-invert: Swap keys and values
+   ; (alist-invert '((a . 1) (b . 2))) => ((1 . a) (2 . b))
+   (alist-invert (fn (alist)
+     (map (fn (pair) (cons (cdr pair) (car pair))) alist)))
+
+   ; alist-group: Group list elements by key function into alist
+   ; (alist-group even? '(1 2 3 4)) => ((#f 1 3) (#t 2 4))
+   (alist-group (fn (key-fn lst)
+     (let ((keys (nub (map key-fn lst))))
+       (map (fn (k)
+              (cons k (filter (fn (x) (eq? (key-fn x) k)) lst)))
+            keys))))
+
+   ; -- Control flow utilities --
+
+   ; when-let: Execute body if value is truthy, with value bound
+   ; Like (let ((x expr)) (if x body #f))
+   (when-let (fn (val f)
+     (if val (f val) #f)))
+
+   ; if-let: Like when-let but with else clause
+   (if-let (fn (val then-fn else-val)
+     (if val (then-fn val) else-val)))
+
+   ; cond-fn: Create function that tests predicates in order
+   ; ((cond-fn (list (cons even? "even") (cons odd? "odd"))) 3) => "odd"
+   (cond-fn (fix cond-fn
+     (fn (clauses)
+       (fn (x)
+         (if (null? clauses)
+             #f
+             (if ((car (car clauses)) x)
+                 (cdr (car clauses))
+                 ((cond-fn (cdr clauses)) x)))))))
+
+   ; thread-first: Thread value through functions (value as first arg)
+   ; (thread-first 5 (list inc double)) => 12
+   (thread-first (fn (val fns)
+     (foldl (fn (acc f) (f acc)) val fns)))
+
+   ; thread-last: Same as thread-first for single-arg functions
+   (thread-last thread-first)
+
+   ; tap: Apply function for side effect, return original value
+   ; Useful for debugging in pipelines
+   (tap (fn (f x)
+     (let ((ignored (f x)))
+       x)))
+
+   ; -- More numeric utilities --
+
+   ; clamp-list: Clamp all values in list to range
+   ; (clamp-list 0 10 '(-5 5 15)) => (0 5 10)
+   ; Note: clamp primitive is (clamp value lo hi)
+   (clamp-list (fn (lo hi lst)
+     (map (fn (x) (clamp x lo hi)) lst)))
+
+   ; normalize: Scale list values to 0-1 range
+   ; (normalize '(0 50 100)) => (0 0.5 1)
+   (normalize (fn (lst)
+     (if (null? lst)
+         '()
+         (let ((lo (foldl min (car lst) lst))
+               (hi (foldl max (car lst) lst)))
+           (if (= lo hi)
+               (map (const 0) lst)
+               (map (fn (x) (/ (- x lo) (- hi lo))) lst))))))
+
+   ; running-sum: Cumulative sum
+   ; (running-sum '(1 2 3 4)) => (1 3 6 10)
+   (running-sum (fn (lst)
+     (cdr (scanl + 0 lst))))
+
+   ; running-product: Cumulative product
+   ; (running-product '(1 2 3 4)) => (1 2 6 24)
+   (running-product (fn (lst)
+     (cdr (scanl * 1 lst))))
+
+   ; differences: Consecutive differences
+   ; (differences '(1 3 6 10)) => (2 3 4)
+   (differences (fn (lst)
+     (if (null? lst)
+         '()
+         (if (null? (cdr lst))
+             '()
+             (zip-with - (cdr lst) lst)))))
+
+   ; -- List rotation and shuffling --
+
+   ; rotate-left: Rotate list left by n positions
+   ; (rotate-left 2 '(1 2 3 4 5)) => (3 4 5 1 2)
+   (rotate-left (fn (n lst)
+     (if (null? lst)
+         '()
+         (let ((len (length lst))
+               (n-mod (mod n (length lst))))
+           (append (drop lst n-mod) (take lst n-mod))))))
+
+   ; rotate-right: Rotate list right by n positions
+   ; (rotate-right 2 '(1 2 3 4 5)) => (4 5 1 2 3)
+   (rotate-right (fn (n lst)
+     (rotate-left (- (length lst) (mod n (length lst))) lst)))
+
+   ; -- Predicate utilities --
+
+   ; all-equal?: Check if all elements are equal
+   ; (all-equal? '(1 1 1)) => #t
+   (all-equal? (fn (lst)
+     (if (null? lst)
+         #t
+         (all (fn (x) (eq? x (car lst))) lst))))
+
+   ; sorted?: Check if list is sorted (ascending)
+   ; (sorted? '(1 2 3)) => #t
+   (sorted? (fix sorted?
+     (fn (lst)
+       (if (null? lst)
+           #t
+           (if (null? (cdr lst))
+               #t
+               (if (<= (car lst) (car (cdr lst)))
+                   (sorted? (cdr lst))
+                   #f))))))
+
+   ; sorted-by?: Check if list is sorted by key function
+   (sorted-by? (fn (key-fn lst)
+     (sorted? (map key-fn lst))))
+
+   ; palindrome?: Check if list is a palindrome
+   ; (palindrome? '(1 2 1)) => #t
+   (palindrome? (fix palindrome?
+     (fn (lst)
+       (if (null? lst)
+           #t
+           (if (null? (cdr lst))
+               #t
+               (if (eq? (car lst) (last lst))
+                   (palindrome? (cdr (init lst)))
+                   #f))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -782,7 +988,37 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'char-numeric? char-numeric?)
     (cons 'char-whitespace? char-whitespace?)
     (cons 'char-upcase char-upcase)
-    (cons 'char-downcase char-downcase)))
+    (cons 'char-downcase char-downcase)
+    (cons 'union union)
+    (cons 'intersection intersection)
+    (cons 'difference difference)
+    (cons 'symmetric-difference symmetric-difference)
+    (cons 'subset? subset?)
+    (cons 'disjoint? disjoint?)
+    (cons 'alist-map alist-map)
+    (cons 'alist-filter alist-filter)
+    (cons 'alist-find alist-find)
+    (cons 'alist-update alist-update)
+    (cons 'alist-merge alist-merge)
+    (cons 'alist-invert alist-invert)
+    (cons 'alist-group alist-group)
+    (cons 'when-let when-let)
+    (cons 'if-let if-let)
+    (cons 'cond-fn cond-fn)
+    (cons 'thread-first thread-first)
+    (cons 'thread-last thread-last)
+    (cons 'tap tap)
+    (cons 'clamp-list clamp-list)
+    (cons 'normalize normalize)
+    (cons 'running-sum running-sum)
+    (cons 'running-product running-product)
+    (cons 'differences differences)
+    (cons 'rotate-left rotate-left)
+    (cons 'rotate-right rotate-right)
+    (cons 'all-equal? all-equal?)
+    (cons 'sorted? sorted?)
+    (cons 'sorted-by? sorted-by?)
+    (cons 'palindrome? palindrome?)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
