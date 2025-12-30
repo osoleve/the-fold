@@ -12502,6 +12502,151 @@ pub const PRELUDE_SOURCE: &str = r#"
      (let ((base (path-basename p)))
        (and (> (string-length base) 0)
             (eq? (string-ref base 0) #\.)))))
+
+   ; ============================================================
+   ; Base64 Encoding/Decoding
+   ; ============================================================
+
+   ; b64-alphabet: Standard base64 alphabet
+   (b64-alphabet "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+
+   ; b64-char: Get character at index in alphabet
+   (b64-char (fn (idx)
+     (string-ref b64-alphabet idx)))
+
+   ; b64-index: Get index of character in alphabet
+   (b64-index (fn (c)
+     ((fix find-idx
+        (fn (i)
+          (if (>= i 64)
+              -1
+              (if (eq? c (string-ref b64-alphabet i))
+                  i
+                  (find-idx (+ i 1))))))
+      0)))
+
+   ; b64-encode-triple: Encode 3 bytes to 4 base64 chars
+   (b64-encode-triple (fn (b1 b2 b3)
+     (let ((n (+ (* b1 65536) (* b2 256) b3)))
+       (list (b64-char (mod (/ n 262144) 64))
+             (b64-char (mod (/ n 4096) 64))
+             (b64-char (mod (/ n 64) 64))
+             (b64-char (mod n 64))))))
+
+   ; b64-encode-bytes: Encode list of bytes to base64 string
+   (b64-encode-bytes (fn (bytes)
+     (let ((len (length bytes)))
+       ((fix encode-rec
+          (fn (bs acc)
+            (if (null? bs)
+                (list->string (reverse acc))
+                (if (null? (cdr bs))
+                    ; 1 byte remaining - pad with ==
+                    (let ((b1 (car bs)))
+                      (let ((n (* b1 65536)))
+                        (list->string
+                          (reverse
+                            (cons #\= (cons #\=
+                              (cons (b64-char (mod (/ n 4096) 64))
+                                (cons (b64-char (mod (/ n 262144) 64)) acc))))))))
+                    (if (null? (cdr (cdr bs)))
+                        ; 2 bytes remaining - pad with =
+                        (let ((b1 (car bs))
+                              (b2 (cadr bs)))
+                          (let ((n (+ (* b1 65536) (* b2 256))))
+                            (list->string
+                              (reverse
+                                (cons #\=
+                                  (cons (b64-char (mod (/ n 64) 64))
+                                    (cons (b64-char (mod (/ n 4096) 64))
+                                      (cons (b64-char (mod (/ n 262144) 64)) acc))))))))
+                        ; 3+ bytes - encode normally
+                        (let ((chars (b64-encode-triple (car bs) (cadr bs) (car (cdr (cdr bs))))))
+                          (encode-rec (cdr (cdr (cdr bs)))
+                            (cons (car (cdr (cdr (cdr chars))))
+                              (cons (car (cdr (cdr chars)))
+                                (cons (cadr chars)
+                                  (cons (car chars) acc)))))))))))
+        bytes '()))))
+
+   ; b64-decode-quad: Decode 4 base64 chars to 3 bytes
+   (b64-decode-quad (fn (c1 c2 c3 c4)
+     (let ((i1 (b64-index c1))
+           (i2 (b64-index c2))
+           (i3 (if (eq? c3 #\=) 0 (b64-index c3)))
+           (i4 (if (eq? c4 #\=) 0 (b64-index c4))))
+       (let ((n (+ (* i1 262144) (* i2 4096) (* i3 64) i4)))
+         (if (eq? c3 #\=)
+             (list (/ n 65536))  ; 1 byte
+             (if (eq? c4 #\=)
+                 (list (/ n 65536) (mod (/ n 256) 256))  ; 2 bytes
+                 (list (/ n 65536) (mod (/ n 256) 256) (mod n 256))))))))  ; 3 bytes
+
+   ; b64-decode-bytes: Decode base64 string to list of bytes
+   (b64-decode-bytes (fn (s)
+     (let ((chars (string->list s)))
+       ((fix decode-rec
+          (fn (cs acc)
+            (if (or (null? cs) (< (length cs) 4))
+                (reverse acc)
+                (let ((decoded (b64-decode-quad (car cs) (cadr cs)
+                                                (car (cdr (cdr cs)))
+                                                (car (cdr (cdr (cdr cs)))))))
+                  (decode-rec (cdr (cdr (cdr (cdr cs))))
+                    (append (reverse decoded) acc))))))
+        chars '()))))
+
+   ; b64-encode: Encode string to base64
+   (b64-encode (fn (s)
+     (b64-encode-bytes (string->bytes s))))
+
+   ; b64-decode: Decode base64 to string
+   (b64-decode (fn (s)
+     (bytes->string (b64-decode-bytes s))))
+
+   ; ============================================================
+   ; Simple Glob Pattern Matching
+   ; ============================================================
+
+   ; glob-match?: Check if string matches glob pattern
+   ; Supports * (any chars) and ? (single char)
+   ; (glob-match? "*.txt" "file.txt") => #t
+   ; (glob-match? "file?.txt" "file1.txt") => #t
+   (glob-match? (fix glob-match?
+     (fn (pat str)
+       (let ((pc (string->list pat))
+             (sc (string->list str)))
+         ((fix match-rec
+            (fn (p s)
+              (if (null? p)
+                  (null? s)  ; Pattern exhausted: match if string also exhausted
+                  (let ((pc (car p)))
+                    (if (eq? pc #\*)
+                        ; * matches zero or more chars
+                        (if (null? (cdr p))
+                            #t  ; Trailing * matches everything
+                            ; Try matching rest of pattern at each position
+                            ((fix try-star
+                               (fn (remaining)
+                                 (if (null? remaining)
+                                     (match-rec (cdr p) '())  ; Try matching at end
+                                     (or (match-rec (cdr p) remaining)
+                                         (try-star (cdr remaining))))))
+                             s))
+                        (if (null? s)
+                            #f  ; String exhausted but pattern not
+                            (if (eq? pc #\?)
+                                ; ? matches exactly one char
+                                (match-rec (cdr p) (cdr s))
+                                ; Regular char: must match exactly
+                                (if (eq? pc (car s))
+                                    (match-rec (cdr p) (cdr s))
+                                    #f))))))))
+          pc sc)))))
+
+   ; glob-filter: Filter list of strings by glob pattern
+   (glob-filter (fn (pat strs)
+     (filter (fn (s) (glob-match? pat s)) strs)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -14641,6 +14786,19 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'path-depth path-depth)
     (cons 'path-common-prefix path-common-prefix)
     (cons 'path-hidden? path-hidden?)
+    ; Base64 Encoding
+    (cons 'b64-alphabet b64-alphabet)
+    (cons 'b64-char b64-char)
+    (cons 'b64-index b64-index)
+    (cons 'b64-encode-triple b64-encode-triple)
+    (cons 'b64-encode-bytes b64-encode-bytes)
+    (cons 'b64-decode-quad b64-decode-quad)
+    (cons 'b64-decode-bytes b64-decode-bytes)
+    (cons 'b64-encode b64-encode)
+    (cons 'b64-decode b64-decode)
+    ; Glob Pattern Matching
+    (cons 'glob-match? glob-match?)
+    (cons 'glob-filter glob-filter)
 ))
 "#;
 
