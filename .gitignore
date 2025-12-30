@@ -38,3 +38,6 @@ coverage.lcov
 fold-rs/coverage.lcov
 fold-rs/target/llvm-cov/
 .fold-users/
+
+# Agent runtime state
+agents/state/
