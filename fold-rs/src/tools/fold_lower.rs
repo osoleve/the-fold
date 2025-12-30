@@ -42,7 +42,8 @@ fn is_builtin_prim(name: &str) -> bool {
         // Arithmetic
         "+" | "-" | "*" | "/" | "add" | "sub" | "mul" | "div" | "mod"
             | "abs" | "neg" | "sqrt" | "expt" | "pow" | "floor" | "ceiling" | "round"
-            | "sin" | "cos" | "tan" | "log" | "exp" | "min" | "max"
+            | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "log" | "exp" | "min" | "max"
+            | "gcd" | "lcm"
             // Comparison
             | "<" | ">" | "<=" | ">=" | "=" | "eq?" | "lt?" | "gt?" | "le?" | "ge?"
             // Type checks and predicates

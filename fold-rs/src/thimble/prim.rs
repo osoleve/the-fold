@@ -165,6 +165,42 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(numeric_to_value(max_val))
         }
+        "gcd" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("gcd expects 2 args"));
+            }
+            let a = expect_integer(&args[0])?.abs();
+            let b = expect_integer(&args[1])?.abs();
+            fn gcd_impl(mut a: i64, mut b: i64) -> i64 {
+                while b != 0 {
+                    let temp = b;
+                    b = a % b;
+                    a = temp;
+                }
+                a
+            }
+            Ok(Value::Number(gcd_impl(a, b)))
+        }
+        "lcm" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("lcm expects 2 args"));
+            }
+            let a = expect_integer(&args[0])?.abs();
+            let b = expect_integer(&args[1])?.abs();
+            fn gcd_impl(mut a: i64, mut b: i64) -> i64 {
+                while b != 0 {
+                    let temp = b;
+                    b = a % b;
+                    a = temp;
+                }
+                a
+            }
+            if a == 0 || b == 0 {
+                Ok(Value::Number(0))
+            } else {
+                Ok(Value::Number((a / gcd_impl(a, b)) * b))
+            }
+        }
         "log" => {
             if args.len() != 1 {
                 return Err(EvalError::TypeMismatch("log expects 1 arg"));
@@ -192,6 +228,27 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             let n = expect_number(&args[0])?.as_f64();
             Ok(Value::Float(n.tan()))
+        }
+        "asin" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("asin expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?.as_f64();
+            Ok(Value::Float(n.asin()))
+        }
+        "acos" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("acos expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?.as_f64();
+            Ok(Value::Float(n.acos()))
+        }
+        "atan" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("atan expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?.as_f64();
+            Ok(Value::Float(n.atan()))
         }
         "floor" => {
             if args.len() != 1 {
