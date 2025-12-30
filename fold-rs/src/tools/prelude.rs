@@ -4492,8 +4492,8 @@ pub const PRELUDE_SOURCE: &str = r#"
          (err (list 'assertion-failed 'expected expected 'got actual)))))
 
    ; ensure: Ensure condition, return value or error
-   (ensure (fn (pred value msg)
-     (if (pred value)
+   (ensure (fn (p value msg)
+     (if (p value)
          (ok value)
          (err msg))))
 
@@ -4586,10 +4586,10 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; ============================================
 
    ; while-loop: Functional while loop
-   (while-loop (fn (pred body init)
+   (while-loop (fn (p body init)
      (let ((loop (fix loop
              (fn (state)
-               (if (pred state)
+               (if (p state)
                    (loop (body state))
                    state)))))
        (loop init))))
@@ -4608,10 +4608,10 @@ pub const PRELUDE_SOURCE: &str = r#"
      (build-list n (fn (i) (thunk)))))
 
    ; repeat-until: Repeat until predicate is true
-   (repeat-until (fn (pred body init)
+   (repeat-until (fn (p body init)
      (let ((loop (fix loop
              (fn (state)
-               (if (pred state)
+               (if (p state)
                    state
                    (loop (body state)))))))
        (loop init))))
@@ -4668,16 +4668,16 @@ pub const PRELUDE_SOURCE: &str = r#"
      (map (fn (pair) (cons (car pair) (f (cdr pair)))) alist)))
 
    ; alist-filter: Filter alist by predicate on pairs
-   (alist-filter (fn (pred alist)
-     (filter pred alist)))
+   (alist-filter (fn (p alist)
+     (filter p alist)))
 
    ; alist-filter-keys: Filter alist by predicate on keys
-   (alist-filter-keys (fn (pred alist)
-     (filter (fn (pair) (pred (car pair))) alist)))
+   (alist-filter-keys (fn (p alist)
+     (filter (fn (pair) (p (car pair))) alist)))
 
    ; alist-filter-values: Filter alist by predicate on values
-   (alist-filter-values (fn (pred alist)
-     (filter (fn (pair) (pred (cdr pair))) alist)))
+   (alist-filter-values (fn (p alist)
+     (filter (fn (pair) (p (cdr pair))) alist)))
 
    ; alist-keys: Get all keys from alist
    (alist-keys (fn (alist)
@@ -4774,9 +4774,9 @@ pub const PRELUDE_SOURCE: &str = r#"
             lst)))
 
    ; partition-by: Partition list by predicate into (pass fail)
-   (partition-by (fn (pred lst)
+   (partition-by (fn (p lst)
      (foldl (fn (acc x)
-              (if (pred x)
+              (if (p x)
                   (cons (cons x (car acc)) (cdr acc))
                   (cons (car acc) (cons x (cdr acc)))))
             (cons '() '())
@@ -5119,6 +5119,362 @@ pub const PRELUDE_SOURCE: &str = r#"
        (if (= sd 0)
            (map (const 0) lst)
            (map (fn (x) (/ (- x m) sd)) lst)))))
+
+   ; ============================================
+   ; Bitwise Operation Wrappers
+   ; ============================================
+
+   ; bit-and: Bitwise AND
+   (bit-and (fn (a b) (bitand a b)))
+
+   ; bit-or: Bitwise OR
+   (bit-or (fn (a b) (bitor a b)))
+
+   ; bit-xor: Bitwise XOR
+   (bit-xor (fn (a b) (bitxor a b)))
+
+   ; bit-not: Bitwise NOT
+   (bit-not (fn (n) (bitnot n)))
+
+   ; bit-shift-left: Left shift
+   (bit-shift-left (fn (n pos) (shl n pos)))
+
+   ; bit-shift-right: Right shift
+   (bit-shift-right (fn (n pos) (shr n pos)))
+
+   ; bit-set?: Check if bit at position is set
+   (bit-set? (fn (n pos)
+     (not (= 0 (bit-and n (shl 1 pos))))))
+
+   ; bit-set: Set bit at position
+   (bit-set (fn (n pos)
+     (bit-or n (shl 1 pos))))
+
+   ; bit-clear: Clear bit at position
+   (bit-clear (fn (n pos)
+     (bit-and n (bit-not (shl 1 pos)))))
+
+   ; bit-toggle: Toggle bit at position
+   (bit-toggle (fn (n pos)
+     (bit-xor n (shl 1 pos))))
+
+   ; bit-count: Count set bits (population count)
+   (bit-count (fn (n)
+     (let ((counter (fix counter
+             (fn (n count)
+               (if (= n 0)
+                   count
+                   (counter (bit-and n (- n 1)) (+ count 1)))))))
+       (counter (abs n) 0))))
+
+   ; ============================================
+   ; Predicate Combinators
+   ; ============================================
+
+   ; complement: Negate a predicate
+   (complement (fn (p)
+     (fn (x) (not (p x)))))
+
+   ; conjoin: AND multiple predicates
+   (conjoin (fn (preds)
+     (fn (x)
+       (all (fn (p) (p x)) preds))))
+
+   ; disjoin: OR multiple predicates
+   (disjoin (fn (preds)
+     (fn (x)
+       (any (fn (p) (p x)) preds))))
+
+   ; pred-and: Combine two predicates with AND
+   (pred-and (fn (p q)
+     (fn (x) (and (p x) (q x)))))
+
+   ; pred-or: Combine two predicates with OR
+   (pred-or (fn (p q)
+     (fn (x) (or (p x) (q x)))))
+
+   ; satisfies?: Check if value satisfies all predicates
+   (satisfies? (fn (x preds)
+     ((conjoin preds) x)))
+
+   ; ============================================
+   ; Advanced Function Combinators
+   ; ============================================
+
+   ; juxt: Apply multiple functions to same argument, return list of results
+   ; ((juxt (list inc dec double)) 5) => (6 4 10)
+   (juxt (fn (fns)
+     (fn (x)
+       (map (fn (f) (f x)) fns))))
+
+   ; juxt2: Apply multiple functions to two arguments
+   (juxt2 (fn (fns)
+     (fn (x y)
+       (map (fn (f) (f x y)) fns))))
+
+   ; fork: Apply multiple functions, combine with binary function
+   ; ((fork + inc dec) 5) => (+ 6 4) => 10
+   (fork (fn (combine f g)
+     (fn (x)
+       (combine (f x) (g x)))))
+
+   ; converge: Apply functions to args, combine results
+   (converge (fn (combine fns)
+     (fn (x)
+       (apply combine (map (fn (f) (f x)) fns)))))
+
+   ; on: Apply binary function after applying unary function to both args
+   ; ((on + length) "abc" "de") => (+ 3 2) => 5
+   (on (fn (f g)
+     (fn (x y)
+       (f (g x) (g y)))))
+
+   ; both: Apply same function to both elements of a pair
+   (both (fn (f pair)
+     (cons (f (car pair)) (f (cdr pair)))))
+
+   ; ============================================
+   ; Currying and Partial Application
+   ; ============================================
+
+   ; curry2: Convert 2-arg function to curried form
+   ; ((curry2 +) 1) => closure, (((curry2 +) 1) 2) => 3
+   (curry2 (fn (f)
+     (fn (a)
+       (fn (b)
+         (f a b)))))
+
+   ; curry3: Convert 3-arg function to curried form
+   (curry3 (fn (f)
+     (fn (a)
+       (fn (b)
+         (fn (c)
+           (f a b c))))))
+
+   ; uncurry2: Convert curried function back to 2-arg
+   (uncurry2 (fn (f)
+     (fn (a b)
+       ((f a) b))))
+
+   ; uncurry3: Convert curried function back to 3-arg
+   (uncurry3 (fn (f)
+     (fn (a b c)
+       (((f a) b) c))))
+
+   ; partial: Partial application - fix first argument
+   ; ((partial + 1) 2) => 3
+   (partial (fn (f a)
+     (fn (b)
+       (f a b))))
+
+   ; partial2: Fix first two arguments
+   (partial2 (fn (f a b)
+     (fn (c)
+       (f a b c))))
+
+   ; partial-right: Fix last argument
+   ; ((partial-right - 1) 5) => 4
+   (partial-right (fn (f b)
+     (fn (a)
+       (f a b))))
+
+   ; flip: Flip arguments of binary function
+   ; ((flip -) 1 5) => 4
+   (flip (fn (f)
+     (fn (a b)
+       (f b a))))
+
+   ; flip3: Flip first and third arguments
+   (flip3 (fn (f)
+     (fn (a b c)
+       (f c b a))))
+
+   ; ============================================
+   ; Iteration Utilities
+   ; ============================================
+
+   ; iterate-n: Apply function n times, return final result
+   (iterate-n (fn (f n x)
+     (let ((iter (fix iter
+             (fn (i acc)
+               (if (= i 0)
+                   acc
+                   (iter (- i 1) (f acc)))))))
+       (iter n x))))
+
+   ; iterate-until: Apply function until predicate is true
+   (iterate-until (fn (f pred x)
+     (let ((iter (fix iter
+             (fn (acc)
+               (if (pred acc)
+                   acc
+                   (iter (f acc)))))))
+       (iter x))))
+
+   ; iterate-while: Apply function while predicate is true
+   (iterate-while (fn (f pred x)
+     (let ((iter (fix iter
+             (fn (acc)
+               (if (pred acc)
+                   (iter (f acc))
+                   acc)))))
+       (iter x))))
+
+   ; fixed-point: Find fixed point (when f(x) = x)
+   (fixed-point (fn (f x)
+     (let ((iter (fix iter
+             (fn (prev)
+               (let ((next (f prev)))
+                 (if (= next prev)
+                     next
+                     (iter next)))))))
+       (iter x))))
+
+   ; ============================================
+   ; Collection Utilities (Extended)
+   ; ============================================
+
+   ; count-if: Count elements satisfying predicate
+   (count-if (fn (p lst)
+     (length (filter p lst))))
+
+   ; remove-if: Remove elements satisfying predicate (opposite of filter)
+   (remove-if (fn (p lst)
+     (filter (complement p) lst)))
+
+   ; remove-duplicates: Remove duplicates preserving order
+   (remove-duplicates (fn (lst)
+     (let ((helper (fix helper
+             (fn (lst seen)
+               (if (null? lst)
+                   '()
+                   (if (member? (car lst) seen)
+                       (helper (cdr lst) seen)
+                       (cons (car lst)
+                             (helper (cdr lst) (cons (car lst) seen)))))))))
+       (helper lst '()))))
+
+   ; unique: Alias for remove-duplicates
+   (unique remove-duplicates)
+
+   ; replace-if: Replace elements satisfying predicate
+   (replace-if (fn (p new-val lst)
+     (map (fn (x) (if (p x) new-val x)) lst)))
+
+   ; substitute: Replace old value with new value
+   (substitute (fn (old new lst)
+     (map (fn (x) (if (eq? x old) new x)) lst)))
+
+   ; split-when: Split list when predicate becomes true
+   (split-when (fn (p lst)
+     (let ((helper (fix helper
+             (fn (lst current groups)
+               (if (null? lst)
+                   (if (null? current)
+                       (reverse groups)
+                       (reverse (cons (reverse current) groups)))
+                   (if (p (car lst))
+                       (helper (cdr lst)
+                               (list (car lst))
+                               (if (null? current)
+                                   groups
+                                   (cons (reverse current) groups)))
+                       (helper (cdr lst)
+                               (cons (car lst) current)
+                               groups)))))))
+       (helper lst '() '()))))
+
+   ; interleave: Interleave elements from two lists
+   (interleave (fix interleave
+     (fn (xs ys)
+       (if (null? xs)
+           ys
+           (if (null? ys)
+               xs
+               (cons (car xs)
+                     (cons (car ys)
+                           (interleave (cdr xs) (cdr ys)))))))))
+
+   ; ============================================
+   ; Numeric Range Utilities
+   ; ============================================
+
+   ; range-step: Range with custom step
+   (range-step (fn (start end step)
+     (let ((builder (fix builder
+             (fn (current acc)
+               (if (if (> step 0) (>= current end) (<= current end))
+                   (reverse acc)
+                   (builder (+ current step) (cons current acc)))))))
+       (builder start '()))))
+
+   ; linspace: Generate n evenly spaced numbers from start to end
+   (linspace (fn (start end n)
+     (if (<= n 1)
+         (list start)
+         (let ((step (/ (- end start) (- n 1))))
+           (build-list n (fn (i) (+ start (* i step))))))))
+
+   ; geometric-series: Generate geometric series
+   (geometric-series (fn (start ratio n)
+     (build-list n (fn (i) (* start (expt ratio i))))))
+
+   ; ============================================
+   ; Tuple/Pair Utilities
+   ; ============================================
+
+   ; pair-map: Map function over both elements of pair
+   (pair-map (fn (f pair)
+     (cons (f (car pair)) (f (cdr pair)))))
+
+   ; pair-swap: Swap elements of pair
+   (pair-swap (fn (pair)
+     (cons (cdr pair) (car pair))))
+
+   ; pair-to-list: Convert pair to two-element list
+   (pair-to-list (fn (pair)
+     (list (car pair) (cdr pair))))
+
+   ; list-to-pair: Convert two-element list to pair
+   (list-to-pair (fn (lst)
+     (cons (car lst) (cadr lst))))
+
+   ; ============================================
+   ; Alist/Dict Operations (Extended)
+   ; ============================================
+
+   ; alist-invert: Swap keys and values
+   (alist-invert (fn (alist)
+     (map (fn (pair) (cons (cdr pair) (car pair))) alist)))
+
+   ; alist-group-by: Group by key function
+   (alist-group-by (fn (key-fn lst)
+     (foldl (fn (acc x)
+              (let ((k (key-fn x)))
+                (let ((existing (assoc-ref k acc)))
+                  (assoc-set k (cons x (if existing existing '())) acc))))
+            '()
+            lst)))
+
+   ; alist-zip: Create alist from two lists
+   (alist-zip (fn (keys vals)
+     (map cons keys vals)))
+
+   ; alist-select: Select only specified keys
+   (alist-select (fn (keys alist)
+     (filter (fn (pair) (member? (car pair) keys)) alist)))
+
+   ; alist-reject: Remove specified keys
+   (alist-reject (fn (keys alist)
+     (filter (fn (pair) (not (member? (car pair) keys))) alist)))
+
+   ; alist-rename-key: Rename a key
+   (alist-rename-key (fn (old-key new-key alist)
+     (map (fn (pair)
+            (if (eq? (car pair) old-key)
+                (cons new-key (cdr pair))
+                pair))
+          alist)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -5162,6 +5518,15 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'min-by min-by)
     (cons 'on on)
     (cons 'juxt juxt)
+    (cons 'curry2 curry2)
+    (cons 'curry3 curry3)
+    (cons 'uncurry2 uncurry2)
+    (cons 'uncurry3 uncurry3)
+    (cons 'partial partial)
+    (cons 'partial2 partial2)
+    (cons 'partial-right partial-right)
+    (cons 'flip flip)
+    (cons 'flip3 flip3)
     (cons 'pipe pipe)
     (cons 'unfold unfold)
     (cons 'tails tails)
@@ -6026,6 +6391,72 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'std-dev std-dev)
     (cons 'normalize-list normalize-list)
     (cons 'z-score z-score)
+    ; Bitwise operations
+    (cons 'bit-and bit-and)
+    (cons 'bit-or bit-or)
+    (cons 'bit-xor bit-xor)
+    (cons 'bit-not bit-not)
+    (cons 'bit-shift-left bit-shift-left)
+    (cons 'bit-shift-right bit-shift-right)
+    (cons 'bit-set? bit-set?)
+    (cons 'bit-set bit-set)
+    (cons 'bit-clear bit-clear)
+    (cons 'bit-toggle bit-toggle)
+    (cons 'bit-count bit-count)
+    ; Predicate combinators
+    (cons 'complement complement)
+    (cons 'conjoin conjoin)
+    (cons 'disjoin disjoin)
+    (cons 'pred-and pred-and)
+    (cons 'pred-or pred-or)
+    (cons 'satisfies? satisfies?)
+    ; Advanced function combinators
+    (cons 'juxt juxt)
+    (cons 'juxt2 juxt2)
+    (cons 'fork fork)
+    (cons 'converge converge)
+    (cons 'on on)
+    (cons 'both both)
+    ; Currying and partial application
+    (cons 'curry2 curry2)
+    (cons 'curry3 curry3)
+    (cons 'uncurry2 uncurry2)
+    (cons 'uncurry3 uncurry3)
+    (cons 'partial partial)
+    (cons 'partial2 partial2)
+    (cons 'partial-right partial-right)
+    (cons 'flip flip)
+    (cons 'flip3 flip3)
+    ; Iteration utilities
+    (cons 'iterate-n iterate-n)
+    (cons 'iterate-until iterate-until)
+    (cons 'iterate-while iterate-while)
+    (cons 'fixed-point fixed-point)
+    ; Collection utilities
+    (cons 'count-if count-if)
+    (cons 'remove-if remove-if)
+    (cons 'remove-duplicates remove-duplicates)
+    (cons 'unique unique)
+    (cons 'replace-if replace-if)
+    (cons 'substitute substitute)
+    (cons 'split-when split-when)
+    (cons 'interleave interleave)
+    ; Numeric range utilities
+    (cons 'range-step range-step)
+    (cons 'linspace linspace)
+    (cons 'geometric-series geometric-series)
+    ; Pair utilities
+    (cons 'pair-map pair-map)
+    (cons 'pair-swap pair-swap)
+    (cons 'pair-to-list pair-to-list)
+    (cons 'list-to-pair list-to-pair)
+    ; Extended alist operations
+    (cons 'alist-invert alist-invert)
+    (cons 'alist-group-by alist-group-by)
+    (cons 'alist-zip alist-zip)
+    (cons 'alist-select alist-select)
+    (cons 'alist-reject alist-reject)
+    (cons 'alist-rename-key alist-rename-key)
 ))
 "#;
 
@@ -6194,6 +6625,13 @@ const PRIMITIVE_NAMES: &[&str] = &[
     "negative?",
     "even?",
     "odd?",
+    // Bitwise operations
+    "bitand",
+    "bitor",
+    "bitxor",
+    "bitnot",
+    "shl",
+    "shr",
     "atom?",
     "atomic?",
     "not-null?",
