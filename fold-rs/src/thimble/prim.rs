@@ -3181,6 +3181,162 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let q = !matches!(&args[1], Value::Bool(false) | Value::Nil);
             Ok(Value::Bool(p || q))
         }
+        // String conversion and manipulation utilities
+        "string-words" => {
+            // Split string into words: (string-words "hello world") => ("hello" "world")
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-words expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let words: Vec<Value> = s
+                .split_whitespace()
+                .map(|word| Value::String(word.to_string()))
+                .collect();
+            Ok(list_from_values(&words))
+        }
+        "string-lines" => {
+            // Split string into lines
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-lines expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let lines: Vec<Value> = s
+                .lines()
+                .map(|line| Value::String(line.to_string()))
+                .collect();
+            Ok(list_from_values(&lines))
+        }
+        "string-join" => {
+            // Join strings with separator: (string-join '("a" "b") "-") => "a-b"
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "string-join expects 2 args: (string-join strings separator)",
+                ));
+            }
+            let strings = list_to_vec(&args[0])?;
+            let sep = expect_string(&args[1])?;
+
+            let mut parts = Vec::new();
+            for s in strings {
+                parts.push(value_to_display_string(&s));
+            }
+            Ok(Value::String(parts.join(&sep)))
+        }
+        "string-replace-all" => {
+            // Replace all occurrences: (string-replace-all "hello" "l" "L") => "heLLo"
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "string-replace-all expects 3 args: (string-replace-all str from to)",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let from = expect_string(&args[1])?;
+            let to = expect_string(&args[2])?;
+
+            Ok(Value::String(s.replace(&from, &to)))
+        }
+        "string-trim-start" => {
+            // Trim leading whitespace
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-trim-start expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.trim_start().to_string()))
+        }
+        "string-trim-end" => {
+            // Trim trailing whitespace
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-trim-end expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.trim_end().to_string()))
+        }
+        "string-trim-both" => {
+            // Trim both ends
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-trim-both expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.trim().to_string()))
+        }
+        "string-ascii?" => {
+            // Check if string is ASCII only
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-ascii? expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::Bool(s.is_ascii()))
+        }
+        "string-numeric?" => {
+            // Check if string contains only digits
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-numeric? expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::Bool(
+                !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()),
+            ))
+        }
+        "string-alphabetic?" => {
+            // Check if string contains only letters
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-alphabetic? expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::Bool(
+                !s.is_empty() && s.chars().all(|c| c.is_alphabetic()),
+            ))
+        }
+        "string-alphanumeric?" => {
+            // Check if string contains only alphanumeric characters
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-alphanumeric? expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::Bool(
+                !s.is_empty() && s.chars().all(|c| c.is_alphanumeric()),
+            ))
+        }
+        "string-whitespace?" => {
+            // Check if string contains only whitespace
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-whitespace? expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::Bool(
+                !s.is_empty() && s.chars().all(|c| c.is_whitespace()),
+            ))
+        }
+        "string-empty?" => {
+            // Check if string is empty
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-empty? expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::Bool(s.is_empty()))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(

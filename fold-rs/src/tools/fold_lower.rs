@@ -131,6 +131,10 @@ fn is_builtin_prim(name: &str) -> bool {
             | "char-code" | "code-char" | "chars"
             | "string-concat"
             | "string-take" | "string-drop" | "starts-with?" | "ends-with?" | "substring?"
+            | "string-words" | "string-lines" | "string-join" | "string-replace-all"
+            | "string-trim-start" | "string-trim-end" | "string-trim-both"
+            | "string-ascii?" | "string-numeric?" | "string-alphabetic?" | "string-alphanumeric?"
+            | "string-whitespace?" | "string-empty?"
             | "format" | "number->string" | "symbol->string"
             // Vector operations
             | "vec-length" | "vec-ref" | "vec-make" | "vec->list"
