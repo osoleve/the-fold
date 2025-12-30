@@ -18,9 +18,11 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
+;;;   - fp/traversable.ss
 
 (load "fabric/stitches/prelude.ss")
 (load "fabric/stitches/fp/combinators.ss")
+(load "fabric/stitches/fp/traversable.ss")
 
 ;;; ============================================================
 ;;; Graph Type
@@ -624,3 +626,231 @@
              (format-value (car l))
              (loop (cdr l) #f))))
    "]"))
+
+;;; ============================================================
+;;; Foldable Instance for Graph
+;;; ============================================================
+;;;
+;;; The Foldable instance for Graph folds over the vertices in the
+;;; order they appear in the vertex list.
+
+;;; graph-foldr : (Vertex -> b -> b) -> b -> Graph -> b
+;;; Right fold over graph vertices.
+(define (graph-foldr f init g)
+  (list-foldr f init (graph-vertices g)))
+
+;;; graph-foldl : (b -> Vertex -> b) -> b -> Graph -> b
+;;; Left fold over graph vertices.
+(define (graph-foldl f init g)
+  (list-foldl f init (graph-vertices g)))
+
+;;; graph-fold-map : Monoid m -> (Vertex -> m) -> Graph -> m
+;;; Fold map over graph vertices.
+(define (graph-fold-map monoid f g)
+  (list-fold-map monoid f (graph-vertices g)))
+
+;;; graph-foldable : Foldable Graph
+;;; Foldable instance for Graph (folds over vertices).
+(define graph-foldable
+  (make-foldable graph-foldr graph-foldl graph-fold-map))
+
+;;; ============================================================
+;;; Traversable Instance for Graph
+;;; ============================================================
+;;;
+;;; The Traversable instance for Graph traverses vertices in the
+;;; order they appear in the vertex list, applying an applicative
+;;; effect to each vertex.
+
+;;; graph-traverse : Applicative f -> (Vertex -> f Vertex') -> Graph -> f Graph
+;;; Traverse graph vertices with an applicative effect.
+;;; The graph structure (edges) is preserved; only vertex labels are transformed.
+(define (graph-traverse app f g)
+  (let* ([directed? (graph-directed? g)]
+         [vertices (graph-vertices g)]
+         [edges (graph-edges g)]
+         ;; Traverse the vertices
+         [vertices-f (list-traverse app f vertices)])
+        ;; Build a new graph with transformed vertices
+        ;; We need to also update vertex references in edges
+        (app-fmap app
+                  (lambda (new-vertices)
+                          ;; Create mapping from old to new vertices
+                          (let ([vertex-map (map cons vertices new-vertices)])
+                               ;; Transform edges using the mapping
+                               (let ([new-edges
+                                      (map (lambda (adj)
+                                                   (let* ([old-from (car adj)]
+                                                          [new-from (cdr (assoc old-from vertex-map))]
+                                                          [old-edges (cdr adj)]
+                                                          [new-edges-list
+                                                           (map (lambda (edge)
+                                                                        (let* ([old-to (car edge)]
+                                                                               [weight (cdr edge)]
+                                                                               [new-to (cdr (assoc old-to vertex-map))])
+                                                                              (cons new-to weight)))
+                                                                old-edges)])
+                                                         (cons new-from new-edges-list)))
+                                           edges)])
+                                    (list 'graph directed? new-vertices new-edges))))
+                  vertices-f)))
+
+;;; graph-traversable : Traversable Graph
+;;; Traversable instance for Graph.
+(define graph-traversable
+  (make-traversable graph-foldable graph-traverse))
+
+;;; ============================================================
+;;; BFS/DFS Traversable Variations
+;;; ============================================================
+;;;
+;;; These variations traverse the graph in BFS or DFS order from
+;;; a given starting vertex, rather than the arbitrary vertex list order.
+
+;;; graph-bfs-foldr : Graph -> Vertex -> (Vertex -> b -> b) -> b -> Graph -> b
+;;; Right fold over graph vertices in BFS order from start vertex.
+;;; The final graph parameter is ignored (BFS order determined by g and start).
+(define (graph-bfs-foldr g start)
+  (lambda (f init _g)
+          (list-foldr f init (graph-bfs g start))))
+
+;;; graph-bfs-foldl : Graph -> Vertex -> (b -> Vertex -> b) -> b -> Graph -> b
+;;; Left fold over graph vertices in BFS order from start vertex.
+;;; The final graph parameter is ignored (BFS order determined by g and start).
+(define (graph-bfs-foldl g start)
+  (lambda (f init _g)
+          (list-foldl f init (graph-bfs g start))))
+
+;;; graph-bfs-fold-map : Graph -> Vertex -> Monoid m -> (Vertex -> m) -> Graph -> m
+;;; Fold map over graph vertices in BFS order from start vertex.
+;;; The final graph parameter is ignored (BFS order determined by g and start).
+(define (graph-bfs-fold-map g start)
+  (lambda (monoid f _g)
+          (list-fold-map monoid f (graph-bfs g start))))
+
+;;; graph-bfs-foldable : Graph -> Vertex -> Foldable
+;;; Create a Foldable instance that folds in BFS order from start vertex.
+(define (graph-bfs-foldable g start)
+  (make-foldable
+   (graph-bfs-foldr g start)
+   (graph-bfs-foldl g start)
+   (graph-bfs-fold-map g start)))
+
+;;; graph-bfs-traverse : Graph -> Vertex -> Applicative f -> (Vertex -> f Vertex') -> Graph -> f Graph
+;;; Traverse graph vertices in BFS order with an applicative effect.
+;;; The final graph parameter is ignored (BFS order determined by g and start).
+(define (graph-bfs-traverse g start)
+  (lambda (app f _g)
+          (let* ([directed? (graph-directed? g)]
+                 [bfs-vertices (graph-bfs g start)]
+                 [all-vertices (graph-vertices g)]
+                 [edges (graph-edges g)]
+                 ;; Traverse vertices in BFS order
+                 [vertices-f (list-traverse app f bfs-vertices)])
+                (app-fmap app
+                          (lambda (new-bfs-vertices)
+                                  ;; Create mapping from old to new vertices
+                                  (let ([vertex-map (map cons bfs-vertices new-bfs-vertices)])
+                                       ;; Transform edges using the mapping
+                                       (let ([new-edges
+                                              (map (lambda (adj)
+                                                           (let* ([old-from (car adj)]
+                                                                  [mapped-from (assoc old-from vertex-map)])
+                                                                 (if mapped-from
+                                                                     (let* ([new-from (cdr mapped-from)]
+                                                                            [old-edges (cdr adj)]
+                                                                            [new-edges-list
+                                                                             (map (lambda (edge)
+                                                                                          (let* ([old-to (car edge)]
+                                                                                                 [weight (cdr edge)]
+                                                                                                 [mapped-to (assoc old-to vertex-map)])
+                                                                                                (if mapped-to
+                                                                                                    (cons (cdr mapped-to) weight)
+                                                                                                    (cons old-to weight))))
+                                                                                  old-edges)])
+                                                                           (cons new-from new-edges-list))
+                                                                     adj)))
+                                                   edges)])
+                                            (list 'graph directed? new-bfs-vertices new-edges))))
+                          vertices-f))))
+
+;;; graph-bfs-traversable : Graph -> Vertex -> Traversable
+;;; Create a Traversable instance that traverses in BFS order from start vertex.
+(define (graph-bfs-traversable g start)
+  (make-traversable
+   (graph-bfs-foldable g start)
+   (graph-bfs-traverse g start)))
+
+;;; graph-dfs-foldr : Graph -> Vertex -> (Vertex -> b -> b) -> b -> Graph -> b
+;;; Right fold over graph vertices in DFS order from start vertex.
+;;; The final graph parameter is ignored (DFS order determined by g and start).
+(define (graph-dfs-foldr g start)
+  (lambda (f init _g)
+          (list-foldr f init (graph-dfs g start))))
+
+;;; graph-dfs-foldl : Graph -> Vertex -> (b -> Vertex -> b) -> b -> Graph -> b
+;;; Left fold over graph vertices in DFS order from start vertex.
+;;; The final graph parameter is ignored (DFS order determined by g and start).
+(define (graph-dfs-foldl g start)
+  (lambda (f init _g)
+          (list-foldl f init (graph-dfs g start))))
+
+;;; graph-dfs-fold-map : Graph -> Vertex -> Monoid m -> (Vertex -> m) -> Graph -> m
+;;; Fold map over graph vertices in DFS order from start vertex.
+;;; The final graph parameter is ignored (DFS order determined by g and start).
+(define (graph-dfs-fold-map g start)
+  (lambda (monoid f _g)
+          (list-fold-map monoid f (graph-dfs g start))))
+
+;;; graph-dfs-foldable : Graph -> Vertex -> Foldable
+;;; Create a Foldable instance that folds in DFS order from start vertex.
+(define (graph-dfs-foldable g start)
+  (make-foldable
+   (graph-dfs-foldr g start)
+   (graph-dfs-foldl g start)
+   (graph-dfs-fold-map g start)))
+
+;;; graph-dfs-traverse : Graph -> Vertex -> Applicative f -> (Vertex -> f Vertex') -> Graph -> f Graph
+;;; Traverse graph vertices in DFS order with an applicative effect.
+;;; The final graph parameter is ignored (DFS order determined by g and start).
+(define (graph-dfs-traverse g start)
+  (lambda (app f _g)
+          (let* ([directed? (graph-directed? g)]
+                 [dfs-vertices (graph-dfs g start)]
+                 [all-vertices (graph-vertices g)]
+                 [edges (graph-edges g)]
+                 ;; Traverse vertices in DFS order
+                 [vertices-f (list-traverse app f dfs-vertices)])
+                (app-fmap app
+                          (lambda (new-dfs-vertices)
+                                  ;; Create mapping from old to new vertices
+                                  (let ([vertex-map (map cons dfs-vertices new-dfs-vertices)])
+                                       ;; Transform edges using the mapping
+                                       (let ([new-edges
+                                              (map (lambda (adj)
+                                                           (let* ([old-from (car adj)]
+                                                                  [mapped-from (assoc old-from vertex-map)])
+                                                                 (if mapped-from
+                                                                     (let* ([new-from (cdr mapped-from)]
+                                                                            [old-edges (cdr adj)]
+                                                                            [new-edges-list
+                                                                             (map (lambda (edge)
+                                                                                          (let* ([old-to (car edge)]
+                                                                                                 [weight (cdr edge)]
+                                                                                                 [mapped-to (assoc old-to vertex-map)])
+                                                                                                (if mapped-to
+                                                                                                    (cons (cdr mapped-to) weight)
+                                                                                                    (cons old-to weight))))
+                                                                                  old-edges)])
+                                                                           (cons new-from new-edges-list))
+                                                                     adj)))
+                                                   edges)])
+                                            (list 'graph directed? new-dfs-vertices new-edges))))
+                          vertices-f))))
+
+;;; graph-dfs-traversable : Graph -> Vertex -> Traversable
+;;; Create a Traversable instance that traverses in DFS order from start vertex.
+(define (graph-dfs-traversable g start)
+  (make-traversable
+   (graph-dfs-foldable g start)
+   (graph-dfs-traverse g start)))

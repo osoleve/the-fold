@@ -370,6 +370,223 @@
                     (assert-true (> (string-length s) 0)))))
 
 ;;; ============================================================
+;;; Foldable Instance Tests
+;;; ============================================================
+
+(test-group graph-foldable
+            (define-test graph-foldr-sum-test
+              (let* ([g (graph-add-vertices empty-graph '(1 2 3 4 5))]
+                     [sum (graph-foldr + 0 g)])
+                    (assert-equal 15 sum)))
+            
+            (define-test graph-foldl-sum-test
+              (let* ([g (graph-add-vertices empty-graph '(1 2 3 4 5))]
+                     [sum (graph-foldl + 0 g)])
+                    (assert-equal 15 sum)))
+            
+            (define-test graph-fold-map-list-test
+              (let* ([g (graph-add-vertices empty-graph '(a b c))]
+                     [result (graph-fold-map list-monoid list g)])
+                    (assert-equal 3 (length result))
+                    (assert-true (not (not (member 'a result))))
+                    (assert-true (not (not (member 'b result))))
+                    (assert-true (not (not (member 'c result))))))
+            
+            (define-test graph-fold-map-sum-test
+              (let* ([g (graph-add-vertices empty-graph '(1 2 3 4 5))]
+                     [result (graph-fold-map sum-monoid identity g)])
+                    (assert-equal 15 result)))
+            
+            (define-test foldable-to-list-test
+              (let* ([g (graph-add-vertices empty-graph '(a b c))]
+                     [lst (to-list graph-foldable g)])
+                    (assert-equal 3 (length lst))
+                    (assert-true (not (not (member 'a lst))))
+                    (assert-true (not (not (member 'b lst))))
+                    (assert-true (not (not (member 'c lst))))))
+            
+            (define-test foldable-fold-map-test
+              (let* ([g (graph-add-vertices empty-graph '(1 2 3))]
+                     [result (fold-map graph-foldable sum-monoid identity g)])
+                    (assert-equal 6 result)))
+            
+            (define-test empty-graph-foldable-test
+              (let ([result (graph-foldr cons '() empty-graph)])
+                   (assert-equal '() result))))
+
+;;; ============================================================
+;;; Traversable Instance Tests
+;;; ============================================================
+
+(test-group graph-traversable
+            (define-test graph-traverse-identity-test
+              (let* ([g (graph-add-edges empty-graph '((a b) (b c)))]
+                     [result (graph-traverse identity-applicative identity g)])
+                    (assert-true (graph? result))
+                    (assert-equal 3 (graph-vertex-count result))
+                    (assert-true (graph-has-edge? result 'a 'b))
+                    (assert-true (graph-has-edge? result 'b 'c))))
+            
+            (define-test graph-traverse-maybe-all-just-test
+              (let* ([g (graph-add-vertices empty-graph '(1 2 3))]
+                     [result (graph-traverse maybe-applicative
+                                             (lambda (v) (just (* v 10)))
+                                             g)])
+                    (assert-true (just? result))
+                    (let ([g2 (from-just result)])
+                         (assert-true (graph? g2))
+                         (assert-equal 3 (graph-vertex-count g2))
+                         (assert-true (graph-has-vertex? g2 10))
+                         (assert-true (graph-has-vertex? g2 20))
+                         (assert-true (graph-has-vertex? g2 30)))))
+            
+            (define-test graph-traverse-maybe-with-nothing-test
+              (let* ([g (graph-add-vertices empty-graph '(1 2 3))]
+                     [result (graph-traverse maybe-applicative
+                                             (lambda (v)
+                                                     (if (= v 2)
+                                                         nothing
+                                                         (just (* v 10))))
+                                             g)])
+                    (assert-true (nothing? result))))
+            
+            (define-test graph-traverse-with-edges-test
+              (let* ([g (graph-add-edges empty-graph '((a b) (b c) (a c)))]
+                     [result (traverse graph-traversable
+                                       maybe-applicative
+                                       (lambda (v)
+                                               (cond
+                                                [(eq? v 'a) (just 'x)]
+                                                [(eq? v 'b) (just 'y)]
+                                                [(eq? v 'c) (just 'z)]
+                                                [else nothing]))
+                                       g)])
+                    (assert-true (just? result))
+                    (let ([g2 (from-just result)])
+                         (assert-true (graph-has-edge? g2 'x 'y))
+                         (assert-true (graph-has-edge? g2 'y 'z))
+                         (assert-true (graph-has-edge? g2 'x 'z)))))
+            
+            (define-test graph-sequence-test
+              (let* ([g (graph-add-vertices empty-graph
+                                            (list (just 1) (just 2) (just 3)))]
+                     [result (sequence graph-traversable maybe-applicative g)])
+                    (assert-true (just? result))
+                    (let ([g2 (from-just result)])
+                         (assert-true (graph-has-vertex? g2 1))
+                         (assert-true (graph-has-vertex? g2 2))
+                         (assert-true (graph-has-vertex? g2 3)))))
+            
+            (define-test graph-traverse-either-test
+              (let* ([g (graph-add-vertices empty-graph '(1 2 3))]
+                     [result (traverse graph-traversable
+                                       either-applicative
+                                       (lambda (v)
+                                               (if (> v 0)
+                                                   (right (* v 10))
+                                                   (left "negative")))
+                                       g)])
+                    (assert-true (right? result))
+                    (let ([g2 (from-right result)])
+                         (assert-true (graph-has-vertex? g2 10))
+                         (assert-true (graph-has-vertex? g2 20))
+                         (assert-true (graph-has-vertex? g2 30))))))
+
+;;; ============================================================
+;;; BFS Foldable/Traversable Tests
+;;; ============================================================
+
+(test-group graph-bfs-foldable-traversable
+            (define-test bfs-foldr-test
+              (let* ([g (graph-add-edges empty-graph '((a b) (a c) (b d) (c e)))]
+                     [bfs-fold ((graph-bfs-foldr g 'a) cons '() g)])
+                    ;; Result should be BFS order
+                    (assert-equal 5 (length bfs-fold))
+                    (assert-equal 'a (car bfs-fold))))
+            
+            (define-test bfs-fold-map-test
+              (let* ([g (graph-add-vertices empty-graph '(1 2 3 4))]
+                     [g (graph-add-edges g '((1 2) (1 3) (2 4)))]
+                     [bfs-foldable (graph-bfs-foldable g 1)]
+                     [result (fold-map bfs-foldable sum-monoid identity g)])
+                    (assert-equal 10 result)))
+            
+            (define-test bfs-traverse-test
+              (let* ([g (graph-add-edges empty-graph '((a b) (a c) (b d)))]
+                     [result ((graph-bfs-traverse g 'a)
+                              maybe-applicative
+                              (lambda (v) (just (string->symbol
+                                                 (string-append (symbol->string v) "-new"))))
+                              g)])
+                    (assert-true (just? result))
+                    (let ([g2 (from-just result)])
+                         (assert-true (graph-has-vertex? g2 'a-new))
+                         (assert-true (graph-has-vertex? g2 'b-new))
+                         (assert-true (graph-has-vertex? g2 'c-new))
+                         (assert-true (graph-has-vertex? g2 'd-new)))))
+            
+            (define-test bfs-traversable-test
+              (let* ([g (graph-add-edges empty-graph '((1 2) (1 3) (2 4)))]
+                     [bfs-trav (graph-bfs-traversable g 1)]
+                     [result (traverse bfs-trav
+                                       maybe-applicative
+                                       (lambda (v) (just (* v 10)))
+                                       g)])
+                    (assert-true (just? result))
+                    (let ([g2 (from-just result)])
+                         (assert-true (graph-has-vertex? g2 10))
+                         (assert-true (graph-has-vertex? g2 20))
+                         (assert-true (graph-has-vertex? g2 30))
+                         (assert-true (graph-has-vertex? g2 40))))))
+
+;;; ============================================================
+;;; DFS Foldable/Traversable Tests
+;;; ============================================================
+
+(test-group graph-dfs-foldable-traversable
+            (define-test dfs-foldr-test
+              (let* ([g (graph-add-edges empty-graph '((a b) (a c) (b d) (c e)))]
+                     [dfs-fold ((graph-dfs-foldr g 'a) cons '() g)])
+                    ;; Result should be DFS order
+                    (assert-equal 5 (length dfs-fold))
+                    (assert-equal 'a (car dfs-fold))))
+            
+            (define-test dfs-fold-map-test
+              (let* ([g (graph-add-vertices empty-graph '(1 2 3 4))]
+                     [g (graph-add-edges g '((1 2) (1 3) (2 4)))]
+                     [dfs-foldable (graph-dfs-foldable g 1)]
+                     [result (fold-map dfs-foldable sum-monoid identity g)])
+                    (assert-equal 10 result)))
+            
+            (define-test dfs-traverse-test
+              (let* ([g (graph-add-edges empty-graph '((a b) (a c) (b d)))]
+                     [result ((graph-dfs-traverse g 'a)
+                              maybe-applicative
+                              (lambda (v) (just (string->symbol
+                                                 (string-append (symbol->string v) "-dfs"))))
+                              g)])
+                    (assert-true (just? result))
+                    (let ([g2 (from-just result)])
+                         (assert-true (graph-has-vertex? g2 'a-dfs))
+                         (assert-true (graph-has-vertex? g2 'b-dfs))
+                         (assert-true (graph-has-vertex? g2 'c-dfs))
+                         (assert-true (graph-has-vertex? g2 'd-dfs)))))
+            
+            (define-test dfs-traversable-test
+              (let* ([g (graph-add-edges empty-graph '((1 2) (1 3) (2 4)))]
+                     [dfs-trav (graph-dfs-traversable g 1)]
+                     [result (traverse dfs-trav
+                                       maybe-applicative
+                                       (lambda (v) (just (* v 10)))
+                                       g)])
+                    (assert-true (just? result))
+                    (let ([g2 (from-just result)])
+                         (assert-true (graph-has-vertex? g2 10))
+                         (assert-true (graph-has-vertex? g2 20))
+                         (assert-true (graph-has-vertex? g2 30))
+                         (assert-true (graph-has-vertex? g2 40))))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 
