@@ -149,3 +149,70 @@ fn test_apply() {
     let result = eval_with_prelude("(apply string-append '(\"hello\" \" \" \"world\"))");
     assert_eq!(result, "\"hello world\"");
 }
+
+#[test]
+fn test_partition() {
+    // Partition splits list into (matches, non-matches)
+    let result = eval_with_prelude("(partition (fn (x) (> x 2)) '(1 2 3 4 5))");
+    assert_eq!(result, "((3 4 5) 1 2)");
+}
+
+#[test]
+fn test_find_if() {
+    // Find first matching element
+    let result = eval_with_prelude("(find-if (fn (x) (> x 3)) '(1 2 3 4 5))");
+    assert_eq!(result, "4");
+
+    // No match returns #f
+    let result = eval_with_prelude("(find-if (fn (x) (> x 10)) '(1 2 3))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_remove_if() {
+    // Remove elements matching predicate
+    let result = eval_with_prelude("(remove-if (fn (x) (> x 2)) '(1 2 3 4 5))");
+    assert_eq!(result, "(1 2)");
+}
+
+#[test]
+fn test_count_if() {
+    // Count matching elements
+    let result = eval_with_prelude("(count-if (fn (x) (> x 2)) '(1 2 3 4 5))");
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_concat() {
+    // Concatenate list of lists
+    let result = eval_with_prelude("(concat '((1 2) (3 4) (5)))");
+    assert_eq!(result, "(1 2 3 4 5)");
+}
+
+#[test]
+fn test_replicate() {
+    // Create n copies
+    let result = eval_with_prelude("(replicate 4 'x)");
+    assert_eq!(result, "(x x x x)");
+}
+
+#[test]
+fn test_iterate() {
+    // Generate sequence by repeated application
+    let result = eval_with_prelude("(iterate double 5 1)");
+    assert_eq!(result, "(1 2 4 8 16)");
+}
+
+#[test]
+fn test_scanl() {
+    // Running fold with intermediate results
+    let result = eval_with_prelude("(scanl + 0 '(1 2 3 4))");
+    assert_eq!(result, "(0 1 3 6 10)");
+}
+
+#[test]
+fn test_curry2() {
+    // Curry a 2-argument function
+    let result = eval_with_prelude("(((curry2 +) 3) 4)");
+    assert_eq!(result, "7");
+}

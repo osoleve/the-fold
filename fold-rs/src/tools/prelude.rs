@@ -108,6 +108,64 @@ pub const PRELUDE_SOURCE: &str = r#"
 
    ; complement: Negate a predicate
    (complement (fn (p) (fn (x) (not (p x)))))
+
+   ; -- More list utilities --
+
+   ; partition: Split list into (matches, non-matches) based on predicate
+   (partition (fix partition
+     (fn (p lst)
+       (if (null? lst)
+           (cons '() '())
+           (let ((rest-result (partition p (cdr lst)))
+                 (x (car lst)))
+             (if (p x)
+                 (cons (cons x (car rest-result)) (cdr rest-result))
+                 (cons (car rest-result) (cons x (cdr rest-result)))))))))
+
+   ; find-if: Find first element matching predicate, or #f
+   (find-if (fix find-if
+     (fn (p lst)
+       (if (null? lst)
+           #f
+           (if (p (car lst))
+               (car lst)
+               (find-if p (cdr lst)))))))
+
+   ; remove-if: Remove elements matching predicate (opposite of filter)
+   (remove-if (fn (p lst) (filter (complement p) lst)))
+
+   ; count-if: Count elements matching predicate
+   (count-if (fn (p lst) (foldl (fn (acc x) (if (p x) (+ acc 1) acc)) 0 lst)))
+
+   ; concat: Concatenate a list of lists
+   (concat (fn (lists) (foldl append '() lists)))
+
+   ; replicate: Create list of n copies of x
+   (replicate (fix replicate
+     (fn (n x)
+       (if (<= n 0)
+           '()
+           (cons x (replicate (- n 1) x))))))
+
+   ; iterate: Generate list by applying f n times: (x (f x) (f (f x)) ...)
+   (iterate (fix iterate
+     (fn (f n x)
+       (if (<= n 0)
+           '()
+           (cons x (iterate f (- n 1) (f x)))))))
+
+   ; scanl: Like foldl but returns list of intermediate results
+   (scanl (fix scanl
+     (fn (f acc lst)
+       (if (null? lst)
+           (list acc)
+           (cons acc (scanl f (f acc (car lst)) (cdr lst)))))))
+
+   ; curry2: Curry a 2-argument function
+   (curry2 (fn (f) (fn (x) (fn (y) (f x y)))))
+
+   ; uncurry2: Uncurry to a 2-argument function
+   (uncurry2 (fn (f) (fn (x y) ((f x) y))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -128,7 +186,17 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'const const)
     (cons 'compose compose)
     (cons 'flip flip)
-    (cons 'complement complement)))
+    (cons 'complement complement)
+    (cons 'partition partition)
+    (cons 'find-if find-if)
+    (cons 'remove-if remove-if)
+    (cons 'count-if count-if)
+    (cons 'concat concat)
+    (cons 'replicate replicate)
+    (cons 'iterate iterate)
+    (cons 'scanl scanl)
+    (cons 'curry2 curry2)
+    (cons 'uncurry2 uncurry2)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
