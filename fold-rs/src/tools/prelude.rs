@@ -226,6 +226,46 @@ pub const PRELUDE_SOURCE: &str = r#"
            (if (= n 0)
                (car lst)
                (nth-safe (- n 1) (cdr lst)))))))
+
+   ; -- Extremum functions --
+
+   ; max-by: Find maximum element by key function
+   (max-by (fix max-by
+     (fn (key-fn lst)
+       (if (null? lst)
+           #f
+           (if (null? (cdr lst))
+               (car lst)
+               (let ((rest-max (max-by key-fn (cdr lst))))
+                 (if (> (key-fn (car lst)) (key-fn rest-max))
+                     (car lst)
+                     rest-max)))))))
+
+   ; min-by: Find minimum element by key function
+   (min-by (fix min-by
+     (fn (key-fn lst)
+       (if (null? lst)
+           #f
+           (if (null? (cdr lst))
+               (car lst)
+               (let ((rest-min (min-by key-fn (cdr lst))))
+                 (if (< (key-fn (car lst)) (key-fn rest-min))
+                     (car lst)
+                     rest-min)))))))
+
+   ; on: Apply binary function to results of unary function
+   ; Example: ((on < length) "ab" "abc") => #t
+   (on (fn (f g) (fn (x y) (f (g x) (g y)))))
+
+   ; -- More utilities --
+
+   ; juxt: Apply list of functions to same argument, return list of results
+   ; ((juxt (list inc dec)) 5) => (6 4)
+   (juxt (fn (funcs)
+     (fn (x) (map (fn (f) (f x)) funcs))))
+
+   ; pipe: Compose functions left-to-right (opposite of compose)
+   (pipe (fn (f g) (fn (x) (g (f x)))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -264,7 +304,12 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'flat-map flat-map)
     (cons 'map-indexed map-indexed)
     (cons 'filter-indexed filter-indexed)
-    (cons 'nth-safe nth-safe)))
+    (cons 'nth-safe nth-safe)
+    (cons 'max-by max-by)
+    (cons 'min-by min-by)
+    (cons 'on on)
+    (cons 'juxt juxt)
+    (cons 'pipe pipe)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};

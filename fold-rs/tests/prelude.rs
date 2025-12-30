@@ -293,3 +293,55 @@ fn test_nth_safe() {
     let result = eval_with_prelude("(nth-safe 10 '(a b c))");
     assert_eq!(result, "#f");
 }
+
+#[test]
+fn test_max_by() {
+    // Find max by absolute value
+    let result = eval_with_prelude("(max-by abs '(-5 3 -2 4))");
+    assert_eq!(result, "-5");
+
+    // Empty list returns #f
+    let result = eval_with_prelude("(max-by abs '())");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_min_by() {
+    // Find min by absolute value
+    let result = eval_with_prelude("(min-by abs '(-5 3 -2 4))");
+    assert_eq!(result, "-2");
+}
+
+#[test]
+fn test_on() {
+    // Compare by length
+    let result = eval_with_prelude("((on < length) '(1 2) '(1 2 3))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("((on < length) '(1 2 3) '(1 2))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_pipe() {
+    // Pipe: left-to-right composition
+    let result = eval_with_prelude("((pipe inc double) 5)");
+    assert_eq!(result, "12");
+
+    // Compose would give: (double (inc 5)) = 12
+    // Pipe gives: (inc 5) = 6, then (double 6) = 12
+    // Actually both give 12 for this case, let me use a different example
+    let result = eval_with_prelude("((pipe double inc) 5)");
+    assert_eq!(result, "11"); // (double 5) = 10, (inc 10) = 11
+}
+
+#[test]
+fn test_juxt() {
+    // Apply multiple functions to same argument
+    let result = eval_with_prelude("((juxt (list inc dec)) 5)");
+    assert_eq!(result, "(6 4)");
+
+    // With more functions
+    let result = eval_with_prelude("((juxt (list inc dec double)) 10)");
+    assert_eq!(result, "(11 9 20)");
+}

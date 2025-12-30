@@ -35,6 +35,9 @@ cadr = "cadr"
 caar = "caar"
 cddr = "cddr"
 
+# Functional programming terms
+juxt = "juxt"  # Juxtaposition - apply multiple functions to same argument
+
 # Technical terms
 memoization = "memoization"
 memoize = "memoize"
