@@ -882,6 +882,204 @@ pub const PRELUDE_SOURCE: &str = r#"
                (if (eq? (car lst) (last lst))
                    (palindrome? (cdr (init lst)))
                    #f))))))
+
+   ; -- Tree/Nested structure utilities --
+
+   ; deep-map: Apply function to all atoms in nested structure
+   ; (deep-map inc '((1 2) (3 (4 5)))) => ((2 3) (4 (5 6)))
+   (deep-map (fix deep-map
+     (fn (f tree)
+       (if (null? tree)
+           '()
+           (if (pair? tree)
+               (cons (deep-map f (car tree))
+                     (deep-map f (cdr tree)))
+               (f tree))))))
+
+   ; deep-filter: Keep atoms matching predicate (preserves structure)
+   ; (deep-filter even? '((1 2) (3 (4 5)))) => ((() 2) (() (4 ())))
+   (deep-filter (fix deep-filter
+     (fn (p tree)
+       (if (null? tree)
+           '()
+           (if (pair? tree)
+               (cons (deep-filter p (car tree))
+                     (deep-filter p (cdr tree)))
+               (if (p tree) tree '()))))))
+
+   ; flatten-deep: Flatten all nested lists into single list
+   ; (flatten-deep '((1 2) (3 (4 5)))) => (1 2 3 4 5)
+   (flatten-deep (fix flatten-deep
+     (fn (tree)
+       (if (null? tree)
+           '()
+           (if (pair? tree)
+               (append (flatten-deep (car tree))
+                       (flatten-deep (cdr tree)))
+               (list tree))))))
+
+   ; tree-depth: Maximum nesting depth of structure
+   ; (tree-depth '((1 2) (3 (4 5)))) => 3
+   (tree-depth (fix tree-depth
+     (fn (tree)
+       (if (pair? tree)
+           (+ 1 (foldl max 0 (map tree-depth tree)))
+           0))))
+
+   ; tree-size: Count all atoms in nested structure
+   ; (tree-size '((1 2) (3 (4 5)))) => 5
+   (tree-size (fix tree-size
+     (fn (tree)
+       (if (null? tree)
+           0
+           (if (pair? tree)
+               (+ (tree-size (car tree)) (tree-size (cdr tree)))
+               1)))))
+
+   ; tree-find: Find first atom matching predicate in tree
+   ; (tree-find even? '((1 3) (5 (6 7)))) => 6
+   (tree-find (fix tree-find
+     (fn (p tree)
+       (if (null? tree)
+           #f
+           (if (pair? tree)
+               (let ((left (tree-find p (car tree))))
+                 (if left left (tree-find p (cdr tree))))
+               (if (p tree) tree #f))))))
+
+   ; -- More function combinators --
+
+   ; curry3: Curry a 3-argument function
+   ; (((curry3 (fn (a b c) (+ a (+ b c)))) 1) 2) 3) => 6
+   (curry3 (fn (f)
+     (fn (a) (fn (b) (fn (c) (f a b c))))))
+
+   ; uncurry3: Uncurry to a 3-argument function
+   (uncurry3 (fn (f)
+     (fn (a b c) (((f a) b) c))))
+
+   ; partial1: Partially apply first argument (returns 1-arg function)
+   ; ((partial1 + 10) 5) => 15
+   (partial1 (fn (f x)
+     (fn (y) (f x y))))
+
+   ; partial2: Partially apply first two arguments (returns 1-arg function)
+   ; ((partial2 (fn (a b c) (+ a (+ b c))) 1 2) 3) => 6
+   (partial2 (fn (f x y)
+     (fn (z) (f x y z))))
+
+   ; compose-n: Compose multiple functions right-to-left
+   ; ((compose-n (list inc inc double)) 5) => 12
+   (compose-n (fn (fns)
+     (foldr compose id fns)))
+
+   ; pipe-n: Compose multiple functions left-to-right
+   ; ((pipe-n (list double inc inc)) 5) => 12
+   (pipe-n (fn (fns)
+     (foldl (flip compose) id fns)))
+
+   ; memoize-1: Stub for memoization (returns function as-is in pure context)
+   ; Note: True memoization requires mutation which isn't well-supported
+   (memoize-1 (fn (f) f))
+
+   ; -- Math utilities --
+
+   ; factorial: n! = 1 * 2 * ... * n
+   ; (factorial 5) => 120
+   (factorial (fix factorial
+     (fn (n)
+       (if (<= n 1)
+           1
+           (* n (factorial (- n 1)))))))
+
+   ; fibonacci: nth Fibonacci number
+   ; (fibonacci 10) => 55
+   (fibonacci (fix fibonacci
+     (fn (n)
+       (if (<= n 1)
+           n
+           (+ (fibonacci (- n 1)) (fibonacci (- n 2)))))))
+
+   ; gcd-list: GCD of a list of numbers
+   ; (gcd-list '(12 18 24)) => 6
+   (gcd-list (fn (lst)
+     (foldl gcd (car lst) (cdr lst))))
+
+   ; lcm-list: LCM of a list of numbers
+   ; (lcm-list '(4 6 8)) => 24
+   (lcm-list (fn (lst)
+     (foldl lcm (car lst) (cdr lst))))
+
+   ; prime?: Check if number is prime
+   ; (prime? 17) => #t
+   (prime? (fix prime?
+     (fn (n)
+       (if (< n 2)
+           #f
+           (let ((check (fix check
+                   (fn (d)
+                     (if (> (* d d) n)
+                         #t
+                         (if (= 0 (mod n d))
+                             #f
+                             (check (+ d 1))))))))
+             (check 2))))))
+
+   ; divisors: List all divisors of n
+   ; (divisors 12) => (1 2 3 4 6 12)
+   (divisors (fn (n)
+     (filter (fn (d) (= 0 (mod n d)))
+             (range 1 (+ n 1)))))
+
+   ; perfect?: Check if number equals sum of proper divisors
+   ; (perfect? 6) => #t (1+2+3=6)
+   (perfect? (fn (n)
+     (= n (- (sum-list (divisors n)) n))))
+
+   ; pow-int: Integer exponentiation
+   ; (pow-int 2 10) => 1024
+   (pow-int (fix pow-int
+     (fn (base exp)
+       (if (= exp 0)
+           1
+           (if (even? exp)
+               (let ((half (pow-int base (/ exp 2))))
+                 (* half half))
+               (* base (pow-int base (- exp 1))))))))
+
+   ; -- Validation utilities --
+
+   ; validate: Apply validator, return value or error
+   ; (validate positive? 5) => 5
+   ; (validate positive? -5) => #f
+   (validate (fn (predicate val)
+     (if (predicate val) val #f)))
+
+   ; validate-all: Check all predicates pass
+   ; (validate-all (list positive? even?) 4) => 4
+   (validate-all (fn (preds val)
+     (if (all (fn (p) (p val)) preds) val #f)))
+
+   ; ensure: Like validate but with default
+   ; (ensure positive? 0 -5) => 0
+   (ensure (fn (predicate default val)
+     (if (predicate val) val default)))
+
+   ; -- Debug utilities --
+
+   ; trace: Identity with side-effect printing (pure version just returns)
+   (trace (fn (label x) x))
+
+   ; spy: Like trace but shows both label and value
+   (spy (fn (label x) x))
+
+   ; assert-eq: Check equality (returns #t or #f)
+   (assert-eq (fn (expected actual)
+     (= expected actual)))
+
+   ; assert-pred: Check predicate holds
+   (assert-pred (fn (predicate val)
+     (predicate val)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -1018,7 +1216,35 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'all-equal? all-equal?)
     (cons 'sorted? sorted?)
     (cons 'sorted-by? sorted-by?)
-    (cons 'palindrome? palindrome?)))
+    (cons 'palindrome? palindrome?)
+    (cons 'deep-map deep-map)
+    (cons 'deep-filter deep-filter)
+    (cons 'flatten-deep flatten-deep)
+    (cons 'tree-depth tree-depth)
+    (cons 'tree-size tree-size)
+    (cons 'tree-find tree-find)
+    (cons 'curry3 curry3)
+    (cons 'uncurry3 uncurry3)
+    (cons 'partial1 partial1)
+    (cons 'partial2 partial2)
+    (cons 'compose-n compose-n)
+    (cons 'pipe-n pipe-n)
+    (cons 'memoize-1 memoize-1)
+    (cons 'factorial factorial)
+    (cons 'fibonacci fibonacci)
+    (cons 'gcd-list gcd-list)
+    (cons 'lcm-list lcm-list)
+    (cons 'prime? prime?)
+    (cons 'divisors divisors)
+    (cons 'perfect? perfect?)
+    (cons 'pow-int pow-int)
+    (cons 'validate validate)
+    (cons 'validate-all validate-all)
+    (cons 'ensure ensure)
+    (cons 'trace trace)
+    (cons 'spy spy)
+    (cons 'assert-eq assert-eq)
+    (cons 'assert-pred assert-pred)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};

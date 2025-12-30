@@ -981,3 +981,187 @@ fn test_palindrome() {
     let result = eval_with_prelude("(palindrome? '(1 2 3))");
     assert_eq!(result, "#f");
 }
+
+// ========== Tree/Nested Structure Tests ==========
+
+#[test]
+fn test_deep_map() {
+    let result = eval_with_prelude("(deep-map inc '((1 2) (3 (4 5))))");
+    assert_eq!(result, "((2 3) (4 (5 6)))");
+}
+
+#[test]
+fn test_flatten_deep() {
+    let result = eval_with_prelude("(flatten-deep '((1 2) (3 (4 5))))");
+    assert_eq!(result, "(1 2 3 4 5)");
+}
+
+#[test]
+fn test_tree_depth() {
+    let result = eval_with_prelude("(tree-depth '((1 2) (3 (4 5))))");
+    assert_eq!(result, "3");
+
+    let result = eval_with_prelude("(tree-depth '(1 2 3))");
+    assert_eq!(result, "1");
+
+    let result = eval_with_prelude("(tree-depth 5)");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_tree_size() {
+    let result = eval_with_prelude("(tree-size '((1 2) (3 (4 5))))");
+    assert_eq!(result, "5");
+}
+
+#[test]
+fn test_tree_find() {
+    let result = eval_with_prelude("(tree-find even? '((1 3) (5 (6 7))))");
+    assert_eq!(result, "6");
+
+    let result = eval_with_prelude("(tree-find even? '((1 3) (5 7)))");
+    assert_eq!(result, "#f");
+}
+
+// ========== More Function Combinator Tests ==========
+
+#[test]
+fn test_curry3() {
+    let result = eval_with_prelude("((((curry3 (fn (a b c) (+ a (+ b c)))) 1) 2) 3)");
+    assert_eq!(result, "6");
+}
+
+#[test]
+fn test_compose_n() {
+    let result = eval_with_prelude("((compose-n (list inc inc double)) 5)");
+    assert_eq!(result, "12");
+}
+
+#[test]
+fn test_pipe_n() {
+    let result = eval_with_prelude("((pipe-n (list double inc inc)) 5)");
+    assert_eq!(result, "12");
+}
+
+// ========== Math Utility Tests ==========
+
+#[test]
+fn test_factorial() {
+    let result = eval_with_prelude("(factorial 5)");
+    assert_eq!(result, "120");
+
+    let result = eval_with_prelude("(factorial 0)");
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_fibonacci() {
+    let result = eval_with_prelude("(fibonacci 10)");
+    assert_eq!(result, "55");
+
+    let result = eval_with_prelude("(fibonacci 0)");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_gcd_list() {
+    let result = eval_with_prelude("(gcd-list '(12 18 24))");
+    assert_eq!(result, "6");
+}
+
+#[test]
+fn test_lcm_list() {
+    let result = eval_with_prelude("(lcm-list '(4 6 8))");
+    assert_eq!(result, "24");
+}
+
+#[test]
+fn test_prime() {
+    let result = eval_with_prelude("(prime? 17)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(prime? 18)");
+    assert_eq!(result, "#f");
+
+    let result = eval_with_prelude("(prime? 2)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(prime? 1)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_divisors() {
+    let result = eval_with_prelude("(divisors 12)");
+    assert_eq!(result, "(1 2 3 4 6 12)");
+}
+
+#[test]
+fn test_perfect() {
+    let result = eval_with_prelude("(perfect? 6)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(perfect? 28)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(perfect? 12)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_pow_int() {
+    let result = eval_with_prelude("(pow-int 2 10)");
+    assert_eq!(result, "1024");
+
+    let result = eval_with_prelude("(pow-int 3 4)");
+    assert_eq!(result, "81");
+}
+
+// ========== Validation Tests ==========
+
+#[test]
+fn test_validate() {
+    let result = eval_with_prelude("(validate positive? 5)");
+    assert_eq!(result, "5");
+
+    let result = eval_with_prelude("(validate positive? -5)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_validate_all() {
+    let result = eval_with_prelude("(validate-all (list positive? even?) 4)");
+    assert_eq!(result, "4");
+
+    let result = eval_with_prelude("(validate-all (list positive? even?) 3)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_ensure() {
+    let result = eval_with_prelude("(ensure positive? 0 5)");
+    assert_eq!(result, "5");
+
+    let result = eval_with_prelude("(ensure positive? 0 -5)");
+    assert_eq!(result, "0");
+}
+
+// ========== Debug/Assert Tests ==========
+
+#[test]
+fn test_assert_eq() {
+    let result = eval_with_prelude("(assert-eq 5 5)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(assert-eq 5 6)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_assert_pred() {
+    let result = eval_with_prelude("(assert-pred even? 4)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(assert-pred even? 3)");
+    assert_eq!(result, "#f");
+}
