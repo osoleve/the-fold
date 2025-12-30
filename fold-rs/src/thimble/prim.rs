@@ -107,6 +107,28 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(Value::Number(a % b))
         }
+        "quotient" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("quotient expects 2 args"));
+            }
+            let a = expect_integer(&args[0])?;
+            let b = expect_integer(&args[1])?;
+            if b == 0 {
+                return Err(EvalError::DivisionByZero);
+            }
+            Ok(Value::Number(a / b))
+        }
+        "remainder" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("remainder expects 2 args"));
+            }
+            let a = expect_integer(&args[0])?;
+            let b = expect_integer(&args[1])?;
+            if b == 0 {
+                return Err(EvalError::DivisionByZero);
+            }
+            Ok(Value::Number(a % b))
+        }
         "neg" => {
             if args.len() != 1 {
                 return Err(EvalError::TypeMismatch("neg expects 1 arg"));

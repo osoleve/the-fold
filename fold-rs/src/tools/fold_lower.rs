@@ -41,6 +41,7 @@ fn is_builtin_prim(name: &str) -> bool {
         name,
         // Arithmetic
         "+" | "-" | "*" | "/" | "add" | "sub" | "mul" | "div" | "mod"
+            | "quotient" | "remainder"
             | "abs" | "neg" | "sqrt" | "expt" | "pow" | "floor" | "ceiling" | "round"
             | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "log" | "exp" | "min" | "max"
             | "gcd" | "lcm"
@@ -59,7 +60,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "string=?" | "string<?" | "string>?"
             | "string-upcase" | "string-downcase" | "string-split"
             | "string-trim" | "string-ltrim" | "string-rtrim" | "string-pad"
-            | "format"
+            | "format" | "number->string" | "symbol->string"
             // Vector operations
             | "vec-length" | "vec-ref" | "vec-make" | "vec->list"
             // Block operations
