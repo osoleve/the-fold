@@ -387,6 +387,11 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; (from-just (just 42)) => 42
    (from-just (fn (m) (cadr m)))
 
+   ; just?: Check if value is Just
+   ; (just? (just 5)) => #t
+   ; (just? (nothing)) => #f
+   (just? (fn (m) (and (pair? m) (eq? (car m) 'just))))
+
    ; -- Chunking and windowing --
 
    ; chunks: Split list into chunks of size n
@@ -2489,6 +2494,12 @@ pub const PRELUDE_SOURCE: &str = r#"
 
    ; err?: Check if result is error
    (err? left?)
+
+   ; ok-value: Extract value from ok result
+   (ok-value from-right)
+
+   ; err-value: Extract value from err result
+   (err-value from-left)
 
    ; unwrap: Extract value or error
    (unwrap (fn (result)
@@ -7701,26 +7712,11 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; Using (just value) and nothing
    ; ============================================
 
-   ; just: Wrap value in Just
-   (just (fn (x) (cons 'just x)))
+   ; Note: just, nothing, just?, nothing?, from-just are already defined earlier
+   ; These would shadow them with incompatible representations, so removed.
 
-   ; nothing: The Nothing value
-   (nothing 'nothing)
-
-   ; just?: Check if Just
-   (just? (fn (m)
-     (if (pair? m)
-         (eq? (car m) 'just)
-         #f)))
-
-   ; nothing?: Check if Nothing
-   (nothing? (fn (m) (eq? m 'nothing)))
-
-   ; from-just: Extract value from Just (unsafe)
-   (from-just cdr)
-
-   ; maybe: Catamorphism for Maybe
-   (maybe (fn (default f m)
+   ; maybe-fold: Catamorphism for tagged Maybe (use maybe for simple #f-based Maybe)
+   (maybe-fold (fn (default f m)
      (if (just? m)
          (f (from-just m))
          default)))
@@ -7747,8 +7743,8 @@ pub const PRELUDE_SOURCE: &str = r#"
          (if (just? m2) m2 nothing)
          nothing)))
 
-   ; from-maybe: Extract with default
-   (from-maybe (fn (default m)
+   ; from-maybe-tagged: Extract from tagged Maybe with default (use from-maybe for simple #f-based)
+   (from-maybe-tagged (fn (default m)
      (if (just? m) (from-just m) default)))
 
    ; list->maybe: Empty list to Nothing, non-empty to Just first
@@ -7771,29 +7767,8 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; Either Extensions
    ; ============================================
 
-   ; left: Create Left value
-   (left (fn (x) (cons 'left x)))
-
-   ; right: Create Right value
-   (right (fn (x) (cons 'right x)))
-
-   ; left?: Check if Left
-   (left? (fn (e)
-     (if (pair? e)
-         (eq? (car e) 'left)
-         #f)))
-
-   ; right?: Check if Right
-   (right? (fn (e)
-     (if (pair? e)
-         (eq? (car e) 'right)
-         #f)))
-
-   ; from-left: Extract Left value (unsafe)
-   (from-left cdr)
-
-   ; from-right: Extract Right value (unsafe)
-   (from-right cdr)
+   ; Note: left, right, left?, right?, from-left, from-right are already defined earlier
+   ; These would shadow them with incompatible representations, so removed.
 
    ; either: Catamorphism for Either
    (either (fn (f g e)
@@ -9612,12 +9587,12 @@ pub const PRELUDE_SOURCE: &str = r#"
                (cons x lst)
                (cons (car lst) (insert-rec x (cdr lst) cmp)))))))
 
-   ; insertion-sort: Insertion sort with comparator
-   (insertion-sort (fn (lst cmp)
+   ; insertion-sort-cmp: Insertion sort with comparator (use insertion-sort for default <=)
+   (insertion-sort-cmp (fn (lst cmp)
      (foldl (fn (acc x) (insert-sorted x acc cmp)) '() lst)))
 
-   ; merge-sorted: Merge two sorted lists
-   (merge-sorted (fix merge-rec
+   ; merge-sorted-cmp: Merge two sorted lists with comparator
+   (merge-sorted-cmp (fix merge-rec
      (fn (l1 l2 cmp)
        (if (null? l1)
            l2
@@ -9627,20 +9602,20 @@ pub const PRELUDE_SOURCE: &str = r#"
                    (cons (car l1) (merge-rec (cdr l1) l2 cmp))
                    (cons (car l2) (merge-rec l1 (cdr l2) cmp))))))))
 
-   ; merge-sort: Merge sort with comparator
-   (merge-sort (fix merge-sort-rec
+   ; merge-sort-cmp: Merge sort with comparator (use merge-sort for default <=)
+   (merge-sort-cmp (fix merge-sort-rec
      (fn (lst cmp)
        (let ((len (length lst)))
          (if (<= len 1)
              lst
              (let ((mid (quotient len 2)))
-               (merge-sorted
+               (merge-sorted-cmp
                  (merge-sort-rec (take mid lst) cmp)
                  (merge-sort-rec (drop mid lst) cmp)
                  cmp)))))))
 
-   ; quicksort: Quicksort with comparator
-   (quicksort (fix quicksort-rec
+   ; quicksort-cmp: Quicksort with comparator
+   (quicksort-cmp (fix quicksort-rec
      (fn (lst cmp)
        (if (null? lst)
            '()
@@ -9650,22 +9625,22 @@ pub const PRELUDE_SOURCE: &str = r#"
                      (cons pivot
                            (quicksort-rec (filter (fn (x) (not (cmp x pivot))) rest) cmp))))))))
 
-   ; sort: Default sort (uses merge-sort with <)
+   ; sort: Default sort (uses merge-sort-cmp with <)
    (sort (fn (lst)
-     (merge-sort lst <)))
+     (merge-sort-cmp lst <)))
 
    ; sort-by: Sort using key function
    (sort-by-key (fn (key-fn lst)
      (map cdr
-       (merge-sort (map (fn (x) (cons (key-fn x) x)) lst)
+       (merge-sort-cmp (map (fn (x) (cons (key-fn x) x)) lst)
                    (fn (a b) (< (car a) (car b)))))))
 
    ; sort-descending: Sort in descending order
    (sort-descending (fn (lst)
-     (merge-sort lst >)))
+     (merge-sort-cmp lst >)))
 
-   ; sorted?: Check if list is sorted
-   (sorted? (fix sorted-rec
+   ; sorted-cmp?: Check if list is sorted by comparator (use sorted? for default <=)
+   (sorted-cmp? (fix sorted-rec
      (fn (lst cmp)
        (if (null? lst)
            #t
@@ -11192,7 +11167,7 @@ pub const PRELUDE_SOURCE: &str = r#"
    (divides? (fn (a b) (= 0 (mod b a))))
 
    ; coprime?: Check if gcd is 1
-   (coprime? (fn (a b) (= 1 (gcd-euclid a b))))
+   (coprime? (fn (a b) (= 1 (gcd a b))))
 
    ; perfect-square?: Check if n is perfect square
    (perfect-square? (fn (n)
@@ -12204,7 +12179,7 @@ pub const PRELUDE_SOURCE: &str = r#"
 
    ; median: Middle value of sorted list
    (median (fn (lst)
-     (let ((sorted (merge-sort lst <))
+     (let ((sorted (merge-sort-cmp lst <))
            (n (length lst)))
        (if (= n 0) 0
          (if (odd? n)
@@ -12215,11 +12190,11 @@ pub const PRELUDE_SOURCE: &str = r#"
    (mode (fn (lst)
      (if (null? lst) '()
        (let ((freqs (frequencies lst)))
-         (car (car (merge-sort freqs (fn (a b) (> (cdr a) (cdr b))))))))))
+         (car (car (merge-sort-cmp freqs (fn (a b) (> (cdr a) (cdr b))))))))))
 
    ; percentile: Value at given percentile (0-100)
    (percentile (fn (p lst)
-     (let ((sorted (merge-sort lst <))
+     (let ((sorted (merge-sort-cmp lst <))
            (n (length lst)))
        (if (= n 0) 0
          (let ((idx (min (- n 1) (floor (* (/ p 100) n)))))
@@ -14086,12 +14061,12 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'just? just?)
     (cons 'nothing? nothing?)
     (cons 'from-just from-just)
-    (cons 'maybe maybe)
+    (cons 'maybe-fold maybe-fold)
     (cons 'maybe-map maybe-map)
     (cons 'maybe-bind maybe-bind)
     (cons 'maybe-or maybe-or)
     (cons 'maybe-and maybe-and)
-    (cons 'from-maybe from-maybe)
+    (cons 'from-maybe-tagged from-maybe-tagged)
     (cons 'list->maybe list->maybe)
     (cons 'maybe->list maybe->list)
     (cons 'cat-maybes cat-maybes)
@@ -14388,14 +14363,14 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'list->deque list->deque)
     ; Sorting
     (cons 'insert-sorted insert-sorted)
-    (cons 'insertion-sort insertion-sort)
-    (cons 'merge-sorted merge-sorted)
-    (cons 'merge-sort merge-sort)
-    (cons 'quicksort quicksort)
+    (cons 'insertion-sort-cmp insertion-sort-cmp)
+    (cons 'merge-sorted-cmp merge-sorted-cmp)
+    (cons 'merge-sort-cmp merge-sort-cmp)
+    (cons 'quicksort-cmp quicksort-cmp)
     (cons 'sort sort)
     (cons 'sort-by-key sort-by-key)
     (cons 'sort-descending sort-descending)
-    (cons 'sorted? sorted?)
+    (cons 'sorted-cmp? sorted-cmp?)
     (cons 'minimum minimum)
     (cons 'maximum maximum)
     (cons 'minimum-by minimum-by)
