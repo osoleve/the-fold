@@ -164,6 +164,11 @@ fn is_builtin_prim(name: &str) -> bool {
             // Utilities
             | "identity" | "error" | "deep-equal?" | "list-every?"
             | "assq" | "assoc"
+            // List analysis utilities
+            | "list-count" | "list-sum" | "list-avg" | "list-min-value" | "list-max-value"
+            // String and value conversion
+            | "string-byte-length" | "string-char-length" | "value->string" | "string->value?"
+            | "constantly"
             // REPL commands
             | "version" | "who" | "help" | "display" | "write" | "newline"
     )

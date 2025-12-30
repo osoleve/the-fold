@@ -3578,6 +3578,168 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
 
             Ok(Value::Number((hash_code % (i64::MAX as u64)) as i64))
         }
+        // Utility and helper functions
+        "constantly" => {
+            // Return a function that always returns the given value
+            // (constantly 42) returns a function that always returns 42
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("constantly expects 1 arg: a value"));
+            }
+            // Cannot implement closures at primitive level
+            Err(EvalError::TypeMismatch(
+                "constantly requires closure creation (not supported in Rust core)",
+            ))
+        }
+        "list-count" => {
+            // Count items in a list
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("list-count expects 1 arg: a list"));
+            }
+            let count = list_to_vec(&args[0])?.len();
+            Ok(Value::Number(count as i64))
+        }
+        "list-sum" => {
+            // Sum numbers in a list
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list-sum expects 1 arg: a list of numbers",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let mut sum: f64 = 0.0;
+            let mut all_integers = true;
+
+            for item in list {
+                match expect_number(&item) {
+                    Ok(Numeric::Int(n)) => sum += n as f64,
+                    Ok(Numeric::Float(f)) => {
+                        sum += f;
+                        all_integers = false;
+                    }
+                    Err(_) => return Err(EvalError::TypeMismatch("list-sum: non-number in list")),
+                }
+            }
+
+            if all_integers && sum.fract() == 0.0 && sum <= i64::MAX as f64 {
+                Ok(Value::Number(sum as i64))
+            } else {
+                Ok(Value::Float(sum))
+            }
+        }
+        "list-avg" => {
+            // Average of numbers in a list
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list-avg expects 1 arg: a list of numbers",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            if list.is_empty() {
+                return Ok(Value::Float(0.0));
+            }
+
+            let mut sum: f64 = 0.0;
+            for item in &list {
+                match expect_number(item) {
+                    Ok(n) => sum += n.as_f64(),
+                    Err(_) => return Err(EvalError::TypeMismatch("list-avg: non-number in list")),
+                }
+            }
+
+            Ok(Value::Float(sum / list.len() as f64))
+        }
+        "list-min-value" => {
+            // Minimum value in numeric list
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list-min-value expects 1 arg: a list",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            if list.is_empty() {
+                return Ok(Value::Nil);
+            }
+
+            let mut min_val = list[0].clone();
+            for item in &list[1..] {
+                #[allow(clippy::collapsible_if)]
+                if let (Ok(a), Ok(b)) = (expect_number(&min_val), expect_number(item)) {
+                    if b.as_f64() < a.as_f64() {
+                        min_val = item.clone();
+                    }
+                }
+            }
+            Ok(min_val)
+        }
+        "list-max-value" => {
+            // Maximum value in numeric list
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list-max-value expects 1 arg: a list",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            if list.is_empty() {
+                return Ok(Value::Nil);
+            }
+
+            let mut max_val = list[0].clone();
+            for item in &list[1..] {
+                #[allow(clippy::collapsible_if)]
+                if let (Ok(a), Ok(b)) = (expect_number(&max_val), expect_number(item)) {
+                    if b.as_f64() > a.as_f64() {
+                        max_val = item.clone();
+                    }
+                }
+            }
+            Ok(max_val)
+        }
+        "string-byte-length" => {
+            // Get byte length of string (UTF-8)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-byte-length expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::Number(s.len() as i64))
+        }
+        "string-char-length" => {
+            // Get character length of string
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string-char-length expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::Number(s.chars().count() as i64))
+        }
+        "value->string" => {
+            // Convert any value to string representation
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "value->string expects 1 arg: a value",
+                ));
+            }
+            Ok(Value::String(value_to_display_string(&args[0])))
+        }
+        "string->value?" => {
+            // Try to parse string as a number
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string->value? expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+
+            if let Ok(n) = s.parse::<i64>() {
+                Ok(Value::Number(n))
+            } else if let Ok(f) = s.parse::<f64>() {
+                Ok(Value::Float(f))
+            } else {
+                Ok(Value::Nil)
+            }
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
