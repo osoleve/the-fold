@@ -364,7 +364,7 @@
        ;; available from block.ss and sha256.ss loaded by repl.ss.
        
        ;; Load Core Playground (depends on normalize/expand)
-       (load "thimble/core-playground.ss")
+       (load "thimble/examples/core-playground.ss")
        
        (set! *core-loaded* #t)
        (display "Core loaded. Available: normalize, expand, run, infer, etc.\n")

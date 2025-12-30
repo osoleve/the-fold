@@ -110,7 +110,7 @@
 ;;; Type-check a string and display the type or error.
 (define (fold-type-string input)
   (set! *current-source* input)
-  (let ([result (compile input 'infer)])
+  (let ([result (compile input 'to 'infer)])
        (if (result-ok? result)
            (let ([typed-result (result-value result)]
                  [context (result-context result)])
