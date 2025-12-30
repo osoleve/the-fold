@@ -1774,6 +1774,49 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let flattened = flatten_list(&args[0]);
             Ok(list_from_values(&flattened))
         }
+        "range" => {
+            // (range end) - generates 0 to end-1
+            // (range start end) - generates start to end-1
+            // (range start end step) - generates start to end-1 with step
+            if args.is_empty() || args.len() > 3 {
+                return Err(EvalError::TypeMismatch(
+                    "range expects 1-3 args: (range end) or (range start end) or (range start end step)",
+                ));
+            }
+
+            let (start, end, step) = if args.len() == 1 {
+                (0i64, expect_integer(&args[0])?, 1i64)
+            } else if args.len() == 2 {
+                (expect_integer(&args[0])?, expect_integer(&args[1])?, 1i64)
+            } else {
+                (
+                    expect_integer(&args[0])?,
+                    expect_integer(&args[1])?,
+                    expect_integer(&args[2])?,
+                )
+            };
+
+            if step == 0 {
+                return Err(EvalError::TypeMismatch("range: step cannot be zero"));
+            }
+
+            let mut result = Vec::new();
+            if step > 0 {
+                let mut i = start;
+                while i < end {
+                    result.push(Value::Number(i));
+                    i += step;
+                }
+            } else {
+                let mut i = start;
+                while i > end {
+                    result.push(Value::Number(i));
+                    i += step;
+                }
+            }
+
+            Ok(list_from_values(&result))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(

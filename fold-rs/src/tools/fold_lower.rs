@@ -53,7 +53,8 @@ fn is_builtin_prim(name: &str) -> bool {
             | "zero?" | "positive?" | "negative?" | "even?" | "odd?"
             // List operations
             | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
-            | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "flatten" | "filter"
+            | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "flatten" | "range"
+            | "filter"
             // String operations
             | "string-append" | "string-length" | "string-ref" | "substring"
             | "string->list" | "string->number" | "string->symbol" | "string->utf8"
