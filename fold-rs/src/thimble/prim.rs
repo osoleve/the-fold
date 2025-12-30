@@ -451,6 +451,25 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(list[idx].clone())
         }
+        "member" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("member expects 2 args"));
+            }
+            let needle = &args[0];
+            let mut current = &args[1];
+            loop {
+                match current {
+                    Value::Nil => return Ok(Value::Bool(false)),
+                    Value::Pair(head, tail) => {
+                        if value_eq(head, needle) {
+                            return Ok(Value::Bool(true));
+                        }
+                        current = tail;
+                    }
+                    _ => return Err(EvalError::TypeMismatch("member expects list")),
+                }
+            }
+        }
         "memq" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch("memq expects 2 args"));
