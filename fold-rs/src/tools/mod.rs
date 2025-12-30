@@ -13,4 +13,4 @@ pub use fold_parse::{
 };
 pub use fold_print::format_value;
 pub use fold_run::{RunError, run_fold_file};
-pub use prelude::{PRELUDE_SOURCE, load_prelude, prelude_env, primitives_env};
+pub use prelude::{PRIMITIVE_NAMES, load_prelude, prelude_env, primitives_env};
