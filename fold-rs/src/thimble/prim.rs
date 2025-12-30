@@ -2682,6 +2682,87 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let is_not_nil = !matches!(args[0], Value::Nil);
             Ok(Value::Bool(is_not_nil))
         }
+        "proper-list?" => {
+            // Check if value is a proper list (ends with nil)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("proper-list? expects 1 arg"));
+            }
+            let mut current = &args[0];
+            loop {
+                match current {
+                    Value::Nil => return Ok(Value::Bool(true)),
+                    Value::Pair(_, tail) => current = tail,
+                    _ => return Ok(Value::Bool(false)),
+                }
+            }
+        }
+        "pair-list?" => {
+            // Alias for proper-list?
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("pair-list? expects 1 arg"));
+            }
+            let mut current = &args[0];
+            loop {
+                match current {
+                    Value::Nil => return Ok(Value::Bool(true)),
+                    Value::Pair(_, tail) => current = tail,
+                    _ => return Ok(Value::Bool(false)),
+                }
+            }
+        }
+        "list->symbols" => {
+            // Convert list to list of symbols (mainly for type coercion)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list->symbols expects 1 arg: a list",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let symbols: Result<Vec<Value>, _> = list
+                .into_iter()
+                .map(|v| match v {
+                    Value::Symbol(s) => Ok(Value::Symbol(s)),
+                    _ => {
+                        // Try to coerce to symbol
+                        Ok(Value::Symbol(value_to_display_string(&v)))
+                    }
+                })
+                .collect();
+            match symbols {
+                Ok(syms) => Ok(list_from_values(&syms)),
+                Err(e) => Err(e),
+            }
+        }
+        "list->numbers" => {
+            // Convert list to list of numbers (coerce strings/symbols if possible)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list->numbers expects 1 arg: a list",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let mut numbers = Vec::new();
+            for v in list {
+                match v {
+                    Value::Number(n) => numbers.push(Value::Number(n)),
+                    Value::Float(f) => numbers.push(Value::Float(f)),
+                    Value::String(s) => {
+                        // Try to parse string as number
+                        if let Ok(n) = s.parse::<i64>() {
+                            numbers.push(Value::Number(n));
+                        } else if let Ok(f) = s.parse::<f64>() {
+                            numbers.push(Value::Float(f));
+                        } else {
+                            return Err(EvalError::TypeMismatch(
+                                "list->numbers: cannot convert to number",
+                            ));
+                        }
+                    }
+                    _ => return Err(EvalError::TypeMismatch("list->numbers: unsupported type")),
+                }
+            }
+            Ok(list_from_values(&numbers))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(

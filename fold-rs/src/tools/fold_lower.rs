@@ -67,7 +67,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "number?" | "integer?" | "string?" | "list?" | "pair?" | "null?" | "boolean?"
             | "symbol?" | "procedure?" | "char?" | "vector?" | "bytevector?"
             | "zero?" | "positive?" | "negative?" | "even?" | "odd?"
-            | "atom?" | "atomic?" | "not-null?"
+            | "atom?" | "atomic?" | "not-null?" | "proper-list?" | "pair-list?"
             // List operations
             | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
             | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "init" | "flatten" | "range"
@@ -77,6 +77,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "find" | "position" | "contains?" | "min-list" | "max-list"
             | "nth" | "zip" | "unzip" | "rotate"
             | "list->set" | "interleave" | "list->pairs"
+            | "list->symbols" | "list->numbers"
             | "filter"
             // String operations
             | "string-append" | "string-length" | "string-ref" | "substring"
