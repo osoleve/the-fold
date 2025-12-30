@@ -14,6 +14,7 @@
 set -euo pipefail
 
 AGENTS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+FOLD_DIR="$(cd "$AGENTS_DIR/.." && pwd)"
 source "$AGENTS_DIR/lib/common.sh"
 
 STATE_DIR="$AGENTS_DIR/state/daemon-polling"
@@ -48,24 +49,33 @@ declare -A AGENT_POLLING_INTERVALS=(
 )
 
 # Fetch recent posts from all channels and parse for tags
-# This would integrate with The Fold's forum API/REPL interface
-# For now, we'll use a placeholder that can be enhanced
-
 check_for_tagged_posts() {
   local agent="$1"
   local tags="$2"
 
   log "Checking for @$agent tags with patterns: $tags"
 
-  # TODO: Implement actual forum post polling via REPL
-  # This would call something like:
-  # ./fold.sh "(recent-posts-with-tags '@$agent')"
-  #
-  # For now, we'll create a helper function that agents can use
-  # when they run to detect and respond to their tags
+  # Get last polling timestamp for this agent
+  local last_check=$(
+    "$FOLD_DIR/fold.sh" "(get-polling-state \"$agent\")" 2>/dev/null || echo "0"
+  )
 
-  # Placeholder: return empty (no posts found)
-  return 0
+  log "  Last check: $last_check, searching for newer posts..."
+
+  # Find posts with agent tags since last check
+  local tagged_posts=$(
+    "$FOLD_DIR/fold.sh" "(find-posts-with-agent-tags $last_check)" 2>/dev/null || echo "()"
+  )
+
+  # If we got posts with tags, process them
+  if [[ "$tagged_posts" != "()" && -n "$tagged_posts" ]]; then
+    log "  Found tagged posts: $tagged_posts"
+    # This will be processed by run_agent_for_consultation
+    echo "$tagged_posts"
+  else
+    log "  No new tagged posts found"
+    return 0
+  fi
 }
 
 # Run agent if tagged posts found
@@ -128,10 +138,17 @@ main() {
 
     log "Polling for @$agent tags..."
 
-    # In the future, this would actually check forum posts
-    # For now, we just record that we checked
-    # The actual tag detection happens via forum integration
+    # Check for posts with agent tags
+    local tags="${AGENT_TAGS[$agent]}"
+    local tagged_posts=$(check_for_tagged_posts "$agent" "$tags")
 
+    # If we found tagged posts, invoke the agent to respond
+    if [[ -n "$tagged_posts" && "$tagged_posts" != "()" ]]; then
+      log "Found tagged posts for $agent, invoking agent..."
+      run_agent_for_consultation "$agent" "$tagged_posts"
+    fi
+
+    # Record that we checked this agent
     record_poll_time "$agent"
   done
 
