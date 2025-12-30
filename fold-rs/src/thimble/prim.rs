@@ -3337,6 +3337,247 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let s = expect_string(&args[0])?;
             Ok(Value::Bool(s.is_empty()))
         }
+        // Vector/Array manipulation utilities
+        "vec-copy" => {
+            // Create a shallow copy of a vector
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("vec-copy expects 1 arg: a vector"));
+            }
+            match &args[0] {
+                Value::Vector(items) => Ok(Value::Vector(items.clone())),
+                _ => Err(EvalError::TypeMismatch("vec-copy expects a vector")),
+            }
+        }
+        "vec-slice" => {
+            // Get a slice of a vector: (vec-slice v start end)
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "vec-slice expects 3 args: (vec-slice vec start end)",
+                ));
+            }
+            let start = expect_usize(&args[1])?;
+            let end = expect_usize(&args[2])?;
+
+            match &args[0] {
+                Value::Vector(items) => {
+                    let len = items.len();
+                    let start = start.min(len);
+                    let end = end.min(len);
+                    if start > end {
+                        return Ok(Value::Vector(Vec::new()));
+                    }
+                    Ok(Value::Vector(items[start..end].to_vec()))
+                }
+                _ => Err(EvalError::TypeMismatch("vec-slice expects a vector")),
+            }
+        }
+        "vec-reverse" => {
+            // Reverse a vector
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "vec-reverse expects 1 arg: a vector",
+                ));
+            }
+            match &args[0] {
+                Value::Vector(items) => {
+                    let mut reversed = items.clone();
+                    reversed.reverse();
+                    Ok(Value::Vector(reversed))
+                }
+                _ => Err(EvalError::TypeMismatch("vec-reverse expects a vector")),
+            }
+        }
+        "vec-sort" => {
+            // Sort a vector of numbers/strings
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("vec-sort expects 1 arg: a vector"));
+            }
+            match &args[0] {
+                Value::Vector(items) => {
+                    let mut sorted = items.clone();
+                    sorted.sort_by(|a, b| match (a, b) {
+                        (Value::Number(x), Value::Number(y)) => x.cmp(y),
+                        (Value::Float(x), Value::Float(y)) => {
+                            if x < y {
+                                std::cmp::Ordering::Less
+                            } else if x > y {
+                                std::cmp::Ordering::Greater
+                            } else {
+                                std::cmp::Ordering::Equal
+                            }
+                        }
+                        (Value::String(x), Value::String(y)) => x.cmp(y),
+                        _ => std::cmp::Ordering::Equal,
+                    });
+                    Ok(Value::Vector(sorted))
+                }
+                _ => Err(EvalError::TypeMismatch("vec-sort expects a vector")),
+            }
+        }
+        "vec-contains?" => {
+            // Check if vector contains a value
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "vec-contains? expects 2 args: (vec-contains? vec val)",
+                ));
+            }
+            match &args[0] {
+                Value::Vector(items) => {
+                    for item in items {
+                        if value_eq(item, &args[1]) {
+                            return Ok(Value::Bool(true));
+                        }
+                    }
+                    Ok(Value::Bool(false))
+                }
+                _ => Err(EvalError::TypeMismatch("vec-contains? expects a vector")),
+            }
+        }
+        "vec-index-of" => {
+            // Find index of value in vector
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "vec-index-of expects 2 args: (vec-index-of vec val)",
+                ));
+            }
+            match &args[0] {
+                Value::Vector(items) => {
+                    for (i, item) in items.iter().enumerate() {
+                        if value_eq(item, &args[1]) {
+                            return Ok(Value::Number(i as i64));
+                        }
+                    }
+                    Ok(Value::Number(-1))
+                }
+                _ => Err(EvalError::TypeMismatch("vec-index-of expects a vector")),
+            }
+        }
+        // Type introspection and reflection
+        "type-of" => {
+            // Get type name of a value
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("type-of expects 1 arg: a value"));
+            }
+            let type_name = match &args[0] {
+                Value::Number(_) => "number",
+                Value::Float(_) => "float",
+                Value::String(_) => "string",
+                Value::Char(_) => "char",
+                Value::Symbol(_) => "symbol",
+                Value::Bool(_) => "bool",
+                Value::Nil => "nil",
+                Value::Pair(_, _) => "pair",
+                Value::Vector(_) => "vector",
+                Value::Bytevector(_) => "bytevector",
+                Value::BigInt(_) => "bigint",
+                Value::BigRational(_) => "bigint",
+                _ => "unknown",
+            };
+            Ok(Value::Symbol(type_name.to_string()))
+        }
+        "is-number?" => {
+            // Type check: is number
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("is-number? expects 1 arg: a value"));
+            }
+            Ok(Value::Bool(matches!(
+                &args[0],
+                Value::Number(_) | Value::Float(_) | Value::BigInt(_) | Value::BigRational(_)
+            )))
+        }
+        "is-string?" => {
+            // Type check: is string
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("is-string? expects 1 arg: a value"));
+            }
+            Ok(Value::Bool(matches!(&args[0], Value::String(_))))
+        }
+        "is-vector?" => {
+            // Type check: is vector
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("is-vector? expects 1 arg: a value"));
+            }
+            Ok(Value::Bool(matches!(&args[0], Value::Vector(_))))
+        }
+        "is-list?" => {
+            // Type check: is list (pair or nil)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("is-list? expects 1 arg: a value"));
+            }
+            Ok(Value::Bool(matches!(
+                &args[0],
+                Value::Pair(_, _) | Value::Nil
+            )))
+        }
+        // Value comparison and equality utilities
+        "equals?" => {
+            // Deep equality check
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "equals? expects 2 args: (equals? a b)",
+                ));
+            }
+            Ok(Value::Bool(value_eq(&args[0], &args[1])))
+        }
+        "not-equals?" => {
+            // Deep inequality check
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "not-equals? expects 2 args: (not-equals? a b)",
+                ));
+            }
+            Ok(Value::Bool(!value_eq(&args[0], &args[1])))
+        }
+        "identical?" => {
+            // Check if two values are identical (same reference)
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "identical? expects 2 args: (identical? a b)",
+                ));
+            }
+            // Since we don't have reference semantics in this impl,
+            // use value equality as proxy
+            Ok(Value::Bool(value_eq(&args[0], &args[1])))
+        }
+        "hash-value" => {
+            // Simple hash of a value
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("hash-value expects 1 arg: a value"));
+            }
+            use std::collections::hash_map::DefaultHasher;
+            use std::hash::{Hash, Hasher};
+
+            let hash_code = match &args[0] {
+                Value::Number(n) => {
+                    let mut hasher = DefaultHasher::new();
+                    n.hash(&mut hasher);
+                    hasher.finish()
+                }
+                Value::String(s) => {
+                    let mut hasher = DefaultHasher::new();
+                    s.hash(&mut hasher);
+                    hasher.finish()
+                }
+                Value::Symbol(s) => {
+                    let mut hasher = DefaultHasher::new();
+                    s.hash(&mut hasher);
+                    hasher.finish()
+                }
+                Value::Float(f) => {
+                    let mut hasher = DefaultHasher::new();
+                    f.to_bits().hash(&mut hasher);
+                    hasher.finish()
+                }
+                _ => {
+                    // For other types, use a simple hash based on type discriminant
+                    let mut hasher = DefaultHasher::new();
+                    std::mem::size_of_val(&args[0]).hash(&mut hasher);
+                    hasher.finish()
+                }
+            };
+
+            Ok(Value::Number((hash_code % (i64::MAX as u64)) as i64))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(

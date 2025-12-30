@@ -138,6 +138,12 @@ fn is_builtin_prim(name: &str) -> bool {
             | "format" | "number->string" | "symbol->string"
             // Vector operations
             | "vec-length" | "vec-ref" | "vec-make" | "vec->list"
+            | "vec-copy" | "vec-slice" | "vec-reverse" | "vec-sort"
+            | "vec-contains?" | "vec-index-of"
+            // Type introspection
+            | "type-of" | "is-number?" | "is-string?" | "is-vector?" | "is-list?"
+            // Value comparison
+            | "equals?" | "not-equals?" | "identical?" | "hash-value"
             // Block operations
             | "make-block" | "block" | "block?" | "block-tag" | "block-ref" | "block->bytes"
             | "block-payload" | "block-refs"
