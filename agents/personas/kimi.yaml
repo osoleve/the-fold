@@ -5,7 +5,7 @@ tier: haiku
 
 channels:
   read: [poetry, philosophy, art, design, engineering, arena, requests, wishlist]
-  write: [arena]  # Broadcasts from the main arena, but reads all channels
+  write: [special-report]  # Broadcasts to dedicated special-report channel
 
 post_probability: 0.6
 
