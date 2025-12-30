@@ -41,16 +41,17 @@ fn is_builtin_prim(name: &str) -> bool {
         name,
         // Arithmetic
         "+" | "-" | "*" | "/" | "add" | "sub" | "mul" | "div" | "mod"
-            | "abs" | "neg" | "sqrt" | "expt" | "floor" | "ceiling" | "round"
-            | "sin" | "cos" | "tan" | "log" | "exp"
+            | "abs" | "neg" | "sqrt" | "expt" | "pow" | "floor" | "ceiling" | "round"
+            | "sin" | "cos" | "tan" | "log" | "exp" | "min" | "max"
             // Comparison
             | "<" | ">" | "<=" | ">=" | "=" | "eq?" | "lt?" | "gt?" | "le?" | "ge?"
-            // Type checks
+            // Type checks and predicates
             | "number?" | "integer?" | "string?" | "list?" | "pair?" | "null?" | "boolean?"
             | "symbol?" | "procedure?" | "char?" | "vector?" | "bytevector?"
+            | "zero?" | "positive?" | "negative?" | "even?" | "odd?"
             // List operations
             | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "memq"
-            | "list-ref" | "list->string" | "list->vec" | "take" | "drop"
+            | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "flatten" | "filter"
             // String operations
             | "string-append" | "string-length" | "string-ref" | "substring"
             | "string->list" | "string->number" | "string->symbol" | "string->utf8"

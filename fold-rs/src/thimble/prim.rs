@@ -128,7 +128,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let n = expect_number(&args[0])?.as_f64();
             Ok(Value::Float(n.sqrt()))
         }
-        "expt" => {
+        "expt" | "pow" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch("expt expects 2 args"));
             }
@@ -138,6 +138,32 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 (Numeric::Int(b), Numeric::Int(e)) if e >= 0 => Ok(Value::Number(b.pow(e as u32))),
                 _ => Ok(Value::Float(base.as_f64().powf(exp.as_f64()))),
             }
+        }
+        "min" => {
+            if args.is_empty() {
+                return Err(EvalError::TypeMismatch("min expects at least 1 arg"));
+            }
+            let mut min_val = expect_number(&args[0])?;
+            for arg in &args[1..] {
+                let val = expect_number(arg)?;
+                if val.as_f64() < min_val.as_f64() {
+                    min_val = val;
+                }
+            }
+            Ok(numeric_to_value(min_val))
+        }
+        "max" => {
+            if args.is_empty() {
+                return Err(EvalError::TypeMismatch("max expects at least 1 arg"));
+            }
+            let mut max_val = expect_number(&args[0])?;
+            for arg in &args[1..] {
+                let val = expect_number(arg)?;
+                if val.as_f64() > max_val.as_f64() {
+                    max_val = val;
+                }
+            }
+            Ok(numeric_to_value(max_val))
         }
         "log" => {
             if args.len() != 1 {
@@ -218,6 +244,20 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
         "zero?" => unary_number_pred(args, |n| n == 0.0),
         "positive?" => unary_number_pred(args, |n| n > 0.0),
         "negative?" => unary_number_pred(args, |n| n < 0.0),
+        "even?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("even? expects 1 arg"));
+            }
+            let n = expect_integer(&args[0])?;
+            Ok(Value::Bool(n % 2 == 0))
+        }
+        "odd?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("odd? expects 1 arg"));
+            }
+            let n = expect_integer(&args[0])?;
+            Ok(Value::Bool(n % 2 != 0))
+        }
 
         // Bitwise
         "bitand" => binary_number(args, |a, b| a & b),
@@ -1487,6 +1527,57 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 }
             }
             Ok(current.clone())
+        }
+        "last" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("last expects 1 arg"));
+            }
+            let mut current = &args[0];
+            let mut last_val = None;
+            loop {
+                match current {
+                    Value::Nil => {
+                        return match last_val {
+                            Some(val) => Ok(val),
+                            None => Err(EvalError::TypeMismatch("last expects a non-empty list")),
+                        };
+                    }
+                    Value::Pair(head, tail) => {
+                        last_val = Some(*head.clone());
+                        current = tail;
+                    }
+                    _ => return Err(EvalError::TypeMismatch("last expects a list")),
+                }
+            }
+        }
+        "flatten" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("flatten expects 1 arg"));
+            }
+            fn flatten_list(val: &Value) -> Vec<Value> {
+                match val {
+                    Value::Nil => vec![],
+                    Value::Pair(head, tail) => {
+                        let mut result = flatten_list(head);
+                        result.extend(flatten_list(tail));
+                        result
+                    }
+                    other => vec![other.clone()],
+                }
+            }
+            let flattened = flatten_list(&args[0]);
+            Ok(list_from_values(&flattened))
+        }
+        "filter" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "filter expects 2 args: (filter pred lst)",
+                ));
+            }
+            // Note: filter requires closure evaluation - not supported at prim level
+            Err(EvalError::TypeMismatch(
+                "filter requires closure evaluation (not yet supported in Rust core)",
+            ))
         }
 
         _ => Err(EvalError::UnknownPrimitive(op.clone())),
