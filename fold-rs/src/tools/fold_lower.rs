@@ -59,7 +59,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "abs" | "neg" | "sqrt" | "expt" | "pow" | "floor" | "ceiling" | "round"
             | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "log" | "exp" | "min" | "max"
             | "gcd" | "lcm" | "clamp" | "between?" | "sign" | "divmod"
-            | "int->float" | "float->int"
+            | "int->float" | "float->int" | "truncate"
             // Comparison
             | "<" | ">" | "<=" | ">=" | "=" | "eq?" | "lt?" | "gt?" | "le?" | "ge?"
             // Type checks and predicates
@@ -72,6 +72,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "list-copy" | "make-list" | "first" | "rest" | "second" | "third"
             | "repeat" | "sum" | "product" | "sum-of" | "max-of" | "min-of"
             | "sort" | "unique" | "find-index" | "index-of" | "count"
+            | "find" | "position" | "contains?" | "min-list" | "max-list"
             | "nth" | "zip" | "unzip" | "rotate"
             | "list->set" | "interleave" | "list->pairs"
             | "filter"

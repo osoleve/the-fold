@@ -2505,6 +2505,99 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 Ok(Value::Nil)
             }
         }
+        "truncate" => {
+            // Truncate towards zero (like int() in Python)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("truncate expects 1 arg: a number"));
+            }
+            let n = expect_number(&args[0])?.as_f64();
+            Ok(Value::Number(n.trunc() as i64))
+        }
+        "find" => {
+            // Find index of first element matching predicate value
+            // Simplified: (find lst value) returns index or #f
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "find expects 2 args: (find lst value)",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let needle = &args[1];
+            for (i, item) in list.iter().enumerate() {
+                if value_eq(item, needle) {
+                    return Ok(Value::Number(i as i64));
+                }
+            }
+            Ok(Value::Bool(false))
+        }
+        "position" => {
+            // Alias for find - returns index of element
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "position expects 2 args: (position lst value)",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let needle = &args[1];
+            for (i, item) in list.iter().enumerate() {
+                if value_eq(item, needle) {
+                    return Ok(Value::Number(i as i64));
+                }
+            }
+            Ok(Value::Bool(false))
+        }
+        "contains?" => {
+            // Check if list contains value
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "contains? expects 2 args: (contains? lst value)",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let needle = &args[1];
+            let found = list.iter().any(|item| value_eq(item, needle));
+            Ok(Value::Bool(found))
+        }
+        "min-list" => {
+            // Find minimum element in list (requires comparable elements)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("min-list expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            if list.is_empty() {
+                return Ok(Value::Nil);
+            }
+            let mut min_val = list[0].clone();
+            for item in &list[1..] {
+                #[allow(clippy::collapsible_if)]
+                if let (Ok(a), Ok(b)) = (expect_number(&min_val), expect_number(item)) {
+                    if b.as_f64() < a.as_f64() {
+                        min_val = item.clone();
+                    }
+                }
+            }
+            Ok(min_val)
+        }
+        "max-list" => {
+            // Find maximum element in list
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("max-list expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            if list.is_empty() {
+                return Ok(Value::Nil);
+            }
+            let mut max_val = list[0].clone();
+            for item in &list[1..] {
+                #[allow(clippy::collapsible_if)]
+                if let (Ok(a), Ok(b)) = (expect_number(&max_val), expect_number(item)) {
+                    if b.as_f64() > a.as_f64() {
+                        max_val = item.clone();
+                    }
+                }
+            }
+            Ok(max_val)
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
