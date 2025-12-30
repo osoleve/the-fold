@@ -23,6 +23,144 @@ fn cas_store() -> &'static Mutex<Store> {
     CAS_STORE.get_or_init(|| Mutex::new(Store::new()))
 }
 
+// Session management for daemon
+static CURRENT_SESSION_ID: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+
+fn session_mutex() -> &'static Mutex<Option<String>> {
+    CURRENT_SESSION_ID.get_or_init(|| Mutex::new(None))
+}
+
+/// Set the current session ID (called from daemon before evaluation)
+pub fn set_current_session_id(session_id: Option<String>) {
+    if let Ok(mut guard) = session_mutex().lock() {
+        *guard = session_id;
+    }
+}
+
+/// Get the current session ID
+fn get_current_session_id() -> Option<String> {
+    session_mutex().lock().ok().and_then(|guard| guard.clone())
+}
+
+/// Session file path for given session ID
+fn session_file_path(session_id: &str) -> String {
+    format!(".fold-sessions/{}.session", session_id)
+}
+
+/// Read session data from file (returns alist as Value)
+fn read_session_file(session_id: &str) -> Option<Value> {
+    let path = session_file_path(session_id);
+    std::fs::read_to_string(&path).ok().and_then(|content| {
+        // Parse simple S-expression alist
+        parse_session_alist(&content)
+    })
+}
+
+/// Write session data to file
+fn write_session_file(
+    session_id: &str,
+    tier: &str,
+    model: &str,
+    name: &str,
+) -> std::io::Result<()> {
+    // Ensure directory exists
+    std::fs::create_dir_all(".fold-sessions")?;
+    let path = session_file_path(session_id);
+    let content = format!(
+        "((tier . {}) (model . {}) (name . {}) (session-id . \"{}\"))",
+        tier, model, name, session_id
+    );
+    std::fs::write(&path, content)
+}
+
+/// Delete session file
+fn delete_session_file(session_id: &str) -> std::io::Result<()> {
+    let path = session_file_path(session_id);
+    if std::path::Path::new(&path).exists() {
+        std::fs::remove_file(&path)
+    } else {
+        Ok(())
+    }
+}
+
+/// Parse a simple session alist like ((tier . symbol) (name . symbol) ...)
+fn parse_session_alist(s: &str) -> Option<Value> {
+    let s = s.trim();
+    if !s.starts_with("((") || !s.ends_with("))") {
+        return None;
+    }
+    // Extract key-value pairs
+    let inner = &s[1..s.len() - 1]; // Remove outer parens
+    let mut pairs = Vec::new();
+    let mut depth = 0;
+    let mut current = String::new();
+
+    for c in inner.chars() {
+        match c {
+            '(' => {
+                depth += 1;
+                current.push(c);
+            }
+            ')' => {
+                depth -= 1;
+                current.push(c);
+                if depth == 0 && !current.trim().is_empty() {
+                    if let Some(pair) = parse_pair(current.trim()) {
+                        pairs.push(pair);
+                    }
+                    current.clear();
+                }
+            }
+            _ => current.push(c),
+        }
+    }
+
+    // Build alist as proper list of pairs
+    let mut result = Value::Nil;
+    for pair in pairs.into_iter().rev() {
+        result = Value::Pair(Box::new(pair), Box::new(result));
+    }
+    Some(result)
+}
+
+/// Parse a single pair like (tier . symbol)
+fn parse_pair(s: &str) -> Option<Value> {
+    let s = s.trim();
+    if !s.starts_with('(') || !s.ends_with(')') {
+        return None;
+    }
+    let inner = s[1..s.len() - 1].trim();
+    let parts: Vec<&str> = inner.splitn(3, " . ").collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    let key = parts[0].trim();
+    let value_str = parts[1].trim();
+
+    let key_value = Value::Symbol(Symbol::from(key));
+    let value = if value_str.starts_with('"') && value_str.ends_with('"') {
+        Value::String(value_str[1..value_str.len() - 1].to_string())
+    } else {
+        Value::Symbol(Symbol::from(value_str))
+    };
+
+    Some(Value::Pair(Box::new(key_value), Box::new(value)))
+}
+
+/// Map model tier to role
+fn model_to_role(model: &str) -> Option<&'static str> {
+    match model {
+        "opus" => Some("shepherd"),
+        "sonnet" => Some("builder"),
+        "haiku" => Some("player"),
+        // Also accept role names directly
+        "shepherd" => Some("shepherd"),
+        "builder" => Some("builder"),
+        "player" => Some("player"),
+        _ => None,
+    }
+}
+
 pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
     match op.as_str() {
         // Arithmetic (Scheme operator aliases)
@@ -1700,16 +1838,6 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             Ok(Value::String(
                 "The Fold GENESIS\nContent-Addressed Storage and Merkle Log Forum System"
                     .to_string(),
-            ))
-        }
-        "who" => {
-            // Return session info - for now just indicate no active session
-            // The session system is Scheme-specific, so in Rust we just return a placeholder
-            if !args.is_empty() {
-                return Err(EvalError::TypeMismatch("who expects 0 args"));
-            }
-            Ok(Value::String(
-                "Rust daemon session (use Scheme daemon for full session management)".to_string(),
             ))
         }
         "help" => {
@@ -4450,6 +4578,290 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             Ok(Value::Nil)
         }
 
+        // ============================================================
+        // Session Commands (hi, who, bye)
+        // ============================================================
+        "hi" => {
+            // (hi 'model-tier 'name) or (hi 'model-tier 'name "message")
+            if args.len() < 2 || args.len() > 3 {
+                return Err(EvalError::TypeMismatch(
+                    "hi expects 2-3 args: model-tier, name, [message]",
+                ));
+            }
+            let model_tier = expect_symbol(&args[0])?;
+            let name = expect_symbol(&args[1])?;
+            let message = if args.len() == 3 {
+                Some(expect_string(&args[2])?)
+            } else {
+                None
+            };
+
+            // Map model to role
+            let role = model_to_role(model_tier.as_str()).ok_or(EvalError::TypeMismatch(
+                "hi: invalid tier. Use 'opus, 'sonnet, or 'haiku",
+            ))?;
+
+            // Get or generate session ID
+            let session_id =
+                get_current_session_id().unwrap_or_else(|| format!("cli-{}", std::process::id()));
+
+            // Write session file
+            if let Err(e) =
+                write_session_file(&session_id, role, model_tier.as_str(), name.as_str())
+            {
+                return Err(EvalError::IOError(format!(
+                    "hi: failed to write session: {}",
+                    e
+                )));
+            }
+
+            // Print welcome message
+            println!("Logged in as {} ({}).", name, role);
+            if let Some(msg) = message {
+                println!("Message: {}", msg);
+            }
+            println!("Use (digest) to see forum activity, (help) for commands.");
+
+            Ok(Value::Nil)
+        }
+        "who" => {
+            // (who) - show current session info
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("who expects 0 args"));
+            }
+
+            let session_id =
+                get_current_session_id().unwrap_or_else(|| format!("cli-{}", std::process::id()));
+
+            if let Some(session) = read_session_file(&session_id) {
+                // Extract name and tier from alist
+                let name = alist_get(&session, "name")
+                    .map(|v| format_value_simple(&v))
+                    .unwrap_or_else(|| "unknown".to_string());
+                let tier = alist_get(&session, "tier")
+                    .map(|v| format_value_simple(&v))
+                    .unwrap_or_else(|| "unknown".to_string());
+                println!("Logged in as: {} ({})", name, tier);
+                println!("Session: {}", session_id);
+            } else {
+                println!("No active session. Use (hi 'tier 'name) to login.");
+            }
+
+            Ok(Value::Nil)
+        }
+        "bye" => {
+            // (bye) - logout and clear session
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("bye expects 0 args"));
+            }
+
+            let session_id =
+                get_current_session_id().unwrap_or_else(|| format!("cli-{}", std::process::id()));
+
+            if let Some(session) = read_session_file(&session_id) {
+                let name = alist_get(&session, "name")
+                    .map(|v| format_value_simple(&v))
+                    .unwrap_or_else(|| "unknown".to_string());
+
+                if let Err(e) = delete_session_file(&session_id) {
+                    return Err(EvalError::IOError(format!(
+                        "bye: failed to clear session: {}",
+                        e
+                    )));
+                }
+                println!("Goodbye, {}. Session cleared.", name);
+            } else {
+                println!("No active session.");
+            }
+
+            Ok(Value::Nil)
+        }
+
+        // ============================================================
+        // Chat Command
+        // ============================================================
+        "chat" => {
+            // (chat "message") - post to chat channel
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("chat expects 1 arg: message"));
+            }
+            let message = expect_string(&args[0])?;
+
+            let session_id =
+                get_current_session_id().unwrap_or_else(|| format!("cli-{}", std::process::id()));
+
+            // Get session info
+            let session = read_session_file(&session_id).ok_or(EvalError::TypeMismatch(
+                "chat: no active session. Use (hi 'tier 'name) first",
+            ))?;
+
+            let author = alist_get(&session, "name")
+                .map(|v| format_value_simple(&v))
+                .unwrap_or_else(|| "anonymous".to_string());
+            let tier = alist_get(&session, "tier")
+                .map(|v| format_value_simple(&v))
+                .unwrap_or_else(|| "player".to_string());
+
+            // Get current timestamp
+            let timestamp = current_iso_timestamp();
+
+            // Create post block
+            let body = format!(
+                "((author . {}) (tier . {}) (timestamp . \"{}\") (channel . chat) (body . \"{}\"))",
+                author,
+                tier,
+                timestamp,
+                escape_string(&message)
+            );
+
+            // Hash the post
+            let hash = sha256(body.as_bytes());
+
+            // Read current chat head
+            let head_path = ".store/heads/chat.head";
+            let prev_head = std::fs::read_to_string(head_path).ok();
+
+            // Store the block (with sharding by first 2 hex chars)
+            let hash_hex = bytes_to_hex(&hash);
+            let shard = if hash_hex.len() >= 2 {
+                &hash_hex[..2]
+            } else {
+                &hash_hex
+            };
+            let shard_dir = format!(".store/objects/{}", shard);
+            std::fs::create_dir_all(&shard_dir).ok();
+            let object_path = format!("{}/{}", shard_dir, hash_hex);
+            if let Err(e) = std::fs::write(&object_path, &body) {
+                return Err(EvalError::IOError(format!(
+                    "chat: failed to store post: {}",
+                    e
+                )));
+            }
+
+            // Build refs (link to previous head if exists)
+            // Note: For full chain integrity, refs should be embedded in the block
+            let _refs_str = if let Some(prev) = prev_head {
+                format!("(refs . (\"{}\"))", prev.trim())
+            } else {
+                "(refs . ())".to_string()
+            };
+
+            // Update head
+            std::fs::create_dir_all(".store/heads").ok();
+            if let Err(e) = std::fs::write(head_path, &hash_hex) {
+                return Err(EvalError::IOError(format!(
+                    "chat: failed to update head: {}",
+                    e
+                )));
+            }
+
+            println!("{}: {}", author, message);
+            Ok(Value::Nil)
+        }
+
+        // ============================================================
+        // Browse Command
+        // ============================================================
+        "browse" => {
+            // (browse 'channel) or (browse 'channel n)
+            if args.is_empty() || args.len() > 2 {
+                return Err(EvalError::TypeMismatch(
+                    "browse expects 1-2 args: channel, [count]",
+                ));
+            }
+            let channel = expect_symbol(&args[0])?;
+            let count = if args.len() == 2 {
+                expect_integer(&args[1])? as usize
+            } else {
+                5
+            };
+
+            let head_path = format!(".store/heads/{}.head", channel);
+            let head_hex = match std::fs::read_to_string(&head_path) {
+                Ok(h) => h.trim().to_string(),
+                Err(_) => {
+                    println!("Channel #{} has no posts.", channel);
+                    return Ok(Value::Nil);
+                }
+            };
+
+            println!("\n╔══════════════════════════════════════════════════════════════╗");
+            println!("║  #{:<56} ║", channel);
+            println!("╚══════════════════════════════════════════════════════════════╝\n");
+
+            // Walk the chain and display posts
+            let mut current_hash = head_hex;
+            let mut displayed = 0;
+
+            while displayed < count && !current_hash.is_empty() {
+                // Objects are stored with sharding: .store/objects/XX/XXXX...
+                let shard = if current_hash.len() >= 2 {
+                    &current_hash[..2]
+                } else {
+                    &current_hash
+                };
+                let object_path = format!(".store/objects/{}/{}", shard, current_hash);
+                // Read as bytes since blocks may have binary refs
+                match std::fs::read(&object_path) {
+                    Ok(bytes) => {
+                        // Convert to lossy string (ignores invalid UTF-8)
+                        let content = String::from_utf8_lossy(&bytes);
+                        // Parse and display post
+                        if let Some(post) = parse_post_content(&content) {
+                            let author = post
+                                .get("author")
+                                .cloned()
+                                .unwrap_or_else(|| "?".to_string());
+                            let tier = post.get("tier").cloned().unwrap_or_else(|| "?".to_string());
+                            let timestamp = post
+                                .get("timestamp")
+                                .cloned()
+                                .unwrap_or_else(|| "?".to_string());
+                            let body = post.get("body").cloned().unwrap_or_default();
+                            let hash_short = if current_hash.len() >= 8 {
+                                &current_hash[..8]
+                            } else {
+                                &current_hash
+                            };
+
+                            let tier_badge = match tier.as_str() {
+                                "shepherd" => "🐑",
+                                "builder" => "🔨",
+                                "player" => "🎮",
+                                _ => "?",
+                            };
+
+                            println!(
+                                "  [{}] {} {} ({}): {}",
+                                format_timestamp_short(&timestamp),
+                                tier_badge,
+                                author,
+                                hash_short,
+                                truncate_str(&body, 60)
+                            );
+                            displayed += 1;
+
+                            // Get previous ref
+                            if let Some(refs) = post.get("refs") {
+                                current_hash = refs.clone();
+                            } else {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
+
+            if displayed == 0 {
+                println!("  (no posts)");
+            }
+
+            Ok(Value::Nil)
+        }
+
         _ => Err(EvalError::UnknownPrimitive(op.clone())),
     }
 }
@@ -4926,5 +5338,237 @@ fn value_eq(left: &Value, right: &Value) -> bool {
             a.tag == b.tag && a.payload == b.payload && a.refs == b.refs
         }
         _ => false,
+    }
+}
+
+// ============================================================
+// Session and Forum Helper Functions
+// ============================================================
+
+/// Get value from alist by key
+fn alist_get(alist: &Value, key: &str) -> Option<Value> {
+    let mut current = alist;
+    while let Value::Pair(car, cdr) = current {
+        if let Value::Pair(k, v) = car.as_ref()
+            && let Value::Symbol(sym) = k.as_ref()
+            && sym.as_str() == key
+        {
+            return Some(v.as_ref().clone());
+        }
+        current = cdr.as_ref();
+    }
+    None
+}
+
+/// Simple value formatter for session display
+fn format_value_simple(value: &Value) -> String {
+    match value {
+        Value::Symbol(s) => s.to_string(),
+        Value::String(s) => s.clone(),
+        Value::Number(n) => n.to_string(),
+        Value::Bool(b) => if *b { "#t" } else { "#f" }.to_string(),
+        _ => "?".to_string(),
+    }
+}
+
+/// Generate current ISO 8601 timestamp
+fn current_iso_timestamp() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    let days_since_1970 = secs / 86400;
+    let secs_in_day = secs % 86400;
+    let hours = secs_in_day / 3600;
+    let mins = (secs_in_day % 3600) / 60;
+    let secs_rem = secs_in_day % 60;
+
+    let mut year = 1970i64;
+    let mut remaining_days = days_since_1970 as i64;
+    loop {
+        let days_in_year = if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) {
+            366
+        } else {
+            365
+        };
+        if remaining_days < days_in_year {
+            break;
+        }
+        remaining_days -= days_in_year;
+        year += 1;
+    }
+    let is_leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_months = if is_leap {
+        [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    } else {
+        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    };
+    let mut month = 1;
+    for &dim in &days_in_months {
+        if remaining_days < dim as i64 {
+            break;
+        }
+        remaining_days -= dim as i64;
+        month += 1;
+    }
+    let day = remaining_days + 1;
+
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        year, month, day, hours, mins, secs_rem
+    )
+}
+
+/// Escape string for S-expression
+fn escape_string(s: &str) -> String {
+    s.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
+}
+
+/// Convert bytes to hex string
+fn bytes_to_hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+/// Parse post content (Block format: tag + payload + refs)
+fn parse_post_content(content: &str) -> Option<std::collections::HashMap<String, String>> {
+    // Block format may have: "   forum-post<byte>   ((author ...) ...)<binary refs>"
+    // We need to find the alist starting with "(("
+    let content = content.trim();
+
+    // Find the alist within the content
+    let alist_start = content.find("((")?;
+    let alist_content = &content[alist_start..];
+
+    // Find the end of the alist (matching closing parens)
+    let mut depth = 0;
+    let mut alist_end = 0;
+    for (i, c) in alist_content.chars().enumerate() {
+        match c {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    alist_end = i + 1;
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    if alist_end == 0 {
+        return None;
+    }
+
+    let content = &alist_content[..alist_end];
+
+    let mut result = std::collections::HashMap::new();
+
+    // Simple parser for ((key . value) (key . value) ...) format
+    let mut pos = 1; // Skip opening paren
+    let chars: Vec<char> = content.chars().collect();
+
+    while pos < chars.len() {
+        // Skip whitespace
+        while pos < chars.len() && chars[pos].is_whitespace() {
+            pos += 1;
+        }
+
+        if pos >= chars.len() || chars[pos] == ')' {
+            break;
+        }
+
+        if chars[pos] != '(' {
+            pos += 1;
+            continue;
+        }
+
+        // Parse (key . value)
+        pos += 1; // Skip '('
+
+        // Read key
+        let mut key = String::new();
+        while pos < chars.len() && !chars[pos].is_whitespace() && chars[pos] != '.' {
+            key.push(chars[pos]);
+            pos += 1;
+        }
+
+        // Skip to '.'
+        while pos < chars.len() && chars[pos] != '.' {
+            pos += 1;
+        }
+        pos += 1; // Skip '.'
+
+        // Skip whitespace
+        while pos < chars.len() && chars[pos].is_whitespace() {
+            pos += 1;
+        }
+
+        // Read value
+        let mut value = String::new();
+        let in_string = pos < chars.len() && chars[pos] == '"';
+        if in_string {
+            pos += 1; // Skip opening quote
+            while pos < chars.len() {
+                if chars[pos] == '\\' && pos + 1 < chars.len() {
+                    pos += 1;
+                    match chars[pos] {
+                        'n' => value.push('\n'),
+                        'r' => value.push('\r'),
+                        't' => value.push('\t'),
+                        '"' => value.push('"'),
+                        '\\' => value.push('\\'),
+                        c => value.push(c),
+                    }
+                } else if chars[pos] == '"' {
+                    pos += 1;
+                    break;
+                } else {
+                    value.push(chars[pos]);
+                }
+                pos += 1;
+            }
+        } else {
+            // Read until ')'
+            while pos < chars.len() && chars[pos] != ')' && !chars[pos].is_whitespace() {
+                value.push(chars[pos]);
+                pos += 1;
+            }
+        }
+
+        // Skip to closing ')'
+        while pos < chars.len() && chars[pos] != ')' {
+            pos += 1;
+        }
+        pos += 1; // Skip ')'
+
+        if !key.is_empty() {
+            result.insert(key, value);
+        }
+    }
+
+    Some(result)
+}
+
+/// Format timestamp for display (HH:MM)
+fn format_timestamp_short(timestamp: &str) -> String {
+    if timestamp.len() >= 16 {
+        timestamp[11..16].to_string()
+    } else {
+        timestamp.to_string()
+    }
+}
+
+/// Truncate string to max length
+fn truncate_str(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else {
+        format!("{}...", &s[..max_len.saturating_sub(3)])
     }
 }
