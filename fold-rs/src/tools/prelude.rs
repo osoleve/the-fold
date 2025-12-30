@@ -1735,6 +1735,320 @@ pub const PRELUDE_SOURCE: &str = r#"
                       (just (cons (from-just ma) (from-just acc))))))
             (just '())
             lst)))
+
+   ; -- More list operations --
+
+   ; zip-with-3: Zip three lists with a ternary function
+   (zip-with-3 (fix zip-with-3
+     (fn (f xs ys zs)
+       (if (null? xs)
+           '()
+           (if (null? ys)
+               '()
+               (if (null? zs)
+                   '()
+                   (cons (f (car xs) (car ys) (car zs))
+                         (zip-with-3 f (cdr xs) (cdr ys) (cdr zs)))))))))
+
+   ; unzip3: Unzip a list of 3-tuples into three lists
+   (unzip3 (fn (lst)
+     (list (map car lst)
+           (map cadr lst)
+           (map caddr lst))))
+
+   ; snoc: Append element to end of list
+   (snoc (fn (lst x) (append lst (list x))))
+
+   ; single?: Check if list has exactly one element
+   (single? singleton?)
+
+   ; drop-last: Drop n elements from end (alias)
+   (drop-last drop-right)
+
+   ; take-last: Take n elements from end (alias)
+   (take-last take-right)
+
+   ; find-index-of: Find index of element (different from list-index which uses predicate)
+   (find-index-of (fn (x lst) (position x lst)))
+
+   ; last-index-of: Find last index of element
+   (last-index-of (fix last-index-of
+     (fn (x lst)
+       (let ((helper (fix helper
+               (fn (lst idx last-found)
+                 (if (null? lst)
+                     last-found
+                     (if (eq? x (car lst))
+                         (helper (cdr lst) (+ idx 1) idx)
+                         (helper (cdr lst) (+ idx 1) last-found)))))))
+         (helper lst 0 #f)))))
+
+   ; count-occurrences: Count how many times element appears
+   (count-occurrences (fn (x lst)
+     (count-if (fn (y) (eq? x y)) lst)))
+
+   ; replace-first: Replace first occurrence of old with new
+   (replace-first (fix replace-first
+     (fn (old new lst)
+       (if (null? lst)
+           '()
+           (if (eq? old (car lst))
+               (cons new (cdr lst))
+               (cons (car lst) (replace-first old new (cdr lst))))))))
+
+   ; replace-all: Replace all occurrences of old with new
+   (replace-all (fn (old new lst)
+     (map (fn (x) (if (eq? x old) new x)) lst)))
+
+   ; insert-sorted: Insert element into sorted list
+   (insert-sorted (fix insert-sorted
+     (fn (x lst)
+       (if (null? lst)
+           (list x)
+           (if (<= x (car lst))
+               (cons x lst)
+               (cons (car lst) (insert-sorted x (cdr lst))))))))
+
+   ; insert-sorted-by: Insert element into sorted list using comparison function
+   (insert-sorted-by (fix insert-sorted-by
+     (fn (cmp x lst)
+       (if (null? lst)
+           (list x)
+           (if (<= (cmp x) (cmp (car lst)))
+               (cons x lst)
+               (cons (car lst) (insert-sorted-by cmp x (cdr lst))))))))
+
+   ; merge-sorted: Merge two sorted lists
+   (merge-sorted (fix merge-sorted
+     (fn (xs ys)
+       (if (null? xs)
+           ys
+           (if (null? ys)
+               xs
+               (if (<= (car xs) (car ys))
+                   (cons (car xs) (merge-sorted (cdr xs) ys))
+                   (cons (car ys) (merge-sorted xs (cdr ys)))))))))
+
+   ; -- More function combinators --
+
+   ; apply-to: Apply value to function (flip of function application)
+   (apply-to (fn (x f) (f x)))
+
+   ; thrush: Thread value through list of functions (left to right)
+   (thrush (fn (x fns)
+     (foldl (fn (acc f) (f acc)) x fns)))
+
+   ; fanout: Apply multiple functions to same value, return list of results
+   (fanout (fn (fns x)
+     (map (fn (f) (f x)) fns)))
+
+   ; converge-with: Apply two functions to value, combine results
+   (converge-with (fn (combiner f g)
+     (fn (x) (combiner (f x) (g x)))))
+
+   ; dup: Duplicate a value as a pair
+   (dup (fn (x) (cons x x)))
+
+   ; swap: Swap elements of a pair
+   (swap (fn (p) (cons (cdr p) (car p))))
+
+   ; -- More numeric utilities --
+
+   ; quotient-remainder: Return both quotient and remainder
+   (quotient-remainder (fn (a b)
+     (list (quotient a b) (remainder a b))))
+
+   ; wrap: Wrap value to range [lo, hi) (modular arithmetic)
+   (wrap (fn (lo hi x)
+     (let ((range (- hi lo)))
+       (let ((offset (mod (- x lo) range)))
+         (if (< offset 0)
+             (+ lo (+ offset range))
+             (+ lo offset))))))
+
+   ; distance: Absolute difference (alias)
+   (distance abs-diff)
+
+   ; average-of: Average of applying function to list
+   (average-of (fn (f lst)
+     (mean (map f lst))))
+
+   ; geometric-mean: Geometric mean of list
+   (geometric-mean (fn (lst)
+     (if (null? lst)
+         0
+         (expt (product lst) (/ 1 (length lst))))))
+
+   ; harmonic-mean: Harmonic mean of list
+   (harmonic-mean (fn (lst)
+     (if (null? lst)
+         0
+         (/ (length lst)
+            (sum-list (map (fn (x) (/ 1 x)) lst))))))
+
+   ; -- More predicate utilities --
+
+   ; all-of: Check if value satisfies all predicates
+   (all-of (fn (preds x)
+     (all (fn (p) (p x)) preds)))
+
+   ; any-of: Check if value satisfies any predicate
+   (any-of (fn (preds x)
+     (any (fn (p) (p x)) preds)))
+
+   ; none-of: Check if value satisfies no predicate
+   (none-of (fn (preds x)
+     (not (any (fn (p) (p x)) preds))))
+
+   ; is: Create equality predicate
+   (is (fn (target) (fn (x) (eq? x target))))
+
+   ; is-not: Create inequality predicate
+   (is-not (fn (target) (fn (x) (not (eq? x target)))))
+
+   ; -- Either monad extensions --
+
+   ; map-left: Map function over Left value
+   (map-left (fn (f e)
+     (if (left? e)
+         (left (f (from-left e)))
+         e)))
+
+   ; map-right: Map function over Right value
+   (map-right (fn (f e)
+     (if (right? e)
+         (right (f (from-right e)))
+         e)))
+
+   ; bimap-either: Map two functions over Either
+   (bimap-either (fn (fl fr e)
+     (if (left? e)
+         (left (fl (from-left e)))
+         (right (fr (from-right e))))))
+
+   ; from-either: Extract value with default for Left
+   (from-either (fn (default e)
+     (if (left? e)
+         default
+         (from-right e))))
+
+   ; partition-eithers: Separate list of Eithers into lefts and rights
+   (partition-eithers (fn (lst)
+     (let ((lefts (filter left? lst))
+           (rights (filter right? lst)))
+       (list (map from-left lefts)
+             (map from-right rights)))))
+
+   ; try-fn: Wrap function call in Either (catches #f as Left)
+   (try-fn (fn (f x)
+     (let ((result (f x)))
+       (if result
+           (right result)
+           (left "failed")))))
+
+   ; -- More Maybe utilities --
+
+   ; map-maybe-fn: Map function over Maybe (tagged version)
+   (map-maybe-fn (fn (f m)
+     (if (nothing? m)
+         m
+         (just (f (from-just m))))))
+
+   ; bind-maybe: Monadic bind for Maybe
+   (bind-maybe (fn (m f)
+     (if (nothing? m)
+         m
+         (f (from-just m)))))
+
+   ; maybe-to-list: Convert Maybe to list (empty or singleton)
+   (maybe-to-list (fn (m)
+     (if (nothing? m)
+         '()
+         (list (from-just m)))))
+
+   ; list-to-maybe: Convert list to Maybe (Nothing if empty)
+   (list-to-maybe (fn (lst)
+     (if (null? lst)
+         (nothing)
+         (just (car lst)))))
+
+   ; catMaybes: Filter and extract Just values from list of Maybes
+   (cat-maybes-fn (fn (lst)
+     (map from-just (filter (fn (m) (not (nothing? m))) lst))))
+
+   ; -- More string HOFs (using primitives) --
+
+   ; string-words-fn: Split string on whitespace (alias using primitive)
+   (string-words-fn (fn (s) (string-words s)))
+
+   ; string-lines-fn: Split string on newlines (alias using primitive)
+   (string-lines-fn (fn (s) (string-lines s)))
+
+   ; string-join-fn: Join strings with separator (alias using primitive)
+   (string-join-fn (fn (strs sep) (string-join strs sep)))
+
+   ; string-trim-fn: Trim whitespace from string (alias using primitive)
+   (string-trim-fn (fn (s) (string-trim s)))
+
+   ; -- Miscellaneous utilities --
+
+   ; repeat-value: Create list of n copies of value
+   (repeat-value (fn (n x)
+     (if (<= n 0)
+         '()
+         (replicate n x))))
+
+   ; cycle: Repeat list elements infinitely... just kidding, repeat n times
+   (cycle-n (fn (n lst)
+     (concat (replicate n lst))))
+
+   ; chunk-by: Chunk list by predicate (start new chunk when pred changes)
+   (chunk-by (fix chunk-by
+     (fn (f lst)
+       (if (null? lst)
+           '()
+           (let ((first-val (f (car lst))))
+             (let ((same (take-while (fn (x) (eq? (f x) first-val)) lst))
+                   (rest (drop-while (fn (x) (eq? (f x) first-val)) lst)))
+               (cons same (chunk-by f rest))))))))
+
+   ; split-when: Split list when predicate is true
+   (split-when (fix split-when
+     (fn (f lst)
+       (if (null? lst)
+           '(())
+           (if (f (car lst))
+               (cons '() (split-when f (cdr lst)))
+               (let ((rest (split-when f (cdr lst))))
+                 (cons (cons (car lst) (car rest))
+                       (cdr rest))))))))
+
+   ; before: Get elements before first match
+   (before (fn (f lst)
+     (car (span (complement f) lst))))
+
+   ; after: Get elements after first match (excluding match)
+   (after (fn (f lst)
+     (let ((tail (drop-while (complement f) lst)))
+       (if (null? tail) '() (cdr tail)))))
+
+   ; window: Get sliding windows of size n
+   (window sliding)
+
+   ; adjacent-pairs: Get all adjacent pairs
+   (adjacent-pairs (fn (lst)
+     (if (null? lst)
+         '()
+         (if (null? (cdr lst))
+             '()
+             (zip lst (cdr lst))))))
+
+   ; with-index: Pair each element with its index
+   (with-index (fn (lst)
+     (zip-with-index lst)))
+
+   ; enumerate: Alias for with-index
+   (enumerate with-index)
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -2029,7 +2343,71 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'group-runs group-runs)
     ; Applicative utilities
     (cons 'lift2 lift2)
-    (cons 'sequence-list sequence-list)))
+    (cons 'sequence-list sequence-list)
+    ; More list operations
+    (cons 'zip-with-3 zip-with-3)
+    (cons 'unzip3 unzip3)
+    (cons 'snoc snoc)
+    (cons 'single? single?)
+    (cons 'drop-last drop-last)
+    (cons 'take-last take-last)
+    (cons 'find-index-of find-index-of)
+    (cons 'last-index-of last-index-of)
+    (cons 'count-occurrences count-occurrences)
+    (cons 'replace-first replace-first)
+    (cons 'replace-all replace-all)
+    (cons 'insert-sorted insert-sorted)
+    (cons 'insert-sorted-by insert-sorted-by)
+    (cons 'merge-sorted merge-sorted)
+    ; Function combinators
+    (cons 'apply-to apply-to)
+    (cons 'thrush thrush)
+    (cons 'fanout fanout)
+    (cons 'converge-with converge-with)
+    (cons 'dup dup)
+    (cons 'swap swap)
+    ; Numeric utilities
+    (cons 'quotient-remainder quotient-remainder)
+    (cons 'wrap wrap)
+    (cons 'distance distance)
+    (cons 'average-of average-of)
+    (cons 'geometric-mean geometric-mean)
+    (cons 'harmonic-mean harmonic-mean)
+    ; Predicate utilities
+    (cons 'all-of all-of)
+    (cons 'any-of any-of)
+    (cons 'none-of none-of)
+    (cons 'is is)
+    (cons 'is-not is-not)
+    ; Either monad extensions
+    (cons 'map-left map-left)
+    (cons 'map-right map-right)
+    (cons 'bimap-either bimap-either)
+    (cons 'from-either from-either)
+    (cons 'partition-eithers partition-eithers)
+    (cons 'try-fn try-fn)
+    ; More Maybe utilities
+    (cons 'map-maybe-fn map-maybe-fn)
+    (cons 'bind-maybe bind-maybe)
+    (cons 'maybe-to-list maybe-to-list)
+    (cons 'list-to-maybe list-to-maybe)
+    (cons 'cat-maybes-fn cat-maybes-fn)
+    ; String HOFs
+    (cons 'string-words-fn string-words-fn)
+    (cons 'string-lines-fn string-lines-fn)
+    (cons 'string-join-fn string-join-fn)
+    (cons 'string-trim-fn string-trim-fn)
+    ; Miscellaneous
+    (cons 'repeat-value repeat-value)
+    (cons 'cycle-n cycle-n)
+    (cons 'chunk-by chunk-by)
+    (cons 'split-when split-when)
+    (cons 'before before)
+    (cons 'after after)
+    (cons 'window window)
+    (cons 'adjacent-pairs adjacent-pairs)
+    (cons 'with-index with-index)
+    (cons 'enumerate enumerate)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
