@@ -1751,6 +1751,107 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 None => Ok(Value::Nil),
             }
         }
+        "pad-left" => {
+            if args.len() != 2 && args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "pad-left expects 2 or 3 args: (pad-left str width [pad-char])",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let width = expect_usize(&args[1])?;
+            let pad_char = if args.len() == 3 {
+                expect_char(&args[2])?
+            } else {
+                ' '
+            };
+            if s.len() >= width {
+                Ok(Value::String(s))
+            } else {
+                let padding = pad_char.to_string().repeat(width - s.len());
+                Ok(Value::String(format!("{}{}", padding, s)))
+            }
+        }
+        "pad-right" => {
+            if args.len() != 2 && args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "pad-right expects 2 or 3 args: (pad-right str width [pad-char])",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let width = expect_usize(&args[1])?;
+            let pad_char = if args.len() == 3 {
+                expect_char(&args[2])?
+            } else {
+                ' '
+            };
+            if s.len() >= width {
+                Ok(Value::String(s))
+            } else {
+                let padding = pad_char.to_string().repeat(width - s.len());
+                Ok(Value::String(format!("{}{}", s, padding)))
+            }
+        }
+        "string-center" => {
+            if args.len() != 2 && args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "string-center expects 2 or 3 args: (string-center str width [pad-char])",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let width = expect_usize(&args[1])?;
+            let pad_char = if args.len() == 3 {
+                expect_char(&args[2])?
+            } else {
+                ' '
+            };
+            if s.len() >= width {
+                Ok(Value::String(s))
+            } else {
+                let total_pad = width - s.len();
+                let left_pad = total_pad / 2;
+                let right_pad = total_pad - left_pad;
+                let left = pad_char.to_string().repeat(left_pad);
+                let right = pad_char.to_string().repeat(right_pad);
+                Ok(Value::String(format!("{}{}{}", left, s, right)))
+            }
+        }
+        "char-code" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "char-code expects 1 arg: a character",
+                ));
+            }
+            let ch = expect_char(&args[0])?;
+            Ok(Value::Number(ch as i64))
+        }
+        "code-char" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "code-char expects 1 arg: an integer",
+                ));
+            }
+            let code = expect_integer(&args[0])?;
+            if !((0..=1_114_111).contains(&code)) {
+                return Err(EvalError::TypeMismatch(
+                    "code-char: value out of valid Unicode range",
+                ));
+            }
+            if let Some(ch) = char::from_u32(code as u32) {
+                Ok(Value::Char(ch))
+            } else {
+                Err(EvalError::TypeMismatch(
+                    "code-char: invalid Unicode codepoint",
+                ))
+            }
+        }
+        "chars" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("chars expects 1 arg: a string"));
+            }
+            let s = expect_string(&args[0])?;
+            let char_values: Vec<Value> = s.chars().map(Value::Char).collect();
+            Ok(list_from_values(&char_values))
+        }
 
         // Format string
         "format" => {

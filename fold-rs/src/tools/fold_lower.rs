@@ -83,6 +83,8 @@ fn is_builtin_prim(name: &str) -> bool {
             | "string-starts-with?" | "string-ends-with?" | "string-contains?"
             | "string-reverse" | "string-repeat" | "string-replace"
             | "string-index" | "string-rindex"
+            | "pad-left" | "pad-right" | "string-center"
+            | "char-code" | "code-char" | "chars"
             | "format" | "number->string" | "symbol->string"
             // Vector operations
             | "vec-length" | "vec-ref" | "vec-make" | "vec->list"
