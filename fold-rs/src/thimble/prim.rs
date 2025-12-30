@@ -3740,6 +3740,211 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 Ok(Value::Nil)
             }
         }
+        // Symbol and keyword utilities
+        "symbol-upcase" => {
+            // Convert symbol to uppercase
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "symbol-upcase expects 1 arg: a symbol",
+                ));
+            }
+            match &args[0] {
+                Value::Symbol(s) => Ok(Value::Symbol(s.to_uppercase())),
+                _ => Err(EvalError::TypeMismatch("symbol-upcase expects a symbol")),
+            }
+        }
+        "symbol-downcase" => {
+            // Convert symbol to lowercase
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "symbol-downcase expects 1 arg: a symbol",
+                ));
+            }
+            match &args[0] {
+                Value::Symbol(s) => Ok(Value::Symbol(s.to_lowercase())),
+                _ => Err(EvalError::TypeMismatch("symbol-downcase expects a symbol")),
+            }
+        }
+        "symbol-length" => {
+            // Get length of symbol name
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "symbol-length expects 1 arg: a symbol",
+                ));
+            }
+            match &args[0] {
+                Value::Symbol(s) => Ok(Value::Number(s.len() as i64)),
+                _ => Err(EvalError::TypeMismatch("symbol-length expects a symbol")),
+            }
+        }
+        "symbol-concat" => {
+            // Concatenate symbols into one
+            let mut result = String::new();
+            for arg in args {
+                match arg {
+                    Value::Symbol(s) => result.push_str(s),
+                    Value::String(s) => result.push_str(s),
+                    _ => {
+                        return Err(EvalError::TypeMismatch(
+                            "symbol-concat expects symbols or strings",
+                        ));
+                    }
+                }
+            }
+            Ok(Value::Symbol(result))
+        }
+        // Bytevector utilities
+        "bytevector-length" => {
+            // Get length of bytevector
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "bytevector-length expects 1 arg: a bytevector",
+                ));
+            }
+            match &args[0] {
+                Value::Bytevector(bytes) => Ok(Value::Number(bytes.len() as i64)),
+                _ => Err(EvalError::TypeMismatch(
+                    "bytevector-length expects a bytevector",
+                )),
+            }
+        }
+        "bytevector-ref" => {
+            // Get byte at index
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "bytevector-ref expects 2 args: (bytevector-ref bv index)",
+                ));
+            }
+            let idx = expect_usize(&args[1])?;
+            match &args[0] {
+                Value::Bytevector(bytes) => {
+                    if idx < bytes.len() {
+                        Ok(Value::Number(bytes[idx] as i64))
+                    } else {
+                        Err(EvalError::TypeMismatch("bytevector index out of bounds"))
+                    }
+                }
+                _ => Err(EvalError::TypeMismatch(
+                    "bytevector-ref expects a bytevector",
+                )),
+            }
+        }
+        "bytevector->string" => {
+            // Convert bytevector to string (UTF-8)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "bytevector->string expects 1 arg: a bytevector",
+                ));
+            }
+            match &args[0] {
+                Value::Bytevector(bytes) => match String::from_utf8(bytes.clone()) {
+                    Ok(s) => Ok(Value::String(s)),
+                    Err(_) => Err(EvalError::TypeMismatch("bytevector->string: invalid UTF-8")),
+                },
+                _ => Err(EvalError::TypeMismatch(
+                    "bytevector->string expects a bytevector",
+                )),
+            }
+        }
+        "string->bytevector" => {
+            // Convert string to bytevector (UTF-8)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "string->bytevector expects 1 arg: a string",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::Bytevector(s.into_bytes()))
+        }
+        // Association list utilities
+        "alist-get" => {
+            // Get value from association list
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "alist-get expects 2 args: (alist-get key alist)",
+                ));
+            }
+            let key = &args[0];
+            let alist = list_to_vec(&args[1])?;
+
+            for item in alist {
+                if let Value::Pair(k, v) = &item
+                    && value_eq(k, key)
+                {
+                    return Ok((**v).clone());
+                }
+            }
+            Ok(Value::Nil)
+        }
+        "alist-set" => {
+            // Create new alist with updated key-value
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "alist-set expects 3 args: (alist-set key value alist)",
+                ));
+            }
+            let key = &args[0];
+            let value = &args[1];
+            let alist = list_to_vec(&args[2])?;
+
+            let mut result = Vec::new();
+            let mut found = false;
+
+            for item in alist {
+                if let Value::Pair(k, _) = &item {
+                    if value_eq(k, key) {
+                        result.push(Value::Pair(Box::new(key.clone()), Box::new(value.clone())));
+                        found = true;
+                    } else {
+                        result.push(item);
+                    }
+                } else {
+                    result.push(item);
+                }
+            }
+
+            if !found {
+                result.push(Value::Pair(Box::new(key.clone()), Box::new(value.clone())));
+            }
+
+            Ok(list_from_values(&result))
+        }
+        "alist-keys" => {
+            // Get all keys from alist
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "alist-keys expects 1 arg: an alist",
+                ));
+            }
+            let alist = list_to_vec(&args[0])?;
+            let mut keys = Vec::new();
+
+            for item in alist {
+                if let Value::Pair(k, _) = item {
+                    keys.push((*k).clone());
+                }
+            }
+
+            Ok(list_from_values(&keys))
+        }
+        "alist-values" => {
+            // Get all values from alist
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "alist-values expects 1 arg: an alist",
+                ));
+            }
+            let alist = list_to_vec(&args[0])?;
+            let mut values = Vec::new();
+
+            for item in alist {
+                if let Value::Pair(_, v) = item {
+                    values.push((*v).clone());
+                }
+            }
+
+            Ok(list_from_values(&values))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(

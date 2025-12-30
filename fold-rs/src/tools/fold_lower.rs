@@ -103,8 +103,15 @@ fn is_builtin_prim(name: &str) -> bool {
             | "symbol?" | "procedure?" | "char?" | "vector?" | "bytevector?"
             | "zero?" | "positive?" | "negative?" | "even?" | "odd?"
             | "atom?" | "atomic?" | "not-null?" | "proper-list?" | "pair-list?"
+            // Symbol operations
+            | "symbol-upcase" | "symbol-downcase" | "symbol-length" | "symbol-concat"
+            // Bytevector operations
+            | "bytevector-length" | "bytevector-ref" | "bytevector->string" | "string->bytevector"
+            // Association list operations
+            | "alist-get" | "alist-set" | "alist-keys" | "alist-values"
             // List operations
-            | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
+            | "car" | "cdr" | "cons" | "set-car!" | "set-cdr!"
+            | "list" | "append" | "length" | "reverse" | "member" | "memq"
             | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "init" | "flatten" | "range"
             | "list-copy" | "make-list" | "first" | "rest" | "second" | "third" | "head" | "tail"
             | "repeat" | "sum" | "product" | "sum-of" | "max-of" | "min-of"
