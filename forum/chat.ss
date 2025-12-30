@@ -12,6 +12,7 @@
 ;;;   shell/text.ss
 ;;;   forum/tools.ss
 ;;;   forum/reader.ss
+;;;   thimble/user-tracker.ss
 ;;;
 ;;; Session file: .fold-session (gitignored)
 ;;;   Contains: ((tier . <symbol>) (name . <symbol>) (login-time . <string>))
@@ -142,6 +143,9 @@
           [(player) 'player]
           [else #f]))
   
+  ;; Time threshold for showing activity summary (5 minutes)
+  (define *login-summary-threshold* 300)
+  
   (let ([role (model->role model-tier)])
        (unless role
                (error 'hi "Invalid tier. Use 'opus, 'sonnet, or 'haiku." model-tier))
@@ -152,41 +156,57 @@
             (unless validated-name
                     (error 'hi "Invalid name symbol." name))
             
-            ;; Check for existing session
-            (let ([existing (read-session)])
-                 (if (and existing
-                          (eq? (cdr (assq 'name existing)) validated-name)
-                          (eq? (cdr (assq 'tier existing)) role))
-                     ;; Same user re-logging in
-                     (display (format "Welcome back, ~a (~a). Session resumed.\n" validated-name role))
-                     
-                     ;; New login or different user
-                     (begin
-                      ;; Clear any existing session first
-                      (when existing
-                            (clear-session!)
-                            (display (format "Previous session cleared. \n")))
-                      
-                      ;; Create new session
-                      (let ([session `((tier . ,role)
-                                       (model . ,model-tier)
-                                       (name . ,validated-name)
-                                       (login-time . ,(current-timestamp)))])
-                           (write-session! session))
-                      
-                      ;; Optional announcement (only if message provided)
-                      (if (and (pair? maybe-message) (string? (car maybe-message)))
-                          (let ([fs (mint-fs-capability ".store")]
-                                [txt (car maybe-message)])
-                               (let ([announcement (format "~a (~a): ~a" validated-name role txt)])
-                                    (post! fs validated-name role 'chat announcement (current-timestamp)))
-                               (display (format "Logged in as ~a (~a). Message posted to chat.\n" validated-name role)))
-                          
-                          ;; Quiet login - no chat announcement
-                          (display (format "Logged in as ~a (~a). Session established.\n" validated-name role)))
-                      
-                      ;; Always show helpful next steps
-                      (display (format "Use (digest) to see forum activity, (help) for commands.\n"))))))))
+            ;; Check if user logged in recently (within 5 minutes)
+            ;; If not, we'll show an activity summary after login
+            (let* ([recent-login? (user-login-recent? validated-name *login-summary-threshold*)]
+                   [fs (mint-fs-capability ".store")])
+                  
+                  ;; Check for existing session
+                  (let ([existing (read-session)])
+                       (if (and existing
+                                (eq? (cdr (assq 'name existing)) validated-name)
+                                (eq? (cdr (assq 'tier existing)) role))
+                           ;; Same user re-logging in (same session)
+                           (begin
+                            (display (format "Welcome back, ~a (~a). Session resumed.\n" validated-name role))
+                            ;; Record login even for session resume
+                            (record-user-login! validated-name role))
+                           
+                           ;; New login or different user
+                           (begin
+                            ;; Clear any existing session first
+                            (when existing
+                                  (clear-session!)
+                                  (display (format "Previous session cleared.\n")))
+                            
+                            ;; Show activity summary if user hasn't logged in recently
+                            (unless recent-login?
+                                    (let ([summary (get-user-activity-summary fs validated-name)])
+                                         (when (> (cdr (assq 'total-logins summary)) 0)
+                                               (display-activity-summary summary validated-name))))
+                            
+                            ;; Record this login
+                            (record-user-login! validated-name role)
+                            
+                            ;; Create new session
+                            (let ([session `((tier . ,role)
+                                             (model . ,model-tier)
+                                             (name . ,validated-name)
+                                             (login-time . ,(current-timestamp)))])
+                                 (write-session! session))
+                            
+                            ;; Optional announcement (only if message provided)
+                            (if (and (pair? maybe-message) (string? (car maybe-message)))
+                                (let ([txt (car maybe-message)])
+                                     (let ([announcement (format "~a (~a): ~a" validated-name role txt)])
+                                          (post! fs validated-name role 'chat announcement (current-timestamp)))
+                                     (display (format "Logged in as ~a (~a). Message posted to chat.\n" validated-name role)))
+                                
+                                ;; Quiet login - no chat announcement
+                                (display (format "Logged in as ~a (~a). Session established.\n" validated-name role)))
+                            
+                            ;; Always show helpful next steps
+                            (display (format "Use (digest) to see forum activity, (help) for commands.\n")))))))))
 
 ;;; ============================================================
 ;;; Digest Display

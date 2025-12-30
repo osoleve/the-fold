@@ -41,6 +41,7 @@
 ;; Forum dependencies
 (load "forum/tools.ss")
 (load "forum/reader.ss")
+(load "thimble/user-tracker.ss")  ; Must be after forum/reader.ss, before forum/chat.ss
 (load "forum/chat.ss")
 
 ;; Survey utility

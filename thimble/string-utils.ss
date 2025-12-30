@@ -126,10 +126,9 @@
 ;;; whitespace? : Char → Boolean
 (define (whitespace? ch)
   (or (char=? ch #\space)
-      (char=? ch #	ab)
-      (char=? ch #
-ewline)
-      (char=? ch #eturn)))
+      (char=? ch #\tab)
+      (char=? ch #\newline)
+      (char=? ch #\return)))
 
 ;;; string-trim-left : String → String
 (define (string-trim-left str)
@@ -236,46 +235,4 @@ ewline)
            str
            (string-append str (make-string (- width len) pad-char)))))
 
-;;; ============================================================
-;;; Error Message Formatting (Condition handling)
-;;; ============================================================
-
-;;; format-condition : Condition → String
-;;; Format a Chez Scheme condition with its irritants properly filled in.
-;;; Fixes the ~s placeholder bug where error messages display literal ~s
-;;; instead of the actual values from condition-irritants.
-;;;
-;;; Example:
-;;;   Raw: "~s is not a valid index for ~s"
-;;;   With irritants (10 "abc"):
-;;;   Formatted: "10 is not a valid index for \"abc\""
-(define (format-condition e)
-  (if (condition? e)
-      (guard (e2 [else
-                  ;; Fallback: if formatting fails, try to fix placeholders
-                  (fix-format-placeholders (condition-message e))])
-             (let ([template (condition-message e)]
-                   [irritants (if (irritants-condition? e)
-                                  (condition-irritants e)
-                                  '())])
-                  (if (null? irritants)
-                      ;; No irritants: replace unfilled placeholders with generic text
-                      (fix-format-placeholders template)
-                      ;; Has irritants: fill them in using format
-                      (apply format template irritants))))
-      ;; Not a condition, just convert to string
-      (format "~a" e)))
-
-;;; fix-format-placeholders : String → String
-;;; Replace unfilled format directives with descriptive placeholders.
-;;; This handles the case when condition-irritants is empty but the
-;;; template still contains ~s directives.
-(define (fix-format-placeholders msg)
-  (let* ([fixed (string-replace msg "~s" "<value>")]
-         [fixed (string-replace fixed "~:s" "<value>")]
-         [fixed (string-replace fixed "~a" "<value>")]
-         [fixed (string-replace fixed "~d" "<number>")])
-        fixed))
-
-(printf "String utilities loaded
-")
+(printf "✓ String utilities loaded\n")

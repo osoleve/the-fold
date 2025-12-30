@@ -31,8 +31,7 @@
 
 ;;; Common whitespace we allow
 (define (allowed-whitespace? c)
-  (memq c '(#\space #
-ewline #	ab #eturn)))
+  (memq c '(#\space #\newline #\tab #\return)))
 
 ;;; Zero-width and invisible characters (Glitchling habitat)
 (define (invisible-char? c)
@@ -162,11 +161,15 @@ ewline #	ab #eturn)))
 ;;; NFC Normalization
 ;;; ============================================================
 
-;;; NFC (Canonical Composition) ensures deterministic hashing.
-;;; Different encodings of the same character (e.g., é as single
-;;; codepoint vs e+combining-acute) normalize to the same form.
+;;; Note: Full NFC normalization requires Unicode data tables.
+;;; Decision: NFC is required for canonical hashing.
+;;; Until full NFC is implemented, we only allow ASCII here.
 ;;;
-;;; We use Chez Scheme's built-in R6RS string-normalize-nfc.
+;;; A complete implementation would:
+;;;   1. Decompose to NFD (Canonical Decomposition)
+;;;   2. Apply Canonical Composition
+;;;
+;;; This guard ensures deterministic behavior now.
 
 ;;; ascii-only? : String → Boolean
 (define (ascii-only? str)
@@ -176,10 +179,12 @@ ewline #	ab #eturn)))
                 (loop (cdr chars))))))
 
 ;;; normalize-nfc : String → String
-;;; Normalize text to Unicode NFC form for deterministic hashing.
-;;; Uses R6RS string-normalize-nfc from Chez Scheme.
+;;; For now: pass ASCII through, reject non-ASCII.
+;;; TODO: Implement full NFC using Unicode data tables.
 (define (normalize-nfc str)
-  (string-normalize-nfc str))
+  (if (ascii-only? str)
+      str
+      (error 'normalize-nfc "NFC normalization required for non-ASCII text")))
 
 ;;; ============================================================
 ;;; Symbol Hygiene
@@ -213,5 +218,86 @@ ewline #	ab #eturn)))
 ;;; Common confusables with ASCII (stored as code points)
 ;;; Each entry: (ascii-char . (confusable-codepoint ...))
 (define confusable-pairs
-  `((# . (#x0430))       ; Cyrillic а
-    (#
+  `((#\a . (#x0430))       ; Cyrillic а
+    (#\c . (#x0441))       ; Cyrillic с
+    (#\e . (#x0435))       ; Cyrillic е
+    (#\o . (#x043E #x03BF)); Cyrillic о, Greek ο
+    (#\p . (#x0440))       ; Cyrillic р
+    (#\x . (#x0445))       ; Cyrillic х
+    (#\y . (#x0443))       ; Cyrillic у
+    (#\0 . (#x041E))       ; Cyrillic О
+    (#\1 . (#x0406 #x04C0)); Cyrillic І, Ӏ
+    ))
+
+;;; contains-confusable? : String → Boolean
+;;; Check if string contains characters that look like ASCII but aren't.
+(define (contains-confusable? str)
+  (let loop ([chars (string->list str)])
+       (and (not (null? chars))
+            (or (is-confusable? (car chars))
+                (loop (cdr chars))))))
+
+(define (is-confusable? c)
+  (let ([cp (char->integer c)])
+       (and (> cp 127)  ; Only non-ASCII can be confusables
+            (any (lambda (pair)
+                         (and (memv cp (cdr pair)) #t))  ; Convert list to boolean
+                 confusable-pairs))))
+
+(define (any pred lst)
+  (and (not (null? lst))
+       (or (pred (car lst))
+           (any pred (cdr lst)))))
+
+;;; ============================================================
+;;; Quarantine Zone
+;;; ============================================================
+
+;;; Text that fails validation but must be preserved goes here.
+;;; Quarantined text is:
+;;;   - Stored with its original bytes
+;;;   - Marked with a quarantine tag
+;;;   - Never evaluated as code
+;;;   - Subject to review
+
+(define-record-type quarantined-text
+  (fields original-bytes reason timestamp))
+
+;;; quarantine : Bytevector × String → QuarantinedText
+(define (quarantine bytes reason)
+  (make-quarantined-text bytes reason (current-time)))
+
+;;; current-time-iso : → String
+;;; ISO 8601 timestamp in UTC
+;;; NOTE: Renamed from current-time to avoid shadowing Chez Scheme's
+;;;       built-in (current-time) which returns a time object.
+;;;       Use (current-timestamp) from forum/tools.ss for string timestamps.
+(define (current-time-iso)
+  (let ([d (current-date 0)])  ; 0 = UTC offset
+       (format "~4,'0d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0dZ"
+               (date-year d)
+               (date-month d)
+               (date-day d)
+               (date-hour d)
+               (date-minute d)
+               (date-second d))))
+
+;;; ============================================================
+;;; High-Level API
+;;; ============================================================
+
+;;; safe-text : String → String | #f
+;;; Return sanitized text, or #f if unrecoverable.
+(define (safe-text str)
+  (let ([result (validate-text str)])
+       (if (text-result-ok? result)
+           (sanitize-text (text-result-value result))
+           #f)))
+
+;;; safe-symbol : String → Symbol | #f
+;;; Validate and intern a symbol, or #f if invalid.
+(define (safe-symbol str)
+  (let ([result (validate-symbol str)])
+       (if (text-result-ok? result)
+           (string->symbol (text-result-value result))
+           #f)))
