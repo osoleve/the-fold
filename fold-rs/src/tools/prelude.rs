@@ -7979,6 +7979,536 @@ pub const PRELUDE_SOURCE: &str = r#"
        (if (= n 1)
            (list 1)
            (cons n (collatz-sequence (collatz-next n)))))))
+
+   ; ============================================
+   ; Lazy Streams (thunked lists)
+   ; Stream = () | (head . thunk-for-tail)
+   ; ============================================
+
+   ; stream-empty: Empty stream
+   (stream-empty '())
+
+   ; stream-empty?: Check if stream is empty
+   (stream-empty? (fn (s) (null? s)))
+
+   ; stream-cons: Construct stream with head and thunk for tail
+   (stream-cons (fn (head tail-thunk)
+     (cons head tail-thunk)))
+
+   ; stream-head: Get first element
+   (stream-head (fn (s) (car s)))
+
+   ; stream-tail: Force and get tail
+   (stream-tail (fn (s)
+     ((cdr s))))
+
+   ; stream-take: Take first n elements as list
+   (stream-take (fix take-rec
+     (fn (n s)
+       (if (or (= n 0) (stream-empty? s))
+           '()
+           (cons (stream-head s)
+                 (take-rec (- n 1) (stream-tail s)))))))
+
+   ; stream-drop: Drop first n elements
+   (stream-drop (fix drop-rec
+     (fn (n s)
+       (if (or (= n 0) (stream-empty? s))
+           s
+           (drop-rec (- n 1) (stream-tail s))))))
+
+   ; stream-map: Map function over stream
+   (stream-map (fix map-rec
+     (fn (f s)
+       (if (stream-empty? s)
+           stream-empty
+           (stream-cons (f (stream-head s))
+                        (fn () (map-rec f (stream-tail s))))))))
+
+   ; stream-filter: Filter stream
+   (stream-filter (fix filter-rec
+     (fn (pred-fn s)
+       (if (stream-empty? s)
+           stream-empty
+           (if (pred-fn (stream-head s))
+               (stream-cons (stream-head s)
+                            (fn () (filter-rec pred-fn (stream-tail s))))
+               (filter-rec pred-fn (stream-tail s)))))))
+
+   ; stream-from: Infinite stream starting at n
+   (stream-from (fix from-rec
+     (fn (n)
+       (stream-cons n (fn () (from-rec (+ n 1)))))))
+
+   ; stream-iterate: Infinite stream by iterating function
+   (stream-iterate (fix iterate-rec
+     (fn (f x)
+       (stream-cons x (fn () (iterate-rec f (f x)))))))
+
+   ; stream-repeat: Infinite stream of same value
+   (stream-repeat (fix repeat-rec
+     (fn (x)
+       (stream-cons x (fn () (repeat-rec x))))))
+
+   ; stream-cycle: Cycle through list infinitely
+   (stream-cycle (fn (lst)
+     (let ((go (fix go
+             (fn (remaining)
+               (if (null? remaining)
+                   (go lst)
+                   (stream-cons (car remaining)
+                                (fn () (go (cdr remaining)))))))))
+       (go lst))))
+
+   ; stream-zip-with: Zip two streams with function
+   (stream-zip-with (fix zip-rec
+     (fn (f s1 s2)
+       (if (or (stream-empty? s1) (stream-empty? s2))
+           stream-empty
+           (stream-cons (f (stream-head s1) (stream-head s2))
+                        (fn () (zip-rec f (stream-tail s1) (stream-tail s2))))))))
+
+   ; stream-take-while: Take while predicate holds
+   (stream-take-while (fix take-while-rec
+     (fn (pred-fn s)
+       (if (stream-empty? s)
+           '()
+           (if (pred-fn (stream-head s))
+               (cons (stream-head s)
+                     (take-while-rec pred-fn (stream-tail s)))
+               '())))))
+
+   ; list->stream: Convert list to stream
+   (list->stream (fix list->stream-rec
+     (fn (lst)
+       (if (null? lst)
+           stream-empty
+           (stream-cons (car lst)
+                        (fn () (list->stream-rec (cdr lst))))))))
+
+   ; naturals: Stream of natural numbers starting at 0
+   (naturals (stream-from 0))
+
+   ; ============================================
+   ; Graph Algorithms (adjacency list representation)
+   ; Graph = alist of (node . list-of-neighbors)
+   ; ============================================
+
+   ; graph-nodes: Get all nodes in graph
+   (graph-nodes alist-keys)
+
+   ; graph-neighbors: Get neighbors of node
+   (graph-neighbors (fn (g node)
+     (let ((entry (assoc node g)))
+       (if entry (cdr entry) '()))))
+
+   ; graph-add-edge: Add directed edge
+   (graph-add-edge (fn (g from to)
+     (let ((neighbors (graph-neighbors g from)))
+       (assoc-set from (cons to neighbors) g))))
+
+   ; graph-add-undirected-edge: Add undirected edge
+   (graph-add-undirected-edge (fn (g a b)
+     (graph-add-edge (graph-add-edge g a b) b a)))
+
+   ; graph-has-edge?: Check if edge exists
+   (graph-has-edge? (fn (g from to)
+     (member to (graph-neighbors g from))))
+
+   ; graph-in-degree: Count incoming edges
+   (graph-in-degree (fn (g node)
+     (foldl (fn (count pair)
+              (if (member node (cdr pair))
+                  (+ count 1)
+                  count))
+            0
+            g)))
+
+   ; graph-out-degree: Count outgoing edges
+   (graph-out-degree (fn (g node)
+     (length (graph-neighbors g node))))
+
+   ; topological-sort: Kahn's algorithm for DAG
+   (topological-sort (fn (g)
+     (let ((nodes (graph-nodes g)))
+       (let ((in-degrees (map (fn (n) (cons n (graph-in-degree g n))) nodes)))
+         (let ((sort-loop (fix sort-loop
+               (fn (result remaining in-degs)
+                 (if (null? remaining)
+                     (reverse result)
+                     (let ((zero-nodes (filter (fn (n)
+                                                 (let ((d (assoc n in-degs)))
+                                                   (if d (= (cdr d) 0) #f)))
+                                               remaining)))
+                       (if (null? zero-nodes)
+                           '()  ; cycle detected
+                           (let ((node (car zero-nodes)))
+                             (let ((new-remaining (filter (fn (n) (not (equal? n node))) remaining)))
+                               (let ((new-degs (foldl (fn (degs neighbor)
+                                                        (alist-update neighbor (fn (d) (- d 1)) degs))
+                                                      (alist-update node (fn (_) -1) in-degs)
+                                                      (graph-neighbors g node))))
+                                 (sort-loop (cons node result) new-remaining new-degs)))))))))))
+           (sort-loop '() nodes in-degrees))))))
+
+   ; graph-transpose: Reverse all edges
+   (graph-transpose (fn (g)
+     (let ((nodes (graph-nodes g)))
+       (foldl (fn (acc pair)
+                (let ((from (car pair))
+                      (neighbors (cdr pair)))
+                  (foldl (fn (a to)
+                           (graph-add-edge a to from))
+                         acc
+                         neighbors)))
+              (map (fn (n) (cons n '())) nodes)
+              g))))
+
+   ; graph-reachable: All nodes reachable from start (BFS)
+   (graph-reachable (fn (g start)
+     (let ((bfs (fix bfs
+             (fn (queue visited)
+               (if (null? queue)
+                   visited
+                   (let ((node (car queue))
+                         (rest (cdr queue)))
+                     (if (member node visited)
+                         (bfs rest visited)
+                         (let ((neighbors (graph-neighbors g node)))
+                           (bfs (append rest neighbors)
+                                (cons node visited))))))))))
+       (reverse (bfs (list start) '())))))
+
+   ; graph-path-exists?: Check if path exists between two nodes
+   (graph-path-exists? (fn (g from to)
+     (member to (graph-reachable g from))))
+
+   ; graph-shortest-path: BFS shortest path (unweighted)
+   (graph-shortest-path (fn (g from to)
+     (let ((bfs (fix bfs
+             (fn (queue visited)
+               (if (null? queue)
+                   #f
+                   (let ((path (car queue))
+                         (rest (cdr queue)))
+                     (let ((node (car path)))
+                       (if (equal? node to)
+                           (reverse path)
+                           (if (member node visited)
+                               (bfs rest visited)
+                               (let ((neighbors (graph-neighbors g node)))
+                                 (let ((new-paths (map (fn (n) (cons n path)) neighbors)))
+                                   (bfs (append rest new-paths)
+                                        (cons node visited)))))))))))))
+       (bfs (list (list from)) '()))))
+
+   ; ============================================
+   ; Numeric Methods
+   ; ============================================
+
+   ; newton-raphson: Find root using Newton's method
+   ; f is the function, df is its derivative
+   (newton-raphson (fn (f df x0 tolerance max-iter)
+     (let ((iterate (fix iterate
+             (fn (x iter)
+               (if (= iter 0)
+                   x
+                   (let ((fx (f x))
+                         (dfx (df x)))
+                     (if (< (abs fx) tolerance)
+                         x
+                         (if (= dfx 0)
+                             x  ; avoid division by zero
+                             (iterate (- x (/ fx dfx)) (- iter 1))))))))))
+       (iterate x0 max-iter))))
+
+   ; bisection: Find root using bisection method
+   (bisection (fn (f a b tolerance max-iter)
+     (let ((iterate (fix iterate
+             (fn (lo hi iter)
+               (if (= iter 0)
+                   (/ (+ lo hi) 2)
+                   (let ((mid (/ (+ lo hi) 2)))
+                     (if (< (abs (- hi lo)) tolerance)
+                         mid
+                         (if (< (* (f lo) (f mid)) 0)
+                             (iterate lo mid (- iter 1))
+                             (iterate mid hi (- iter 1))))))))))
+       (iterate a b max-iter))))
+
+   ; fixed-point: Find fixed point of function
+   (fixed-point (fn (f x0 tolerance max-iter)
+     (let ((iterate (fix iterate
+             (fn (x iter)
+               (if (= iter 0)
+                   x
+                   (let ((next (f x)))
+                     (if (< (abs (- next x)) tolerance)
+                         next
+                         (iterate next (- iter 1)))))))))
+       (iterate x0 max-iter))))
+
+   ; numerical-derivative: Approximate derivative at point
+   (numerical-derivative (fn (f x h)
+     (/ (- (f (+ x h)) (f (- x h))) (* 2 h))))
+
+   ; numerical-integral: Trapezoidal rule integration
+   (numerical-integral (fn (f a b n)
+     (let ((h (/ (- b a) n)))
+       (let ((sum (fix sum
+               (fn (i acc)
+                 (if (> i n)
+                     acc
+                     (let ((x (+ a (* i h))))
+                       (let ((coeff (if (or (= i 0) (= i n)) 1 2)))
+                         (sum (+ i 1) (+ acc (* coeff (f x)))))))))))
+         (* (/ h 2) (sum 0 0))))))
+
+   ; secant-method: Find root using secant method
+   (secant-method (fn (f x0 x1 tolerance max-iter)
+     (let ((iterate (fix iterate
+             (fn (xn-1 xn iter)
+               (if (= iter 0)
+                   xn
+                   (let ((fxn-1 (f xn-1))
+                         (fxn (f xn)))
+                     (if (< (abs fxn) tolerance)
+                         xn
+                         (if (= fxn fxn-1)
+                             xn
+                             (let ((xn+1 (- xn (* fxn (/ (- xn xn-1) (- fxn fxn-1))))))
+                               (iterate xn xn+1 (- iter 1)))))))))))
+       (iterate x0 x1 max-iter))))
+
+   ; ============================================
+   ; Trie Data Structure (for string keys)
+   ; Trie = (value . children-alist)
+   ; ============================================
+
+   ; trie-empty: Create empty trie
+   (trie-empty (cons #f '()))
+
+   ; trie-value: Get value at trie node
+   (trie-value car)
+
+   ; trie-children: Get children alist
+   (trie-children cdr)
+
+   ; trie-insert: Insert key-value pair
+   (trie-insert (fix trie-insert
+     (fn (trie key value)
+       (if (null? key)
+           (cons value (trie-children trie))
+           (let ((c (car key))
+                 (rest (cdr key))
+                 (children (trie-children trie)))
+             (let ((child (assoc c children)))
+               (if child
+                   (cons (trie-value trie)
+                         (assoc-set c (trie-insert (cdr child) rest value) children))
+                   (cons (trie-value trie)
+                         (cons (cons c (trie-insert trie-empty rest value)) children)))))))))
+
+   ; trie-lookup: Look up key in trie
+   (trie-lookup (fix trie-lookup
+     (fn (trie key)
+       (if (null? key)
+           (trie-value trie)
+           (let ((c (car key))
+                 (rest (cdr key))
+                 (children (trie-children trie)))
+             (let ((child (assoc c children)))
+               (if child
+                   (trie-lookup (cdr child) rest)
+                   #f)))))))
+
+   ; trie-has-key?: Check if key exists
+   (trie-has-key? (fn (trie key)
+     (not (not (trie-lookup trie key)))))
+
+   ; string->key: Convert string to key (list of chars)
+   (string->key string->list)
+
+   ; trie-insert-string: Insert with string key
+   (trie-insert-string (fn (trie str value)
+     (trie-insert trie (string->key str) value)))
+
+   ; trie-lookup-string: Lookup with string key
+   (trie-lookup-string (fn (trie str)
+     (trie-lookup trie (string->key str))))
+
+   ; ============================================
+   ; More Combinatorics
+   ; ============================================
+
+   ; permutations-k: k-permutations of list
+   (permutations-k (fn (k lst)
+     (if (= k 0)
+         (list '())
+         (if (null? lst)
+             '()
+             (apply append
+                    (map (fn (x)
+                           (map (fn (p) (cons x p))
+                                (permutations-k (- k 1) (remove-first x lst))))
+                         lst))))))
+
+   ; derangements: Permutations with no fixed points
+   (derangements (fn (lst)
+     (let ((indexed (map-indexed (fn (i x) (cons i x)) lst)))
+       (filter (fn (perm)
+                 (all (fn (pair)
+                        (not (equal? (car pair) (cdr pair))))
+                      (zip (map car indexed) perm)))
+               (permutations lst)))))
+
+   ; count-derangements: Count derangements (subfactorial)
+   (count-derangements (fix count-derangements
+     (fn (n)
+       (if (= n 0)
+           1
+           (if (= n 1)
+               0
+               (* (- n 1) (+ (count-derangements (- n 1))
+                             (count-derangements (- n 2)))))))))
+
+   ; stirling-second: Stirling number of second kind S(n,k)
+   (stirling-second (fix stirling-second
+     (fn (n k)
+       (if (or (= k 0) (> k n))
+           0
+           (if (or (= k 1) (= k n))
+               1
+               (+ (* k (stirling-second (- n 1) k))
+                  (stirling-second (- n 1) (- k 1))))))))
+
+   ; bell-number: nth Bell number (partitions of n-set)
+   (bell-number (fn (n)
+     (sum-list (map (fn (k) (stirling-second n k))
+                    (range 0 (+ n 1))))))
+
+   ; catalan-number: nth Catalan number
+   (catalan-number (fn (n)
+     (/ (binomial (* 2 n) n) (+ n 1))))
+
+   ; partitions-integer: Integer partitions of n
+   (partitions-integer (fix partitions-integer
+     (fn (n max-part)
+       (if (= n 0)
+           (list '())
+           (if (or (< n 1) (< max-part 1))
+               '()
+               (append (map (fn (p) (cons max-part p))
+                            (partitions-integer (- n max-part) max-part))
+                       (partitions-integer n (- max-part 1))))))))
+
+   ; count-partitions: Count integer partitions
+   (count-partitions (fn (n)
+     (length (partitions-integer n n))))
+
+   ; ============================================
+   ; Bitwise Utilities
+   ; ============================================
+
+   ; bit-set?: Check if bit at position is set
+   (bit-set? (fn (n pos)
+     (not (= 0 (bitand n (shl 1 pos))))))
+
+   ; bit-set: Set bit at position
+   (bit-set (fn (n pos)
+     (bitor n (shl 1 pos))))
+
+   ; bit-clear: Clear bit at position
+   (bit-clear (fn (n pos)
+     (bitand n (bitnot (shl 1 pos)))))
+
+   ; bit-toggle: Toggle bit at position
+   (bit-toggle (fn (n pos)
+     (bitxor n (shl 1 pos))))
+
+   ; bit-count: Count set bits (popcount)
+   (bit-count (fix bit-count
+     (fn (n)
+       (if (= n 0)
+           0
+           (+ (bitand n 1) (bit-count (shr n 1)))))))
+
+   ; lowest-set-bit: Position of lowest set bit (-1 if none)
+   (lowest-set-bit (fix lowest-set-bit
+     (fn (n pos)
+       (if (= n 0)
+           -1
+           (if (= (bitand n 1) 1)
+               pos
+               (lowest-set-bit (shr n 1) (+ pos 1)))))))
+
+   ; highest-set-bit: Position of highest set bit (-1 if none)
+   (highest-set-bit (fn (n)
+     (let ((find (fix find
+             (fn (n pos highest)
+               (if (= n 0)
+                   highest
+                   (find (shr n 1) (+ pos 1)
+                         (if (= (bitand n 1) 1) pos highest)))))))
+       (find n 0 -1))))
+
+   ; is-power-of-2?: Check if n is a power of 2
+   (is-power-of-2? (fn (n)
+     (if (<= n 0)
+         #f
+         (= 0 (bitand n (- n 1))))))
+
+   ; next-power-of-2: Next power of 2 >= n
+   (next-power-of-2 (fn (n)
+     (if (<= n 1)
+         1
+         (let ((find (fix find
+                 (fn (p)
+                   (if (>= p n)
+                       p
+                       (find (shl p 1)))))))
+           (find 1)))))
+
+   ; ============================================
+   ; Ring Buffer (fixed-size circular buffer)
+   ; Buffer = (capacity read-idx write-idx data-list)
+   ; ============================================
+
+   ; ring-buffer-new: Create empty ring buffer
+   (ring-buffer-new (fn (capacity)
+     (list capacity 0 0 (replicate capacity #f))))
+
+   ; ring-buffer-capacity: Get capacity
+   (ring-buffer-capacity (fn (rb) (car rb)))
+
+   ; ring-buffer-push: Add element (overwrites oldest if full)
+   (ring-buffer-push (fn (rb item)
+     (let ((cap (car rb))
+           (read-idx (car (cdr rb)))
+           (write-idx (car (cdr (cdr rb))))
+           (data (car (cdr (cdr (cdr rb))))))
+       (let ((new-data (set-at (mod write-idx cap) item data))
+             (new-write (mod (+ write-idx 1) cap)))
+         (list cap read-idx new-write new-data)))))
+
+   ; ring-buffer-peek: Get oldest element
+   (ring-buffer-peek (fn (rb)
+     (let ((cap (car rb))
+           (read-idx (car (cdr rb)))
+           (data (car (cdr (cdr (cdr rb))))))
+       (list-ref data read-idx))))
+
+   ; ring-buffer-pop: Remove and return oldest element
+   (ring-buffer-pop (fn (rb)
+     (let ((cap (car rb))
+           (read-idx (car (cdr rb)))
+           (write-idx (car (cdr (cdr rb))))
+           (data (car (cdr (cdr (cdr rb))))))
+       (if (= read-idx write-idx)
+           rb  ; empty
+           (let ((item (list-ref data read-idx))
+                 (new-read (mod (+ read-idx 1) cap)))
+             (cons item (list cap new-read write-idx data)))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -9407,6 +9937,53 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'hexagonal-number hexagonal-number)
     (cons 'collatz-next collatz-next)
     (cons 'collatz-sequence collatz-sequence)
+    ; Lazy stream extensions
+    (cons 'stream-empty stream-empty)
+    (cons 'stream-empty? stream-empty?)
+    (cons 'stream-drop stream-drop)
+    (cons 'stream-cycle stream-cycle)
+    (cons 'stream-take-while stream-take-while)
+    (cons 'list->stream list->stream)
+    ; Extended graph algorithms
+    (cons 'graph-in-degree graph-in-degree)
+    (cons 'graph-out-degree graph-out-degree)
+    (cons 'topological-sort topological-sort)
+    (cons 'graph-reachable graph-reachable)
+    (cons 'graph-shortest-path graph-shortest-path)
+    ; Numeric methods
+    (cons 'newton-raphson newton-raphson)
+    (cons 'bisection bisection)
+    (cons 'numerical-derivative numerical-derivative)
+    (cons 'numerical-integral numerical-integral)
+    (cons 'secant-method secant-method)
+    ; Trie data structure
+    (cons 'trie-empty trie-empty)
+    (cons 'trie-value trie-value)
+    (cons 'trie-children trie-children)
+    (cons 'trie-insert trie-insert)
+    (cons 'trie-lookup trie-lookup)
+    (cons 'trie-has-key? trie-has-key?)
+    (cons 'string->key string->key)
+    (cons 'trie-insert-string trie-insert-string)
+    (cons 'trie-lookup-string trie-lookup-string)
+    ; Extended combinatorics
+    (cons 'permutations-k permutations-k)
+    (cons 'derangements derangements)
+    (cons 'count-derangements count-derangements)
+    (cons 'stirling-second stirling-second)
+    (cons 'bell-number bell-number)
+    (cons 'catalan-number catalan-number)
+    (cons 'partitions-integer partitions-integer)
+    (cons 'count-partitions count-partitions)
+    ; Extended bitwise utilities
+    (cons 'lowest-set-bit lowest-set-bit)
+    (cons 'highest-set-bit highest-set-bit)
+    ; Ring buffer
+    (cons 'ring-buffer-new ring-buffer-new)
+    (cons 'ring-buffer-capacity ring-buffer-capacity)
+    (cons 'ring-buffer-push ring-buffer-push)
+    (cons 'ring-buffer-peek ring-buffer-peek)
+    (cons 'ring-buffer-pop ring-buffer-pop)
 ))
 "#;
 
