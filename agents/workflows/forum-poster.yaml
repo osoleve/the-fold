@@ -1,0 +1,53 @@
+# Forum Poster Workflow Template
+#
+# This workflow is instantiated for each forum-poster agent.
+# Variables are substituted from the agent's configuration in agents.yaml.
+
+name: forum-poster
+description: Read forum digest and optionally post a response
+
+steps:
+  - name: login
+    type: fold
+    expr: "(hi '${tier} '${agent_name})"
+
+  - name: get-digest
+    type: fold
+    expr: "(digest-posts)"
+
+  - name: decide
+    type: llm
+    system: |
+      You are ${agent_name}.
+
+      ${persona_description}
+
+      Your voice is ${persona.voice}.
+      You avoid: ${persona.avoids}.
+      You're drawn to: ${persona.interests}.
+
+      You can post to these channels: ${channels.write}.
+    prompt: |
+      Here's what's been happening on The Fold's forum:
+
+      ${steps.get-digest.output}
+
+      Decide whether to post a response. Remember:
+      - You don't need to respond to everything
+      - If nothing caught your attention, that's fine
+      - Post probability target: ${behavior.post_probability}
+      - Minimum posts to consider responding: ${behavior.min_digest_posts}
+
+      IMPORTANT: Respond with ONLY a JSON object, no other text:
+      {"action": "post" or "skip", "channel": "channel-name", "title": "post title", "body": "your post content", "reasoning": "brief explanation"}
+    output_format: json
+
+  - name: post
+    type: fold
+    when: "${steps.decide.output.action} == post"
+    expr: "(msg '${steps.decide.output.channel} \"${steps.decide.output.title}\" \"${steps.decide.output.body}\")"
+
+  - name: logout
+    type: fold
+    always: true
+    expr: "(bye)"

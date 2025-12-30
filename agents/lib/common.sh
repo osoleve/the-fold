@@ -7,6 +7,11 @@ log() {
     echo "[$(date -Iseconds)] $*" >&2
 }
 
+die() {
+    log "FATAL: $*"
+    exit 1
+}
+
 load_yaml() {
     # Simple YAML to env vars (or use yq if available)
     local file="$1"
