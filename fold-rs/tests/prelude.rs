@@ -1475,3 +1475,205 @@ fn test_has_pair() {
     let result = eval_with_prelude("(has-pair? '(a))");
     assert_eq!(result, "#f");
 }
+
+// ========== car/cdr Compositions Tests ==========
+
+#[test]
+fn test_cadr() {
+    let result = eval_with_prelude("(cadr '(a b c))");
+    assert_eq!(result, "b");
+}
+
+#[test]
+fn test_caddr() {
+    let result = eval_with_prelude("(caddr '(a b c d))");
+    assert_eq!(result, "c");
+}
+
+#[test]
+fn test_cddr() {
+    let result = eval_with_prelude("(cddr '(a b c d))");
+    assert_eq!(result, "(c d)");
+}
+
+#[test]
+fn test_caar() {
+    let result = eval_with_prelude("(caar '((a b) c))");
+    assert_eq!(result, "a");
+}
+
+#[test]
+fn test_fourth() {
+    let result = eval_with_prelude("(fourth '(a b c d e))");
+    assert_eq!(result, "d");
+}
+
+#[test]
+fn test_fifth() {
+    let result = eval_with_prelude("(fifth '(a b c d e f))");
+    assert_eq!(result, "e");
+}
+
+// ========== List Utilities Tests ==========
+
+#[test]
+fn test_list_ref() {
+    // list-ref is an alias for nth which takes (n lst)
+    let result = eval_with_prelude("(nth 2 '(a b c d))");
+    assert_eq!(result, "c");
+}
+
+#[test]
+fn test_memq() {
+    let result = eval_with_prelude("(memq 'b '(a b c))");
+    assert_eq!(result, "(b c)");
+
+    let result = eval_with_prelude("(memq 'x '(a b c))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_filter_not() {
+    let result = eval_with_prelude("(filter-not even? '(1 2 3 4 5))");
+    assert_eq!(result, "(1 3 5)");
+}
+
+#[test]
+fn test_remove() {
+    let result = eval_with_prelude("(remove 3 '(1 2 3 4 3 5))");
+    assert_eq!(result, "(1 2 4 3 5)");
+}
+
+#[test]
+fn test_remove_all() {
+    let result = eval_with_prelude("(remove-all 3 '(1 2 3 4 3 5))");
+    assert_eq!(result, "(1 2 4 5)");
+}
+
+// ========== Boolean Utilities Tests ==========
+
+#[test]
+fn test_nand() {
+    let result = eval_with_prelude("(nand #t #t)");
+    assert_eq!(result, "#f");
+
+    let result = eval_with_prelude("(nand #t #f)");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_nor() {
+    let result = eval_with_prelude("(nor #f #f)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(nor #t #f)");
+    assert_eq!(result, "#f");
+}
+
+// ========== Numeric Utilities Tests ==========
+
+#[test]
+fn test_square() {
+    let result = eval_with_prelude("(square 5)");
+    assert_eq!(result, "25");
+}
+
+#[test]
+fn test_cube() {
+    let result = eval_with_prelude("(cube 3)");
+    assert_eq!(result, "27");
+}
+
+#[test]
+fn test_abs_diff() {
+    let result = eval_with_prelude("(abs-diff 10 3)");
+    assert_eq!(result, "7");
+
+    let result = eval_with_prelude("(abs-diff 3 10)");
+    assert_eq!(result, "7");
+}
+
+#[test]
+fn test_in_range() {
+    let result = eval_with_prelude("(in-range? 0 10 5)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(in-range? 0 10 10)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_signum() {
+    let result = eval_with_prelude("(signum -5)");
+    assert_eq!(result, "-1");
+
+    let result = eval_with_prelude("(signum 0)");
+    assert_eq!(result, "0");
+
+    let result = eval_with_prelude("(signum 5)");
+    assert_eq!(result, "1");
+}
+
+// ========== Higher-Order Utilities Tests ==========
+
+#[test]
+fn test_reduce() {
+    let result = eval_with_prelude("(reduce + '(1 2 3 4 5))");
+    assert_eq!(result, "15");
+}
+
+#[test]
+fn test_every() {
+    let result = eval_with_prelude("(every? even? '(2 4 6))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(every? even? '(2 3 4))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_some() {
+    let result = eval_with_prelude("(some? even? '(1 3 4))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(some? even? '(1 3 5))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_build_list() {
+    let result = eval_with_prelude("(build-list 5 (fn (i) (* i i)))");
+    assert_eq!(result, "(0 1 4 9 16)");
+}
+
+#[test]
+fn test_tabulate() {
+    let result = eval_with_prelude("(tabulate 4 (fn (x) (+ x 1)))");
+    assert_eq!(result, "(1 2 3 4)");
+}
+
+// ========== Utility Aliases Tests ==========
+
+#[test]
+fn test_succ() {
+    let result = eval_with_prelude("(succ 5)");
+    assert_eq!(result, "6");
+}
+
+#[test]
+fn test_pred_fn() {
+    let result = eval_with_prelude("(pred-fn 5)");
+    assert_eq!(result, "4");
+}
+
+#[test]
+fn test_double() {
+    let result = eval_with_prelude("(double 7)");
+    assert_eq!(result, "14");
+}
+
+#[test]
+fn test_halve() {
+    let result = eval_with_prelude("(halve 10)");
+    assert_eq!(result, "5");
+}

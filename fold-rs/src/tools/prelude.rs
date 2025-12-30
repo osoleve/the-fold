@@ -1287,6 +1287,233 @@ pub const PRELUDE_SOURCE: &str = r#"
          (if (null? (cdr lst))
              #f
              #t))))
+
+   ; -- car/cdr compositions (Scheme standard) --
+
+   ; cadr: (car (cdr x))
+   (cadr (fn (lst) (car (cdr lst))))
+
+   ; caar: (car (car x))
+   (caar (fn (lst) (car (car lst))))
+
+   ; cddr: (cdr (cdr x))
+   (cddr (fn (lst) (cdr (cdr lst))))
+
+   ; cdar: (cdr (car x))
+   (cdar (fn (lst) (cdr (car lst))))
+
+   ; caddr: (car (cdr (cdr x)))
+   (caddr (fn (lst) (car (cdr (cdr lst)))))
+
+   ; caaar: (car (car (car x)))
+   (caaar (fn (lst) (car (car (car lst)))))
+
+   ; caadr: (car (car (cdr x)))
+   (caadr (fn (lst) (car (car (cdr lst)))))
+
+   ; cadar: (car (cdr (car x)))
+   (cadar (fn (lst) (car (cdr (car lst)))))
+
+   ; cdaar: (cdr (car (car x)))
+   (cdaar (fn (lst) (cdr (car (car lst)))))
+
+   ; cdadr: (cdr (car (cdr x)))
+   (cdadr (fn (lst) (cdr (car (cdr lst)))))
+
+   ; cddar: (cdr (cdr (car x)))
+   (cddar (fn (lst) (cdr (cdr (car lst)))))
+
+   ; cdddr: (cdr (cdr (cdr x)))
+   (cdddr (fn (lst) (cdr (cdr (cdr lst)))))
+
+   ; cadddr: (car (cdr (cdr (cdr x)))) - fourth element
+   (cadddr (fn (lst) (car (cdr (cdr (cdr lst))))))
+
+   ; -- More list utilities --
+
+   ; fourth: Get fourth element
+   (fourth (fn (lst) (car (cdr (cdr (cdr lst))))))
+
+   ; fifth: Get fifth element
+   (fifth (fn (lst) (car (cdr (cdr (cdr (cdr lst)))))))
+
+   ; Note: list-ref is a primitive that takes (list idx) - different order from nth
+
+   ; list-tail: Return list starting at index n
+   (list-tail drop-n)
+
+   ; list-head: Return first n elements
+   (list-head take-n)
+
+   ; memq: Check if x is in list (using eq?)
+   (memq (fix memq
+     (fn (x lst)
+       (if (null? lst)
+           #f
+           (if (eq? x (car lst))
+               lst
+               (memq x (cdr lst)))))))
+
+   ; assq: Like assoc but uses eq?
+   (assq assoc)
+
+   ; append-map: Map then flatten (flatMap)
+   (append-map flat-map)
+
+   ; -- Boolean utilities --
+
+   ; nand: Not and
+   (nand (fn (a b)
+     (not (if a b #f))))
+
+   ; nor: Not or
+   (nor (fn (a b)
+     (not (if a #t b))))
+
+   ; -- More numeric utilities --
+
+   ; square: x^2
+   (square (fn (x) (* x x)))
+
+   ; cube: x^3
+   (cube (fn (x) (* x x x)))
+
+   ; abs-diff: Absolute difference
+   (abs-diff (fn (a b)
+     (if (> a b) (- a b) (- b a))))
+
+   ; in-range?: Check if value is in [lo, hi)
+   (in-range? (fn (lo hi x)
+     (if (>= x lo)
+         (< x hi)
+         #f)))
+
+   ; signum: Sign function (-1, 0, or 1)
+   (signum (fn (x)
+     (if (< x 0) -1 (if (> x 0) 1 0))))
+
+   ; -- More higher-order utilities --
+
+   ; unless: Like if but for false condition
+   (unless (fn (test then)
+     (if test '() then)))
+
+   ; when: Execute if true (returns result or nil)
+   (when (fn (test then)
+     (if test then '())))
+
+   ; for-each: Map for side effects (returns nil)
+   (for-each (fn (f lst)
+     (foldl (fn (acc x) (f x)) '() lst)))
+
+   ; reduce: foldl with first element as initial
+   (reduce (fn (f lst)
+     (if (null? lst)
+         '()
+         (foldl f (car lst) (cdr lst)))))
+
+   ; reduce-right: foldr with last element as initial
+   (reduce-right (fn (f lst)
+     (if (null? lst)
+         '()
+         (foldr f (last lst) (init lst)))))
+
+   ; every?: Alias for all (Scheme naming)
+   (every? all)
+
+   ; some?: Alias for any (Scheme naming)
+   (some? any)
+
+   ; filter-not: Keep elements that don't match
+   (filter-not (fn (f lst)
+     (filter (fn (x) (not (f x))) lst)))
+
+   ; remove: Remove first occurrence
+   (remove (fix remove
+     (fn (x lst)
+       (if (null? lst)
+           '()
+           (if (= x (car lst))
+               (cdr lst)
+               (cons (car lst) (remove x (cdr lst))))))))
+
+   ; remove-all: Remove all occurrences
+   (remove-all (fn (x lst)
+     (filter (fn (y) (not (= y x))) lst)))
+
+   ; -- List building utilities --
+
+   ; cons*: Multi-argument cons
+   (cons* (fix cons*
+     (fn (first rest)
+       (if (null? rest)
+           first
+           (if (null? (cdr rest))
+               (cons first (car rest))
+               (cons first (cons* (car rest) (cdr rest))))))))
+
+   ; list*: Like list but last element is tail
+   (list* cons*)
+
+   ; build-list: Build list by calling f on each index
+   (build-list (fn (n f)
+     (map f (iota n 0))))
+
+   ; make-list-fn: Create list of n elements using function
+   (make-list-fn (fn (n f)
+     (map (fn (i) (f)) (iota n 0))))
+
+   ; tabulate: Build list using index function
+   (tabulate (fn (n f)
+     (map f (iota n 0))))
+
+   ; -- Comparison utilities --
+
+   ; max-of: Find maximum using comparison function
+   (max-of (fn (compare lst)
+     (if (null? lst)
+         '()
+         (foldl (fn (acc x) (if (compare x acc) x acc))
+                (car lst)
+                (cdr lst)))))
+
+   ; min-of: Find minimum using comparison function
+   (min-of (fn (compare lst)
+     (if (null? lst)
+         '()
+         (foldl (fn (acc x) (if (compare x acc) acc x))
+                (car lst)
+                (cdr lst)))))
+
+   ; argmax: Find index of maximum
+   (argmax (fn (f lst)
+     (if (null? lst)
+         -1
+         (car (foldl (fn (acc xi)
+                       (let ((idx (car xi))
+                             (x (cadr xi))
+                             (best-idx (car acc))
+                             (best-val (cdr acc)))
+                         (let ((val (f x)))
+                           (if (> val best-val)
+                               (cons idx val)
+                               acc))))
+                     (cons 0 (f (car lst)))
+                     (zip-with-index (cdr lst)))))))
+
+   ; -- Utility aliases for common patterns --
+
+   ; succ: Successor (add 1)
+   (succ (fn (x) (+ x 1)))
+
+   ; pred-fn: Predecessor (subtract 1) - named to avoid conflict with pred primitive
+   (pred-fn (fn (x) (- x 1)))
+
+   ; double: Multiply by 2
+   (double (fn (x) (* x 2)))
+
+   ; halve: Divide by 2
+   (halve (fn (x) (/ x 2)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -1485,7 +1712,56 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'rest rest)
     (cons 'empty? empty?)
     (cons 'singleton? singleton?)
-    (cons 'has-pair? has-pair?)))
+    (cons 'has-pair? has-pair?)
+    (cons 'cadr cadr)
+    (cons 'caar caar)
+    (cons 'cddr cddr)
+    (cons 'cdar cdar)
+    (cons 'caddr caddr)
+    (cons 'caaar caaar)
+    (cons 'caadr caadr)
+    (cons 'cadar cadar)
+    (cons 'cdaar cdaar)
+    (cons 'cdadr cdadr)
+    (cons 'cddar cddar)
+    (cons 'cdddr cdddr)
+    (cons 'cadddr cadddr)
+    (cons 'fourth fourth)
+    (cons 'fifth fifth)
+    (cons 'list-tail list-tail)
+    (cons 'list-head list-head)
+    (cons 'memq memq)
+    (cons 'assq assq)
+    (cons 'append-map append-map)
+    (cons 'nand nand)
+    (cons 'nor nor)
+    (cons 'square square)
+    (cons 'cube cube)
+    (cons 'abs-diff abs-diff)
+    (cons 'in-range? in-range?)
+    (cons 'signum signum)
+    (cons 'unless unless)
+    (cons 'when when)
+    (cons 'for-each for-each)
+    (cons 'reduce reduce)
+    (cons 'reduce-right reduce-right)
+    (cons 'every? every?)
+    (cons 'some? some?)
+    (cons 'filter-not filter-not)
+    (cons 'remove remove)
+    (cons 'remove-all remove-all)
+    (cons 'cons* cons*)
+    (cons 'list* list*)
+    (cons 'build-list build-list)
+    (cons 'make-list-fn make-list-fn)
+    (cons 'tabulate tabulate)
+    (cons 'max-of max-of)
+    (cons 'min-of min-of)
+    (cons 'argmax argmax)
+    (cons 'succ succ)
+    (cons 'pred-fn pred-fn)
+    (cons 'double double)
+    (cons 'halve halve)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
