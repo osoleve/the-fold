@@ -12339,6 +12339,169 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; converge: Apply functions to arg, combine results
    (converge (fn (combiner fns x)
      (apply combiner (map (fn (f) (f x)) fns))))
+
+   ; ============================================================
+   ; Path Manipulation Utilities
+   ; ============================================================
+
+   ; path-separator: Get the path separator character
+   (path-separator "/")
+
+   ; path-split: Split path into components
+   ; (path-split "/home/user/file.txt") => ("" "home" "user" "file.txt")
+   (path-split (fn (p)
+     (string-split "/" p)))
+
+   ; path-join: Join path components
+   ; (path-join '("home" "user" "file.txt")) => "home/user/file.txt"
+   (path-join (fn (parts)
+     (string-join parts "/")))
+
+   ; path-join-2: Join two paths
+   ; (path-join-2 "/home/user" "file.txt") => "/home/user/file.txt"
+   (path-join-2 (fn (base rel)
+     (if (string-empty? base)
+         rel
+         (if (string-empty? rel)
+             base
+             (string-append base "/" rel)))))
+
+   ; path-dirname: Get directory part of path
+   ; (path-dirname "/home/user/file.txt") => "/home/user"
+   (path-dirname (fn (p)
+     (let ((parts (path-split p)))
+       (if (null? parts)
+           ""
+           (if (null? (cdr parts))
+               ""
+               (path-join (reverse (cdr (reverse parts)))))))))
+
+   ; path-basename: Get filename part of path
+   ; (path-basename "/home/user/file.txt") => "file.txt"
+   (path-basename (fn (p)
+     (let ((parts (path-split p)))
+       (if (null? parts)
+           ""
+           (last parts)))))
+
+   ; path-extension: Get file extension (including dot)
+   ; (path-extension "file.txt") => ".txt"
+   ; (path-extension "file") => ""
+   (path-extension (fn (p)
+     (let ((base (path-basename p)))
+       (let ((chars (string->list base)))
+         ((fix find-ext
+            (fn (cs acc found-dot)
+              (if (null? cs)
+                  (if found-dot (list->string (reverse acc)) "")
+                  (if (eq? (car cs) #\.)
+                      (find-ext (cdr cs) (list #\.) #t)
+                      (find-ext (cdr cs)
+                               (if found-dot (cons (car cs) acc) acc)
+                               found-dot)))))
+          chars '() #f)))))
+
+   ; path-stem: Get filename without extension
+   ; (path-stem "/home/user/file.txt") => "file"
+   (path-stem (fn (p)
+     (let ((base (path-basename p))
+           (ext (path-extension p)))
+       (if (string-empty? ext)
+           base
+           (string-take (- (string-length base) (string-length ext)) base)))))
+
+   ; path-absolute?: Check if path is absolute
+   ; (path-absolute? "/home/user") => #t
+   ; (path-absolute? "relative/path") => #f
+   (path-absolute? (fn (p)
+     (and (> (string-length p) 0)
+          (eq? (string-ref p 0) #\/))))
+
+   ; path-relative?: Check if path is relative
+   (path-relative? (fn (p)
+     (not (path-absolute? p))))
+
+   ; path-normalize: Normalize path (remove . and .. components)
+   ; (path-normalize "/home/user/../other/./file") => "/home/other/file"
+   (path-normalize (fn (p)
+     (let ((is-abs (path-absolute? p))
+           (parts (filter (fn (s) (not (string-empty? s))) (path-split p))))
+       (let ((normalized
+               ((fix norm-rec
+                  (fn (remaining stack)
+                    (if (null? remaining)
+                        (reverse stack)
+                        (let ((part (car remaining)))
+                          (if (equal? part ".")
+                              (norm-rec (cdr remaining) stack)
+                              (if (equal? part "..")
+                                  (norm-rec (cdr remaining)
+                                           (if (null? stack) stack (cdr stack)))
+                                  (norm-rec (cdr remaining) (cons part stack))))))))
+                parts '())))
+         (if is-abs
+             (string-append "/" (path-join normalized))
+             (if (null? normalized)
+                 "."
+                 (path-join normalized)))))))
+
+   ; path-parent: Get parent directory
+   ; (path-parent "/home/user/file.txt") => "/home/user"
+   (path-parent path-dirname)
+
+   ; path-with-extension: Replace or add extension
+   ; (path-with-extension "/home/file.txt" ".md") => "/home/file.md"
+   (path-with-extension (fn (p new-ext)
+     (let ((dir (path-dirname p))
+           (stem (path-stem p)))
+       (path-join-2 dir (string-append stem new-ext)))))
+
+   ; path-add-suffix: Add suffix before extension
+   ; (path-add-suffix "/home/file.txt" "-backup") => "/home/file-backup.txt"
+   (path-add-suffix (fn (p suffix)
+     (let ((dir (path-dirname p))
+           (stem (path-stem p))
+           (ext (path-extension p)))
+       (path-join-2 dir (string-append stem suffix ext)))))
+
+   ; path-components: Get all path components as list
+   ; (path-components "/home/user/file.txt") => ("home" "user" "file.txt")
+   (path-components (fn (p)
+     (filter (fn (s) (not (string-empty? s))) (path-split p))))
+
+   ; path-depth: Count depth of path (number of components)
+   ; (path-depth "/home/user/file.txt") => 3
+   (path-depth (fn (p)
+     (length (path-components p))))
+
+   ; path-common-prefix: Find common prefix of two paths
+   ; (path-common-prefix "/home/user/a" "/home/user/b") => "/home/user"
+   (path-common-prefix (fn (p1 p2)
+     (let ((c1 (path-components p1))
+           (c2 (path-components p2)))
+       ((fix common-rec
+          (fn (l1 l2 acc)
+            (if (or (null? l1) (null? l2))
+                (if (null? acc)
+                    ""
+                    (if (path-absolute? p1)
+                        (string-append "/" (path-join (reverse acc)))
+                        (path-join (reverse acc))))
+                (if (equal? (car l1) (car l2))
+                    (common-rec (cdr l1) (cdr l2) (cons (car l1) acc))
+                    (if (null? acc)
+                        ""
+                        (if (path-absolute? p1)
+                            (string-append "/" (path-join (reverse acc)))
+                            (path-join (reverse acc))))))))
+        c1 c2 '()))))
+
+   ; path-hidden?: Check if path or filename is hidden (starts with .)
+   ; (path-hidden? ".gitignore") => #t
+   (path-hidden? (fn (p)
+     (let ((base (path-basename p)))
+       (and (> (string-length base) 0)
+            (eq? (string-ref base 0) #\.)))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -14459,6 +14622,25 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'negate-pred negate-pred)
     (cons 'juxtapose juxtapose)
     (cons 'converge converge)
+    ; Path Manipulation
+    (cons 'path-separator path-separator)
+    (cons 'path-split path-split)
+    (cons 'path-join path-join)
+    (cons 'path-join-2 path-join-2)
+    (cons 'path-dirname path-dirname)
+    (cons 'path-basename path-basename)
+    (cons 'path-extension path-extension)
+    (cons 'path-stem path-stem)
+    (cons 'path-absolute? path-absolute?)
+    (cons 'path-relative? path-relative?)
+    (cons 'path-normalize path-normalize)
+    (cons 'path-parent path-parent)
+    (cons 'path-with-extension path-with-extension)
+    (cons 'path-add-suffix path-add-suffix)
+    (cons 'path-components path-components)
+    (cons 'path-depth path-depth)
+    (cons 'path-common-prefix path-common-prefix)
+    (cons 'path-hidden? path-hidden?)
 ))
 "#;
 
