@@ -2,9 +2,10 @@ use std::env;
 use std::io::{self, Read};
 use std::process;
 
-use fold_rs::fabric::{Env, EvalOutcome, Expr, SpannedExpr, Value, eval_spanned};
+use fold_rs::fabric::{EvalOutcome, Expr, SpannedExpr, Value, eval_spanned};
 use fold_rs::tools::{
-    format_value, lower_expr, lower_program, parse_fold_expr, parse_fold_program, run_fold_file,
+    format_value, lower_expr, lower_program, parse_fold_expr, parse_fold_program, prelude_env,
+    run_fold_file,
 };
 
 fn main() {
@@ -83,7 +84,8 @@ fn run_program_source(source: &str, fuel: usize) -> Result<EvalOutcome, String> 
 }
 
 fn run_expr(expr: SpannedExpr, fuel: usize) -> Result<EvalOutcome, String> {
-    let env = Env::new();
+    // Load prelude with primitives and HOFs
+    let env = prelude_env(fuel)?;
     eval_spanned(expr, env, fuel).map_err(|err| err.to_string())
 }
 

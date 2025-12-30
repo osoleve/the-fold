@@ -22,7 +22,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use fold_rs::fabric::{Env, EnvRef, EvalOutcome, Symbol, Value, eval_spanned};
 use fold_rs::tools::fold_parse::Sexp;
-use fold_rs::tools::{format_value, lower_program, parse_fold_program};
+use fold_rs::tools::{format_value, lower_program, parse_fold_program, prelude_env};
 
 const REPL_DIR: &str = ".fold-repl";
 const REQUESTS_DIR: &str = ".fold-repl/requests";
@@ -159,11 +159,11 @@ struct Session {
 
 impl Session {
     fn new(_id: String) -> Self {
-        let env = Env::new();
-
-        // With the lowerer now recognizing builtin primitives,
-        // we don't need to pre-populate the environment with primitive closures.
-        // Primitives are automatically converted to Prim expressions during lowering.
+        // Load prelude with primitives and HOFs
+        let env = prelude_env(100_000).unwrap_or_else(|err| {
+            eprintln!("Warning: Failed to load prelude: {}", err);
+            Env::new()
+        });
 
         Self {
             env,

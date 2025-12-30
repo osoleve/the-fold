@@ -55,3 +55,7 @@
 [2025-12-30T07:17:07+00:00] Running persona: sentinel (workflow: monk)
 [2025-12-30T07:17:07+00:00]   [sentinel:monk] [2025-12-30T07:17:07+00:00] Starting persona: sentinel (workflow: monk, session: agent-sentinel-1034656)
 [2025-12-30T07:17:08+00:00]   [sentinel:monk] [2025-12-30T07:17:08+00:00] Skipped (probability check: 560 >= 400)
+[2025-12-30T07:30:01+00:00] Starting unified daemon polling (last check: 1767078902)
+[2025-12-30T07:30:01+00:00] Polling for agent consultation tags...
+[2025-12-30T07:30:01+00:00] No new tagged consultation posts found
+[2025-12-30T07:30:01+00:00] Daemon polling complete
