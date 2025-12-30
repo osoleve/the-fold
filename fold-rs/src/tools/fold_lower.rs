@@ -35,6 +35,47 @@ pub fn lower_program(exprs: &[Spanned<Sexp>]) -> Result<Vec<SpannedExpr>, LowerE
     exprs.iter().map(lower_expr).collect()
 }
 
+/// Check if a symbol is a known primitive operator.
+fn is_builtin_prim(name: &str) -> bool {
+    matches!(
+        name,
+        // Arithmetic
+        "+" | "-" | "*" | "/" | "add" | "sub" | "mul" | "div" | "mod"
+            | "abs" | "neg" | "sqrt" | "expt" | "floor" | "ceiling" | "round"
+            | "sin" | "cos" | "tan" | "log" | "exp"
+            // Comparison
+            | "<" | ">" | "<=" | ">=" | "=" | "eq?" | "lt?" | "gt?" | "le?" | "ge?"
+            // Type checks
+            | "number?" | "integer?" | "string?" | "list?" | "pair?" | "null?" | "boolean?"
+            | "symbol?" | "procedure?" | "char?" | "vector?" | "bytevector?"
+            // List operations
+            | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
+            | "list-ref" | "list->string" | "list->vec"
+            // String operations
+            | "string-append" | "string-length" | "string-ref" | "substring"
+            | "string->list" | "string->number" | "string->symbol" | "string->utf8"
+            | "string=?" | "string<?" | "string>?"
+            // Vector operations
+            | "vec-length" | "vec-ref" | "vec-make" | "vec->list"
+            // Block operations
+            | "make-block" | "block" | "block?" | "block-tag" | "block-ref" | "block->bytes"
+            | "block-payload" | "block-refs"
+            // Hash/CAS
+            | "hash-block" | "sha256" | "fetch" | "store!" | "pin!" | "pinned?"
+            // Byte operations
+            | "bv-make" | "bv-length" | "bv-ref" | "bv-slice" | "bv-concat" | "bv-copy"
+            | "bytes->block" | "block->bytes" | "bytevector?"
+            // Character operations
+            | "integer->char" | "char->integer" | "char=?" | "char<?"
+            // Logic
+            | "and" | "or" | "not"
+            // Utilities
+            | "assq" | "assoc"
+            // REPL commands
+            | "version" | "who" | "help" | "display" | "write" | "newline"
+    )
+}
+
 fn lower_list(
     list_expr: &Spanned<Sexp>,
     items: &[Spanned<Sexp>],
@@ -55,7 +96,22 @@ fn lower_list(
             "case" => return lower_case(list_expr, items),
             "prim" => return lower_prim(list_expr, items),
             "call" => return lower_call(list_expr, items),
-            _ => {}
+            _ => {
+                // Check if this is a builtin primitive that should be lowered to a prim call
+                if is_builtin_prim(&head_symbol) {
+                    let mut args = Vec::with_capacity(items.len().saturating_sub(1));
+                    for arg in &items[1..] {
+                        args.push(lower_expr(arg)?);
+                    }
+                    return Ok(SpannedExpr::new(
+                        Expr::Prim {
+                            op: head_symbol,
+                            args,
+                        },
+                        span,
+                    ));
+                }
+            }
         }
     }
 

@@ -25,7 +25,43 @@ fn cas_store() -> &'static Mutex<Store> {
 
 pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
     match op.as_str() {
-        // Arithmetic
+        // Arithmetic (Scheme operator aliases)
+        "+" => fold_numeric(args, 0, 0.0, |a, b| a + b, |a, b| a + b),
+        "-" => {
+            if args.is_empty() {
+                return Err(EvalError::TypeMismatch("- expects at least 1 arg"));
+            }
+            let first = expect_number(&args[0])?;
+            if args.len() == 1 {
+                return Ok(numeric_to_value(negate_numeric(first)));
+            }
+            reduce_numeric(first, &args[1..], |a, b| a - b, |a, b| a - b)
+        }
+        "*" => fold_numeric(args, 1, 1.0, |a, b| a * b, |a, b| a * b),
+        "/" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("/ expects 2 args"));
+            }
+            let a = expect_number(&args[0])?;
+            let b = expect_number(&args[1])?;
+            match (a, b) {
+                (Numeric::Int(left), Numeric::Int(right)) => {
+                    if right == 0 {
+                        return Err(EvalError::DivisionByZero);
+                    }
+                    Ok(Value::Number(left / right))
+                }
+                _ => {
+                    let af = a.as_f64();
+                    let bf = b.as_f64();
+                    if bf == 0.0 {
+                        return Err(EvalError::DivisionByZero);
+                    }
+                    Ok(Value::Float(af / bf))
+                }
+            }
+        }
+        // Arithmetic (alt names)
         "add" => fold_numeric(args, 0, 0.0, |a, b| a + b, |a, b| a + b),
         "sub" => {
             if args.is_empty() {
@@ -162,7 +198,13 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
         }
 
-        // Comparison
+        // Comparison (Scheme operator aliases)
+        "=" => cmp_numbers(args, |a, b| (a - b).abs() < 1e-10),
+        "<" => cmp_numbers(args, |a, b| a < b),
+        ">" => cmp_numbers(args, |a, b| a > b),
+        "<=" => cmp_numbers(args, |a, b| a <= b),
+        ">=" => cmp_numbers(args, |a, b| a >= b),
+        // Comparison (alt names)
         "eq?" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch("eq? expects 2 args"));
