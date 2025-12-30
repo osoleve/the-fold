@@ -71,6 +71,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "repeat" | "sum" | "product" | "sum-of" | "max-of" | "min-of"
             | "sort" | "unique" | "find-index" | "index-of" | "count"
             | "nth" | "zip" | "unzip" | "rotate"
+            | "list->set" | "interleave" | "list->pairs"
             | "filter"
             // String operations
             | "string-append" | "string-length" | "string-ref" | "substring"

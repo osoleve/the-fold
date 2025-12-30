@@ -2204,6 +2204,53 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             list.rotate_left(normalized as usize);
             Ok(list_from_values(&list))
         }
+        "list->set" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("list->set expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            let mut seen = Vec::new();
+            for item in list {
+                if !seen.iter().any(|v| value_eq(v, &item)) {
+                    seen.push(item);
+                }
+            }
+            Ok(list_from_values(&seen))
+        }
+        "interleave" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("interleave expects 2 lists"));
+            }
+            let list1 = list_to_vec(&args[0])?;
+            let list2 = list_to_vec(&args[1])?;
+            let mut result = Vec::new();
+            let max_len = list1.len().max(list2.len());
+            for i in 0..max_len {
+                if i < list1.len() {
+                    result.push(list1[i].clone());
+                }
+                if i < list2.len() {
+                    result.push(list2[i].clone());
+                }
+            }
+            Ok(list_from_values(&result))
+        }
+        "list->pairs" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("list->pairs expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            let mut result = Vec::new();
+            for i in (0..list.len()).step_by(2) {
+                if i + 1 < list.len() {
+                    let pair = list_from_values(&[list[i].clone(), list[i + 1].clone()]);
+                    result.push(pair);
+                } else {
+                    result.push(list[i].clone());
+                }
+            }
+            Ok(list_from_values(&result))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
