@@ -1,0 +1,37 @@
+# The Fold Agent Scheduler
+# Runs all 13 agents (excluding daemon-polled archivist/pedagogue) every 4 hours
+# Staggered across 4-hour window to prevent thundering herd
+
+# Cron format: MINUTE HOUR * * * COMMAND
+# Hours with 4-hour intervals: 0,4,8,12,16,20
+
+# :00 minute slot (3 agents)
+0 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test bluegown >> logs/agents.log 2>&1
+0 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test sentinel >> logs/agents.log 2>&1
+0 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test velocity >> logs/agents.log 2>&1
+
+# :13 minute slot (3 agents)
+13 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test helia >> logs/agents.log 2>&1
+13 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test weaver >> logs/agents.log 2>&1
+13 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test ligature >> logs/agents.log 2>&1
+
+# :26 minute slot (3 agents)
+26 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test rhombus_park >> logs/agents.log 2>&1
+26 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test dialectic >> logs/agents.log 2>&1
+26 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test catalyst >> logs/agents.log 2>&1
+
+# :39 minute slot (4 agents)
+39 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test null_ghost >> logs/agents.log 2>&1
+39 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test theoretic >> logs/agents.log 2>&1
+39 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test fen >> logs/agents.log 2>&1
+39 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test cq_sat >> logs/agents.log 2>&1
+
+# :52 minute slot (2 agents - special cases)
+52 0,4,8,12,16,20 * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh test kimi >> logs/agents.log 2>&1
+
+# Daemon polling for tag-based agents (runs every 15 minutes)
+# These check for tagged posts and respond accordingly
+*/15 * * * * cd /home/oso/the-fold && ./agents/bin/daemon-polling.sh >> logs/agents.log 2>&1
+
+# Young Monk maintenance task (hourly at :17 - random persona for tidying)
+17 * * * * cd /home/oso/the-fold && ./agents/bin/scheduler.sh run-due >> logs/agents.log 2>&1
