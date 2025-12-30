@@ -12708,6 +12708,261 @@ pub const PRELUDE_SOURCE: &str = r#"
 
    ; string-hash: Convenience alias for djb2-hash
    (string-hash djb2-hash)
+
+   ; ============================================================
+   ; URL/URI Parsing and Manipulation
+   ; ============================================================
+
+   ; url-encode-char: Check if char needs URL encoding
+   (url-encode-safe? (fn (c)
+     (or (char-alphabetic? c)
+         (char-numeric? c)
+         (eq? c #\-)
+         (eq? c #\_)
+         (eq? c #\.)
+         (eq? c #\~))))
+
+   ; byte->percent: Convert byte to %XX encoding
+   (byte->percent (fn (b)
+     (string-append "%" (byte->hex b))))
+
+   ; url-encode: Percent-encode a string for URLs
+   (url-encode (fn (s)
+     ((fix encode-rec
+        (fn (chars acc)
+          (if (null? chars)
+              (apply string-append (reverse acc))
+              (let ((c (car chars)))
+                (if (url-encode-safe? c)
+                    (encode-rec (cdr chars) (cons (make-string 1 c) acc))
+                    (encode-rec (cdr chars)
+                               (cons (byte->percent (char->integer c)) acc)))))))
+      (string->list s) '())))
+
+   ; hex-digit?: Check if char is hex digit
+   (hex-digit? (fn (c)
+     (or (and (char>=? c #\0) (char<=? c #\9))
+         (and (char>=? c #\a) (char<=? c #\f))
+         (and (char>=? c #\A) (char<=? c #\F)))))
+
+   ; char>=?: Character comparison
+   (char>=? (fn (a b)
+     (>= (char->integer a) (char->integer b))))
+
+   ; char<=?: Character comparison
+   (char<=? (fn (a b)
+     (<= (char->integer a) (char->integer b))))
+
+   ; url-decode: Decode percent-encoded string
+   (url-decode (fn (s)
+     (list->string
+       ((fix decode-rec
+          (fn (chars acc)
+            (if (null? chars)
+                (reverse acc)
+                (if (eq? (car chars) #\%)
+                    (if (and (not (null? (cdr chars)))
+                             (not (null? (cdr (cdr chars)))))
+                        (let ((h1 (cadr chars))
+                              (h2 (car (cdr (cdr chars)))))
+                          (decode-rec (cdr (cdr (cdr chars)))
+                                     (cons (integer->char (hex->byte (list->string (list h1 h2))))
+                                           acc)))
+                        (decode-rec (cdr chars) (cons (car chars) acc)))
+                    (if (eq? (car chars) #\+)
+                        (decode-rec (cdr chars) (cons #\space acc))
+                        (decode-rec (cdr chars) (cons (car chars) acc)))))))
+        (string->list s) '()))))
+
+   ; query-string-parse: Parse URL query string to alist
+   ; "a=1&b=2" => ((a . "1") (b . "2"))
+   (query-string-parse (fn (qs)
+     (if (string-empty? qs)
+         '()
+         (map (fn (pair-str)
+                (let ((parts (string-split "=" pair-str)))
+                  (if (null? parts)
+                      (cons "" "")
+                      (if (null? (cdr parts))
+                          (cons (url-decode (car parts)) "")
+                          (cons (url-decode (car parts))
+                                (url-decode (cadr parts)))))))
+              (string-split "&" qs)))))
+
+   ; query-string-build: Build query string from alist
+   ; ((a . "1") (b . "2")) => "a=1&b=2"
+   (query-string-build (fn (params)
+     (string-join
+       (map (fn (p)
+              (string-append (url-encode (if (symbol? (car p))
+                                             (symbol->string (car p))
+                                             (car p)))
+                            "="
+                            (url-encode (cdr p))))
+            params)
+       "&")))
+
+   ; url-parse: Parse URL into components
+   ; Returns alist with: scheme, host, port, path, query, fragment
+   (url-parse (fn (url)
+     (let ((parse-scheme
+             (fn (s)
+               (let ((idx (string-index "://" s)))
+                 (if (< idx 0)
+                     (cons "" s)
+                     (cons (string-take idx s)
+                           (string-drop (+ idx 3) s))))))
+           (parse-authority
+             (fn (s)
+               (let ((path-idx (string-index "/" s))
+                     (query-idx (string-index (make-string 1 (integer->char 63)) s))
+                     (frag-idx (string-index (make-string 1 (integer->char 35)) s)))
+                 (let ((end-idx (foldl (fn (acc i) (if (and (>= i 0) (< i acc)) i acc))
+                                       (string-length s)
+                                       (list path-idx query-idx frag-idx))))
+                   (cons (string-take end-idx s)
+                         (string-drop end-idx s))))))
+           (parse-host-port
+             (fn (auth)
+               (let ((port-idx (string-rindex ":" auth)))
+                 (if (< port-idx 0)
+                     (cons auth "")
+                     (cons (string-take port-idx auth)
+                           (string-drop (+ port-idx 1) auth))))))
+           (parse-path
+             (fn (s)
+               (let ((query-idx (string-index (make-string 1 (integer->char 63)) s))
+                     (frag-idx (string-index (make-string 1 (integer->char 35)) s)))
+                 (let ((end-idx (foldl (fn (acc i) (if (and (>= i 0) (< i acc)) i acc))
+                                       (string-length s)
+                                       (list query-idx frag-idx))))
+                   (cons (string-take end-idx s)
+                         (string-drop end-idx s))))))
+           (parse-query
+             (fn (s)
+               (if (and (> (string-length s) 0) (= (char->integer (string-ref s 0)) 63))
+                   (let ((frag-idx (string-index (make-string 1 (integer->char 35)) s)))
+                     (if (< frag-idx 0)
+                         (cons (string-drop 1 s) "")
+                         (cons (substring s 1 frag-idx)
+                               (string-drop frag-idx s))))
+                   (cons "" s))))
+           (parse-fragment
+             (fn (s)
+               (if (and (> (string-length s) 0) (= (char->integer (string-ref s 0)) 35))
+                   (string-drop 1 s)
+                   ""))))
+       (let* ((scheme-rest (parse-scheme url))
+              (scheme (car scheme-rest))
+              (after-scheme (cdr scheme-rest))
+              (auth-rest (parse-authority after-scheme))
+              (authority (car auth-rest))
+              (after-auth (cdr auth-rest))
+              (host-port (parse-host-port authority))
+              (host (car host-port))
+              (port (cdr host-port))
+              (path-rest (parse-path after-auth))
+              (url-path (car path-rest))
+              (after-path (cdr path-rest))
+              (query-rest (parse-query after-path))
+              (query (car query-rest))
+              (after-query (cdr query-rest))
+              (fragment (parse-fragment after-query)))
+         (list (cons 'scheme scheme)
+               (cons 'host host)
+               (cons 'port port)
+               (cons 'path url-path)
+               (cons 'query query)
+               (cons 'fragment fragment))))))
+
+   ; url-build: Build URL from components alist
+   (url-build (fn (parts)
+     (let ((scheme (assoc-ref 'scheme parts))
+           (host (assoc-ref 'host parts))
+           (port (assoc-ref 'port parts))
+           (url-path (assoc-ref 'path parts))
+           (query (assoc-ref 'query parts))
+           (fragment (assoc-ref 'fragment parts)))
+       (let ((hash-str (make-string 1 (integer->char 35)))
+             (qmark-str (make-string 1 (integer->char 63))))
+         (string-append
+           (if (and scheme (not (string-empty? scheme)))
+               (string-append scheme "://")
+               "")
+           (if host host "")
+           (if (and port (not (string-empty? port)))
+               (string-append ":" port)
+               "")
+           (if url-path url-path "")
+           (if (and query (not (string-empty? query)))
+               (string-append qmark-str query)
+               "")
+           (if (and fragment (not (string-empty? fragment)))
+               (string-append hash-str fragment)
+               ""))))))
+
+   ; ============================================================
+   ; String Escape/Unescape Utilities
+   ; ============================================================
+
+   ; escape-char: Escape special characters for strings
+   (escape-char (fn (c)
+     (if (eq? c #\newline) "\\n"
+         (if (eq? c #\return) "\\r"
+             (if (eq? c #\tab) "\\t"
+                 (if (eq? c #\\) "\\\\"
+                     (if (eq? c #\") "\\\""
+                         (make-string 1 c))))))))
+
+   ; string-escape: Escape special characters in string
+   (string-escape (fn (s)
+     (apply string-append (map escape-char (string->list s)))))
+
+   ; unescape-seq: Parse escape sequence
+   (unescape-seq (fn (chars)
+     (if (null? chars)
+         (cons #\\ '())
+         (let ((c (car chars)))
+           (if (eq? c #\n) (cons #\newline (cdr chars))
+               (if (eq? c #\r) (cons #\return (cdr chars))
+                   (if (eq? c #\t) (cons #\tab (cdr chars))
+                       (if (eq? c #\\) (cons #\\ (cdr chars))
+                           (if (eq? c #\") (cons #\" (cdr chars))
+                               (cons c (cdr chars)))))))))))
+
+   ; string-unescape: Unescape string escape sequences
+   (string-unescape (fn (s)
+     (list->string
+       ((fix unescape-rec
+          (fn (chars acc)
+            (if (null? chars)
+                (reverse acc)
+                (if (eq? (car chars) #\\)
+                    (let ((result (unescape-seq (cdr chars))))
+                      (unescape-rec (cdr result) (cons (car result) acc)))
+                    (unescape-rec (cdr chars) (cons (car chars) acc))))))
+        (string->list s) '()))))
+
+   ; html-escape: Escape HTML special characters
+   (html-escape (fn (s)
+     (apply string-append
+       (map (fn (c)
+              (if (eq? c #\<) "&lt;"
+                  (if (eq? c #\>) "&gt;"
+                      (if (eq? c #\&) "&amp;"
+                          (if (eq? c #\") "&quot;"
+                              (if (eq? c #\') "&#39;"
+                                  (make-string 1 c)))))))
+            (string->list s)))))
+
+   ; html-unescape: Unescape HTML entities (common ones)
+   (html-unescape (fn (s)
+     (let ((s1 (string-replace-all "&lt;" "<" s))
+           (s2 (string-replace-all "&gt;" ">" s1))
+           (s3 (string-replace-all "&amp;" "&" s2))
+           (s4 (string-replace-all "&quot;" "\"" s3))
+           (s5 (string-replace-all "&#39;" "'" s4)))
+       s5)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -14870,6 +15125,25 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'hash-combine hash-combine)
     (cons 'hash-list hash-list)
     (cons 'string-hash string-hash)
+    ; URL/URI Utilities
+    (cons 'url-encode-safe? url-encode-safe?)
+    (cons 'byte->percent byte->percent)
+    (cons 'url-encode url-encode)
+    (cons 'hex-digit? hex-digit?)
+    (cons 'char>=? char>=?)
+    (cons 'char<=? char<=?)
+    (cons 'url-decode url-decode)
+    (cons 'query-string-parse query-string-parse)
+    (cons 'query-string-build query-string-build)
+    (cons 'url-parse url-parse)
+    (cons 'url-build url-build)
+    ; String Escape Utilities
+    (cons 'escape-char escape-char)
+    (cons 'string-escape string-escape)
+    (cons 'unescape-seq unescape-seq)
+    (cons 'string-unescape string-unescape)
+    (cons 'html-escape html-escape)
+    (cons 'html-unescape html-unescape)
 ))
 "#;
 
