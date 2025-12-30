@@ -2436,6 +2436,29 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let id = GENSYM_COUNTER.fetch_add(1, Ordering::SeqCst);
             Ok(Value::Symbol(format!("g{}", id)))
         }
+        "error" => {
+            // Throw an error (ignores message due to EvalError type constraints)
+            Err(EvalError::TypeMismatch("error raised"))
+        }
+        "deep-equal?" => {
+            // Deep structural equality (like equal? in Scheme)
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("deep-equal? expects 2 args"));
+            }
+            Ok(Value::Bool(value_eq(&args[0], &args[1])))
+        }
+        "list-every?" => {
+            // Check if all elements equal a value (requires manual predicate)
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "list-every? expects 2 args: (list-every? lst value)",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let check_value = &args[1];
+            let all_match = list.iter().all(|item| value_eq(item, check_value));
+            Ok(Value::Bool(all_match))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(

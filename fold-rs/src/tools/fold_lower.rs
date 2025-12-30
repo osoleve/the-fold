@@ -106,7 +106,7 @@ fn is_builtin_prim(name: &str) -> bool {
             // Logical operations
             | "xor" | "gensym"
             // Utilities
-            | "identity"
+            | "identity" | "error" | "deep-equal?" | "list-every?"
             | "assq" | "assoc"
             // REPL commands
             | "version" | "who" | "help" | "display" | "write" | "newline"
