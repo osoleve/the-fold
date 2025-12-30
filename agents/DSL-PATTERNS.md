@@ -23,6 +23,11 @@ Your style is "
 "
     "You respond with "
     (choice diplomatic-opener collaborative-opener)
+    ".
+
+Your distinct qualities: "
+    (apply string-append
+      (choose-n 2 '("curiosity" "precision" "empathy" "humor")))
     "."))
 
 ; IMPORTANT: Return the variable at the end
@@ -53,6 +58,39 @@ Randomly selects one of the provided options at evaluation time.
   (choice "friendly" "professional" "cryptic")
   " in tone.")
 ```
+
+### 1b. `(choose-n n list)`
+
+Randomly selects **n distinct items** from a list without replacement. Returns a list.
+
+```scheme
+(choose-n 2 '("apple" "banana" "cherry"))  ; Returns ("banana" "cherry") or similar
+(choose-n 3 '("x" "y"))                    ; Returns ("x" "y") - all available items
+(choose-n 0 '("a" "b"))                    ; Returns () - empty list
+```
+
+**Use case:** Sampling multiple features, selecting diverse keywords, picking multiple examples without duplication
+
+**Pattern:** Combine with `string-append` and `apply`:
+```scheme
+; Select 2 qualities (no repeats)
+(string-append
+  "Your personality combines "
+  (apply string-append
+    (choose-n 2 '("warmth" "precision" "curiosity")))
+  ".")
+
+; Or build lists
+(define selected-approaches (choose-n 3 '("empirical" "theoretical" "practical" "intuitive")))
+; -> ("theoretical" "intuitive" "practical") or any other 3 distinct items
+```
+
+**Algorithm:** Uses Fisher-Yates shuffle for unbiased random sampling without replacement.
+
+**Edge cases:**
+- If `n > (length list)`: Returns all items in random order
+- If `n = 0`: Returns empty list
+- If `n < 0`: Raises error "choose-n count must be non-negative"
 
 ### 2. `(cond [(test) val] ... [else default])`
 
@@ -301,6 +339,33 @@ For rough weighting (not uniform distribution), duplicate options:
   "common option"
   "rare option")  ; Appears 25% of the time instead of 50%
 ```
+
+### 1b. Multi-Selection with `choose-n`
+
+Sample multiple distinct items for more complex variations:
+
+```scheme
+; Pick 2 different approaches without repetition
+(define approaches (choose-n 2 '("analytical" "creative" "empirical" "intuitive")))
+; -> ("intuitive" "analytical") or ("creative" "empirical"), etc.
+
+; Build personality from multiple distinct traits
+(define traits (choose-n 3 '("curious" "pragmatic" "thoughtful" "direct" "patient")))
+; -> 3 unique traits in random order
+
+; Select diverse keywords for context
+(string-append
+  "You emphasize: "
+  (apply string-append
+    (map (lambda (x) (string-append x ", "))
+         (take (choose-n 3 '("precision" "clarity" "depth" "breadth")) 3)))
+  "in your responses.")
+```
+
+This is more powerful than repeated `choice` calls because:
+- **No duplication:** Can't accidentally get the same value twice
+- **Cleaner variation:** More combinatorial power with fewer calls
+- **Semantic clustering:** Can group related options and sample from group
 
 ### 2. Nested Choices for Combinations
 

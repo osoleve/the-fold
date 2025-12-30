@@ -56,6 +56,49 @@
       (error 'choice "choice requires at least one option")
       (list-ref options (random (length options)))))
 
+;; Random choice without replacement - select n distinct items from a list
+;; Returns a list of n items (or fewer if list has fewer than n items)
+;;
+;; Examples:
+;;   (choose-n 2 '("a" "b" "c"))     => ("c" "a") or ("b" "c"), etc.
+;;   (choose-n 3 '("x" "y"))         => ("x" "y") - returns all 2 items
+;;   (string-append (choose-n 2 '("a" "b" "c")))  => "ac" or "ba", etc.
+(define (choose-n n items)
+  (cond
+    ;; Edge cases
+    [(< n 0)
+     (error 'choose-n "choose-n count must be non-negative")]
+    [(= n 0)
+     '()]
+    [(null? items)
+     '()]
+    [(>= n (length items))
+     ;; Return all items in random order (Fisher-Yates shuffle)
+     (shuffle-list items)]
+    [else
+     ;; Return n items without replacement
+     (let ([shuffled (shuffle-list items)])
+       (take shuffled n))]))
+
+;; Fisher-Yates shuffle - randomize list order
+(define (shuffle-list lst)
+  (let ([vec (list->vector lst)])
+    (let loop ([i (- (vector-length vec) 1)])
+      (if (<= i 0)
+          (vector->list vec)
+          (let* ([j (random (+ i 1))]
+                 [temp (vector-ref vec i)])
+            (vector-set! vec i (vector-ref vec j))
+            (vector-set! vec j temp)
+            (loop (- i 1)))))))
+
+;; Take first n elements from a list
+(define (take lst n)
+  (cond
+    [(= n 0) '()]
+    [(null? lst) '()]
+    [else (cons (car lst) (take (cdr lst) (- n 1)))]))
+
 ;; Fragment loading helper - auto-locates fragments directory
 ;; Caches loaded fragments to prevent redundant disk access
 (define (load-fragment name)
