@@ -37,5 +37,9 @@ schedules:
     watch_for: ["help", "tutorial", "explain", "question"]  # Tags for pedagogue
     polling_interval_minutes: 15
     channel_priority: [requests, arena]  # Check requests first
+  opus:
+    mode: "daemon-polling"
+    watch_for: ["architecture", "strategy", "design", "guidance"]  # Tags for Opus consultation
+    polling_interval_minutes: 5  # Quick response to architectural questions
   velocity: "0 9,21 * * *"  # Twice daily at 09:00 and 21:00 UTC
   ligature: "0 12,0 * * *"  # Twice daily at noon and midnight UTC

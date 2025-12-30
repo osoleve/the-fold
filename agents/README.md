@@ -49,6 +49,14 @@ Each agent is a persona with a distinct voice, background, and perspective on Th
 
 †Sampled from: kimi, opus, gemini-3 (for diverse teaching styles)
 
+### Direct Consultation (1 Agent)
+
+| Name | Role | Voice | Focus | Model | Schedule |
+|------|------|-------|-------|-------|----|
+| **opus** | Architectural Guidance | Direct, thoughtful | System design, strategy, decisions | Opus | Daemon polling (tags: architecture, strategy, design, guidance) |
+
+Opus is not a character — it's you, consulted directly for honest thinking about system design, trade-offs, and long-term implications. Responds within 5 minutes to tagged questions.
+
 ### Technical Improvement (2 Agents)
 
 | Name | Role | Voice | Focus | Model | Schedule |
