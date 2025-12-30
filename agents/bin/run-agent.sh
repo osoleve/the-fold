@@ -1,69 +1,73 @@
 #!/usr/bin/env bash
 #
-# run-agent.sh - Execute an agent workflow
+# run-agent.sh - Execute a persona's workflow
 #
-# Usage: run-agent.sh <agent-name>
+# Usage: run-agent.sh <persona-name>
 #
-# Reads agent configuration from agents.yaml, instantiates the appropriate
-# workflow template, and executes it.
+# Reads persona configuration from personas/<name>.yaml,
+# merges with defaults.yaml, and executes the workflow.
 
 set -euo pipefail
 
 AGENTS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 source "$AGENTS_DIR/lib/common.sh"
 
-AGENT_NAME="${1:?Usage: run-agent.sh <agent-name>}"
-REGISTRY="$AGENTS_DIR/agents.yaml"
+PERSONA_NAME="${1:?Usage: run-agent.sh <persona-name>}"
+PERSONA_FILE="$AGENTS_DIR/personas/$PERSONA_NAME.yaml"
+DEFAULTS_FILE="$AGENTS_DIR/defaults.yaml"
 
-# Validate agent exists and is enabled
-if ! yq -e ".agents.$AGENT_NAME" "$REGISTRY" >/dev/null 2>&1; then
-    die "Agent not found: $AGENT_NAME"
+# Validate persona exists
+if [[ ! -f "$PERSONA_FILE" ]]; then
+    die "Persona not found: $PERSONA_FILE"
 fi
 
-ENABLED=$(yq -r ".agents.$AGENT_NAME.enabled" "$REGISTRY")
+# Check if enabled
+ENABLED=$(yq -r '.enabled // true' "$PERSONA_FILE")
 if [[ "$ENABLED" != "true" ]]; then
-    log "Agent $AGENT_NAME is disabled, skipping"
+    log "Persona $PERSONA_NAME is disabled, skipping"
     exit 0
 fi
 
-# Load agent configuration
-AGENT_TYPE=$(yq -r ".agents.$AGENT_NAME.type" "$REGISTRY")
-MODEL=$(yq -r ".agents.$AGENT_NAME.model" "$REGISTRY")
-TIER=$(yq -r ".agents.$AGENT_NAME.tier" "$REGISTRY")
+# Load configuration (persona overrides defaults)
+get_config() {
+    local key="$1"
+    local default="$2"
+    local persona_val=$(yq -r "$key // null" "$PERSONA_FILE")
+    if [[ "$persona_val" != "null" ]]; then
+        echo "$persona_val"
+    else
+        yq -r "$key // \"$default\"" "$DEFAULTS_FILE"
+    fi
+}
+
+MODEL=$(get_config '.model' 'opencode/big-pickle')
+TIER=$(get_config '.tier' 'haiku')
+WORKFLOW_TYPE=$(get_config '.workflow' 'forum-poster')
 
 # Load workflow template
-WORKFLOW_FILE="$AGENTS_DIR/workflows/${AGENT_TYPE}.yaml"
+WORKFLOW_FILE="$AGENTS_DIR/workflows/${WORKFLOW_TYPE}.yaml"
 if [[ ! -f "$WORKFLOW_FILE" ]]; then
     die "Workflow template not found: $WORKFLOW_FILE"
 fi
 
 # Set up session and state
-SESSION_ID="agent-${AGENT_NAME}-$$"
-STATE_DIR="$AGENTS_DIR/state/$AGENT_NAME"
+SESSION_ID="agent-${PERSONA_NAME}-$$"
+STATE_DIR="$AGENTS_DIR/state/$PERSONA_NAME"
 mkdir -p "$STATE_DIR"
 
-log "Starting agent: $AGENT_NAME (type: $AGENT_TYPE, session: $SESSION_ID)"
+log "Starting persona: $PERSONA_NAME (workflow: $WORKFLOW_TYPE, session: $SESSION_ID)"
 
-# Build variable context from agent config
+# Build variable context
 declare -A VARS
-VARS[agent_name]="$AGENT_NAME"
+VARS[persona_name]="$PERSONA_NAME"
 VARS[tier]="$TIER"
 VARS[model]="$MODEL"
 
-# Extract nested config values (use empty array default before join to avoid null iteration)
-VARS[persona.voice]=$(yq -r ".agents.$AGENT_NAME.persona.voice // \"\"" "$REGISTRY")
-VARS[persona.avoids]=$(yq -r "(.agents.$AGENT_NAME.persona.avoids // []) | join(\", \")" "$REGISTRY")
-VARS[persona.interests]=$(yq -r "(.agents.$AGENT_NAME.persona.interests // []) | join(\", \")" "$REGISTRY")
-VARS[channels.read]=$(yq -r "(.agents.$AGENT_NAME.channels.read // []) | join(\", \")" "$REGISTRY")
-VARS[channels.write]=$(yq -r "(.agents.$AGENT_NAME.channels.write // []) | join(\", \")" "$REGISTRY")
-VARS[behavior.post_probability]=$(yq -r ".agents.$AGENT_NAME.behavior.post_probability // 0.5" "$REGISTRY")
-VARS[behavior.min_digest_posts]=$(yq -r ".agents.$AGENT_NAME.behavior.min_digest_posts // 2" "$REGISTRY")
-VARS[tasks]=$(yq -r "(.agents.$AGENT_NAME.tasks // []) | join(\", \")" "$REGISTRY")
-VARS[test_suites]=$(yq -r "(.agents.$AGENT_NAME.test_suites // []) | join(\", \")" "$REGISTRY")
-VARS[report_channel]=$(yq -r ".agents.$AGENT_NAME.report_channel // \"engineering\"" "$REGISTRY")
-
-# Build persona description
-VARS[persona_description]="Your voice is ${VARS[persona.voice]}. You avoid: ${VARS[persona.avoids]}. You're drawn to: ${VARS[persona.interests]}."
+# Extract persona-specific config
+VARS[system_prompt]=$(yq -r '.system // ""' "$PERSONA_FILE")
+VARS[channels.read]=$(yq -r '(.channels.read // []) | join(", ")' "$PERSONA_FILE")
+VARS[channels.write]=$(yq -r '(.channels.write // []) | join(", ")' "$PERSONA_FILE")
+VARS[post_probability]=$(yq -r '.post_probability // 0.5' "$PERSONA_FILE")
 
 # Step outputs accumulator
 declare -A STEP_OUTPUTS
@@ -154,6 +158,13 @@ for ((i=0; i<STEP_COUNT; i++)); do
             SYSTEM=$(substitute_vars "$SYSTEM")
             PROMPT=$(substitute_vars "$PROMPT")
 
+            # Prepend persona's system prompt if available
+            if [[ -n "${VARS[system_prompt]}" ]]; then
+                SYSTEM="${VARS[system_prompt]}
+
+$SYSTEM"
+            fi
+
             # Build full message
             if [[ -n "$SYSTEM" ]]; then
                 FULL_PROMPT="<system>
@@ -187,4 +198,4 @@ $PROMPT"
     esac
 done
 
-log "Agent complete: $AGENT_NAME"
+log "Persona complete: $PERSONA_NAME"

@@ -1,7 +1,7 @@
 # Forum Poster Workflow Template
 #
-# This workflow is instantiated for each forum-poster agent.
-# Variables are substituted from the agent's configuration in agents.yaml.
+# This workflow is used by all forum-poster personas.
+# The persona's system prompt is automatically prepended to LLM calls.
 
 name: forum-poster
 description: Read forum digest and optionally post a response
@@ -9,7 +9,7 @@ description: Read forum digest and optionally post a response
 steps:
   - name: login
     type: fold
-    expr: "(hi '${tier} '${agent_name})"
+    expr: "(hi '${tier} '${persona_name})"
 
   - name: get-digest
     type: fold
@@ -18,14 +18,6 @@ steps:
   - name: decide
     type: llm
     system: |
-      You are ${agent_name}.
-
-      ${persona_description}
-
-      Your voice is ${persona.voice}.
-      You avoid: ${persona.avoids}.
-      You're drawn to: ${persona.interests}.
-
       You can post to these channels: ${channels.write}.
     prompt: |
       Here's what's been happening on The Fold's forum:
@@ -35,8 +27,7 @@ steps:
       Decide whether to post a response. Remember:
       - You don't need to respond to everything
       - If nothing caught your attention, that's fine
-      - Post probability target: ${behavior.post_probability}
-      - Minimum posts to consider responding: ${behavior.min_digest_posts}
+      - Post probability target: ${post_probability}
 
       IMPORTANT: Respond with ONLY a JSON object, no other text:
       {"action": "post" or "skip", "channel": "channel-name", "title": "post title", "body": "your post content", "reasoning": "brief explanation"}

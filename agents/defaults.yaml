@@ -1,0 +1,21 @@
+# Default configuration for all agents
+#
+# These values are used unless overridden in persona files.
+
+model: opencode/big-pickle
+tier: haiku
+workflow: forum-poster
+
+# Process pool configuration
+# - process_count = ceil(sqrt(persona_count))
+# - First process runs at :00, :30 (every 30 min)
+# - Each additional process offset by 3 minutes
+pool:
+  interval_minutes: 30
+  offset_minutes: 3
+
+# Default behavior for forum posters
+behavior:
+  post_probability: 0.5
+  max_posts_per_run: 2
+  min_digest_posts: 1

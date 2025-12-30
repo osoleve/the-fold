@@ -1,104 +1,181 @@
 #!/usr/bin/env bash
 #
-# scheduler.sh - Agent Scheduler
+# scheduler.sh - Process Pool Agent Scheduler
 #
-# Manages scheduled execution of agents. Can be run as:
-#   - One-shot: scheduler.sh run-due     (run all agents due now)
-#   - Daemon:   scheduler.sh daemon      (continuous loop)
-#   - List:     scheduler.sh list        (show all agents and schedules)
-#   - Test:     scheduler.sh test <name> (run specific agent)
+# Manages a pool of processes that sample from available personas.
+#
+# Process count = ceil(sqrt(persona_count))
+# First process runs at :00/:30 (every 30 min)
+# Each additional process offset by 3 minutes
+#
+# Commands:
+#   list        List all personas and their status
+#   status      Show process pool configuration
+#   run-due     Run processes due now (for cron)
+#   test NAME   Run a specific persona (ignores schedule)
+#   daemon      Run as continuous daemon
 
 set -euo pipefail
 
 AGENTS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 source "$AGENTS_DIR/lib/common.sh"
 
-REGISTRY="$AGENTS_DIR/agents.yaml"
+PERSONAS_DIR="$AGENTS_DIR/personas"
+DEFAULTS_FILE="$AGENTS_DIR/defaults.yaml"
 STATE_DIR="$AGENTS_DIR/state"
 LOCKFILE="$STATE_DIR/.scheduler.lock"
 
-# Check if cron expression matches current time
-# Simplified: only handles "M H * * *" and "M */N * * *" patterns
-cron_matches_now() {
-    local cron="$1"
+# Get list of enabled personas
+list_enabled_personas() {
+    for f in "$PERSONAS_DIR"/*.yaml; do
+        [[ -f "$f" ]] || continue
+        local name=$(basename "$f" .yaml)
+        local enabled=$(yq -r '.enabled // true' "$f")
+        if [[ "$enabled" == "true" ]]; then
+            echo "$name"
+        fi
+    done
+}
+
+# Count enabled personas
+count_personas() {
+    list_enabled_personas | wc -l
+}
+
+# Calculate process count: ceil(sqrt(n))
+# Uses integer approximation without bc
+calc_process_count() {
+    local n=$1
+    local i=1
+    while (( i * i < n )); do
+        ((i++))
+    done
+    echo "$i"
+}
+
+# Get pool config
+get_interval() {
+    yq -r '.pool.interval_minutes // 30' "$DEFAULTS_FILE"
+}
+
+get_offset() {
+    yq -r '.pool.offset_minutes // 3' "$DEFAULTS_FILE"
+}
+
+# Check if a process slot is due now
+# Slot 0: runs at :00, :30 (every interval_minutes)
+# Slot N: runs at :00+N*offset, :30+N*offset
+is_slot_due() {
+    local slot=$1
+    local interval=$(get_interval)
+    local offset=$(get_offset)
     local now_min=$(date +%M | sed 's/^0//')
-    local now_hour=$(date +%H | sed 's/^0//')
 
-    local cron_min=$(echo "$cron" | awk '{print $1}')
-    local cron_hour=$(echo "$cron" | awk '{print $2}')
+    local slot_offset=$((slot * offset))
 
-    # Check minute
-    if [[ "$cron_min" != "$now_min" && "$cron_min" != "*" ]]; then
+    # Check if current minute matches any interval point + slot offset
+    local check_min=$((now_min - slot_offset))
+    if [[ $check_min -lt 0 ]]; then
+        check_min=$((check_min + 60))
+    fi
+
+    # Is check_min divisible by interval?
+    (( check_min % interval == 0 ))
+}
+
+# Sample a random persona from enabled list
+sample_persona() {
+    local personas=($(list_enabled_personas))
+    local count=${#personas[@]}
+
+    if [[ $count -eq 0 ]]; then
         return 1
     fi
 
-    # Check hour
-    if [[ "$cron_hour" == "*" ]]; then
-        return 0
-    elif [[ "$cron_hour" == *//* ]]; then
-        local interval="${cron_hour#*/}"
-        (( now_hour % interval == 0 ))
-    else
-        [[ "$cron_hour" == "$now_hour" ]]
-    fi
+    # Use $RANDOM for sampling
+    local idx=$((RANDOM % count))
+    echo "${personas[$idx]}"
 }
 
-# Get list of enabled agents
-list_enabled_agents() {
-    yq -r '.agents | to_entries[] | select(.value.enabled == true) | .key' "$REGISTRY"
-}
-
-# Get agent schedule
-get_schedule() {
-    local agent="$1"
-    yq -r ".agents.$agent.schedule" "$REGISTRY"
-}
-
-# Check if agent is due to run
-is_due() {
-    local agent="$1"
-    local schedule=$(get_schedule "$agent")
-    cron_matches_now "$schedule"
-}
-
-# Run a single agent
-run_agent() {
-    local agent="$1"
-    log "Running agent: $agent"
-    "$AGENTS_DIR/bin/run-agent.sh" "$agent" 2>&1 | while read -r line; do
-        log "  [$agent] $line"
+# Run a single persona
+run_persona() {
+    local persona="$1"
+    log "Running persona: $persona"
+    "$AGENTS_DIR/bin/run-agent.sh" "$persona" 2>&1 | while read -r line; do
+        log "  [$persona] $line"
     done
 }
 
 # Commands
 cmd_list() {
-    echo "Registered Agents:"
-    echo "=================="
-    yq -r '.agents | to_entries[] | "\(.key): type=\(.value.type) enabled=\(.value.enabled) schedule=\"\(.value.schedule)\""' "$REGISTRY"
+    echo "Registered Personas:"
+    echo "===================="
+    for f in "$PERSONAS_DIR"/*.yaml; do
+        [[ -f "$f" ]] || continue
+        local name=$(basename "$f" .yaml)
+        local enabled=$(yq -r '.enabled // true' "$f")
+        local workflow=$(yq -r '.workflow // "forum-poster"' "$f")
+        local prob=$(yq -r '.post_probability // 0.5' "$f")
+        echo "$name: workflow=$workflow enabled=$enabled post_prob=$prob"
+    done
+}
+
+cmd_status() {
+    local count=$(count_personas)
+    local procs=$(calc_process_count "$count")
+    local interval=$(get_interval)
+    local offset=$(get_offset)
+
+    echo "Process Pool Status:"
+    echo "===================="
+    echo "Enabled personas: $count"
+    echo "Process count: $procs (ceil(sqrt($count)))"
+    echo "Base interval: every ${interval} minutes"
+    echo "Process offset: ${offset} minutes"
+    echo ""
+    echo "Process schedule:"
+    for ((i=0; i<procs; i++)); do
+        local slot_offset=$((i * offset))
+        echo "  Process $i: :$(printf '%02d' $slot_offset), :$(printf '%02d' $((slot_offset + interval))), ..."
+    done
 }
 
 cmd_run_due() {
-    log "Checking for due agents..."
+    local count=$(count_personas)
+    local procs=$(calc_process_count "$count")
+
+    log "Checking $procs process slots..."
     local ran=0
 
-    for agent in $(list_enabled_agents); do
-        if is_due "$agent"; then
-            run_agent "$agent" &
-            ((ran++))
+    for ((slot=0; slot<procs; slot++)); do
+        if is_slot_due "$slot"; then
+            local persona=$(sample_persona)
+            if [[ -n "$persona" ]]; then
+                log "Slot $slot due, sampled: $persona"
+                run_persona "$persona" &
+                ((ran++))
+            fi
         fi
     done
 
     wait
-    log "Ran $ran agent(s)"
+    log "Ran $ran process(es)"
 }
 
 cmd_test() {
-    local agent="${1:?Usage: scheduler.sh test <agent-name>}"
-    run_agent "$agent"
+    local persona="${1:?Usage: scheduler.sh test <persona-name>}"
+
+    if [[ ! -f "$PERSONAS_DIR/$persona.yaml" ]]; then
+        die "Persona not found: $persona"
+    fi
+
+    run_persona "$persona"
 }
 
 cmd_daemon() {
     log "Starting scheduler daemon..."
+
+    mkdir -p "$STATE_DIR"
 
     # Create lock
     if [[ -f "$LOCKFILE" ]]; then
@@ -117,7 +194,7 @@ cmd_daemon() {
     done
 }
 
-cmd_status() {
+cmd_daemon_status() {
     if [[ -f "$LOCKFILE" ]]; then
         local pid=$(cat "$LOCKFILE")
         if kill -0 "$pid" 2>/dev/null; then
@@ -132,23 +209,31 @@ cmd_status() {
 
 # Main
 case "${1:-help}" in
-    list)      cmd_list ;;
-    run-due)   cmd_run_due ;;
-    test)      cmd_test "${2:-}" ;;
-    daemon)    cmd_daemon ;;
-    status)    cmd_status ;;
+    list)       cmd_list ;;
+    status)     cmd_status ;;
+    run-due)    cmd_run_due ;;
+    test)       cmd_test "${2:-}" ;;
+    daemon)     cmd_daemon ;;
+    daemon-status) cmd_daemon_status ;;
     help|*)
         cat <<EOF
-Agent Scheduler
+Process Pool Agent Scheduler
 
 Usage: scheduler.sh <command>
 
 Commands:
-    list        List all registered agents and their schedules
-    run-due     Run all agents that are due now (for cron)
-    test NAME   Run a specific agent (ignores schedule)
-    daemon      Run as continuous daemon
-    status      Check if daemon is running
+    list           List all registered personas
+    status         Show process pool configuration
+    run-due        Run processes due now (for cron)
+    test NAME      Run a specific persona (ignores schedule)
+    daemon         Run as continuous daemon
+    daemon-status  Check if daemon is running
+
+Process Pool Model:
+    - process_count = ceil(sqrt(persona_count))
+    - Each process samples a random persona when due
+    - First process: every 30 min at :00, :30
+    - Each additional process: offset by 3 minutes
 
 Cron setup:
     * * * * * /path/to/agents/bin/scheduler.sh run-due
