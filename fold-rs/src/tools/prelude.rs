@@ -9819,6 +9819,587 @@ pub const PRELUDE_SOURCE: &str = r#"
                             acc))
             b1
             b2)))
+
+   ; ============================================
+   ; Random Number Generation (Linear Congruential)
+   ; ============================================
+
+   ; make-rng: Create a random number generator state from seed
+   ; Returns: (seed . multiplier . increment . modulus)
+   (make-rng (fn (seed)
+     (list seed 1103515245 12345 2147483648)))
+
+   ; rng-next: Generate next random state and value
+   ; Returns: (new-rng . random-value)
+   (rng-next (fn (rng)
+     (let ((seed (car rng))
+           (a (cadr rng))
+           (c (caddr rng))
+           (m (cadddr rng)))
+       (let ((next-seed (mod (+ (* a seed) c) m)))
+         (cons (cons next-seed (cdr rng)) next-seed)))))
+
+   ; rng-int: Get random integer in range [0, max)
+   (rng-int (fn (rng max-val)
+     (let ((result (rng-next rng)))
+       (cons (car result) (mod (cdr result) max-val)))))
+
+   ; rng-range: Get random integer in range [lo, hi)
+   (rng-range (fn (rng lo hi)
+     (let ((result (rng-int rng (- hi lo))))
+       (cons (car result) (+ lo (cdr result))))))
+
+   ; rng-bool: Get random boolean
+   (rng-bool (fn (rng)
+     (let ((result (rng-int rng 2)))
+       (cons (car result) (= (cdr result) 1)))))
+
+   ; rng-choice: Pick random element from list
+   (rng-choice (fn (rng lst)
+     (let ((result (rng-int rng (length lst))))
+       (cons (car result) (list-ref lst (cdr result))))))
+
+   ; rng-shuffle: Shuffle list (Fisher-Yates)
+   (rng-shuffle (fn (rng lst)
+     ((fix shuffle-rec
+        (fn (r remaining acc)
+          (if (null? remaining)
+              (cons r acc)
+              (let ((pick-result (rng-int r (length remaining))))
+                (let ((new-r (car pick-result))
+                      (idx (cdr pick-result)))
+                  (shuffle-rec new-r
+                               (remove-at idx remaining)
+                               (cons (list-ref remaining idx) acc)))))))
+      rng lst '())))
+
+   ; rng-sample: Sample n elements without replacement
+   (rng-sample (fn (rng n lst)
+     (let ((shuffled (rng-shuffle rng lst)))
+       (cons (car shuffled) (take n (cdr shuffled))))))
+
+   ; rng-take: Generate n random values using generator function
+   (rng-take (fn (rng n gen-fn)
+     ((fix take-rec
+        (fn (r count acc)
+          (if (<= count 0)
+              (cons r (reverse acc))
+              (let ((result (gen-fn r)))
+                (take-rec (car result) (- count 1) (cons (cdr result) acc))))))
+      rng n '())))
+
+   ; ============================================
+   ; Sequence Utilities
+   ; ============================================
+
+   ; sliding-window: Generate sliding windows of size n
+   (sliding-window (fn (n lst)
+     ((fix window-rec
+        (fn (remaining acc)
+          (if (< (length remaining) n)
+              (reverse acc)
+              (window-rec (cdr remaining) (cons (take-n n remaining) acc)))))
+      lst '())))
+
+   ; chunks: Split list into chunks of size n
+   (chunks (fn (n lst)
+     ((fix chunk-rec
+        (fn (remaining acc)
+          (if (null? remaining)
+              (reverse acc)
+              (chunk-rec (drop-n n remaining) (cons (take-n n remaining) acc)))))
+      lst '())))
+
+   ; chunks-exact: Split into exact chunks (drop remainder)
+   (chunks-exact (fn (n lst)
+     (filter (fn (chunk) (= (length chunk) n)) (chunks n lst))))
+
+   ; interleave: Interleave two lists
+   (interleave (fix interleave-rec
+     (fn (l1 l2)
+       (if (null? l1)
+           l2
+           (if (null? l2)
+               l1
+               (cons (car l1) (cons (car l2) (interleave-rec (cdr l1) (cdr l2)))))))))
+
+   ; interleave-all: Interleave multiple lists
+   (interleave-all (fn (lists)
+     ((fix interleave-all-rec
+        (fn (lsts acc)
+          (if (all null? lsts)
+              (reverse acc)
+              (interleave-all-rec
+                (map cdr (filter (fn (l) (not (null? l))) lsts))
+                (append (reverse (filter-map (fn (l) (if (null? l) #f (car l))) lsts)) acc)))))
+      lists '())))
+
+   ; rotate-left: Rotate list left by n positions
+   (rotate-left (fn (n lst)
+     (let ((len (length lst)))
+       (if (= len 0)
+           lst
+           (let ((n-mod (mod n len)))
+             (append (drop-n n-mod lst) (take-n n-mod lst)))))))
+
+   ; rotate-right: Rotate list right by n positions
+   (rotate-right (fn (n lst)
+     (rotate-left (- (length lst) (mod n (length lst))) lst)))
+
+   ; frequencies: Count occurrences of each element
+   (frequencies (fn (lst)
+     (foldl (fn (acc x)
+              (alist-update x (fn (c) (+ c 1)) 0 acc))
+            '()
+            lst)))
+
+   ; group-by: Group elements by key function
+   (group-by (fn (key-fn lst)
+     (foldl (fn (acc x)
+              (let ((k (key-fn x)))
+                (alist-update k (fn (vs) (cons x vs)) '() acc)))
+            '()
+            lst)))
+
+   ; partition-all: Partition into groups of n (including remainder)
+   (partition-all chunks)
+
+   ; split-at-pred: Split list at first element satisfying predicate
+   (split-at-pred (fn (pred lst)
+     ((fix split-rec
+        (fn (remaining before)
+          (if (null? remaining)
+              (cons (reverse before) '())
+              (if (pred (car remaining))
+                  (cons (reverse before) remaining)
+                  (split-rec (cdr remaining) (cons (car remaining) before))))))
+      lst '())))
+
+   ; split-when: Split list whenever predicate is true
+   (split-when (fn (pred lst)
+     ((fix split-rec
+        (fn (remaining current acc)
+          (if (null? remaining)
+              (reverse (if (null? current) acc (cons (reverse current) acc)))
+              (if (pred (car remaining))
+                  (split-rec (cdr remaining) '()
+                             (if (null? current) acc (cons (reverse current) acc)))
+                  (split-rec (cdr remaining) (cons (car remaining) current) acc)))))
+      lst '() '())))
+
+   ; dedupe: Remove consecutive duplicates
+   (dedupe (fn (lst)
+     (if (null? lst)
+         '()
+         ((fix dedupe-rec
+            (fn (prev remaining acc)
+              (if (null? remaining)
+                  (reverse acc)
+                  (if (equal? prev (car remaining))
+                      (dedupe-rec prev (cdr remaining) acc)
+                      (dedupe-rec (car remaining) (cdr remaining) (cons (car remaining) acc))))))
+          (car lst) (cdr lst) (list (car lst))))))
+
+   ; dedupe-by: Remove consecutive duplicates by key function
+   (dedupe-by (fn (key-fn lst)
+     (if (null? lst)
+         '()
+         ((fix dedupe-rec
+            (fn (prev-key remaining acc)
+              (if (null? remaining)
+                  (reverse acc)
+                  (let ((curr-key (key-fn (car remaining))))
+                    (if (equal? prev-key curr-key)
+                        (dedupe-rec prev-key (cdr remaining) acc)
+                        (dedupe-rec curr-key (cdr remaining) (cons (car remaining) acc)))))))
+          (key-fn (car lst)) (cdr lst) (list (car lst))))))
+
+   ; run-length-encode: Encode consecutive runs
+   (run-length-encode (fn (lst)
+     (if (null? lst)
+         '()
+         ((fix rle-rec
+            (fn (current count remaining acc)
+              (if (null? remaining)
+                  (reverse (cons (cons count current) acc))
+                  (if (equal? current (car remaining))
+                      (rle-rec current (+ count 1) (cdr remaining) acc)
+                      (rle-rec (car remaining) 1 (cdr remaining)
+                               (cons (cons count current) acc))))))
+          (car lst) 1 (cdr lst) '()))))
+
+   ; run-length-decode: Decode run-length encoding
+   (run-length-decode (fn (encoded)
+     (apply append
+       (map (fn (pair) (replicate (car pair) (cdr pair))) encoded))))
+
+   ; ============================================
+   ; Zipper Data Structure (List Zipper)
+   ; ============================================
+
+   ; zipper-make: Create zipper from list (focus on first element)
+   (zipper-make (fn (lst)
+     (if (null? lst)
+         (list '() '() '())  ; (left focus right)
+         (list '() (car lst) (cdr lst)))))
+
+   ; zipper-left: Elements to the left (reversed)
+   (zipper-left (fn (z) (car z)))
+
+   ; zipper-focus: Current focused element
+   (zipper-focus (fn (z) (cadr z)))
+
+   ; zipper-right: Elements to the right
+   (zipper-right (fn (z) (caddr z)))
+
+   ; zipper-move-left: Move focus one position left
+   (zipper-move-left (fn (z)
+     (if (null? (zipper-left z))
+         z  ; Can't move left
+         (list (cdr (zipper-left z))
+               (car (zipper-left z))
+               (cons (zipper-focus z) (zipper-right z))))))
+
+   ; zipper-move-right: Move focus one position right
+   (zipper-move-right (fn (z)
+     (if (null? (zipper-right z))
+         z  ; Can't move right
+         (list (cons (zipper-focus z) (zipper-left z))
+               (car (zipper-right z))
+               (cdr (zipper-right z))))))
+
+   ; zipper-set: Set focused element
+   (zipper-set (fn (val z)
+     (list (zipper-left z) val (zipper-right z))))
+
+   ; zipper-modify: Modify focused element with function
+   (zipper-modify (fn (f z)
+     (zipper-set (f (zipper-focus z)) z)))
+
+   ; zipper-insert-left: Insert element to the left of focus
+   (zipper-insert-left (fn (val z)
+     (list (cons val (zipper-left z)) (zipper-focus z) (zipper-right z))))
+
+   ; zipper-insert-right: Insert element to the right of focus
+   (zipper-insert-right (fn (val z)
+     (list (zipper-left z) (zipper-focus z) (cons val (zipper-right z)))))
+
+   ; zipper-delete: Delete focused element (focus moves right, or left if at end)
+   (zipper-delete (fn (z)
+     (if (not (null? (zipper-right z)))
+         (list (zipper-left z) (car (zipper-right z)) (cdr (zipper-right z)))
+         (if (not (null? (zipper-left z)))
+             (list (cdr (zipper-left z)) (car (zipper-left z)) '())
+             (list '() '() '())))))
+
+   ; zipper-to-list: Convert zipper back to list
+   (zipper-to-list (fn (z)
+     (append (reverse (zipper-left z)) (cons (zipper-focus z) (zipper-right z)))))
+
+   ; zipper-start: Move to start of list
+   (zipper-start (fn (z)
+     (zipper-make (zipper-to-list z))))
+
+   ; zipper-end: Move to end of list
+   (zipper-end (fn (z)
+     ((fix move-rec
+        (fn (zp)
+          (if (null? (zipper-right zp))
+              zp
+              (move-rec (zipper-move-right zp)))))
+      z)))
+
+   ; zipper-find: Move to first element matching predicate
+   (zipper-find (fn (pred z)
+     (let ((z-start (zipper-start z)))
+       ((fix find-rec
+          (fn (zp)
+            (if (pred (zipper-focus zp))
+                zp
+                (if (null? (zipper-right zp))
+                    #f
+                    (find-rec (zipper-move-right zp))))))
+        z-start))))
+
+   ; ============================================
+   ; Validation and Result Types
+   ; ============================================
+
+   ; validation-ok: Create success value
+   (validation-ok (fn (val) (list 'ok val)))
+
+   ; validation-err: Create error value
+   (validation-err (fn (err) (list 'err err)))
+
+   ; validation-ok?: Check if validation succeeded
+   (validation-ok? (fn (v) (eq? (car v) 'ok)))
+
+   ; validation-err?: Check if validation failed
+   (validation-err? (fn (v) (eq? (car v) 'err)))
+
+   ; validation-value: Get the wrapped value (ok or err)
+   (validation-value cadr)
+
+   ; validation-map: Map over successful value
+   (validation-map (fn (f v)
+     (if (validation-ok? v)
+         (validation-ok (f (validation-value v)))
+         v)))
+
+   ; validation-map-err: Map over error value
+   (validation-map-err (fn (f v)
+     (if (validation-err? v)
+         (validation-err (f (validation-value v)))
+         v)))
+
+   ; validation-bind: Monadic bind for validation
+   (validation-bind (fn (f v)
+     (if (validation-ok? v)
+         (f (validation-value v))
+         v)))
+
+   ; validation-ap: Applicative apply (accumulates errors)
+   (validation-ap (fn (vf va)
+     (if (validation-ok? vf)
+         (if (validation-ok? va)
+             (validation-ok ((validation-value vf) (validation-value va)))
+             va)
+         (if (validation-ok? va)
+             vf
+             (validation-err (append (validation-value vf) (validation-value va)))))))
+
+   ; validate-all: Run all validations, collecting errors
+   (validate-all (fn (validations)
+     (foldl (fn (acc v)
+              (if (validation-ok? acc)
+                  (if (validation-ok? v)
+                      (validation-ok (cons (validation-value v) (validation-value acc)))
+                      v)
+                  (if (validation-ok? v)
+                      acc
+                      (validation-err (append (validation-value acc) (validation-value v))))))
+            (validation-ok '())
+            validations)))
+
+   ; validate-when: Conditional validation
+   (validate-when (fn (pred err-msg val)
+     (if (pred val)
+         (validation-ok val)
+         (validation-err (list err-msg)))))
+
+   ; validate-not-null: Validate value is not null/nil
+   (validate-not-null (fn (err-msg val)
+     (if (null? val)
+         (validation-err (list err-msg))
+         (validation-ok val))))
+
+   ; validate-positive: Validate number is positive
+   (validate-positive (fn (err-msg val)
+     (if (> val 0)
+         (validation-ok val)
+         (validation-err (list err-msg)))))
+
+   ; validate-in-range: Validate number is in range
+   (validate-in-range (fn (lo hi err-msg val)
+     (if (and (>= val lo) (<= val hi))
+         (validation-ok val)
+         (validation-err (list err-msg)))))
+
+   ; validate-non-empty: Validate list/string is non-empty
+   (validate-non-empty (fn (err-msg val)
+     (if (or (null? val) (and (string? val) (string-null? val)))
+         (validation-err (list err-msg))
+         (validation-ok val))))
+
+   ; ============================================
+   ; Lens/Optics Utilities
+   ; ============================================
+
+   ; make-lens: Create a lens from getter and setter
+   (make-lens (fn (getter setter)
+     (list 'lens getter setter)))
+
+   ; lens-get: Get value through lens
+   (lens-get (fn (lens obj)
+     ((cadr lens) obj)))
+
+   ; lens-set: Set value through lens
+   (lens-set (fn (lens val obj)
+     ((caddr lens) val obj)))
+
+   ; lens-over: Modify value through lens
+   (lens-over (fn (lens f obj)
+     (lens-set lens (f (lens-get lens obj)) obj)))
+
+   ; lens-compose: Compose two lenses
+   (lens-compose (fn (outer inner)
+     (make-lens
+       (fn (obj) (lens-get inner (lens-get outer obj)))
+       (fn (val obj)
+         (lens-over outer (fn (inner-obj) (lens-set inner val inner-obj)) obj)))))
+
+   ; List lenses
+
+   ; lens-head: Lens for list head
+   (lens-head (make-lens
+     car
+     (fn (val lst) (cons val (cdr lst)))))
+
+   ; lens-tail: Lens for list tail
+   (lens-tail (make-lens
+     cdr
+     (fn (val lst) (cons (car lst) val))))
+
+   ; lens-nth: Create lens for nth element
+   (lens-nth (fn (n)
+     (make-lens
+       (fn (lst) (list-ref lst n))
+       (fn (val lst)
+         (append (take lst n) (cons val (drop lst (+ n 1))))))))
+
+   ; Pair lenses
+
+   ; lens-fst: Lens for first element of pair
+   (lens-fst (make-lens
+     car
+     (fn (val pair) (cons val (cdr pair)))))
+
+   ; lens-snd: Lens for second element of pair
+   (lens-snd (make-lens
+     cdr
+     (fn (val pair) (cons (car pair) val))))
+
+   ; Alist lenses
+
+   ; lens-key: Create lens for alist key
+   (lens-key (fn (key default)
+     (make-lens
+       (fn (alist) (alist-ref key alist default))
+       (fn (val alist) (alist-set key val alist)))))
+
+   ; ============================================
+   ; Additional Numeric Utilities
+   ; ============================================
+
+   ; clamp: Clamp value to range [lo, hi]
+   (clamp (fn (lo hi val)
+     (max lo (min hi val))))
+
+   ; lerp: Linear interpolation
+   (lerp (fn (a b t)
+     (+ a (* t (- b a)))))
+
+   ; inverse-lerp: Inverse of lerp
+   (inverse-lerp (fn (a b val)
+     (/ (- val a) (- b a))))
+
+   ; remap: Remap value from one range to another
+   (remap (fn (in-lo in-hi out-lo out-hi val)
+     (lerp out-lo out-hi (inverse-lerp in-lo in-hi val))))
+
+   ; sign: Return sign of number (-1, 0, or 1)
+   (sign (fn (x)
+     (if (< x 0) -1 (if (> x 0) 1 0))))
+
+   ; step: Step function (0 if x < edge, 1 otherwise)
+   (step (fn (edge x)
+     (if (< x edge) 0 1)))
+
+   ; smoothstep: Smooth step function
+   (smoothstep (fn (edge0 edge1 x)
+     (let ((t (clamp 0 1 (inverse-lerp edge0 edge1 x))))
+       (* t t (- 3 (* 2 t))))))
+
+   ; wrap: Wrap value to range [lo, hi)
+   (wrap (fn (lo hi val)
+     (let ((range (- hi lo)))
+       (+ lo (mod (- val lo) range)))))
+
+   ; ping-pong: Ping-pong value between 0 and length
+   (ping-pong (fn (length val)
+     (let ((t (mod val (* 2 length))))
+       (if (< t length) t (- (* 2 length) t)))))
+
+   ; ============================================
+   ; Statistics Utilities
+   ; ============================================
+
+   ; mean: Calculate arithmetic mean
+   (mean (fn (lst)
+     (if (null? lst)
+         0
+         (/ (sum-list lst) (length lst)))))
+
+   ; variance: Calculate population variance
+   (variance (fn (lst)
+     (if (null? lst)
+         0
+         (let ((m (mean lst)))
+           (mean (map (fn (x) (* (- x m) (- x m))) lst))))))
+
+   ; std-dev: Calculate population standard deviation
+   (std-dev (fn (lst)
+     (sqrt (variance lst))))
+
+   ; median: Calculate median
+   (median (fn (lst)
+     (if (null? lst)
+         0
+         (let ((sorted (sort lst))
+               (n (length lst)))
+           (if (odd? n)
+               (list-ref sorted (quotient n 2))
+               (/ (+ (list-ref sorted (- (quotient n 2) 1))
+                     (list-ref sorted (quotient n 2)))
+                  2))))))
+
+   ; mode: Find most common element(s)
+   (mode (fn (lst)
+     (if (null? lst)
+         '()
+         (let ((freqs (frequencies lst)))
+           (let ((max-count (maximum (map cdr freqs))))
+             (map car (filter (fn (p) (= (cdr p) max-count)) freqs)))))))
+
+   ; range-stat: Calculate range (max - min)
+   (range-stat (fn (lst)
+     (if (null? lst)
+         0
+         (- (maximum lst) (minimum lst)))))
+
+   ; percentile: Calculate nth percentile
+   (percentile (fn (n lst)
+     (if (null? lst)
+         0
+         (let ((sorted (sort lst))
+               (k (/ (* n (- (length lst) 1)) 100)))
+           (let ((floor-k (floor k))
+                 (ceil-k (ceiling k)))
+             (if (= floor-k ceil-k)
+                 (list-ref sorted floor-k)
+                 (lerp (list-ref sorted floor-k)
+                       (list-ref sorted ceil-k)
+                       (- k floor-k))))))))
+
+   ; quartiles: Calculate Q1, Q2 (median), Q3
+   (quartiles (fn (lst)
+     (list (percentile 25 lst)
+           (percentile 50 lst)
+           (percentile 75 lst))))
+
+   ; correlation: Pearson correlation coefficient
+   (correlation (fn (xs ys)
+     (if (or (null? xs) (null? ys))
+         0
+         (let ((n (length xs))
+               (mx (mean xs))
+               (my (mean ys))
+               (sx (std-dev xs))
+               (sy (std-dev ys)))
+           (if (or (= sx 0) (= sy 0))
+               0
+               (/ (mean (zip-with (fn (x y) (* (- x mx) (- y my))) xs ys))
+                  (* sx sy)))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -11533,6 +12114,97 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'bag-union bag-union)
     (cons 'bag-intersection bag-intersection)
     (cons 'bag-sum bag-sum)
+    ; Random number generation
+    (cons 'make-rng make-rng)
+    (cons 'rng-next rng-next)
+    (cons 'rng-int rng-int)
+    (cons 'rng-range rng-range)
+    (cons 'rng-bool rng-bool)
+    (cons 'rng-choice rng-choice)
+    (cons 'rng-shuffle rng-shuffle)
+    (cons 'rng-sample rng-sample)
+    (cons 'rng-take rng-take)
+    ; Sequence utilities
+    (cons 'sliding-window sliding-window)
+    (cons 'chunks chunks)
+    (cons 'chunks-exact chunks-exact)
+    (cons 'interleave interleave)
+    (cons 'interleave-all interleave-all)
+    (cons 'rotate-left rotate-left)
+    (cons 'rotate-right rotate-right)
+    (cons 'frequencies frequencies)
+    (cons 'group-by group-by)
+    (cons 'partition-all partition-all)
+    (cons 'split-at-pred split-at-pred)
+    (cons 'split-when split-when)
+    (cons 'dedupe dedupe)
+    (cons 'dedupe-by dedupe-by)
+    (cons 'run-length-encode run-length-encode)
+    (cons 'run-length-decode run-length-decode)
+    ; Zipper
+    (cons 'zipper-make zipper-make)
+    (cons 'zipper-left zipper-left)
+    (cons 'zipper-focus zipper-focus)
+    (cons 'zipper-right zipper-right)
+    (cons 'zipper-move-left zipper-move-left)
+    (cons 'zipper-move-right zipper-move-right)
+    (cons 'zipper-set zipper-set)
+    (cons 'zipper-modify zipper-modify)
+    (cons 'zipper-insert-left zipper-insert-left)
+    (cons 'zipper-insert-right zipper-insert-right)
+    (cons 'zipper-delete zipper-delete)
+    (cons 'zipper-to-list zipper-to-list)
+    (cons 'zipper-start zipper-start)
+    (cons 'zipper-end zipper-end)
+    (cons 'zipper-find zipper-find)
+    ; Validation
+    (cons 'validation-ok validation-ok)
+    (cons 'validation-err validation-err)
+    (cons 'validation-ok? validation-ok?)
+    (cons 'validation-err? validation-err?)
+    (cons 'validation-value validation-value)
+    (cons 'validation-map validation-map)
+    (cons 'validation-map-err validation-map-err)
+    (cons 'validation-bind validation-bind)
+    (cons 'validation-ap validation-ap)
+    (cons 'validate-all validate-all)
+    (cons 'validate-when validate-when)
+    (cons 'validate-not-null validate-not-null)
+    (cons 'validate-positive validate-positive)
+    (cons 'validate-in-range validate-in-range)
+    (cons 'validate-non-empty validate-non-empty)
+    ; Lenses
+    (cons 'make-lens make-lens)
+    (cons 'lens-get lens-get)
+    (cons 'lens-set lens-set)
+    (cons 'lens-over lens-over)
+    (cons 'lens-compose lens-compose)
+    (cons 'lens-head lens-head)
+    (cons 'lens-tail lens-tail)
+    (cons 'lens-nth lens-nth)
+    (cons 'lens-fst lens-fst)
+    (cons 'lens-snd lens-snd)
+    (cons 'lens-key lens-key)
+    ; Numeric utilities
+    (cons 'clamp clamp)
+    (cons 'lerp lerp)
+    (cons 'inverse-lerp inverse-lerp)
+    (cons 'remap remap)
+    (cons 'sign sign)
+    (cons 'step step)
+    (cons 'smoothstep smoothstep)
+    (cons 'wrap wrap)
+    (cons 'ping-pong ping-pong)
+    ; Statistics
+    (cons 'mean mean)
+    (cons 'variance variance)
+    (cons 'std-dev std-dev)
+    (cons 'median median)
+    (cons 'mode mode)
+    (cons 'range-stat range-stat)
+    (cons 'percentile percentile)
+    (cons 'quartiles quartiles)
+    (cons 'correlation correlation)
 ))
 "#;
 
