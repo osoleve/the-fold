@@ -50,11 +50,13 @@ fn is_builtin_prim(name: &str) -> bool {
             | "symbol?" | "procedure?" | "char?" | "vector?" | "bytevector?"
             // List operations
             | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "memq"
-            | "list-ref" | "list->string" | "list->vec"
+            | "list-ref" | "list->string" | "list->vec" | "take" | "drop"
             // String operations
             | "string-append" | "string-length" | "string-ref" | "substring"
             | "string->list" | "string->number" | "string->symbol" | "string->utf8"
             | "string=?" | "string<?" | "string>?"
+            | "string-upcase" | "string-downcase" | "string-split"
+            | "string-trim" | "string-ltrim" | "string-rtrim" | "string-pad"
             // Vector operations
             | "vec-length" | "vec-ref" | "vec-make" | "vec->list"
             // Block operations

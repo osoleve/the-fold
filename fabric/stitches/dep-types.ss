@@ -45,15 +45,23 @@
 (define (sigma-type? t)
   (and (pair? t) (eq? (car t) 'Σ)))
 
+;;; vec-type? : Type → Boolean
+(define (vec-type? t)
+  (and (pair? t) (eq? (car t) 'Vec)))
+
+;;; matrix-type? : Type → Boolean
+(define (matrix-type? t)
+  (and (pair? t) (eq? (car t) 'Matrix)))
+
 ;;; universe-type? : Type → Boolean
 (define (universe-type? t)
   (or (eq? t 'Type)
       (and (pair? t) (eq? (car t) 'Type))))
 
 ;;; dep-type? : Type → Boolean
-;;; Is this a dependent type construct (Pi, Sigma, or Universe)?
+;;; Is this a dependent type construct (Pi, Sigma, Universe, Vec, or Matrix)?
 (define (dep-type? t)
-  (or (pi-type? t) (sigma-type? t) (universe-type? t)))
+  (or (pi-type? t) (sigma-type? t) (universe-type? t) (vec-type? t) (matrix-type? t)))
 
 ;;; ============================================================
 ;;; Pi Type Operations
@@ -373,6 +381,14 @@
         "Type"
         (string-append "Type" (number->string (universe-level t))))]
    
+   ;; Vec n A
+   [(vec-type? t)
+    (string-append "Vec(" (format "~a" (cadr t)) ", " (dep-type->string (caddr t)) ")")]
+   
+   ;; Matrix m n A
+   [(matrix-type? t)
+    (string-append "Matrix(" (format "~a" (cadr t)) "x" (format "~a" (caddr t)) ", " (dep-type->string (cadddr t)) ")")]
+   
    ;; Arrow type
    [(and (pair? t) (eq? (car t) '->))
     (string-append "("
@@ -410,6 +426,8 @@
    
    [(eq? (car t) 'Π) (pi-type-well-formed? t)]
    [(eq? (car t) 'Σ) (sigma-type-well-formed? t)]
+   [(eq? (car t) 'Vec) (and (= (length t) 3) (well-formed-dep-type? (caddr t)))]
+   [(eq? (car t) 'Matrix) (and (= (length t) 4) (well-formed-dep-type? (cadddr t)))]
    [(eq? (car t) 'Type) (and (= (length t) 2) (integer? (cadr t)) (>= (cadr t) 0))]
    
    ;; Delegate to base type? for other forms

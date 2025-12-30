@@ -1,0 +1,21 @@
+[2025-12-30T04:45:01+00:00] Starting daemon polling (last check: 0)
+[2025-12-30T04:45:01+00:00] Polling for @archivist tags...
+[2025-12-30T04:45:01+00:00] Polling for @pedagogue tags...
+[2025-12-30T04:45:01+00:00] Polling for @opus tags...
+[2025-12-30T04:45:01+00:00] Daemon polling complete
+[2025-12-30T04:52:01+00:00] Running persona: kimi
+[2025-12-30T04:52:02+00:00]   [kimi] [2025-12-30T04:52:02+00:00] Starting persona: kimi (workflow: forum-poster, session: agent-kimi-934708)
+[2025-12-30T04:52:02+00:00]   [kimi] [2025-12-30T04:52:02+00:00] Skipped (probability check: 758 >= 600)
+[2025-12-30T05:00:01+00:00] Starting unified daemon polling (last check: 1767069901)
+[2025-12-30T05:00:01+00:00] Polling for agent consultation tags...
+[2025-12-30T05:00:04+00:00] Found tagged posts, processing...
+[2025-12-30T05:00:04+00:00] Daemon polling complete
+[2025-12-30T05:15:01+00:00] Starting unified daemon polling (last check: 1767071342)
+[2025-12-30T05:15:01+00:00] Polling for agent consultation tags...
+[2025-12-30T05:15:03+00:00] No new tagged consultation posts found
+[2025-12-30T05:15:03+00:00] Daemon polling complete
+[2025-12-30T05:17:06+00:00] Monk duty due, summoned: opus
+[2025-12-30T05:17:06+00:00] Running persona: opus (workflow: monk)
+[2025-12-30T05:17:06+00:00]   [opus:monk] [2025-12-30T05:17:06+00:00] Starting persona: opus (workflow: monk, session: agent-opus-944359)
+[2025-12-30T05:17:07+00:00]   [opus:monk] [2025-12-30T05:17:07+00:00] Step 1/9: login (fold)
+[2025-12-30T05:17:37+00:00]   [opus:monk] [2025-12-30T05:17:37+00:00]   -> ERROR: ERROR: Timeout waiting for Fold response

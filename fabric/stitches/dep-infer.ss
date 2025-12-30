@@ -145,6 +145,14 @@
    [(eq? (car expr) '×)
     (dep-synth-product expr ctx)]
    
+   ;; Vec type: (Vec n A)
+   [(eq? (car expr) 'Vec)
+    (dep-synth-vec expr ctx)]
+   
+   ;; Matrix type: (Matrix m n A)
+   [(eq? (car expr) 'Matrix)
+    (dep-synth-matrix expr ctx)]
+   
    ;; Application
    [else
     (dep-synth-app expr ctx)]))
@@ -303,6 +311,40 @@
                          (if (not (universe-type? (cadr t-synth)))
                              `(error expected-type-got ,(cadr t-synth))
                              (loop (cdr ts)))))))))
+
+;;; ============================================================
+;;; Vec and Matrix Type Synthesis
+;;; ============================================================
+
+(define (dep-synth-vec expr ctx)
+  (if (not (= (length expr) 3))
+      `(error malformed-vec-type ,expr)
+      (let* ([n-expr (cadr expr)]
+             [A-expr (caddr expr)]
+             [n-check (dep-check n-expr 'Nat ctx)])
+            (if (not (eq? (car n-check) 'ok))
+                n-check
+                (let ([A-check (dep-check-type A-expr ctx)])
+                     (if (not (eq? (car A-check) 'ok))
+                         A-check
+                         `(ok Type)))))))
+
+(define (dep-synth-matrix expr ctx)
+  (if (not (= (length expr) 4))
+      `(error malformed-matrix-type ,expr)
+      (let* ([m-expr (cadr expr)]
+             [n-expr (caddr expr)]
+             [A-expr (cadddr expr)]
+             [m-check (dep-check m-expr 'Nat ctx)]
+             [n-check (if (eq? (car m-check) 'ok)
+                          (dep-check n-expr 'Nat ctx)
+                          m-check)])
+            (if (not (eq? (car n-check) 'ok))
+                n-check
+                (let ([A-check (dep-check-type A-expr ctx)])
+                     (if (not (eq? (car A-check) 'ok))
+                         A-check
+                         `(ok Type)))))))
 
 ;;; ============================================================
 ;;; Application Synthesis

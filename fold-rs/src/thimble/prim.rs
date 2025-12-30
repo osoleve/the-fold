@@ -1370,6 +1370,125 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                     .to_string(),
             ))
         }
+
+        // String utilities
+        "string-upcase" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("string-upcase expects 1 arg"));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.to_uppercase()))
+        }
+        "string-downcase" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("string-downcase expects 1 arg"));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.to_lowercase()))
+        }
+        "string-split" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("string-split expects 2 args"));
+            }
+            let s = expect_string(&args[0])?;
+            let delim = expect_string(&args[1])?;
+            let parts: Vec<Value> = s
+                .split(&delim)
+                .map(|part| Value::String(part.to_string()))
+                .collect();
+            Ok(list_from_values(&parts))
+        }
+        "string-trim" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("string-trim expects 1 arg"));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.trim().to_string()))
+        }
+        "string-ltrim" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("string-ltrim expects 1 arg"));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.trim_start().to_string()))
+        }
+        "string-rtrim" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("string-rtrim expects 1 arg"));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.trim_end().to_string()))
+        }
+        "string-pad" => {
+            if args.len() != 2 && args.len() != 3 {
+                return Err(EvalError::TypeMismatch("string-pad expects 2 or 3 args"));
+            }
+            let s = expect_string(&args[0])?;
+            let width = expect_usize(&args[1])?;
+            let pad_char = if args.len() == 3 {
+                expect_char(&args[2])?
+            } else {
+                ' '
+            };
+
+            if s.len() >= width {
+                Ok(Value::String(s))
+            } else {
+                let padding = pad_char.to_string().repeat(width - s.len());
+                Ok(Value::String(format!("{}{}", padding, s)))
+            }
+        }
+
+        // List utilities
+        "foldr" => {
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "foldr expects 3 args: (foldr f init lst)",
+                ));
+            }
+            // foldr requires calling a closure, which happens at eval time
+            // This would need special handling in the evaluator
+            Err(EvalError::TypeMismatch(
+                "foldr requires closure evaluation (not yet supported in Rust core)",
+            ))
+        }
+        "take" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("take expects 2 args"));
+            }
+            let n = expect_usize(&args[1])?;
+            let mut items = Vec::new();
+            let mut current = &args[0];
+            for _ in 0..n {
+                match current {
+                    Value::Nil => break,
+                    Value::Pair(head, tail) => {
+                        items.push(*head.clone());
+                        current = tail;
+                    }
+                    _ => return Err(EvalError::TypeMismatch("take expects a list")),
+                }
+            }
+            Ok(list_from_values(&items))
+        }
+        "drop" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("drop expects 2 args"));
+            }
+            let n = expect_usize(&args[1])?;
+            let mut current = &args[0];
+            for _ in 0..n {
+                match current {
+                    Value::Nil => return Ok(Value::Nil),
+                    Value::Pair(_, tail) => {
+                        current = tail;
+                    }
+                    _ => return Err(EvalError::TypeMismatch("drop expects a list")),
+                }
+            }
+            Ok(current.clone())
+        }
+
         _ => Err(EvalError::UnknownPrimitive(op.clone())),
     }
 }

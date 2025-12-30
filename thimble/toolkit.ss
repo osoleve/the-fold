@@ -20,6 +20,7 @@
 ;;; Set up source-directories
 (source-directories (cons "shell" (source-directories)))
 (source-directories (cons "fabric/stitches" (source-directories)))
+(source-directories (cons "thimble" (source-directories)))
 
 ;;; ============================================================
 ;;; Toolkit Registry
@@ -266,11 +267,6 @@
       '()
       (cons x (make-list-of (- n 1) x))))
 
-;;; fs : → FS
-;;; Get filesystem capability (placeholder - should be provided by environment)
-(define (fs)
-  (error 'toolkit "Filesystem capability not available. Load shell/fs.ss first."))
-
 ;;; ============================================================
 ;;; Initialization
 ;;; ============================================================
@@ -298,4 +294,4 @@
 
 ;; Auto-load essential tools
 (guard (e [else (void)])
-       (load "fs.ss"))
+       (load "thimble/fs.ss"))

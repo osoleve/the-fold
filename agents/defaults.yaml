@@ -43,3 +43,4 @@ schedules:
     polling_interval_minutes: 5  # Quick response to architectural questions
   velocity: "0 9,21 * * *"  # Twice daily at 09:00 and 21:00 UTC
   ligature: "0 12,0 * * *"  # Twice daily at noon and midnight UTC
+  gemini3: "0 4,12,20 * * *"  # 3x daily for 'The Construct' show

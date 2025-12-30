@@ -110,6 +110,9 @@ substitute_vars() {
         if echo "$output" | jq -e . >/dev/null 2>&1; then
             for field in action channel title body reasoning passed issues suggestions report_worthy tasks_to_run; do
                 local value=$(echo "$output" | jq -r ".$field // empty" 2>/dev/null || echo "")
+                # Escape for Scheme string: \ -> \\, " -> \"
+                value="${value//\\/\\\\}"
+                value="${value//\"/\\\"}"
                 text="${text//\$\{steps.$key.output.$field\}/$value}"
             done
         fi
@@ -197,14 +200,38 @@ $PROMPT"
             fi
 
             # Call LLM
-            OUTPUT=$(opencode run -m "$MODEL" --format json "$FULL_PROMPT" 2>/dev/null \
-                | jq -rs '[.[] | select(.type == "text")] | last | .part.text // empty')
+            if [[ "$MODEL" == gemini* || "$MODEL" == "default" ]]; then
+                # Use gemini CLI
+                gemini_args=("-o" "json" "--approval-mode" "yolo")
+                if [[ "$MODEL" != "default" ]]; then
+                    gemini_args+=("-m" "$MODEL")
+                fi
+                
+                # gemini CLI output is a JSON object with 'response' field containing the text
+                # Note: we use --approval-mode yolo to avoid interactive prompts
+                # Redirect stderr to a temp file for debugging
+                err_log=$(mktemp)
+                RAW_OUTPUT=$(gemini "${gemini_args[@]}" "$FULL_PROMPT" 2>"$err_log" || true)
+                echo "$RAW_OUTPUT" > "$STATE_DIR/raw-gemini-output.json"
+                if [[ -z "$RAW_OUTPUT" ]]; then
+                    log "  -> gemini CLI failed. Stderr:"
+                    cat "$err_log" >&2
+                    rm -f "$err_log"
+                    exit 1
+                fi
+                rm -f "$err_log"
+                OUTPUT=$(echo "$RAW_OUTPUT" | jq -r '.response // empty')
+            else
+                # Fallback to opencode
+                OUTPUT=$(opencode run -m "$MODEL" --format json "$FULL_PROMPT" 2>/dev/null \
+                    | jq -rs '[.[] | select(.type == "text")] | last | .part.text // empty')
+            fi
 
             # Extract JSON from markdown code blocks if present
-            if [[ "$OUTPUT" == *'```json'* ]]; then
-                OUTPUT=$(echo "$OUTPUT" | sed -n '/```json/,/```/p' | sed '1d;$d')
-            elif [[ "$OUTPUT" == *'```'* ]]; then
-                OUTPUT=$(echo "$OUTPUT" | sed -n '/```/,/```/p' | sed '1d;$d')
+            # We check the first line. If it starts with ```, we strip it and the last line.
+            # This is safer than range matching which breaks on nested code blocks.
+            if [[ "$OUTPUT" == \`\`\`* ]]; then
+                OUTPUT=$(echo "$OUTPUT" | sed '1d;$d')
             fi
 
             STEP_OUTPUTS[$STEP_NAME]="$OUTPUT"

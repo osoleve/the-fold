@@ -96,8 +96,31 @@
 (define (V-pair? v)
   (and (pair? v) (eq? (car v) 'V-pair)))
 
-(define (V-pair-fst v) (cadr v))
+;;; V-pair-fst v) (cadr v))
 (define (V-pair-snd v) (caddr v))
+
+;;; V-vec : Value × Value → Value
+;;; A length-indexed vector type: (Vec n A).
+(define (V-vec n A)
+  `(V-vec ,n ,A))
+
+(define (V-vec? v)
+  (and (pair? v) (eq? (car v) 'V-vec)))
+
+(define (V-vec-n v) (cadr v))
+(define (V-vec-A v) (caddr v))
+
+;;; V-matrix : Value × Value × Value → Value
+;;; A dimension-indexed matrix type: (Matrix m n A).
+(define (V-matrix m n A)
+  `(V-matrix ,m ,n ,A))
+
+(define (V-matrix? v)
+  (and (pair? v) (eq? (car v) 'V-matrix)))
+
+(define (V-matrix-m v) (cadr v))
+(define (V-matrix-n v) (caddr v))
+(define (V-matrix-A v) (cadddr v))
 
 ;;; V-neutral : Neutral → Value
 ;;; A stuck computation that cannot reduce further.
@@ -279,6 +302,19 @@
            [snd-type-clo (make-closure var snd-type-expr env)])
           (V-sigma fst-type-val snd-type-clo))]
    
+   ;; Vector type: (Vec n A)
+   [(eq? (car expr) 'Vec)
+    (let ([n (nbe-eval (cadr expr) env)]
+          [A (nbe-eval (caddr expr) env)])
+         (V-vec n A))]
+   
+   ;; Matrix type: (Matrix m n A)
+   [(eq? (car expr) 'Matrix)
+    (let ([m (nbe-eval (cadr expr) env)]
+          [n (nbe-eval (caddr expr) env)]
+          [A (nbe-eval (cadddr expr) env)])
+         (V-matrix m n A))]
+   
    ;; Pair: (pair a b)
    [(eq? (car expr) 'pair)
     (let ([fst (nbe-eval (cadr expr) env)]
@@ -422,6 +458,15 @@
               ;; Non-dependent: use product syntax
               `(× ,fst-type-nf ,snd-type-nf)))]
    
+   [(V-vec? val)
+    `(Vec ,(readback (V-vec-n val) level)
+      ,(readback (V-vec-A val) level))]
+   
+   [(V-matrix? val)
+    `(Matrix ,(readback (V-matrix-m val) level)
+      ,(readback (V-matrix-n val) level)
+      ,(readback (V-matrix-A val) level))]
+   
    [(V-type? val)
     (let ([n (V-type-level val)])
          (if (= n 0) 'Type `(Type ,n)))]
@@ -549,6 +594,17 @@
    ;; Universe types: compare levels
    [(and (V-type? v1) (V-type? v2))
     (= (V-type-level v1) (V-type-level v2))]
+   
+   ;; Vec types: compare length and element type
+   [(and (V-vec? v1) (V-vec? v2))
+    (and (convert? (V-vec-n v1) (V-vec-n v2) level)
+         (convert? (V-vec-A v1) (V-vec-A v2) level))]
+   
+   ;; Matrix types: compare dimensions and element type
+   [(and (V-matrix? v1) (V-matrix? v2))
+    (and (convert? (V-matrix-m v1) (V-matrix-m v2) level)
+         (convert? (V-matrix-n v1) (V-matrix-n v2) level)
+         (convert? (V-matrix-A v1) (V-matrix-A v2) level))]
    
    ;; Pairs: η-expand and compare components
    [(and (V-pair? v1) (V-pair? v2))

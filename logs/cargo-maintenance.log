@@ -10,3 +10,15 @@
 [2025-12-29 02:00:01] ERROR: cargo update failed
 [2025-12-29 02:00:01] Rust maintenance tasks completed
 ----------------------------------------
+[2025-12-30 02:00:01] Starting Rust maintenance tasks
+[2025-12-30 02:00:01] Running cargo udeps...
+/home/oso/the-fold/ops/scripts/rust-maintenance.sh: line 27: cargo: command not found
+[2025-12-30 02:00:01] ERROR: cargo udeps failed
+[2025-12-30 02:00:01] Running cargo audit...
+/home/oso/the-fold/ops/scripts/rust-maintenance.sh: line 35: cargo: command not found
+[2025-12-30 02:00:01] ERROR: cargo audit failed
+[2025-12-30 02:00:01] Running cargo update...
+/home/oso/the-fold/ops/scripts/rust-maintenance.sh: line 43: cargo: command not found
+[2025-12-30 02:00:01] ERROR: cargo update failed
+[2025-12-30 02:00:01] Rust maintenance tasks completed
+----------------------------------------
