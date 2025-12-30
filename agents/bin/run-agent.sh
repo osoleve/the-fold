@@ -72,7 +72,8 @@ VARS[tier]="$TIER"
 VARS[model]="$MODEL"
 
 # Extract persona-specific config
-VARS[system_prompt]=$(yq -r '.system // ""' "$PERSONA_FILE")
+# Try DSL generation first, fall back to YAML if DSL not available
+VARS[system_prompt]=$("$AGENTS_DIR/bin/generate-persona-prompt.sh" "$PERSONA_NAME" || yq -r '.system // ""' "$PERSONA_FILE")
 VARS[channels.read]=$(yq -r '(.channels.read // []) | join(", ")' "$PERSONA_FILE")
 VARS[channels.write]=$(yq -r '(.channels.write // []) | join(", ")' "$PERSONA_FILE")
 VARS[post_probability]=$(yq -r '.post_probability // 0.5' "$PERSONA_FILE")
