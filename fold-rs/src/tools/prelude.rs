@@ -5475,6 +5475,318 @@ pub const PRELUDE_SOURCE: &str = r#"
                 (cons new-key (cdr pair))
                 pair))
           alist)))
+
+   ; ============================================
+   ; Mathematical Utilities
+   ; ============================================
+
+   ; factorial: Compute n!
+   (factorial (fn (n)
+     (let ((fact (fix fact
+             (fn (n acc)
+               (if (<= n 1)
+                   acc
+                   (fact (- n 1) (* n acc)))))))
+       (fact n 1))))
+
+   ; fibonacci: Compute nth Fibonacci number
+   (fibonacci (fn (n)
+     (let ((fib (fix fib
+             (fn (n a b)
+               (if (<= n 0)
+                   a
+                   (fib (- n 1) b (+ a b)))))))
+       (fib n 0 1))))
+
+   ; prime?: Check if number is prime
+   (prime? (fn (n)
+     (if (<= n 1)
+         #f
+         (if (<= n 3)
+             #t
+             (if (or (= 0 (mod n 2)) (= 0 (mod n 3)))
+                 #f
+                 (let ((check (fix check
+                         (fn (i)
+                           (if (> (* i i) n)
+                               #t
+                               (if (or (= 0 (mod n i)) (= 0 (mod n (+ i 2))))
+                                   #f
+                                   (check (+ i 6))))))))
+                   (check 5)))))))
+
+   ; divisors: Get all divisors of n
+   (divisors (fn (n)
+     (let ((find-divs (fix find-divs
+             (fn (i acc)
+               (if (> (* i i) n)
+                   acc
+                   (if (= 0 (mod n i))
+                       (if (= i (/ n i))
+                           (find-divs (+ i 1) (cons i acc))
+                           (find-divs (+ i 1) (cons (/ n i) (cons i acc))))
+                       (find-divs (+ i 1) acc)))))))
+       (sort (find-divs 1 '())))))
+
+   ; sum-range: Sum of integers from a to b
+   (sum-range (fn (a b)
+     (* (/ (+ (- b a) 1) 2) (+ a b))))
+
+   ; product-range: Product of integers from a to b
+   (product-range (fn (a b)
+     (let ((prod (fix prod
+             (fn (i acc)
+               (if (> i b)
+                   acc
+                   (prod (+ i 1) (* acc i)))))))
+       (prod a 1))))
+
+   ; binomial: Binomial coefficient (n choose k)
+   (binomial (fn (n k)
+     (if (or (< k 0) (> k n))
+         0
+         (if (or (= k 0) (= k n))
+             1
+             (/ (product-range (+ (- n k) 1) n) (factorial k))))))
+
+   ; ============================================
+   ; More List Utilities
+   ; ============================================
+
+   ; scanr: Right-to-left scan
+   (scanr (fn (f init lst)
+     (if (null? lst)
+         (list init)
+         (let ((rest (scanr f init (cdr lst))))
+           (cons (f (car lst) (car rest)) rest)))))
+
+   ; reduce: Like foldl but uses first element as initial value
+   (reduce (fn (f lst)
+     (if (null? lst)
+         '()
+         (foldl f (car lst) (cdr lst)))))
+
+   ; reduce-right: Like foldr but uses last element as initial value
+   (reduce-right (fn (f lst)
+     (if (null? lst)
+         '()
+         (let ((rev (reverse lst)))
+           (foldr f (car rev) (cdr rev))))))
+
+   ; find-last: Find last element satisfying predicate
+   (find-last (fn (p lst)
+     (foldl (fn (acc x) (if (p x) x acc)) #f lst)))
+
+   ; index-where: Find index of first element satisfying predicate
+   (index-where (fn (p lst)
+     (let ((finder (fix finder
+             (fn (lst i)
+               (if (null? lst)
+                   -1
+                   (if (p (car lst))
+                       i
+                       (finder (cdr lst) (+ i 1))))))))
+       (finder lst 0))))
+
+   ; last-index-where: Find index of last element satisfying predicate
+   (last-index-where (fn (p lst)
+     (let ((finder (fix finder
+             (fn (lst i last-found)
+               (if (null? lst)
+                   last-found
+                   (finder (cdr lst) (+ i 1) (if (p (car lst)) i last-found)))))))
+       (finder lst 0 -1))))
+
+   ; indices-where: Find all indices satisfying predicate
+   (indices-where (fn (p lst)
+     (let ((finder (fix finder
+             (fn (lst i acc)
+               (if (null? lst)
+                   (reverse acc)
+                   (finder (cdr lst) (+ i 1)
+                           (if (p (car lst)) (cons i acc) acc)))))))
+       (finder lst 0 '()))))
+
+   ; take-last: Take last n elements
+   (take-last (fn (n lst)
+     (let ((len (length lst)))
+       (if (<= n 0)
+           '()
+           (drop lst (max 0 (- len n)))))))
+
+   ; drop-last: Drop last n elements
+   (drop-last (fn (n lst)
+     (let ((len (length lst)))
+       (if (<= n 0)
+           lst
+           (take lst (max 0 (- len n)))))))
+
+   ; insert-at: Insert element at index
+   (insert-at (fn (idx elem lst)
+     (if (<= idx 0)
+         (cons elem lst)
+         (if (null? lst)
+             (list elem)
+             (cons (car lst) (insert-at (- idx 1) elem (cdr lst)))))))
+
+   ; remove-at: Remove element at index
+   (remove-at (fn (idx lst)
+     (if (null? lst)
+         '()
+         (if (= idx 0)
+             (cdr lst)
+             (cons (car lst) (remove-at (- idx 1) (cdr lst)))))))
+
+   ; update-at: Update element at index
+   (update-at (fn (idx f lst)
+     (if (null? lst)
+         '()
+         (if (= idx 0)
+             (cons (f (car lst)) (cdr lst))
+             (cons (car lst) (update-at (- idx 1) f (cdr lst)))))))
+
+   ; set-at: Set element at index
+   (set-at (fn (idx val lst)
+     (update-at idx (const val) lst)))
+
+   ; rotate-left: Rotate list left by n positions
+   (rotate-left (fn (n lst)
+     (if (or (null? lst) (<= n 0))
+         lst
+         (let ((len (length lst)))
+           (let ((n-mod (mod n len)))
+             (append (drop lst n-mod) (take lst n-mod)))))))
+
+   ; rotate-right: Rotate list right by n positions
+   (rotate-right (fn (n lst)
+     (if (or (null? lst) (<= n 0))
+         lst
+         (rotate-left (- (length lst) (mod n (length lst))) lst))))
+
+   ; ============================================
+   ; String Utilities (Extended)
+   ; ============================================
+
+   ; string-repeat: Repeat string n times
+   (string-repeat (fn (s n)
+     (let ((builder (fix builder
+             (fn (i acc)
+               (if (<= i 0)
+                   acc
+                   (builder (- i 1) (string-append acc s)))))))
+       (builder n ""))))
+
+   ; string-reverse: Reverse a string
+   (string-reverse (fn (s)
+     (list->string (reverse (string->list s)))))
+
+   ; string-take: Take first n characters
+   (string-take (fn (s n)
+     (substring s 0 (min n (string-length s)))))
+
+   ; string-drop: Drop first n characters
+   (string-drop (fn (s n)
+     (let ((len (string-length s)))
+       (if (>= n len)
+           ""
+           (substring s n len)))))
+
+   ; string-take-right: Take last n characters
+   (string-take-right (fn (s n)
+     (let ((len (string-length s)))
+       (if (>= n len)
+           s
+           (substring s (- len n) len)))))
+
+   ; string-drop-right: Drop last n characters
+   (string-drop-right (fn (s n)
+     (let ((len (string-length s)))
+       (if (>= n len)
+           ""
+           (substring s 0 (- len n))))))
+
+   ; string-trim-left: Remove leading whitespace
+   (string-trim-left (fn (s)
+     (let ((chars (string->list s)))
+       (let ((trimmer (fix trimmer
+               (fn (lst)
+                 (if (null? lst)
+                     '()
+                     (if (or (eq? (car lst) #\space)
+                             (eq? (car lst) #\tab)
+                             (eq? (car lst) #\newline))
+                         (trimmer (cdr lst))
+                         lst))))))
+         (list->string (trimmer chars))))))
+
+   ; string-trim-right: Remove trailing whitespace
+   (string-trim-right (fn (s)
+     (string-reverse (string-trim-left (string-reverse s)))))
+
+   ; string-trim: Remove leading and trailing whitespace
+   (string-trim (fn (s)
+     (string-trim-left (string-trim-right s))))
+
+   ; string-empty?: Check if string is empty
+   (string-empty? (fn (s)
+     (= (string-length s) 0)))
+
+   ; string-blank?: Check if string is empty or only whitespace
+   (string-blank? (fn (s)
+     (string-empty? (string-trim s))))
+
+   ; ============================================
+   ; Control Flow (Extended)
+   ; ============================================
+
+   ; unless: Opposite of when
+   (unless (fn (condition body)
+     (if condition '() body)))
+
+   ; when-let: Execute body if value is truthy, binding value
+   (when-let (fn (val body-fn)
+     (if val (body-fn val) '())))
+
+   ; cond-result: Evaluate conditions, return first truthy result
+   (cond-result (fn (pairs)
+     (if (null? pairs)
+         #f
+         (let ((result ((car (car pairs)))))
+           (if result
+               ((cdr (car pairs)) result)
+               (cond-result (cdr pairs)))))))
+
+   ; ============================================
+   ; Comparison Utilities
+   ; ============================================
+
+   ; clamp: Clamp value to range
+   (clamp-val (fn (lo hi x)
+     (max lo (min hi x))))
+
+   ; between-exclusive?: Check if value is strictly between bounds
+   (between-exclusive? (fn (lo hi x)
+     (and (> x lo) (< x hi))))
+
+   ; approximately-equal?: Check if two numbers are approximately equal
+   (approximately-equal? (fn (a b epsilon)
+     (< (abs (- a b)) epsilon)))
+
+   ; compare: Three-way comparison returning -1, 0, or 1
+   (compare (fn (a b)
+     (if (< a b) -1 (if (> a b) 1 0))))
+
+   ; ============================================
+   ; Debugging Utilities
+   ; ============================================
+
+   ; tap: Execute side-effect and return value (useful for debugging)
+   (tap (fn (f x)
+     (block (f x) x)))
+
+   ; trace: Print value and return it
+   (trace (fn (label x)
+     (block (display label) (display ": ") (write x) (newline) x)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -6457,6 +6769,54 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'alist-select alist-select)
     (cons 'alist-reject alist-reject)
     (cons 'alist-rename-key alist-rename-key)
+    ; Mathematical utilities
+    (cons 'factorial factorial)
+    (cons 'fibonacci fibonacci)
+    (cons 'prime? prime?)
+    (cons 'divisors divisors)
+    (cons 'sum-range sum-range)
+    (cons 'product-range product-range)
+    (cons 'binomial binomial)
+    ; More list utilities
+    (cons 'scanr scanr)
+    (cons 'reduce reduce)
+    (cons 'reduce-right reduce-right)
+    (cons 'find-last find-last)
+    (cons 'index-where index-where)
+    (cons 'last-index-where last-index-where)
+    (cons 'indices-where indices-where)
+    (cons 'take-last take-last)
+    (cons 'drop-last drop-last)
+    (cons 'insert-at insert-at)
+    (cons 'remove-at remove-at)
+    (cons 'update-at update-at)
+    (cons 'set-at set-at)
+    (cons 'rotate-left rotate-left)
+    (cons 'rotate-right rotate-right)
+    ; Extended string utilities
+    (cons 'string-repeat string-repeat)
+    (cons 'string-reverse string-reverse)
+    (cons 'string-take string-take)
+    (cons 'string-drop string-drop)
+    (cons 'string-take-right string-take-right)
+    (cons 'string-drop-right string-drop-right)
+    (cons 'string-trim-left string-trim-left)
+    (cons 'string-trim-right string-trim-right)
+    (cons 'string-trim string-trim)
+    (cons 'string-empty? string-empty?)
+    (cons 'string-blank? string-blank?)
+    ; Control flow
+    (cons 'unless unless)
+    (cons 'when-let when-let)
+    (cons 'cond-result cond-result)
+    ; Comparison utilities
+    (cons 'clamp-val clamp-val)
+    (cons 'between-exclusive? between-exclusive?)
+    (cons 'approximately-equal? approximately-equal?)
+    (cons 'compare compare)
+    ; Debugging utilities
+    (cons 'tap tap)
+    (cons 'trace trace)
 ))
 "#;
 
