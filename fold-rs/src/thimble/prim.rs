@@ -286,12 +286,150 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 Value::Number(remainder),
             ]))
         }
+        // Interpolation and scaling utilities
+        "lerp" => {
+            // Linear interpolation: (lerp a b t) = a + (b - a) * t
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch("lerp expects 3 args: (lerp a b t)"));
+            }
+            let a = expect_number(&args[0])?.as_f64();
+            let b = expect_number(&args[1])?.as_f64();
+            let t = expect_number(&args[2])?.as_f64();
+            Ok(Value::Float(a + (b - a) * t))
+        }
+        "inverse-lerp" => {
+            // Inverse linear interpolation: find t given a, b, and value
+            // (inverse-lerp a b v) = (v - a) / (b - a)
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "inverse-lerp expects 3 args: (inverse-lerp a b value)",
+                ));
+            }
+            let a = expect_number(&args[0])?.as_f64();
+            let b = expect_number(&args[1])?.as_f64();
+            let v = expect_number(&args[2])?.as_f64();
+            if (b - a).abs() < 1e-10 {
+                return Err(EvalError::DivisionByZero);
+            }
+            Ok(Value::Float((v - a) / (b - a)))
+        }
+        "scale" => {
+            // Scale value from one range to another
+            // (scale v in-min in-max out-min out-max)
+            if args.len() != 5 {
+                return Err(EvalError::TypeMismatch(
+                    "scale expects 5 args: (scale v in-min in-max out-min out-max)",
+                ));
+            }
+            let v = expect_number(&args[0])?.as_f64();
+            let in_min = expect_number(&args[1])?.as_f64();
+            let in_max = expect_number(&args[2])?.as_f64();
+            let out_min = expect_number(&args[3])?.as_f64();
+            let out_max = expect_number(&args[4])?.as_f64();
+            if (in_max - in_min).abs() < 1e-10 {
+                return Err(EvalError::DivisionByZero);
+            }
+            let t = (v - in_min) / (in_max - in_min);
+            Ok(Value::Float(out_min + (out_max - out_min) * t))
+        }
+        "smoothstep" => {
+            // Smooth Hermite interpolation: (smoothstep edge0 edge1 x)
+            // Returns 0 if x < edge0, 1 if x > edge1, smooth curve otherwise
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "smoothstep expects 3 args: (smoothstep edge0 edge1 x)",
+                ));
+            }
+            let edge0 = expect_number(&args[0])?.as_f64();
+            let edge1 = expect_number(&args[1])?.as_f64();
+            let x = expect_number(&args[2])?.as_f64();
+            if (edge1 - edge0).abs() < 1e-10 {
+                return Ok(Value::Float(if x < edge0 { 0.0 } else { 1.0 }));
+            }
+            let t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0);
+            Ok(Value::Float(t * t * (3.0 - 2.0 * t)))
+        }
+        "denormalize" => {
+            // Denormalize: expand from [0,1] to [min,max]
+            // (denormalize t min max) = min + t * (max - min)
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "denormalize expects 3 args: (denormalize t min max)",
+                ));
+            }
+            let t = expect_number(&args[0])?.as_f64();
+            let min_val = expect_number(&args[1])?.as_f64();
+            let max_val = expect_number(&args[2])?.as_f64();
+            Ok(Value::Float(min_val + t * (max_val - min_val)))
+        }
+        "saturation-add" => {
+            // Add with saturation/clamping to range
+            // (saturation-add a b min max)
+            if args.len() != 4 {
+                return Err(EvalError::TypeMismatch(
+                    "saturation-add expects 4 args: (saturation-add a b min max)",
+                ));
+            }
+            let a = expect_number(&args[0])?.as_f64();
+            let b = expect_number(&args[1])?.as_f64();
+            let min_val = expect_number(&args[2])?.as_f64();
+            let max_val = expect_number(&args[3])?.as_f64();
+            let result = (a + b).clamp(min_val, max_val);
+            Ok(Value::Float(result))
+        }
+        "percent-of" => {
+            // Calculate percentage: (percent-of part whole) = part / whole * 100
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "percent-of expects 2 args: (percent-of part whole)",
+                ));
+            }
+            let part = expect_number(&args[0])?.as_f64();
+            let whole = expect_number(&args[1])?.as_f64();
+            if whole.abs() < 1e-10 {
+                return Err(EvalError::DivisionByZero);
+            }
+            Ok(Value::Float(part / whole * 100.0))
+        }
+        "percent-change" => {
+            // Calculate percentage change: (percent-change old new) = (new - old) / old * 100
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "percent-change expects 2 args: (percent-change old new)",
+                ));
+            }
+            let old_val = expect_number(&args[0])?.as_f64();
+            let new_val = expect_number(&args[1])?.as_f64();
+            if old_val.abs() < 1e-10 {
+                return Err(EvalError::DivisionByZero);
+            }
+            Ok(Value::Float((new_val - old_val) / old_val * 100.0))
+        }
+        "round-to" => {
+            // Round to specified decimal places: (round-to x places)
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "round-to expects 2 args: (round-to x places)",
+                ));
+            }
+            let x = expect_number(&args[0])?.as_f64();
+            let places = expect_integer(&args[1])?;
+            let factor = 10_f64.powi(places as i32);
+            Ok(Value::Float((x * factor).round() / factor))
+        }
         "log" => {
             if args.len() != 1 {
                 return Err(EvalError::TypeMismatch("log expects 1 arg"));
             }
             let n = expect_number(&args[0])?.as_f64();
             Ok(Value::Float(n.ln()))
+        }
+        "exp" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("exp expects 1 arg"));
+            }
+            let n = expect_number(&args[0])?.as_f64();
+            Ok(Value::Float(n.exp()))
         }
         "sin" => {
             if args.len() != 1 {
@@ -570,9 +708,9 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 }
             }
         }
-        "assq" => {
+        "assq" | "assoc" => {
             if args.len() != 2 {
-                return Err(EvalError::TypeMismatch("assq expects 2 args"));
+                return Err(EvalError::TypeMismatch("assq/assoc expects 2 args"));
             }
             let key = &args[0];
             let mut current = &args[1];
@@ -586,9 +724,9 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                             }
                             current = tail;
                         }
-                        _ => return Err(EvalError::TypeMismatch("assq expects alist")),
+                        _ => return Err(EvalError::TypeMismatch("assq/assoc expects alist")),
                     },
-                    _ => return Err(EvalError::TypeMismatch("assq expects alist")),
+                    _ => return Err(EvalError::TypeMismatch("assq/assoc expects alist")),
                 }
             }
         }
@@ -1588,6 +1726,28 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 The Rust daemon supports the core Fold language primitives."
                     .to_string(),
             ))
+        }
+        // IO primitives
+        "display" => {
+            // Print value without quotes (human-readable)
+            for arg in args {
+                print!("{}", value_to_display_string(arg));
+            }
+            Ok(Value::Nil)
+        }
+        "write" => {
+            // Print value with quotes (machine-readable)
+            for arg in args {
+                print!("{}", value_to_write_string(arg));
+            }
+            Ok(Value::Nil)
+        }
+        "newline" => {
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("newline expects 0 args"));
+            }
+            println!();
+            Ok(Value::Nil)
         }
 
         // String utilities
@@ -3945,17 +4105,6 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
 
             Ok(list_from_values(&values))
         }
-        "filter" => {
-            if args.len() != 2 {
-                return Err(EvalError::TypeMismatch(
-                    "filter expects 2 args: (filter pred lst)",
-                ));
-            }
-            // Note: filter requires closure evaluation - not supported at prim level
-            Err(EvalError::TypeMismatch(
-                "filter requires closure evaluation (not yet supported in Rust core)",
-            ))
-        }
 
         _ => Err(EvalError::UnknownPrimitive(op.clone())),
     }
@@ -4369,6 +4518,36 @@ fn value_to_display_string(value: &Value) -> String {
         Value::Pair(_, _) => {
             let items = list_to_vec(value).unwrap_or_default();
             let strs: Vec<String> = items.iter().map(value_to_display_string).collect();
+            format!("({})", strs.join(" "))
+        }
+        Value::Block(b) => format!("#<block:{}>", b.tag),
+        Value::Closure(_) => "#<fn>".to_string(),
+    }
+}
+
+fn value_to_write_string(value: &Value) -> String {
+    match value {
+        Value::Number(n) => n.to_string(),
+        Value::Float(f) => f.to_string(),
+        Value::String(s) => format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\"")),
+        Value::Symbol(s) => s.to_string(),
+        Value::Bool(b) => if *b { "#t" } else { "#f" }.to_string(),
+        Value::Nil => "()".to_string(),
+        Value::Char(c) => format!("#\\{}", c),
+        Value::BigInt(n) => n.to_string(),
+        Value::BigRational(r) => r.to_string(),
+        Value::Bytevector(bv) => {
+            let bytes: Vec<String> = bv.iter().map(|b| b.to_string()).collect();
+            format!("#u8({})", bytes.join(" "))
+        }
+        Value::Address(addr) => format!("#<addr:{}>", address_to_hex(addr)),
+        Value::Vector(items) => {
+            let strs: Vec<String> = items.iter().map(value_to_write_string).collect();
+            format!("#({})", strs.join(" "))
+        }
+        Value::Pair(_, _) => {
+            let items = list_to_vec(value).unwrap_or_default();
+            let strs: Vec<String> = items.iter().map(value_to_write_string).collect();
             format!("({})", strs.join(" "))
         }
         Value::Block(b) => format!("#<block:{}>", b.tag),

@@ -123,7 +123,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "list-indices" | "list-reverse-indices" | "list-length-of" | "list-split"
             | "list-repeat-element" | "list-cycle" | "list-intersperse"
             | "list-map-indexed" | "list-enumerate"
-            | "filter"
+            // Note: filter removed - requires closure evaluation, handled at evaluator level
             // String operations
             | "string-append" | "string-length" | "string-ref" | "substring"
             | "string->list" | "string->number" | "string->symbol" | "string->utf8"

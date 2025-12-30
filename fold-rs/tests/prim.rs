@@ -409,3 +409,131 @@ fn block_bytes_roundtrip() {
         other => panic!("expected block, got {:?}", other),
     }
 }
+
+#[test]
+fn math_utils() {
+    // exp
+    let e = prim("exp", &[Value::Number(1)]);
+    let e_val = expect_float(&e);
+    assert!((e_val - std::f64::consts::E).abs() < 1e-10);
+
+    // exp(0) = 1
+    let exp0 = prim("exp", &[Value::Number(0)]);
+    assert!((expect_float(&exp0) - 1.0).abs() < 1e-10);
+}
+
+#[test]
+fn interpolation_utils() {
+    // lerp: (lerp 0 10 0.5) = 5
+    let lerp_result = prim(
+        "lerp",
+        &[Value::Number(0), Value::Number(10), Value::Float(0.5)],
+    );
+    assert!((expect_float(&lerp_result) - 5.0).abs() < 1e-10);
+
+    // lerp: (lerp 0 10 0) = 0
+    let lerp_start = prim(
+        "lerp",
+        &[Value::Number(0), Value::Number(10), Value::Float(0.0)],
+    );
+    assert!((expect_float(&lerp_start) - 0.0).abs() < 1e-10);
+
+    // lerp: (lerp 0 10 1) = 10
+    let lerp_end = prim(
+        "lerp",
+        &[Value::Number(0), Value::Number(10), Value::Float(1.0)],
+    );
+    assert!((expect_float(&lerp_end) - 10.0).abs() < 1e-10);
+
+    // inverse-lerp: (inverse-lerp 0 10 5) = 0.5
+    let inv_lerp = prim(
+        "inverse-lerp",
+        &[Value::Number(0), Value::Number(10), Value::Number(5)],
+    );
+    assert!((expect_float(&inv_lerp) - 0.5).abs() < 1e-10);
+
+    // scale: (scale 5 0 10 0 100) = 50
+    let scale_result = prim(
+        "scale",
+        &[
+            Value::Number(5),
+            Value::Number(0),
+            Value::Number(10),
+            Value::Number(0),
+            Value::Number(100),
+        ],
+    );
+    assert!((expect_float(&scale_result) - 50.0).abs() < 1e-10);
+
+    // smoothstep: (smoothstep 0 1 0.5) should be ~0.5 (but slightly different due to curve)
+    let smooth = prim(
+        "smoothstep",
+        &[Value::Number(0), Value::Number(1), Value::Float(0.5)],
+    );
+    let smooth_val = expect_float(&smooth);
+    assert!(smooth_val > 0.4 && smooth_val < 0.6);
+
+    // denormalize: (denormalize 0.5 0 100) = 50
+    let denorm = prim(
+        "denormalize",
+        &[Value::Float(0.5), Value::Number(0), Value::Number(100)],
+    );
+    assert!((expect_float(&denorm) - 50.0).abs() < 1e-10);
+
+    // percent-of: (percent-of 25 100) = 25.0
+    let pct = prim("percent-of", &[Value::Number(25), Value::Number(100)]);
+    assert!((expect_float(&pct) - 25.0).abs() < 1e-10);
+
+    // percent-change: (percent-change 100 150) = 50.0
+    let pct_change = prim("percent-change", &[Value::Number(100), Value::Number(150)]);
+    assert!((expect_float(&pct_change) - 50.0).abs() < 1e-10);
+
+    // round-to: (round-to 12.34567 2) = 12.35
+    let rounded = prim("round-to", &[Value::Float(12.34567), Value::Number(2)]);
+    assert!((expect_float(&rounded) - 12.35).abs() < 1e-10);
+
+    // saturation-add: (saturation-add 90 20 0 100) = 100 (clamped)
+    let sat_add = prim(
+        "saturation-add",
+        &[
+            Value::Number(90),
+            Value::Number(20),
+            Value::Number(0),
+            Value::Number(100),
+        ],
+    );
+    assert!((expect_float(&sat_add) - 100.0).abs() < 1e-10);
+}
+
+#[test]
+fn assoc_ops() {
+    // Create alist: ((a . 1) (b . 2) (c . 3))
+    let pair_a = prim("cons", &[Value::Symbol("a".to_string()), Value::Number(1)]);
+    let pair_b = prim("cons", &[Value::Symbol("b".to_string()), Value::Number(2)]);
+    let pair_c = prim("cons", &[Value::Symbol("c".to_string()), Value::Number(3)]);
+    let alist = prim("list", &[pair_a, pair_b, pair_c]);
+
+    // assoc finds by key
+    let found = prim("assoc", &[Value::Symbol("b".to_string()), alist.clone()]);
+    match found {
+        Value::Pair(car, cdr) => {
+            assert!(matches!(*car, Value::Symbol(ref s) if s == "b"));
+            assert!(matches!(*cdr, Value::Number(2)));
+        }
+        other => panic!("expected pair, got {:?}", other),
+    }
+
+    // assq is an alias
+    let found2 = prim("assq", &[Value::Symbol("a".to_string()), alist.clone()]);
+    match found2 {
+        Value::Pair(car, cdr) => {
+            assert!(matches!(*car, Value::Symbol(ref s) if s == "a"));
+            assert!(matches!(*cdr, Value::Number(1)));
+        }
+        other => panic!("expected pair, got {:?}", other),
+    }
+
+    // Not found returns #f
+    let not_found = prim("assoc", &[Value::Symbol("z".to_string()), alist]);
+    assert!(matches!(not_found, Value::Bool(false)));
+}
