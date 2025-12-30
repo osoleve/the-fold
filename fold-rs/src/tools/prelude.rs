@@ -6888,6 +6888,478 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; int->bool: Convert 0/1 to boolean
    (int->bool (fn (n)
      (not (= n 0))))
+
+   ; ============================================
+   ; State Monad Utilities
+   ; State s a = s -> (a, s)
+   ; ============================================
+
+   ; state-return: Wrap value in state monad
+   (state-return (fn (a)
+     (fn (s) (cons a s))))
+
+   ; state-bind: Bind/flatMap for state monad
+   (state-bind (fn (ma f)
+     (fn (s)
+       (let ((result (ma s)))
+         ((f (car result)) (cdr result))))))
+
+   ; state-get: Get current state
+   (state-get (fn (s) (cons s s)))
+
+   ; state-put: Set new state
+   (state-put (fn (new-s)
+     (fn (s) (cons #f new-s))))
+
+   ; state-modify: Modify state with function
+   (state-modify (fn (f)
+     (fn (s) (cons #f (f s)))))
+
+   ; state-run: Run state computation
+   (state-run (fn (ma s)
+     (ma s)))
+
+   ; state-eval: Run and get result only
+   (state-eval (fn (ma s)
+     (car (ma s))))
+
+   ; state-exec: Run and get final state only
+   (state-exec (fn (ma s)
+     (cdr (ma s))))
+
+   ; ============================================
+   ; Reader Monad Utilities
+   ; Reader r a = r -> a
+   ; ============================================
+
+   ; reader-return: Wrap value in reader monad
+   (reader-return (fn (a)
+     (fn (r) a)))
+
+   ; reader-bind: Bind/flatMap for reader monad
+   (reader-bind (fn (ma f)
+     (fn (r)
+       ((f (ma r)) r))))
+
+   ; reader-ask: Get the environment
+   (reader-ask (fn (r) r))
+
+   ; reader-asks: Get part of the environment
+   (reader-asks (fn (f)
+     (fn (r) (f r))))
+
+   ; reader-local: Run with modified environment
+   (reader-local (fn (f ma)
+     (fn (r) (ma (f r)))))
+
+   ; reader-run: Run reader computation
+   (reader-run (fn (ma r)
+     (ma r)))
+
+   ; ============================================
+   ; Writer Monad Utilities (using lists for log)
+   ; Writer w a = (a, [w])
+   ; ============================================
+
+   ; writer-return: Wrap value in writer monad
+   (writer-return (fn (a)
+     (cons a '())))
+
+   ; writer-bind: Bind/flatMap for writer monad
+   (writer-bind (fn (wa f)
+     (let ((result (f (car wa))))
+       (cons (car result) (append (cdr wa) (cdr result))))))
+
+   ; writer-tell: Write to log
+   (writer-tell (fn (w)
+     (cons #f (list w))))
+
+   ; writer-listen: Get the log
+   (writer-listen (fn (wa)
+     (cons (cons (car wa) (cdr wa)) (cdr wa))))
+
+   ; writer-run: Extract result and log
+   (writer-run id)
+
+   ; ============================================
+   ; More List Utilities
+   ; ============================================
+
+   ; rotate-left: Rotate list left by n positions
+   (rotate-left (fn (n lst)
+     (if (or (null? lst) (= n 0))
+         lst
+         (let ((len (length lst)))
+           (let ((n-mod (mod n len)))
+             (append (drop lst n-mod) (take lst n-mod)))))))
+
+   ; rotate-right: Rotate list right by n positions
+   (rotate-right (fn (n lst)
+     (if (null? lst)
+         lst
+         (rotate-left (- (length lst) (mod n (length lst))) lst))))
+
+   ; tails: All suffixes of a list
+   (tails (fix tails
+     (fn (lst)
+       (if (null? lst)
+           (list '())
+           (cons lst (tails (cdr lst)))))))
+
+   ; inits: All prefixes of a list
+   (inits (fix inits
+     (fn (lst)
+       (cons '()
+             (if (null? lst)
+                 '()
+                 (map (fn (t) (cons (car lst) t))
+                      (inits (cdr lst))))))))
+
+   ; sublists: All contiguous sublists
+   (sublists (fn (lst)
+     (apply append (map tails (inits lst)))))
+
+   ; is-prefix?: Check if lst1 is prefix of lst2
+   (is-prefix? (fix is-prefix?
+     (fn (lst1 lst2)
+       (if (null? lst1)
+           #t
+           (if (null? lst2)
+               #f
+               (if (equal? (car lst1) (car lst2))
+                   (is-prefix? (cdr lst1) (cdr lst2))
+                   #f))))))
+
+   ; is-suffix?: Check if lst1 is suffix of lst2
+   (is-suffix? (fn (lst1 lst2)
+     (is-prefix? (reverse lst1) (reverse lst2))))
+
+   ; is-infix?: Check if lst1 is infix of lst2
+   (is-infix? (fn (lst1 lst2)
+     (any (fn (t) (is-prefix? lst1 t)) (tails lst2))))
+
+   ; split-at: Split list at index
+   (split-at (fn (n lst)
+     (cons (take lst n) (drop lst n))))
+
+   ; chunks-of: Split list into chunks of size n
+   (chunks-of (fix chunks-of
+     (fn (n lst)
+       (if (null? lst)
+           '()
+           (cons (take lst n) (chunks-of n (drop lst n)))))))
+
+   ; windows: Sliding windows of size n
+   (windows (fix windows
+     (fn (n lst)
+       (if (< (length lst) n)
+           '()
+           (cons (take lst n) (windows n (cdr lst)))))))
+
+   ; interleave: Interleave two lists
+   (interleave (fix interleave
+     (fn (lst1 lst2)
+       (if (null? lst1)
+           lst2
+           (cons (car lst1) (interleave lst2 (cdr lst1)))))))
+
+   ; dedup-consecutive: Remove consecutive duplicates
+   (dedup-consecutive (fix dedup-consecutive
+     (fn (lst)
+       (if (null? lst)
+           '()
+           (if (null? (cdr lst))
+               lst
+               (if (equal? (car lst) (car (cdr lst)))
+                   (dedup-consecutive (cdr lst))
+                   (cons (car lst) (dedup-consecutive (cdr lst)))))))))
+
+   ; group-by: Group elements by key function
+   (group-by (fn (key-fn lst)
+     (foldl (fn (acc x)
+              (let ((k (key-fn x)))
+                (let ((existing (assoc k acc)))
+                  (if existing
+                      (assoc-set k (cons x (cdr existing)) acc)
+                      (cons (cons k (list x)) acc)))))
+            '()
+            lst)))
+
+   ; frequencies: Count occurrences
+   (frequencies (fn (lst)
+     (foldl (fn (acc x)
+              (let ((existing (assoc x acc)))
+                (if existing
+                    (assoc-set x (+ 1 (cdr existing)) acc)
+                    (cons (cons x 1) acc))))
+            '()
+            lst)))
+
+   ; ============================================
+   ; Polynomial Operations (coefficients as lists, lowest degree first)
+   ; ============================================
+
+   ; poly-zero: Zero polynomial
+   (poly-zero '())
+
+   ; poly-one: One polynomial
+   (poly-one (list 1))
+
+   ; poly-degree: Degree of polynomial (-1 for zero polynomial)
+   (poly-degree (fn (p)
+     (- (length p) 1)))
+
+   ; poly-add: Add two polynomials
+   (poly-add (fix poly-add
+     (fn (p q)
+       (if (null? p)
+           q
+           (if (null? q)
+               p
+               (cons (+ (car p) (car q))
+                     (poly-add (cdr p) (cdr q))))))))
+
+   ; poly-scale: Multiply polynomial by scalar
+   (poly-scale (fn (k p)
+     (map (fn (c) (* k c)) p)))
+
+   ; poly-shift: Multiply polynomial by x^n (shift coefficients)
+   (poly-shift (fn (n p)
+     (append (replicate n 0) p)))
+
+   ; poly-multiply: Multiply two polynomials
+   (poly-multiply (fn (p q)
+     (if (null? p)
+         '()
+         (poly-add (poly-scale (car p) q)
+                   (poly-shift 1 (poly-multiply (cdr p) q))))))
+
+   ; poly-eval: Evaluate polynomial at x using Horner's method
+   (poly-eval (fn (p x)
+     (foldr (fn (c acc) (+ c (* x acc))) 0 p)))
+
+   ; poly-derivative: Derivative of polynomial
+   (poly-derivative (fn (p)
+     (if (null? p)
+         '()
+         (map-indexed (fn (i c) (* (+ i 1) c)) (cdr p)))))
+
+   ; poly-from-roots: Polynomial from roots (x-r1)(x-r2)...
+   (poly-from-roots (fn (roots)
+     (foldl (fn (p r) (poly-multiply p (list (- 0 r) 1)))
+            (list 1)
+            roots)))
+
+   ; ============================================
+   ; Interval Operations (closed intervals as pairs)
+   ; ============================================
+
+   ; make-interval: Create interval [lo, hi]
+   (make-interval cons)
+
+   ; interval-lo: Get lower bound
+   (interval-lo car)
+
+   ; interval-hi: Get upper bound
+   (interval-hi cdr)
+
+   ; interval-empty?: Check if interval is empty
+   (interval-empty? (fn (i)
+     (> (car i) (cdr i))))
+
+   ; interval-contains?: Check if interval contains point
+   (interval-contains? (fn (i x)
+     (and (>= x (car i)) (<= x (cdr i)))))
+
+   ; interval-width: Width of interval
+   (interval-width (fn (i)
+     (- (cdr i) (car i))))
+
+   ; interval-midpoint: Midpoint of interval
+   (interval-midpoint (fn (i)
+     (/ (+ (car i) (cdr i)) 2)))
+
+   ; interval-intersect: Intersection of two intervals
+   (interval-intersect (fn (i1 i2)
+     (cons (max (car i1) (car i2))
+           (min (cdr i1) (cdr i2)))))
+
+   ; interval-union: Union of two overlapping intervals
+   (interval-union (fn (i1 i2)
+     (cons (min (car i1) (car i2))
+           (max (cdr i1) (cdr i2)))))
+
+   ; interval-overlaps?: Check if intervals overlap
+   (interval-overlaps? (fn (i1 i2)
+     (and (<= (car i1) (cdr i2))
+          (<= (car i2) (cdr i1)))))
+
+   ; ============================================
+   ; Arrow Combinators (for function composition)
+   ; ============================================
+
+   ; arr: Lift function to arrow
+   (arr id)
+
+   ; first: Apply arrow to first element of pair
+   (first (fn (f)
+     (fn (pair)
+       (cons (f (car pair)) (cdr pair)))))
+
+   ; second: Apply arrow to second element of pair
+   (second (fn (f)
+     (fn (pair)
+       (cons (car pair) (f (cdr pair))))))
+
+   ; split: Apply two arrows to same input, return pair
+   (split (fn (f g)
+     (fn (x)
+       (cons (f x) (g x)))))
+
+   ; fanout: Alias for split
+   (fanout split)
+
+   ; combine: Apply two arrows to pair elements
+   (combine (fn (f g)
+     (fn (pair)
+       (cons (f (car pair)) (g (cdr pair))))))
+
+   ; parallel: Alias for combine
+   (parallel combine)
+
+   ; arrow-compose: Compose two arrows (left to right)
+   (arrow-compose (fn (f g)
+     (compose g f)))
+
+   ; ============================================
+   ; Continuation Utilities
+   ; ============================================
+
+   ; call/cc-style: Simulate call/cc with CPS
+   ; Usage: (call-with-escape (fn (escape) ... (escape value) ...))
+   (call-with-escape (fn (f)
+     (f id)))
+
+   ; trampoline-return: Return from trampoline
+   (trampoline-return (fn (x)
+     (cons 'done x)))
+
+   ; trampoline-bounce: Continue trampolining
+   (trampoline-bounce (fn (thunk)
+     (cons 'bounce thunk)))
+
+   ; run-trampoline: Execute trampolined computation
+   (run-trampoline (fix run-trampoline
+     (fn (t)
+       (if (eq? (car t) 'done)
+           (cdr t)
+           (run-trampoline ((cdr t)))))))
+
+   ; ============================================
+   ; More Numeric Utilities
+   ; ============================================
+
+   ; average: Average of a list of numbers
+   (average (fn (lst)
+     (if (null? lst)
+         0
+         (/ (sum-list lst) (length lst)))))
+
+   ; variance: Variance of a list of numbers
+   (variance (fn (lst)
+     (if (null? lst)
+         0
+         (let ((avg (average lst)))
+           (average (map (fn (x) (let ((d (- x avg))) (* d d))) lst))))))
+
+   ; stddev: Standard deviation
+   (stddev (fn (lst)
+     (sqrt (variance lst))))
+
+   ; median: Median of a list
+   (median (fn (lst)
+     (let ((sorted (sort lst)))
+       (let ((n (length sorted)))
+         (if (odd? n)
+             (list-ref sorted (/ n 2))
+             (/ (+ (list-ref sorted (- (/ n 2) 1))
+                   (list-ref sorted (/ n 2)))
+                2))))))
+
+   ; clamp-list: Clamp all values in list to range
+   (clamp-list (fn (lo hi lst)
+     (map (fn (x) (clamp lo hi x)) lst)))
+
+   ; normalize-list: Normalize list to [0, 1] range
+   (normalize-list (fn (lst)
+     (if (null? lst)
+         '()
+         (let ((lo (apply min lst))
+               (hi (apply max lst)))
+           (if (= lo hi)
+               (replicate (length lst) 0)
+               (map (fn (x) (/ (- x lo) (- hi lo))) lst))))))
+
+   ; dot: Alias for dot-product
+   (dot dot-product)
+
+   ; magnitude: Vector magnitude
+   (magnitude (fn (v)
+     (sqrt (dot v v))))
+
+   ; normalize-vector: Normalize vector to unit length
+   (normalize-vector (fn (v)
+     (let ((mag (magnitude v)))
+       (if (= mag 0)
+           v
+           (map (fn (x) (/ x mag)) v)))))
+
+   ; cross-product: Cross product of 3D vectors
+   (cross-product (fn (u v)
+     (list (- (* (second u) (third v)) (* (third u) (second v)))
+           (- (* (third u) (first v)) (* (first u) (third v)))
+           (- (* (first u) (second v)) (* (second u) (first v))))))
+
+   ; ============================================
+   ; Association List Extensions
+   ; ============================================
+
+   ; alist-update: Update value at key with function
+   (alist-update (fn (key f alist)
+     (map (fn (pair)
+            (if (equal? (car pair) key)
+                (cons key (f (cdr pair)))
+                pair))
+          alist)))
+
+   ; alist-insert-with: Insert or update with combining function
+   (alist-insert-with (fn (f key val alist)
+     (let ((existing (assoc key alist)))
+       (if existing
+           (alist-update key (fn (old) (f val old)) alist)
+           (cons (cons key val) alist)))))
+
+   ; alist-from-pairs: Create alist from list of pairs
+   (alist-from-pairs id)
+
+   ; alist-to-pairs: Convert alist to list of pairs
+   (alist-to-pairs id)
+
+   ; alist-has-key?: Check if key exists
+   (alist-has-key? (fn (key alist)
+     (not (not (assoc key alist)))))
+
+   ; alist-delete: Remove key from alist
+   (alist-delete (fn (key alist)
+     (filter (fn (pair) (not (equal? (car pair) key))) alist)))
+
+   ; alist-select: Select only specified keys
+   (alist-select (fn (keys alist)
+     (filter (fn (pair) (member (car pair) keys)) alist)))
+
+   ; alist-reject: Reject specified keys
+   (alist-reject (fn (keys alist)
+     (filter (fn (pair) (not (member (car pair) keys))) alist)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -8112,6 +8584,100 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'nor nor)
     (cons 'bool->int bool->int)
     (cons 'int->bool int->bool)
+    ; State monad
+    (cons 'state-return state-return)
+    (cons 'state-bind state-bind)
+    (cons 'state-get state-get)
+    (cons 'state-put state-put)
+    (cons 'state-modify state-modify)
+    (cons 'state-run state-run)
+    (cons 'state-eval state-eval)
+    (cons 'state-exec state-exec)
+    ; Reader monad
+    (cons 'reader-return reader-return)
+    (cons 'reader-bind reader-bind)
+    (cons 'reader-ask reader-ask)
+    (cons 'reader-asks reader-asks)
+    (cons 'reader-local reader-local)
+    (cons 'reader-run reader-run)
+    ; Writer monad
+    (cons 'writer-return writer-return)
+    (cons 'writer-bind writer-bind)
+    (cons 'writer-tell writer-tell)
+    (cons 'writer-listen writer-listen)
+    (cons 'writer-run writer-run)
+    ; More list utilities
+    (cons 'rotate-left rotate-left)
+    (cons 'rotate-right rotate-right)
+    (cons 'tails tails)
+    (cons 'inits inits)
+    (cons 'sublists sublists)
+    (cons 'is-prefix? is-prefix?)
+    (cons 'is-suffix? is-suffix?)
+    (cons 'is-infix? is-infix?)
+    (cons 'split-at split-at)
+    (cons 'chunks-of chunks-of)
+    (cons 'windows windows)
+    (cons 'interleave interleave)
+    (cons 'dedup-consecutive dedup-consecutive)
+    (cons 'group-by group-by)
+    (cons 'frequencies frequencies)
+    ; Polynomial operations
+    (cons 'poly-zero poly-zero)
+    (cons 'poly-one poly-one)
+    (cons 'poly-degree poly-degree)
+    (cons 'poly-add poly-add)
+    (cons 'poly-scale poly-scale)
+    (cons 'poly-shift poly-shift)
+    (cons 'poly-multiply poly-multiply)
+    (cons 'poly-eval poly-eval)
+    (cons 'poly-derivative poly-derivative)
+    (cons 'poly-from-roots poly-from-roots)
+    ; Interval operations
+    (cons 'make-interval make-interval)
+    (cons 'interval-lo interval-lo)
+    (cons 'interval-hi interval-hi)
+    (cons 'interval-empty? interval-empty?)
+    (cons 'interval-contains? interval-contains?)
+    (cons 'interval-width interval-width)
+    (cons 'interval-midpoint interval-midpoint)
+    (cons 'interval-intersect interval-intersect)
+    (cons 'interval-union interval-union)
+    (cons 'interval-overlaps? interval-overlaps?)
+    ; Arrow combinators
+    (cons 'arr arr)
+    (cons 'first first)
+    (cons 'second second)
+    (cons 'split split)
+    (cons 'fanout fanout)
+    (cons 'combine combine)
+    (cons 'parallel parallel)
+    (cons 'arrow-compose arrow-compose)
+    ; Continuation utilities
+    (cons 'call-with-escape call-with-escape)
+    (cons 'trampoline-return trampoline-return)
+    (cons 'trampoline-bounce trampoline-bounce)
+    (cons 'run-trampoline run-trampoline)
+    ; More numeric utilities
+    (cons 'average average)
+    (cons 'variance variance)
+    (cons 'stddev stddev)
+    (cons 'median median)
+    (cons 'clamp-list clamp-list)
+    (cons 'normalize-list normalize-list)
+    (cons 'dot dot)
+    (cons 'magnitude magnitude)
+    (cons 'normalize-vector normalize-vector)
+    (cons 'cross-product cross-product)
+    ; Association list extensions
+    (cons 'alist-update alist-update)
+    (cons 'alist-insert-with alist-insert-with)
+    (cons 'alist-from-pairs alist-from-pairs)
+    (cons 'alist-to-pairs alist-to-pairs)
+    (cons 'alist-has-key? alist-has-key?)
+    (cons 'alist-delete alist-delete)
+    (cons 'alist-select alist-select)
+    (cons 'alist-reject alist-reject)
 ))
 "#;
 
