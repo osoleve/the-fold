@@ -86,6 +86,8 @@ fn is_builtin_prim(name: &str) -> bool {
             | "int->float" | "float->int" | "truncate"
             | "inc" | "dec" | "succ" | "pred"
             | "sq" | "cube" | "double" | "halve" | "negate" | "zero" | "one"
+            | "scale" | "denormalize" | "lerp" | "inverse-lerp" | "smoothstep"
+            | "saturation-add" | "percent-of" | "percent-change" | "round-to"
             // Rational operations
             | "make-rational" | "rational" | "rational?" | "rational-zero?"
             | "rational-positive?" | "rational-negative?" | "rational-integer?"
