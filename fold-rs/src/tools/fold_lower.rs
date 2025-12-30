@@ -111,6 +111,9 @@ fn is_builtin_prim(name: &str) -> bool {
             | "nth" | "zip" | "unzip" | "rotate"
             | "list->set" | "interleave" | "list->pairs"
             | "list->symbols" | "list->numbers"
+            | "list-indices" | "list-reverse-indices" | "list-length-of" | "list-split"
+            | "list-repeat-element" | "list-cycle" | "list-intersperse"
+            | "list-map-indexed" | "list-enumerate"
             | "filter"
             // String operations
             | "string-append" | "string-length" | "string-ref" | "substring"

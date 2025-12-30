@@ -19,9 +19,9 @@
 
 ### ⚠️  Remaining Gaps (near-complete independence achieved)
 
-1. ~~**Parser Literal Support**~~ - ✅ **COMPLETE** (character, bytevector, vector literals implemented)
+1. ~~**Parser Literal Support**~~ - ✅ **COMPLETE** (character, bytevector, vector, rational literals implemented)
 2. ~~**Library Loading**~~ - ✅ **COMPLETE** (`load` primitive implemented with `lambda` alias support)
-3. **Rational Literal Support** - Missing parser support for 1/2 syntax (P2 priority)
+3. ~~**Rational Literal Support**~~ - ✅ **COMPLETE** (parser support for 1/2, 3/4 syntax implemented)
 4. **Advanced Scheme Features** - Some Scheme macros and special forms (e.g., `define-record-type`) not yet supported
 
 ---
@@ -133,17 +133,17 @@ All value types are fully supported in Rust:
 | Number (i64) | ✅ | ✅ | ✅ | Full support |
 | Float (f64) | ✅ | ✅ | ✅ | Full support |
 | BigInt | ⚠️  | ✅ | ✅ | Can construct via primitives, no literal syntax |
-| BigRational | ❌ | ✅ | ✅ | **Missing parser support** |
+| BigRational | ✅ | ✅ | ✅ | **Full support** (1/2, 3/4 syntax) |
 | String | ✅ | ✅ | ✅ | Full support |
 | Symbol | ✅ | ✅ | ✅ | Full support |
 | Bool | ✅ | ✅ | ✅ | Full support |
-| Char | ❌ | ✅ | ✅ | **Missing parser support** |
-| Bytevector | ❌ | ✅ | ✅ | **Missing parser support** (CRITICAL!) |
-| Vector | ❌ | ✅ | ✅ | **Missing parser support** |
+| Char | ✅ | ✅ | ✅ | Full support (#\\a, #\\newline) |
+| Bytevector | ✅ | ✅ | ✅ | Full support (#u8(...), #"...") |
+| Vector | ✅ | ✅ | ✅ | Full support (#(...)) |
 | Address | ⚠️  | ✅ | ✅ | No literal syntax (constructed from bytes) |
 | Pair | ✅ | ✅ | ✅ | Full support (via lists) |
-| Block | ⚠️  | ✅ | ✅ | Can construct, but needs bytevector literals |
-| Closure | ⚠️  | ✅ | ✅ | Constructed via lambda |
+| Block | ✅ | ✅ | ✅ | Full support (bytevector literals work) |
+| Closure | ⚠️  | ✅ | ✅ | Constructed via lambda/fn |
 | Nil | ✅ | ✅ | ✅ | Full support |
 
 ### 5. Current Deployment
@@ -183,10 +183,11 @@ All value types are fully supported in Rust:
    - Support both `fn` and `lambda` syntax ✅
    - Tested with simple and nested file loading ✅
 
-5. **Add rational literal support** - P2 priority (the-fold-ok0o)
-   - `1/2`, `3/4` syntax
-   - For exact arithmetic
-   - Lower priority than load primitive
+5. ~~**Add rational literal support**~~ - ✅ **COMPLETE**
+   - Parser recognizes `1/2`, `3/4` syntax ✅
+   - Lowerer converts to BigRational values ✅
+   - Rational primitives registered in lowerer ✅
+   - Tested: literals, arithmetic, comparisons ✅
 
 ### Long-term (Full independence):
 
@@ -264,6 +265,35 @@ $ SESSION=test-nested ./fold.sh '(add-and-mul 3 4 5)'
 
 Library loading with `define`, `lambda`, recursion, and nested loading all work correctly!
 
+**Rational Literal Success** (exact arithmetic working):
+```bash
+# Rational literals
+$ SESSION=test-rational ./fold.sh '1/2'
+=> 1/2
+
+$ SESSION=test-rational ./fold.sh '3/4'
+=> 3/4
+
+$ SESSION=test-rational ./fold.sh '-5/6'
+=> -5/6
+
+# Rational arithmetic
+$ SESSION=test-rational ./fold.sh '(rational-add 1/2 1/3)'
+=> 5/6  # 3/6 + 2/6 = 5/6
+
+$ SESSION=test-rational ./fold.sh '(rational-mul 2/3 3/4)'
+=> 1/2  # 6/12 simplified
+
+$ SESSION=test-rational ./fold.sh '(rational-div 3/4 1/2)'
+=> 3/2  # (3/4) / (1/2) = (3/4) * (2/1) = 6/4 = 3/2
+
+# Rational comparisons
+$ SESSION=test-rational ./fold.sh '(rational<? 1/3 1/2)'
+=> #t
+```
+
+Rational literals, arithmetic, and comparisons all work correctly with automatic simplification!
+
 ---
 
 ## Conclusion
@@ -276,6 +306,7 @@ Library loading with `define`, `lambda`, recursion, and nested loading all work 
 - ✅ Characters (`#\a`, `#\newline`)
 - ✅ Bytevectors (`#u8(1 2 3)`, `#"abc"`)
 - ✅ Vectors (`#(1 2 3)`)
+- ✅ Rationals (`1/2`, `3/4`, `-5/6`)
 - ✅ All basic types (numbers, strings, symbols, booleans, lists)
 
 This means **blocks work natively in Rust** - the core data structure of The Fold!
@@ -287,19 +318,26 @@ This means **blocks work natively in Rust** - the core data structure of The Fol
 - ✅ Both `fn` and `lambda` syntax supported
 - ✅ Recursive functions and higher-order functions work correctly
 
+**3. Exact arithmetic is complete!** Rational number support includes:
+- ✅ Parser recognizes `1/2`, `3/4` syntax for exact fractions
+- ✅ Automatic simplification (6/12 → 1/2)
+- ✅ Full arithmetic (add, sub, mul, div)
+- ✅ Comparisons and predicates
+- ✅ 20+ rational primitives available
+
 ### Remaining Work
 
-1. **Rational literals** (P2) - Nice to have for exact arithmetic
-2. **Advanced Scheme macros** - Some features like `define-record-type` not yet supported
-3. **Long-term**: Port critical libraries to Rust for full independence
+1. **Advanced Scheme macros** - Some features like `define-record-type` not yet supported
+2. **Long-term**: Port critical libraries to Rust for full independence
 
 ### Current Status
 
 The Rust implementation now supports:
 - ✅ All core primitives (225+ vs Scheme's ~100)
-- ✅ Full parser with all literal types (except rationals)
+- ✅ Full parser with ALL literal types including rationals
 - ✅ Library loading via `load` primitive
 - ✅ Session-based persistent environment
 - ✅ File-based IPC daemon system
+- ✅ Exact arithmetic via rational numbers
 
 **The hybrid approach is now functional**: Rust core + loaded Scheme libraries provides immediate productivity while maintaining the option to incrementally port libraries to Rust for maximum performance.

@@ -47,6 +47,7 @@ pub struct Spanned<T> {
 pub enum NumberLit {
     Integer(i64),
     Float(f64),
+    Rational(String, String), // (numerator, denominator) as strings for BigInt parsing
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -446,6 +447,30 @@ impl Parser {
         }
         if idx == digits_start {
             return None;
+        }
+        // Check for rational number (e.g., 1/2, 3/4)
+        if idx < len && self.chars[idx] == '/' {
+            let rational_start = idx;
+            idx += 1; // skip '/'
+            let denom_start = idx;
+            // Optional sign for denominator
+            if idx < len && (self.chars[idx] == '+' || self.chars[idx] == '-') {
+                idx += 1;
+            }
+            // Parse denominator digits
+            let denom_digits_start = idx;
+            while idx < len && self.chars[idx].is_ascii_digit() {
+                idx += 1;
+            }
+            if idx > denom_digits_start {
+                // Valid rational number
+                let numer: String = self.chars[self.index..rational_start].iter().collect();
+                let denom: String = self.chars[denom_start..idx].iter().collect();
+                return Some((NumberLit::Rational(numer, denom), idx));
+            } else {
+                // Invalid rational, revert
+                idx = rational_start;
+            }
         }
         let mut is_float = false;
         if idx + 1 < len && self.chars[idx] == '.' && self.chars[idx + 1].is_ascii_digit() {

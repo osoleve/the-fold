@@ -2889,6 +2889,161 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let sub = expect_string(&args[1])?;
             Ok(Value::Bool(s.contains(&sub)))
         }
+        // List manipulation and composition utilities
+        "list-indices" => {
+            // Get indices of a list: (list-indices '(a b c)) => (0 1 2)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list-indices expects 1 arg: a list",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let indices: Vec<Value> = (0..list.len()).map(|i| Value::Number(i as i64)).collect();
+            Ok(list_from_values(&indices))
+        }
+        "list-reverse-indices" => {
+            // Get reverse indices: (list-reverse-indices '(a b c)) => (2 1 0)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list-reverse-indices expects 1 arg: a list",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let indices: Vec<Value> = (0..list.len())
+                .rev()
+                .map(|i| Value::Number(i as i64))
+                .collect();
+            Ok(list_from_values(&indices))
+        }
+        "list-length-of" => {
+            // Get list of lengths: (list-length-of '((1 2) (a b c))) => (2 3)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list-length-of expects 1 arg: a list of lists",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let lengths: Vec<Value> = list
+                .iter()
+                .map(|v| {
+                    let inner = list_to_vec(v).unwrap_or_default();
+                    Value::Number(inner.len() as i64)
+                })
+                .collect();
+            Ok(list_from_values(&lengths))
+        }
+        "list-split" => {
+            // Split list into sublists of size n: (list-split 2 '(1 2 3 4 5)) => ((1 2) (3 4) (5))
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "list-split expects 2 args: (list-split n lst)",
+                ));
+            }
+            let n = expect_usize(&args[0])?;
+            if n == 0 {
+                return Err(EvalError::TypeMismatch(
+                    "list-split: chunk size must be > 0",
+                ));
+            }
+            let list = list_to_vec(&args[1])?;
+            let mut result = Vec::new();
+            for chunk in list.chunks(n) {
+                result.push(list_from_values(chunk));
+            }
+            Ok(list_from_values(&result))
+        }
+        "list-repeat-element" => {
+            // Repeat each element n times: (list-repeat-element 2 '(a b c)) => (a a b b c c)
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "list-repeat-element expects 2 args: (list-repeat-element n lst)",
+                ));
+            }
+            let n = expect_usize(&args[0])?;
+            let list = list_to_vec(&args[1])?;
+            let mut result = Vec::new();
+            for item in list {
+                for _ in 0..n {
+                    result.push(item.clone());
+                }
+            }
+            Ok(list_from_values(&result))
+        }
+        "list-cycle" => {
+            // Cycle through a list n times: (list-cycle 2 '(1 2)) => (1 2 1 2)
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "list-cycle expects 2 args: (list-cycle n lst)",
+                ));
+            }
+            let n = expect_usize(&args[0])?;
+            let list = list_to_vec(&args[1])?;
+            if list.is_empty() {
+                return Ok(Value::Nil);
+            }
+            let mut result = Vec::new();
+            for _ in 0..n {
+                result.extend(list.clone());
+            }
+            Ok(list_from_values(&result))
+        }
+        "list-intersperse" => {
+            // Insert separator between elements: (list-intersperse 0 '(1 2 3)) => (1 0 2 0 3)
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "list-intersperse expects 2 args: (list-intersperse sep lst)",
+                ));
+            }
+            let sep = &args[0];
+            let list = list_to_vec(&args[1])?;
+            if list.is_empty() {
+                return Ok(Value::Nil);
+            }
+            let mut result = Vec::new();
+            for (i, item) in list.iter().enumerate() {
+                if i > 0 {
+                    result.push(sep.clone());
+                }
+                result.push(item.clone());
+            }
+            Ok(list_from_values(&result))
+        }
+        "list-map-indexed" => {
+            // Create list of (index value) pairs
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list-map-indexed expects 1 arg: a list",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let mut result = Vec::new();
+            for (i, item) in list.iter().enumerate() {
+                let pair = Value::Pair(
+                    Box::new(Value::Number(i as i64)),
+                    Box::new(Value::Pair(Box::new(item.clone()), Box::new(Value::Nil))),
+                );
+                result.push(pair);
+            }
+            Ok(list_from_values(&result))
+        }
+        "list-enumerate" => {
+            // Pair each element with its index: (list-enumerate '(a b c)) => ((0 a) (1 b) (2 c))
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "list-enumerate expects 1 arg: a list",
+                ));
+            }
+            let list = list_to_vec(&args[0])?;
+            let mut result = Vec::new();
+            for (i, item) in list.iter().enumerate() {
+                let pair = Value::Pair(
+                    Box::new(Value::Number(i as i64)),
+                    Box::new(Value::Pair(Box::new(item.clone()), Box::new(Value::Nil))),
+                );
+                result.push(pair);
+            }
+            Ok(list_from_values(&result))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
