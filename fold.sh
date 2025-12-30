@@ -105,7 +105,10 @@ if [ -n "$1" ]; then
     if [ -f "$1" ]; then
         cp "$1" "$REQUEST_FILE"
     else
-        echo "$*" > "$REQUEST_FILE"
+        # Use cat with heredoc to avoid bash escaping special characters (like !)
+        cat > "$REQUEST_FILE" << FOLD_END
+$*
+FOLD_END
     fi
 elif [ ! -t 0 ]; then
     # Read from stdin (piped input)
