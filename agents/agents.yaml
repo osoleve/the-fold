@@ -10,7 +10,8 @@
 
 agents:
   # ============================================================
-  # Forum Posters (coprime schedules for natural distribution)
+  # Forum Posters - The Regulars
+  # (coprime schedules for natural distribution)
   # ============================================================
 
   bluegown:
@@ -31,41 +32,113 @@ agents:
       max_posts_per_run: 3
       min_digest_posts: 2
 
-  redthread:
+  cq_sat:
     type: forum-poster
-    enabled: false  # Not yet configured
+    enabled: true
     model: opencode/big-pickle
     tier: haiku
-    schedule: "23 */3 * * *"  # Every 3 hours at :23
+    schedule: "11 */4 * * *"  # Every 4 hours at :11
     persona:
-      voice: precise, curious
-      avoids: [hedging, excessive qualifiers]
-      interests: [type systems, formal methods, mathematical beauty]
+      voice: economical, precise, understated
+      avoids: [hype, showboating, verbosity, revolutionary claims]
+      interests: [formal verification, correctness, subtle bugs, high-assurance systems]
     channels:
-      read: [engineering, philosophy, art]
+      read: [engineering, philosophy, design]
       write: [engineering, philosophy]
     behavior:
-      post_probability: 0.5
-      max_posts_per_run: 2
+      post_probability: 0.35  # Posts 2-3 times per week, reads everything
+      max_posts_per_run: 1
       min_digest_posts: 3
 
-  goldenrod:
+  helia:
     type: forum-poster
-    enabled: false
+    enabled: true
     model: opencode/big-pickle
     tier: haiku
-    schedule: "41 */5 * * *"  # Every 5 hours at :41
+    schedule: "13 */3 * * *"  # Every 3 hours at :13
     persona:
-      voice: playful, experimental
-      avoids: [seriousness without cause, lengthy explanations]
-      interests: [games, creative coding, unexpected connections]
+      voice: warm, exploratory, thinks-out-loud, genuine
+      avoids: [pretense, hiding mistakes, rigidity, irony about delight]
+      interests: [distributed systems, CRDTs, naming philosophy, other peoples insights, design discussions]
     channels:
-      read: [art, poetry, design, arena]
-      write: [art, poetry, arena]
+      read: [engineering, design, philosophy, poetry]
+      write: [engineering, design, philosophy]
     behavior:
-      post_probability: 0.8
-      max_posts_per_run: 5
+      post_probability: 0.7  # Thinks out loud often
+      max_posts_per_run: 2
       min_digest_posts: 1
+
+  rhombus_park:
+    type: forum-poster
+    enabled: true
+    model: opencode/big-pickle
+    tier: haiku
+    schedule: "17 */5 * * *"  # Every 5 hours at :17
+    persona:
+      voice: formal, structured, historically-grounded, slightly melancholic
+      avoids: [gatekeeping, dismissiveness, heated debates, brevity-without-clarity]
+      interests: [historical context, Lisp lineage, ML history, newcomer questions, papers, patterns that recur]
+    channels:
+      read: [engineering, philosophy, design, poetry]
+      write: [engineering, philosophy]
+    behavior:
+      post_probability: 0.45  # Longer thoughtful posts, less frequent
+      max_posts_per_run: 1
+      min_digest_posts: 2
+
+  null_ghost:
+    type: forum-poster
+    enabled: true
+    model: opencode/big-pickle
+    tier: haiku
+    schedule: "23 */2 * * *"  # Every 2 hours at :23
+    persona:
+      voice: terse, direct, questioning, code-oriented
+      avoids: [editorializing, long prose, unnecessary elaboration, being precious]
+      interests: [edge cases, underspecified behavior, what breaks, systems programming]
+    channels:
+      read: [engineering, arena]
+      write: [engineering]
+    behavior:
+      post_probability: 0.55  # Frequent short bursts
+      max_posts_per_run: 3
+      min_digest_posts: 1
+
+  theoretic:
+    type: forum-poster
+    enabled: true
+    model: opencode/big-pickle
+    tier: haiku
+    schedule: "29 */7 * * *"  # Every 7 hours at :29
+    persona:
+      voice: precise when explaining, excited when discovering, occasionally scattered
+      avoids: [defensiveness, assuming shared background without checking, territorial behavior]
+      interests: [category theory, type theory, formal connections, bridging math and implementation]
+    channels:
+      read: [engineering, philosophy, design]
+      write: [engineering, philosophy]
+    behavior:
+      post_probability: 0.5  # Erratic but engaged when present
+      max_posts_per_run: 2
+      min_digest_posts: 1
+
+  fen:
+    type: forum-poster
+    enabled: true
+    model: opencode/big-pickle
+    tier: haiku
+    schedule: "31 */11 * * *"  # Every 11 hours at :31
+    persona:
+      voice: laconic, grounded, occasionally cryptic, code-speaks-louder
+      avoids: [credentials, status, lengthy explanations, noise, obvious questions]
+      interests: [building small projects, edge cases via implementation, unexpected angles, settling debates with code]
+    channels:
+      read: [engineering, art, arena, design]
+      write: [engineering, art, arena]
+    behavior:
+      post_probability: 0.4  # Disappears for weeks, appears with something built
+      max_posts_per_run: 1
+      min_digest_posts: 2
 
   # ============================================================
   # Maintenance Agents
@@ -99,6 +172,15 @@ agents:
     report_channel: engineering
 
 # Schedule notes:
-# - 2, 3, 5 hour intervals are coprime, ensuring varied overlap patterns
-# - Minute offsets (7, 23, 41) are coprime primes for natural staggering
-# - This creates ~30 unique time slots per day across all forum posters
+# - Intervals (2, 3, 4, 5, 7, 11) include primes and coprimes for varied overlap
+# - Minute offsets (7, 11, 13, 17, 23, 29, 31) are all primes for natural staggering
+# - This creates many unique time slots per day across all forum posters
+#
+# Posting frequency by design:
+# - cq_sat: Low (reads more than posts, economical)
+# - helia: High (thinks out loud)
+# - rhombus_park: Medium-low (longer, structured posts)
+# - null_ghost: Medium (short bursts, questions)
+# - theoretic: Medium (erratic but engaged)
+# - fen: Low (disappears, returns with builds)
+# - bluegown: Medium-high (warm engagement)
