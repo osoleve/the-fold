@@ -5652,11 +5652,11 @@ pub const PRELUDE_SOURCE: &str = r#"
      (list->string (reverse (string->list s)))))
 
    ; string-take: Take first n characters
-   (string-take (fn (s n)
+   (string-take (fn (n s)
      (substring s 0 (min n (string-length s)))))
 
    ; string-drop: Drop first n characters
-   (string-drop (fn (s n)
+   (string-drop (fn (n s)
      (let ((len (string-length s)))
        (if (>= n len)
            ""
@@ -6708,7 +6708,7 @@ pub const PRELUDE_SOURCE: &str = r#"
 
    ; string-split-at: Split string at index
    (string-split-at (fn (idx s)
-     (cons (string-take s idx) (string-drop s idx))))
+     (cons (string-take idx s) (string-drop idx s))))
 
    ; string-words: Split string into words (by whitespace)
    (string-words (fn (s)
@@ -7360,6 +7360,625 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; alist-reject: Reject specified keys
    (alist-reject (fn (keys alist)
      (filter (fn (pair) (not (member (car pair) keys))) alist)))
+
+   ; ============================================
+   ; Parser Combinators
+   ; Parser a = String -> [(a, String)] or (ok (value . rest)) | (err msg)
+   ; ============================================
+
+   ; parse-result: Successful parse result
+   (parse-ok (fn (value rest)
+     (cons 'ok (cons value rest))))
+
+   ; parse-err: Failed parse
+   (parse-err (fn (msg)
+     (cons 'err msg)))
+
+   ; parse-ok?: Check if parse succeeded
+   (parse-ok? (fn (r)
+     (eq? (car r) 'ok)))
+
+   ; parse-value: Get parsed value
+   (parse-value (fn (r)
+     (car (cdr r))))
+
+   ; parse-rest: Get remaining input
+   (parse-rest (fn (r)
+     (cdr (cdr r))))
+
+   ; parse-error: Get error message
+   (parse-error (fn (r)
+     (cdr r)))
+
+   ; p-return: Parser that succeeds with value without consuming input
+   (p-return (fn (x)
+     (fn (input)
+       (parse-ok x input))))
+
+   ; p-fail: Parser that always fails
+   (p-fail (fn (msg)
+     (fn (input)
+       (parse-err msg))))
+
+   ; p-item: Parser that consumes one character
+   (p-item (fn (input)
+     (if (string-empty? input)
+         (parse-err "unexpected end of input")
+         (parse-ok (string-ref input 0)
+                   (string-drop 1 input)))))
+
+   ; p-satisfy: Parser that consumes char satisfying predicate
+   (p-satisfy (fn (predicate)
+     (fn (input)
+       (if (string-empty? input)
+           (parse-err "unexpected end of input")
+           (let ((c (string-ref input 0)))
+             (if (predicate c)
+                 (parse-ok c (string-drop 1 input))
+                 (parse-err "predicate not satisfied")))))))
+
+   ; p-char: Parser for specific character
+   (p-char (fn (c)
+     (p-satisfy (fn (x) (eq? x c)))))
+
+   ; p-digit: Parser for digit character
+   (p-digit (p-satisfy char-numeric?))
+
+   ; p-alpha: Parser for alphabetic character
+   (p-alpha (p-satisfy char-alphabetic?))
+
+   ; p-alphanum: Parser for alphanumeric character
+   (p-alphanum (p-satisfy (fn (c) (or (char-alphabetic? c) (char-numeric? c)))))
+
+   ; p-space: Parser for whitespace
+   (p-space (p-satisfy char-whitespace?))
+
+   ; p-bind: Monadic bind for parsers
+   (p-bind (fn (p f)
+     (fn (input)
+       (let ((r (p input)))
+         (if (parse-ok? r)
+             ((f (parse-value r)) (parse-rest r))
+             r)))))
+
+   ; p-then: Sequence two parsers, keep second result
+   (p-then (fn (p1 p2)
+     (p-bind p1 (fn (_) p2))))
+
+   ; p-skip: Sequence two parsers, keep first result
+   (p-skip (fn (p1 p2)
+     (p-bind p1 (fn (x) (p-bind p2 (fn (_) (p-return x)))))))
+
+   ; p-or: Try first parser, on failure try second
+   (p-or (fn (p1 p2)
+     (fn (input)
+       (let ((r (p1 input)))
+         (if (parse-ok? r)
+             r
+             (p2 input))))))
+
+   ; p-many: Zero or more repetitions (defined with fix for self-recursion)
+   (p-many (fn (p)
+     (let ((go (fix go
+             (fn (input)
+               (let ((r (p input)))
+                 (if (parse-ok? r)
+                     (let ((rest-result (go (parse-rest r))))
+                       (if (parse-ok? rest-result)
+                           (parse-ok (cons (parse-value r) (parse-value rest-result))
+                                     (parse-rest rest-result))
+                           (parse-ok (list (parse-value r)) (parse-rest r))))
+                     (parse-ok '() input)))))))
+       go)))
+
+   ; p-many1: One or more repetitions
+   (p-many1 (fn (p)
+     (p-bind p (fn (x)
+       (p-bind (p-many p) (fn (xs)
+         (p-return (cons x xs))))))))
+
+   ; p-optional: Optional parser, returns #f on failure
+   (p-optional (fn (p)
+     (p-or p (p-return #f))))
+
+   ; p-string: Parse exact string
+   (p-string (fix p-string
+     (fn (s)
+       (if (string-empty? s)
+           (p-return "")
+           (p-bind (p-char (string-ref s 0))
+                   (fn (c)
+                     (p-bind (p-string (string-drop 1 s))
+                             (fn (cs)
+                               (p-return (string-append (string c) cs))))))))))
+
+   ; p-spaces: Skip zero or more spaces
+   (p-spaces (p-many p-space))
+
+   ; p-token: Parse token, skip trailing spaces
+   (p-token (fn (p)
+     (p-skip p p-spaces)))
+
+   ; p-run: Run parser on input
+   (p-run (fn (p input)
+     (p input)))
+
+   ; ============================================
+   ; Binary Tree Operations
+   ; Tree = () | (value left right)
+   ; ============================================
+
+   ; tree-empty: Empty tree
+   (tree-empty '())
+
+   ; tree-empty?: Check if tree is empty
+   (tree-empty? null?)
+
+   ; tree-node: Create tree node
+   (tree-node (fn (value left right)
+     (list value left right)))
+
+   ; tree-leaf: Create leaf node
+   (tree-leaf (fn (value)
+     (tree-node value tree-empty tree-empty)))
+
+   ; tree-value: Get node value
+   (tree-value car)
+
+   ; tree-left: Get left subtree
+   (tree-left (fn (t) (car (cdr t))))
+
+   ; tree-right: Get right subtree
+   (tree-right (fn (t) (car (cdr (cdr t)))))
+
+   ; tree-size: Count nodes in tree
+   (tree-size (fix tree-size
+     (fn (t)
+       (if (tree-empty? t)
+           0
+           (+ 1 (tree-size (tree-left t))
+                (tree-size (tree-right t)))))))
+
+   ; tree-height: Height of tree
+   (tree-height (fix tree-height
+     (fn (t)
+       (if (tree-empty? t)
+           0
+           (+ 1 (max (tree-height (tree-left t))
+                     (tree-height (tree-right t))))))))
+
+   ; tree-inorder: Inorder traversal
+   (tree-inorder (fix tree-inorder
+     (fn (t)
+       (if (tree-empty? t)
+           '()
+           (append (tree-inorder (tree-left t))
+                   (cons (tree-value t)
+                         (tree-inorder (tree-right t))))))))
+
+   ; tree-preorder: Preorder traversal
+   (tree-preorder (fix tree-preorder
+     (fn (t)
+       (if (tree-empty? t)
+           '()
+           (cons (tree-value t)
+                 (append (tree-preorder (tree-left t))
+                         (tree-preorder (tree-right t))))))))
+
+   ; tree-postorder: Postorder traversal
+   (tree-postorder (fix tree-postorder
+     (fn (t)
+       (if (tree-empty? t)
+           '()
+           (append (tree-postorder (tree-left t))
+                   (append (tree-postorder (tree-right t))
+                           (list (tree-value t))))))))
+
+   ; tree-levelorder: Level-order (BFS) traversal
+   (tree-levelorder (fn (t)
+     (if (tree-empty? t)
+         '()
+         (let ((bfs (fix bfs
+               (fn (queue acc)
+                 (if (null? queue)
+                     (reverse acc)
+                     (let ((node (car queue))
+                           (rest (cdr queue)))
+                       (if (tree-empty? node)
+                           (bfs rest acc)
+                           (bfs (append rest (list (tree-left node) (tree-right node)))
+                                (cons (tree-value node) acc)))))))))
+           (bfs (list t) '())))))
+
+   ; bst-insert: Insert into binary search tree
+   (bst-insert (fix bst-insert
+     (fn (x t)
+       (if (tree-empty? t)
+           (tree-leaf x)
+           (if (< x (tree-value t))
+               (tree-node (tree-value t)
+                         (bst-insert x (tree-left t))
+                         (tree-right t))
+               (tree-node (tree-value t)
+                         (tree-left t)
+                         (bst-insert x (tree-right t))))))))
+
+   ; bst-member?: Check membership in BST
+   (bst-member? (fix bst-member?
+     (fn (x t)
+       (if (tree-empty? t)
+           #f
+           (if (= x (tree-value t))
+               #t
+               (if (< x (tree-value t))
+                   (bst-member? x (tree-left t))
+                   (bst-member? x (tree-right t))))))))
+
+   ; bst-from-list: Build BST from list
+   (bst-from-list (fn (lst)
+     (foldl (fn (t x) (bst-insert x t)) tree-empty lst)))
+
+   ; bst-min: Find minimum in BST
+   (bst-min (fix bst-min
+     (fn (t)
+       (if (tree-empty? t)
+           #f
+           (if (tree-empty? (tree-left t))
+               (tree-value t)
+               (bst-min (tree-left t)))))))
+
+   ; bst-max: Find maximum in BST
+   (bst-max (fix bst-max
+     (fn (t)
+       (if (tree-empty? t)
+           #f
+           (if (tree-empty? (tree-right t))
+               (tree-value t)
+               (bst-max (tree-right t)))))))
+
+   ; ============================================
+   ; Union-Find (Disjoint Set) Data Structure
+   ; Represented as alist of (element . parent)
+   ; ============================================
+
+   ; uf-make: Create union-find with single element
+   (uf-make (fn (x)
+     (list (cons x x))))
+
+   ; uf-make-set: Create union-find from list (each element is its own set)
+   (uf-make-set (fn (lst)
+     (map (fn (x) (cons x x)) lst)))
+
+   ; uf-find: Find root of element (with path compression simulation)
+   (uf-find (fix uf-find
+     (fn (uf x)
+       (let ((entry (assoc x uf)))
+         (if (not entry)
+             x
+             (if (equal? x (cdr entry))
+                 x
+                 (uf-find uf (cdr entry))))))))
+
+   ; uf-union: Union two elements
+   (uf-union (fn (uf x y)
+     (let ((root-x (uf-find uf x))
+           (root-y (uf-find uf y)))
+       (if (equal? root-x root-y)
+           uf
+           (assoc-set root-x root-y uf)))))
+
+   ; uf-connected?: Check if two elements are in same set
+   (uf-connected? (fn (uf x y)
+     (equal? (uf-find uf x) (uf-find uf y))))
+
+   ; ============================================
+   ; Maybe/Option Extensions
+   ; Using (just value) and nothing
+   ; ============================================
+
+   ; just: Wrap value in Just
+   (just (fn (x) (cons 'just x)))
+
+   ; nothing: The Nothing value
+   (nothing 'nothing)
+
+   ; just?: Check if Just
+   (just? (fn (m)
+     (if (pair? m)
+         (eq? (car m) 'just)
+         #f)))
+
+   ; nothing?: Check if Nothing
+   (nothing? (fn (m) (eq? m 'nothing)))
+
+   ; from-just: Extract value from Just (unsafe)
+   (from-just cdr)
+
+   ; maybe: Catamorphism for Maybe
+   (maybe (fn (default f m)
+     (if (just? m)
+         (f (from-just m))
+         default)))
+
+   ; maybe-map: Map over Maybe
+   (maybe-map (fn (f m)
+     (if (just? m)
+         (just (f (from-just m)))
+         nothing)))
+
+   ; maybe-bind: Bind for Maybe monad
+   (maybe-bind (fn (m f)
+     (if (just? m)
+         (f (from-just m))
+         nothing)))
+
+   ; maybe-or: Return first Just, or Nothing
+   (maybe-or (fn (m1 m2)
+     (if (just? m1) m1 m2)))
+
+   ; maybe-and: Return second if both Just, else Nothing
+   (maybe-and (fn (m1 m2)
+     (if (just? m1)
+         (if (just? m2) m2 nothing)
+         nothing)))
+
+   ; from-maybe: Extract with default
+   (from-maybe (fn (default m)
+     (if (just? m) (from-just m) default)))
+
+   ; list->maybe: Empty list to Nothing, non-empty to Just first
+   (list->maybe (fn (lst)
+     (if (null? lst) nothing (just (car lst)))))
+
+   ; maybe->list: Just to singleton, Nothing to empty
+   (maybe->list (fn (m)
+     (if (just? m) (list (from-just m)) '())))
+
+   ; cat-maybes: Filter Nothing values, extract Just values
+   (cat-maybes (fn (lst)
+     (filter-map from-just (filter just? lst))))
+
+   ; map-maybe: Map and filter in one pass
+   (map-maybe (fn (f lst)
+     (cat-maybes (map f lst))))
+
+   ; ============================================
+   ; Either Extensions
+   ; ============================================
+
+   ; left: Create Left value
+   (left (fn (x) (cons 'left x)))
+
+   ; right: Create Right value
+   (right (fn (x) (cons 'right x)))
+
+   ; left?: Check if Left
+   (left? (fn (e)
+     (if (pair? e)
+         (eq? (car e) 'left)
+         #f)))
+
+   ; right?: Check if Right
+   (right? (fn (e)
+     (if (pair? e)
+         (eq? (car e) 'right)
+         #f)))
+
+   ; from-left: Extract Left value (unsafe)
+   (from-left cdr)
+
+   ; from-right: Extract Right value (unsafe)
+   (from-right cdr)
+
+   ; either: Catamorphism for Either
+   (either (fn (f g e)
+     (if (left? e)
+         (f (from-left e))
+         (g (from-right e)))))
+
+   ; either-map: Map over Right
+   (either-map (fn (f e)
+     (if (right? e)
+         (right (f (from-right e)))
+         e)))
+
+   ; either-map-left: Map over Left
+   (either-map-left (fn (f e)
+     (if (left? e)
+         (left (f (from-left e)))
+         e)))
+
+   ; either-bind: Bind for Either monad
+   (either-bind (fn (e f)
+     (if (right? e)
+         (f (from-right e))
+         e)))
+
+   ; either-bimap: Map over both sides
+   (either-bimap (fn (f g e)
+     (if (left? e)
+         (left (f (from-left e)))
+         (right (g (from-right e))))))
+
+   ; partition-eithers: Split list of Eithers
+   (partition-eithers (fn (lst)
+     (let ((go (fix go
+             (fn (lst lefts rights)
+               (if (null? lst)
+                   (cons (reverse lefts) (reverse rights))
+                   (let ((e (car lst)))
+                     (if (left? e)
+                         (go (cdr lst) (cons (from-left e) lefts) rights)
+                         (go (cdr lst) lefts (cons (from-right e) rights)))))))))
+       (go lst '() '()))))
+
+   ; lefts: Extract all Left values
+   (lefts (fn (lst)
+     (car (partition-eithers lst))))
+
+   ; rights: Extract all Right values
+   (rights (fn (lst)
+     (cdr (partition-eithers lst))))
+
+   ; ============================================
+   ; Format String Utilities
+   ; ============================================
+
+   ; format-simple: Simple string formatting with ~a placeholders
+   (format-simple (fix format-simple
+     (fn (template args)
+       (if (string-empty? template)
+           ""
+           (if (< (string-length template) 2)
+               template
+               (if (if (eq? (string-ref template 0) #\~)
+                       (eq? (string-ref template 1) #\a)
+                       #f)
+                   (if (null? args)
+                       (string-append "~a" (format-simple (string-drop 2 template) args))
+                       (string-append (->string (car args))
+                                     (format-simple (string-drop 2 template) (cdr args))))
+                   (string-append (string (string-ref template 0))
+                                 (format-simple (string-drop 1 template) args))))))))
+
+   ; join-with: Join list of strings with separator
+   (join-with (fn (sep lst)
+     (if (null? lst)
+         ""
+         (foldl (fn (acc s) (string-append acc sep s))
+                (car lst)
+                (cdr lst)))))
+
+   ; repeat-string: Alias for string-repeat
+   (repeat-string string-repeat)
+
+   ; ============================================
+   ; Control Flow Extensions
+   ; ============================================
+
+   ; guard: Return value if condition true, else empty list
+   (guard (fn (condition value)
+     (if condition (list value) '())))
+
+   ; when-just: Execute function only if Just
+   (when-just (fn (m f)
+     (if (just? m)
+         (f (from-just m))
+         nothing)))
+
+   ; unless-nothing: Execute function unless Nothing
+   (unless-nothing when-just)
+
+   ; if-let: Bind and conditionally execute
+   (if-let (fn (m then-fn else-val)
+     (if (just? m)
+         (then-fn (from-just m))
+         else-val)))
+
+   ; cond-list: Build list from condition-value pairs
+   (cond-list (fn (pairs)
+     (apply append (map (fn (pair)
+                          (if (car pair)
+                              (list (cdr pair))
+                              '()))
+                        pairs))))
+
+   ; ============================================
+   ; Comparison Utilities
+   ; ============================================
+
+   ; comparing: Create comparator from key function
+   (comparing (fn (key-fn)
+     (fn (a b)
+       (let ((ka (key-fn a))
+             (kb (key-fn b)))
+         (if (< ka kb)
+             -1
+             (if (> ka kb)
+                 1
+                 0))))))
+
+   ; compare-by: Compare two values by key function
+   (compare-by (fn (key-fn a b)
+     ((comparing key-fn) a b)))
+
+   ; chain-comparators: Chain multiple comparators
+   (chain-comparators (fn (comparators)
+     (fn (a b)
+       (let ((find-nonzero (fix find-nonzero
+               (fn (comps)
+                 (if (null? comps)
+                     0
+                     (let ((result ((car comps) a b)))
+                       (if (= result 0)
+                           (find-nonzero (cdr comps))
+                           result)))))))
+         (find-nonzero comparators)))))
+
+   ; sort-by: Sort by key function
+   (sort-by (fn (key-fn lst)
+     (map cdr
+          (sort (map (fn (x) (cons (key-fn x) x)) lst)))))
+
+   ; sort-on: Alias for sort-by
+   (sort-on sort-by)
+
+   ; group-consecutive-by: Group consecutive elements by predicate
+   (group-consecutive-by (fix group-consecutive-by
+     (fn (eq-fn lst)
+       (if (null? lst)
+           '()
+           (let ((x (car lst)))
+             (let ((split-result (span (fn (y) (eq-fn x y)) lst)))
+               (cons (car split-result)
+                     (group-consecutive-by eq-fn (cdr split-result)))))))))
+
+   ; ============================================
+   ; Numeric Predicates and Utilities
+   ; ============================================
+
+   ; divisible-by?: Check if n is divisible by d
+   (divisible-by? (fn (n d)
+     (= 0 (mod n d))))
+
+   ; coprime?: Check if two numbers are coprime
+   (coprime? (fn (a b)
+     (= 1 (gcd a b))))
+
+   ; perfect-square?: Check if n is a perfect square
+   (perfect-square? (fn (n)
+     (let ((s (floor (sqrt n))))
+       (= n (* s s)))))
+
+   ; triangular-number: nth triangular number
+   (triangular-number (fn (n)
+     (/ (* n (+ n 1)) 2)))
+
+   ; is-triangular?: Check if n is triangular
+   (is-triangular? (fn (n)
+     (let ((k (floor (sqrt (* 2 n)))))
+       (= n (triangular-number k)))))
+
+   ; pentagonal-number: nth pentagonal number
+   (pentagonal-number (fn (n)
+     (/ (* n (- (* 3 n) 1)) 2)))
+
+   ; hexagonal-number: nth hexagonal number
+   (hexagonal-number (fn (n)
+     (* n (- (* 2 n) 1))))
+
+   ; collatz-next: Next number in Collatz sequence
+   (collatz-next (fn (n)
+     (if (even? n)
+         (/ n 2)
+         (+ (* 3 n) 1))))
+
+   ; collatz-sequence: Generate Collatz sequence until 1
+   (collatz-sequence (fix collatz-sequence
+     (fn (n)
+       (if (= n 1)
+           (list 1)
+           (cons n (collatz-sequence (collatz-next n)))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -8678,6 +9297,116 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'alist-delete alist-delete)
     (cons 'alist-select alist-select)
     (cons 'alist-reject alist-reject)
+    ; Parser combinators
+    (cons 'parse-ok parse-ok)
+    (cons 'parse-err parse-err)
+    (cons 'parse-ok? parse-ok?)
+    (cons 'parse-value parse-value)
+    (cons 'parse-rest parse-rest)
+    (cons 'parse-error parse-error)
+    (cons 'p-return p-return)
+    (cons 'p-fail p-fail)
+    (cons 'p-item p-item)
+    (cons 'p-satisfy p-satisfy)
+    (cons 'p-char p-char)
+    (cons 'p-digit p-digit)
+    (cons 'p-alpha p-alpha)
+    (cons 'p-alphanum p-alphanum)
+    (cons 'p-space p-space)
+    (cons 'p-bind p-bind)
+    (cons 'p-then p-then)
+    (cons 'p-skip p-skip)
+    (cons 'p-or p-or)
+    (cons 'p-many p-many)
+    (cons 'p-many1 p-many1)
+    (cons 'p-optional p-optional)
+    (cons 'p-string p-string)
+    (cons 'p-spaces p-spaces)
+    (cons 'p-token p-token)
+    (cons 'p-run p-run)
+    ; Binary tree operations
+    (cons 'tree-empty tree-empty)
+    (cons 'tree-empty? tree-empty?)
+    (cons 'tree-node tree-node)
+    (cons 'tree-leaf tree-leaf)
+    (cons 'tree-value tree-value)
+    (cons 'tree-left tree-left)
+    (cons 'tree-right tree-right)
+    (cons 'tree-size tree-size)
+    (cons 'tree-height tree-height)
+    (cons 'tree-inorder tree-inorder)
+    (cons 'tree-preorder tree-preorder)
+    (cons 'tree-postorder tree-postorder)
+    (cons 'tree-levelorder tree-levelorder)
+    (cons 'bst-insert bst-insert)
+    (cons 'bst-member? bst-member?)
+    (cons 'bst-from-list bst-from-list)
+    (cons 'bst-min bst-min)
+    (cons 'bst-max bst-max)
+    ; Union-Find
+    (cons 'uf-make uf-make)
+    (cons 'uf-make-set uf-make-set)
+    (cons 'uf-find uf-find)
+    (cons 'uf-union uf-union)
+    (cons 'uf-connected? uf-connected?)
+    ; Maybe/Option
+    (cons 'just just)
+    (cons 'nothing nothing)
+    (cons 'just? just?)
+    (cons 'nothing? nothing?)
+    (cons 'from-just from-just)
+    (cons 'maybe maybe)
+    (cons 'maybe-map maybe-map)
+    (cons 'maybe-bind maybe-bind)
+    (cons 'maybe-or maybe-or)
+    (cons 'maybe-and maybe-and)
+    (cons 'from-maybe from-maybe)
+    (cons 'list->maybe list->maybe)
+    (cons 'maybe->list maybe->list)
+    (cons 'cat-maybes cat-maybes)
+    (cons 'map-maybe map-maybe)
+    ; Either
+    (cons 'left left)
+    (cons 'right right)
+    (cons 'left? left?)
+    (cons 'right? right?)
+    (cons 'from-left from-left)
+    (cons 'from-right from-right)
+    (cons 'either either)
+    (cons 'either-map either-map)
+    (cons 'either-map-left either-map-left)
+    (cons 'either-bind either-bind)
+    (cons 'either-bimap either-bimap)
+    (cons 'partition-eithers partition-eithers)
+    (cons 'lefts lefts)
+    (cons 'rights rights)
+    ; Format utilities
+    (cons 'format-simple format-simple)
+    (cons 'join-with join-with)
+    (cons 'repeat-string repeat-string)
+    ; Control flow
+    (cons 'guard guard)
+    (cons 'when-just when-just)
+    (cons 'unless-nothing unless-nothing)
+    (cons 'if-let if-let)
+    (cons 'cond-list cond-list)
+    ; Comparison utilities
+    (cons 'comparing comparing)
+    (cons 'compare-by compare-by)
+    (cons 'chain-comparators chain-comparators)
+    (cons 'sort-by sort-by)
+    (cons 'sort-on sort-on)
+    (cons 'group-consecutive-by group-consecutive-by)
+    ; Numeric predicates
+    (cons 'divisible-by? divisible-by?)
+    (cons 'coprime? coprime?)
+    (cons 'perfect-square? perfect-square?)
+    (cons 'triangular-number triangular-number)
+    (cons 'is-triangular? is-triangular?)
+    (cons 'pentagonal-number pentagonal-number)
+    (cons 'hexagonal-number hexagonal-number)
+    (cons 'collatz-next collatz-next)
+    (cons 'collatz-sequence collatz-sequence)
 ))
 "#;
 
