@@ -83,38 +83,29 @@ main() {
   log "Polling for agent consultation tags..."
 
   # Get all posts with agent tags since last check
-  # First load the forum modules, then query
-  local fold_output=$(
-    "$FOLD_DIR/fold.sh" "
-(begin
-  (load \"forum/polling-queries.ss\")
-  (find-posts-with-agent-tags $LAST_CHECK))" 2>/dev/null || echo "()"
-  )
+  # Use helper script for clean output
+  local poll_output
+  poll_output=$(scheme --script "$AGENTS_DIR/lib/poll-helper.ss" "$LAST_CHECK" 2>/dev/null || echo "")
 
-  # Extract just the Scheme result (last line after "=> ")
-  local tagged_posts=$(echo "$fold_output" | grep "^=>" | sed 's/^=> //' | tail -1)
-
-  # Default to empty if no result found
-  tagged_posts="${tagged_posts:-()}"
-
-  if [[ "$tagged_posts" == "()" || -z "$tagged_posts" ]]; then
+  if [[ -z "$poll_output" ]]; then
     log "No new tagged consultation posts found"
   else
-    log "Found tagged posts, processing..."
+    # Process unique agent requests
+    local agents_to_run
+    agents_to_run=$(echo "$poll_output" | grep "^AGENT_REQUEST:" | sed 's/^AGENT_REQUEST: //' | sort -u)
 
-    # Parse through the posts and call appropriate agents
-    # For each post, extract tags and determine which agents to call
-    while IFS= read -r line; do
-      # Extract agent names from tags in each post
-      # This is handled by the extract-agent-tags function in tag-parser
-      if [[ "$line" =~ agent[[:space:]]+.[[:space:]]*([a-z_-]+) ]]; then
-        local agent="${BASH_REMATCH[1]}"
-        if [[ -n "$agent" ]]; then
-          log "Processing tag for agent: $agent"
-          run_agent_consultation "$agent"
-        fi
-      fi
-    done <<< "$(echo "$tagged_posts" | grep -o '@[a-z_-]*' | sort -u)"
+    if [[ -z "$agents_to_run" ]]; then
+       log "No agent requests found in output"
+    else
+       log "Found agent requests, processing..."
+       
+       while IFS= read -r agent; do
+         if [[ -n "$agent" ]]; then
+           log "Processing tag for agent: $agent"
+           run_agent_consultation "$agent"
+         fi
+       done <<< "$agents_to_run"
+    fi
   fi
 
   # Update polling state (single timestamp for all agents)

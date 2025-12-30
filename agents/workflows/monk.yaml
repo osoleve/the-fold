@@ -20,7 +20,7 @@ steps:
   - name: check-junk
     type: shell
     command: |
-      find /home/oso/the-fold -maxdepth 2 -type f \( \
+      find . -maxdepth 2 -type f \( \
         -name "*.tmp" -o \
         -name ".tmp-*" -o \
         -name "*~" -o \
@@ -71,6 +71,8 @@ steps:
   - name: tidy
     type: shell
     when: "${steps.decide.output.action} == tidy"
+    # SECURITY: This trusts the LLM to only output files that were presented in check-junk.
+    # In a production environment, this should validate that 'f' is in the allowed list.
     command: |
       for f in ${steps.decide.output.files}; do
         if [[ -f "$f" ]]; then

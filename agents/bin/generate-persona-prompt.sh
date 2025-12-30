@@ -37,7 +37,20 @@ if [[ -f "$DSL_FILE" ]]; then
     # Write request to daemon (use fold.sh for better handling)
     RESULT=$("$AGENTS_DIR"/../fold.sh "$EXPR" 2>&1 || echo "")
 
-    if [[ -n "$RESULT" ]] && [[ ! "$RESULT" =~ ^Error ]]; then
+    # Validation
+    IS_VALID=true
+    if [[ -z "$RESULT" ]]; then
+        IS_VALID=false
+        FAIL_REASON="Empty output"
+    elif [[ "$RESULT" =~ ^Error ]]; then
+        IS_VALID=false
+        FAIL_REASON="Scheme error"
+    elif [[ ${#RESULT} -lt 10 ]]; then
+        IS_VALID=false
+        FAIL_REASON="Output too short (<10 chars)"
+    fi
+
+    if [[ "$IS_VALID" == "true" ]]; then
         # Success - return the generated prompt
         echo "$RESULT"
         exit 0
@@ -45,13 +58,13 @@ if [[ -f "$DSL_FILE" ]]; then
 
     # If DSL evaluation fails, log error if debug mode
     if [[ "$DEBUG" == "--debug" ]]; then
-        log "ERROR: DSL evaluation failed for $PERSONA_NAME"
+        log "ERROR: DSL evaluation failed for $PERSONA_NAME ($FAIL_REASON)"
         log "DSL file: $DSL_FILE"
         log "Scheme output:"
         echo "$RESULT" | sed 's/^/  /' >&2
         log "Falling back to YAML prompt"
     else
-        log "Warning: DSL evaluation failed for $PERSONA_NAME, falling back to YAML" >&2
+        log "Warning: DSL evaluation failed for $PERSONA_NAME ($FAIL_REASON), falling back to YAML" >&2
     fi
 fi
 

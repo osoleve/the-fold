@@ -53,6 +53,34 @@ calc_process_count() {
     echo "$i"
 }
 
+# Cache for enabled personas to avoid repeated yq calls
+ENABLED_PERSONAS_CACHE=""
+
+# Get list of enabled personas (cached)
+get_enabled_personas() {
+    if [[ -z "$ENABLED_PERSONAS_CACHE" ]]; then
+        ENABLED_PERSONAS_CACHE=$(list_enabled_personas_impl)
+    fi
+    echo "$ENABLED_PERSONAS_CACHE"
+}
+
+# Implementation of listing enabled personas
+list_enabled_personas_impl() {
+    for f in "$PERSONAS_DIR"/*.yaml; do
+        [[ -f "$f" ]] || continue
+        local name=$(basename "$f" .yaml)
+        local enabled=$(yq -r '.enabled // true' "$f")
+        if [[ "$enabled" == "true" ]]; then
+            echo "$name"
+        fi
+    done
+}
+
+# Count enabled personas
+count_personas() {
+    get_enabled_personas | wc -l
+}
+
 # Get pool config
 get_interval() {
     yq -r '.pool.interval_minutes // 30' "$DEFAULTS_FILE"
@@ -85,7 +113,7 @@ is_slot_due() {
 
 # Sample a random persona from enabled list
 sample_persona() {
-    local personas=($(list_enabled_personas))
+    local personas=($(get_enabled_personas))
     local count=${#personas[@]}
 
     if [[ $count -eq 0 ]]; then
@@ -160,6 +188,9 @@ cmd_status() {
 }
 
 cmd_run_due() {
+    # Refresh cache once per run
+    ENABLED_PERSONAS_CACHE=$(list_enabled_personas_impl)
+    
     local count=$(count_personas)
     local procs=$(calc_process_count "$count")
     local ran=0
@@ -207,22 +238,38 @@ cmd_daemon() {
     log "Starting scheduler daemon..."
 
     mkdir -p "$STATE_DIR"
-
-    # Create lock
-    if [[ -f "$LOCKFILE" ]]; then
-        local old_pid=$(cat "$LOCKFILE")
-        if kill -0 "$old_pid" 2>/dev/null; then
-            die "Scheduler already running (PID $old_pid)"
+    
+    # Use flock for robust locking if available
+    if command -v flock >/dev/null; then
+        exec 200>"$LOCKFILE"
+        if ! flock -n 200; then
+            die "Scheduler already running (locked)"
         fi
-    fi
-    echo $$ > "$LOCKFILE"
-    trap "rm -f $LOCKFILE" EXIT
+        echo $$ >&200
+        trap "rm -f $LOCKFILE" EXIT
+        
+        while true; do
+            cmd_run_due
+            # Sleep until next minute
+            sleep $((60 - $(date +%S)))
+        done
+    else
+        # Fallback to PID file method
+        if [[ -f "$LOCKFILE" ]]; then
+            local old_pid=$(cat "$LOCKFILE")
+            if kill -0 "$old_pid" 2>/dev/null; then
+                die "Scheduler already running (PID $old_pid)"
+            fi
+        fi
+        echo $$ > "$LOCKFILE"
+        trap "rm -f $LOCKFILE" EXIT
 
-    while true; do
-        cmd_run_due
-        # Sleep until next minute
-        sleep $((60 - $(date +%S)))
-    done
+        while true; do
+            cmd_run_due
+            # Sleep until next minute
+            sleep $((60 - $(date +%S)))
+        done
+    fi
 }
 
 cmd_daemon_status() {

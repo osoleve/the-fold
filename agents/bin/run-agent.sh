@@ -211,10 +211,15 @@ $PROMPT"
                 # Note: we use --approval-mode yolo to avoid interactive prompts
                 # Redirect stderr to a temp file for debugging
                 err_log=$(mktemp)
-                RAW_OUTPUT=$(gemini "${gemini_args[@]}" "$FULL_PROMPT" 2>"$err_log" || true)
+                set +e
+                RAW_OUTPUT=$(gemini "${gemini_args[@]}" "$FULL_PROMPT" 2>"$err_log")
+                gemini_exit=$?
+                set -e
+                
                 echo "$RAW_OUTPUT" > "$STATE_DIR/raw-gemini-output.json"
-                if [[ -z "$RAW_OUTPUT" ]]; then
-                    log "  -> gemini CLI failed. Stderr:"
+                
+                if [[ $gemini_exit -ne 0 || -z "$RAW_OUTPUT" ]]; then
+                    log "  -> gemini CLI failed (exit code $gemini_exit). Stderr:"
                     cat "$err_log" >&2
                     rm -f "$err_log"
                     exit 1
@@ -227,12 +232,28 @@ $PROMPT"
                     | jq -rs '[.[] | select(.type == "text")] | last | .part.text // empty')
             fi
 
-            # Extract JSON from markdown code blocks if present
-            # We check the first line. If it starts with ```, we strip it and the last line.
-            # This is safer than range matching which breaks on nested code blocks.
-            if [[ "$OUTPUT" == \`\`\`* ]]; then
-                OUTPUT=$(echo "$OUTPUT" | sed '1d;$d')
+            # Robust JSON extraction
+            # 1. Try extracting from ```json block
+            CLEAN_JSON=$(echo "$OUTPUT" | sed -n '/^```json$/,/^```$/p' | sed '1d;$d')
+            
+            # 2. If empty, try extracting from generic ``` block
+            if [[ -z "$CLEAN_JSON" || "$CLEAN_JSON" =~ ^[[:space:]]*$ ]]; then
+                CLEAN_JSON=$(echo "$OUTPUT" | sed -n '/^```$/,/^```$/p' | sed '1d;$d')
             fi
+            
+            # 3. If still empty, assume raw output is JSON
+            if [[ -z "$CLEAN_JSON" || "$CLEAN_JSON" =~ ^[[:space:]]*$ ]]; then
+                CLEAN_JSON="$OUTPUT"
+            fi
+
+            # 4. Validate with jq
+            if ! echo "$CLEAN_JSON" | jq . >/dev/null 2>&1; then
+                log "  -> WARNING: Failed to parse JSON from LLM output. Saving raw output."
+                # Don't fail hard here, let the next steps handle empty/invalid JSON if they need it
+                # But keep CLEAN_JSON as is so we can inspect it
+            fi
+            
+            OUTPUT="$CLEAN_JSON"
 
             STEP_OUTPUTS[$STEP_NAME]="$OUTPUT"
             echo "$OUTPUT" > "$STATE_DIR/step-${STEP_NAME}.json"

@@ -33,7 +33,8 @@ steps:
 
   - name: run-tests
     type: fold
-    expr: "(help)"  # Simple smoke test for now
+    # TODO: Implement actual test runner that consumes steps.plan-tests.output
+    expr: "(help)"  # Placeholder: Simple smoke test for now
 
   - name: evaluate
     type: llm
