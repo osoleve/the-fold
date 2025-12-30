@@ -1536,6 +1536,74 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
         }
 
+        // Format string
+        "format" => {
+            if args.is_empty() {
+                return Err(EvalError::TypeMismatch("format expects at least 1 arg"));
+            }
+            let format_str = expect_string(&args[0])?;
+            let mut result = String::new();
+            let mut arg_index = 1;
+            let mut chars = format_str.chars().peekable();
+
+            while let Some(ch) = chars.next() {
+                if ch == '~' {
+                    if let Some(&next) = chars.peek() {
+                        match next {
+                            'a' | 's' => {
+                                // ~a and ~s both convert to string (atom/string format)
+                                chars.next();
+                                if arg_index < args.len() {
+                                    result.push_str(&value_to_display_string(&args[arg_index]));
+                                    arg_index += 1;
+                                } else {
+                                    result.push('~');
+                                    result.push(next);
+                                }
+                            }
+                            'd' => {
+                                // ~d for decimal integer
+                                chars.next();
+                                if arg_index < args.len() {
+                                    if let Ok(n) = expect_number(&args[arg_index]) {
+                                        match n {
+                                            Numeric::Int(i) => result.push_str(&i.to_string()),
+                                            Numeric::Float(f) => {
+                                                result.push_str(&(f as i64).to_string())
+                                            }
+                                        }
+                                    }
+                                    arg_index += 1;
+                                } else {
+                                    result.push('~');
+                                    result.push(next);
+                                }
+                            }
+                            'n' => {
+                                // ~n for newline
+                                chars.next();
+                                result.push('\n');
+                            }
+                            '~' => {
+                                // ~~ for literal tilde
+                                chars.next();
+                                result.push('~');
+                            }
+                            _ => {
+                                result.push(ch);
+                            }
+                        }
+                    } else {
+                        result.push(ch);
+                    }
+                } else {
+                    result.push(ch);
+                }
+            }
+
+            Ok(Value::String(result))
+        }
+
         // List utilities
         "foldr" => {
             if args.len() != 3 {
@@ -2030,6 +2098,30 @@ fn is_list(value: &Value) -> bool {
 
 fn is_truthy(value: &Value) -> bool {
     !matches!(value, Value::Bool(false))
+}
+
+fn value_to_display_string(value: &Value) -> String {
+    match value {
+        Value::Number(n) => n.to_string(),
+        Value::Float(f) => f.to_string(),
+        Value::String(s) => s.clone(),
+        Value::Symbol(s) => s.to_string(),
+        Value::Bool(b) => if *b { "#t" } else { "#f" }.to_string(),
+        Value::Nil => "()".to_string(),
+        Value::Char(c) => format!("#\\{}", c),
+        Value::BigInt(n) => n.to_string(),
+        Value::BigRational(r) => r.to_string(),
+        Value::Bytevector(bv) => format!("#u8(...{})", bv.len()),
+        Value::Address(_) => "#<addr>".to_string(),
+        Value::Vector(_) => "#(...)".to_string(),
+        Value::Pair(_, _) => {
+            let items = list_to_vec(value).unwrap_or_default();
+            let strs: Vec<String> = items.iter().map(value_to_display_string).collect();
+            format!("({})", strs.join(" "))
+        }
+        Value::Block(b) => format!("#<block:{}>", b.tag),
+        Value::Closure(_) => "#<fn>".to_string(),
+    }
 }
 
 fn value_eq(left: &Value, right: &Value) -> bool {
