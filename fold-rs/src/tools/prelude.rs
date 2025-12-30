@@ -15313,6 +15313,9 @@ const PRIMITIVE_NAMES: &[&str] = &[
     // Chat and browse
     "chat",
     "browse",
+    // Forum posting
+    "msg",
+    "digest-posts",
 ];
 
 /// Create an environment with all primitives bound as first-class values.

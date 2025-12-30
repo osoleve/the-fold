@@ -4862,6 +4862,218 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             Ok(Value::Nil)
         }
 
+        // ============================================================
+        // msg Command - Post to Forum Channel with Title
+        // ============================================================
+        "msg" => {
+            // (msg 'channel "title" "body") - post to forum channel
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "msg expects 3 args: channel, title, body",
+                ));
+            }
+            let channel = expect_symbol(&args[0])?;
+            let title = expect_string(&args[1])?;
+            let body_text = expect_string(&args[2])?;
+
+            let session_id =
+                get_current_session_id().unwrap_or_else(|| format!("cli-{}", std::process::id()));
+
+            // Get session info
+            let session = read_session_file(&session_id).ok_or(EvalError::TypeMismatch(
+                "msg: no active session. Use (hi 'tier 'name) first",
+            ))?;
+
+            let author = alist_get(&session, "name")
+                .map(|v| format_value_simple(&v))
+                .unwrap_or_else(|| "anonymous".to_string());
+            let tier = alist_get(&session, "tier")
+                .map(|v| format_value_simple(&v))
+                .unwrap_or_else(|| "player".to_string());
+
+            // Get current timestamp
+            let timestamp = current_iso_timestamp();
+
+            // Format body with title (matching Scheme behavior)
+            let formatted_body = format!("## {}\n\n{}", title, body_text);
+
+            // Create post block with title field
+            let block_content = format!(
+                "((author . {}) (tier . {}) (timestamp . \"{}\") (channel . {}) (title . \"{}\") (body . \"{}\"))",
+                author,
+                tier,
+                timestamp,
+                channel,
+                escape_string(&title),
+                escape_string(&formatted_body)
+            );
+
+            // Hash the post
+            let hash = sha256(block_content.as_bytes());
+
+            // Read current channel head
+            let head_path = format!(".store/heads/{}.head", channel);
+            let prev_head = std::fs::read_to_string(&head_path).ok();
+
+            // Store the block (with sharding by first 2 hex chars)
+            let hash_hex = bytes_to_hex(&hash);
+            let shard = if hash_hex.len() >= 2 {
+                &hash_hex[..2]
+            } else {
+                &hash_hex
+            };
+            let shard_dir = format!(".store/objects/{}", shard);
+            std::fs::create_dir_all(&shard_dir).ok();
+            let object_path = format!("{}/{}", shard_dir, hash_hex);
+            if let Err(e) = std::fs::write(&object_path, &block_content) {
+                return Err(EvalError::IOError(format!(
+                    "msg: failed to store post: {}",
+                    e
+                )));
+            }
+
+            // Build refs (link to previous head if exists)
+            let _refs_str = if let Some(prev) = prev_head {
+                format!("(refs . (\"{}\"))", prev.trim())
+            } else {
+                "(refs . ())".to_string()
+            };
+
+            // Update head
+            std::fs::create_dir_all(".store/heads").ok();
+            if let Err(e) = std::fs::write(&head_path, &hash_hex) {
+                return Err(EvalError::IOError(format!(
+                    "msg: failed to update head: {}",
+                    e
+                )));
+            }
+
+            println!("Posted to #{}: {}", channel, title);
+            println!("Hash: {}", hash_hex);
+            Ok(Value::Nil)
+        }
+
+        // ============================================================
+        // digest-posts Command - Show Recent Posts (Excluding Chat)
+        // ============================================================
+        "digest-posts" => {
+            // (digest-posts) or (digest-posts n) - show recent posts without chat
+            if args.len() > 1 {
+                return Err(EvalError::TypeMismatch(
+                    "digest-posts expects 0-1 args: [count]",
+                ));
+            }
+            let count = if args.len() == 1 {
+                expect_integer(&args[0])? as usize
+            } else {
+                10
+            };
+
+            println!("\n╔══════════════════════════════════════════════════════════════╗");
+            println!("║                    THE FOLD — FORUM DIGEST                   ║");
+            println!("╚══════════════════════════════════════════════════════════════╝\n");
+
+            println!("┌─────────────────────────────────────────────────────────────┐");
+            println!("│ RECENT POSTS (non-chat)                                     │");
+            println!("└─────────────────────────────────────────────────────────────┘");
+
+            // Collect posts from all non-chat/non-system channels
+            let heads_dir = ".store/heads";
+            let mut all_posts: Vec<(String, String, std::collections::HashMap<String, String>)> =
+                Vec::new(); // (channel, hash, post_data)
+
+            if let Ok(entries) = std::fs::read_dir(heads_dir) {
+                for entry in entries.filter_map(|e| e.ok()) {
+                    let filename = entry.file_name().to_string_lossy().to_string();
+                    if filename.ends_with(".head") {
+                        let channel_name = filename.trim_end_matches(".head").to_string();
+                        // Skip chat and system channels
+                        if channel_name == "chat" || channel_name == "system" {
+                            continue;
+                        }
+                        // Read up to `count` posts from this channel
+                        if let Ok(head_hex) = std::fs::read_to_string(entry.path()) {
+                            let mut current_hash = head_hex.trim().to_string();
+                            let mut channel_posts = 0;
+
+                            while channel_posts < count && !current_hash.is_empty() {
+                                let shard = if current_hash.len() >= 2 {
+                                    &current_hash[..2]
+                                } else {
+                                    &current_hash
+                                };
+                                let object_path =
+                                    format!(".store/objects/{}/{}", shard, current_hash);
+
+                                if let Ok(bytes) = std::fs::read(&object_path) {
+                                    let content = String::from_utf8_lossy(&bytes);
+                                    if let Some(mut post) = parse_post_content(&content) {
+                                        post.insert("_channel".to_string(), channel_name.clone());
+                                        all_posts.push((
+                                            channel_name.clone(),
+                                            current_hash.clone(),
+                                            post.clone(),
+                                        ));
+                                        channel_posts += 1;
+
+                                        // Get previous ref
+                                        if let Some(refs) = post.get("refs") {
+                                            current_hash = refs.clone();
+                                        } else {
+                                            break;
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Sort by timestamp (descending)
+            all_posts.sort_by(|a, b| {
+                let ts_a = a.2.get("timestamp").cloned().unwrap_or_default();
+                let ts_b = b.2.get("timestamp").cloned().unwrap_or_default();
+                ts_b.cmp(&ts_a) // Descending
+            });
+
+            // Display top `count` posts
+            if all_posts.is_empty() {
+                println!("  (no posts yet)");
+            } else {
+                for (channel, hash, post) in all_posts.iter().take(count) {
+                    let author = post
+                        .get("author")
+                        .cloned()
+                        .unwrap_or_else(|| "?".to_string());
+                    let title = post.get("title");
+                    let body = post.get("body").cloned().unwrap_or_default();
+                    let hash_short = if hash.len() >= 6 { &hash[..6] } else { hash };
+
+                    let display_body = if let Some(t) = title {
+                        format!("[{}] {}", t, body)
+                    } else {
+                        body
+                    };
+
+                    println!(
+                        "  #{} | {} [{}]: {}",
+                        channel,
+                        author,
+                        hash_short,
+                        truncate_str(&display_body, 50)
+                    );
+                }
+            }
+            println!();
+
+            Ok(Value::Nil)
+        }
+
         _ => Err(EvalError::UnknownPrimitive(op.clone())),
     }
 }
