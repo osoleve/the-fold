@@ -20,7 +20,8 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use fold_rs::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
+use fold_rs::fabric::{Env, EnvRef, EvalOutcome, Symbol, Value, eval_spanned};
+use fold_rs::tools::fold_parse::Sexp;
 use fold_rs::tools::{format_value, lower_program, parse_fold_program};
 
 const REPL_DIR: &str = ".fold-repl";
@@ -29,6 +30,48 @@ const RESPONSES_DIR: &str = ".fold-repl/responses";
 const READY_FILE: &str = ".fold-repl/ready";
 const POLL_INTERVAL_MS: u64 = 100;
 const DEFAULT_FUEL: usize = 10_000;
+
+/// Check if an S-expression is a define form: (define name value)
+fn is_define_form(sexp: &Sexp) -> bool {
+    matches!(sexp, Sexp::List(items) if items.len() == 3 &&
+        matches!(&items[0].value, Sexp::Symbol(s) if s == "define"))
+}
+
+/// Handle a define form: extract name, evaluate value, bind in environment
+fn handle_define_form(sexp: &Sexp, env: &EnvRef) -> Result<String, String> {
+    if let Sexp::List(items) = sexp {
+        if items.len() != 3 {
+            return Err("define expects 2 arguments: (define name value)".to_string());
+        }
+
+        // Extract the name
+        let name = match &items[1].value {
+            Sexp::Symbol(sym) => Symbol::from(sym.as_str()),
+            _ => return Err("define: first argument must be a symbol".to_string()),
+        };
+
+        // Lower and evaluate the value
+        let value_sexp = &items[2];
+        match fold_rs::tools::fold_lower::lower_expr(value_sexp) {
+            Ok(expr) => {
+                match eval_spanned(expr, env.clone(), DEFAULT_FUEL) {
+                    Ok(EvalOutcome::Done(value)) => {
+                        // Bind the value in the session environment
+                        Env::insert(env, name.clone(), value);
+                        Ok(format!("; defined {}", name))
+                    }
+                    Ok(EvalOutcome::Suspended { .. }) => {
+                        Err("[define: suspended - out of fuel]".to_string())
+                    }
+                    Err(err) => Err(format!("define: {}", err)),
+                }
+            }
+            Err(err) => Err(format!("define: {}", err)),
+        }
+    } else {
+        Err("define expects a list form".to_string())
+    }
+}
 
 /// Session state for a connected client.
 struct Session {
@@ -85,12 +128,40 @@ impl Daemon {
         let parsed = parse_fold_program(source, Some(session_id))
             .map_err(|err| format!("Parse error: {}", err))?;
 
-        // Lower to expressions
-        let exprs = lower_program(&parsed).map_err(|err| format!("Lower error: {}", err))?;
+        // Get the session environment
+        let env = session.env.clone();
+
+        // Check for define forms before lowering
+        // This allows persistent variable bindings across REPL sessions
+        let mut responses = Vec::new();
+        let mut remaining = Vec::new();
+
+        for spanned_sexp in parsed {
+            if is_define_form(&spanned_sexp.value) {
+                match handle_define_form(&spanned_sexp.value, &env) {
+                    Ok(msg) => {
+                        responses.push(msg);
+                    }
+                    Err(e) => return Err(e),
+                }
+            } else {
+                // Keep non-define expressions for normal evaluation
+                remaining.push(spanned_sexp);
+            }
+        }
+
+        // Lower and evaluate non-define expressions
+        let exprs = if remaining.is_empty() {
+            Vec::new()
+        } else {
+            lower_program(&remaining).map_err(|err| format!("Lower error: {}", err))?
+        };
+
+        // Check if there are any non-define expressions to evaluate
+        let has_other_exprs = !exprs.is_empty();
 
         // Evaluate each expression, keeping the last result
         let mut last_result = Value::Nil;
-        let env = session.env.clone();
 
         for expr in exprs {
             match eval_spanned(expr, env.clone(), DEFAULT_FUEL) {
@@ -107,7 +178,17 @@ impl Daemon {
             }
         }
 
-        Ok(format!("=> {}", format_value(&last_result)))
+        // Combine define responses with evaluation result
+        if responses.is_empty() {
+            Ok(format!("=> {}", format_value(&last_result)))
+        } else if !has_other_exprs {
+            // Only define forms, no other expressions
+            Ok(responses.join("\n"))
+        } else {
+            // Mix of define and other expressions
+            responses.push(format!("=> {}", format_value(&last_result)));
+            Ok(responses.join("\n"))
+        }
     }
 
     /// Process a single request file.
