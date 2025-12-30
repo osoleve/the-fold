@@ -23,6 +23,28 @@ pub fn lower_expr(expr: &Spanned<Sexp>) -> Result<SpannedExpr, LowerError> {
     let inner = match &expr.value {
         Sexp::Number(NumberLit::Integer(n)) => Expr::Value(Value::Number(*n)),
         Sexp::Number(NumberLit::Float(n)) => Expr::Value(Value::Float(*n)),
+        Sexp::Number(NumberLit::Rational(numer, denom)) => {
+            // Parse numerator and denominator as BigInts, create BigRational
+            use num_bigint::BigInt;
+            use num_rational::BigRational;
+            let numer_bigint = numer.parse::<BigInt>()
+                .map_err(|e| LowerError {
+                    message: format!("invalid rational numerator: {}", e),
+                    span: span.clone(),
+                })?;
+            let denom_bigint = denom.parse::<BigInt>()
+                .map_err(|e| LowerError {
+                    message: format!("invalid rational denominator: {}", e),
+                    span: span.clone(),
+                })?;
+            if denom_bigint.is_zero() {
+                return Err(LowerError {
+                    message: "rational denominator cannot be zero".to_string(),
+                    span: span.clone(),
+                });
+            }
+            Expr::Value(Value::BigRational(BigRational::new(numer_bigint, denom_bigint)))
+        }
         Sexp::String(s) => Expr::Value(Value::String(s.clone())),
         Sexp::Bool(b) => Expr::Value(Value::Bool(*b)),
         Sexp::Char(c) => Expr::Value(Value::Char(*c)),
@@ -61,6 +83,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "gcd" | "lcm" | "clamp" | "between?" | "sign" | "divmod"
             | "int->float" | "float->int" | "truncate"
             | "inc" | "dec" | "succ" | "pred"
+            | "sq" | "cube" | "double" | "halve" | "negate" | "zero" | "one"
             // Comparison
             | "<" | ">" | "<=" | ">=" | "=" | "eq?" | "lt?" | "gt?" | "le?" | "ge?"
             // Type checks and predicates
@@ -561,6 +584,27 @@ fn value_from_spanned(expr: &Spanned<Sexp>) -> Result<Value, LowerError> {
     match &expr.value {
         Sexp::Number(NumberLit::Integer(n)) => Ok(Value::Number(*n)),
         Sexp::Number(NumberLit::Float(n)) => Ok(Value::Float(*n)),
+        Sexp::Number(NumberLit::Rational(numer, denom)) => {
+            use num_bigint::BigInt;
+            use num_rational::BigRational;
+            let numer_bigint = numer.parse::<BigInt>()
+                .map_err(|e| LowerError {
+                    message: format!("invalid rational numerator: {}", e),
+                    span: expr.span.clone(),
+                })?;
+            let denom_bigint = denom.parse::<BigInt>()
+                .map_err(|e| LowerError {
+                    message: format!("invalid rational denominator: {}", e),
+                    span: expr.span.clone(),
+                })?;
+            if denom_bigint.is_zero() {
+                return Err(LowerError {
+                    message: "rational denominator cannot be zero".to_string(),
+                    span: expr.span.clone(),
+                });
+            }
+            Ok(Value::BigRational(BigRational::new(numer_bigint, denom_bigint)))
+        }
         Sexp::String(s) => Ok(Value::String(s.clone())),
         Sexp::Char(c) => Ok(Value::Char(*c)),
         Sexp::Bytevector(bytes) => Ok(Value::Bytevector(bytes.clone())),

@@ -2763,6 +2763,75 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(list_from_values(&numbers))
         }
+        "sq" => {
+            // Square a number
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("sq expects 1 arg: a number"));
+            }
+            let n = expect_number(&args[0])?;
+            match n {
+                Numeric::Int(i) => Ok(Value::Number(i * i)),
+                Numeric::Float(f) => Ok(Value::Float(f * f)),
+            }
+        }
+        "cube" => {
+            // Cube a number
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("cube expects 1 arg: a number"));
+            }
+            let n = expect_number(&args[0])?;
+            match n {
+                Numeric::Int(i) => Ok(Value::Number(i * i * i)),
+                Numeric::Float(f) => Ok(Value::Float(f * f * f)),
+            }
+        }
+        "double" => {
+            // Double a number (multiply by 2)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("double expects 1 arg: a number"));
+            }
+            let n = expect_number(&args[0])?;
+            match n {
+                Numeric::Int(i) => Ok(Value::Number(i * 2)),
+                Numeric::Float(f) => Ok(Value::Float(f * 2.0)),
+            }
+        }
+        "halve" => {
+            // Halve a number (divide by 2)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("halve expects 1 arg: a number"));
+            }
+            let n = expect_number(&args[0])?;
+            match n {
+                Numeric::Int(i) => Ok(Value::Number(i / 2)),
+                Numeric::Float(f) => Ok(Value::Float(f / 2.0)),
+            }
+        }
+        "negate" => {
+            // Negate a number (multiply by -1)
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("negate expects 1 arg: a number"));
+            }
+            let n = expect_number(&args[0])?;
+            match n {
+                Numeric::Int(i) => Ok(Value::Number(-i)),
+                Numeric::Float(f) => Ok(Value::Float(-f)),
+            }
+        }
+        "zero" => {
+            // Return zero of appropriate type
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("zero expects 0 args"));
+            }
+            Ok(Value::Number(0))
+        }
+        "one" => {
+            // Return one of appropriate type
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("one expects 0 args"));
+            }
+            Ok(Value::Number(1))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
