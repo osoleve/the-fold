@@ -4522,6 +4522,7 @@ fn value_to_display_string(value: &Value) -> String {
         }
         Value::Block(b) => format!("#<block:{}>", b.tag),
         Value::Closure(_) => "#<fn>".to_string(),
+        Value::Primitive(name) => format!("#<primitive {}>", name),
     }
 }
 
@@ -4552,6 +4553,7 @@ fn value_to_write_string(value: &Value) -> String {
         }
         Value::Block(b) => format!("#<block:{}>", b.tag),
         Value::Closure(_) => "#<fn>".to_string(),
+        Value::Primitive(name) => format!("#<primitive {}>", name),
     }
 }
 

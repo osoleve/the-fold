@@ -19,3 +19,39 @@
 [2025-12-30T05:17:06+00:00]   [opus:monk] [2025-12-30T05:17:06+00:00] Starting persona: opus (workflow: monk, session: agent-opus-944359)
 [2025-12-30T05:17:07+00:00]   [opus:monk] [2025-12-30T05:17:07+00:00] Step 1/9: login (fold)
 [2025-12-30T05:17:37+00:00]   [opus:monk] [2025-12-30T05:17:37+00:00]   -> ERROR: ERROR: Timeout waiting for Fold response
+[2025-12-30T06:15:01+00:00] Starting unified daemon polling (last check: 1767074402)
+[2025-12-30T06:15:01+00:00] Polling for agent consultation tags...
+[2025-12-30T06:15:01+00:00] No new tagged consultation posts found
+[2025-12-30T06:15:01+00:00] Daemon polling complete
+[2025-12-30T06:17:07+00:00] Monk duty due, summoned: helia
+[2025-12-30T06:17:07+00:00] Running persona: helia (workflow: monk)
+[2025-12-30T06:17:08+00:00]   [helia:monk] [2025-12-30T06:17:08+00:00] Starting persona: helia (workflow: monk, session: agent-helia-994762)
+[2025-12-30T06:17:09+00:00]   [helia:monk] [2025-12-30T06:17:09+00:00] Step 1/9: login (fold)
+[2025-12-30T06:17:10+00:00]   [helia:monk] [2025-12-30T06:17:10+00:00]   -> ERROR: unbound variable: hi at agent-helia-994762:1:2...
+[2025-12-30T06:17:11+00:00]   [helia:monk] [2025-12-30T06:17:11+00:00] Step 2/9: check-beads (shell)
+[2025-12-30T06:17:11+00:00]   [helia:monk] [2025-12-30T06:17:11+00:00]   -> No beads ready...
+[2025-12-30T06:17:12+00:00]   [helia:monk] [2025-12-30T06:17:12+00:00] Step 3/9: check-junk (shell)
+[2025-12-30T06:17:12+00:00]   [helia:monk] [2025-12-30T06:17:12+00:00]   -> ...
+[2025-12-30T06:17:12+00:00]   [helia:monk] [2025-12-30T06:17:12+00:00] Step 4/9: get-context (fold)
+[2025-12-30T06:17:13+00:00]   [helia:monk] [2025-12-30T06:17:13+00:00]   -> ERROR: unbound variable: digest-posts at agent-helia-994762:1:2...
+[2025-12-30T06:17:14+00:00]   [helia:monk] [2025-12-30T06:17:14+00:00] Step 5/9: decide (llm)
+[2025-12-30T06:30:01+00:00] Starting unified daemon polling (last check: 1767075301)
+[2025-12-30T06:30:01+00:00] Polling for agent consultation tags...
+[2025-12-30T06:30:02+00:00] No new tagged consultation posts found
+[2025-12-30T06:30:02+00:00] Daemon polling complete
+[2025-12-30T06:45:01+00:00] Starting unified daemon polling (last check: 1767076202)
+[2025-12-30T06:45:01+00:00] Polling for agent consultation tags...
+[2025-12-30T06:45:01+00:00] No new tagged consultation posts found
+[2025-12-30T06:45:01+00:00] Daemon polling complete
+[2025-12-30T07:00:01+00:00] Starting unified daemon polling (last check: 1767077101)
+[2025-12-30T07:00:01+00:00] Polling for agent consultation tags...
+[2025-12-30T07:00:02+00:00] No new tagged consultation posts found
+[2025-12-30T07:00:02+00:00] Daemon polling complete
+[2025-12-30T07:15:01+00:00] Starting unified daemon polling (last check: 1767078002)
+[2025-12-30T07:15:01+00:00] Polling for agent consultation tags...
+[2025-12-30T07:15:02+00:00] No new tagged consultation posts found
+[2025-12-30T07:15:02+00:00] Daemon polling complete
+[2025-12-30T07:17:07+00:00] Monk duty due, summoned: sentinel
+[2025-12-30T07:17:07+00:00] Running persona: sentinel (workflow: monk)
+[2025-12-30T07:17:07+00:00]   [sentinel:monk] [2025-12-30T07:17:07+00:00] Starting persona: sentinel (workflow: monk, session: agent-sentinel-1034656)
+[2025-12-30T07:17:08+00:00]   [sentinel:monk] [2025-12-30T07:17:08+00:00] Skipped (probability check: 560 >= 400)

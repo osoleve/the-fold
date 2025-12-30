@@ -523,30 +523,41 @@ fn unwind(
     }
 }
 
+/// Apply a callable (closure or primitive) to arguments.
+/// Returns the next expression to evaluate and the environment to use.
 fn apply_closure(
     func: Value,
     args: Vec<Value>,
     span: Option<Span>,
 ) -> Result<(SpannedExpr, EnvRef), SpannedEvalError> {
-    let closure = match func {
-        Value::Closure(closure) => closure,
-        _ => return Err(SpannedEvalError::new(EvalError::NotCallable, span)),
-    };
+    match func {
+        Value::Closure(closure) => {
+            if closure.params.len() != args.len() {
+                return Err(SpannedEvalError::new(
+                    EvalError::ArityMismatch {
+                        expected: closure.params.len(),
+                        got: args.len(),
+                    },
+                    span,
+                ));
+            }
 
-    if closure.params.len() != args.len() {
-        return Err(SpannedEvalError::new(
-            EvalError::ArityMismatch {
-                expected: closure.params.len(),
-                got: args.len(),
-            },
-            span,
-        ));
+            let bindings = closure.params.iter().cloned().zip(args).collect::<Vec<_>>();
+            let new_env = Env::extend(closure.env.clone(), bindings);
+            Ok(((*closure.body).clone(), new_env))
+        }
+        Value::Primitive(op) => {
+            // Apply primitive and return the result as a Value expression
+            let result =
+                apply_prim(&op, &args).map_err(|e| SpannedEvalError::new(e, span.clone()))?;
+            // Wrap the result in a Value expression so the evaluator can extract it
+            Ok((
+                SpannedExpr::new(Expr::Value(result), span),
+                Env::new(), // Environment doesn't matter for a Value expression
+            ))
+        }
+        _ => Err(SpannedEvalError::new(EvalError::NotCallable, span)),
     }
-
-    let bindings = closure.params.iter().cloned().zip(args).collect::<Vec<_>>();
-
-    let new_env = Env::extend(closure.env.clone(), bindings);
-    Ok(((*closure.body).clone(), new_env))
 }
 
 fn apply_case(

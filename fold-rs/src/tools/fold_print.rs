@@ -33,6 +33,7 @@ pub fn format_value(value: &Value) -> String {
                 format!("#<closure/{}>", closure.params.len())
             }
         }
+        Value::Primitive(op) => format!("#<primitive {}>", op),
         Value::Block(block) => format!("#<block {}>", block.tag),
         Value::Nil => "()".to_string(),
     }

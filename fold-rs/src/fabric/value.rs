@@ -17,6 +17,8 @@ pub enum Value {
     Pair(Box<Value>, Box<Value>),
     Vector(Vec<Value>),
     Closure(Closure),
+    /// First-class primitive function reference (e.g., +, cons, car)
+    Primitive(Symbol),
     Block(Block),
     Nil,
 }

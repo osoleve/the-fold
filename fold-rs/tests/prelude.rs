@@ -34,17 +34,17 @@ fn test_filter() {
 
 #[test]
 fn test_foldl() {
-    // (foldl (fn (a b) (+ a b)) 0 '(1 2 3 4)) => 10
-    // Note: primitives like + are not first-class, must wrap in lambda
-    let result = eval_with_prelude("(foldl (fn (a b) (+ a b)) 0 '(1 2 3 4))");
+    // (foldl + 0 '(1 2 3 4)) => 10
+    // Primitives are first-class and can be passed directly!
+    let result = eval_with_prelude("(foldl + 0 '(1 2 3 4))");
     assert_eq!(result, "10");
 }
 
 #[test]
 fn test_foldr() {
-    // (foldr (fn (a b) (cons a b)) '() '(1 2 3)) => (1 2 3)
-    // Note: primitives like cons are not first-class, must wrap in lambda
-    let result = eval_with_prelude("(foldr (fn (a b) (cons a b)) '() '(1 2 3))");
+    // (foldr cons '() '(1 2 3)) => (1 2 3)
+    // Primitives are first-class and can be passed directly!
+    let result = eval_with_prelude("(foldr cons '() '(1 2 3))");
     assert_eq!(result, "(1 2 3)");
 }
 
@@ -86,9 +86,9 @@ fn test_drop_while() {
 
 #[test]
 fn test_zip_with() {
-    // (zip-with (fn (a b) (+ a b)) '(1 2 3) '(10 20 30)) => (11 22 33)
-    // Note: primitives like + are not first-class, must wrap in lambda
-    let result = eval_with_prelude("(zip-with (fn (a b) (+ a b)) '(1 2 3) '(10 20 30))");
+    // (zip-with + '(1 2 3) '(10 20 30)) => (11 22 33)
+    // Primitives are first-class and can be passed directly!
+    let result = eval_with_prelude("(zip-with + '(1 2 3) '(10 20 30))");
     assert_eq!(result, "(11 22 33)");
 }
 
@@ -113,4 +113,20 @@ fn test_nested_map() {
     // => (9 16 25)
     let result = eval_with_prelude("(map (fn (x) (* x x)) (filter (fn (x) (> x 2)) '(1 2 3 4 5)))");
     assert_eq!(result, "(9 16 25)");
+}
+
+#[test]
+fn test_first_class_primitives() {
+    // Test that primitives are first-class values
+    // They can be stored in variables and passed around
+    let result = eval_with_prelude("(let ((f +)) (f 2 3))");
+    assert_eq!(result, "5");
+
+    // map with primitive
+    let result = eval_with_prelude("(map inc '(1 2 3))");
+    assert_eq!(result, "(2 3 4)");
+
+    // Compose primitives with user functions
+    let result = eval_with_prelude("(map (compose inc double) '(1 2 3))");
+    assert_eq!(result, "(3 5 7)");
 }
