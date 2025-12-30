@@ -1817,6 +1817,101 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
 
             Ok(list_from_values(&result))
         }
+        "sum" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("sum expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            let mut total: f64 = 0.0;
+            for item in list {
+                let n = expect_number(&item)?;
+                total += n.as_f64();
+            }
+            // Return as integer if it's a whole number, otherwise float
+            if total.fract() == 0.0 && total.is_finite() {
+                Ok(Value::Number(total as i64))
+            } else {
+                Ok(Value::Float(total))
+            }
+        }
+        "product" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("product expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            let mut total: f64 = 1.0;
+            for item in list {
+                let n = expect_number(&item)?;
+                total *= n.as_f64();
+            }
+            // Return as integer if it's a whole number, otherwise float
+            if total.fract() == 0.0 && total.is_finite() {
+                Ok(Value::Number(total as i64))
+            } else {
+                Ok(Value::Float(total))
+            }
+        }
+        "sum-of" | "max-of" | "min-of" => {
+            // These are aliases that do the same thing as sum/product but with -of suffix
+            // Actually, let's implement max-of and min-of properly
+            if op == "max-of" {
+                if args.len() != 1 {
+                    return Err(EvalError::TypeMismatch(
+                        "max-of expects 1 arg: a non-empty list",
+                    ));
+                }
+                let list = list_to_vec(&args[0])?;
+                if list.is_empty() {
+                    return Err(EvalError::TypeMismatch(
+                        "max-of: cannot find max of empty list",
+                    ));
+                }
+                let mut max_val = expect_number(&list[0])?;
+                for item in &list[1..] {
+                    let val = expect_number(item)?;
+                    if val.as_f64() > max_val.as_f64() {
+                        max_val = val;
+                    }
+                }
+                Ok(numeric_to_value(max_val))
+            } else if op == "min-of" {
+                if args.len() != 1 {
+                    return Err(EvalError::TypeMismatch(
+                        "min-of expects 1 arg: a non-empty list",
+                    ));
+                }
+                let list = list_to_vec(&args[0])?;
+                if list.is_empty() {
+                    return Err(EvalError::TypeMismatch(
+                        "min-of: cannot find min of empty list",
+                    ));
+                }
+                let mut min_val = expect_number(&list[0])?;
+                for item in &list[1..] {
+                    let val = expect_number(item)?;
+                    if val.as_f64() < min_val.as_f64() {
+                        min_val = val;
+                    }
+                }
+                Ok(numeric_to_value(min_val))
+            } else {
+                // sum-of is just an alias for sum
+                if args.len() != 1 {
+                    return Err(EvalError::TypeMismatch("sum-of expects 1 arg: a list"));
+                }
+                let list = list_to_vec(&args[0])?;
+                let mut total: f64 = 0.0;
+                for item in list {
+                    let n = expect_number(&item)?;
+                    total += n.as_f64();
+                }
+                if total.fract() == 0.0 && total.is_finite() {
+                    Ok(Value::Number(total as i64))
+                } else {
+                    Ok(Value::Float(total))
+                }
+            }
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
