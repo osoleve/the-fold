@@ -2352,6 +2352,32 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(list_from_values(&result))
         }
+        "init" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("init expects 1 arg: a list"));
+            }
+            let mut list = list_to_vec(&args[0])?;
+            if !list.is_empty() {
+                list.pop();
+            }
+            Ok(list_from_values(&list))
+        }
+        "int->float" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "int->float expects 1 arg: an integer",
+                ));
+            }
+            let n = expect_integer(&args[0])?;
+            Ok(Value::Float(n as f64))
+        }
+        "float->int" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("float->int expects 1 arg: a float"));
+            }
+            let f = expect_number(&args[0])?.as_f64();
+            Ok(Value::Number(f as i64))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(

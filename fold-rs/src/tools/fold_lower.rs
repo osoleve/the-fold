@@ -59,6 +59,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "abs" | "neg" | "sqrt" | "expt" | "pow" | "floor" | "ceiling" | "round"
             | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "log" | "exp" | "min" | "max"
             | "gcd" | "lcm" | "clamp" | "between?" | "sign" | "divmod"
+            | "int->float" | "float->int"
             // Comparison
             | "<" | ">" | "<=" | ">=" | "=" | "eq?" | "lt?" | "gt?" | "le?" | "ge?"
             // Type checks and predicates
@@ -67,7 +68,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "zero?" | "positive?" | "negative?" | "even?" | "odd?"
             // List operations
             | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
-            | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "flatten" | "range"
+            | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "init" | "flatten" | "range"
             | "repeat" | "sum" | "product" | "sum-of" | "max-of" | "min-of"
             | "sort" | "unique" | "find-index" | "index-of" | "count"
             | "nth" | "zip" | "unzip" | "rotate"
