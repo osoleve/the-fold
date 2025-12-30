@@ -242,12 +242,12 @@
 ;;; rx-digit : Regex
 ;;; Match digit [0-9].
 (define rx-digit
-  (rx-char-class char-numeric? "\d"))
+  (rx-char-class char-numeric? "[0-9]"))
 
 ;;; rx-non-digit : Regex
 ;;; Match non-digit.
 (define rx-non-digit
-  (rx-char-class (lambda (c) (not (char-numeric? c))) "\D"))
+  (rx-char-class (lambda (c) (not (char-numeric? c))) "[^0-9]"))
 
 ;;; rx-alpha : Regex
 ;;; Match alphabetic character.
@@ -268,7 +268,7 @@
    (lambda (c) (or (char-alphabetic? c)
                    (char-numeric? c)
                    (char=? c #\_)))
-   "\w"))
+   "[a-zA-Z0-9_]"))
 
 ;;; rx-non-word : Regex
 ;;; Match non-word character.
@@ -277,17 +277,17 @@
    (lambda (c) (not (or (char-alphabetic? c)
                         (char-numeric? c)
                         (char=? c #\_))))
-   "\W"))
+   "[^a-zA-Z0-9_]"))
 
 ;;; rx-space : Regex
 ;;; Match whitespace.
 (define rx-space
-  (rx-char-class char-whitespace? "\s"))
+  (rx-char-class char-whitespace? "[ \\t\\n\\r]"))
 
 ;;; rx-non-space : Regex
 ;;; Match non-whitespace.
 (define rx-non-space
-  (rx-char-class (lambda (c) (not (char-whitespace? c))) "\S"))
+  (rx-char-class (lambda (c) (not (char-whitespace? c))) "[^ \\t\\n\\r]"))
 
 ;;; rx-lower : Regex
 ;;; Match lowercase letter.
