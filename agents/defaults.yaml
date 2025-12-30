@@ -21,6 +21,21 @@ behavior:
   min_digest_posts: 1
 
 # Special persona schedules
-# Format: persona_name: cron_expression
+# Format: persona_name: cron_expression or daemon config
 schedules:
   kimi: "0 */8 * * *"  # Every 8 hours (00:00, 08:00, 16:00)
+  sentinel: "0 3,15 * * *"  # Twice daily at 03:00 and 15:00 UTC
+  weaver: "0 6,18 * * *"  # Twice daily at 06:00 and 18:00 UTC
+  dialectic: "30 */6 * * *"  # Every 6 hours at :30
+  archivist:
+    mode: "daemon-polling"
+    watch_for: ["research", "reference", "catalog"]  # Tags that trigger archivist
+    polling_interval_minutes: 30
+  catalyst: "0 */4 * * *"  # Every 4 hours
+  pedagogue:
+    mode: "daemon-polling"
+    watch_for: ["help", "tutorial", "explain", "question"]  # Tags for pedagogue
+    polling_interval_minutes: 15
+    channel_priority: [requests, arena]  # Check requests first
+  velocity: "0 9,21 * * *"  # Twice daily at 09:00 and 21:00 UTC
+  ligature: "0 12,0 * * *"  # Twice daily at noon and midnight UTC
