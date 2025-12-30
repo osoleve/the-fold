@@ -4366,6 +4366,433 @@ pub const PRELUDE_SOURCE: &str = r#"
                        (case-of (remainder n 10)
                          (list (list 1 "st") (list 2 "nd") (list 3 "rd"))))))
        (string-append (number->string n) (if suffix suffix "th")))))
+
+   ; ============================================
+   ; More String Utilities
+   ; ============================================
+
+   ; string-chars: Convert string to list of characters
+   (string-chars string->list)
+
+   ; chars-string: Convert list of characters to string
+   (chars-string list->string)
+
+   ; string-empty?: Check if string is empty
+   (string-empty? (fn (s) (= (string-length s) 0)))
+
+   ; string-first: Get first character of string
+   (string-first (fn (s)
+     (if (string-empty? s) #f (string-ref s 0))))
+
+   ; string-last: Get last character of string
+   (string-last (fn (s)
+     (if (string-empty? s) #f (string-ref s (- (string-length s) 1)))))
+
+   ; string-take: Take first n characters
+   (string-take (fn (n s)
+     (substring s 0 (min n (string-length s)))))
+
+   ; string-drop: Drop first n characters
+   (string-drop (fn (n s)
+     (substring s (min n (string-length s)) (string-length s))))
+
+   ; string-take-right: Take last n characters
+   (string-take-right (fn (n s)
+     (let ((len (string-length s)))
+       (substring s (max 0 (- len n)) len))))
+
+   ; string-drop-right: Drop last n characters
+   (string-drop-right (fn (n s)
+     (let ((len (string-length s)))
+       (substring s 0 (max 0 (- len n))))))
+
+   ; string-contains?: Check if haystack contains needle
+   (string-contains? (fn (haystack needle)
+     (let ((needle-len (string-length needle))
+           (haystack-len (string-length haystack)))
+       (if (> needle-len haystack-len)
+           #f
+           (let ((finder (fix finder
+                   (fn (i)
+                     (if (> (+ i needle-len) haystack-len)
+                         #f
+                         (if (string=? needle (substring haystack i (+ i needle-len)))
+                             #t
+                             (finder (+ i 1))))))))
+             (finder 0))))))
+
+   ; string-index-of: Find index of needle in haystack (-1 if not found)
+   (string-index-of (fn (haystack needle)
+     (let ((needle-len (string-length needle))
+           (haystack-len (string-length haystack)))
+       (if (> needle-len haystack-len)
+           -1
+           (let ((finder (fix finder
+                   (fn (i)
+                     (if (> (+ i needle-len) haystack-len)
+                         -1
+                         (if (string=? needle (substring haystack i (+ i needle-len)))
+                             i
+                             (finder (+ i 1))))))))
+             (finder 0))))))
+
+   ; string-starts-with?: Check if string s starts with prefix
+   (string-starts-with? (fn (s prefix)
+     (let ((plen (string-length prefix)))
+       (if (> plen (string-length s))
+           #f
+           (string=? prefix (substring s 0 plen))))))
+
+   ; string-ends-with?: Check if string s ends with suffix
+   (string-ends-with? (fn (s suffix)
+     (let ((slen (string-length suffix))
+           (len (string-length s)))
+       (if (> slen len)
+           #f
+           (string=? suffix (substring s (- len slen) len))))))
+
+   ; string-replace: Replace all occurrences of old with new in s
+   (string-replace (fix string-replace
+     (fn (s old new)
+       (let ((idx (string-index-of s old)))
+         (if (< idx 0)
+             s
+             (string-replace
+               (string-append (substring s 0 idx)
+                              new
+                              (substring s (+ idx (string-length old)) (string-length s)))
+               old new))))))
+
+   ; string-split-at: Split string at index
+   (string-split-at (fn (idx s)
+     (cons (substring s 0 idx) (substring s idx (string-length s)))))
+
+   ; ============================================
+   ; Error Handling Utilities
+   ; ============================================
+
+   ; try-catch: Try expression, catch errors (simplified - uses Either)
+   ; Returns (right value) on success, (left error-msg) on failure
+   (try-catch (fn (thunk on-error)
+     (let ((result (thunk)))
+       (if (err? result)
+           (on-error (unwrap result))
+           (right result)))))
+
+   ; assert: Check condition, return error if false
+   (assert (fn (condition msg)
+     (if condition
+         (ok #t)
+         (err msg))))
+
+   ; assert-eq: Assert two values are equal
+   (assert-eq (fn (expected actual)
+     (if (eq? expected actual)
+         (ok #t)
+         (err (list 'assertion-failed 'expected expected 'got actual)))))
+
+   ; ensure: Ensure condition, return value or error
+   (ensure (fn (pred value msg)
+     (if (pred value)
+         (ok value)
+         (err msg))))
+
+   ; coerce: Try to coerce value, return default on failure
+   (coerce (fn (f default value)
+     (let ((result (f value)))
+       (if result result default))))
+
+   ; ============================================
+   ; More Numeric Utilities
+   ; ============================================
+
+   ; factorial: Compute n!
+   (factorial (fix factorial
+     (fn (n)
+       (if (<= n 1) 1 (* n (factorial (- n 1)))))))
+
+   ; fibonacci: Compute nth Fibonacci number
+   (fibonacci (fix fibonacci
+     (fn (n)
+       (if (<= n 1) n (+ (fibonacci (- n 1)) (fibonacci (- n 2)))))))
+
+   ; is-prime?: Check if number is prime
+   (is-prime? (fn (n)
+     (if (<= n 1)
+         #f
+         (if (<= n 3)
+             #t
+             (if (or (= 0 (remainder n 2)) (= 0 (remainder n 3)))
+                 #f
+                 (let ((checker (fix checker
+                         (fn (i)
+                           (if (> (* i i) n)
+                               #t
+                               (if (or (= 0 (remainder n i)) (= 0 (remainder n (+ i 2))))
+                                   #f
+                                   (checker (+ i 6))))))))
+                   (checker 5)))))))
+
+   ; divisors: Get all divisors of n
+   (divisors (fn (n)
+     (filter (fn (d) (= 0 (remainder n d)))
+             (range 1 (+ n 1)))))
+
+   ; proper-divisors: Get divisors of n excluding n itself
+   (proper-divisors (fn (n)
+     (filter (fn (d) (= 0 (remainder n d)))
+             (range 1 n))))
+
+   ; is-perfect?: Check if number is perfect (sum of proper divisors = n)
+   (is-perfect? (fn (n)
+     (= n (sum-list (proper-divisors n)))))
+
+   ; next-prime: Get next prime after n
+   (next-prime (fix next-prime
+     (fn (n)
+       (let ((candidate (+ n 1)))
+         (if (is-prime? candidate)
+             candidate
+             (next-prime candidate))))))
+
+   ; prime-factors: Get prime factorization of n
+   (prime-factors (fn (n)
+     (let ((factorize (fix factorize
+             (fn (n p factors)
+               (if (< n 2)
+                   factors
+                   (if (= 0 (remainder n p))
+                       (factorize (quotient n p) p (cons p factors))
+                       (factorize n (next-prime p) factors)))))))
+       (reverse (factorize n 2 '())))))
+
+   ; num-digits: Count digits in a number
+   (num-digits (fn (n)
+     (if (= n 0)
+         1
+         (let ((counter (fix counter
+                 (fn (n count)
+                   (if (< n 1)
+                       count
+                       (counter (/ n 10) (+ count 1)))))))
+           (counter (abs n) 0)))))
+
+   ; sum-digits: Sum of digits
+   (sum-digits (fn (n)
+     (foldl + 0 (digits (abs n)))))
+
+   ; ============================================
+   ; Control Flow Utilities
+   ; ============================================
+
+   ; while-loop: Functional while loop
+   (while-loop (fn (pred body init)
+     (let ((loop (fix loop
+             (fn (state)
+               (if (pred state)
+                   (loop (body state))
+                   state)))))
+       (loop init))))
+
+   ; for-loop: Functional for loop
+   (for-loop (fn (start end body init)
+     (let ((loop (fix loop
+             (fn (i acc)
+               (if (>= i end)
+                   acc
+                   (loop (+ i 1) (body i acc)))))))
+       (loop start init))))
+
+   ; times: Execute thunk n times, collect results
+   (times (fn (n thunk)
+     (build-list n (fn (i) (thunk)))))
+
+   ; repeat-until: Repeat until predicate is true
+   (repeat-until (fn (pred body init)
+     (let ((loop (fix loop
+             (fn (state)
+               (if (pred state)
+                   state
+                   (loop (body state)))))))
+       (loop init))))
+
+   ; do-times: Execute body n times for side effects
+   (do-times (fn (n body)
+     (for-loop 0 n (fn (i acc) (block (body i) acc)) '())))
+
+   ; thread-first: Thread value through functions (left-to-right)
+   (thread-first (fn (x fns)
+     (foldl (fn (acc f) (f acc)) x fns)))
+
+   ; thread-last: Thread value as last arg through functions
+   (thread-last (fn (x fns)
+     (foldl (fn (acc f) (f acc)) x fns)))
+
+   ; pipeline: Create a pipeline of functions (takes a list of functions)
+   (pipeline (fn (fns)
+     (fn (x)
+       (foldl (fn (acc f) (f acc)) x fns))))
+
+   ; ============================================
+   ; Type Introspection Utilities
+   ; ============================================
+
+   ; type-name: Get type name as symbol
+   (type-name (fn (x)
+     (if (null? x) 'null
+       (if (boolean? x) 'boolean
+         (if (number? x) 'number
+           (if (string? x) 'string
+             (if (symbol? x) 'symbol
+               (if (pair? x) 'pair
+                 (if (procedure? x) 'procedure
+                   (if (vector? x) 'vector
+                     'unknown))))))))))
+
+   ; is-type?: Check if value is of given type
+   (is-type? (fn (type-sym x)
+     (eq? type-sym (type-name x))))
+
+   ; type-check: Assert value is of expected type
+   (type-check (fn (expected x)
+     (if (is-type? expected x)
+         (ok x)
+         (err (list 'type-error 'expected expected 'got (type-name x))))))
+
+   ; ============================================
+   ; Association List Utilities (Extended)
+   ; ============================================
+
+   ; alist-map: Map over alist values
+   (alist-map (fn (f alist)
+     (map (fn (pair) (cons (car pair) (f (cdr pair)))) alist)))
+
+   ; alist-filter: Filter alist by predicate on pairs
+   (alist-filter (fn (pred alist)
+     (filter pred alist)))
+
+   ; alist-filter-keys: Filter alist by predicate on keys
+   (alist-filter-keys (fn (pred alist)
+     (filter (fn (pair) (pred (car pair))) alist)))
+
+   ; alist-filter-values: Filter alist by predicate on values
+   (alist-filter-values (fn (pred alist)
+     (filter (fn (pair) (pred (cdr pair))) alist)))
+
+   ; alist-keys: Get all keys from alist
+   (alist-keys (fn (alist)
+     (map car alist)))
+
+   ; alist-values: Get all values from alist
+   (alist-values (fn (alist)
+     (map cdr alist)))
+
+   ; alist-has-key?: Check if alist has key
+   (alist-has-key? (fn (key alist)
+     (not (not (assoc key alist)))))
+
+   ; alist-update: Update value at key with function
+   (alist-update (fn (key f default alist)
+     (let ((current (assoc-ref key alist)))
+       (assoc-set key (f (if current current default)) alist))))
+
+   ; alist-merge: Merge two alists (second takes precedence)
+   (alist-merge (fn (a1 a2)
+     (foldl (fn (acc pair)
+              (assoc-set (car pair) (cdr pair) acc))
+            a1
+            a2)))
+
+   ; ============================================
+   ; Validation/Predicate Utilities (Extended)
+   ; ============================================
+
+   ; valid?: Check if value passes all predicates
+   (valid? (fn (preds value)
+     (all (fn (p) (p value)) preds)))
+
+   ; invalid?: Check if value fails any predicate
+   (invalid? (fn (preds value)
+     (not (valid? preds value))))
+
+   ; first-failing: Get first predicate that fails
+   (first-failing (fn (preds value)
+     (find (fn (p) (not (p value))) preds)))
+
+   ; validate-with: Validate value and return result
+   (validate-with (fn (preds value)
+     (let ((failing (first-failing preds value)))
+       (if failing
+           (err (list 'validation-failed failing value))
+           (ok value)))))
+
+   ; ============================================
+   ; More List Utilities
+   ; ============================================
+
+   ; list-ref-safe: Safe list-ref with default
+   (list-ref-safe (fn (lst idx default)
+     (if (or (< idx 0) (>= idx (length lst)))
+         default
+         (list-ref lst idx))))
+
+   ; list-set: Set element at index (functional)
+   (list-set (fn (lst idx val)
+     (let ((setter (fix setter
+             (fn (lst i)
+               (if (null? lst)
+                   '()
+                   (if (= i 0)
+                       (cons val (cdr lst))
+                       (cons (car lst) (setter (cdr lst) (- i 1)))))))))
+       (setter lst idx))))
+
+   ; list-update: Update element at index with function
+   (list-update (fn (lst idx f)
+     (list-set lst idx (f (list-ref lst idx)))))
+
+   ; list-insert: Insert element at index
+   (list-insert (fn (lst idx val)
+     (append (take idx lst) (cons val (drop idx lst)))))
+
+   ; list-delete: Delete element at index
+   (list-delete (fn (lst idx)
+     (append (take idx lst) (drop (+ idx 1) lst))))
+
+   ; list-swap: Swap elements at two indices
+   (list-swap (fn (lst i j)
+     (let ((vi (list-ref lst i))
+           (vj (list-ref lst j)))
+       (list-set (list-set lst i vj) j vi))))
+
+   ; group-by-key: Group list elements by key function
+   (group-by-key (fn (key-fn lst)
+     (foldl (fn (acc x)
+              (let ((k (key-fn x)))
+                (alist-update k (fn (group) (cons x group)) '() acc)))
+            '()
+            lst)))
+
+   ; partition-by: Partition list by predicate into (pass fail)
+   (partition-by (fn (pred lst)
+     (foldl (fn (acc x)
+              (if (pred x)
+                  (cons (cons x (car acc)) (cdr acc))
+                  (cons (car acc) (cons x (cdr acc)))))
+            (cons '() '())
+            lst)))
+
+   ; intersperse-with: Put separator between each pair, with custom function
+   (intersperse-with (fn (sep-fn lst)
+     (if (or (null? lst) (null? (cdr lst)))
+         lst
+         (let ((builder (fix builder
+                 (fn (lst acc)
+                   (if (null? (cdr lst))
+                       (reverse (cons (car lst) acc))
+                       (builder (cdr lst)
+                                (cons (sep-fn) (cons (car lst) acc))))))))
+           (builder lst '())))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -5165,7 +5592,79 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'format-hex format-hex)
     (cons 'format-binary format-binary)
     (cons 'format-with-commas format-with-commas)
-    (cons 'format-ordinal format-ordinal)))
+    (cons 'format-ordinal format-ordinal)
+    ; More string utilities
+    (cons 'string-chars string-chars)
+    (cons 'chars-string chars-string)
+    (cons 'string-empty? string-empty?)
+    (cons 'string-first string-first)
+    (cons 'string-last string-last)
+    (cons 'string-take string-take)
+    (cons 'string-drop string-drop)
+    (cons 'string-take-right string-take-right)
+    (cons 'string-drop-right string-drop-right)
+    (cons 'string-contains? string-contains?)
+    (cons 'string-index-of string-index-of)
+    (cons 'string-starts-with? string-starts-with?)
+    (cons 'string-ends-with? string-ends-with?)
+    (cons 'string-replace string-replace)
+    (cons 'string-split-at string-split-at)
+    ; Error handling utilities
+    (cons 'try-catch try-catch)
+    (cons 'assert assert)
+    (cons 'assert-eq assert-eq)
+    (cons 'ensure ensure)
+    (cons 'coerce coerce)
+    ; More numeric utilities
+    (cons 'factorial factorial)
+    (cons 'fibonacci fibonacci)
+    (cons 'is-prime? is-prime?)
+    (cons 'divisors divisors)
+    (cons 'proper-divisors proper-divisors)
+    (cons 'is-perfect? is-perfect?)
+    (cons 'next-prime next-prime)
+    (cons 'prime-factors prime-factors)
+    (cons 'num-digits num-digits)
+    (cons 'sum-digits sum-digits)
+    ; Control flow utilities
+    (cons 'while-loop while-loop)
+    (cons 'for-loop for-loop)
+    (cons 'times times)
+    (cons 'repeat-until repeat-until)
+    (cons 'do-times do-times)
+    (cons 'thread-first thread-first)
+    (cons 'thread-last thread-last)
+    (cons 'pipeline pipeline)
+    ; Type introspection utilities
+    (cons 'type-name type-name)
+    (cons 'is-type? is-type?)
+    (cons 'type-check type-check)
+    ; Extended alist utilities
+    (cons 'alist-map alist-map)
+    (cons 'alist-filter alist-filter)
+    (cons 'alist-filter-keys alist-filter-keys)
+    (cons 'alist-filter-values alist-filter-values)
+    (cons 'alist-keys alist-keys)
+    (cons 'alist-values alist-values)
+    (cons 'alist-has-key? alist-has-key?)
+    (cons 'alist-update alist-update)
+    (cons 'alist-merge alist-merge)
+    ; Validation utilities
+    (cons 'valid? valid?)
+    (cons 'invalid? invalid?)
+    (cons 'first-failing first-failing)
+    (cons 'validate-with validate-with)
+    ; More list utilities
+    (cons 'list-ref-safe list-ref-safe)
+    (cons 'list-set list-set)
+    (cons 'list-update list-update)
+    (cons 'list-insert list-insert)
+    (cons 'list-delete list-delete)
+    (cons 'list-swap list-swap)
+    (cons 'group-by-key group-by-key)
+    (cons 'partition-by partition-by)
+    (cons 'intersperse-with intersperse-with)
+))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
