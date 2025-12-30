@@ -375,11 +375,12 @@ pub const PRELUDE_SOURCE: &str = r#"
    (elem? (fn (x lst) (if (member x lst) #t #f)))
 
    ; nub: Remove duplicates (keep first occurrence)
+   ; Uses eq? for comparison (works for symbols, numbers, etc.)
    (nub (fix nub
      (fn (lst)
        (if (null? lst)
            '()
-           (cons (car lst) (nub (filter (fn (x) (not (= x (car lst)))) (cdr lst))))))))
+           (cons (car lst) (nub (filter (fn (x) (not (eq? x (car lst)))) (cdr lst))))))))
 
    ; intercalate: Insert list between lists and concat
    ; (intercalate '(0) '((1 2) (3 4) (5))) => (1 2 0 3 4 0 5)
@@ -392,6 +393,166 @@ pub const PRELUDE_SOURCE: &str = r#"
        (if (or (null? lists) (any null? lists))
            '()
            (cons (map car lists) (transpose (map cdr lists)))))))
+
+   ; -- Numeric utilities --
+
+   ; sum-by: Sum elements after applying function
+   ; (sum-by length '("a" "bb" "ccc")) => 6
+   (sum-by (fn (f lst) (foldl (fn (acc x) (+ acc (f x))) 0 lst)))
+
+   ; product-by: Product of elements after applying function
+   (product-by (fn (f lst) (foldl (fn (acc x) (* acc (f x))) 1 lst)))
+
+   ; average: Average of a list of numbers
+   ; (average '(1 2 3 4 5)) => 3
+   (average (fn (lst)
+     (if (null? lst)
+         0
+         (/ (sum-list lst) (length lst)))))
+
+   ; even-indices: Get elements at even indices (0, 2, 4, ...)
+   ; (even-indices '(a b c d e)) => (a c e)
+   (even-indices (fn (lst)
+     (filter-indexed (fn (i x) (even? i)) lst)))
+
+   ; odd-indices: Get elements at odd indices (1, 3, 5, ...)
+   ; (odd-indices '(a b c d e)) => (b d)
+   (odd-indices (fn (lst)
+     (filter-indexed (fn (i x) (odd? i)) lst)))
+
+   ; -- Comparison utilities --
+
+   ; sort-by: Sort list by key function (using insertion sort)
+   ; (sort-by length '("aaa" "b" "cc")) => ("b" "cc" "aaa")
+   (sort-by (fix sort-by
+     (fn (key-fn lst)
+       (if (null? lst)
+           '()
+           (let ((x (car lst))
+                 (rest (sort-by key-fn (cdr lst))))
+             (let ((insert-sorted (fix insert-sorted
+                    (fn (elem sorted)
+                      (if (null? sorted)
+                          (list elem)
+                          (if (<= (key-fn elem) (key-fn (car sorted)))
+                              (cons elem sorted)
+                              (cons (car sorted) (insert-sorted elem (cdr sorted)))))))))
+               (insert-sorted x rest)))))))
+
+   ; compare-by: Compare two values by applying key function
+   ; Returns -1, 0, or 1
+   (compare-by (fn (key-fn a b)
+     (let ((ka (key-fn a))
+           (kb (key-fn b)))
+       (if (< ka kb)
+           (- 0 1)
+           (if (> ka kb) 1 0)))))
+
+   ; equal-by: Check if two values are equal after applying function
+   ; (equal-by length "abc" "xyz") => #t
+   (equal-by (fn (f a b) (= (f a) (f b))))
+
+   ; group-by: Group elements by key function
+   ; (group-by even? '(1 2 3 4 5 6)) => ((2 4 6) (1 3 5))
+   (group-by (fn (key-fn lst)
+     (let ((keys (nub (map key-fn lst))))
+       (map (fn (k) (filter (fn (x) (eq? (key-fn x) k)) lst)) keys))))
+
+   ; -- More function combinators --
+
+   ; apply-n: Apply function n times to initial value (like repeat-fn but returns all intermediates)
+   ; (apply-n inc 3 0) => (0 1 2 3)
+   (apply-n (fix apply-n
+     (fn (f n x)
+       (if (< n 0)
+           '()
+           (cons x (apply-n f (- n 1) (f x)))))))
+
+   ; until: Apply function until predicate is satisfied
+   ; (until (fn (x) (> x 10)) (fn (x) (* x 2)) 1) => 16
+   (until (fix until
+     (fn (stop? f x)
+       (if (stop? x)
+           x
+           (until stop? f (f x))))))
+
+   ; converge: Apply function until result stops changing
+   ; (converge (fn (x) (/ (+ x (/ 2 x)) 2)) 1.0) => ~1.414 (sqrt 2)
+   (converge (fix converge
+     (fn (f x)
+       (let ((next (f x)))
+         (if (= next x)
+             x
+             (converge f next))))))
+
+   ; fixed-point: Same as converge (alternative name)
+   (fixed-point converge)
+
+   ; -- Predicate combinators --
+
+   ; both: Combine two predicates with and
+   ; ((both positive? even?) 4) => #t
+   (both (fn (p1 p2) (fn (x) (and (p1 x) (p2 x)))))
+
+   ; either: Combine two predicates with or
+   ; ((either positive? even?) -2) => #t
+   (either (fn (p1 p2) (fn (x) (or (p1 x) (p2 x)))))
+
+   ; neither: Combine two predicates with nor
+   (neither (fn (p1 p2) (fn (x) (not (or (p1 x) (p2 x))))))
+
+   ; -- More list utilities --
+
+   ; frequencies: Count occurrences of each element
+   ; (frequencies '(a b a c b a)) => ((a 3) (b 2) (c 1))
+   (frequencies (fn (lst)
+     (let ((unique (nub lst)))
+       (map (fn (x) (list x (count-if (fn (y) (eq? x y)) lst))) unique))))
+
+   ; index-where: Find index of first element matching predicate, or #f
+   ; (index-where even? '(1 3 4 5)) => 2
+   (index-where (fix index-where
+     (fn (p lst)
+       (let ((go (fix go
+                   (fn (i xs)
+                     (if (null? xs)
+                         #f
+                         (if (p (car xs))
+                             i
+                             (go (+ i 1) (cdr xs))))))))
+         (go 0 lst)))))
+
+   ; indices-where: Find all indices of elements matching predicate
+   ; (indices-where even? '(1 2 3 4 5 6)) => (1 3 5)
+   (indices-where (fn (p lst)
+     (map-maybe (fn (pair) (if (p (cdr pair)) (car pair) #f))
+                (map-indexed (fn (i x) (cons i x)) lst))))
+
+   ; last-where: Find last element matching predicate
+   ; (last-where even? '(1 2 3 4 5)) => 4
+   (last-where (fn (p lst)
+     (foldr (fn (x acc) (if (and (not acc) (p x)) x acc)) #f lst)))
+
+   ; update-at: Update element at index with function
+   ; (update-at 1 inc '(1 2 3)) => (1 3 3)
+   (update-at (fn (idx f lst)
+     (map-indexed (fn (i x) (if (= i idx) (f x) x)) lst)))
+
+   ; insert-at: Insert element at index
+   ; (insert-at 1 'x '(a b c)) => (a x b c)
+   (insert-at (fix insert-at
+     (fn (idx elem lst)
+       (if (= idx 0)
+           (cons elem lst)
+           (if (null? lst)
+               (list elem)
+               (cons (car lst) (insert-at (- idx 1) elem (cdr lst))))))))
+
+   ; remove-at: Remove element at index
+   ; (remove-at 1 '(a b c)) => (a c)
+   (remove-at (fn (idx lst)
+     (map-maybe (fn (pair) (if (= (car pair) idx) #f (cdr pair)))
+                (map-indexed (fn (i x) (cons i x)) lst))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -453,7 +614,30 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'elem? elem?)
     (cons 'nub nub)
     (cons 'intercalate intercalate)
-    (cons 'transpose transpose)))
+    (cons 'transpose transpose)
+    (cons 'sum-by sum-by)
+    (cons 'product-by product-by)
+    (cons 'average average)
+    (cons 'even-indices even-indices)
+    (cons 'odd-indices odd-indices)
+    (cons 'sort-by sort-by)
+    (cons 'compare-by compare-by)
+    (cons 'equal-by equal-by)
+    (cons 'group-by group-by)
+    (cons 'apply-n apply-n)
+    (cons 'until until)
+    (cons 'converge converge)
+    (cons 'fixed-point fixed-point)
+    (cons 'both both)
+    (cons 'either either)
+    (cons 'neither neither)
+    (cons 'frequencies frequencies)
+    (cons 'index-where index-where)
+    (cons 'indices-where indices-where)
+    (cons 'last-where last-where)
+    (cons 'update-at update-at)
+    (cons 'insert-at insert-at)
+    (cons 'remove-at remove-at)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};

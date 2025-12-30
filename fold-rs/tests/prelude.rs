@@ -481,3 +481,191 @@ fn test_transpose() {
     let result = eval_with_prelude("(transpose '((1 2 3) (4 5 6)))");
     assert_eq!(result, "((1 4) (2 5) (3 6))");
 }
+
+// ========== New Numeric and Comparison Tests ==========
+
+#[test]
+fn test_sum_by() {
+    // Sum lengths of strings
+    let result = eval_with_prelude("(sum-by length '((1) (1 2) (1 2 3)))");
+    assert_eq!(result, "6");
+}
+
+#[test]
+fn test_product_by() {
+    let result = eval_with_prelude("(product-by length '((1 2) (1 2 3)))");
+    assert_eq!(result, "6");
+}
+
+#[test]
+fn test_average() {
+    let result = eval_with_prelude("(average '(1 2 3 4 5))");
+    assert_eq!(result, "3");
+
+    // Empty list
+    let result = eval_with_prelude("(average '())");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_even_indices() {
+    let result = eval_with_prelude("(even-indices '(a b c d e))");
+    assert_eq!(result, "(a c e)");
+}
+
+#[test]
+fn test_odd_indices() {
+    let result = eval_with_prelude("(odd-indices '(a b c d e))");
+    assert_eq!(result, "(b d)");
+}
+
+#[test]
+fn test_sort_by() {
+    // Sort by length
+    let result = eval_with_prelude("(sort-by length '((1 2 3) (1) (1 2)))");
+    assert_eq!(result, "((1) (1 2) (1 2 3))");
+}
+
+#[test]
+fn test_compare_by() {
+    // Less than
+    let result = eval_with_prelude("(compare-by length '(1) '(1 2))");
+    assert_eq!(result, "-1");
+
+    // Equal
+    let result = eval_with_prelude("(compare-by length '(1 2) '(a b))");
+    assert_eq!(result, "0");
+
+    // Greater than
+    let result = eval_with_prelude("(compare-by length '(1 2 3) '(a))");
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_equal_by() {
+    let result = eval_with_prelude("(equal-by length '(a b c) '(1 2 3))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(equal-by length '(a b) '(1 2 3))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_group_by() {
+    // Group by even/odd - odds first since 1 is encountered first (even? 1 = #f)
+    let result = eval_with_prelude("(group-by even? '(1 2 3 4 5 6))");
+    assert_eq!(result, "((1 3 5) (2 4 6))");
+}
+
+#[test]
+fn test_apply_n() {
+    // Apply inc 3 times, returning all intermediates
+    let result = eval_with_prelude("(apply-n inc 3 0)");
+    assert_eq!(result, "(0 1 2 3)");
+}
+
+#[test]
+fn test_until() {
+    // Double until > 10
+    let result = eval_with_prelude("(until (fn (x) (> x 10)) double 1)");
+    assert_eq!(result, "16");
+}
+
+#[test]
+fn test_converge() {
+    // Converge to fixed point (simple case)
+    let result = eval_with_prelude("(converge (fn (x) (if (> x 5) x (+ x 1))) 0)");
+    assert_eq!(result, "6");
+}
+
+#[test]
+fn test_both() {
+    // Both positive? and even?
+    let result = eval_with_prelude("((both positive? even?) 4)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("((both positive? even?) 3)");
+    assert_eq!(result, "#f");
+
+    let result = eval_with_prelude("((both positive? even?) -2)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_either() {
+    let result = eval_with_prelude("((either positive? even?) -2)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("((either positive? even?) 3)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("((either positive? even?) -3)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_neither() {
+    let result = eval_with_prelude("((neither positive? even?) -3)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("((neither positive? even?) 2)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_frequencies() {
+    let result = eval_with_prelude("(frequencies '(a b a c b a))");
+    assert_eq!(result, "((a 3) (b 2) (c 1))");
+}
+
+#[test]
+fn test_index_where() {
+    let result = eval_with_prelude("(index-where even? '(1 3 4 5))");
+    assert_eq!(result, "2");
+
+    // No match
+    let result = eval_with_prelude("(index-where even? '(1 3 5))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_indices_where() {
+    let result = eval_with_prelude("(indices-where even? '(1 2 3 4 5 6))");
+    assert_eq!(result, "(1 3 5)");
+}
+
+#[test]
+fn test_last_where() {
+    let result = eval_with_prelude("(last-where even? '(1 2 3 4 5))");
+    assert_eq!(result, "4");
+
+    // No match
+    let result = eval_with_prelude("(last-where even? '(1 3 5))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_update_at() {
+    let result = eval_with_prelude("(update-at 1 inc '(1 2 3))");
+    assert_eq!(result, "(1 3 3)");
+}
+
+#[test]
+fn test_insert_at() {
+    let result = eval_with_prelude("(insert-at 1 'x '(a b c))");
+    assert_eq!(result, "(a x b c)");
+
+    // Insert at beginning
+    let result = eval_with_prelude("(insert-at 0 'x '(a b c))");
+    assert_eq!(result, "(x a b c)");
+
+    // Insert at end
+    let result = eval_with_prelude("(insert-at 3 'x '(a b c))");
+    assert_eq!(result, "(a b c x)");
+}
+
+#[test]
+fn test_remove_at() {
+    let result = eval_with_prelude("(remove-at 1 '(a b c))");
+    assert_eq!(result, "(a c)");
+}
