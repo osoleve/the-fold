@@ -166,6 +166,66 @@ pub const PRELUDE_SOURCE: &str = r#"
 
    ; uncurry2: Uncurry to a 2-argument function
    (uncurry2 (fn (f) (fn (x y) ((f x) y))))
+
+   ; -- Additional list combinators --
+
+   ; zip: Pair up elements from two lists
+   (zip (fn (lst1 lst2) (zip-with cons lst1 lst2)))
+
+   ; unzip: Split list of pairs into (cars, cdrs)
+   (unzip (fn (pairs)
+     (foldr (fn (pair acc)
+              (cons (cons (car pair) (car acc))
+                    (cons (cdr pair) (cdr acc))))
+            (cons '() '())
+            pairs)))
+
+   ; intersperse: Insert separator between elements
+   (intersperse (fix intersperse
+     (fn (sep lst)
+       (if (null? lst)
+           '()
+           (if (null? (cdr lst))
+               (list (car lst))
+               (cons (car lst) (cons sep (intersperse sep (cdr lst)))))))))
+
+   ; span: Split at first element not matching predicate
+   ; Returns (take-while-result . drop-while-result)
+   (span (fn (p lst) (cons (take-while p lst) (drop-while p lst))))
+
+   ; flat-map: Map then concatenate results
+   (flat-map (fn (f lst) (concat (map f lst))))
+
+   ; map-indexed: Map with index (0-based)
+   (map-indexed (fix map-indexed
+     (fn (f lst)
+       (let ((go (fix go
+                   (fn (i xs)
+                     (if (null? xs)
+                         '()
+                         (cons (f i (car xs)) (go (+ i 1) (cdr xs))))))))
+         (go 0 lst)))))
+
+   ; filter-indexed: Filter with index access
+   (filter-indexed (fix filter-indexed
+     (fn (p lst)
+       (let ((go (fix go
+                   (fn (i xs)
+                     (if (null? xs)
+                         '()
+                         (if (p i (car xs))
+                             (cons (car xs) (go (+ i 1) (cdr xs)))
+                             (go (+ i 1) (cdr xs))))))))
+         (go 0 lst)))))
+
+   ; nth: Safe list access (returns #f if out of bounds)
+   (nth-safe (fix nth-safe
+     (fn (n lst)
+       (if (null? lst)
+           #f
+           (if (= n 0)
+               (car lst)
+               (nth-safe (- n 1) (cdr lst)))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -196,7 +256,15 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'iterate iterate)
     (cons 'scanl scanl)
     (cons 'curry2 curry2)
-    (cons 'uncurry2 uncurry2)))
+    (cons 'uncurry2 uncurry2)
+    (cons 'zip zip)
+    (cons 'unzip unzip)
+    (cons 'intersperse intersperse)
+    (cons 'span span)
+    (cons 'flat-map flat-map)
+    (cons 'map-indexed map-indexed)
+    (cons 'filter-indexed filter-indexed)
+    (cons 'nth-safe nth-safe)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};

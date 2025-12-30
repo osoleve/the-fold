@@ -216,3 +216,80 @@ fn test_curry2() {
     let result = eval_with_prelude("(((curry2 +) 3) 4)");
     assert_eq!(result, "7");
 }
+
+#[test]
+fn test_zip() {
+    // Pair up two lists (pairs printed as 2-element lists)
+    let result = eval_with_prelude("(zip '(1 2 3) '(a b c))");
+    assert_eq!(result, "((1 a) (2 b) (3 c))");
+
+    // Stops at shorter list
+    let result = eval_with_prelude("(zip '(1 2) '(a b c d))");
+    assert_eq!(result, "((1 a) (2 b))");
+}
+
+#[test]
+fn test_unzip() {
+    // Split list of pairs using zip output
+    // unzip returns a 2-element list: (cars cdrs)
+    let result = eval_with_prelude("(unzip (zip '(1 2 3) '(a b c)))");
+    assert_eq!(result, "((1 2 3) (a b c))");
+}
+
+#[test]
+fn test_intersperse() {
+    // Insert separator between elements
+    let result = eval_with_prelude("(intersperse 0 '(1 2 3))");
+    assert_eq!(result, "(1 0 2 0 3)");
+
+    // Empty list
+    let result = eval_with_prelude("(intersperse 0 '())");
+    assert_eq!(result, "()");
+
+    // Single element
+    let result = eval_with_prelude("(intersperse 0 '(1))");
+    assert_eq!(result, "(1)");
+}
+
+#[test]
+fn test_span() {
+    // Split at first non-matching element
+    let result = eval_with_prelude("(span (fn (x) (< x 3)) '(1 2 3 4 5))");
+    assert_eq!(result, "((1 2) 3 4 5)");
+
+    // All match
+    let result = eval_with_prelude("(span (fn (x) (< x 10)) '(1 2 3))");
+    assert_eq!(result, "((1 2 3))");
+}
+
+#[test]
+fn test_flat_map() {
+    // Map and flatten
+    let result = eval_with_prelude("(flat-map (fn (x) (list x (* x 10))) '(1 2 3))");
+    assert_eq!(result, "(1 10 2 20 3 30)");
+}
+
+#[test]
+fn test_map_indexed() {
+    // Map with index
+    let result = eval_with_prelude("(map-indexed (fn (i x) (+ i x)) '(10 20 30))");
+    assert_eq!(result, "(10 21 32)");
+}
+
+#[test]
+fn test_filter_indexed() {
+    // Filter keeping even indices
+    let result = eval_with_prelude("(filter-indexed (fn (i x) (even? i)) '(a b c d e))");
+    assert_eq!(result, "(a c e)");
+}
+
+#[test]
+fn test_nth_safe() {
+    // Valid index
+    let result = eval_with_prelude("(nth-safe 2 '(a b c d))");
+    assert_eq!(result, "c");
+
+    // Out of bounds returns #f
+    let result = eval_with_prelude("(nth-safe 10 '(a b c))");
+    assert_eq!(result, "#f");
+}
