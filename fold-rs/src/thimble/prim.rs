@@ -2832,6 +2832,63 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(Value::Number(1))
         }
+        "string-take" => {
+            // Take first n characters from string
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "string-take expects 2 args: (string-take n str)",
+                ));
+            }
+            let n = expect_usize(&args[0])?;
+            let s = expect_string(&args[1])?;
+            let result: String = s.chars().take(n).collect();
+            Ok(Value::String(result))
+        }
+        "string-drop" => {
+            // Drop first n characters from string
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "string-drop expects 2 args: (string-drop n str)",
+                ));
+            }
+            let n = expect_usize(&args[0])?;
+            let s = expect_string(&args[1])?;
+            let result: String = s.chars().skip(n).collect();
+            Ok(Value::String(result))
+        }
+        "starts-with?" => {
+            // Check if string starts with prefix
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "starts-with? expects 2 args: (starts-with? str prefix)",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let prefix = expect_string(&args[1])?;
+            Ok(Value::Bool(s.starts_with(&prefix)))
+        }
+        "ends-with?" => {
+            // Check if string ends with suffix
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "ends-with? expects 2 args: (ends-with? str suffix)",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let suffix = expect_string(&args[1])?;
+            Ok(Value::Bool(s.ends_with(&suffix)))
+        }
+        "substring?" => {
+            // Check if first string contains second string
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "substring? expects 2 args: (substring? str substring)",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let sub = expect_string(&args[1])?;
+            Ok(Value::Bool(s.contains(&sub)))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
