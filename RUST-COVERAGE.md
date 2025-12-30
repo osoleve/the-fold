@@ -17,11 +17,12 @@
 5. **Type System** - All value types supported internally
 6. **Tooling** - daemon.sh and fold.sh already prefer Rust
 
-### ⚠️  Critical Gaps (blocks full independence from Scheme)
+### ⚠️  Remaining Gaps (partial independence achieved)
 
-1. **Parser Literal Support** - Missing character, bytevector, vector, rational literals
-2. **Library Loading** - Cannot load Scheme library files (fabric/stitches/*.ss)
-3. **Scheme Library Ecosystem** - 80+ .ss files provide high-level functionality
+1. ~~**Parser Literal Support**~~ - ✅ **COMPLETE** (character, bytevector, vector literals implemented)
+2. **Rational Literal Support** - Missing parser support for 1/2 syntax (P2 priority)
+3. **Library Loading** - Cannot load Scheme library files (fabric/stitches/*.ss)
+4. **Scheme Library Ecosystem** - 80+ .ss files provide high-level functionality
 
 ---
 
@@ -78,28 +79,26 @@
 **Recently Added**:
 - `format` - Scheme-style format strings (~a, ~s, ~d, ~n, ~~)
 
-### 2. Parser Gaps (Critical)
+### 2. Parser Status ✅ **MOSTLY COMPLETE**
 
 The Rust parser (`fold_parse.rs`) supports:
 
-✅ **Supported**:
+✅ **Fully Supported**:
 - Numbers (integers, floats, scientific notation)
 - Strings (with escape sequences)
 - Symbols
 - Booleans (`#t`, `#f`)
 - Lists (s-expressions)
 - Quote syntax (`'`, `` ` ``, `,`, `,@`)
+- **Characters**: `#\a`, `#\newline`, `#\space`, etc. ✅ **NEW**
+- **Bytevectors**: `#u8(1 2 3)` and `#"abc"` ✅ **NEW**
+- **Vectors**: `#(1 2 3)` ✅ **NEW**
 
-❌ **Missing** (blocks compatibility):
-- **Characters**: `#\a`, `#\newline`, `#\space`, etc.
-- **Bytevectors**: `#u8(1 2 3)` or `#"abc"` (CRITICAL for blocks!)
-- **Vectors**: `#(1 2 3)`
-- **Rationals**: `1/2`, `3/4` (exact arithmetic)
-- **Comments**: `;; ...` supported for line comments, but `#|...|#` block comments not supported
+⚠️  **Remaining Gaps** (lower priority):
+- **Rationals**: `1/2`, `3/4` (exact arithmetic) - P2 priority
+- **Block comments**: `#|...|#` syntax not supported (line comments `;; ...` work)
 
-The Value enum supports all these types internally - the parser just can't read them from source.
-
-**Impact**: Cannot parse most real Scheme code that uses blocks, characters, or exact arithmetic.
+**Impact**: **Can now parse real Scheme code** including blocks, characters, and vectors! Only missing rational literals and block comments.
 
 ### 3. Library System
 
@@ -163,27 +162,30 @@ All value types are fully supported in Rust:
 
 ## Recommendations
 
-### Immediate (Unblocks basic usage):
+### ✅ Completed:
 
-1. **Add bytevector literal support** - Most critical for block operations
-   - `#u8(1 2 3)` syntax
-   - `#"abc"` shorthand for string->bytes
+1. ~~**Add bytevector literal support**~~ - ✅ **DONE**
+   - `#u8(1 2 3)` syntax ✅
+   - `#"abc"` shorthand for string->bytes ✅
 
-2. **Add character literal support** - Common in Scheme code
-   - `#\a`, `#\newline`, `#\space`, etc.
+2. ~~**Add character literal support**~~ - ✅ **DONE**
+   - `#\a`, `#\newline`, `#\space`, etc. ✅
 
-3. **Add vector literal support** - Commonly used data structure
-   - `#(1 2 3)` syntax
+3. ~~**Add vector literal support**~~ - ✅ **DONE**
+   - `#(1 2 3)` syntax ✅
 
 ### Short-term (Enables library loading):
 
-4. **Implement `load` primitive in Rust**
+4. **Implement `load` primitive in Rust** - P1 priority
    - Parse and evaluate .ss files
    - Maintain per-session environment
    - Enables reusing existing Scheme libraries
+   - **Blocked by**: the-fold-ok0o (rational literals recommended first)
 
-5. **Add rational literal support** - For exact arithmetic
+5. **Add rational literal support** - P2 priority (the-fold-ok0o)
    - `1/2`, `3/4` syntax
+   - For exact arithmetic
+   - Lower priority than load primitive
 
 ### Long-term (Full independence):
 
@@ -210,29 +212,53 @@ $ SESSION=test ./fold.sh "(+ 1 2 3)"
 => 6
 ```
 
-**Parser Limitations** (blocking):
+**Parser Success** (all literal types working):
 ```bash
-$ ./fold-rs/target/debug/fold-repl --expr "(make-block 'test #\"payload\" '())"
-ERROR: Parse error: expected boolean at <input>:1:20
+$ ./fold-rs/target/release/fold-repl --expr '#\a'
+=> #\a
+
+$ ./fold-rs/target/release/fold-repl --expr '#u8(1 2 3)'
+=> #u8(1 2 3)
+
+$ ./fold-rs/target/release/fold-repl --expr '#"hello"'
+=> #u8(104 101 108 108 111)
+
+$ ./fold-rs/target/release/fold-repl --expr '#(1 2 3)'
+=> #(1 2 3)
+
+$ ./fold-rs/target/release/fold-repl --expr '(block (string->symbol "test") #"payload" (vec-make))'
+=> #<block test>
 ```
 
-The error occurs because `#"payload"` is not recognized - the parser expects only `#t` or `#f` after `#`.
+All critical literal types are now fully supported!
 
 ---
 
 ## Conclusion
 
-**The Rust core is production-ready for computation**, with 100% primitive coverage and a fully functional evaluator. The main gap is **parser support for Scheme literal types**, specifically:
+**The Rust core is production-ready and approaching full independence from Scheme!**
 
-1. Bytevectors (critical for blocks)
-2. Characters (common in code)
-3. Vectors (common data structure)
-4. Rationals (exact arithmetic)
+### Major Milestone Achieved ✅
 
-These parser additions are straightforward to implement (estimated 100-200 LOC) and would enable the Rust implementation to parse all valid Scheme code.
+**Parser literal support is complete!** The Rust implementation can now parse:
+- ✅ Characters (`#\a`, `#\newline`)
+- ✅ Bytevectors (`#u8(1 2 3)`, `#"abc"`)
+- ✅ Vectors (`#(1 2 3)`)
+- ✅ All basic types (numbers, strings, symbols, booleans, lists)
 
-After parser completion, the remaining question is whether to:
-- Port Scheme libraries to Rust (high effort, maximum performance), or
-- Add `load` primitive to reuse existing Scheme libraries (low effort, hybrid approach)
+This means **blocks work natively in Rust** - the core data structure of The Fold!
 
-Given the extensive Scheme ecosystem (80+ library files), the hybrid approach is recommended for pragmatic reasons.
+### Remaining Work
+
+1. **Rational literals** (P2) - Nice to have for exact arithmetic
+2. **Load primitive** (P1) - Enables reusing Scheme library ecosystem
+3. **Long-term**: Port critical libraries to Rust for full independence
+
+### Recommendation
+
+**Next priority: Implement `load` primitive** (the-fold-ywu3). This will enable:
+- Reusing 80+ existing Scheme library files
+- Gradual migration path (port libraries incrementally)
+- Immediate productivity (leverage existing ecosystem)
+
+The hybrid approach (Rust core + loaded Scheme libraries) provides the best ROI for eliminating the Scheme installation dependency while maintaining access to the existing ecosystem.
