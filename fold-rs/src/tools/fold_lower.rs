@@ -69,6 +69,7 @@ fn is_builtin_prim(name: &str) -> bool {
             // List operations
             | "car" | "cdr" | "cons" | "list" | "append" | "length" | "reverse" | "member" | "memq"
             | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "init" | "flatten" | "range"
+            | "list-copy" | "make-list"
             | "repeat" | "sum" | "product" | "sum-of" | "max-of" | "min-of"
             | "sort" | "unique" | "find-index" | "index-of" | "count"
             | "nth" | "zip" | "unzip" | "rotate"
@@ -86,6 +87,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "string-index" | "string-rindex"
             | "pad-left" | "pad-right" | "string-center"
             | "char-code" | "code-char" | "chars"
+            | "string-concat"
             | "format" | "number->string" | "symbol->string"
             // Vector operations
             | "vec-length" | "vec-ref" | "vec-make" | "vec->list"

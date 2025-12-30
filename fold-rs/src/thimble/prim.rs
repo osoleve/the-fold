@@ -1852,6 +1852,36 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let char_values: Vec<Value> = s.chars().map(Value::Char).collect();
             Ok(list_from_values(&char_values))
         }
+        "string-concat" => {
+            // Concatenate all arguments as strings
+            let mut result = String::new();
+            for arg in args {
+                result.push_str(&value_to_display_string(arg));
+            }
+            Ok(Value::String(result))
+        }
+        "list-copy" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("list-copy expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            Ok(list_from_values(&list))
+        }
+        "make-list" => {
+            if args.is_empty() || args.len() > 2 {
+                return Err(EvalError::TypeMismatch(
+                    "make-list expects 1 or 2 args: (make-list n [value])",
+                ));
+            }
+            let n = expect_usize(&args[0])?;
+            let fill_value = if args.len() > 1 {
+                args[1].clone()
+            } else {
+                Value::Nil
+            };
+            let list = vec![fill_value; n];
+            Ok(list_from_values(&list))
+        }
 
         // Format string
         "format" => {
