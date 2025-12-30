@@ -5787,6 +5787,371 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; trace: Print value and return it
    (trace (fn (label x)
      (block (display label) (display ": ") (write x) (newline) x)))
+
+   ; ============================================
+   ; Set Operations (using sorted lists)
+   ; ============================================
+
+   ; set-from-list: Create set from list (sorted, unique)
+   (set-from-list (fn (lst)
+     (remove-duplicates (sort lst))))
+
+   ; set-member?: Check membership in set
+   (set-member? (fn (x set)
+     (member? x set)))
+
+   ; set-add: Add element to set
+   (set-add (fn (x set)
+     (if (member? x set)
+         set
+         (sort (cons x set)))))
+
+   ; set-remove: Remove element from set
+   (set-remove (fn (x set)
+     (filter (fn (y) (not (eq? x y))) set)))
+
+   ; set-union: Union of two sets
+   (set-union (fn (s1 s2)
+     (set-from-list (append s1 s2))))
+
+   ; set-intersection: Intersection of two sets
+   (set-intersection (fn (s1 s2)
+     (filter (fn (x) (member? x s2)) s1)))
+
+   ; set-difference: Elements in s1 but not s2
+   (set-difference (fn (s1 s2)
+     (filter (fn (x) (not (member? x s2))) s1)))
+
+   ; set-symmetric-difference: Elements in exactly one set
+   (set-symmetric-difference (fn (s1 s2)
+     (set-union (set-difference s1 s2) (set-difference s2 s1))))
+
+   ; set-subset?: Check if s1 is subset of s2
+   (set-subset? (fn (s1 s2)
+     (all (fn (x) (member? x s2)) s1)))
+
+   ; set-equal?: Check if two sets are equal
+   (set-equal? (fn (s1 s2)
+     (and (set-subset? s1 s2) (set-subset? s2 s1))))
+
+   ; set-empty?: Check if set is empty
+   (set-empty? (fn (set)
+     (null? set)))
+
+   ; set-size: Get size of set
+   (set-size (fn (set)
+     (length set)))
+
+   ; ============================================
+   ; Tree Operations (using nested lists)
+   ; ============================================
+
+   ; tree-leaf?: Check if node is a leaf (not a list)
+   (tree-leaf? (fn (node)
+     (not (list? node))))
+
+   ; tree-node?: Check if node is internal (a list)
+   (tree-node? (fn (node)
+     (list? node)))
+
+   ; tree-children: Get children of a tree node
+   (tree-children (fn (node)
+     (if (tree-leaf? node) '() node)))
+
+   ; tree-map: Map function over all leaves
+   (tree-map (fix tree-map
+     (fn (f tree)
+       (if (tree-leaf? tree)
+           (f tree)
+           (map (fn (child) (tree-map f child)) tree)))))
+
+   ; tree-fold: Fold over tree with leaf and node functions
+   (tree-fold (fix tree-fold
+     (fn (leaf-fn node-fn tree)
+       (if (tree-leaf? tree)
+           (leaf-fn tree)
+           (node-fn (map (fn (child) (tree-fold leaf-fn node-fn child)) tree))))))
+
+   ; tree-flatten: Flatten tree to list of leaves
+   (tree-flatten (fn (tree)
+     (tree-fold (fn (x) (list x)) (fn (xs) (apply append xs)) tree)))
+
+   ; tree-depth: Get maximum depth of tree
+   (tree-depth (fn (tree)
+     (tree-fold (const 0) (fn (depths) (+ 1 (if (null? depths) 0 (apply max depths)))) tree)))
+
+   ; tree-size: Count number of leaves
+   (tree-size (fn (tree)
+     (tree-fold (const 1) (fn (sizes) (apply + sizes)) tree)))
+
+   ; tree-filter: Keep only leaves matching predicate
+   (tree-filter (fix tree-filter
+     (fn (p tree)
+       (if (tree-leaf? tree)
+           (if (p tree) (list tree) '())
+           (let ((children (flat-map (fn (child) (tree-filter p child)) tree)))
+             (if (null? children) '() children))))))
+
+   ; tree-find: Find first leaf matching predicate
+   (tree-find (fix tree-find
+     (fn (p tree)
+       (if (tree-leaf? tree)
+           (if (p tree) tree #f)
+           (let ((finder (fix finder
+                   (fn (children)
+                     (if (null? children)
+                         #f
+                         (let ((result (tree-find p (car children))))
+                           (if result result (finder (cdr children)))))))))
+             (finder tree))))))
+
+   ; ============================================
+   ; Graph Utilities (adjacency list representation)
+   ; ============================================
+
+   ; graph-nodes: Get all nodes in graph
+   (graph-nodes (fn (graph)
+     (map car graph)))
+
+   ; graph-neighbors: Get neighbors of node
+   (graph-neighbors (fn (node graph)
+     (let ((entry (assoc node graph)))
+       (if entry (cdr entry) '()))))
+
+   ; graph-has-edge?: Check if edge exists
+   (graph-has-edge? (fn (from to graph)
+     (member? to (graph-neighbors from graph))))
+
+   ; graph-add-edge: Add directed edge
+   (graph-add-edge (fn (from to graph)
+     (let ((entry (assoc from graph)))
+       (if entry
+           (map (fn (pair)
+                  (if (eq? (car pair) from)
+                      (cons from (set-add to (cdr pair)))
+                      pair))
+                graph)
+           (cons (cons from (list to)) graph)))))
+
+   ; graph-remove-edge: Remove directed edge
+   (graph-remove-edge (fn (from to graph)
+     (map (fn (pair)
+            (if (eq? (car pair) from)
+                (cons from (set-remove to (cdr pair)))
+                pair))
+          graph)))
+
+   ; graph-reverse: Reverse all edges
+   (graph-reverse (fn (graph)
+     (foldl (fn (acc pair)
+              (foldl (fn (g neighbor)
+                       (graph-add-edge neighbor (car pair) g))
+                     acc
+                     (cdr pair)))
+            '()
+            graph)))
+
+   ; graph-bfs: Breadth-first search, return visited nodes in order
+   (graph-bfs (fn (start graph)
+     (let ((bfs-loop (fix bfs-loop
+             (fn (queue visited)
+               (if (null? queue)
+                   (reverse visited)
+                   (let ((current (car queue))
+                         (rest-queue (cdr queue)))
+                     (if (member? current visited)
+                         (bfs-loop rest-queue visited)
+                         (let ((neighbors (graph-neighbors current graph)))
+                           (bfs-loop (append rest-queue neighbors)
+                                     (cons current visited))))))))))
+       (bfs-loop (list start) '()))))
+
+   ; graph-dfs: Depth-first search, return visited nodes in order
+   (graph-dfs (fn (start graph)
+     (let ((dfs-loop (fix dfs-loop
+             (fn (stack visited)
+               (if (null? stack)
+                   (reverse visited)
+                   (let ((current (car stack))
+                         (rest-stack (cdr stack)))
+                     (if (member? current visited)
+                         (dfs-loop rest-stack visited)
+                         (let ((neighbors (graph-neighbors current graph)))
+                           (dfs-loop (append neighbors rest-stack)
+                                     (cons current visited))))))))))
+       (dfs-loop (list start) '()))))
+
+   ; ============================================
+   ; More Numeric Utilities
+   ; ============================================
+
+   ; sgn: Sign function (-1, 0, or 1)
+   (sgn (fn (x)
+     (if (< x 0) -1 (if (> x 0) 1 0))))
+
+   ; copysign: Copy sign from y to x
+   (copysign (fn (x y)
+     (* (abs x) (sgn y))))
+
+   ; div-ceil: Division rounding up
+   (div-ceil (fn (a b)
+     (+ (/ a b) (if (= 0 (mod a b)) 0 1))))
+
+   ; div-floor: Division rounding down (same as /)
+   (div-floor (fn (a b)
+     (/ a b)))
+
+   ; mod-positive: Modulo that always returns positive
+   (mod-positive (fn (a b)
+     (let ((r (mod a b)))
+       (if (< r 0) (+ r (abs b)) r))))
+
+   ; is-power-of-2?: Check if n is a power of 2
+   (is-power-of-2? (fn (n)
+     (and (> n 0) (= 0 (bit-and n (- n 1))))))
+
+   ; next-power-of-2: Find smallest power of 2 >= n
+   (next-power-of-2 (fn (n)
+     (if (<= n 1)
+         1
+         (let ((find-pow (fix find-pow
+                 (fn (p)
+                   (if (>= p n)
+                       p
+                       (find-pow (* 2 p)))))))
+           (find-pow 1)))))
+
+   ; log2-int: Integer log base 2 (floor)
+   (log2-int (fn (n)
+     (if (<= n 0)
+         -1
+         (let ((counter (fix counter
+                 (fn (x acc)
+                   (if (<= x 1)
+                       acc
+                       (counter (shr x 1) (+ acc 1)))))))
+           (counter n 0)))))
+
+   ; integer-sqrt: Integer square root (floor)
+   (integer-sqrt (fn (n)
+     (if (< n 0)
+         -1
+         (if (< n 2)
+             n
+             (let ((newton (fix newton
+                     (fn (x)
+                       (let ((x1 (/ (+ x (/ n x)) 2)))
+                         (if (>= x1 x)
+                             x
+                             (newton x1)))))))
+               (newton (/ n 2)))))))
+
+   ; sum-of-squares: Sum of squares of list
+   (sum-of-squares (fn (lst)
+     (foldl (fn (acc x) (+ acc (* x x))) 0 lst)))
+
+   ; dot-product: Dot product of two vectors
+   (dot-product (fn (v1 v2)
+     (foldl + 0 (zip-with * v1 v2))))
+
+   ; magnitude: Euclidean magnitude of vector
+   (magnitude (fn (v)
+     (sqrt (sum-of-squares v))))
+
+   ; normalize-vector: Normalize vector to unit length
+   (normalize-vector (fn (v)
+     (let ((mag (magnitude v)))
+       (if (= mag 0)
+           v
+           (map (fn (x) (/ x mag)) v)))))
+
+   ; ============================================
+   ; Sequence Generators
+   ; ============================================
+
+   ; primes-up-to: Generate primes up to n using sieve
+   (primes-up-to (fn (n)
+     (if (< n 2)
+         '()
+         (let ((sieve (fix sieve
+                 (fn (candidates)
+                   (if (null? candidates)
+                       '()
+                       (let ((p (car candidates)))
+                         (if (> (* p p) n)
+                             candidates
+                             (cons p (sieve (filter (fn (x) (not (= 0 (mod x p))))
+                                                    (cdr candidates)))))))))))
+           (sieve (range 2 (+ n 1)))))))
+
+   ; fibonacci-sequence: Generate first n Fibonacci numbers
+   (fibonacci-sequence (fn (n)
+     (if (<= n 0)
+         '()
+         (if (= n 1)
+             '(0)
+             (let ((builder (fix builder
+                     (fn (count a b acc)
+                       (if (>= count n)
+                           (reverse acc)
+                           (builder (+ count 1) b (+ a b) (cons a acc)))))))
+               (builder 0 0 1 '()))))))
+
+   ; powers-of: Generate powers of base: base^0, base^1, ..., base^(n-1)
+   (powers-of (fn (base n)
+     (build-list n (fn (i) (expt base i)))))
+
+   ; triangular-numbers: First n triangular numbers
+   (triangular-numbers (fn (n)
+     (build-list n (fn (i) (/ (* i (+ i 1)) 2)))))
+
+   ; ============================================
+   ; Combinatorics
+   ; ============================================
+
+   ; permutations: Generate all permutations of list
+   (permutations (fix permutations
+     (fn (lst)
+       (if (null? lst)
+           '(())
+           (flat-map (fn (x)
+                       (map (fn (p) (cons x p))
+                            (permutations (remove-first x lst))))
+                     lst)))))
+
+   ; remove-first: Remove first occurrence of element
+   (remove-first (fn (x lst)
+     (if (null? lst)
+         '()
+         (if (eq? x (car lst))
+             (cdr lst)
+             (cons (car lst) (remove-first x (cdr lst)))))))
+
+   ; combinations: Generate all k-combinations
+   (combinations (fix combinations
+     (fn (k lst)
+       (if (= k 0)
+           '(())
+           (if (null? lst)
+               '()
+               (append (map (fn (c) (cons (car lst) c))
+                           (combinations (- k 1) (cdr lst)))
+                      (combinations k (cdr lst))))))))
+
+   ; cartesian-product: Cartesian product of two lists
+   (cartesian-product (fn (xs ys)
+     (flat-map (fn (x)
+                 (map (fn (y) (list x y)) ys))
+               xs)))
+
+   ; power-set: Generate all subsets
+   (power-set (fix power-set
+     (fn (lst)
+       (if (null? lst)
+           '(())
+           (let ((rest (power-set (cdr lst))))
+             (append rest
+                     (map (fn (s) (cons (car lst) s)) rest)))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -6817,6 +7182,64 @@ pub const PRELUDE_SOURCE: &str = r#"
     ; Debugging utilities
     (cons 'tap tap)
     (cons 'trace trace)
+    ; Set operations
+    (cons 'set-from-list set-from-list)
+    (cons 'set-member? set-member?)
+    (cons 'set-add set-add)
+    (cons 'set-remove set-remove)
+    (cons 'set-union set-union)
+    (cons 'set-intersection set-intersection)
+    (cons 'set-difference set-difference)
+    (cons 'set-symmetric-difference set-symmetric-difference)
+    (cons 'set-subset? set-subset?)
+    (cons 'set-equal? set-equal?)
+    (cons 'set-empty? set-empty?)
+    (cons 'set-size set-size)
+    ; Tree operations
+    (cons 'tree-leaf? tree-leaf?)
+    (cons 'tree-node? tree-node?)
+    (cons 'tree-children tree-children)
+    (cons 'tree-map tree-map)
+    (cons 'tree-fold tree-fold)
+    (cons 'tree-flatten tree-flatten)
+    (cons 'tree-depth tree-depth)
+    (cons 'tree-size tree-size)
+    (cons 'tree-filter tree-filter)
+    (cons 'tree-find tree-find)
+    ; Graph utilities
+    (cons 'graph-nodes graph-nodes)
+    (cons 'graph-neighbors graph-neighbors)
+    (cons 'graph-has-edge? graph-has-edge?)
+    (cons 'graph-add-edge graph-add-edge)
+    (cons 'graph-remove-edge graph-remove-edge)
+    (cons 'graph-reverse graph-reverse)
+    (cons 'graph-bfs graph-bfs)
+    (cons 'graph-dfs graph-dfs)
+    ; More numeric utilities
+    (cons 'sgn sgn)
+    (cons 'copysign copysign)
+    (cons 'div-ceil div-ceil)
+    (cons 'div-floor div-floor)
+    (cons 'mod-positive mod-positive)
+    (cons 'is-power-of-2? is-power-of-2?)
+    (cons 'next-power-of-2 next-power-of-2)
+    (cons 'log2-int log2-int)
+    (cons 'integer-sqrt integer-sqrt)
+    (cons 'sum-of-squares sum-of-squares)
+    (cons 'dot-product dot-product)
+    (cons 'magnitude magnitude)
+    (cons 'normalize-vector normalize-vector)
+    ; Sequence generators
+    (cons 'primes-up-to primes-up-to)
+    (cons 'fibonacci-sequence fibonacci-sequence)
+    (cons 'powers-of powers-of)
+    (cons 'triangular-numbers triangular-numbers)
+    ; Combinatorics
+    (cons 'permutations permutations)
+    (cons 'remove-first remove-first)
+    (cons 'combinations combinations)
+    (cons 'cartesian-product cartesian-product)
+    (cons 'power-set power-set)
 ))
 "#;
 
