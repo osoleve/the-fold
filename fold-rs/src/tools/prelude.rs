@@ -266,6 +266,59 @@ pub const PRELUDE_SOURCE: &str = r#"
 
    ; pipe: Compose functions left-to-right (opposite of compose)
    (pipe (fn (f g) (fn (x) (g (f x)))))
+
+   ; -- List generators --
+
+   ; unfold: Generate list from seed (dual of fold)
+   ; (unfold p f g seed) where:
+   ;   p = predicate to stop (returns #t when done)
+   ;   f = function to generate value from seed
+   ;   g = function to generate next seed
+   ;   seed = initial seed
+   ; Example: (unfold (fn (x) (> x 5)) id inc 1) => (1 2 3 4 5)
+   (unfold (fix unfold
+     (fn (stop? extract next seed)
+       (if (stop? seed)
+           '()
+           (cons (extract seed) (unfold stop? extract next (next seed)))))))
+
+   ; tails: All suffixes of a list
+   ; (tails '(1 2 3)) => ((1 2 3) (2 3) (3) ())
+   (tails (fix tails
+     (fn (lst)
+       (if (null? lst)
+           (list '())
+           (cons lst (tails (cdr lst)))))))
+
+   ; inits: All prefixes of a list
+   ; (inits '(1 2 3)) => (() (1) (1 2) (1 2 3))
+   (inits (fix inits
+     (fn (lst)
+       (if (null? lst)
+           (list '())
+           (cons '() (map (fn (t) (cons (car lst) t)) (inits (cdr lst))))))))
+
+   ; group-consecutive: Group consecutive equal elements
+   ; (group-consecutive '(1 1 2 2 2 3)) => ((1 1) (2 2 2) (3))
+   (group-consecutive (fix group-consecutive
+     (fn (lst)
+       (if (null? lst)
+           '()
+           (let ((x (car lst)))
+             (let ((result (span (fn (y) (= x y)) lst)))
+               (cons (car result) (group-consecutive (cdr result)))))))))
+
+   ; range-list: Generate list of numbers (uses primitive range)
+   ; (range-list 1 5) => (1 2 3 4)
+   (range-list (fn (start end) (range start end)))
+
+   ; repeat-fn: Apply function n times to initial value, return final result
+   ; (repeat-fn inc 5 0) => 5
+   (repeat-fn (fix repeat-fn
+     (fn (f n x)
+       (if (<= n 0)
+           x
+           (repeat-fn f (- n 1) (f x))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -309,7 +362,13 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'min-by min-by)
     (cons 'on on)
     (cons 'juxt juxt)
-    (cons 'pipe pipe)))
+    (cons 'pipe pipe)
+    (cons 'unfold unfold)
+    (cons 'tails tails)
+    (cons 'inits inits)
+    (cons 'group-consecutive group-consecutive)
+    (cons 'range-list range-list)
+    (cons 'repeat-fn repeat-fn)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};

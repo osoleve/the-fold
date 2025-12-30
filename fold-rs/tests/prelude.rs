@@ -345,3 +345,56 @@ fn test_juxt() {
     let result = eval_with_prelude("((juxt (list inc dec double)) 10)");
     assert_eq!(result, "(11 9 20)");
 }
+
+#[test]
+fn test_unfold() {
+    // Generate list 1..5
+    let result = eval_with_prelude("(unfold (fn (x) (> x 5)) id inc 1)");
+    assert_eq!(result, "(1 2 3 4 5)");
+
+    // Empty result
+    let result = eval_with_prelude("(unfold (fn (x) #t) id inc 1)");
+    assert_eq!(result, "()");
+}
+
+#[test]
+fn test_tails() {
+    // All suffixes
+    let result = eval_with_prelude("(tails '(1 2 3))");
+    assert_eq!(result, "((1 2 3) (2 3) (3) ())");
+}
+
+#[test]
+fn test_inits() {
+    // All prefixes
+    let result = eval_with_prelude("(inits '(1 2 3))");
+    assert_eq!(result, "(() (1) (1 2) (1 2 3))");
+}
+
+#[test]
+fn test_group_consecutive() {
+    // Group runs of equal elements
+    let result = eval_with_prelude("(group-consecutive '(1 1 2 2 2 3))");
+    assert_eq!(result, "((1 1) (2 2 2) (3))");
+
+    // No duplicates
+    let result = eval_with_prelude("(group-consecutive '(1 2 3))");
+    assert_eq!(result, "((1) (2) (3))");
+}
+
+#[test]
+fn test_range_list() {
+    // Generate range
+    let result = eval_with_prelude("(range-list 1 5)");
+    assert_eq!(result, "(1 2 3 4)");
+}
+
+#[test]
+fn test_repeat_fn() {
+    // Apply function n times
+    let result = eval_with_prelude("(repeat-fn inc 5 0)");
+    assert_eq!(result, "5");
+
+    let result = eval_with_prelude("(repeat-fn double 4 1)");
+    assert_eq!(result, "16");
+}
