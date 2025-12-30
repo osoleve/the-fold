@@ -25,6 +25,20 @@ pub fn lower_expr(expr: &Spanned<Sexp>) -> Result<SpannedExpr, LowerError> {
         Sexp::Number(NumberLit::Float(n)) => Expr::Value(Value::Float(*n)),
         Sexp::String(s) => Expr::Value(Value::String(s.clone())),
         Sexp::Bool(b) => Expr::Value(Value::Bool(*b)),
+        Sexp::Char(c) => Expr::Value(Value::Char(*c)),
+        Sexp::Bytevector(bytes) => Expr::Value(Value::Bytevector(bytes.clone())),
+        Sexp::Vector(items) => {
+            // Lower each item in the vector and create a vec-make call
+            let lowered: Result<Vec<_>, _> = items.iter().map(lower_expr).collect();
+            let lowered_exprs = lowered?;
+            return Ok(SpannedExpr::new(
+                Expr::Prim {
+                    op: "vec-make".into(),
+                    args: lowered_exprs,
+                },
+                span,
+            ));
+        }
         Sexp::Symbol(sym) => Expr::Var(sym.clone()),
         Sexp::List(items) => return lower_list(expr, items),
     };
@@ -56,6 +70,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "list-ref" | "list->string" | "list->vec" | "take" | "drop" | "last" | "flatten" | "range"
             | "repeat" | "sum" | "product" | "sum-of" | "max-of" | "min-of"
             | "sort" | "unique" | "find-index" | "index-of" | "count"
+            | "nth" | "zip" | "unzip" | "rotate"
             | "filter"
             // String operations
             | "string-append" | "string-length" | "string-ref" | "substring"
@@ -534,6 +549,15 @@ fn value_from_spanned(expr: &Spanned<Sexp>) -> Result<Value, LowerError> {
         Sexp::Number(NumberLit::Integer(n)) => Ok(Value::Number(*n)),
         Sexp::Number(NumberLit::Float(n)) => Ok(Value::Float(*n)),
         Sexp::String(s) => Ok(Value::String(s.clone())),
+        Sexp::Char(c) => Ok(Value::Char(*c)),
+        Sexp::Bytevector(bytes) => Ok(Value::Bytevector(bytes.clone())),
+        Sexp::Vector(_items) => {
+            // Vectors can't be pure literals since they contain expressions
+            Err(LowerError {
+                message: "vectors are not literals".to_string(),
+                span: expr.span.clone(),
+            })
+        }
         Sexp::Symbol(sym) => Ok(Value::Symbol(sym.clone())),
         Sexp::Bool(b) => Ok(Value::Bool(*b)),
         Sexp::List(items) => {

@@ -55,9 +55,6 @@ pub enum Sexp {
     String(String),
     Symbol(String),
     Bool(bool),
-    Char(char),
-    Bytevector(Vec<u8>),
-    Vector(Vec<Spanned<Sexp>>),
     List(Vec<Spanned<Sexp>>),
 }
 
@@ -67,9 +64,6 @@ pub enum PlainSexp {
     String(String),
     Symbol(String),
     Bool(bool),
-    Char(char),
-    Bytevector(Vec<u8>),
-    Vector(Vec<PlainSexp>),
     List(Vec<PlainSexp>),
 }
 
@@ -79,9 +73,6 @@ pub fn strip_spans(expr: &Spanned<Sexp>) -> PlainSexp {
         Sexp::String(s) => PlainSexp::String(s.clone()),
         Sexp::Symbol(s) => PlainSexp::Symbol(s.clone()),
         Sexp::Bool(b) => PlainSexp::Bool(*b),
-        Sexp::Char(c) => PlainSexp::Char(*c),
-        Sexp::Bytevector(bytes) => PlainSexp::Bytevector(bytes.clone()),
-        Sexp::Vector(items) => PlainSexp::Vector(items.iter().map(strip_spans).collect()),
         Sexp::List(items) => PlainSexp::List(items.iter().map(strip_spans).collect()),
     }
 }
@@ -172,7 +163,7 @@ impl Parser {
                 }
             }
             Some('"') => Sexp::String(self.parse_string()?),
-            Some('#') => self.parse_hash_literal()?,
+            Some('#') => Sexp::Bool(self.parse_boolean()?),
             Some(c) => {
                 if let Some((number, end_index)) = self.scan_number() {
                     self.advance_to(end_index);
@@ -255,158 +246,21 @@ impl Parser {
         }
     }
 
-    fn parse_hash_literal(&mut self) -> Result<Sexp, ParseError> {
-        // Expect '#' prefix
+    fn parse_boolean(&mut self) -> Result<bool, ParseError> {
         if self.peek() != Some('#') {
-            return Err(self.error("hash literal"));
+            return Err(self.error("boolean"));
         }
         self.advance();
-
         match self.peek() {
-            Some('t') | Some('f') => {
-                // Boolean: #t or #f
-                match self.peek() {
-                    Some('t') => {
-                        self.advance();
-                        Ok(Sexp::Bool(true))
-                    }
-                    Some('f') => {
-                        self.advance();
-                        Ok(Sexp::Bool(false))
-                    }
-                    _ => Err(self.error("boolean")),
-                }
-            }
-            Some('\\') => {
-                // Character: #\a, #\newline, etc.
+            Some('t') => {
                 self.advance();
-                self.parse_char()
+                Ok(true)
             }
-            Some('u') => {
-                // Bytevector: #u8(...)
+            Some('f') => {
                 self.advance();
-                if self.peek() == Some('8') {
-                    self.advance();
-                    self.skip_whitespace_and_comments();
-                    if self.peek() == Some('(') {
-                        self.advance();
-                        self.parse_bytevector_list()
-                    } else {
-                        Err(self.error("( after #u8"))
-                    }
-                } else {
-                    Err(self.error("8 after #u"))
-                }
+                Ok(false)
             }
-            Some('"') => {
-                // Bytevector from string: #"abc"
-                self.parse_bytevector_string()
-            }
-            Some('(') => {
-                // Vector: #(...)
-                self.advance();
-                self.parse_vector()
-            }
-            _ => Err(self.error("hash literal (expected t, f, \\\\, u, \", or (")),
-        }
-    }
-
-    fn parse_char(&mut self) -> Result<Sexp, ParseError> {
-        // After #\ we expect either a single character or a named character
-        let start_pos = self.position();
-
-        match self.peek() {
-            None => Err(self.error_at("character", start_pos)),
-            Some(c) if c.is_alphabetic() => {
-                // Could be a named character like "newline" or just a letter
-                let mut name = String::new();
-                while let Some(ch) = self.peek() {
-                    if ch.is_alphabetic() {
-                        name.push(ch);
-                        self.advance();
-                    } else {
-                        break;
-                    }
-                }
-
-                // Check for named characters
-                let ch = match name.as_str() {
-                    "newline" => '\n',
-                    "space" => ' ',
-                    "tab" => '\t',
-                    "return" => '\r',
-                    "null" | "nul" => '\0',
-                    s if s.len() == 1 => s.chars().next().unwrap(),
-                    _ => {
-                        return Err(
-                            self.error_at(&format!("unknown character name: {}", name), start_pos)
-                        );
-                    }
-                };
-                Ok(Sexp::Char(ch))
-            }
-            Some(c) => {
-                // Single character
-                self.advance();
-                Ok(Sexp::Char(c))
-            }
-        }
-    }
-
-    fn parse_bytevector_list(&mut self) -> Result<Sexp, ParseError> {
-        // Parse #u8(n1 n2 n3 ...)
-        self.skip_whitespace_and_comments();
-        let mut bytes = Vec::new();
-
-        loop {
-            self.skip_whitespace_and_comments();
-            match self.peek() {
-                Some(')') => {
-                    self.advance();
-                    return Ok(Sexp::Bytevector(bytes));
-                }
-                Some(_) => {
-                    if let Some((num, end_index)) = self.scan_number() {
-                        self.advance_to(end_index);
-                        match num {
-                            NumberLit::Integer(n) if (0..=255).contains(&n) => {
-                                bytes.push(n as u8);
-                            }
-                            _ => return Err(self.error("byte value (0-255)")),
-                        }
-                    } else {
-                        return Err(self.error("byte value"));
-                    }
-                }
-                None => return Err(self.error(")")),
-            }
-        }
-    }
-
-    fn parse_bytevector_string(&mut self) -> Result<Sexp, ParseError> {
-        // Parse #"string" as bytevector
-        let s = self.parse_string()?;
-        Ok(Sexp::Bytevector(s.into_bytes()))
-    }
-
-    fn parse_vector(&mut self) -> Result<Sexp, ParseError> {
-        // Parse #(expr1 expr2 ...)
-        self.skip_whitespace_and_comments();
-        let mut items = Vec::new();
-
-        loop {
-            match self.peek() {
-                Some(')') => {
-                    self.advance();
-                    return Ok(Sexp::Vector(items));
-                }
-                Some(_) => {
-                    let expr = self.parse_expr()?;
-                    items.push(expr);
-                    self.skip_whitespace_and_comments();
-                }
-                None => return Err(self.error(")")),
-            }
+            _ => Err(self.error("boolean")),
         }
     }
 

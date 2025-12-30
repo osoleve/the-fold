@@ -2040,6 +2040,89 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let count = list.iter().filter(|item| value_eq(item, needle)).count();
             Ok(Value::Number(count as i64))
         }
+        "nth" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("nth expects 2 args: (nth n lst)"));
+            }
+            let n = expect_usize(&args[0])?;
+            let list = list_to_vec(&args[1])?;
+            if n < list.len() {
+                Ok(list[n].clone())
+            } else {
+                Ok(Value::Nil)
+            }
+        }
+        "zip" => {
+            if args.len() < 2 {
+                return Err(EvalError::TypeMismatch("zip expects at least 2 lists"));
+            }
+            // Convert all arguments to vectors
+            let mut lists: Vec<Vec<Value>> = Vec::new();
+            for arg in args {
+                lists.push(list_to_vec(arg)?);
+            }
+            // Find minimum length
+            let min_len = lists.iter().map(|l| l.len()).min().unwrap_or(0);
+            // Create zipped list of lists
+            let mut result = Vec::new();
+            for i in 0..min_len {
+                let mut tuple = Vec::new();
+                for list in &lists {
+                    tuple.push(list[i].clone());
+                }
+                result.push(list_from_values(&tuple));
+            }
+            Ok(list_from_values(&result))
+        }
+        "unzip" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch(
+                    "unzip expects 1 arg: a list of lists",
+                ));
+            }
+            let list_of_lists = list_to_vec(&args[0])?;
+            if list_of_lists.is_empty() {
+                return Ok(Value::Nil);
+            }
+            // Get the first sublist to determine size
+            let first = list_to_vec(&list_of_lists[0])?;
+            let num_cols = first.len();
+            // Create columns
+            let mut columns: Vec<Vec<Value>> = vec![Vec::new(); num_cols];
+            for item in list_of_lists {
+                let sublist = list_to_vec(&item)?;
+                if sublist.len() != num_cols {
+                    return Err(EvalError::TypeMismatch(
+                        "unzip: all sublists must have same length",
+                    ));
+                }
+                for (col_idx, val) in sublist.iter().enumerate() {
+                    columns[col_idx].push(val.clone());
+                }
+            }
+            // Create result list of lists
+            let result: Vec<Value> = columns
+                .into_iter()
+                .map(|col| list_from_values(&col))
+                .collect();
+            Ok(list_from_values(&result))
+        }
+        "rotate" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "rotate expects 2 args: (rotate lst n)",
+                ));
+            }
+            let mut list = list_to_vec(&args[0])?;
+            let n = expect_integer(&args[1])?;
+            if list.is_empty() {
+                return Ok(list_from_values(&list));
+            }
+            let len = list.len() as i64;
+            let normalized = ((n % len) + len) % len; // Handle negative rotations
+            list.rotate_left(normalized as usize);
+            Ok(list_from_values(&list))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(
