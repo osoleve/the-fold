@@ -10984,6 +10984,281 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; xor: Exclusive or
    (xor (fn (p q)
      (not (eq? p q))))
+
+   ; ============================================
+   ; Character Predicates
+   ; ============================================
+
+   ; char-digit?: Check if char is a digit (ASCII 48-57)
+   (char-digit? (fn (c)
+     (let ((n (char->integer c)))
+       (and (>= n 48) (<= n 57)))))
+
+   ; char-alpha?: Check if char is a letter
+   (char-alpha? (fn (c)
+     (let ((n (char->integer c)))
+       (or (and (>= n 65) (<= n 90))
+           (and (>= n 97) (<= n 122))))))
+
+   ; char-alphanumeric?: Check if char is alphanumeric
+   (char-alphanumeric? (fn (c)
+     (or (char-digit? c) (char-alpha? c))))
+
+   ; char-whitespace?: Check if char is whitespace
+   (char-whitespace? (fn (c)
+     (let ((n (char->integer c)))
+       (or (= n 32) (= n 10) (= n 9) (= n 13)))))
+
+   ; char-lower?: Check if char is lowercase
+   (char-lower? (fn (c)
+     (let ((n (char->integer c)))
+       (and (>= n 97) (<= n 122)))))
+
+   ; char-upper?: Check if char is uppercase
+   (char-upper? (fn (c)
+     (let ((n (char->integer c)))
+       (and (>= n 65) (<= n 90)))))
+
+   ; char-downcase: Convert char to lowercase
+   (char-downcase (fn (c)
+     (if (char-upper? c)
+         (integer->char (+ (char->integer c) 32))
+         c)))
+
+   ; char-upcase: Convert char to uppercase
+   (char-upcase (fn (c)
+     (if (char-lower? c)
+         (integer->char (- (char->integer c) 32))
+         c)))
+
+   ; ============================================
+   ; Graph Algorithms
+   ; ============================================
+   ; Graphs as adjacency lists: ((node . (neighbors...)) ...)
+
+   ; graph-empty: Empty graph
+   (graph-empty '())
+
+   ; graph-add-node: Add node to graph
+   (graph-add-node (fn (node g)
+     (if (assoc node g)
+         g
+         (cons (cons node '()) g))))
+
+   ; graph-add-edge: Add directed edge
+   (graph-add-edge (fn (from to g)
+     (let ((g1 (graph-add-node from g)))
+       (let ((g2 (graph-add-node to g1)))
+         (alist-set from (cons to (cdr (assoc from g2))) g2)))))
+
+   ; graph-neighbors: Get neighbors of node
+   (graph-neighbors (fn (node g)
+     (let ((entry (assoc node g)))
+       (if entry (cdr entry) '()))))
+
+   ; graph-nodes: Get all nodes
+   (graph-nodes (fn (g) (map car g)))
+
+   ; graph-has-edge?: Check if edge exists
+   (graph-has-edge? (fn (from to g)
+     (member? to (graph-neighbors from g))))
+
+   ; graph-from-edges: Build from edge list
+   (graph-from-edges (fn (edges)
+     (foldl (fn (g e) (graph-add-edge (car e) (cdr e) g))
+            graph-empty edges)))
+
+   ; bfs: Breadth-first search
+   (bfs (fn (start g)
+     ((fix bfs-rec
+        (fn (queue visited result)
+          (if (null? queue)
+              (reverse result)
+              (let ((cur (car queue))
+                    (rest (cdr queue)))
+                (if (member? cur visited)
+                    (bfs-rec rest visited result)
+                    (bfs-rec (append rest (graph-neighbors cur g))
+                             (cons cur visited)
+                             (cons cur result)))))))
+      (list start) '() '())))
+
+   ; dfs: Depth-first search
+   (dfs (fn (start g)
+     ((fix dfs-rec
+        (fn (stack visited result)
+          (if (null? stack)
+              (reverse result)
+              (let ((cur (car stack))
+                    (rest (cdr stack)))
+                (if (member? cur visited)
+                    (dfs-rec rest visited result)
+                    (dfs-rec (append (graph-neighbors cur g) rest)
+                             (cons cur visited)
+                             (cons cur result)))))))
+      (list start) '() '())))
+
+   ; graph-path-exists?: Check if path exists
+   (graph-path-exists? (fn (from to g)
+     (member? to (bfs from g))))
+
+   ; ============================================
+   ; State Monad
+   ; ============================================
+   ; State s a = s -> (a, s)
+
+   ; state-return: Wrap value in state
+   (state-return (fn (x)
+     (fn (s) (cons x s))))
+
+   ; state-bind: Bind for state monad
+   (state-bind (fn (ma f)
+     (fn (s)
+       (let ((result (ma s)))
+         ((f (car result)) (cdr result))))))
+
+   ; state-get: Get current state
+   (state-get (fn (s) (cons s s)))
+
+   ; state-put: Replace state
+   (state-put (fn (new-s)
+     (fn (s) (cons '() new-s))))
+
+   ; state-modify: Modify state with function
+   (state-modify (fn (f)
+     (fn (s) (cons '() (f s)))))
+
+   ; state-run: Run state computation
+   (state-run (fn (ma s) (ma s)))
+
+   ; state-eval: Run and return value
+   (state-eval (fn (ma s) (car (ma s))))
+
+   ; state-exec: Run and return state
+   (state-exec (fn (ma s) (cdr (ma s))))
+
+   ; ============================================
+   ; Reader Monad
+   ; ============================================
+   ; Reader r a = r -> a
+
+   ; reader-return: Wrap value
+   (reader-return const)
+
+   ; reader-bind: Bind for reader
+   (reader-bind (fn (ma f)
+     (fn (r) ((f (ma r)) r))))
+
+   ; reader-ask: Get environment
+   (reader-ask id)
+
+   ; reader-local: Run with modified env
+   (reader-local (fn (f ma)
+     (fn (r) (ma (f r)))))
+
+   ; reader-run: Run reader
+   (reader-run (fn (ma r) (ma r)))
+
+   ; ============================================
+   ; Writer Monad
+   ; ============================================
+   ; Writer w a = (a, w) where w is monoid (list)
+
+   ; writer-return: Wrap value with empty log
+   (writer-return (fn (x) (cons x '())))
+
+   ; writer-bind: Bind for writer
+   (writer-bind (fn (ma f)
+     (let ((result (f (car ma))))
+       (cons (car result) (append (cdr ma) (cdr result))))))
+
+   ; writer-tell: Write to log
+   (writer-tell (fn (w) (cons '() (list w))))
+
+   ; writer-run: Get value and log
+   (writer-run id)
+
+   ; writer-value: Get just value
+   (writer-value car)
+
+   ; writer-log: Get just log
+   (writer-log cdr)
+
+   ; ============================================
+   ; Numeric Extensions
+   ; ============================================
+
+   ; divides?: Check if a divides b
+   (divides? (fn (a b) (= 0 (mod b a))))
+
+   ; coprime?: Check if gcd is 1
+   (coprime? (fn (a b) (= 1 (gcd-euclid a b))))
+
+   ; perfect-square?: Check if n is perfect square
+   (perfect-square? (fn (n)
+     (let ((s (isqrt n)))
+       (= (* s s) n))))
+
+   ; triangular: nth triangular number
+   (triangular (fn (n) (/ (* n (+ n 1)) 2)))
+
+   ; pentagonal: nth pentagonal number
+   (pentagonal (fn (n) (/ (* n (- (* 3 n) 1)) 2)))
+
+   ; hexagonal: nth hexagonal number
+   (hexagonal (fn (n) (* n (- (* 2 n) 1))))
+
+   ; binomial: n choose k
+   (binomial (fn (n k)
+     (if (or (< k 0) (> k n))
+         0
+         (/ (factorial n)
+            (* (factorial k) (factorial (- n k)))))))
+
+   ; catalan: nth Catalan number
+   (catalan (fn (n)
+     (/ (binomial (* 2 n) n) (+ n 1))))
+
+   ; stirling1: Stirling first kind (unsigned)
+   (stirling1 (fix stirling1-rec
+     (fn (n k)
+       (if (= n 0)
+           (if (= k 0) 1 0)
+           (if (= k 0)
+               0
+               (+ (* (- n 1) (stirling1-rec (- n 1) k))
+                  (stirling1-rec (- n 1) (- k 1))))))))
+
+   ; stirling2: Stirling second kind
+   (stirling2 (fix stirling2-rec
+     (fn (n k)
+       (if (= n 0)
+           (if (= k 0) 1 0)
+           (if (= k 0)
+               0
+               (+ (* k (stirling2-rec (- n 1) k))
+                  (stirling2-rec (- n 1) (- k 1))))))))
+
+   ; digital-root: Sum digits until single digit
+   (digital-root (fix dr-rec
+     (fn (n)
+       (if (< n 10)
+           n
+           (dr-rec (sum-list (map (fn (c) (- (char->integer c) 48))
+                                  (string->list (number->string n)))))))))
+
+   ; collatz: Next in Collatz sequence
+   (collatz (fn (n)
+     (if (even? n)
+         (/ n 2)
+         (+ (* 3 n) 1))))
+
+   ; collatz-length: Steps to reach 1
+   (collatz-length (fix coll-rec
+     (fn (n steps)
+       (if (= n 1)
+           steps
+           (coll-rec (collatz n) (+ steps 1))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -12900,6 +13175,62 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'implies implies)
     (cons 'iff iff)
     (cons 'xor xor)
+    ; Character Predicates
+    (cons 'char-digit? char-digit?)
+    (cons 'char-alpha? char-alpha?)
+    (cons 'char-alphanumeric? char-alphanumeric?)
+    (cons 'char-whitespace? char-whitespace?)
+    (cons 'char-lower? char-lower?)
+    (cons 'char-upper? char-upper?)
+    (cons 'char-downcase char-downcase)
+    (cons 'char-upcase char-upcase)
+    ; Graph Algorithms
+    (cons 'graph-empty graph-empty)
+    (cons 'graph-add-node graph-add-node)
+    (cons 'graph-add-edge graph-add-edge)
+    (cons 'graph-neighbors graph-neighbors)
+    (cons 'graph-nodes graph-nodes)
+    (cons 'graph-has-edge? graph-has-edge?)
+    (cons 'graph-from-edges graph-from-edges)
+    (cons 'bfs bfs)
+    (cons 'dfs dfs)
+    (cons 'graph-path-exists? graph-path-exists?)
+    ; State Monad
+    (cons 'state-return state-return)
+    (cons 'state-bind state-bind)
+    (cons 'state-get state-get)
+    (cons 'state-put state-put)
+    (cons 'state-modify state-modify)
+    (cons 'state-run state-run)
+    (cons 'state-eval state-eval)
+    (cons 'state-exec state-exec)
+    ; Reader Monad
+    (cons 'reader-return reader-return)
+    (cons 'reader-bind reader-bind)
+    (cons 'reader-ask reader-ask)
+    (cons 'reader-local reader-local)
+    (cons 'reader-run reader-run)
+    ; Writer Monad
+    (cons 'writer-return writer-return)
+    (cons 'writer-bind writer-bind)
+    (cons 'writer-tell writer-tell)
+    (cons 'writer-run writer-run)
+    (cons 'writer-value writer-value)
+    (cons 'writer-log writer-log)
+    ; Numeric Extensions
+    (cons 'divides? divides?)
+    (cons 'coprime? coprime?)
+    (cons 'perfect-square? perfect-square?)
+    (cons 'triangular triangular)
+    (cons 'pentagonal pentagonal)
+    (cons 'hexagonal hexagonal)
+    (cons 'binomial binomial)
+    (cons 'catalan catalan)
+    (cons 'stirling1 stirling1)
+    (cons 'stirling2 stirling2)
+    (cons 'digital-root digital-root)
+    (cons 'collatz collatz)
+    (cons 'collatz-length collatz-length)
 ))
 "#;
 
