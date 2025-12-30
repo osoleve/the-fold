@@ -537,3 +537,289 @@ fn assoc_ops() {
     let not_found = prim("assoc", &[Value::Symbol("z".to_string()), alist]);
     assert!(matches!(not_found, Value::Bool(false)));
 }
+
+#[test]
+fn string_utilities() {
+    // string-words splits on whitespace
+    let words = prim(
+        "string-words",
+        &[Value::String("hello world foo".to_string())],
+    );
+    let vec = list_to_vec(&words);
+    assert_eq!(vec.len(), 3);
+    assert_eq!(expect_string(&vec[0]), "hello");
+    assert_eq!(expect_string(&vec[1]), "world");
+    assert_eq!(expect_string(&vec[2]), "foo");
+
+    // string-lines splits on newlines
+    let lines = prim(
+        "string-lines",
+        &[Value::String("line1\nline2\nline3".to_string())],
+    );
+    let vec = list_to_vec(&lines);
+    assert_eq!(vec.len(), 3);
+    assert_eq!(expect_string(&vec[0]), "line1");
+    assert_eq!(expect_string(&vec[1]), "line2");
+    assert_eq!(expect_string(&vec[2]), "line3");
+
+    // string-join concatenates with separator
+    let list = prim(
+        "list",
+        &[
+            Value::String("a".to_string()),
+            Value::String("b".to_string()),
+            Value::String("c".to_string()),
+        ],
+    );
+    let joined = prim("string-join", &[list, Value::String(", ".to_string())]);
+    assert_eq!(expect_string(&joined), "a, b, c");
+
+    // string-replace-all replaces all occurrences
+    let replaced = prim(
+        "string-replace-all",
+        &[
+            Value::String("foo bar foo baz foo".to_string()),
+            Value::String("foo".to_string()),
+            Value::String("X".to_string()),
+        ],
+    );
+    assert_eq!(expect_string(&replaced), "X bar X baz X");
+}
+
+#[test]
+fn string_trim_operations() {
+    // string-trim-start removes leading whitespace
+    let trimmed = prim(
+        "string-trim-start",
+        &[Value::String("  hello  ".to_string())],
+    );
+    assert_eq!(expect_string(&trimmed), "hello  ");
+
+    // string-trim-end removes trailing whitespace
+    let trimmed = prim("string-trim-end", &[Value::String("  hello  ".to_string())]);
+    assert_eq!(expect_string(&trimmed), "  hello");
+
+    // string-trim-both removes both
+    let trimmed = prim(
+        "string-trim-both",
+        &[Value::String("  hello  ".to_string())],
+    );
+    assert_eq!(expect_string(&trimmed), "hello");
+}
+
+#[test]
+fn string_predicates() {
+    // string-ascii?
+    assert!(matches!(
+        prim("string-ascii?", &[Value::String("hello123".to_string())]),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim("string-ascii?", &[Value::String("héllo".to_string())]),
+        Value::Bool(false)
+    ));
+
+    // string-numeric?
+    assert!(matches!(
+        prim("string-numeric?", &[Value::String("12345".to_string())]),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim("string-numeric?", &[Value::String("123a5".to_string())]),
+        Value::Bool(false)
+    ));
+
+    // string-alphabetic?
+    assert!(matches!(
+        prim("string-alphabetic?", &[Value::String("hello".to_string())]),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim(
+            "string-alphabetic?",
+            &[Value::String("hello123".to_string())]
+        ),
+        Value::Bool(false)
+    ));
+
+    // string-alphanumeric?
+    assert!(matches!(
+        prim(
+            "string-alphanumeric?",
+            &[Value::String("hello123".to_string())]
+        ),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim(
+            "string-alphanumeric?",
+            &[Value::String("hello 123".to_string())]
+        ),
+        Value::Bool(false)
+    ));
+
+    // string-whitespace?
+    assert!(matches!(
+        prim(
+            "string-whitespace?",
+            &[Value::String("   \t\n".to_string())]
+        ),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim("string-whitespace?", &[Value::String("  x  ".to_string())]),
+        Value::Bool(false)
+    ));
+
+    // string-empty?
+    assert!(matches!(
+        prim("string-empty?", &[Value::String("".to_string())]),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim("string-empty?", &[Value::String("x".to_string())]),
+        Value::Bool(false)
+    ));
+}
+
+#[test]
+fn vector_operations() {
+    // vec-copy
+    let vec = Value::Vector(vec![Value::Number(1), Value::Number(2), Value::Number(3)]);
+    let copied = prim("vec-copy", std::slice::from_ref(&vec));
+    match copied {
+        Value::Vector(v) => {
+            assert_eq!(v.len(), 3);
+            assert_eq!(expect_number(&v[0]), 1);
+        }
+        other => panic!("expected vector, got {:?}", other),
+    }
+
+    // vec-slice
+    let sliced = prim(
+        "vec-slice",
+        &[vec.clone(), Value::Number(1), Value::Number(3)],
+    );
+    match sliced {
+        Value::Vector(v) => {
+            assert_eq!(v.len(), 2);
+            assert_eq!(expect_number(&v[0]), 2);
+            assert_eq!(expect_number(&v[1]), 3);
+        }
+        other => panic!("expected vector, got {:?}", other),
+    }
+
+    // vec-reverse
+    let reversed = prim("vec-reverse", std::slice::from_ref(&vec));
+    match reversed {
+        Value::Vector(v) => {
+            assert_eq!(expect_number(&v[0]), 3);
+            assert_eq!(expect_number(&v[1]), 2);
+            assert_eq!(expect_number(&v[2]), 1);
+        }
+        other => panic!("expected vector, got {:?}", other),
+    }
+
+    // vec-contains?
+    assert!(matches!(
+        prim("vec-contains?", &[vec.clone(), Value::Number(2)]),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim("vec-contains?", &[vec.clone(), Value::Number(99)]),
+        Value::Bool(false)
+    ));
+
+    // vec-index-of
+    assert_eq!(
+        expect_number(&prim("vec-index-of", &[vec.clone(), Value::Number(2)])),
+        1
+    );
+    assert_eq!(
+        expect_number(&prim("vec-index-of", &[vec.clone(), Value::Number(99)])),
+        -1
+    );
+}
+
+#[test]
+fn type_introspection() {
+    // type-of returns a symbol
+    fn expect_symbol(value: &Value) -> String {
+        match value {
+            Value::Symbol(s) => s.clone(),
+            other => panic!("expected symbol, got {:?}", other),
+        }
+    }
+
+    assert_eq!(
+        expect_symbol(&prim("type-of", &[Value::Number(42)])),
+        "number"
+    );
+    assert_eq!(
+        expect_symbol(&prim("type-of", &[Value::String("hi".to_string())])),
+        "string"
+    );
+    assert_eq!(
+        expect_symbol(&prim("type-of", &[Value::Vector(vec![Value::Number(1)])])),
+        "vector"
+    );
+    assert_eq!(
+        expect_symbol(&prim("type-of", &[Value::Symbol("foo".to_string())])),
+        "symbol"
+    );
+    assert_eq!(
+        expect_symbol(&prim("type-of", &[Value::Bool(true)])),
+        "bool"
+    );
+    assert_eq!(expect_symbol(&prim("type-of", &[Value::Nil])), "nil");
+
+    // is-number?, is-string?, is-vector?, is-list?
+    assert!(matches!(
+        prim("is-number?", &[Value::Number(42)]),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim("is-number?", &[Value::String("x".to_string())]),
+        Value::Bool(false)
+    ));
+
+    assert!(matches!(
+        prim("is-string?", &[Value::String("x".to_string())]),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim("is-vector?", &[Value::Vector(vec![])]),
+        Value::Bool(true)
+    ));
+}
+
+#[test]
+fn comparison_utilities() {
+    // equals? does deep equality
+    assert!(matches!(
+        prim("equals?", &[Value::Number(42), Value::Number(42)]),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim("equals?", &[Value::Number(42), Value::Number(43)]),
+        Value::Bool(false)
+    ));
+
+    // not-equals?
+    assert!(matches!(
+        prim("not-equals?", &[Value::Number(42), Value::Number(43)]),
+        Value::Bool(true)
+    ));
+    assert!(matches!(
+        prim("not-equals?", &[Value::Number(42), Value::Number(42)]),
+        Value::Bool(false)
+    ));
+
+    // hash-value produces consistent hashes
+    let h1 = prim("hash-value", &[Value::String("test".to_string())]);
+    let h2 = prim("hash-value", &[Value::String("test".to_string())]);
+    assert_eq!(expect_number(&h1), expect_number(&h2));
+
+    let h3 = prim("hash-value", &[Value::String("different".to_string())]);
+    assert_ne!(expect_number(&h1), expect_number(&h3));
+}
