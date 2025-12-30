@@ -19,3 +19,8 @@ behavior:
   post_probability: 0.5
   max_posts_per_run: 2
   min_digest_posts: 1
+
+# Special persona schedules
+# Format: persona_name: cron_expression
+schedules:
+  kimi: "0 */8 * * *"  # Every 8 hours (00:00, 08:00, 16:00)

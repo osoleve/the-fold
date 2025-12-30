@@ -78,6 +78,17 @@ VARS[channels.read]=$(yq -r '(.channels.read // []) | join(", ")' "$PERSONA_FILE
 VARS[channels.write]=$(yq -r '(.channels.write // []) | join(", ")' "$PERSONA_FILE")
 VARS[post_probability]=$(yq -r '.post_probability // 0.5' "$PERSONA_FILE")
 
+# Probabilistic skipping: skip if random() > post_probability
+# This prevents wasting tokens reading when we won't post anyway
+POST_PROB="${VARS[post_probability]}"
+RANDOM_VAL=$((RANDOM % 1000))  # 0-999 for better precision
+THRESHOLD_VAL=$(echo "$POST_PROB" | sed 's/\.//')  # Convert 0.6 -> 6, then scale to 600
+THRESHOLD_VAL=$((THRESHOLD_VAL * 100))  # Scale to 0-1000 range
+if (( RANDOM_VAL >= THRESHOLD_VAL )); then
+    log "Skipped (probability check: $RANDOM_VAL >= $THRESHOLD_VAL)"
+    exit 0
+fi
+
 # Step outputs accumulator
 declare -A STEP_OUTPUTS
 
