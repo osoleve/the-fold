@@ -3549,82 +3549,13 @@
 ; State Monad Utilities
 ; ============================================
 
-; state-return: Return value in state monad
-(state-return (fn (x)
-                  (fn (s) (list x s))))
-
-; state-bind: Bind for state monad
-(state-bind (fn (m f)
-                (fn (s)
-                    (let ((result (m s)))
-                         ((f (car result)) (cadr result))))))
-
-; state-get: Get current state
-(state-get (fn (s) (list s s)))
-
-; state-put: Set new state
-(state-put (fn (new-state)
-               (fn (s) (list '() new-state))))
-
-; state-modify: Modify state with function
-(state-modify (fn (f)
-                  (fn (s) (list '() (f s)))))
-
-; run-state: Run state monad with initial state
-(run-state (fn (m init-state)
-               (m init-state)))
-
-; eval-state: Evaluate state monad, returning value
-(eval-state (fn (m init-state)
-                (car (m init-state))))
-
-; exec-state: Execute state monad, returning final state
-(exec-state (fn (m init-state)
-                (cadr (m init-state))))
-
 ; ============================================
 ; Reader Monad Utilities
 ; ============================================
 
-; reader-return: Return value in reader monad
-(reader-return (fn (x)
-                   (fn (env) x)))
-
-; reader-bind: Bind for reader monad
-(reader-bind (fn (m f)
-                 (fn (env)
-                     ((f (m env)) env))))
-
-; reader-ask: Get environment
-(reader-ask (fn (env) env))
-
-; reader-local: Run with modified environment
-(reader-local (fn (f m)
-                  (fn (env) (m (f env)))))
-
-; run-reader: Run reader with environment
-(run-reader (fn (m env)
-                (m env)))
-
 ; ============================================
 ; Writer Monad Utilities
 ; ============================================
-
-; writer-return: Return value in writer monad
-(writer-return (fn (x)
-                   (list x '())))
-
-; writer-bind: Bind for writer monad (log is list)
-(writer-bind (fn (m f)
-                 (let ((result (f (car m))))
-                      (list (car result) (append (cadr m) (cadr result))))))
-
-; writer-tell: Write to log
-(writer-tell (fn (w)
-                 (list '() (list w))))
-
-; run-writer: Run writer, returning (value log) pair
-(run-writer id)
 
 ; ============================================
 ; More Collection Utilities
@@ -5835,27 +5766,6 @@
 ; State s a = s -> (a, s)
 ; ============================================
 
-; state-return: Wrap value in state monad
-(state-return (fn (a)
-                  (fn (s) (list a s))))
-
-; state-bind: Bind/flatMap for state monad
-(state-bind (fn (ma f)
-                (fn (s)
-                    (let ((result (ma s)))
-                         ((f (car result)) (cadr result))))))
-
-; state-get: Get current state
-(state-get (fn (s) (list s s)))
-
-; state-put: Set new state
-(state-put (fn (new-s)
-               (fn (s) (list '() new-s))))
-
-; state-modify: Modify state with function
-(state-modify (fn (f)
-                  (fn (s) (list '() (f s)))))
-
 ; state-run: Run state computation
 (state-run (fn (ma s)
                (ma s)))
@@ -5873,25 +5783,9 @@
 ; Reader r a = r -> a
 ; ============================================
 
-; reader-return: Wrap value in reader monad
-(reader-return (fn (a)
-                   (fn (r) a)))
-
-; reader-bind: Bind/flatMap for reader monad
-(reader-bind (fn (ma f)
-                 (fn (r)
-                     ((f (ma r)) r))))
-
-; reader-ask: Get the environment
-(reader-ask (fn (r) r))
-
 ; reader-asks: Get part of the environment
 (reader-asks (fn (f)
                  (fn (r) (f r))))
-
-; reader-local: Run with modified environment
-(reader-local (fn (f ma)
-                  (fn (r) (ma (f r)))))
 
 ; reader-run: Run reader computation
 (reader-run (fn (ma r)
@@ -5901,19 +5795,6 @@
 ; Writer Monad Utilities (using lists for log)
 ; Writer w a = (a, [w])
 ; ============================================
-
-; writer-return: Wrap value in writer monad
-(writer-return (fn (a)
-                   (list a '())))
-
-; writer-bind: Bind/flatMap for writer monad
-(writer-bind (fn (wa f)
-                 (let ((result (f (car wa))))
-                      (list (car result) (append (cadr wa) (cadr result))))))
-
-; writer-tell: Write to log
-(writer-tell (fn (w)
-                 (list '() (list w))))
 
 ; writer-listen: Get the log
 (writer-listen (fn (wa)
@@ -9628,27 +9509,6 @@
 ; ============================================
 ; State s a = s -> (a, s)
 
-; state-return: Wrap value in state
-(state-return (fn (x)
-                  (fn (s) (list x s))))
-
-; state-bind: Bind for state monad
-(state-bind (fn (ma f)
-                (fn (s)
-                    (let ((result (ma s)))
-                         ((f (car result)) (cadr result))))))
-
-; state-get: Get current state
-(state-get (fn (s) (list s s)))
-
-; state-put: Replace state
-(state-put (fn (new-s)
-               (fn (s) (list '() new-s))))
-
-; state-modify: Modify state with function
-(state-modify (fn (f)
-                  (fn (s) (list '() (f s)))))
-
 ; state-run: Run state computation
 (state-run (fn (ma s) (ma s)))
 
@@ -9666,17 +9526,6 @@
 ; reader-return: Wrap value
 (reader-return const)
 
-; reader-bind: Bind for reader
-(reader-bind (fn (ma f)
-                 (fn (r) ((f (ma r)) r))))
-
-; reader-ask: Get environment
-(reader-ask id)
-
-; reader-local: Run with modified env
-(reader-local (fn (f ma)
-                  (fn (r) (ma (f r)))))
-
 ; reader-run: Run reader
 (reader-run (fn (ma r) (ma r)))
 
@@ -9684,17 +9533,6 @@
 ; Writer Monad
 ; ============================================
 ; Writer w a = (a, w) where w is monoid (list)
-
-; writer-return: Wrap value with empty log
-(writer-return (fn (x) (list x '())))
-
-; writer-bind: Bind for writer
-(writer-bind (fn (ma f)
-                 (let ((result (f (car ma))))
-                      (list (car result) (append (cadr ma) (cadr result))))))
-
-; writer-tell: Write to log
-(writer-tell (fn (w) (list '() (list w))))
 
 ; writer-run: Get value and log
 (writer-run id)

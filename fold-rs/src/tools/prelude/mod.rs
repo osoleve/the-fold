@@ -55,6 +55,7 @@ const ALIST_EXT: &str = include_str!("alist-ext.ss");
 const NUMERIC_EXT: &str = include_str!("numeric-ext.ss");
 const SET_EXT: &str = include_str!("set-ext.ss");
 const LOGIC_EXT: &str = include_str!("logic-ext.ss");
+const MONAD_CORE: &str = include_str!("monad-core.ss");
 const MISSING: &str = include_str!("missing.ss");
 const PATH: &str = include_str!("path.ss");
 const ENCODING: &str = include_str!("encoding.ss");
@@ -123,6 +124,8 @@ fn assemble_prelude() -> String {
     source.push_str(SET_EXT);
     source.push('\n');
     source.push_str(LOGIC_EXT);
+    source.push('\n');
+    source.push_str(MONAD_CORE);
     source.push('\n');
     source.push_str(MISSING);
     source.push('\n');
