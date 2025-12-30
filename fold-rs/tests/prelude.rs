@@ -3035,3 +3035,297 @@ fn test_fixed_point_iterate() {
     let result = eval_with_prelude("(fixed-point-iterate (fn (x) (/ x 2)) 20 100)");
     assert_eq!(result, "0");
 }
+
+// ============= Dictionary Utilities =============
+
+#[test]
+fn test_dict_set_get() {
+    let result = eval_with_prelude("(dict-get (dict-set (dict-new) 'a 1) 'a 0)");
+    assert_eq!(result, "1");
+
+    let result = eval_with_prelude("(dict-get (dict-new) 'missing 42)");
+    assert_eq!(result, "42");
+}
+
+#[test]
+fn test_dict_has() {
+    let result = eval_with_prelude("(dict-has? (dict-set (dict-new) 'key 1) 'key)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(dict-has? (dict-new) 'missing)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_dict_remove() {
+    let result = eval_with_prelude("(dict-has? (dict-remove (dict-set (dict-new) 'a 1) 'a) 'a)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_dict_keys_values() {
+    // Use dict-set to create dicts since parser doesn't support dotted pairs
+    let result = eval_with_prelude("(dict-keys (dict-set (dict-set (dict-new) 'a 1) 'b 2))");
+    // Should have both keys
+    assert!(result.contains("a") && result.contains("b"));
+
+    let result =
+        eval_with_prelude("(sort (dict-values (dict-set (dict-set (dict-new) 'a 1) 'b 2)))");
+    assert_eq!(result, "(1 2)");
+}
+
+#[test]
+fn test_dict_merge() {
+    let result = eval_with_prelude(
+        "(dict-get (dict-merge (dict-set (dict-new) 'a 1) (dict-set (dict-new) 'b 2)) 'b 0)",
+    );
+    assert_eq!(result, "2");
+}
+
+// ============= Set Utilities =============
+
+#[test]
+fn test_set_add() {
+    // Test member? on empty set
+    let result = eval_with_prelude("(member? 'x '())");
+    assert_eq!(result, "#f");
+
+    // Test cons adds to empty list
+    let result = eval_with_prelude("(cons 'x '())");
+    assert_eq!(result, "(x)");
+
+    // Test if with member? result
+    let result = eval_with_prelude("(if (member? 'x '()) 'found 'not-found)");
+    assert_eq!(result, "not-found");
+
+    // Finally test set-add
+    let result = eval_with_prelude("(set-add '() 'y)");
+    assert_eq!(result, "(y)");
+}
+
+#[test]
+fn test_set_operations() {
+    let result = eval_with_prelude("(sort (set-union '(1 2) '(2 3)))");
+    assert_eq!(result, "(1 2 3)");
+
+    let result = eval_with_prelude("(set-intersection '(1 2 3) '(2 3 4))");
+    assert_eq!(result, "(2 3)");
+}
+
+#[test]
+fn test_set_equal() {
+    let result = eval_with_prelude("(set-equal? '(1 2 3) '(3 2 1))");
+    assert_eq!(result, "#t");
+}
+
+// ============= Numeric Utilities =============
+
+#[test]
+fn test_mod_exp() {
+    // 2^10 mod 1000 = 1024 mod 1000 = 24
+    let result = eval_with_prelude("(mod-exp 2 10 1000)");
+    assert_eq!(result, "24");
+}
+
+#[test]
+fn test_coprime() {
+    let result = eval_with_prelude("(coprime? 15 28)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(coprime? 12 18)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_digits() {
+    let result = eval_with_prelude("(digits 12345)");
+    assert_eq!(result, "(1 2 3 4 5)");
+}
+
+#[test]
+fn test_from_digits() {
+    let result = eval_with_prelude("(from-digits '(1 2 3 4 5))");
+    assert_eq!(result, "12345");
+}
+
+#[test]
+fn test_digit_sum() {
+    let result = eval_with_prelude("(digit-sum 12345)");
+    assert_eq!(result, "15");
+}
+
+#[test]
+fn test_palindrome_number() {
+    let result = eval_with_prelude("(palindrome-number? 12321)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(palindrome-number? 12345)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_log2_int() {
+    let result = eval_with_prelude("(log2-int 8)");
+    assert_eq!(result, "3");
+
+    let result = eval_with_prelude("(log2-int 10)");
+    assert_eq!(result, "3");
+}
+
+// ============= Combinatorics =============
+
+#[test]
+fn test_binomial() {
+    let result = eval_with_prelude("(binomial 5 2)");
+    assert_eq!(result, "10");
+
+    let result = eval_with_prelude("(binomial 10 5)");
+    assert_eq!(result, "252");
+}
+
+#[test]
+fn test_catalan() {
+    let result = eval_with_prelude("(catalan 5)");
+    assert_eq!(result, "42");
+}
+
+#[test]
+fn test_triangular() {
+    let result = eval_with_prelude("(triangular 10)");
+    assert_eq!(result, "55");
+}
+
+#[test]
+fn test_is_square() {
+    let result = eval_with_prelude("(is-square? 16)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(is-square? 15)");
+    assert_eq!(result, "#f");
+}
+
+// ============= More List Utilities =============
+
+#[test]
+fn test_cartesian_product() {
+    let result = eval_with_prelude("(cartesian-product '(1 2) '(a b))");
+    assert_eq!(result, "((1 a) (1 b) (2 a) (2 b))");
+}
+
+#[test]
+fn test_power_set() {
+    let result = eval_with_prelude("(length (power-set '(1 2 3)))");
+    assert_eq!(result, "8"); // 2^3 = 8
+}
+
+#[test]
+fn test_permutations() {
+    let result = eval_with_prelude("(length (permutations '(1 2 3)))");
+    assert_eq!(result, "6"); // 3! = 6
+}
+
+#[test]
+fn test_combinations() {
+    let result = eval_with_prelude("(combinations 2 '(1 2 3 4))");
+    assert_eq!(result, "((1 2) (1 3) (1 4) (2 3) (2 4) (3 4))");
+}
+
+#[test]
+fn test_mode() {
+    // mode returns the most frequent element
+    let result = eval_with_prelude("(mode '(1 2 2 3 3 3 4))");
+    // max-by returns the pair with highest count, car of that is the element
+    assert_eq!(result, "3");
+}
+
+// ============= String Utilities =============
+
+#[test]
+fn test_string_capitalize() {
+    let result = eval_with_prelude("(string-capitalize \"hello\")");
+    assert_eq!(result, "\"Hello\"");
+}
+
+#[test]
+fn test_string_squeeze() {
+    let result = eval_with_prelude("(string-squeeze \"heeellllooo\")");
+    assert_eq!(result, "\"helo\"");
+}
+
+// ============= Predicate Utilities =============
+
+#[test]
+fn test_all_different() {
+    let result = eval_with_prelude("(all-different? '(1 2 3 4))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(all-different? '(1 2 2 3))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_monotonic_increasing() {
+    let result = eval_with_prelude("(monotonic-increasing? '(1 2 2 3 4))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(strictly-increasing? '(1 2 2 3 4))");
+    assert_eq!(result, "#f");
+}
+
+// ============= Sequence Generators =============
+
+#[test]
+fn test_naturals() {
+    let result = eval_with_prelude("(naturals 5)");
+    assert_eq!(result, "(0 1 2 3 4)");
+}
+
+#[test]
+fn test_evens() {
+    let result = eval_with_prelude("(evens 5)");
+    assert_eq!(result, "(0 2 4 6 8)");
+}
+
+#[test]
+fn test_odds() {
+    let result = eval_with_prelude("(odds 5)");
+    assert_eq!(result, "(1 3 5 7 9)");
+}
+
+#[test]
+fn test_squares_seq() {
+    let result = eval_with_prelude("(squares 5)");
+    assert_eq!(result, "(0 1 4 9 16)");
+}
+
+#[test]
+fn test_powers_of() {
+    let result = eval_with_prelude("(powers-of 2 5)");
+    assert_eq!(result, "(1 2 4 8 16)");
+}
+
+// ============= Reduction Utilities =============
+
+#[test]
+fn test_fold_tree() {
+    // Fold over tree, summing leaves
+    let result = eval_with_prelude(
+        "(fold-tree id (fn (node children) (+ node (sum-list children))) '(1 (2 3) (4 5)))",
+    );
+    let val: i64 = result.parse().unwrap();
+    assert!(val > 0);
+}
+
+// ============= Type Utilities =============
+
+#[test]
+fn test_type_of_value() {
+    let result = eval_with_prelude("(type-of-value 42)");
+    assert_eq!(result, "number");
+
+    let result = eval_with_prelude("(type-of-value \"hello\")");
+    assert_eq!(result, "string");
+
+    let result = eval_with_prelude("(type-of-value '(1 2 3))");
+    assert_eq!(result, "pair");
+}

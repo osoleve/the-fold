@@ -2849,6 +2849,498 @@ pub const PRELUDE_SOURCE: &str = r#"
                          val
                          (helper (+ iter 1) new-val))))))))
        (helper 0 x))))
+
+   ; ============================================
+   ; Hash Table / Dictionary Utilities (alist-based)
+   ; ============================================
+
+   ; dict-new: Create empty dictionary
+   (dict-new (fn () '()))
+
+   ; dict-set: Set key-value pair (returns new dict)
+   (dict-set (fn (d k v)
+     (cons (cons k v) (dict-remove d k))))
+
+   ; dict-get: Get value for key, or default
+   (dict-get (fn (d k default)
+     (let ((entry (assoc k d)))
+       (if entry (cdr entry) default))))
+
+   ; dict-get-in: Get nested value using path of keys
+   (dict-get-in (fix dict-get-in
+     (fn (d keys default)
+       (if (null? keys)
+           d
+           (let ((entry (assoc (car keys) d)))
+             (if entry
+                 (dict-get-in (cdr entry) (cdr keys) default)
+                 default))))))
+
+   ; dict-remove: Remove key from dictionary
+   (dict-remove (fn (d k)
+     (filter (fn (pair) (not (eq? (car pair) k))) d)))
+
+   ; dict-has?: Check if key exists
+   (dict-has? (fn (d k)
+     (if (assoc k d) #t #f)))
+
+   ; dict-keys: Get all keys
+   (dict-keys (fn (d) (map car d)))
+
+   ; dict-values: Get all values
+   (dict-values (fn (d) (map cdr d)))
+
+   ; dict-size: Get number of entries
+   (dict-size length)
+
+   ; dict-empty?: Check if dictionary is empty
+   (dict-empty? null?)
+
+   ; dict-update: Update value with function
+   (dict-update (fn (d k f default)
+     (dict-set d k (f (dict-get d k default)))))
+
+   ; dict-merge: Merge two dictionaries (second wins on conflict)
+   (dict-merge (fn (d1 d2)
+     (foldl (fn (acc pair) (dict-set acc (car pair) (cdr pair))) d1 d2)))
+
+   ; dict-filter: Filter dictionary by predicate on (key . value)
+   (dict-filter filter)
+
+   ; dict-map-values: Map function over values
+   (dict-map-values (fn (f d)
+     (map (fn (pair) (cons (car pair) (f (cdr pair)))) d)))
+
+   ; dict-from-lists: Create dict from key list and value list
+   (dict-from-lists (fn (keys vals)
+     (zip keys vals)))
+
+   ; dict-to-list: Convert dict to list of (key value) pairs
+   (dict-to-list (fn (d)
+     (map (fn (pair) (list (car pair) (cdr pair))) d)))
+
+   ; dict-invert: Swap keys and values
+   (dict-invert (fn (d)
+     (map (fn (pair) (cons (cdr pair) (car pair))) d)))
+
+   ; ============================================
+   ; Set Operations (list-based)
+   ; ============================================
+
+   ; set-new: Create empty set (use as thunk: (set-new) returns empty list)
+   ; Or use '() directly for an empty set
+   (set-new (const '()))
+
+   ; set-add: Add element to set
+   (set-add (fn (s x)
+     (if (member? x s) s (cons x s))))
+
+   ; set-remove: Remove element from set
+   (set-remove remove)
+
+   ; set-member?: Check if element is in set
+   (set-member? member?)
+
+   ; set-size: Get number of elements
+   (set-size length)
+
+   ; set-empty?: Check if set is empty
+   (set-empty? null?)
+
+   ; set-from-list: Create set from list (removes duplicates)
+   (set-from-list nub)
+
+   ; set-to-list: Convert set to list
+   (set-to-list id)
+
+   ; set-union: Union of two sets
+   (set-union union)
+
+   ; set-intersection: Intersection of two sets
+   (set-intersection intersection)
+
+   ; set-difference: Difference of two sets
+   (set-difference difference)
+
+   ; set-symmetric-difference: Symmetric difference
+   (set-symmetric-difference symmetric-difference)
+
+   ; set-subset?: Check if s1 is subset of s2
+   (set-subset? subset?)
+
+   ; set-equal?: Check if two sets have same elements
+   (set-equal? (fn (s1 s2)
+     (and (set-subset? s1 s2) (set-subset? s2 s1))))
+
+   ; ============================================
+   ; More Numeric Utilities
+   ; ============================================
+
+   ; mod-exp: Modular exponentiation (base^exp mod m)
+   (mod-exp (fix mod-exp
+     (fn (base exp m)
+       (if (= exp 0)
+           1
+           (if (= (mod exp 2) 0)
+               (let ((half (mod-exp base (/ exp 2) m)))
+                 (mod (* half half) m))
+               (mod (* base (mod-exp base (- exp 1) m)) m))))))
+
+   ; mod-inverse: Modular multiplicative inverse (extended Euclidean)
+   (mod-inverse (fn (a m)
+     (let ((egcd (fix egcd
+             (fn (a b)
+               (if (= b 0)
+                   (list a 1 0)
+                   (let ((result (egcd b (mod a b))))
+                     (list (car result)
+                           (caddr result)
+                           (- (cadr result) (* (/ a b) (caddr result))))))))))
+       (let ((result (egcd a m)))
+         (if (= (car result) 1)
+             (mod (+ (cadr result) m) m)
+             #f)))))
+
+   ; coprime?: Check if two numbers are coprime
+   (coprime? (fn (a b) (= (gcd a b) 1)))
+
+   ; totient: Euler's totient function (count of coprimes less than n)
+   (totient (fn (n)
+     (length (filter (fn (k) (coprime? k n)) (iota n 1)))))
+
+   ; digits: Get list of digits of a number
+   (digits (fix digits
+     (fn (n)
+       (if (< n 10)
+           (list n)
+           (append (digits (/ n 10)) (list (mod n 10)))))))
+
+   ; from-digits: Convert list of digits to number
+   (from-digits (fn (ds)
+     (foldl (fn (acc d) (+ (* acc 10) d)) 0 ds)))
+
+   ; digit-sum: Sum of digits
+   (digit-sum (fn (n) (sum-list (digits n))))
+
+   ; digit-count: Number of digits
+   (digit-count (fn (n) (length (digits n))))
+
+   ; reverse-number: Reverse digits of a number
+   (reverse-number (fn (n) (from-digits (reverse (digits n)))))
+
+   ; palindrome-number?: Check if number is a palindrome
+   (palindrome-number? (fn (n) (= n (reverse-number n))))
+
+   ; is-power-of-2?: Check if n is a power of 2
+   (is-power-of-2? (fn (n)
+     (and (> n 0) (= (mod n 2) 0) (or (= n 1) (is-power-of-2? (/ n 2))))))
+
+   ; next-power-of-2: Find next power of 2 >= n
+   (next-power-of-2 (fix next-power-of-2
+     (fn (n)
+       (if (<= n 1) 1
+           (let ((helper (fix helper
+                   (fn (p) (if (>= p n) p (helper (* p 2)))))))
+             (helper 1))))))
+
+   ; log2-int: Integer log base 2 (floor)
+   (log2-int (fix log2-int
+     (fn (n)
+       (if (<= n 1) 0 (+ 1 (log2-int (/ n 2)))))))
+
+   ; ============================================
+   ; Combinatorics
+   ; ============================================
+
+   ; binomial: Binomial coefficient (n choose k)
+   (binomial (fn (n k)
+     (if (or (< k 0) (> k n))
+         0
+         (if (or (= k 0) (= k n))
+             1
+             (/ (factorial n) (* (factorial k) (factorial (- n k))))))))
+
+   ; permutations-count: Number of permutations P(n,k)
+   (permutations-count (fn (n k)
+     (/ (factorial n) (factorial (- n k)))))
+
+   ; catalan: Catalan number
+   (catalan (fn (n)
+     (/ (binomial (* 2 n) n) (+ n 1))))
+
+   ; triangular: Triangular number
+   (triangular (fn (n) (/ (* n (+ n 1)) 2)))
+
+   ; is-triangular?: Check if number is triangular
+   (is-triangular? (fn (n)
+     (let ((k (floor (sqrt (* 2 n)))))
+       (= n (triangular k)))))
+
+   ; square-number: Square number
+   (square-number (fn (n) (* n n)))
+
+   ; is-square?: Check if number is a perfect square
+   (is-square? (fn (n)
+     (let ((k (floor (sqrt n))))
+       (= n (* k k)))))
+
+   ; pentagonal: Pentagonal number
+   (pentagonal (fn (n) (/ (* n (- (* 3 n) 1)) 2)))
+
+   ; hexagonal: Hexagonal number
+   (hexagonal (fn (n) (* n (- (* 2 n) 1))))
+
+   ; ============================================
+   ; More List Utilities
+   ; ============================================
+
+   ; cartesian-product: Cartesian product of two lists
+   (cartesian-product (fn (xs ys)
+     (concat (map (fn (x) (map (fn (y) (list x y)) ys)) xs))))
+
+   ; power-set: All subsets of a list
+   (power-set (fix power-set
+     (fn (lst)
+       (if (null? lst)
+           (list '())
+           (let ((rest (power-set (cdr lst))))
+             (append rest (map (fn (s) (cons (car lst) s)) rest)))))))
+
+   ; permutations: All permutations of a list
+   (permutations (fix permutations
+     (fn (lst)
+       (if (null? lst)
+           (list '())
+           (concat (map (fn (x)
+                          (map (fn (p) (cons x p))
+                               (permutations (remove x lst))))
+                        lst))))))
+
+   ; combinations: All k-combinations of a list
+   (combinations (fix combinations
+     (fn (k lst)
+       (if (= k 0)
+           (list '())
+           (if (null? lst)
+               '()
+               (append
+                 (map (fn (c) (cons (car lst) c))
+                      (combinations (- k 1) (cdr lst)))
+                 (combinations k (cdr lst))))))))
+
+   ; list-product: Cartesian product of list of lists
+   (list-product (fix list-product
+     (fn (lists)
+       (if (null? lists)
+           (list '())
+           (concat (map (fn (x)
+                          (map (fn (rest) (cons x rest))
+                               (list-product (cdr lists))))
+                        (car lists)))))))
+
+   ; interleave-all: Interleave multiple lists
+   (interleave-all (fix interleave-all
+     (fn (lists)
+       (if (all null? lists)
+           '()
+           (append (filter-not null? (map (fn (lst) (if (null? lst) '() (car lst))) lists))
+                   (interleave-all (map (fn (lst) (if (null? lst) '() (cdr lst))) lists)))))))
+
+   ; partition-n: Partition list into n equal parts
+   (partition-n (fn (n lst)
+     (let ((size (/ (length lst) n)))
+       (map (fn (i) (take-n size (drop-n (* i size) lst))) (iota n 0)))))
+
+   ; group-into: Group list into groups of size n
+   (group-into chunks)
+
+   ; frequencies-by: Count occurrences by key function
+   (frequencies-by (fn (key-fn lst)
+     (foldl (fn (acc x)
+              (let ((k (key-fn x)))
+                (dict-update acc k (fn (v) (+ v 1)) 0)))
+            '()
+            lst)))
+
+   ; mode: Most frequent element
+   ; frequencies returns ((elem count) ...), so use cadr to get count
+   (mode (fn (lst)
+     (let ((freqs (frequencies lst)))
+       (car (max-by cadr freqs)))))
+
+   ; majority: Element appearing more than n/2 times (or #f)
+   (majority (fn (lst)
+     (let ((n (length lst))
+           (freqs (frequencies lst)))
+       (let ((candidates (filter (fn (p) (> (cadr p) (/ n 2))) freqs)))
+         (if (null? candidates) #f (caar candidates))))))
+
+   ; ============================================
+   ; String Utilities (additional)
+   ; ============================================
+
+   ; string-capitalize: Capitalize first letter
+   (string-capitalize (fn (s)
+     (if (string-empty? s)
+         s
+         (string-append (string-upcase (substring s 0 1))
+                        (substring s 1 (string-length s))))))
+
+   ; string-title-case: Capitalize first letter of each word
+   (string-title-case (fn (s)
+     (string-join (map string-capitalize (string-split s " ")) " ")))
+
+   ; string-count-char: Count occurrences of character in string
+   (string-count-char (fn (c s)
+     (length (filter (fn (ch) (eq? ch c)) (string->list s)))))
+
+   ; string-replace-char: Replace all occurrences of character
+   (string-replace-char (fn (old new s)
+     (list->string (map (fn (c) (if (eq? c old) new c)) (string->list s)))))
+
+   ; string-squeeze: Remove consecutive duplicate characters
+   (string-squeeze (fn (s)
+     (list->string (dedup-consecutive (string->list s)))))
+
+   ; string-rotate: Rotate string by n positions
+   (string-rotate (fn (n s)
+     (let ((chars (string->list s)))
+       (list->string (rotate-list n chars)))))
+
+   ; string-interleave: Interleave two strings
+   (string-interleave (fn (s1 s2)
+     (list->string (concat (zip-with list (string->list s1) (string->list s2))))))
+
+   ; ============================================
+   ; Predicate Utilities
+   ; ============================================
+
+   ; all-same?: Check if all elements are equal
+   (all-same? all-equal?)
+
+   ; all-different?: Check if all elements are different
+   (all-different? (fn (lst)
+     (= (length lst) (length (nub lst)))))
+
+   ; monotonic-increasing?: Check if list is monotonically increasing
+   (monotonic-increasing? (fn (lst)
+     (if (null? lst) #t
+         (if (null? (cdr lst)) #t
+             (and (<= (car lst) (cadr lst))
+                  (monotonic-increasing? (cdr lst)))))))
+
+   ; monotonic-decreasing?: Check if list is monotonically decreasing
+   (monotonic-decreasing? (fn (lst)
+     (if (null? lst) #t
+         (if (null? (cdr lst)) #t
+             (and (>= (car lst) (cadr lst))
+                  (monotonic-decreasing? (cdr lst)))))))
+
+   ; strictly-increasing?: Check if list is strictly increasing
+   (strictly-increasing? (fn (lst)
+     (if (null? lst) #t
+         (if (null? (cdr lst)) #t
+             (and (< (car lst) (cadr lst))
+                  (strictly-increasing? (cdr lst)))))))
+
+   ; strictly-decreasing?: Check if list is strictly decreasing
+   (strictly-decreasing? (fn (lst)
+     (if (null? lst) #t
+         (if (null? (cdr lst)) #t
+             (and (> (car lst) (cadr lst))
+                  (strictly-decreasing? (cdr lst)))))))
+
+   ; ============================================
+   ; Sequence Generators
+   ; ============================================
+
+   ; naturals: Generate natural numbers from 0 to n-1
+   (naturals (fn (n) (iota n 0)))
+
+   ; evens: Generate even numbers from 0 to 2*(n-1)
+   (evens (fn (n) (map (fn (x) (* 2 x)) (iota n 0))))
+
+   ; odds: Generate odd numbers from 1 to 2*n-1
+   (odds (fn (n) (map (fn (x) (+ (* 2 x) 1)) (iota n 0))))
+
+   ; squares: Generate square numbers
+   (squares (fn (n) (map (fn (x) (* x x)) (iota n 0))))
+
+   ; cubes: Generate cube numbers
+   (cubes (fn (n) (map (fn (x) (* x x x)) (iota n 0))))
+
+   ; powers-of: Generate powers of base
+   (powers-of (fn (base n)
+     (map (fn (i) (pow-int base i)) (iota n 0))))
+
+   ; factorials-up-to: Generate factorials up to n!
+   (factorials-up-to (fn (n)
+     (map factorial (iota (+ n 1) 0))))
+
+   ; triangular-numbers: Generate triangular numbers
+   (triangular-numbers (fn (n)
+     (map triangular (iota n 1))))
+
+   ; ============================================
+   ; Reduction Utilities
+   ; ============================================
+
+   ; reduce-pairs: Reduce adjacent pairs with function
+   (reduce-pairs (fn (f lst)
+     (if (null? lst) '()
+         (if (null? (cdr lst)) lst
+             (cons (f (car lst) (cadr lst))
+                   (reduce-pairs f (cddr lst)))))))
+
+   ; pairwise-apply: Apply binary function to all pairs
+   (pairwise-apply (fn (f lst)
+     (concat (map (fn (x)
+                    (map (fn (y) (f x y))
+                         (filter (fn (y) (not (eq? x y))) lst)))
+                  lst))))
+
+   ; fold-tree: Fold over tree structure
+   (fold-tree (fix fold-tree
+     (fn (leaf-fn node-fn tree)
+       (if (not (pair? tree))
+           (leaf-fn tree)
+           (node-fn (car tree)
+                    (map (fn (child) (fold-tree leaf-fn node-fn child))
+                         (cdr tree)))))))
+
+   ; ============================================
+   ; Debugging Utilities
+   ; ============================================
+
+   ; debug-print: Print value and return it
+   (debug-print (fn (label x)
+     (begin
+       (display label)
+       (display ": ")
+       (display x)
+       (newline)
+       x)))
+
+   ; time-thunk: Measure time to evaluate (placeholder - needs runtime support)
+   (time-thunk (fn (thunk)
+     (let ((result (thunk)))
+       result)))
+
+   ; count-calls: Wrap function to count calls (placeholder)
+   (count-calls (fn (f) f))
+
+   ; type-of-value: Get type name as symbol
+   (type-of-value (fn (x)
+     (if (null? x) 'null
+         (if (boolean? x) 'boolean
+             (if (number? x) 'number
+                 (if (string? x) 'string
+                     (if (symbol? x) 'symbol
+                         (if (char? x) 'char
+                             (if (pair? x) 'pair
+                                 (if (vector? x) 'vector
+                                     (if (procedure? x) 'procedure
+                                         'unknown)))))))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -3363,7 +3855,109 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'clamp-index clamp-index)
     (cons 'circular-ref circular-ref)
     (cons 'repeat-fn-n repeat-fn-n)
-    (cons 'fixed-point-iterate fixed-point-iterate)))
+    (cons 'fixed-point-iterate fixed-point-iterate)
+    ; Dictionary utilities
+    (cons 'dict-new dict-new)
+    (cons 'dict-set dict-set)
+    (cons 'dict-get dict-get)
+    (cons 'dict-get-in dict-get-in)
+    (cons 'dict-remove dict-remove)
+    (cons 'dict-has? dict-has?)
+    (cons 'dict-keys dict-keys)
+    (cons 'dict-values dict-values)
+    (cons 'dict-size dict-size)
+    (cons 'dict-empty? dict-empty?)
+    (cons 'dict-update dict-update)
+    (cons 'dict-merge dict-merge)
+    (cons 'dict-filter dict-filter)
+    (cons 'dict-map-values dict-map-values)
+    (cons 'dict-from-lists dict-from-lists)
+    (cons 'dict-to-list dict-to-list)
+    (cons 'dict-invert dict-invert)
+    ; Set utilities
+    (cons 'set-new set-new)
+    (cons 'set-add set-add)
+    (cons 'set-remove set-remove)
+    (cons 'set-member? set-member?)
+    (cons 'set-size set-size)
+    (cons 'set-empty? set-empty?)
+    (cons 'set-from-list set-from-list)
+    (cons 'set-to-list set-to-list)
+    (cons 'set-union set-union)
+    (cons 'set-intersection set-intersection)
+    (cons 'set-difference set-difference)
+    (cons 'set-symmetric-difference set-symmetric-difference)
+    (cons 'set-subset? set-subset?)
+    (cons 'set-equal? set-equal?)
+    ; Numeric utilities
+    (cons 'mod-exp mod-exp)
+    (cons 'mod-inverse mod-inverse)
+    (cons 'coprime? coprime?)
+    (cons 'totient totient)
+    (cons 'digits digits)
+    (cons 'from-digits from-digits)
+    (cons 'digit-sum digit-sum)
+    (cons 'digit-count digit-count)
+    (cons 'reverse-number reverse-number)
+    (cons 'palindrome-number? palindrome-number?)
+    (cons 'is-power-of-2? is-power-of-2?)
+    (cons 'next-power-of-2 next-power-of-2)
+    (cons 'log2-int log2-int)
+    ; Combinatorics
+    (cons 'binomial binomial)
+    (cons 'permutations-count permutations-count)
+    (cons 'catalan catalan)
+    (cons 'triangular triangular)
+    (cons 'is-triangular? is-triangular?)
+    (cons 'square-number square-number)
+    (cons 'is-square? is-square?)
+    (cons 'pentagonal pentagonal)
+    (cons 'hexagonal hexagonal)
+    ; More list utilities
+    (cons 'cartesian-product cartesian-product)
+    (cons 'power-set power-set)
+    (cons 'permutations permutations)
+    (cons 'combinations combinations)
+    (cons 'list-product list-product)
+    (cons 'interleave-all interleave-all)
+    (cons 'partition-n partition-n)
+    (cons 'group-into group-into)
+    (cons 'frequencies-by frequencies-by)
+    (cons 'mode mode)
+    (cons 'majority majority)
+    ; String utilities
+    (cons 'string-capitalize string-capitalize)
+    (cons 'string-title-case string-title-case)
+    (cons 'string-count-char string-count-char)
+    (cons 'string-replace-char string-replace-char)
+    (cons 'string-squeeze string-squeeze)
+    (cons 'string-rotate string-rotate)
+    (cons 'string-interleave string-interleave)
+    ; Predicate utilities
+    (cons 'all-same? all-same?)
+    (cons 'all-different? all-different?)
+    (cons 'monotonic-increasing? monotonic-increasing?)
+    (cons 'monotonic-decreasing? monotonic-decreasing?)
+    (cons 'strictly-increasing? strictly-increasing?)
+    (cons 'strictly-decreasing? strictly-decreasing?)
+    ; Sequence generators
+    (cons 'naturals naturals)
+    (cons 'evens evens)
+    (cons 'odds odds)
+    (cons 'squares squares)
+    (cons 'cubes cubes)
+    (cons 'powers-of powers-of)
+    (cons 'factorials-up-to factorials-up-to)
+    (cons 'triangular-numbers triangular-numbers)
+    ; Reduction utilities
+    (cons 'reduce-pairs reduce-pairs)
+    (cons 'pairwise-apply pairwise-apply)
+    (cons 'fold-tree fold-tree)
+    ; Debug utilities
+    (cons 'debug-print debug-print)
+    (cons 'time-thunk time-thunk)
+    (cons 'count-calls count-calls)
+    (cons 'type-of-value type-of-value)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
