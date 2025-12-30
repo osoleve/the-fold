@@ -474,6 +474,24 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(Value::Bool(matches!(args[0], Value::Pair(_, _))))
         }
+        "empty?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("empty? expects 1 arg"));
+            }
+            Ok(Value::Bool(matches!(args[0], Value::Nil)))
+        }
+        "all-equal?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("all-equal? expects 1 arg: a list"));
+            }
+            let list = list_to_vec(&args[0])?;
+            if list.is_empty() {
+                return Ok(Value::Bool(true));
+            }
+            let first = &list[0];
+            let all_same = list.iter().all(|item| value_eq(item, first));
+            Ok(Value::Bool(all_same))
+        }
         "list" => Ok(list_from_values(args)),
         "list?" => {
             if args.len() != 1 {
