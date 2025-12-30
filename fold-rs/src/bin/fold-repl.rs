@@ -12,7 +12,7 @@ fn main() {
     let mut args = env::args().skip(1);
     let mut expr_arg: Option<String> = None;
     let mut file_arg: Option<String> = None;
-    let mut fuel: usize = 10_000;
+    let mut fuel: usize = 1_000_000;
 
     while let Some(arg) = args.next() {
         match arg.as_str() {

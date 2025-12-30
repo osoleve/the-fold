@@ -19,6 +19,7 @@ pub enum EvalError {
     IndexOutOfBounds,
     UnknownPrimitive(Symbol),
     Unimplemented(&'static str),
+    IOError(String),
 }
 
 /// An evaluation error with an optional source location.
@@ -76,6 +77,7 @@ impl fmt::Display for EvalError {
             EvalError::IndexOutOfBounds => write!(f, "index out of bounds"),
             EvalError::UnknownPrimitive(op) => write!(f, "unknown primitive: {op}"),
             EvalError::Unimplemented(feature) => write!(f, "unimplemented: {feature}"),
+            EvalError::IOError(msg) => write!(f, "I/O error: {msg}"),
         }
     }
 }

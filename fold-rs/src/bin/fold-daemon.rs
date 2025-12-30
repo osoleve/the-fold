@@ -160,7 +160,7 @@ struct Session {
 impl Session {
     fn new(_id: String) -> Self {
         // Load prelude with primitives and HOFs
-        let env = prelude_env(100_000).unwrap_or_else(|err| {
+        let env = prelude_env(1_000_000).unwrap_or_else(|err| {
             eprintln!("Warning: Failed to load prelude: {}", err);
             Env::new()
         });

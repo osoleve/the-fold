@@ -4138,6 +4138,318 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             Ok(list_from_values(&values))
         }
 
+        // ============================================================
+        // File I/O Primitives (for forum support)
+        // ============================================================
+        "file-exists?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("file-exists? expects 1 arg"));
+            }
+            let path = expect_string(&args[0])?;
+            Ok(Value::Bool(std::path::Path::new(&path).exists()))
+        }
+        "file-directory?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("file-directory? expects 1 arg"));
+            }
+            let path = expect_string(&args[0])?;
+            Ok(Value::Bool(std::path::Path::new(&path).is_dir()))
+        }
+        "read-file" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("read-file expects 1 arg"));
+            }
+            let path = expect_string(&args[0])?;
+            match std::fs::read_to_string(&path) {
+                Ok(contents) => Ok(Value::String(contents)),
+                Err(e) => Err(EvalError::IOError(format!("read-file: {}: {}", path, e))),
+            }
+        }
+        "read-file-bytes" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("read-file-bytes expects 1 arg"));
+            }
+            let path = expect_string(&args[0])?;
+            match std::fs::read(&path) {
+                Ok(bytes) => Ok(Value::Bytevector(bytes)),
+                Err(e) => Err(EvalError::IOError(format!(
+                    "read-file-bytes: {}: {}",
+                    path, e
+                ))),
+            }
+        }
+        "write-file" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "write-file expects 2 args: path, content",
+                ));
+            }
+            let path = expect_string(&args[0])?;
+            let content = expect_string(&args[1])?;
+            match std::fs::write(&path, &content) {
+                Ok(()) => Ok(Value::Nil),
+                Err(e) => Err(EvalError::IOError(format!("write-file: {}: {}", path, e))),
+            }
+        }
+        "write-file-bytes" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "write-file-bytes expects 2 args: path, bytes",
+                ));
+            }
+            let path = expect_string(&args[0])?;
+            let bytes = expect_bytevector(&args[1])?;
+            match std::fs::write(&path, bytes) {
+                Ok(()) => Ok(Value::Nil),
+                Err(e) => Err(EvalError::IOError(format!(
+                    "write-file-bytes: {}: {}",
+                    path, e
+                ))),
+            }
+        }
+        "append-file" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "append-file expects 2 args: path, content",
+                ));
+            }
+            let path = expect_string(&args[0])?;
+            let content = expect_string(&args[1])?;
+            use std::io::Write;
+            let mut file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&path)
+                .map_err(|e| EvalError::IOError(format!("append-file: {}: {}", path, e)))?;
+            file.write_all(content.as_bytes())
+                .map_err(|e| EvalError::IOError(format!("append-file: {}: {}", path, e)))?;
+            Ok(Value::Nil)
+        }
+        "mkdir" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("mkdir expects 1 arg"));
+            }
+            let path = expect_string(&args[0])?;
+            match std::fs::create_dir(&path) {
+                Ok(()) => Ok(Value::Nil),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(Value::Nil),
+                Err(e) => Err(EvalError::IOError(format!("mkdir: {}: {}", path, e))),
+            }
+        }
+        "mkdir-p" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("mkdir-p expects 1 arg"));
+            }
+            let path = expect_string(&args[0])?;
+            match std::fs::create_dir_all(&path) {
+                Ok(()) => Ok(Value::Nil),
+                Err(e) => Err(EvalError::IOError(format!("mkdir-p: {}: {}", path, e))),
+            }
+        }
+        "delete-file" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("delete-file expects 1 arg"));
+            }
+            let path = expect_string(&args[0])?;
+            match std::fs::remove_file(&path) {
+                Ok(()) => Ok(Value::Nil),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Value::Nil),
+                Err(e) => Err(EvalError::IOError(format!("delete-file: {}: {}", path, e))),
+            }
+        }
+        "directory-list" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("directory-list expects 1 arg"));
+            }
+            let path = expect_string(&args[0])?;
+            match std::fs::read_dir(&path) {
+                Ok(entries) => {
+                    let mut names = Vec::new();
+                    for e in entries.flatten() {
+                        if let Some(name) = e.file_name().to_str() {
+                            names.push(Value::String(name.to_string()));
+                        }
+                    }
+                    Ok(list_from_values(&names))
+                }
+                Err(e) => Err(EvalError::IOError(format!(
+                    "directory-list: {}: {}",
+                    path, e
+                ))),
+            }
+        }
+        "current-time-seconds" => {
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch(
+                    "current-time-seconds expects 0 args",
+                ));
+            }
+            use std::time::{SystemTime, UNIX_EPOCH};
+            let secs = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0);
+            Ok(Value::Number(secs))
+        }
+        "current-time-millis" => {
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch(
+                    "current-time-millis expects 0 args",
+                ));
+            }
+            use std::time::{SystemTime, UNIX_EPOCH};
+            let millis = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_millis() as i64)
+                .unwrap_or(0);
+            Ok(Value::Number(millis))
+        }
+        "current-timestamp" => {
+            // Return ISO 8601 timestamp string
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("current-timestamp expects 0 args"));
+            }
+            use std::time::{SystemTime, UNIX_EPOCH};
+            let secs = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            // Simple ISO 8601 format (no chrono dependency)
+            let days_since_1970 = secs / 86400;
+            let secs_in_day = secs % 86400;
+            let hours = secs_in_day / 3600;
+            let mins = (secs_in_day % 3600) / 60;
+            let secs_rem = secs_in_day % 60;
+            // Approximate year/month/day (good enough for forum posts)
+            let mut year = 1970i64;
+            let mut remaining_days = days_since_1970 as i64;
+            loop {
+                let days_in_year = if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) {
+                    366
+                } else {
+                    365
+                };
+                if remaining_days < days_in_year {
+                    break;
+                }
+                remaining_days -= days_in_year;
+                year += 1;
+            }
+            let is_leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+            let days_in_months = if is_leap {
+                [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+            } else {
+                [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+            };
+            let mut month = 1;
+            for &dim in &days_in_months {
+                if remaining_days < dim as i64 {
+                    break;
+                }
+                remaining_days -= dim as i64;
+                month += 1;
+            }
+            let day = remaining_days + 1;
+            Ok(Value::String(format!(
+                "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+                year, month, day, hours, mins, secs_rem
+            )))
+        }
+
+        // ============================================================
+        // Forum Commands (for Rust daemon feature parity)
+        // ============================================================
+        "forum-channels" => {
+            // List available forum channels
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("forum-channels expects 0 args"));
+            }
+            let heads_dir = ".store/heads";
+            match std::fs::read_dir(heads_dir) {
+                Ok(entries) => {
+                    let mut channels = Vec::new();
+                    for entry in entries.flatten() {
+                        if let Some(name) = entry.file_name().to_str()
+                            && let Some(channel) = name.strip_suffix(".head")
+                        {
+                            channels.push(Value::Symbol(Symbol::from(channel)));
+                        }
+                    }
+                    Ok(list_from_values(&channels))
+                }
+                Err(_) => Ok(Value::Nil),
+            }
+        }
+        "forum-digest" => {
+            // Simple digest: list recent posts
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("forum-digest expects 0 args"));
+            }
+            // Print a simple digest header
+            println!("\n╔══════════════════════════════════════════════════════════════╗");
+            println!("║                    THE FOLD — FORUM DIGEST                   ║");
+            println!("╚══════════════════════════════════════════════════════════════╝\n");
+
+            // List channels with basic info
+            let heads_dir = ".store/heads";
+            if let Ok(entries) = std::fs::read_dir(heads_dir) {
+                println!("Available channels:");
+                for entry in entries.flatten() {
+                    if let Some(name) = entry.file_name().to_str()
+                        && let Some(channel) = name.strip_suffix(".head")
+                    {
+                        println!("  #{}", channel);
+                    }
+                }
+            }
+            println!("\nUse (browse 'channel) to view posts.");
+            Ok(Value::Nil)
+        }
+        // Aliases for Scheme compatibility
+        "channels" => {
+            // Alias for forum-channels
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("channels expects 0 args"));
+            }
+            let heads_dir = ".store/heads";
+            println!("\n╔══════════════════════════════════════════════════════════════╗");
+            println!("║                    AVAILABLE CHANNELS                        ║");
+            println!("╚══════════════════════════════════════════════════════════════╝\n");
+            if let Ok(entries) = std::fs::read_dir(heads_dir) {
+                for entry in entries.flatten() {
+                    if let Some(name) = entry.file_name().to_str()
+                        && let Some(channel) = name.strip_suffix(".head")
+                    {
+                        println!("  #{}", channel);
+                    }
+                }
+            }
+            Ok(Value::Nil)
+        }
+        "digest" => {
+            // Alias for forum-digest
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("digest expects 0 args"));
+            }
+            println!("\n╔══════════════════════════════════════════════════════════════╗");
+            println!("║                    THE FOLD — FORUM DIGEST                   ║");
+            println!("╚══════════════════════════════════════════════════════════════╝\n");
+            let heads_dir = ".store/heads";
+            if let Ok(entries) = std::fs::read_dir(heads_dir) {
+                println!("Available channels:");
+                for entry in entries.flatten() {
+                    if let Some(name) = entry.file_name().to_str()
+                        && let Some(channel) = name.strip_suffix(".head")
+                    {
+                        println!("  #{}", channel);
+                    }
+                }
+            }
+            println!("\nUse (browse 'channel) to view posts.");
+            println!("Use (chat \"message\") to post to chat.");
+            Ok(Value::Nil)
+        }
+
         _ => Err(EvalError::UnknownPrimitive(op.clone())),
     }
 }
