@@ -46,6 +46,7 @@
                         ;; Export
                         turtle->drawing      ; Convert turtle state to drawing
                         drawing->svg         ; Convert drawing to SVG string
+                        turtle->svg          ; Convert turtle to SVG (convenience)
                         save-svg             ; Save SVG to file
                         
                         ;; Colors

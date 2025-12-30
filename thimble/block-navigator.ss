@@ -200,26 +200,28 @@
         ;; Gather statistics
         (for-each
          (lambda (hash)
-                 (let ([blk (fs-fetch fs hash)])
-                      (when blk
-                            ;; Count by tag
-                            (let* ([tag (block-tag blk)]
-                                   [current (hashtable-ref tag-counts tag 0)])
-                                  (hashtable-set! tag-counts tag (+ current 1)))
-                            
-                            ;; Accumulate payload size
-                            (set! total-payload-bytes
-                                  (+ total-payload-bytes (bytevector-length (block-payload blk))))
-                            
-                            ;; Count refs and track inbound references
-                            (let ([refs (block-refs blk)])
-                                 (set! total-refs (+ total-refs (vector-length refs)))
-                                 (let loop ([i 0])
-                                      (when (< i (vector-length refs))
-                                            (let* ([ref-hash (vector-ref refs i)]
-                                                   [current (hashtable-ref ref-counts ref-hash 0)])
-                                                  (hashtable-set! ref-counts ref-hash (+ current 1))
-                                                  (loop (+ i 1)))))))))
+                 ;; Guard against corrupted blocks - skip them instead of crashing
+                 (guard (e [else (void)])  ; Skip corrupted blocks silently
+                        (let ([blk (fs-fetch fs hash)])
+                             (when blk
+                                   ;; Count by tag
+                                   (let* ([tag (block-tag blk)]
+                                          [current (hashtable-ref tag-counts tag 0)])
+                                         (hashtable-set! tag-counts tag (+ current 1)))
+                                   
+                                   ;; Accumulate payload size
+                                   (set! total-payload-bytes
+                                         (+ total-payload-bytes (bytevector-length (block-payload blk))))
+                                   
+                                   ;; Count refs and track inbound references
+                                   (let ([refs (block-refs blk)])
+                                        (set! total-refs (+ total-refs (vector-length refs)))
+                                        (let loop ([i 0])
+                                             (when (< i (vector-length refs))
+                                                   (let* ([ref-hash (vector-ref refs i)]
+                                                          [current (hashtable-ref ref-counts ref-hash 0)])
+                                                         (hashtable-set! ref-counts ref-hash (+ current 1))
+                                                         (loop (+ i 1))))))))))
          all-hashes)
         
         ;; Display statistics

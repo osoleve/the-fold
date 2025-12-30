@@ -322,3 +322,9 @@
 ;;; Save turtle state to an SVG file.
 (define (save-svg/turtle t filename)
   (save-svg (turtle->drawing t) filename))
+
+;;; turtle->svg : Turtle -> String
+;;; Convert turtle state directly to SVG string.
+;;; Convenience wrapper for (drawing->svg (turtle->drawing t)).
+(define (turtle->svg t)
+  (drawing->svg (turtle->drawing t)))

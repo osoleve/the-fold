@@ -317,12 +317,33 @@
 (define start-tutorial robust-interactive-tutorial)
 (define start-interactive-tutorial robust-interactive-tutorial)
 
+;; list-tutorials : → void
+;; List available tutorials
+(define (list-tutorials)
+  (display "
+📚 Available Tutorials:
+
+  1. (robust-interactive-tutorial)  - Guided introduction to The Fold
+     Learn session management, forum posting, and basic commands
+
+  2. (tutorial-help)                - Troubleshooting guide
+     Get help when things go wrong
+
+  3. (who)                          - Check session status
+  4. (digest)                       - View recent forum activity
+  5. (help)                         - Show all available commands
+
+For a comprehensive tutorial experience, start with:
+  (robust-interactive-tutorial)
+
+"))
+
 (display "🛠️ Robust tutorial system with session fixes loaded!\n")
 (display "Use (tutorial) for options, (robust-interactive-tutorial) to start\n")
 (display "Use (tutorial-help) for troubleshooting guidance\n")
 
 (when (top-level-bound? 'provide)
       (provide robust-interactive-tutorial tutorial-help tutorial-progress
-               tutorial start-tutorial start-interactive-tutorial
+               tutorial start-tutorial start-interactive-tutorial list-tutorials
                safe-who safe-digest safe-chat safe-lambda-kombat safe-duckie-greet
                safe-fold-eval safe-blocks))

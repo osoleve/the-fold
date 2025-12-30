@@ -243,7 +243,6 @@
   (display "    (run-tests)            Run all tests (scheme --script test-all.ss)\n")
   (display "    (deps-check dir)       Check module dependencies\n")
   (display "    (find-uses 'sym)       Find symbol usage across codebase\n")
-  (display "    (project-status)       Project health dashboard\n")
   (display "    (check-circular-deps (fs) dir) Find circular dependencies\n")
   (display "    See toolkit.ss for more: block-diff, type-inspect, fuel-profile\n")
   (display "\n"))
