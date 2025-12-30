@@ -32,127 +32,82 @@ else
   DRY_RUN=false
 fi
 
-log "Starting daemon polling (last check: $LAST_CHECK)"
+log "Starting unified daemon polling (last check: $LAST_CHECK)"
 
-# Define which agents respond to which tags
-declare -A AGENT_TAGS=(
-  ["opus"]="architecture|strategy|design|guidance"
-  ["pedagogue"]="help|explain|tutorial|question"
-  ["archivist"]="research|reference|catalog"
+# Agent tag capabilities - maps agent name to tags it handles
+declare -A AGENT_CAPABILITIES=(
+  ["opus"]="architecture strategy design guidance"
+  ["pedagogue"]="help explain tutorial question"
+  ["archivist"]="research reference catalog"
 )
 
-# Define response times (minutes) for quick filtering
-declare -A AGENT_POLLING_INTERVALS=(
-  ["opus"]=5
-  ["pedagogue"]=15
-  ["archivist"]=30
-)
-
-# Fetch recent posts from all channels and parse for tags
-check_for_tagged_posts() {
-  local agent="$1"
-  local tags="$2"
-
-  log "Checking for @$agent tags with patterns: $tags"
-
-  # Get last polling timestamp for this agent
-  local last_check=$(
-    "$FOLD_DIR/fold.sh" "(get-polling-state \"$agent\")" 2>/dev/null || echo "0"
-  )
-
-  log "  Last check: $last_check, searching for newer posts..."
-
-  # Find posts with agent tags since last check
-  local tagged_posts=$(
-    "$FOLD_DIR/fold.sh" "(find-posts-with-agent-tags $last_check)" 2>/dev/null || echo "()"
-  )
-
-  # If we got posts with tags, process them
-  if [[ "$tagged_posts" != "()" && -n "$tagged_posts" ]]; then
-    log "  Found tagged posts: $tagged_posts"
-    # This will be processed by run_agent_for_consultation
-    echo "$tagged_posts"
-  else
-    log "  No new tagged posts found"
-    return 0
-  fi
+# Build reverse index: tag -> agent(s) that handle it
+build_tag_registry() {
+  declare -gA TAG_HANDLERS
+  for agent in "${!AGENT_CAPABILITIES[@]}"; do
+    for tag in ${AGENT_CAPABILITIES[$agent]}; do
+      TAG_HANDLERS[$tag]="${TAG_HANDLERS[$tag]:-} $agent"
+    done
+  done
 }
 
-# Run agent if tagged posts found
-run_agent_for_consultation() {
+# Get all agents registered to handle a tag
+get_agents_for_tag() {
+  local tag="$1"
+  echo "${TAG_HANDLERS[$tag]:-}"
+}
+
+# Run agent if called
+run_agent_consultation() {
   local agent="$1"
-  local question="$2"
 
   if [[ "$DRY_RUN" == true ]]; then
-    log "[DRY RUN] Would summon $agent for: $question"
+    log "[DRY RUN] Would summon $agent for consultation"
     return 0
   fi
 
-  log "Summoning $agent to respond to consultation..."
+  log "Summoning $agent to respond to tagged consultation..."
 
   # Run the agent with the consultation context
   # The agent's system prompt will handle responding appropriately
-  SESSION_ID="daemon-polling-${agent}-$$"
   "$AGENTS_DIR/bin/run-agent.sh" "$agent" 2>&1 | while read -r line; do
     log "  [$agent] $line"
   done
 }
 
-# Check if any agent needs polling
-should_poll_agent() {
-  local agent="$1"
-  local interval="${AGENT_POLLING_INTERVALS[$agent]}"
-  local last_run_file="$STATE_DIR/$agent-last-run.txt"
-
-  if [[ ! -f "$last_run_file" ]]; then
-    # First run, always check
-    return 0
-  fi
-
-  local last_run=$(cat "$last_run_file")
-  local now=$(date +%s)
-  local elapsed=$((now - last_run))
-  local interval_seconds=$((interval * 60))
-
-  if [[ $elapsed -ge $interval_seconds ]]; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-# Record that we checked an agent
-record_poll_time() {
-  local agent="$1"
-  echo "$(date +%s)" > "$STATE_DIR/$agent-last-run.txt"
-}
-
-# Main polling loop
+# Single unified polling action: find all tagged posts and dispatch to agents
 main() {
-  # For each agent with tag-based consultation
-  for agent in "${!AGENT_TAGS[@]}"; do
-    if ! should_poll_agent "$agent"; then
-      log "Skipping $agent (checked recently)"
-      continue
-    fi
+  # Build tag->agent mapping
+  build_tag_registry
 
-    log "Polling for @$agent tags..."
+  log "Polling for agent consultation tags..."
 
-    # Check for posts with agent tags
-    local tags="${AGENT_TAGS[$agent]}"
-    local tagged_posts=$(check_for_tagged_posts "$agent" "$tags")
+  # Get all posts with agent tags since last check
+  local tagged_posts=$(
+    "$FOLD_DIR/fold.sh" "(find-posts-with-agent-tags $LAST_CHECK)" 2>/dev/null || echo "()"
+  )
 
-    # If we found tagged posts, invoke the agent to respond
-    if [[ -n "$tagged_posts" && "$tagged_posts" != "()" ]]; then
-      log "Found tagged posts for $agent, invoking agent..."
-      run_agent_for_consultation "$agent" "$tagged_posts"
-    fi
+  if [[ "$tagged_posts" == "()" || -z "$tagged_posts" ]]; then
+    log "No new tagged consultation posts found"
+  else
+    log "Found tagged posts, processing..."
 
-    # Record that we checked this agent
-    record_poll_time "$agent"
-  done
+    # Parse through the posts and call appropriate agents
+    # For each post, extract tags and determine which agents to call
+    while IFS= read -r line; do
+      # Extract agent names from tags in each post
+      # This is handled by the extract-agent-tags function in tag-parser
+      if [[ "$line" =~ agent[[:space:]]+.[[:space:]]*([a-z_-]+) ]]; then
+        local agent="${BASH_REMATCH[1]}"
+        if [[ -n "$agent" ]]; then
+          log "Processing tag for agent: $agent"
+          run_agent_consultation "$agent"
+        fi
+      fi
+    done <<< "$(echo "$tagged_posts" | grep -o '@[a-z_-]*' | sort -u)"
+  fi
 
-  # Update last check time
+  # Update polling state (single timestamp for all agents)
   echo "$(date +%s)" > "$LAST_CHECK_FILE"
 
   log "Daemon polling complete"
