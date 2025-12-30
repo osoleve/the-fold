@@ -1,13 +1,15 @@
 use std::fmt;
 use std::path::Path;
 
-use crate::fabric::{Env, EvalOutcome, Expr, SpannedEvalError, SpannedExpr, Value, eval_spanned};
+use crate::fabric::{EvalOutcome, Expr, SpannedEvalError, SpannedExpr, Value, eval_spanned};
 use crate::tools::fold_load::{LoadError, load_fold_program};
+use crate::tools::prelude::prelude_env;
 
 #[derive(Debug)]
 pub enum RunError {
     Load(LoadError),
     Eval(SpannedEvalError),
+    Prelude(String),
 }
 
 impl fmt::Display for RunError {
@@ -15,6 +17,7 @@ impl fmt::Display for RunError {
         match self {
             RunError::Load(err) => write!(f, "{err}"),
             RunError::Eval(err) => write!(f, "{err}"),
+            RunError::Prelude(err) => write!(f, "prelude error: {err}"),
         }
     }
 }
@@ -24,6 +27,7 @@ impl std::error::Error for RunError {
         match self {
             RunError::Load(err) => Some(err),
             RunError::Eval(err) => Some(err),
+            RunError::Prelude(_) => None,
         }
     }
 }
@@ -31,7 +35,7 @@ impl std::error::Error for RunError {
 pub fn run_fold_file<P: AsRef<Path>>(path: P, fuel: usize) -> Result<EvalOutcome, RunError> {
     let exprs = load_fold_program(path).map_err(RunError::Load)?;
     let expr = sequence_exprs(exprs);
-    let env = Env::new();
+    let env = prelude_env(fuel).map_err(RunError::Prelude)?;
     eval_spanned(expr, env, fuel).map_err(RunError::Eval)
 }
 
