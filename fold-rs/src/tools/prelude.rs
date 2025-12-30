@@ -8509,6 +8509,596 @@ pub const PRELUDE_SOURCE: &str = r#"
            (let ((item (list-ref data read-idx))
                  (new-read (mod (+ read-idx 1) cap)))
              (cons item (list cap new-read write-idx data)))))))
+
+   ; ============================================
+   ; S-Expression Utilities
+   ; ============================================
+
+   ; sexp-atom?: Check if value is an atom (not a pair)
+   (sexp-atom? (fn (x)
+     (not (pair? x))))
+
+   ; sexp-list?: Check if value is a proper list
+   (sexp-list? (fix sexp-list?-rec
+     (fn (x)
+       (if (null? x)
+           #t
+           (if (pair? x)
+               (sexp-list?-rec (cdr x))
+               #f)))))
+
+   ; sexp-dotted?: Check if value is a dotted list
+   (sexp-dotted? (fix sexp-dotted?-rec
+     (fn (x)
+       (if (null? x)
+           #f
+           (if (pair? x)
+               (sexp-dotted?-rec (cdr x))
+               #t)))))
+
+   ; sexp-length: Length of s-expression (for proper lists)
+   (sexp-length (fix sexp-length-rec
+     (fn (x)
+       (if (null? x)
+           0
+           (if (pair? x)
+               (+ 1 (sexp-length-rec (cdr x)))
+               0)))))
+
+   ; sexp-depth: Maximum nesting depth
+   (sexp-depth (fix sexp-depth-rec
+     (fn (x)
+       (if (pair? x)
+           (+ 1 (max (sexp-depth-rec (car x))
+                     (sexp-depth-rec (cdr x))))
+           0))))
+
+   ; sexp-count-atoms: Count all atoms in s-expression
+   (sexp-count-atoms (fix sexp-count-atoms-rec
+     (fn (x)
+       (if (null? x)
+           0
+           (if (pair? x)
+               (+ (sexp-count-atoms-rec (car x))
+                  (sexp-count-atoms-rec (cdr x)))
+               1)))))
+
+   ; sexp-flatten: Flatten nested structure to list of atoms
+   (sexp-flatten (fix sexp-flatten-rec
+     (fn (x)
+       (if (null? x)
+           '()
+           (if (pair? x)
+               (append (sexp-flatten-rec (car x))
+                       (sexp-flatten-rec (cdr x)))
+               (list x))))))
+
+   ; sexp-map: Map over all atoms in s-expression
+   (sexp-map (fix sexp-map-rec
+     (fn (f x)
+       (if (null? x)
+           '()
+           (if (pair? x)
+               (cons (sexp-map-rec f (car x))
+                     (sexp-map-rec f (cdr x)))
+               (f x))))))
+
+   ; sexp-filter: Keep only atoms satisfying predicate
+   (sexp-filter (fix sexp-filter-rec
+     (fn (pred-fn x)
+       (if (null? x)
+           '()
+           (if (pair? x)
+               (let ((filtered-car (sexp-filter-rec pred-fn (car x)))
+                     (filtered-cdr (sexp-filter-rec pred-fn (cdr x))))
+                 (if (and (null? filtered-car) (not (pair? (car x))))
+                     filtered-cdr
+                     (cons filtered-car filtered-cdr)))
+               (if (pred-fn x) (list x) '()))))))
+
+   ; sexp-find: Find first atom satisfying predicate
+   (sexp-find (fix sexp-find-rec
+     (fn (pred-fn x)
+       (if (null? x)
+           #f
+           (if (pair? x)
+               (let ((found-car (sexp-find-rec pred-fn (car x))))
+                 (if found-car
+                     found-car
+                     (sexp-find-rec pred-fn (cdr x))))
+               (if (pred-fn x) x #f))))))
+
+   ; sexp-substitute: Replace all occurrences of old with new
+   (sexp-substitute (fix sexp-substitute-rec
+     (fn (old new x)
+       (if (equal? x old)
+           new
+           (if (pair? x)
+               (cons (sexp-substitute-rec old new (car x))
+                     (sexp-substitute-rec old new (cdr x)))
+               x)))))
+
+   ; sexp-contains?: Check if s-expression contains value
+   (sexp-contains? (fix sexp-contains?-rec
+     (fn (val x)
+       (if (equal? x val)
+           #t
+           (if (pair? x)
+               (or (sexp-contains?-rec val (car x))
+                   (sexp-contains?-rec val (cdr x)))
+               #f)))))
+
+   ; ============================================
+   ; Transducers (composable sequence transformations)
+   ; Pure, stateless transducers
+   ; ============================================
+
+   ; t-map: Mapping transducer
+   (t-map (fn (f)
+     (fn (reducer)
+       (fn (acc x)
+         (reducer acc (f x))))))
+
+   ; t-filter: Filtering transducer
+   (t-filter (fn (pred-fn)
+     (fn (reducer)
+       (fn (acc x)
+         (if (pred-fn x)
+             (reducer acc x)
+             acc)))))
+
+   ; t-cat: Concatenating transducer
+   (t-cat (fn ()
+     (fn (reducer)
+       (fn (acc xs)
+         (foldl reducer acc xs)))))
+
+   ; t-mapcat: Map then concatenate
+   (t-mapcat (fn (f)
+     (t-comp (t-map f) (t-cat))))
+
+   ; t-keep: Keep non-false results
+   (t-keep (fn (f)
+     (fn (reducer)
+       (fn (acc x)
+         (let ((result (f x)))
+           (if result
+               (reducer acc result)
+               acc))))))
+
+   ; transduce: Apply transducer to collection
+   (transduce (fn (xform reducer init coll)
+     (foldl (xform reducer) init coll)))
+
+   ; into-list: Transduce into a list
+   (into-list (fn (xform coll)
+     (reverse (transduce xform (fn (acc x) (cons x acc)) '() coll))))
+
+   ; t-comp: Compose transducers (right to left)
+   (t-comp (fn (t1 t2)
+     (fn (reducer)
+       (t1 (t2 reducer)))))
+
+   ; t-comp3: Compose three transducers
+   (t-comp3 (fn (t1 t2 t3)
+     (t-comp t1 (t-comp t2 t3))))
+
+   ; ============================================
+   ; Memo Table Utilities (pure, immutable)
+   ; ============================================
+
+   ; memo-table-new: Create a new memo table (alist-based)
+   (memo-table-new (fn () '()))
+
+   ; memo-table-get: Get value from memo table
+   (memo-table-get (fn (table key)
+     (assoc key table)))
+
+   ; memo-table-put: Add value to memo table (returns new table)
+   (memo-table-put (fn (table key value)
+     (cons (cons key value) table)))
+
+   ; memo-table-contains?: Check if key exists
+   (memo-table-contains? (fn (table key)
+     (if (assoc key table) #t #f)))
+
+   ; memo-table-remove: Remove key from table
+   (memo-table-remove (fn (table key)
+     (filter (fn (entry) (not (equal? (car entry) key))) table)))
+
+   ; memo-table-keys: Get all keys
+   (memo-table-keys (fn (table)
+     (map car table)))
+
+   ; memo-table-values: Get all values
+   (memo-table-values (fn (table)
+     (map cdr table)))
+
+   ; ============================================
+   ; Algebraic Structures
+   ; ============================================
+
+   ; Monoid: (mempty, mappend)
+   ; make-monoid: Create a monoid structure
+   (make-monoid (fn (empty append-fn)
+     (list 'monoid empty append-fn)))
+
+   ; monoid-empty: Get identity element
+   (monoid-empty (fn (m) (cadr m)))
+
+   ; monoid-append: Get append operation
+   (monoid-append (fn (m) (caddr m)))
+
+   ; mconcat: Fold with monoid
+   (mconcat (fn (monoid xs)
+     (foldl (monoid-append monoid) (monoid-empty monoid) xs)))
+
+   ; Common monoids
+   (sum-monoid (make-monoid 0 +))
+   (product-monoid (make-monoid 1 *))
+   (list-monoid (make-monoid '() append))
+   (string-monoid (make-monoid "" string-append))
+   (all-monoid (make-monoid #t (fn (a b) (and a b))))
+   (any-monoid (make-monoid #f (fn (a b) (or a b))))
+   (max-monoid (make-monoid -999999999 max))
+   (min-monoid (make-monoid 999999999 min))
+
+   ; first-monoid: Returns first non-nothing value
+   (first-monoid (make-monoid nothing
+     (fn (a b)
+       (if (nothing? a) b a))))
+
+   ; last-monoid: Returns last non-nothing value
+   (last-monoid (make-monoid nothing
+     (fn (a b)
+       (if (nothing? b) a b))))
+
+   ; endo-monoid: Endomorphism monoid (function composition)
+   (endo-monoid (make-monoid id compose))
+
+   ; dual: Dual of a monoid (reverses append order)
+   (dual-monoid (fn (m)
+     (make-monoid
+       (monoid-empty m)
+       (fn (a b) ((monoid-append m) b a)))))
+
+   ; ============================================
+   ; Foldable Pattern
+   ; ============================================
+
+   ; fold-map: Map then fold with monoid
+   (fold-map (fn (monoid f xs)
+     (mconcat monoid (map f xs))))
+
+   ; fold-sum: Sum using monoid
+   (fold-sum (fn (xs)
+     (mconcat sum-monoid xs)))
+
+   ; fold-product: Product using monoid
+   (fold-product (fn (xs)
+     (mconcat product-monoid xs)))
+
+   ; fold-all: All using monoid
+   (fold-all (fn (xs)
+     (mconcat all-monoid xs)))
+
+   ; fold-any: Any using monoid
+   (fold-any (fn (xs)
+     (mconcat any-monoid xs)))
+
+   ; ============================================
+   ; Semigroup (monoid without identity)
+   ; ============================================
+
+   ; make-semigroup: Create semigroup
+   (make-semigroup (fn (append-fn)
+     (list 'semigroup append-fn)))
+
+   ; semigroup-append: Get append operation
+   (semigroup-append (fn (s) (cadr s)))
+
+   ; sconcat: Fold non-empty list with semigroup
+   (sconcat (fn (semigroup xs)
+     (if (null? xs)
+         (error "sconcat requires non-empty list")
+         (foldl (semigroup-append semigroup) (car xs) (cdr xs)))))
+
+   ; ============================================
+   ; Functor Pattern
+   ; ============================================
+
+   ; make-functor: Create functor structure
+   (make-functor (fn (fmap-fn)
+     (list 'functor fmap-fn)))
+
+   ; functor-map: Get the fmap operation
+   (functor-map (fn (f) (cadr f)))
+
+   ; Common functors
+   (list-functor (make-functor map))
+   (maybe-functor (make-functor maybe-map))
+   (either-functor (make-functor either-map))
+
+   ; ============================================
+   ; Applicative Pattern
+   ; ============================================
+
+   ; make-applicative: Create applicative structure
+   (make-applicative (fn (pure-fn ap-fn)
+     (list 'applicative pure-fn ap-fn)))
+
+   ; applicative-pure: Get pure operation
+   (applicative-pure (fn (a) (cadr a)))
+
+   ; applicative-ap: Get apply operation
+   (applicative-ap (fn (a) (caddr a)))
+
+   ; liftA2: Lift binary function to applicative
+   (liftA2 (fn (applicative f fa fb)
+     (let ((ap (applicative-ap applicative)))
+       (ap (ap ((applicative-pure applicative) f) fa) fb))))
+
+   ; ============================================
+   ; Comonad Pattern
+   ; ============================================
+
+   ; make-comonad: Create comonad structure
+   (make-comonad (fn (extract-fn extend-fn)
+     (list 'comonad extract-fn extend-fn)))
+
+   ; comonad-extract: Get extract operation
+   (comonad-extract (fn (c) (cadr c)))
+
+   ; comonad-extend: Get extend operation
+   (comonad-extend (fn (c) (caddr c)))
+
+   ; ============================================
+   ; Zipper as Comonad
+   ; ============================================
+
+   ; list-zipper-comonad: Comonad instance for list zipper
+   (list-zipper-extract (fn (z)
+     (zipper-focus z)))
+
+   (list-zipper-extend (fn (f z)
+     (let ((go-left (fix go-left-rec
+             (fn (z acc)
+               (let ((moved (zipper-left z)))
+                 (if moved
+                     (go-left-rec moved (cons (f moved) acc))
+                     acc)))))
+           (go-right (fix go-right-rec
+             (fn (z acc)
+               (let ((moved (zipper-right z)))
+                 (if moved
+                     (go-right-rec moved (cons (f moved) acc))
+                     acc))))))
+       (let ((lefts (go-left z '()))
+             (focus (f z))
+             (rights (reverse (go-right z '()))))
+         (list lefts focus rights)))))
+
+   ; ============================================
+   ; Bifunctor Pattern
+   ; ============================================
+
+   ; bimap: Map over both components
+   (bimap (fn (f g x)
+     (if (pair? x)
+         (cons (f (car x)) (g (cdr x)))
+         x)))
+
+   ; first-fn: Map over first component only
+   (first-fn (fn (f x)
+     (bimap f id x)))
+
+   ; second-fn: Map over second component only
+   (second-fn (fn (g x)
+     (bimap id g x)))
+
+   ; ============================================
+   ; Profunctor Pattern (for functions)
+   ; ============================================
+
+   ; dimap: Contravariant on input, covariant on output
+   (dimap (fn (f g h)
+     (compose g (compose h f))))
+
+   ; lmap: Contravariant map on input
+   (lmap (fn (f h)
+     (compose h f)))
+
+   ; rmap: Covariant map on output
+   (rmap (fn (g h)
+     (compose g h)))
+
+   ; ============================================
+   ; Kleisli Composition
+   ; ============================================
+
+   ; kleisli-maybe: Compose Maybe-returning functions
+   (kleisli-maybe (fn (f g)
+     (fn (x)
+       (let ((result (f x)))
+         (if (nothing? result)
+             nothing
+             (g (from-just result)))))))
+
+   ; kleisli-either: Compose Either-returning functions
+   (kleisli-either (fn (f g)
+     (fn (x)
+       (let ((result (f x)))
+         (if (left? result)
+             result
+             (g (from-right result)))))))
+
+   ; kleisli-list: Compose list-returning functions (flatMap)
+   (kleisli-list (fn (f g)
+     (fn (x)
+       (flat-map g (f x)))))
+
+   ; ============================================
+   ; Arrow Operations (extended)
+   ; ============================================
+
+   ; arr-id: Identity arrow
+   (arr-id id)
+
+   ; arr-compose: Compose arrows
+   (arr-compose compose)
+
+   ; arr-first: Apply to first of pair
+   (arr-first (fn (f)
+     (fn (pair)
+       (cons (f (car pair)) (cdr pair)))))
+
+   ; arr-second: Apply to second of pair
+   (arr-second (fn (f)
+     (fn (pair)
+       (cons (car pair) (f (cdr pair))))))
+
+   ; arr-split: Parallel composition
+   (arr-split (fn (f g)
+     (fn (pair)
+       (cons (f (car pair)) (g (cdr pair))))))
+
+   ; arr-fanout: Duplicate and apply
+   (arr-fanout (fn (f g)
+     (fn (x)
+       (cons (f x) (g x)))))
+
+   ; arr-choice: Either arrow
+   (arr-choice (fn (f g)
+     (fn (x)
+       (if (left? x)
+           (left (f (from-left x)))
+           (right (g (from-right x)))))))
+
+   ; ============================================
+   ; Recursive Schemes (simple versions)
+   ; ============================================
+
+   ; cata: Catamorphism (fold)
+   (cata (fn (algebra expr)
+     (algebra (sexp-map (fn (x) (cata algebra x)) expr))))
+
+   ; ana: Anamorphism (unfold)
+   (ana (fix ana-rec
+     (fn (coalgebra seed)
+       (let ((result (coalgebra seed)))
+         (if (pair? result)
+             (cons (ana-rec coalgebra (car result))
+                   (ana-rec coalgebra (cdr result)))
+             result)))))
+
+   ; hylo: Hylomorphism (unfold then fold)
+   (hylo (fn (algebra coalgebra seed)
+     (cata algebra (ana coalgebra seed))))
+
+   ; para: Paramorphism (fold with access to original structure)
+   (para (fix para-rec
+     (fn (algebra expr)
+       (if (pair? expr)
+           (algebra (cons (cons (car expr) (para-rec algebra (car expr)))
+                         (cons (cdr expr) (para-rec algebra (cdr expr)))))
+           (algebra expr)))))
+
+   ; ============================================
+   ; Expression Utilities
+   ; ============================================
+
+   ; quoted?: Check if expression is quoted
+   (quoted? (fn (x)
+     (if (pair? x)
+         (eq? (car x) 'quote)
+         #f)))
+
+   ; unquote-expr: Remove quote wrapper
+   (unquote-expr (fn (x)
+     (if (quoted? x)
+         (cadr x)
+         x)))
+
+   ; make-quote: Wrap expression in quote
+   (make-quote (fn (x)
+     (list 'quote x)))
+
+   ; lambda?: Check if expression is lambda
+   (lambda? (fn (x)
+     (if (pair? x)
+         (or (eq? (car x) 'fn)
+             (eq? (car x) 'lambda))
+         #f)))
+
+   ; application?: Check if expression is application
+   (application? (fn (x)
+     (if (pair? x)
+         (not (or (quoted? x)
+                  (lambda? x)
+                  (eq? (car x) 'if)
+                  (eq? (car x) 'let)
+                  (eq? (car x) 'let*)))
+         #f)))
+
+   ; if?: Check if expression is conditional
+   (if? (fn (x)
+     (if (pair? x)
+         (eq? (car x) 'if)
+         #f)))
+
+   ; let?: Check if expression is let
+   (let? (fn (x)
+     (if (pair? x)
+         (or (eq? (car x) 'let)
+             (eq? (car x) 'let*))
+         #f)))
+
+   ; ============================================
+   ; Symbol Utilities
+   ; ============================================
+
+   ; symbol-append: Concatenate symbols
+   (symbol-append (fn (s1 s2)
+     (string->symbol (string-append (symbol->string s1)
+                                    (symbol->string s2)))))
+
+   ; make-gensym: Create a gensym generator (returns pair of next-sym and new-generator)
+   (make-gensym (fn (prefix counter)
+     (cons (string->symbol (string-append (symbol->string prefix)
+                                          (number->string counter)))
+           (+ counter 1))))
+
+   ; ============================================
+   ; Control Flow Utilities (pure)
+   ; ============================================
+
+   ; do-while: Execute while condition holds
+   (do-while (fix do-while-rec
+     (fn (test-fn body-fn state)
+       (if (test-fn state)
+           (do-while-rec test-fn body-fn (body-fn state))
+           state))))
+
+   ; do-until: Execute until condition holds
+   (do-until (fn (test-fn body-fn state)
+     (do-while (fn (s) (not (test-fn s))) body-fn state)))
+
+   ; iterate-times: Apply function n times
+   (iterate-times (fix iterate-times-rec
+     (fn (n f x)
+       (if (<= n 0)
+           x
+           (iterate-times-rec (- n 1) f (f x))))))
+
+   ; find-fixed-point: Find fixed point with max iterations
+   (find-fixed-point (fix find-fixed-point-rec
+     (fn (f x max-iter)
+       (if (<= max-iter 0)
+           x
+           (let ((next (f x)))
+             (if (equal? x next)
+                 x
+                 (find-fixed-point-rec f next (- max-iter 1))))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -9984,6 +10574,122 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'ring-buffer-push ring-buffer-push)
     (cons 'ring-buffer-peek ring-buffer-peek)
     (cons 'ring-buffer-pop ring-buffer-pop)
+    ; S-expression utilities
+    (cons 'sexp-atom? sexp-atom?)
+    (cons 'sexp-list? sexp-list?)
+    (cons 'sexp-dotted? sexp-dotted?)
+    (cons 'sexp-length sexp-length)
+    (cons 'sexp-depth sexp-depth)
+    (cons 'sexp-count-atoms sexp-count-atoms)
+    (cons 'sexp-flatten sexp-flatten)
+    (cons 'sexp-map sexp-map)
+    (cons 'sexp-filter sexp-filter)
+    (cons 'sexp-find sexp-find)
+    (cons 'sexp-substitute sexp-substitute)
+    (cons 'sexp-contains? sexp-contains?)
+    ; Transducers
+    (cons 't-map t-map)
+    (cons 't-filter t-filter)
+    (cons 't-cat t-cat)
+    (cons 't-mapcat t-mapcat)
+    (cons 't-keep t-keep)
+    (cons 'transduce transduce)
+    (cons 'into-list into-list)
+    (cons 't-comp t-comp)
+    (cons 't-comp3 t-comp3)
+    ; Memo table utilities
+    (cons 'memo-table-new memo-table-new)
+    (cons 'memo-table-get memo-table-get)
+    (cons 'memo-table-put memo-table-put)
+    (cons 'memo-table-contains? memo-table-contains?)
+    (cons 'memo-table-remove memo-table-remove)
+    (cons 'memo-table-keys memo-table-keys)
+    (cons 'memo-table-values memo-table-values)
+    ; Algebraic structures - Monoid
+    (cons 'make-monoid make-monoid)
+    (cons 'monoid-empty monoid-empty)
+    (cons 'monoid-append monoid-append)
+    (cons 'mconcat mconcat)
+    (cons 'sum-monoid sum-monoid)
+    (cons 'product-monoid product-monoid)
+    (cons 'list-monoid list-monoid)
+    (cons 'string-monoid string-monoid)
+    (cons 'all-monoid all-monoid)
+    (cons 'any-monoid any-monoid)
+    (cons 'max-monoid max-monoid)
+    (cons 'min-monoid min-monoid)
+    (cons 'first-monoid first-monoid)
+    (cons 'last-monoid last-monoid)
+    (cons 'endo-monoid endo-monoid)
+    (cons 'dual-monoid dual-monoid)
+    ; Foldable
+    (cons 'fold-map fold-map)
+    (cons 'fold-sum fold-sum)
+    (cons 'fold-product fold-product)
+    (cons 'fold-all fold-all)
+    (cons 'fold-any fold-any)
+    ; Semigroup
+    (cons 'make-semigroup make-semigroup)
+    (cons 'semigroup-append semigroup-append)
+    (cons 'sconcat sconcat)
+    ; Functor
+    (cons 'make-functor make-functor)
+    (cons 'functor-map functor-map)
+    (cons 'list-functor list-functor)
+    (cons 'maybe-functor maybe-functor)
+    (cons 'either-functor either-functor)
+    ; Applicative
+    (cons 'make-applicative make-applicative)
+    (cons 'applicative-pure applicative-pure)
+    (cons 'applicative-ap applicative-ap)
+    (cons 'liftA2 liftA2)
+    ; Comonad
+    (cons 'make-comonad make-comonad)
+    (cons 'comonad-extract comonad-extract)
+    (cons 'comonad-extend comonad-extend)
+    (cons 'list-zipper-extract list-zipper-extract)
+    (cons 'list-zipper-extend list-zipper-extend)
+    ; Bifunctor
+    (cons 'bimap bimap)
+    (cons 'first-fn first-fn)
+    (cons 'second-fn second-fn)
+    ; Profunctor
+    (cons 'dimap dimap)
+    (cons 'lmap lmap)
+    (cons 'rmap rmap)
+    ; Kleisli
+    (cons 'kleisli-maybe kleisli-maybe)
+    (cons 'kleisli-either kleisli-either)
+    (cons 'kleisli-list kleisli-list)
+    ; Arrow operations
+    (cons 'arr-id arr-id)
+    (cons 'arr-compose arr-compose)
+    (cons 'arr-first arr-first)
+    (cons 'arr-second arr-second)
+    (cons 'arr-split arr-split)
+    (cons 'arr-fanout arr-fanout)
+    (cons 'arr-choice arr-choice)
+    ; Recursive schemes
+    (cons 'cata cata)
+    (cons 'ana ana)
+    (cons 'hylo hylo)
+    (cons 'para para)
+    ; Expression utilities
+    (cons 'quoted? quoted?)
+    (cons 'unquote-expr unquote-expr)
+    (cons 'make-quote make-quote)
+    (cons 'lambda? lambda?)
+    (cons 'application? application?)
+    (cons 'if? if?)
+    (cons 'let? let?)
+    ; Symbol utilities
+    (cons 'symbol-append symbol-append)
+    (cons 'make-gensym make-gensym)
+    ; Control flow
+    (cons 'iterate-times iterate-times)
+    (cons 'find-fixed-point find-fixed-point)
+    (cons 'do-while do-while)
+    (cons 'do-until do-until)
 ))
 "#;
 
