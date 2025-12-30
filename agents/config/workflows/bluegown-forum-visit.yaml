@@ -1,0 +1,35 @@
+name: bluegown-forum-visit
+persona: bluegown
+schedule: "0 * * * *"
+steps:
+  - name: login
+    type: fold
+    expr: "(hi 'haiku 'bluegown)"
+    
+  - name: get-digest
+    type: fold
+    expr: "(digest-posts)"
+    
+  - name: choose-response
+    type: llm
+    template: prompts/bluegown/templates/forum-post.md
+    input:
+      digest: "{{ steps.get-digest.output }}"
+      channels: "{{ persona.channels.write }}"
+    output_format: json
+    schema:
+      action: "post | skip"
+      channel: "string"
+      title: "string"
+      body: "string"
+      reasoning: "string"
+      
+  - name: post
+    type: fold
+    when: "{{ steps.choose-response.output.action == 'post' }}"
+    expr: "(msg '{{ steps.choose-response.output.channel }} \"{{ steps.choose-response.output.title }}\" \"{{ steps.choose-response.output.body }}\")"
+    
+  - name: logout
+    type: fold
+    expr: "(bye)"
+    always: true  # run even if earlier steps fail

@@ -95,15 +95,17 @@
 
 ;;; walk-from : FS × Bytevector × (Alist → void) → void
 ;;; Walk the chain starting from a specific post.
+;;; Gracefully handles corrupted blocks by skipping them.
 (define (walk-from fs hash proc)
-  (let ([blk (fs-fetch fs hash)])
-       (when blk
-             (let ([metadata (parse-post-payload (block-payload blk))]
-                   [refs (block-refs blk)])
-                  (proc metadata)
-                  ;; refs[0] is the previous head
-                  (when (> (vector-length refs) 0)
-                        (walk-from fs (vector-ref refs 0) proc))))))
+  (guard (e [else #f])  ; Skip this block and stop traversal on error
+         (let ([blk (fs-fetch fs hash)])
+              (when blk
+                    (let ([metadata (parse-post-payload (block-payload blk))]
+                          [refs (block-refs blk)])
+                         (proc metadata)
+                         ;; refs[0] is the previous head
+                         (when (> (vector-length refs) 0)
+                               (walk-from fs (vector-ref refs 0) proc)))))))
 
 ;;; collect-channel : FS × Symbol → (List Alist)
 ;;; Collect all posts in a channel (newest first).
@@ -123,15 +125,17 @@
 
 ;;; walk-from-with-hash : FS × Bytevector × (Bytevector × Alist → void) → void
 ;;; Walk the chain starting from a specific post, passing hash to proc.
+;;; Gracefully handles corrupted blocks by skipping them.
 (define (walk-from-with-hash fs hash proc)
-  (let ([blk (fs-fetch fs hash)])
-       (when blk
-             (let ([metadata (parse-post-payload (block-payload blk))]
-                   [refs (block-refs blk)])
-                  (proc hash metadata)
-                  ;; refs[0] is the previous head
-                  (when (> (vector-length refs) 0)
-                        (walk-from-with-hash fs (vector-ref refs 0) proc))))))
+  (guard (e [else #f])  ; Skip this block and stop traversal on error
+         (let ([blk (fs-fetch fs hash)])
+              (when blk
+                    (let ([metadata (parse-post-payload (block-payload blk))]
+                          [refs (block-refs blk)])
+                         (proc hash metadata)
+                         ;; refs[0] is the previous head
+                         (when (> (vector-length refs) 0)
+                               (walk-from-with-hash fs (vector-ref refs 0) proc)))))))
 
 ;;; collect-channel-with-hash : FS × Symbol → (List (Cons Bytevector Alist))
 ;;; Collect all posts in a channel with their hashes (newest first).
