@@ -4793,6 +4793,332 @@ pub const PRELUDE_SOURCE: &str = r#"
                        (builder (cdr lst)
                                 (cons (sep-fn) (cons (car lst) acc))))))))
            (builder lst '())))))
+
+   ; ============================================
+   ; Advanced Sorting Algorithms
+   ; ============================================
+
+   ; quicksort: Efficient O(n log n) average case sort
+   (quicksort (fix quicksort
+     (fn (lst)
+       (if (null? lst)
+           '()
+           (if (null? (cdr lst))
+               lst
+               (let ((pivot (car lst))
+                     (rest (cdr lst)))
+                 (let ((lesser (filter (fn (x) (< x pivot)) rest))
+                       (greater (filter (fn (x) (>= x pivot)) rest)))
+                   (append (quicksort lesser)
+                           (cons pivot (quicksort greater))))))))))
+
+   ; quicksort-by: Quicksort with custom key function
+   (quicksort-by (fix quicksort-by
+     (fn (key-fn lst)
+       (if (null? lst)
+           '()
+           (if (null? (cdr lst))
+               lst
+               (let ((pivot (car lst))
+                     (pivot-key (key-fn (car lst)))
+                     (rest (cdr lst)))
+                 (let ((lesser (filter (fn (x) (< (key-fn x) pivot-key)) rest))
+                       (greater (filter (fn (x) (>= (key-fn x) pivot-key)) rest)))
+                   (append (quicksort-by key-fn lesser)
+                           (cons pivot (quicksort-by key-fn greater))))))))))
+
+   ; mergesort: Stable O(n log n) sort
+   (mergesort (fix mergesort
+     (fn (lst)
+       (if (null? lst)
+           '()
+           (if (null? (cdr lst))
+               lst
+               (let ((half (quotient (length lst) 2)))
+                 (let ((left (take lst half))
+                       (right (drop lst half)))
+                   (let ((merge (fix merge
+                           (fn (a b)
+                             (if (null? a) b
+                               (if (null? b) a
+                                 (if (<= (car a) (car b))
+                                     (cons (car a) (merge (cdr a) b))
+                                     (cons (car b) (merge a (cdr b))))))))))
+                     (merge (mergesort left) (mergesort right))))))))))
+
+   ; mergesort-by: Mergesort with custom comparator
+   (mergesort-by (fix mergesort-by
+     (fn (cmp lst)
+       (if (null? lst)
+           '()
+           (if (null? (cdr lst))
+               lst
+               (let ((half (quotient (length lst) 2)))
+                 (let ((left (take lst half))
+                       (right (drop lst half)))
+                   (let ((merge (fix merge
+                           (fn (a b)
+                             (if (null? a) b
+                               (if (null? b) a
+                                 (if (<= (cmp (car a) (car b)) 0)
+                                     (cons (car a) (merge (cdr a) b))
+                                     (cons (car b) (merge a (cdr b))))))))))
+                     (merge (mergesort-by cmp left) (mergesort-by cmp right))))))))))
+
+   ; ============================================
+   ; Graph Algorithms (Extended)
+   ; ============================================
+
+   ; graph-topological-sort: Topological sort using Kahn's algorithm
+   ; Returns sorted list or #f if cycle detected
+   (graph-topological-sort (fn (g)
+     (let ((vertices (graph-vertices g)))
+       (let ((in-degree (foldl (fn (acc v)
+                                  (assoc-set v 0 acc))
+                                '() vertices)))
+         (let ((in-degree2 (foldl (fn (acc v)
+                                     (foldl (fn (acc2 n)
+                                              (assoc-set n (+ 1 (assoc-ref n acc2)) acc2))
+                                            acc
+                                            (graph-neighbors g v)))
+                                  in-degree vertices)))
+           (let ((topo-helper (fix topo-helper
+                   (fn (queue result degrees)
+                     (if (null? queue)
+                         (if (= (length result) (length vertices))
+                             (reverse result)
+                             #f)
+                         (let ((v (car queue))
+                               (rest-queue (cdr queue)))
+                           (let ((new-degrees-and-queue
+                                   (foldl (fn (acc n)
+                                            (let ((new-deg (- (assoc-ref n (car acc)) 1)))
+                                              (cons (assoc-set n new-deg (car acc))
+                                                    (if (= new-deg 0)
+                                                        (cons n (cdr acc))
+                                                        (cdr acc)))))
+                                          (cons degrees rest-queue)
+                                          (graph-neighbors g v))))
+                             (topo-helper (cdr new-degrees-and-queue)
+                                          (cons v result)
+                                          (car new-degrees-and-queue)))))))))
+             (let ((initial-queue (filter (fn (v) (= 0 (assoc-ref v in-degree2))) vertices)))
+               (topo-helper initial-queue '() in-degree2))))))))
+
+   ; graph-has-cycle?: Check if directed graph has a cycle
+   (graph-has-cycle? (fn (g)
+     (not (graph-topological-sort g))))
+
+   ; graph-reverse: Reverse all edges in graph
+   (graph-reverse (fn (g)
+     (foldl (fn (acc v)
+              (foldl (fn (acc2 n)
+                       (graph-add-edge acc2 n v))
+                     acc
+                     (graph-neighbors g v)))
+            (graph-new)
+            (graph-vertices g))))
+
+   ; graph-transpose: Alias for graph-reverse
+   (graph-transpose graph-reverse)
+
+   ; ============================================
+   ; Lens-like Utilities for Nested Data
+   ; ============================================
+
+   ; get-in: Get nested value at path
+   ; (get-in '((a . ((b . 1)))) '(a b)) => 1
+   (get-in (fix get-in
+     (fn (data path)
+       (if (null? path)
+           data
+           (if (pair? data)
+               (let ((key (car path)))
+                 (if (number? key)
+                     (get-in (list-ref data key) (cdr path))
+                     (get-in (assoc-ref key data) (cdr path))))
+               #f)))))
+
+   ; update-in: Update nested value at path with function
+   (update-in (fix update-in
+     (fn (data path f)
+       (if (null? path)
+           (f data)
+           (let ((key (car path)))
+             (if (number? key)
+                 (list-set data key (update-in (list-ref data key) (cdr path) f))
+                 (assoc-set key (update-in (assoc-ref key data) (cdr path) f) data)))))))
+
+   ; set-in: Set nested value at path
+   (set-in (fn (data path val)
+     (update-in data path (fn (x) val))))
+
+   ; ============================================
+   ; Additional String Utilities
+   ; ============================================
+
+   ; string-pad-left: Pad string on left to reach length (pad-char must be a char like #\space)
+   (string-pad-left (fn (s len pad-char)
+     (let ((slen (string-length s)))
+       (if (>= slen len)
+           s
+           (string-append (make-string (- len slen) pad-char) s)))))
+
+   ; string-pad-right: Pad string on right to reach length (pad-char must be a char)
+   (string-pad-right (fn (s len pad-char)
+     (let ((slen (string-length s)))
+       (if (>= slen len)
+           s
+           (string-append s (make-string (- len slen) pad-char))))))
+
+   ; string-center: Center string in field of given length (pad-char must be a char)
+   (string-center (fn (s len pad-char)
+     (let ((slen (string-length s)))
+       (if (>= slen len)
+           s
+           (let ((total-pad (- len slen)))
+             (let ((left-pad (quotient total-pad 2))
+                   (right-pad (- total-pad (quotient total-pad 2))))
+               (string-append (make-string left-pad pad-char)
+                              s
+                              (make-string right-pad pad-char))))))))
+
+   ; string-repeat: Repeat string n times
+   (string-repeat (fn (s n)
+     (let ((builder (fix builder
+             (fn (count acc)
+               (if (<= count 0)
+                   acc
+                   (builder (- count 1) (string-append acc s)))))))
+       (builder n ""))))
+
+   ; string-count: Count occurrences of substring
+   (string-count (fn (haystack needle)
+     (let ((counter (fix counter
+             (fn (s count)
+               (let ((idx (string-index-of s needle)))
+                 (if (< idx 0)
+                     count
+                     (counter (string-drop (+ idx (string-length needle)) s)
+                              (+ count 1))))))))
+       (counter haystack 0))))
+
+   ; ============================================
+   ; Sequence Utilities
+   ; ============================================
+
+   ; scan: Like foldl but collects all intermediate results
+   (scan (fix scan
+     (fn (f init lst)
+       (if (null? lst)
+           (list init)
+           (cons init (scan f (f init (car lst)) (cdr lst)))))))
+
+   ; scan-right: Like foldr but collects all intermediate results
+   (scan-right (fix scan-right
+     (fn (f init lst)
+       (if (null? lst)
+           (list init)
+           (let ((rest-scan (scan-right f init (cdr lst))))
+             (cons (f (car lst) (car rest-scan)) rest-scan))))))
+
+   ; windows: Sliding windows of size n
+   (windows (fn (n lst)
+     (if (< (length lst) n)
+         '()
+         (let ((builder (fix builder
+                 (fn (lst acc)
+                   (if (< (length lst) n)
+                       (reverse acc)
+                       (builder (cdr lst) (cons (take lst n) acc)))))))
+           (builder lst '())))))
+
+   ; pairwise: Apply binary function to adjacent pairs
+   (pairwise (fn (f lst)
+     (if (or (null? lst) (null? (cdr lst)))
+         '()
+         (let ((builder (fix builder
+                 (fn (lst acc)
+                   (if (null? (cdr lst))
+                       (reverse acc)
+                       (builder (cdr lst)
+                                (cons (f (car lst) (cadr lst)) acc)))))))
+           (builder lst '())))))
+
+   ; differences: Compute differences between adjacent elements
+   (differences (fn (lst)
+     (pairwise - lst)))
+
+   ; running-sum: Cumulative sum
+   (running-sum (fn (lst)
+     (scan + 0 lst)))
+
+   ; running-product: Cumulative product
+   (running-product (fn (lst)
+     (scan * 1 lst)))
+
+   ; ============================================
+   ; Additional Numeric Utilities
+   ; ============================================
+
+   ; mean: Arithmetic mean of list
+   (mean (fn (lst)
+     (if (null? lst)
+         0
+         (/ (sum-list lst) (length lst)))))
+
+   ; median: Median of list
+   (median (fn (lst)
+     (if (null? lst)
+         #f
+         (let ((sorted (quicksort lst))
+               (n (length lst)))
+           (if (odd? n)
+               (list-ref sorted (quotient n 2))
+               (/ (+ (list-ref sorted (- (quotient n 2) 1))
+                     (list-ref sorted (quotient n 2)))
+                  2))))))
+
+   ; mode: Most frequent element
+   (mode (fn (lst)
+     (if (null? lst)
+         #f
+         (let ((freqs (frequencies lst)))
+           (car (foldl (fn (best pair)
+                         (if (> (cdr pair) (cdr best))
+                             pair
+                             best))
+                       (car freqs)
+                       (cdr freqs)))))))
+
+   ; variance: Population variance
+   (variance (fn (lst)
+     (if (or (null? lst) (null? (cdr lst)))
+         0
+         (let ((m (mean lst)))
+           (mean (map (fn (x) (sq (- x m))) lst))))))
+
+   ; std-dev: Standard deviation
+   (std-dev (fn (lst)
+     (sqrt (variance lst))))
+
+   ; normalize-list: Normalize list to [0, 1] range
+   (normalize-list (fn (lst)
+     (if (null? lst)
+         '()
+         (let ((lo (apply min lst))
+               (hi (apply max lst)))
+           (if (= lo hi)
+               (map (const 0.5) lst)
+               (map (fn (x) (/ (- x lo) (- hi lo))) lst))))))
+
+   ; z-score: Convert to z-scores (standard scores)
+   (z-score (fn (lst)
+     (let ((m (mean lst))
+           (sd (std-dev lst)))
+       (if (= sd 0)
+           (map (const 0) lst)
+           (map (fn (x) (/ (- x m) sd)) lst)))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -5664,6 +5990,42 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'group-by-key group-by-key)
     (cons 'partition-by partition-by)
     (cons 'intersperse-with intersperse-with)
+    ; Advanced sorting
+    (cons 'quicksort quicksort)
+    (cons 'quicksort-by quicksort-by)
+    (cons 'mergesort mergesort)
+    (cons 'mergesort-by mergesort-by)
+    ; Extended graph algorithms
+    (cons 'graph-topological-sort graph-topological-sort)
+    (cons 'graph-has-cycle? graph-has-cycle?)
+    (cons 'graph-reverse graph-reverse)
+    (cons 'graph-transpose graph-transpose)
+    ; Lens-like utilities
+    (cons 'get-in get-in)
+    (cons 'update-in update-in)
+    (cons 'set-in set-in)
+    ; Additional string utilities
+    (cons 'string-pad-left string-pad-left)
+    (cons 'string-pad-right string-pad-right)
+    (cons 'string-center string-center)
+    (cons 'string-repeat string-repeat)
+    (cons 'string-count string-count)
+    ; Sequence utilities
+    (cons 'scan scan)
+    (cons 'scan-right scan-right)
+    (cons 'windows windows)
+    (cons 'pairwise pairwise)
+    (cons 'differences differences)
+    (cons 'running-sum running-sum)
+    (cons 'running-product running-product)
+    ; Statistical utilities
+    (cons 'mean mean)
+    (cons 'median median)
+    (cons 'mode mode)
+    (cons 'variance variance)
+    (cons 'std-dev std-dev)
+    (cons 'normalize-list normalize-list)
+    (cons 'z-score z-score)
 ))
 "#;
 
