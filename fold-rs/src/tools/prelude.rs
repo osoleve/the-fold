@@ -2049,6 +2049,436 @@ pub const PRELUDE_SOURCE: &str = r#"
 
    ; enumerate: Alias for with-index
    (enumerate with-index)
+
+   ; -- Control flow utilities --
+
+   ; when-not: Execute body when condition is false
+   (when-not (fn (cond body)
+     (if cond #f body)))
+
+   ; if-not: Inverted if
+   (if-not (fn (cond then-val else-val)
+     (if cond else-val then-val)))
+
+   ; cond-list: Build list conditionally (include items where pred is true)
+   (cond-list (fn (pairs)
+     (filter-not null?
+       (map (fn (pair)
+              (if (car pair) (cadr pair) '()))
+            pairs))))
+
+   ; select: Select nth value from list based on index
+   (select (fn (idx vals)
+     (list-ref vals idx)))
+
+   ; case-pred: Like case but uses predicates
+   (case-pred (fn (val clauses)
+     (let ((matching (find-if (fn (clause) ((car clause) val)) clauses)))
+       (if matching
+           ((cadr matching) val)
+           #f))))
+
+   ; -- Property list utilities --
+
+   ; plist-get: Get value from property list
+   (plist-get (fix plist-get
+     (fn (key plist)
+       (if (null? plist)
+           #f
+           (if (null? (cdr plist))
+               #f
+               (if (eq? key (car plist))
+                   (cadr plist)
+                   (plist-get key (cddr plist))))))))
+
+   ; plist-set: Set value in property list (returns new plist)
+   (plist-set (fix plist-set
+     (fn (key val plist)
+       (if (null? plist)
+           (list key val)
+           (if (null? (cdr plist))
+               (list key val)
+               (if (eq? key (car plist))
+                   (cons key (cons val (cddr plist)))
+                   (cons (car plist)
+                         (cons (cadr plist)
+                               (plist-set key val (cddr plist))))))))))
+
+   ; plist-remove: Remove key from property list
+   (plist-remove (fix plist-remove
+     (fn (key plist)
+       (if (null? plist)
+           '()
+           (if (null? (cdr plist))
+               plist
+               (if (eq? key (car plist))
+                   (cddr plist)
+                   (cons (car plist)
+                         (cons (cadr plist)
+                               (plist-remove key (cddr plist))))))))))
+
+   ; plist-keys: Get all keys from property list
+   (plist-keys (fix plist-keys
+     (fn (plist)
+       (if (null? plist)
+           '()
+           (if (null? (cdr plist))
+               '()
+               (cons (car plist) (plist-keys (cddr plist))))))))
+
+   ; plist-values: Get all values from property list
+   (plist-values (fix plist-values
+     (fn (plist)
+       (if (null? plist)
+           '()
+           (if (null? (cdr plist))
+               '()
+               (cons (cadr plist) (plist-values (cddr plist))))))))
+
+   ; plist->alist: Convert property list to association list
+   (plist->alist (fix plist->alist
+     (fn (plist)
+       (if (null? plist)
+           '()
+           (if (null? (cdr plist))
+               '()
+               (cons (cons (car plist) (cadr plist))
+                     (plist->alist (cddr plist))))))))
+
+   ; alist->plist: Convert association list to property list
+   (alist->plist (fn (alist)
+     (concat (map (fn (pair) (list (car pair) (cdr pair))) alist))))
+
+   ; -- More comparison utilities --
+
+   ; min-max: Return both min and max of list
+   (min-max (fn (lst)
+     (if (null? lst)
+         '()
+         (foldl (fn (acc x)
+                  (list (min (car acc) x) (max (cadr acc) x)))
+                (list (car lst) (car lst))
+                (cdr lst)))))
+
+   ; between-inclusive?: Check if value is between lo and hi inclusive
+   (between-inclusive? (fn (lo hi x)
+     (and (>= x lo) (<= x hi))))
+
+   ; compare: Three-way comparison (-1, 0, 1)
+   (compare (fn (a b)
+     (if (< a b)
+         -1
+         (if (> a b)
+             1
+             0))))
+
+   ; compare-by: Three-way comparison with key function
+   (compare-by-key (fn (f a b)
+     (compare (f a) (f b))))
+
+   ; lexicographic-compare: Compare lists lexicographically
+   (lexicographic-compare (fix lexicographic-compare
+     (fn (xs ys)
+       (if (null? xs)
+           (if (null? ys) 0 -1)
+           (if (null? ys)
+               1
+               (let ((cmp (compare (car xs) (car ys))))
+                 (if (= cmp 0)
+                     (lexicographic-compare (cdr xs) (cdr ys))
+                     cmp)))))))
+
+   ; -- Vector HOFs --
+
+   ; vec-map: Map function over vector
+   (vec-map (fn (f v)
+     (list->vec (map f (vec->list v)))))
+
+   ; vec-filter: Filter vector by predicate
+   (vec-filter (fn (f v)
+     (list->vec (filter f (vec->list v)))))
+
+   ; vec-foldl: Left fold over vector
+   (vec-foldl (fn (f init v)
+     (foldl f init (vec->list v))))
+
+   ; vec-foldr: Right fold over vector
+   (vec-foldr (fn (f init v)
+     (foldr f init (vec->list v))))
+
+   ; vec-any: Check if any element satisfies predicate
+   (vec-any (fn (f v)
+     (any f (vec->list v))))
+
+   ; vec-all: Check if all elements satisfy predicate
+   (vec-all (fn (f v)
+     (all f (vec->list v))))
+
+   ; vec-find: Find first element matching predicate
+   (vec-find (fn (f v)
+     (find-if f (vec->list v))))
+
+   ; vec-sum: Sum of vector elements
+   (vec-sum (fn (v)
+     (sum-list (vec->list v))))
+
+   ; vec-product: Product of vector elements
+   (vec-product (fn (v)
+     (product-list (vec->list v))))
+
+   ; -- Iteration utilities --
+
+   ; iterate-until: Iterate function until predicate is true
+   (iterate-until (fix iterate-until
+     (fn (f stop? x)
+       (if (stop? x)
+           x
+           (iterate-until f stop? (f x))))))
+
+   ; iterate-while: Iterate function while predicate is true
+   (iterate-while (fix iterate-while
+     (fn (f continue? x)
+       (if (continue? x)
+           (iterate-while f continue? (f x))
+           x))))
+
+   ; iterate-n: Apply function n times
+   (iterate-n (fix iterate-n
+     (fn (n f x)
+       (if (<= n 0)
+           x
+           (iterate-n (- n 1) f (f x))))))
+
+   ; generate: Generate list using function and seed
+   (generate (fix generate
+     (fn (n f seed)
+       (if (<= n 0)
+           '()
+           (cons seed (generate (- n 1) f (f seed)))))))
+
+   ; unfold-right: Right unfold
+   (unfold-right (fix unfold-right
+     (fn (stop? f seed)
+       (if (stop? seed)
+           '()
+           (snoc (unfold-right stop? f (f seed)) seed)))))
+
+   ; -- Accumulator patterns --
+
+   ; scan-right: Right scan (like scanl but from right)
+   (scan-right (fix scan-right
+     (fn (f init lst)
+       (if (null? lst)
+           (list init)
+           (let ((rest (scan-right f init (cdr lst))))
+             (cons (f (car lst) (car rest)) rest))))))
+
+   ; running-max: Running maximum
+   (running-max (fn (lst)
+     (if (null? lst)
+         '()
+         (scanl max (car lst) (cdr lst)))))
+
+   ; running-min: Running minimum
+   (running-min (fn (lst)
+     (if (null? lst)
+         '()
+         (scanl min (car lst) (cdr lst)))))
+
+   ; -- Conditional list builders --
+
+   ; append-if: Append element if condition is true
+   (append-if (fn (cond elem lst)
+     (if cond (append lst (list elem)) lst)))
+
+   ; prepend-if: Prepend element if condition is true
+   (prepend-if (fn (cond elem lst)
+     (if cond (cons elem lst) lst)))
+
+   ; maybe-cons: Cons if value is not #f
+   (maybe-cons (fn (x lst)
+     (if x (cons x lst) lst)))
+
+   ; -- Numeric sequences --
+
+   ; arithmetic-sequence: Generate arithmetic sequence
+   (arithmetic-sequence (fn (start step n)
+     (generate n (fn (x) (+ x step)) start)))
+
+   ; geometric-sequence: Generate geometric sequence
+   (geometric-sequence (fn (start ratio n)
+     (generate n (fn (x) (* x ratio)) start)))
+
+   ; fibonacci-sequence: Generate fibonacci sequence
+   (fibonacci-sequence (fn (n)
+     (let ((fib-helper (fix fib-helper
+             (fn (n a b acc)
+               (if (<= n 0)
+                   (reverse acc)
+                   (fib-helper (- n 1) b (+ a b) (cons a acc)))))))
+       (fib-helper n 0 1 '()))))
+
+   ; primes-up-to: Generate primes up to n using sieve
+   (primes-up-to (fn (n)
+     (let ((sieve (fix sieve
+             (fn (candidates)
+               (if (null? candidates)
+                   '()
+                   (let ((p (car candidates)))
+                     (cons p
+                           (sieve (filter (fn (x) (not (= 0 (mod x p))))
+                                          (cdr candidates))))))))))
+       (sieve (range 2 (+ n 1))))))
+
+   ; -- List searching --
+
+   ; find-all: Find all elements matching predicate
+   (find-all filter)
+
+   ; find-first-n: Find first n elements matching predicate
+   (find-first-n (fn (n f lst)
+     (take-n n (filter f lst))))
+
+   ; find-last: Find last element matching predicate
+   (find-last (fn (f lst)
+     (last-where f lst)))
+
+   ; index-of-all: Find all indices where predicate holds
+   (index-of-all indices-where)
+
+   ; -- String builders --
+
+   ; string-repeat-fn: Repeat string n times
+   (string-repeat-fn (fn (n s)
+     (string-repeat s n)))
+
+   ; string-pad-left: Pad string on left to width
+   (string-pad-left (fn (width pad-char s)
+     (let ((len (string-length s)))
+       (if (>= len width)
+           s
+           (string-append (string-repeat-fn (- width len) (string pad-char)) s)))))
+
+   ; string-pad-right: Pad string on right to width
+   (string-pad-right (fn (width pad-char s)
+     (let ((len (string-length s)))
+       (if (>= len width)
+           s
+           (string-append s (string-repeat-fn (- width len) (string pad-char)))))))
+
+   ; string-center-fn: Center string to width
+   (string-center-fn (fn (width pad-char s)
+     (let ((len (string-length s)))
+       (if (>= len width)
+           s
+           (let ((total-pad (- width len)))
+             (let ((left-pad (/ total-pad 2)))
+               (let ((right-pad (- total-pad left-pad)))
+                 (string-append
+                   (string-repeat-fn left-pad (string pad-char))
+                   s
+                   (string-repeat-fn right-pad (string pad-char))))))))))
+
+   ; -- Safe operations --
+
+   ; safe-car: Car with default for empty list
+   (safe-car (fn (default lst)
+     (if (null? lst) default (car lst))))
+
+   ; safe-cdr: Cdr with default for empty list
+   (safe-cdr (fn (default lst)
+     (if (null? lst) default (cdr lst))))
+
+   ; safe-head: Head with default
+   (safe-head safe-car)
+
+   ; safe-tail: Tail with default
+   (safe-tail safe-cdr)
+
+   ; safe-nth: Nth with default for out of bounds
+   (safe-nth nth-safe)
+
+   ; safe-div: Division with default for divide by zero
+   (safe-div (fn (default a b)
+     (if (= b 0) default (/ a b))))
+
+   ; safe-mod: Modulo with default for divide by zero
+   (safe-mod (fn (default a b)
+     (if (= b 0) default (mod a b))))
+
+   ; -- Composition utilities --
+
+   ; compose3: Compose three functions
+   (compose3 (fn (f g h)
+     (fn (x) (f (g (h x))))))
+
+   ; compose4: Compose four functions
+   (compose4 (fn (f g h i)
+     (fn (x) (f (g (h (i x)))))))
+
+   ; pipe3: Pipe through three functions
+   (pipe3 (fn (f g h)
+     (fn (x) (h (g (f x))))))
+
+   ; pipe4: Pipe through four functions
+   (pipe4 (fn (f g h i)
+     (fn (x) (i (h (g (f x)))))))
+
+   ; -- Predicate combinators --
+
+   ; conjoin: Combine predicates with and
+   (conjoin (fn (preds)
+     (fn (x) (all (fn (p) (p x)) preds))))
+
+   ; disjoin: Combine predicates with or
+   (disjoin (fn (preds)
+     (fn (x) (any (fn (p) (p x)) preds))))
+
+   ; -- Pair utilities --
+
+   ; pair-map: Map over both elements of pair
+   (pair-map (fn (f pair)
+     (cons (f (car pair)) (f (cdr pair)))))
+
+   ; pair-map-car: Map over car only
+   (pair-map-car (fn (f pair)
+     (cons (f (car pair)) (cdr pair))))
+
+   ; pair-map-cdr: Map over cdr only
+   (pair-map-cdr (fn (f pair)
+     (cons (car pair) (f (cdr pair)))))
+
+   ; pair-swap: Alias for swap
+   (pair-swap swap)
+
+   ; -- Result type utilities (using Either) --
+
+   ; ok: Create success result (alias for right)
+   (ok right)
+
+   ; err: Create error result (alias for left)
+   (err left)
+
+   ; ok?: Check if result is ok
+   (ok? right?)
+
+   ; err?: Check if result is error
+   (err? left?)
+
+   ; unwrap: Extract value or error
+   (unwrap (fn (result)
+     (if (ok? result)
+         (from-right result)
+         (from-left result))))
+
+   ; unwrap-or: Extract value or use default
+   (unwrap-or from-either)
+
+   ; map-ok: Map over ok value
+   (map-ok map-right)
+
+   ; map-err: Map over error value
+   (map-err map-left)
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -2407,7 +2837,96 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'window window)
     (cons 'adjacent-pairs adjacent-pairs)
     (cons 'with-index with-index)
-    (cons 'enumerate enumerate)))
+    (cons 'enumerate enumerate)
+    ; Control flow utilities
+    (cons 'when-not when-not)
+    (cons 'if-not if-not)
+    (cons 'cond-list cond-list)
+    (cons 'select select)
+    (cons 'case-pred case-pred)
+    ; Property list utilities
+    (cons 'plist-get plist-get)
+    (cons 'plist-set plist-set)
+    (cons 'plist-remove plist-remove)
+    (cons 'plist-keys plist-keys)
+    (cons 'plist-values plist-values)
+    (cons 'plist->alist plist->alist)
+    (cons 'alist->plist alist->plist)
+    ; Comparison utilities
+    (cons 'min-max min-max)
+    (cons 'between-inclusive? between-inclusive?)
+    (cons 'compare compare)
+    (cons 'compare-by-key compare-by-key)
+    (cons 'lexicographic-compare lexicographic-compare)
+    ; Vector HOFs
+    (cons 'vec-map vec-map)
+    (cons 'vec-filter vec-filter)
+    (cons 'vec-foldl vec-foldl)
+    (cons 'vec-foldr vec-foldr)
+    (cons 'vec-any vec-any)
+    (cons 'vec-all vec-all)
+    (cons 'vec-find vec-find)
+    (cons 'vec-sum vec-sum)
+    (cons 'vec-product vec-product)
+    ; Iteration utilities
+    (cons 'iterate-until iterate-until)
+    (cons 'iterate-while iterate-while)
+    (cons 'iterate-n iterate-n)
+    (cons 'generate generate)
+    (cons 'unfold-right unfold-right)
+    ; Accumulator patterns
+    (cons 'scan-right scan-right)
+    (cons 'running-max running-max)
+    (cons 'running-min running-min)
+    ; Conditional list builders
+    (cons 'append-if append-if)
+    (cons 'prepend-if prepend-if)
+    (cons 'maybe-cons maybe-cons)
+    ; Numeric sequences
+    (cons 'arithmetic-sequence arithmetic-sequence)
+    (cons 'geometric-sequence geometric-sequence)
+    (cons 'fibonacci-sequence fibonacci-sequence)
+    (cons 'primes-up-to primes-up-to)
+    ; List searching
+    (cons 'find-all find-all)
+    (cons 'find-first-n find-first-n)
+    (cons 'find-last find-last)
+    (cons 'index-of-all index-of-all)
+    ; String builders
+    (cons 'string-repeat-fn string-repeat-fn)
+    (cons 'string-pad-left string-pad-left)
+    (cons 'string-pad-right string-pad-right)
+    (cons 'string-center-fn string-center-fn)
+    ; Safe operations
+    (cons 'safe-car safe-car)
+    (cons 'safe-cdr safe-cdr)
+    (cons 'safe-head safe-head)
+    (cons 'safe-tail safe-tail)
+    (cons 'safe-nth safe-nth)
+    (cons 'safe-div safe-div)
+    (cons 'safe-mod safe-mod)
+    ; Composition utilities
+    (cons 'compose3 compose3)
+    (cons 'compose4 compose4)
+    (cons 'pipe3 pipe3)
+    (cons 'pipe4 pipe4)
+    ; Predicate combinators
+    (cons 'conjoin conjoin)
+    (cons 'disjoin disjoin)
+    ; Pair utilities
+    (cons 'pair-map pair-map)
+    (cons 'pair-map-car pair-map-car)
+    (cons 'pair-map-cdr pair-map-cdr)
+    (cons 'pair-swap pair-swap)
+    ; Result type utilities
+    (cons 'ok ok)
+    (cons 'err err)
+    (cons 'ok? ok?)
+    (cons 'err? err?)
+    (cons 'unwrap unwrap)
+    (cons 'unwrap-or unwrap-or)
+    (cons 'map-ok map-ok)
+    (cons 'map-err map-err)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};

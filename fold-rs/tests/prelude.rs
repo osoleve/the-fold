@@ -2305,3 +2305,299 @@ fn test_enumerate() {
     let result = eval_with_prelude("(enumerate '(a b c))");
     assert_eq!(result, "((0 a) (1 b) (2 c))");
 }
+
+// ========== Control Flow Utilities Tests ==========
+
+#[test]
+fn test_when_not() {
+    let result = eval_with_prelude("(when-not #f 42)");
+    assert_eq!(result, "42");
+
+    let result = eval_with_prelude("(when-not #t 42)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_if_not() {
+    let result = eval_with_prelude("(if-not #f 1 2)");
+    assert_eq!(result, "1");
+
+    let result = eval_with_prelude("(if-not #t 1 2)");
+    assert_eq!(result, "2");
+}
+
+#[test]
+fn test_select() {
+    let result = eval_with_prelude("(select 1 '(a b c))");
+    assert_eq!(result, "b");
+}
+
+// ========== Property List Utilities Tests ==========
+
+#[test]
+fn test_plist_get() {
+    let result = eval_with_prelude("(plist-get 'b '(a 1 b 2 c 3))");
+    assert_eq!(result, "2");
+
+    let result = eval_with_prelude("(plist-get 'd '(a 1 b 2 c 3))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_plist_set() {
+    let result = eval_with_prelude("(plist-set 'b 99 '(a 1 b 2 c 3))");
+    assert_eq!(result, "(a 1 b 99 c 3)");
+
+    let result = eval_with_prelude("(plist-set 'd 4 '(a 1 b 2))");
+    assert_eq!(result, "(a 1 b 2 d 4)");
+}
+
+#[test]
+fn test_plist_keys() {
+    let result = eval_with_prelude("(plist-keys '(a 1 b 2 c 3))");
+    assert_eq!(result, "(a b c)");
+}
+
+#[test]
+fn test_plist_values() {
+    let result = eval_with_prelude("(plist-values '(a 1 b 2 c 3))");
+    assert_eq!(result, "(1 2 3)");
+}
+
+#[test]
+fn test_plist_alist_conversion() {
+    let result = eval_with_prelude("(plist->alist '(a 1 b 2))");
+    assert_eq!(result, "((a . 1) (b . 2))");
+}
+
+// ========== Comparison Utilities Tests ==========
+
+#[test]
+fn test_min_max() {
+    let result = eval_with_prelude("(min-max '(3 1 4 1 5 9 2 6))");
+    assert_eq!(result, "(1 9)");
+}
+
+#[test]
+fn test_between_inclusive() {
+    let result = eval_with_prelude("(between-inclusive? 1 10 5)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(between-inclusive? 1 10 0)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_compare() {
+    let result = eval_with_prelude("(compare 1 2)");
+    assert_eq!(result, "-1");
+
+    let result = eval_with_prelude("(compare 2 2)");
+    assert_eq!(result, "0");
+
+    let result = eval_with_prelude("(compare 3 2)");
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_lexicographic_compare() {
+    let result = eval_with_prelude("(lexicographic-compare '(1 2 3) '(1 2 4))");
+    assert_eq!(result, "-1");
+
+    let result = eval_with_prelude("(lexicographic-compare '(1 2 3) '(1 2 3))");
+    assert_eq!(result, "0");
+}
+
+// ========== Vector HOF Tests ==========
+
+#[test]
+fn test_vec_map() {
+    let result = eval_with_prelude("(vec->list (vec-map (fn (x) (* x 2)) (vec-make 1 2 3)))");
+    assert_eq!(result, "(2 4 6)");
+}
+
+#[test]
+fn test_vec_filter() {
+    let result = eval_with_prelude("(vec->list (vec-filter even? (vec-make 1 2 3 4 5)))");
+    assert_eq!(result, "(2 4)");
+}
+
+#[test]
+fn test_vec_foldl() {
+    let result = eval_with_prelude("(vec-foldl + 0 (vec-make 1 2 3 4))");
+    assert_eq!(result, "10");
+}
+
+// ========== Iteration Utilities Tests ==========
+
+#[test]
+fn test_iterate_until() {
+    let result = eval_with_prelude("(iterate-until (fn (x) (* x 2)) (fn (x) (> x 100)) 1)");
+    assert_eq!(result, "128");
+}
+
+#[test]
+fn test_iterate_n() {
+    let result = eval_with_prelude("(iterate-n 5 (fn (x) (+ x 1)) 0)");
+    assert_eq!(result, "5");
+}
+
+#[test]
+fn test_generate() {
+    let result = eval_with_prelude("(generate 5 (fn (x) (+ x 1)) 0)");
+    assert_eq!(result, "(0 1 2 3 4)");
+}
+
+// ========== Accumulator Pattern Tests ==========
+
+#[test]
+fn test_scan_right() {
+    let result = eval_with_prelude("(scan-right + 0 '(1 2 3))");
+    assert_eq!(result, "(6 5 3 0)");
+}
+
+#[test]
+fn test_running_max() {
+    let result = eval_with_prelude("(running-max '(3 1 4 1 5 9 2))");
+    assert_eq!(result, "(3 3 4 4 5 9 9)");
+}
+
+#[test]
+fn test_running_min() {
+    let result = eval_with_prelude("(running-min '(3 1 4 1 5 9 2))");
+    assert_eq!(result, "(3 1 1 1 1 1 1)");
+}
+
+// ========== Numeric Sequence Tests ==========
+
+#[test]
+fn test_arithmetic_sequence() {
+    let result = eval_with_prelude("(arithmetic-sequence 0 2 5)");
+    assert_eq!(result, "(0 2 4 6 8)");
+}
+
+#[test]
+fn test_geometric_sequence() {
+    let result = eval_with_prelude("(geometric-sequence 1 2 5)");
+    assert_eq!(result, "(1 2 4 8 16)");
+}
+
+#[test]
+fn test_fibonacci_sequence() {
+    let result = eval_with_prelude("(fibonacci-sequence 8)");
+    assert_eq!(result, "(0 1 1 2 3 5 8 13)");
+}
+
+#[test]
+fn test_primes_up_to() {
+    let result = eval_with_prelude("(primes-up-to 20)");
+    assert_eq!(result, "(2 3 5 7 11 13 17 19)");
+}
+
+// ========== Safe Operations Tests ==========
+
+#[test]
+fn test_safe_car() {
+    let result = eval_with_prelude("(safe-car 0 '(1 2 3))");
+    assert_eq!(result, "1");
+
+    let result = eval_with_prelude("(safe-car 0 '())");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_safe_div() {
+    let result = eval_with_prelude("(safe-div 0 10 2)");
+    assert_eq!(result, "5");
+
+    let result = eval_with_prelude("(safe-div 0 10 0)");
+    assert_eq!(result, "0");
+}
+
+// ========== Composition Tests ==========
+
+#[test]
+fn test_compose3() {
+    let result =
+        eval_with_prelude("((compose3 (fn (x) (* x 2)) (fn (x) (+ x 1)) (fn (x) (* x 3))) 5)");
+    assert_eq!(result, "32");
+}
+
+#[test]
+fn test_pipe3() {
+    let result =
+        eval_with_prelude("((pipe3 (fn (x) (* x 3)) (fn (x) (+ x 1)) (fn (x) (* x 2))) 5)");
+    assert_eq!(result, "32");
+}
+
+// ========== Predicate Combinator Tests ==========
+
+#[test]
+fn test_conjoin() {
+    let result = eval_with_prelude("((conjoin (list positive? even?)) 4)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("((conjoin (list positive? even?)) -4)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_disjoin() {
+    let result = eval_with_prelude("((disjoin (list negative? even?)) -3)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("((disjoin (list negative? even?)) 3)");
+    assert_eq!(result, "#f");
+}
+
+// ========== Pair Utilities Tests ==========
+
+#[test]
+fn test_pair_map() {
+    let result = eval_with_prelude("(pair-map (fn (x) (* x 2)) (cons 3 4))");
+    assert_eq!(result, "(6 . 8)");
+}
+
+#[test]
+fn test_pair_map_car() {
+    let result = eval_with_prelude("(pair-map-car (fn (x) (* x 2)) (cons 3 4))");
+    assert_eq!(result, "(6 . 4)");
+}
+
+// ========== Result Type Tests ==========
+
+#[test]
+fn test_ok_err() {
+    let result = eval_with_prelude("(ok 42)");
+    assert_eq!(result, "(right 42)");
+
+    let result = eval_with_prelude("(err \"oops\")");
+    assert_eq!(result, "(left \"oops\")");
+}
+
+#[test]
+fn test_ok_err_predicates() {
+    let result = eval_with_prelude("(ok? (ok 1))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(err? (err \"x\"))");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_unwrap() {
+    let result = eval_with_prelude("(unwrap (ok 42))");
+    assert_eq!(result, "42");
+
+    let result = eval_with_prelude("(unwrap (err \"oops\"))");
+    assert_eq!(result, "\"oops\"");
+}
+
+#[test]
+fn test_unwrap_or() {
+    let result = eval_with_prelude("(unwrap-or 0 (ok 42))");
+    assert_eq!(result, "42");
+
+    let result = eval_with_prelude("(unwrap-or 0 (err \"oops\"))");
+    assert_eq!(result, "0");
+}
