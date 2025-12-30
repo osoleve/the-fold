@@ -165,8 +165,4 @@
                                    (cons (car lst) (insert-sorted-by cmp x (cdr lst))))))))
 
 ; --- Module Exports ---
-(module-exports
- partition span chunks sliding split-at split-when split-with
- group-consecutive group-runs map-runs
- nub dedupe dedupe-by frequencies windowed
- power-set permutations combinations subsets insert-sorted-by)
+; (see exports.ss for exported symbols)

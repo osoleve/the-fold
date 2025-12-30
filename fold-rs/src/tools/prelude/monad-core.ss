@@ -98,3 +98,6 @@
 ; run-writer: Run writer, returning (value log) pair
 ; Identity function - writer values are already in the right form
 (run-writer id)
+
+; --- Module Exports ---
+; (see exports.ss for exported symbols)

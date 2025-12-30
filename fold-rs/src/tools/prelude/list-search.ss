@@ -70,7 +70,4 @@
                 (foldr (fn (x acc) (if (and (not acc) (p x)) x acc)) #f lst)))
 
 ; --- Module Exports ---
-(module-exports
- before after find-if remove-if remove count-if elem?
- find-indices count-occurrences
- index-where indices-where last-where)
+; (see exports.ss for exported symbols)

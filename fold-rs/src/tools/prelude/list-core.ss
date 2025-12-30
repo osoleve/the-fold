@@ -153,9 +153,4 @@
                      (scanl min (car lst) (cdr lst)))))
 
 ; --- Module Exports ---
-(module-exports
- sum-list product-list
- take-n drop-n take-right drop-right take-last drop-last butlast snoc
- replicate iterate scanl
- nth-safe unfold tails inits range-list repeat-fn
- iterate-n generate unfold-right scan-right running-max running-min)
+; (see exports.ss for exported symbols)

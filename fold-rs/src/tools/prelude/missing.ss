@@ -1,505 +1,3 @@
-
-; map: Apply function to each element of a list
-(map (fix map
-          (fn (f lst)
-              (if (null? lst)
-                  '()
-                  (cons (f (car lst)) (map f (cdr lst)))))))
-
-; filter: Keep elements satisfying predicate
-(filter (fix filter
-             (fn (p lst)
-                 (if (null? lst)
-                     '()
-                     (if (p (car lst))
-                         (cons (car lst) (filter p (cdr lst)))
-                         (filter p (cdr lst)))))))
-
-; foldl: Left fold (tail-recursive)
-(foldl (fix foldl
-            (fn (f acc lst)
-                (if (null? lst)
-                    acc
-                    (foldl f (f acc (car lst)) (cdr lst))))))
-
-; foldr: Right fold
-(foldr (fix foldr
-            (fn (f acc lst)
-                (if (null? lst)
-                    acc
-                    (f (car lst) (foldr f acc (cdr lst)))))))
-
-; any: Check if any element satisfies predicate
-(any (fix any
-          (fn (p lst)
-              (if (null? lst)
-                  #f
-                  (if (p (car lst))
-                      #t
-                      (any p (cdr lst)))))))
-
-; all: Check if all elements satisfy predicate
-(all (fix all
-          (fn (p lst)
-              (if (null? lst)
-                  #t
-                  (if (p (car lst))
-                      (all p (cdr lst))
-                      #f)))))
-
-; take-while: Take elements while predicate holds
-(take-while (fix take-while
-                 (fn (p lst)
-                     (if (null? lst)
-                         '()
-                         (if (p (car lst))
-                             (cons (car lst) (take-while p (cdr lst)))
-                             '())))))
-
-; drop-while: Drop elements while predicate holds
-(drop-while (fix drop-while
-                 (fn (p lst)
-                     (if (null? lst)
-                         '()
-                         (if (p (car lst))
-                             (drop-while p (cdr lst))
-                             lst)))))
-
-; zip-with: Combine two lists with a function
-(zip-with (fix zip-with
-               (fn (f lst1 lst2)
-                   (if (or (null? lst1) (null? lst2))
-                       '()
-                       (cons (f (car lst1) (car lst2))
-                             (zip-with f (cdr lst1) (cdr lst2)))))))
-
-; -- Non-recursive utilities (don't need fix) --
-
-; sum-list: Sum a list of numbers (primitives are first-class!)
-(sum-list (fn (lst) (foldl + 0 lst)))
-
-; product-list: Product of a list of numbers
-(product-list (fn (lst) (foldl * 1 lst)))
-
-; id: Identity function
-(id (fn (x) x))
-
-; const: Return a function that always returns the same value
-(const (fn (x) (fn (y) x)))
-
-; compose: Compose two functions (f . g)
-(compose (fn (f g) (fn (x) (f (g x)))))
-
-; flip: Swap arguments of a binary function
-(flip (fn (f) (fn (x y) (f y x))))
-
-; complement: Negate a predicate
-(complement (fn (p) (fn (x) (not (p x)))))
-
-; -- Equality predicates --
-
-; eqv?: Value equality (same as eq? for symbols, = for numbers)
-(eqv? (fn (a b)
-          (if (number? a)
-              (if (number? b) (= a b) #f)
-              (if (string? a)
-                  (if (string? b) (string=? a b) #f)
-                  (if (char? a)
-                      (if (char? b) (char=? a b) #f)
-                      (eq? a b))))))
-
-; equal?: Deep structural equality
-(equal? (fix equal-rec
-             (fn (a b)
-                 (if (pair? a)
-                     (if (pair? b)
-                         (if (equal-rec (car a) (car b))
-                             (equal-rec (cdr a) (cdr b))
-                             #f)
-                         #f)
-                     (if (null? a)
-                         (null? b)
-                         (eqv? a b))))))
-
-; -- More list utilities --
-
-; partition: Split list into (matches, non-matches) based on predicate
-(partition (fix partition
-                (fn (p lst)
-                    (if (null? lst)
-                        (list '() '())
-                        (let ((rest-result (partition p (cdr lst)))
-                              (x (car lst)))
-                             (if (p x)
-                                 (list (cons x (car rest-result)) (cadr rest-result))
-                                 (list (car rest-result) (cons x (cadr rest-result)))))))))
-
-; find-if: Find first element matching predicate, or #f
-(find-if (fix find-if
-              (fn (p lst)
-                  (if (null? lst)
-                      #f
-                      (if (p (car lst))
-                          (car lst)
-                          (find-if p (cdr lst)))))))
-
-; remove-if: Remove elements matching predicate (opposite of filter)
-(remove-if (fn (p lst) (filter (complement p) lst)))
-
-; count-if: Count elements matching predicate
-(count-if (fn (p lst) (foldl (fn (acc x) (if (p x) (+ acc 1) acc)) 0 lst)))
-
-; concat: Concatenate a list of lists
-(concat (fn (lists) (foldl append '() lists)))
-
-; replicate: Create list of n copies of x
-(replicate (fix replicate
-                (fn (n x)
-                    (if (<= n 0)
-                        '()
-                        (cons x (replicate (- n 1) x))))))
-
-; iterate: Generate list by applying f n times: (x (f x) (f (f x)) ...)
-(iterate (fix iterate
-              (fn (f n x)
-                  (if (<= n 0)
-                      '()
-                      (cons x (iterate f (- n 1) (f x)))))))
-
-; scanl: Like foldl but returns list of intermediate results
-(scanl (fix scanl
-            (fn (f acc lst)
-                (if (null? lst)
-                    (list acc)
-                    (cons acc (scanl f (f acc (car lst)) (cdr lst)))))))
-
-; curry2: Curry a 2-argument function
-(curry2 (fn (f) (fn (x) (fn (y) (f x y)))))
-
-; uncurry2: Uncurry to a 2-argument function
-(uncurry2 (fn (f) (fn (x y) ((f x) y))))
-
-; -- Additional list combinators --
-
-; zip: Pair up elements from two lists
-(zip (fn (lst1 lst2) (zip-with cons lst1 lst2)))
-
-; unzip: Split list of pairs into (cars, cdrs)
-(unzip (fn (pairs)
-           (foldr (fn (pair acc)
-                      (cons (cons (car pair) (car acc))
-                            (cons (cdr pair) (cdr acc))))
-                  (cons '() '())
-                  pairs)))
-
-; intersperse: Insert separator between elements
-(intersperse (fix intersperse
-                  (fn (sep lst)
-                      (if (null? lst)
-                          '()
-                          (if (null? (cdr lst))
-                              (list (car lst))
-                              (cons (car lst) (cons sep (intersperse sep (cdr lst)))))))))
-
-; span: Split at first element not matching predicate
-; Returns (take-while-result . drop-while-result)
-(span (fn (p lst) (cons (take-while p lst) (drop-while p lst))))
-
-; flat-map: Map then concatenate results
-(flat-map (fn (f lst) (concat (map f lst))))
-
-; map-indexed: Map with index (0-based)
-(map-indexed (fix map-indexed
-                  (fn (f lst)
-                      (let ((go (fix go
-                                     (fn (i xs)
-                                         (if (null? xs)
-                                             '()
-                                             (cons (f i (car xs)) (go (+ i 1) (cdr xs))))))))
-                           (go 0 lst)))))
-
-; filter-indexed: Filter with index access
-(filter-indexed (fix filter-indexed
-                     (fn (p lst)
-                         (let ((go (fix go
-                                        (fn (i xs)
-                                            (if (null? xs)
-                                                '()
-                                                (if (p i (car xs))
-                                                    (cons (car xs) (go (+ i 1) (cdr xs)))
-                                                    (go (+ i 1) (cdr xs))))))))
-                              (go 0 lst)))))
-
-; nth: Safe list access (returns #f if out of bounds)
-(nth-safe (fix nth-safe
-               (fn (n lst)
-                   (if (null? lst)
-                       #f
-                       (if (= n 0)
-                           (car lst)
-                           (nth-safe (- n 1) (cdr lst)))))))
-
-; -- Extremum functions --
-
-; max-by: Find maximum element by key function
-(max-by (fix max-by
-             (fn (key-fn lst)
-                 (if (null? lst)
-                     #f
-                     (if (null? (cdr lst))
-                         (car lst)
-                         (let ((rest-max (max-by key-fn (cdr lst))))
-                              (if (> (key-fn (car lst)) (key-fn rest-max))
-                                  (car lst)
-                                  rest-max)))))))
-
-; min-by: Find minimum element by key function
-(min-by (fix min-by
-             (fn (key-fn lst)
-                 (if (null? lst)
-                     #f
-                     (if (null? (cdr lst))
-                         (car lst)
-                         (let ((rest-min (min-by key-fn (cdr lst))))
-                              (if (< (key-fn (car lst)) (key-fn rest-min))
-                                  (car lst)
-                                  rest-min)))))))
-
-; on: Apply binary function to results of unary function
-; Example: ((on < length) "ab" "abc") => #t
-(on (fn (f g) (fn (x y) (f (g x) (g y)))))
-
-; -- More utilities --
-
-; juxt: Apply list of functions to same argument, return list of results
-; ((juxt (list inc dec)) 5) => (6 4)
-(juxt (fn (funcs)
-          (fn (x) (map (fn (f) (f x)) funcs))))
-
-; pipe: Compose functions left-to-right (opposite of compose)
-(pipe (fn (f g) (fn (x) (g (f x)))))
-
-; -- List generators --
-
-; unfold: Generate list from seed (dual of fold)
-; (unfold p f g seed) where:
-;   p = predicate to stop (returns #t when done)
-;   f = function to generate value from seed
-;   g = function to generate next seed
-;   seed = initial seed
-; Example: (unfold (fn (x) (> x 5)) id inc 1) => (1 2 3 4 5)
-(unfold (fix unfold
-             (fn (stop? extract next seed)
-                 (if (stop? seed)
-                     '()
-                     (cons (extract seed) (unfold stop? extract next (next seed)))))))
-
-; tails: All suffixes of a list
-; (tails '(1 2 3)) => ((1 2 3) (2 3) (3) ())
-(tails (fix tails
-            (fn (lst)
-                (if (null? lst)
-                    (list '())
-                    (cons lst (tails (cdr lst)))))))
-
-; inits: All prefixes of a list
-; (inits '(1 2 3)) => (() (1) (1 2) (1 2 3))
-(inits (fix inits
-            (fn (lst)
-                (if (null? lst)
-                    (list '())
-                    (cons '() (map (fn (t) (cons (car lst) t)) (inits (cdr lst))))))))
-
-; group-consecutive: Group consecutive equal elements
-; (group-consecutive '(1 1 2 2 2 3)) => ((1 1) (2 2 2) (3))
-(group-consecutive (fix group-consecutive
-                        (fn (lst)
-                            (if (null? lst)
-                                '()
-                                (let ((x (car lst)))
-                                     (let ((result (span (fn (y) (= x y)) lst)))
-                                          (cons (car result) (group-consecutive (cdr result)))))))))
-
-; range-list: Generate list of numbers (uses primitive range)
-; (range-list 1 5) => (1 2 3 4)
-(range-list (fn (start end) (range start end)))
-
-; repeat-fn: Apply function n times to initial value, return final result
-; (repeat-fn inc 5 0) => 5
-(repeat-fn (fix repeat-fn
-                (fn (f n x)
-                    (if (<= n 0)
-                        x
-                        (repeat-fn f (- n 1) (f x))))))
-
-; -- Maybe/Option utilities (using #f as None) --
-
-; maybe: Apply function if value is not #f, else return default
-; (maybe 0 inc #f) => 0
-; (maybe 0 inc 5) => 6
-(maybe (fn (default f x)
-           (if x (f x) default)))
-
-; from-maybe: Get value or default if #f
-; (from-maybe 0 #f) => 0
-; (from-maybe 0 5) => 5
-(from-maybe (fn (default x)
-                (if x x default)))
-
-; map-maybe: Map over list, keeping only non-#f results
-; (map-maybe (fn (x) (if (> x 0) x #f)) '(-1 2 -3 4)) => (2 4)
-(map-maybe (fn (f lst)
-               (filter id (map f lst))))
-
-; cat-maybes: Filter out #f values from list
-; (cat-maybes '(1 #f 2 #f 3)) => (1 2 3)
-(cat-maybes (fn (lst) (filter id lst)))
-
-; -- Tagged Maybe type (alternative to #f-as-None) --
-
-; just: Create a Just value
-; (just 42) => (just 42)
-(just (fn (x) (list 'just x)))
-
-; nothing: Create a Nothing value
-; (nothing) => (nothing)
-(nothing (fn () (list 'nothing)))
-
-; nothing?: Check if a value is Nothing
-; (nothing? (nothing)) => #t
-; (nothing? (just 5)) => #f
-(nothing? (fn (m) (eq? (car m) 'nothing)))
-
-; from-just: Extract value from Just
-; (from-just (just 42)) => 42
-(from-just (fn (m) (cadr m)))
-
-; just?: Check if value is Just
-; (just? (just 5)) => #t
-; (just? (nothing)) => #f
-(just? (fn (m) (and (pair? m) (eq? (car m) 'just))))
-
-; -- Chunking and windowing --
-
-; chunks: Split list into chunks of size n
-; (chunks 2 '(1 2 3 4 5)) => ((1 2) (3 4) (5))
-(chunks (fix chunks
-             (fn (n lst)
-                 (if (null? lst)
-                     '()
-                     (cons (take lst n) (chunks n (drop lst n)))))))
-
-; sliding: Sliding window of size n
-; (sliding 2 '(1 2 3 4)) => ((1 2) (2 3) (3 4))
-(sliding (fix sliding
-              (fn (n lst)
-                  (if (< (length lst) n)
-                      '()
-                      (cons (take lst n) (sliding n (cdr lst)))))))
-
-; pairs: Consecutive pairs (sliding window of 2)
-; (pairs '(1 2 3 4)) => ((1 2) (2 3) (3 4))
-(pairs (fn (lst) (sliding 2 lst)))
-
-; -- More list utilities --
-
-; split-at: Split list at index n
-; (split-at 2 '(a b c d e)) => ((a b) c d e)
-(split-at (fn (n lst) (cons (take lst n) (drop lst n))))
-
-; elem?: Check if element is in list (alias for member returning bool)
-(elem? (fn (x lst) (if (member x lst) #t #f)))
-
-; nub: Remove duplicates (keep first occurrence)
-; Uses eq? for comparison (works for symbols, numbers, etc.)
-(nub (fix nub
-          (fn (lst)
-              (if (null? lst)
-                  '()
-                  (cons (car lst) (nub (filter (fn (x) (not (eq? x (car lst)))) (cdr lst))))))))
-
-; intercalate: Insert list between lists and concat
-; (intercalate '(0) '((1 2) (3 4) (5))) => (1 2 0 3 4 0 5)
-(intercalate (fn (sep lists) (concat (intersperse sep lists))))
-
-; transpose: Transpose list of lists (matrix transpose)
-; (transpose '((1 2 3) (4 5 6))) => ((1 4) (2 5) (3 6))
-(transpose (fix transpose
-                (fn (lists)
-                    (if (or (null? lists) (any null? lists))
-                        '()
-                        (cons (map car lists) (transpose (map cdr lists)))))))
-
-; -- Numeric utilities --
-
-; sum-by: Sum elements after applying function
-; (sum-by length '("a" "bb" "ccc")) => 6
-(sum-by (fn (f lst) (foldl (fn (acc x) (+ acc (f x))) 0 lst)))
-
-; product-by: Product of elements after applying function
-(product-by (fn (f lst) (foldl (fn (acc x) (* acc (f x))) 1 lst)))
-
-; average: Average of a list of numbers
-; (average '(1 2 3 4 5)) => 3
-(average (fn (lst)
-             (if (null? lst)
-                 0
-                 (/ (sum-list lst) (length lst)))))
-
-; even-indices: Get elements at even indices (0, 2, 4, ...)
-; (even-indices '(a b c d e)) => (a c e)
-(even-indices (fn (lst)
-                  (filter-indexed (fn (i x) (even? i)) lst)))
-
-; odd-indices: Get elements at odd indices (1, 3, 5, ...)
-; (odd-indices '(a b c d e)) => (b d)
-(odd-indices (fn (lst)
-                 (filter-indexed (fn (i x) (odd? i)) lst)))
-
-; -- Comparison utilities --
-
-; sort-by: Sort list by key function (using insertion sort)
-; (sort-by length '("aaa" "b" "cc")) => ("b" "cc" "aaa")
-(sort-by (fix sort-by
-              (fn (key-fn lst)
-                  (if (null? lst)
-                      '()
-                      (let ((x (car lst))
-                            (rest (sort-by key-fn (cdr lst))))
-                           (let ((insert-sorted (fix insert-sorted
-                                                     (fn (elem sorted)
-                                                         (if (null? sorted)
-                                                             (list elem)
-                                                             (if (<= (key-fn elem) (key-fn (car sorted)))
-                                                                 (cons elem sorted)
-                                                                 (cons (car sorted) (insert-sorted elem (cdr sorted)))))))))
-                                (insert-sorted x rest)))))))
-
-; compare-by: Compare two values by applying key function
-; Returns -1, 0, or 1
-(compare-by (fn (key-fn a b)
-                (let ((ka (key-fn a))
-                      (kb (key-fn b)))
-                     (if (< ka kb)
-                         (- 0 1)
-                         (if (> ka kb) 1 0)))))
-
-; equal-by: Check if two values are equal after applying function
-; (equal-by length "abc" "xyz") => #t
-(equal-by (fn (f a b) (= (f a) (f b))))
-
-; -- More function combinators --
-
-; apply-n: Apply function n times to initial value (like repeat-fn but returns all intermediates)
-; (apply-n inc 3 0) => (0 1 2 3)
-(apply-n (fix apply-n
-              (fn (f n x)
-                  (if (< n 0)
-                      '()
-                      (cons x (apply-n f (- n 1) (f x)))))))
-
-; until: Apply function until predicate is satisfied
-; (until (fn (x) (> x 10)) (fn (x) (* x 2)) 1) => 16
 (until (fix until
             (fn (stop? f x)
                 (if (stop? x)
@@ -508,13 +6,6 @@
 
 ; converge: Apply function until result stops changing
 ; (converge (fn (x) (/ (+ x (/ 2 x)) 2)) 1.0) => ~1.414 (sqrt 2)
-(converge (fix converge
-               (fn (f x)
-                   (let ((next (f x)))
-                        (if (= next x)
-                            x
-                            (converge f next))))))
-
 ; fixed-point: Same as converge (alternative name)
 (fixed-point converge)
 
@@ -537,33 +28,15 @@
 
 ; string-map: Apply function to each character of string
 ; (string-map char-upcase "hello") => "HELLO"
-(string-map (fn (f str)
-                (list->string (map f (string->list str)))))
-
 ; string-filter: Keep characters matching predicate
 ; (string-filter char-alphabetic? "a1b2c3") => "abc"
-(string-filter (fn (p str)
-                   (list->string (filter p (string->list str)))))
-
 ; string-any: Check if any character satisfies predicate
 ; (string-any char-numeric? "abc123") => #t
-(string-any (fn (p str)
-                (any p (string->list str))))
-
 ; string-all: Check if all characters satisfy predicate
 ; (string-all char-alphabetic? "abc") => #t
-(string-all (fn (p str)
-                (all p (string->list str))))
-
 ; string-foldl: Left fold over string characters
 ; (string-foldl (fn (acc c) (+ acc 1)) 0 "hello") => 5
-(string-foldl (fn (f acc str)
-                  (foldl f acc (string->list str))))
-
 ; string-foldr: Right fold over string characters
-(string-foldr (fn (f acc str)
-                  (foldr f acc (string->list str))))
-
 ; words: Split string on whitespace
 ; (words "hello world  foo") => ("hello" "world" "foo")
 (words (fn (str)
@@ -602,27 +75,10 @@
                      (cdr strs)))))
 
 ; string-take-while: Take characters while predicate holds
-(string-take-while (fn (p str)
-                       (list->string (take-while p (string->list str)))))
-
 ; string-drop-while: Drop characters while predicate holds
-(string-drop-while (fn (p str)
-                       (list->string (drop-while p (string->list str)))))
-
 ; string-find: Find first character matching predicate
-(string-find (fn (p str)
-                 (find-if p (string->list str))))
-
 ; string-count: Count characters matching predicate
-(string-count (fn (p str)
-                  (count-if p (string->list str))))
-
 ; string-partition: Split string into matching and non-matching chars
-(string-partition (fn (p str)
-                      (let ((parts (partition p (string->list str))))
-                           (cons (list->string (car parts))
-                                 (list->string (cdr parts))))))
-
 ; char-between?: Check if character code is in range
 (char-between? (fn (lo hi c)
                    (let ((code (char->integer c)))
@@ -662,9 +118,6 @@
 
 ; alist-invert: Swap keys and values
 ; (alist-invert '((a . 1) (b . 2))) => ((1 . a) (2 . b))
-(alist-invert (fn (alist)
-                  (map (fn (pair) (cons (cdr pair) (car pair))) alist)))
-
 ; alist-group: Group list elements by key function into alist
 ; (alist-group even? '(1 2 3 4)) => ((#f 1 3) (#t 2 4))
 (alist-group (fn (key-fn lst)
@@ -677,13 +130,7 @@
 
 ; when-let: Execute body if value is truthy, with value bound
 ; Like (let ((x expr)) (if x body #f))
-(when-let (fn (val f)
-              (if val (f val) #f)))
-
 ; if-let: Like when-let but with else clause
-(if-let (fn (val then-fn else-val)
-            (if val (then-fn val) else-val)))
-
 ; cond-fn: Create function that tests predicates in order
 ; ((cond-fn (list (cons even? "even") (cons odd? "odd"))) 3) => "odd"
 (cond-fn (fix cond-fn
@@ -705,10 +152,6 @@
 
 ; tap: Apply function for side effect, return original value
 ; Useful for debugging in pipelines
-(tap (fn (f x)
-         (let ((ignored (f x)))
-              x)))
-
 ; -- More numeric utilities --
 
 ; clamp-list: Clamp all values in list to range
@@ -753,23 +196,8 @@
 
 ; all-equal?: Check if all elements are equal
 ; (all-equal? '(1 1 1)) => #t
-(all-equal? (fn (lst)
-                (if (null? lst)
-                    #t
-                    (all (fn (x) (eq? x (car lst))) lst))))
-
 ; sorted?: Check if list is sorted (ascending)
 ; (sorted? '(1 2 3)) => #t
-(sorted? (fix sorted?
-              (fn (lst)
-                  (if (null? lst)
-                      #t
-                      (if (null? (cdr lst))
-                          #t
-                          (if (<= (car lst) (car (cdr lst)))
-                              (sorted? (cdr lst))
-                              #f))))))
-
 ; sorted-by?: Check if list is sorted by key function
 (sorted-by? (fn (key-fn lst)
                 (sorted? (map key-fn lst))))
@@ -823,33 +251,10 @@
 
 ; tree-depth: Maximum nesting depth of structure
 ; (tree-depth '((1 2) (3 (4 5)))) => 3
-(tree-depth (fix tree-depth
-                 (fn (tree)
-                     (if (pair? tree)
-                         (+ 1 (foldl max 0 (map tree-depth tree)))
-                         0))))
-
 ; tree-size: Count all atoms in nested structure
 ; (tree-size '((1 2) (3 (4 5)))) => 5
-(tree-size (fix tree-size
-                (fn (tree)
-                    (if (null? tree)
-                        0
-                        (if (pair? tree)
-                            (+ (tree-size (car tree)) (tree-size (cdr tree)))
-                            1)))))
-
 ; tree-find: Find first atom matching predicate in tree
 ; (tree-find even? '((1 3) (5 (6 7)))) => 6
-(tree-find (fix tree-find
-                (fn (p tree)
-                    (if (null? tree)
-                        #f
-                        (if (pair? tree)
-                            (let ((left (tree-find p (car tree))))
-                                 (if left left (tree-find p (cdr tree))))
-                            (if (p tree) tree #f))))))
-
 ; -- More function combinators --
 
 ; curry3: Curry a 3-argument function
@@ -868,19 +273,10 @@
 
 ; partial2: Partially apply first two arguments (returns 1-arg function)
 ; ((partial2 (fn (a b c) (+ a (+ b c))) 1 2) 3) => 6
-(partial2 (fn (f x y)
-              (fn (z) (f x y z))))
-
 ; compose-n: Compose multiple functions right-to-left
 ; ((compose-n (list inc inc double)) 5) => 12
-(compose-n (fn (fns)
-               (foldr compose id fns)))
-
 ; pipe-n: Compose multiple functions left-to-right
 ; ((pipe-n (list double inc inc)) 5) => 12
-(pipe-n (fn (fns)
-            (foldl (flip compose) id fns)))
-
 ; memoize-1: Stub for memoization (returns function as-is in pure context)
 ; Note: True memoization requires mutation which isn't well-supported
 (memoize-1 (fn (f) f))
@@ -907,75 +303,27 @@
 
 ; prime?: Check if number is prime
 ; (prime? 17) => #t
-(prime? (fix prime?
-             (fn (n)
-                 (if (< n 2)
-                     #f
-                     (let ((check (fix check
-                                       (fn (d)
-                                           (if (> (* d d) n)
-                                               #t
-                                               (if (= 0 (mod n d))
-                                                   #f
-                                                   (check (+ d 1))))))))
-                          (check 2))))))
-
 ; -- Validation utilities --
 
 ; validate: Apply validator, return value or error
 ; (validate positive? 5) => 5
 ; (validate positive? -5) => #f
-(validate (fn (predicate val)
-              (if (predicate val) val #f)))
-
 ; validate-all: Check all predicates pass
 ; (validate-all (list positive? even?) 4) => 4
-(validate-all (fn (preds val)
-                  (if (all (fn (p) (p val)) preds) val #f)))
-
 ; ensure: Like validate but with default
 ; (ensure positive? 0 -5) => 0
-(ensure (fn (predicate default val)
-            (if (predicate val) val default)))
-
 ; -- Debug utilities --
 
 ; trace: Identity with side-effect printing (pure version just returns)
-(trace (fn (label x) x))
-
 ; spy: Like trace but shows both label and value
-(spy (fn (label x) x))
-
 ; assert-eq: Check equality (returns #t or #f)
-(assert-eq (fn (expected actual)
-               (= expected actual)))
-
 ; assert-pred: Check predicate holds
-(assert-pred (fn (predicate val)
-                 (predicate val)))
-
 ; -- Logical utilities --
 
 ; -- More list utilities --
 
 ; take-n: Take first n elements (HOF version)
-(take-n (fix take-n
-             (fn (n lst)
-                 (if (<= n 0)
-                     '()
-                     (if (null? lst)
-                         '()
-                         (cons (car lst) (take-n (- n 1) (cdr lst))))))))
-
 ; drop-n: Drop first n elements (HOF version)
-(drop-n (fix drop-n
-             (fn (n lst)
-                 (if (<= n 0)
-                     lst
-                     (if (null? lst)
-                         '()
-                         (drop-n (- n 1) (cdr lst)))))))
-
 ; nth: Get nth element (0-indexed)
 (nth (fix nth
           (fn (n lst)
@@ -1004,10 +352,6 @@
                        (last (cdr lst)))))))
 
 ; butlast: Remove last n elements
-(butlast (fn (n lst)
-             (let ((len (length lst)))
-                  (take-n (- len n) lst))))
-
 ; count-eq: Count elements equal to x
 (count-eq (fn (x lst)
               (foldl (fn (acc item) (if (= item x) (+ acc 1) acc)) 0 lst)))
@@ -1024,56 +368,19 @@
                         (assoc key (cdr alist)))))))
 
 ; assoc-ref: Get value for key (or #f)
-(assoc-ref (fn (key alist)
-               (let ((pair (assoc key alist)))
-                    (if pair (cdr pair) #f))))
-
 ; assoc-set: Set value for key (returns new alist)
-(assoc-set (fn (key val alist)
-               (cons (cons key val)
-                     (filter (fn (p) (not (eq? key (car p)))) alist))))
-
 ; assoc-remove: Remove key from alist
-(assoc-remove (fn (key alist)
-                  (filter (fn (p) (not (eq? key (car p)))) alist)))
-
 ; assoc-keys: Get all keys from alist
-(assoc-keys (fn (alist)
-                (map car alist)))
-
 ; assoc-values: Get all values from alist
-(assoc-values (fn (alist)
-                  (map cdr alist)))
-
 ; -- More string utilities --
 
 ; Note: string-contains? is a primitive (haystack needle) - uses Rust's contains()
 
 ; string-prefix?: Check if string starts with prefix
-(string-prefix? (fn (prefix s)
-                    (let ((prefix-len (string-length prefix))
-                          (s-len (string-length s)))
-                         (if (> prefix-len s-len)
-                             #f
-                             (string=? prefix (substring s 0 prefix-len))))))
-
 ; string-suffix?: Check if string ends with suffix
-(string-suffix? (fn (suffix s)
-                    (let ((suffix-len (string-length suffix))
-                          (s-len (string-length s)))
-                         (if (> suffix-len s-len)
-                             #f
-                             (string=? suffix (substring s (- s-len suffix-len) s-len))))))
-
 ; -- Numeric sequences --
 
 ; iota: Generate list of n integers starting from start
-(iota (fix iota
-           (fn (n start)
-               (if (<= n 0)
-                   '()
-                   (cons start (iota (- n 1) (+ start 1)))))))
-
 ; range: Generate list from start to end (exclusive)
 (range (fn (start end)
            (iota (- end start) start)))
@@ -1106,27 +413,12 @@
 ; -- Misc utilities --
 
 ; constantly: Return a function that always returns the same value
-(constantly (fn (x)
-                (fn (y) x)))
-
 ; identity: Identity function (same as id, but clearer name)
-(identity (fn (x) x))
-
 ; first: Get first element (same as car)
-(first car)
-
 ; second: Get second element
-(second (fn (lst) (car (cdr lst))))
-
 ; third: Get third element
-(third (fn (lst) (car (cdr (cdr lst)))))
-
 ; rest: Get rest of list (same as cdr)
-(rest cdr)
-
 ; empty?: Check if list is empty (same as null?)
-(empty? null?)
-
 ; singleton?: Check if list has exactly one element
 (singleton? (fn (lst)
                 (if (null? lst)
@@ -1144,52 +436,22 @@
 ; -- car/cdr compositions (Scheme standard) --
 
 ; cadr: (car (cdr x))
-(cadr (fn (lst) (car (cdr lst))))
-
 ; caar: (car (car x))
-(caar (fn (lst) (car (car lst))))
-
 ; cddr: (cdr (cdr x))
-(cddr (fn (lst) (cdr (cdr lst))))
-
 ; cdar: (cdr (car x))
-(cdar (fn (lst) (cdr (car lst))))
-
 ; caddr: (car (cdr (cdr x)))
-(caddr (fn (lst) (car (cdr (cdr lst)))))
-
 ; caaar: (car (car (car x)))
-(caaar (fn (lst) (car (car (car lst)))))
-
 ; caadr: (car (car (cdr x)))
-(caadr (fn (lst) (car (car (cdr lst)))))
-
 ; cadar: (car (cdr (car x)))
-(cadar (fn (lst) (car (cdr (car lst)))))
-
 ; cdaar: (cdr (car (car x)))
-(cdaar (fn (lst) (cdr (car (car lst)))))
-
 ; cdadr: (cdr (car (cdr x)))
-(cdadr (fn (lst) (cdr (car (cdr lst)))))
-
 ; cddar: (cdr (cdr (car x)))
-(cddar (fn (lst) (cdr (cdr (car lst)))))
-
 ; cdddr: (cdr (cdr (cdr x)))
-(cdddr (fn (lst) (cdr (cdr (cdr lst)))))
-
 ; cadddr: (car (cdr (cdr (cdr x)))) - fourth element
-(cadddr (fn (lst) (car (cdr (cdr (cdr lst))))))
-
 ; -- More list utilities --
 
 ; fourth: Get fourth element
-(fourth (fn (lst) (car (cdr (cdr (cdr lst))))))
-
 ; fifth: Get fifth element
-(fifth (fn (lst) (car (cdr (cdr (cdr (cdr lst)))))))
-
 ; Note: list-ref is a primitive that takes (list idx) - different order from nth
 
 ; list-tail: Return list starting at index n
@@ -1224,9 +486,6 @@
 (cube (fn (x) (* x x x)))
 
 ; abs-diff: Absolute difference
-(abs-diff (fn (a b)
-              (if (> a b) (- a b) (- b a))))
-
 ; in-range?: Check if value is in [lo, hi)
 (in-range? (fn (lo hi x)
                (if (>= x lo)
@@ -1248,21 +507,8 @@
           (if test then '())))
 
 ; for-each: Map for side effects (returns nil)
-(for-each (fn (f lst)
-              (foldl (fn (acc x) (f x)) '() lst)))
-
 ; reduce: foldl with first element as initial
-(reduce (fn (f lst)
-            (if (null? lst)
-                '()
-                (foldl f (car lst) (cdr lst)))))
-
 ; reduce-right: foldr with last element as initial
-(reduce-right (fn (f lst)
-                  (if (null? lst)
-                      '()
-                      (foldr f (last lst) (init lst)))))
-
 ; every?: Alias for all (Scheme naming)
 (every? all)
 
@@ -1270,18 +516,7 @@
 (some? any)
 
 ; filter-not: Keep elements that don't match
-(filter-not (fn (f lst)
-                (filter (fn (x) (not (f x))) lst)))
-
 ; remove: Remove first occurrence
-(remove (fix remove
-             (fn (x lst)
-                 (if (null? lst)
-                     '()
-                     (if (= x (car lst))
-                         (cdr lst)
-                         (cons (car lst) (remove x (cdr lst))))))))
-
 ; remove-all: Remove all occurrences
 (remove-all (fn (x lst)
                 (filter (fn (y) (not (= y x))) lst)))
@@ -1363,11 +598,7 @@
 ; -- Scheme compatibility aliases --
 
 ; fold-left: Alias for foldl (Scheme naming)
-(fold-left foldl)
-
 ; fold-right: Alias for foldr (Scheme naming)
-(fold-right foldr)
-
 ; member: Check membership (like elem but returns tail or #f)
 (member (fix member
              (fn (x lst)
@@ -1378,9 +609,6 @@
                          (member x (cdr lst)))))))
 
 ; member?: Boolean membership check
-(member? (fn (x lst)
-             (if (member x lst) #t #f)))
-
 ; position: Find index of element (or #f)
 (position (fix position
                (fn (x lst)
@@ -1396,29 +624,12 @@
 ; -- Either monad utilities --
 
 ; left: Create left value (error case)
-(left (fn (x) (list 'left x)))
-
 ; right: Create right value (success case)
-(right (fn (x) (list 'right x)))
-
 ; left?: Check if left
-(left? (fn (e) (eq? (car e) 'left)))
-
 ; right?: Check if right
-(right? (fn (e) (eq? (car e) 'right)))
-
 ; from-left: Extract left value
-(from-left (fn (e) (cadr e)))
-
 ; from-right: Extract right value
-(from-right (fn (e) (cadr e)))
-
 ; either: Apply one of two functions based on Either
-(either (fn (left-fn right-fn e)
-            (if (left? e)
-                (left-fn (from-left e))
-                (right-fn (from-right e)))))
-
 ; -- List utilities from Scheme SRFI --
 
 ; list-index: Find index where predicate holds
@@ -1441,13 +652,7 @@
                              (partition-all n (drop-n n lst))))))
 
 ; take-right: Take n elements from end
-(take-right (fn (n lst)
-                (drop-n (- (length lst) n) lst)))
-
 ; drop-right: Drop n elements from end
-(drop-right (fn (n lst)
-                (take-n (- (length lst) n) lst)))
-
 ; split-at-pred: Split list at first element matching predicate
 (split-at-pred (fix split-at-pred
                     (fn (f lst)
@@ -1472,9 +677,6 @@
 ; mean, variance, median (lines 1663-1685)
 
 ; clamp-val: Clamp value to range [lo, hi]
-(clamp-val (fn (lo hi x)
-               (if (< x lo) lo (if (> x hi) hi x))))
-
 ; lerp: Linear interpolation
 (lerp (fn (a b t)
           (+ a (* t (- b a)))))
@@ -1517,8 +719,6 @@
 (distinct nub)
 
 ; group-runs: Group consecutive equal elements
-(group-runs group-consecutive)
-
 ; -- Applicative utilities --
 
 ; lift2: Lift binary function to Maybe
@@ -1561,17 +761,11 @@
                   (map caddr lst))))
 
 ; snoc: Append element to end of list
-(snoc (fn (lst x) (append lst (list x))))
-
 ; single?: Check if list has exactly one element
 (single? singleton?)
 
 ; drop-last: Drop n elements from end (alias)
-(drop-last drop-right)
-
 ; take-last: Take n elements from end (alias)
-(take-last take-right)
-
 ; find-index-of: Find index of element (different from list-index which uses predicate)
 (find-index-of (fn (x lst) (position x lst)))
 
@@ -1588,9 +782,6 @@
                              (helper lst 0 #f)))))
 
 ; count-occurrences: Count how many times element appears
-(count-occurrences (fn (x lst)
-                       (count-if (fn (y) (eq? x y)) lst)))
-
 ; replace-first: Replace first occurrence of old with new
 (replace-first (fix replace-first
                     (fn (old new lst)
@@ -1614,14 +805,6 @@
                                 (cons (car lst) (insert-sorted x (cdr lst))))))))
 
 ; insert-sorted-by: Insert element into sorted list using comparison function
-(insert-sorted-by (fix insert-sorted-by
-                       (fn (cmp x lst)
-                           (if (null? lst)
-                               (list x)
-                               (if (<= (cmp x) (cmp (car lst)))
-                                   (cons x lst)
-                                   (cons (car lst) (insert-sorted-by cmp x (cdr lst))))))))
-
 ; merge-sorted: Merge two sorted lists
 (merge-sorted (fix merge-sorted
                    (fn (xs ys)
@@ -1659,9 +842,6 @@
 ; -- More numeric utilities --
 
 ; quotient-remainder: Return both quotient and remainder
-(quotient-remainder (fn (a b)
-                        (list (quotient a b) (remainder a b))))
-
 ; wrap: Wrap value to range [lo, hi) (modular arithmetic)
 (wrap (fn (lo hi x)
           (let ((range (- hi lo)))
@@ -1731,18 +911,7 @@
                       (right (fr (from-right e))))))
 
 ; from-either: Extract value with default for Left
-(from-either (fn (default e)
-                 (if (left? e)
-                     default
-                     (from-right e))))
-
 ; partition-eithers: Separate list of Eithers into lefts and rights
-(partition-eithers (fn (lst)
-                       (let ((lefts (filter left? lst))
-                             (rights (filter right? lst)))
-                            (list (map from-left lefts)
-                                  (map from-right rights)))))
-
 ; try-fn: Wrap function call in Either (catches #f as Left)
 (try-fn (fn (f x)
             (let ((result (f x)))
@@ -1765,17 +934,7 @@
                     (f (from-just m)))))
 
 ; maybe-to-list: Convert Maybe to list (empty or singleton)
-(maybe-to-list (fn (m)
-                   (if (nothing? m)
-                       '()
-                       (list (from-just m)))))
-
 ; list-to-maybe: Convert list to Maybe (Nothing if empty)
-(list-to-maybe (fn (lst)
-                   (if (null? lst)
-                       (nothing)
-                       (just (car lst)))))
-
 ; catMaybes: Filter and extract Just values from list of Maybes
 (cat-maybes-fn (fn (lst)
                    (map from-just (filter (fn (m) (not (nothing? m))) lst))))
@@ -1783,17 +942,9 @@
 ; -- More string HOFs (using primitives) --
 
 ; string-words-fn: Split string on whitespace (alias using primitive)
-(string-words-fn (fn (s) (string-words s)))
-
 ; string-lines-fn: Split string on newlines (alias using primitive)
-(string-lines-fn (fn (s) (string-lines s)))
-
 ; string-join-fn: Join strings with separator (alias using primitive)
-(string-join-fn (fn (strs sep) (string-join strs sep)))
-
 ; string-trim-fn: Trim whitespace from string (alias using primitive)
-(string-trim-fn (fn (s) (string-trim s)))
-
 ; -- Miscellaneous utilities --
 
 ; repeat-value: Create list of n copies of value
@@ -1817,25 +968,11 @@
                                  (cons same (chunk-by f rest))))))))
 
 ; before: Get elements before first match
-(before (fn (f lst)
-            (car (span (complement f) lst))))
-
 ; after: Get elements after first match (excluding match)
-(after (fn (f lst)
-           (let ((tail (drop-while (complement f) lst)))
-                (if (null? tail) '() (cdr tail)))))
-
 ; window: Get sliding windows of size n
 (window sliding)
 
 ; adjacent-pairs: Get all adjacent pairs
-(adjacent-pairs (fn (lst)
-                    (if (null? lst)
-                        '()
-                        (if (null? (cdr lst))
-                            '()
-                            (zip lst (cdr lst))))))
-
 ; with-index: Pair each element with its index
 (with-index (fn (lst)
                 (zip-with-index lst)))
@@ -1846,13 +983,7 @@
 ; -- Control flow utilities --
 
 ; when-not: Execute body when condition is false
-(when-not (fn (cond body)
-              (if cond #f body)))
-
 ; if-not: Inverted if
-(if-not (fn (cond then-val else-val)
-            (if cond else-val then-val)))
-
 ; cond-list: Build list conditionally (include items where pred is true)
 (cond-list (fn (pairs)
                (filter-not null?
@@ -1874,74 +1005,12 @@
 ; -- Property list utilities --
 
 ; plist-get: Get value from property list
-(plist-get (fix plist-get
-                (fn (key plist)
-                    (if (null? plist)
-                        #f
-                        (if (null? (cdr plist))
-                            #f
-                            (if (eq? key (car plist))
-                                (cadr plist)
-                                (plist-get key (cddr plist))))))))
-
 ; plist-set: Set value in property list (returns new plist)
-(plist-set (fix plist-set
-                (fn (key val plist)
-                    (if (null? plist)
-                        (list key val)
-                        (if (null? (cdr plist))
-                            (list key val)
-                            (if (eq? key (car plist))
-                                (cons key (cons val (cddr plist)))
-                                (cons (car plist)
-                                      (cons (cadr plist)
-                                            (plist-set key val (cddr plist))))))))))
-
 ; plist-remove: Remove key from property list
-(plist-remove (fix plist-remove
-                   (fn (key plist)
-                       (if (null? plist)
-                           '()
-                           (if (null? (cdr plist))
-                               plist
-                               (if (eq? key (car plist))
-                                   (cddr plist)
-                                   (cons (car plist)
-                                         (cons (cadr plist)
-                                               (plist-remove key (cddr plist))))))))))
-
 ; plist-keys: Get all keys from property list
-(plist-keys (fix plist-keys
-                 (fn (plist)
-                     (if (null? plist)
-                         '()
-                         (if (null? (cdr plist))
-                             '()
-                             (cons (car plist) (plist-keys (cddr plist))))))))
-
 ; plist-values: Get all values from property list
-(plist-values (fix plist-values
-                   (fn (plist)
-                       (if (null? plist)
-                           '()
-                           (if (null? (cdr plist))
-                               '()
-                               (cons (cadr plist) (plist-values (cddr plist))))))))
-
 ; plist->alist: Convert property list to association list
-(plist->alist (fix plist->alist
-                   (fn (plist)
-                       (if (null? plist)
-                           '()
-                           (if (null? (cdr plist))
-                               '()
-                               (cons (cons (car plist) (cadr plist))
-                                     (plist->alist (cddr plist))))))))
-
 ; alist->plist: Convert association list to property list
-(alist->plist (fn (alist)
-                  (concat (map (fn (pair) (list (car pair) (cdr pair))) alist))))
-
 ; -- More comparison utilities --
 
 ; min-max: Return both min and max of list
@@ -2089,32 +1158,14 @@
 ; -- String builders --
 
 ; string-repeat-fn: Repeat string n times
-(string-repeat-fn (fn (n s)
-                      (string-repeat s n)))
-
 ; -- Safe operations --
 
 ; safe-car: Car with default for empty list
-(safe-car (fn (default lst)
-              (if (null? lst) default (car lst))))
-
 ; safe-cdr: Cdr with default for empty list
-(safe-cdr (fn (default lst)
-              (if (null? lst) default (cdr lst))))
-
 ; safe-head: Head with default
-(safe-head safe-car)
-
 ; safe-tail: Tail with default
-(safe-tail safe-cdr)
-
 ; safe-nth: Nth with default for out of bounds
-(safe-nth nth-safe)
-
 ; safe-div: Division with default for divide by zero
-(safe-div (fn (default a b)
-              (if (= b 0) default (/ a b))))
-
 ; safe-mod: Modulo with default for divide by zero
 (safe-mod (fn (default a b)
               (if (= b 0) default (mod a b))))
@@ -2140,13 +1191,7 @@
 ; -- Predicate combinators --
 
 ; conjoin: Combine predicates with and
-(conjoin (fn (preds)
-             (fn (x) (all (fn (p) (p x)) preds))))
-
 ; disjoin: Combine predicates with or
-(disjoin (fn (preds)
-             (fn (x) (any (fn (p) (p x)) preds))))
-
 ; -- Pair utilities --
 
 ; pair-map: Map over both elements of pair
@@ -2167,23 +1212,11 @@
 ; -- Result type utilities (using Either) --
 
 ; ok: Create success result (alias for right)
-(ok right)
-
 ; err: Create error result (alias for left)
-(err left)
-
 ; ok?: Check if result is ok
-(ok? right?)
-
 ; err?: Check if result is error
-(err? left?)
-
 ; ok-value: Extract value from ok result
-(ok-value from-right)
-
 ; err-value: Extract value from err result
-(err-value from-left)
-
 ; unwrap: Extract value or error
 (unwrap (fn (result)
             (if (ok? result)
@@ -2202,33 +1235,13 @@
 ; -- Sorting utilities --
 
 ; insertion-sort: Sort list using insertion sort (stable)
-(insertion-sort (fn (lst)
-                    (foldl (fn (sorted x) (insert-sorted x sorted)) '() lst)))
-
 ; insertion-sort-by: Sort by key function
 (insertion-sort-by (fn (key-fn lst)
                        (foldl (fn (sorted x) (insert-sorted-by key-fn x sorted)) '() lst)))
 
 ; merge-sort: Sort list using merge sort (stable, O(n log n))
-(merge-sort (fix merge-sort
-                 (fn (lst)
-                     (if (null? lst)
-                         '()
-                         (if (null? (cdr lst))
-                             lst
-                             (let ((mid (/ (length lst) 2)))
-                                  (let ((left (take-n mid lst))
-                                        (right (drop-n mid lst)))
-                                       (merge-sorted (merge-sort left) (merge-sort right)))))))))
-
 ; sort-descending: Sort in descending order
-(sort-descending (fn (lst)
-                     (reverse (sort lst))))
-
 ; sort-by-descending: Sort by key in descending order
-(sort-by-descending (fn (f lst)
-                        (reverse (sort-by f lst))))
-
 ; top-k: Get k largest elements
 (top-k (fn (k lst)
            (take-n k (sort-descending lst))))
@@ -2245,80 +1258,19 @@
 ; -- Binary search utilities --
 
 ; binary-search: Search sorted list for element, return index or #f
-(binary-search (fix binary-search
-                    (fn (x sorted-lst)
-                        (let ((helper (fix helper
-                                           (fn (lo hi)
-                                               (if (> lo hi)
-                                                   #f
-                                                   (let ((mid (/ (+ lo hi) 2)))
-                                                        (let ((mid-val (list-ref sorted-lst mid)))
-                                                             (if (= x mid-val)
-                                                                 mid
-                                                                 (if (< x mid-val)
-                                                                     (helper lo (- mid 1))
-                                                                     (helper (+ mid 1) hi))))))))))
-                             (helper 0 (- (length sorted-lst) 1))))))
-
 ; lower-bound: Find first position where element could be inserted
-(lower-bound (fix lower-bound
-                  (fn (x sorted-lst)
-                      (let ((helper (fix helper
-                                         (fn (lst idx)
-                                             (if (null? lst)
-                                                 idx
-                                                 (if (< (car lst) x)
-                                                     (helper (cdr lst) (+ idx 1))
-                                                     idx))))))
-                           (helper sorted-lst 0)))))
-
 ; upper-bound: Find last position where element could be inserted
-(upper-bound (fix upper-bound
-                  (fn (x sorted-lst)
-                      (let ((helper (fix helper
-                                         (fn (lst idx)
-                                             (if (null? lst)
-                                                 idx
-                                                 (if (<= (car lst) x)
-                                                     (helper (cdr lst) (+ idx 1))
-                                                     idx))))))
-                           (helper sorted-lst 0)))))
-
 ; -- More list utilities --
 
 ; rotate: Rotate list by n positions
-(rotate-list (fn (n lst)
-                 (if (null? lst)
-                     '()
-                     (let ((len (length lst)))
-                          (let ((n-normalized (mod n len)))
-                               (append (drop-n n-normalized lst) (take-n n-normalized lst)))))))
-
 ; shuffle: Deterministic shuffle based on seed (not truly random)
 (shuffle (fn (seed lst)
              (let ((pairs (zip (map (fn (x) (mod (* x seed) 1000003)) (iota (length lst) 1)) lst)))
                   (map cadr (sort-by car pairs)))))
 
 ; dedup-consecutive: Remove consecutive duplicates (like Unix uniq)
-(dedup-consecutive (fix dedup-consecutive
-                        (fn (lst)
-                            (if (null? lst)
-                                '()
-                                (if (null? (cdr lst))
-                                    lst
-                                    (if (eq? (car lst) (cadr lst))
-                                        (dedup-consecutive (cdr lst))
-                                        (cons (car lst) (dedup-consecutive (cdr lst)))))))))
-
 ; run-length-encode: Encode consecutive runs
-(run-length-encode (fn (lst)
-                       (map (fn (group) (list (car group) (length group)))
-                            (group-consecutive lst))))
-
 ; run-length-decode: Decode run-length encoding
-(run-length-decode (fn (encoded)
-                       (concat (map (fn (pair) (replicate (cadr pair) (car pair))) encoded))))
-
 ; -- Statistics utilities --
 
 ; REMOVED: Duplicates now in stats.ss
@@ -2328,23 +1280,10 @@
 ; -- Matrix operations (lists of lists) --
 
 ; matrix-ref: Get element at row, col
-(matrix-ref (fn (m row col)
-                (list-ref (list-ref m row) col)))
-
 ; matrix-rows: Get number of rows
-(matrix-rows length)
-
 ; matrix-cols: Get number of columns
-(matrix-cols (fn (m)
-                 (if (null? m) 0 (length (car m)))))
-
 ; matrix-row: Get row at index
-(matrix-row list-ref)
-
 ; matrix-col: Get column at index
-(matrix-col (fn (m col)
-                (map (fn (row) (list-ref row col)) m)))
-
 ; dot-product: Dot product of two vectors (lists)
 (dot-product (fn (a b)
                  (sum-list (zip-with * a b))))
@@ -2358,38 +1297,16 @@
 ; Y combinator: Note - use the 'fix' special form directly for recursion
 ; Example: (fix factorial (fn (n) (if (= n 0) 1 (* n (factorial (- n 1))))))
 ; Y is provided as id for compatibility, but fix is the preferred approach
-(Y id)
-
 ; memoize: Placeholder for memoization (requires mutation, not fully supported)
 ; Use memoize-1 instead for basic single-value memoization
 (memoize id)
 
 ; trampoline: Execute trampolined function
-(trampoline (fix trampoline
-                 (fn (f)
-                     (if (procedure? f)
-                         (trampoline (f))
-                         f))))
-
 ; -- Tree utilities --
 
 ; tree-leaves: Get all leaves of tree
-(tree-leaves (fix tree-leaves
-                  (fn (tree)
-                      (if (not (pair? tree))
-                          (list tree)
-                          (concat (map tree-leaves tree))))))
-
 ; tree-count: Count nodes in tree
-(tree-count (fix tree-count
-                 (fn (tree)
-                     (if (not (pair? tree))
-                         1
-                         (+ 1 (sum-list (map tree-count tree)))))))
-
 ; tree-height: Alias for tree-depth
-(tree-height tree-depth)
-
 ; tree-paths: Get all paths from root to leaves
 (tree-paths (fix tree-paths
                  (fn (tree)
@@ -2403,9 +1320,6 @@
 ; -- Format utilities --
 
 ; number->string-padded: Convert number to string with padding
-(number->string-padded (fn (width n)
-                           (string-pad-left width #\0 (number->string n))))
-
 ; format-list: Format list as string with separator
 (format-list (fn (sep lst)
                  (string-join (map (fn (x) (if (string? x) x (number->string x))) lst) sep)))
@@ -2415,9 +1329,6 @@
                   (string-join (map (fn (row) (format-list " " row)) rows) "\n")))
 
 ; pluralize: Simple pluralization
-(pluralize (fn (n singular plural)
-               (if (= n 1) singular plural)))
-
 ; -- Boolean utilities --
 
 ; bool->int: Convert boolean to integer
@@ -2429,31 +1340,8 @@
 ; -- List predicates --
 
 ; sublist?: Check if xs is a sublist of ys
-(sublist? (fix sublist?
-               (fn (xs ys)
-                   (if (null? xs)
-                       #t
-                       (if (null? ys)
-                           #f
-                           (if (eq? (car xs) (car ys))
-                               (sublist? (cdr xs) (cdr ys))
-                               (sublist? xs (cdr ys))))))))
-
 ; prefix?: Check if xs is a prefix of ys
-(prefix? (fix prefix?
-              (fn (xs ys)
-                  (if (null? xs)
-                      #t
-                      (if (null? ys)
-                          #f
-                          (if (eq? (car xs) (car ys))
-                              (prefix? (cdr xs) (cdr ys))
-                              #f))))))
-
 ; suffix?: Check if xs is a suffix of ys
-(suffix? (fn (xs ys)
-             (prefix? (reverse xs) (reverse ys))))
-
 ; -- Misc utilities --
 
 ; clamp-index: Clamp index to valid range for list
@@ -2491,181 +1379,58 @@
 ; ============================================
 
 ; dict-new: Create empty dictionary
-(dict-new (fn () '()))
-
 ; dict-set: Set key-value pair (returns new dict)
-(dict-set (fn (d k v)
-              (cons (cons k v) (dict-remove d k))))
-
 ; dict-get: Get value for key, or default
-(dict-get (fn (d k default)
-              (let ((entry (assoc k d)))
-                   (if entry (cdr entry) default))))
-
 ; dict-get-in: Get nested value using path of keys
-(dict-get-in (fix dict-get-in
-                  (fn (d keys default)
-                      (if (null? keys)
-                          d
-                          (let ((entry (assoc (car keys) d)))
-                               (if entry
-                                   (dict-get-in (cdr entry) (cdr keys) default)
-                                   default))))))
-
 ; dict-remove: Remove key from dictionary
-(dict-remove (fn (d k)
-                 (filter (fn (pair) (not (eq? (car pair) k))) d)))
-
 ; dict-has?: Check if key exists
-(dict-has? (fn (d k)
-               (if (assoc k d) #t #f)))
-
 ; dict-keys: Get all keys
-(dict-keys (fn (d) (map car d)))
-
 ; dict-values: Get all values
-(dict-values (fn (d) (map cdr d)))
-
 ; dict-size: Get number of entries
-(dict-size length)
-
 ; dict-empty?: Check if dictionary is empty
-(dict-empty? null?)
-
 ; dict-update: Update value with function
-(dict-update (fn (d k f default)
-                 (dict-set d k (f (dict-get d k default)))))
-
 ; dict-merge: Merge two dictionaries (second wins on conflict)
-(dict-merge (fn (d1 d2)
-                (foldl (fn (acc pair) (dict-set acc (car pair) (cdr pair))) d1 d2)))
-
 ; dict-filter: Filter dictionary by predicate on (key . value)
-(dict-filter filter)
-
 ; dict-map-values: Map function over values
-(dict-map-values (fn (f d)
-                     (map (fn (pair) (cons (car pair) (f (cdr pair)))) d)))
-
 ; dict-from-lists: Create dict from key list and value list
-(dict-from-lists (fn (keys vals)
-                     (zip keys vals)))
-
 ; dict-to-list: Convert dict to list of (key value) pairs
-(dict-to-list (fn (d)
-                  (map (fn (pair) (list (car pair) (cdr pair))) d)))
-
 ; dict-invert: Swap keys and values
-(dict-invert (fn (d)
-                 (map (fn (pair) (cons (cdr pair) (car pair))) d)))
-
 ; ============================================
 ; Set Operations (list-based)
 ; ============================================
 
 ; set-new: Create empty set (use as thunk: (set-new) returns empty list)
 ; Or use '() directly for an empty set
-(set-new (const '()))
-
 ; set-add: Add element to set
-(set-add (fn (s x)
-             (if (member? x s) s (cons x s))))
-
 ; set-remove: Remove element from set
-(set-remove remove)
-
 ; set-member?: Check if element is in set
-(set-member? member?)
-
 ; set-size: Get number of elements
-(set-size length)
-
 ; set-empty?: Check if set is empty
-(set-empty? null?)
-
 ; set-from-list: Create set from list (removes duplicates)
-(set-from-list nub)
-
 ; set-to-list: Convert set to list
-(set-to-list id)
-
 ; ============================================
 ; More Numeric Utilities
 ; ============================================
 
 ; mod-exp: Modular exponentiation (base^exp mod m)
-(mod-exp (fix mod-exp
-              (fn (base exp m)
-                  (if (= exp 0)
-                      1
-                      (if (= (mod exp 2) 0)
-                          (let ((half (mod-exp base (/ exp 2) m)))
-                               (mod (* half half) m))
-                          (mod (* base (mod-exp base (- exp 1) m)) m))))))
-
 ; mod-inverse: Modular multiplicative inverse (extended Euclidean)
-(mod-inverse (fn (a m)
-                 (let ((egcd (fix egcd
-                                  (fn (a b)
-                                      (if (= b 0)
-                                          (list a 1 0)
-                                          (let ((result (egcd b (mod a b))))
-                                               (list (car result)
-                                                     (caddr result)
-                                                     (- (cadr result) (* (/ a b) (caddr result))))))))))
-                      (let ((result (egcd a m)))
-                           (if (= (car result) 1)
-                               (mod (+ (cadr result) m) m)
-                               #f)))))
-
 ; ============================================
 ; Combinatorics
 ; ============================================
 
 ; permutations-count: Number of permutations P(n,k)
-(permutations-count (fn (n k)
-                        (/ (factorial n) (factorial (- n k)))))
-
 ; catalan: Catalan number
-(catalan (fn (n)
-             (/ (binomial (* 2 n) n) (+ n 1))))
-
 ; triangular: Triangular number
-(triangular (fn (n) (/ (* n (+ n 1)) 2)))
-
 ; is-triangular?: Check if number is triangular
-(is-triangular? (fn (n)
-                    (let ((k (floor (sqrt (* 2 n)))))
-                         (= n (triangular k)))))
-
 ; square-number: Square number
-(square-number (fn (n) (* n n)))
-
 ; is-square?: Check if number is a perfect square
-(is-square? (fn (n)
-                (let ((k (floor (sqrt n))))
-                     (= n (* k k)))))
-
 ; pentagonal: Pentagonal number
-(pentagonal (fn (n) (/ (* n (- (* 3 n) 1)) 2)))
-
 ; hexagonal: Hexagonal number
-(hexagonal (fn (n) (* n (- (* 2 n) 1))))
-
 ; ============================================
 ; More List Utilities
 ; ============================================
 
 ; list-product: Cartesian product of list of lists
-(list-product (fix list-product
-                   (fn (lists)
-                       (if (null? lists)
-                           (list '())
-                           (concat (map (fn (x)
-                                            (map (fn (rest) (cons x rest))
-                                                 (list-product (cdr lists))))
-                                        (car lists)))))))
-
 ; interleave-all: Interleave multiple lists
 (interleave-all (fix interleave-all
                      (fn (lists)
@@ -2702,37 +1467,12 @@
 ; ============================================
 
 ; string-capitalize: Capitalize first letter
-(string-capitalize (fn (s)
-                       (if (string-empty? s)
-                           s
-                           (string-append (string-upcase (substring s 0 1))
-                                          (substring s 1 (string-length s))))))
-
 ; string-title-case: Capitalize first letter of each word
-(string-title-case (fn (s)
-                       (string-join (map string-capitalize (string-split s " ")) " ")))
-
 ; string-count-char: Count occurrences of character in string
-(string-count-char (fn (c s)
-                       (length (filter (fn (ch) (eq? ch c)) (string->list s)))))
-
 ; string-replace-char: Replace all occurrences of character
-(string-replace-char (fn (old new s)
-                         (list->string (map (fn (c) (if (eq? c old) new c)) (string->list s)))))
-
 ; string-squeeze: Remove consecutive duplicate characters
-(string-squeeze (fn (s)
-                    (list->string (dedup-consecutive (string->list s)))))
-
 ; string-rotate: Rotate string by n positions
-(string-rotate (fn (n s)
-                   (let ((chars (string->list s)))
-                        (list->string (rotate-list n chars)))))
-
 ; string-interleave: Interleave two strings
-(string-interleave (fn (s1 s2)
-                       (list->string (concat (zip-with list (string->list s1) (string->list s2))))))
-
 ; ============================================
 ; Predicate Utilities
 ; ============================================
@@ -2745,56 +1485,19 @@
                     (= (length lst) (length (nub lst)))))
 
 ; monotonic-increasing?: Check if list is monotonically increasing
-(monotonic-increasing? (fn (lst)
-                           (if (null? lst) #t
-                               (if (null? (cdr lst)) #t
-                                   (and (<= (car lst) (cadr lst))
-                                        (monotonic-increasing? (cdr lst)))))))
-
 ; monotonic-decreasing?: Check if list is monotonically decreasing
-(monotonic-decreasing? (fn (lst)
-                           (if (null? lst) #t
-                               (if (null? (cdr lst)) #t
-                                   (and (>= (car lst) (cadr lst))
-                                        (monotonic-decreasing? (cdr lst)))))))
-
 ; strictly-increasing?: Check if list is strictly increasing
-(strictly-increasing? (fn (lst)
-                          (if (null? lst) #t
-                              (if (null? (cdr lst)) #t
-                                  (and (< (car lst) (cadr lst))
-                                       (strictly-increasing? (cdr lst)))))))
-
 ; strictly-decreasing?: Check if list is strictly decreasing
-(strictly-decreasing? (fn (lst)
-                          (if (null? lst) #t
-                              (if (null? (cdr lst)) #t
-                                  (and (> (car lst) (cadr lst))
-                                       (strictly-decreasing? (cdr lst)))))))
-
 ; ============================================
 ; Sequence Generators
 ; ============================================
 
 ; naturals: Generate natural numbers from 0 to n-1
-(naturals (fn (n) (iota n 0)))
-
 ; evens: Generate even numbers from 0 to 2*(n-1)
-(evens (fn (n) (map (fn (x) (* 2 x)) (iota n 0))))
-
 ; odds: Generate odd numbers from 1 to 2*n-1
-(odds (fn (n) (map (fn (x) (+ (* 2 x) 1)) (iota n 0))))
-
 ; squares: Generate square numbers
-(squares (fn (n) (map (fn (x) (* x x)) (iota n 0))))
-
 ; cubes: Generate cube numbers
-(cubes (fn (n) (map (fn (x) (* x x x)) (iota n 0))))
-
 ; factorials-up-to: Generate factorials up to n!
-(factorials-up-to (fn (n)
-                      (map factorial (iota (+ n 1) 0))))
-
 ; ============================================
 ; Reduction Utilities
 ; ============================================
@@ -2814,14 +1517,6 @@
                                  lst))))
 
 ; fold-tree: Fold over tree structure
-(fold-tree (fix fold-tree
-                (fn (leaf-fn node-fn tree)
-                    (if (not (pair? tree))
-                        (leaf-fn tree)
-                        (node-fn (car tree)
-                                 (map (fn (child) (fold-tree leaf-fn node-fn child))
-                                      (cdr tree)))))))
-
 ; ============================================
 ; Debugging Utilities
 ; ============================================
@@ -2861,162 +1556,59 @@
 ; ============================================
 
 ; queue-new: Create empty queue
-(queue-new (fn () '()))
-
 ; queue-empty?: Check if queue is empty
-(queue-empty? null?)
-
 ; queue-enqueue: Add element to back of queue
-(queue-enqueue (fn (q x) (append q (list x))))
-
 ; queue-dequeue: Remove and return front element (returns (element . rest))
-(queue-dequeue (fn (q)
-                   (if (null? q)
-                       (cons #f '())
-                       (cons (car q) (cdr q)))))
-
 ; queue-front: Peek at front element
-(queue-front (fn (q) (if (null? q) #f (car q))))
-
 ; queue-size: Get queue size
-(queue-size length)
-
 ; queue-to-list: Convert queue to list
-(queue-to-list id)
-
 ; ============================================
 ; Stack Operations (LIFO, list-based)
 ; ============================================
 
 ; stack-new: Create empty stack
-(stack-new (fn () '()))
-
 ; stack-empty?: Check if stack is empty
-(stack-empty? null?)
-
 ; stack-push: Push element onto stack (stack first, then element)
-(stack-push (fn (s x) (cons x s)))
-
 ; stack-pop: Pop element from stack (returns (element . rest))
-(stack-pop (fn (s)
-               (if (null? s)
-                   (cons #f '())
-                   (cons (car s) (cdr s)))))
-
 ; stack-top: Peek at top element
-(stack-top (fn (s) (if (null? s) #f (car s))))
-
 ; stack-size: Get stack size
-(stack-size length)
-
 ; ============================================
 ; Deque Operations (double-ended queue)
 ; ============================================
 
 ; deque-new: Create empty deque
-(deque-new (fn () '()))
-
 ; deque-empty?: Check if deque is empty
-(deque-empty? null?)
-
 ; deque-push-front: Add to front (deque first, then element)
-(deque-push-front (fn (d x) (cons x d)))
-
 ; deque-push-back: Add to back
-(deque-push-back (fn (d x) (append d (list x))))
-
 ; deque-pop-front: Remove from front
-(deque-pop-front (fn (d)
-                     (if (null? d)
-                         (cons #f '())
-                         (cons (car d) (cdr d)))))
-
 ; deque-pop-back: Remove from back
-(deque-pop-back (fn (d)
-                    (if (null? d)
-                        (cons #f '())
-                        (cons (last d) (init d)))))
-
 ; deque-front: Peek at front
-(deque-front (fn (d) (if (null? d) #f (car d))))
-
 ; deque-back: Peek at back
-(deque-back (fn (d) (if (null? d) #f (last d))))
-
 ; ============================================
 ; Priority Queue (using sorted list)
 ; ============================================
 
 ; pq-new: Create empty priority queue
-(pq-new (fn () '()))
-
 ; pq-empty?: Check if priority queue is empty
-(pq-empty? null?)
-
 ; pq-insert: Insert with priority (lower = higher priority)
-(pq-insert (fn (pq priority value)
-               (insert-sorted-by car (list priority value) pq)))
-
 ; pq-peek: Get highest priority element
-(pq-peek (fn (pq)
-             (if (null? pq) #f (cadar pq))))
-
 ; pq-pop: Remove and return highest priority element
-(pq-pop (fn (pq)
-            (if (null? pq)
-                (cons #f '())
-                (cons (cadar pq) (cdr pq)))))
-
 ; ============================================
 ; Graph Algorithms (adjacency list)
 ; ============================================
 
 ; graph-new: Create empty graph (as adjacency list dict)
-(graph-new (fn () '()))
-
 ; graph-add-vertex: Add a vertex
-(graph-add-vertex (fn (g v)
-                      (if (dict-has? g v) g (dict-set g v '()))))
-
 ; graph-vertices: Get all vertices
-(graph-vertices dict-keys)
-
 ; graph-path-exists?: Check if path exists from u to v
-(graph-path-exists? (fn (g u v)
-                        (member? v (graph-bfs g u))))
-
 ; graph-connected?: Check if graph is connected (for undirected graphs)
-(graph-connected? (fn (g)
-                      (let ((vertices (graph-vertices g)))
-                           (if (null? vertices)
-                               #t
-                               (= (length (graph-bfs g (car vertices)))
-                                  (length vertices))))))
-
 ; ============================================
 ; Validation Utilities
 ; ============================================
 
 ; validate-type: Validate value has expected type
-(validate-type (fn (type-pred value msg)
-                   (if (type-pred value)
-                       (right value)
-                       (left msg))))
-
 ; validate-range: Validate number is in range
-(validate-range (fn (lo hi value)
-                    (if (and (>= value lo) (<= value hi))
-                        (right value)
-                        (left (list 'out-of-range lo hi value)))))
-
 ; validate-not-empty: Validate list/string is not empty
-(validate-not-empty (fn (value)
-                        (if (if (string? value)
-                                (not (string-empty? value))
-                                (not (null? value)))
-                            (right value)
-                            (left 'empty-value))))
-
 ; validate-all-pred: Validate all elements satisfy predicate
 (validate-all-pred (fn (p lst msg)
                        (if (all p lst)
@@ -3024,11 +1616,6 @@
                            (left msg))))
 
 ; validate-length: Validate list has expected length
-(validate-length (fn (n lst)
-                     (if (= (length lst) n)
-                         (right lst)
-                         (left (list 'wrong-length n (length lst))))))
-
 ; validate-min-length: Validate minimum length
 (validate-min-length (fn (n lst)
                          (if (>= (length lst) n)
@@ -3308,13 +1895,7 @@
 ; ============================================
 
 ; when-pred: Apply function only if predicate holds
-(when-pred (fn (p f x)
-               (if (p x) (f x) x)))
-
 ; unless-pred: Apply function only if predicate fails
-(unless-pred (fn (p f x)
-                 (if (p x) x (f x))))
-
 ; with-default: Provide default for #f values
 (with-default (fn (default x)
                   (if x x default)))
@@ -3367,21 +1948,7 @@
                       (finder cases))))
 
 ; case-of: Case expression (list of (pattern handler) pairs)
-(case-of (fn (value cases)
-             (match-equal value cases #f)))
-
 ; guard: Guard expressions (list of (condition . value) pairs)
-(guard (fn (cases)
-           (let ((finder (fix finder
-                              (fn (cases)
-                                  (if (null? cases)
-                                      #f
-                                      (let ((case (car cases)))
-                                           (if (car case)
-                                               (cdr case)
-                                               (finder (cdr cases)))))))))
-                (finder cases))))
-
 ; destructure-list: Destructure list into head and tail
 (destructure-list (fn (lst on-empty on-pair)
                       (if (null? lst)
@@ -3413,76 +1980,17 @@
                t)))
 
 ; stream-cons: Create a lazy stream node
-(stream-cons (fn (head tail-thunk)
-                 (list 'stream head tail-thunk)))
-
 ; stream-head: Get head of stream
-(stream-head (fn (s)
-                 (if (and (pair? s) (eq? (car s) 'stream))
-                     (cadr s)
-                     (error "not a stream"))))
-
 ; stream-tail: Get tail of stream (forces thunk)
-(stream-tail (fn (s)
-                 (if (and (pair? s) (eq? (car s) 'stream))
-                     ((caddr s))
-                     (error "not a stream"))))
-
 ; stream-null: Empty stream marker
-(stream-null (list 'stream-null))
-
 ; stream-null?: Check if stream is empty
-(stream-null? (fn (s)
-                  (and (pair? s) (eq? (car s) 'stream-null))))
-
 ; stream-take: Take n elements from stream
-(stream-take (fix stream-take
-                  (fn (n s)
-                      (if (or (<= n 0) (stream-null? s))
-                          '()
-                          (cons (stream-head s) (stream-take (- n 1) (stream-tail s)))))))
-
 ; stream-map: Map function over stream
-(stream-map (fix stream-map
-                 (fn (f s)
-                     (if (stream-null? s)
-                         stream-null
-                         (stream-cons (f (stream-head s))
-                                      (fn () (stream-map f (stream-tail s))))))))
-
 ; stream-filter: Filter stream by predicate
-(stream-filter (fix stream-filter
-                    (fn (p s)
-                        (if (stream-null? s)
-                            stream-null
-                            (if (p (stream-head s))
-                                (stream-cons (stream-head s)
-                                             (fn () (stream-filter p (stream-tail s))))
-                                (stream-filter p (stream-tail s)))))))
-
 ; stream-from: Infinite stream starting at n
-(stream-from (fix stream-from
-                  (fn (n)
-                      (stream-cons n (fn () (stream-from (+ n 1)))))))
-
 ; stream-iterate: Infinite stream by iterating function
-(stream-iterate (fix stream-iterate
-                     (fn (f x)
-                         (stream-cons x (fn () (stream-iterate f (f x)))))))
-
 ; stream-repeat: Infinite stream of same value
-(stream-repeat (fix stream-repeat
-                    (fn (x)
-                        (stream-cons x (fn () (stream-repeat x))))))
-
 ; stream-zip-with: Zip two streams with function
-(stream-zip-with (fix stream-zip-with
-                      (fn (f s1 s2)
-                          (if (or (stream-null? s1) (stream-null? s2))
-                              stream-null
-                              (stream-cons (f (stream-head s1) (stream-head s2))
-                                           (fn () (stream-zip-with f (stream-tail s1) (stream-tail s2))))))))
-
 ; ============================================
 ; More Monad Utilities
 ; ============================================
@@ -3526,9 +2034,6 @@
                     (sequence-maybes (map f lst))))
 
 ; traverse-either: Map and sequence for Either
-(traverse-either (fn (f lst)
-                     (sequence-eithers (map f lst))))
-
 ; ap-maybe: Applicative apply for Maybe
 (ap-maybe (fn (mf mx)
               (if (nothing? mf)
@@ -3562,34 +2067,10 @@
 ; ============================================
 
 ; multiset-add: Add element to multiset (alist of counts)
-(multiset-add (fn (ms x)
-                  (let ((found (assoc-ref x ms)))
-                       (let ((count (if found found 0)))
-                            (assoc-set x (+ count 1) ms)))))
-
 ; multiset-remove: Remove one occurrence from multiset
-(multiset-remove (fn (ms x)
-                     (let ((found (assoc-ref x ms)))
-                          (let ((count (if found found 0)))
-                               (if (<= count 1)
-                                   (assoc-remove x ms)
-                                   (assoc-set x (- count 1) ms))))))
-
 ; multiset-count: Get count of element in multiset
-(multiset-count (fn (ms x)
-                    (let ((found (assoc-ref x ms)))
-                         (if found found 0))))
-
 ; multiset-from-list: Create multiset from list
-(multiset-from-list (fn (lst)
-                        (foldl multiset-add '() lst)))
-
 ; multiset-to-list: Convert multiset to list (with repetitions)
-(multiset-to-list (fn (ms)
-                      (flat-map (fn (pair)
-                                    (replicate (cdr pair) (car pair)))
-                                ms)))
-
 ; filter-map: Map and filter in one pass (returns list of unwrapped just values)
 (filter-map (fn (f lst)
                 (foldr (fn (x acc)
@@ -3601,23 +2082,7 @@
                        lst)))
 
 ; bag-union: Union of two multisets
-(bag-union (fn (ms1 ms2)
-               (foldl (fn (acc pair)
-                          (let ((count (+ (multiset-count acc (car pair)) (cdr pair))))
-                               (assoc-set (car pair) count acc)))
-                      ms1
-                      ms2)))
-
 ; bag-intersection: Intersection of two multisets
-(bag-intersection (fn (ms1 ms2)
-                      (filter-map (fn (pair)
-                                      (let ((c1 (cdr pair))
-                                            (c2 (multiset-count ms2 (car pair))))
-                                           (if (> c2 0)
-                                               (just (cons (car pair) (min c1 c2)))
-                                               (nothing))))
-                                  ms1)))
-
 ; ============================================
 ; More Functional Programming Patterns
 ; ============================================
@@ -3647,8 +2112,6 @@
                                    result)))))
 
 ; bounce: Create a bounce for trampolining
-(bounce (fn (f) (list 'bounce f)))
-
 ; done: Mark value as done for trampolining
 (done (fn (x) x))
 
@@ -3657,40 +2120,13 @@
 ; ============================================
 
 ; complex-new: Create complex number as (real . imag)
-(complex-new (fn (r i) (cons r i)))
-
 ; complex-real: Get real part
-(complex-real car)
-
 ; complex-imag: Get imaginary part
-(complex-imag cdr)
-
 ; complex-add: Add two complex numbers
-(complex-add (fn (c1 c2)
-                 (complex-new (+ (complex-real c1) (complex-real c2))
-                              (+ (complex-imag c1) (complex-imag c2)))))
-
 ; complex-sub: Subtract complex numbers
-(complex-sub (fn (c1 c2)
-                 (complex-new (- (complex-real c1) (complex-real c2))
-                              (- (complex-imag c1) (complex-imag c2)))))
-
 ; complex-mul: Multiply complex numbers
-(complex-mul (fn (c1 c2)
-                 (let ((r1 (complex-real c1)) (i1 (complex-imag c1))
-                       (r2 (complex-real c2)) (i2 (complex-imag c2)))
-                      (complex-new (- (* r1 r2) (* i1 i2))
-                                   (+ (* r1 i2) (* i1 r2))))))
-
 ; complex-magnitude: Magnitude of complex number
-(complex-magnitude (fn (c)
-                       (sqrt (+ (* (complex-real c) (complex-real c))
-                                (* (complex-imag c) (complex-imag c))))))
-
 ; complex-conjugate: Complex conjugate
-(complex-conjugate (fn (c)
-                       (complex-new (complex-real c) (- (complex-imag c)))))
-
 ; NOTE: Simple pair-based rationals removed - use built-in rational type
 ; Built-in functions: make-rational, rational-numerator, rational-denominator,
 ; rational-add, rational-sub, rational-mul, rational-div, rational->float
@@ -3700,10 +2136,6 @@
 ; ============================================
 
 ; format-number: Format number with precision
-(format-number (fn (n precision)
-                   (let ((factor (pow-int 10 precision)))
-                        (/ (round (* n factor)) factor))))
-
 ; pad-number: Pad number to width with zeros
 (pad-number (fn (n width)
                 (let ((s (number->string n)))
@@ -3758,84 +2190,21 @@
 ; ============================================
 
 ; string-chars: Convert string to list of characters
-(string-chars string->list)
-
 ; chars-string: Convert list of characters to string
 (chars-string list->string)
 
 ; string-contains?: Check if haystack contains needle
-(string-contains? (fn (haystack needle)
-                      (let ((needle-len (string-length needle))
-                            (haystack-len (string-length haystack)))
-                           (if (> needle-len haystack-len)
-                               #f
-                               (let ((finder (fix finder
-                                                  (fn (i)
-                                                      (if (> (+ i needle-len) haystack-len)
-                                                          #f
-                                                          (if (string=? needle (substring haystack i (+ i needle-len)))
-                                                              #t
-                                                              (finder (+ i 1))))))))
-                                    (finder 0))))))
-
 ; string-index-of: Find index of needle in haystack (-1 if not found)
-(string-index-of (fn (haystack needle)
-                     (let ((needle-len (string-length needle))
-                           (haystack-len (string-length haystack)))
-                          (if (> needle-len haystack-len)
-                              -1
-                              (let ((finder (fix finder
-                                                 (fn (i)
-                                                     (if (> (+ i needle-len) haystack-len)
-                                                         -1
-                                                         (if (string=? needle (substring haystack i (+ i needle-len)))
-                                                             i
-                                                             (finder (+ i 1))))))))
-                                   (finder 0))))))
-
 ; string-starts-with?: Check if string s starts with prefix
-(string-starts-with? (fn (s prefix)
-                         (let ((plen (string-length prefix)))
-                              (if (> plen (string-length s))
-                                  #f
-                                  (string=? prefix (substring s 0 plen))))))
-
 ; string-ends-with?: Check if string s ends with suffix
-(string-ends-with? (fn (s suffix)
-                       (let ((slen (string-length suffix))
-                             (len (string-length s)))
-                            (if (> slen len)
-                                #f
-                                (string=? suffix (substring s (- len slen) len))))))
-
 ; string-replace: Replace all occurrences of old with new in s
-(string-replace (fix string-replace
-                     (fn (s old new)
-                         (let ((idx (string-index-of s old)))
-                              (if (< idx 0)
-                                  s
-                                  (string-replace
-                                   (string-append (substring s 0 idx)
-                                                  new
-                                                  (substring s (+ idx (string-length old)) (string-length s)))
-                                   old new))))))
-
 ; string-split-at: Split string at index
-(string-split-at (fn (idx s)
-                     (cons (substring s 0 idx) (substring s idx (string-length s)))))
-
 ; ============================================
 ; Error Handling Utilities
 ; ============================================
 
 ; try-catch: Try expression, catch errors (simplified - uses Either)
 ; Returns (right value) on success, (left error-msg) on failure
-(try-catch (fn (thunk on-error)
-               (let ((result (thunk)))
-                    (if (err? result)
-                        (on-error (unwrap result))
-                        (right result)))))
-
 ; assert: Check condition, return error if false
 (assert (fn (condition msg)
             (if condition
@@ -3843,11 +2212,6 @@
                 (err msg))))
 
 ; assert-eq: Assert two values are equal
-(assert-eq (fn (expected actual)
-               (if (eq? expected actual)
-                   (ok #t)
-                   (err (list 'assertion-failed 'expected expected 'got actual)))))
-
 ; ensure-result: Ensure condition, return result type (ok value) or (err msg)
 (ensure-result (fn (p value msg)
                    (if (p value)
@@ -3886,10 +2250,6 @@
                                 (checker 5)))))))
 
 ; proper-divisors: Get divisors of n excluding n itself
-(proper-divisors (fn (n)
-                     (filter (fn (d) (= 0 (remainder n d)))
-                             (range 1 n))))
-
 ; is-perfect?: Check if number is perfect (sum of proper divisors = n)
 (is-perfect? (fn (n)
                  (= n (sum-list (proper-divisors n)))))
@@ -3955,18 +2315,7 @@
            (build-list n (fn (i) (thunk)))))
 
 ; repeat-until: Repeat until predicate is true
-(repeat-until (fn (p body init)
-                  (let ((loop (fix loop
-                                   (fn (state)
-                                       (if (p state)
-                                           state
-                                           (loop (body state)))))))
-                       (loop init))))
-
 ; do-times: Execute body n times for side effects
-(do-times (fn (n body)
-              (for-loop 0 n (fn (i acc) (block (body i) acc)) '())))
-
 ; thread-first: Thread value through functions (left-to-right)
 (thread-first (fn (x fns)
                   (foldl (fn (acc f) (f acc)) x fns)))
@@ -4019,13 +2368,7 @@
                          (filter (fn (pair) (p (cdr pair))) alist)))
 
 ; alist-keys: Get all keys from alist
-(alist-keys (fn (alist)
-                (map car alist)))
-
 ; alist-values: Get all values from alist
-(alist-values (fn (alist)
-                  (map cdr alist)))
-
 ; alist-has-key?: Check if alist has key
 (alist-has-key? (fn (key alist)
                     (not (not (assoc key alist)))))
@@ -4195,57 +2538,9 @@
 
 ; graph-topological-sort: Topological sort using Kahn's algorithm
 ; Returns sorted list or #f if cycle detected
-(graph-topological-sort (fn (g)
-                            (let ((vertices (graph-vertices g)))
-                                 (let ((in-degree (foldl (fn (acc v)
-                                                             (assoc-set v 0 acc))
-                                                         '() vertices)))
-                                      (let ((in-degree2 (foldl (fn (acc v)
-                                                                   (foldl (fn (acc2 n)
-                                                                              (assoc-set n (+ 1 (assoc-ref n acc2)) acc2))
-                                                                          acc
-                                                                          (graph-neighbors g v)))
-                                                               in-degree vertices)))
-                                           (let ((topo-helper (fix topo-helper
-                                                                   (fn (queue result degrees)
-                                                                       (if (null? queue)
-                                                                           (if (= (length result) (length vertices))
-                                                                               (reverse result)
-                                                                               #f)
-                                                                           (let ((v (car queue))
-                                                                                 (rest-queue (cdr queue)))
-                                                                                (let ((new-degrees-and-queue
-                                                                                       (foldl (fn (acc n)
-                                                                                                  (let ((new-deg (- (assoc-ref n (car acc)) 1)))
-                                                                                                       (cons (assoc-set n new-deg (car acc))
-                                                                                                             (if (= new-deg 0)
-                                                                                                                 (cons n (cdr acc))
-                                                                                                                 (cdr acc)))))
-                                                                                              (cons degrees rest-queue)
-                                                                                              (graph-neighbors g v))))
-                                                                                     (topo-helper (cdr new-degrees-and-queue)
-                                                                                                  (cons v result)
-                                                                                                  (car new-degrees-and-queue)))))))))
-                                                (let ((initial-queue (filter (fn (v) (= 0 (assoc-ref v in-degree2))) vertices)))
-                                                     (topo-helper initial-queue '() in-degree2))))))))
-
 ; graph-has-cycle?: Check if directed graph has a cycle
-(graph-has-cycle? (fn (g)
-                      (not (graph-topological-sort g))))
-
 ; graph-reverse: Reverse all edges in graph
-(graph-reverse (fn (g)
-                   (foldl (fn (acc v)
-                              (foldl (fn (acc2 n)
-                                         (graph-add-edge acc2 n v))
-                                     acc
-                                     (graph-neighbors g v)))
-                          (graph-new)
-                          (graph-vertices g))))
-
 ; graph-transpose: Alias for graph-reverse
-(graph-transpose graph-reverse)
-
 ; ============================================
 ; Lens-like Utilities for Nested Data
 ; ============================================
@@ -4282,25 +2577,7 @@
 ; ============================================
 
 ; string-repeat: Repeat string n times
-(string-repeat (fn (s n)
-                   (let ((builder (fix builder
-                                       (fn (count acc)
-                                           (if (<= count 0)
-                                               acc
-                                               (builder (- count 1) (string-append acc s)))))))
-                        (builder n ""))))
-
 ; string-count: Count occurrences of substring
-(string-count (fn (haystack needle)
-                  (let ((counter (fix counter
-                                      (fn (s count)
-                                          (let ((idx (string-index-of s needle)))
-                                               (if (< idx 0)
-                                                   count
-                                                   (counter (string-drop (+ idx (string-length needle)) s)
-                                                            (+ count 1))))))))
-                       (counter haystack 0))))
-
 ; ============================================
 ; Sequence Utilities
 ; ============================================
@@ -4424,19 +2701,8 @@
 ; ============================================
 
 ; complement: Negate a predicate
-(complement (fn (p)
-                (fn (x) (not (p x)))))
-
 ; conjoin: AND multiple predicates
-(conjoin (fn (preds)
-             (fn (x)
-                 (all (fn (p) (p x)) preds))))
-
 ; disjoin: OR multiple predicates
-(disjoin (fn (preds)
-             (fn (x)
-                 (any (fn (p) (p x)) preds))))
-
 ; pred-and: Combine two predicates with AND
 (pred-and (fn (p q)
               (fn (x) (and (p x) (q x)))))
@@ -4455,10 +2721,6 @@
 
 ; juxt: Apply multiple functions to same argument, return list of results
 ; ((juxt (list inc dec double)) 5) => (6 4 10)
-(juxt (fn (fns)
-          (fn (x)
-              (map (fn (f) (f x)) fns))))
-
 ; juxt2: Apply multiple functions to two arguments
 (juxt2 (fn (fns)
            (fn (x y)
@@ -4471,16 +2733,8 @@
               (combine (f x) (g x)))))
 
 ; converge: Apply functions to args, combine results
-(converge (fn (combine fns)
-              (fn (x)
-                  (apply combine (map (fn (f) (f x)) fns)))))
-
 ; on: Apply binary function after applying unary function to both args
 ; ((on + length) "abc" "de") => (+ 3 2) => 5
-(on (fn (f g)
-        (fn (x y)
-            (f (g x) (g y)))))
-
 ; map-pair: Apply same function to both elements of a pair
 (map-pair (fn (f pair)
               (cons (f (car pair)) (f (cdr pair)))))
@@ -4491,11 +2745,6 @@
 
 ; curry2: Convert 2-arg function to curried form
 ; ((curry2 +) 1) => closure, (((curry2 +) 1) 2) => 3
-(curry2 (fn (f)
-            (fn (a)
-                (fn (b)
-                    (f a b)))))
-
 ; curry3: Convert 3-arg function to curried form
 (curry3 (fn (f)
             (fn (a)
@@ -4504,10 +2753,6 @@
                         (f a b c))))))
 
 ; uncurry2: Convert curried function back to 2-arg
-(uncurry2 (fn (f)
-              (fn (a b)
-                  ((f a) b))))
-
 ; uncurry3: Convert curried function back to 3-arg
 (uncurry3 (fn (f)
               (fn (a b c)
@@ -4520,10 +2765,6 @@
                  (f a b))))
 
 ; partial2: Fix first two arguments
-(partial2 (fn (f a b)
-              (fn (c)
-                  (f a b c))))
-
 ; partial-right: Fix last argument
 ; ((partial-right - 1) 5) => 4
 (partial-right (fn (f b)
@@ -4532,10 +2773,6 @@
 
 ; flip: Flip arguments of binary function
 ; ((flip -) 1 5) => 4
-(flip (fn (f)
-          (fn (a b)
-              (f b a))))
-
 ; flip3: Flip first and third arguments
 (flip3 (fn (f)
            (fn (a b c)
@@ -4578,13 +2815,7 @@
 ; ============================================
 
 ; count-if: Count elements satisfying predicate
-(count-if (fn (p lst)
-              (length (filter p lst))))
-
 ; remove-if: Remove elements satisfying predicate (opposite of filter)
-(remove-if (fn (p lst)
-               (filter (complement p) lst)))
-
 ; remove-duplicates: Remove duplicates preserving order
 (remove-duplicates (fn (lst)
                        (let ((helper (fix helper
@@ -4657,9 +2888,6 @@
 ; ============================================
 
 ; alist-invert: Swap keys and values
-(alist-invert (fn (alist)
-                  (map (fn (pair) (cons (cdr pair) (car pair))) alist)))
-
 ; alist-group-by: Group by key function
 (alist-group-by (fn (key-fn lst)
                     (foldl (fn (acc x)
@@ -4703,22 +2931,6 @@
                     (fib n 0 1))))
 
 ; prime?: Check if number is prime
-(prime? (fn (n)
-            (if (<= n 1)
-                #f
-                (if (<= n 3)
-                    #t
-                    (if (or (= 0 (mod n 2)) (= 0 (mod n 3)))
-                        #f
-                        (let ((check (fix check
-                                          (fn (i)
-                                              (if (> (* i i) n)
-                                                  #t
-                                                  (if (or (= 0 (mod n i)) (= 0 (mod n (+ i 2))))
-                                                      #f
-                                                      (check (+ i 6))))))))
-                             (check 5)))))))
-
 ; sum-range: Sum of integers from a to b
 (sum-range (fn (a b)
                (* (/ (+ (- b a) 1) 2) (+ a b))))
@@ -4744,18 +2956,7 @@
                     (cons (f (car lst) (car rest)) rest)))))
 
 ; reduce: Like foldl but uses first element as initial value
-(reduce (fn (f lst)
-            (if (null? lst)
-                '()
-                (foldl f (car lst) (cdr lst)))))
-
 ; reduce-right: Like foldr but uses last element as initial value
-(reduce-right (fn (f lst)
-                  (if (null? lst)
-                      '()
-                      (let ((rev (reverse lst)))
-                           (foldr f (car rev) (cdr rev))))))
-
 ; find-last: Find last element satisfying predicate
 (find-last (fn (p lst)
                (foldl (fn (acc x) (if (p x) x acc)) #f lst)))
@@ -4770,19 +2971,7 @@
                            (finder lst 0 -1))))
 
 ; take-last: Take last n elements
-(take-last (fn (n lst)
-               (let ((len (length lst)))
-                    (if (<= n 0)
-                        '()
-                        (drop lst (max 0 (- len n)))))))
-
 ; drop-last: Drop last n elements
-(drop-last (fn (n lst)
-               (let ((len (length lst)))
-                    (if (<= n 0)
-                        lst
-                        (take lst (max 0 (- len n)))))))
-
 ; set-at: Set element at index
 (set-at (fn (idx val lst)
             (update-at idx (const val) lst)))
@@ -4792,40 +2981,10 @@
 ; ============================================
 
 ; string-repeat: Repeat string n times
-(string-repeat (fn (s n)
-                   (let ((builder (fix builder
-                                       (fn (i acc)
-                                           (if (<= i 0)
-                                               acc
-                                               (builder (- i 1) (string-append acc s)))))))
-                        (builder n ""))))
-
 ; string-trim-left: Remove leading whitespace
-(string-trim-left (fn (s)
-                      (let ((chars (string->list s)))
-                           (let ((trimmer (fix trimmer
-                                               (fn (lst)
-                                                   (if (null? lst)
-                                                       '()
-                                                       (if (or (eq? (car lst) #\space)
-                                                               (eq? (car lst) #\tab)
-                                                               (eq? (car lst) #\newline))
-                                                           (trimmer (cdr lst))
-                                                           lst))))))
-                                (list->string (trimmer chars))))))
-
 ; string-trim-right: Remove trailing whitespace
-(string-trim-right (fn (s)
-                       (string-reverse (string-trim-left (string-reverse s)))))
-
 ; string-trim: Remove leading and trailing whitespace
-(string-trim (fn (s)
-                 (string-trim-left (string-trim-right s))))
-
 ; string-blank?: Check if string is empty or only whitespace
-(string-blank? (fn (s)
-                   (string-empty? (string-trim s))))
-
 ; ============================================
 ; Control Flow (Extended)
 ; ============================================
@@ -4835,9 +2994,6 @@
             (if condition '() body)))
 
 ; when-let: Execute body if value is truthy, binding value
-(when-let (fn (val body-fn)
-              (if val (body-fn val) '())))
-
 ; cond-result: Evaluate conditions, return first truthy result
 (cond-result (fn (pairs)
                  (if (null? pairs)
@@ -4852,9 +3008,6 @@
 ; ============================================
 
 ; clamp: Clamp value to range
-(clamp-val (fn (lo hi x)
-               (max lo (min hi x))))
-
 ; between-exclusive?: Check if value is strictly between bounds
 (between-exclusive? (fn (lo hi x)
                         (and (> x lo) (< x hi))))
@@ -4872,43 +3025,17 @@
 ; ============================================
 
 ; tap: Execute side-effect and return value (useful for debugging)
-(tap (fn (f x)
-         (block (f x) x)))
-
 ; trace: Print value and return it
-(trace (fn (label x)
-           (block (display label) (display ": ") (write x) (newline) x)))
-
 ; ============================================
 ; Set Operations (using sorted lists)
 ; ============================================
 
 ; set-from-list: Create set from list (sorted, unique)
-(set-from-list (fn (lst)
-                   (remove-duplicates (sort lst))))
-
 ; set-member?: Check membership in set
-(set-member? (fn (x set)
-                 (member? x set)))
-
 ; set-add: Add element to set
-(set-add (fn (x set)
-             (if (member? x set)
-                 set
-                 (sort (cons x set)))))
-
 ; set-remove: Remove element from set
-(set-remove (fn (x set)
-                (filter (fn (y) (not (eq? x y))) set)))
-
 ; set-empty?: Check if set is empty
-(set-empty? (fn (set)
-                (null? set)))
-
 ; set-size: Get size of set
-(set-size (fn (set)
-              (length set)))
-
 ; ============================================
 ; Tree Operations (using nested lists)
 ; ============================================
@@ -4944,13 +3071,7 @@
                   (tree-fold (fn (x) (list x)) (fn (xs) (apply append xs)) tree)))
 
 ; tree-depth: Get maximum depth of tree
-(tree-depth (fn (tree)
-                (tree-fold (const 0) (fn (depths) (+ 1 (if (null? depths) 0 (apply max depths)))) tree)))
-
 ; tree-size: Count number of leaves
-(tree-size (fn (tree)
-               (tree-fold (const 1) (fn (sizes) (apply + sizes)) tree)))
-
 ; tree-filter: Keep only leaves matching predicate
 (tree-filter (fix tree-filter
                   (fn (p tree)
@@ -4960,18 +3081,6 @@
                                (if (null? children) '() children))))))
 
 ; tree-find: Find first leaf matching predicate
-(tree-find (fix tree-find
-                (fn (p tree)
-                    (if (tree-leaf? tree)
-                        (if (p tree) tree #f)
-                        (let ((finder (fix finder
-                                           (fn (children)
-                                               (if (null? children)
-                                                   #f
-                                                   (let ((result (tree-find p (car children))))
-                                                        (if result result (finder (cdr children)))))))))
-                             (finder tree))))))
-
 ; ============================================
 ; Graph Utilities (adjacency list representation)
 ; ============================================
@@ -4981,23 +3090,7 @@
                  (map car graph)))
 
 ; graph-remove-edge: Remove directed edge
-(graph-remove-edge (fn (from to graph)
-                       (map (fn (pair)
-                                (if (eq? (car pair) from)
-                                    (cons from (set-remove to (cdr pair)))
-                                    pair))
-                            graph)))
-
 ; graph-reverse: Reverse all edges
-(graph-reverse (fn (graph)
-                   (foldl (fn (acc pair)
-                              (foldl (fn (g neighbor)
-                                         (graph-add-edge neighbor (car pair) g))
-                                     acc
-                                     (cdr pair)))
-                          '()
-                          graph)))
-
 ; ============================================
 ; More Numeric Utilities
 ; ============================================
@@ -5090,32 +3183,13 @@
 ; ============================================
 
 ; queue-new: Create empty queue
-(queue-new (fn () '()))
-
 ; queue-empty: Empty queue constant
-(queue-empty '())
-
 ; queue-empty?: Check if queue is empty
-(queue-empty? null?)
-
 ; queue-enqueue: Add element to back of queue (queue first, element second)
-(queue-enqueue (fn (q x) (append q (list x))))
-
 ; queue-dequeue: Remove and return front element (returns (element . rest))
-(queue-dequeue (fn (q)
-                   (if (null? q)
-                       (cons #f '())
-                       (cons (car q) (cdr q)))))
-
 ; queue-front: Peek at front element
-(queue-front (fn (q) (if (null? q) #f (car q))))
-
 ; queue-size: Get queue size
-(queue-size length)
-
 ; queue-to-list: Convert queue to list (identity for list-based)
-(queue-to-list id)
-
 ; queue-from-list: Create queue from list (identity for list-based)
 (queue-from-list id)
 
@@ -5158,29 +3232,9 @@
 (pq-empty '())
 
 ; pq-empty?: Check if empty
-(pq-empty? null?)
-
 ; pq-insert: Insert with priority (lower = higher priority)
-(pq-insert (fn (elem priority pq)
-               (let ((insert-sorted (fix insert-sorted
-                                         (fn (lst)
-                                             (if (null? lst)
-                                                 (list (cons elem priority))
-                                                 (if (<= priority (cdr (car lst)))
-                                                     (cons (cons elem priority) lst)
-                                                     (cons (car lst) (insert-sorted (cdr lst)))))))))
-                    (insert-sorted pq))))
-
 ; pq-pop: Remove highest priority, return (element . new-pq)
-(pq-pop (fn (pq)
-            (if (null? pq)
-                (cons #f '())
-                (cons (car (car pq)) (cdr pq)))))
-
 ; pq-peek: Peek at highest priority element
-(pq-peek (fn (pq)
-             (if (null? pq) #f (car (car pq)))))
-
 ; ============================================
 ; Deque (Double-ended queue)
 ; ============================================
@@ -5189,61 +3243,23 @@
 (deque-empty (cons '() '()))
 
 ; deque-empty?: Check if empty
-(deque-empty? (fn (d)
-                  (and (null? (car d)) (null? (cdr d)))))
-
 ; deque-push-front: Add to front
-(deque-push-front (fn (x d)
-                      (cons (cons x (car d)) (cdr d))))
-
 ; deque-push-back: Add to back
-(deque-push-back (fn (x d)
-                     (cons (car d) (cons x (cdr d)))))
-
 ; deque-pop-front: Remove from front
-(deque-pop-front (fn (d)
-                     (if (null? (car d))
-                         (if (null? (cdr d))
-                             (cons #f d)
-                             (let ((new-front (reverse (cdr d))))
-                                  (cons (car new-front) (cons (cdr new-front) '()))))
-                         (cons (car (car d)) (cons (cdr (car d)) (cdr d))))))
-
 ; deque-pop-back: Remove from back
-(deque-pop-back (fn (d)
-                    (if (null? (cdr d))
-                        (if (null? (car d))
-                            (cons #f d)
-                            (let ((new-back (reverse (car d))))
-                                 (cons (car new-back) (cons '() (cdr new-back)))))
-                        (cons (car (cdr d)) (cons (car d) (cdr (cdr d)))))))
-
 ; ============================================
 ; Stack Operations (simple list-based)
 ; ============================================
 
 ; stack-empty: Empty stack
-(stack-empty '())
-
 ; stack-empty?: Check if empty
-(stack-empty? null?)
-
 ; stack-push: Push element onto stack (stack first, then element)
-(stack-push (fn (s x) (cons x s)))
-
 ; stack-pop: Pop element, return (element . new-stack)
-(stack-pop (fn (s)
-               (if (null? s)
-                   (cons #f '())
-                   (cons (car s) (cdr s)))))
-
 ; stack-peek: Peek at top
 (stack-peek (fn (s)
                 (if (null? s) #f (car s))))
 
 ; stack-size: Get size
-(stack-size length)
-
 ; ============================================
 ; Number Parsing and Formatting
 ; ============================================
@@ -5282,44 +3298,8 @@
 ; ============================================
 
 ; binary-search: Binary search on sorted list, returns index or -1
-(binary-search (fn (target lst)
-                   (let ((search (fix search
-                                      (fn (lo hi)
-                                          (if (> lo hi)
-                                              -1
-                                              (let ((mid (/ (+ lo hi) 2)))
-                                                   (let ((elem (list-ref lst mid)))
-                                                        (if (= elem target)
-                                                            mid
-                                                            (if (< elem target)
-                                                                (search (+ mid 1) hi)
-                                                                (search lo (- mid 1)))))))))))
-                        (search 0 (- (length lst) 1)))))
-
 ; lower-bound: First index where element >= target
-(lower-bound (fn (target lst)
-                 (let ((search (fix search
-                                    (fn (lo hi)
-                                        (if (>= lo hi)
-                                            lo
-                                            (let ((mid (/ (+ lo hi) 2)))
-                                                 (if (< (list-ref lst mid) target)
-                                                     (search (+ mid 1) hi)
-                                                     (search lo mid))))))))
-                      (search 0 (length lst)))))
-
 ; upper-bound: First index where element > target
-(upper-bound (fn (target lst)
-                 (let ((search (fix search
-                                    (fn (lo hi)
-                                        (if (>= lo hi)
-                                            lo
-                                            (let ((mid (/ (+ lo hi) 2)))
-                                                 (if (<= (list-ref lst mid) target)
-                                                     (search (+ mid 1) hi)
-                                                     (search lo mid))))))))
-                      (search 0 (length lst)))))
-
 ; ============================================
 ; Sliding Window Operations
 ; ============================================
@@ -5521,9 +3501,6 @@
                                       result))))))
 
 ; validator: Create a validator from predicate and message
-(validator (fn (p msg)
-               (fn (value) (validate p msg value))))
-
 ; not-empty: Validate not empty (for lists/strings)
 (not-empty-validator (validator (fn (x) (not (or (null? x) (and (string? x) (string-empty? x)))))
                                 "must not be empty"))
@@ -5607,71 +3584,12 @@
 ; ============================================
 
 ; string-split-at: Split string at index
-(string-split-at (fn (idx s)
-                     (cons (string-take idx s) (string-drop idx s))))
-
 ; string-words: Split string into words (by whitespace)
-(string-words (fn (s)
-                  (let ((chars (string->list s)))
-                       (let ((split-words (fix split-words
-                                               (fn (chars current words)
-                                                   (if (null? chars)
-                                                       (if (null? current)
-                                                           (reverse words)
-                                                           (reverse (cons (list->string (reverse current)) words)))
-                                                       (if (or (eq? (car chars) #\space)
-                                                               (eq? (car chars) #\tab)
-                                                               (eq? (car chars) #\newline))
-                                                           (if (null? current)
-                                                               (split-words (cdr chars) '() words)
-                                                               (split-words (cdr chars) '()
-                                                                            (cons (list->string (reverse current)) words)))
-                                                           (split-words (cdr chars) (cons (car chars) current) words)))))))
-                            (split-words chars '() '())))))
-
 ; string-unwords: Join words with space
-(string-unwords (fn (words)
-                    (if (null? words)
-                        ""
-                        (foldl (fn (acc w) (string-append acc " " w))
-                               (car words)
-                               (cdr words)))))
-
 ; string-lines: Split string into lines
-(string-lines (fn (s)
-                  (let ((chars (string->list s)))
-                       (let ((split-lines (fix split-lines
-                                               (fn (chars current lines)
-                                                   (if (null? chars)
-                                                       (reverse (cons (list->string (reverse current)) lines))
-                                                       (if (eq? (car chars) #\newline)
-                                                           (split-lines (cdr chars) '()
-                                                                        (cons (list->string (reverse current)) lines))
-                                                           (split-lines (cdr chars) (cons (car chars) current) lines)))))))
-                            (split-lines chars '() '())))))
-
 ; string-unlines: Join lines with newline
-(string-unlines (fn (lines)
-                    (if (null? lines)
-                        ""
-                        (foldl (fn (acc l) (string-append acc "\n" l))
-                               (car lines)
-                               (cdr lines)))))
-
 ; string-ljust: Left-justify string to width
-(string-ljust (fn (width s)
-                  (let ((len (string-length s)))
-                       (if (>= len width)
-                           s
-                           (string-append s (string-repeat " " (- width len)))))))
-
 ; string-rjust: Right-justify string to width
-(string-rjust (fn (width s)
-                  (let ((len (string-length s)))
-                       (if (>= len width)
-                           s
-                           (string-append (string-repeat " " (- width len)) s)))))
-
 ; ============================================
 ; Memoization Helpers
 ; ============================================
@@ -5680,66 +3598,27 @@
 (make-memo-table (fn () '()))
 
 ; memo-lookup: Look up in memo table
-(memo-lookup (fn (key table)
-                 (assoc key table)))
-
 ; memo-insert: Insert into memo table
-(memo-insert (fn (key value table)
-                 (cons (cons key value) table)))
-
 ; ============================================
 ; Matrix Operations (2D list)
 ; ============================================
 
 ; matrix-rows: Get number of rows
-(matrix-rows (fn (m)
-                 (length m)))
-
 ; matrix-cols: Get number of columns
-(matrix-cols (fn (m)
-                 (if (null? m) 0 (length (car m)))))
-
 ; matrix-ref: Get element at (row, col)
-(matrix-ref (fn (m row col)
-                (list-ref (list-ref m row) col)))
-
 ; matrix-set: Set element at (row, col)
 (matrix-set (fn (m row col val)
                 (update-at row (fn (r) (set-at col val r)) m)))
 
 ; matrix-transpose: Transpose matrix
-(matrix-transpose (fix matrix-transpose
-                       (fn (m)
-                           (if (or (null? m) (null? (car m)))
-                               '()
-                               (cons (map car m)
-                                     (matrix-transpose (map cdr m)))))))
-
 ; matrix-map: Map function over all elements
-(matrix-map (fn (f m)
-                (map (fn (row) (map f row)) m)))
-
 ; matrix-zip-with: Zip two matrices with function
 (matrix-zip-with (fn (f m1 m2)
                      (zip-with (fn (r1 r2) (zip-with f r1 r2)) m1 m2)))
 
 ; matrix-add: Add two matrices
-(matrix-add (fn (m1 m2)
-                (matrix-zip-with + m1 m2)))
-
 ; matrix-scale: Scale matrix by scalar
-(matrix-scale (fn (k m)
-                  (matrix-map (fn (x) (* k x)) m)))
-
 ; matrix-multiply: Matrix multiplication
-(matrix-multiply (fn (a b)
-                     (let ((bt (matrix-transpose b)))
-                          (map (fn (row-a)
-                                   (map (fn (col-b)
-                                            (foldl + 0 (zip-with * row-a col-b)))
-                                        bt))
-                               a))))
-
 ; make-matrix: Create m x n matrix filled with value
 (make-matrix (fn (rows cols val)
                  (build-list rows (fn (i) (build-list cols (fn (j) val))))))
@@ -5808,21 +3687,7 @@
 ; ============================================
 
 ; tails: All suffixes of a list
-(tails (fix tails
-            (fn (lst)
-                (if (null? lst)
-                    (list '())
-                    (cons lst (tails (cdr lst)))))))
-
 ; inits: All prefixes of a list
-(inits (fix inits
-            (fn (lst)
-                (cons '()
-                      (if (null? lst)
-                          '()
-                          (map (fn (t) (cons (car lst) t))
-                               (inits (cdr lst))))))))
-
 ; sublists: All contiguous sublists
 (sublists (fn (lst)
               (apply append (map tails (inits lst)))))
@@ -5847,9 +3712,6 @@
                (any (fn (t) (is-prefix? lst1 t)) (tails lst2))))
 
 ; split-at: Split list at index
-(split-at (fn (n lst)
-              (cons (take lst n) (drop lst n))))
-
 ; chunks-of: Split list into chunks of size n
 (chunks-of (fix chunks-of
                 (fn (n lst)
@@ -5865,16 +3727,6 @@
                       (cons (take lst n) (windows n (cdr lst)))))))
 
 ; dedup-consecutive: Remove consecutive duplicates
-(dedup-consecutive (fix dedup-consecutive
-                        (fn (lst)
-                            (if (null? lst)
-                                '()
-                                (if (null? (cdr lst))
-                                    lst
-                                    (if (equal? (car lst) (car (cdr lst)))
-                                        (dedup-consecutive (cdr lst))
-                                        (cons (car lst) (dedup-consecutive (cdr lst)))))))))
-
 ; ============================================
 ; Polynomial Operations (coefficients as lists, lowest degree first)
 ; ============================================
@@ -5982,15 +3834,7 @@
 (arr id)
 
 ; first: Apply arrow to first element of pair
-(first (fn (f)
-           (fn (pair)
-               (cons (f (car pair)) (cdr pair)))))
-
 ; second: Apply arrow to second element of pair
-(second (fn (f)
-            (fn (pair)
-                (cons (car pair) (f (cdr pair))))))
-
 ; split: Apply two arrows to same input, return pair
 (split (fn (f g)
            (fn (x)
@@ -6040,11 +3884,6 @@
 ; ============================================
 
 ; average: Average of a list of numbers
-(average (fn (lst)
-             (if (null? lst)
-                 0
-                 (/ (sum-list lst) (length lst)))))
-
 ; variance: Variance of a list of numbers
 ; REMOVED: variance (duplicate, now in stats.ss)
 
@@ -6286,21 +4125,7 @@
 (tree-right (fn (t) (car (cdr (cdr t)))))
 
 ; tree-size: Count nodes in tree
-(tree-size (fix tree-size
-                (fn (t)
-                    (if (tree-empty? t)
-                        0
-                        (+ 1 (tree-size (tree-left t))
-                           (tree-size (tree-right t)))))))
-
 ; tree-height: Height of tree
-(tree-height (fix tree-height
-                  (fn (t)
-                      (if (tree-empty? t)
-                          0
-                          (+ 1 (max (tree-height (tree-left t))
-                                    (tree-height (tree-right t))))))))
-
 ; tree-inorder: Inorder traversal
 (tree-inorder (fix tree-inorder
                    (fn (t)
@@ -6440,27 +4265,9 @@
                     default)))
 
 ; maybe-map: Map over Maybe
-(maybe-map (fn (f m)
-               (if (just? m)
-                   (just (f (from-just m)))
-                   nothing)))
-
 ; maybe-bind: Bind for Maybe monad
-(maybe-bind (fn (m f)
-                (if (just? m)
-                    (f (from-just m))
-                    nothing)))
-
 ; maybe-or: Return first Just, or Nothing
-(maybe-or (fn (m1 m2)
-              (if (just? m1) m1 m2)))
-
 ; maybe-and: Return second if both Just, else Nothing
-(maybe-and (fn (m1 m2)
-               (if (just? m1)
-                   (if (just? m2) m2 nothing)
-                   nothing)))
-
 ; from-maybe-tagged: Extract from tagged Maybe with default (use from-maybe for simple #f-based)
 (from-maybe-tagged (fn (default m)
                        (if (just? m) (from-just m) default)))
@@ -6474,13 +4281,7 @@
                  (if (just? m) (list (from-just m)) '())))
 
 ; cat-maybes: Filter Nothing values, extract Just values
-(cat-maybes (fn (lst)
-                (filter-map from-just (filter just? lst))))
-
 ; map-maybe: Map and filter in one pass
-(map-maybe (fn (f lst)
-               (cat-maybes (map f lst))))
-
 ; ============================================
 ; Either Extensions
 ; ============================================
@@ -6489,29 +4290,9 @@
 ; These would shadow them with incompatible representations, so removed.
 
 ; either: Catamorphism for Either
-(either (fn (f g e)
-            (if (left? e)
-                (f (from-left e))
-                (g (from-right e)))))
-
 ; either-map: Map over Right
-(either-map (fn (f e)
-                (if (right? e)
-                    (right (f (from-right e)))
-                    e)))
-
 ; either-map-left: Map over Left
-(either-map-left (fn (f e)
-                     (if (left? e)
-                         (left (f (from-left e)))
-                         e)))
-
 ; either-bind: Bind for Either monad
-(either-bind (fn (e f)
-                 (if (right? e)
-                     (f (from-right e))
-                     e)))
-
 ; either-bimap: Map over both sides
 (either-bimap (fn (f g e)
                   (if (left? e)
@@ -6519,25 +4300,8 @@
                       (right (g (from-right e))))))
 
 ; partition-eithers: Split list of Eithers
-(partition-eithers (fn (lst)
-                       (let ((go (fix go
-                                      (fn (lst lefts rights)
-                                          (if (null? lst)
-                                              (cons (reverse lefts) (reverse rights))
-                                              (let ((e (car lst)))
-                                                   (if (left? e)
-                                                       (go (cdr lst) (cons (from-left e) lefts) rights)
-                                                       (go (cdr lst) lefts (cons (from-right e) rights)))))))))
-                            (go lst '() '()))))
-
 ; lefts: Extract all Left values
-(lefts (fn (lst)
-           (car (partition-eithers lst))))
-
 ; rights: Extract all Right values
-(rights (fn (lst)
-            (cdr (partition-eithers lst))))
-
 ; ============================================
 ; Format String Utilities
 ; ============================================
@@ -6568,8 +4332,6 @@
                           (cdr lst)))))
 
 ; repeat-string: Alias for string-repeat
-(repeat-string string-repeat)
-
 ; ============================================
 ; Control Flow Extensions
 ; ============================================
@@ -6588,11 +4350,6 @@
 (unless-nothing when-just)
 
 ; if-let: Bind and conditionally execute
-(if-let (fn (m then-fn else-val)
-            (if (just? m)
-                (then-fn (from-just m))
-                else-val)))
-
 ; cond-list: Build list from condition-value pairs
 (cond-list (fn (pairs)
                (apply append (map (fn (pair)
@@ -6606,20 +4363,7 @@
 ; ============================================
 
 ; comparing: Create comparator from key function
-(comparing (fn (key-fn)
-               (fn (a b)
-                   (let ((ka (key-fn a))
-                         (kb (key-fn b)))
-                        (if (< ka kb)
-                            -1
-                            (if (> ka kb)
-                                1
-                                0))))))
-
 ; compare-by: Compare two values by key function
-(compare-by (fn (key-fn a b)
-                ((comparing key-fn) a b)))
-
 ; chain-comparators: Chain multiple comparators
 (chain-comparators (fn (comparators)
                        (fn (a b)
@@ -6634,10 +4378,6 @@
                                 (find-nonzero comparators)))))
 
 ; sort-by: Sort by key function
-(sort-by (fn (key-fn lst)
-             (map cdr
-                  (sort (map (fn (x) (cons (key-fn x) x)) lst)))))
-
 ; sort-on: Alias for sort-by
 (sort-on sort-by)
 
@@ -6669,10 +4409,6 @@
                        (/ (* n (+ n 1)) 2)))
 
 ; is-triangular?: Check if n is triangular
-(is-triangular? (fn (n)
-                    (let ((k (floor (sqrt (* 2 n)))))
-                         (= n (triangular-number k)))))
-
 ; pentagonal-number: nth pentagonal number
 (pentagonal-number (fn (n)
                        (/ (* n (- (* 3 n) 1)) 2)))
@@ -6706,24 +4442,9 @@
 (stream-empty? (fn (s) (null? s)))
 
 ; stream-cons: Construct stream with head and thunk for tail
-(stream-cons (fn (head tail-thunk)
-                 (cons head tail-thunk)))
-
 ; stream-head: Get first element
-(stream-head (fn (s) (car s)))
-
 ; stream-tail: Force and get tail
-(stream-tail (fn (s)
-                 ((cdr s))))
-
 ; stream-take: Take first n elements as list
-(stream-take (fix take-rec
-                  (fn (n s)
-                      (if (or (= n 0) (stream-empty? s))
-                          '()
-                          (cons (stream-head s)
-                                (take-rec (- n 1) (stream-tail s)))))))
-
 ; stream-drop: Drop first n elements
 (stream-drop (fix drop-rec
                   (fn (n s)
@@ -6732,38 +4453,10 @@
                           (drop-rec (- n 1) (stream-tail s))))))
 
 ; stream-map: Map function over stream
-(stream-map (fix map-rec
-                 (fn (f s)
-                     (if (stream-empty? s)
-                         stream-empty
-                         (stream-cons (f (stream-head s))
-                                      (fn () (map-rec f (stream-tail s))))))))
-
 ; stream-filter: Filter stream
-(stream-filter (fix filter-rec
-                    (fn (pred-fn s)
-                        (if (stream-empty? s)
-                            stream-empty
-                            (if (pred-fn (stream-head s))
-                                (stream-cons (stream-head s)
-                                             (fn () (filter-rec pred-fn (stream-tail s))))
-                                (filter-rec pred-fn (stream-tail s)))))))
-
 ; stream-from: Infinite stream starting at n
-(stream-from (fix from-rec
-                  (fn (n)
-                      (stream-cons n (fn () (from-rec (+ n 1)))))))
-
 ; stream-iterate: Infinite stream by iterating function
-(stream-iterate (fix iterate-rec
-                     (fn (f x)
-                         (stream-cons x (fn () (iterate-rec f (f x)))))))
-
 ; stream-repeat: Infinite stream of same value
-(stream-repeat (fix repeat-rec
-                    (fn (x)
-                        (stream-cons x (fn () (repeat-rec x))))))
-
 ; stream-cycle: Cycle through list infinitely
 (stream-cycle (fn (lst)
                   (let ((go (fix go
@@ -6775,13 +4468,6 @@
                        (go lst))))
 
 ; stream-zip-with: Zip two streams with function
-(stream-zip-with (fix zip-rec
-                      (fn (f s1 s2)
-                          (if (or (stream-empty? s1) (stream-empty? s2))
-                              stream-empty
-                              (stream-cons (f (stream-head s1) (stream-head s2))
-                                           (fn () (zip-rec f (stream-tail s1) (stream-tail s2))))))))
-
 ; stream-take-while: Take while predicate holds
 (stream-take-while (fix take-while-rec
                         (fn (pred-fn s)
@@ -6801,8 +4487,6 @@
                                         (fn () (list->stream-rec (cdr lst))))))))
 
 ; naturals: Stream of natural numbers starting at 0
-(naturals (stream-from 0))
-
 ; ============================================
 ; Graph Algorithms (adjacency list representation)
 ; Graph = alist of (node . list-of-neighbors)
@@ -6812,18 +4496,7 @@
 (graph-nodes alist-keys)
 
 ; graph-in-degree: Count incoming edges
-(graph-in-degree (fn (g node)
-                     (foldl (fn (count pair)
-                                (if (member node (cdr pair))
-                                    (+ count 1)
-                                    count))
-                            0
-                            g)))
-
 ; graph-out-degree: Count outgoing edges
-(graph-out-degree (fn (g node)
-                      (length (graph-neighbors g node))))
-
 ; topological-sort: Kahn's algorithm for DAG
 (topological-sort (fn (g)
                       (let ((nodes (graph-nodes g)))
@@ -6848,37 +4521,8 @@
                                      (sort-loop '() nodes in-degrees))))))
 
 ; graph-transpose: Reverse all edges
-(graph-transpose (fn (g)
-                     (let ((nodes (graph-nodes g)))
-                          (foldl (fn (acc pair)
-                                     (let ((from (car pair))
-                                           (neighbors (cdr pair)))
-                                          (foldl (fn (a to)
-                                                     (graph-add-edge a to from))
-                                                 acc
-                                                 neighbors)))
-                                 (map (fn (n) (cons n '())) nodes)
-                                 g))))
-
 ; graph-reachable: All nodes reachable from start (BFS)
-(graph-reachable (fn (g start)
-                     (let ((bfs (fix bfs
-                                     (fn (queue visited)
-                                         (if (null? queue)
-                                             visited
-                                             (let ((node (car queue))
-                                                   (rest (cdr queue)))
-                                                  (if (member node visited)
-                                                      (bfs rest visited)
-                                                      (let ((neighbors (graph-neighbors g node)))
-                                                           (bfs (append rest neighbors)
-                                                                (cons node visited))))))))))
-                          (reverse (bfs (list start) '())))))
-
 ; graph-path-exists?: Check if path exists between two nodes
-(graph-path-exists? (fn (g from to)
-                        (member to (graph-reachable g from))))
-
 ; graph-shortest-path: BFS shortest path (unweighted)
 (graph-shortest-path (fn (g from to)
                          (let ((bfs (fix bfs
@@ -7784,40 +5428,10 @@
 ; ============================================
 
 ; string-null?: Check if string is empty
-(string-null? (fn (s)
-                  (= (string-length s) 0)))
-
 ; string-pad: Pad string on left to width
-(string-pad (fn (s width char)
-                (let ((len (string-length s)))
-                     (if (>= len width)
-                         s
-                         (string-append (make-string (- width len) char) s)))))
-
 ; string-trim-left: Remove leading chars matching predicate
-(string-trim-left (fix trim-left-rec
-                       (fn (pred s)
-                           (if (string-null? s)
-                               s
-                               (if (pred (string-ref s 0))
-                                   (trim-left-rec pred (string-drop 1 s))
-                                   s)))))
-
 ; string-trim-right: Remove trailing chars matching predicate
-(string-trim-right (fn (pred s)
-                       ((fix trim-right-rec
-                             (fn (i)
-                                 (if (<= i 0)
-                                     ""
-                                     (if (pred (string-ref s (- i 1)))
-                                         (trim-right-rec (- i 1))
-                                         (substring s 0 i)))))
-                        (string-length s))))
-
 ; string-trim: Remove chars from both ends
-(string-trim (fn (pred s)
-                 (string-trim-right pred (string-trim-left pred s))))
-
 ; string-trim-whitespace: Trim whitespace from both ends
 (string-trim-whitespace (fn (s)
                             (string-trim (fn (c) (or (char=? c #\space)
@@ -7826,60 +5440,11 @@
                                          s)))
 
 ; string-contains?: Check if s1 contains s2
-(string-contains? (fix contains-rec
-                       (fn (s1 s2)
-                           (let ((len1 (string-length s1))
-                                 (len2 (string-length s2)))
-                                (if (< len1 len2)
-                                    #f
-                                    (if (string=? (string-take len2 s1) s2)
-                                        #t
-                                        (contains-rec (string-drop 1 s1) s2)))))))
-
 ; string-prefix?: Check if s2 is prefix of s1
-(string-prefix? (fn (s1 s2)
-                    (let ((len1 (string-length s1))
-                          (len2 (string-length s2)))
-                         (if (< len1 len2)
-                             #f
-                             (string=? (string-take len2 s1) s2)))))
-
 ; string-suffix?: Check if s2 is suffix of s1
-(string-suffix? (fn (s1 s2)
-                    (let ((len1 (string-length s1))
-                          (len2 (string-length s2)))
-                         (if (< len1 len2)
-                             #f
-                             (string=? (string-take-right len2 s1) s2)))))
-
 ; string-split-at: Split string at index
-(string-split-at (fn (s i)
-                     (cons (string-take i s) (string-drop i s))))
-
 ; string-replace-first: Replace first occurrence of old with new
-(string-replace-first (fix replace-first-rec
-                           (fn (s old new)
-                               (let ((len-s (string-length s))
-                                     (len-old (string-length old)))
-                                    (if (< len-s len-old)
-                                        s
-                                        (if (string=? (string-take len-old s) old)
-                                            (string-append new (string-drop len-old s))
-                                            (string-append (string-take 1 s)
-                                                           (replace-first-rec (string-drop 1 s) old new))))))))
-
 ; string-replace-all: Replace all occurrences of old with new
-(string-replace-all (fix replace-all-rec
-                         (fn (s old new)
-                             (let ((len-s (string-length s))
-                                   (len-old (string-length old)))
-                                  (if (< len-s len-old)
-                                      s
-                                      (if (string=? (string-take len-old s) old)
-                                          (string-append new (replace-all-rec (string-drop len-old s) old new))
-                                          (string-append (string-take 1 s)
-                                                         (replace-all-rec (string-drop 1 s) old new))))))))
-
 ; string-join: Join list of strings with separator
 (string-join (fix join-rec
                   (fn (lst sep)
@@ -7891,16 +5456,6 @@
                                              (string-append sep (join-rec (cdr lst) sep))))))))
 
 ; string-split-char: Split string by delimiter character
-(string-split-char (fn (s delim)
-                       ((fix split-rec
-                             (fn (chars current acc)
-                                 (if (null? chars)
-                                     (reverse (cons (list->string (reverse current)) acc))
-                                     (if (char=? (car chars) delim)
-                                         (split-rec (cdr chars) '() (cons (list->string (reverse current)) acc))
-                                         (split-rec (cdr chars) (cons (car chars) current) acc)))))
-                        (string->list s) '() '())))
-
 ; string-upcase: Convert string to uppercase
 (string-upcase (fn (s)
                    (list->string (map char-upcase (string->list s)))))
@@ -7920,9 +5475,6 @@
                                    " ")))
 
 ; string-count: Count occurrences of char in string
-(string-count (fn (s c)
-                  (length (filter (fn (x) (char=? x c)) (string->list s)))))
-
 ; string-index: Find first index of char (or -1 if not found)
 (string-index (fn (s c)
                   ((fix index-rec
@@ -7968,34 +5520,18 @@
                        (assq-rec key (cdr alist)))))))
 
 ; assv: Find pair by key using eqv?
-(assv (fix assv-rec
-           (fn (key alist)
-               (if (null? alist)
-                   #f
-                   (if (eqv? key (caar alist))
-                       (car alist)
-                       (assv-rec key (cdr alist)))))))
-
 ; alist-ref: Get value for key (with optional default)
 (alist-ref (fn (key alist default)
                (let ((pair (assoc key alist)))
                     (if pair (cdr pair) default))))
 
 ; alist-set: Set or update key-value pair
-(alist-set (fn (key val alist)
-               (cons (cons key val)
-                     (filter (fn (pair) (not (equal? key (car pair)))) alist))))
-
 ; alist-delete: Remove all pairs with key
 (alist-delete (fn (key alist)
                   (filter (fn (pair) (not (equal? key (car pair)))) alist)))
 
 ; alist-keys: Get all keys
-(alist-keys (fn (alist) (map car alist)))
-
 ; alist-values: Get all values
-(alist-values (fn (alist) (map cdr alist)))
-
 ; alist->list: Convert alist to list of key-value lists
 (alist->list (fn (alist)
                  (map (fn (pair) (list (car pair) (cdr pair))) alist)))
@@ -8024,14 +5560,6 @@
 (set-singleton (fn (x) (list x)))
 
 ; set-member?: Check membership
-(set-member? (fix member-rec
-                  (fn (x s)
-                      (if (null? s)
-                          #f
-                          (if (equal? x (car s))
-                              #t
-                              (member-rec x (cdr s)))))))
-
 ; set-insert: Insert element (maintains uniqueness)
 (set-insert (fn (x s)
                 (if (set-member? x s)
@@ -8043,12 +5571,7 @@
                 (filter (fn (y) (not (equal? x y))) s)))
 
 ; set-disjoint?: Check if sets have no common elements
-(set-disjoint? (fn (s1 s2)
-                   (null? (set-intersection s1 s2))))
-
 ; set-size: Number of elements
-(set-size length)
-
 ; set->list: Convert to list
 (set->list (fn (s) s))
 
@@ -8076,29 +5599,12 @@
 ; ============================================
 
 ; queue-new: Create empty queue
-(queue-new (fn () '()))
-
 ; queue-empty: Empty queue constant
-(queue-empty '())
-
 ; queue-empty?: Check if queue is empty
-(queue-empty? null?)
-
 ; queue-enqueue: Add element to back of queue (queue first, element second)
-(queue-enqueue (fn (q x) (append q (list x))))
-
 ; queue-dequeue: Remove and return front element (returns (element . rest))
-(queue-dequeue (fn (q)
-                   (if (null? q)
-                       (cons #f '())
-                       (cons (car q) (cdr q)))))
-
 ; queue-front: Peek at front element
-(queue-front (fn (q) (if (null? q) #f (car q))))
-
 ; queue-size: Get queue size
-(queue-size length)
-
 ; queue->list: Convert to list (identity for list-based)
 (queue->list id)
 
@@ -8110,35 +5616,13 @@
 ; ============================================
 
 ; deque-new: Create empty deque
-(deque-new (fn () '()))
-
 ; deque-empty?: Check if deque is empty
-(deque-empty? null?)
-
 ; deque-push-front: Add to front (deque first, then element)
-(deque-push-front (fn (d x) (cons x d)))
-
 ; deque-push-back: Add to back (deque first, then element)
-(deque-push-back (fn (d x) (append d (list x))))
-
 ; deque-front: Peek at front
-(deque-front (fn (d) (if (null? d) #f (car d))))
-
 ; deque-back: Peek at back
-(deque-back (fn (d) (if (null? d) #f (last d))))
-
 ; deque-pop-front: Remove from front (returns (element . rest))
-(deque-pop-front (fn (d)
-                     (if (null? d)
-                         (cons #f '())
-                         (cons (car d) (cdr d)))))
-
 ; deque-pop-back: Remove from back (returns (element . rest))
-(deque-pop-back (fn (d)
-                    (if (null? d)
-                        (cons #f '())
-                        (cons (last d) (init d)))))
-
 ; deque-size: Number of elements
 (deque-size length)
 
@@ -8162,9 +5646,6 @@
                                     (cons (car lst) (insert-rec x (cdr lst) cmp)))))))
 
 ; insertion-sort-cmp: Insertion sort with comparator (use insertion-sort for default <=)
-(insertion-sort-cmp (fn (lst cmp)
-                        (foldl (fn (acc x) (insert-sorted-cmp x acc cmp)) '() lst)))
-
 ; merge-sorted-cmp: Merge two sorted lists with comparator
 (merge-sorted-cmp (fix merge-rec
                        (fn (l1 l2 cmp)
@@ -8177,17 +5658,6 @@
                                        (cons (car l2) (merge-rec l1 (cdr l2) cmp))))))))
 
 ; merge-sort-cmp: Merge sort with comparator (use merge-sort for default <=)
-(merge-sort-cmp (fix merge-sort-rec
-                     (fn (lst cmp)
-                         (let ((len (length lst)))
-                              (if (<= len 1)
-                                  lst
-                                  (let ((mid (quotient len 2)))
-                                       (merge-sorted-cmp
-                                        (merge-sort-rec (take mid lst) cmp)
-                                        (merge-sort-rec (drop mid lst) cmp)
-                                        cmp)))))))
-
 ; quicksort-cmp: Quicksort with comparator
 (quicksort-cmp (fix quicksort-rec
                     (fn (lst cmp)
@@ -8210,22 +5680,7 @@
                                       (fn (a b) (< (car a) (car b)))))))
 
 ; sort-descending: Sort in descending order
-(sort-descending (fn (lst)
-                     (merge-sort-cmp lst >)))
-
 ; sorted-cmp?: Check if list is sorted by comparator (use sorted? for default <=)
-(sorted-cmp? (fix sorted-rec
-                  (fn (lst cmp)
-                      (if (null? lst)
-                          #t
-                          (if (null? (cdr lst))
-                              #t
-                              (if (cmp (car lst) (cadr lst))
-                                  (sorted-rec (cdr lst) cmp)
-                                  (if (equal? (car lst) (cadr lst))
-                                      (sorted-rec (cdr lst) cmp)
-                                      #f)))))))
-
 ; minimum: Find minimum element
 (minimum (fn (lst)
              (if (null? lst)
@@ -8270,19 +5725,8 @@
 (pq-empty '())
 
 ; pq-empty?: Check if empty
-(pq-empty? null?)
-
 ; pq-insert: Insert with priority (lower = higher priority)
-(pq-insert (fn (priority value pq)
-               (insert-sorted (cons priority value) pq
-                              (fn (a b) (< (car a) (car b))))))
-
 ; pq-peek: Get highest priority element
-(pq-peek (fn (pq)
-             (if (null? pq)
-                 (error "pq-peek: empty queue")
-                 (cdar pq))))
-
 ; pq-peek-priority: Get highest priority value
 (pq-peek-priority (fn (pq)
                       (if (null? pq)
@@ -8290,11 +5734,6 @@
                           (caar pq))))
 
 ; pq-pop: Remove highest priority element
-(pq-pop (fn (pq)
-            (if (null? pq)
-                (error "pq-pop: empty queue")
-                (cdr pq))))
-
 ; pq-size: Number of elements
 (pq-size length)
 
@@ -8311,16 +5750,7 @@
                      (alist-set x (+ current 1) bag))))
 
 ; bag-count: Get count of element
-(bag-count (fn (x bag)
-               (alist-ref x bag 0)))
-
 ; bag-remove: Remove one occurrence
-(bag-remove (fn (x bag)
-                (let ((current (alist-ref x bag 0)))
-                     (if (<= current 1)
-                         (alist-delete x bag)
-                         (alist-set x (- current 1) bag)))))
-
 ; bag-remove-all: Remove all occurrences
 (bag-remove-all alist-delete)
 
@@ -8347,18 +5777,7 @@
                (foldl (fn (acc x) (bag-insert x acc)) '() lst)))
 
 ; bag-union: Union (max of counts)
-(bag-union (fn (b1 b2)
-               (let ((keys (set-union (alist-keys b1) (alist-keys b2))))
-                    (map (fn (k) (cons k (max (bag-count k b1) (bag-count k b2))))
-                         keys))))
-
 ; bag-intersection: Intersection (min of counts)
-(bag-intersection (fn (b1 b2)
-                      (let ((keys (set-intersection (alist-keys b1) (alist-keys b2))))
-                           (filter (fn (pair) (> (cdr pair) 0))
-                                   (map (fn (k) (cons k (min (bag-count k b1) (bag-count k b2))))
-                                        keys)))))
-
 ; bag-sum: Sum (add counts)
 (bag-sum (fn (b1 b2)
              (foldl (fn (acc pair)
@@ -8451,14 +5870,6 @@
                      lst '())))
 
 ; chunks: Split list into chunks of size n
-(chunks (fn (n lst)
-            ((fix chunk-rec
-                  (fn (remaining acc)
-                      (if (null? remaining)
-                          (reverse acc)
-                          (chunk-rec (drop-n n remaining) (cons (take-n n remaining) acc)))))
-             lst '())))
-
 ; chunks-exact: Split into exact chunks (drop remainder)
 (chunks-exact (fn (n lst)
                   (filter (fn (chunk) (= (length chunk) n)) (chunks n lst))))
@@ -8489,51 +5900,9 @@
                     lst '())))
 
 ; dedupe: Remove consecutive duplicates
-(dedupe (fn (lst)
-            (if (null? lst)
-                '()
-                ((fix dedupe-rec
-                      (fn (prev remaining acc)
-                          (if (null? remaining)
-                              (reverse acc)
-                              (if (equal? prev (car remaining))
-                                  (dedupe-rec prev (cdr remaining) acc)
-                                  (dedupe-rec (car remaining) (cdr remaining) (cons (car remaining) acc))))))
-                 (car lst) (cdr lst) (list (car lst))))))
-
 ; dedupe-by: Remove consecutive duplicates by key function
-(dedupe-by (fn (key-fn lst)
-               (if (null? lst)
-                   '()
-                   ((fix dedupe-rec
-                         (fn (prev-key remaining acc)
-                             (if (null? remaining)
-                                 (reverse acc)
-                                 (let ((curr-key (key-fn (car remaining))))
-                                      (if (equal? prev-key curr-key)
-                                          (dedupe-rec prev-key (cdr remaining) acc)
-                                          (dedupe-rec curr-key (cdr remaining) (cons (car remaining) acc)))))))
-                    (key-fn (car lst)) (cdr lst) (list (car lst))))))
-
 ; run-length-encode: Encode consecutive runs
-(run-length-encode (fn (lst)
-                       (if (null? lst)
-                           '()
-                           ((fix rle-rec
-                                 (fn (current count remaining acc)
-                                     (if (null? remaining)
-                                         (reverse (cons (cons count current) acc))
-                                         (if (equal? current (car remaining))
-                                             (rle-rec current (+ count 1) (cdr remaining) acc)
-                                             (rle-rec (car remaining) 1 (cdr remaining)
-                                                      (cons (cons count current) acc))))))
-                            (car lst) 1 (cdr lst) '()))))
-
 ; run-length-decode: Decode run-length encoding
-(run-length-decode (fn (encoded)
-                       (apply append
-                              (map (fn (pair) (replicate (car pair) (cdr pair))) encoded))))
-
 ; ============================================
 ; Zipper Data Structure (List Zipper)
 ; ============================================
@@ -9346,34 +6715,12 @@
 ; ============================================
 
 ; string-words: Split on whitespace
-(string-words (fn (s)
-                  (filter (fn (w) (not (string=? w "")))
-                          (string-split s " "))))
-
 ; string-lines: Split on newlines
-(string-lines (fn (s)
-                  (string-split s "\n")))
-
 ; string-unwords: Join with spaces
-(string-unwords (fn (words)
-                    (string-join words " ")))
-
 ; string-unlines: Join with newlines
-(string-unlines (fn (lines)
-                    (string-join lines "\n")))
-
 ; string-repeat: Repeat string n times
-(string-repeat (fn (n s)
-                   (string-join (replicate n s) "")))
-
 ; string-take-while: Take chars while predicate holds
-(string-take-while (fn (pred s)
-                       (list->string (take-while pred (string->list s)))))
-
 ; string-drop-while: Drop chars while predicate holds
-(string-drop-while (fn (pred s)
-                       (list->string (drop-while pred (string->list s)))))
-
 ; ============================================
 ; Logic and Constraint Utilities
 ; ============================================
@@ -9398,10 +6745,6 @@
                  (count-if (fn (x) (equal? x val)) lst)))
 
 ; all-equal?: Check all elements are equal
-(all-equal? (fn (lst)
-                (or (null? lst)
-                    (all (fn (x) (equal? x (car lst))) (cdr lst)))))
-
 ; ============================================
 ; Character Predicates
 ; ============================================
@@ -9466,10 +6809,6 @@
 (graph-nodes (fn (g) (map car g)))
 
 ; graph-from-edges: Build from edge list
-(graph-from-edges (fn (edges)
-                      (foldl (fn (g e) (graph-add-edge (car e) (cdr e) g))
-                             graph-empty edges)))
-
 ; bfs: Breadth-first search
 (bfs (fn (start g)
          ((fix bfs-rec
@@ -9501,9 +6840,6 @@
           (list start) '() '())))
 
 ; graph-path-exists?: Check if path exists
-(graph-path-exists? (fn (from to g)
-                        (member? to (bfs from g))))
-
 ; ============================================
 ; State Monad
 ; ============================================
@@ -9524,8 +6860,6 @@
 ; Reader r a = r -> a
 
 ; reader-return: Wrap value
-(reader-return const)
-
 ; reader-run: Run reader
 (reader-run (fn (ma r) (ma r)))
 
@@ -9548,26 +6882,15 @@
 ; ============================================
 
 ; divides?: Check if a divides b
-(divides? (fn (a b) (= 0 (mod b a))))
-
 ; perfect-square?: Check if n is perfect square
 (perfect-square? (fn (n)
                      (let ((s (isqrt n)))
                           (= (* s s) n))))
 
 ; triangular: nth triangular number
-(triangular (fn (n) (/ (* n (+ n 1)) 2)))
-
 ; pentagonal: nth pentagonal number
-(pentagonal (fn (n) (/ (* n (- (* 3 n) 1)) 2)))
-
 ; hexagonal: nth hexagonal number
-(hexagonal (fn (n) (* n (- (* 2 n) 1))))
-
 ; catalan: nth Catalan number
-(catalan (fn (n)
-             (/ (binomial (* 2 n) n) (+ n 1))))
-
 ; stirling1: Stirling first kind (unsigned)
 (stirling1 (fix stirling1-rec
                 (fn (n k)
@@ -9835,14 +7158,6 @@
               cases)))
 
 ; do-times: Execute thunk n times, return list of results
-(do-times (fn (n thunk)
-              ((fix times-rec
-                    (fn (i acc)
-                        (if (>= i n)
-                            (reverse acc)
-                            (times-rec (+ i 1) (cons (thunk) acc)))))
-               0 '())))
-
 ; do-while: Execute while condition holds, return final value
 (do-while (fn (init step-fn done-fn)
               ((fix while-rec
@@ -9853,76 +7168,14 @@
                init)))
 
 ; repeat-until: Execute until condition becomes true
-(repeat-until (fn (init step-fn stop-fn)
-                  ((fix until-rec
-                        (fn (val)
-                            (let ((next (step-fn val)))
-                                 (if (stop-fn next)
-                                     next
-                                     (until-rec next)))))
-                   init)))
-
 ; for-each-indexed: Apply fn to each element with index
-(for-each-indexed (fn (fn-2 lst)
-                      ((fix each-rec
-                            (fn (i remaining)
-                                (if (null? remaining)
-                                    '()
-                                    (begin
-                                     (fn-2 i (car remaining))
-                                     (each-rec (+ i 1) (cdr remaining))))))
-                       0 lst)))
-
 ; loop-collect: Loop collecting results while condition holds
-(loop-collect (fn (init step-fn done-fn val-fn)
-                  ((fix loop-rec
-                        (fn (state acc)
-                            (if (done-fn state)
-                                (reverse acc)
-                                (loop-rec (step-fn state) (cons (val-fn state) acc)))))
-                   init '())))
-
 ; try-catch: Try thunk, on error call error-fn with error
 ; Note: Limited error handling in pure context
-(try-catch (fn (thunk error-fn)
-               (thunk)))
-
 ; default: Return default if value is falsy
-(default (fn (val def)
-             (if val val def)))
-
 ; first-truthy: Return first truthy value from list
-(first-truthy (fn (vals)
-                  ((fix coal-rec
-                        (fn (remaining)
-                            (if (null? remaining)
-                                #f
-                                (if (car remaining)
-                                    (car remaining)
-                                    (coal-rec (cdr remaining))))))
-                   vals)))
-
 ; short-circuit-and: Lazy and with thunks
-(short-and (fn (thunks)
-               ((fix and-rec
-                     (fn (remaining)
-                         (if (null? remaining)
-                             #t
-                             (if ((car remaining))
-                                 (and-rec (cdr remaining))
-                                 #f))))
-                thunks)))
-
 ; short-circuit-or: Lazy or with thunks
-(short-or (fn (thunks)
-              ((fix or-rec
-                    (fn (remaining)
-                        (if (null? remaining)
-                            #f
-                            (let ((v ((car remaining))))
-                                 (if v v (or-rec (cdr remaining)))))))
-               thunks)))
-
 ; guard-value: Return value only if predicate holds, else default
 (guard-value (fn (val predicate-fn default-val)
                  (if (predicate-fn val) val default-val)))
@@ -9932,262 +7185,37 @@
                     (if (predicate-fn val) val 'assertion-failed)))
 
 ; chain-guards: Apply sequence of guards, short-circuit on failure
-(chain-guards (fn (val guards)
-                  ((fix guard-rec
-                        (fn (v remaining)
-                            (if (null? remaining)
-                                v
-                                (let ((g (car remaining)))
-                                     (let ((result ((car g) v)))
-                                          (if result
-                                              (guard-rec v (cdr remaining))
-                                              (cdr g)))))))
-                   val guards)))
-
 ; ============================================================
 ; Advanced List Utilities
 ; ============================================================
 
 ; dedupe: Remove consecutive duplicates
-(dedupe (fn (lst)
-            (if (null? lst)
-                '()
-                ((fix dedup-rec
-                      (fn (prev remaining acc)
-                          (if (null? remaining)
-                              (reverse (cons prev acc))
-                              (if (equal? prev (car remaining))
-                                  (dedup-rec prev (cdr remaining) acc)
-                                  (dedup-rec (car remaining) (cdr remaining) (cons prev acc))))))
-                 (car lst) (cdr lst) '()))))
-
 ; dedupe-by: Remove consecutive duplicates by key
-(dedupe-by (fn (key-fn lst)
-               (if (null? lst)
-                   '()
-                   ((fix dedup-rec
-                         (fn (prev prev-key remaining acc)
-                             (if (null? remaining)
-                                 (reverse (cons prev acc))
-                                 (let ((cur-key (key-fn (car remaining))))
-                                      (if (equal? prev-key cur-key)
-                                          (dedup-rec prev prev-key (cdr remaining) acc)
-                                          (dedup-rec (car remaining) cur-key (cdr remaining) (cons prev acc)))))))
-                    (car lst) (key-fn (car lst)) (cdr lst) '()))))
-
 ; take-nth: Take every nth element
-(take-nth (fn (n lst)
-              ((fix nth-rec
-                    (fn (i remaining acc)
-                        (if (null? remaining)
-                            (reverse acc)
-                            (if (= (mod i n) 0)
-                                (nth-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))
-                                (nth-rec (+ i 1) (cdr remaining) acc)))))
-               0 lst '())))
-
 ; drop-nth: Drop every nth element
-(drop-nth (fn (n lst)
-              ((fix nth-rec
-                    (fn (i remaining acc)
-                        (if (null? remaining)
-                            (reverse acc)
-                            (if (= (mod i n) 0)
-                                (nth-rec (+ i 1) (cdr remaining) acc)
-                                (nth-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))))))
-               0 lst '())))
-
 ; split-with: Split list at first element matching predicate
-(split-with (fn (pred-fn lst)
-                ((fix split-rec
-                      (fn (remaining before)
-                          (if (null? remaining)
-                              (cons (reverse before) '())
-                              (if (pred-fn (car remaining))
-                                  (cons (reverse before) remaining)
-                                  (split-rec (cdr remaining) (cons (car remaining) before))))))
-                 lst '())))
-
 ; group-runs: Group consecutive runs of equal elements
-(group-runs (fn (lst)
-                (if (null? lst)
-                    '()
-                    ((fix run-rec
-                          (fn (remaining current-run acc)
-                              (if (null? remaining)
-                                  (reverse (cons (reverse current-run) acc))
-                                  (if (equal? (car remaining) (car current-run))
-                                      (run-rec (cdr remaining) (cons (car remaining) current-run) acc)
-                                      (run-rec (cdr remaining) (list (car remaining))
-                                               (cons (reverse current-run) acc))))))
-                     (cdr lst) (list (car lst)) '()))))
-
 ; map-runs: Apply function to runs of consecutive equal elements
-(map-runs (fn (fn-1 lst)
-              (map fn-1 (group-runs lst))))
-
 ; find-indices: Find all indices matching predicate
-(find-indices (fn (pred-fn lst)
-                  ((fix find-rec
-                        (fn (i remaining acc)
-                            (if (null? remaining)
-                                (reverse acc)
-                                (if (pred-fn (car remaining))
-                                    (find-rec (+ i 1) (cdr remaining) (cons i acc))
-                                    (find-rec (+ i 1) (cdr remaining) acc)))))
-                   0 lst '())))
-
 ; replace-at: Replace element at index
-(replace-at (fn (idx val lst)
-                ((fix rep-rec
-                      (fn (i remaining acc)
-                          (if (null? remaining)
-                              (reverse acc)
-                              (if (= i idx)
-                                  (rep-rec (+ i 1) (cdr remaining) (cons val acc))
-                                  (rep-rec (+ i 1) (cdr remaining) (cons (car remaining) acc))))))
-                 0 lst '())))
-
 ; swap-at: Swap elements at two indices
-(swap-at (fn (i j lst)
-             (let ((vi (nth i lst))
-                   (vj (nth j lst)))
-                  (replace-at j vi (replace-at i vj lst)))))
-
 ; prefix?: Check if first list is prefix of second
-(prefix? (fn (pre lst)
-             ((fix pre-rec
-                   (fn (p l)
-                       (if (null? p)
-                           #t
-                           (if (null? l)
-                               #f
-                               (if (equal? (car p) (car l))
-                                   (pre-rec (cdr p) (cdr l))
-                                   #f)))))
-              pre lst)))
-
 ; suffix?: Check if first list is suffix of second
-(suffix? (fn (suf lst)
-             (prefix? (reverse suf) (reverse lst))))
-
 ; sublist?: Check if first list appears in second
-(sublist? (fn (sub lst)
-              ((fix sub-rec
-                    (fn (l)
-                        (if (null? l)
-                            #f
-                            (if (prefix? sub l)
-                                #t
-                                (sub-rec (cdr l))))))
-               lst)))
-
 ; count-occurrences: Count how many times sublist appears
-(count-occurrences (fn (sub lst)
-                       ((fix count-rec
-                             (fn (l acc)
-                                 (if (null? l)
-                                     acc
-                                     (if (prefix? sub l)
-                                         (count-rec (cdr l) (+ acc 1))
-                                         (count-rec (cdr l) acc)))))
-                        lst 0)))
-
 ; windowed: Generate overlapping windows
-(windowed (fn (n lst)
-              (if (< (length lst) n)
-                  '()
-                  ((fix win-rec
-                        (fn (remaining acc)
-                            (if (< (length remaining) n)
-                                (reverse acc)
-                                (win-rec (cdr remaining) (cons (take remaining n) acc)))))
-                   lst '()))))
-
 ; ============================================================
 ; String Algorithms
 ; ============================================================
 
 ; edit-distance: Levenshtein distance between two strings
-(edit-distance (fn (s1 s2)
-                   (let ((l1 (string->list s1))
-                         (l2 (string->list s2)))
-                        (let ((len1 (length l1))
-                              (len2 (length l2)))
-                             (if (= len1 0) len2
-                                 (if (= len2 0) len1
-                                     ((fix ed-rec
-                                           (fn (i j memo)
-                                               (if (> i len1)
-                                                   (cdr (assoc (cons len1 len2) memo))
-                                                   (if (> j len2)
-                                                       (ed-rec (+ i 1) 1 memo)
-                                                       (let ((c1 (nth (- i 1) l1))
-                                                             (c2 (nth (- j 1) l2)))
-                                                            (let ((cost (if (eq? c1 c2) 0 1)))
-                                                                 (let ((above (if (= i 1) j
-                                                                                  (+ 1 (cdr (assoc (cons (- i 1) j) memo)))))
-                                                                       (left (if (= j 1) i
-                                                                                 (+ 1 (cdr (assoc (cons i (- j 1)) memo)))))
-                                                                       (diag (if (or (= i 1) (= j 1))
-                                                                                 (+ (max (- i 1) (- j 1)) cost)
-                                                                                 (+ cost (cdr (assoc (cons (- i 1) (- j 1)) memo))))))
-                                                                      (ed-rec i (+ j 1)
-                                                                              (cons (cons (cons i j) (min above (min left diag))) memo)))))))))
-                                      1 1 '())))))))
-
 ; hamming-distance: Count differing positions (same-length strings)
-(hamming-distance (fn (s1 s2)
-                      (let ((l1 (string->list s1))
-                            (l2 (string->list s2)))
-                           (if (not (= (length l1) (length l2)))
-                               -1  ; undefined for different lengths
-                               ((fix ham-rec
-                                     (fn (a b count)
-                                         (if (null? a)
-                                             count
-                                             (ham-rec (cdr a) (cdr b)
-                                                      (if (eq? (car a) (car b)) count (+ count 1))))))
-                                l1 l2 0)))))
-
 ; longest-common-prefix: Find longest common prefix of two strings
-(longest-common-prefix (fn (s1 s2)
-                           (let ((l1 (string->list s1))
-                                 (l2 (string->list s2)))
-                                (list->string
-                                 ((fix lcp-rec
-                                       (fn (a b acc)
-                                           (if (or (null? a) (null? b))
-                                               (reverse acc)
-                                               (if (eq? (car a) (car b))
-                                                   (lcp-rec (cdr a) (cdr b) (cons (car a) acc))
-                                                   (reverse acc)))))
-                                  l1 l2 '())))))
-
 ; longest-common-suffix: Find longest common suffix
-(longest-common-suffix (fn (s1 s2)
-                           (string-reverse (longest-common-prefix (string-reverse s1) (string-reverse s2)))))
-
 ; string-similarity: Similarity ratio (0.0 to 1.0)
-(string-similarity (fn (s1 s2)
-                       (let ((max-len (max (string-length s1) (string-length s2))))
-                            (if (= max-len 0)
-                                1
-                                (/ (- max-len (edit-distance s1 s2)) max-len)))))
-
 ; fuzzy-match?: Check if strings are similar within threshold
-(fuzzy-match? (fn (s1 s2 threshold)
-                  (>= (string-similarity s1 s2) threshold)))
-
 ; string-normalize: Lowercase and trim whitespace
-(string-normalize (fn (s)
-                      (string-trim (string-map char-downcase s))))
-
 ; string-tokenize: Split on whitespace, remove empty
-(string-tokenize (fn (s)
-                     (filter (fn (tok) (not (string-empty? tok)))
-                             (string-split s " "))))
-
 ; ============================================================
 ; Testing and Assertion Utilities
 ; ============================================================
@@ -10199,229 +7227,50 @@
                        (list 'fail msg 'expected expected 'got actual))))
 
 ; assert-true: Assert value is truthy
-(assert-true (fn (val msg)
-                 (if val
-                     (list 'pass msg)
-                     (list 'fail msg 'expected 'truthy 'got val))))
-
 ; assert-false: Assert value is falsy
-(assert-false (fn (val msg)
-                  (if val
-                      (list 'fail msg 'expected 'falsy 'got val)
-                      (list 'pass msg))))
-
 ; assert-throws: Assert thunk throws (returns error symbol)
-(assert-throws (fn (thunk msg)
-                   (let ((result (thunk)))
-                        (if (and (symbol? result) (eq? result 'error))
-                            (list 'pass msg)
-                            (list 'fail msg 'expected 'error 'got result)))))
-
 ; run-tests: Run list of test thunks, return summary
-(run-tests (fn (tests)
-               (let ((results (map (fn (t) (t)) tests)))
-                    (let ((passed (filter (fn (r) (eq? (car r) 'pass)) results))
-                          (failed (filter (fn (r) (eq? (car r) 'fail)) results)))
-                         (list
-                          (cons 'total (length results))
-                          (cons 'passed (length passed))
-                          (cons 'failed (length failed))
-                          (cons 'failures failed))))))
-
 ; test-case: Create a named test case
-(test-case (fn (name thunk)
-               (fn () (cons name (thunk)))))
-
 ; ============================================================
 ; Sequence Generation Utilities
 ; ============================================================
 
 ; arithmetic-seq: Generate arithmetic sequence
-(arithmetic-seq (fn (start step count)
-                    ((fix arith-rec
-                          (fn (cur n acc)
-                              (if (<= n 0)
-                                  (reverse acc)
-                                  (arith-rec (+ cur step) (- n 1) (cons cur acc)))))
-                     start count '())))
-
 ; geometric-seq: Generate geometric sequence
-(geometric-seq (fn (start ratio count)
-                   ((fix geom-rec
-                         (fn (cur n acc)
-                             (if (<= n 0)
-                                 (reverse acc)
-                                 (geom-rec (* cur ratio) (- n 1) (cons cur acc)))))
-                    start count '())))
-
 ; fibonacci-seq: Generate first n Fibonacci numbers
-(fibonacci-seq (fn (n)
-                   (if (<= n 0) '()
-                       (if (= n 1) '(0)
-                           (if (= n 2) '(0 1)
-                               ((fix fib-rec
-                                     (fn (a b count acc)
-                                         (if (<= count 0)
-                                             (reverse acc)
-                                             (fib-rec b (+ a b) (- count 1) (cons a acc)))))
-                                0 1 n '()))))))
-
 ; factorials-up-to: Generate factorials up to n
-(factorials-up-to (fn (n)
-                      ((fix fact-rec
-                            (fn (i cur acc)
-                                (if (> i n)
-                                    (reverse acc)
-                                    (fact-rec (+ i 1) (* cur i) (cons cur acc)))))
-                       1 1 '())))
-
 ; convergent-seq: Generate sequence until convergence
-(convergent-seq (fn (start step-fn converged-fn max-iter)
-                    ((fix conv-rec
-                          (fn (cur iter acc)
-                              (if (or (converged-fn cur) (>= iter max-iter))
-                                  (reverse (cons cur acc))
-                                  (conv-rec (step-fn cur) (+ iter 1) (cons cur acc)))))
-                     start 0 '())))
-
 ; cycle-detect: Detect cycle in sequence, return (mu . lambda)
 ; mu = start of cycle, lambda = length of cycle
-(cycle-detect (fn (start step-fn)
-                  ((fix floyd
-                        (fn (tortoise hare power lambda mu)
-                            (if (equal? tortoise hare)
-                                (if (= lambda 0)
-                                    ; Find actual start
-                                    ((fix find-mu
-                                          (fn (t h m)
-                                              (if (equal? t h)
-                                                  (cons m lambda)
-                                                  (find-mu (step-fn t) (step-fn h) (+ m 1)))))
-                                     start
-                                     ((fix advance (fn (x n) (if (= n 0) x (advance (step-fn x) (- n 1)))))
-                                      start lambda)
-                                     0)
-                                    (cons mu lambda))
-                                (if (= power lambda)
-                                    (floyd hare (step-fn hare) (* power 2) 1 mu)
-                                    (floyd tortoise (step-fn hare) power (+ lambda 1) mu)))))
-                   start (step-fn start) 1 1 0)))
-
 ; ============================================================
 ; Encoding Utilities
 ; ============================================================
 
 ; hex-chars: Hex character lookup
-(hex-chars "0123456789abcdef")
-
 ; nibble->hex: Convert 0-15 to hex char
-(nibble->hex (fn (n)
-                 (string-ref hex-chars (mod n 16))))
-
 ; hex->nibble: Convert hex char to 0-15
-(hex->nibble (fn (c)
-                 (let ((code (char->integer c)))
-                      (if (and (>= code 48) (<= code 57))
-                          (- code 48)  ; 0-9
-                          (if (and (>= code 97) (<= code 102))
-                              (- code 87)  ; a-f
-                              (if (and (>= code 65) (<= code 70))
-                                  (- code 55)  ; A-F
-                                  0))))))
-
 ; byte->hex: Convert byte (0-255) to two hex chars
-(byte->hex (fn (b)
-               (list->string (list (nibble->hex (/ b 16)) (nibble->hex (mod b 16))))))
-
 ; hex->byte: Convert two hex chars to byte
-(hex->byte (fn (h1 h2)
-               (+ (* 16 (hex->nibble h1)) (hex->nibble h2))))
-
 ; bytes->hex: Convert list of bytes to hex string
-(bytes->hex (fn (bytes)
-                (apply string-append (map byte->hex bytes))))
-
 ; hex->bytes: Convert hex string to list of bytes
-(hex->bytes (fn (hex-str)
-                (let ((chars (string->list hex-str)))
-                     ((fix hex-rec
-                           (fn (remaining acc)
-                               (if (null? remaining)
-                                   (reverse acc)
-                                   (if (null? (cdr remaining))
-                                       (reverse acc)
-                                       (let ((h1 (car remaining))
-                                             (h2 (cadr remaining))
-                                             (rest (cdr (cdr remaining))))
-                                            (hex-rec rest (cons (hex->byte h1 h2) acc)))))))
-                      chars '()))))
-
 ; string->bytes: Convert string to list of byte values
-(string->bytes (fn (s)
-                   (map char->integer (string->list s))))
-
 ; bytes->string: Convert list of byte values to string
-(bytes->string (fn (bytes)
-                   (list->string (map integer->char bytes))))
-
 ; string->hex: Convert string to hex encoding
-(string->hex (fn (s)
-                 (bytes->hex (string->bytes s))))
-
 ; hex->string: Convert hex encoding to string
-(hex->string (fn (hex-str)
-                 (bytes->string (hex->bytes hex-str))))
-
 ; ============================================================
 ; Memoization Utilities
 ; ============================================================
 
 ; memo-table: Create empty memoization table
-(memo-table (fn () '()))
-
 ; memo-lookup: Look up value in memo table
-(memo-lookup (fn (key table)
-                 (assoc key table)))
-
 ; memo-insert: Insert value into memo table
-(memo-insert (fn (key val table)
-                 (cons (cons key val) table)))
-
 ; with-memo: Execute with memoization (returns (result . new-table))
-(with-memo (fn (key compute-fn table)
-               (let ((cached (memo-lookup key table)))
-                    (if cached
-                        (cons (cdr cached) table)
-                        (let ((result (compute-fn)))
-                             (cons result (memo-insert key result table)))))))
-
 ; ============================================================
 ; Advanced Math Utilities
 ; ============================================================
 
 ; newton-sqrt: Square root via Newton's method
-(newton-sqrt (fn (n)
-                 (if (< n 0) 'error
-                     (if (= n 0) 0
-                         ((fix newton
-                               (fn (guess)
-                                   (let ((next (/ (+ guess (/ n guess)) 2)))
-                                        (if (< (abs (- next guess)) 0.0001)
-                                            next
-                                            (newton next)))))
-                          (/ n 2))))))
-
 ; nth-root: Nth root via Newton's method
-(nth-root (fn (x n)
-              (if (< x 0) 'error
-                  ((fix newton
-                        (fn (guess)
-                            (let ((next (/ (+ (* (- n 1) guess) (/ x (expt guess (- n 1)))) n)))
-                                 (if (< (abs (- next guess)) 0.0001)
-                                     next
-                                     (newton next)))))
-                   (/ x n)))))
-
 ; mean: Arithmetic mean
 ; REMOVED: mean (duplicate, now in stats.ss)
 
@@ -10444,2611 +7293,25 @@
 ; REMOVED: correlation (duplicate, now in stats.ss)
 
 ; linear-regression: Simple linear regression, returns (slope . intercept)
-(linear-regression (fn (xs ys)
-                       (let ((n (length xs))
-                             (mx (mean xs))
-                             (my (mean ys)))
-                            (let ((num (sum-list (map (fn (pair)
-                                                          (* (- (car pair) mx) (- (cdr pair) my)))
-                                                      (zip xs ys))))
-                                  (denom (sum-list (map (fn (x) (* (- x mx) (- x mx))) xs))))
-                                 (if (= denom 0)
-                                     (cons 0 my)
-                                     (let ((slope (/ num denom)))
-                                          (cons slope (- my (* slope mx)))))))))
-
 ; ============================================================
 ; Combinatorial Utilities
 ; ============================================================
 
 ; subsets: Generate all subsets
-(subsets (fn (lst)
-             (if (null? lst)
-                 '(())
-                 (let ((rest-subsets (subsets (cdr lst))))
-                      (append rest-subsets
-                              (map (fn (s) (cons (car lst) s)) rest-subsets))))))
-
 ; power-set: Alias for subsets
-(power-set subsets)
-
 ; ============================================================
 ; Functional Patterns
 ; ============================================================
 
 ; trampoline: Execute thunks until non-thunk result
 ; Thunks are functions tagged with 'bounce
-(bounce (fn (thunk) (list 'bounce thunk)))
-
-(bounce? (fn (x)
-             (and (pair? x) (eq? (car x) 'bounce))))
-
-(trampoline (fn (val)
-                ((fix tramp
-                      (fn (v)
-                          (if (bounce? v)
-                              (tramp ((cadr v)))
-                              v)))
-                 val)))
-
 ; Y combinator (for reference, fix is preferred)
-(Y (fn (f)
-       ((fn (x) (f (fn (v) ((x x) v))))
-        (fn (x) (f (fn (v) ((x x) v)))))))
-
 ; compose-n: Compose n functions
-(compose-n (fn (fns)
-               (foldr compose id fns)))
-
 ; pipe-n: Pipe value through n functions (left to right)
-(pipe-n (fn (fns)
-            (foldl (fn (acc f) (compose f acc)) id fns)))
-
 ; constantly: Return a function that always returns val
-(constantly (fn (val)
-                (fn (ignored) val)))
-
 ; negate-pred: Return negation of predicate (complement already exists)
-(negate-pred (fn (f)
-                 (fn (x) (not (f x)))))
-
 ; juxtapose: Apply multiple functions to same argument
-(juxtapose (fn (fns x)
-               (map (fn (f) (f x)) fns)))
-
 ; converge-with: Apply two functions to arg, combine results with combiner
 ; ((converge-with + f1 f2) x) => (+ (f1 x) (f2 x))
 (converge-with (fn (combiner f1 f2)
                    (fn (x) (combiner (f1 x) (f2 x)))))
-
-; ============================================================
-; Path Manipulation Utilities
-; ============================================================
-
-; path-separator: Get the path separator character
-(path-separator "/")
-
-; path-split: Split path into components
-; (path-split "/home/user/file.txt") => ("" "home" "user" "file.txt")
-(path-split (fn (p)
-                (string-split "/" p)))
-
-; path-join: Join path components
-; (path-join '("home" "user" "file.txt")) => "home/user/file.txt"
-(path-join (fn (parts)
-               (string-join parts "/")))
-
-; path-join-2: Join two paths
-; (path-join-2 "/home/user" "file.txt") => "/home/user/file.txt"
-(path-join-2 (fn (base rel)
-                 (if (string-empty? base)
-                     rel
-                     (if (string-empty? rel)
-                         base
-                         (string-append base "/" rel)))))
-
-; path-dirname: Get directory part of path
-; (path-dirname "/home/user/file.txt") => "/home/user"
-(path-dirname (fn (p)
-                  (let ((parts (path-split p)))
-                       (if (null? parts)
-                           ""
-                           (if (null? (cdr parts))
-                               ""
-                               (path-join (reverse (cdr (reverse parts)))))))))
-
-; path-basename: Get filename part of path
-; (path-basename "/home/user/file.txt") => "file.txt"
-(path-basename (fn (p)
-                   (let ((parts (path-split p)))
-                        (if (null? parts)
-                            ""
-                            (last parts)))))
-
-; path-extension: Get file extension (including dot)
-; (path-extension "file.txt") => ".txt"
-; (path-extension "file") => ""
-(path-extension (fn (p)
-                    (let ((base (path-basename p)))
-                         (let ((chars (string->list base)))
-                              ((fix find-ext
-                                    (fn (cs acc found-dot)
-                                        (if (null? cs)
-                                            (if found-dot (list->string (reverse acc)) "")
-                                            (if (eq? (car cs) #\.)
-                                                (find-ext (cdr cs) (list #\.) #t)
-                                                (find-ext (cdr cs)
-                                                          (if found-dot (cons (car cs) acc) acc)
-                                                          found-dot)))))
-                               chars '() #f)))))
-
-; path-stem: Get filename without extension
-; (path-stem "/home/user/file.txt") => "file"
-(path-stem (fn (p)
-               (let ((base (path-basename p))
-                     (ext (path-extension p)))
-                    (if (string-empty? ext)
-                        base
-                        (string-take (- (string-length base) (string-length ext)) base)))))
-
-; path-absolute?: Check if path is absolute
-; (path-absolute? "/home/user") => #t
-; (path-absolute? "relative/path") => #f
-(path-absolute? (fn (p)
-                    (and (> (string-length p) 0)
-                         (eq? (string-ref p 0) #\/))))
-
-; path-relative?: Check if path is relative
-(path-relative? (fn (p)
-                    (not (path-absolute? p))))
-
-; path-normalize: Normalize path (remove . and .. components)
-; (path-normalize "/home/user/../other/./file") => "/home/other/file"
-(path-normalize (fn (p)
-                    (let ((is-abs (path-absolute? p))
-                          (parts (filter (fn (s) (not (string-empty? s))) (path-split p))))
-                         (let ((normalized
-                                ((fix norm-rec
-                                      (fn (remaining stack)
-                                          (if (null? remaining)
-                                              (reverse stack)
-                                              (let ((part (car remaining)))
-                                                   (if (equal? part ".")
-                                                       (norm-rec (cdr remaining) stack)
-                                                       (if (equal? part "..")
-                                                           (norm-rec (cdr remaining)
-                                                                     (if (null? stack) stack (cdr stack)))
-                                                           (norm-rec (cdr remaining) (cons part stack))))))))
-                                 parts '())))
-                              (if is-abs
-                                  (string-append "/" (path-join normalized))
-                                  (if (null? normalized)
-                                      "."
-                                      (path-join normalized)))))))
-
-; path-parent: Get parent directory
-; (path-parent "/home/user/file.txt") => "/home/user"
-(path-parent path-dirname)
-
-; path-with-extension: Replace or add extension
-; (path-with-extension "/home/file.txt" ".md") => "/home/file.md"
-(path-with-extension (fn (p new-ext)
-                         (let ((dir (path-dirname p))
-                               (stem (path-stem p)))
-                              (path-join-2 dir (string-append stem new-ext)))))
-
-; path-add-suffix: Add suffix before extension
-; (path-add-suffix "/home/file.txt" "-backup") => "/home/file-backup.txt"
-(path-add-suffix (fn (p suffix)
-                     (let ((dir (path-dirname p))
-                           (stem (path-stem p))
-                           (ext (path-extension p)))
-                          (path-join-2 dir (string-append stem suffix ext)))))
-
-; path-components: Get all path components as list
-; (path-components "/home/user/file.txt") => ("home" "user" "file.txt")
-(path-components (fn (p)
-                     (filter (fn (s) (not (string-empty? s))) (path-split p))))
-
-; path-depth: Count depth of path (number of components)
-; (path-depth "/home/user/file.txt") => 3
-(path-depth (fn (p)
-                (length (path-components p))))
-
-; path-common-prefix: Find common prefix of two paths
-; (path-common-prefix "/home/user/a" "/home/user/b") => "/home/user"
-(path-common-prefix (fn (p1 p2)
-                        (let ((c1 (path-components p1))
-                              (c2 (path-components p2)))
-                             ((fix common-rec
-                                   (fn (l1 l2 acc)
-                                       (if (or (null? l1) (null? l2))
-                                           (if (null? acc)
-                                               ""
-                                               (if (path-absolute? p1)
-                                                   (string-append "/" (path-join (reverse acc)))
-                                                   (path-join (reverse acc))))
-                                           (if (equal? (car l1) (car l2))
-                                               (common-rec (cdr l1) (cdr l2) (cons (car l1) acc))
-                                               (if (null? acc)
-                                                   ""
-                                                   (if (path-absolute? p1)
-                                                       (string-append "/" (path-join (reverse acc)))
-                                                       (path-join (reverse acc))))))))
-                              c1 c2 '()))))
-
-; path-hidden?: Check if path or filename is hidden (starts with .)
-; (path-hidden? ".gitignore") => #t
-(path-hidden? (fn (p)
-                  (let ((base (path-basename p)))
-                       (and (> (string-length base) 0)
-                            (eq? (string-ref base 0) #\.)))))
-
-; ============================================================
-; Base64 Encoding/Decoding
-; ============================================================
-
-; b64-alphabet: Standard base64 alphabet
-(b64-alphabet "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
-
-; b64-char: Get character at index in alphabet
-(b64-char (fn (idx)
-              (string-ref b64-alphabet idx)))
-
-; b64-index: Get index of character in alphabet
-(b64-index (fn (c)
-               ((fix find-idx
-                     (fn (i)
-                         (if (>= i 64)
-                             -1
-                             (if (eq? c (string-ref b64-alphabet i))
-                                 i
-                                 (find-idx (+ i 1))))))
-                0)))
-
-; b64-encode-triple: Encode 3 bytes to 4 base64 chars
-(b64-encode-triple (fn (b1 b2 b3)
-                       (let ((n (+ (* b1 65536) (* b2 256) b3)))
-                            (list (b64-char (mod (/ n 262144) 64))
-                                  (b64-char (mod (/ n 4096) 64))
-                                  (b64-char (mod (/ n 64) 64))
-                                  (b64-char (mod n 64))))))
-
-; b64-encode-bytes: Encode list of bytes to base64 string
-(b64-encode-bytes (fn (bytes)
-                      (let ((len (length bytes)))
-                           ((fix encode-rec
-                                 (fn (bs acc)
-                                     (if (null? bs)
-                                         (list->string (reverse acc))
-                                         (if (null? (cdr bs))
-                                             ; 1 byte remaining - pad with ==
-                                             (let ((b1 (car bs)))
-                                                  (let ((n (* b1 65536)))
-                                                       (list->string
-                                                        (reverse
-                                                         (cons #\= (cons #\=
-                                                                         (cons (b64-char (mod (/ n 4096) 64))
-                                                                               (cons (b64-char (mod (/ n 262144) 64)) acc))))))))
-                                             (if (null? (cdr (cdr bs)))
-                                                 ; 2 bytes remaining - pad with =
-                                                 (let ((b1 (car bs))
-                                                       (b2 (cadr bs)))
-                                                      (let ((n (+ (* b1 65536) (* b2 256))))
-                                                           (list->string
-                                                            (reverse
-                                                             (cons #\=
-                                                                   (cons (b64-char (mod (/ n 64) 64))
-                                                                         (cons (b64-char (mod (/ n 4096) 64))
-                                                                               (cons (b64-char (mod (/ n 262144) 64)) acc))))))))
-                                                 ; 3+ bytes - encode normally
-                                                 (let ((chars (b64-encode-triple (car bs) (cadr bs) (car (cdr (cdr bs))))))
-                                                      (encode-rec (cdr (cdr (cdr bs)))
-                                                                  (cons (car (cdr (cdr (cdr chars))))
-                                                                        (cons (car (cdr (cdr chars)))
-                                                                              (cons (cadr chars)
-                                                                                    (cons (car chars) acc)))))))))))
-                            bytes '()))))
-
-; b64-decode-quad: Decode 4 base64 chars to 3 bytes
-(b64-decode-quad (fn (c1 c2 c3 c4)
-                     (let ((i1 (b64-index c1))
-                           (i2 (b64-index c2))
-                           (i3 (if (eq? c3 #\=) 0 (b64-index c3)))
-                           (i4 (if (eq? c4 #\=) 0 (b64-index c4))))
-                          (let ((n (+ (* i1 262144) (* i2 4096) (* i3 64) i4)))
-                               (if (eq? c3 #\=)
-                                   (list (/ n 65536))  ; 1 byte
-                                   (if (eq? c4 #\=)
-                                       (list (/ n 65536) (mod (/ n 256) 256))  ; 2 bytes
-                                       (list (/ n 65536) (mod (/ n 256) 256) (mod n 256))))))))  ; 3 bytes
-
-; b64-decode-bytes: Decode base64 string to list of bytes
-(b64-decode-bytes (fn (s)
-                      (let ((chars (string->list s)))
-                           ((fix decode-rec
-                                 (fn (cs acc)
-                                     (if (or (null? cs) (< (length cs) 4))
-                                         (reverse acc)
-                                         (let ((decoded (b64-decode-quad (car cs) (cadr cs)
-                                                                         (car (cdr (cdr cs)))
-                                                                         (car (cdr (cdr (cdr cs)))))))
-                                              (decode-rec (cdr (cdr (cdr (cdr cs))))
-                                                          (append (reverse decoded) acc))))))
-                            chars '()))))
-
-; b64-encode: Encode string to base64
-(b64-encode (fn (s)
-                (b64-encode-bytes (string->bytes s))))
-
-; b64-decode: Decode base64 to string
-(b64-decode (fn (s)
-                (bytes->string (b64-decode-bytes s))))
-
-; ============================================================
-; Simple Glob Pattern Matching
-; ============================================================
-
-; glob-match?: Check if string matches glob pattern
-; Supports * (any chars) and ? (single char)
-; (glob-match? "*.txt" "file.txt") => #t
-; (glob-match? "file?.txt" "file1.txt") => #t
-(glob-match? (fix glob-match?
-                  (fn (pat str)
-                      (let ((pc (string->list pat))
-                            (sc (string->list str)))
-                           ((fix match-rec
-                                 (fn (p s)
-                                     (if (null? p)
-                                         (null? s)  ; Pattern exhausted: match if string also exhausted
-                                         (let ((pc (car p)))
-                                              (if (eq? pc #\*)
-                                                  ; * matches zero or more chars
-                                                  (if (null? (cdr p))
-                                                      #t  ; Trailing * matches everything
-                                                      ; Try matching rest of pattern at each position
-                                                      ((fix try-star
-                                                            (fn (remaining)
-                                                                (if (null? remaining)
-                                                                    (match-rec (cdr p) '())  ; Try matching at end
-                                                                    (or (match-rec (cdr p) remaining)
-                                                                        (try-star (cdr remaining))))))
-                                                       s))
-                                                  (if (null? s)
-                                                      #f  ; String exhausted but pattern not
-                                                      (if (eq? pc #\?)
-                                                          ; ? matches exactly one char
-                                                          (match-rec (cdr p) (cdr s))
-                                                          ; Regular char: must match exactly
-                                                          (if (eq? pc (car s))
-                                                              (match-rec (cdr p) (cdr s))
-                                                              #f))))))))
-                            pc sc)))))
-
-; glob-filter: Filter list of strings by glob pattern
-(glob-filter (fn (pat strs)
-                 (filter (fn (s) (glob-match? pat s)) strs)))
-
-; ============================================================
-; Hash and Checksum Utilities
-; ============================================================
-
-; djb2-hash: DJB2 string hash algorithm
-; Returns a positive integer hash value
-(djb2-hash (fn (s)
-               (foldl (fn (h c)
-                          (bitand (+ (* h 33) (char->integer c)) 4294967295))
-                      5381
-                      (string->list s))))
-
-; fnv1a-hash: FNV-1a string hash algorithm
-; Returns a positive integer hash value
-(fnv1a-hash (fn (s)
-                (foldl (fn (h c)
-                           (bitand (* (bitxor h (char->integer c)) 16777619) 4294967295))
-                       2166136261
-                       (string->list s))))
-
-; simple-checksum: Simple additive checksum of bytes
-(simple-checksum (fn (bytes)
-                     (mod (foldl + 0 bytes) 256)))
-
-; xor-checksum: XOR checksum of bytes
-(xor-checksum (fn (bytes)
-                  (foldl bitxor 0 bytes)))
-
-; fletcher16: Fletcher-16 checksum
-(fletcher16 (fn (bytes)
-                ((fix fletcher-rec
-                      (fn (bs sum1 sum2)
-                          (if (null? bs)
-                              (+ (* sum2 256) sum1)
-                              (let ((new-sum1 (mod (+ sum1 (car bs)) 255))
-                                    (new-sum2 (mod (+ sum2 new-sum1) 255)))
-                                   (fletcher-rec (cdr bs) new-sum1 new-sum2)))))
-                 bytes 0 0)))
-
-; adler32: Adler-32 checksum
-(adler32 (fn (bytes)
-             ((fix adler-rec
-                   (fn (bs a b)
-                       (if (null? bs)
-                           (+ (* b 65536) a)
-                           (let ((new-a (mod (+ a (car bs)) 65521))
-                                 (new-b (mod (+ b new-a) 65521)))
-                                (adler-rec (cdr bs) new-a new-b)))))
-              bytes 1 0)))
-
-; hash-combine: Combine two hash values (boost-style)
-(hash-combine (fn (h1 h2)
-                  (bitxor h1 (+ h2 2654435769 (shl h1 6) (shr h1 2)))))
-
-; hash-list: Hash a list of values
-(hash-list (fn (lst hash-fn)
-               (foldl (fn (h x) (hash-combine h (hash-fn x))) 0 lst)))
-
-; string-hash: Convenience alias for djb2-hash
-(string-hash djb2-hash)
-  )
-  
-  ; Body returns a list of all defined functions as an alist
-  ; The caller can extract what they need
-  (list
-   (cons 'map map)
-   (cons 'filter filter)
-   (cons 'foldl foldl)
-   (cons 'foldr foldr)
-   (cons 'any any)
-   (cons 'all all)
-   (cons 'take-while take-while)
-   (cons 'drop-while drop-while)
-   (cons 'zip-with zip-with)
-   (cons 'sum-list sum-list)
-   (cons 'product-list product-list)
-   (cons 'id id)
-   (cons 'const const)
-   (cons 'compose compose)
-   (cons 'flip flip)
-   (cons 'complement complement)
-   (cons 'eqv? eqv?)
-   (cons 'equal? equal?)
-   (cons 'partition partition)
-   (cons 'find-if find-if)
-   (cons 'remove-if remove-if)
-   (cons 'count-if count-if)
-   (cons 'concat concat)
-   (cons 'replicate replicate)
-   (cons 'iterate iterate)
-   (cons 'scanl scanl)
-   (cons 'curry2 curry2)
-   (cons 'uncurry2 uncurry2)
-   (cons 'zip zip)
-   (cons 'unzip unzip)
-   (cons 'intersperse intersperse)
-   (cons 'span span)
-   (cons 'flat-map flat-map)
-   (cons 'map-indexed map-indexed)
-   (cons 'filter-indexed filter-indexed)
-   (cons 'nth-safe nth-safe)
-   (cons 'max-by max-by)
-   (cons 'min-by min-by)
-   (cons 'on on)
-   (cons 'juxt juxt)
-   (cons 'curry2 curry2)
-   (cons 'curry3 curry3)
-   (cons 'uncurry2 uncurry2)
-   (cons 'uncurry3 uncurry3)
-   (cons 'partial partial)
-   (cons 'partial2 partial2)
-   (cons 'partial-right partial-right)
-   (cons 'flip flip)
-   (cons 'flip3 flip3)
-   (cons 'pipe pipe)
-   (cons 'unfold unfold)
-   (cons 'tails tails)
-   (cons 'inits inits)
-   (cons 'group-consecutive group-consecutive)
-   (cons 'range-list range-list)
-   (cons 'repeat-fn repeat-fn)
-   (cons 'maybe maybe)
-   (cons 'from-maybe from-maybe)
-   (cons 'map-maybe map-maybe)
-   (cons 'cat-maybes cat-maybes)
-   ; Tagged Maybe type
-   (cons 'just just)
-   (cons 'nothing nothing)
-   (cons 'nothing? nothing?)
-   (cons 'from-just from-just)
-   (cons 'chunks chunks)
-   (cons 'sliding sliding)
-   (cons 'pairs pairs)
-   (cons 'split-at split-at)
-   (cons 'elem? elem?)
-   (cons 'nub nub)
-   (cons 'intercalate intercalate)
-   (cons 'transpose transpose)
-   (cons 'sum-by sum-by)
-   (cons 'product-by product-by)
-   (cons 'average average)
-   (cons 'even-indices even-indices)
-   (cons 'odd-indices odd-indices)
-   (cons 'sort-by sort-by)
-   (cons 'compare-by compare-by)
-   (cons 'equal-by equal-by)
-   (cons 'group-by group-by)
-   (cons 'apply-n apply-n)
-   (cons 'until until)
-   (cons 'converge converge)
-   (cons 'fixed-point fixed-point)
-   (cons 'both both)
-   (cons 'either-pred either-pred)
-   (cons 'neither neither)
-   (cons 'frequencies frequencies)
-   (cons 'index-where index-where)
-   (cons 'indices-where indices-where)
-   (cons 'last-where last-where)
-   (cons 'update-at update-at)
-   (cons 'insert-at insert-at)
-   (cons 'remove-at remove-at)
-   (cons 'string-map string-map)
-   (cons 'string-filter string-filter)
-   (cons 'string-any string-any)
-   (cons 'string-all string-all)
-   (cons 'string-foldl string-foldl)
-   (cons 'string-foldr string-foldr)
-   (cons 'words words)
-   (cons 'unwords unwords)
-   (cons 'lines lines)
-   (cons 'unlines unlines)
-   (cons 'join join)
-   (cons 'string-take-while string-take-while)
-   (cons 'string-drop-while string-drop-while)
-   (cons 'string-find string-find)
-   (cons 'string-count string-count)
-   (cons 'string-partition string-partition)
-   (cons 'char-between? char-between?)
-   (cons 'char-alphabetic? char-alphabetic?)
-   (cons 'char-numeric? char-numeric?)
-   (cons 'char-whitespace? char-whitespace?)
-   (cons 'char-upcase char-upcase)
-   (cons 'char-downcase char-downcase)
-   (cons 'union union)
-   (cons 'intersection intersection)
-   (cons 'difference difference)
-   (cons 'symmetric-difference symmetric-difference)
-   (cons 'subset? subset?)
-   (cons 'disjoint? disjoint?)
-   (cons 'alist-map alist-map)
-   (cons 'alist-filter alist-filter)
-   (cons 'alist-find alist-find)
-   (cons 'alist-update alist-update)
-   (cons 'alist-merge alist-merge)
-   (cons 'alist-invert alist-invert)
-   (cons 'alist-group alist-group)
-   (cons 'when-let when-let)
-   (cons 'if-let if-let)
-   (cons 'cond-fn cond-fn)
-   (cons 'thread-first thread-first)
-   (cons 'thread-last thread-last)
-   (cons 'tap tap)
-   (cons 'clamp-list clamp-list)
-   (cons 'normalize normalize)
-   (cons 'running-sum running-sum)
-   (cons 'running-product running-product)
-   (cons 'differences differences)
-   (cons 'rotate-left rotate-left)
-   (cons 'rotate-right rotate-right)
-   (cons 'all-equal? all-equal?)
-   (cons 'sorted? sorted?)
-   (cons 'sorted-by? sorted-by?)
-   (cons 'palindrome? palindrome?)
-   (cons 'deep-map deep-map)
-   (cons 'deep-filter deep-filter)
-   (cons 'flatten-deep flatten-deep)
-   (cons 'tree-depth tree-depth)
-   (cons 'tree-size tree-size)
-   (cons 'tree-find tree-find)
-   (cons 'curry3 curry3)
-   (cons 'uncurry3 uncurry3)
-   (cons 'partial1 partial1)
-   (cons 'partial2 partial2)
-   (cons 'compose-n compose-n)
-   (cons 'pipe-n pipe-n)
-   (cons 'memoize-1 memoize-1)
-   (cons 'factorial factorial)
-   (cons 'fibonacci fibonacci)
-   (cons 'gcd-list gcd-list)
-   (cons 'lcm-list lcm-list)
-   (cons 'prime? prime?)
-   (cons 'divisors divisors)
-   (cons 'perfect? perfect?)
-   (cons 'pow-int pow-int)
-   (cons 'validate validate)
-   (cons 'validate-all validate-all)
-   (cons 'ensure ensure)
-   (cons 'trace trace)
-   (cons 'spy spy)
-   (cons 'assert-eq assert-eq)
-   (cons 'assert-pred assert-pred)
-   (cons 'xor xor)
-   (cons 'implies implies)
-   (cons 'iff iff)
-   (cons 'take-n take-n)
-   (cons 'drop-n drop-n)
-   (cons 'nth nth)
-   (cons 'init init)
-   (cons 'last last)
-   (cons 'butlast butlast)
-   (cons 'count-eq count-eq)
-   (cons 'assoc assoc)
-   (cons 'assoc-ref assoc-ref)
-   (cons 'assoc-set assoc-set)
-   (cons 'assoc-remove assoc-remove)
-   (cons 'assoc-keys assoc-keys)
-   (cons 'assoc-values assoc-values)
-   (cons 'string-reverse string-reverse)
-   (cons 'string-empty? string-empty?)
-   (cons 'string-prefix? string-prefix?)
-   (cons 'string-suffix? string-suffix?)
-   (cons 'iota iota)
-   (cons 'range range)
-   (cons 'range-step range-step)
-   (cons 'zip3 zip3)
-   (cons 'zip-with-index zip-with-index)
-   (cons 'constantly constantly)
-   (cons 'identity identity)
-   (cons 'first first)
-   (cons 'second second)
-   (cons 'third third)
-   (cons 'rest rest)
-   (cons 'empty? empty?)
-   (cons 'singleton? singleton?)
-   (cons 'has-pair? has-pair?)
-   (cons 'cadr cadr)
-   (cons 'caar caar)
-   (cons 'cddr cddr)
-   (cons 'cdar cdar)
-   (cons 'caddr caddr)
-   (cons 'caaar caaar)
-   (cons 'caadr caadr)
-   (cons 'cadar cadar)
-   (cons 'cdaar cdaar)
-   (cons 'cdadr cdadr)
-   (cons 'cddar cddar)
-   (cons 'cdddr cdddr)
-   (cons 'cadddr cadddr)
-   (cons 'fourth fourth)
-   (cons 'fifth fifth)
-   (cons 'list-tail list-tail)
-   (cons 'list-head list-head)
-   (cons 'memq memq)
-   (cons 'assq assq)
-   (cons 'append-map append-map)
-   (cons 'nand nand)
-   (cons 'nor nor)
-   (cons 'square square)
-   (cons 'cube cube)
-   (cons 'abs-diff abs-diff)
-   (cons 'in-range? in-range?)
-   (cons 'signum signum)
-   (cons 'unless unless)
-   (cons 'when when)
-   (cons 'for-each for-each)
-   (cons 'reduce reduce)
-   (cons 'reduce-right reduce-right)
-   (cons 'every? every?)
-   (cons 'some? some?)
-   (cons 'filter-not filter-not)
-   (cons 'remove remove)
-   (cons 'remove-all remove-all)
-   (cons 'cons* cons*)
-   (cons 'list* list*)
-   (cons 'build-list build-list)
-   (cons 'make-list-fn make-list-fn)
-   (cons 'tabulate tabulate)
-   (cons 'max-of max-of)
-   (cons 'min-of min-of)
-   (cons 'argmax argmax)
-   (cons 'succ succ)
-   (cons 'pred-fn pred-fn)
-   (cons 'double double)
-   (cons 'halve halve)
-   ; Scheme compatibility
-   (cons 'fold-left fold-left)
-   (cons 'fold-right fold-right)
-   (cons 'member member)
-   (cons 'member? member?)
-   (cons 'position position)
-   ; Either monad
-   (cons 'left left)
-   (cons 'right right)
-   (cons 'left? left?)
-   (cons 'right? right?)
-   (cons 'from-left from-left)
-   (cons 'from-right from-right)
-   (cons 'either either)
-   ; SRFI list utilities
-   (cons 'list-index list-index)
-   (cons 'partition-all partition-all)
-   (cons 'take-right take-right)
-   (cons 'drop-right drop-right)
-   (cons 'split-at-pred split-at-pred)
-   ; Numeric utilities
-   (cons 'sum sum)
-   (cons 'product product)
-   (cons 'mean mean)
-   (cons 'variance variance)
-   (cons 'median median)
-   (cons 'clamp-val clamp-val)
-   (cons 'lerp-fn lerp)
-   ; Predicate utilities
-   (cons 'and-fn and-fn)
-   (cons 'or-fn or-fn)
-   (cons 'not-fn not-fn)
-   ; List aliases
-   (cons 'interpose interpose)
-   (cons 'separate separate)
-   (cons 'keep keep)
-   (cons 'reject reject)
-   (cons 'distinct distinct)
-   (cons 'group-runs group-runs)
-   ; Applicative utilities
-   (cons 'lift2 lift2)
-   (cons 'sequence-list sequence-list)
-   ; More list operations
-   (cons 'zip-with-3 zip-with-3)
-   (cons 'unzip3 unzip3)
-   (cons 'snoc snoc)
-   (cons 'single? single?)
-   (cons 'drop-last drop-last)
-   (cons 'take-last take-last)
-   (cons 'find-index-of find-index-of)
-   (cons 'last-index-of last-index-of)
-   (cons 'count-occurrences count-occurrences)
-   (cons 'replace-first replace-first)
-   (cons 'replace-all replace-all)
-   (cons 'insert-sorted insert-sorted)
-   (cons 'insert-sorted-by insert-sorted-by)
-   (cons 'merge-sorted merge-sorted)
-   ; Function combinators
-   (cons 'apply-to apply-to)
-   (cons 'thrush thrush)
-   (cons 'fanout fanout)
-   (cons 'converge-with converge-with)
-   (cons 'dup dup)
-   (cons 'swap swap)
-   ; Numeric utilities
-   (cons 'quotient-remainder quotient-remainder)
-   (cons 'wrap wrap)
-   (cons 'distance distance)
-   (cons 'average-of average-of)
-   (cons 'geometric-mean geometric-mean)
-   (cons 'harmonic-mean harmonic-mean)
-   ; Predicate utilities
-   (cons 'all-of all-of)
-   (cons 'any-of any-of)
-   (cons 'none-of none-of)
-   (cons 'is is)
-   (cons 'is-not is-not)
-   ; Either monad extensions
-   (cons 'map-left map-left)
-   (cons 'map-right map-right)
-   (cons 'bimap-either bimap-either)
-   (cons 'from-either from-either)
-   (cons 'partition-eithers partition-eithers)
-   (cons 'try-fn try-fn)
-   ; More Maybe utilities
-   (cons 'map-maybe-fn map-maybe-fn)
-   (cons 'bind-maybe bind-maybe)
-   (cons 'maybe-to-list maybe-to-list)
-   (cons 'list-to-maybe list-to-maybe)
-   (cons 'cat-maybes-fn cat-maybes-fn)
-   ; String HOFs
-   (cons 'string-words-fn string-words-fn)
-   (cons 'string-lines-fn string-lines-fn)
-   (cons 'string-join-fn string-join-fn)
-   (cons 'string-trim-fn string-trim-fn)
-   ; Miscellaneous
-   (cons 'repeat-value repeat-value)
-   (cons 'cycle-n cycle-n)
-   (cons 'chunk-by chunk-by)
-   (cons 'split-when split-when)
-   (cons 'before before)
-   (cons 'after after)
-   (cons 'window window)
-   (cons 'adjacent-pairs adjacent-pairs)
-   (cons 'with-index with-index)
-   (cons 'enumerate enumerate)
-   ; Control flow utilities
-   (cons 'when-not when-not)
-   (cons 'if-not if-not)
-   (cons 'cond-list cond-list)
-   (cons 'select select)
-   (cons 'case-pred case-pred)
-   ; Property list utilities
-   (cons 'plist-get plist-get)
-   (cons 'plist-set plist-set)
-   (cons 'plist-remove plist-remove)
-   (cons 'plist-keys plist-keys)
-   (cons 'plist-values plist-values)
-   (cons 'plist->alist plist->alist)
-   (cons 'alist->plist alist->plist)
-   ; Comparison utilities
-   (cons 'min-max min-max)
-   (cons 'between-inclusive? between-inclusive?)
-   (cons 'compare compare)
-   (cons 'compare-by-key compare-by-key)
-   (cons 'lexicographic-compare lexicographic-compare)
-   ; Vector HOFs
-   (cons 'vec-map vec-map)
-   (cons 'vec-filter vec-filter)
-   (cons 'vec-foldl vec-foldl)
-   (cons 'vec-foldr vec-foldr)
-   (cons 'vec-any vec-any)
-   (cons 'vec-all vec-all)
-   (cons 'vec-find vec-find)
-   (cons 'vec-sum vec-sum)
-   (cons 'vec-product vec-product)
-   ; Iteration utilities
-   (cons 'iterate-until iterate-until)
-   (cons 'iterate-while iterate-while)
-   (cons 'iterate-n iterate-n)
-   (cons 'generate generate)
-   (cons 'unfold-right unfold-right)
-   ; Accumulator patterns
-   (cons 'scan-right scan-right)
-   (cons 'running-max running-max)
-   (cons 'running-min running-min)
-   ; Conditional list builders
-   (cons 'append-if append-if)
-   (cons 'prepend-if prepend-if)
-   (cons 'maybe-cons maybe-cons)
-   ; Numeric sequences
-   (cons 'arithmetic-sequence arithmetic-sequence)
-   (cons 'geometric-sequence geometric-sequence)
-   (cons 'fibonacci-sequence fibonacci-sequence)
-   (cons 'primes-up-to primes-up-to)
-   ; List searching
-   (cons 'find-all find-all)
-   (cons 'find-first-n find-first-n)
-   (cons 'find-last find-last)
-   (cons 'index-of-all index-of-all)
-   ; String builders
-   (cons 'string-repeat-fn string-repeat-fn)
-   (cons 'string-pad-left string-pad-left)
-   (cons 'string-pad-right string-pad-right)
-   (cons 'string-center-fn string-center-fn)
-   ; Safe operations
-   (cons 'safe-car safe-car)
-   (cons 'safe-cdr safe-cdr)
-   (cons 'safe-head safe-head)
-   (cons 'safe-tail safe-tail)
-   (cons 'safe-nth safe-nth)
-   (cons 'safe-div safe-div)
-   (cons 'safe-mod safe-mod)
-   ; Composition utilities
-   (cons 'compose3 compose3)
-   (cons 'compose4 compose4)
-   (cons 'pipe3 pipe3)
-   (cons 'pipe4 pipe4)
-   ; Predicate combinators
-   (cons 'conjoin conjoin)
-   (cons 'disjoin disjoin)
-   ; Pair utilities
-   (cons 'pair-map pair-map)
-   (cons 'pair-map-car pair-map-car)
-   (cons 'pair-map-cdr pair-map-cdr)
-   (cons 'pair-swap pair-swap)
-   ; Result type utilities
-   (cons 'ok ok)
-   (cons 'err err)
-   (cons 'ok? ok?)
-   (cons 'err? err?)
-   (cons 'unwrap unwrap)
-   (cons 'unwrap-or unwrap-or)
-   (cons 'map-ok map-ok)
-   (cons 'map-err map-err)
-   ; Sorting utilities
-   (cons 'insertion-sort insertion-sort)
-   (cons 'merge-sort merge-sort)
-   (cons 'sort-descending sort-descending)
-   (cons 'sort-by-descending sort-by-descending)
-   (cons 'top-k top-k)
-   (cons 'bottom-k bottom-k)
-   (cons 'rank rank)
-   ; Binary search utilities
-   (cons 'binary-search binary-search)
-   (cons 'lower-bound lower-bound)
-   (cons 'upper-bound upper-bound)
-   ; More list utilities
-   (cons 'rotate-list rotate-list)
-   (cons 'shuffle shuffle)
-   (cons 'dedup-consecutive dedup-consecutive)
-   (cons 'run-length-encode run-length-encode)
-   (cons 'run-length-decode run-length-decode)
-   ; Statistics utilities
-   (cons 'percentile percentile)
-   (cons 'quartiles quartiles)
-   (cons 'interquartile-range interquartile-range)
-   (cons 'z-score z-score)
-   (cons 'normalize-list normalize-list)
-   (cons 'standardize standardize)
-   (cons 'covariance covariance)
-   (cons 'correlation correlation)
-   ; Matrix operations
-   (cons 'matrix-ref matrix-ref)
-   (cons 'matrix-rows matrix-rows)
-   (cons 'matrix-cols matrix-cols)
-   (cons 'matrix-row matrix-row)
-   (cons 'matrix-col matrix-col)
-   (cons 'matrix-map matrix-map)
-   (cons 'matrix-add matrix-add)
-   (cons 'matrix-scale matrix-scale)
-   (cons 'matrix-transpose matrix-transpose)
-   (cons 'dot-product dot-product)
-   (cons 'matrix-multiply matrix-multiply)
-   (cons 'identity-matrix identity-matrix)
-   (cons 'zero-matrix zero-matrix)
-   ; Functional patterns
-   (cons 'Y Y)
-   (cons 'memoize memoize)
-   (cons 'trampoline trampoline)
-   ; Tree utilities
-   (cons 'tree-leaves tree-leaves)
-   (cons 'tree-count tree-count)
-   (cons 'tree-height tree-height)
-   (cons 'tree-paths tree-paths)
-   ; Format utilities
-   (cons 'number->string-padded number->string-padded)
-   (cons 'format-list format-list)
-   (cons 'format-table format-table)
-   (cons 'pluralize pluralize)
-   ; Boolean utilities
-   (cons 'bool->int bool->int)
-   (cons 'int->bool int->bool)
-   ; List predicates
-   (cons 'sublist? sublist?)
-   (cons 'prefix? prefix?)
-   (cons 'suffix? suffix?)
-   ; Misc utilities
-   (cons 'clamp-index clamp-index)
-   (cons 'circular-ref circular-ref)
-   (cons 'repeat-fn-n repeat-fn-n)
-   (cons 'fixed-point-iterate fixed-point-iterate)
-   ; Dictionary utilities
-   (cons 'dict-new dict-new)
-   (cons 'dict-set dict-set)
-   (cons 'dict-get dict-get)
-   (cons 'dict-get-in dict-get-in)
-   (cons 'dict-remove dict-remove)
-   (cons 'dict-has? dict-has?)
-   (cons 'dict-keys dict-keys)
-   (cons 'dict-values dict-values)
-   (cons 'dict-size dict-size)
-   (cons 'dict-empty? dict-empty?)
-   (cons 'dict-update dict-update)
-   (cons 'dict-merge dict-merge)
-   (cons 'dict-filter dict-filter)
-   (cons 'dict-map-values dict-map-values)
-   (cons 'dict-from-lists dict-from-lists)
-   (cons 'dict-to-list dict-to-list)
-   (cons 'dict-invert dict-invert)
-   ; Set utilities
-   (cons 'set-new set-new)
-   (cons 'set-add set-add)
-   (cons 'set-remove set-remove)
-   (cons 'set-member? set-member?)
-   (cons 'set-size set-size)
-   (cons 'set-empty? set-empty?)
-   (cons 'set-from-list set-from-list)
-   (cons 'set-to-list set-to-list)
-   (cons 'set-union set-union)
-   (cons 'set-intersection set-intersection)
-   (cons 'set-difference set-difference)
-   (cons 'set-symmetric-difference set-symmetric-difference)
-   (cons 'set-subset? set-subset?)
-   (cons 'set-equal? set-equal?)
-   ; Numeric utilities
-   (cons 'mod-exp mod-exp)
-   (cons 'mod-inverse mod-inverse)
-   (cons 'coprime? coprime?)
-   (cons 'totient totient)
-   (cons 'digits digits)
-   (cons 'from-digits from-digits)
-   (cons 'digit-sum digit-sum)
-   (cons 'digit-count digit-count)
-   (cons 'reverse-number reverse-number)
-   (cons 'palindrome-number? palindrome-number?)
-   (cons 'is-power-of-2? is-power-of-2?)
-   (cons 'next-power-of-2 next-power-of-2)
-   (cons 'log2-int log2-int)
-   ; Combinatorics
-   (cons 'binomial binomial)
-   (cons 'permutations-count permutations-count)
-   (cons 'catalan catalan)
-   (cons 'triangular triangular)
-   (cons 'is-triangular? is-triangular?)
-   (cons 'square-number square-number)
-   (cons 'is-square? is-square?)
-   (cons 'pentagonal pentagonal)
-   (cons 'hexagonal hexagonal)
-   ; More list utilities
-   (cons 'cartesian-product cartesian-product)
-   (cons 'power-set power-set)
-   (cons 'permutations permutations)
-   (cons 'combinations combinations)
-   (cons 'list-product list-product)
-   (cons 'interleave-all interleave-all)
-   (cons 'partition-n partition-n)
-   (cons 'group-into group-into)
-   (cons 'frequencies-by frequencies-by)
-   (cons 'mode mode)
-   (cons 'majority majority)
-   ; String utilities
-   (cons 'string-capitalize string-capitalize)
-   (cons 'string-title-case string-title-case)
-   (cons 'string-count-char string-count-char)
-   (cons 'string-replace-char string-replace-char)
-   (cons 'string-squeeze string-squeeze)
-   (cons 'string-rotate string-rotate)
-   (cons 'string-interleave string-interleave)
-   ; Predicate utilities
-   (cons 'all-same? all-same?)
-   (cons 'all-different? all-different?)
-   (cons 'monotonic-increasing? monotonic-increasing?)
-   (cons 'monotonic-decreasing? monotonic-decreasing?)
-   (cons 'strictly-increasing? strictly-increasing?)
-   (cons 'strictly-decreasing? strictly-decreasing?)
-   ; Sequence generators
-   (cons 'naturals naturals)
-   (cons 'evens evens)
-   (cons 'odds odds)
-   (cons 'squares squares)
-   (cons 'cubes cubes)
-   (cons 'powers-of powers-of)
-   (cons 'factorials-up-to factorials-up-to)
-   (cons 'triangular-numbers triangular-numbers)
-   ; Reduction utilities
-   (cons 'reduce-pairs reduce-pairs)
-   (cons 'pairwise-apply pairwise-apply)
-   (cons 'fold-tree fold-tree)
-   ; Debug utilities
-   (cons 'debug-print debug-print)
-   (cons 'time-thunk time-thunk)
-   (cons 'count-calls count-calls)
-   (cons 'type-of-value type-of-value)
-   ; Queue operations
-   (cons 'queue-new queue-new)
-   (cons 'queue-empty? queue-empty?)
-   (cons 'queue-enqueue queue-enqueue)
-   (cons 'queue-dequeue queue-dequeue)
-   (cons 'queue-front queue-front)
-   (cons 'queue-size queue-size)
-   (cons 'queue-to-list queue-to-list)
-   ; Stack operations
-   (cons 'stack-new stack-new)
-   (cons 'stack-empty? stack-empty?)
-   (cons 'stack-push stack-push)
-   (cons 'stack-pop stack-pop)
-   (cons 'stack-top stack-top)
-   (cons 'stack-size stack-size)
-   ; Deque operations
-   (cons 'deque-new deque-new)
-   (cons 'deque-empty? deque-empty?)
-   (cons 'deque-push-front deque-push-front)
-   (cons 'deque-push-back deque-push-back)
-   (cons 'deque-pop-front deque-pop-front)
-   (cons 'deque-pop-back deque-pop-back)
-   (cons 'deque-front deque-front)
-   (cons 'deque-back deque-back)
-   ; Priority queue operations
-   (cons 'pq-new pq-new)
-   (cons 'pq-empty? pq-empty?)
-   (cons 'pq-insert pq-insert)
-   (cons 'pq-peek pq-peek)
-   (cons 'pq-pop pq-pop)
-   ; Graph algorithms
-   (cons 'graph-new graph-new)
-   (cons 'graph-add-vertex graph-add-vertex)
-   (cons 'graph-add-edge graph-add-edge)
-   (cons 'graph-add-undirected-edge graph-add-undirected-edge)
-   (cons 'graph-neighbors graph-neighbors)
-   (cons 'graph-vertices graph-vertices)
-   (cons 'graph-has-edge? graph-has-edge?)
-   (cons 'graph-degree graph-degree)
-   (cons 'graph-bfs graph-bfs)
-   (cons 'graph-dfs graph-dfs)
-   (cons 'graph-path-exists? graph-path-exists?)
-   (cons 'graph-connected? graph-connected?)
-   ; Validation utilities
-   (cons 'validate-type validate-type)
-   (cons 'validate-range validate-range)
-   (cons 'validate-not-empty validate-not-empty)
-   (cons 'validate-all-pred validate-all-pred)
-   (cons 'validate-length validate-length)
-   (cons 'validate-min-length validate-min-length)
-   (cons 'validate-max-length validate-max-length)
-   (cons 'chain-validations chain-validations)
-   ; Parsing utilities
-   (cons 'parse-int parse-int)
-   (cons 'parse-bool parse-bool)
-   (cons 'split-parse split-parse)
-   ; Lens utilities
-   (cons 'lens-get lens-get)
-   (cons 'lens-set lens-set)
-   (cons 'lens-update lens-update)
-   ; Arrow utilities
-   (cons 'arrow-first arrow-first)
-   (cons 'arrow-second arrow-second)
-   (cons 'arrow-both arrow-both)
-   (cons 'arrow-split arrow-split)
-   (cons 'arrow-fanin arrow-fanin)
-   (cons 'kleisli-compose kleisli-compose)
-   ; List algorithms
-   (cons 'list-min list-min)
-   (cons 'list-max list-max)
-   (cons 'list-argmin list-argmin)
-   (cons 'list-argmax list-argmax)
-   (cons 'list-span-count list-span-count)
-   (cons 'list-break-count list-break-count)
-   (cons 'list-split-at-first list-split-at-first)
-   (cons 'list-unique-by list-unique-by)
-   (cons 'list-group-runs-by list-group-runs)
-   ; Interval utilities
-   (cons 'interval-new interval-new)
-   (cons 'interval-lo interval-lo)
-   (cons 'interval-hi interval-hi)
-   (cons 'interval-contains? interval-contains?)
-   (cons 'interval-overlaps? interval-overlaps?)
-   (cons 'interval-union interval-union)
-   (cons 'interval-intersection interval-intersection)
-   (cons 'interval-width interval-width)
-   (cons 'interval-midpoint interval-midpoint)
-   ; Bisection utilities
-   (cons 'bisect-find bisect-find)
-   (cons 'bisect-root bisect-root)
-   ; Accumulator patterns
-   (cons 'scan-while scan-while)
-   (cons 'fold-while fold-while)
-   (cons 'fold-until fold-until)
-   ; Utility combinators
-   (cons 'when-pred when-pred)
-   (cons 'unless-pred unless-pred)
-   (cons 'with-default with-default)
-   (cons 'null-coalesce null-coalesce)
-   (cons 'safe-apply safe-apply)
-   (cons 'retry-n retry-n)
-   ; Pattern matching utilities
-   (cons 'match-pred match-pred)
-   (cons 'match-equal match-equal)
-   (cons 'case-of case-of)
-   (cons 'guard guard)
-   (cons 'destructure-list destructure-list)
-   (cons 'destructure-pair destructure-pair)
-   (cons 'let-pair let-pair)
-   ; Lazy evaluation / streams
-   (cons 'thunk thunk)
-   (cons 'force force)
-   (cons 'stream-cons stream-cons)
-   (cons 'stream-head stream-head)
-   (cons 'stream-tail stream-tail)
-   (cons 'stream-null stream-null)
-   (cons 'stream-null? stream-null?)
-   (cons 'stream-take stream-take)
-   (cons 'stream-map stream-map)
-   (cons 'stream-filter stream-filter)
-   (cons 'stream-from stream-from)
-   (cons 'stream-iterate stream-iterate)
-   (cons 'stream-repeat stream-repeat)
-   (cons 'stream-zip-with stream-zip-with)
-   ; Monad utilities
-   (cons 'bind-either bind-either)
-   (cons 'sequence-maybes sequence-maybes)
-   (cons 'sequence-eithers sequence-eithers)
-   (cons 'traverse-maybe traverse-maybe)
-   (cons 'traverse-either traverse-either)
-   (cons 'ap-maybe ap-maybe)
-   (cons 'ap-either ap-either)
-   ; State monad
-   (cons 'state-return state-return)
-   (cons 'state-bind state-bind)
-   (cons 'state-get state-get)
-   (cons 'state-put state-put)
-   (cons 'state-modify state-modify)
-   (cons 'run-state run-state)
-   (cons 'eval-state eval-state)
-   (cons 'exec-state exec-state)
-   ; Reader monad
-   (cons 'reader-return reader-return)
-   (cons 'reader-bind reader-bind)
-   (cons 'reader-ask reader-ask)
-   (cons 'reader-local reader-local)
-   (cons 'run-reader run-reader)
-   ; Writer monad
-   (cons 'writer-return writer-return)
-   (cons 'writer-bind writer-bind)
-   (cons 'writer-tell writer-tell)
-   (cons 'run-writer run-writer)
-   ; Multiset / bag utilities
-   (cons 'multiset-add multiset-add)
-   (cons 'multiset-remove multiset-remove)
-   (cons 'multiset-count multiset-count)
-   (cons 'multiset-from-list multiset-from-list)
-   (cons 'multiset-to-list multiset-to-list)
-   (cons 'bag-union bag-union)
-   (cons 'bag-intersection bag-intersection)
-   ; FP patterns
-   (cons 'filter-map filter-map)
-   (cons 'fix-with-memo fix-with-memo)
-   (cons 'memo-rec memo-rec)
-   (cons 'trampoline-call trampoline-call)
-   (cons 'bounce bounce)
-   (cons 'done done)
-   ; Complex numbers (simple representation)
-   (cons 'complex-new complex-new)
-   (cons 'complex-real complex-real)
-   (cons 'complex-imag complex-imag)
-   (cons 'complex-add complex-add)
-   (cons 'complex-sub complex-sub)
-   (cons 'complex-mul complex-mul)
-   (cons 'complex-magnitude complex-magnitude)
-   (cons 'complex-conjugate complex-conjugate)
-   ; Format utilities
-   (cons 'format-number format-number)
-   (cons 'pad-number pad-number)
-   (cons 'format-hex format-hex)
-   (cons 'format-binary format-binary)
-   (cons 'format-with-commas format-with-commas)
-   (cons 'format-ordinal format-ordinal)
-   ; More string utilities
-   (cons 'string-chars string-chars)
-   (cons 'chars-string chars-string)
-   (cons 'string-empty? string-empty?)
-   (cons 'string-first string-first)
-   (cons 'string-last string-last)
-   (cons 'string-take string-take)
-   (cons 'string-drop string-drop)
-   (cons 'string-take-right string-take-right)
-   (cons 'string-drop-right string-drop-right)
-   (cons 'string-contains? string-contains?)
-   (cons 'string-index-of string-index-of)
-   (cons 'string-starts-with? string-starts-with?)
-   (cons 'string-ends-with? string-ends-with?)
-   (cons 'string-replace string-replace)
-   (cons 'string-split-at string-split-at)
-   ; Error handling utilities
-   (cons 'try-catch try-catch)
-   (cons 'assert assert)
-   (cons 'assert-eq assert-eq)
-   (cons 'ensure ensure)
-   (cons 'coerce coerce)
-   ; More numeric utilities
-   (cons 'factorial factorial)
-   (cons 'fibonacci fibonacci)
-   (cons 'is-prime? is-prime?)
-   (cons 'divisors divisors)
-   (cons 'proper-divisors proper-divisors)
-   (cons 'is-perfect? is-perfect?)
-   (cons 'next-prime next-prime)
-   (cons 'prime-factors prime-factors)
-   (cons 'num-digits num-digits)
-   (cons 'sum-digits sum-digits)
-   ; Control flow utilities
-   (cons 'while-loop while-loop)
-   (cons 'for-loop for-loop)
-   (cons 'times times)
-   (cons 'repeat-until repeat-until)
-   (cons 'do-times do-times)
-   (cons 'thread-first thread-first)
-   (cons 'thread-last thread-last)
-   (cons 'pipeline pipeline)
-   ; Type introspection utilities
-   (cons 'type-name type-name)
-   (cons 'is-type? is-type?)
-   (cons 'type-check type-check)
-   ; Extended alist utilities
-   (cons 'alist-map alist-map)
-   (cons 'alist-filter alist-filter)
-   (cons 'alist-filter-keys alist-filter-keys)
-   (cons 'alist-filter-values alist-filter-values)
-   (cons 'alist-keys alist-keys)
-   (cons 'alist-values alist-values)
-   (cons 'alist-has-key? alist-has-key?)
-   (cons 'alist-update alist-update)
-   (cons 'alist-merge alist-merge)
-   ; Validation utilities
-   (cons 'valid? valid?)
-   (cons 'invalid? invalid?)
-   (cons 'first-failing first-failing)
-   (cons 'validate-with validate-with)
-   ; More list utilities
-   (cons 'list-ref-safe list-ref-safe)
-   (cons 'list-set list-set)
-   (cons 'list-update list-update)
-   (cons 'list-insert list-insert)
-   (cons 'list-delete list-delete)
-   (cons 'list-swap list-swap)
-   (cons 'group-by-key group-by-key)
-   (cons 'partition-by partition-by)
-   (cons 'intersperse-with intersperse-with)
-   ; Advanced sorting
-   (cons 'quicksort quicksort)
-   (cons 'quicksort-by quicksort-by)
-   (cons 'mergesort mergesort)
-   (cons 'mergesort-by mergesort-by)
-   ; Extended graph algorithms
-   (cons 'graph-topological-sort graph-topological-sort)
-   (cons 'graph-has-cycle? graph-has-cycle?)
-   (cons 'graph-reverse graph-reverse)
-   (cons 'graph-transpose graph-transpose)
-   ; Lens-like utilities
-   (cons 'get-in get-in)
-   (cons 'update-in update-in)
-   (cons 'set-in set-in)
-   ; Additional string utilities
-   (cons 'string-pad-left string-pad-left)
-   (cons 'string-pad-right string-pad-right)
-   (cons 'string-center string-center)
-   (cons 'string-repeat string-repeat)
-   (cons 'string-count string-count)
-   ; Sequence utilities
-   (cons 'scan scan)
-   (cons 'scan-right scan-right)
-   (cons 'windows windows)
-   (cons 'pairwise pairwise)
-   (cons 'differences differences)
-   (cons 'running-sum running-sum)
-   (cons 'running-product running-product)
-   ; Statistical utilities
-   (cons 'mean mean)
-   (cons 'median median)
-   (cons 'mode mode)
-   (cons 'variance variance)
-   (cons 'std-dev std-dev)
-   (cons 'normalize-list normalize-list)
-   (cons 'z-score z-score)
-   ; Bitwise operations
-   (cons 'bit-and bit-and)
-   (cons 'bit-or bit-or)
-   (cons 'bit-xor bit-xor)
-   (cons 'bit-not bit-not)
-   (cons 'bit-shift-left bit-shift-left)
-   (cons 'bit-shift-right bit-shift-right)
-   (cons 'bit-set? bit-set?)
-   (cons 'bit-set bit-set)
-   (cons 'bit-clear bit-clear)
-   (cons 'bit-toggle bit-toggle)
-   (cons 'bit-count bit-count)
-   ; Predicate combinators
-   (cons 'complement complement)
-   (cons 'conjoin conjoin)
-   (cons 'disjoin disjoin)
-   (cons 'pred-and pred-and)
-   (cons 'pred-or pred-or)
-   (cons 'satisfies? satisfies?)
-   ; Advanced function combinators
-   (cons 'juxt juxt)
-   (cons 'juxt2 juxt2)
-   (cons 'fork fork)
-   (cons 'converge converge)
-   (cons 'on on)
-   (cons 'both both)
-   ; Currying and partial application
-   (cons 'curry2 curry2)
-   (cons 'curry3 curry3)
-   (cons 'uncurry2 uncurry2)
-   (cons 'uncurry3 uncurry3)
-   (cons 'partial partial)
-   (cons 'partial2 partial2)
-   (cons 'partial-right partial-right)
-   (cons 'flip flip)
-   (cons 'flip3 flip3)
-   ; Iteration utilities
-   (cons 'iterate-n iterate-n)
-   (cons 'iterate-until iterate-until)
-   (cons 'iterate-while iterate-while)
-   (cons 'fixed-point fixed-point)
-   ; Collection utilities
-   (cons 'count-if count-if)
-   (cons 'remove-if remove-if)
-   (cons 'remove-duplicates remove-duplicates)
-   (cons 'unique unique)
-   (cons 'replace-if replace-if)
-   (cons 'substitute substitute)
-   (cons 'split-when split-when)
-   (cons 'interleave interleave)
-   ; Numeric range utilities
-   (cons 'range-step range-step)
-   (cons 'linspace linspace)
-   (cons 'geometric-series geometric-series)
-   ; Pair utilities
-   (cons 'pair-map pair-map)
-   (cons 'pair-swap pair-swap)
-   (cons 'pair-to-list pair-to-list)
-   (cons 'list-to-pair list-to-pair)
-   ; Extended alist operations
-   (cons 'alist-invert alist-invert)
-   (cons 'alist-group-by alist-group-by)
-   (cons 'alist-zip alist-zip)
-   (cons 'alist-select alist-select)
-   (cons 'alist-reject alist-reject)
-   (cons 'alist-rename-key alist-rename-key)
-   ; Mathematical utilities
-   (cons 'factorial factorial)
-   (cons 'fibonacci fibonacci)
-   (cons 'prime? prime?)
-   (cons 'divisors divisors)
-   (cons 'sum-range sum-range)
-   (cons 'product-range product-range)
-   (cons 'binomial binomial)
-   ; More list utilities
-   (cons 'scanr scanr)
-   (cons 'reduce reduce)
-   (cons 'reduce-right reduce-right)
-   (cons 'find-last find-last)
-   (cons 'index-where index-where)
-   (cons 'last-index-where last-index-where)
-   (cons 'indices-where indices-where)
-   (cons 'take-last take-last)
-   (cons 'drop-last drop-last)
-   (cons 'insert-at insert-at)
-   (cons 'remove-at remove-at)
-   (cons 'update-at update-at)
-   (cons 'set-at set-at)
-   (cons 'rotate-left rotate-left)
-   (cons 'rotate-right rotate-right)
-   ; Extended string utilities
-   (cons 'string-repeat string-repeat)
-   (cons 'string-reverse string-reverse)
-   (cons 'string-take string-take)
-   (cons 'string-drop string-drop)
-   (cons 'string-take-right string-take-right)
-   (cons 'string-drop-right string-drop-right)
-   (cons 'string-trim-left string-trim-left)
-   (cons 'string-trim-right string-trim-right)
-   (cons 'string-trim string-trim)
-   (cons 'string-empty? string-empty?)
-   (cons 'string-blank? string-blank?)
-   ; Control flow
-   (cons 'unless unless)
-   (cons 'when-let when-let)
-   (cons 'cond-result cond-result)
-   ; Comparison utilities
-   (cons 'clamp-val clamp-val)
-   (cons 'between-exclusive? between-exclusive?)
-   (cons 'approximately-equal? approximately-equal?)
-   (cons 'compare compare)
-   ; Debugging utilities
-   (cons 'tap tap)
-   (cons 'trace trace)
-   ; Set operations
-   (cons 'set-from-list set-from-list)
-   (cons 'set-member? set-member?)
-   (cons 'set-add set-add)
-   (cons 'set-remove set-remove)
-   (cons 'set-union set-union)
-   (cons 'set-intersection set-intersection)
-   (cons 'set-difference set-difference)
-   (cons 'set-symmetric-difference set-symmetric-difference)
-   (cons 'set-subset? set-subset?)
-   (cons 'set-equal? set-equal?)
-   (cons 'set-empty? set-empty?)
-   (cons 'set-size set-size)
-   ; Tree operations
-   (cons 'tree-leaf? tree-leaf?)
-   (cons 'tree-node? tree-node?)
-   (cons 'tree-children tree-children)
-   (cons 'tree-map tree-map)
-   (cons 'tree-fold tree-fold)
-   (cons 'tree-flatten tree-flatten)
-   (cons 'tree-depth tree-depth)
-   (cons 'tree-size tree-size)
-   (cons 'tree-filter tree-filter)
-   (cons 'tree-find tree-find)
-   ; Graph utilities
-   (cons 'graph-nodes graph-nodes)
-   (cons 'graph-neighbors graph-neighbors)
-   (cons 'graph-has-edge? graph-has-edge?)
-   (cons 'graph-add-edge graph-add-edge)
-   (cons 'graph-remove-edge graph-remove-edge)
-   (cons 'graph-reverse graph-reverse)
-   (cons 'graph-bfs graph-bfs)
-   (cons 'graph-dfs graph-dfs)
-   ; More numeric utilities
-   (cons 'sgn sgn)
-   (cons 'copysign copysign)
-   (cons 'div-ceil div-ceil)
-   (cons 'div-floor div-floor)
-   (cons 'mod-positive mod-positive)
-   (cons 'is-power-of-2? is-power-of-2?)
-   (cons 'next-power-of-2 next-power-of-2)
-   (cons 'log2-int log2-int)
-   (cons 'integer-sqrt integer-sqrt)
-   (cons 'sum-of-squares sum-of-squares)
-   (cons 'dot-product dot-product)
-   (cons 'magnitude magnitude)
-   (cons 'normalize-vector normalize-vector)
-   ; Sequence generators
-   (cons 'primes-up-to primes-up-to)
-   (cons 'fibonacci-sequence fibonacci-sequence)
-   (cons 'powers-of powers-of)
-   (cons 'triangular-numbers triangular-numbers)
-   ; Combinatorics
-   (cons 'permutations permutations)
-   (cons 'remove-first remove-first)
-   (cons 'combinations combinations)
-   (cons 'cartesian-product cartesian-product)
-   (cons 'power-set power-set)
-   ; Queue operations
-   (cons 'queue-empty queue-empty)
-   (cons 'queue-empty? queue-empty?)
-   (cons 'queue-enqueue queue-enqueue)
-   (cons 'queue-dequeue queue-dequeue)
-   (cons 'queue-front queue-front)
-   (cons 'queue-size queue-size)
-   (cons 'queue-to-list queue-to-list)
-   (cons 'queue-from-list queue-from-list)
-   ; Heap operations
-   (cons 'heap-empty heap-empty)
-   (cons 'heap-empty? heap-empty?)
-   (cons 'heap-insert heap-insert)
-   (cons 'heap-min heap-min)
-   (cons 'heap-pop heap-pop)
-   (cons 'heap-from-list heap-from-list)
-   (cons 'heap-size heap-size)
-   ; Priority queue
-   (cons 'pq-empty pq-empty)
-   (cons 'pq-empty? pq-empty?)
-   (cons 'pq-insert pq-insert)
-   (cons 'pq-pop pq-pop)
-   (cons 'pq-peek pq-peek)
-   ; Deque operations
-   (cons 'deque-empty deque-empty)
-   (cons 'deque-empty? deque-empty?)
-   (cons 'deque-push-front deque-push-front)
-   (cons 'deque-push-back deque-push-back)
-   (cons 'deque-pop-front deque-pop-front)
-   (cons 'deque-pop-back deque-pop-back)
-   ; Stack operations
-   (cons 'stack-empty stack-empty)
-   (cons 'stack-empty? stack-empty?)
-   (cons 'stack-push stack-push)
-   (cons 'stack-pop stack-pop)
-   (cons 'stack-peek stack-peek)
-   (cons 'stack-size stack-size)
-   ; Number parsing
-   (cons 'digits digits)
-   (cons 'from-digits from-digits)
-   (cons 'digit-sum digit-sum)
-   (cons 'digit-count digit-count)
-   (cons 'reverse-number reverse-number)
-   (cons 'palindrome-number? palindrome-number?)
-   ; Base conversion
-   (cons 'to-base to-base)
-   (cons 'from-base from-base)
-   (cons 'to-binary to-binary)
-   (cons 'from-binary from-binary)
-   (cons 'to-hex-digits to-hex-digits)
-   (cons 'from-hex-digits from-hex-digits)
-   ; List searching
-   (cons 'binary-search binary-search)
-   (cons 'lower-bound lower-bound)
-   (cons 'upper-bound upper-bound)
-   ; Sliding window
-   (cons 'sliding-max sliding-max)
-   (cons 'sliding-min sliding-min)
-   (cons 'sliding-sum sliding-sum)
-   ; Run-length encoding
-   (cons 'rle-encode rle-encode)
-   (cons 'rle-decode rle-decode)
-   ; More functional patterns
-   (cons 'unfold-right unfold-right)
-   (cons 'until until)
-   (cons 'while-fn while-fn)
-   (cons 'iterate-collect iterate-collect)
-   (cons 'converge-to converge-to)
-   ; Alist extensions
-   (cons 'alist-merge alist-merge)
-   (cons 'alist-map-values alist-map-values)
-   (cons 'alist-map-keys alist-map-keys)
-   (cons 'alist-find alist-find)
-   (cons 'alist-count alist-count)
-   ; Zipper operations
-   (cons 'zipper-from-list zipper-from-list)
-   (cons 'zipper-to-list zipper-to-list)
-   (cons 'zipper-focus zipper-focus)
-   (cons 'zipper-right zipper-right)
-   (cons 'zipper-left zipper-left)
-   (cons 'zipper-update zipper-update)
-   (cons 'zipper-set zipper-set)
-   (cons 'zipper-insert-left zipper-insert-left)
-   (cons 'zipper-insert-right zipper-insert-right)
-   (cons 'zipper-delete zipper-delete)
-   ; Validation combinators
-   (cons 'validate validate)
-   (cons 'validate-all validate-all)
-   (cons 'validate-chain validate-chain)
-   (cons 'validator validator)
-   (cons 'not-empty-validator not-empty-validator)
-   (cons 'positive-validator positive-validator)
-   (cons 'non-negative-validator non-negative-validator)
-   (cons 'in-range-validator in-range-validator)
-   ; Lens-like utilities
-   (cons 'lens-get lens-get)
-   (cons 'lens-set lens-set)
-   (cons 'lens-update lens-update)
-   ; Applicative functor utilities
-   (cons 'ap ap)
-   (cons 'lift2 lift2)
-   (cons 'lift3 lift3)
-   (cons 'sequence-list sequence-list)
-   (cons 'traverse-list traverse-list)
-   ; More string utilities
-   (cons 'string-split-at string-split-at)
-   (cons 'string-words string-words)
-   (cons 'string-unwords string-unwords)
-   (cons 'string-lines string-lines)
-   (cons 'string-unlines string-unlines)
-   (cons 'string-center string-center)
-   (cons 'string-ljust string-ljust)
-   (cons 'string-rjust string-rjust)
-   ; Memoization helpers
-   (cons 'make-memo-table make-memo-table)
-   (cons 'memo-lookup memo-lookup)
-   (cons 'memo-insert memo-insert)
-   ; Matrix operations
-   (cons 'matrix-rows matrix-rows)
-   (cons 'matrix-cols matrix-cols)
-   (cons 'matrix-ref matrix-ref)
-   (cons 'matrix-set matrix-set)
-   (cons 'matrix-map matrix-map)
-   (cons 'matrix-zip-with matrix-zip-with)
-   (cons 'matrix-add matrix-add)
-   (cons 'matrix-scale matrix-scale)
-   (cons 'matrix-multiply matrix-multiply)
-   (cons 'make-matrix make-matrix)
-   (cons 'identity-matrix identity-matrix)
-   ; Logic utilities
-   (cons 'implies implies)
-   (cons 'iff iff)
-   (cons 'nand nand)
-   (cons 'nor nor)
-   (cons 'bool->int bool->int)
-   (cons 'int->bool int->bool)
-   ; State monad
-   (cons 'state-return state-return)
-   (cons 'state-bind state-bind)
-   (cons 'state-get state-get)
-   (cons 'state-put state-put)
-   (cons 'state-modify state-modify)
-   (cons 'state-run state-run)
-   (cons 'state-eval state-eval)
-   (cons 'state-exec state-exec)
-   ; Reader monad
-   (cons 'reader-return reader-return)
-   (cons 'reader-bind reader-bind)
-   (cons 'reader-ask reader-ask)
-   (cons 'reader-asks reader-asks)
-   (cons 'reader-local reader-local)
-   (cons 'reader-run reader-run)
-   ; Writer monad
-   (cons 'writer-return writer-return)
-   (cons 'writer-bind writer-bind)
-   (cons 'writer-tell writer-tell)
-   (cons 'writer-listen writer-listen)
-   (cons 'writer-run writer-run)
-   ; More list utilities
-   (cons 'rotate-left rotate-left)
-   (cons 'rotate-right rotate-right)
-   (cons 'tails tails)
-   (cons 'inits inits)
-   (cons 'sublists sublists)
-   (cons 'is-prefix? is-prefix?)
-   (cons 'is-suffix? is-suffix?)
-   (cons 'is-infix? is-infix?)
-   (cons 'split-at split-at)
-   (cons 'chunks-of chunks-of)
-   (cons 'windows windows)
-   (cons 'interleave interleave)
-   (cons 'dedup-consecutive dedup-consecutive)
-   (cons 'group-by group-by)
-   (cons 'frequencies frequencies)
-   ; Polynomial operations
-   (cons 'poly-zero poly-zero)
-   (cons 'poly-one poly-one)
-   (cons 'poly-degree poly-degree)
-   (cons 'poly-add poly-add)
-   (cons 'poly-scale poly-scale)
-   (cons 'poly-shift poly-shift)
-   (cons 'poly-multiply poly-multiply)
-   (cons 'poly-eval poly-eval)
-   (cons 'poly-derivative poly-derivative)
-   (cons 'poly-from-roots poly-from-roots)
-   ; Interval operations
-   (cons 'make-interval make-interval)
-   (cons 'interval-lo interval-lo)
-   (cons 'interval-hi interval-hi)
-   (cons 'interval-empty? interval-empty?)
-   (cons 'interval-contains? interval-contains?)
-   (cons 'interval-width interval-width)
-   (cons 'interval-midpoint interval-midpoint)
-   (cons 'interval-intersect interval-intersect)
-   (cons 'interval-union interval-union)
-   (cons 'interval-overlaps? interval-overlaps?)
-   ; Arrow combinators
-   (cons 'arr arr)
-   (cons 'first first)
-   (cons 'second second)
-   (cons 'split split)
-   (cons 'fanout fanout)
-   (cons 'combine combine)
-   (cons 'parallel parallel)
-   (cons 'arrow-compose arrow-compose)
-   ; Continuation utilities
-   (cons 'call-with-escape call-with-escape)
-   (cons 'trampoline-return trampoline-return)
-   (cons 'trampoline-bounce trampoline-bounce)
-   (cons 'run-trampoline run-trampoline)
-   ; More numeric utilities
-   (cons 'average average)
-   (cons 'variance variance)
-   (cons 'stddev stddev)
-   (cons 'median median)
-   (cons 'clamp-list clamp-list)
-   (cons 'normalize-list normalize-list)
-   (cons 'dot dot)
-   (cons 'magnitude magnitude)
-   (cons 'normalize-vector normalize-vector)
-   (cons 'cross-product cross-product)
-   ; Association list extensions
-   (cons 'alist-update alist-update)
-   (cons 'alist-insert-with alist-insert-with)
-   (cons 'alist-from-pairs alist-from-pairs)
-   (cons 'alist-to-pairs alist-to-pairs)
-   (cons 'alist-has-key? alist-has-key?)
-   (cons 'alist-delete alist-delete)
-   (cons 'alist-select alist-select)
-   (cons 'alist-reject alist-reject)
-   ; Parser combinators
-   (cons 'parse-ok parse-ok)
-   (cons 'parse-err parse-err)
-   (cons 'parse-ok? parse-ok?)
-   (cons 'parse-value parse-value)
-   (cons 'parse-rest parse-rest)
-   (cons 'parse-error parse-error)
-   (cons 'p-return p-return)
-   (cons 'p-fail p-fail)
-   (cons 'p-item p-item)
-   (cons 'p-satisfy p-satisfy)
-   (cons 'p-char p-char)
-   (cons 'p-digit p-digit)
-   (cons 'p-alpha p-alpha)
-   (cons 'p-alphanum p-alphanum)
-   (cons 'p-space p-space)
-   (cons 'p-bind p-bind)
-   (cons 'p-then p-then)
-   (cons 'p-skip p-skip)
-   (cons 'p-or p-or)
-   (cons 'p-many p-many)
-   (cons 'p-many1 p-many1)
-   (cons 'p-optional p-optional)
-   (cons 'p-string p-string)
-   (cons 'p-spaces p-spaces)
-   (cons 'p-token p-token)
-   (cons 'p-run p-run)
-   ; Binary tree operations
-   (cons 'tree-empty tree-empty)
-   (cons 'tree-empty? tree-empty?)
-   (cons 'tree-node tree-node)
-   (cons 'tree-leaf tree-leaf)
-   (cons 'tree-value tree-value)
-   (cons 'tree-left tree-left)
-   (cons 'tree-right tree-right)
-   (cons 'tree-size tree-size)
-   (cons 'tree-height tree-height)
-   (cons 'tree-inorder tree-inorder)
-   (cons 'tree-preorder tree-preorder)
-   (cons 'tree-postorder tree-postorder)
-   (cons 'tree-levelorder tree-levelorder)
-   (cons 'bst-insert bst-insert)
-   (cons 'bst-member? bst-member?)
-   (cons 'bst-from-list bst-from-list)
-   (cons 'bst-min bst-min)
-   (cons 'bst-max bst-max)
-   ; Union-Find
-   (cons 'uf-make uf-make)
-   (cons 'uf-make-set uf-make-set)
-   (cons 'uf-find uf-find)
-   (cons 'uf-union uf-union)
-   (cons 'uf-connected? uf-connected?)
-   ; Maybe/Option
-   (cons 'just just)
-   (cons 'nothing nothing)
-   (cons 'just? just?)
-   (cons 'nothing? nothing?)
-   (cons 'from-just from-just)
-   (cons 'maybe-fold maybe-fold)
-   (cons 'maybe-map maybe-map)
-   (cons 'maybe-bind maybe-bind)
-   (cons 'maybe-or maybe-or)
-   (cons 'maybe-and maybe-and)
-   (cons 'from-maybe-tagged from-maybe-tagged)
-   (cons 'list->maybe list->maybe)
-   (cons 'maybe->list maybe->list)
-   (cons 'cat-maybes cat-maybes)
-   (cons 'map-maybe map-maybe)
-   ; Either
-   (cons 'left left)
-   (cons 'right right)
-   (cons 'left? left?)
-   (cons 'right? right?)
-   (cons 'from-left from-left)
-   (cons 'from-right from-right)
-   (cons 'either either)
-   (cons 'either-map either-map)
-   (cons 'either-map-left either-map-left)
-   (cons 'either-bind either-bind)
-   (cons 'either-bimap either-bimap)
-   (cons 'partition-eithers partition-eithers)
-   (cons 'lefts lefts)
-   (cons 'rights rights)
-   ; Format utilities
-   (cons 'format-simple format-simple)
-   (cons 'join-with join-with)
-   (cons 'repeat-string repeat-string)
-   ; Control flow
-   (cons 'guard guard)
-   (cons 'when-just when-just)
-   (cons 'unless-nothing unless-nothing)
-   (cons 'if-let if-let)
-   (cons 'cond-list cond-list)
-   ; Comparison utilities
-   (cons 'comparing comparing)
-   (cons 'compare-by compare-by)
-   (cons 'chain-comparators chain-comparators)
-   (cons 'sort-by sort-by)
-   (cons 'sort-on sort-on)
-   (cons 'group-consecutive-by group-consecutive-by)
-   ; Numeric predicates
-   (cons 'divisible-by? divisible-by?)
-   (cons 'coprime? coprime?)
-   (cons 'perfect-square? perfect-square?)
-   (cons 'triangular-number triangular-number)
-   (cons 'is-triangular? is-triangular?)
-   (cons 'pentagonal-number pentagonal-number)
-   (cons 'hexagonal-number hexagonal-number)
-   (cons 'collatz-next collatz-next)
-   (cons 'collatz-sequence collatz-sequence)
-   ; Lazy stream extensions
-   (cons 'stream-empty stream-empty)
-   (cons 'stream-empty? stream-empty?)
-   (cons 'stream-drop stream-drop)
-   (cons 'stream-cycle stream-cycle)
-   (cons 'stream-take-while stream-take-while)
-   (cons 'list->stream list->stream)
-   ; Extended graph algorithms
-   (cons 'graph-in-degree graph-in-degree)
-   (cons 'graph-out-degree graph-out-degree)
-   (cons 'topological-sort topological-sort)
-   (cons 'graph-reachable graph-reachable)
-   (cons 'graph-shortest-path graph-shortest-path)
-   ; Numeric methods
-   (cons 'newton-raphson newton-raphson)
-   (cons 'bisection bisection)
-   (cons 'numerical-derivative numerical-derivative)
-   (cons 'numerical-integral numerical-integral)
-   (cons 'secant-method secant-method)
-   ; Trie data structure
-   (cons 'trie-empty trie-empty)
-   (cons 'trie-value trie-value)
-   (cons 'trie-children trie-children)
-   (cons 'trie-insert trie-insert)
-   (cons 'trie-lookup trie-lookup)
-   (cons 'trie-has-key? trie-has-key?)
-   (cons 'string->key string->key)
-   (cons 'trie-insert-string trie-insert-string)
-   (cons 'trie-lookup-string trie-lookup-string)
-   ; Extended combinatorics
-   (cons 'permutations-k permutations-k)
-   (cons 'derangements derangements)
-   (cons 'count-derangements count-derangements)
-   (cons 'stirling-second stirling-second)
-   (cons 'bell-number bell-number)
-   (cons 'catalan-number catalan-number)
-   (cons 'partitions-integer partitions-integer)
-   (cons 'count-partitions count-partitions)
-   ; Extended bitwise utilities
-   (cons 'lowest-set-bit lowest-set-bit)
-   (cons 'highest-set-bit highest-set-bit)
-   ; Ring buffer
-   (cons 'ring-buffer-new ring-buffer-new)
-   (cons 'ring-buffer-capacity ring-buffer-capacity)
-   (cons 'ring-buffer-push ring-buffer-push)
-   (cons 'ring-buffer-peek ring-buffer-peek)
-   (cons 'ring-buffer-pop ring-buffer-pop)
-   ; S-expression utilities
-   (cons 'sexp-atom? sexp-atom?)
-   (cons 'sexp-list? sexp-list?)
-   (cons 'sexp-dotted? sexp-dotted?)
-   (cons 'sexp-length sexp-length)
-   (cons 'sexp-depth sexp-depth)
-   (cons 'sexp-count-atoms sexp-count-atoms)
-   (cons 'sexp-flatten sexp-flatten)
-   (cons 'sexp-map sexp-map)
-   (cons 'sexp-filter sexp-filter)
-   (cons 'sexp-find sexp-find)
-   (cons 'sexp-substitute sexp-substitute)
-   (cons 'sexp-contains? sexp-contains?)
-   ; Transducers
-   (cons 't-map t-map)
-   (cons 't-filter t-filter)
-   (cons 't-cat t-cat)
-   (cons 't-mapcat t-mapcat)
-   (cons 't-keep t-keep)
-   (cons 'transduce transduce)
-   (cons 'into-list into-list)
-   (cons 't-comp t-comp)
-   (cons 't-comp3 t-comp3)
-   ; Memo table utilities
-   (cons 'memo-table-new memo-table-new)
-   (cons 'memo-table-get memo-table-get)
-   (cons 'memo-table-put memo-table-put)
-   (cons 'memo-table-contains? memo-table-contains?)
-   (cons 'memo-table-remove memo-table-remove)
-   (cons 'memo-table-keys memo-table-keys)
-   (cons 'memo-table-values memo-table-values)
-   ; Algebraic structures - Monoid
-   (cons 'make-monoid make-monoid)
-   (cons 'monoid-empty monoid-empty)
-   (cons 'monoid-append monoid-append)
-   (cons 'mconcat mconcat)
-   (cons 'sum-monoid sum-monoid)
-   (cons 'product-monoid product-monoid)
-   (cons 'list-monoid list-monoid)
-   (cons 'string-monoid string-monoid)
-   (cons 'all-monoid all-monoid)
-   (cons 'any-monoid any-monoid)
-   (cons 'max-monoid max-monoid)
-   (cons 'min-monoid min-monoid)
-   (cons 'first-monoid first-monoid)
-   (cons 'last-monoid last-monoid)
-   (cons 'endo-monoid endo-monoid)
-   (cons 'dual-monoid dual-monoid)
-   ; Foldable
-   (cons 'fold-map fold-map)
-   (cons 'fold-sum fold-sum)
-   (cons 'fold-product fold-product)
-   (cons 'fold-all fold-all)
-   (cons 'fold-any fold-any)
-   ; Semigroup
-   (cons 'make-semigroup make-semigroup)
-   (cons 'semigroup-append semigroup-append)
-   (cons 'sconcat sconcat)
-   ; Functor
-   (cons 'make-functor make-functor)
-   (cons 'functor-map functor-map)
-   (cons 'list-functor list-functor)
-   (cons 'maybe-functor maybe-functor)
-   (cons 'either-functor either-functor)
-   ; Applicative
-   (cons 'make-applicative make-applicative)
-   (cons 'applicative-pure applicative-pure)
-   (cons 'applicative-ap applicative-ap)
-   (cons 'liftA2 liftA2)
-   ; Comonad
-   (cons 'make-comonad make-comonad)
-   (cons 'comonad-extract comonad-extract)
-   (cons 'comonad-extend comonad-extend)
-   (cons 'list-zipper-extract list-zipper-extract)
-   (cons 'list-zipper-extend list-zipper-extend)
-   ; Bifunctor
-   (cons 'bimap bimap)
-   (cons 'first-fn first-fn)
-   (cons 'second-fn second-fn)
-   ; Profunctor
-   (cons 'dimap dimap)
-   (cons 'lmap lmap)
-   (cons 'rmap rmap)
-   ; Kleisli
-   (cons 'kleisli-maybe kleisli-maybe)
-   (cons 'kleisli-either kleisli-either)
-   (cons 'kleisli-list kleisli-list)
-   ; Arrow operations
-   (cons 'arr-id arr-id)
-   (cons 'arr-compose arr-compose)
-   (cons 'arr-first arr-first)
-   (cons 'arr-second arr-second)
-   (cons 'arr-split arr-split)
-   (cons 'arr-fanout arr-fanout)
-   (cons 'arr-choice arr-choice)
-   ; Recursive schemes
-   (cons 'cata cata)
-   (cons 'ana ana)
-   (cons 'hylo hylo)
-   (cons 'para para)
-   ; Expression utilities
-   (cons 'quoted? quoted?)
-   (cons 'unquote-expr unquote-expr)
-   (cons 'make-quote make-quote)
-   (cons 'lambda? lambda?)
-   (cons 'application? application?)
-   (cons 'if? if?)
-   (cons 'let? let?)
-   ; Symbol utilities
-   (cons 'symbol-append symbol-append)
-   (cons 'make-gensym make-gensym)
-   ; Control flow
-   (cons 'iterate-times iterate-times)
-   (cons 'find-fixed-point find-fixed-point)
-   (cons 'do-while do-while)
-   (cons 'do-until do-until)
-   ; String manipulation
-   (cons 'string-null? string-null?)
-   (cons 'string-take string-take)
-   (cons 'string-drop string-drop)
-   (cons 'string-take-right string-take-right)
-   (cons 'string-drop-right string-drop-right)
-   (cons 'string-pad string-pad)
-   (cons 'string-pad-right string-pad-right)
-   (cons 'string-trim-left string-trim-left)
-   (cons 'string-trim-right string-trim-right)
-   (cons 'string-trim string-trim)
-   (cons 'string-trim-whitespace string-trim-whitespace)
-   (cons 'string-contains? string-contains?)
-   (cons 'string-prefix? string-prefix?)
-   (cons 'string-suffix? string-suffix?)
-   (cons 'string-split-at string-split-at)
-   (cons 'string-replace-first string-replace-first)
-   (cons 'string-replace-all string-replace-all)
-   (cons 'string-reverse string-reverse)
-   (cons 'string-join string-join)
-   (cons 'string-split-char string-split-char)
-   (cons 'string-upcase string-upcase)
-   (cons 'string-downcase string-downcase)
-   (cons 'string-titlecase string-titlecase)
-   (cons 'string-count string-count)
-   (cons 'string-index string-index)
-   (cons 'string-index-right string-index-right)
-   ; Association list utilities
-   (cons 'assoc assoc)
-   (cons 'assq assq)
-   (cons 'assv assv)
-   (cons 'alist-ref alist-ref)
-   (cons 'alist-set alist-set)
-   (cons 'alist-delete alist-delete)
-   (cons 'alist-keys alist-keys)
-   (cons 'alist-values alist-values)
-   (cons 'alist-map alist-map)
-   (cons 'alist-filter alist-filter)
-   (cons 'alist-merge alist-merge)
-   (cons 'alist->list alist->list)
-   (cons 'list->alist list->alist)
-   (cons 'alist-has-key? alist-has-key?)
-   (cons 'alist-update alist-update)
-   ; Set operations
-   (cons 'set-empty set-empty)
-   (cons 'set-singleton set-singleton)
-   (cons 'set-member? set-member?)
-   (cons 'set-insert set-insert)
-   (cons 'set-delete set-delete)
-   (cons 'set-union set-union)
-   (cons 'set-intersection set-intersection)
-   (cons 'set-difference set-difference)
-   (cons 'set-symmetric-difference set-symmetric-difference)
-   (cons 'set-subset? set-subset?)
-   (cons 'set-superset? set-superset?)
-   (cons 'set-equal? set-equal?)
-   (cons 'set-disjoint? set-disjoint?)
-   (cons 'set-size set-size)
-   (cons 'set->list set->list)
-   (cons 'list->set list->set)
-   (cons 'set-filter set-filter)
-   (cons 'set-map set-map)
-   (cons 'set-fold set-fold)
-   (cons 'set-partition set-partition)
-   ; Queue
-   (cons 'queue-empty queue-empty)
-   (cons 'queue-empty? queue-empty?)
-   (cons 'queue-enqueue queue-enqueue)
-   (cons 'queue-front queue-front)
-   (cons 'queue-dequeue queue-dequeue)
-   (cons 'queue-size queue-size)
-   (cons 'queue->list queue->list)
-   (cons 'list->queue list->queue)
-   ; Deque
-   (cons 'deque-empty deque-empty)
-   (cons 'deque-empty? deque-empty?)
-   (cons 'deque-push-front deque-push-front)
-   (cons 'deque-push-back deque-push-back)
-   (cons 'deque-front deque-front)
-   (cons 'deque-back deque-back)
-   (cons 'deque-pop-front deque-pop-front)
-   (cons 'deque-pop-back deque-pop-back)
-   (cons 'deque-size deque-size)
-   (cons 'deque->list deque->list)
-   (cons 'list->deque list->deque)
-   ; Sorting
-   (cons 'insert-sorted insert-sorted)
-   (cons 'insertion-sort-cmp insertion-sort-cmp)
-   (cons 'merge-sorted-cmp merge-sorted-cmp)
-   (cons 'merge-sort-cmp merge-sort-cmp)
-   (cons 'quicksort-cmp quicksort-cmp)
-   (cons 'sort sort)
-   (cons 'sort-by-key sort-by-key)
-   (cons 'sort-descending sort-descending)
-   (cons 'sorted-cmp? sorted-cmp?)
-   (cons 'minimum minimum)
-   (cons 'maximum maximum)
-   (cons 'minimum-by minimum-by)
-   (cons 'maximum-by maximum-by)
-   ; Priority queue
-   (cons 'pq-empty pq-empty)
-   (cons 'pq-empty? pq-empty?)
-   (cons 'pq-insert pq-insert)
-   (cons 'pq-peek pq-peek)
-   (cons 'pq-peek-priority pq-peek-priority)
-   (cons 'pq-pop pq-pop)
-   (cons 'pq-size pq-size)
-   ; Bag/Multiset
-   (cons 'bag-empty bag-empty)
-   (cons 'bag-insert bag-insert)
-   (cons 'bag-count bag-count)
-   (cons 'bag-remove bag-remove)
-   (cons 'bag-remove-all bag-remove-all)
-   (cons 'bag-member? bag-member?)
-   (cons 'bag-unique-elements bag-unique-elements)
-   (cons 'bag-total-count bag-total-count)
-   (cons 'bag->list bag->list)
-   (cons 'list->bag list->bag)
-   (cons 'bag-union bag-union)
-   (cons 'bag-intersection bag-intersection)
-   (cons 'bag-sum bag-sum)
-   ; Random number generation
-   (cons 'make-rng make-rng)
-   (cons 'rng-next rng-next)
-   (cons 'rng-int rng-int)
-   (cons 'rng-range rng-range)
-   (cons 'rng-bool rng-bool)
-   (cons 'rng-choice rng-choice)
-   (cons 'rng-shuffle rng-shuffle)
-   (cons 'rng-sample rng-sample)
-   (cons 'rng-take rng-take)
-   ; Sequence utilities
-   (cons 'sliding-window sliding-window)
-   (cons 'chunks chunks)
-   (cons 'chunks-exact chunks-exact)
-   (cons 'interleave interleave)
-   (cons 'interleave-all interleave-all)
-   (cons 'rotate-left rotate-left)
-   (cons 'rotate-right rotate-right)
-   (cons 'frequencies frequencies)
-   (cons 'group-by group-by)
-   (cons 'partition-all partition-all)
-   (cons 'split-at-pred split-at-pred)
-   (cons 'split-when split-when)
-   (cons 'dedupe dedupe)
-   (cons 'dedupe-by dedupe-by)
-   (cons 'run-length-encode run-length-encode)
-   (cons 'run-length-decode run-length-decode)
-   ; Zipper
-   (cons 'zipper-make zipper-make)
-   (cons 'zipper-left zipper-left)
-   (cons 'zipper-focus zipper-focus)
-   (cons 'zipper-right zipper-right)
-   (cons 'zipper-move-left zipper-move-left)
-   (cons 'zipper-move-right zipper-move-right)
-   (cons 'zipper-set zipper-set)
-   (cons 'zipper-modify zipper-modify)
-   (cons 'zipper-insert-left zipper-insert-left)
-   (cons 'zipper-insert-right zipper-insert-right)
-   (cons 'zipper-delete zipper-delete)
-   (cons 'zipper-to-list zipper-to-list)
-   (cons 'zipper-start zipper-start)
-   (cons 'zipper-end zipper-end)
-   (cons 'zipper-find zipper-find)
-   ; Validation
-   (cons 'validation-ok validation-ok)
-   (cons 'validation-err validation-err)
-   (cons 'validation-ok? validation-ok?)
-   (cons 'validation-err? validation-err?)
-   (cons 'validation-value validation-value)
-   (cons 'validation-map validation-map)
-   (cons 'validation-map-err validation-map-err)
-   (cons 'validation-bind validation-bind)
-   (cons 'validation-ap validation-ap)
-   (cons 'validate-all validate-all)
-   (cons 'validate-when validate-when)
-   (cons 'validate-not-null validate-not-null)
-   (cons 'validate-positive validate-positive)
-   (cons 'validate-in-range validate-in-range)
-   (cons 'validate-non-empty validate-non-empty)
-   ; Lenses
-   (cons 'make-lens make-lens)
-   (cons 'lens-get lens-get)
-   (cons 'lens-set lens-set)
-   (cons 'lens-over lens-over)
-   (cons 'lens-compose lens-compose)
-   (cons 'lens-head lens-head)
-   (cons 'lens-tail lens-tail)
-   (cons 'lens-nth lens-nth)
-   (cons 'lens-fst lens-fst)
-   (cons 'lens-snd lens-snd)
-   (cons 'lens-key lens-key)
-   ; Numeric utilities
-   (cons 'clamp clamp)
-   (cons 'lerp lerp)
-   (cons 'inverse-lerp inverse-lerp)
-   (cons 'remap remap)
-   (cons 'sign sign)
-   (cons 'step step)
-   (cons 'smoothstep smoothstep)
-   (cons 'wrap wrap)
-   (cons 'ping-pong ping-pong)
-   ; Statistics
-   (cons 'mean mean)
-   (cons 'variance variance)
-   (cons 'std-dev std-dev)
-   (cons 'median median)
-   (cons 'mode mode)
-   (cons 'range-stat range-stat)
-   (cons 'percentile percentile)
-   (cons 'quartiles quartiles)
-   (cons 'correlation correlation)
-   ; Rose trees
-   (cons 'rose-node rose-node)
-   (cons 'rose-leaf rose-leaf)
-   (cons 'rose-value rose-value)
-   (cons 'rose-children rose-children)
-   (cons 'rose-leaf? rose-leaf?)
-   (cons 'rose-map rose-map)
-   (cons 'rose-fold rose-fold)
-   (cons 'rose-flatten rose-flatten)
-   (cons 'rose-depth rose-depth)
-   (cons 'rose-size rose-size)
-   (cons 'rose-find rose-find)
-   (cons 'rose-filter rose-filter)
-   (cons 'rose-paths rose-paths)
-   (cons 'rose-from-nested rose-from-nested)
-   ; Heap (Priority Queue)
-   (cons 'heap-empty heap-empty)
-   (cons 'heap-empty? heap-empty?)
-   (cons 'heap-singleton heap-singleton)
-   (cons 'heap-value heap-value)
-   (cons 'heap-left heap-left)
-   (cons 'heap-right heap-right)
-   (cons 'heap-merge heap-merge)
-   (cons 'heap-insert heap-insert)
-   (cons 'heap-find-min heap-find-min)
-   (cons 'heap-delete-min heap-delete-min)
-   (cons 'heap-build heap-build)
-   (cons 'heap-sort heap-sort)
-   ; Ring Buffer
-   (cons 'ring-make ring-make)
-   (cons 'ring-capacity ring-capacity)
-   (cons 'ring-write-pos ring-write-pos)
-   (cons 'ring-read-pos ring-read-pos)
-   (cons 'ring-buffer ring-buffer)
-   (cons 'ring-empty? ring-empty?)
-   (cons 'ring-full? ring-full?)
-   (cons 'ring-size ring-size)
-   (cons 'ring-write ring-write)
-   (cons 'ring-read ring-read)
-   (cons 'ring-peek ring-peek)
-   (cons 'ring-to-list ring-to-list)
-   ; Arrow Combinators
-   (cons 'arr arr)
-   (cons 'arrow-compose arrow-compose)
-   (cons 'arrow-first arrow-first)
-   (cons 'arrow-second arrow-second)
-   (cons 'arrow-split arrow-split)
-   (cons 'arrow-fanout arrow-fanout)
-   (cons 'arrow-fanin arrow-fanin)
-   (cons 'arrow-loop arrow-loop)
-   ; Applicative
-   (cons 'pure-list pure-list)
-   (cons 'ap-list ap-list)
-   (cons 'lift-a2 lift-a2)
-   (cons 'lift-a3 lift-a3)
-   (cons 'sequence-a sequence-a)
-   (cons 'traverse-list traverse-list)
-   (cons 'zip-list-ap zip-list-ap)
-   ; Comonad
-   (cons 'comonad-extract comonad-extract)
-   (cons 'comonad-duplicate comonad-duplicate)
-   (cons 'comonad-extend comonad-extend)
-   ; Profunctor
-   (cons 'dimap dimap)
-   (cons 'lmap lmap)
-   (cons 'rmap rmap)
-   ; Recursion Schemes
-   (cons 'list-cata list-cata)
-   (cons 'list-ana list-ana)
-   (cons 'list-hylo list-hylo)
-   (cons 'tree-cata tree-cata)
-   ; Difference Lists
-   (cons 'dlist-empty dlist-empty)
-   (cons 'dlist-singleton dlist-singleton)
-   (cons 'dlist-append dlist-append)
-   (cons 'dlist-cons dlist-cons)
-   (cons 'dlist-snoc dlist-snoc)
-   (cons 'dlist-to-list dlist-to-list)
-   (cons 'list-to-dlist list-to-dlist)
-   (cons 'dlist-concat dlist-concat)
-   ; Finger Trees
-   (cons 'finger-empty finger-empty)
-   (cons 'finger-empty? finger-empty?)
-   (cons 'finger-single finger-single)
-   (cons 'finger-single? finger-single?)
-   (cons 'finger-deep finger-deep)
-   (cons 'finger-push-front finger-push-front)
-   (cons 'finger-push-back finger-push-back)
-   (cons 'finger-peek-front finger-peek-front)
-   (cons 'finger-peek-back finger-peek-back)
-   ; Additional String Utilities
-   (cons 'string-words string-words)
-   (cons 'string-lines string-lines)
-   (cons 'string-unwords string-unwords)
-   (cons 'string-unlines string-unlines)
-   (cons 'string-pad-left string-pad-left)
-   (cons 'string-pad-right string-pad-right)
-   (cons 'string-center string-center)
-   (cons 'string-repeat string-repeat)
-   (cons 'string-take-while string-take-while)
-   (cons 'string-drop-while string-drop-while)
-   ; Logic and Constraints
-   (cons 'all-different? all-different?)
-   (cons 'exactly-one? exactly-one?)
-   (cons 'at-most-one? at-most-one?)
-   (cons 'at-least-one? at-least-one?)
-   (cons 'count-equal count-equal)
-   (cons 'all-equal? all-equal?)
-   (cons 'implies implies)
-   (cons 'iff iff)
-   (cons 'xor xor)
-   ; Character Predicates
-   (cons 'char-digit? char-digit?)
-   (cons 'char-alpha? char-alpha?)
-   (cons 'char-alphanumeric? char-alphanumeric?)
-   (cons 'char-whitespace? char-whitespace?)
-   (cons 'char-lower? char-lower?)
-   (cons 'char-upper? char-upper?)
-   (cons 'char-downcase char-downcase)
-   (cons 'char-upcase char-upcase)
-   ; Graph Algorithms
-   (cons 'graph-empty graph-empty)
-   (cons 'graph-add-node graph-add-node)
-   (cons 'graph-add-edge graph-add-edge)
-   (cons 'graph-neighbors graph-neighbors)
-   (cons 'graph-nodes graph-nodes)
-   (cons 'graph-has-edge? graph-has-edge?)
-   (cons 'graph-from-edges graph-from-edges)
-   (cons 'bfs bfs)
-   (cons 'dfs dfs)
-   (cons 'graph-path-exists? graph-path-exists?)
-   ; State Monad
-   (cons 'state-return state-return)
-   (cons 'state-bind state-bind)
-   (cons 'state-get state-get)
-   (cons 'state-put state-put)
-   (cons 'state-modify state-modify)
-   (cons 'state-run state-run)
-   (cons 'state-eval state-eval)
-   (cons 'state-exec state-exec)
-   ; Reader Monad
-   (cons 'reader-return reader-return)
-   (cons 'reader-bind reader-bind)
-   (cons 'reader-ask reader-ask)
-   (cons 'reader-local reader-local)
-   (cons 'reader-run reader-run)
-   ; Writer Monad
-   (cons 'writer-return writer-return)
-   (cons 'writer-bind writer-bind)
-   (cons 'writer-tell writer-tell)
-   (cons 'writer-run writer-run)
-   (cons 'writer-value writer-value)
-   (cons 'writer-log writer-log)
-   ; Numeric Extensions
-   (cons 'divides? divides?)
-   (cons 'coprime? coprime?)
-   (cons 'perfect-square? perfect-square?)
-   (cons 'triangular triangular)
-   (cons 'pentagonal pentagonal)
-   (cons 'hexagonal hexagonal)
-   (cons 'binomial binomial)
-   (cons 'catalan catalan)
-   (cons 'stirling1 stirling1)
-   (cons 'stirling2 stirling2)
-   (cons 'digital-root digital-root)
-   (cons 'collatz collatz)
-   (cons 'collatz-length collatz-length)
-   ; Parser Combinators
-   (cons 'parse-return parse-return)
-   (cons 'parse-fail parse-fail)
-   (cons 'parse-item parse-item)
-   (cons 'parse-satisfy parse-satisfy)
-   (cons 'parse-bind parse-bind)
-   (cons 'parse-map parse-map)
-   (cons 'parse-or parse-or)
-   (cons 'parse-seq2 parse-seq2)
-   (cons 'parse-left parse-left)
-   (cons 'parse-right parse-right)
-   (cons 'parse-many parse-many)
-   (cons 'parse-many1 parse-many1)
-   (cons 'parse-optional parse-optional)
-   (cons 'parse-between parse-between)
-   (cons 'parse-sep-by parse-sep-by)
-   (cons 'parse-sep-by1 parse-sep-by1)
-   (cons 'parse-char parse-char)
-   (cons 'parse-not-char parse-not-char)
-   (cons 'parse-one-of parse-one-of)
-   (cons 'parse-none-of parse-none-of)
-   (cons 'parse-string parse-string)
-   (cons 'parse-digit parse-digit)
-   (cons 'parse-alpha parse-alpha)
-   (cons 'parse-alphanum parse-alphanum)
-   (cons 'parse-space parse-space)
-   (cons 'parse-spaces parse-spaces)
-   (cons 'parse-token parse-token)
-   (cons 'digits->number digits->number)
-   (cons 'parse-natural parse-natural)
-   (cons 'parse-integer parse-integer)
-   (cons 'parse-run parse-run)
-   (cons 'parse-result parse-result)
-   ; Control Flow
-   (cons 'when-fn when-fn)
-   (cons 'unless-fn unless-fn)
-   (cons 'if-let-fn if-let-fn)
-   (cons 'when-let-fn when-let-fn)
-   (cons 'cond-helper cond-helper)
-   (cons 'case-eq case-eq)
-   (cons 'do-times do-times)
-   (cons 'do-while do-while)
-   (cons 'repeat-until repeat-until)
-   (cons 'for-each-indexed for-each-indexed)
-   (cons 'loop-collect loop-collect)
-   (cons 'try-catch try-catch)
-   (cons 'default default)
-   (cons 'first-truthy first-truthy)
-   (cons 'short-and short-and)
-   (cons 'short-or short-or)
-   (cons 'guard guard)
-   (cons 'ensure ensure)
-   (cons 'chain-guards chain-guards)
-   ; Advanced List Utilities
-   (cons 'frequencies frequencies)
-   (cons 'dedupe dedupe)
-   (cons 'dedupe-by dedupe-by)
-   (cons 'interleave interleave)
-   (cons 'take-nth take-nth)
-   (cons 'drop-nth drop-nth)
-   (cons 'rotate-left rotate-left)
-   (cons 'rotate-right rotate-right)
-   (cons 'split-when split-when)
-   (cons 'split-with split-with)
-   (cons 'group-runs group-runs)
-   (cons 'map-runs map-runs)
-   (cons 'find-indices find-indices)
-   (cons 'replace-at replace-at)
-   (cons 'insert-at insert-at)
-   (cons 'remove-at remove-at)
-   (cons 'swap-at swap-at)
-   (cons 'prefix? prefix?)
-   (cons 'suffix? suffix?)
-   (cons 'sublist? sublist?)
-   (cons 'count-occurrences count-occurrences)
-   (cons 'windowed windowed)
-   ; String Algorithms
-   (cons 'edit-distance edit-distance)
-   (cons 'hamming-distance hamming-distance)
-   (cons 'longest-common-prefix longest-common-prefix)
-   (cons 'longest-common-suffix longest-common-suffix)
-   (cons 'string-similarity string-similarity)
-   (cons 'fuzzy-match? fuzzy-match?)
-   (cons 'string-normalize string-normalize)
-   (cons 'string-tokenize string-tokenize)
-   ; Testing Utilities
-   (cons 'assert-eq assert-eq)
-   (cons 'assert-true assert-true)
-   (cons 'assert-false assert-false)
-   (cons 'assert-throws assert-throws)
-   (cons 'run-tests run-tests)
-   (cons 'test-case test-case)
-   ; Sequence Generation
-   (cons 'arithmetic-seq arithmetic-seq)
-   (cons 'geometric-seq geometric-seq)
-   (cons 'fibonacci-seq fibonacci-seq)
-   (cons 'primes-up-to primes-up-to)
-   (cons 'powers-of powers-of)
-   (cons 'factorials-up-to factorials-up-to)
-   (cons 'triangular-numbers triangular-numbers)
-   (cons 'convergent-seq convergent-seq)
-   (cons 'cycle-detect cycle-detect)
-   (cons 'iterate-n iterate-n)
-   ; Encoding Utilities
-   (cons 'hex-chars hex-chars)
-   (cons 'nibble->hex nibble->hex)
-   (cons 'hex->nibble hex->nibble)
-   (cons 'byte->hex byte->hex)
-   (cons 'hex->byte hex->byte)
-   (cons 'bytes->hex bytes->hex)
-   (cons 'hex->bytes hex->bytes)
-   (cons 'string->bytes string->bytes)
-   (cons 'bytes->string bytes->string)
-   (cons 'string->hex string->hex)
-   (cons 'hex->string hex->string)
-   ; Memoization
-   (cons 'memo-table memo-table)
-   (cons 'memo-lookup memo-lookup)
-   (cons 'memo-insert memo-insert)
-   (cons 'with-memo with-memo)
-   ; Advanced Math
-   (cons 'newton-sqrt newton-sqrt)
-   (cons 'nth-root nth-root)
-   (cons 'mean mean)
-   (cons 'variance variance)
-   (cons 'std-dev std-dev)
-   (cons 'median median)
-   (cons 'mode mode)
-   (cons 'percentile percentile)
-   (cons 'correlation correlation)
-   (cons 'linear-regression linear-regression)
-   ; Combinatorics
-   (cons 'permutations permutations)
-   (cons 'combinations combinations)
-   (cons 'subsets subsets)
-   (cons 'cartesian-product cartesian-product)
-   (cons 'power-set power-set)
-   ; Functional Patterns
-   (cons 'bounce bounce)
-   (cons 'bounce? bounce?)
-   (cons 'trampoline trampoline)
-   (cons 'Y Y)
-   (cons 'compose-n compose-n)
-   (cons 'pipe-n pipe-n)
-   (cons 'constantly constantly)
-   (cons 'negate-pred negate-pred)
-   (cons 'juxtapose juxtapose)
-   (cons 'converge converge)
-   ; Path Manipulation
-   (cons 'path-separator path-separator)
-   (cons 'path-split path-split)
-   (cons 'path-join path-join)
-   (cons 'path-join-2 path-join-2)
-   (cons 'path-dirname path-dirname)
-   (cons 'path-basename path-basename)
-   (cons 'path-extension path-extension)
-   (cons 'path-stem path-stem)
-   (cons 'path-absolute? path-absolute?)
-   (cons 'path-relative? path-relative?)
-   (cons 'path-normalize path-normalize)
-   (cons 'path-parent path-parent)
-   (cons 'path-with-extension path-with-extension)
-   (cons 'path-add-suffix path-add-suffix)
-   (cons 'path-components path-components)
-   (cons 'path-depth path-depth)
-   (cons 'path-common-prefix path-common-prefix)
-   (cons 'path-hidden? path-hidden?)
-   ; Base64 Encoding
-   (cons 'b64-alphabet b64-alphabet)
-   (cons 'b64-char b64-char)
-   (cons 'b64-index b64-index)
-   (cons 'b64-encode-triple b64-encode-triple)
-   (cons 'b64-encode-bytes b64-encode-bytes)
-   (cons 'b64-decode-quad b64-decode-quad)
-   (cons 'b64-decode-bytes b64-decode-bytes)
-   (cons 'b64-encode b64-encode)
-   (cons 'b64-decode b64-decode)
-   ; Glob Pattern Matching
-   (cons 'glob-match? glob-match?)
-   (cons 'glob-filter glob-filter)
-   ; Hash and Checksum
-   (cons 'djb2-hash djb2-hash)
-   (cons 'fnv1a-hash fnv1a-hash)
-   (cons 'simple-checksum simple-checksum)
-   (cons 'xor-checksum xor-checksum)
-   (cons 'fletcher16 fletcher16)
-   (cons 'adler32 adler32)
-   (cons 'hash-combine hash-combine)
-   (cons 'hash-list hash-list)
-   (cons 'string-hash string-hash)
-   ))

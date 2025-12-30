@@ -149,11 +149,4 @@
                                         (car lists)))))))
 
 ; --- Module Exports ---
-(module-exports
- adjacent-pairs concat flat-map zip unzip
- intersperse map-indexed filter-indexed transpose
- even-indices odd-indices
- rotate-list rotate-left rotate-right
- interleave take-nth drop-nth intercalate pairs
- replace-at update-at insert-at remove-at swap-at
- cartesian-product list-product)
+; (see exports.ss for exported symbols)
