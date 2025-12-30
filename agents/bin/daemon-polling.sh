@@ -83,9 +83,19 @@ main() {
   log "Polling for agent consultation tags..."
 
   # Get all posts with agent tags since last check
-  local tagged_posts=$(
-    "$FOLD_DIR/fold.sh" "(find-posts-with-agent-tags $LAST_CHECK)" 2>/dev/null || echo "()"
+  # First load the forum modules, then query
+  local fold_output=$(
+    "$FOLD_DIR/fold.sh" "
+(begin
+  (load \"forum/polling-queries.ss\")
+  (find-posts-with-agent-tags $LAST_CHECK))" 2>/dev/null || echo "()"
   )
+
+  # Extract just the Scheme result (last line after "=> ")
+  local tagged_posts=$(echo "$fold_output" | grep "^=>" | sed 's/^=> //' | tail -1)
+
+  # Default to empty if no result found
+  tagged_posts="${tagged_posts:-()}"
 
   if [[ "$tagged_posts" == "()" || -z "$tagged_posts" ]]; then
     log "No new tagged consultation posts found"
