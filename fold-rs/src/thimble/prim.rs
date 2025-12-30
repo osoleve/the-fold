@@ -3044,6 +3044,143 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(list_from_values(&result))
         }
+        // Logical and conditional utilities
+        "when" => {
+            // When condition is true, return value, else return nil
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "when expects 2 args: (when cond val)",
+                ));
+            }
+            let cond = &args[0];
+            let val = &args[1];
+            match cond {
+                Value::Bool(false) | Value::Nil => Ok(Value::Nil),
+                _ => Ok(val.clone()),
+            }
+        }
+        "unless" => {
+            // Unless condition is true, return value, else return nil (opposite of when)
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "unless expects 2 args: (unless cond val)",
+                ));
+            }
+            let cond = &args[0];
+            let val = &args[1];
+            match cond {
+                Value::Bool(false) | Value::Nil => Ok(val.clone()),
+                _ => Ok(Value::Nil),
+            }
+        }
+        "implies" => {
+            // Logical implication: (implies p q) => (or (not p) q)
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "implies expects 2 args: (implies p q)",
+                ));
+            }
+            let p = !matches!(&args[0], Value::Bool(false) | Value::Nil);
+            let q = !matches!(&args[1], Value::Bool(false) | Value::Nil);
+            Ok(Value::Bool(!p || q))
+        }
+        "iff" => {
+            // Logical if-and-only-if: (iff p q) => (= p q)
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("iff expects 2 args: (iff p q)"));
+            }
+            let p = !matches!(&args[0], Value::Bool(false) | Value::Nil);
+            let q = !matches!(&args[1], Value::Bool(false) | Value::Nil);
+            Ok(Value::Bool(p == q))
+        }
+        "nand" => {
+            // Logical nand: (nand p q) => (not (and p q))
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("nand expects 2 args: (nand p q)"));
+            }
+            let p = !matches!(&args[0], Value::Bool(false) | Value::Nil);
+            let q = !matches!(&args[1], Value::Bool(false) | Value::Nil);
+            Ok(Value::Bool(!(p && q)))
+        }
+        "nor" => {
+            // Logical nor: (nor p q) => (not (or p q))
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("nor expects 2 args: (nor p q)"));
+            }
+            let p = !matches!(&args[0], Value::Bool(false) | Value::Nil);
+            let q = !matches!(&args[1], Value::Bool(false) | Value::Nil);
+            Ok(Value::Bool(!(p || q)))
+        }
+        "if" => {
+            // If-then-else: (if cond then-val else-val)
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "if expects 3 args: (if cond then else)",
+                ));
+            }
+            let cond = &args[0];
+            let then_val = &args[1];
+            let else_val = &args[2];
+            match cond {
+                Value::Bool(false) | Value::Nil => Ok(else_val.clone()),
+                _ => Ok(then_val.clone()),
+            }
+        }
+        "cond-value" => {
+            // Return first truthy value: (cond-value val1 val2 ...) => first non-#f, non-nil
+            let mut result = Value::Nil;
+            for v in args.iter() {
+                match v {
+                    Value::Bool(false) | Value::Nil => continue,
+                    _ => {
+                        result = v.clone();
+                        break;
+                    }
+                }
+            }
+            Ok(result)
+        }
+        "coalesce" => {
+            // Return first non-nil value
+            for v in args.iter() {
+                if !matches!(v, Value::Nil) {
+                    return Ok(v.clone());
+                }
+            }
+            Ok(Value::Nil)
+        }
+        "default-value" => {
+            // Use second arg as default if first is nil/false
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "default-value expects 2 args: (default-value val default)",
+                ));
+            }
+            match &args[0] {
+                Value::Bool(false) | Value::Nil => Ok(args[1].clone()),
+                v => Ok(v.clone()),
+            }
+        }
+        "both?" => {
+            // Check if both conditions are truthy
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("both? expects 2 args: (both? p q)"));
+            }
+            let p = !matches!(&args[0], Value::Bool(false) | Value::Nil);
+            let q = !matches!(&args[1], Value::Bool(false) | Value::Nil);
+            Ok(Value::Bool(p && q))
+        }
+        "either?" => {
+            // Check if either condition is truthy
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "either? expects 2 args: (either? p q)",
+                ));
+            }
+            let p = !matches!(&args[0], Value::Bool(false) | Value::Nil);
+            let q = !matches!(&args[1], Value::Bool(false) | Value::Nil);
+            Ok(Value::Bool(p || q))
+        }
         "filter" => {
             if args.len() != 2 {
                 return Err(EvalError::TypeMismatch(

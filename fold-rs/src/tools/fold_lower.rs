@@ -146,6 +146,9 @@ fn is_builtin_prim(name: &str) -> bool {
             | "and" | "or" | "not"
             // Logical operations
             | "xor" | "gensym"
+            // Conditional and logical utilities
+            | "when" | "unless" | "implies" | "iff" | "nand" | "nor" | "if"
+            | "cond-value" | "coalesce" | "default-value" | "both?" | "either?"
             // Utilities
             | "identity" | "error" | "deep-equal?" | "list-every?"
             | "assq" | "assoc"
