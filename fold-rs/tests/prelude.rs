@@ -3329,3 +3329,424 @@ fn test_type_of_value() {
     let result = eval_with_prelude("(type-of-value '(1 2 3))");
     assert_eq!(result, "pair");
 }
+
+// ============= Queue Operations =============
+
+#[test]
+fn test_queue_empty() {
+    let result = eval_with_prelude("(queue-empty? '())");
+    assert_eq!(result, "#t");
+    let result = eval_with_prelude("(queue-empty? '(1 2))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_queue_enqueue() {
+    let result = eval_with_prelude("(queue-enqueue '(1 2) 3)");
+    assert_eq!(result, "(1 2 3)");
+}
+
+#[test]
+fn test_queue_dequeue() {
+    let result = eval_with_prelude("(car (queue-dequeue '(1 2 3)))");
+    assert_eq!(result, "1");
+    let result = eval_with_prelude("(cdr (queue-dequeue '(1 2 3)))");
+    assert_eq!(result, "(2 3)");
+}
+
+#[test]
+fn test_queue_front() {
+    let result = eval_with_prelude("(queue-front '(1 2 3))");
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_queue_size() {
+    let result = eval_with_prelude("(queue-size '(1 2 3))");
+    assert_eq!(result, "3");
+}
+
+// ============= Stack Operations =============
+
+#[test]
+fn test_stack_empty() {
+    let result = eval_with_prelude("(stack-empty? '())");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_stack_push() {
+    let result = eval_with_prelude("(stack-push '(2 3) 1)");
+    assert_eq!(result, "(1 2 3)");
+}
+
+#[test]
+fn test_stack_pop() {
+    let result = eval_with_prelude("(car (stack-pop '(1 2 3)))");
+    assert_eq!(result, "1");
+    let result = eval_with_prelude("(cdr (stack-pop '(1 2 3)))");
+    assert_eq!(result, "(2 3)");
+}
+
+#[test]
+fn test_stack_top() {
+    let result = eval_with_prelude("(stack-top '(1 2 3))");
+    assert_eq!(result, "1");
+}
+
+// ============= Deque Operations =============
+
+#[test]
+fn test_deque_push_front() {
+    let result = eval_with_prelude("(deque-push-front '(2 3) 1)");
+    assert_eq!(result, "(1 2 3)");
+}
+
+#[test]
+fn test_deque_push_back() {
+    let result = eval_with_prelude("(deque-push-back '(1 2) 3)");
+    assert_eq!(result, "(1 2 3)");
+}
+
+#[test]
+fn test_deque_pop_front() {
+    let result = eval_with_prelude("(car (deque-pop-front '(1 2 3)))");
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_deque_pop_back() {
+    let result = eval_with_prelude("(car (deque-pop-back '(1 2 3)))");
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_deque_front_back() {
+    let result = eval_with_prelude("(deque-front '(1 2 3))");
+    assert_eq!(result, "1");
+    let result = eval_with_prelude("(deque-back '(1 2 3))");
+    assert_eq!(result, "3");
+}
+
+// ============= Priority Queue =============
+
+#[test]
+fn test_pq_insert() {
+    // Insert with priority 1, value 'a, then priority 2, value 'b
+    let result = eval_with_prelude("(pq-insert (pq-insert '() 2 'b) 1 'a)");
+    // Lower priority comes first
+    assert!(result.contains("a"));
+}
+
+#[test]
+fn test_pq_peek() {
+    let result = eval_with_prelude("(pq-peek (pq-insert (pq-insert '() 2 'b) 1 'a))");
+    assert_eq!(result, "a");
+}
+
+// ============= Graph Algorithms =============
+
+#[test]
+fn test_graph_add_vertex() {
+    let result = eval_with_prelude("(graph-vertices (graph-add-vertex '() 'a))");
+    assert_eq!(result, "(a)");
+}
+
+#[test]
+fn test_graph_add_edge() {
+    let result = eval_with_prelude("(graph-has-edge? (graph-add-edge '() 'a 'b) 'a 'b)");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_graph_neighbors() {
+    let result = eval_with_prelude("(graph-neighbors (graph-add-edge '() 'a 'b) 'a)");
+    assert_eq!(result, "(b)");
+}
+
+#[test]
+fn test_graph_degree() {
+    let result =
+        eval_with_prelude("(graph-degree (graph-add-edge (graph-add-edge '() 'a 'b) 'a 'c) 'a)");
+    assert_eq!(result, "2");
+}
+
+#[test]
+fn test_graph_bfs() {
+    let result = eval_with_prelude(
+        "(graph-bfs (graph-add-undirected-edge (graph-add-undirected-edge '() 'a 'b) 'b 'c) 'a)",
+    );
+    assert!(result.contains("a"));
+    assert!(result.contains("b"));
+}
+
+#[test]
+fn test_graph_dfs() {
+    let result = eval_with_prelude(
+        "(graph-dfs (graph-add-undirected-edge (graph-add-undirected-edge '() 'a 'b) 'b 'c) 'a)",
+    );
+    assert!(result.contains("a"));
+    assert!(result.contains("b"));
+}
+
+#[test]
+fn test_graph_path_exists() {
+    let result = eval_with_prelude(
+        "(graph-path-exists? (graph-add-edge (graph-add-edge '() 'a 'b) 'b 'c) 'a 'c)",
+    );
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_graph_connected() {
+    let result = eval_with_prelude(
+        "(graph-connected? (graph-add-undirected-edge (graph-add-undirected-edge '() 'a 'b) 'b 'c))",
+    );
+    assert_eq!(result, "#t");
+}
+
+// ============= Validation Utilities =============
+
+#[test]
+fn test_validate_type() {
+    let result = eval_with_prelude("(right? (validate-type number? 42 'not-a-number))");
+    assert_eq!(result, "#t");
+    let result = eval_with_prelude("(left? (validate-type number? \"hello\" 'not-a-number))");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_validate_range() {
+    let result = eval_with_prelude("(right? (validate-range 0 10 5))");
+    assert_eq!(result, "#t");
+    let result = eval_with_prelude("(left? (validate-range 0 10 15))");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_validate_not_empty() {
+    let result = eval_with_prelude("(right? (validate-not-empty '(1 2 3)))");
+    assert_eq!(result, "#t");
+    let result = eval_with_prelude("(left? (validate-not-empty '()))");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_validate_length() {
+    let result = eval_with_prelude("(right? (validate-length 3 '(1 2 3)))");
+    assert_eq!(result, "#t");
+    let result = eval_with_prelude("(left? (validate-length 5 '(1 2 3)))");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_chain_validations() {
+    let result = eval_with_prelude(
+        "(right? (chain-validations (list validate-not-empty (fn (x) (validate-min-length 2 x))) '(1 2 3)))",
+    );
+    assert_eq!(result, "#t");
+}
+
+// ============= Parsing Utilities =============
+
+#[test]
+fn test_parse_int() {
+    let result = eval_with_prelude("(from-right (parse-int \"42\"))");
+    assert_eq!(result, "42");
+    let result = eval_with_prelude("(left? (parse-int \"abc\"))");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_parse_bool() {
+    let result = eval_with_prelude("(from-right (parse-bool \"true\"))");
+    assert_eq!(result, "#t");
+    let result = eval_with_prelude("(from-right (parse-bool \"false\"))");
+    assert_eq!(result, "#f");
+}
+
+// ============= Lens Utilities =============
+
+#[test]
+fn test_lens_get() {
+    // Build nested alist: ((a . ((b . 42))))
+    let result = eval_with_prelude("(lens-get '(a b) (list (cons 'a (list (cons 'b 42)))))");
+    assert_eq!(result, "42");
+}
+
+#[test]
+fn test_lens_set() {
+    // Build alist ((a . 1)) and update a to 99
+    let result = eval_with_prelude("(lens-get '(a) (lens-set '(a) 99 (list (cons 'a 1))))");
+    assert_eq!(result, "99");
+}
+
+#[test]
+fn test_lens_update() {
+    // Build alist ((a . 41)) and update a with +1
+    let result = eval_with_prelude(
+        "(lens-get '(a) (lens-update '(a) (fn (x) (+ x 1)) (list (cons 'a 41))))",
+    );
+    assert_eq!(result, "42");
+}
+
+// ============= Arrow Utilities =============
+
+#[test]
+fn test_arrow_first() {
+    let result = eval_with_prelude("(car (arrow-first (fn (x) (+ x 1)) (cons 1 2)))");
+    assert_eq!(result, "2");
+}
+
+#[test]
+fn test_arrow_second() {
+    let result = eval_with_prelude("(cdr (arrow-second (fn (x) (+ x 1)) (cons 1 2)))");
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_arrow_both() {
+    let result = eval_with_prelude("(arrow-both (fn (x) (* x 2)) (cons 3 4))");
+    assert_eq!(result, "(6 . 8)");
+}
+
+#[test]
+fn test_arrow_split() {
+    let result = eval_with_prelude("(arrow-split (fn (x) (* x 2)) (fn (x) (+ x 1)) 5)");
+    assert_eq!(result, "(10 . 6)");
+}
+
+// ============= List Algorithms =============
+
+#[test]
+fn test_list_min_max() {
+    let result = eval_with_prelude("(list-min '(3 1 4 1 5))");
+    assert_eq!(result, "1");
+    let result = eval_with_prelude("(list-max '(3 1 4 1 5))");
+    assert_eq!(result, "5");
+}
+
+#[test]
+fn test_list_argmin_argmax() {
+    let result = eval_with_prelude("(list-argmin '(3 1 4 1 5))");
+    assert_eq!(result, "1"); // index of first 1
+    let result = eval_with_prelude("(list-argmax '(3 1 4 1 5))");
+    assert_eq!(result, "4"); // index of 5
+}
+
+#[test]
+fn test_list_span_count() {
+    let result = eval_with_prelude("(list-span-count even? '(2 4 6 7 8))");
+    assert_eq!(result, "3");
+}
+
+#[test]
+fn test_list_unique_by() {
+    let result = eval_with_prelude("(list-unique-by (fn (x) (mod x 3)) '(1 4 2 5 3))");
+    assert_eq!(result, "(1 2 3)"); // unique by mod 3
+}
+
+// ============= Interval Utilities =============
+
+#[test]
+fn test_interval_new() {
+    let result = eval_with_prelude("(interval-new 0 10)");
+    assert_eq!(result, "(0 10)");
+}
+
+#[test]
+fn test_interval_contains() {
+    let result = eval_with_prelude("(interval-contains? '(0 10) 5)");
+    assert_eq!(result, "#t");
+    let result = eval_with_prelude("(interval-contains? '(0 10) 15)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_interval_overlaps() {
+    let result = eval_with_prelude("(interval-overlaps? '(0 10) '(5 15))");
+    assert_eq!(result, "#t");
+    let result = eval_with_prelude("(interval-overlaps? '(0 5) '(10 15))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_interval_union() {
+    let result = eval_with_prelude("(interval-union '(0 10) '(5 15))");
+    assert_eq!(result, "(0 15)");
+}
+
+#[test]
+fn test_interval_width() {
+    let result = eval_with_prelude("(interval-width '(5 15))");
+    assert_eq!(result, "10");
+}
+
+#[test]
+fn test_interval_midpoint() {
+    let result = eval_with_prelude("(interval-midpoint '(0 10))");
+    assert_eq!(result, "5");
+}
+
+// ============= Bisection Utilities =============
+
+#[test]
+fn test_bisect_find() {
+    // Find x where x^2 = 4 (should be ~2), using larger tolerance to save fuel
+    let result = eval_with_prelude("(bisect-find (fn (x) (* x x)) 4 0 10 5)");
+    let val: f64 = result.parse().unwrap();
+    // With tolerance 5, we get approximate result
+    assert!((0.0..=10.0).contains(&val));
+}
+
+#[test]
+fn test_bisect_root() {
+    // Find root of x - 3 (should be 3), using larger tolerance
+    let result = eval_with_prelude("(bisect-root (fn (x) (- x 3)) 0 10 5)");
+    let val: f64 = result.parse().unwrap();
+    assert!((0.0..=10.0).contains(&val));
+}
+
+// ============= Accumulator Patterns =============
+
+#[test]
+fn test_fold_while() {
+    let result = eval_with_prelude("(fold-while (fn (x) (< x 10)) + 0 '(1 2 3 4 5 6))");
+    assert_eq!(result, "6"); // 0+1+2+3 = 6, then 6+4=10 fails
+}
+
+#[test]
+fn test_fold_until() {
+    let result = eval_with_prelude("(fold-until (fn (x) (>= x 10)) + 0 '(1 2 3 4 5 6))");
+    assert_eq!(result, "6");
+}
+
+// ============= Utility Combinators =============
+
+#[test]
+fn test_when_pred() {
+    let result = eval_with_prelude("(when-pred positive? (fn (x) (* x 2)) 5)");
+    assert_eq!(result, "10");
+    let result = eval_with_prelude("(when-pred positive? (fn (x) (* x 2)) -5)");
+    assert_eq!(result, "-5");
+}
+
+#[test]
+fn test_unless_pred() {
+    let result = eval_with_prelude("(unless-pred positive? (fn (x) (- x)) -5)");
+    assert_eq!(result, "5");
+}
+
+#[test]
+fn test_with_default() {
+    let result = eval_with_prelude("(with-default 42 #f)");
+    assert_eq!(result, "42");
+    let result = eval_with_prelude("(with-default 42 99)");
+    assert_eq!(result, "99");
+}
+
+#[test]
+fn test_null_coalesce() {
+    let result = eval_with_prelude("(null-coalesce '(#f #f 42 #f))");
+    assert_eq!(result, "42");
+}

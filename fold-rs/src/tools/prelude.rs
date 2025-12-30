@@ -3341,6 +3341,545 @@ pub const PRELUDE_SOURCE: &str = r#"
                                  (if (vector? x) 'vector
                                      (if (procedure? x) 'procedure
                                          'unknown)))))))))))
+
+   ; ============================================
+   ; Queue Operations (FIFO, list-based)
+   ; ============================================
+
+   ; queue-new: Create empty queue
+   (queue-new (fn () '()))
+
+   ; queue-empty?: Check if queue is empty
+   (queue-empty? null?)
+
+   ; queue-enqueue: Add element to back of queue
+   (queue-enqueue (fn (q x) (append q (list x))))
+
+   ; queue-dequeue: Remove and return front element (returns (element . rest))
+   (queue-dequeue (fn (q)
+     (if (null? q)
+         (cons #f '())
+         (cons (car q) (cdr q)))))
+
+   ; queue-front: Peek at front element
+   (queue-front (fn (q) (if (null? q) #f (car q))))
+
+   ; queue-size: Get queue size
+   (queue-size length)
+
+   ; queue-to-list: Convert queue to list
+   (queue-to-list id)
+
+   ; ============================================
+   ; Stack Operations (LIFO, list-based)
+   ; ============================================
+
+   ; stack-new: Create empty stack
+   (stack-new (fn () '()))
+
+   ; stack-empty?: Check if stack is empty
+   (stack-empty? null?)
+
+   ; stack-push: Push element onto stack (stack first, then element)
+   (stack-push (fn (s x) (cons x s)))
+
+   ; stack-pop: Pop element from stack (returns (element . rest))
+   (stack-pop (fn (s)
+     (if (null? s)
+         (cons #f '())
+         (cons (car s) (cdr s)))))
+
+   ; stack-top: Peek at top element
+   (stack-top (fn (s) (if (null? s) #f (car s))))
+
+   ; stack-size: Get stack size
+   (stack-size length)
+
+   ; ============================================
+   ; Deque Operations (double-ended queue)
+   ; ============================================
+
+   ; deque-new: Create empty deque
+   (deque-new (fn () '()))
+
+   ; deque-empty?: Check if deque is empty
+   (deque-empty? null?)
+
+   ; deque-push-front: Add to front (deque first, then element)
+   (deque-push-front (fn (d x) (cons x d)))
+
+   ; deque-push-back: Add to back
+   (deque-push-back (fn (d x) (append d (list x))))
+
+   ; deque-pop-front: Remove from front
+   (deque-pop-front (fn (d)
+     (if (null? d)
+         (cons #f '())
+         (cons (car d) (cdr d)))))
+
+   ; deque-pop-back: Remove from back
+   (deque-pop-back (fn (d)
+     (if (null? d)
+         (cons #f '())
+         (cons (last d) (init d)))))
+
+   ; deque-front: Peek at front
+   (deque-front (fn (d) (if (null? d) #f (car d))))
+
+   ; deque-back: Peek at back
+   (deque-back (fn (d) (if (null? d) #f (last d))))
+
+   ; ============================================
+   ; Priority Queue (using sorted list)
+   ; ============================================
+
+   ; pq-new: Create empty priority queue
+   (pq-new (fn () '()))
+
+   ; pq-empty?: Check if priority queue is empty
+   (pq-empty? null?)
+
+   ; pq-insert: Insert with priority (lower = higher priority)
+   (pq-insert (fn (pq priority value)
+     (insert-sorted-by car (list priority value) pq)))
+
+   ; pq-peek: Get highest priority element
+   (pq-peek (fn (pq)
+     (if (null? pq) #f (cadar pq))))
+
+   ; pq-pop: Remove and return highest priority element
+   (pq-pop (fn (pq)
+     (if (null? pq)
+         (cons #f '())
+         (cons (cadar pq) (cdr pq)))))
+
+   ; ============================================
+   ; Graph Algorithms (adjacency list)
+   ; ============================================
+
+   ; graph-new: Create empty graph (as adjacency list dict)
+   (graph-new (fn () '()))
+
+   ; graph-add-vertex: Add a vertex
+   (graph-add-vertex (fn (g v)
+     (if (dict-has? g v) g (dict-set g v '()))))
+
+   ; graph-add-edge: Add directed edge from u to v
+   (graph-add-edge (fn (g u v)
+     (let ((g1 (graph-add-vertex g u)))
+       (let ((g2 (graph-add-vertex g1 v)))
+         (let ((neighbors (dict-get g2 u '())))
+           (if (member? v neighbors)
+               g2
+               (dict-set g2 u (cons v neighbors))))))))
+
+   ; graph-add-undirected-edge: Add undirected edge
+   (graph-add-undirected-edge (fn (g u v)
+     (graph-add-edge (graph-add-edge g u v) v u)))
+
+   ; graph-neighbors: Get neighbors of vertex
+   (graph-neighbors (fn (g v)
+     (dict-get g v '())))
+
+   ; graph-vertices: Get all vertices
+   (graph-vertices dict-keys)
+
+   ; graph-has-edge?: Check if edge exists
+   (graph-has-edge? (fn (g u v)
+     (member? v (graph-neighbors g u))))
+
+   ; graph-degree: Get degree of vertex
+   (graph-degree (fn (g v)
+     (length (graph-neighbors g v))))
+
+   ; graph-bfs: Breadth-first search from start (returns list of visited vertices)
+   (graph-bfs (fix graph-bfs
+     (fn (g start)
+       (let ((bfs-helper (fix bfs-helper
+               (fn (queue visited)
+                 (if (null? queue)
+                     (reverse visited)
+                     (let ((current (car queue))
+                           (rest-queue (cdr queue)))
+                       (if (member? current visited)
+                           (bfs-helper rest-queue visited)
+                           (let ((neighbors (filter (fn (n) (not (member? n visited)))
+                                                    (graph-neighbors g current))))
+                             (bfs-helper (append rest-queue neighbors)
+                                        (cons current visited))))))))))
+         (bfs-helper (list start) '())))))
+
+   ; graph-dfs: Depth-first search from start
+   (graph-dfs (fix graph-dfs
+     (fn (g start)
+       (let ((dfs-helper (fix dfs-helper
+               (fn (stack visited)
+                 (if (null? stack)
+                     (reverse visited)
+                     (let ((current (car stack))
+                           (rest-stack (cdr stack)))
+                       (if (member? current visited)
+                           (dfs-helper rest-stack visited)
+                           (let ((neighbors (filter (fn (n) (not (member? n visited)))
+                                                    (graph-neighbors g current))))
+                             (dfs-helper (append neighbors rest-stack)
+                                        (cons current visited))))))))))
+         (dfs-helper (list start) '())))))
+
+   ; graph-path-exists?: Check if path exists from u to v
+   (graph-path-exists? (fn (g u v)
+     (member? v (graph-bfs g u))))
+
+   ; graph-connected?: Check if graph is connected (for undirected graphs)
+   (graph-connected? (fn (g)
+     (let ((vertices (graph-vertices g)))
+       (if (null? vertices)
+           #t
+           (= (length (graph-bfs g (car vertices)))
+              (length vertices))))))
+
+   ; ============================================
+   ; Validation Utilities
+   ; ============================================
+
+   ; validate-type: Validate value has expected type
+   (validate-type (fn (type-pred value msg)
+     (if (type-pred value)
+         (right value)
+         (left msg))))
+
+   ; validate-range: Validate number is in range
+   (validate-range (fn (lo hi value)
+     (if (and (>= value lo) (<= value hi))
+         (right value)
+         (left (list 'out-of-range lo hi value)))))
+
+   ; validate-not-empty: Validate list/string is not empty
+   (validate-not-empty (fn (value)
+     (if (if (string? value)
+             (not (string-empty? value))
+             (not (null? value)))
+         (right value)
+         (left 'empty-value))))
+
+   ; validate-all-pred: Validate all elements satisfy predicate
+   (validate-all-pred (fn (p lst msg)
+     (if (all p lst)
+         (right lst)
+         (left msg))))
+
+   ; validate-length: Validate list has expected length
+   (validate-length (fn (n lst)
+     (if (= (length lst) n)
+         (right lst)
+         (left (list 'wrong-length n (length lst))))))
+
+   ; validate-min-length: Validate minimum length
+   (validate-min-length (fn (n lst)
+     (if (>= (length lst) n)
+         (right lst)
+         (left (list 'too-short n (length lst))))))
+
+   ; validate-max-length: Validate maximum length
+   (validate-max-length (fn (n lst)
+     (if (<= (length lst) n)
+         (right lst)
+         (left (list 'too-long n (length lst))))))
+
+   ; chain-validations: Chain multiple validations
+   (chain-validations (fn (validators value)
+     (foldl (fn (result validator)
+              (if (left? result)
+                  result
+                  (validator (from-right result))))
+            (right value)
+            validators)))
+
+   ; ============================================
+   ; Parsing Utilities
+   ; ============================================
+
+   ; parse-int: Parse string to integer (returns Either)
+   (parse-int (fn (s)
+     (let ((n (string->number s)))
+       (if n (right n) (left 'not-a-number)))))
+
+   ; parse-bool: Parse string to boolean
+   (parse-bool (fn (s)
+     (if (or (string=? s "true") (or (string=? s "yes") (string=? s "1")))
+         (right #t)
+         (if (or (string=? s "false") (or (string=? s "no") (string=? s "0")))
+             (right #f)
+             (left 'not-a-boolean)))))
+
+   ; split-parse: Split string and parse each part
+   (split-parse (fn (sep parser s)
+     (let ((parts (string-split s sep)))
+       (let ((results (map parser parts)))
+         (if (any left? results)
+             (left 'parse-error)
+             (right (map from-right results)))))))
+
+   ; ============================================
+   ; More Functional Patterns
+   ; ============================================
+
+   ; lens-get: Get value at path in nested structure
+   (lens-get (fn (path data)
+     (foldl (fn (acc key)
+              (if (pair? acc)
+                  (let ((entry (assoc key acc)))
+                    (if entry (cdr entry) #f))
+                  #f))
+            data
+            path)))
+
+   ; lens-set: Set value at path in nested structure
+   (lens-set (fix lens-set
+     (fn (path value data)
+       (if (null? path)
+           value
+           (if (null? (cdr path))
+               (assoc-set (car path) value data)
+               (let ((key (car path))
+                     (rest (cdr path)))
+                 (let ((nested (assoc-ref data key '())))
+                   (assoc-set key (lens-set rest value nested) data))))))))
+
+   ; lens-update: Update value at path with function
+   (lens-update (fn (path f data)
+     (let ((current (lens-get path data)))
+       (lens-set path (f current) data))))
+
+   ; arrow-first: Apply function to first element of pair
+   (arrow-first (fn (f pair)
+     (cons (f (car pair)) (cdr pair))))
+
+   ; arrow-second: Apply function to second element of pair
+   (arrow-second (fn (f pair)
+     (cons (car pair) (f (cdr pair)))))
+
+   ; arrow-both: Apply function to both elements
+   (arrow-both (fn (f pair)
+     (cons (f (car pair)) (f (cdr pair)))))
+
+   ; arrow-split: Apply two functions and pair results
+   (arrow-split (fn (f g x)
+     (cons (f x) (g x))))
+
+   ; arrow-fanin: Merge two computations
+   (arrow-fanin (fn (f g pair)
+     (f (car pair) (g (cdr pair)))))
+
+   ; kleisli-compose: Compose monadic functions (for Maybe/Either)
+   (kleisli-compose (fn (f g)
+     (fn (x)
+       (let ((result (f x)))
+         (if (or (nothing? result) (left? result))
+             result
+             (g (if (right? result) (from-right result) (from-just result))))))))
+
+   ; ============================================
+   ; More List Algorithms
+   ; ============================================
+
+   ; list-min: Minimum element (requires numeric list)
+   (list-min (fn (lst)
+     (if (null? lst) #f
+         (foldl (fn (acc x) (if (< x acc) x acc)) (car lst) (cdr lst)))))
+
+   ; list-max: Maximum element
+   (list-max (fn (lst)
+     (if (null? lst) #f
+         (foldl (fn (acc x) (if (> x acc) x acc)) (car lst) (cdr lst)))))
+
+   ; list-argmin: Index of minimum element
+   (list-argmin (fn (lst)
+     (if (null? lst) #f
+         (car (foldl (fn (acc pair)
+                       (if (< (cadr pair) (cadr acc))
+                           pair
+                           acc))
+                     (list 0 (car lst))
+                     (zip (iota (length lst) 0) lst))))))
+
+   ; list-argmax: Index of maximum element
+   (list-argmax (fn (lst)
+     (if (null? lst) #f
+         (car (foldl (fn (acc pair)
+                       (if (> (cadr pair) (cadr acc))
+                           pair
+                           acc))
+                     (list 0 (car lst))
+                     (zip (iota (length lst) 0) lst))))))
+
+   ; list-span-count: Count elements from start satisfying predicate
+   (list-span-count (fix list-span-count
+     (fn (p lst)
+       (if (null? lst) 0
+           (if (p (car lst))
+               (+ 1 (list-span-count p (cdr lst)))
+               0)))))
+
+   ; list-break-count: Count elements from start NOT satisfying predicate
+   (list-break-count (fn (p lst)
+     (list-span-count (complement p) lst)))
+
+   ; list-split-at-first: Split at first element satisfying predicate
+   (list-split-at-first (fix list-split-at-first
+     (fn (p lst)
+       (if (null? lst)
+           (list '() '())
+           (if (p (car lst))
+               (list '() lst)
+               (let ((rest (list-split-at-first p (cdr lst))))
+                 (list (cons (car lst) (car rest)) (cadr rest))))))))
+
+   ; list-unique-by: Remove duplicates by key function
+   (list-unique-by (fn (key-fn lst)
+     (let ((helper (fix helper
+             (fn (lst seen)
+               (if (null? lst)
+                   '()
+                   (let ((k (key-fn (car lst))))
+                     (if (member? k seen)
+                         (helper (cdr lst) seen)
+                         (cons (car lst) (helper (cdr lst) (cons k seen))))))))))
+       (helper lst '()))))
+
+   ; list-group-runs: Group consecutive runs based on predicate
+   (list-group-runs (fix list-group-runs
+     (fn (same? lst)
+       (if (null? lst)
+           '()
+           (let ((split-result (span (fn (x) (same? (car lst) x)) lst)))
+             (cons (car split-result)
+                   (list-group-runs same? (cadr split-result))))))))
+
+   ; ============================================
+   ; Interval Utilities
+   ; ============================================
+
+   ; interval-new: Create interval [lo, hi]
+   (interval-new (fn (lo hi) (list lo hi)))
+
+   ; interval-lo: Get lower bound
+   (interval-lo car)
+
+   ; interval-hi: Get upper bound
+   (interval-hi cadr)
+
+   ; interval-contains?: Check if interval contains value
+   (interval-contains? (fn (interval x)
+     (and (>= x (interval-lo interval))
+          (<= x (interval-hi interval)))))
+
+   ; interval-overlaps?: Check if two intervals overlap
+   (interval-overlaps? (fn (i1 i2)
+     (and (<= (interval-lo i1) (interval-hi i2))
+          (<= (interval-lo i2) (interval-hi i1)))))
+
+   ; interval-union: Union of overlapping intervals
+   (interval-union (fn (i1 i2)
+     (if (interval-overlaps? i1 i2)
+         (interval-new (min (interval-lo i1) (interval-lo i2))
+                       (max (interval-hi i1) (interval-hi i2)))
+         #f)))
+
+   ; interval-intersection: Intersection of intervals
+   (interval-intersection (fn (i1 i2)
+     (if (interval-overlaps? i1 i2)
+         (interval-new (max (interval-lo i1) (interval-lo i2))
+                       (min (interval-hi i1) (interval-hi i2)))
+         #f)))
+
+   ; interval-width: Width of interval
+   (interval-width (fn (interval)
+     (- (interval-hi interval) (interval-lo interval))))
+
+   ; interval-midpoint: Midpoint of interval
+   (interval-midpoint (fn (interval)
+     (/ (+ (interval-lo interval) (interval-hi interval)) 2)))
+
+   ; ============================================
+   ; Bisection / Binary Search Utilities
+   ; ============================================
+
+   ; bisect-find: Find value using bisection
+   (bisect-find (fix bisect-find
+     (fn (f target lo hi tolerance)
+       (if (< (- hi lo) tolerance)
+           (/ (+ lo hi) 2)
+           (let ((mid (/ (+ lo hi) 2)))
+             (let ((mid-val (f mid)))
+               (if (< mid-val target)
+                   (bisect-find f target mid hi tolerance)
+                   (bisect-find f target lo mid tolerance))))))))
+
+   ; bisect-root: Find root of function using bisection
+   (bisect-root (fn (f lo hi tolerance)
+     (bisect-find f 0 lo hi tolerance)))
+
+   ; ============================================
+   ; Accumulator Patterns
+   ; ============================================
+
+   ; scan-while: Scan while predicate holds
+   (scan-while (fix scan-while
+     (fn (p f init lst)
+       (if (null? lst)
+           (list init)
+           (let ((next (f init (car lst))))
+             (if (p next)
+                 (cons init (scan-while p f next (cdr lst)))
+                 (list init)))))))
+
+   ; fold-while: Fold while predicate holds
+   (fold-while (fix fold-while
+     (fn (p f init lst)
+       (if (null? lst)
+           init
+           (let ((next (f init (car lst))))
+             (if (p next)
+                 (fold-while p f next (cdr lst))
+                 init))))))
+
+   ; fold-until: Fold until predicate holds
+   (fold-until (fn (p f init lst)
+     (fold-while (complement p) f init lst)))
+
+   ; ============================================
+   ; Utility Combinators
+   ; ============================================
+
+   ; when-pred: Apply function only if predicate holds
+   (when-pred (fn (p f x)
+     (if (p x) (f x) x)))
+
+   ; unless-pred: Apply function only if predicate fails
+   (unless-pred (fn (p f x)
+     (if (p x) x (f x))))
+
+   ; with-default: Provide default for #f values
+   (with-default (fn (default x)
+     (if x x default)))
+
+   ; null-coalesce: Return first non-null value
+   (null-coalesce (fix null-coalesce
+     (fn (values)
+       (if (null? values)
+           #f
+           (if (car values)
+               (car values)
+               (null-coalesce (cdr values)))))))
+
+   ; safe-apply: Apply function, catching errors (placeholder)
+   (safe-apply (fn (f x)
+     (right (f x))))
+
+   ; retry-n: Retry function n times (placeholder - needs error handling)
+   (retry-n (fn (n f x)
+     (f x)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -3957,7 +4496,108 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'debug-print debug-print)
     (cons 'time-thunk time-thunk)
     (cons 'count-calls count-calls)
-    (cons 'type-of-value type-of-value)))
+    (cons 'type-of-value type-of-value)
+    ; Queue operations
+    (cons 'queue-new queue-new)
+    (cons 'queue-empty? queue-empty?)
+    (cons 'queue-enqueue queue-enqueue)
+    (cons 'queue-dequeue queue-dequeue)
+    (cons 'queue-front queue-front)
+    (cons 'queue-size queue-size)
+    (cons 'queue-to-list queue-to-list)
+    ; Stack operations
+    (cons 'stack-new stack-new)
+    (cons 'stack-empty? stack-empty?)
+    (cons 'stack-push stack-push)
+    (cons 'stack-pop stack-pop)
+    (cons 'stack-top stack-top)
+    (cons 'stack-size stack-size)
+    ; Deque operations
+    (cons 'deque-new deque-new)
+    (cons 'deque-empty? deque-empty?)
+    (cons 'deque-push-front deque-push-front)
+    (cons 'deque-push-back deque-push-back)
+    (cons 'deque-pop-front deque-pop-front)
+    (cons 'deque-pop-back deque-pop-back)
+    (cons 'deque-front deque-front)
+    (cons 'deque-back deque-back)
+    ; Priority queue operations
+    (cons 'pq-new pq-new)
+    (cons 'pq-empty? pq-empty?)
+    (cons 'pq-insert pq-insert)
+    (cons 'pq-peek pq-peek)
+    (cons 'pq-pop pq-pop)
+    ; Graph algorithms
+    (cons 'graph-new graph-new)
+    (cons 'graph-add-vertex graph-add-vertex)
+    (cons 'graph-add-edge graph-add-edge)
+    (cons 'graph-add-undirected-edge graph-add-undirected-edge)
+    (cons 'graph-neighbors graph-neighbors)
+    (cons 'graph-vertices graph-vertices)
+    (cons 'graph-has-edge? graph-has-edge?)
+    (cons 'graph-degree graph-degree)
+    (cons 'graph-bfs graph-bfs)
+    (cons 'graph-dfs graph-dfs)
+    (cons 'graph-path-exists? graph-path-exists?)
+    (cons 'graph-connected? graph-connected?)
+    ; Validation utilities
+    (cons 'validate-type validate-type)
+    (cons 'validate-range validate-range)
+    (cons 'validate-not-empty validate-not-empty)
+    (cons 'validate-all-pred validate-all-pred)
+    (cons 'validate-length validate-length)
+    (cons 'validate-min-length validate-min-length)
+    (cons 'validate-max-length validate-max-length)
+    (cons 'chain-validations chain-validations)
+    ; Parsing utilities
+    (cons 'parse-int parse-int)
+    (cons 'parse-bool parse-bool)
+    (cons 'split-parse split-parse)
+    ; Lens utilities
+    (cons 'lens-get lens-get)
+    (cons 'lens-set lens-set)
+    (cons 'lens-update lens-update)
+    ; Arrow utilities
+    (cons 'arrow-first arrow-first)
+    (cons 'arrow-second arrow-second)
+    (cons 'arrow-both arrow-both)
+    (cons 'arrow-split arrow-split)
+    (cons 'arrow-fanin arrow-fanin)
+    (cons 'kleisli-compose kleisli-compose)
+    ; List algorithms
+    (cons 'list-min list-min)
+    (cons 'list-max list-max)
+    (cons 'list-argmin list-argmin)
+    (cons 'list-argmax list-argmax)
+    (cons 'list-span-count list-span-count)
+    (cons 'list-break-count list-break-count)
+    (cons 'list-split-at-first list-split-at-first)
+    (cons 'list-unique-by list-unique-by)
+    (cons 'list-group-runs-by list-group-runs)
+    ; Interval utilities
+    (cons 'interval-new interval-new)
+    (cons 'interval-lo interval-lo)
+    (cons 'interval-hi interval-hi)
+    (cons 'interval-contains? interval-contains?)
+    (cons 'interval-overlaps? interval-overlaps?)
+    (cons 'interval-union interval-union)
+    (cons 'interval-intersection interval-intersection)
+    (cons 'interval-width interval-width)
+    (cons 'interval-midpoint interval-midpoint)
+    ; Bisection utilities
+    (cons 'bisect-find bisect-find)
+    (cons 'bisect-root bisect-root)
+    ; Accumulator patterns
+    (cons 'scan-while scan-while)
+    (cons 'fold-while fold-while)
+    (cons 'fold-until fold-until)
+    ; Utility combinators
+    (cons 'when-pred when-pred)
+    (cons 'unless-pred unless-pred)
+    (cons 'with-default with-default)
+    (cons 'null-coalesce null-coalesce)
+    (cons 'safe-apply safe-apply)
+    (cons 'retry-n retry-n)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
