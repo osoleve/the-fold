@@ -12963,6 +12963,169 @@ pub const PRELUDE_SOURCE: &str = r#"
            (s4 (string-replace-all "&quot;" "\"" s3))
            (s5 (string-replace-all "&#39;" "'" s4)))
        s5)))
+
+   ; ============================================================
+   ; CSV/TSV Parsing Utilities
+   ; ============================================================
+
+   ; csv-split-line: Split CSV line respecting quoted fields
+   (csv-split-line (fn (line)
+     ((fix split-rec
+        (fn (chars current fields in-quotes)
+          (if (null? chars)
+              (reverse (cons (list->string (reverse current)) fields))
+              (let ((c (car chars)))
+                (if in-quotes
+                    (if (eq? c #\")
+                        (if (and (not (null? (cdr chars)))
+                                 (eq? (cadr chars) #\"))
+                            ; Escaped quote
+                            (split-rec (cdr (cdr chars)) (cons #\" current) fields #t)
+                            ; End of quoted field
+                            (split-rec (cdr chars) current fields #f))
+                        (split-rec (cdr chars) (cons c current) fields #t))
+                    (if (eq? c #\,)
+                        (split-rec (cdr chars) '()
+                                  (cons (list->string (reverse current)) fields) #f)
+                        (if (eq? c #\")
+                            (split-rec (cdr chars) current fields #t)
+                            (split-rec (cdr chars) (cons c current) fields #f))))))))
+      (string->list line) '() '() #f)))
+
+   ; csv-parse: Parse CSV string to list of lists
+   (csv-parse (fn (text)
+     (map csv-split-line (string-split "\n" text))))
+
+   ; csv-parse-with-header: Parse CSV with first row as headers
+   ; Returns list of alists
+   (csv-parse-with-header (fn (text)
+     (let ((rows (csv-parse text)))
+       (if (null? rows)
+           '()
+           (let ((headers (car rows))
+                 (data-rows (cdr rows)))
+             (map (fn (row)
+                    (zip headers row))
+                  data-rows))))))
+
+   ; csv-build-line: Build CSV line from list of values
+   (csv-build-line (fn (fields)
+     (string-join
+       (map (fn (f)
+              (let ((s (if (string? f) f (number->string f))))
+                (if (or (string-contains? "," s)
+                        (string-contains? "\"" s)
+                        (string-contains? "\n" s))
+                    (string-append "\"" (string-replace-all "\"" "\"\"" s) "\"")
+                    s)))
+            fields)
+       ",")))
+
+   ; csv-build: Build CSV string from list of lists
+   (csv-build (fn (rows)
+     (string-join (map csv-build-line rows) "\n")))
+
+   ; tsv-split-line: Split TSV line (tab-separated)
+   (tsv-split-line (fn (line)
+     (string-split "\t" line)))
+
+   ; tsv-parse: Parse TSV string
+   (tsv-parse (fn (text)
+     (map tsv-split-line (string-split "\n" text))))
+
+   ; tsv-build: Build TSV string
+   (tsv-build (fn (rows)
+     (string-join (map (fn (row) (string-join row "\t")) rows) "\n")))
+
+   ; ============================================================
+   ; Roman Numeral Utilities
+   ; ============================================================
+
+   ; roman-values: Roman numeral value mappings
+   (roman-values '((1000 . "M") (900 . "CM") (500 . "D") (400 . "CD")
+                   (100 . "C") (90 . "XC") (50 . "L") (40 . "XL")
+                   (10 . "X") (9 . "IX") (5 . "V") (4 . "IV") (1 . "I")))
+
+   ; number->roman: Convert integer to Roman numeral string
+   (number->roman (fn (n)
+     (if (<= n 0)
+         ""
+         ((fix roman-rec
+            (fn (num vals acc)
+              (if (or (= num 0) (null? vals))
+                  acc
+                  (let ((val (caar vals))
+                        (sym (cdar vals)))
+                    (if (>= num val)
+                        (roman-rec (- num val) vals (string-append acc sym))
+                        (roman-rec num (cdr vals) acc))))))
+          n roman-values ""))))
+
+   ; roman-char-value: Get numeric value of Roman numeral character
+   (roman-char-value (fn (c)
+     (if (eq? c #\M) 1000
+         (if (eq? c #\D) 500
+             (if (eq? c #\C) 100
+                 (if (eq? c #\L) 50
+                     (if (eq? c #\X) 10
+                         (if (eq? c #\V) 5
+                             (if (eq? c #\I) 1
+                                 0)))))))))
+
+   ; roman->number: Convert Roman numeral string to integer
+   (roman->number (fn (s)
+     (let ((chars (string->list (string-upcase s))))
+       ((fix roman-rec
+          (fn (cs acc prev)
+            (if (null? cs)
+                acc
+                (let ((val (roman-char-value (car cs))))
+                  (if (> val prev)
+                      (roman-rec (cdr cs) (+ acc val (* -2 prev)) val)
+                      (roman-rec (cdr cs) (+ acc val) val))))))
+        chars 0 0))))
+
+   ; ============================================================
+   ; Number Spelling Utilities
+   ; ============================================================
+
+   ; ones-words: Words for 0-19
+   (ones-words '("zero" "one" "two" "three" "four" "five" "six" "seven"
+                 "eight" "nine" "ten" "eleven" "twelve" "thirteen"
+                 "fourteen" "fifteen" "sixteen" "seventeen" "eighteen" "nineteen"))
+
+   ; tens-words: Words for tens
+   (tens-words '("" "" "twenty" "thirty" "forty" "fifty"
+                 "sixty" "seventy" "eighty" "ninety"))
+
+   ; number->words: Convert integer to English words (0-999999)
+   (number->words (fn (n)
+     (if (< n 0)
+         (string-append "negative " (number->words (- 0 n)))
+         (if (< n 20)
+             (list-ref ones-words n)
+             (if (< n 100)
+                 (let ((tens (/ n 10))
+                       (ones (mod n 10)))
+                   (if (= ones 0)
+                       (list-ref tens-words tens)
+                       (string-append (list-ref tens-words tens) "-"
+                                     (list-ref ones-words ones))))
+                 (if (< n 1000)
+                     (let ((hundreds (/ n 100))
+                           (rest (mod n 100)))
+                       (if (= rest 0)
+                           (string-append (list-ref ones-words hundreds) " hundred")
+                           (string-append (list-ref ones-words hundreds) " hundred "
+                                         (number->words rest))))
+                     (if (< n 1000000)
+                         (let ((thousands (/ n 1000))
+                               (rest (mod n 1000)))
+                           (if (= rest 0)
+                               (string-append (number->words thousands) " thousand")
+                               (string-append (number->words thousands) " thousand "
+                                             (number->words rest))))
+                         "number too large")))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -15144,6 +15307,24 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'string-unescape string-unescape)
     (cons 'html-escape html-escape)
     (cons 'html-unescape html-unescape)
+    ; CSV/TSV Utilities
+    (cons 'csv-split-line csv-split-line)
+    (cons 'csv-parse csv-parse)
+    (cons 'csv-parse-with-header csv-parse-with-header)
+    (cons 'csv-build-line csv-build-line)
+    (cons 'csv-build csv-build)
+    (cons 'tsv-split-line tsv-split-line)
+    (cons 'tsv-parse tsv-parse)
+    (cons 'tsv-build tsv-build)
+    ; Roman Numerals
+    (cons 'roman-values roman-values)
+    (cons 'number->roman number->roman)
+    (cons 'roman-char-value roman-char-value)
+    (cons 'roman->number roman->number)
+    ; Number Spelling
+    (cons 'ones-words ones-words)
+    (cons 'tens-words tens-words)
+    (cons 'number->words number->words)
 ))
 "#;
 
