@@ -1165,3 +1165,313 @@ fn test_assert_pred() {
     let result = eval_with_prelude("(assert-pred even? 3)");
     assert_eq!(result, "#f");
 }
+
+// ========== Logical Utilities Tests ==========
+
+#[test]
+fn test_xor() {
+    let result = eval_with_prelude("(xor #t #f)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(xor #t #t)");
+    assert_eq!(result, "#f");
+
+    let result = eval_with_prelude("(xor #f #f)");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_implies() {
+    let result = eval_with_prelude("(implies #t #t)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(implies #t #f)");
+    assert_eq!(result, "#f");
+
+    let result = eval_with_prelude("(implies #f #t)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(implies #f #f)");
+    assert_eq!(result, "#t");
+}
+
+#[test]
+fn test_iff() {
+    let result = eval_with_prelude("(iff #t #t)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(iff #f #f)");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(iff #t #f)");
+    assert_eq!(result, "#f");
+}
+
+// ========== More List Utilities Tests ==========
+
+#[test]
+fn test_take_n() {
+    let result = eval_with_prelude("(take-n 3 '(1 2 3 4 5))");
+    assert_eq!(result, "(1 2 3)");
+
+    let result = eval_with_prelude("(take-n 0 '(1 2 3))");
+    assert_eq!(result, "()");
+
+    let result = eval_with_prelude("(take-n 5 '(1 2))");
+    assert_eq!(result, "(1 2)");
+}
+
+#[test]
+fn test_drop_n() {
+    let result = eval_with_prelude("(drop-n 2 '(1 2 3 4 5))");
+    assert_eq!(result, "(3 4 5)");
+
+    let result = eval_with_prelude("(drop-n 0 '(1 2 3))");
+    assert_eq!(result, "(1 2 3)");
+
+    let result = eval_with_prelude("(drop-n 5 '(1 2))");
+    assert_eq!(result, "()");
+}
+
+#[test]
+fn test_nth() {
+    let result = eval_with_prelude("(nth 0 '(a b c))");
+    assert_eq!(result, "a");
+
+    let result = eval_with_prelude("(nth 2 '(a b c))");
+    assert_eq!(result, "c");
+}
+
+#[test]
+fn test_init() {
+    let result = eval_with_prelude("(init '(1 2 3 4))");
+    assert_eq!(result, "(1 2 3)");
+
+    let result = eval_with_prelude("(init '(1))");
+    assert_eq!(result, "()");
+}
+
+#[test]
+fn test_last() {
+    let result = eval_with_prelude("(last '(1 2 3 4))");
+    assert_eq!(result, "4");
+
+    let result = eval_with_prelude("(last '(a))");
+    assert_eq!(result, "a");
+}
+
+#[test]
+fn test_butlast() {
+    let result = eval_with_prelude("(butlast 2 '(1 2 3 4 5))");
+    assert_eq!(result, "(1 2 3)");
+}
+
+#[test]
+fn test_count_eq() {
+    let result = eval_with_prelude("(count-eq 2 '(1 2 2 3 2))");
+    assert_eq!(result, "3");
+
+    let result = eval_with_prelude("(count-eq 5 '(1 2 3))");
+    assert_eq!(result, "0");
+}
+
+// ========== Association List Tests ==========
+
+#[test]
+fn test_assoc() {
+    let result = eval_with_prelude("(assoc 'b (list (cons 'a 1) (cons 'b 2) (cons 'c 3)))");
+    assert_eq!(result, "(b . 2)");
+
+    let result = eval_with_prelude("(assoc 'x (list (cons 'a 1) (cons 'b 2)))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_assoc_ref() {
+    let result = eval_with_prelude("(assoc-ref 'b (list (cons 'a 1) (cons 'b 2)))");
+    assert_eq!(result, "2");
+
+    let result = eval_with_prelude("(assoc-ref 'x (list (cons 'a 1)))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_assoc_set() {
+    let result =
+        eval_with_prelude("(assoc-ref 'a (assoc-set 'a 99 (list (cons 'a 1) (cons 'b 2))))");
+    assert_eq!(result, "99");
+}
+
+#[test]
+fn test_assoc_remove() {
+    let result = eval_with_prelude("(length (assoc-remove 'a (list (cons 'a 1) (cons 'b 2))))");
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_assoc_keys() {
+    let result = eval_with_prelude("(assoc-keys (list (cons 'a 1) (cons 'b 2)))");
+    assert_eq!(result, "(a b)");
+}
+
+#[test]
+fn test_assoc_values() {
+    let result = eval_with_prelude("(assoc-values (list (cons 'a 1) (cons 'b 2)))");
+    assert_eq!(result, "(1 2)");
+}
+
+// ========== String Utilities Tests ==========
+
+#[test]
+fn test_string_reverse() {
+    let result = eval_with_prelude("(string-reverse \"hello\")");
+    assert_eq!(result, "\"olleh\"");
+}
+
+#[test]
+fn test_string_empty() {
+    let result = eval_with_prelude("(string-empty? \"\")");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(string-empty? \"x\")");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_string_contains() {
+    // Primitive expects (string-contains? haystack needle)
+    let result = eval_with_prelude("(string-contains? \"hello\" \"ll\")");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(string-contains? \"hello\" \"x\")");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_string_prefix() {
+    let result = eval_with_prelude("(string-prefix? \"hel\" \"hello\")");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(string-prefix? \"bye\" \"hello\")");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_string_suffix() {
+    let result = eval_with_prelude("(string-suffix? \"llo\" \"hello\")");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(string-suffix? \"bye\" \"hello\")");
+    assert_eq!(result, "#f");
+}
+
+// ========== Numeric Sequence Tests ==========
+
+#[test]
+fn test_iota() {
+    let result = eval_with_prelude("(iota 5 0)");
+    assert_eq!(result, "(0 1 2 3 4)");
+
+    let result = eval_with_prelude("(iota 3 10)");
+    assert_eq!(result, "(10 11 12)");
+}
+
+#[test]
+fn test_range() {
+    let result = eval_with_prelude("(range 0 5)");
+    assert_eq!(result, "(0 1 2 3 4)");
+
+    let result = eval_with_prelude("(range 3 7)");
+    assert_eq!(result, "(3 4 5 6)");
+}
+
+#[test]
+fn test_range_step() {
+    let result = eval_with_prelude("(range-step 0 10 2)");
+    assert_eq!(result, "(0 2 4 6 8)");
+
+    let result = eval_with_prelude("(range-step 1 10 3)");
+    assert_eq!(result, "(1 4 7)");
+}
+
+// ========== Zip Utilities Tests ==========
+
+#[test]
+fn test_zip3() {
+    let result = eval_with_prelude("(zip3 '(1 2) '(a b) '(x y))");
+    assert_eq!(result, "((1 a x) (2 b y))");
+}
+
+#[test]
+fn test_zip_with_index() {
+    let result = eval_with_prelude("(zip-with-index '(a b c))");
+    assert_eq!(result, "((0 a) (1 b) (2 c))");
+}
+
+// ========== Misc Utilities Tests ==========
+
+#[test]
+fn test_constantly() {
+    let result = eval_with_prelude("((constantly 42) 'ignored)");
+    assert_eq!(result, "42");
+}
+
+#[test]
+fn test_identity() {
+    let result = eval_with_prelude("(identity 42)");
+    assert_eq!(result, "42");
+}
+
+#[test]
+fn test_first() {
+    let result = eval_with_prelude("(first '(a b c))");
+    assert_eq!(result, "a");
+}
+
+#[test]
+fn test_second() {
+    let result = eval_with_prelude("(second '(a b c))");
+    assert_eq!(result, "b");
+}
+
+#[test]
+fn test_third() {
+    let result = eval_with_prelude("(third '(a b c))");
+    assert_eq!(result, "c");
+}
+
+#[test]
+fn test_rest() {
+    let result = eval_with_prelude("(rest '(a b c))");
+    assert_eq!(result, "(b c)");
+}
+
+#[test]
+fn test_empty() {
+    let result = eval_with_prelude("(empty? '())");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(empty? '(1))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_singleton() {
+    let result = eval_with_prelude("(singleton? '(a))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(singleton? '(a b))");
+    assert_eq!(result, "#f");
+
+    let result = eval_with_prelude("(singleton? '())");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_has_pair() {
+    let result = eval_with_prelude("(has-pair? '(a b))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(has-pair? '(a))");
+    assert_eq!(result, "#f");
+}

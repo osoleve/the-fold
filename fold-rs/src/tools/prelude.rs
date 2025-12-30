@@ -1080,6 +1080,213 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; assert-pred: Check predicate holds
    (assert-pred (fn (predicate val)
      (predicate val)))
+
+   ; -- Logical utilities --
+
+   ; xor: Exclusive or of two booleans
+   (xor (fn (a b)
+     (if a (not b) b)))
+
+   ; implies: Logical implication (a => b)
+   (implies (fn (a b)
+     (if a b #t)))
+
+   ; iff: If and only if (biconditional)
+   (iff (fn (a b)
+     (= a b)))
+
+   ; -- More list utilities --
+
+   ; take-n: Take first n elements (HOF version)
+   (take-n (fix take-n
+     (fn (n lst)
+       (if (<= n 0)
+           '()
+           (if (null? lst)
+               '()
+               (cons (car lst) (take-n (- n 1) (cdr lst))))))))
+
+   ; drop-n: Drop first n elements (HOF version)
+   (drop-n (fix drop-n
+     (fn (n lst)
+       (if (<= n 0)
+           lst
+           (if (null? lst)
+               '()
+               (drop-n (- n 1) (cdr lst)))))))
+
+   ; nth: Get nth element (0-indexed)
+   (nth (fix nth
+     (fn (n lst)
+       (if (null? lst)
+           '()
+           (if (= n 0)
+               (car lst)
+               (nth (- n 1) (cdr lst)))))))
+
+   ; init: All but last element
+   (init (fix init
+     (fn (lst)
+       (if (null? lst)
+           '()
+           (if (null? (cdr lst))
+               '()
+               (cons (car lst) (init (cdr lst))))))))
+
+   ; last: Last element of list
+   (last (fix last
+     (fn (lst)
+       (if (null? lst)
+           '()
+           (if (null? (cdr lst))
+               (car lst)
+               (last (cdr lst)))))))
+
+   ; butlast: Remove last n elements
+   (butlast (fn (n lst)
+     (let ((len (length lst)))
+       (take-n (- len n) lst))))
+
+   ; count-eq: Count elements equal to x
+   (count-eq (fn (x lst)
+     (foldl (fn (acc item) (if (= item x) (+ acc 1) acc)) 0 lst)))
+
+   ; -- Association list utilities --
+
+   ; assoc: Find pair with matching key
+   (assoc (fix assoc
+     (fn (key alist)
+       (if (null? alist)
+           #f
+           (if (eq? key (car (car alist)))
+               (car alist)
+               (assoc key (cdr alist)))))))
+
+   ; assoc-ref: Get value for key (or #f)
+   (assoc-ref (fn (key alist)
+     (let ((pair (assoc key alist)))
+       (if pair (cdr pair) #f))))
+
+   ; assoc-set: Set value for key (returns new alist)
+   (assoc-set (fn (key val alist)
+     (cons (cons key val)
+           (filter (fn (p) (not (eq? key (car p)))) alist))))
+
+   ; assoc-remove: Remove key from alist
+   (assoc-remove (fn (key alist)
+     (filter (fn (p) (not (eq? key (car p)))) alist)))
+
+   ; assoc-keys: Get all keys from alist
+   (assoc-keys (fn (alist)
+     (map car alist)))
+
+   ; assoc-values: Get all values from alist
+   (assoc-values (fn (alist)
+     (map cdr alist)))
+
+   ; -- More string utilities --
+
+   ; string-reverse: Reverse a string
+   (string-reverse (fn (s)
+     (list->string (reverse (string->list s)))))
+
+   ; string-empty?: Check if string is empty
+   (string-empty? (fn (s)
+     (= (string-length s) 0)))
+
+   ; Note: string-contains? is a primitive (haystack needle) - uses Rust's contains()
+
+   ; string-prefix?: Check if string starts with prefix
+   (string-prefix? (fn (prefix s)
+     (let ((prefix-len (string-length prefix))
+           (s-len (string-length s)))
+       (if (> prefix-len s-len)
+           #f
+           (string=? prefix (substring s 0 prefix-len))))))
+
+   ; string-suffix?: Check if string ends with suffix
+   (string-suffix? (fn (suffix s)
+     (let ((suffix-len (string-length suffix))
+           (s-len (string-length s)))
+       (if (> suffix-len s-len)
+           #f
+           (string=? suffix (substring s (- s-len suffix-len) s-len))))))
+
+   ; -- Numeric sequences --
+
+   ; iota: Generate list of n integers starting from start
+   (iota (fix iota
+     (fn (n start)
+       (if (<= n 0)
+           '()
+           (cons start (iota (- n 1) (+ start 1)))))))
+
+   ; range: Generate list from start to end (exclusive)
+   (range (fn (start end)
+     (iota (- end start) start)))
+
+   ; range-step: Generate list from start to end with step
+   (range-step (fix range-step
+     (fn (start end step)
+       (if (>= start end)
+           '()
+           (cons start (range-step (+ start step) end step))))))
+
+   ; -- Zipping utilities --
+
+   ; zip3: Zip three lists together
+   (zip3 (fix zip3
+     (fn (xs ys zs)
+       (if (null? xs)
+           '()
+           (if (null? ys)
+               '()
+               (if (null? zs)
+                   '()
+                   (cons (list (car xs) (car ys) (car zs))
+                         (zip3 (cdr xs) (cdr ys) (cdr zs)))))))))
+
+   ; zip-with-index: Pair each element with its index
+   (zip-with-index (fn (lst)
+     (zip (iota (length lst) 0) lst)))
+
+   ; -- Misc utilities --
+
+   ; constantly: Return a function that always returns the same value
+   (constantly (fn (x)
+     (fn (y) x)))
+
+   ; identity: Identity function (same as id, but clearer name)
+   (identity (fn (x) x))
+
+   ; first: Get first element (same as car)
+   (first car)
+
+   ; second: Get second element
+   (second (fn (lst) (car (cdr lst))))
+
+   ; third: Get third element
+   (third (fn (lst) (car (cdr (cdr lst)))))
+
+   ; rest: Get rest of list (same as cdr)
+   (rest cdr)
+
+   ; empty?: Check if list is empty (same as null?)
+   (empty? null?)
+
+   ; singleton?: Check if list has exactly one element
+   (singleton? (fn (lst)
+     (if (null? lst)
+         #f
+         (null? (cdr lst)))))
+
+   ; has-pair?: Check if list has at least two elements
+   (has-pair? (fn (lst)
+     (if (null? lst)
+         #f
+         (if (null? (cdr lst))
+             #f
+             #t))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -1244,7 +1451,41 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'trace trace)
     (cons 'spy spy)
     (cons 'assert-eq assert-eq)
-    (cons 'assert-pred assert-pred)))
+    (cons 'assert-pred assert-pred)
+    (cons 'xor xor)
+    (cons 'implies implies)
+    (cons 'iff iff)
+    (cons 'take-n take-n)
+    (cons 'drop-n drop-n)
+    (cons 'nth nth)
+    (cons 'init init)
+    (cons 'last last)
+    (cons 'butlast butlast)
+    (cons 'count-eq count-eq)
+    (cons 'assoc assoc)
+    (cons 'assoc-ref assoc-ref)
+    (cons 'assoc-set assoc-set)
+    (cons 'assoc-remove assoc-remove)
+    (cons 'assoc-keys assoc-keys)
+    (cons 'assoc-values assoc-values)
+    (cons 'string-reverse string-reverse)
+    (cons 'string-empty? string-empty?)
+    (cons 'string-prefix? string-prefix?)
+    (cons 'string-suffix? string-suffix?)
+    (cons 'iota iota)
+    (cons 'range range)
+    (cons 'range-step range-step)
+    (cons 'zip3 zip3)
+    (cons 'zip-with-index zip-with-index)
+    (cons 'constantly constantly)
+    (cons 'identity identity)
+    (cons 'first first)
+    (cons 'second second)
+    (cons 'third third)
+    (cons 'rest rest)
+    (cons 'empty? empty?)
+    (cons 'singleton? singleton?)
+    (cons 'has-pair? has-pair?)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};

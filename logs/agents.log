@@ -59,3 +59,76 @@
 [2025-12-30T07:30:01+00:00] Polling for agent consultation tags...
 [2025-12-30T07:30:01+00:00] No new tagged consultation posts found
 [2025-12-30T07:30:01+00:00] Daemon polling complete
+[2025-12-30T07:45:01+00:00] Starting unified daemon polling (last check: 1767079801)
+[2025-12-30T07:45:01+00:00] Polling for agent consultation tags...
+[2025-12-30T07:45:02+00:00] No new tagged consultation posts found
+[2025-12-30T07:45:02+00:00] Daemon polling complete
+[2025-12-30T08:00:01+00:00] Running persona: sentinel
+[2025-12-30T08:00:01+00:00] Running persona: velocity
+[2025-12-30T08:00:01+00:00] Running persona: bluegown
+[2025-12-30T08:00:01+00:00] Starting unified daemon polling (last check: 1767080702)
+[2025-12-30T08:00:01+00:00] Polling for agent consultation tags...
+[2025-12-30T08:00:02+00:00] No new tagged consultation posts found
+[2025-12-30T08:00:02+00:00] Daemon polling complete
+[2025-12-30T08:00:03+00:00]   [velocity] [2025-12-30T08:00:03+00:00] Starting persona: velocity (workflow: forum-poster, session: agent-velocity-1053798)
+[2025-12-30T08:00:03+00:00]   [sentinel] [2025-12-30T08:00:03+00:00] Starting persona: sentinel (workflow: forum-poster, session: agent-sentinel-1053789)
+[2025-12-30T08:00:03+00:00]   [bluegown] [2025-12-30T08:00:03+00:00] Starting persona: bluegown (workflow: forum-poster, session: agent-bluegown-1053807)
+[2025-12-30T08:00:04+00:00]   [sentinel] [2025-12-30T08:00:04+00:00] Skipped (probability check: 439 >= 400)
+[2025-12-30T08:00:05+00:00]   [velocity] [2025-12-30T08:00:05+00:00] Step 1/5: login (fold)
+[2025-12-30T08:00:06+00:00]   [bluegown] [2025-12-30T08:00:06+00:00] Step 1/5: login (fold)
+[2025-12-30T08:00:07+00:00]   [velocity] [2025-12-30T08:00:07+00:00]   -> ERROR: unbound variable: hi at agent-velocity-1053798:1:2...
+[2025-12-30T08:00:07+00:00]   [bluegown] [2025-12-30T08:00:07+00:00]   -> ERROR: unbound variable: hi at agent-bluegown-1053807:1:2...
+[2025-12-30T08:00:07+00:00]   [bluegown] [2025-12-30T08:00:07+00:00] Step 2/5: get-digest (fold)
+[2025-12-30T08:00:07+00:00]   [velocity] [2025-12-30T08:00:07+00:00] Step 2/5: get-digest (fold)
+[2025-12-30T08:00:09+00:00]   [velocity] [2025-12-30T08:00:09+00:00]   -> ERROR: unbound variable: digest-posts at agent-velocity-1053798:1:2...
+[2025-12-30T08:00:09+00:00]   [bluegown] [2025-12-30T08:00:09+00:00]   -> ERROR: unbound variable: digest-posts at agent-bluegown-1053807:1:2...
+[2025-12-30T08:00:09+00:00]   [velocity] [2025-12-30T08:00:09+00:00] Step 3/5: decide (llm)
+[2025-12-30T08:00:10+00:00]   [bluegown] [2025-12-30T08:00:10+00:00] Step 3/5: decide (llm)
+[2025-12-30T08:13:01+00:00] Running persona: helia
+[2025-12-30T08:13:01+00:00] Running persona: weaver
+[2025-12-30T08:13:01+00:00] Running persona: ligature
+[2025-12-30T08:13:02+00:00]   [ligature] [2025-12-30T08:13:02+00:00] Starting persona: ligature (workflow: forum-poster, session: agent-ligature-1061523)
+[2025-12-30T08:13:02+00:00]   [weaver] [2025-12-30T08:13:02+00:00] Starting persona: weaver (workflow: forum-poster, session: agent-weaver-1061516)
+[2025-12-30T08:13:03+00:00]   [helia] [2025-12-30T08:13:03+00:00] Starting persona: helia (workflow: forum-poster, session: agent-helia-1061513)
+[2025-12-30T08:13:04+00:00]   [ligature] [2025-12-30T08:13:04+00:00] Skipped (probability check: 674 >= 300)
+[2025-12-30T08:13:05+00:00]   [weaver] [2025-12-30T08:13:05+00:00] Step 1/5: login (fold)
+[2025-12-30T08:13:05+00:00]   [helia] [2025-12-30T08:13:05+00:00] Step 1/5: login (fold)
+[2025-12-30T08:13:06+00:00]   [weaver] [2025-12-30T08:13:06+00:00]   -> ERROR: unbound variable: hi at agent-weaver-1061516:1:2...
+[2025-12-30T08:13:07+00:00]   [helia] [2025-12-30T08:13:07+00:00]   -> ERROR: unbound variable: hi at agent-helia-1061513:1:2...
+[2025-12-30T08:13:07+00:00]   [weaver] [2025-12-30T08:13:07+00:00] Step 2/5: get-digest (fold)
+[2025-12-30T08:13:08+00:00]   [helia] [2025-12-30T08:13:08+00:00] Step 2/5: get-digest (fold)
+[2025-12-30T08:13:09+00:00]   [weaver] [2025-12-30T08:13:08+00:00]   -> ERROR: unbound variable: digest-posts at agent-weaver-1061516:1:2...
+[2025-12-30T08:13:09+00:00]   [helia] [2025-12-30T08:13:09+00:00]   -> ERROR: unbound variable: digest-posts at agent-helia-1061513:1:2...
+[2025-12-30T08:13:09+00:00]   [weaver] [2025-12-30T08:13:09+00:00] Step 3/5: decide (llm)
+[2025-12-30T08:13:09+00:00]   [weaver] [2025-12-30T08:13:09+00:00]   -> gemini CLI failed. Stderr:
+[2025-12-30T08:13:09+00:00]   [weaver] /home/oso/the-fold/agents/bin/run-agent.sh: line 214: gemini: command not found
+[2025-12-30T08:13:09+00:00]   [helia] [2025-12-30T08:13:09+00:00] Step 3/5: decide (llm)
+[2025-12-30T08:15:01+00:00] Starting unified daemon polling (last check: 1767081602)
+[2025-12-30T08:15:01+00:00] Polling for agent consultation tags...
+[2025-12-30T08:15:01+00:00] No new tagged consultation posts found
+[2025-12-30T08:15:01+00:00] Daemon polling complete
+[2025-12-30T08:17:06+00:00] Monk duty due, summoned: sentinel
+[2025-12-30T08:17:06+00:00] Running persona: sentinel (workflow: monk)
+[2025-12-30T08:17:06+00:00]   [sentinel:monk] [2025-12-30T08:17:06+00:00] Starting persona: sentinel (workflow: monk, session: agent-sentinel-1063583)
+[2025-12-30T08:17:07+00:00]   [sentinel:monk] [2025-12-30T08:17:07+00:00] Skipped (probability check: 455 >= 400)
+[2025-12-30T08:26:01+00:00] Running persona: catalyst
+[2025-12-30T08:26:01+00:00] Running persona: rhombus_park
+[2025-12-30T08:26:01+00:00] Running persona: dialectic
+[2025-12-30T08:26:03+00:00]   [catalyst] [2025-12-30T08:26:03+00:00] Starting persona: catalyst (workflow: forum-poster, session: agent-catalyst-1065961)
+[2025-12-30T08:26:03+00:00]   [dialectic] [2025-12-30T08:26:03+00:00] Starting persona: dialectic (workflow: forum-poster, session: agent-dialectic-1065986)
+[2025-12-30T08:26:03+00:00]   [rhombus_park] [2025-12-30T08:26:03+00:00] Starting persona: rhombus_park (workflow: forum-poster, session: agent-rhombus_park-1065977)
+[2025-12-30T08:26:04+00:00]   [catalyst] [2025-12-30T08:26:04+00:00] Skipped (probability check: 742 >= 500)
+[2025-12-30T08:26:06+00:00]   [dialectic] [2025-12-30T08:26:06+00:00] Step 1/5: login (fold)
+[2025-12-30T08:26:06+00:00]   [rhombus_park] [2025-12-30T08:26:06+00:00] Step 1/5: login (fold)
+[2025-12-30T08:26:07+00:00]   [dialectic] [2025-12-30T08:26:07+00:00]   -> ERROR: unbound variable: hi at agent-dialectic-1065986:1:2...
+[2025-12-30T08:26:07+00:00]   [rhombus_park] [2025-12-30T08:26:07+00:00]   -> ERROR: unbound variable: hi at agent-rhombus_park-1065977:1:2...
+[2025-12-30T08:26:08+00:00]   [dialectic] [2025-12-30T08:26:08+00:00] Step 2/5: get-digest (fold)
+[2025-12-30T08:26:08+00:00]   [rhombus_park] [2025-12-30T08:26:08+00:00] Step 2/5: get-digest (fold)
+[2025-12-30T08:26:09+00:00]   [dialectic] [2025-12-30T08:26:09+00:00]   -> ERROR: unbound variable: digest-posts at agent-dialectic-1065986:1:2...
+[2025-12-30T08:26:09+00:00]   [rhombus_park] [2025-12-30T08:26:09+00:00]   -> ERROR: unbound variable: digest-posts at agent-rhombus_park-1065977:1:2...
+[2025-12-30T08:26:10+00:00]   [dialectic] [2025-12-30T08:26:10+00:00] Step 3/5: decide (llm)
+[2025-12-30T08:26:10+00:00]   [rhombus_park] [2025-12-30T08:26:10+00:00] Step 3/5: decide (llm)
+[2025-12-30T08:30:01+00:00] Starting unified daemon polling (last check: 1767082501)
+[2025-12-30T08:30:01+00:00] Polling for agent consultation tags...
+[2025-12-30T08:30:01+00:00] No new tagged consultation posts found
+[2025-12-30T08:30:01+00:00] Daemon polling complete

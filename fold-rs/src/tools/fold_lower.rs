@@ -175,7 +175,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "list-count" | "list-sum" | "list-avg" | "list-min-value" | "list-max-value"
             // String and value conversion
             | "string-byte-length" | "string-char-length" | "value->string" | "string->value?"
-            | "constantly"
+            // Note: constantly removed - implemented in prelude as HOF
             // REPL commands
             | "version" | "who" | "help" | "display" | "write" | "newline"
     )
