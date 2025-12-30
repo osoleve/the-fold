@@ -319,6 +319,79 @@ pub const PRELUDE_SOURCE: &str = r#"
        (if (<= n 0)
            x
            (repeat-fn f (- n 1) (f x))))))
+
+   ; -- Maybe/Option utilities (using #f as None) --
+
+   ; maybe: Apply function if value is not #f, else return default
+   ; (maybe 0 inc #f) => 0
+   ; (maybe 0 inc 5) => 6
+   (maybe (fn (default f x)
+     (if x (f x) default)))
+
+   ; from-maybe: Get value or default if #f
+   ; (from-maybe 0 #f) => 0
+   ; (from-maybe 0 5) => 5
+   (from-maybe (fn (default x)
+     (if x x default)))
+
+   ; map-maybe: Map over list, keeping only non-#f results
+   ; (map-maybe (fn (x) (if (> x 0) x #f)) '(-1 2 -3 4)) => (2 4)
+   (map-maybe (fn (f lst)
+     (filter id (map f lst))))
+
+   ; cat-maybes: Filter out #f values from list
+   ; (cat-maybes '(1 #f 2 #f 3)) => (1 2 3)
+   (cat-maybes (fn (lst) (filter id lst)))
+
+   ; -- Chunking and windowing --
+
+   ; chunks: Split list into chunks of size n
+   ; (chunks 2 '(1 2 3 4 5)) => ((1 2) (3 4) (5))
+   (chunks (fix chunks
+     (fn (n lst)
+       (if (null? lst)
+           '()
+           (cons (take lst n) (chunks n (drop lst n)))))))
+
+   ; sliding: Sliding window of size n
+   ; (sliding 2 '(1 2 3 4)) => ((1 2) (2 3) (3 4))
+   (sliding (fix sliding
+     (fn (n lst)
+       (if (< (length lst) n)
+           '()
+           (cons (take lst n) (sliding n (cdr lst)))))))
+
+   ; pairs: Consecutive pairs (sliding window of 2)
+   ; (pairs '(1 2 3 4)) => ((1 2) (2 3) (3 4))
+   (pairs (fn (lst) (sliding 2 lst)))
+
+   ; -- More list utilities --
+
+   ; split-at: Split list at index n
+   ; (split-at 2 '(a b c d e)) => ((a b) c d e)
+   (split-at (fn (n lst) (cons (take lst n) (drop lst n))))
+
+   ; elem?: Check if element is in list (alias for member returning bool)
+   (elem? (fn (x lst) (if (member x lst) #t #f)))
+
+   ; nub: Remove duplicates (keep first occurrence)
+   (nub (fix nub
+     (fn (lst)
+       (if (null? lst)
+           '()
+           (cons (car lst) (nub (filter (fn (x) (not (= x (car lst)))) (cdr lst))))))))
+
+   ; intercalate: Insert list between lists and concat
+   ; (intercalate '(0) '((1 2) (3 4) (5))) => (1 2 0 3 4 0 5)
+   (intercalate (fn (sep lists) (concat (intersperse sep lists))))
+
+   ; transpose: Transpose list of lists (matrix transpose)
+   ; (transpose '((1 2 3) (4 5 6))) => ((1 4) (2 5) (3 6))
+   (transpose (fix transpose
+     (fn (lists)
+       (if (or (null? lists) (any null? lists))
+           '()
+           (cons (map car lists) (transpose (map cdr lists)))))))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -368,7 +441,19 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'inits inits)
     (cons 'group-consecutive group-consecutive)
     (cons 'range-list range-list)
-    (cons 'repeat-fn repeat-fn)))
+    (cons 'repeat-fn repeat-fn)
+    (cons 'maybe maybe)
+    (cons 'from-maybe from-maybe)
+    (cons 'map-maybe map-maybe)
+    (cons 'cat-maybes cat-maybes)
+    (cons 'chunks chunks)
+    (cons 'sliding sliding)
+    (cons 'pairs pairs)
+    (cons 'split-at split-at)
+    (cons 'elem? elem?)
+    (cons 'nub nub)
+    (cons 'intercalate intercalate)
+    (cons 'transpose transpose)))
 "#;
 
 use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};

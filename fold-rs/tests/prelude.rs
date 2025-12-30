@@ -398,3 +398,86 @@ fn test_repeat_fn() {
     let result = eval_with_prelude("(repeat-fn double 4 1)");
     assert_eq!(result, "16");
 }
+
+#[test]
+fn test_maybe() {
+    // Apply function if not #f
+    let result = eval_with_prelude("(maybe 0 inc 5)");
+    assert_eq!(result, "6");
+
+    // Return default if #f
+    let result = eval_with_prelude("(maybe 0 inc #f)");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_from_maybe() {
+    let result = eval_with_prelude("(from-maybe 0 5)");
+    assert_eq!(result, "5");
+
+    let result = eval_with_prelude("(from-maybe 0 #f)");
+    assert_eq!(result, "0");
+}
+
+#[test]
+fn test_cat_maybes() {
+    let result = eval_with_prelude("(cat-maybes '(1 #f 2 #f 3))");
+    assert_eq!(result, "(1 2 3)");
+}
+
+#[test]
+fn test_chunks() {
+    let result = eval_with_prelude("(chunks 2 '(1 2 3 4 5))");
+    assert_eq!(result, "((1 2) (3 4) (5))");
+
+    let result = eval_with_prelude("(chunks 3 '(1 2 3 4 5 6))");
+    assert_eq!(result, "((1 2 3) (4 5 6))");
+}
+
+#[test]
+fn test_sliding() {
+    let result = eval_with_prelude("(sliding 2 '(1 2 3 4))");
+    assert_eq!(result, "((1 2) (2 3) (3 4))");
+
+    let result = eval_with_prelude("(sliding 3 '(1 2 3 4))");
+    assert_eq!(result, "((1 2 3) (2 3 4))");
+}
+
+#[test]
+fn test_pairs() {
+    let result = eval_with_prelude("(pairs '(1 2 3 4))");
+    assert_eq!(result, "((1 2) (2 3) (3 4))");
+}
+
+#[test]
+fn test_split_at() {
+    let result = eval_with_prelude("(split-at 2 '(a b c d e))");
+    assert_eq!(result, "((a b) c d e)");
+}
+
+#[test]
+fn test_elem() {
+    let result = eval_with_prelude("(elem? 3 '(1 2 3 4))");
+    assert_eq!(result, "#t");
+
+    let result = eval_with_prelude("(elem? 5 '(1 2 3 4))");
+    assert_eq!(result, "#f");
+}
+
+#[test]
+fn test_nub() {
+    let result = eval_with_prelude("(nub '(1 2 1 3 2 4))");
+    assert_eq!(result, "(1 2 3 4)");
+}
+
+#[test]
+fn test_intercalate() {
+    let result = eval_with_prelude("(intercalate '(0) '((1 2) (3 4) (5)))");
+    assert_eq!(result, "(1 2 0 3 4 0 5)");
+}
+
+#[test]
+fn test_transpose() {
+    let result = eval_with_prelude("(transpose '((1 2 3) (4 5 6)))");
+    assert_eq!(result, "((1 4) (2 5) (3 6))");
+}
