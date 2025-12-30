@@ -456,6 +456,37 @@
                    (assert-true (< (abs (cdr result)) 1)))))
 
 ;;; ============================================================
+;;; New Feature Tests
+;;; ============================================================
+
+(define-instruction (move-x! n) 'move-x)
+
+(test-group dsl-enhancements
+            (define-test define-instruction-test
+              (let* ([prog (move-x! 10)]
+                     [instr (dsl-instruction prog)])
+                    (assert-equal 'move-x (instruction-tag instr))
+                    (assert-equal '(10) (instruction-payload instr))))
+            
+            (define-test run-dsl-state-test
+              (let* ([handler (lambda (tag payload state)
+                                      (case tag
+                                            [(add) (cons '() (+ state payload))]
+                                            [(get) (cons state state)]))]
+                     [prog (dsl-bind (dsl-emit 'add 10)
+                                     (lambda (_) (dsl-request 'get '())))]
+                     [result (run-dsl-state handler 0 prog)])
+                    (assert-equal 10 (car result))
+                    (assert-equal 10 (cdr result))))
+            
+            (define-test composed-interpreter-test
+              (let* ([int1 (layered-interpreter (list (cons 'a (lambda (p) 'from-1))))]
+                     [int2 (layered-interpreter (list (cons 'b (lambda (p) 'from-2))))]
+                     [comp (composed-interpreter int1 int2)])
+                    (assert-equal 'from-1 (run-dsl comp (dsl-request 'a '())))
+                    (assert-equal 'from-2 (run-dsl comp (dsl-request 'b '()))))))
+
+;;; ============================================================
 ;;; Practical Examples
 ;;; ============================================================
 

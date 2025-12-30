@@ -151,17 +151,21 @@ Design Philosophy:
 "))
    ((title . "Free Monad DSL")
     (code . "
-; Define a DSL for file operations
-(define (read-file path)
-  (free-liftF (make-file-op 'read path)))
-
-(define (write-file path content)
-  (free-liftF (make-file-op 'write path content)))
+; Define a DSL for turtle graphics
+(define-instruction (forward! dist) 'forward)
+(define-instruction (right! angle) 'right)
+(define-request (get-pos) 'getpos)
 
 ; Compose operations monadically
-(free-bind (read-file \"input.txt\")
-           (lambda (content)
-             (write-file \"output.txt\" content)))
+(define square
+  (dsl-bind (forward! 100)
+    (lambda (_)
+      (dsl-bind (right! 90)
+        (lambda (_)
+           ...)))))
+
+; Run with an interpreter
+(run-dsl turtle-interpreter square)
 "))))
  (design-patterns . (
    ((pattern . "Dictionary-Passing Style")

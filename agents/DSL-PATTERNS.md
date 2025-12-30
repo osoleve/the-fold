@@ -59,7 +59,41 @@ Randomly selects one of the provided options at evaluation time.
   " in tone.")
 ```
 
-### 1b. `(choose-n n list)`
+### 2. `(weighted-choice pair1 pair2 ...)`
+
+Selects an option based on integer weights.
+
+```scheme
+(weighted-choice
+  '(80 "Common option")
+  '(20 "Rare option"))
+```
+
+**Use case:** Controlling the frequency of specific traits or behaviors.
+
+### 3. `(maybe val [prob])`
+
+Optionally includes the value. Default probability is 0.5 (50%).
+
+```scheme
+(maybe "Sometimes I say this.")       ; 50% chance
+(maybe "Rarely I say this." 0.1)      ; 10% chance
+```
+
+**Use case:** adding occasional quirks or optional context.
+
+### 4. `(interpolate template 'key val ...)`
+
+Simple string interpolation. Replaces `{key}` with `val`.
+
+```scheme
+(interpolate "Hello {name}, you are {role}."
+             'name "Bob"
+             'role "Builder")
+; -> "Hello Bob, you are Builder."
+```
+
+### 5. `(choose-n n list)`
 
 Randomly selects **n distinct items** from a list without replacement. Returns a list.
 
@@ -92,7 +126,7 @@ Randomly selects **n distinct items** from a list without replacement. Returns a
 - If `n = 0`: Returns empty list
 - If `n < 0`: Raises error "choose-n count must be non-negative"
 
-### 2. `(cond [(test) val] ... [else default])`
+### 6. `(cond [(test) val] ... [else default])`
 
 Native Scheme conditional. Evaluated at prompt generation time.
 
@@ -108,7 +142,7 @@ Native Scheme conditional. Evaluated at prompt generation time.
 
 **Pattern:** Tests can reference variables from fragments or outer scope
 
-### 3. `(load-fragment 'name)`
+### 7. `(load-fragment 'name)`
 
 Loads a fragment file from `agents/personas/fragments/<name>.ss` and makes its definitions available.
 
@@ -127,7 +161,7 @@ When explaining: " anchor-blg-pattern)
 3. Searches up directory tree for `agents/personas/fragments/`
 4. Falls back to `$FOLD_FRAGMENTS` environment variable if set
 
-### 4. `(string-append str1 str2 ...)`
+### 8. `(string-append str1 str2 ...)`
 
 Native Scheme string concatenation. Use to compose prompt from fragments, choices, and conditionals.
 
@@ -137,6 +171,27 @@ Native Scheme string concatenation. Use to compose prompt from fragments, choice
   (choice "variation 1" "variation 2")
   "More text"
   (if condition "conditional text" "alternate"))
+```
+
+## Markdown Helpers
+
+The DSL automatically loads `thimble/markdown.ss`, providing helpers for formatting:
+
+*   `(bold "text")` -> `**text**`
+*   `(italic "text")` -> `*text*`
+*   `(code "text")` -> `` `text` ``
+*   `(link "text" "url")` -> `[text](url)`
+*   `(header level "text")` -> `#... text`
+*   `(bullet-list '("item1" "item2"))` -> `• item1\n• item2`
+*   `(numbered-list '("item1" "item2"))` -> `1. item1\n2. item2`
+*   `(quote "text")` -> `> text`
+
+```scheme
+(string-append
+  (header 1 "Identity")
+  "You are a helper."
+  (header 2 "Rules")
+  (bullet-list '("Be kind" "Be concise")))
 ```
 
 ## Fragment Library Structure
@@ -328,19 +383,7 @@ Output:
 
 ## Advanced Patterns
 
-### 1. Weighted Choice Approximation
-
-For rough weighting (not uniform distribution), duplicate options:
-
-```scheme
-(choice
-  "common option"
-  "common option"
-  "common option"
-  "rare option")  ; Appears 25% of the time instead of 50%
-```
-
-### 1b. Multi-Selection with `choose-n`
+### 1. Multi-Selection with `choose-n`
 
 Sample multiple distinct items for more complex variations:
 

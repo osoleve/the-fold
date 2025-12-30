@@ -101,6 +101,30 @@
   (free (make-instruction tag payload pure-free)))
 
 ;;; ============================================================
+;;; DSL Syntax Sugars
+;;; ============================================================
+
+;;; define-instruction : (Name Param ...) -> Tag -> DSL Instruction ()
+(define-syntax define-instruction
+  (syntax-rules ()
+                [(_ (name arg ...) tag)
+                 (define (name arg ...)
+                   (dsl-emit tag (list arg ...)))]
+                [(_ name tag)
+                 (define (name arg)
+                   (dsl-emit tag arg))]))
+
+;;; define-request : (Name Param ...) -> Tag -> DSL Instruction Response
+(define-syntax define-request
+  (syntax-rules ()
+                [(_ (name arg ...) tag)
+                 (define (name arg ...)
+                   (dsl-request tag (list arg ...)))]
+                [(_ name tag)
+                 (define (name arg)
+                   (dsl-request tag arg))]))
+
+;;; ============================================================
 ;;; Interpreter Builder
 ;;; ============================================================
 ;;;
@@ -157,6 +181,33 @@
                     (lambda (result)
                             (run-dsl-eff handler (cont result)))))]))
 
+;;; run-dsl-state : (Symbol -> Payload -> State -> (Response . State)) -> State -> DSL Instruction a -> (a . State)
+;;; Pure interpreter with state passing.
+(define (run-dsl-state handler state program)
+  (cond
+   [(pure-free? program)
+    (cons (from-pure-free program) state)]
+   [(free-suspended? program)
+    (let* ([instr (from-free program)]
+           [tag (instruction-tag instr)]
+           [payload (instruction-payload instr)]
+           [cont (instruction-cont instr)]
+           [res (handler tag payload state)]
+           [val (car res)]
+           [new-state (cdr res)])
+          (run-dsl-state handler new-state (cont val)))]))
+
+;;; dsl-trace : Interpreter -> Interpreter
+;;; Wrap an interpreter to trace instructions.
+(define (dsl-trace interp)
+  (let ([handler (interpreter-handler interp)])
+       (make-interpreter
+        (lambda (tag payload)
+                (display (format "[DSL-TRACE] ~a: ~s\n" tag payload))
+                (let ([result (handler tag payload)])
+                     (display (format "[DSL-TRACE]   => ~s\n" result))
+                     result)))))
+
 ;;; ============================================================
 ;;; Interpreter Composition
 ;;; ============================================================
@@ -170,6 +221,15 @@
                 (if handler-pair
                     ((cdr handler-pair) payload)
                     (error 'layered-interpreter "Unhandled instruction" tag))))))
+
+;;; composed-interpreter : Interpreter -> Interpreter -> Interpreter
+;;; Compose two interpreters. If the first fails, the second is used.
+;;; Note: Requires the handlers to signal "unhandled" somehow, or we use a guard.
+(define (composed-interpreter primary secondary)
+  (make-interpreter
+   (lambda (tag payload)
+           (guard (ex [else ((interpreter-handler secondary) tag payload)])
+                  ((interpreter-handler primary) tag payload)))))
 
 ;;; ============================================================
 ;;; Expression DSL Builder
