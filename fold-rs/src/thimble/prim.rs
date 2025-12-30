@@ -1616,6 +1616,60 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 Ok(Value::String(format!("{}{}", padding, s)))
             }
         }
+        "string-reverse" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("string-reverse expects 1 arg"));
+            }
+            let s = expect_string(&args[0])?;
+            Ok(Value::String(s.chars().rev().collect()))
+        }
+        "string-repeat" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "string-repeat expects 2 args: (string-repeat str count)",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let count = expect_usize(&args[1])?;
+            Ok(Value::String(s.repeat(count)))
+        }
+        "string-replace" => {
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "string-replace expects 3 args: (string-replace str old new)",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let old = expect_string(&args[1])?;
+            let new = expect_string(&args[2])?;
+            Ok(Value::String(s.replace(&old, &new)))
+        }
+        "string-index" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "string-index expects 2 args: (string-index str substring)",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let substring = expect_string(&args[1])?;
+            match s.find(&substring) {
+                Some(idx) => Ok(Value::Number(idx as i64)),
+                None => Ok(Value::Nil),
+            }
+        }
+        "string-rindex" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "string-rindex expects 2 args: (string-rindex str substring)",
+                ));
+            }
+            let s = expect_string(&args[0])?;
+            let substring = expect_string(&args[1])?;
+            match s.rfind(&substring) {
+                Some(idx) => Ok(Value::Number(idx as i64)),
+                None => Ok(Value::Nil),
+            }
+        }
 
         // Format string
         "format" => {
