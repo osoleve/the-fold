@@ -169,7 +169,7 @@ fn is_builtin_prim(name: &str) -> bool {
             | "when" | "unless" | "implies" | "iff" | "nand" | "nor" | "if"
             | "cond-value" | "coalesce" | "default-value" | "both?" | "either?"
             // Utilities
-            | "identity" | "error" | "deep-equal?" | "list-every?"
+            | "identity" | "error" | "deep-equal?" | "list-every?" | "apply"
             | "assq" | "assoc"
             // List analysis utilities
             | "list-count" | "list-sum" | "list-avg" | "list-min-value" | "list-max-value"

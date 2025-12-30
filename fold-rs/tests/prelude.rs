@@ -130,3 +130,22 @@ fn test_first_class_primitives() {
     let result = eval_with_prelude("(map (compose inc double) '(1 2 3))");
     assert_eq!(result, "(3 5 7)");
 }
+
+#[test]
+fn test_apply() {
+    // Basic apply with primitive
+    let result = eval_with_prelude("(apply + '(1 2 3))");
+    assert_eq!(result, "6");
+
+    // Apply with extra arguments before list
+    let result = eval_with_prelude("(apply + 1 2 '(3 4))");
+    assert_eq!(result, "10");
+
+    // Apply with list operations
+    let result = eval_with_prelude("(apply list '(a b c))");
+    assert_eq!(result, "(a b c)");
+
+    // Apply with string-append
+    let result = eval_with_prelude("(apply string-append '(\"hello\" \" \" \"world\"))");
+    assert_eq!(result, "\"hello world\"");
+}

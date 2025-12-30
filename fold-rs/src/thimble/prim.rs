@@ -2576,6 +2576,38 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 Ok(args[0].clone())
             }
         }
+        "apply" => {
+            // Apply a function to a list of arguments
+            // (apply f '(a b c)) => (f a b c)
+            // (apply f x y '(a b c)) => (f x y a b c)
+            if args.len() < 2 {
+                return Err(EvalError::TypeMismatch("apply expects at least 2 args"));
+            }
+            let func = &args[0];
+            let last_arg = &args[args.len() - 1];
+
+            // Collect middle arguments (if any)
+            let mut call_args: Vec<Value> = args[1..args.len() - 1].to_vec();
+
+            // Append the list arguments
+            let list_args = list_to_vec(last_arg)?;
+            call_args.extend(list_args);
+
+            // Apply based on function type
+            match func {
+                Value::Primitive(op) => apply_prim(op, &call_args),
+                Value::Closure(_) => {
+                    // Closures need to be applied by the evaluator
+                    // Return a special error that could be caught
+                    Err(EvalError::TypeMismatch(
+                        "apply: use direct call syntax for closures",
+                    ))
+                }
+                _ => Err(EvalError::TypeMismatch(
+                    "apply: first arg must be a function",
+                )),
+            }
+        }
         "xor" => {
             // Logical XOR: true if exactly one argument is truthy
             if args.len() != 2 {

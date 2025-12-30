@@ -511,6 +511,7 @@ const PRIMITIVE_NAMES: &[&str] = &[
     "either?",
     // Utilities
     "identity",
+    "apply",
     "error",
     "deep-equal?",
     "list-every?",
