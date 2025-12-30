@@ -109,6 +109,31 @@ pub const PRELUDE_SOURCE: &str = r#"
    ; complement: Negate a predicate
    (complement (fn (p) (fn (x) (not (p x)))))
 
+   ; -- Equality predicates --
+
+   ; eqv?: Value equality (same as eq? for symbols, = for numbers)
+   (eqv? (fn (a b)
+     (if (number? a)
+         (if (number? b) (= a b) #f)
+         (if (string? a)
+             (if (string? b) (string=? a b) #f)
+             (if (char? a)
+                 (if (char? b) (char=? a b) #f)
+                 (eq? a b))))))
+
+   ; equal?: Deep structural equality
+   (equal? (fix equal-rec
+     (fn (a b)
+       (if (pair? a)
+           (if (pair? b)
+               (if (equal-rec (car a) (car b))
+                   (equal-rec (cdr a) (cdr b))
+                   #f)
+               #f)
+           (if (null? a)
+               (null? b)
+               (eqv? a b))))))
+
    ; -- More list utilities --
 
    ; partition: Split list into (matches, non-matches) based on predicate
@@ -9099,6 +9124,701 @@ pub const PRELUDE_SOURCE: &str = r#"
              (if (equal? x next)
                  x
                  (find-fixed-point-rec f next (- max-iter 1))))))))
+
+   ; ============================================
+   ; String Manipulation Utilities
+   ; ============================================
+
+   ; string-null?: Check if string is empty
+   (string-null? (fn (s)
+     (= (string-length s) 0)))
+
+   ; string-take: Take first n characters
+   (string-take (fn (n s)
+     (substring s 0 (min n (string-length s)))))
+
+   ; string-drop: Drop first n characters
+   (string-drop (fn (n s)
+     (substring s (min n (string-length s)) (string-length s))))
+
+   ; string-take-right: Take last n characters
+   (string-take-right (fn (n s)
+     (let ((len (string-length s)))
+       (substring s (max 0 (- len n)) len))))
+
+   ; string-drop-right: Drop last n characters
+   (string-drop-right (fn (n s)
+     (let ((len (string-length s)))
+       (substring s 0 (max 0 (- len n))))))
+
+   ; string-pad: Pad string on left to width
+   (string-pad (fn (s width char)
+     (let ((len (string-length s)))
+       (if (>= len width)
+           s
+           (string-append (make-string (- width len) char) s)))))
+
+   ; string-pad-right: Pad string on right to width
+   (string-pad-right (fn (s width char)
+     (let ((len (string-length s)))
+       (if (>= len width)
+           s
+           (string-append s (make-string (- width len) char))))))
+
+   ; string-trim-left: Remove leading chars matching predicate
+   (string-trim-left (fix trim-left-rec
+     (fn (pred s)
+       (if (string-null? s)
+           s
+           (if (pred (string-ref s 0))
+               (trim-left-rec pred (string-drop 1 s))
+               s)))))
+
+   ; string-trim-right: Remove trailing chars matching predicate
+   (string-trim-right (fn (pred s)
+     ((fix trim-right-rec
+        (fn (i)
+          (if (<= i 0)
+              ""
+              (if (pred (string-ref s (- i 1)))
+                  (trim-right-rec (- i 1))
+                  (substring s 0 i)))))
+      (string-length s))))
+
+   ; string-trim: Remove chars from both ends
+   (string-trim (fn (pred s)
+     (string-trim-right pred (string-trim-left pred s))))
+
+   ; string-trim-whitespace: Trim whitespace from both ends
+   (string-trim-whitespace (fn (s)
+     (string-trim (fn (c) (or (char=? c #\space)
+                               (char=? c #\tab)
+                               (char=? c #\newline)))
+                  s)))
+
+   ; string-contains?: Check if s1 contains s2
+   (string-contains? (fix contains-rec
+     (fn (s1 s2)
+       (let ((len1 (string-length s1))
+             (len2 (string-length s2)))
+         (if (< len1 len2)
+             #f
+             (if (string=? (string-take len2 s1) s2)
+                 #t
+                 (contains-rec (string-drop 1 s1) s2)))))))
+
+   ; string-prefix?: Check if s2 is prefix of s1
+   (string-prefix? (fn (s1 s2)
+     (let ((len1 (string-length s1))
+           (len2 (string-length s2)))
+       (if (< len1 len2)
+           #f
+           (string=? (string-take len2 s1) s2)))))
+
+   ; string-suffix?: Check if s2 is suffix of s1
+   (string-suffix? (fn (s1 s2)
+     (let ((len1 (string-length s1))
+           (len2 (string-length s2)))
+       (if (< len1 len2)
+           #f
+           (string=? (string-take-right len2 s1) s2)))))
+
+   ; string-split-at: Split string at index
+   (string-split-at (fn (s i)
+     (cons (string-take i s) (string-drop i s))))
+
+   ; string-replace-first: Replace first occurrence of old with new
+   (string-replace-first (fix replace-first-rec
+     (fn (s old new)
+       (let ((len-s (string-length s))
+             (len-old (string-length old)))
+         (if (< len-s len-old)
+             s
+             (if (string=? (string-take len-old s) old)
+                 (string-append new (string-drop len-old s))
+                 (string-append (string-take 1 s)
+                                (replace-first-rec (string-drop 1 s) old new))))))))
+
+   ; string-replace-all: Replace all occurrences of old with new
+   (string-replace-all (fix replace-all-rec
+     (fn (s old new)
+       (let ((len-s (string-length s))
+             (len-old (string-length old)))
+         (if (< len-s len-old)
+             s
+             (if (string=? (string-take len-old s) old)
+                 (string-append new (replace-all-rec (string-drop len-old s) old new))
+                 (string-append (string-take 1 s)
+                                (replace-all-rec (string-drop 1 s) old new))))))))
+
+   ; string-reverse: Reverse a string
+   (string-reverse (fn (s)
+     (list->string (reverse (string->list s)))))
+
+   ; string-join: Join list of strings with separator
+   (string-join (fix join-rec
+     (fn (lst sep)
+       (if (null? lst)
+           ""
+           (if (null? (cdr lst))
+               (car lst)
+               (string-append (car lst)
+                              (string-append sep (join-rec (cdr lst) sep))))))))
+
+   ; string-split-char: Split string by delimiter character
+   (string-split-char (fn (s delim)
+     ((fix split-rec
+        (fn (chars current acc)
+          (if (null? chars)
+              (reverse (cons (list->string (reverse current)) acc))
+              (if (char=? (car chars) delim)
+                  (split-rec (cdr chars) '() (cons (list->string (reverse current)) acc))
+                  (split-rec (cdr chars) (cons (car chars) current) acc)))))
+      (string->list s) '() '())))
+
+   ; string-upcase: Convert string to uppercase
+   (string-upcase (fn (s)
+     (list->string (map char-upcase (string->list s)))))
+
+   ; string-downcase: Convert string to lowercase
+   (string-downcase (fn (s)
+     (list->string (map char-downcase (string->list s)))))
+
+   ; string-titlecase: Capitalize first letter of each word
+   (string-titlecase (fn (s)
+     (string-join (map (fn (word)
+                         (if (string-null? word)
+                             word
+                             (string-append (string-upcase (string-take 1 word))
+                                            (string-downcase (string-drop 1 word)))))
+                       (string-split s " "))
+                  " ")))
+
+   ; string-count: Count occurrences of char in string
+   (string-count (fn (s c)
+     (length (filter (fn (x) (char=? x c)) (string->list s)))))
+
+   ; string-index: Find first index of char (or -1 if not found)
+   (string-index (fn (s c)
+     ((fix index-rec
+        (fn (chars i)
+          (if (null? chars)
+              -1
+              (if (char=? (car chars) c)
+                  i
+                  (index-rec (cdr chars) (+ i 1))))))
+      (string->list s) 0)))
+
+   ; string-index-right: Find last index of char (or -1 if not found)
+   (string-index-right (fn (s c)
+     ((fix index-rec
+        (fn (chars i found)
+          (if (null? chars)
+              found
+              (if (char=? (car chars) c)
+                  (index-rec (cdr chars) (+ i 1) i)
+                  (index-rec (cdr chars) (+ i 1) found)))))
+      (string->list s) 0 -1)))
+
+   ; ============================================
+   ; Association List Utilities
+   ; ============================================
+
+   ; assoc: Find pair by key using equal?
+   (assoc (fix assoc-rec
+     (fn (key alist)
+       (if (null? alist)
+           #f
+           (if (equal? key (caar alist))
+               (car alist)
+               (assoc-rec key (cdr alist)))))))
+
+   ; assq: Find pair by key using eq?
+   (assq (fix assq-rec
+     (fn (key alist)
+       (if (null? alist)
+           #f
+           (if (eq? key (caar alist))
+               (car alist)
+               (assq-rec key (cdr alist)))))))
+
+   ; assv: Find pair by key using eqv?
+   (assv (fix assv-rec
+     (fn (key alist)
+       (if (null? alist)
+           #f
+           (if (eqv? key (caar alist))
+               (car alist)
+               (assv-rec key (cdr alist)))))))
+
+   ; alist-ref: Get value for key (with optional default)
+   (alist-ref (fn (key alist default)
+     (let ((pair (assoc key alist)))
+       (if pair (cdr pair) default))))
+
+   ; alist-set: Set or update key-value pair
+   (alist-set (fn (key val alist)
+     (cons (cons key val)
+           (filter (fn (pair) (not (equal? key (car pair)))) alist))))
+
+   ; alist-delete: Remove all pairs with key
+   (alist-delete (fn (key alist)
+     (filter (fn (pair) (not (equal? key (car pair)))) alist)))
+
+   ; alist-keys: Get all keys
+   (alist-keys (fn (alist) (map car alist)))
+
+   ; alist-values: Get all values
+   (alist-values (fn (alist) (map cdr alist)))
+
+   ; alist-map: Map over values
+   (alist-map (fn (f alist)
+     (map (fn (pair) (cons (car pair) (f (cdr pair)))) alist)))
+
+   ; alist-filter: Filter pairs by predicate on key-value
+   (alist-filter (fn (pred alist)
+     (filter (fn (pair) (pred (car pair) (cdr pair))) alist)))
+
+   ; alist-merge: Merge two alists (second takes precedence)
+   (alist-merge (fn (alist1 alist2)
+     (foldl (fn (acc pair) (alist-set (car pair) (cdr pair) acc))
+            alist1
+            alist2)))
+
+   ; alist->list: Convert alist to list of key-value lists
+   (alist->list (fn (alist)
+     (map (fn (pair) (list (car pair) (cdr pair))) alist)))
+
+   ; list->alist: Convert list of key-value lists to alist
+   (list->alist (fn (lst)
+     (map (fn (kv) (cons (car kv) (cadr kv))) lst)))
+
+   ; alist-has-key?: Check if key exists
+   (alist-has-key? (fn (key alist)
+     (not (eq? (assoc key alist) #f))))
+
+   ; alist-update: Update value for key using function
+   (alist-update (fn (key f default alist)
+     (let ((old-val (alist-ref key alist default)))
+       (alist-set key (f old-val) alist))))
+
+   ; ============================================
+   ; Set Operations (using sorted lists)
+   ; ============================================
+
+   ; set-empty: Empty set
+   (set-empty '())
+
+   ; set-singleton: Create single-element set
+   (set-singleton (fn (x) (list x)))
+
+   ; set-member?: Check membership
+   (set-member? (fix member-rec
+     (fn (x s)
+       (if (null? s)
+           #f
+           (if (equal? x (car s))
+               #t
+               (member-rec x (cdr s)))))))
+
+   ; set-insert: Insert element (maintains uniqueness)
+   (set-insert (fn (x s)
+     (if (set-member? x s)
+         s
+         (cons x s))))
+
+   ; set-delete: Remove element
+   (set-delete (fn (x s)
+     (filter (fn (y) (not (equal? x y))) s)))
+
+   ; set-union: Union of two sets
+   (set-union (fn (s1 s2)
+     (foldl (fn (acc x) (set-insert x acc)) s1 s2)))
+
+   ; set-intersection: Intersection of two sets
+   (set-intersection (fn (s1 s2)
+     (filter (fn (x) (set-member? x s2)) s1)))
+
+   ; set-difference: Set difference (s1 - s2)
+   (set-difference (fn (s1 s2)
+     (filter (fn (x) (not (set-member? x s2))) s1)))
+
+   ; set-symmetric-difference: Symmetric difference
+   (set-symmetric-difference (fn (s1 s2)
+     (set-union (set-difference s1 s2)
+                (set-difference s2 s1))))
+
+   ; set-subset?: Check if s1 is subset of s2
+   (set-subset? (fn (s1 s2)
+     (all (fn (x) (set-member? x s2)) s1)))
+
+   ; set-superset?: Check if s1 is superset of s2
+   (set-superset? (fn (s1 s2)
+     (set-subset? s2 s1)))
+
+   ; set-equal?: Check if sets are equal
+   (set-equal? (fn (s1 s2)
+     (and (set-subset? s1 s2)
+          (set-subset? s2 s1))))
+
+   ; set-disjoint?: Check if sets have no common elements
+   (set-disjoint? (fn (s1 s2)
+     (null? (set-intersection s1 s2))))
+
+   ; set-size: Number of elements
+   (set-size length)
+
+   ; set->list: Convert to list
+   (set->list (fn (s) s))
+
+   ; list->set: Convert list to set (removes duplicates)
+   (list->set (fn (lst)
+     (foldl (fn (acc x) (set-insert x acc)) '() lst)))
+
+   ; set-filter: Filter set by predicate
+   (set-filter filter)
+
+   ; set-map: Map over set (may introduce duplicates, so re-setify)
+   (set-map (fn (f s)
+     (list->set (map f s))))
+
+   ; set-fold: Fold over set
+   (set-fold foldl)
+
+   ; set-partition: Partition set by predicate
+   (set-partition (fn (pred s)
+     (cons (filter pred s)
+           (filter (fn (x) (not (pred x))) s))))
+
+   ; ============================================
+   ; Queue (Functional, Two-List Implementation)
+   ; ============================================
+
+   ; queue-empty: Create empty queue
+   (queue-empty (cons '() '()))
+
+   ; queue-empty?: Check if queue is empty
+   (queue-empty? (fn (q)
+     (and (null? (car q)) (null? (cdr q)))))
+
+   ; queue-enqueue: Add element to back
+   (queue-enqueue (fn (x q)
+     (cons (car q) (cons x (cdr q)))))
+
+   ; queue-front: Get front element
+   (queue-front (fn (q)
+     (if (null? (car q))
+         (if (null? (cdr q))
+             (error "queue-front: empty queue")
+             (car (reverse (cdr q))))
+         (caar q))))
+
+   ; queue-dequeue: Remove front element
+   (queue-dequeue (fn (q)
+     (if (null? (car q))
+         (if (null? (cdr q))
+             (error "queue-dequeue: empty queue")
+             (let ((front (reverse (cdr q))))
+               (cons (cdr front) '())))
+         (cons (cdar q) (cdr q)))))
+
+   ; queue-size: Number of elements
+   (queue-size (fn (q)
+     (+ (length (car q)) (length (cdr q)))))
+
+   ; queue->list: Convert to list (front to back)
+   (queue->list (fn (q)
+     (append (car q) (reverse (cdr q)))))
+
+   ; list->queue: Create queue from list
+   (list->queue (fn (lst)
+     (cons lst '())))
+
+   ; ============================================
+   ; Deque (Double-ended Queue)
+   ; ============================================
+
+   ; deque-empty: Create empty deque
+   (deque-empty (cons '() '()))
+
+   ; deque-empty?: Check if deque is empty
+   (deque-empty? (fn (d)
+     (and (null? (car d)) (null? (cdr d)))))
+
+   ; deque-push-front: Add to front
+   (deque-push-front (fn (x d)
+     (cons (cons x (car d)) (cdr d))))
+
+   ; deque-push-back: Add to back
+   (deque-push-back (fn (x d)
+     (cons (car d) (cons x (cdr d)))))
+
+   ; deque-front: Get front element
+   (deque-front (fn (d)
+     (if (null? (car d))
+         (if (null? (cdr d))
+             (error "deque-front: empty deque")
+             (car (reverse (cdr d))))
+         (caar d))))
+
+   ; deque-back: Get back element
+   (deque-back (fn (d)
+     (if (null? (cdr d))
+         (if (null? (car d))
+             (error "deque-back: empty deque")
+             (car (reverse (car d))))
+         (cadr d))))
+
+   ; deque-pop-front: Remove front element
+   (deque-pop-front (fn (d)
+     (if (null? (car d))
+         (if (null? (cdr d))
+             (error "deque-pop-front: empty deque")
+             (let ((front (reverse (cdr d))))
+               (cons (cdr front) '())))
+         (cons (cdar d) (cdr d)))))
+
+   ; deque-pop-back: Remove back element
+   (deque-pop-back (fn (d)
+     (if (null? (cdr d))
+         (if (null? (car d))
+             (error "deque-pop-back: empty deque")
+             (let ((back (reverse (car d))))
+               (cons '() (cdr back))))
+         (cons (car d) (cddr d)))))
+
+   ; deque-size: Number of elements
+   (deque-size (fn (d)
+     (+ (length (car d)) (length (cdr d)))))
+
+   ; deque->list: Convert to list
+   (deque->list (fn (d)
+     (append (car d) (reverse (cdr d)))))
+
+   ; list->deque: Create deque from list
+   (list->deque (fn (lst)
+     (cons lst '())))
+
+   ; ============================================
+   ; Sorting Algorithms
+   ; ============================================
+
+   ; insert-sorted: Insert into sorted list
+   (insert-sorted (fix insert-rec
+     (fn (x lst cmp)
+       (if (null? lst)
+           (list x)
+           (if (cmp x (car lst))
+               (cons x lst)
+               (cons (car lst) (insert-rec x (cdr lst) cmp)))))))
+
+   ; insertion-sort: Insertion sort with comparator
+   (insertion-sort (fn (lst cmp)
+     (foldl (fn (acc x) (insert-sorted x acc cmp)) '() lst)))
+
+   ; merge-sorted: Merge two sorted lists
+   (merge-sorted (fix merge-rec
+     (fn (l1 l2 cmp)
+       (if (null? l1)
+           l2
+           (if (null? l2)
+               l1
+               (if (cmp (car l1) (car l2))
+                   (cons (car l1) (merge-rec (cdr l1) l2 cmp))
+                   (cons (car l2) (merge-rec l1 (cdr l2) cmp))))))))
+
+   ; merge-sort: Merge sort with comparator
+   (merge-sort (fix merge-sort-rec
+     (fn (lst cmp)
+       (let ((len (length lst)))
+         (if (<= len 1)
+             lst
+             (let ((mid (quotient len 2)))
+               (merge-sorted
+                 (merge-sort-rec (take mid lst) cmp)
+                 (merge-sort-rec (drop mid lst) cmp)
+                 cmp)))))))
+
+   ; quicksort: Quicksort with comparator
+   (quicksort (fix quicksort-rec
+     (fn (lst cmp)
+       (if (null? lst)
+           '()
+           (let ((pivot (car lst))
+                 (rest (cdr lst)))
+             (append (quicksort-rec (filter (fn (x) (cmp x pivot)) rest) cmp)
+                     (cons pivot
+                           (quicksort-rec (filter (fn (x) (not (cmp x pivot))) rest) cmp))))))))
+
+   ; sort: Default sort (uses merge-sort with <)
+   (sort (fn (lst)
+     (merge-sort lst <)))
+
+   ; sort-by: Sort using key function
+   (sort-by-key (fn (key-fn lst)
+     (map cdr
+       (merge-sort (map (fn (x) (cons (key-fn x) x)) lst)
+                   (fn (a b) (< (car a) (car b)))))))
+
+   ; sort-descending: Sort in descending order
+   (sort-descending (fn (lst)
+     (merge-sort lst >)))
+
+   ; sorted?: Check if list is sorted
+   (sorted? (fix sorted-rec
+     (fn (lst cmp)
+       (if (null? lst)
+           #t
+           (if (null? (cdr lst))
+               #t
+               (if (cmp (car lst) (cadr lst))
+                   (sorted-rec (cdr lst) cmp)
+                   (if (equal? (car lst) (cadr lst))
+                       (sorted-rec (cdr lst) cmp)
+                       #f)))))))
+
+   ; minimum: Find minimum element
+   (minimum (fn (lst)
+     (if (null? lst)
+         (error "minimum: empty list")
+         (foldl (fn (acc x) (if (< x acc) x acc)) (car lst) (cdr lst)))))
+
+   ; maximum: Find maximum element
+   (maximum (fn (lst)
+     (if (null? lst)
+         (error "maximum: empty list")
+         (foldl (fn (acc x) (if (> x acc) x acc)) (car lst) (cdr lst)))))
+
+   ; minimum-by: Find minimum by key function
+   (minimum-by (fn (key-fn lst)
+     (if (null? lst)
+         (error "minimum-by: empty list")
+         (car (foldl (fn (acc x)
+                       (let ((kx (key-fn x)))
+                         (if (< kx (cdr acc))
+                             (cons x kx)
+                             acc)))
+                     (cons (car lst) (key-fn (car lst)))
+                     (cdr lst))))))
+
+   ; maximum-by: Find maximum by key function
+   (maximum-by (fn (key-fn lst)
+     (if (null? lst)
+         (error "maximum-by: empty list")
+         (car (foldl (fn (acc x)
+                       (let ((kx (key-fn x)))
+                         (if (> kx (cdr acc))
+                             (cons x kx)
+                             acc)))
+                     (cons (car lst) (key-fn (car lst)))
+                     (cdr lst))))))
+
+   ; ============================================
+   ; Priority Queue (using sorted list - simple version)
+   ; ============================================
+
+   ; pq-empty: Create empty priority queue
+   (pq-empty '())
+
+   ; pq-empty?: Check if empty
+   (pq-empty? null?)
+
+   ; pq-insert: Insert with priority (lower = higher priority)
+   (pq-insert (fn (priority value pq)
+     (insert-sorted (cons priority value) pq
+                    (fn (a b) (< (car a) (car b))))))
+
+   ; pq-peek: Get highest priority element
+   (pq-peek (fn (pq)
+     (if (null? pq)
+         (error "pq-peek: empty queue")
+         (cdar pq))))
+
+   ; pq-peek-priority: Get highest priority value
+   (pq-peek-priority (fn (pq)
+     (if (null? pq)
+         (error "pq-peek-priority: empty queue")
+         (caar pq))))
+
+   ; pq-pop: Remove highest priority element
+   (pq-pop (fn (pq)
+     (if (null? pq)
+         (error "pq-pop: empty queue")
+         (cdr pq))))
+
+   ; pq-size: Number of elements
+   (pq-size length)
+
+   ; ============================================
+   ; Multiset / Bag (using alist for counts)
+   ; ============================================
+
+   ; bag-empty: Create empty bag
+   (bag-empty '())
+
+   ; bag-insert: Add element (increment count)
+   (bag-insert (fn (x bag)
+     (let ((current (alist-ref x bag 0)))
+       (alist-set x (+ current 1) bag))))
+
+   ; bag-count: Get count of element
+   (bag-count (fn (x bag)
+     (alist-ref x bag 0)))
+
+   ; bag-remove: Remove one occurrence
+   (bag-remove (fn (x bag)
+     (let ((current (alist-ref x bag 0)))
+       (if (<= current 1)
+           (alist-delete x bag)
+           (alist-set x (- current 1) bag)))))
+
+   ; bag-remove-all: Remove all occurrences
+   (bag-remove-all alist-delete)
+
+   ; bag-member?: Check if element exists
+   (bag-member? (fn (x bag)
+     (> (bag-count x bag) 0)))
+
+   ; bag-unique-elements: Get unique elements
+   (bag-unique-elements alist-keys)
+
+   ; bag-total-count: Total number of elements (with multiplicity)
+   (bag-total-count (fn (bag)
+     (foldl + 0 (alist-values bag))))
+
+   ; bag->list: Convert to list with repetition
+   (bag->list (fn (bag)
+     (apply append
+       (map (fn (pair)
+              (replicate (cdr pair) (car pair)))
+            bag))))
+
+   ; list->bag: Create bag from list
+   (list->bag (fn (lst)
+     (foldl (fn (acc x) (bag-insert x acc)) '() lst)))
+
+   ; bag-union: Union (max of counts)
+   (bag-union (fn (b1 b2)
+     (let ((keys (set-union (alist-keys b1) (alist-keys b2))))
+       (map (fn (k) (cons k (max (bag-count k b1) (bag-count k b2))))
+            keys))))
+
+   ; bag-intersection: Intersection (min of counts)
+   (bag-intersection (fn (b1 b2)
+     (let ((keys (set-intersection (alist-keys b1) (alist-keys b2))))
+       (filter (fn (pair) (> (cdr pair) 0))
+         (map (fn (k) (cons k (min (bag-count k b1) (bag-count k b2))))
+              keys)))))
+
+   ; bag-sum: Sum (add counts)
+   (bag-sum (fn (b1 b2)
+     (foldl (fn (acc pair)
+              (alist-update (car pair)
+                            (fn (old) (+ old (cdr pair)))
+                            0
+                            acc))
+            b1
+            b2)))
   )
 
   ; Body returns a list of all defined functions as an alist
@@ -9120,6 +9840,8 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'compose compose)
     (cons 'flip flip)
     (cons 'complement complement)
+    (cons 'eqv? eqv?)
+    (cons 'equal? equal?)
     (cons 'partition partition)
     (cons 'find-if find-if)
     (cons 'remove-if remove-if)
@@ -10690,6 +11412,127 @@ pub const PRELUDE_SOURCE: &str = r#"
     (cons 'find-fixed-point find-fixed-point)
     (cons 'do-while do-while)
     (cons 'do-until do-until)
+    ; String manipulation
+    (cons 'string-null? string-null?)
+    (cons 'string-take string-take)
+    (cons 'string-drop string-drop)
+    (cons 'string-take-right string-take-right)
+    (cons 'string-drop-right string-drop-right)
+    (cons 'string-pad string-pad)
+    (cons 'string-pad-right string-pad-right)
+    (cons 'string-trim-left string-trim-left)
+    (cons 'string-trim-right string-trim-right)
+    (cons 'string-trim string-trim)
+    (cons 'string-trim-whitespace string-trim-whitespace)
+    (cons 'string-contains? string-contains?)
+    (cons 'string-prefix? string-prefix?)
+    (cons 'string-suffix? string-suffix?)
+    (cons 'string-split-at string-split-at)
+    (cons 'string-replace-first string-replace-first)
+    (cons 'string-replace-all string-replace-all)
+    (cons 'string-reverse string-reverse)
+    (cons 'string-join string-join)
+    (cons 'string-split-char string-split-char)
+    (cons 'string-upcase string-upcase)
+    (cons 'string-downcase string-downcase)
+    (cons 'string-titlecase string-titlecase)
+    (cons 'string-count string-count)
+    (cons 'string-index string-index)
+    (cons 'string-index-right string-index-right)
+    ; Association list utilities
+    (cons 'assoc assoc)
+    (cons 'assq assq)
+    (cons 'assv assv)
+    (cons 'alist-ref alist-ref)
+    (cons 'alist-set alist-set)
+    (cons 'alist-delete alist-delete)
+    (cons 'alist-keys alist-keys)
+    (cons 'alist-values alist-values)
+    (cons 'alist-map alist-map)
+    (cons 'alist-filter alist-filter)
+    (cons 'alist-merge alist-merge)
+    (cons 'alist->list alist->list)
+    (cons 'list->alist list->alist)
+    (cons 'alist-has-key? alist-has-key?)
+    (cons 'alist-update alist-update)
+    ; Set operations
+    (cons 'set-empty set-empty)
+    (cons 'set-singleton set-singleton)
+    (cons 'set-member? set-member?)
+    (cons 'set-insert set-insert)
+    (cons 'set-delete set-delete)
+    (cons 'set-union set-union)
+    (cons 'set-intersection set-intersection)
+    (cons 'set-difference set-difference)
+    (cons 'set-symmetric-difference set-symmetric-difference)
+    (cons 'set-subset? set-subset?)
+    (cons 'set-superset? set-superset?)
+    (cons 'set-equal? set-equal?)
+    (cons 'set-disjoint? set-disjoint?)
+    (cons 'set-size set-size)
+    (cons 'set->list set->list)
+    (cons 'list->set list->set)
+    (cons 'set-filter set-filter)
+    (cons 'set-map set-map)
+    (cons 'set-fold set-fold)
+    (cons 'set-partition set-partition)
+    ; Queue
+    (cons 'queue-empty queue-empty)
+    (cons 'queue-empty? queue-empty?)
+    (cons 'queue-enqueue queue-enqueue)
+    (cons 'queue-front queue-front)
+    (cons 'queue-dequeue queue-dequeue)
+    (cons 'queue-size queue-size)
+    (cons 'queue->list queue->list)
+    (cons 'list->queue list->queue)
+    ; Deque
+    (cons 'deque-empty deque-empty)
+    (cons 'deque-empty? deque-empty?)
+    (cons 'deque-push-front deque-push-front)
+    (cons 'deque-push-back deque-push-back)
+    (cons 'deque-front deque-front)
+    (cons 'deque-back deque-back)
+    (cons 'deque-pop-front deque-pop-front)
+    (cons 'deque-pop-back deque-pop-back)
+    (cons 'deque-size deque-size)
+    (cons 'deque->list deque->list)
+    (cons 'list->deque list->deque)
+    ; Sorting
+    (cons 'insert-sorted insert-sorted)
+    (cons 'insertion-sort insertion-sort)
+    (cons 'merge-sorted merge-sorted)
+    (cons 'merge-sort merge-sort)
+    (cons 'quicksort quicksort)
+    (cons 'sort sort)
+    (cons 'sort-by-key sort-by-key)
+    (cons 'sort-descending sort-descending)
+    (cons 'sorted? sorted?)
+    (cons 'minimum minimum)
+    (cons 'maximum maximum)
+    (cons 'minimum-by minimum-by)
+    (cons 'maximum-by maximum-by)
+    ; Priority queue
+    (cons 'pq-empty pq-empty)
+    (cons 'pq-empty? pq-empty?)
+    (cons 'pq-insert pq-insert)
+    (cons 'pq-peek pq-peek)
+    (cons 'pq-peek-priority pq-peek-priority)
+    (cons 'pq-pop pq-pop)
+    (cons 'pq-size pq-size)
+    ; Bag/Multiset
+    (cons 'bag-empty bag-empty)
+    (cons 'bag-insert bag-insert)
+    (cons 'bag-count bag-count)
+    (cons 'bag-remove bag-remove)
+    (cons 'bag-remove-all bag-remove-all)
+    (cons 'bag-member? bag-member?)
+    (cons 'bag-unique-elements bag-unique-elements)
+    (cons 'bag-total-count bag-total-count)
+    (cons 'bag->list bag->list)
+    (cons 'list->bag list->bag)
+    (cons 'bag-union bag-union)
+    (cons 'bag-intersection bag-intersection)
+    (cons 'bag-sum bag-sum)
 ))
 "#;
 
