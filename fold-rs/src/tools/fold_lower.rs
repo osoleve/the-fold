@@ -116,6 +116,12 @@ pub fn lower_program(exprs: &[Spanned<Sexp>]) -> Result<Vec<SpannedExpr>, LowerE
                         }
                     }
                 }
+                // Handle define-record-type at program level
+                if head == "define-record-type" {
+                    let record_bindings = extract_record_type_bindings(expr, items)?;
+                    defines.extend(record_bindings);
+                    continue;
+                }
             }
         }
         // Not a define - add to body expressions
@@ -323,6 +329,7 @@ fn lower_list(
             "with-exception-handler" => return lower_with_exception_handler(list_expr, items),
             "guard" => return lower_guard(list_expr, items),
             "set!" => return lower_set(list_expr, items),
+            "define-record-type" => return lower_define_record_type(list_expr, items),
             _ => {
                 // Check if this is a builtin primitive that should be lowered to a prim call
                 if is_builtin_prim(&head_symbol) {
@@ -1672,4 +1679,292 @@ fn lower_set(
         },
         span,
     ))
+}
+
+/// Extract bindings from a define-record-type form for use in lower_program.
+/// Returns constructor, predicate, and accessor bindings.
+fn extract_record_type_bindings(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<Vec<(Symbol, SpannedExpr)>, LowerError> {
+    let span = Some(list_expr.span.clone());
+
+    // Expect: (define-record-type name (fields field1 field2 ...))
+    if items.len() < 3 {
+        return Err(error(
+            list_expr,
+            "define-record-type expects (define-record-type name (fields ...))",
+        ));
+    }
+
+    // Get record type name
+    let type_name = match &items[1].value {
+        Sexp::Symbol(s) => s.clone(),
+        _ => return Err(error(&items[1], "record type name must be a symbol")),
+    };
+
+    // Get fields from (fields field1 field2 ...)
+    let fields_list = match &items[2].value {
+        Sexp::List(list) if !list.is_empty() => list,
+        _ => {
+            return Err(error(
+                &items[2],
+                "expected (fields field1 field2 ...) clause",
+            ))
+        }
+    };
+
+    // Verify it starts with 'fields'
+    match &fields_list[0].value {
+        Sexp::Symbol(s) if s == "fields" => {}
+        _ => {
+            return Err(error(
+                &fields_list[0],
+                "expected 'fields' keyword in record definition",
+            ))
+        }
+    }
+
+    // Extract field names
+    let mut field_names: Vec<String> = Vec::new();
+    for field in &fields_list[1..] {
+        match &field.value {
+            Sexp::Symbol(s) => field_names.push(s.clone()),
+            _ => return Err(error(field, "field name must be a symbol")),
+        }
+    }
+
+    // Generate bindings: constructor, predicate, and accessors
+    let bindings = build_record_type_bindings(&type_name, &field_names, span);
+    Ok(bindings)
+}
+
+/// Build record type bindings (constructor, predicate, accessors)
+fn build_record_type_bindings(
+    type_name: &str,
+    field_names: &[String],
+    span: Option<Span>,
+) -> Vec<(Symbol, SpannedExpr)> {
+    let mut bindings: Vec<(Symbol, SpannedExpr)> = Vec::new();
+
+    // Constructor
+    let constructor_name = Symbol::intern(&format!("make-{}", type_name));
+    let constructor_params: Vec<Symbol> = field_names
+        .iter()
+        .map(|f| Symbol::intern(f))
+        .collect();
+
+    // Build (vec-make '<type> f1 f2 ...)
+    let mut vec_args: Vec<SpannedExpr> = Vec::with_capacity(field_names.len() + 1);
+    vec_args.push(SpannedExpr::new(
+        Expr::Quote(Value::Symbol(Symbol::intern(type_name))),
+        span.clone(),
+    ));
+    for field in field_names {
+        vec_args.push(SpannedExpr::new(
+            Expr::Var(Symbol::intern(field)),
+            span.clone(),
+        ));
+    }
+
+    let constructor_body = SpannedExpr::new(
+        Expr::Prim {
+            op: Symbol::intern("vec-make"),
+            args: vec_args,
+        },
+        span.clone(),
+    );
+
+    let constructor_lambda = SpannedExpr::new(
+        Expr::Fn {
+            params: constructor_params,
+            body: Box::new(constructor_body),
+        },
+        span.clone(),
+    );
+    bindings.push((constructor_name, constructor_lambda));
+
+    // Predicate: (define <type>? (lambda (obj) ...))
+    let predicate_name = Symbol::intern(&format!("{}?", type_name));
+    let obj_sym = Symbol::intern("obj");
+
+    // Build: (and (vector? obj) (>= (vec-length obj) 1) (eq? (vec-ref obj 0) '<type>))
+    let vector_check = SpannedExpr::new(
+        Expr::Prim {
+            op: Symbol::intern("vector?"),
+            args: vec![SpannedExpr::new(Expr::Var(obj_sym.clone()), span.clone())],
+        },
+        span.clone(),
+    );
+
+    let length_check = SpannedExpr::new(
+        Expr::Prim {
+            op: Symbol::intern(">="),
+            args: vec![
+                SpannedExpr::new(
+                    Expr::Prim {
+                        op: Symbol::intern("vec-length"),
+                        args: vec![SpannedExpr::new(Expr::Var(obj_sym.clone()), span.clone())],
+                    },
+                    span.clone(),
+                ),
+                SpannedExpr::new(Expr::Value(Value::Number(1)), span.clone()),
+            ],
+        },
+        span.clone(),
+    );
+
+    let tag_check = SpannedExpr::new(
+        Expr::Prim {
+            op: Symbol::intern("eq?"),
+            args: vec![
+                SpannedExpr::new(
+                    Expr::Prim {
+                        op: Symbol::intern("vec-ref"),
+                        args: vec![
+                            SpannedExpr::new(Expr::Var(obj_sym.clone()), span.clone()),
+                            SpannedExpr::new(Expr::Value(Value::Number(0)), span.clone()),
+                        ],
+                    },
+                    span.clone(),
+                ),
+                SpannedExpr::new(
+                    Expr::Quote(Value::Symbol(Symbol::intern(type_name))),
+                    span.clone(),
+                ),
+            ],
+        },
+        span.clone(),
+    );
+
+    let false_val = SpannedExpr::new(Expr::Value(Value::Bool(false)), span.clone());
+
+    let predicate_body = SpannedExpr::new(
+        Expr::If {
+            test: Box::new(vector_check),
+            then_branch: Box::new(SpannedExpr::new(
+                Expr::If {
+                    test: Box::new(length_check),
+                    then_branch: Box::new(tag_check),
+                    else_branch: Box::new(false_val.clone()),
+                },
+                span.clone(),
+            )),
+            else_branch: Box::new(false_val),
+        },
+        span.clone(),
+    );
+
+    let predicate_lambda = SpannedExpr::new(
+        Expr::Fn {
+            params: vec![obj_sym],
+            body: Box::new(predicate_body),
+        },
+        span.clone(),
+    );
+    bindings.push((predicate_name, predicate_lambda));
+
+    // Accessors: (define <type>-<field> (lambda (r) (vec-ref r <index>)))
+    for (i, field) in field_names.iter().enumerate() {
+        let accessor_name = Symbol::intern(&format!("{}-{}", type_name, field));
+        let r_sym = Symbol::intern("r");
+
+        let accessor_body = SpannedExpr::new(
+            Expr::Prim {
+                op: Symbol::intern("vec-ref"),
+                args: vec![
+                    SpannedExpr::new(Expr::Var(r_sym.clone()), span.clone()),
+                    SpannedExpr::new(Expr::Value(Value::Number((i + 1) as i64)), span.clone()),
+                ],
+            },
+            span.clone(),
+        );
+
+        let accessor_lambda = SpannedExpr::new(
+            Expr::Fn {
+                params: vec![r_sym],
+                body: Box::new(accessor_body),
+            },
+            span.clone(),
+        );
+        bindings.push((accessor_name, accessor_lambda));
+    }
+
+    bindings
+}
+
+/// Lower (define-record-type name (fields field1 field2 ...))
+/// Expands to defines for constructor, predicate, and accessors.
+/// Records are represented as tagged vectors: #(type-name field1 field2 ...)
+fn lower_define_record_type(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+
+    // Expect: (define-record-type name (fields field1 field2 ...))
+    if items.len() < 3 {
+        return Err(error(
+            list_expr,
+            "define-record-type expects (define-record-type name (fields ...))",
+        ));
+    }
+
+    // Get record type name
+    let type_name = match &items[1].value {
+        Sexp::Symbol(s) => s.clone(),
+        _ => return Err(error(&items[1], "record type name must be a symbol")),
+    };
+
+    // Get fields from (fields field1 field2 ...)
+    let fields_list = match &items[2].value {
+        Sexp::List(list) if !list.is_empty() => list,
+        _ => {
+            return Err(error(
+                &items[2],
+                "expected (fields field1 field2 ...) clause",
+            ))
+        }
+    };
+
+    // Verify it starts with 'fields'
+    match &fields_list[0].value {
+        Sexp::Symbol(s) if s == "fields" => {}
+        _ => {
+            return Err(error(
+                &fields_list[0],
+                "expected 'fields' keyword in record definition",
+            ))
+        }
+    }
+
+    // Extract field names
+    let mut field_names: Vec<String> = Vec::new();
+    for field in &fields_list[1..] {
+        match &field.value {
+            Sexp::Symbol(s) => field_names.push(s.clone()),
+            _ => return Err(error(field, "field name must be a symbol")),
+        }
+    }
+
+    // Use shared helper to build bindings
+    let bindings = build_record_type_bindings(&type_name, &field_names, span.clone());
+
+    // Wrap all bindings in nested let expressions
+    // This returns Nil at the end, which is fine for expression context
+    // In practice, define-record-type should be at top-level via lower_program
+    let nil = SpannedExpr::new(Expr::Value(Value::Nil), span.clone());
+    let mut result = nil;
+
+    for (name, value) in bindings.into_iter().rev() {
+        result = SpannedExpr::new(
+            Expr::Let {
+                bindings: vec![(name, value)],
+                body: Box::new(result),
+            },
+            span.clone(),
+        );
+    }
+
+    Ok(result)
 }

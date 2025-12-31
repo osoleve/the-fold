@@ -6,13 +6,13 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| **Milestone 1: Core Language** | Partial | Named let done, missing set!, letrec, internal defines |
+| **Milestone 1: Core Language** | **Mostly Done** | Named let, set!, letrec done; values/let-values pending |
 | **Milestone 2: Exceptions** | **Done** | guard, conditions, raise implemented (13 tests) |
 | **Milestone 3: Macros** | Not Started | define-syntax explicitly skipped |
-| **Milestone 4: Records** | Not Started | No define-record-type |
+| **Milestone 4: Records** | **Done** | define-record-type implemented (14 tests) |
 | **Milestone 5: Mutable Data** | **Done** | Hashtables implemented (13 tests), bytevector mutation pending |
 | **Milestone 6: Ports** | **Done** | String ports + read primitive (17 tests), file ports pending |
-| **Milestone 7: Test Framework** | **Unblocked** | Exceptions done; needs set! for statistics |
+| **Milestone 7: Test Framework** | **Unblocked** | Exceptions done; set! available |
 | **Milestone 8: Prelude Compat** | **Partial** | Unicode aliases done (10 tests), format strings pending |
 
 ---
@@ -26,13 +26,13 @@
 | Feature | Status | Location | Notes |
 |---------|--------|----------|-------|
 | Named let loops | **Done** | `fold_lower.rs` | Lowers to fix |
-| `set!` | **Missing** | expr.rs, eval.rs | Need new Expr::Set variant |
+| `set!` | **Done** | expr.rs, eval.rs | 15 tests passing |
 | `set-car!` | **NOT IMPL** | prim.rs | Listed but returns UnknownPrimitive; pairs are immutable |
 | `set-cdr!` | **NOT IMPL** | prim.rs | Listed but returns UnknownPrimitive; pairs are immutable |
 | `values` | **Missing** | expr.rs, eval.rs | Multiple return values |
 | `call-with-values` | **Missing** | eval.rs | Consumer for multiple values |
 | `let-values` | **Missing** | fold_lower.rs | Destructuring multiple values |
-| `letrec` | **Missing** | fold_lower.rs | Currently only `fix` for single recursive binding |
+| `letrec` | **Done** | fold_lower.rs | 13 tests passing; supports mutual recursion |
 | Internal defines | **Partial** | fold_lower.rs | Works at top-level via `lower_program` |
 
 ### Implementation Plan
@@ -138,22 +138,22 @@ Architecture options:
 
 | Feature | Status | Location | Notes |
 |---------|--------|----------|-------|
-| Constructor generation | **Missing** | New module | `(make-foo field1 field2)` |
-| Predicate generation | **Missing** | New module | `(foo? x)` |
-| Accessor generation | **Missing** | New module | `(foo-field1 x)` |
-| Mutator generation | **Missing** | New module | `(foo-field1-set! x val)` |
-| Inheritance | **Missing** | New module | Parent record types |
+| Constructor generation | **Done** | fold_lower.rs | `(make-foo field1 field2)` |
+| Predicate generation | **Done** | fold_lower.rs | `(foo? x)` |
+| Accessor generation | **Done** | fold_lower.rs | `(foo-field1 x)` |
+| Mutator generation | **Missing** | fold_lower.rs | `(foo-field1-set! x val)` - not needed for basic support |
+| Inheritance | **Missing** | fold_lower.rs | Parent record types - advanced feature |
 
-### Implementation Plan
+### Implementation (Completed)
 
-1. **Record representation**
-   - Use tagged vectors: `#(record-type-tag field1 field2 ...)`
-   - Or dedicated `Value::Record { type_id, fields: Vec<Value> }`
+Records use tagged vectors: `#(record-type-tag field1 field2 ...)`
 
-2. **define-record-type macro/special form**
-   - Parse the definition
-   - Generate constructor, predicate, accessors
-   - Register type in environment
+The `define-record-type` special form in `fold_lower.rs`:
+- Generates constructor (`make-<type>`)
+- Generates predicate (`<type>?`)
+- Generates accessors (`<type>-<field>`)
+- Works at expression level and via `lower_program` for top-level definitions
+- 14 tests passing in `tests/records.rs`
 
 ---
 
