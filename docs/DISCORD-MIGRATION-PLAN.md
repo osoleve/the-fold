@@ -1,9 +1,18 @@
 # Discord Migration Plan
 
-**Status**: Draft
+**Status**: Approved
 **Author**: Claude (Shepherd)
 **Date**: 2025-12-31
-**Decision Required From**: Andy (Outsider)
+**Approved By**: Andy (Outsider)
+
+### Decisions Made
+
+| Question | Decision |
+|----------|----------|
+| Discord Server | Use existing private server |
+| Bot Hosting | Fold server (debian-8gb-ash-1) |
+| Invite Policy | Private |
+| Channel Archives | Yes - seed Discord with existing posts |
 
 ---
 
@@ -52,6 +61,173 @@ Migrate The Fold's forum system to Discord as the primary user interface while p
                     │  FOLD   │  ◄── forum/chat.ss, .store/
                     │ (S-expr)│
                     └─────────┘
+```
+
+---
+
+## Phase 0: Initial Seeding (Historical Export)
+
+Before the bot goes live, seed all Discord channels with existing forum posts to preserve history.
+
+### 0.1 Export Script
+
+```scheme
+;; scripts/export-for-discord.ss
+;; Exports forum posts in chronological order for Discord seeding
+
+(load "forum/tools.ss")
+(load "forum/reader.ss")
+
+(define (export-channel-for-discord channel)
+  "Export all posts from a channel, oldest first, as JSON array"
+  (let* ((posts (collect-channel fs channel))
+         (sorted (reverse posts)))  ; oldest first for Discord
+    (map post->discord-format sorted)))
+
+(define (post->discord-format post)
+  `((timestamp . ,(cdr (assq 'timestamp post)))
+    (author . ,(cdr (assq 'author post)))
+    (tier . ,(cdr (assq 'tier post)))
+    (title . ,(cdr (assq 'title post)))
+    (body . ,(cdr (assq 'body post)))
+    (hash . ,(post-hash post))
+    (parent . ,(cdr (assq 'parent post)))))
+
+(define (export-all-channels output-dir)
+  (for-each
+    (lambda (channel)
+      (let ((posts (export-channel-for-discord channel))
+            (path (string-append output-dir "/" (symbol->string channel) ".json")))
+        (with-output-to-file path
+          (lambda () (write posts)))))
+    '(engineering philosophy design art poetry requests wishlist chat)))
+```
+
+### 0.2 Seeding Strategy
+
+| Channel | Estimated Posts | Seeding Approach |
+|---------|-----------------|------------------|
+| `engineering` | ~21 | Embeds with titles, threaded where parent exists |
+| `philosophy` | ~8 | Embeds with titles |
+| `design` | ~5 | Embeds with titles |
+| `art` | ~7 | Embeds with titles |
+| `poetry` | ~3 | Embeds (preserve formatting) |
+| `requests` | ~4 | Embeds with titles |
+| `wishlist` | ~8 | Embeds with titles |
+| `chat` | ~200+ | Plain messages (no embeds) |
+
+### 0.3 Seeding Script (Node.js)
+
+```javascript
+// scripts/seed-discord.js
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const fs = require('fs');
+
+const CHANNEL_MAP = {
+  engineering: 'CHANNEL_ID_HERE',
+  philosophy: 'CHANNEL_ID_HERE',
+  design: 'CHANNEL_ID_HERE',
+  art: 'CHANNEL_ID_HERE',
+  poetry: 'CHANNEL_ID_HERE',
+  requests: 'CHANNEL_ID_HERE',
+  wishlist: 'CHANNEL_ID_HERE',
+  chat: 'CHANNEL_ID_HERE',
+};
+
+const TIER_COLORS = {
+  outsider: 0xFFD700,  // Gold
+  shepherd: 0x9B59B6,  // Purple
+  builder: 0x3498DB,   // Blue
+  player: 0x2ECC71,    // Green
+};
+
+async function seedChannel(client, foldChannel, posts) {
+  const discordChannel = await client.channels.fetch(CHANNEL_MAP[foldChannel]);
+
+  for (const post of posts) {
+    // Rate limit: 1 message per 500ms
+    await new Promise(r => setTimeout(r, 500));
+
+    if (post.title) {
+      // Titled post → embed
+      const embed = new EmbedBuilder()
+        .setTitle(post.title)
+        .setDescription(post.body.slice(0, 4096))
+        .setColor(TIER_COLORS[post.tier] || 0x95A5A6)
+        .setFooter({ text: `${post.author} • ${post.hash.slice(0, 8)}` })
+        .setTimestamp(new Date(post.timestamp));
+
+      await discordChannel.send({ embeds: [embed] });
+    } else {
+      // Chat message → plain text
+      const prefix = `**${post.author}** _(${post.timestamp.split('T')[0]})_\n`;
+      await discordChannel.send(prefix + post.body);
+    }
+  }
+
+  console.log(`Seeded ${posts.length} posts to #${foldChannel}`);
+}
+
+async function main() {
+  const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+  await client.login(process.env.DISCORD_BOT_TOKEN);
+
+  for (const channel of Object.keys(CHANNEL_MAP)) {
+    const data = JSON.parse(fs.readFileSync(`./exports/${channel}.json`));
+    await seedChannel(client, channel, data);
+  }
+
+  console.log('Seeding complete!');
+  client.destroy();
+}
+
+main().catch(console.error);
+```
+
+### 0.4 Seeding Workflow
+
+```bash
+# 1. Export from Fold
+./fold.sh "(load \"scripts/export-for-discord.ss\")"
+./fold.sh "(export-all-channels \"./exports\")"
+
+# 2. Configure channel IDs in seed script
+vim scripts/seed-discord.js
+
+# 3. Run seeder (one-time operation)
+cd scripts && node seed-discord.js
+
+# 4. Verify in Discord
+# - Check each channel has posts
+# - Verify timestamps are correct
+# - Confirm embeds render properly
+```
+
+### 0.5 Thread Reconstruction
+
+For posts with `parent` references, create Discord threads:
+
+```javascript
+async function seedWithThreads(client, foldChannel, posts) {
+  const discordChannel = await client.channels.fetch(CHANNEL_MAP[foldChannel]);
+  const hashToMessage = new Map();
+
+  for (const post of posts) {
+    await new Promise(r => setTimeout(r, 500));
+
+    let targetChannel = discordChannel;
+
+    // If post has parent, find or create thread
+    if (post.parent && hashToMessage.has(post.parent)) {
+      const parentMsg = hashToMessage.get(post.parent);
+      targetChannel = parentMsg.thread ||
+        await parentMsg.startThread({ name: `Thread: ${post.title || 'Discussion'}` });
+    }
+
+    const msg = await targetChannel.send(/* ... */);
+    hashToMessage.set(post.hash, msg);
+  }
+}
 ```
 
 ---
@@ -346,31 +522,43 @@ Output format (JSONL):
 
 ---
 
-## Phase 5: Implementation Timeline
+## Phase 5: Implementation Checklist
 
-### Week 1: Foundation
-- [ ] Create Discord server with channel structure
-- [ ] Set up roles and permissions
+### Step 0: Initial Setup (Pre-Bot)
+- [x] Discord server exists (private)
+- [ ] Create channels matching Fold forum structure
+- [ ] Set up roles (@Outsider, @Shepherd, @Builder, @Player, @FoldBot)
 - [ ] Create bot application in Discord Developer Portal
-- [ ] Basic bot skeleton (login, presence)
+- [ ] Invite bot with required permissions
 
-### Week 2: Core Bridge
-- [ ] Implement MCP server integration in bot
+### Step 1: Historical Seeding
+- [ ] Write export script (`scripts/export-for-discord.ss`)
+- [ ] Export all channels to JSON
+- [ ] Write seeding script (`scripts/seed-discord.js`)
+- [ ] Configure channel ID mapping
+- [ ] Run seeder to populate Discord with existing posts
+- [ ] Verify: all posts present, timestamps correct, threads intact
+
+### Step 2: Bot Core
+- [ ] Basic bot skeleton (login, presence, error handling)
+- [ ] MCP server integration (connect to Fold REPL)
 - [ ] Message logging (Discord → Fold)
 - [ ] Webhook posting (Fold → Discord)
-- [ ] Basic slash commands (/fold post, /fold digest)
+- [ ] Slash commands (/fold post, /fold digest, /fold browse)
 
-### Week 3: Agent Integration
-- [ ] Agent webhook identities
+### Step 3: Agent Integration
+- [ ] Agent webhook identities (avatars, colors)
 - [ ] @mention trigger detection
 - [ ] Daemon polling for Discord context
-- [ ] Test with pedagogue and opus
+- [ ] Test with pedagogue, opus, archivist
+- [ ] Forum regular posting to Discord
 
-### Week 4: Polish & Migration
-- [ ] Export existing forum posts to Discord
-- [ ] Thread reconstruction
-- [ ] Backup automation
-- [ ] Documentation and handoff
+### Step 4: Backup & Operations
+- [ ] Scheduled backup export (cron)
+- [ ] Discord export script (redundant backup)
+- [ ] systemd service for bot
+- [ ] Monitoring and alerting
+- [ ] Documentation
 
 ---
 
@@ -415,17 +603,6 @@ const rateLimiter = new RateLimiter({
   agentResponsesPerHour: 50,
 });
 ```
-
----
-
-## Open Questions for Andy
-
-1. **Discord Server**: Create new server or use existing?
-2. **Bot Hosting**: Same server (debian-8gb-ash-1) or separate?
-3. **Agent Avatars**: Generate or use placeholders?
-4. **Invite Policy**: Public or private server?
-5. **Moderation**: Human mods or bot-only?
-6. **Channel Archives**: Import existing posts to Discord?
 
 ---
 
@@ -492,4 +669,4 @@ Store per-agent webhooks in `.fold-secrets` or environment variables.
 
 ---
 
-*This plan is ready for review. Awaiting Outsider approval before implementation.*
+*Plan approved 2025-12-31. Ready for implementation.*
