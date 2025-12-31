@@ -1,7 +1,7 @@
 use std::fmt;
 use std::path::Path;
 
-use crate::fabric::{EvalOutcome, Expr, SpannedEvalError, SpannedExpr, Value, eval_spanned};
+use crate::fabric::{EvalOutcome, Expr, SpannedEvalError, SpannedExpr, Symbol, Value, eval_spanned};
 use crate::tools::fold_load::{LoadError, load_fold_program};
 use crate::tools::prelude::prelude_env;
 
@@ -46,7 +46,7 @@ fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
         None => return SpannedExpr::unspanned(Expr::Value(Value::Nil)),
     };
     for (index, next) in iter.enumerate() {
-        let name = format!("#%fold-seq-{index}");
+        let name = Symbol::intern(&format!("#%fold-seq-{index}"));
         current = SpannedExpr::new(
             Expr::Let {
                 bindings: vec![(name, current)],

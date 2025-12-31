@@ -2,7 +2,7 @@ use std::env;
 use std::hint::black_box;
 use std::time::Instant;
 
-use fold_rs::fabric::{Block, Value};
+use fold_rs::fabric::{Block, Symbol, Value};
 use fold_rs::thimble::apply_prim;
 
 fn main() {
@@ -21,21 +21,21 @@ fn main() {
     let test_bv = Value::Bytevector(vec![42u8; 32]);
     let test_string = Value::String("hello world".to_string());
     let test_block = Value::Block(Block::new(
-        "test".to_string(),
+        Symbol::intern("test"),
         b"payload".to_vec(),
         Vec::new(),
     ));
     let alist = {
         let pair_a = Value::Pair(
-            Box::new(Value::Symbol("a".to_string())),
+            Box::new(Value::Symbol(Symbol::intern("a"))),
             Box::new(Value::Number(1)),
         );
         let pair_b = Value::Pair(
-            Box::new(Value::Symbol("b".to_string())),
+            Box::new(Value::Symbol(Symbol::intern("b"))),
             Box::new(Value::Number(2)),
         );
         let pair_c = Value::Pair(
-            Box::new(Value::Symbol("c".to_string())),
+            Box::new(Value::Symbol(Symbol::intern("c"))),
             Box::new(Value::Number(3)),
         );
         Value::Pair(
@@ -49,7 +49,7 @@ fn main() {
 
     println!("--- Tier 1 (Cost 1) - O(1) trivial ---");
     bench_prim("number?", &[Value::Number(42)], iterations);
-    bench_prim("symbol?", &[Value::Symbol("foo".to_string())], iterations);
+    bench_prim("symbol?", &[Value::Symbol(Symbol::intern("foo"))], iterations);
     bench_prim("null?", &[Value::Nil], iterations);
     bench_prim(
         "pair?",
@@ -143,7 +143,7 @@ fn main() {
     bench_prim("memq", &[Value::Number(5), test_list.clone()], iterations);
     bench_prim(
         "assq",
-        &[Value::Symbol("b".to_string()), alist.clone()],
+        &[Value::Symbol(Symbol::intern("b")), alist.clone()],
         iterations,
     );
 
@@ -171,7 +171,7 @@ fn main() {
     );
     bench_prim(
         "symbol->string",
-        &[Value::Symbol("hello".to_string())],
+        &[Value::Symbol(Symbol::intern("hello"))],
         iterations,
     );
     bench_prim(
@@ -216,8 +216,9 @@ fn main() {
         std::slice::from_ref(&test_block),
         iterations,
     );
+    let block_bytes_sym = Symbol::intern("block->bytes");
     let block_bytes = match apply_prim(
-        &"block->bytes".to_string(),
+        &block_bytes_sym,
         std::slice::from_ref(&test_block),
     ) {
         Ok(Value::Bytevector(bytes)) => Value::Bytevector(bytes),
@@ -245,9 +246,8 @@ fn main() {
 }
 
 fn bench_prim(op: &str, args: &[Value], iterations: usize) {
-    let op_sym = op.to_string();
-    let name = op.to_string();
-    bench(&name, iterations, || {
+    let op_sym = Symbol::intern(op);
+    bench(op, iterations, || {
         let result = apply_prim(&op_sym, args).expect("primitive failed");
         black_box(result);
     });

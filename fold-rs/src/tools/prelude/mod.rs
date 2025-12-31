@@ -26,7 +26,7 @@
 //! - compat.ss: Scheme compatibility aliases
 //! - exports.ss: final export alist
 
-use crate::fabric::{Env, EnvRef, EvalOutcome, Value, eval_spanned};
+use crate::fabric::{Env, EnvRef, EvalOutcome, Symbol, Value, eval_spanned};
 use crate::tools::{lower_expr, parse_fold_expr};
 
 // Include module files at compile time
@@ -654,7 +654,7 @@ pub const PRIMITIVE_NAMES: &[&str] = &[
 pub fn primitives_env() -> EnvRef {
     let env = Env::new();
     for &name in PRIMITIVE_NAMES {
-        Env::insert(&env, name.to_string(), Value::Primitive(name.to_string()));
+        Env::insert(&env, Symbol::intern(name), Value::Primitive(Symbol::intern(name)));
     }
     env
 }

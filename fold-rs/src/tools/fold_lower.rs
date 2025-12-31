@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::fabric::{CaseArm, Expr, SpannedExpr, Value};
+use crate::fabric::{CaseArm, Expr, SpannedExpr, Symbol, Value};
 use crate::tools::fold_parse::{NumberLit, Sexp, Span, Spanned};
 use num_traits::Zero;
 
@@ -63,7 +63,7 @@ pub fn lower_expr(expr: &Spanned<Sexp>) -> Result<SpannedExpr, LowerError> {
                 span,
             ));
         }
-        Sexp::Symbol(sym) => Expr::Var(sym.clone()),
+        Sexp::Symbol(sym) => Expr::Var(Symbol::intern(sym)),
         Sexp::List(items) => return lower_list(expr, items),
     };
     Ok(SpannedExpr::new(inner, span))
@@ -211,7 +211,7 @@ fn lower_list(
                     }
                     return Ok(SpannedExpr::new(
                         Expr::Prim {
-                            op: head_symbol,
+                            op: Symbol::intern(&head_symbol),
                             args,
                         },
                         span,
@@ -318,14 +318,14 @@ fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
             let expanded = expand_quasiquote(item)?;
             append_args.push(SpannedExpr::new(
                 Expr::Prim {
-                    op: "list".to_string(),
+                    op: Symbol::intern("list"),
                     args: vec![SpannedExpr::unspanned(expanded)],
                 },
                 Some(item.span.clone()),
             ));
         }
         Ok(Expr::Prim {
-            op: "append".to_string(),
+            op: Symbol::intern("append"),
             args: append_args,
         })
     } else {
@@ -338,7 +338,7 @@ fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
             ));
         }
         Ok(Expr::Prim {
-            op: "list".to_string(),
+            op: Symbol::intern("list"),
             args: list_args,
         })
     }
@@ -353,7 +353,7 @@ fn lower_fn(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Spanne
         Sexp::List(list) => list
             .iter()
             .map(|param| match &param.value {
-                Sexp::Symbol(name) => Ok(name.clone()),
+                Sexp::Symbol(name) => Ok(Symbol::intern(name)),
                 _ => Err(error(param, "fn params must be symbols")),
             })
             .collect::<Result<Vec<_>, _>>()?,
@@ -386,7 +386,7 @@ fn lower_let(
         match &binding.value {
             Sexp::List(pair) if pair.len() == 2 => {
                 let name = match &pair[0].value {
-                    Sexp::Symbol(sym) => sym.clone(),
+                    Sexp::Symbol(sym) => Symbol::intern(sym),
                     _ => return Err(error(&pair[0], "let binding name must be a symbol")),
                 };
                 let expr = lower_expr(&pair[1])?;
@@ -424,12 +424,12 @@ fn lower_let_star(
     };
 
     // Parse all bindings
-    let mut bindings: Vec<(String, SpannedExpr)> = Vec::with_capacity(bindings_list.len());
+    let mut bindings: Vec<(Symbol, SpannedExpr)> = Vec::with_capacity(bindings_list.len());
     for binding in bindings_list {
         match &binding.value {
             Sexp::List(pair) if pair.len() == 2 => {
                 let name = match &pair[0].value {
-                    Sexp::Symbol(sym) => sym.clone(),
+                    Sexp::Symbol(sym) => Symbol::intern(sym),
                     _ => return Err(error(&pair[0], "let* binding name must be a symbol")),
                 };
                 let expr = lower_expr(&pair[1])?;
@@ -467,7 +467,7 @@ fn lower_fix(
         return Err(error(list_expr, "fix expects (fix name expr)"));
     }
     let name = match &items[1].value {
-        Sexp::Symbol(sym) => sym.clone(),
+        Sexp::Symbol(sym) => Symbol::intern(sym),
         _ => return Err(error(&items[1], "fix name must be a symbol")),
     };
     let value = lower_expr(&items[2])?;
@@ -543,13 +543,13 @@ fn lower_case(
             }
         };
         let tag = match &pattern_items[0].value {
-            Sexp::Symbol(sym) => sym.clone(),
+            Sexp::Symbol(sym) => Symbol::intern(sym),
             _ => return Err(error(&pattern_items[0], "case tag must be a symbol")),
         };
         let mut vars = Vec::with_capacity(pattern_items.len().saturating_sub(1));
         for var in &pattern_items[1..] {
             match &var.value {
-                Sexp::Symbol(sym) => vars.push(sym.clone()),
+                Sexp::Symbol(sym) => vars.push(Symbol::intern(sym)),
                 _ => return Err(error(var, "case pattern vars must be symbols")),
             }
         }
@@ -604,15 +604,15 @@ fn lower_call(
     ))
 }
 
-fn parse_prim_op(op: &Spanned<Sexp>) -> Result<String, LowerError> {
+fn parse_prim_op(op: &Spanned<Sexp>) -> Result<Symbol, LowerError> {
     match &op.value {
-        Sexp::Symbol(sym) => Ok(sym.clone()),
+        Sexp::Symbol(sym) => Ok(Symbol::intern(sym)),
         Sexp::List(items) if items.len() == 2 => {
             if let Some(head) = symbol_name(&items[0])
                 && head == "quote"
             {
                 if let Sexp::Symbol(sym) = &items[1].value {
-                    return Ok(sym.clone());
+                    return Ok(Symbol::intern(sym));
                 }
                 return Err(error(&items[1], "prim op must be a symbol"));
             }
@@ -658,7 +658,7 @@ fn value_from_spanned(expr: &Spanned<Sexp>) -> Result<Value, LowerError> {
                 span: expr.span.clone(),
             })
         }
-        Sexp::Symbol(sym) => Ok(Value::Symbol(sym.clone())),
+        Sexp::Symbol(sym) => Ok(Value::Symbol(Symbol::intern(sym))),
         Sexp::Bool(b) => Ok(Value::Bool(*b)),
         Sexp::List(items) => {
             let mut values = Vec::with_capacity(items.len());

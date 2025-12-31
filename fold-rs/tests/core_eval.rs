@@ -9,7 +9,7 @@ use fold_rs::fabric::{
 };
 
 fn sym(name: &str) -> Symbol {
-    name.to_string()
+    Symbol::intern(name)
 }
 
 fn addr(byte: u8) -> Address {

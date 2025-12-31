@@ -162,7 +162,7 @@ fn model_to_role(model: &str) -> Option<&'static str> {
 }
 
 pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
-    match op.as_str() {
+    match op.as_str().as_str() {
         // Arithmetic (Scheme operator aliases)
         "+" => fold_numeric(args, 0, 0.0, |a, b| a + b, |a, b| a + b),
         "-" => {
@@ -1101,14 +1101,14 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 return Err(EvalError::TypeMismatch("symbol->string expects 1 arg"));
             }
             let sym = expect_symbol(&args[0])?;
-            Ok(Value::String(sym))
+            Ok(Value::String(sym.as_str()))
         }
         "string->symbol" => {
             if args.len() != 1 {
                 return Err(EvalError::TypeMismatch("string->symbol expects 1 arg"));
             }
             let s = expect_string(&args[0])?;
-            Ok(Value::Symbol(s))
+            Ok(Value::Symbol(Symbol::intern(&s)))
         }
         "number->string" => {
             if args.len() != 1 {
@@ -2754,7 +2754,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             use std::sync::atomic::{AtomicU64, Ordering};
             static GENSYM_COUNTER: AtomicU64 = AtomicU64::new(0);
             let id = GENSYM_COUNTER.fetch_add(1, Ordering::SeqCst);
-            Ok(Value::Symbol(format!("g{}", id)))
+            Ok(Value::Symbol(Symbol::intern(&format!("g{}", id))))
         }
         "error" => {
             // Throw an error (ignores message due to EvalError type constraints)
@@ -3044,7 +3044,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                     Value::Symbol(s) => Ok(Value::Symbol(s)),
                     _ => {
                         // Try to coerce to symbol
-                        Ok(Value::Symbol(value_to_display_string(&v)))
+                        Ok(Value::Symbol(Symbol::intern(&value_to_display_string(&v))))
                     }
                 })
                 .collect();
@@ -3793,7 +3793,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 Value::BigRational(_) => "bigint",
                 _ => "unknown",
             };
-            Ok(Value::Symbol(type_name.to_string()))
+            Ok(Value::Symbol(Symbol::intern(type_name)))
         }
         "is-number?" => {
             // Type check: is number
@@ -4069,7 +4069,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 ));
             }
             match &args[0] {
-                Value::Symbol(s) => Ok(Value::Symbol(s.to_uppercase())),
+                Value::Symbol(s) => Ok(Value::Symbol(Symbol::intern(&s.as_str().to_uppercase()))),
                 _ => Err(EvalError::TypeMismatch("symbol-upcase expects a symbol")),
             }
         }
@@ -4081,7 +4081,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 ));
             }
             match &args[0] {
-                Value::Symbol(s) => Ok(Value::Symbol(s.to_lowercase())),
+                Value::Symbol(s) => Ok(Value::Symbol(Symbol::intern(&s.as_str().to_lowercase()))),
                 _ => Err(EvalError::TypeMismatch("symbol-downcase expects a symbol")),
             }
         }
@@ -4093,7 +4093,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 ));
             }
             match &args[0] {
-                Value::Symbol(s) => Ok(Value::Number(s.len() as i64)),
+                Value::Symbol(s) => Ok(Value::Number(s.as_str().len() as i64)),
                 _ => Err(EvalError::TypeMismatch("symbol-length expects a symbol")),
             }
         }
@@ -4102,7 +4102,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             let mut result = String::new();
             for arg in args {
                 match arg {
-                    Value::Symbol(s) => result.push_str(s),
+                    Value::Symbol(s) => result.push_str(&s.as_str()),
                     Value::String(s) => result.push_str(s),
                     _ => {
                         return Err(EvalError::TypeMismatch(
@@ -4111,7 +4111,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                     }
                 }
             }
-            Ok(Value::Symbol(result))
+            Ok(Value::Symbol(Symbol::intern(&result)))
         }
         // Bytevector utilities
         "bytevector-length" => {
@@ -4597,7 +4597,8 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             };
 
             // Map model to role
-            let role = model_to_role(model_tier.as_str()).ok_or(EvalError::TypeMismatch(
+            let model_str = model_tier.as_str();
+            let role = model_to_role(&model_str).ok_or(EvalError::TypeMismatch(
                 "hi: invalid tier. Use 'opus, 'sonnet, or 'haiku",
             ))?;
 
@@ -4606,8 +4607,9 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
                 get_current_session_id().unwrap_or_else(|| format!("cli-{}", std::process::id()));
 
             // Write session file
+            let name_str = name.as_str();
             if let Err(e) =
-                write_session_file(&session_id, role, model_tier.as_str(), name.as_str())
+                write_session_file(&session_id, role, &model_str, &name_str)
             {
                 return Err(EvalError::IOError(format!(
                     "hi: failed to write session: {}",

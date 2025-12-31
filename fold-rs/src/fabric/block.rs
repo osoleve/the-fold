@@ -37,7 +37,8 @@ impl Block {
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        let tag_bytes = self.tag.as_bytes();
+        let tag_str = self.tag.as_str();
+        let tag_bytes = tag_str.as_bytes();
         let mut out = Vec::with_capacity(
             4 + tag_bytes.len() + 4 + self.payload.len() + 4 + self.refs.len() * ADDRESS_SIZE,
         );
@@ -57,8 +58,9 @@ impl Block {
 
         let tag_len = read_u32(bytes, &mut pos)? as usize;
         let tag_bytes = read_bytes(bytes, &mut pos, tag_len)?;
-        let tag =
+        let tag_str =
             String::from_utf8(tag_bytes.to_vec()).map_err(|_| BlockDecodeError::InvalidUtf8)?;
+        let tag = Symbol::intern(&tag_str);
 
         let payload_len = read_u32(bytes, &mut pos)? as usize;
         let payload = read_bytes(bytes, &mut pos, payload_len)?.to_vec();

@@ -51,7 +51,7 @@ pub fn make_symbol_supply(n: usize) -> Vec<Symbol> {
         } else {
             format!("{}{}", base, cycle)
         };
-        result.push(name);
+        result.push(Symbol::intern(&name));
     }
     result
 }
@@ -68,7 +68,7 @@ fn expand_with_ctx(expr: &Value, ctx: &[Symbol], supply: &mut SymbolSupply) -> V
         // (dv n) -> the symbol at index n in context
         Value::Pair(car, cdr) => {
             if let Value::Symbol(head) = car.as_ref() {
-                match head.as_str() {
+                match head.as_str().as_str() {
                     "dv" => {
                         if let Some(idx) = parse_dv(cdr)
                             && idx < ctx.len()
@@ -217,8 +217,8 @@ fn expand_list(expr: &Value, ctx: &[Symbol], supply: &mut SymbolSupply) -> Value
 /// Create (fn (var) body) with named variable
 fn make_fn_named(var: &Symbol, body: Value) -> Value {
     list(&[
-        Value::Symbol("fn".to_string()),
-        list(&[Value::Symbol(var.clone())]),
+        Value::Symbol(Symbol::intern("fn")),
+        list(&[Value::Symbol(*var)]),
         body,
     ])
 }
@@ -226,8 +226,8 @@ fn make_fn_named(var: &Symbol, body: Value) -> Value {
 /// Create (let ((var val)) body) with named variable
 fn make_let_named(var: &Symbol, val: Value, body: Value) -> Value {
     list(&[
-        Value::Symbol("let".to_string()),
-        list(&[list(&[Value::Symbol(var.clone()), val])]),
+        Value::Symbol(Symbol::intern("let")),
+        list(&[list(&[Value::Symbol(*var), val])]),
         body,
     ])
 }
@@ -235,8 +235,8 @@ fn make_let_named(var: &Symbol, val: Value, body: Value) -> Value {
 /// Create (fix (f) body) with named variable
 fn make_fix_named(f: &Symbol, body: Value) -> Value {
     list(&[
-        Value::Symbol("fix".to_string()),
-        list(&[Value::Symbol(f.clone())]),
+        Value::Symbol(Symbol::intern("fix")),
+        list(&[Value::Symbol(*f)]),
         body,
     ])
 }
@@ -262,7 +262,7 @@ mod tests {
     use crate::fabric::normalize::normalize;
 
     fn sym(s: &str) -> Value {
-        Value::Symbol(s.to_string())
+        Value::Symbol(Symbol::intern(s))
     }
 
     fn make_fn(var: &str, body: Value) -> Value {
@@ -275,7 +275,7 @@ mod tests {
         // expand with (a): (fn (dv 0)) -> (fn (a) a)
         let orig = make_fn("x", sym("x"));
         let normalized = normalize(&orig);
-        let expanded = expand(&normalized, &["a".to_string()]);
+        let expanded = expand(&normalized, &[Symbol::intern("a")]);
 
         // Should be (fn (a) a)
         let expected = make_fn("a", sym("a"));
@@ -287,7 +287,7 @@ mod tests {
         // (fn (x) (fn (y) x)) should roundtrip
         let orig = make_fn("x", make_fn("y", sym("x")));
         let normalized = normalize(&orig);
-        let expanded = expand(&normalized, &["a".to_string(), "b".to_string()]);
+        let expanded = expand(&normalized, &[Symbol::intern("a"), Symbol::intern("b")]);
 
         // Should be (fn (a) (fn (b) a))
         let expected = make_fn("a", make_fn("b", sym("a")));
