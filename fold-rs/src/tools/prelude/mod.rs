@@ -92,6 +92,8 @@ const STATISTICS: &str = include_str!("statistics.ss");
 const SEARCH_ALGORITHMS: &str = include_str!("search-algorithms.ss");
 const LENS: &str = include_str!("lens.ss");
 const PLIST: &str = include_str!("plist.ss");
+const VECTOR_UTIL: &str = include_str!("vector-util.ss");
+const SORTING: &str = include_str!("sorting.ss");
 const TYPES: &str = include_str!("types.ss");
 const KINDS: &str = include_str!("kinds.ss");
 const INFER: &str = include_str!("infer.ss");
@@ -245,6 +247,10 @@ fn assemble_prelude() -> String {
     source.push_str(LENS);
     source.push('\n');
     source.push_str(PLIST);
+    source.push('\n');
+    source.push_str(VECTOR_UTIL);
+    source.push('\n');
+    source.push_str(SORTING);
     source.push('\n');
     // Type system modules
     source.push_str(TYPES);
