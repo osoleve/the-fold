@@ -99,7 +99,9 @@ pub fn lower_program(exprs: &[Spanned<Sexp>]) -> Result<Vec<SpannedExpr>, LowerE
                                     .iter()
                                     .map(|p| match &p.value {
                                         Sexp::Symbol(s) => Ok(Symbol::intern(s)),
-                                        _ => Err(error(p, "define function params must be symbols")),
+                                        _ => {
+                                            Err(error(p, "define function params must be symbols"))
+                                        }
                                     })
                                     .collect::<Result<_, _>>()?;
                                 let body = lower_expr(&items[2])?;
@@ -994,6 +996,35 @@ fn lower_begin(
 
     if exprs.is_empty() {
         // Empty begin returns nil
+        return Ok(SpannedExpr::new(Expr::Value(Value::Nil), span));
+    }
+
+    if exprs.len() == 1 {
+        return lower_expr(&exprs[0]);
+    }
+
+    // Convert to nested let bindings: (let ((_ e1)) (let ((_ e2)) e3))
+    let mut result = lower_expr(exprs.last().unwrap())?;
+    for (i, expr) in exprs.iter().rev().skip(1).enumerate() {
+        let lowered = lower_expr(expr)?;
+        result = SpannedExpr::new(
+            Expr::Let {
+                bindings: vec![(Symbol::intern(&format!("#%begin-{}", i)), lowered)],
+                body: Box::new(result),
+            },
+            span.clone(),
+        );
+    }
+
+    Ok(result)
+}
+
+/// Lower a sequence of expressions as an implicit begin
+fn lower_begin_exprs(
+    exprs: &[Spanned<Sexp>],
+    span: Option<Span>,
+) -> Result<SpannedExpr, LowerError> {
+    if exprs.is_empty() {
         return Ok(SpannedExpr::new(Expr::Value(Value::Nil), span));
     }
 

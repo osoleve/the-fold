@@ -45,10 +45,12 @@ const NUMERIC_CORE: &str = include_str!("numeric-core.ss");
 const NUMERIC_STATS: &str = include_str!("numeric-stats.ss");
 const NUMERIC_SEQUENCE: &str = include_str!("numeric-sequence.ss");
 const COMPARISON: &str = include_str!("comparison.ss");
+const PREDICATE: &str = include_str!("predicate.ss");
 const STRING: &str = include_str!("string.ss"); // Marker file
 const STRING_CORE: &str = include_str!("string-core.ss");
 const STRING_FORMAT: &str = include_str!("string-format.ss");
 const STRING_SEARCH: &str = include_str!("string-search.ss");
+const CHAR: &str = include_str!("char.ss");
 const COLLECTION: &str = include_str!("collection.ss"); // Marker file
 const COLLECTION_ALIST: &str = include_str!("collection-alist.ss");
 const COLLECTION_DICT: &str = include_str!("collection-dict.ss");
@@ -129,6 +131,8 @@ fn assemble_prelude() -> String {
     source.push('\n');
     source.push_str(COMPARISON);
     source.push('\n');
+    source.push_str(PREDICATE);
+    source.push('\n');
     // String module with submodules
     source.push_str(STRING); // Marker comment
     source.push('\n');
@@ -137,6 +141,8 @@ fn assemble_prelude() -> String {
     source.push_str(STRING_FORMAT);
     source.push('\n');
     source.push_str(STRING_SEARCH);
+    source.push('\n');
+    source.push_str(CHAR);
     source.push('\n');
     // Collection module with submodules
     source.push_str(COLLECTION); // Marker comment
@@ -664,7 +670,11 @@ pub const PRIMITIVE_NAMES: &[&str] = &[
 pub fn primitives_env() -> EnvRef {
     let env = Env::new();
     for &name in PRIMITIVE_NAMES {
-        Env::insert(&env, Symbol::intern(name), Value::Primitive(Symbol::intern(name)));
+        Env::insert(
+            &env,
+            Symbol::intern(name),
+            Value::Primitive(Symbol::intern(name)),
+        );
     }
     env
 }
