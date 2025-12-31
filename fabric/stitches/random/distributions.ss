@@ -359,3 +359,203 @@
    [(pred (car lst)) (andmap pred (cdr lst))]
    [else #f]))
 
+;;; ============================================================
+;;; Probability Density/Mass Functions (PDF/PMF)
+;;; ============================================================
+
+;;; Normal PDF
+;;; normal-pdf : Float x Float x Float -> Float
+;;; PDF of Normal(mean, stddev) at x.
+(define (normal-pdf x mean stddev)
+  (let* ([z (/ (- x mean) stddev)]
+         [coef (/ 1 (* stddev (sqrt (* 2 (pi-value)))))])
+    (* coef (exp-num (* -0.5 z z)))))
+
+;;; Standard normal PDF
+(define (standard-normal-pdf x)
+  (normal-pdf x 0 1))
+
+;;; Exponential PDF
+;;; exponential-pdf : Float x Float -> Float
+;;; PDF of Exponential(rate) at x.
+(define (exponential-pdf x rate)
+  (if (< x 0)
+      0
+      (* rate (exp-num (* (- rate) x)))))
+
+;;; Uniform PDF
+;;; uniform-pdf : Float x Float x Float -> Float
+;;; PDF of Uniform(a, b) at x.
+(define (uniform-pdf x a b)
+  (if (or (< x a) (> x b))
+      0
+      (/ 1 (- b a))))
+
+;;; Poisson PMF
+;;; poisson-pmf : Integer x Float -> Float
+;;; PMF of Poisson(rate) at k.
+(define (poisson-pmf k rate)
+  (if (< k 0)
+      0
+      (/ (* (expt rate k) (exp-num (- rate)))
+         (factorial k))))
+
+;;; Binomial PMF
+;;; binomial-pmf : Integer x Integer x Float -> Float
+;;; PMF of Binomial(n, p) at k.
+(define (binomial-pmf k n p)
+  (if (or (< k 0) (> k n))
+      0
+      (* (binomial-coeff n k)
+         (expt p k)
+         (expt (- 1 p) (- n k)))))
+
+;;; Geometric PMF
+;;; geometric-pmf : Integer x Float -> Float
+;;; PMF of Geometric(p) at k (number of trials until first success).
+;;; k >= 1
+(define (geometric-pmf k p)
+  (if (< k 1)
+      0
+      (* (expt (- 1 p) (- k 1)) p)))
+
+;;; Bernoulli PMF
+;;; bernoulli-pmf : Boolean x Float -> Float
+(define (bernoulli-pmf success? p)
+  (if success? p (- 1 p)))
+
+;;; ============================================================
+;;; Cumulative Distribution Functions (CDF)
+;;; ============================================================
+
+;;; Exponential CDF
+;;; exponential-cdf : Float x Float -> Float
+;;; CDF of Exponential(rate) at x.
+(define (exponential-cdf x rate)
+  (if (< x 0)
+      0
+      (- 1 (exp-num (* (- rate) x)))))
+
+;;; Uniform CDF
+;;; uniform-cdf : Float x Float x Float -> Float
+;;; CDF of Uniform(a, b) at x.
+(define (uniform-cdf x a b)
+  (cond
+   [(< x a) 0]
+   [(> x b) 1]
+   [else (/ (- x a) (- b a))]))
+
+;;; Geometric CDF
+;;; geometric-cdf : Integer x Float -> Float
+;;; CDF of Geometric(p) at k.
+(define (geometric-cdf k p)
+  (if (< k 1)
+      0
+      (- 1 (expt (- 1 p) k))))
+
+;;; Standard Normal CDF (Approximation)
+;;; Uses Abramowitz and Stegun approximation (7.1.26)
+;;; Accurate to about 1.5e-7
+(define (standard-normal-cdf x)
+  (let* ([a1 0.254829592]
+         [a2 -0.284496736]
+         [a3 1.421413741]
+         [a4 -1.453152027]
+         [a5 1.061405429]
+         [p 0.3275911]
+         [sign (if (< x 0) -1 1)]
+         [x (abs x)]
+         [t (/ 1 (+ 1 (* p x)))]
+         [y (- 1 (* (+ (* (+ (* (+ (* (+ (* a5 t) a4) t) a3) t) a2) t) a1)
+                      t (exp-num (* -0.5 x x))))])
+    (* 0.5 (+ 1 (* sign y)))))
+
+;;; Normal CDF
+;;; normal-cdf : Float x Float x Float -> Float
+(define (normal-cdf x mean stddev)
+  (standard-normal-cdf (/ (- x mean) stddev)))
+
+;;; Poisson CDF
+;;; poisson-cdf : Integer x Float -> Float
+;;; CDF of Poisson(rate) at k (sum of PMF from 0 to k).
+(define (poisson-cdf k rate)
+  (if (< k 0)
+      0
+      (let loop ([i 0] [sum 0])
+           (if (> i k)
+               sum
+               (loop (+ i 1) (+ sum (poisson-pmf i rate)))))))
+
+;;; ============================================================
+;;; Quantile Functions (Inverse CDF)
+;;; ============================================================
+
+;;; Exponential Quantile
+;;; exponential-quantile : Float x Float -> Float
+;;; Quantile (inverse CDF) of Exponential(rate) at p.
+(define (exponential-quantile p rate)
+  (if (or (< p 0) (> p 1))
+      (error 'exponential-quantile "p must be in [0,1]" p)
+      (if (= p 1)
+          +inf.0  ; infinity
+          (/ (- (log-num (- 1 p))) rate))))
+
+;;; Uniform Quantile
+;;; uniform-quantile : Float x Float x Float -> Float
+(define (uniform-quantile p a b)
+  (if (or (< p 0) (> p 1))
+      (error 'uniform-quantile "p must be in [0,1]" p)
+      (+ a (* p (- b a)))))
+
+;;; Geometric Quantile
+;;; geometric-quantile : Float x Float -> Integer
+(define (geometric-quantile p prob)
+  (if (or (< p 0) (> p 1))
+      (error 'geometric-quantile "p must be in [0,1]" p)
+      (if (= p 0)
+          1
+          (ceiling (/ (log-num (- 1 p))
+                      (log-num (- 1 prob)))))))
+
+;;; Standard Normal Quantile (Approximation)
+;;; Uses Rational Approximation (Abramowitz and Stegun)
+;;; Accurate for 0 < p < 1
+(define (standard-normal-quantile p)
+  (if (or (<= p 0) (>= p 1))
+      (error 'standard-normal-quantile "p must be in (0,1)" p)
+      (let* ([a0 2.515517]
+             [a1 0.802853]
+             [a2 0.010328]
+             [b1 1.432788]
+             [b2 0.189269]
+             [b3 0.001308]
+             [sign (if (< p 0.5) -1 1)]
+             [p* (if (< p 0.5) p (- 1 p))]
+             [t (sqrt (* -2 (log-num p*)))]
+             [num (+ a0 (* a1 t) (* a2 t t))]
+             [den (+ 1 (* b1 t) (* b2 t t) (* b3 t t t))])
+        (* sign (- t (/ num den))))))
+
+;;; Normal Quantile
+;;; normal-quantile : Float x Float x Float -> Float
+(define (normal-quantile p mean stddev)
+  (+ mean (* stddev (standard-normal-quantile p))))
+
+;;; ============================================================
+;;; Helper Functions for Distributions
+;;; ============================================================
+
+;;; factorial : Integer -> Integer
+(define (factorial n)
+  (if (<= n 1)
+      1
+      (* n (factorial (- n 1)))))
+
+;;; binomial-coeff : Integer x Integer -> Integer
+;;; C(n, k) = n! / (k! * (n-k)!)
+(define (binomial-coeff n k)
+  (if (or (< k 0) (> k n))
+      0
+      (/ (factorial n)
+         (* (factorial k) (factorial (- n k))))))
+
