@@ -87,6 +87,11 @@ const LOGIC_EXT: &str = include_str!("logic-ext.ss");
 const MONAD: &str = include_str!("monad.ss"); // Marker file
 const MONAD_CORE: &str = include_str!("monad-core.ss");
 const MONAD_UTIL: &str = include_str!("monad-util.ss");
+const STRING_UTIL: &str = include_str!("string-util.ss");
+const STATISTICS: &str = include_str!("statistics.ss");
+const SEARCH_ALGORITHMS: &str = include_str!("search-algorithms.ss");
+const LENS: &str = include_str!("lens.ss");
+const PLIST: &str = include_str!("plist.ss");
 const TYPES: &str = include_str!("types.ss");
 const KINDS: &str = include_str!("kinds.ss");
 const INFER: &str = include_str!("infer.ss");
@@ -229,6 +234,17 @@ fn assemble_prelude() -> String {
     source.push_str(MONAD_CORE);
     source.push('\n');
     source.push_str(MONAD_UTIL);
+    source.push('\n');
+    // Additional utility modules
+    source.push_str(STRING_UTIL);
+    source.push('\n');
+    source.push_str(STATISTICS);
+    source.push('\n');
+    source.push_str(SEARCH_ALGORITHMS);
+    source.push('\n');
+    source.push_str(LENS);
+    source.push('\n');
+    source.push_str(PLIST);
     source.push('\n');
     // Type system modules
     source.push_str(TYPES);
