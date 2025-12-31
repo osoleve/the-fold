@@ -227,8 +227,5 @@
 ; dedup-consecutive: Remove consecutive duplicates (alias)
 (dedup-consecutive dedupe)
 
-; take-n: Alias for take
-(take-n take)
-
-; drop-n: Alias for drop
-(drop-n drop)
+; Note: take-n and drop-n are defined in list-core.ss with (n lst) argument order
+; The primitives take/drop have (lst n) order, so we don't alias them here

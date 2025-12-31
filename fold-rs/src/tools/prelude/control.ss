@@ -60,9 +60,12 @@
 (guard (fn (pred value default)
            (if pred value default)))
 
-; ensure: Assert condition, return value or call error handler
-(ensure (fn (pred value on-fail)
-            (if pred value (on-fail))))
+; ensure: Return candidate if predicate holds on it, else return fallback
+; (ensure positive? 0 5) => 5 (because 5 is positive)
+; (ensure positive? 0 -5) => 0 (because -5 is not positive)
+; Note: Using p to avoid shadowing primitive 'pred'
+(ensure (fn (p fallback candidate)
+            (if (p candidate) candidate fallback)))
 
 ; chain-guards: Chain multiple guards, return first success
 (chain-guards (fix chain-guards

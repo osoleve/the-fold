@@ -6,11 +6,15 @@
 
 ; -- Assertions --
 
-; assert-eq: Assert two values are equal
-(assert-eq (fn (expected actual msg)
-               (if (equal? expected actual)
-                   #t
-                   (list 'assertion-failed msg 'expected expected 'actual actual))))
+; assert-eq: Assert two values are equal (returns #t or #f)
+(assert-eq (fn (expected actual)
+               (equal? expected actual)))
+
+; assert-eq-msg: Assert two values are equal (with message on failure)
+(assert-eq-msg (fn (expected actual msg)
+                   (if (equal? expected actual)
+                       #t
+                       (list 'assertion-failed msg 'expected expected 'actual actual))))
 
 ; assert-true: Assert value is truthy
 (assert-true (fn (val msg)
@@ -29,11 +33,16 @@
 (assert-throws (fn (thunk msg)
                    (list 'assertion-skipped msg 'reason "no error handling")))
 
-; assert-pred: Assert predicate holds on value
-(assert-pred (fn (pred val msg)
-                 (if (pred val)
-                     #t
-                     (list 'assertion-failed msg 'predicate-failed-on val))))
+; assert-pred: Assert predicate holds on value (returns #t or #f)
+; Note: Using p/v to avoid shadowing primitive 'pred'
+(assert-pred (fn (p v)
+                 (p v)))
+
+; assert-pred-msg: Assert predicate holds on value (with message on failure)
+(assert-pred-msg (fn (p v msg)
+                     (if (p v)
+                         #t
+                         (list 'assertion-failed msg 'predicate-failed-on v))))
 
 ; -- Test framework --
 

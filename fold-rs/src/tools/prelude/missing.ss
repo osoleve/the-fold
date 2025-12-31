@@ -4,8 +4,16 @@
                     x
                     (until stop? f (f x))))))
 
-; converge: Apply function until result stops changing
+; converge: Apply function until result stops changing (fixed point)
 ; (converge (fn (x) (/ (+ x (/ 2 x)) 2)) 1.0) => ~1.414 (sqrt 2)
+; (converge (fn (x) (if (> x 5) x (+ x 1))) 0) => 6
+(converge (fix converge
+               (fn (f x)
+                   (let ((next (f x)))
+                        (if (equal? x next)
+                            x
+                            (converge f next))))))
+
 ; fixed-point: Same as converge (alternative name)
 (fixed-point converge)
 
@@ -1951,7 +1959,17 @@
                       (finder cases))))
 
 ; case-of: Case expression (list of (pattern handler) pairs)
-; guard: Guard expressions (list of (condition . value) pairs)
+
+; guard: Guard expressions - find first true condition and return its value
+; (guard (list (cons #f 'no) (cons #t 'yes))) => 'yes
+(guard (fix guard
+            (fn (pairs)
+                (if (null? pairs)
+                    #f
+                    (if (car (car pairs))
+                        (cdr (car pairs))
+                        (guard (cdr pairs)))))))
+
 ; destructure-list: Destructure list into head and tail
 (destructure-list (fn (lst on-empty on-pair)
                       (if (null? lst)
@@ -6767,10 +6785,10 @@
 (char-alphanumeric? (fn (c)
                         (or (char-digit? c) (char-alpha? c))))
 
-; char-whitespace?: Check if char is whitespace
+; char-whitespace?: Check if char is whitespace (space=32, newline=10, tab=9, cr=13)
 (char-whitespace? (fn (c)
                       (let ((n (char->integer c)))
-                           (or (= n 32) (= n 10) (= n 9) (= n 13)))))
+                           (or (= n 32) (or (= n 10) (or (= n 9) (= n 13)))))))
 
 ; char-lower?: Check if char is lowercase
 (char-lower? (fn (c)
