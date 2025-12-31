@@ -69,8 +69,91 @@ pub fn lower_expr(expr: &Spanned<Sexp>) -> Result<SpannedExpr, LowerError> {
     Ok(SpannedExpr::new(inner, span))
 }
 
+/// Lower a program, transforming top-level defines into nested let bindings.
+/// This allows (define x 1) (define y 2) (+ x y) to work correctly.
 pub fn lower_program(exprs: &[Spanned<Sexp>]) -> Result<Vec<SpannedExpr>, LowerError> {
-    exprs.iter().map(lower_expr).collect()
+    // First, separate defines from other expressions
+    let mut defines: Vec<(Symbol, SpannedExpr)> = Vec::new();
+    let mut body_exprs: Vec<SpannedExpr> = Vec::new();
+
+    for expr in exprs {
+        if let Sexp::List(items) = &expr.value {
+            if let Some(head) = items.first().and_then(|h| symbol_name(h)) {
+                if head == "define" && items.len() == 3 {
+                    // Extract the define binding
+                    if let Sexp::Symbol(name) = &items[1].value {
+                        let value = lower_expr(&items[2])?;
+                        defines.push((Symbol::intern(name), value));
+                        continue;
+                    } else if let Sexp::List(sig) = &items[1].value {
+                        // Function shorthand: (define (name params...) body)
+                        if !sig.is_empty() {
+                            if let Sexp::Symbol(name) = &sig[0].value {
+                                let params: Vec<Symbol> = sig[1..]
+                                    .iter()
+                                    .map(|p| match &p.value {
+                                        Sexp::Symbol(s) => Ok(Symbol::intern(s)),
+                                        _ => Err(error(p, "define function params must be symbols")),
+                                    })
+                                    .collect::<Result<_, _>>()?;
+                                let body = lower_expr(&items[2])?;
+                                let lambda = SpannedExpr::new(
+                                    Expr::Fn {
+                                        params,
+                                        body: Box::new(body),
+                                    },
+                                    Some(expr.span.clone()),
+                                );
+                                defines.push((Symbol::intern(name), lambda));
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Not a define - add to body expressions
+        body_exprs.push(lower_expr(expr)?);
+    }
+
+    // If there are defines, wrap the body in nested let bindings
+    if defines.is_empty() {
+        Ok(body_exprs)
+    } else {
+        // Combine body expressions into one using nested let
+        let combined_body = if body_exprs.is_empty() {
+            SpannedExpr::unspanned(Expr::Value(Value::Nil))
+        } else if body_exprs.len() == 1 {
+            body_exprs.into_iter().next().unwrap()
+        } else {
+            let mut iter = body_exprs.into_iter();
+            let mut current = iter.next().unwrap();
+            for (index, next) in iter.enumerate() {
+                let name = Symbol::intern(&format!("#%prog-seq-{index}"));
+                current = SpannedExpr::new(
+                    Expr::Let {
+                        bindings: vec![(name, current)],
+                        body: Box::new(next),
+                    },
+                    None,
+                );
+            }
+            current
+        };
+
+        // Wrap with nested let for each define (in reverse order so first define is outermost)
+        let mut result = combined_body;
+        for (name, value) in defines.into_iter().rev() {
+            result = SpannedExpr::new(
+                Expr::Let {
+                    bindings: vec![(name, value)],
+                    body: Box::new(result),
+                },
+                None,
+            );
+        }
+        Ok(vec![result])
+    }
 }
 
 /// Check if a symbol is a known primitive operator.
@@ -202,6 +285,9 @@ fn lower_list(
             "case" => return lower_case(list_expr, items),
             "prim" => return lower_prim(list_expr, items),
             "call" => return lower_call(list_expr, items),
+            "begin" => return lower_begin(list_expr, items),
+            "cond" => return lower_cond(list_expr, items),
+            "define" => return lower_define(list_expr, items),
             _ => {
                 // Check if this is a builtin primitive that should be lowered to a prim call
                 if is_builtin_prim(&head_symbol) {
@@ -346,8 +432,8 @@ fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
 
 fn lower_fn(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
-    if items.len() != 3 {
-        return Err(error(list_expr, "fn expects (fn (params...) body)"));
+    if items.len() < 3 {
+        return Err(error(list_expr, "fn expects (fn (params...) body ...)"));
     }
     let params = match &items[1].value {
         Sexp::List(list) => list
@@ -359,7 +445,12 @@ fn lower_fn(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Spanne
             .collect::<Result<Vec<_>, _>>()?,
         _ => return Err(error(&items[1], "fn expects a parameter list")),
     };
-    let body = lower_expr(&items[2])?;
+    // Handle multiple body expressions (implicit begin)
+    let body = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        lower_begin_exprs(&items[2..], span.clone())?
+    };
     Ok(SpannedExpr::new(
         Expr::Fn {
             params,
@@ -374,8 +465,8 @@ fn lower_let(
     items: &[Spanned<Sexp>],
 ) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
-    if items.len() != 3 {
-        return Err(error(list_expr, "let expects (let ((name expr) ...) body)"));
+    if items.len() < 3 {
+        return Err(error(list_expr, "let expects (let ((name expr) ...) body ...)"));
     }
     let bindings_list = match &items[1].value {
         Sexp::List(list) => list,
@@ -395,7 +486,12 @@ fn lower_let(
             _ => return Err(error(binding, "let binding must be (name expr)")),
         }
     }
-    let body = lower_expr(&items[2])?;
+    // Handle multiple body expressions (implicit begin)
+    let body = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        lower_begin_exprs(&items[2..], span.clone())?
+    };
     Ok(SpannedExpr::new(
         Expr::Let {
             bindings,
@@ -406,16 +502,16 @@ fn lower_let(
 }
 
 /// Transform let* into nested let expressions
-/// (let* ((a 1) (b (+ a 1))) body) => (let ((a 1)) (let ((b (+ a 1))) body))
+/// (let* ((a 1) (b (+ a 1))) body ...) => (let ((a 1)) (let ((b (+ a 1))) body ...))
 fn lower_let_star(
     list_expr: &Spanned<Sexp>,
     items: &[Spanned<Sexp>],
 ) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
-    if items.len() != 3 {
+    if items.len() < 3 {
         return Err(error(
             list_expr,
-            "let* expects (let* ((name expr) ...) body)",
+            "let* expects (let* ((name expr) ...) body ...)",
         ));
     }
     let bindings_list = match &items[1].value {
@@ -439,13 +535,20 @@ fn lower_let_star(
         }
     }
 
+    // Handle multiple body expressions (implicit begin)
+    let body_expr = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        lower_begin_exprs(&items[2..], span.clone())?
+    };
+
     // If no bindings, just return the body
     if bindings.is_empty() {
-        return lower_expr(&items[2]);
+        return Ok(body_expr);
     }
 
     // Build nested let expressions from inside out
-    let mut body = lower_expr(&items[2])?;
+    let mut body = body_expr;
     for (name, expr) in bindings.into_iter().rev() {
         body = SpannedExpr::new(
             Expr::Let {
@@ -602,6 +705,196 @@ fn lower_call(
         },
         span,
     ))
+}
+
+/// Transform begin into nested let expressions
+/// (begin e1 e2 e3) => (let ((_ e1)) (let ((_ e2)) e3))
+fn lower_begin(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() < 2 {
+        return Err(error(list_expr, "begin expects at least one expression"));
+    }
+
+    // Lower all body expressions
+    let mut exprs: Vec<SpannedExpr> = Vec::with_capacity(items.len() - 1);
+    for item in &items[1..] {
+        exprs.push(lower_expr(item)?);
+    }
+
+    // Build nested let from right to left
+    let mut result = exprs.pop().unwrap();
+    for (i, expr) in exprs.into_iter().rev().enumerate() {
+        let ignored = Symbol::intern(&format!("#%begin-{i}"));
+        result = SpannedExpr::new(
+            Expr::Let {
+                bindings: vec![(ignored, expr)],
+                body: Box::new(result),
+            },
+            span.clone(),
+        );
+    }
+    Ok(result)
+}
+
+/// Transform cond into nested if expressions
+/// (cond (test1 result1) (test2 result2) (else result3))
+/// => (if test1 result1 (if test2 result2 result3))
+fn lower_cond(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() < 2 {
+        return Err(error(list_expr, "cond expects at least one clause"));
+    }
+
+    // Parse all clauses
+    let mut clauses: Vec<(SpannedExpr, SpannedExpr)> = Vec::new();
+    let mut else_body: Option<SpannedExpr> = None;
+
+    for clause in &items[1..] {
+        let clause_items = match &clause.value {
+            Sexp::List(list) if list.len() >= 2 => list,
+            _ => return Err(error(clause, "cond clause must be (test result)")),
+        };
+
+        // Check for else clause
+        if let Sexp::Symbol(sym) = &clause_items[0].value {
+            if sym == "else" {
+                if else_body.is_some() {
+                    return Err(error(clause, "cond can only have one else clause"));
+                }
+                // Handle multiple expressions in else clause with implicit begin
+                if clause_items.len() == 2 {
+                    else_body = Some(lower_expr(&clause_items[1])?);
+                } else {
+                    else_body = Some(lower_begin_exprs(&clause_items[1..], span.clone())?);
+                }
+                continue;
+            }
+        }
+
+        let test = lower_expr(&clause_items[0])?;
+        let result = if clause_items.len() == 2 {
+            lower_expr(&clause_items[1])?
+        } else {
+            // Multiple expressions - wrap in implicit begin
+            lower_begin_exprs(&clause_items[1..], span.clone())?
+        };
+        clauses.push((test, result));
+    }
+
+    // Build nested if from right to left
+    let mut result = else_body.unwrap_or_else(|| {
+        SpannedExpr::new(Expr::Value(Value::Nil), span.clone())
+    });
+
+    for (test, body) in clauses.into_iter().rev() {
+        result = SpannedExpr::new(
+            Expr::If {
+                test: Box::new(test),
+                then_branch: Box::new(body),
+                else_branch: Box::new(result),
+            },
+            span.clone(),
+        );
+    }
+    Ok(result)
+}
+
+/// Helper to create an implicit begin from multiple expressions
+fn lower_begin_exprs(items: &[Spanned<Sexp>], span: Option<Span>) -> Result<SpannedExpr, LowerError> {
+    if items.is_empty() {
+        return Ok(SpannedExpr::new(Expr::Value(Value::Nil), span));
+    }
+    if items.len() == 1 {
+        return lower_expr(&items[0]);
+    }
+
+    let mut exprs: Vec<SpannedExpr> = Vec::with_capacity(items.len());
+    for item in items {
+        exprs.push(lower_expr(item)?);
+    }
+
+    let mut result = exprs.pop().unwrap();
+    for (i, expr) in exprs.into_iter().rev().enumerate() {
+        let ignored = Symbol::intern(&format!("#%begin-{i}"));
+        result = SpannedExpr::new(
+            Expr::Let {
+                bindings: vec![(ignored, expr)],
+                body: Box::new(result),
+            },
+            span.clone(),
+        );
+    }
+    Ok(result)
+}
+
+/// Lower define - creates a special marker that program-level code can handle
+/// For now, we emit a let binding that can be merged at the program level
+/// (define name value) => marker for program-level transformation
+fn lower_define(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+
+    // Handle (define name value) form
+    if items.len() == 3 {
+        if let Sexp::Symbol(name) = &items[1].value {
+            let value = lower_expr(&items[2])?;
+            // Create a special marker: (let ((name value)) name)
+            // This lets the define's value be the bound name itself
+            let name_sym = Symbol::intern(name);
+            return Ok(SpannedExpr::new(
+                Expr::Let {
+                    bindings: vec![(name_sym, value)],
+                    body: Box::new(SpannedExpr::new(Expr::Var(name_sym), span.clone())),
+                },
+                span,
+            ));
+        }
+
+        // Handle (define (name params...) body) function shorthand
+        if let Sexp::List(sig) = &items[1].value {
+            if sig.is_empty() {
+                return Err(error(&items[1], "define function signature cannot be empty"));
+            }
+            let name = match &sig[0].value {
+                Sexp::Symbol(s) => Symbol::intern(s),
+                _ => return Err(error(&sig[0], "define function name must be a symbol")),
+            };
+            let params: Vec<Symbol> = sig[1..]
+                .iter()
+                .map(|p| match &p.value {
+                    Sexp::Symbol(s) => Ok(Symbol::intern(s)),
+                    _ => Err(error(p, "define function params must be symbols")),
+                })
+                .collect::<Result<_, _>>()?;
+
+            let body = lower_expr(&items[2])?;
+            let lambda = SpannedExpr::new(
+                Expr::Fn {
+                    params,
+                    body: Box::new(body),
+                },
+                span.clone(),
+            );
+
+            return Ok(SpannedExpr::new(
+                Expr::Let {
+                    bindings: vec![(name, lambda)],
+                    body: Box::new(SpannedExpr::new(Expr::Var(name), span.clone())),
+                },
+                span,
+            ));
+        }
+    }
+
+    Err(error(list_expr, "define expects (define name value) or (define (name params...) body)"))
 }
 
 fn parse_prim_op(op: &Spanned<Sexp>) -> Result<Symbol, LowerError> {

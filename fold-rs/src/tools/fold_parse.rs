@@ -150,7 +150,11 @@ impl Parser {
             None => return Err(self.error_at("expression", start)),
             Some('(') => {
                 self.advance();
-                self.parse_list()?
+                self.parse_list(')')?
+            }
+            Some('[') => {
+                self.advance();
+                self.parse_list(']')?
             }
             Some('\'') => {
                 let quote_pos = self.position();
@@ -192,12 +196,12 @@ impl Parser {
         })
     }
 
-    fn parse_list(&mut self) -> Result<Sexp, ParseError> {
+    fn parse_list(&mut self, closing: char) -> Result<Sexp, ParseError> {
         self.skip_whitespace_and_comments();
         let mut items = Vec::new();
         loop {
             match self.peek() {
-                Some(')') => {
+                Some(c) if c == closing => {
                     self.advance();
                     return Ok(Sexp::List(items));
                 }
@@ -206,7 +210,7 @@ impl Parser {
                     items.push(expr);
                     self.skip_whitespace_and_comments();
                 }
-                None => return Err(self.error(")")),
+                None => return Err(self.error(&closing.to_string())),
             }
         }
     }
@@ -308,8 +312,58 @@ impl Parser {
                 self.advance();
                 self.parse_vector()
             }
-            _ => Err(self.error("hash literal (expected t, f, \\\\, u, \", or (")),
+            Some('x') | Some('X') => {
+                // Hexadecimal number: #xAB, #xFF, etc.
+                self.advance();
+                self.parse_radix_number(16)
+            }
+            Some('o') | Some('O') => {
+                // Octal number: #o77, etc.
+                self.advance();
+                self.parse_radix_number(8)
+            }
+            Some('b') | Some('B') => {
+                // Binary number: #b101, etc.
+                self.advance();
+                self.parse_radix_number(2)
+            }
+            _ => Err(self.error("hash literal (expected t, f, \\\\, u, \", (, x, o, or b")),
         }
+    }
+
+    fn parse_radix_number(&mut self, radix: u32) -> Result<Sexp, ParseError> {
+        let mut digits = String::new();
+        let mut negative = false;
+
+        // Handle optional sign
+        if self.peek() == Some('-') {
+            negative = true;
+            self.advance();
+        } else if self.peek() == Some('+') {
+            self.advance();
+        }
+
+        // Collect digits
+        while let Some(c) = self.peek() {
+            if c.is_ascii_hexdigit() && c.to_digit(radix).is_some() {
+                digits.push(c);
+                self.advance();
+            } else if c.is_alphanumeric() || c == '_' {
+                // Invalid digit for this radix
+                break;
+            } else {
+                break;
+            }
+        }
+
+        if digits.is_empty() {
+            return Err(self.error("radix number digits"));
+        }
+
+        let value = i64::from_str_radix(&digits, radix)
+            .map_err(|_| self.error("valid radix number"))?;
+
+        Ok(Sexp::Number(NumberLit::Integer(if negative { -value } else { value })))
     }
 
     fn parse_char(&mut self) -> Result<Sexp, ParseError> {
