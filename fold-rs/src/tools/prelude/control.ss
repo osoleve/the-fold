@@ -37,19 +37,21 @@
                   (map f (range 0 n))))
 
 ; repeat-until: Repeat function until predicate is true
-(repeat-until (fn (pred f init)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(repeat-until (fn (p f init)
                   (let ((go (fix go
                                  (fn (val)
-                                     (if (pred val)
+                                     (if (p val)
                                          val
                                          (go (f val)))))))
                        (go init))))
 
 ; while-true: Loop while predicate holds (returns last value)
-(while-true (fn (pred f init)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(while-true (fn (p f init)
                 (let ((go (fix go
                                (fn (val)
-                                   (if (pred val)
+                                   (if (p val)
                                        (go (f val))
                                        val)))))
                      (go init))))
@@ -89,10 +91,15 @@
                                   (cadr clause)
                                   (cond-value (cdr clauses))))))))
 
-; case-of: Match value against cases
-(case-of (fn (val cases default)
+; case-of: Match value against cases (returns #f if not found)
+(case-of (fn (val cases)
              (let ((entry (assoc val cases)))
-                  (if entry (cdr entry) default))))
+                  (if entry (cdr entry) #f))))
+
+; case-of-default: Match value against cases with explicit default
+(case-of-default (fn (val cases default)
+                     (let ((entry (assoc val cases)))
+                          (if entry (cdr entry) default))))
 
 ; -- Boolean utilities --
 

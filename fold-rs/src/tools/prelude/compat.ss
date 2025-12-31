@@ -153,9 +153,9 @@
 ; modulo: Alias for mod
 (modulo mod)
 
-; quotient-remainder: Return both quotient and remainder
+; quotient-remainder: Return both quotient and remainder as a list
 (quotient-remainder (fn (a b)
-                        (cons (/ a b) (mod a b))))
+                        (list (/ a b) (mod a b))))
 
 ; exact-integer-sqrt: Integer square root
 (exact-integer-sqrt (fn (n)

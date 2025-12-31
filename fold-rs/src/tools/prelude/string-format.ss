@@ -6,13 +6,18 @@
 
 ; --- Padding and Justification ---
 
+; char-repeat: Create string of n copies of a character
+; Helper for padding functions
+(char-repeat (fn (n c)
+                 (string-repeat (list->string (list c)) n)))
+
 ; string-pad-left: Pad string on left to given length
 ; (string-pad-left 5 #\* "hi") => "***hi"
 (string-pad-left (fn (len pad-char s)
                      (let ((current-len (string-length s)))
                           (if (>= current-len len)
                               s
-                              (string-append (make-string (- len current-len) pad-char) s)))))
+                              (string-append (char-repeat (- len current-len) pad-char) s)))))
 
 ; string-pad-right: Pad string on right to given length
 ; (string-pad-right 5 #\* "hi") => "hi***"
@@ -20,21 +25,21 @@
                       (let ((current-len (string-length s)))
                            (if (>= current-len len)
                                s
-                               (string-append s (make-string (- len current-len) pad-char))))))
+                               (string-append s (char-repeat (- len current-len) pad-char))))))
 
 ; string-center: Center string with padding
 ; (string-center 7 #\- "hi") => "--hi---"
 (string-center (fn (len pad-char s)
-                   (let ((current-len (string-length s))
-                         (total-pad (- len current-len)))
-                        (if (<= total-pad 0)
-                            s
-                            (let ((left-pad (/ total-pad 2))
-                                  (right-pad (- total-pad (/ total-pad 2))))
-                                 (string-append
-                                  (make-string left-pad pad-char)
-                                  s
-                                  (make-string right-pad pad-char)))))))
+                   (let ((current-len (string-length s)))
+                        (let ((total-pad (- len current-len)))
+                             (if (<= total-pad 0)
+                                 s
+                                 (let ((left-pad (/ total-pad 2)))
+                                      (let ((right-pad (- total-pad left-pad)))
+                                           (string-append
+                                            (char-repeat left-pad pad-char)
+                                            s
+                                            (char-repeat right-pad pad-char)))))))))
 
 ; string-ljust: Left justify (alias for pad-right)
 ; (string-ljust 10 "hi") => "hi        "
@@ -123,20 +128,24 @@
 
 ; --- Pluralization ---
 
-; pluralize: Add 's' based on count
-; (pluralize 1 "cat") => "cat"
-; (pluralize 5 "cat") => "cats"
-(pluralize (fn (count word)
-               (if (= count 1)
-                   word
-                   (string-append word "s"))))
+; pluralize-simple: Add 's' based on count
+; (pluralize-simple 1 "cat") => "cat"
+; (pluralize-simple 5 "cat") => "cats"
+(pluralize-simple (fn (count word)
+                      (if (= count 1)
+                          word
+                          (string-append word "s"))))
 
-; pluralize-with: Pluralize with custom plural form
-; (pluralize-with 5 "mouse" "mice") => "mice"
-(pluralize-with (fn (count singular plural)
-                    (if (= count 1)
-                        singular
-                        plural)))
+; pluralize: Pluralize with custom plural form
+; (pluralize 1 "apple" "apples") => "apple"
+; (pluralize 5 "mouse" "mice") => "mice"
+(pluralize (fn (count singular plural)
+               (if (= count 1)
+                   singular
+                   plural)))
+
+; pluralize-with: Alias for pluralize
+(pluralize-with pluralize)
 
 ; --- Humanization ---
 

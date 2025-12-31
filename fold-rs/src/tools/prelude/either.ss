@@ -101,9 +101,9 @@
 (rights (fn (lst)
             (map from-right (filter right? lst))))
 
-; partition-eithers: Split list of Eithers into (lefts . rights)
+; partition-eithers: Split list of Eithers into (lefts rights)
 (partition-eithers (fn (lst)
-                       (cons (lefts lst) (rights lst))))
+                       (list (lefts lst) (rights lst))))
 
 ; sequence-either: Convert list of Eithers to Either of list
 ; Returns first Left if any, otherwise Right of all values
