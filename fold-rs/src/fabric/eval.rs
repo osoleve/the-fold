@@ -9,6 +9,7 @@ use crate::fabric::{
 use crate::thimble::apply_prim;
 use crate::tools::Span;
 use smallvec::SmallVec;
+use std::rc::Rc;
 
 /// SmallVec for evaluated values - inline storage for up to 4 elements
 /// to avoid heap allocation for common function calls and let bindings.
@@ -260,8 +261,7 @@ pub fn eval_spanned(
                 }
             }
             Expr::Fn { params, body } => {
-                let closure = Closure::new(params, *body, env.clone());
-                let value = Value::Closure(closure);
+                let value = Value::closure(Closure::new(params, *body, env.clone()));
                 match unwind(value, &mut frames, &mut env)? {
                     Unwind::Continue(next_expr) => {
                         expr = next_expr;
@@ -334,8 +334,8 @@ pub fn eval_spanned(
             Expr::Fix { name, value } => match value.expr {
                 Expr::Fn { params, body } => {
                     let rec_env = Env::with_parent(env.clone());
-                    let closure = Closure::new(params, *body, rec_env.clone());
-                    Env::insert(&rec_env, name, Value::Closure(closure.clone()));
+                    let closure = Rc::new(Closure::new(params, *body, rec_env.clone()));
+                    Env::insert(&rec_env, name, Value::Closure(Rc::clone(&closure)));
                     let value = Value::Closure(closure);
                     match unwind(value, &mut frames, &mut env)? {
                         Unwind::Continue(next_expr) => {

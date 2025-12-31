@@ -1,6 +1,7 @@
 use crate::fabric::{address::Address, block::Block, closure::Closure, symbol::Symbol};
 use num_bigint::BigInt;
 use num_rational::BigRational;
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -16,7 +17,8 @@ pub enum Value {
     Address(Address),
     Pair(Box<Value>, Box<Value>),
     Vector(Vec<Value>),
-    Closure(Closure),
+    /// Wrapped in Rc for cheap cloning during function application
+    Closure(Rc<Closure>),
     /// First-class primitive function reference (e.g., +, cons, car)
     Primitive(Symbol),
     Block(Block),
@@ -24,6 +26,11 @@ pub enum Value {
 }
 
 impl Value {
+    /// Create a Closure value (wraps in Rc for cheap cloning)
+    pub fn closure(c: Closure) -> Self {
+        Value::Closure(Rc::new(c))
+    }
+
     /// Check if this value is a BigInt
     pub fn is_bigint(&self) -> bool {
         matches!(self, Value::BigInt(_))
