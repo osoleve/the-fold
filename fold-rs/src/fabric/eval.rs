@@ -8,6 +8,7 @@ use crate::fabric::{
 };
 use crate::thimble::apply_prim;
 use crate::tools::Span;
+use crate::tools::fold_load::load_fold_program;
 use smallvec::SmallVec;
 use std::rc::Rc;
 
@@ -64,6 +65,19 @@ enum Frame {
         env: EnvRef,
         span: Option<Span>,
     },
+    /// Load expressions from a file, evaluating them in sequence
+    Load {
+        /// Remaining expressions to evaluate
+        remaining: Vec<SpannedExpr>,
+        env: EnvRef,
+        span: Option<Span>,
+    },
+    /// Define a new binding in the environment
+    Define {
+        name: Symbol,
+        env: EnvRef,
+        span: Option<Span>,
+    },
 }
 
 impl Frame {
@@ -74,7 +88,9 @@ impl Frame {
             | Frame::CallFunc { env, .. }
             | Frame::CallArgs { env, .. }
             | Frame::PrimArgs { env, .. }
-            | Frame::Case { env, .. } => env,
+            | Frame::Case { env, .. }
+            | Frame::Load { env, .. }
+            | Frame::Define { env, .. } => env,
         }
     }
 
@@ -85,7 +101,9 @@ impl Frame {
             | Frame::CallFunc { span, .. }
             | Frame::CallArgs { span, .. }
             | Frame::PrimArgs { span, .. }
-            | Frame::Case { span, .. } => span.clone(),
+            | Frame::Case { span, .. }
+            | Frame::Load { span, .. }
+            | Frame::Define { span, .. } => span.clone(),
         }
     }
 
@@ -202,6 +220,34 @@ impl Frame {
                     expr: Box::new(current),
                     arms: arms.clone(),
                     else_body: else_body.clone(),
+                },
+                span.clone(),
+            ),
+            Frame::Load {
+                remaining, span, ..
+            } => {
+                // Reify as a sequence: current followed by remaining expressions
+                let mut exprs = vec![current];
+                exprs.extend(remaining.iter().cloned());
+                // Wrap in nested lets to sequence them
+                let mut result = exprs
+                    .pop()
+                    .unwrap_or_else(|| SpannedExpr::unspanned(Expr::Value(Value::Nil)));
+                for (i, expr) in exprs.into_iter().rev().enumerate() {
+                    result = SpannedExpr::new(
+                        Expr::Let {
+                            bindings: vec![(Symbol::intern(&format!("#%load-seq-{i}")), expr)],
+                            body: Box::new(result),
+                        },
+                        span.clone(),
+                    );
+                }
+                result
+            }
+            Frame::Define { name, span, .. } => SpannedExpr::new(
+                Expr::Define {
+                    name: name.clone(),
+                    value: Box::new(current),
                 },
                 span.clone(),
             ),
@@ -365,6 +411,26 @@ pub fn eval_spanned(
                 });
                 expr = *scrutinee;
             }
+            Expr::Load { path } => {
+                // Push a frame to handle the result of evaluating path
+                frames.push(Frame::Load {
+                    remaining: Vec::new(), // Will be populated after path is evaluated
+                    env: env.clone(),
+                    span: current_span,
+                });
+                // First evaluate the path expression
+                expr = *path;
+            }
+            Expr::Define { name, value } => {
+                // Push a frame to handle the result of evaluating value
+                frames.push(Frame::Define {
+                    name,
+                    env: env.clone(),
+                    span: current_span,
+                });
+                // Evaluate the value expression
+                expr = *value;
+            }
         }
     }
 }
@@ -418,14 +484,29 @@ fn unwind(
             } => {
                 values.push(value);
                 if index + 1 < bindings.len() {
-                    *env = frame_env.clone();
+                    // Build environment with all bindings collected so far.
+                    // We use frame_env as the parent (not current env) because current env
+                    // may be polluted by function calls (closures capture their
+                    // definition-time env, not the let*'s accumulated env).
+                    //
+                    // However, we also need to preserve any `define` bindings that were
+                    // added during evaluation. Defines use Env::insert to mutate in place,
+                    // so they're visible via frame_env's bindings map.
+                    let accumulated: Vec<_> = bindings
+                        .iter()
+                        .take(index + 1)
+                        .map(|(name, _)| name.clone())
+                        .zip(values.iter().cloned())
+                        .collect();
+                    let next_env = Env::extend(frame_env.clone(), accumulated);
+                    *env = next_env.clone();
                     let next_expr = bindings[index + 1].1.clone();
                     frames.push(Frame::Let {
                         bindings,
                         index: index + 1,
                         values,
                         body,
-                        env: frame_env.clone(),
+                        env: next_env, // Use next_env so defines are preserved
                         span,
                     });
                     return Ok(Unwind::Continue(next_expr));
@@ -436,6 +517,7 @@ fn unwind(
                     new_bindings.push((name, values[i].clone()));
                 }
 
+                // Extend frame_env with all bindings for the body
                 *env = Env::extend(frame_env, new_bindings);
                 return Ok(Unwind::Continue(body));
             }
@@ -524,8 +606,91 @@ fn unwind(
                 *env = next_env;
                 return Ok(Unwind::Continue(next_expr));
             }
+            Frame::Load {
+                mut remaining,
+                env: frame_env,
+                span,
+            } => {
+                // If remaining is empty, we just evaluated the path expression
+                if remaining.is_empty() {
+                    // Value should be a string path
+                    let path = match &value {
+                        Value::String(s) => s.clone(),
+                        _ => {
+                            return Err(SpannedEvalError::new(
+                                EvalError::TypeMismatch("load expects a string path"),
+                                frame_span,
+                            ));
+                        }
+                    };
+
+                    // Load the file
+                    let loaded_exprs = load_file_for_eval(&path).map_err(|e| {
+                        SpannedEvalError::new(
+                            EvalError::IOError(format!("load: {}", e)),
+                            frame_span.clone(),
+                        )
+                    })?;
+
+                    if loaded_exprs.is_empty() {
+                        // Empty file, return Nil
+                        value = Value::Nil;
+                        // Continue unwinding
+                    } else {
+                        // Set up to evaluate the loaded expressions
+                        let mut exprs = loaded_exprs.into_iter();
+                        let first = exprs.next().unwrap();
+                        remaining = exprs.collect();
+
+                        if !remaining.is_empty() {
+                            // Use current env (which may have been modified by defines)
+                            frames.push(Frame::Load {
+                                remaining,
+                                env: env.clone(),
+                                span,
+                            });
+                        }
+                        // Don't override env - keep any defines that were made
+                        return Ok(Unwind::Continue(first));
+                    }
+                } else {
+                    // We just finished evaluating one expression from the file
+                    // Continue with the next expression, using current env
+                    // (which may have been modified by defines in the file)
+                    let next_expr = remaining.remove(0);
+
+                    if !remaining.is_empty() {
+                        // Use current env for remaining expressions
+                        frames.push(Frame::Load {
+                            remaining,
+                            env: env.clone(),
+                            span,
+                        });
+                    }
+                    // Don't restore frame_env - keep current env with any defines
+                    let _ = frame_env; // silence unused warning
+                    return Ok(Unwind::Continue(next_expr));
+                }
+            }
+            Frame::Define {
+                name,
+                env: frame_env,
+                ..
+            } => {
+                // Mutate the environment in place so the binding is visible
+                // through the parent chain of any environment that references frame_env
+                Env::insert(&frame_env, name, value.clone());
+                // Keep current env pointing to frame_env
+                *env = frame_env;
+                // Return the value (like Scheme's define which returns void, but we return the value)
+            }
         }
     }
+}
+
+/// Load a file and return its expressions for evaluation.
+fn load_file_for_eval(path: &str) -> Result<Vec<SpannedExpr>, String> {
+    load_fold_program(path).map_err(|e| e.to_string())
 }
 
 /// Apply a callable (closure or primitive) to arguments.

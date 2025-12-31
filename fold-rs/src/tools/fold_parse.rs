@@ -1,4 +1,5 @@
 use std::fmt;
+use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Position {
@@ -8,7 +9,7 @@ struct Position {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Span {
-    pub file: String,
+    pub file: Rc<str>, // Use Rc<str> for O(1) cloning
     pub line: usize,
     pub column: usize,
     pub end_line: usize,
@@ -16,7 +17,7 @@ pub struct Span {
 }
 
 impl Span {
-    fn new(file: String, start: Position, end: Position) -> Self {
+    fn new(file: Rc<str>, start: Position, end: Position) -> Self {
         Self {
             file,
             line: start.line,
@@ -26,7 +27,7 @@ impl Span {
         }
     }
 
-    fn point(file: String, pos: Position) -> Self {
+    fn point(file: Rc<str>, pos: Position) -> Self {
         Self::new(file, pos, pos)
     }
 }
@@ -60,6 +61,11 @@ pub enum Sexp {
     Bytevector(Vec<u8>),
     Vector(Vec<Spanned<Sexp>>),
     List(Vec<Spanned<Sexp>>),
+    /// Dotted list: (a b . c) where heads=[a, b] and tail=c
+    DottedList {
+        heads: Vec<Spanned<Sexp>>,
+        tail: Box<Spanned<Sexp>>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -72,6 +78,11 @@ pub enum PlainSexp {
     Bytevector(Vec<u8>),
     Vector(Vec<PlainSexp>),
     List(Vec<PlainSexp>),
+    /// Dotted list: (a b . c) where heads=[a, b] and tail=c
+    DottedList {
+        heads: Vec<PlainSexp>,
+        tail: Box<PlainSexp>,
+    },
 }
 
 pub fn strip_spans(expr: &Spanned<Sexp>) -> PlainSexp {
@@ -84,6 +95,10 @@ pub fn strip_spans(expr: &Spanned<Sexp>) -> PlainSexp {
         Sexp::Bytevector(bytes) => PlainSexp::Bytevector(bytes.clone()),
         Sexp::Vector(items) => PlainSexp::Vector(items.iter().map(strip_spans).collect()),
         Sexp::List(items) => PlainSexp::List(items.iter().map(strip_spans).collect()),
+        Sexp::DottedList { heads, tail } => PlainSexp::DottedList {
+            heads: heads.iter().map(strip_spans).collect(),
+            tail: Box::new(strip_spans(tail)),
+        },
     }
 }
 
@@ -129,7 +144,7 @@ struct Parser {
     index: usize,
     line: usize,
     column: usize,
-    file: String,
+    file: Rc<str>, // Use Rc<str> for O(1) cloning in spans
 }
 
 impl Parser {
@@ -139,7 +154,7 @@ impl Parser {
             index: 0,
             line: 1,
             column: 1,
-            file: file.to_string(),
+            file: Rc::from(file),
         }
     }
 
@@ -179,7 +194,18 @@ impl Parser {
             Some('"') => Sexp::String(self.parse_string()?),
             Some('#') => self.parse_hash_literal()?,
             Some(c) => {
-                if let Some((number, end_index)) = self.scan_number() {
+                // Check for ... (ellipsis) - special symbol in macros
+                if c == '.'
+                    && self.chars.get(self.index + 1) == Some(&'.')
+                    && self.chars.get(self.index + 2) == Some(&'.')
+                {
+                    self.advance(); // consume first .
+                    self.advance(); // consume second .
+                    self.advance(); // consume third .
+                    Sexp::Symbol("...".to_string())
+                } else if let Some(special_float) = self.try_parse_special_float() {
+                    Sexp::Number(NumberLit::Float(special_float))
+                } else if let Some((number, end_index)) = self.scan_number() {
                     self.advance_to(end_index);
                     Sexp::Number(number)
                 } else if is_symbol_initial(c) {
@@ -204,6 +230,43 @@ impl Parser {
                 Some(c) if c == closing => {
                     self.advance();
                     return Ok(Sexp::List(items));
+                }
+                Some('.') => {
+                    // Check if this is a dotted pair separator
+                    // A dot followed by whitespace or closing delimiter is a dotted pair
+                    let next = self.chars.get(self.index + 1).copied();
+                    if next.is_none()
+                        || next == Some(closing)
+                        || next.map(|c| c.is_whitespace()).unwrap_or(false)
+                    {
+                        // This is a dotted pair
+                        if items.is_empty() {
+                            return Err(self.error("expression before dot"));
+                        }
+                        self.advance(); // consume '.'
+                        self.skip_whitespace_and_comments();
+
+                        // Parse the tail expression
+                        let tail = self.parse_expr()?;
+                        self.skip_whitespace_and_comments();
+
+                        // Expect closing delimiter
+                        match self.peek() {
+                            Some(c) if c == closing => {
+                                self.advance();
+                                return Ok(Sexp::DottedList {
+                                    heads: items,
+                                    tail: Box::new(tail),
+                                });
+                            }
+                            _ => return Err(self.error(&format!("{} after dotted tail", closing))),
+                        }
+                    } else {
+                        // This is part of a number like .5 or a symbol
+                        let expr = self.parse_expr()?;
+                        items.push(expr);
+                        self.skip_whitespace_and_comments();
+                    }
                 }
                 Some(_) => {
                     let expr = self.parse_expr()?;
@@ -465,6 +528,37 @@ impl Parser {
         }
     }
 
+    /// Try to parse special float literals: +inf.0, -inf.0, +nan.0, -nan.0
+    fn try_parse_special_float(&mut self) -> Option<f64> {
+        let remaining: String = self.chars[self.index..].iter().collect();
+
+        let specials = [
+            ("+inf.0", f64::INFINITY),
+            ("-inf.0", f64::NEG_INFINITY),
+            ("+nan.0", f64::NAN),
+            ("-nan.0", f64::NAN),
+        ];
+
+        for (literal, value) in specials {
+            if remaining.starts_with(literal) {
+                // Check that it's followed by a delimiter
+                let next_char = remaining.chars().nth(literal.len());
+                if next_char.is_none()
+                    || next_char == Some(')')
+                    || next_char == Some(']')
+                    || next_char.map(|c| c.is_whitespace()).unwrap_or(false)
+                {
+                    for _ in 0..literal.len() {
+                        self.advance();
+                    }
+                    return Some(value);
+                }
+            }
+        }
+
+        None
+    }
+
     fn parse_symbol(&mut self) -> Result<String, ParseError> {
         match self.peek() {
             Some(c) if is_symbol_initial(c) => {
@@ -635,6 +729,7 @@ impl Parser {
 }
 
 fn is_symbol_initial(c: char) -> bool {
+    // Support ASCII alphabetic and most Unicode letters/symbols
     c.is_alphabetic()
         || matches!(
             c,
@@ -654,6 +749,12 @@ fn is_symbol_initial(c: char) -> bool {
                 | '+'
                 | '-'
         )
+        // Support common mathematical/logical Unicode symbols
+        || matches!(c, 'λ' | 'α'..='ω' | 'Α'..='Ω' | '∧' | '∨' | '¬' | '→' | '←' | '↔' | '∀' | '∃' | '∈' | '∉' | '⊂' | '⊃' | '⊆' | '⊇' | '∅' | '∪' | '∩' | '×' | '÷' | '±' | '∞' | '≤' | '≥' | '≠' | '≡' | '≈')
+        // Superscripts and subscripts (Unicode superscripts and Latin-1 supplement)
+        || matches!(c, '⁰'..='⁹' | '₀'..='₉' | '¹' | '²' | '³')
+        // Square root, other math
+        || matches!(c, '√' | '∛' | '∜' | '∑' | '∏' | '∫' | '∂' | '∇' | '∆' | '∝' | '∘')
 }
 
 fn is_symbol_subsequent(c: char) -> bool {

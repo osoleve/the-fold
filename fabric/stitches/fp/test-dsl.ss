@@ -521,6 +521,311 @@
                    (assert-equal 8 (cdr (assoc 'a (car result)))))))
 
 ;;; ============================================================
+;;; Do-Notation Tests
+;;; ============================================================
+
+(test-group dsl-do-notation
+            (define-test dsl-do-basic-test
+              ;; Simple binding test
+              (let ([result (dsl-pure-value
+                             (dsl-do
+                              (x <- (dsl-pure 5))
+                              (dsl-pure (* x 2))))])
+                   (assert-equal 10 result)))
+            
+            (define-test dsl-do-multiple-bindings-test
+              ;; Multiple bindings
+              (let ([result (dsl-pure-value
+                             (dsl-do
+                              (x <- (dsl-pure 10))
+                              (y <- (dsl-pure 20))
+                              (z <- (dsl-pure 12))
+                              (dsl-pure (+ x y z))))])
+                   (assert-equal 42 result)))
+            
+            (define-test dsl-do-discard-test
+              ;; Discarding intermediate results
+              (let ([result (dsl-pure-value
+                             (dsl-do
+                              (dsl-pure 'ignored)
+                              (x <- (dsl-pure 42))
+                              (dsl-pure x)))])
+                   (assert-equal 42 result)))
+            
+            (define-test dsl-do-calc-test
+              ;; Using dsl-do with calculator DSL
+              (let ([result (run-calc
+                             (dsl-do
+                              (_ <- (calc-push! 10))
+                              (_ <- (calc-push! 20))
+                              (_ <- (calc-add!))
+                              (calc-pop!)))])
+                   (assert-equal 30 result)))
+            
+            (define-test dsl-do-complex-calc-test
+              ;; (5 + 3) * 2 using dsl-do
+              (let ([result (run-calc
+                             (dsl-do
+                              (_ <- (calc-push! 5))
+                              (_ <- (calc-push! 3))
+                              (_ <- (calc-add!))
+                              (_ <- (calc-push! 2))
+                              (_ <- (calc-mul!))
+                              (calc-pop!)))])
+                   (assert-equal 16 result)))
+            
+            (define-test dsl-do-nested-test
+              ;; Nested dsl-do
+              (let ([result (dsl-pure-value
+                             (dsl-do
+                              (x <- (dsl-do
+                                     (a <- (dsl-pure 5))
+                                     (dsl-pure (* a 2))))
+                              (dsl-pure (+ x 10))))])
+                   (assert-equal 20 result))))
+
+;;; ============================================================
+;;; Error Handling Tests
+;;; ============================================================
+
+(test-group error-handling
+            (define-test dsl-ok-test
+              (let ([r (dsl-ok 42)])
+                   (assert-true (dsl-ok? r))
+                   (assert-false (dsl-err? r))
+                   (assert-equal 42 (dsl-ok-value r))))
+            
+            (define-test dsl-err-test
+              (let ([r (dsl-err 'test-error "Something went wrong")])
+                   (assert-false (dsl-ok? r))
+                   (assert-true (dsl-err? r))
+                   (assert-equal 'test-error (dsl-err-tag r))
+                   (assert-equal "Something went wrong" (dsl-err-message r))))
+            
+            (define-test dsl-result-map-ok-test
+              (let ([r (dsl-result-map (lambda (x) (* x 2)) (dsl-ok 21))])
+                   (assert-true (dsl-ok? r))
+                   (assert-equal 42 (dsl-ok-value r))))
+            
+            (define-test dsl-result-map-err-test
+              (let ([r (dsl-result-map (lambda (x) (* x 2)) (dsl-err 'e "msg"))])
+                   (assert-true (dsl-err? r))
+                   (assert-equal 'e (dsl-err-tag r))))
+            
+            (define-test run-dsl-safe-success-test
+              (let ([result (run-dsl-safe (make-calc-interpreter)
+                                          (dsl-do
+                                           (_ <- (calc-push! 5))
+                                           (_ <- (calc-push! 3))
+                                           (_ <- (calc-add!))
+                                           (calc-pop!)))])
+                   (assert-true (dsl-ok? result))
+                   (assert-equal 8 (dsl-ok-value result))))
+            
+            (define-test dsl-assert-true-test
+              (let ([result (dsl-pure-value
+                             (dsl-do
+                              (_ <- (dsl-assert #t 'test "Should not fail"))
+                              (dsl-pure 'passed)))])
+                   (assert-equal 'passed result)))
+            
+            (define-test dsl-fail-test
+              ;; dsl-fail creates a suspended program
+              (let ([prog (dsl-fail 'test-error "Test failure")])
+                   (assert-true (dsl-suspended? prog)))))
+
+;;; ============================================================
+;;; Debugging Tools Tests
+;;; ============================================================
+
+(test-group debugging-tools
+            (define-test dsl-peek-pure-test
+              (let ([peeked (dsl-peek (dsl-pure 42))])
+                   (assert-equal 'pure (car peeked))
+                   (assert-equal 42 (cdr peeked))))
+            
+            (define-test dsl-peek-instruction-test
+              (let ([peeked (dsl-peek (calc-push! 10))])
+                   (assert-equal 'calc-push (car peeked))
+                   (assert-equal 10 (cdr peeked))))
+            
+            (define-test dsl-count-instructions-test
+              (let* ([prog (dsl-do
+                            (_ <- (calc-push! 1))
+                            (_ <- (calc-push! 2))
+                            (_ <- (calc-add!))
+                            (calc-pop!))]
+                     [count (dsl-count-instructions prog 100)])
+                    (assert-equal 4 count)))
+            
+            (define-test dsl-count-instructions-fuel-test
+              ;; Should stop at fuel limit
+              (let* ([prog (dsl-do
+                            (_ <- (calc-push! 1))
+                            (_ <- (calc-push! 2))
+                            (_ <- (calc-push! 3))
+                            (_ <- (calc-push! 4))
+                            (calc-pop!))]
+                     [count (dsl-count-instructions prog 2)])
+                    (assert-equal 2 count)))
+            
+            (define-test dsl-pretty-print-pure-test
+              (let ([str (dsl-pretty-print (dsl-pure 42))])
+                   (assert-true (string? str))))
+            
+            (define-test dsl-pretty-print-instr-test
+              (let ([str (dsl-pretty-print (calc-push! 10))])
+                   (assert-true (string? str))))
+            
+            (define-test dsl-collect-tags-test
+              (let ([tags (dsl-collect-tags
+                           (dsl-do
+                            (_ <- (calc-push! 1))
+                            (_ <- (calc-add!))
+                            (calc-pop!))
+                           100)])
+                   (assert-equal 3 (length tags))
+                   (assert-equal 'calc-push (car tags))
+                   (assert-equal 'calc-add (cadr tags))
+                   (assert-equal 'calc-pop (caddr tags)))))
+
+;;; ============================================================
+;;; DSL Combination Tests
+;;; ============================================================
+
+(test-group dsl-combination
+            (define-test dsl-inject-left-test
+              (let* ([prog (calc-push! 10)]
+                     [lifted (dsl-inject-left prog)]
+                     [peeked (dsl-peek lifted)])
+                    (assert-true (dsl-left-tag? (car peeked)))))
+            
+            (define-test dsl-inject-right-test
+              (let* ([prog (forward! 100)]
+                     [lifted (dsl-inject-right prog)]
+                     [peeked (dsl-peek lifted)])
+                    (assert-true (dsl-right-tag? (car peeked)))))
+            
+            (define-test dsl-inject-pure-test
+              ;; Pure values should not be wrapped
+              (let* ([prog (dsl-pure 42)]
+                     [lifted (dsl-inject-left prog)])
+                    (assert-true (dsl-pure? lifted))
+                    (assert-equal 42 (dsl-pure-value lifted))))
+            
+            (define-test union-interpreter-test
+              (let* ([calc-interp (make-calc-interpreter)]
+                     [combined (union-interpreter calc-interp calc-interp)]
+                     [prog (dsl-do
+                            (_ <- (dsl-inject-left (calc-push! 5)))
+                            (_ <- (dsl-inject-left (calc-push! 3)))
+                            (_ <- (dsl-inject-left (calc-add!)))
+                            (dsl-inject-left (calc-pop!)))]
+                     [result (run-dsl combined prog)])
+                    (assert-equal 8 result))))
+
+;;; ============================================================
+;;; Validation Tests
+;;; ============================================================
+
+(test-group validation
+            (define-test dsl-schema-test
+              (assert-true (dsl-schema? calc-schema))
+              (assert-true (pair? (dsl-schema-instructions calc-schema))))
+            
+            (define-test dsl-validate-valid-test
+              (let* ([prog (dsl-do
+                            (_ <- (calc-push! 5))
+                            (_ <- (calc-add!))
+                            (calc-pop!))]
+                     [result (dsl-validate calc-schema prog 100)])
+                    (assert-true (dsl-ok? result))))
+            
+            (define-test dsl-validate-pure-test
+              (let ([result (dsl-validate calc-schema (dsl-pure 42) 100)])
+                   (assert-true (dsl-ok? result))))
+            
+            (define-test dsl-validate-invalid-test
+              (let* ([prog (forward! 100)]  ; turtle instruction
+                     [result (dsl-validate calc-schema prog 100)])
+                    (assert-true (dsl-err? result))
+                    (assert-equal 'invalid-instruction (dsl-err-tag result))))
+            
+            (define-test turtle-schema-test
+              (let* ([prog (dsl-do
+                            (_ <- (forward! 100))
+                            (_ <- (right! 90))
+                            (getpos!))]
+                     [result (dsl-validate turtle-schema prog 100)])
+                    (assert-true (dsl-ok? result)))))
+
+;;; ============================================================
+;;; Resource Management Tests
+;;; ============================================================
+
+(test-group resource-management
+            (define-test dsl-finally-test
+              ;; Verify finally runs after main program
+              (let* ([cleanup-ran #f]
+                     [interp (make-interpreter
+                              (lambda (tag payload)
+                                      (case tag
+                                            [(set-flag) (set! cleanup-ran #t) '()]
+                                            [(get-value) 42]
+                                            [else '()])))]
+                     [prog (dsl-finally
+                            (dsl-emit 'set-flag '())
+                            (dsl-request 'get-value '()))]
+                     [result (run-dsl interp prog)])
+                    (assert-equal 42 result)
+                    (assert-true cleanup-ran)))
+            
+            (define-test dsl-bracket-test
+              ;; Verify bracket acquires, uses, then releases
+              (let* ([log '()]
+                     [interp (make-interpreter
+                              (lambda (tag payload)
+                                      (case tag
+                                            [(acquire)
+                                             (set! log (cons 'acquired log))
+                                             'resource]
+                                            [(use)
+                                             (set! log (cons 'used log))
+                                             'result]
+                                            [(release)
+                                             (set! log (cons 'released log))
+                                             '()]
+                                            [else '()])))]
+                     [prog (dsl-bracket
+                            (dsl-request 'acquire '())
+                            (lambda (r) (dsl-emit 'release r))
+                            (lambda (r) (dsl-request 'use r)))]
+                     [result (run-dsl interp prog)])
+                    (assert-equal 'result result)
+                    ;; Log should be in reverse order: acquired, used, released
+                    (assert-equal 'released (car log))
+                    (assert-equal 'used (cadr log))
+                    (assert-equal 'acquired (caddr log)))))
+
+;;; ============================================================
+;;; Effects Integration Tests
+;;; ============================================================
+
+(test-group effects-integration
+            (define-test dsl-to-eff-pure-test
+              (let* ([prog (dsl-pure 42)]
+                     [eff (dsl-to-eff prog)])
+                    ;; Should produce an eff-pure
+                    (assert-true (eff-pure? eff))
+                    (assert-equal 42 (eff-pure-value eff))))
+            
+            (define-test dsl-to-eff-instruction-test
+              (let* ([prog (calc-push! 10)]
+                     [eff (dsl-to-eff prog)])
+                    ;; Should produce an eff-op
+                    (assert-true (eff-op? eff)))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 

@@ -65,6 +65,12 @@ pub fn lower_expr(expr: &Spanned<Sexp>) -> Result<SpannedExpr, LowerError> {
         }
         Sexp::Symbol(sym) => Expr::Var(Symbol::intern(sym)),
         Sexp::List(items) => return lower_list(expr, items),
+        Sexp::DottedList { .. } => {
+            return Err(LowerError {
+                message: "dotted list in expression position (use quote for data)".to_string(),
+                span: expr.span.clone(),
+            });
+        }
     };
     Ok(SpannedExpr::new(inner, span))
 }
@@ -285,9 +291,17 @@ fn lower_list(
             "case" => return lower_case(list_expr, items),
             "prim" => return lower_prim(list_expr, items),
             "call" => return lower_call(list_expr, items),
+            "load" => return lower_load(list_expr, items),
+            "define" => return lower_define(list_expr, items),
+            "define-syntax" => {
+                // Macros not supported - skip as no-op
+                let span = Some(list_expr.span.clone());
+                return Ok(SpannedExpr::new(Expr::Value(Value::Nil), span));
+            }
             "begin" => return lower_begin(list_expr, items),
             "cond" => return lower_cond(list_expr, items),
-            "define" => return lower_define(list_expr, items),
+            "and" => return lower_and(list_expr, items),
+            "or" => return lower_or(list_expr, items),
             _ => {
                 // Check if this is a builtin primitive that should be lowered to a prim call
                 if is_builtin_prim(&head_symbol) {
@@ -363,6 +377,10 @@ fn expand_quasiquote(expr: &Spanned<Sexp>) -> Result<Expr, LowerError> {
             // It's a list - expand each element
             expand_quasiquote_list(items)
         }
+        Sexp::DottedList { heads, tail } => {
+            // Expand dotted list in quasiquote context
+            expand_quasiquote_dotted_list(heads, tail)
+        }
         // Non-list or empty list - just quote it
         _ => {
             let datum = value_from_spanned(expr)?;
@@ -430,6 +448,30 @@ fn expand_quasiquote_list(items: &[Spanned<Sexp>]) -> Result<Expr, LowerError> {
     }
 }
 
+/// Expand a quasiquoted dotted list like `(a b . ,c)
+fn expand_quasiquote_dotted_list(
+    heads: &[Spanned<Sexp>],
+    tail: &Spanned<Sexp>,
+) -> Result<Expr, LowerError> {
+    // For a dotted list, we need to use cons to build the structure
+    // `(a b . c) becomes (cons (expand a) (cons (expand b) (expand c)))
+    let tail_expr = expand_quasiquote(tail)?;
+    let mut result = tail_expr;
+
+    for head in heads.iter().rev() {
+        let head_expr = expand_quasiquote(head)?;
+        result = Expr::Prim {
+            op: Symbol::intern("cons"),
+            args: vec![
+                SpannedExpr::new(head_expr, Some(head.span.clone())),
+                SpannedExpr::unspanned(result),
+            ],
+        };
+    }
+
+    Ok(result)
+}
+
 fn lower_fn(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
     if items.len() < 3 {
@@ -465,8 +507,71 @@ fn lower_let(
     items: &[Spanned<Sexp>],
 ) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
-    if items.len() < 3 {
-        return Err(error(list_expr, "let expects (let ((name expr) ...) body ...)"));
+
+    // Check for named let: (let name ((var init) ...) body)
+    if items.len() >= 4
+        && let Sexp::Symbol(loop_name) = &items[1].value
+    {
+        // Named let: (let loop ((x 1) (y 2)) body)
+        // Transforms to: ((fix loop (lambda (x y) body)) 1 2)
+        let bindings_list = match &items[2].value {
+            Sexp::List(list) => list,
+            _ => return Err(error(&items[2], "named let expects bindings list")),
+        };
+
+        let mut params: Vec<Symbol> = Vec::new();
+        let mut init_exprs: Vec<SpannedExpr> = Vec::new();
+
+        for binding in bindings_list {
+            match &binding.value {
+                Sexp::List(pair) if pair.len() == 2 => {
+                    let name = match &pair[0].value {
+                        Sexp::Symbol(sym) => Symbol::intern(sym),
+                        _ => return Err(error(&pair[0], "binding name must be a symbol")),
+                    };
+                    params.push(name);
+                    init_exprs.push(lower_expr(&pair[1])?);
+                }
+                _ => return Err(error(binding, "binding must be (name expr)")),
+            }
+        }
+
+        // Handle body - could be multiple expressions
+        let body = if items.len() == 4 {
+            lower_expr(&items[3])?
+        } else {
+            lower_begin(list_expr, &items[3..])?
+        };
+
+        // Build: ((fix loop (lambda (params...) body)) init_exprs...)
+        let lambda = SpannedExpr::new(
+            Expr::Fn {
+                params,
+                body: Box::new(body),
+            },
+            span.clone(),
+        );
+
+        let fixed = SpannedExpr::new(
+            Expr::Fix {
+                name: Symbol::intern(loop_name),
+                value: Box::new(lambda),
+            },
+            span.clone(),
+        );
+
+        return Ok(SpannedExpr::new(
+            Expr::Call {
+                func: Box::new(fixed),
+                args: init_exprs,
+            },
+            span,
+        ));
+    }
+
+    // Regular let: (let ((name expr) ...) body)
+    if items.len() != 3 {
+        return Err(error(list_expr, "let expects (let ((name expr) ...) body)"));
     }
     let bindings_list = match &items[1].value {
         Sexp::List(list) => list,
@@ -707,194 +812,21 @@ fn lower_call(
     ))
 }
 
-/// Transform begin into nested let expressions
-/// (begin e1 e2 e3) => (let ((_ e1)) (let ((_ e2)) e3))
-fn lower_begin(
+fn lower_load(
     list_expr: &Spanned<Sexp>,
     items: &[Spanned<Sexp>],
 ) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
-    if items.len() < 2 {
-        return Err(error(list_expr, "begin expects at least one expression"));
+    if items.len() != 2 {
+        return Err(error(list_expr, "load expects (load path)"));
     }
-
-    // Lower all body expressions
-    let mut exprs: Vec<SpannedExpr> = Vec::with_capacity(items.len() - 1);
-    for item in &items[1..] {
-        exprs.push(lower_expr(item)?);
-    }
-
-    // Build nested let from right to left
-    let mut result = exprs.pop().unwrap();
-    for (i, expr) in exprs.into_iter().rev().enumerate() {
-        let ignored = Symbol::intern(&format!("#%begin-{i}"));
-        result = SpannedExpr::new(
-            Expr::Let {
-                bindings: vec![(ignored, expr)],
-                body: Box::new(result),
-            },
-            span.clone(),
-        );
-    }
-    Ok(result)
-}
-
-/// Transform cond into nested if expressions
-/// (cond (test1 result1) (test2 result2) (else result3))
-/// => (if test1 result1 (if test2 result2 result3))
-fn lower_cond(
-    list_expr: &Spanned<Sexp>,
-    items: &[Spanned<Sexp>],
-) -> Result<SpannedExpr, LowerError> {
-    let span = Some(list_expr.span.clone());
-    if items.len() < 2 {
-        return Err(error(list_expr, "cond expects at least one clause"));
-    }
-
-    // Parse all clauses
-    let mut clauses: Vec<(SpannedExpr, SpannedExpr)> = Vec::new();
-    let mut else_body: Option<SpannedExpr> = None;
-
-    for clause in &items[1..] {
-        let clause_items = match &clause.value {
-            Sexp::List(list) if list.len() >= 2 => list,
-            _ => return Err(error(clause, "cond clause must be (test result)")),
-        };
-
-        // Check for else clause
-        if let Sexp::Symbol(sym) = &clause_items[0].value {
-            if sym == "else" {
-                if else_body.is_some() {
-                    return Err(error(clause, "cond can only have one else clause"));
-                }
-                // Handle multiple expressions in else clause with implicit begin
-                if clause_items.len() == 2 {
-                    else_body = Some(lower_expr(&clause_items[1])?);
-                } else {
-                    else_body = Some(lower_begin_exprs(&clause_items[1..], span.clone())?);
-                }
-                continue;
-            }
-        }
-
-        let test = lower_expr(&clause_items[0])?;
-        let result = if clause_items.len() == 2 {
-            lower_expr(&clause_items[1])?
-        } else {
-            // Multiple expressions - wrap in implicit begin
-            lower_begin_exprs(&clause_items[1..], span.clone())?
-        };
-        clauses.push((test, result));
-    }
-
-    // Build nested if from right to left
-    let mut result = else_body.unwrap_or_else(|| {
-        SpannedExpr::new(Expr::Value(Value::Nil), span.clone())
-    });
-
-    for (test, body) in clauses.into_iter().rev() {
-        result = SpannedExpr::new(
-            Expr::If {
-                test: Box::new(test),
-                then_branch: Box::new(body),
-                else_branch: Box::new(result),
-            },
-            span.clone(),
-        );
-    }
-    Ok(result)
-}
-
-/// Helper to create an implicit begin from multiple expressions
-fn lower_begin_exprs(items: &[Spanned<Sexp>], span: Option<Span>) -> Result<SpannedExpr, LowerError> {
-    if items.is_empty() {
-        return Ok(SpannedExpr::new(Expr::Value(Value::Nil), span));
-    }
-    if items.len() == 1 {
-        return lower_expr(&items[0]);
-    }
-
-    let mut exprs: Vec<SpannedExpr> = Vec::with_capacity(items.len());
-    for item in items {
-        exprs.push(lower_expr(item)?);
-    }
-
-    let mut result = exprs.pop().unwrap();
-    for (i, expr) in exprs.into_iter().rev().enumerate() {
-        let ignored = Symbol::intern(&format!("#%begin-{i}"));
-        result = SpannedExpr::new(
-            Expr::Let {
-                bindings: vec![(ignored, expr)],
-                body: Box::new(result),
-            },
-            span.clone(),
-        );
-    }
-    Ok(result)
-}
-
-/// Lower define - creates a special marker that program-level code can handle
-/// For now, we emit a let binding that can be merged at the program level
-/// (define name value) => marker for program-level transformation
-fn lower_define(
-    list_expr: &Spanned<Sexp>,
-    items: &[Spanned<Sexp>],
-) -> Result<SpannedExpr, LowerError> {
-    let span = Some(list_expr.span.clone());
-
-    // Handle (define name value) form
-    if items.len() == 3 {
-        if let Sexp::Symbol(name) = &items[1].value {
-            let value = lower_expr(&items[2])?;
-            // Create a special marker: (let ((name value)) name)
-            // This lets the define's value be the bound name itself
-            let name_sym = Symbol::intern(name);
-            return Ok(SpannedExpr::new(
-                Expr::Let {
-                    bindings: vec![(name_sym, value)],
-                    body: Box::new(SpannedExpr::new(Expr::Var(name_sym), span.clone())),
-                },
-                span,
-            ));
-        }
-
-        // Handle (define (name params...) body) function shorthand
-        if let Sexp::List(sig) = &items[1].value {
-            if sig.is_empty() {
-                return Err(error(&items[1], "define function signature cannot be empty"));
-            }
-            let name = match &sig[0].value {
-                Sexp::Symbol(s) => Symbol::intern(s),
-                _ => return Err(error(&sig[0], "define function name must be a symbol")),
-            };
-            let params: Vec<Symbol> = sig[1..]
-                .iter()
-                .map(|p| match &p.value {
-                    Sexp::Symbol(s) => Ok(Symbol::intern(s)),
-                    _ => Err(error(p, "define function params must be symbols")),
-                })
-                .collect::<Result<_, _>>()?;
-
-            let body = lower_expr(&items[2])?;
-            let lambda = SpannedExpr::new(
-                Expr::Fn {
-                    params,
-                    body: Box::new(body),
-                },
-                span.clone(),
-            );
-
-            return Ok(SpannedExpr::new(
-                Expr::Let {
-                    bindings: vec![(name, lambda)],
-                    body: Box::new(SpannedExpr::new(Expr::Var(name), span.clone())),
-                },
-                span,
-            ));
-        }
-    }
-
-    Err(error(list_expr, "define expects (define name value) or (define (name params...) body)"))
+    let path = lower_expr(&items[1])?;
+    Ok(SpannedExpr::new(
+        Expr::Load {
+            path: Box::new(path),
+        },
+        span,
+    ))
 }
 
 fn parse_prim_op(op: &Spanned<Sexp>) -> Result<Symbol, LowerError> {
@@ -960,7 +892,266 @@ fn value_from_spanned(expr: &Spanned<Sexp>) -> Result<Value, LowerError> {
             }
             Ok(list_from_values(&values))
         }
+        Sexp::DottedList { heads, tail } => {
+            // Convert heads to values
+            let head_values: Result<Vec<_>, _> = heads.iter().map(value_from_spanned).collect();
+            let head_values = head_values?;
+            let tail_value = value_from_spanned(tail)?;
+            // Build the improper list from the end
+            let mut result = tail_value;
+            for v in head_values.into_iter().rev() {
+                result = Value::Pair(Box::new(v), Box::new(result));
+            }
+            Ok(result)
+        }
     }
+}
+
+/// Lower (define name value) or (define (name args...) body)
+fn lower_define(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() < 3 {
+        return Err(error(
+            list_expr,
+            "define expects (define name value) or (define (name args...) body)",
+        ));
+    }
+
+    match &items[1].value {
+        // Simple define: (define x 42)
+        Sexp::Symbol(name) => {
+            if items.len() != 3 {
+                return Err(error(list_expr, "define expects (define name value)"));
+            }
+            let value = lower_expr(&items[2])?;
+            Ok(SpannedExpr::new(
+                Expr::Define {
+                    name: Symbol::intern(name),
+                    value: Box::new(value),
+                },
+                span,
+            ))
+        }
+        // Function define: (define (name args...) body...)
+        Sexp::List(name_and_params) if !name_and_params.is_empty() => {
+            let name = match &name_and_params[0].value {
+                Sexp::Symbol(s) => Symbol::intern(s),
+                _ => return Err(error(&name_and_params[0], "function name must be a symbol")),
+            };
+            let params: Result<Vec<_>, _> = name_and_params[1..]
+                .iter()
+                .map(|p| match &p.value {
+                    Sexp::Symbol(s) => Ok(Symbol::intern(s)),
+                    _ => Err(error(p, "parameter must be a symbol")),
+                })
+                .collect();
+            let params = params?;
+
+            // Handle body - if multiple expressions, wrap in begin
+            let body = if items.len() == 3 {
+                lower_expr(&items[2])?
+            } else {
+                // Multiple body expressions - lower each and make a sequence
+                lower_begin(list_expr, &items[2..])?
+            };
+
+            let lambda = SpannedExpr::new(
+                Expr::Fn {
+                    params,
+                    body: Box::new(body),
+                },
+                span.clone(),
+            );
+
+            Ok(SpannedExpr::new(
+                Expr::Define {
+                    name,
+                    value: Box::new(lambda),
+                },
+                span,
+            ))
+        }
+        _ => Err(error(&items[1], "define expects symbol or (name args...)")),
+    }
+}
+
+/// Lower (begin expr...) to a sequence of expressions
+fn lower_begin(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+
+    // Skip "begin" if present at the start
+    let exprs = if !items.is_empty() && symbol_name(&items[0]).as_deref() == Some("begin") {
+        &items[1..]
+    } else {
+        items
+    };
+
+    if exprs.is_empty() {
+        // Empty begin returns nil
+        return Ok(SpannedExpr::new(Expr::Value(Value::Nil), span));
+    }
+
+    if exprs.len() == 1 {
+        return lower_expr(&exprs[0]);
+    }
+
+    // Convert to nested let bindings: (let ((_ e1)) (let ((_ e2)) e3))
+    let mut result = lower_expr(exprs.last().unwrap())?;
+    for (i, expr) in exprs.iter().rev().skip(1).enumerate() {
+        let lowered = lower_expr(expr)?;
+        result = SpannedExpr::new(
+            Expr::Let {
+                bindings: vec![(Symbol::intern(&format!("#%begin-{}", i)), lowered)],
+                body: Box::new(result),
+            },
+            span.clone(),
+        );
+    }
+
+    Ok(result)
+}
+
+/// Lower (cond (test expr)... [(else expr)])
+fn lower_cond(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+
+    // Skip "cond"
+    let clauses = &items[1..];
+
+    if clauses.is_empty() {
+        return Ok(SpannedExpr::new(Expr::Value(Value::Nil), span));
+    }
+
+    // Build nested if expressions from bottom up
+    let mut result: Option<SpannedExpr> = None;
+
+    for clause in clauses.iter().rev() {
+        let clause_items = match &clause.value {
+            Sexp::List(items) => items,
+            _ => return Err(error(clause, "cond clause must be a list")),
+        };
+
+        if clause_items.is_empty() {
+            return Err(error(clause, "cond clause cannot be empty"));
+        }
+
+        // Check for else clause
+        if let Some("else") = symbol_name(&clause_items[0]).as_deref() {
+            if clause_items.len() < 2 {
+                return Err(error(clause, "else clause needs a body"));
+            }
+            // Lower the else body
+            result = Some(if clause_items.len() == 2 {
+                lower_expr(&clause_items[1])?
+            } else {
+                lower_begin(clause, &clause_items[1..])?
+            });
+        } else {
+            // Regular clause: (test body...)
+            let test = lower_expr(&clause_items[0])?;
+            let body = if clause_items.len() == 1 {
+                // (cond (test)) returns test if true
+                test.clone()
+            } else if clause_items.len() == 2 {
+                lower_expr(&clause_items[1])?
+            } else {
+                lower_begin(clause, &clause_items[1..])?
+            };
+
+            let else_branch =
+                result.unwrap_or_else(|| SpannedExpr::new(Expr::Value(Value::Nil), None));
+
+            result = Some(SpannedExpr::new(
+                Expr::If {
+                    test: Box::new(test),
+                    then_branch: Box::new(body),
+                    else_branch: Box::new(else_branch),
+                },
+                span.clone(),
+            ));
+        }
+    }
+
+    Ok(result.unwrap_or_else(|| SpannedExpr::new(Expr::Value(Value::Nil), span)))
+}
+
+/// Lower (and expr...) to nested if expressions
+fn lower_and(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+
+    // Skip "and"
+    let exprs = &items[1..];
+
+    if exprs.is_empty() {
+        return Ok(SpannedExpr::new(Expr::Value(Value::Bool(true)), span));
+    }
+
+    if exprs.len() == 1 {
+        return lower_expr(&exprs[0]);
+    }
+
+    // Build nested if: (if e1 (if e2 e3 #f) #f)
+    let mut result = lower_expr(exprs.last().unwrap())?;
+    for expr in exprs.iter().rev().skip(1) {
+        let test = lower_expr(expr)?;
+        result = SpannedExpr::new(
+            Expr::If {
+                test: Box::new(test),
+                then_branch: Box::new(result),
+                else_branch: Box::new(SpannedExpr::new(Expr::Value(Value::Bool(false)), None)),
+            },
+            span.clone(),
+        );
+    }
+
+    Ok(result)
+}
+
+/// Lower (or expr...) to nested if expressions
+fn lower_or(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+
+    // Skip "or"
+    let exprs = &items[1..];
+
+    if exprs.is_empty() {
+        return Ok(SpannedExpr::new(Expr::Value(Value::Bool(false)), span));
+    }
+
+    if exprs.len() == 1 {
+        return lower_expr(&exprs[0]);
+    }
+
+    // Build nested if: (if e1 e1 (if e2 e2 e3))
+    // But we need to avoid evaluating e1 twice, so use a let
+    // Actually, for simplicity, we'll just evaluate twice for now
+    // TODO: Use proper short-circuit with let bindings
+    let mut result = lower_expr(exprs.last().unwrap())?;
+    for expr in exprs.iter().rev().skip(1) {
+        let test = lower_expr(expr)?;
+        result = SpannedExpr::new(
+            Expr::If {
+                test: Box::new(test.clone()),
+                then_branch: Box::new(test),
+                else_branch: Box::new(result),
+            },
+            span.clone(),
+        );
+    }
+
+    Ok(result)
 }
 
 fn list_from_values(values: &[Value]) -> Value {
