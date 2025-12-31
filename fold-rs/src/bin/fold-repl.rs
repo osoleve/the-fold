@@ -90,22 +90,65 @@ fn run_expr(expr: SpannedExpr, fuel: usize) -> Result<EvalOutcome, String> {
 }
 
 fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
-    let mut iter = exprs.into_iter();
-    let mut current = match iter.next() {
-        Some(expr) => expr,
-        None => return SpannedExpr::unspanned(Expr::Value(Value::Nil)),
+    if exprs.is_empty() {
+        return SpannedExpr::unspanned(Expr::Value(Value::Nil));
+    }
+
+    // Collect defines and convert them to let* bindings
+    let mut bindings: Vec<(String, SpannedExpr)> = Vec::new();
+    let mut body_exprs: Vec<SpannedExpr> = Vec::new();
+
+    for expr in exprs {
+        match &expr.expr {
+            Expr::Define { name, value } => {
+                bindings.push((name.clone(), (**value).clone()));
+            }
+            _ => {
+                body_exprs.push(expr);
+            }
+        }
+    }
+
+    // Build the body: sequence non-define expressions
+    let body = if body_exprs.is_empty() {
+        // If only defines, return the last define's value
+        if bindings.is_empty() {
+            SpannedExpr::unspanned(Expr::Value(Value::Nil))
+        } else {
+            let last_name = bindings.last().unwrap().0.clone();
+            SpannedExpr::unspanned(Expr::Var(last_name))
+        }
+    } else if body_exprs.len() == 1 {
+        body_exprs.remove(0)
+    } else {
+        // Sequence the body expressions with let bindings
+        let mut iter = body_exprs.into_iter();
+        let mut current = iter.next().unwrap();
+        for (index, next) in iter.enumerate() {
+            let name = format!("#%fold-seq-{index}");
+            current = SpannedExpr::new(
+                Expr::Let {
+                    bindings: vec![(name, current)],
+                    body: Box::new(next),
+                },
+                None,
+            );
+        }
+        current
     };
-    for (index, next) in iter.enumerate() {
-        let name = Symbol::intern(&format!("#%fold-seq-{index}"));
-        current = SpannedExpr::new(
+
+    // Wrap body in let* for all defines
+    if bindings.is_empty() {
+        body
+    } else {
+        SpannedExpr::new(
             Expr::Let {
-                bindings: vec![(name, current)],
-                body: Box::new(next),
+                bindings,
+                body: Box::new(body),
             },
             None,
-        );
+        )
     }
-    current
 }
 
 fn print_help() {

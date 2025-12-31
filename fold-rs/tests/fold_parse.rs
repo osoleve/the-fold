@@ -93,7 +93,7 @@ fn parse_program_and_spans() {
     assert_eq!(exprs.len(), 2);
 
     let expr = parse_fold_expr("42", Some("test.ss")).expect("parse failed");
-    assert_eq!(expr.span.file, "test.ss");
+    assert_eq!(&*expr.span.file, "test.ss");
     assert_eq!(expr.span.line, 1);
     assert_eq!(expr.span.column, 1);
 
