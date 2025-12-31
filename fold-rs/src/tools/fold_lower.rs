@@ -256,7 +256,7 @@ fn is_builtin_prim(name: &str) -> bool {
             // Logical operations
             | "xor" | "gensym"
             // Conditional and logical utilities
-            | "when" | "unless" | "implies" | "iff" | "nand" | "nor" | "if"
+            | "implies" | "iff" | "nand" | "nor" | "if"
             | "cond-value" | "coalesce" | "default-value" | "both?" | "either?"
             // Utilities
             | "identity" | "error" | "deep-equal?" | "list-every?" | "apply"
@@ -302,6 +302,11 @@ fn lower_list(
             "cond" => return lower_cond(list_expr, items),
             "and" => return lower_and(list_expr, items),
             "or" => return lower_or(list_expr, items),
+            "top-level-bound?" => return lower_bound(list_expr, items),
+            "unless" => return lower_unless(list_expr, items),
+            "when" => return lower_when(list_expr, items),
+            "define-test" => return lower_define_test(list_expr, items),
+            "test-group" => return lower_test_group(list_expr, items),
             _ => {
                 // Check if this is a builtin primitive that should be lowered to a prim call
                 if is_builtin_prim(&head_symbol) {
@@ -569,9 +574,9 @@ fn lower_let(
         ));
     }
 
-    // Regular let: (let ((name expr) ...) body)
-    if items.len() != 3 {
-        return Err(error(list_expr, "let expects (let ((name expr) ...) body)"));
+    // Regular let: (let ((name expr) ...) body ...)
+    if items.len() < 3 {
+        return Err(error(list_expr, "let expects (let ((name expr) ...) body ...)"));
     }
     let bindings_list = match &items[1].value {
         Sexp::List(list) => list,
@@ -1017,6 +1022,34 @@ fn lower_begin(
     Ok(result)
 }
 
+/// Helper to lower a sequence of expressions (like begin body)
+/// Takes a slice of expressions (not including "begin" keyword) and a span
+fn lower_begin_exprs(exprs: &[Spanned<Sexp>], span: Option<Span>) -> Result<SpannedExpr, LowerError> {
+    if exprs.is_empty() {
+        // Empty sequence returns nil
+        return Ok(SpannedExpr::new(Expr::Value(Value::Nil), span));
+    }
+
+    if exprs.len() == 1 {
+        return lower_expr(&exprs[0]);
+    }
+
+    // Convert to nested let bindings: (let ((_ e1)) (let ((_ e2)) e3))
+    let mut result = lower_expr(exprs.last().unwrap())?;
+    for (i, expr) in exprs.iter().rev().skip(1).enumerate() {
+        let lowered = lower_expr(expr)?;
+        result = SpannedExpr::new(
+            Expr::Let {
+                bindings: vec![(Symbol::intern(&format!("#%begin-{}", i)), lowered)],
+                body: Box::new(result),
+            },
+            span.clone(),
+        );
+    }
+
+    Ok(result)
+}
+
 /// Lower (cond (test expr)... [(else expr)])
 fn lower_cond(
     list_expr: &Spanned<Sexp>,
@@ -1150,6 +1183,257 @@ fn lower_or(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Spanne
             span.clone(),
         );
     }
+
+    Ok(result)
+}
+
+/// Lower (top-level-bound? 'symbol) to check if symbol is bound
+fn lower_bound(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() != 2 {
+        return Err(error(list_expr, "top-level-bound? expects (top-level-bound? 'symbol)"));
+    }
+
+    // The argument should be a quoted symbol: 'symbol or (quote symbol)
+    let name = match &items[1].value {
+        Sexp::Symbol(s) => Symbol::intern(s),
+        Sexp::List(inner) if inner.len() == 2 => {
+            if let Some(head) = symbol_name(&inner[0]) {
+                if head == "quote" {
+                    if let Sexp::Symbol(s) = &inner[1].value {
+                        Symbol::intern(s)
+                    } else {
+                        return Err(error(&items[1], "top-level-bound? expects a symbol"));
+                    }
+                } else {
+                    return Err(error(&items[1], "top-level-bound? expects a quoted symbol"));
+                }
+            } else {
+                return Err(error(&items[1], "top-level-bound? expects a quoted symbol"));
+            }
+        }
+        _ => return Err(error(&items[1], "top-level-bound? expects a quoted symbol")),
+    };
+
+    Ok(SpannedExpr::new(Expr::Bound { name }, span))
+}
+
+/// Lower (unless cond body...) to (if cond #f (begin body...))
+fn lower_unless(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() < 3 {
+        return Err(error(list_expr, "unless expects (unless cond body...)"));
+    }
+
+    let cond = lower_expr(&items[1])?;
+    let body = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        // Multiple body expressions - wrap in begin
+        lower_begin(list_expr, &items[2..])?
+    };
+
+    Ok(SpannedExpr::new(
+        Expr::If {
+            test: Box::new(cond),
+            then_branch: Box::new(SpannedExpr::new(Expr::Value(Value::Nil), None)),
+            else_branch: Box::new(body),
+        },
+        span,
+    ))
+}
+
+/// Lower (when cond body...) to (if cond (begin body...) #f)
+fn lower_when(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() < 3 {
+        return Err(error(list_expr, "when expects (when cond body...)"));
+    }
+
+    let cond = lower_expr(&items[1])?;
+    let body = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        // Multiple body expressions - wrap in begin
+        lower_begin(list_expr, &items[2..])?
+    };
+
+    Ok(SpannedExpr::new(
+        Expr::If {
+            test: Box::new(cond),
+            then_branch: Box::new(body),
+            else_branch: Box::new(SpannedExpr::new(Expr::Value(Value::Nil), None)),
+        },
+        span,
+    ))
+}
+
+/// Lower (define-test name body...) macro
+/// Expands to:
+/// (let ([test-thunk (lambda () (set! *current-test-name* 'name) (set! *tests-run* (+ *tests-run* 1)) body...)])
+///      (register-test 'name test-thunk)
+///      (run-test 'name test-thunk))
+fn lower_define_test(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() < 3 {
+        return Err(error(list_expr, "define-test expects (define-test name body...)"));
+    }
+
+    let name = match &items[1].value {
+        Sexp::Symbol(s) => s.clone(),
+        _ => return Err(error(&items[1], "define-test name must be a symbol")),
+    };
+
+    // Build the test thunk body: (begin (set! *current-test-name* 'name) (set! *tests-run* (+ *tests-run* 1)) body...)
+    // Simplified: just run the body (the Scheme code handles the registration)
+    let body = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        lower_begin(list_expr, &items[2..])?
+    };
+
+    // Create lambda for test thunk
+    let test_thunk = SpannedExpr::new(
+        Expr::Fn {
+            params: vec![],
+            body: Box::new(body),
+        },
+        span.clone(),
+    );
+
+    // Create: (let ([test-thunk ...])
+    //           (register-test 'name test-thunk)
+    //           (run-test 'name test-thunk))
+    let test_thunk_sym = Symbol::intern("#%test-thunk");
+    let quoted_name = SpannedExpr::new(Expr::Quote(Value::Symbol(Symbol::intern(&name))), span.clone());
+
+    // (register-test 'name test-thunk)
+    let register_call = SpannedExpr::new(
+        Expr::Call {
+            func: Box::new(SpannedExpr::new(Expr::Var(Symbol::intern("register-test")), None)),
+            args: vec![
+                quoted_name.clone(),
+                SpannedExpr::new(Expr::Var(test_thunk_sym.clone()), None),
+            ],
+        },
+        span.clone(),
+    );
+
+    // (run-test 'name test-thunk)
+    let run_call = SpannedExpr::new(
+        Expr::Call {
+            func: Box::new(SpannedExpr::new(Expr::Var(Symbol::intern("run-test")), None)),
+            args: vec![
+                quoted_name,
+                SpannedExpr::new(Expr::Var(test_thunk_sym.clone()), None),
+            ],
+        },
+        span.clone(),
+    );
+
+    // Sequence: register-test then run-test
+    let body_seq = SpannedExpr::new(
+        Expr::Let {
+            bindings: vec![(Symbol::intern("#%register-result"), register_call)],
+            body: Box::new(run_call),
+        },
+        span.clone(),
+    );
+
+    Ok(SpannedExpr::new(
+        Expr::Let {
+            bindings: vec![(test_thunk_sym, test_thunk)],
+            body: Box::new(body_seq),
+        },
+        span,
+    ))
+}
+
+/// Lower (test-group name tests...) macro
+/// Expands to:
+/// (begin
+///   (set! *current-group* 'name)
+///   tests...
+///   (set! *current-group* 'default))
+fn lower_test_group(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() < 2 {
+        return Err(error(list_expr, "test-group expects (test-group name tests...)"));
+    }
+
+    let name = match &items[1].value {
+        Sexp::Symbol(s) => s.clone(),
+        _ => return Err(error(&items[1], "test-group name must be a symbol")),
+    };
+
+    // (set! *current-group* 'name)
+    let set_group = SpannedExpr::new(
+        Expr::Call {
+            func: Box::new(SpannedExpr::new(Expr::Var(Symbol::intern("set!")), None)),
+            args: vec![
+                SpannedExpr::new(Expr::Var(Symbol::intern("*current-group*")), None),
+                SpannedExpr::new(Expr::Quote(Value::Symbol(Symbol::intern(&name))), None),
+            ],
+        },
+        span.clone(),
+    );
+
+    // Lower each test expression
+    let mut tests: Vec<SpannedExpr> = Vec::new();
+    for item in &items[2..] {
+        tests.push(lower_expr(item)?);
+    }
+
+    // (set! *current-group* 'default)
+    let reset_group = SpannedExpr::new(
+        Expr::Call {
+            func: Box::new(SpannedExpr::new(Expr::Var(Symbol::intern("set!")), None)),
+            args: vec![
+                SpannedExpr::new(Expr::Var(Symbol::intern("*current-group*")), None),
+                SpannedExpr::new(Expr::Quote(Value::Symbol(Symbol::intern("default"))), None),
+            ],
+        },
+        span.clone(),
+    );
+
+    // Build sequence: set-group, tests..., reset-group
+    // We'll use nested let for sequencing like begin does
+    let mut result = reset_group;
+
+    // Add tests in reverse order
+    for (i, test) in tests.into_iter().rev().enumerate() {
+        result = SpannedExpr::new(
+            Expr::Let {
+                bindings: vec![(Symbol::intern(&format!("#%test-{}", i)), test)],
+                body: Box::new(result),
+            },
+            span.clone(),
+        );
+    }
+
+    // Add set-group at the beginning
+    result = SpannedExpr::new(
+        Expr::Let {
+            bindings: vec![(Symbol::intern("#%set-group"), set_group)],
+            body: Box::new(result),
+        },
+        span,
+    );
 
     Ok(result)
 }

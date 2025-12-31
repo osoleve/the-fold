@@ -169,6 +169,40 @@ fn multiple_defines_in_let_accumulate() {
     );
 }
 
+/// Test that Bound expression checks if a symbol is bound
+#[test]
+fn bound_returns_true_for_defined_symbol() {
+    let env = Env::new();
+    // (let ((x 42)) (top-level-bound? 'x))
+    let expr = Expr::Let {
+        bindings: vec![(sym("x"), spanned(Expr::Value(Value::Number(42))))],
+        body: Box::new(spanned(Expr::Bound { name: sym("x") })),
+    };
+
+    let out = eval_loop(expr, env, 10).unwrap();
+    assert!(
+        matches!(out, EvalOutcome::Done(Value::Bool(true))),
+        "Expected true, got {:?}",
+        out
+    );
+}
+
+/// Test that Bound expression returns false for undefined symbol
+#[test]
+fn bound_returns_false_for_undefined_symbol() {
+    let env = Env::new();
+    let expr = Expr::Bound {
+        name: sym("undefined-symbol"),
+    };
+
+    let out = eval_loop(expr, env, 10).unwrap();
+    assert!(
+        matches!(out, EvalOutcome::Done(Value::Bool(false))),
+        "Expected false, got {:?}",
+        out
+    );
+}
+
 /// Test let* style nested lets where later bindings use earlier ones.
 #[test]
 fn nested_let_uses_earlier_bindings() {
