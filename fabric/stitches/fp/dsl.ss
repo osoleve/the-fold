@@ -124,6 +124,36 @@
                  (define (name arg)
                    (dsl-request tag arg))]))
 
+;;; dsl-do : Monadic do-notation for DSL programs
+;;;
+;;; Usage:
+;;;   (dsl-do
+;;;     (x <- action1)
+;;;     (y <- action2)
+;;;     (dsl-pure (+ x y)))
+;;;
+;;; Expands to:
+;;;   (dsl-bind action1
+;;;     (lambda (x)
+;;;       (dsl-bind action2
+;;;         (lambda (y)
+;;;           (dsl-pure (+ x y))))))
+;;;
+;;; Supports:
+;;;   (var <- action)  — bind result to var
+;;;   action           — execute, discard result (implicitly binds to _)
+(define-syntax dsl-do
+  (syntax-rules (<-)
+                ;; Base case: single expression (no arrow)
+                [(_ expr)
+                 expr]
+                ;; Binding with arrow: (var <- action) rest ...
+                [(_ (var <- action) rest ...)
+                 (dsl-bind action (lambda (var) (dsl-do rest ...)))]
+                ;; Expression without binding (discard result)
+                [(_ action rest ...)
+                 (dsl-bind action (lambda (_) (dsl-do rest ...)))]))
+
 ;;; ============================================================
 ;;; Interpreter Builder
 ;;; ============================================================
@@ -705,3 +735,334 @@
 ;;;   (repeat 4
 ;;;     (dsl-bind (forward! 100)
 ;;;               (lambda (_) (right! 90)))))
+;;;
+;;; ;; Using dsl-do notation (new!)
+;;; (run-calc
+;;;   (dsl-do
+;;;     (_ <- (calc-push! 10))
+;;;     (_ <- (calc-push! 20))
+;;;     (_ <- (calc-add!))
+;;;     (calc-pop!)))
+;;; ; => 30
+
+;;; ============================================================
+;;; Error Handling
+;;; ============================================================
+;;;
+;;; Structured error handling for DSL programs.
+;;; Uses Result type to represent success/failure.
+
+;;; Result type constructors
+(define (dsl-ok value)
+  (list 'dsl-ok value))
+
+(define (dsl-err tag message)
+  (list 'dsl-err tag message))
+
+;;; Result predicates
+(define (dsl-ok? r)
+  (and (pair? r) (eq? (car r) 'dsl-ok)))
+
+(define (dsl-err? r)
+  (and (pair? r) (eq? (car r) 'dsl-err)))
+
+;;; Result accessors
+(define (dsl-ok-value r)
+  (cadr r))
+
+(define (dsl-err-tag r)
+  (cadr r))
+
+(define (dsl-err-message r)
+  (caddr r))
+
+;;; Result mapping
+(define (dsl-result-map f r)
+  (if (dsl-ok? r)
+      (dsl-ok (f (dsl-ok-value r)))
+      r))
+
+(define (dsl-result-bind r f)
+  (if (dsl-ok? r)
+      (f (dsl-ok-value r))
+      r))
+
+;;; run-dsl-safe : Interpreter -> DSL Instruction a -> Result a
+;;; Execute a DSL program, catching runtime errors.
+(define (run-dsl-safe interp program)
+  (guard (ex [else (dsl-err 'runtime
+                            (if (message-condition? ex)
+                                (condition-message ex)
+                                "Unknown error"))])
+         (dsl-ok (run-dsl interp program))))
+
+;;; dsl-fail : Symbol -> String -> DSL Instruction a
+;;; Emit a failure instruction.
+(define (dsl-fail tag message)
+  (dsl-emit 'dsl-fail (list tag message)))
+
+;;; dsl-assert : Boolean -> Symbol -> String -> DSL Instruction ()
+;;; Assert a condition, failing if false.
+(define (dsl-assert condition tag message)
+  (if condition
+      (dsl-pure '())
+      (dsl-fail tag message)))
+
+;;; make-fail-handler : (Symbol -> String -> a) -> (Symbol -> Payload -> a)
+;;; Create a handler that intercepts dsl-fail instructions.
+(define (make-fail-handler on-fail default-handler)
+  (lambda (tag payload)
+          (if (eq? tag 'dsl-fail)
+              (on-fail (car payload) (cadr payload))
+              (default-handler tag payload))))
+
+;;; ============================================================
+;;; Debugging Tools
+;;; ============================================================
+;;;
+;;; Tools for inspecting and debugging DSL programs.
+
+;;; dsl-peek : DSL Instruction a -> (Symbol . Any)
+;;; Inspect the first instruction without executing.
+(define (dsl-peek program)
+  (if (dsl-pure? program)
+      (cons 'pure (dsl-pure-value program))
+      (let ([instr (dsl-instruction program)])
+           (cons (instruction-tag instr)
+                 (instruction-payload instr)))))
+
+;;; dsl-count-instructions : DSL Instruction a -> Int -> Int
+;;; Count instructions in a program (with fuel limit).
+(define (dsl-count-instructions program fuel)
+  (if (or (<= fuel 0) (dsl-pure? program))
+      0
+      (let* ([instr (dsl-instruction program)]
+             [cont (instruction-cont instr)])
+            (+ 1 (dsl-count-instructions (cont '()) (- fuel 1))))))
+
+;;; dsl-trace-when : (Symbol -> Any -> Bool) -> Interpreter -> Interpreter
+;;; Wrap an interpreter to trace instructions matching a predicate.
+(define (dsl-trace-when pred interp)
+  (let ([handler (interpreter-handler interp)])
+       (make-interpreter
+        (lambda (tag payload)
+                (when (pred tag payload)
+                      (display (format "[DSL] ~a: ~s\n" tag payload)))
+                (let ([result (handler tag payload)])
+                     (when (pred tag payload)
+                           (display (format "[DSL]   => ~s\n" result)))
+                     result)))))
+
+;;; dsl-trace-tags : List Symbol -> Interpreter -> Interpreter
+;;; Trace only specific instruction tags.
+(define (dsl-trace-tags tags interp)
+  (dsl-trace-when (lambda (tag _) (memq tag tags)) interp))
+
+;;; dsl-pretty-print : DSL Instruction a -> String
+;;; Pretty-print the first instruction of a program.
+(define (dsl-pretty-print program)
+  (cond
+   [(dsl-pure? program)
+    (format "(pure ~s)" (dsl-pure-value program))]
+   [else
+    (let ([instr (dsl-instruction program)])
+         (format "(~a ~s ...)"
+                 (instruction-tag instr)
+                 (instruction-payload instr)))]))
+
+;;; dsl-collect-tags : DSL Instruction a -> Int -> List Symbol
+;;; Collect all instruction tags in a program (with fuel limit).
+(define (dsl-collect-tags program fuel)
+  (if (or (<= fuel 0) (dsl-pure? program))
+      '()
+      (let* ([instr (dsl-instruction program)]
+             [tag (instruction-tag instr)]
+             [cont (instruction-cont instr)])
+            (cons tag (dsl-collect-tags (cont '()) (- fuel 1))))))
+
+;;; ============================================================
+;;; DSL Combination
+;;; ============================================================
+;;;
+;;; Tools for combining multiple DSLs into one.
+
+;;; Sum type tags for combined instructions
+(define (dsl-left-tag tag) (list 'dsl-left tag))
+(define (dsl-right-tag tag) (list 'dsl-right tag))
+
+(define (dsl-left-tag? x)
+  (and (pair? x) (eq? (car x) 'dsl-left)))
+
+(define (dsl-right-tag? x)
+  (and (pair? x) (eq? (car x) 'dsl-right)))
+
+(define (dsl-unwrap-tag x)
+  (cadr x))
+
+;;; dsl-inject-left : DSL Instruction a -> DSL (Left Instruction) a
+;;; Lift a program to the left side of a union.
+(define (dsl-inject-left program)
+  (if (dsl-pure? program)
+      program
+      (let* ([instr (dsl-instruction program)]
+             [tag (instruction-tag instr)]
+             [payload (instruction-payload instr)]
+             [cont (instruction-cont instr)])
+            (free (make-instruction
+                   (dsl-left-tag tag)
+                   payload
+                   (lambda (r) (dsl-inject-left (cont r))))))))
+
+;;; dsl-inject-right : DSL Instruction a -> DSL (Right Instruction) a
+;;; Lift a program to the right side of a union.
+(define (dsl-inject-right program)
+  (if (dsl-pure? program)
+      program
+      (let* ([instr (dsl-instruction program)]
+             [tag (instruction-tag instr)]
+             [payload (instruction-payload instr)]
+             [cont (instruction-cont instr)])
+            (free (make-instruction
+                   (dsl-right-tag tag)
+                   payload
+                   (lambda (r) (dsl-inject-right (cont r))))))))
+
+;;; union-interpreter : Interpreter -> Interpreter -> Interpreter
+;;; Combine two interpreters into one that handles both DSLs.
+(define (union-interpreter left-interp right-interp)
+  (let ([left-handler (interpreter-handler left-interp)]
+        [right-handler (interpreter-handler right-interp)])
+       (make-interpreter
+        (lambda (tag payload)
+                (cond
+                 [(dsl-left-tag? tag)
+                  (left-handler (dsl-unwrap-tag tag) payload)]
+                 [(dsl-right-tag? tag)
+                  (right-handler (dsl-unwrap-tag tag) payload)]
+                 [else
+                  (error 'union-interpreter "Unknown instruction side" tag)])))))
+
+;;; ============================================================
+;;; Program Validation
+;;; ============================================================
+;;;
+;;; Validate DSL programs before execution.
+
+;;; make-dsl-schema : List (Symbol . Int) -> Schema
+;;; Create a schema from list of (tag . arity) pairs.
+(define (make-dsl-schema instructions)
+  (list 'dsl-schema instructions))
+
+(define (dsl-schema? x)
+  (and (pair? x) (eq? (car x) 'dsl-schema)))
+
+(define (dsl-schema-instructions schema)
+  (cadr schema))
+
+;;; dsl-validate : Schema -> DSL Instruction a -> Int -> Result (DSL Instruction a)
+;;; Validate a program against a schema.
+(define (dsl-validate schema program fuel)
+  (cond
+   [(<= fuel 0)
+    (dsl-ok program)]  ; Assume valid if out of fuel
+   [(dsl-pure? program)
+    (dsl-ok program)]
+   [else
+    (let* ([instr (dsl-instruction program)]
+           [tag (instruction-tag instr)]
+           [payload (instruction-payload instr)]
+           [cont (instruction-cont instr)]
+           [valid-tags (dsl-schema-instructions schema)])
+          (if (assoc tag valid-tags)
+              (dsl-validate schema (cont '()) (- fuel 1))
+              (dsl-err 'invalid-instruction
+                       (format "Unknown instruction: ~a" tag))))]))
+
+;;; Calculator DSL schema
+(define calc-schema
+  (make-dsl-schema
+   '((calc-push . 1)
+     (calc-add . 0)
+     (calc-sub . 0)
+     (calc-mul . 0)
+     (calc-div . 0)
+     (calc-dup . 0)
+     (calc-swap . 0)
+     (calc-pop . 0))))
+
+;;; Turtle DSL schema
+(define turtle-schema
+  (make-dsl-schema
+   '((turtle-forward . 1)
+     (turtle-back . 1)
+     (turtle-left . 1)
+     (turtle-right . 1)
+     (turtle-penup . 0)
+     (turtle-pendown . 0)
+     (turtle-getpos . 0))))
+
+;;; ============================================================
+;;; Resource Management
+;;; ============================================================
+;;;
+;;; Patterns for managing resources with cleanup.
+
+;;; dsl-finally : DSL Instruction () -> DSL Instruction a -> DSL Instruction a
+;;; Execute cleanup after program, regardless of result.
+(define (dsl-finally cleanup program)
+  (dsl-bind program
+            (lambda (result)
+                    (dsl-bind cleanup
+                              (lambda (_) (dsl-pure result))))))
+
+;;; dsl-bracket : DSL Instruction r -> (r -> DSL Instruction ()) -> (r -> DSL Instruction a) -> DSL Instruction a
+;;; Acquire resource, use it, then release.
+(define (dsl-bracket acquire release use)
+  (dsl-do
+   (resource <- acquire)
+   (dsl-finally (release resource) (use resource))))
+
+;;; dsl-with-resource macro
+;;; Usage: (dsl-with-resource (var acquire release) body ...)
+(define-syntax dsl-with-resource
+  (syntax-rules ()
+                [(_ (var acquire release) body ...)
+                 (dsl-bracket acquire
+                              (lambda (var) release)
+                              (lambda (var) (dsl-do body ...)))]))
+
+;;; ============================================================
+;;; Algebraic Effects Integration
+;;; ============================================================
+;;;
+;;; Bridge between DSL and algebraic effects system.
+
+;;; dsl-to-eff : DSL Instruction a -> Eff e a
+;;; Convert a DSL program to an effectful computation.
+(define (dsl-to-eff program)
+  (cond
+   [(dsl-pure? program)
+    (eff-return (dsl-pure-value program))]
+   [else
+    (let* ([instr (dsl-instruction program)]
+           [tag (instruction-tag instr)]
+           [payload (instruction-payload instr)]
+           [cont (instruction-cont instr)])
+          (eff-bind
+           (perform (make-effect tag payload))
+           (lambda (result)
+                   (dsl-to-eff (cont result)))))]))
+
+;;; make-eff-interpreter : (Symbol -> Payload -> a) -> Effect Handler
+;;; Create an effect handler from a DSL interpreter function.
+(define (make-eff-interpreter handler)
+  (lambda (effect k)
+          (let* ([tag (effect-tag effect)]
+                 [payload (effect-payload effect)]
+                 [result (handler tag payload)])
+                (k result))))
+
+;;; run-dsl-as-eff : (Symbol -> Payload -> a) -> DSL Instruction b -> Eff e b
+;;; Run a DSL program using the effects system.
+(define (run-dsl-as-eff handler program)
+  (dsl-to-eff program))
