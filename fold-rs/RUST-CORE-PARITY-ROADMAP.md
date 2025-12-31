@@ -10,10 +10,10 @@
 | **Milestone 2: Exceptions** | Not Started | No guard, conditions, or exception handlers |
 | **Milestone 3: Macros** | Not Started | define-syntax explicitly skipped |
 | **Milestone 4: Records** | Not Started | No define-record-type |
-| **Milestone 5: Mutable Data** | Partial | Have bytevectors, missing hashtables and mutation ops |
-| **Milestone 6: Ports** | Not Started | Uses primitives, no port abstraction |
+| **Milestone 5: Mutable Data** | **Done** | Hashtables implemented (13 tests), bytevector mutation pending |
+| **Milestone 6: Ports** | **Partial** | String ports done (9 tests), file ports pending |
 | **Milestone 7: Test Framework** | Blocked | Needs macros and exceptions |
-| **Milestone 8: Prelude Compat** | Partial | Many functions work, Unicode aliases missing |
+| **Milestone 8: Prelude Compat** | **Partial** | Unicode aliases done (10 tests), format strings pending |
 
 ---
 
@@ -27,8 +27,8 @@
 |---------|--------|----------|-------|
 | Named let loops | **Done** | `fold_lower.rs` | Lowers to fix |
 | `set!` | **Missing** | expr.rs, eval.rs | Need new Expr::Set variant |
-| `set-car!` | **Listed** | prim.rs:202 | Listed in builtins, verify impl |
-| `set-cdr!` | **Listed** | prim.rs:202 | Listed in builtins, verify impl |
+| `set-car!` | **NOT IMPL** | prim.rs | Listed but returns UnknownPrimitive; pairs are immutable |
+| `set-cdr!` | **NOT IMPL** | prim.rs | Listed but returns UnknownPrimitive; pairs are immutable |
 | `values` | **Missing** | expr.rs, eval.rs | Multiple return values |
 | `call-with-values` | **Missing** | eval.rs | Consumer for multiple values |
 | `let-values` | **Missing** | fold_lower.rs | Destructuring multiple values |
