@@ -363,15 +363,17 @@
 ;;; Runtime Engine
 ;;; ============================================================
 
-;;; Start a new run
+;;; Start a new run (enters the first scene, applying on-enter effects)
 (define (chronicle-start chronicle . state-opt)
-  (let ([state (if (null? state-opt) (empty-state) (car state-opt))])
-       (make-crun (chronicle-id chronicle)
-                  (chronicle-start-scene chronicle)
-                  state
-                  '()
-                  #f
-                  #f)))
+  (let* ([state (if (null? state-opt) (empty-state) (car state-opt))]
+         [run (make-crun (chronicle-id chronicle)
+                         (chronicle-start-scene chronicle)
+                         state
+                         '()
+                         #f
+                         #f)])
+    ;; Enter the first scene to apply on-enter effects
+    (chronicle-enter-scene chronicle run)))
 
 ;;; Enter a scene (applies on-enter effects)
 (define (chronicle-enter-scene chronicle run)
@@ -508,12 +510,12 @@
                               on-enter on-exit meta)]
                        [(and (pair? item) (eq? (car item) 'on-enter))
                         (loop (cdr items) choices
-                              (append on-enter (cdr item))
+                              (append on-enter (map parse-effect-expr (cdr item)))
                               on-exit meta)]
                        [(and (pair? item) (eq? (car item) 'on-exit))
                         (loop (cdr items) choices
                               on-enter
-                              (append on-exit (cdr item))
+                              (append on-exit (map parse-effect-expr (cdr item)))
                               meta)]
                        [else
                         (loop (cdr items) choices on-enter on-exit
