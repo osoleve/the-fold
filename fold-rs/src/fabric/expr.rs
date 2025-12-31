@@ -61,6 +61,10 @@ pub enum Expr {
         bindings: Vec<(Symbol, SpannedExpr)>,
         body: Box<SpannedExpr>,
     },
+    LetRec {
+        bindings: Vec<(Symbol, SpannedExpr)>,
+        body: Box<SpannedExpr>,
+    },
     If {
         test: Box<SpannedExpr>,
         then_branch: Box<SpannedExpr>,
@@ -97,5 +101,10 @@ pub enum Expr {
     WithExceptionHandler {
         handler: Box<SpannedExpr>,
         body: Box<SpannedExpr>,
+    },
+    /// Mutate a variable binding
+    Set {
+        name: Symbol,
+        value: Box<SpannedExpr>,
     },
 }

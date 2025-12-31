@@ -55,4 +55,25 @@ impl Env {
 
         parent.and_then(|parent| Self::lookup(&parent, name))
     }
+
+    /// Set a variable binding, searching up the parent chain.
+    /// Returns true if the binding was found and updated, false otherwise.
+    pub fn set(env: &EnvRef, name: &Symbol, value: Value) -> bool {
+        // Check if this environment has the binding
+        {
+            let mut scoped = env.borrow_mut();
+            if scoped.bindings.contains_key(name) {
+                scoped.bindings.insert(*name, value);
+                return true;
+            }
+        }
+
+        // Not in this environment - check parent
+        let parent = env.borrow().parent.clone();
+        if let Some(parent) = parent {
+            Self::set(&parent, name, value)
+        } else {
+            false
+        }
+    }
 }

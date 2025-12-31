@@ -197,3 +197,33 @@ fn lower_when() {
         other => panic!("expected If, got {:?}", other),
     }
 }
+
+#[test]
+fn lower_set() {
+    // (set! x 42)
+    match parse_and_lower("(set! x 42)") {
+        Expr::Set { name, value } => {
+            assert_eq!(name, "x");
+            match value.expr {
+                Expr::Value(Value::Number(n)) => assert_eq!(n, 42),
+                other => panic!("expected number value in set! value, got {:?}", other),
+            }
+        }
+        other => panic!("expected Set expr, got {:?}", other),
+    }
+
+    // (set! counter (+ counter 1))
+    match parse_and_lower("(set! counter (+ counter 1))") {
+        Expr::Set { name, value } => {
+            assert_eq!(name, "counter");
+            match &value.expr {
+                Expr::Prim { op, args } => {
+                    assert_eq!(*op, "+");
+                    assert_eq!(args.len(), 2);
+                }
+                other => panic!("expected Prim expr in set! value, got {:?}", other),
+            }
+        }
+        other => panic!("expected Set expr, got {:?}", other),
+    }
+}

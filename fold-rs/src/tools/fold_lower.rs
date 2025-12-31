@@ -298,6 +298,7 @@ fn lower_list(
             "fn" | "lambda" => return lower_fn(list_expr, items),
             "let" => return lower_let(list_expr, items),
             "let*" => return lower_let_star(list_expr, items),
+            "letrec" => return lower_letrec(list_expr, items),
             "fix" => return lower_fix(list_expr, items),
             "if" => return lower_if(list_expr, items),
             "case" => return lower_case(list_expr, items),
@@ -321,6 +322,7 @@ fn lower_list(
             "test-group" => return lower_test_group(list_expr, items),
             "with-exception-handler" => return lower_with_exception_handler(list_expr, items),
             "guard" => return lower_guard(list_expr, items),
+            "set!" => return lower_set(list_expr, items),
             _ => {
                 // Check if this is a builtin primitive that should be lowered to a prim call
                 if is_builtin_prim(&head_symbol) {
@@ -683,6 +685,56 @@ fn lower_let_star(
         );
     }
     Ok(body)
+}
+
+/// Lower letrec for mutually recursive bindings
+/// (letrec ((name1 expr1) (name2 expr2) ...) body ...)
+fn lower_letrec(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() < 3 {
+        return Err(error(
+            list_expr,
+            "letrec expects (letrec ((name expr) ...) body ...)",
+        ));
+    }
+    let bindings_list = match &items[1].value {
+        Sexp::List(list) => list,
+        _ => return Err(error(&items[1], "letrec expects a bindings list")),
+    };
+
+    // Parse all bindings
+    let mut bindings: Vec<(Symbol, SpannedExpr)> = Vec::with_capacity(bindings_list.len());
+    for binding in bindings_list {
+        match &binding.value {
+            Sexp::List(pair) if pair.len() == 2 => {
+                let name = match &pair[0].value {
+                    Sexp::Symbol(sym) => Symbol::intern(sym),
+                    _ => return Err(error(&pair[0], "letrec binding name must be a symbol")),
+                };
+                let expr = lower_expr(&pair[1])?;
+                bindings.push((name, expr));
+            }
+            _ => return Err(error(binding, "letrec binding must be (name expr)")),
+        }
+    }
+
+    // Handle multiple body expressions (implicit begin)
+    let body = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        lower_begin_exprs(&items[2..], span.clone())?
+    };
+
+    Ok(SpannedExpr::new(
+        Expr::LetRec {
+            bindings,
+            body: Box::new(body),
+        },
+        span,
+    ))
 }
 
 fn lower_fix(
@@ -1591,6 +1643,32 @@ fn lower_guard(
         Expr::WithExceptionHandler {
             handler: Box::new(handler),
             body: Box::new(body_lambda),
+        },
+        span,
+    ))
+}
+
+/// Lower (set! var value) to Set expression
+fn lower_set(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() != 3 {
+        return Err(error(list_expr, "set! expects (set! variable value)"));
+    }
+
+    let name = match &items[1].value {
+        Sexp::Symbol(s) => Symbol::intern(s),
+        _ => return Err(error(&items[1], "set! variable must be a symbol")),
+    };
+
+    let value = lower_expr(&items[2])?;
+
+    Ok(SpannedExpr::new(
+        Expr::Set {
+            name,
+            value: Box::new(value),
         },
         span,
     ))

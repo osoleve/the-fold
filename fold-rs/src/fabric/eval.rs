@@ -38,6 +38,14 @@ enum Frame {
         env: EnvRef,
         span: Option<Span>,
     },
+    LetRec {
+        bindings: Vec<(Symbol, SpannedExpr)>,
+        index: usize,
+        values: ValueVec,
+        body: SpannedExpr,
+        env: EnvRef,
+        span: Option<Span>,
+    },
     CallFunc {
         args: Vec<SpannedExpr>,
         env: EnvRef,
@@ -94,6 +102,12 @@ enum Frame {
         env: EnvRef,
         span: Option<Span>,
     },
+    /// Set a variable binding
+    Set {
+        name: Symbol,
+        env: EnvRef,
+        span: Option<Span>,
+    },
 }
 
 impl Frame {
@@ -101,6 +115,7 @@ impl Frame {
         match self {
             Frame::If { env, .. }
             | Frame::Let { env, .. }
+            | Frame::LetRec { env, .. }
             | Frame::CallFunc { env, .. }
             | Frame::CallArgs { env, .. }
             | Frame::PrimArgs { env, .. }
@@ -108,7 +123,8 @@ impl Frame {
             | Frame::Load { env, .. }
             | Frame::Define { env, .. }
             | Frame::ExceptionHandler { env, .. }
-            | Frame::InstallHandler { env, .. } => env,
+            | Frame::InstallHandler { env, .. }
+            | Frame::Set { env, .. } => env,
         }
     }
 
@@ -116,6 +132,7 @@ impl Frame {
         match self {
             Frame::If { span, .. }
             | Frame::Let { span, .. }
+            | Frame::LetRec { span, .. }
             | Frame::CallFunc { span, .. }
             | Frame::CallArgs { span, .. }
             | Frame::PrimArgs { span, .. }
@@ -123,7 +140,8 @@ impl Frame {
             | Frame::Load { span, .. }
             | Frame::Define { span, .. }
             | Frame::ExceptionHandler { span, .. }
-            | Frame::InstallHandler { span, .. } => span.clone(),
+            | Frame::InstallHandler { span, .. }
+            | Frame::Set { span, .. } => span.clone(),
         }
     }
 
@@ -163,6 +181,33 @@ impl Frame {
                 }
                 SpannedExpr::new(
                     Expr::Let {
+                        bindings: rebuilt,
+                        body: Box::new(body.clone()),
+                    },
+                    span.clone(),
+                )
+            }
+            Frame::LetRec {
+                bindings,
+                index,
+                values,
+                body,
+                span,
+                ..
+            } => {
+                let mut rebuilt = Vec::with_capacity(bindings.len());
+                for (i, (name, expr)) in bindings.iter().cloned().enumerate() {
+                    let expr = if i < *index {
+                        SpannedExpr::unspanned(Expr::Value(values[i].clone()))
+                    } else if i == *index {
+                        current.clone()
+                    } else {
+                        expr
+                    };
+                    rebuilt.push((name, expr));
+                }
+                SpannedExpr::new(
+                    Expr::LetRec {
                         bindings: rebuilt,
                         body: Box::new(body.clone()),
                     },
@@ -286,6 +331,13 @@ impl Frame {
                     span.clone(),
                 )
             }
+            Frame::Set { name, span, .. } => SpannedExpr::new(
+                Expr::Set {
+                    name: name.clone(),
+                    value: Box::new(current),
+                },
+                span.clone(),
+            ),
         }
     }
 }
@@ -377,6 +429,27 @@ pub fn eval_spanned(
                         env: env.clone(),
                         span: current_span,
                     });
+                    expr = first_expr;
+                }
+            }
+            Expr::LetRec { bindings, body } => {
+                if bindings.is_empty() {
+                    expr = *body;
+                } else {
+                    // Create a recursive environment with all binding names
+                    let rec_env = Env::with_parent(env.clone());
+
+                    // Evaluate first binding expression in the recursive environment
+                    let first_expr = bindings[0].1.clone();
+                    frames.push(Frame::LetRec {
+                        bindings,
+                        index: 0,
+                        values: SmallVec::new(),
+                        body: *body,
+                        env: rec_env.clone(),
+                        span: current_span,
+                    });
+                    env = rec_env;
                     expr = first_expr;
                 }
             }
@@ -503,6 +576,16 @@ pub fn eval_spanned(
                 // Evaluate the handler first - when it returns, we'll install it
                 expr = *handler;
             }
+            Expr::Set { name, value } => {
+                // Push a frame to handle the result of evaluating value
+                frames.push(Frame::Set {
+                    name,
+                    env: env.clone(),
+                    span: current_span,
+                });
+                // Evaluate the value expression
+                expr = *value;
+            }
         }
     }
 }
@@ -591,6 +674,40 @@ fn unwind(
 
                 // Extend frame_env with all bindings for the body
                 *env = Env::extend(frame_env, new_bindings);
+                return Ok(Unwind::Continue(body));
+            }
+            Frame::LetRec {
+                bindings,
+                index,
+                mut values,
+                body,
+                env: rec_env,
+                span,
+            } => {
+                values.push(value.clone());
+
+                // Insert the current binding into the recursive environment
+                // so subsequent bindings can reference it
+                let current_name = bindings[index].0.clone();
+                Env::insert(&rec_env, current_name, value);
+
+                if index + 1 < bindings.len() {
+                    // Continue evaluating the next binding in the recursive environment
+                    *env = rec_env.clone();
+                    let next_expr = bindings[index + 1].1.clone();
+                    frames.push(Frame::LetRec {
+                        bindings,
+                        index: index + 1,
+                        values,
+                        body,
+                        env: rec_env,
+                        span,
+                    });
+                    return Ok(Unwind::Continue(next_expr));
+                }
+
+                // All bindings evaluated - now evaluate the body in the recursive environment
+                *env = rec_env;
                 return Ok(Unwind::Continue(body));
             }
             Frame::CallFunc {
@@ -796,6 +913,24 @@ fn unwind(
                     span,
                 );
                 return Ok(Unwind::Continue(body_call));
+            }
+            Frame::Set {
+                name,
+                env: frame_env,
+                span,
+            } => {
+                // We just finished evaluating the value expression
+                // Now set the variable in the environment
+                let found = Env::set(&frame_env, &name, value.clone());
+                if !found {
+                    return Err(SpannedEvalError::new(
+                        EvalError::UnboundVariable(name),
+                        span,
+                    ));
+                }
+                // Keep the environment as is
+                *env = frame_env;
+                // Return the new value (R6RS behavior)
             }
         }
     }
