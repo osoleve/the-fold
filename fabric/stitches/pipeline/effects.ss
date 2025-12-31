@@ -475,3 +475,94 @@
 (define (pipeline-effect? e)
   (and (stage-effect? e)
        (eq? (stage-effect-type e) 'pipeline)))
+
+;;; ============================================================
+;;; Discord Effects
+;;; ============================================================
+;;;
+;;; Discord integration effects. These write to the discord-outbox
+;;; for the bridge.js watcher to pick up and post to Discord.
+;;;
+;;; The bot/bridge architecture:
+;;;   - Discord bot watches messages, logs to Fold via REPL IPC
+;;;   - Fold agents write to .fold-repl/discord-outbox/*.json
+;;;   - Bridge.js watches outbox, posts to Discord via webhooks
+
+;;; discord-post : Symbol -> String -> String -> Stage ctx i ()
+;;; Post a titled message to a Discord channel.
+;;; Channel: 'engineering, 'philosophy, 'design, 'art, 'poetry,
+;;;          'requests, 'wishlist, 'chat, 'news, 'bugs, 'arena, 'consult
+(define (discord-post channel title body)
+  (effect 'discord
+          (list 'post channel title body)))
+
+;;; discord-post-embed : Symbol -> Alist -> Stage ctx i ()
+;;; Post an embed with full control over fields.
+;;; Embed alist: ((title . "...") (description . "...") (color . 0x...)
+;;;               (fields . ((name . "...") (value . "...") ...)))
+(define (discord-post-embed channel embed-spec)
+  (effect 'discord
+          (list 'post-embed channel embed-spec)))
+
+;;; discord-chat : Symbol -> Stage ctx String ()
+;;; Post input as chat message (no title, plain text).
+(define (discord-chat channel)
+  (effect 'discord
+          (list 'chat channel)))
+
+;;; discord-reply : String -> Stage ctx String ()
+;;; Reply to a specific Discord message ID.
+(define (discord-reply message-id)
+  (effect 'discord
+          (list 'reply message-id)))
+
+;;; discord-react : String -> String -> Stage ctx i ()
+;;; Add emoji reaction to a Discord message.
+(define (discord-react message-id emoji)
+  (effect 'discord
+          (list 'react message-id emoji)))
+
+;;; discord-thread : String -> String -> Stage ctx String ()
+;;; Create a thread from a message, return thread ID.
+;;; Input becomes the first message in the thread.
+(define (discord-thread message-id thread-name)
+  (effect 'discord
+          (list 'thread message-id thread-name)))
+
+;;; discord-dm : String -> Stage ctx String ()
+;;; Send direct message to user (by Discord user ID).
+(define (discord-dm user-id)
+  (effect 'discord
+          (list 'dm user-id)))
+
+;;; ============================================================
+;;; Discord Await Effects
+;;; ============================================================
+
+;;; await-discord-mention : Symbol -> Stage ctx i DiscordContext
+;;; Wait for an @agent mention in Discord.
+;;; Returns context with message-id, channel, author, body.
+(define (await-discord-mention agent-name)
+  (effect 'await
+          (list 'discord-mention agent-name)))
+
+;;; await-discord-reaction : String -> String -> Stage ctx i String
+;;; Wait for a specific reaction on a message.
+(define (await-discord-reaction message-id emoji)
+  (effect 'await
+          (list 'discord-reaction message-id emoji)))
+
+;;; await-discord-reply : String -> Stage ctx i DiscordContext
+;;; Wait for a reply to a specific message.
+(define (await-discord-reply message-id)
+  (effect 'await
+          (list 'discord-reply message-id)))
+
+;;; ============================================================
+;;; Discord Effect Predicate
+;;; ============================================================
+
+;;; discord-effect? : Effect -> Boolean
+(define (discord-effect? e)
+  (and (stage-effect? e)
+       (eq? (stage-effect-type e) 'discord)))

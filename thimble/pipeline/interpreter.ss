@@ -103,6 +103,7 @@
              [(beads) (interpret-beads-effect payload ctx state input)]
              [(git) (interpret-git-effect payload ctx state input)]
              [(pipeline) (interpret-pipeline-effect payload ctx state input)]
+             [(discord) (interpret-discord-effect payload ctx state input)]
              [else
               (cons (stage-err 'unknown-effect
                                (format "Unknown effect type: ~a" type)
@@ -815,6 +816,23 @@
               (cons (stage-await (list 'file (cadr payload))) state)]
              [(signal)
               (cons (stage-await (list 'signal (cadr payload))) state)]
+             ;; Discord await operations
+             [(discord-mention)
+              ;; Wait for @agent mention in Discord
+              ;; The daemon polls for trigger files written by bot.js
+              (let* ([agent-name (cadr payload)]
+                     [trigger-pattern (format "~a-discord-trigger" agent-name)])
+                    ;; Return await result for daemon to poll
+                    (cons (stage-await (list 'discord-mention agent-name)) state))]
+             [(discord-reaction)
+              ;; Wait for specific reaction on a message
+              (let ([message-id (cadr payload)]
+                    [emoji (caddr payload)])
+                   (cons (stage-await (list 'discord-reaction message-id emoji)) state))]
+             [(discord-reply)
+              ;; Wait for reply to a message
+              (let ([message-id (cadr payload)])
+                   (cons (stage-await (list 'discord-reply message-id)) state))]
              [else
               (cons (stage-err 'unknown-await-op
                                (format "Unknown await op: ~a" op)
@@ -852,3 +870,278 @@
        (if (null? stages)
            (cons (stage-err 'race-empty "No stages to race" '()) state)
            (interpret-pipeline (car stages) ctx state input))))
+
+;;; ============================================================
+;;; Discord Effect Interpretation
+;;; ============================================================
+;;;
+;;; Discord effects write to the outbox directory where bridge.js watches.
+;;; The outbox path is: .fold-repl/discord-outbox/*.json
+;;;
+;;; Each file contains a JSON object with:
+;;;   - channel: Fold channel name ('engineering, 'philosophy, etc.)
+;;;   - title: Optional post title (null for chat)
+;;;   - body: Message content
+;;;   - author: Agent/user name
+;;;   - tier: Fold tier (shepherd, builder, player)
+;;;   - timestamp: ISO timestamp
+;;;   - discord_message_id: Optional, for replies
+;;;   - embed: Optional embed spec
+
+;;; Discord outbox path relative to project root
+(define *discord-outbox-dir* ".fold-repl/discord-outbox")
+
+;;; interpret-discord-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-discord-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(post)
+              (let* ([channel (cadr payload)]
+                     [title (caddr payload)]
+                     [body (cadddr payload)]
+                     [expanded-body (expand-template-with-ctx body ctx input)])
+                    (discord-queue-post channel
+                                        title
+                                        expanded-body
+                                        ctx)
+                    (cons (stage-ok '()) state))]
+             [(post-embed)
+              (let* ([channel (cadr payload)]
+                     [embed-spec (caddr payload)])
+                    (discord-queue-embed channel embed-spec ctx)
+                    (cons (stage-ok '()) state))]
+             [(chat)
+              (let* ([channel (cadr payload)]
+                     [body (if (string? input)
+                               input
+                               (format "~a" input))])
+                    (discord-queue-post channel #f body ctx)
+                    (cons (stage-ok '()) state))]
+             [(reply)
+              (let* ([message-id (cadr payload)]
+                     [body (if (string? input)
+                               input
+                               (format "~a" input))])
+                    (discord-queue-reply message-id body ctx)
+                    (cons (stage-ok '()) state))]
+             [(react)
+              (let* ([message-id (cadr payload)]
+                     [emoji (caddr payload)])
+                    (discord-queue-react message-id emoji ctx)
+                    (cons (stage-ok '()) state))]
+             [(thread)
+              (let* ([message-id (cadr payload)]
+                     [thread-name (caddr payload)]
+                     [body (if (string? input)
+                               input
+                               (format "~a" input))])
+                    (discord-queue-thread message-id thread-name body ctx)
+                    ;; Thread creation returns thread-id (mock for now)
+                    (cons (stage-ok (format "thread-~a" message-id)) state))]
+             [(dm)
+              (let* ([user-id (cadr payload)]
+                     [body (if (string? input)
+                               input
+                               (format "~a" input))])
+                    (discord-queue-dm user-id body ctx)
+                    (cons (stage-ok '()) state))]
+             [else
+              (cons (stage-err 'unknown-discord-op
+                               (format "Unknown Discord operation: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Discord Queue Helpers
+;;; ============================================================
+;;; These write JSON files to the outbox for bridge.js to pick up.
+
+;;; discord-queue-post : Symbol -> Maybe String -> String -> Context -> ()
+;;; Queue a post (titled or chat) for Discord.
+(define (discord-queue-post channel title body ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [author (get-agent-name ctx)]
+         [tier (get-agent-tier ctx)]
+         [post-data `((channel . ,(symbol->string channel))
+                      (title . ,title)
+                      (body . ,body)
+                      (author . ,author)
+                      (tier . ,tier)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; discord-queue-embed : Symbol -> Alist -> Context -> ()
+;;; Queue an embed post for Discord.
+(define (discord-queue-embed channel embed-spec ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [author (get-agent-name ctx)]
+         [tier (get-agent-tier ctx)]
+         [post-data `((channel . ,(symbol->string channel))
+                      (embed . ,embed-spec)
+                      (author . ,author)
+                      (tier . ,tier)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; discord-queue-reply : String -> String -> Context -> ()
+;;; Queue a reply to a Discord message.
+(define (discord-queue-reply message-id body ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [author (get-agent-name ctx)]
+         [post-data `((reply_to . ,message-id)
+                      (body . ,body)
+                      (author . ,author)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; discord-queue-react : String -> String -> Context -> ()
+;;; Queue a reaction to a Discord message.
+(define (discord-queue-react message-id emoji ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [post-data `((react_to . ,message-id)
+                      (emoji . ,emoji)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; discord-queue-thread : String -> String -> String -> Context -> ()
+;;; Queue thread creation from a message.
+(define (discord-queue-thread message-id thread-name body ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [author (get-agent-name ctx)]
+         [post-data `((create_thread_from . ,message-id)
+                      (thread_name . ,thread-name)
+                      (body . ,body)
+                      (author . ,author)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; discord-queue-dm : String -> String -> Context -> ()
+;;; Queue a direct message.
+(define (discord-queue-dm user-id body ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [author (get-agent-name ctx)]
+         [post-data `((dm_to . ,user-id)
+                      (body . ,body)
+                      (author . ,author)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; make-outbox-filename : -> String
+;;; Generate unique filename for outbox JSON.
+(define (make-outbox-filename)
+  (let ([timestamp (current-milliseconds)]
+        [random-suffix (random 100000)])
+       (format "~a/~a-~a.json" *discord-outbox-dir* timestamp random-suffix)))
+
+;;; write-outbox-json : String -> Alist -> ()
+;;; Write alist as JSON to outbox file.
+(define (write-outbox-json path data)
+  ;; Ensure outbox directory exists
+  (let ([dir (path-directory path)])
+       (unless (file-exists? dir)
+               (make-directories dir)))
+  ;; Write JSON
+  (with-output-to-file path
+                       (lambda ()
+                               (display (alist->json data)))))
+
+;;; alist->json : Alist -> String
+;;; Convert alist to JSON string (simple implementation).
+(define (alist->json alist)
+  (string-append
+   "{\n"
+   (apply string-append
+          (intersperse
+           ",\n"
+           (map (lambda (pair)
+                        (format "  ~s: ~a"
+                                (symbol->string (car pair))
+                                (json-value (cdr pair))))
+                alist)))
+   "\n}"))
+
+;;; json-value : Any -> String
+;;; Convert value to JSON representation.
+(define (json-value v)
+  (cond
+   [(string? v) (format "~s" v)]
+   [(number? v) (format "~a" v)]
+   [(boolean? v) (if v "true" "false")]
+   [(null? v) "null"]
+   [(symbol? v) (format "~s" (symbol->string v))]
+   [(pair? v)
+    (if (and (pair? (car v)) (symbol? (caar v)))
+        ;; Nested alist
+        (alist->json v)
+        ;; List/array
+        (string-append
+         "["
+         (apply string-append
+                (intersperse ", " (map json-value v)))
+         "]"))]
+   [else (format "~s" (format "~a" v))]))
+
+;;; intersperse : String -> List String -> List String
+(define (intersperse sep lst)
+  (cond
+   [(null? lst) '()]
+   [(null? (cdr lst)) lst]
+   [else (cons (car lst)
+               (cons sep (intersperse sep (cdr lst))))]))
+
+;;; get-agent-name : Context -> String
+;;; Get agent name from context.
+(define (get-agent-name ctx)
+  (let ([persona (ctx-persona ctx)])
+       (if persona
+           (persona-name persona)
+           "pipeline")))
+
+;;; get-agent-tier : Context -> String
+;;; Get agent tier from context.
+(define (get-agent-tier ctx)
+  (let ([persona (ctx-persona ctx)])
+       (if persona
+           (symbol->string (persona-tier persona))
+           "builder")))
+
+;;; current-iso-timestamp : -> String
+;;; Get current time in ISO format.
+(define (current-iso-timestamp)
+  ;; TODO: Real implementation
+  "2025-12-31T00:00:00Z")
+
+;;; current-milliseconds : -> Integer
+;;; Get current time in milliseconds.
+(define (current-milliseconds)
+  ;; TODO: Real implementation
+  (random 1000000000))
+
+;;; path-directory : String -> String
+;;; Get directory portion of path.
+(define (path-directory path)
+  (let ([idx (string-rindex path #\/)])
+       (if idx
+           (substring path 0 idx)
+           ".")))
+
+;;; string-rindex : String -> Char -> Maybe Integer
+;;; Find last occurrence of char in string.
+(define (string-rindex str ch)
+  (let loop ([i (- (string-length str) 1)])
+       (cond
+        [(< i 0) #f]
+        [(char=? (string-ref str i) ch) i]
+        [else (loop (- i 1))])))
+
+;;; make-directories : String -> ()
+;;; Create directory and parents (stub).
+(define (make-directories path)
+  ;; TODO: Real implementation using shell
+  (void))
+
+;;; file-exists? : String -> Boolean
+;;; Check if file/directory exists (stub).
+(define (file-exists? path)
+  ;; TODO: Real implementation
+  #t)

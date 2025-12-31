@@ -233,6 +233,14 @@ async function pollFoldPosts(evalScheme) {
 /**
  * Watch a directory for new post notifications
  * Agents write to .fold-repl/discord-outbox/*.json when they post
+ *
+ * Supported outbox message types:
+ *   - Regular post: { channel, title?, body, author, tier }
+ *   - Reply: { reply_to, body, author }
+ *   - Reaction: { react_to, emoji }
+ *   - Thread: { create_thread_from, thread_name, body, author }
+ *   - DM: { dm_to, body, author }
+ *   - Embed: { channel, embed, author, tier }
  */
 function watchOutbox(discordClient) {
   const outboxDir = path.join(__dirname, '../../.fold-repl/discord-outbox');
@@ -256,10 +264,10 @@ function watchOutbox(discordClient) {
 
     try {
       const content = fs.readFileSync(filePath, 'utf8');
-      const post = JSON.parse(content);
+      const message = JSON.parse(content);
 
-      // Post to Discord
-      await postToDiscord(discordClient, post);
+      // Dispatch based on message type
+      await dispatchOutboxMessage(discordClient, message);
 
       // Remove processed file
       fs.unlinkSync(filePath);
@@ -268,6 +276,211 @@ function watchOutbox(discordClient) {
       console.error(`Error processing ${filename}: ${e.message}`);
     }
   });
+}
+
+/**
+ * Dispatch an outbox message to the appropriate handler
+ */
+async function dispatchOutboxMessage(discordClient, message) {
+  try {
+    if (message.reply_to) {
+      // Reply to a message
+      await handleReply(discordClient, message);
+    } else if (message.react_to) {
+      // Add reaction to a message
+      await handleReaction(discordClient, message);
+    } else if (message.create_thread_from) {
+      // Create a thread from a message
+      await handleThread(discordClient, message);
+    } else if (message.dm_to) {
+      // Direct message to a user
+      await handleDM(discordClient, message);
+    } else if (message.embed) {
+      // Post embed to channel
+      await handleEmbed(discordClient, message);
+    } else if (message.channel) {
+      // Regular post/chat
+      await postToDiscord(discordClient, message);
+    } else {
+      console.log('Unknown outbox message type:', Object.keys(message));
+    }
+  } catch (e) {
+    console.error(`Failed to dispatch outbox message: ${e.message}`);
+  }
+}
+
+/**
+ * Handle a reply to an existing message
+ */
+async function handleReply(discordClient, message) {
+  try {
+    // Find the message to reply to
+    // message.reply_to is a Discord message ID
+    // We need to search channels for it (or it should include channel info)
+    const channel = await findChannelWithMessage(discordClient, message.reply_to);
+    if (!channel) {
+      console.log(`Could not find message ${message.reply_to} to reply to`);
+      return;
+    }
+
+    const originalMessage = await channel.messages.fetch(message.reply_to);
+    const agentConfig = config.getAgentConfig(message.author);
+
+    // Reply to the message
+    await originalMessage.reply({
+      content: message.body?.slice(0, 2000) || '',
+    });
+
+    console.log(`↩️ Replied to message ${message.reply_to}`);
+  } catch (e) {
+    console.error(`Failed to reply: ${e.message}`);
+  }
+}
+
+/**
+ * Handle adding a reaction to a message
+ */
+async function handleReaction(discordClient, message) {
+  try {
+    const channel = await findChannelWithMessage(discordClient, message.react_to);
+    if (!channel) {
+      console.log(`Could not find message ${message.react_to} to react to`);
+      return;
+    }
+
+    const targetMessage = await channel.messages.fetch(message.react_to);
+    await targetMessage.react(message.emoji);
+
+    console.log(`😀 Added reaction ${message.emoji} to message ${message.react_to}`);
+  } catch (e) {
+    console.error(`Failed to react: ${e.message}`);
+  }
+}
+
+/**
+ * Handle creating a thread from a message
+ */
+async function handleThread(discordClient, message) {
+  try {
+    const channel = await findChannelWithMessage(discordClient, message.create_thread_from);
+    if (!channel) {
+      console.log(`Could not find message ${message.create_thread_from} to create thread from`);
+      return;
+    }
+
+    const parentMessage = await channel.messages.fetch(message.create_thread_from);
+
+    // Create thread
+    const thread = await parentMessage.startThread({
+      name: message.thread_name?.slice(0, 100) || 'Discussion',
+      autoArchiveDuration: 60, // 1 hour
+    });
+
+    // Send first message in thread
+    if (message.body) {
+      const agentConfig = config.getAgentConfig(message.author);
+      await thread.send({
+        content: message.body.slice(0, 2000),
+      });
+    }
+
+    console.log(`🧵 Created thread "${message.thread_name}" from message ${message.create_thread_from}`);
+  } catch (e) {
+    console.error(`Failed to create thread: ${e.message}`);
+  }
+}
+
+/**
+ * Handle sending a DM to a user
+ */
+async function handleDM(discordClient, message) {
+  try {
+    const user = await discordClient.users.fetch(message.dm_to);
+    if (!user) {
+      console.log(`Could not find user ${message.dm_to} to DM`);
+      return;
+    }
+
+    await user.send({
+      content: message.body?.slice(0, 2000) || '',
+    });
+
+    console.log(`📨 Sent DM to user ${message.dm_to}`);
+  } catch (e) {
+    console.error(`Failed to send DM: ${e.message}`);
+  }
+}
+
+/**
+ * Handle posting an embed to a channel
+ */
+async function handleEmbed(discordClient, message) {
+  const channelId = config.getFoldToDiscordChannel(message.channel);
+  if (!channelId) {
+    console.log(`No Discord channel mapped for #${message.channel}`);
+    return;
+  }
+
+  try {
+    const webhook = await getWebhook(discordClient, channelId);
+    if (!webhook) return;
+
+    const agentConfig = config.getAgentConfig(message.author);
+    const embedSpec = message.embed;
+
+    // Build embed from spec
+    const embed = new EmbedBuilder();
+
+    if (embedSpec.title) embed.setTitle(embedSpec.title.slice(0, 256));
+    if (embedSpec.description) embed.setDescription(embedSpec.description.slice(0, 4096));
+    if (embedSpec.color) embed.setColor(embedSpec.color);
+    if (embedSpec.url) embed.setURL(embedSpec.url);
+    if (embedSpec.timestamp) embed.setTimestamp(new Date(embedSpec.timestamp));
+
+    if (embedSpec.footer) {
+      embed.setFooter({ text: embedSpec.footer.slice(0, 2048) });
+    }
+
+    if (embedSpec.fields && Array.isArray(embedSpec.fields)) {
+      for (const field of embedSpec.fields.slice(0, 25)) {
+        embed.addFields({
+          name: (field.name || 'Field').slice(0, 256),
+          value: (field.value || '-').slice(0, 1024),
+          inline: !!field.inline,
+        });
+      }
+    }
+
+    await webhook.send({
+      username: agentConfig.displayName || message.author,
+      embeds: [embed],
+    });
+
+    console.log(`📤 Posted embed to Discord #${message.channel}`);
+  } catch (e) {
+    console.error(`Failed to post embed: ${e.message}`);
+  }
+}
+
+/**
+ * Find the channel containing a specific message ID
+ * This is a helper for replies/reactions/threads
+ */
+async function findChannelWithMessage(discordClient, messageId) {
+  // Try each mapped channel
+  for (const channelId of Object.values(config.CHANNEL_MAP)) {
+    try {
+      const channel = await discordClient.channels.fetch(channelId);
+      if (!channel?.isTextBased()) continue;
+
+      // Try to fetch the message
+      const msg = await channel.messages.fetch(messageId);
+      if (msg) return channel;
+    } catch (e) {
+      // Message not in this channel, continue
+    }
+  }
+  return null;
 }
 
 // ============================================================
@@ -314,6 +527,14 @@ module.exports = {
   createPostEmbed,
   formatChatMessage,
   getWebhook,
+  // New handlers for pipeline integration
+  dispatchOutboxMessage,
+  handleReply,
+  handleReaction,
+  handleThread,
+  handleDM,
+  handleEmbed,
+  findChannelWithMessage,
 };
 
 // ============================================================
