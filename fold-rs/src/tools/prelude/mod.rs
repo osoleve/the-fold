@@ -56,6 +56,9 @@ const LIST_UTIL: &str = include_str!("list-util.ss");
 const NUMERIC_UTIL: &str = include_str!("numeric-util.ss");
 const TREE_UTIL: &str = include_str!("tree-util.ss");
 const CONTROL_FLOW: &str = include_str!("control-flow.ss");
+const MATH_UTIL: &str = include_str!("math-util.ss");
+const GENERAL_UTIL: &str = include_str!("general-util.ss");
+const LIST_EXTRA: &str = include_str!("list-extra.ss");
 const COLLECTION: &str = include_str!("collection.ss"); // Marker file
 const COLLECTION_ALIST: &str = include_str!("collection-alist.ss");
 const COLLECTION_DICT: &str = include_str!("collection-dict.ss");
@@ -158,6 +161,12 @@ fn assemble_prelude() -> String {
     source.push_str(TREE_UTIL);
     source.push('\n');
     source.push_str(CONTROL_FLOW);
+    source.push('\n');
+    source.push_str(MATH_UTIL);
+    source.push('\n');
+    source.push_str(GENERAL_UTIL);
+    source.push('\n');
+    source.push_str(LIST_EXTRA);
     source.push('\n');
     // Collection module with submodules
     source.push_str(COLLECTION); // Marker comment
