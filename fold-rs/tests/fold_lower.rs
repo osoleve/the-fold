@@ -144,3 +144,56 @@ fn lower_accepts_float_literals() {
         other => panic!("expected float literal, got {:?}", other),
     }
 }
+
+#[test]
+fn lower_top_level_bound() {
+    // (top-level-bound? 'x) should lower to Bound expression
+    match parse_and_lower("(top-level-bound? 'x)") {
+        Expr::Bound { name } => {
+            assert_eq!(name, "x");
+        }
+        other => panic!("expected Bound, got {:?}", other),
+    }
+
+    // Also works with unquoted symbol
+    match parse_and_lower("(top-level-bound? x)") {
+        Expr::Bound { name } => {
+            assert_eq!(name, "x");
+        }
+        other => panic!("expected Bound, got {:?}", other),
+    }
+}
+
+#[test]
+fn lower_unless() {
+    // (unless cond body) should lower to (if cond nil body)
+    match parse_and_lower("(unless #t 42)") {
+        Expr::If {
+            test,
+            then_branch,
+            else_branch,
+        } => {
+            assert!(matches!(test.expr, Expr::Value(Value::Bool(true))));
+            assert!(matches!(then_branch.expr, Expr::Value(Value::Nil)));
+            assert!(matches!(else_branch.expr, Expr::Value(Value::Number(42))));
+        }
+        other => panic!("expected If, got {:?}", other),
+    }
+}
+
+#[test]
+fn lower_when() {
+    // (when cond body) should lower to (if cond body nil)
+    match parse_and_lower("(when #t 42)") {
+        Expr::If {
+            test,
+            then_branch,
+            else_branch,
+        } => {
+            assert!(matches!(test.expr, Expr::Value(Value::Bool(true))));
+            assert!(matches!(then_branch.expr, Expr::Value(Value::Number(42))));
+            assert!(matches!(else_branch.expr, Expr::Value(Value::Nil)));
+        }
+        other => panic!("expected If, got {:?}", other),
+    }
+}

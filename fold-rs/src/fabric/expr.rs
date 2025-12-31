@@ -89,4 +89,8 @@ pub enum Expr {
         name: Symbol,
         value: Box<SpannedExpr>,
     },
+    /// Check if a symbol is bound in the environment
+    Bound {
+        name: Symbol,
+    },
 }

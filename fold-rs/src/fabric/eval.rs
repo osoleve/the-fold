@@ -431,6 +431,18 @@ pub fn eval_spanned(
                 // Evaluate the value expression
                 expr = *value;
             }
+            Expr::Bound { name } => {
+                // Check if the symbol is bound in the current environment
+                let is_bound = Env::lookup(&env, &name).is_some();
+                let value = Value::Bool(is_bound);
+                match unwind(value, &mut frames, &mut env)? {
+                    Unwind::Continue(next_expr) => {
+                        expr = next_expr;
+                        continue;
+                    }
+                    Unwind::Done(value) => return Ok(EvalOutcome::Done(value)),
+                }
+            }
         }
     }
 }
