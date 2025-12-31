@@ -30,4 +30,4 @@ pub use hex::{HexError, bytes_to_hex, hex_to_bytes};
 pub use normalize::{NormEnv, free_vars, normalize};
 pub use sha256::{sha256, sha256_hex};
 pub use symbol::Symbol;
-pub use value::Value;
+pub use value::{Port, Value};

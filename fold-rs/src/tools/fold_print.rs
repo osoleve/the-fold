@@ -36,6 +36,17 @@ pub fn format_value(value: &Value) -> String {
         }
         Value::Primitive(op) => format!("#<primitive {}>", op.as_str()),
         Value::Block(block) => format!("#<block {}>", block.tag.as_str()),
+        Value::Hashtable(ht) => {
+            let size = ht.borrow().len();
+            format!("#<hashtable size={}>", size)
+        }
+        Value::Port(port_ref) => {
+            let port = port_ref.borrow();
+            match &*port {
+                crate::fabric::Port::StringInput { .. } => "#<input-port>".to_string(),
+                crate::fabric::Port::StringOutput { .. } => "#<output-port>".to_string(),
+            }
+        }
         Value::Nil => "()".to_string(),
     }
 }

@@ -1,5 +1,8 @@
 use std::{
+    cell::RefCell,
+    collections::HashMap,
     convert::TryInto,
+    rc::Rc,
     sync::{Mutex, OnceLock},
 };
 
@@ -1828,6 +1831,161 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             let r = expect_rational(&args[0])?;
             Ok(Value::Float(bigrational::bigrational_to_f64(r)))
+        }
+
+        // Hashtable operations
+        "make-hashtable" => {
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("make-hashtable expects 0 args"));
+            }
+            Ok(Value::Hashtable(Rc::new(RefCell::new(HashMap::new()))))
+        }
+        "hashtable?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("hashtable? expects 1 arg"));
+            }
+            Ok(Value::Bool(matches!(args[0], Value::Hashtable(_))))
+        }
+        "hashtable-set!" => {
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "hashtable-set! expects 3 args: (hashtable-set! ht key value)",
+                ));
+            }
+            match &args[0] {
+                Value::Hashtable(ht) => {
+                    let key = args[1].clone();
+                    let value = args[2].clone();
+                    ht.borrow_mut().insert(key, value);
+                    Ok(Value::Nil)
+                }
+                _ => Err(EvalError::TypeMismatch("hashtable-set! expects hashtable")),
+            }
+        }
+        "hashtable-ref" => {
+            if args.len() != 3 {
+                return Err(EvalError::TypeMismatch(
+                    "hashtable-ref expects 3 args: (hashtable-ref ht key default)",
+                ));
+            }
+            match &args[0] {
+                Value::Hashtable(ht) => {
+                    let key = &args[1];
+                    let default = &args[2];
+                    Ok(ht.borrow().get(key).cloned().unwrap_or_else(|| default.clone()))
+                }
+                _ => Err(EvalError::TypeMismatch("hashtable-ref expects hashtable")),
+            }
+        }
+        "hashtable-contains?" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "hashtable-contains? expects 2 args: (hashtable-contains? ht key)",
+                ));
+            }
+            match &args[0] {
+                Value::Hashtable(ht) => {
+                    let key = &args[1];
+                    Ok(Value::Bool(ht.borrow().contains_key(key)))
+                }
+                _ => Err(EvalError::TypeMismatch("hashtable-contains? expects hashtable")),
+            }
+        }
+        "hashtable-delete!" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch(
+                    "hashtable-delete! expects 2 args: (hashtable-delete! ht key)",
+                ));
+            }
+            match &args[0] {
+                Value::Hashtable(ht) => {
+                    let key = &args[1];
+                    ht.borrow_mut().remove(key);
+                    Ok(Value::Nil)
+                }
+                _ => Err(EvalError::TypeMismatch("hashtable-delete! expects hashtable")),
+            }
+        }
+        "hashtable-keys" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("hashtable-keys expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Hashtable(ht) => {
+                    let keys: Vec<Value> = ht.borrow().keys().cloned().collect();
+                    Ok(list_from_values(&keys))
+                }
+                _ => Err(EvalError::TypeMismatch("hashtable-keys expects hashtable")),
+            }
+        }
+        "hashtable-values" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("hashtable-values expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Hashtable(ht) => {
+                    let values: Vec<Value> = ht.borrow().values().cloned().collect();
+                    Ok(list_from_values(&values))
+                }
+                _ => Err(EvalError::TypeMismatch("hashtable-values expects hashtable")),
+            }
+        }
+        "hashtable-size" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("hashtable-size expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Hashtable(ht) => Ok(Value::Number(ht.borrow().len() as i64)),
+                _ => Err(EvalError::TypeMismatch("hashtable-size expects hashtable")),
+            }
+        }
+        "hashtable->alist" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("hashtable->alist expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Hashtable(ht) => {
+                    let pairs: Vec<Value> = ht
+                        .borrow()
+                        .iter()
+                        .map(|(k, v)| Value::Pair(Box::new(k.clone()), Box::new(v.clone())))
+                        .collect();
+                    Ok(list_from_values(&pairs))
+                }
+                _ => Err(EvalError::TypeMismatch("hashtable->alist expects hashtable")),
+            }
+        }
+        "alist->hashtable" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("alist->hashtable expects 1 arg"));
+            }
+            let mut ht = HashMap::new();
+            let mut current = &args[0];
+            loop {
+                match current {
+                    Value::Nil => break,
+                    Value::Pair(car, cdr) => {
+                        // Each element should be a pair (key . value)
+                        match car.as_ref() {
+                            Value::Pair(key, value) => {
+                                ht.insert(key.as_ref().clone(), value.as_ref().clone());
+                            }
+                            _ => {
+                                return Err(EvalError::TypeMismatch(
+                                    "alist->hashtable expects list of pairs",
+                                ))
+                            }
+                        }
+                        current = cdr;
+                    }
+                    _ => {
+                        return Err(EvalError::TypeMismatch(
+                            "alist->hashtable expects proper list",
+                        ))
+                    }
+                }
+            }
+            Ok(Value::Hashtable(Rc::new(RefCell::new(ht))))
         }
 
         // REPL commands
@@ -5076,6 +5234,136 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             Ok(Value::Nil)
         }
 
+        // Port operations
+        "open-input-string" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("open-input-string expects 1 arg"));
+            }
+            let content = expect_string(&args[0])?;
+            use crate::fabric::Port;
+            Ok(Value::Port(Rc::new(RefCell::new(Port::StringInput {
+                content,
+                position: 0,
+            }))))
+        }
+        "open-output-string" => {
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("open-output-string expects 0 args"));
+            }
+            use crate::fabric::Port;
+            Ok(Value::Port(Rc::new(RefCell::new(Port::StringOutput {
+                buffer: String::new(),
+            }))))
+        }
+        "get-output-string" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("get-output-string expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Port(port_ref) => {
+                    let port = port_ref.borrow();
+                    match &*port {
+                        crate::fabric::Port::StringOutput { buffer } => {
+                            Ok(Value::String(buffer.clone()))
+                        }
+                        _ => Err(EvalError::TypeMismatch("expected output port")),
+                    }
+                }
+                _ => Err(EvalError::TypeMismatch("expected port")),
+            }
+        }
+        "port?" => type_predicate(args, |v| matches!(v, Value::Port(_))),
+        "input-port?" => type_predicate(args, |v| {
+            matches!(v, Value::Port(port_ref) if matches!(&*port_ref.borrow(), crate::fabric::Port::StringInput { .. }))
+        }),
+        "output-port?" => type_predicate(args, |v| {
+            matches!(v, Value::Port(port_ref) if matches!(&*port_ref.borrow(), crate::fabric::Port::StringOutput { .. }))
+        }),
+        "read-char" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("read-char expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Port(port_ref) => {
+                    let mut port = port_ref.borrow_mut();
+                    match &mut *port {
+                        crate::fabric::Port::StringInput { content, position } => {
+                            if *position >= content.len() {
+                                // Return EOF object (special symbol)
+                                Ok(Value::Symbol(Symbol::intern("#<eof>")))
+                            } else {
+                                let ch = content[*position..].chars().next().unwrap();
+                                *position += ch.len_utf8();
+                                Ok(Value::Char(ch))
+                            }
+                        }
+                        _ => Err(EvalError::TypeMismatch("expected input port")),
+                    }
+                }
+                _ => Err(EvalError::TypeMismatch("expected port")),
+            }
+        }
+        "peek-char" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("peek-char expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Port(port_ref) => {
+                    let port = port_ref.borrow();
+                    match &*port {
+                        crate::fabric::Port::StringInput { content, position } => {
+                            if *position >= content.len() {
+                                // Return EOF object (special symbol)
+                                Ok(Value::Symbol(Symbol::intern("#<eof>")))
+                            } else {
+                                let ch = content[*position..].chars().next().unwrap();
+                                Ok(Value::Char(ch))
+                            }
+                        }
+                        _ => Err(EvalError::TypeMismatch("expected input port")),
+                    }
+                }
+                _ => Err(EvalError::TypeMismatch("expected port")),
+            }
+        }
+        "write-char" => {
+            if args.len() != 2 {
+                return Err(EvalError::TypeMismatch("write-char expects 2 args"));
+            }
+            let ch = match &args[0] {
+                Value::Char(c) => *c,
+                _ => return Err(EvalError::TypeMismatch("expected char")),
+            };
+            match &args[1] {
+                Value::Port(port_ref) => {
+                    let mut port = port_ref.borrow_mut();
+                    match &mut *port {
+                        crate::fabric::Port::StringOutput { buffer } => {
+                            buffer.push(ch);
+                            Ok(Value::Nil)
+                        }
+                        _ => Err(EvalError::TypeMismatch("expected output port")),
+                    }
+                }
+                _ => Err(EvalError::TypeMismatch("expected port")),
+            }
+        }
+        "eof-object?" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("eof-object? expects 1 arg"));
+            }
+            Ok(Value::Bool(matches!(
+                &args[0],
+                Value::Symbol(sym) if sym.as_str() == "#<eof>"
+            )))
+        }
+        "eof-object" => {
+            if !args.is_empty() {
+                return Err(EvalError::TypeMismatch("eof-object expects 0 args"));
+            }
+            Ok(Value::Symbol(Symbol::intern("#<eof>")))
+        }
+
         _ => Err(EvalError::UnknownPrimitive(op.clone())),
     }
 }
@@ -5493,6 +5781,8 @@ fn value_to_display_string(value: &Value) -> String {
         Value::Block(b) => format!("#<block:{}>", b.tag),
         Value::Closure(_) => "#<fn>".to_string(),
         Value::Primitive(name) => format!("#<primitive {}>", name),
+        Value::Hashtable(_) => "#<hashtable>".to_string(),
+        Value::Port(_) => "#<port>".to_string(),
     }
 }
 
@@ -5524,6 +5814,8 @@ fn value_to_write_string(value: &Value) -> String {
         Value::Block(b) => format!("#<block:{}>", b.tag),
         Value::Closure(_) => "#<fn>".to_string(),
         Value::Primitive(name) => format!("#<primitive {}>", name),
+        Value::Hashtable(_) => "#<hashtable>".to_string(),
+        Value::Port(_) => "#<port>".to_string(),
     }
 }
 

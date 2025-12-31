@@ -209,7 +209,8 @@ impl Parser {
                     self.advance_to(end_index);
                     Sexp::Number(number)
                 } else if is_symbol_initial(c) {
-                    Sexp::Symbol(self.parse_symbol()?)
+                    let sym = self.parse_symbol()?;
+                    Sexp::Symbol(normalize_unicode_symbol(&sym))
                 } else {
                     return Err(self.error_at("expression", start));
                 }
@@ -759,4 +760,23 @@ fn is_symbol_initial(c: char) -> bool {
 
 fn is_symbol_subsequent(c: char) -> bool {
     is_symbol_initial(c) || c.is_ascii_digit() || matches!(c, '.' | '@')
+}
+
+/// Map Unicode symbol aliases to their ASCII equivalents for .ss compatibility
+fn normalize_unicode_symbol(symbol: &str) -> String {
+    match symbol {
+        "λ" => "lambda".to_string(),
+        "∧" => "and".to_string(),
+        "∨" => "or".to_string(),
+        "π" => "pi".to_string(),
+        "¬" => "not".to_string(),
+        "→" => "->".to_string(),
+        "←" => "<-".to_string(),
+        "≤" => "<=".to_string(),
+        "≥" => ">=".to_string(),
+        "≠" => "<>".to_string(),
+        "×" => "*".to_string(),
+        "÷" => "/".to_string(),
+        _ => symbol.to_string(),
+    }
 }

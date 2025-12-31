@@ -265,9 +265,18 @@ fn is_builtin_prim(name: &str) -> bool {
             | "list-count" | "list-sum" | "list-avg" | "list-min-value" | "list-max-value"
             // String and value conversion
             | "string-byte-length" | "string-char-length" | "value->string" | "string->value?"
+            // Hashtable operations
+            | "make-hashtable" | "hashtable?" | "hashtable-set!" | "hashtable-ref"
+            | "hashtable-contains?" | "hashtable-delete!" | "hashtable-keys" | "hashtable-values"
+            | "hashtable-size" | "hashtable->alist" | "alist->hashtable"
             // Note: constantly removed - implemented in prelude as HOF
             // REPL commands
             | "version" | "who" | "help" | "display" | "write" | "newline"
+            // Port operations
+            | "open-input-string" | "open-output-string" | "get-output-string"
+            | "port?" | "input-port?" | "output-port?"
+            | "read-char" | "peek-char" | "write-char"
+            | "eof-object?" | "eof-object"
     )
 }
 

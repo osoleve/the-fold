@@ -5,7 +5,7 @@ use crate::fabric::{
     symbol::Symbol,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Block {
     pub tag: Symbol,
     pub payload: Vec<u8>,
