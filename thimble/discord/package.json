@@ -1,0 +1,19 @@
+{
+  "name": "fold-discord-bot",
+  "version": "0.1.0",
+  "description": "Discord bot for The Fold - bridges Discord and the Fold forum",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "node --watch bot.js",
+    "seed": "node ../../scripts/seed-discord.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
+}
