@@ -1,77 +1,63 @@
-; predicate.ss - Predicate combinators and utilities
-; Part of The Fold prelude
-
-; ============================================
-; Basic predicate combinators
-; ============================================
+; ============================================================
+; Predicate Combinators and Utilities
+; Combining and manipulating predicate functions
+; ============================================================
 
 ; both: Combine two predicates with and
 ; ((both positive? even?) 4) => #t
-(define (both p1 p2)
-  (fn (x) (and (p1 x) (p2 x))))
+(both (fn (p1 p2)
+         (fn (x) (and (p1 x) (p2 x)))))
 
 ; either-pred: Combine two predicates with or
 ; ((either-pred positive? even?) -2) => #t
-(define (either-pred p1 p2)
-  (fn (x) (or (p1 x) (p2 x))))
+(either-pred (fn (p1 p2)
+                (fn (x) (or (p1 x) (p2 x)))))
 
 ; neither: Combine two predicates with nor
 ; ((neither positive? even?) -3) => #f
-(define (neither p1 p2)
-  (fn (x) (not (or (p1 x) (p2 x)))))
+(neither (fn (p1 p2)
+            (fn (x) (not (or (p1 x) (p2 x))))))
 
-; negate: Negate a predicate
-; ((negate even?) 3) => #t
-(define (negate p)
-  (fn (x) (not (p x))))
+; negate-fn: Negate a predicate
+; ((negate-fn even?) 3) => #t
+(negate-fn (fn (p)
+              (fn (x) (not (p x)))))
 
-; ============================================
-; N-ary predicate combinators
-; ============================================
+; all-of: Check if all predicates hold (binary version)
+; ((all-of positive? even?) 4) => #t
+(all-of (fn (p1 p2)
+           (fn (x) (and (p1 x) (p2 x)))))
 
-; all-of: Check if all predicates hold
-; ((all-of positive? even? (fn (x) (< x 10))) 4) => #t
-(define (all-of . preds)
-  (fn (x)
-      (all (fn (p) (p x)) preds)))
-
-; any-of: Check if any predicate holds
+; any-of: Check if any predicate holds (binary version)
 ; ((any-of negative? even?) 4) => #t
-(define (any-of . preds)
-  (fn (x)
-      (any (fn (p) (p x)) preds)))
+(any-of (fn (p1 p2)
+           (fn (x) (or (p1 x) (p2 x)))))
 
-; none-of: Check if no predicates hold
+; none-of: Check if no predicates hold (binary version)
 ; ((none-of negative? even?) 3) => #t
-(define (none-of . preds)
-  (fn (x)
-      (not (any (fn (p) (p x)) preds))))
+(none-of (fn (p1 p2)
+            (fn (x) (not (or (p1 x) (p2 x))))))
 
-; ============================================
-; Predicate utilities
-; ============================================
+; all-of-list: Check if all predicates in list hold
+; ((all-of-list (list positive? even?)) 4) => #t
+(all-of-list (fn (preds)
+                (fn (x)
+                    (all (fn (p) (p x)) preds))))
 
-; conjoin: Combine predicates with and (n-ary version of both)
-(define conjoin all-of)
+; any-of-list: Check if any predicate in list holds
+; ((any-of-list (list negative? even?)) 4) => #t
+(any-of-list (fn (preds)
+                (fn (x)
+                    (any (fn (p) (p x)) preds))))
 
-; disjoin: Combine predicates with or (n-ary version of either-pred)
-(define disjoin any-of)
+; none-of-list: Check if no predicates in list hold
+; ((none-of-list (list negative? odd?)) 4) => #t
+(none-of-list (fn (preds)
+                 (fn (x)
+                     (not (any (fn (p) (p x)) preds)))))
 
-; complement: Negate predicate (alias for negate)
-(define complement negate)
+; conjoin: Alias for both
+(conjoin both)
 
-; ============================================
-; Module exports
-; ============================================
-
-(module-exports
- both
- either-pred
- neither
- negate
- all-of
- any-of
- none-of
- conjoin
- disjoin
- complement)
+; disjoin: Alias for either-pred
+(disjoin either-pred)
