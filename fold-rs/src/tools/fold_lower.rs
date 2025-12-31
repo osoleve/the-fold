@@ -75,8 +75,91 @@ pub fn lower_expr(expr: &Spanned<Sexp>) -> Result<SpannedExpr, LowerError> {
     Ok(SpannedExpr::new(inner, span))
 }
 
+/// Lower a program, transforming top-level defines into nested let bindings.
+/// This allows (define x 1) (define y 2) (+ x y) to work correctly.
 pub fn lower_program(exprs: &[Spanned<Sexp>]) -> Result<Vec<SpannedExpr>, LowerError> {
-    exprs.iter().map(lower_expr).collect()
+    // First, separate defines from other expressions
+    let mut defines: Vec<(Symbol, SpannedExpr)> = Vec::new();
+    let mut body_exprs: Vec<SpannedExpr> = Vec::new();
+
+    for expr in exprs {
+        if let Sexp::List(items) = &expr.value {
+            if let Some(head) = items.first().and_then(|h| symbol_name(h)) {
+                if head == "define" && items.len() == 3 {
+                    // Extract the define binding
+                    if let Sexp::Symbol(name) = &items[1].value {
+                        let value = lower_expr(&items[2])?;
+                        defines.push((Symbol::intern(name), value));
+                        continue;
+                    } else if let Sexp::List(sig) = &items[1].value {
+                        // Function shorthand: (define (name params...) body)
+                        if !sig.is_empty() {
+                            if let Sexp::Symbol(name) = &sig[0].value {
+                                let params: Vec<Symbol> = sig[1..]
+                                    .iter()
+                                    .map(|p| match &p.value {
+                                        Sexp::Symbol(s) => Ok(Symbol::intern(s)),
+                                        _ => Err(error(p, "define function params must be symbols")),
+                                    })
+                                    .collect::<Result<_, _>>()?;
+                                let body = lower_expr(&items[2])?;
+                                let lambda = SpannedExpr::new(
+                                    Expr::Fn {
+                                        params,
+                                        body: Box::new(body),
+                                    },
+                                    Some(expr.span.clone()),
+                                );
+                                defines.push((Symbol::intern(name), lambda));
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Not a define - add to body expressions
+        body_exprs.push(lower_expr(expr)?);
+    }
+
+    // If there are defines, wrap the body in nested let bindings
+    if defines.is_empty() {
+        Ok(body_exprs)
+    } else {
+        // Combine body expressions into one using nested let
+        let combined_body = if body_exprs.is_empty() {
+            SpannedExpr::unspanned(Expr::Value(Value::Nil))
+        } else if body_exprs.len() == 1 {
+            body_exprs.into_iter().next().unwrap()
+        } else {
+            let mut iter = body_exprs.into_iter();
+            let mut current = iter.next().unwrap();
+            for (index, next) in iter.enumerate() {
+                let name = Symbol::intern(&format!("#%prog-seq-{index}"));
+                current = SpannedExpr::new(
+                    Expr::Let {
+                        bindings: vec![(name, current)],
+                        body: Box::new(next),
+                    },
+                    None,
+                );
+            }
+            current
+        };
+
+        // Wrap with nested let for each define (in reverse order so first define is outermost)
+        let mut result = combined_body;
+        for (name, value) in defines.into_iter().rev() {
+            result = SpannedExpr::new(
+                Expr::Let {
+                    bindings: vec![(name, value)],
+                    body: Box::new(result),
+                },
+                None,
+            );
+        }
+        Ok(vec![result])
+    }
 }
 
 /// Check if a symbol is a known primitive operator.
@@ -391,8 +474,8 @@ fn expand_quasiquote_dotted_list(
 
 fn lower_fn(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
-    if items.len() != 3 {
-        return Err(error(list_expr, "fn expects (fn (params...) body)"));
+    if items.len() < 3 {
+        return Err(error(list_expr, "fn expects (fn (params...) body ...)"));
     }
     let params = match &items[1].value {
         Sexp::List(list) => list
@@ -404,7 +487,12 @@ fn lower_fn(list_expr: &Spanned<Sexp>, items: &[Spanned<Sexp>]) -> Result<Spanne
             .collect::<Result<Vec<_>, _>>()?,
         _ => return Err(error(&items[1], "fn expects a parameter list")),
     };
-    let body = lower_expr(&items[2])?;
+    // Handle multiple body expressions (implicit begin)
+    let body = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        lower_begin_exprs(&items[2..], span.clone())?
+    };
     Ok(SpannedExpr::new(
         Expr::Fn {
             params,
@@ -503,7 +591,12 @@ fn lower_let(
             _ => return Err(error(binding, "let binding must be (name expr)")),
         }
     }
-    let body = lower_expr(&items[2])?;
+    // Handle multiple body expressions (implicit begin)
+    let body = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        lower_begin_exprs(&items[2..], span.clone())?
+    };
     Ok(SpannedExpr::new(
         Expr::Let {
             bindings,
@@ -514,16 +607,16 @@ fn lower_let(
 }
 
 /// Transform let* into nested let expressions
-/// (let* ((a 1) (b (+ a 1))) body) => (let ((a 1)) (let ((b (+ a 1))) body))
+/// (let* ((a 1) (b (+ a 1))) body ...) => (let ((a 1)) (let ((b (+ a 1))) body ...))
 fn lower_let_star(
     list_expr: &Spanned<Sexp>,
     items: &[Spanned<Sexp>],
 ) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
-    if items.len() != 3 {
+    if items.len() < 3 {
         return Err(error(
             list_expr,
-            "let* expects (let* ((name expr) ...) body)",
+            "let* expects (let* ((name expr) ...) body ...)",
         ));
     }
     let bindings_list = match &items[1].value {
@@ -547,13 +640,20 @@ fn lower_let_star(
         }
     }
 
+    // Handle multiple body expressions (implicit begin)
+    let body_expr = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        lower_begin_exprs(&items[2..], span.clone())?
+    };
+
     // If no bindings, just return the body
     if bindings.is_empty() {
-        return lower_expr(&items[2]);
+        return Ok(body_expr);
     }
 
     // Build nested let expressions from inside out
-    let mut body = lower_expr(&items[2])?;
+    let mut body = body_expr;
     for (name, expr) in bindings.into_iter().rev() {
         body = SpannedExpr::new(
             Expr::Let {
