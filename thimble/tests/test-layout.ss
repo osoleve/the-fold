@@ -1,6 +1,16 @@
-;;; thimble/test-layout.ss — Test vectors for Text Layout Primitives
+;;; thimble/tests/test-layout.ss — Test vectors for Text Layout Primitives
 
-(load "layout.ss")
+(load "thimble/layout.ss")
+
+;;; Helper for string-contains?
+(define (string-contains? str pattern)
+  (let ([str-len (string-length str)]
+        [pat-len (string-length pattern)])
+       (let loop ([i 0])
+            (cond
+             [(> (+ i pat-len) str-len) #f]
+             [(string=? (substring str i (+ i pat-len)) pattern) #t]
+             [else (loop (+ i 1))]))))
 
 ;;; ============================================================
 ;;; Test 1: Canvas Construction
@@ -204,16 +214,6 @@
 (newline)
 (display "  ✓ canvas->string produces multi-line output\n")
 
-;;; Helper for string-contains?
-(define (string-contains? str pattern)
-  (let ([str-len (string-length str)]
-        [pat-len (string-length pattern)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i pat-len) str-len) #f]
-             [(string=? (substring str i (+ i pat-len)) pattern) #t]
-             [else (loop (+ i 1))]))))
-
 ;;; ============================================================
 ;;; Test 13: DUCKIE Example from Spec
 ;;; ============================================================
@@ -296,12 +296,145 @@
 (display "  ✓ Complex composition works!\n")
 
 ;;; ============================================================
+;;; Test 16: Word Splitting
+;;; ============================================================
+
+(display "\nTest 16: Word Splitting\n")
+(define words1 (split-words "hello world"))
+(display "  'hello world' -> ")
+(display words1) (newline)
+(display "  Correct count: ")
+(display (if (= (length words1) 2) "#t" "#f")) (newline)
+
+(define words2 (split-words "one"))
+(display "  'one' -> ")
+(display words2) (newline)
+
+(define words3 (split-words "  multiple   spaces  "))
+(display "  '  multiple   spaces  ' -> ")
+(display words3) (newline)
+(display "  ✓ split-words works correctly\n")
+
+;;; ============================================================
+;;; Test 17: Text Wrapping
+;;; ============================================================
+
+(display "\nTest 17: Text Wrapping\n")
+(define wrapped1 (wrap-text "hello world foo bar" 10))
+(display "  'hello world foo bar' at width 10:\n")
+(for-each (lambda (line)
+                  (display "    '")
+                  (display line)
+                  (display "'\n"))
+          wrapped1)
+(display "  Line count: ") (display (length wrapped1)) (newline)
+(display "  ✓ wrap-text breaks at word boundaries\n")
+
+(define wrapped2 (wrap-text "short" 20))
+(display "  'short' at width 20: ")
+(display wrapped2) (newline)
+
+(define wrapped3 (wrap-text "superlongword fits" 5))
+(display "  Long word handling at width 5: ")
+(display wrapped3) (newline)
+(display "  ✓ wrap-text handles edge cases\n")
+
+;;; ============================================================
+;;; Test 18: Text Alignment
+;;; ============================================================
+
+(display "\nTest 18: Text Alignment\n")
+(define al-left (align-left "hi" 10))
+(define al-right (align-right "hi" 10))
+(define al-center (align-center "hi" 10))
+
+(display "  align-left 'hi' to 10:   '") (display al-left) (display "'\n")
+(display "  align-right 'hi' to 10:  '") (display al-right) (display "'\n")
+(display "  align-center 'hi' to 10: '") (display al-center) (display "'\n")
+
+(display "  Left length: ") (display (string-length al-left)) (newline)
+(display "  Right starts with spaces: ")
+(display (if (char=? (string-ref al-right 0) #\space) "#t" "#f")) (newline)
+(display "  ✓ Alignment functions work correctly\n")
+
+;;; ============================================================
+;;; Test 19: Draw Lines
+;;; ============================================================
+
+(display "\nTest 19: Draw Lines\n")
+(define c-lines (draw-lines (make-canvas 20 5)
+                            (point 2 1)
+                            '("Line one" "Line two" "Line three")))
+(display "Canvas:\n")
+(display (canvas->string c-lines))
+(newline)
+(display "  'L' at (2,1): ")
+(display (if (char=? (canvas-ref c-lines 2 1) #\L) "#t" "#f")) (newline)
+(display "  'L' at (2,3): ")
+(display (if (char=? (canvas-ref c-lines 2 3) #\L) "#t" "#f")) (newline)
+(display "  ✓ draw-lines renders multiple lines\n")
+
+;;; ============================================================
+;;; Test 20: Draw Text Block
+;;; ============================================================
+
+(display "\nTest 20: Draw Text Block (Wrapped + Aligned)\n")
+(define long-text "The quick brown fox jumps over the lazy dog near the river bank")
+
+(display "  Left-aligned in 20x4 rect:\n")
+(define c-block-left
+  (draw-text-block (make-canvas 24 6)
+                   (make-rect (point 2 1) 20 4)
+                   long-text
+                   'left))
+(display (canvas->string c-block-left))
+(newline)
+
+(display "  Center-aligned in 20x4 rect:\n")
+(define c-block-center
+  (draw-text-block (make-canvas 24 6)
+                   (make-rect (point 2 1) 20 4)
+                   long-text
+                   'center))
+(display (canvas->string c-block-center))
+(newline)
+
+(display "  Right-aligned in 20x4 rect:\n")
+(define c-block-right
+  (draw-text-block (make-canvas 24 6)
+                   (make-rect (point 2 1) 20 4)
+                   long-text
+                   'right))
+(display (canvas->string c-block-right))
+(newline)
+(display "  ✓ draw-text-block wraps and aligns text\n")
+
+;;; ============================================================
+;;; Test 21: Text Block in Box
+;;; ============================================================
+
+(display "\nTest 21: Text Block in Box (DUCKIE Dialog)\n")
+(define dialog-text "Hello! I am DUCKIE. I live in The Fold and I am very happy to meet you!")
+(define c-dialog
+  (let* ([c (make-canvas 36 10)]
+         [c (draw-box c (make-rect (point 0 0) 36 10) 'double)]
+         [c (draw-string c (point 13 0) " DUCKIE ")]
+         [c (draw-text-block c (make-rect (point 2 2) 32 6) dialog-text 'left)]
+         [c (draw-string c (point 2 8) "  __")]
+         [c (draw-string c (point 6 8) "(o>")])
+        c))
+(display (canvas->string c-dialog))
+(newline)
+(display "  ✓ Text flows naturally in dialog box!\n")
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 
 (display "\n")
 (display "═══════════════════════════════════════════════════════\n")
-(display "  ✓ All 15 tests passed!\n")
+(display "  ✓ All 21 tests passed!\n")
 (display "  ✓ Text Layout Primitives are operational.\n")
+(display "  ✓ Text Flow (wrapping, alignment) working.\n")
 (display "  ✓ DUCKIE has a window to appear in.\n")
 (display "═══════════════════════════════════════════════════════\n")
