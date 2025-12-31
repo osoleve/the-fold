@@ -826,6 +826,355 @@
                     (assert-true (eff-op? eff)))))
 
 ;;; ============================================================
+;;; Applicative Combinator Tests
+;;; ============================================================
+
+(test-group applicative-combinators
+            (define-test dsl-ap-basic-test
+              ;; Apply a function to a value
+              (let* ([mf (dsl-pure (lambda (x) (* x 2)))]
+                     [ma (dsl-pure 21)]
+                     [result (dsl-pure-value (dsl-ap mf ma))])
+                    (assert-equal 42 result)))
+            
+            (define-test dsl-ap2-test
+              ;; Lift binary function
+              (let ([result (dsl-pure-value
+                             (dsl-ap2 + (dsl-pure 10) (dsl-pure 32)))])
+                   (assert-equal 42 result)))
+            
+            (define-test dsl-ap3-test
+              ;; Lift ternary function
+              (let ([result (dsl-pure-value
+                             (dsl-ap3 (lambda (a b c) (+ a b c))
+                                      (dsl-pure 10)
+                                      (dsl-pure 20)
+                                      (dsl-pure 12)))])
+                   (assert-equal 42 result)))
+            
+            (define-test dsl-join-test
+              ;; Flatten nested DSL
+              (let* ([nested (dsl-pure (dsl-pure 42))]
+                     [result (dsl-pure-value (dsl-join nested))])
+                    (assert-equal 42 result)))
+            
+            (define-test dsl-kleisli-test
+              ;; Kleisli composition
+              (let* ([f (lambda (x) (dsl-pure (* x 2)))]
+                     [g (lambda (x) (dsl-pure (+ x 1)))]
+                     [h (dsl-kleisli f g)]  ; f >=> g = \x -> f(x) >>= g
+                     [result (dsl-pure-value (h 20))])  ; (* 20 2) then (+ 40 1) = 41
+                    (assert-equal 41 result)))
+            
+            (define-test dsl-compose-test
+              ;; Reversed Kleisli (<=<)
+              (let* ([f (lambda (x) (dsl-pure (* x 2)))]
+                     [g (lambda (x) (dsl-pure (+ x 1)))]
+                     [h (dsl-compose g f)]  ; g <=< f = f >=> g
+                     [result (dsl-pure-value (h 20))])
+                    (assert-equal 41 result))))
+
+;;; ============================================================
+;;; Tagless Final Tests
+;;; ============================================================
+
+(test-group tagless-final
+            (define-test make-tagless-dsl-test
+              (let ([dsl (make-tagless-dsl '())])
+                   (assert-true (tagless-dsl? dsl))))
+            
+            (define-test instantiate-tagless-test
+              ;; Create a simple arithmetic DSL
+              (let* ([arith-dsl (make-tagless-dsl
+                                 (list (cons 'lit (lambda (i) identity))
+                                       (cons 'add (lambda (i) +))
+                                       (cons 'mul (lambda (i) *))))]
+                     [arith-eval (instantiate-tagless arith-dsl 'eval)]
+                     [lit (tagless-op arith-eval 'lit)]
+                     [add (tagless-op arith-eval 'add)])
+                    ;; (+ 5 3) = 8
+                    (assert-equal 8 (add (lit 5) (lit 3)))))
+            
+            (define-test tagless-complex-expression-test
+              ;; (5 + 3) * 2 = 16
+              (let* ([arith-dsl (make-tagless-dsl
+                                 (list (cons 'lit (lambda (i) identity))
+                                       (cons 'add (lambda (i) +))
+                                       (cons 'mul (lambda (i) *))))]
+                     [arith-eval (instantiate-tagless arith-dsl 'eval)]
+                     [lit (tagless-op arith-eval 'lit)]
+                     [add (tagless-op arith-eval 'add)]
+                     [mul (tagless-op arith-eval 'mul)])
+                    (assert-equal 16 (mul (add (lit 5) (lit 3)) (lit 2))))))
+
+;;; ============================================================
+;;; Source Location Tests
+;;; ============================================================
+
+(test-group source-locations
+            (define-test make-source-pos-test
+              (let ([pos (make-source-pos 10 5 100)])
+                   (assert-true (source-pos? pos))
+                   (assert-equal 10 (source-pos-line pos))
+                   (assert-equal 5 (source-pos-col pos))
+                   (assert-equal 100 (source-pos-offset pos))))
+            
+            (define-test no-source-pos-test
+              (assert-true (source-pos? no-source-pos))
+              (assert-equal 0 (source-pos-line no-source-pos)))
+            
+            (define-test make-located-test
+              (let* ([pos (make-source-pos 1 1 0)]
+                     [loc (make-located 'value pos)])
+                    (assert-true (located? loc))
+                    (assert-equal 'value (located-value loc))
+                    (assert-equal pos (located-pos loc))))
+            
+            (define-test format-source-pos-test
+              (let ([pos (make-source-pos 42 10 500)])
+                   (assert-equal "42:10" (format-source-pos pos))))
+            
+            (define-test dsl-emit-at-test
+              (let* ([pos (make-source-pos 5 3 20)]
+                     [prog (dsl-emit-at 'test 'payload pos)])
+                    (assert-true (dsl-suspended? prog))
+                    (let* ([instr (dsl-instruction prog)]
+                           [instr-pos (instruction-pos instr)])
+                          (assert-equal 5 (source-pos-line instr-pos))))))
+
+;;; ============================================================
+;;; Middleware Tests
+;;; ============================================================
+
+(test-group middleware
+            (define-test middleware-identity-test
+              (let* ([base-interp (make-interpreter (lambda (tag payload) payload))]
+                     [wrapped (middleware-identity base-interp)]
+                     [prog (dsl-request 'echo 42)])
+                    (assert-equal 42 (run-dsl wrapped prog))))
+            
+            (define-test middleware-compose-test
+              (let* ([log1 '()]
+                     [log2 '()]
+                     [m1 (lambda (interp)
+                                 (make-interpreter
+                                  (lambda (tag payload)
+                                          (set! log1 (cons 'm1 log1))
+                                          ((interpreter-handler interp) tag payload))))]
+                     [m2 (lambda (interp)
+                                 (make-interpreter
+                                  (lambda (tag payload)
+                                          (set! log2 (cons 'm2 log2))
+                                          ((interpreter-handler interp) tag payload))))]
+                     [composed (middleware-compose m1 m2)]
+                     [base-interp (make-interpreter (lambda (tag payload) payload))]
+                     [wrapped (composed base-interp)]
+                     [prog (dsl-request 'test 'value)])
+                    (run-dsl wrapped prog)
+                    ;; Both middlewares should have been called
+                    (assert-equal '(m1) log1)
+                    (assert-equal '(m2) log2)))
+            
+            (define-test middleware-stack-test
+              (let* ([call-order '()]
+                     [make-logging-mw (lambda (name)
+                                              (lambda (interp)
+                                                      (make-interpreter
+                                                       (lambda (tag payload)
+                                                               (set! call-order (cons name call-order))
+                                                               ((interpreter-handler interp) tag payload)))))]
+                     [stack (middleware-stack (list (make-logging-mw 'a)
+                                                    (make-logging-mw 'b)
+                                                    (make-logging-mw 'c)))]
+                     [base-interp (make-interpreter (lambda (tag payload) payload))]
+                     [wrapped (stack base-interp)]
+                     [prog (dsl-request 'test 'value)])
+                    (run-dsl wrapped prog)
+                    ;; Should be called in order a -> b -> c
+                    (assert-equal '(c b a) call-order)))  ; reversed due to cons
+            
+            (define-test middleware-logging-test
+              (let* ([log '()]
+                     [log-fn (lambda (tag payload result)
+                                     (set! log (cons (list tag payload result) log)))]
+                     [mw (middleware-logging log-fn)]
+                     [base-interp (make-interpreter (lambda (tag payload) (* payload 2)))]
+                     [wrapped (mw base-interp)]
+                     [prog (dsl-request 'double 21)])
+                    (run-dsl wrapped prog)
+                    (assert-equal 1 (length log))
+                    (let ([entry (car log)])
+                         (assert-equal 'double (car entry))
+                         (assert-equal 21 (cadr entry))
+                         (assert-equal 42 (caddr entry)))))
+            
+            (define-test middleware-guard-test
+              (let* ([allowed-tags '(safe)]
+                     [guard-pred (lambda (tag payload) (memq tag allowed-tags))]
+                     [fallback (lambda (tag payload) 'blocked)]
+                     [mw (middleware-guard guard-pred fallback)]
+                     [base-interp (make-interpreter (lambda (tag payload) 'allowed))]
+                     [wrapped (mw base-interp)])
+                    ;; Safe tag should pass through
+                    (assert-equal 'allowed (run-dsl wrapped (dsl-request 'safe '())))
+                    ;; Unsafe tag should be blocked
+                    (assert-equal 'blocked (run-dsl wrapped (dsl-request 'unsafe '())))))
+            
+            (define-test middleware-transform-test
+              (let* ([xform (lambda (tag payload)
+                                    ;; Uppercase the tag symbol name (simulate)
+                                    (cons tag (* payload 10)))]  ; transform payload
+                     [mw (middleware-transform xform)]
+                     [base-interp (make-interpreter (lambda (tag payload) payload))]
+                     [wrapped (mw base-interp)])
+                    (assert-equal 50 (run-dsl wrapped (dsl-request 'test 5))))))
+
+;;; ============================================================
+;;; Introspection Tests
+;;; ============================================================
+
+(test-group introspection
+            (define-test dsl-instruction-list-test
+              (let* ([prog (dsl-do
+                            (_ <- (calc-push! 5))
+                            (_ <- (calc-push! 3))
+                            (_ <- (calc-add!))
+                            (calc-pop!))]
+                     [instrs (dsl-instruction-list prog 100)])
+                    (assert-equal 4 (length instrs))
+                    (assert-equal 'calc-push (caar instrs))
+                    (assert-equal 'calc-pop (car (list-ref instrs 3)))))
+            
+            (define-test dsl-program-depth-test
+              (let* ([prog (dsl-do
+                            (_ <- (calc-push! 1))
+                            (_ <- (calc-push! 2))
+                            (_ <- (calc-add!))
+                            (calc-pop!))]
+                     [depth (dsl-program-depth prog 100)])
+                    (assert-equal 4 depth)))
+            
+            (define-test dsl-uses-tag-test
+              (let ([prog (dsl-do
+                           (_ <- (calc-push! 1))
+                           (_ <- (calc-add!))
+                           (calc-pop!))])
+                   (assert-true (dsl-uses-tag? 'calc-push prog 100))
+                   (assert-true (dsl-uses-tag? 'calc-add prog 100))
+                   (assert-false (dsl-uses-tag? 'calc-mul prog 100))))
+            
+            (define-test dsl-tag-histogram-test
+              (let* ([prog (dsl-do
+                            (_ <- (calc-push! 1))
+                            (_ <- (calc-push! 2))
+                            (_ <- (calc-push! 3))
+                            (_ <- (calc-add!))
+                            (_ <- (calc-add!))
+                            (calc-pop!))]
+                     [hist (dsl-tag-histogram prog 100)]
+                     [push-count (cdr (assoc 'calc-push hist))]
+                     [add-count (cdr (assoc 'calc-add hist))]
+                     [pop-count (cdr (assoc 'calc-pop hist))])
+                    (assert-equal 3 push-count)
+                    (assert-equal 2 add-count)
+                    (assert-equal 1 pop-count))))
+
+;;; ============================================================
+;;; Trampoline Tests
+;;; ============================================================
+
+(test-group trampolines
+            (define-test make-done-test
+              (let ([t (make-done 42)])
+                   (assert-true (done? t))
+                   (assert-false (bounce? t))
+                   (assert-equal 42 (done-value t))))
+            
+            (define-test make-bounce-test
+              (let ([t (make-bounce (lambda () (make-done 42)))])
+                   (assert-false (done? t))
+                   (assert-true (bounce? t))))
+            
+            (define-test run-trampoline-done-test
+              (let ([result (run-trampoline (make-done 42))])
+                   (assert-equal 42 result)))
+            
+            (define-test run-trampoline-bounce-test
+              (let* ([t (make-bounce (lambda () (make-done 42)))]
+                     [result (run-trampoline t)])
+                    (assert-equal 42 result)))
+            
+            (define-test run-trampoline-chain-test
+              ;; Chain of bounces
+              (let* ([t (make-bounce
+                         (lambda ()
+                                 (make-bounce
+                                  (lambda ()
+                                          (make-bounce
+                                           (lambda ()
+                                                   (make-done 42)))))))]
+                     [result (run-trampoline t)])
+                    (assert-equal 42 result)))
+            
+            (define-test run-dsl-trampolined-test
+              (let* ([interp (make-interpreter (lambda (tag payload) payload))]
+                     [prog (dsl-do
+                            (x <- (dsl-request 'get 10))
+                            (y <- (dsl-request 'get 20))
+                            (dsl-pure (+ x y)))]
+                     [result (run-dsl-trampolined interp prog)])
+                    (assert-equal 30 result))))
+
+;;; ============================================================
+;;; Testing Utilities Tests
+;;; ============================================================
+
+(test-group testing-utilities
+            (define-test make-mock-interpreter-test
+              (let* ([mock (make-mock-interpreter
+                            (list (cons 'add (cons 'fn (lambda (args) (apply + args))))
+                                  (cons 'get 42)))]
+                     [result1 (run-dsl mock (dsl-request 'get '()))]
+                     [result2 (run-dsl mock (dsl-request 'add '(1 2 3)))])
+                    (assert-equal 42 result1)
+                    (assert-equal 6 result2)))
+            
+            (define-test dsl-programs-equiv-test
+              (let ([interp (make-interpreter (lambda (tag payload) payload))])
+                   ;; Same semantics, different structure
+                   (assert-true (dsl-programs-equiv?
+                                 interp
+                                 (dsl-pure 42)
+                                 (dsl-bind (dsl-pure 21)
+                                           (lambda (x) (dsl-pure (* x 2))))))))
+            
+            (define-test make-recording-interpreter-test
+              (let* ([base (make-interpreter (lambda (tag payload) payload))]
+                     [recording (make-recording-interpreter base)]
+                     [wrapped (car recording)]
+                     [get-log (cdr recording)]
+                     [prog (dsl-do
+                            (a <- (dsl-request 'x 10))
+                            (b <- (dsl-request 'y 20))
+                            (dsl-pure (+ a b)))])
+                    (run-dsl wrapped prog)
+                    (let ([log (get-log)])
+                         (assert-equal 2 (length log))
+                         (assert-equal 'x (caar log))
+                         (assert-equal 'y (caadr log)))))
+            
+            (define-test verify-instruction-sequence-test
+              (let* ([base (make-interpreter (lambda (tag payload) '()))]
+                     [prog (dsl-do
+                            (_ <- (dsl-emit 'a '()))
+                            (_ <- (dsl-emit 'b '()))
+                            (dsl-emit 'c '()))])
+                    (assert-true (verify-instruction-sequence
+                                  prog base '(a b c)))
+                    (assert-false (verify-instruction-sequence
+                                   prog base '(a c b))))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 
