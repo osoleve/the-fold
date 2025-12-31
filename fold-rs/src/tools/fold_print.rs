@@ -14,7 +14,7 @@ pub fn format_value(value: &Value) -> String {
             }
         }
         Value::String(s) => format_string(s),
-        Value::Symbol(sym) => sym.clone(),
+        Value::Symbol(sym) => sym.as_str(),
         Value::Bool(true) => "#t".to_string(),
         Value::Bool(false) => "#f".to_string(),
         Value::Char(ch) => format_char(*ch),
@@ -27,14 +27,15 @@ pub fn format_value(value: &Value) -> String {
                 "#<closure/0>".to_string()
             } else if closure.params.len() <= 3 {
                 // Show params for small arities
-                format!("#<closure ({})>", closure.params.join(" "))
+                let params: Vec<String> = closure.params.iter().map(|s| s.as_str()).collect();
+                format!("#<closure ({})>", params.join(" "))
             } else {
                 // Just show arity for larger closures
                 format!("#<closure/{}>", closure.params.len())
             }
         }
-        Value::Primitive(op) => format!("#<primitive {}>", op),
-        Value::Block(block) => format!("#<block {}>", block.tag),
+        Value::Primitive(op) => format!("#<primitive {}>", op.as_str()),
+        Value::Block(block) => format!("#<block {}>", block.tag.as_str()),
         Value::Nil => "()".to_string(),
     }
 }

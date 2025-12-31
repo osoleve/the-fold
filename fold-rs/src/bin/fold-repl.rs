@@ -2,7 +2,7 @@ use std::env;
 use std::io::{self, Read};
 use std::process;
 
-use fold_rs::fabric::{EvalOutcome, Expr, SpannedExpr, Value, eval_spanned};
+use fold_rs::fabric::{EvalOutcome, Expr, SpannedExpr, Symbol, Value, eval_spanned};
 use fold_rs::tools::{
     format_value, lower_expr, lower_program, parse_fold_expr, parse_fold_program, prelude_env,
     run_fold_file,
@@ -96,7 +96,7 @@ fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
         None => return SpannedExpr::unspanned(Expr::Value(Value::Nil)),
     };
     for (index, next) in iter.enumerate() {
-        let name = format!("#%fold-seq-{index}");
+        let name = Symbol::intern(&format!("#%fold-seq-{index}"));
         current = SpannedExpr::new(
             Expr::Let {
                 bindings: vec![(name, current)],

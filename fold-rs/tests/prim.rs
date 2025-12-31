@@ -11,7 +11,7 @@ fn store_test_guard() -> std::sync::MutexGuard<'static, ()> {
 }
 
 fn sym(name: &str) -> Symbol {
-    name.to_string()
+    Symbol::intern(name)
 }
 
 fn prim(op: &str, args: &[Value]) -> Value {
@@ -189,7 +189,7 @@ fn conversions_and_preds() {
         other => panic!("expected symbol, got {:?}", other),
     }
 
-    let s = prim("symbol->string", &[Value::Symbol("bar".to_string())]);
+    let s = prim("symbol->string", &[Value::Symbol(Symbol::intern("bar"))]);
     assert_eq!(expect_string(&s), "bar");
 
     let n = prim("number->string", &[Value::Number(42)]);
@@ -242,15 +242,15 @@ fn memq_and_assq_ops() {
     assert!(matches!(missing, Value::Bool(false)));
 
     let pair_a = Value::Pair(
-        Box::new(Value::Symbol("a".to_string())),
+        Box::new(Value::Symbol(Symbol::intern("a"))),
         Box::new(Value::Number(1)),
     );
     let pair_b = Value::Pair(
-        Box::new(Value::Symbol("b".to_string())),
+        Box::new(Value::Symbol(Symbol::intern("b"))),
         Box::new(Value::Number(2)),
     );
     let pair_c = Value::Pair(
-        Box::new(Value::Symbol("c".to_string())),
+        Box::new(Value::Symbol(Symbol::intern("c"))),
         Box::new(Value::Number(3)),
     );
     let alist = Value::Pair(
@@ -261,7 +261,7 @@ fn memq_and_assq_ops() {
         )),
     );
 
-    let found = prim("assq", &[Value::Symbol("b".to_string()), alist]);
+    let found = prim("assq", &[Value::Symbol(Symbol::intern("b")), alist]);
     match found {
         Value::Pair(car, cdr) => {
             assert!(matches!(*car, Value::Symbol(ref s) if s == "b"));
@@ -294,7 +294,7 @@ fn cas_prims() {
     let refs = prim("vec-empty", &[]);
     let block = prim(
         "make-block",
-        &[Value::Symbol("test".to_string()), payload.clone(), refs],
+        &[Value::Symbol(Symbol::intern("test")), payload.clone(), refs],
     );
 
     let digest = prim("sha256", &[payload]);
@@ -333,7 +333,7 @@ fn cas_store_helpers() {
     let child_block = prim(
         "make-block",
         &[
-            Value::Symbol("child".to_string()),
+            Value::Symbol(Symbol::intern("child")),
             child_payload,
             prim("vec-empty", &[]),
         ],
@@ -348,7 +348,7 @@ fn cas_store_helpers() {
     let parent_block = prim(
         "make-block",
         &[
-            Value::Symbol("parent".to_string()),
+            Value::Symbol(Symbol::intern("parent")),
             parent_payload,
             parent_refs,
         ],
@@ -396,7 +396,7 @@ fn block_bytes_roundtrip() {
     let refs = prim("vec-empty", &[]);
     let block = prim(
         "make-block",
-        &[Value::Symbol("node".to_string()), payload, refs],
+        &[Value::Symbol(Symbol::intern("node")), payload, refs],
     );
 
     let bytes = prim("block->bytes", std::slice::from_ref(&block));
@@ -508,13 +508,13 @@ fn interpolation_utils() {
 #[test]
 fn assoc_ops() {
     // Create alist: ((a . 1) (b . 2) (c . 3))
-    let pair_a = prim("cons", &[Value::Symbol("a".to_string()), Value::Number(1)]);
-    let pair_b = prim("cons", &[Value::Symbol("b".to_string()), Value::Number(2)]);
-    let pair_c = prim("cons", &[Value::Symbol("c".to_string()), Value::Number(3)]);
+    let pair_a = prim("cons", &[Value::Symbol(Symbol::intern("a")), Value::Number(1)]);
+    let pair_b = prim("cons", &[Value::Symbol(Symbol::intern("b")), Value::Number(2)]);
+    let pair_c = prim("cons", &[Value::Symbol(Symbol::intern("c")), Value::Number(3)]);
     let alist = prim("list", &[pair_a, pair_b, pair_c]);
 
     // assoc finds by key
-    let found = prim("assoc", &[Value::Symbol("b".to_string()), alist.clone()]);
+    let found = prim("assoc", &[Value::Symbol(Symbol::intern("b")), alist.clone()]);
     match found {
         Value::Pair(car, cdr) => {
             assert!(matches!(*car, Value::Symbol(ref s) if s == "b"));
@@ -524,7 +524,7 @@ fn assoc_ops() {
     }
 
     // assq is an alias
-    let found2 = prim("assq", &[Value::Symbol("a".to_string()), alist.clone()]);
+    let found2 = prim("assq", &[Value::Symbol(Symbol::intern("a")), alist.clone()]);
     match found2 {
         Value::Pair(car, cdr) => {
             assert!(matches!(*car, Value::Symbol(ref s) if s == "a"));
@@ -534,7 +534,7 @@ fn assoc_ops() {
     }
 
     // Not found returns #f
-    let not_found = prim("assoc", &[Value::Symbol("z".to_string()), alist]);
+    let not_found = prim("assoc", &[Value::Symbol(Symbol::intern("z")), alist]);
     assert!(matches!(not_found, Value::Bool(false)));
 }
 
@@ -746,7 +746,7 @@ fn type_introspection() {
     // type-of returns a symbol
     fn expect_symbol(value: &Value) -> String {
         match value {
-            Value::Symbol(s) => s.clone(),
+            Value::Symbol(s) => s.as_str(),
             other => panic!("expected symbol, got {:?}", other),
         }
     }
@@ -764,7 +764,7 @@ fn type_introspection() {
         "vector"
     );
     assert_eq!(
-        expect_symbol(&prim("type-of", &[Value::Symbol("foo".to_string())])),
+        expect_symbol(&prim("type-of", &[Value::Symbol(Symbol::intern("foo"))])),
         "symbol"
     );
     assert_eq!(

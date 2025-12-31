@@ -68,7 +68,7 @@ pub fn normalize_with_env(expr: &Value, env: &NormEnv) -> Value {
         // Pairs: check for special forms
         Value::Pair(car, cdr) => {
             if let Value::Symbol(head) = car.as_ref() {
-                match head.as_str() {
+                match head.as_str().as_str() {
                     // (fn (var) body) -> (fn normalized-body)
                     "fn" => {
                         if let Some((var, body)) = parse_fn(cdr) {
@@ -209,7 +209,7 @@ fn normalize_list(expr: &Value, env: &NormEnv) -> Value {
 /// Create (dv n) - a de Bruijn variable
 fn make_dv(index: usize) -> Value {
     Value::Pair(
-        Box::new(Value::Symbol("dv".to_string())),
+        Box::new(Value::Symbol(Symbol::intern("dv"))),
         Box::new(Value::Pair(
             Box::new(Value::Number(index as i64)),
             Box::new(Value::Nil),
@@ -220,7 +220,7 @@ fn make_dv(index: usize) -> Value {
 /// Create normalized fn: (fn body)
 fn make_fn_normalized(body: Value) -> Value {
     Value::Pair(
-        Box::new(Value::Symbol("fn".to_string())),
+        Box::new(Value::Symbol(Symbol::intern("fn"))),
         Box::new(Value::Pair(Box::new(body), Box::new(Value::Nil))),
     )
 }
@@ -228,7 +228,7 @@ fn make_fn_normalized(body: Value) -> Value {
 /// Create normalized let: (let (val) body)
 fn make_let_normalized(val: Value, body: Value) -> Value {
     Value::Pair(
-        Box::new(Value::Symbol("let".to_string())),
+        Box::new(Value::Symbol(Symbol::intern("let"))),
         Box::new(Value::Pair(
             Box::new(Value::Pair(Box::new(val), Box::new(Value::Nil))),
             Box::new(Value::Pair(Box::new(body), Box::new(Value::Nil))),
@@ -239,7 +239,7 @@ fn make_let_normalized(val: Value, body: Value) -> Value {
 /// Create normalized fix: (fix body)
 fn make_fix_normalized(body: Value) -> Value {
     Value::Pair(
-        Box::new(Value::Symbol("fix".to_string())),
+        Box::new(Value::Symbol(Symbol::intern("fix"))),
         Box::new(Value::Pair(Box::new(body), Box::new(Value::Nil))),
     )
 }
@@ -258,13 +258,13 @@ fn free_vars_with_env(expr: &Value, env: &NormEnv) -> Vec<Symbol> {
             if env.lookup(sym).is_some() {
                 vec![]
             } else {
-                vec![sym.clone()]
+                vec![*sym]
             }
         }
 
         Value::Pair(car, cdr) => {
             if let Value::Symbol(head) = car.as_ref() {
-                match head.as_str() {
+                match head.as_str().as_str() {
                     "quote" => vec![],
                     "fn" => {
                         if let Some((var, body)) = parse_fn(cdr) {
@@ -329,7 +329,7 @@ mod tests {
     use super::*;
 
     fn sym(s: &str) -> Value {
-        Value::Symbol(s.to_string())
+        Value::Symbol(Symbol::intern(s))
     }
 
     fn list(items: &[Value]) -> Value {
@@ -406,8 +406,8 @@ mod tests {
         let expr = make_fn("x", body);
 
         let fv = free_vars(&expr);
-        assert!(fv.contains(&"+".to_string()));
-        assert!(fv.contains(&"y".to_string()));
-        assert!(!fv.contains(&"x".to_string()));
+        assert!(fv.contains(&Symbol::intern("+")));
+        assert!(fv.contains(&Symbol::intern("y")));
+        assert!(!fv.contains(&Symbol::intern("x")));
     }
 }
