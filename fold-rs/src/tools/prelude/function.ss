@@ -126,18 +126,28 @@
 ; arity-1: Wrap function to take only first argument
 (arity-1 (fn (f) (fn (x) (f x))))
 
-; apply-n: Apply function n times to initial value
-(apply-n (fn (f n x)
-             (if (<= n 0)
-                 x
-                 (apply-n f (- n 1) (f x)))))
+; apply-n: Apply function n times, returning all intermediate values
+; (apply-n inc 3 0) => (0 1 2 3)
+(apply-n (fix apply-n
+              (fn (f n x)
+                  (if (<= n 0)
+                      (list x)
+                      (cons x (apply-n f (- n 1) (f x)))))))
 
 ; trampoline support: Bounce for tail-call optimization
-; Note: bounce takes f and args list separately (no variadics)
-(bounce (fn (f args) (list 'bounce f args)))
-(bounce? (fn (x) (and (pair? x) (eq? (car x) 'bounce))))
+; bounce: Create a bounce continuation (thunk wrapper)
+(bounce (fn (thunk) (list 'bounce thunk)))
+(bounce? (fn (x) (if (pair? x) (eq? (car x) 'bounce) #f)))
+; done: Mark value as final (identity for non-bounce values)
+(done (fn (x) x))
+; trampoline: Run a thunk, handling bounces until final value
 (trampoline (fix trampoline
                  (fn (result)
-                     (if (bounce? result)
-                         (trampoline (apply (cadr result) (caddr result)))
-                         result))))
+                     (if (procedure? result)
+                         ; If it's a thunk, call it and recurse
+                         (trampoline (result))
+                         (if (bounce? result)
+                             ; If it's a bounce, unwrap and recurse
+                             (trampoline (cadr result))
+                             ; Otherwise return the value
+                             result)))))

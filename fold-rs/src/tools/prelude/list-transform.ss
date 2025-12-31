@@ -76,12 +76,13 @@
                  (filter-indexed (fn (i x) (odd? i)) lst)))
 
 ; rotate-list: Rotate list by n positions
+; Note: Using nested let since n-norm depends on len
 (rotate-list (fn (n lst)
                  (if (null? lst)
                      lst
-                     (let ((len (length lst))
-                           (n-norm (mod (+ (mod n len) len) len)))
-                          (append (drop lst n-norm) (take lst n-norm))))))
+                     (let ((len (length lst)))
+                          (let ((n-norm (mod (+ (mod n len) len) len)))
+                               (append (drop lst n-norm) (take lst n-norm)))))))
 
 ; rotate-left: Rotate list left by 1
 (rotate-left (fn (lst)

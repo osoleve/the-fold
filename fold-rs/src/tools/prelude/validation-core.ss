@@ -7,8 +7,9 @@
 ; -- Type predicates (compound) --
 
 ; list-of?: Check if all elements satisfy predicate
-(list-of? (fn (pred lst)
-              (and (list? lst) (all pred lst))))
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(list-of? (fn (p lst)
+              (and (list? lst) (all p lst))))
 
 ; non-empty-list?: Check if list is non-empty
 (non-empty-list? (fn (lst)
@@ -37,9 +38,10 @@
                        (left errors)))))
 
 ; validator: Create a validator from predicate and message
-(validator (fn (pred msg)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(validator (fn (p msg)
                (fn (value)
-                   (if (pred value) #t (list 'invalid msg value)))))
+                   (if (p value) #t (list 'invalid msg value)))))
 
 ; required: Validator that value is truthy
 (required (validator id "value is required"))

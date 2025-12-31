@@ -37,19 +37,21 @@
                   (map f (range 0 n))))
 
 ; repeat-until: Repeat function until predicate is true
-(repeat-until (fn (pred f init)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(repeat-until (fn (p f init)
                   (let ((go (fix go
                                  (fn (val)
-                                     (if (pred val)
+                                     (if (p val)
                                          val
                                          (go (f val)))))))
                        (go init))))
 
 ; while-true: Loop while predicate holds (returns last value)
-(while-true (fn (pred f init)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(while-true (fn (p f init)
                 (let ((go (fix go
                                (fn (val)
-                                   (if (pred val)
+                                   (if (p val)
                                        (go (f val))
                                        val)))))
                      (go init))))
@@ -60,9 +62,12 @@
 (guard (fn (pred value default)
            (if pred value default)))
 
-; ensure: Assert condition, return value or call error handler
-(ensure (fn (pred value on-fail)
-            (if pred value (on-fail))))
+; ensure: Return candidate if predicate holds on it, else return fallback
+; (ensure positive? 0 5) => 5 (because 5 is positive)
+; (ensure positive? 0 -5) => 0 (because -5 is not positive)
+; Note: Using p to avoid shadowing primitive 'pred'
+(ensure (fn (p fallback candidate)
+            (if (p candidate) candidate fallback)))
 
 ; chain-guards: Chain multiple guards, return first success
 (chain-guards (fix chain-guards
@@ -86,10 +91,15 @@
                                   (cadr clause)
                                   (cond-value (cdr clauses))))))))
 
-; case-of: Match value against cases
-(case-of (fn (val cases default)
+; case-of: Match value against cases (returns #f if not found)
+(case-of (fn (val cases)
              (let ((entry (assoc val cases)))
-                  (if entry (cdr entry) default))))
+                  (if entry (cdr entry) #f))))
+
+; case-of-default: Match value against cases with explicit default
+(case-of-default (fn (val cases default)
+                     (let ((entry (assoc val cases)))
+                          (if entry (cdr entry) default))))
 
 ; -- Boolean utilities --
 

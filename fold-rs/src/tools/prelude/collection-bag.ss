@@ -133,25 +133,27 @@
 (frequencies multiset-from-list)
 
 ; run-length-encode: Encode consecutive runs
-; (run-length-encode '(a a a b b c)) => ((3 . a) (2 . b) (1 . c))
+; (run-length-encode '(1 1 1 2 2 3)) => ((1 3) (2 2) (3 1))
+; Format: ((value count) ...)
 (run-length-encode (fn (lst)
                        (if (null? lst)
                            '()
                            ((fix encode
                                  (fn (xs current count)
                                      (if (null? xs)
-                                         (list (cons count current))
-                                         (if (eq? (car xs) current)
+                                         (list (list current count))
+                                         (if (equal? (car xs) current)
                                              (encode (cdr xs) current (+ count 1))
-                                             (cons (cons count current)
+                                             (cons (list current count)
                                                    (encode (cdr xs) (car xs) 1))))))
                             (cdr lst) (car lst) 1))))
 
 ; run-length-decode: Decode run-length encoding
-; (run-length-decode '((3 . a) (2 . b) (1 . c))) => (a a a b b c)
+; (run-length-decode '((1 3) (2 2) (3 1))) => (1 1 1 2 2 3)
+; Format: ((value count) ...)
 (run-length-decode (fn (rle)
                        (flat-map (fn (pair)
-                                     (replicate (car pair) (cdr pair)))
+                                     (replicate (cadr pair) (car pair)))
                                  rle)))
 
 ; --- Module Exports ---

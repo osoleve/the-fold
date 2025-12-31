@@ -13,10 +13,12 @@
 (nothing (fn () (list 'nothing)))
 
 ; just?: Check if value is Just
-(just? (fn (m) (and (pair? m) (eq? (car m) 'just))))
+; Note: Using if for short-circuit - and is strict and would evaluate (car m) even if m is not a pair
+(just? (fn (m) (if (pair? m) (eq? (car m) 'just) #f)))
 
 ; nothing?: Check if value is Nothing
-(nothing? (fn (m) (and (pair? m) (eq? (car m) 'nothing))))
+; Note: Using if for short-circuit - and is strict
+(nothing? (fn (m) (if (pair? m) (eq? (car m) 'nothing) #f)))
 
 ; from-just: Extract value from Just
 (from-just (fn (m) (cadr m)))

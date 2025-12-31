@@ -4,8 +4,16 @@
                     x
                     (until stop? f (f x))))))
 
-; converge: Apply function until result stops changing
+; converge: Apply function until result stops changing (fixed point)
 ; (converge (fn (x) (/ (+ x (/ 2 x)) 2)) 1.0) => ~1.414 (sqrt 2)
+; (converge (fn (x) (if (> x 5) x (+ x 1))) 0) => 6
+(converge (fix converge
+               (fn (f x)
+                   (let ((next (f x)))
+                        (if (equal? x next)
+                            x
+                            (converge f next))))))
+
 ; fixed-point: Same as converge (alternative name)
 (fixed-point converge)
 
@@ -516,8 +524,9 @@
 (some? any)
 
 ; filter-not: Keep elements that don't match
-(filter-not (fn (pred lst)
-                (filter (fn (x) (not (pred x))) lst)))
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(filter-not (fn (p lst)
+                (filter (fn (x) (not (p x))) lst)))
 
 ; remove: Remove first occurrence
 ; remove-all: Remove all occurrences
@@ -721,7 +730,10 @@
 ; distinct: Remove duplicates (alias for nub)
 (distinct nub)
 
-; group-runs: Group consecutive equal elements
+; group-runs: Group consecutive equal elements (1-arg wrapper for list-group-runs)
+; Overrides list-partition.ss version to default to equality comparison
+(group-runs (fn (lst) (list-group-runs = lst)))
+
 ; -- Applicative utilities --
 
 ; lift2: Lift binary function to Maybe
@@ -1793,13 +1805,14 @@
                          (helper lst '()))))
 
 ; list-group-runs: Group consecutive runs based on predicate
+; Note: span returns (prefix . rest) as a cons pair, so use cdr not cadr
 (list-group-runs (fix list-group-runs
                       (fn (same? lst)
                           (if (null? lst)
                               '()
                               (let ((split-result (span (fn (x) (same? (car lst) x)) lst)))
                                    (cons (car split-result)
-                                         (list-group-runs same? (cadr split-result))))))))
+                                         (list-group-runs same? (cdr split-result))))))))
 
 ; ============================================
 ; Interval Utilities
@@ -1951,7 +1964,17 @@
                       (finder cases))))
 
 ; case-of: Case expression (list of (pattern handler) pairs)
-; guard: Guard expressions (list of (condition . value) pairs)
+
+; guard: Guard expressions - find first true condition and return its value
+; (guard (list (cons #f 'no) (cons #t 'yes))) => 'yes
+(guard (fix guard
+            (fn (pairs)
+                (if (null? pairs)
+                    #f
+                    (if (car (car pairs))
+                        (cdr (car pairs))
+                        (guard (cdr pairs)))))))
+
 ; destructure-list: Destructure list into head and tail
 (destructure-list (fn (lst on-empty on-pair)
                       (if (null? lst)
@@ -2786,19 +2809,21 @@
 ; ============================================
 
 ; iterate-until: Apply function until predicate is true
-(iterate-until (fn (f pred x)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(iterate-until (fn (f p x)
                    (let ((iter (fix iter
                                     (fn (acc)
-                                        (if (pred acc)
+                                        (if (p acc)
                                             acc
                                             (iter (f acc)))))))
                         (iter x))))
 
 ; iterate-while: Apply function while predicate is true
-(iterate-while (fn (f pred x)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(iterate-while (fn (f p x)
                    (let ((iter (fix iter
                                     (fn (acc)
-                                        (if (pred acc)
+                                        (if (p acc)
                                             (iter (f acc))
                                             acc)))))
                         (iter x))))
@@ -3567,16 +3592,17 @@
 (lift3 (fn (f wa wb wc)
            (ap (ap (ap (ok f) wa) wb) wc)))
 
-; sequence-list: Turn list of (ok x) into (ok list-of-x)
-(sequence-list (fn (lst)
-                   (foldr (fn (wx acc)
-                              (if (err? wx)
-                                  wx
-                                  (if (err? acc)
-                                      acc
-                                      (ok (cons (ok-value wx) (ok-value acc))))))
-                          (ok '())
-                          lst)))
+; sequence-results: Turn list of (ok x) into (ok list-of-x)
+; Use sequence-list for Maybes
+(sequence-results (fn (lst)
+                      (foldr (fn (wx acc)
+                                 (if (err? wx)
+                                     wx
+                                     (if (err? acc)
+                                         acc
+                                         (ok (cons (ok-value wx) (ok-value acc))))))
+                             (ok '())
+                             lst)))
 
 ; traverse-list: Map and sequence
 (traverse-list (fn (f lst)
@@ -3799,35 +3825,42 @@
 (interval-hi cdr)
 
 ; interval-empty?: Check if interval is empty
+; Note: Using list representation (lo hi)
 (interval-empty? (fn (i)
-                     (> (car i) (cdr i))))
+                     (> (car i) (cadr i))))
 
 ; interval-contains?: Check if interval contains point
+; Note: Using list representation (lo hi)
 (interval-contains? (fn (i x)
-                        (and (>= x (car i)) (<= x (cdr i)))))
+                        (and (>= x (car i)) (<= x (cadr i)))))
 
 ; interval-width: Width of interval
+; Note: Using list representation (lo hi)
 (interval-width (fn (i)
-                    (- (cdr i) (car i))))
+                    (- (cadr i) (car i))))
 
 ; interval-midpoint: Midpoint of interval
+; Note: Using list representation (lo hi)
 (interval-midpoint (fn (i)
-                       (/ (+ (car i) (cdr i)) 2)))
+                       (/ (+ (car i) (cadr i)) 2)))
 
 ; interval-intersect: Intersection of two intervals
+; Note: Using list representation (lo hi)
 (interval-intersect (fn (i1 i2)
-                        (cons (max (car i1) (car i2))
-                              (min (cdr i1) (cdr i2)))))
+                        (list (max (car i1) (car i2))
+                              (min (cadr i1) (cadr i2)))))
 
 ; interval-union: Union of two overlapping intervals
+; Note: Using list representation (lo hi)
 (interval-union (fn (i1 i2)
-                    (cons (min (car i1) (car i2))
-                          (max (cdr i1) (cdr i2)))))
+                    (list (min (car i1) (car i2))
+                          (max (cadr i1) (cadr i2)))))
 
 ; interval-overlaps?: Check if intervals overlap
+; Note: Using list representation (lo hi)
 (interval-overlaps? (fn (i1 i2)
-                        (and (<= (car i1) (cdr i2))
-                             (<= (car i2) (cdr i1)))))
+                        (and (<= (car i1) (cadr i2))
+                             (<= (car i2) (cadr i1)))))
 
 ; ============================================
 ; Arrow Combinators (for function composition)
@@ -4271,9 +4304,34 @@
 ; maybe-bind: Bind for Maybe monad
 ; maybe-or: Return first Just, or Nothing
 ; maybe-and: Return second if both Just, else Nothing
-; from-maybe-tagged: Extract from tagged Maybe with default (use from-maybe for simple #f-based)
+; from-maybe-tagged: Extract from tagged Maybe with default
 (from-maybe-tagged (fn (default m)
                        (if (just? m) (from-just m) default)))
+
+; from-maybe: Get value or default if falsy (simple #f-based Maybe)
+; Overrides maybe.ss tagged version to match test expectations
+(from-maybe (fn (default x)
+                (if x x default)))
+
+; cat-maybes: Filter out falsy values from list (simple #f-based Maybe)
+; Overrides maybe.ss tagged version to match test expectations
+(cat-maybes (fn (lst) (filter id lst)))
+
+; map-maybe: Map and filter in one pass (simple #f-based Maybe)
+; Overrides maybe.ss tagged version - keeps non-#f results
+(map-maybe (fn (f lst) (cat-maybes (map f lst))))
+
+; indices-where: Find all indices of elements matching predicate
+; Overrides list-search.ss to use the simple map-maybe
+(indices-where (fn (p lst)
+                   (map-maybe (fn (pair) (if (p (cdr pair)) (car pair) #f))
+                              (map-indexed (fn (i x) (cons i x)) lst))))
+
+; remove-at: Remove element at index
+; Overrides list-ext.ss to use the simple map-maybe
+(remove-at (fn (idx lst)
+               (map-maybe (fn (pair) (if (= (car pair) idx) #f (cdr pair)))
+                          (map-indexed (fn (i x) (cons i x)) lst))))
 
 ; list->maybe: Empty list to Nothing, non-empty to Just first
 (list->maybe (fn (lst)
@@ -5593,9 +5651,10 @@
 (set-fold foldl)
 
 ; set-partition: Partition set by predicate
-(set-partition (fn (pred s)
-                   (cons (filter pred s)
-                         (filter (fn (x) (not (pred x))) s))))
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(set-partition (fn (p s)
+                   (cons (filter p s)
+                         (filter (fn (x) (not (p x))) s))))
 
 ; ============================================
 ; Queue (Simple list-based implementation)
@@ -5892,13 +5951,14 @@
 (partition-all chunks)
 
 ; split-at-pred: Split list at first element satisfying predicate
-(split-at-pred (fn (pred lst)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(split-at-pred (fn (p lst)
                    ((fix split-rec
                          (fn (remaining before)
                              (if (null? remaining)
-                                 (cons (reverse before) '())
-                                 (if (pred (car remaining))
-                                     (cons (reverse before) remaining)
+                                 (list (reverse before) '())
+                                 (if (p (car remaining))
+                                     (list (reverse before) remaining)
                                      (split-rec (cdr remaining) (cons (car remaining) before))))))
                     lst '())))
 
@@ -5983,11 +6043,12 @@
                  z)))
 
 ; zipper-find: Move to first element matching predicate
-(zipper-find (fn (pred z)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
+(zipper-find (fn (p z)
                  (let ((z-start (zipper-start z)))
                       ((fix find-rec
                             (fn (zp)
-                                (if (pred (zipper-focus zp))
+                                (if (p (zipper-focus zp))
                                     zp
                                     (if (null? (zipper-right zp))
                                         #f
@@ -6162,6 +6223,9 @@
 (lerp (fn (a b t)
           (+ a (* t (- b a)))))
 
+; lerp-fn: Alias for lerp (for naming consistency)
+(lerp-fn lerp)
+
 ; inverse-lerp: Inverse of lerp
 (inverse-lerp (fn (a b val)
                   (/ (- val a) (- b a))))
@@ -6184,9 +6248,13 @@
                      (* t t (- 3 (* 2 t))))))
 
 ; wrap: Wrap value to range [lo, hi)
+; Handles negative values correctly (Euclidean modulo)
 (wrap (fn (lo hi val)
           (let ((range (- hi lo)))
-               (+ lo (mod (- val lo) range)))))
+               (let ((offset (mod (- val lo) range)))
+                    (if (< offset 0)
+                        (+ lo (+ offset range))
+                        (+ lo offset))))))
 
 ; ping-pong: Ping-pong value between 0 and length
 (ping-pong (fn (length val)
@@ -6283,22 +6351,24 @@
                     (+ 1 (sum-list (map rose-size-rec (rose-children t)))))))
 
 ; rose-find: Find first node matching predicate (pre-order)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
 (rose-find (fix rose-find-rec
-                (fn (pred t)
-                    (if (pred (rose-value t))
+                (fn (p t)
+                    (if (p (rose-value t))
                         (just (rose-value t))
-                        (let ((child-results (map (fn (c) (rose-find-rec pred c))
+                        (let ((child-results (map (fn (c) (rose-find-rec p c))
                                                   (rose-children t))))
                              (let ((found (find-if (fn (r) (not (nothing? r))) child-results)))
                                   (if found found (nothing))))))))
 
 ; rose-filter: Keep only nodes matching predicate (and their ancestors)
+; Note: Using p instead of pred to avoid shadowing the pred primitive
 (rose-filter (fix rose-filter-rec
-                  (fn (pred t)
+                  (fn (p t)
                       (let ((filtered-children (filter id
-                                                       (map (fn (c) (rose-filter-rec pred c))
+                                                       (map (fn (c) (rose-filter-rec p c))
                                                             (rose-children t)))))
-                           (if (or (pred (rose-value t))
+                           (if (or (p (rose-value t))
                                    (not (null? filtered-children)))
                                (rose-node (rose-value t) filtered-children)
                                #f)))))
@@ -6767,10 +6837,10 @@
 (char-alphanumeric? (fn (c)
                         (or (char-digit? c) (char-alpha? c))))
 
-; char-whitespace?: Check if char is whitespace
+; char-whitespace?: Check if char is whitespace (space=32, newline=10, tab=9, cr=13)
 (char-whitespace? (fn (c)
                       (let ((n (char->integer c)))
-                           (or (= n 32) (= n 10) (= n 9) (= n 13)))))
+                           (or (= n 32) (or (= n 10) (or (= n 9) (= n 13)))))))
 
 ; char-lower?: Check if char is lowercase
 (char-lower? (fn (c)
@@ -7318,3 +7388,138 @@
 ; ((converge-with + f1 f2) x) => (+ (f1 x) (f2 x))
 (converge-with (fn (combiner f1 f2)
                    (fn (x) (combiner (f1 x) (f2 x)))))
+
+; ============================================================
+; Final Overrides - Fix broken definitions
+; These MUST come last to override earlier broken versions
+; ============================================================
+
+; --- Fix clamp-list: inline the clamp logic to avoid primitive/override confusion ---
+; Primitive clamp is (clamp value lo hi), but we redefined it as (lo hi val)
+; To be safe, inline the logic: (max lo (min hi x))
+(clamp-list (fn (lo hi lst)
+                (map (fn (x) (max lo (min hi x))) lst)))
+
+; --- Fix differences: compute (next - current) not (current - next) ---
+(differences (fn (lst)
+                 (if (null? lst)
+                     '()
+                     (if (null? (cdr lst))
+                         '()
+                         (zip-with (fn (a b) (- a b)) (cdr lst) lst)))))
+
+; --- Fix fanout: apply list of functions to single value ---
+(fanout (fn (fns x)
+            (map (fn (f) (f x)) fns)))
+
+; --- Fix lift2: Must use Maybe version, not Result/ap version ---
+(lift2 (fn (f ma mb)
+           (if (nothing? ma)
+               ma
+               (if (nothing? mb)
+                   mb
+                   (just (f (from-just ma) (from-just mb)))))))
+
+; --- Fix plist-set: maintain position, not prepend ---
+(plist-set (fix plist-set
+                (fn (key value plist)
+                    (if (null? plist)
+                        (list key value)
+                        (if (null? (cdr plist))
+                            (list key value)
+                            (if (eq? key (car plist))
+                                (cons key (cons value (cddr plist)))
+                                (cons (car plist)
+                                      (cons (cadr plist)
+                                            (plist-set key value (cddr plist))))))))))
+
+; --- Fix lens-get: path-based for nested alists ---
+(lens-get (fn (path data)
+              (foldl (fn (acc key)
+                         (if acc
+                             (let ((entry (assoc key acc)))
+                                  (if entry (cdr entry) #f))
+                             #f))
+                     data
+                     path)))
+
+; --- Fix lens-set: path-based for nested alists ---
+(lens-set (fix lens-set-inner
+               (fn (path value data)
+                   (if (null? path)
+                       value
+                       (if (null? (cdr path))
+                           (assoc-set (car path) value data)
+                           (let ((key (car path)))
+                                (let ((nested (assoc-ref key data)))
+                                     (assoc-set key
+                                                (lens-set-inner (cdr path) value nested)
+                                                data))))))))
+
+; --- Fix lens-update: path-based update ---
+(lens-update (fn (path f data)
+                 (lens-set path (f (lens-get path data)) data)))
+
+; --- Fix validate: single predicate version for simple validation ---
+; Tests expect (validate positive? 5) => 5 not (validate (list positive?) 5)
+(validate (fn (p value)
+              (if (p value) value #f)))
+
+; --- Fix percentile: nested let to allow n in idx calculation ---
+(percentile (fn (p lst)
+                (if (null? lst)
+                    0
+                    (let ((sorted (sort lst)))
+                         (let ((n (length lst)))
+                              (let ((idx (floor (/ (* p (- n 1)) 100))))
+                                   (nth idx sorted)))))))
+
+; --- Fix quartiles: uses fixed percentile ---
+(quartiles (fn (lst)
+               (list (percentile 25 lst)
+                     (percentile 50 lst)
+                     (percentile 75 lst))))
+
+; --- Fix interquartile-range: uses fixed quartiles ---
+(interquartile-range (fn (lst)
+                         (let ((qs (quartiles lst)))
+                              (- (caddr qs) (car qs)))))
+
+; --- Fix binary-search: use floor for integer division ---
+; Note: take/drop primitives are (take lst n) and (drop lst n)
+(binary-search (fix binary-search
+                    (fn (target lst)
+                        (if (null? lst)
+                            #f
+                            (let ((mid (floor (/ (length lst) 2))))
+                                 (let ((mid-val (nth mid lst)))
+                                      (if (= target mid-val)
+                                          mid
+                                          (if (< target mid-val)
+                                              (binary-search target (take lst mid))
+                                              (let ((result (binary-search target (drop lst (+ mid 1)))))
+                                                   (if result (+ result mid 1) #f))))))))))
+
+; --- Fix lower-bound: use floor for integer division ---
+(lower-bound (fn (target lst)
+                 (let ((go (fix go
+                                (fn (lo hi)
+                                    (if (>= lo hi)
+                                        lo
+                                        (let ((mid (floor (/ (+ lo hi) 2))))
+                                             (if (< (nth mid lst) target)
+                                                 (go (+ mid 1) hi)
+                                                 (go lo mid))))))))
+                      (go 0 (length lst)))))
+
+; --- Fix upper-bound: use floor for integer division ---
+(upper-bound (fn (target lst)
+                 (let ((go (fix go
+                                (fn (lo hi)
+                                    (if (>= lo hi)
+                                        lo
+                                        (let ((mid (floor (/ (+ lo hi) 2))))
+                                             (if (<= (nth mid lst) target)
+                                                 (go (+ mid 1) hi)
+                                                 (go lo mid))))))))
+                      (go 0 (length lst)))))
