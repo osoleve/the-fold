@@ -552,6 +552,543 @@
                                           (dsl-pure (cons x xs))))))))
 
 ;;; ============================================================
+;;; Applicative Combinators
+;;; ============================================================
+;;;
+;;; Complete the Applicative interface for DSL programs.
+
+;;; dsl-ap : DSL f (a -> b) -> DSL f a -> DSL f b
+;;; Apply a function in the DSL context to a value in the DSL context.
+(define (dsl-ap mf ma)
+  (dsl-bind mf (lambda (f) (dsl-map f ma))))
+
+;;; dsl-ap2 : (a b -> c) -> DSL f a -> DSL f b -> DSL f c
+;;; Lift a binary function into DSL context.
+;;; Note: Scheme doesn't curry, so we use explicit bind.
+(define (dsl-ap2 f ma mb)
+  (dsl-bind ma
+            (lambda (a)
+                    (dsl-bind mb
+                              (lambda (b)
+                                      (dsl-pure (f a b)))))))
+
+;;; dsl-ap3 : (a b c -> d) -> DSL f a -> DSL f b -> DSL f c -> DSL f d
+;;; Lift a ternary function into DSL context.
+(define (dsl-ap3 f ma mb mc)
+  (dsl-bind ma
+            (lambda (a)
+                    (dsl-bind mb
+                              (lambda (b)
+                                      (dsl-bind mc
+                                                (lambda (c)
+                                                        (dsl-pure (f a b c)))))))))
+
+;;; dsl-join : DSL f (DSL f a) -> DSL f a
+;;; Flatten nested DSL programs.
+(define (dsl-join mma)
+  (dsl-bind mma identity))
+
+;;; dsl-kleisli : (a -> DSL f b) -> (b -> DSL f c) -> (a -> DSL f c)
+;;; Kleisli composition for DSL functions.
+(define (dsl-kleisli f g)
+  (lambda (a)
+          (dsl-bind (f a) g)))
+
+;;; dsl-fish : (a -> DSL f b) -> (b -> DSL f c) -> (a -> DSL f c)
+;;; Alias for dsl-kleisli (the "fish" operator >=>).
+(define dsl-fish dsl-kleisli)
+
+;;; dsl-compose : (b -> DSL f c) -> (a -> DSL f b) -> (a -> DSL f c)
+;;; Reversed Kleisli composition (<=<).
+(define (dsl-compose g f)
+  (dsl-kleisli f g))
+
+;;; ============================================================
+;;; Tagless Final Support
+;;; ============================================================
+;;;
+;;; Alternative to Free monad: define DSLs as interfaces.
+;;; More efficient (no intermediate structure) but less inspectable.
+;;;
+;;; Pattern: Each DSL is a record of operations that work over
+;;; an abstract carrier type. Interpreters instantiate the carrier.
+
+;;; make-tagless-dsl : List (Symbol . (Interpreter -> Procedure)) -> TaglessDSL
+;;; Create a tagless DSL definition from operation specifications.
+(define (make-tagless-dsl ops)
+  (list 'tagless-dsl ops))
+
+;;; tagless-dsl? : Any -> Boolean
+(define (tagless-dsl? x)
+  (and (pair? x) (eq? (car x) 'tagless-dsl)))
+
+;;; tagless-ops : TaglessDSL -> List
+(define (tagless-ops dsl)
+  (cadr dsl))
+
+;;; instantiate-tagless : TaglessDSL -> Interpreter -> Record
+;;; Create concrete operations from DSL definition and interpreter.
+(define (instantiate-tagless dsl interp)
+  (map (lambda (op-spec)
+               (cons (car op-spec) ((cdr op-spec) interp)))
+       (tagless-ops dsl)))
+
+;;; tagless-op : Record -> Symbol -> Procedure
+;;; Get an operation from an instantiated tagless DSL.
+(define (tagless-op record name)
+  (let ([pair (assoc name record)])
+       (if pair (cdr pair)
+           (error 'tagless-op "Unknown operation" name))))
+
+;;; Example: Arithmetic Tagless DSL
+;;;
+;;; (define arith-tagless
+;;;   (make-tagless-dsl
+;;;    (list (cons 'lit (lambda (i) (lambda (n) n)))
+;;;          (cons 'add (lambda (i) (lambda (a b) (+ a b))))
+;;;          (cons 'mul (lambda (i) (lambda (a b) (* a b)))))))
+;;;
+;;; ;; Eval interpreter (identity)
+;;; (define arith-eval (instantiate-tagless arith-tagless 'eval))
+;;; ((tagless-op arith-eval 'add)
+;;;  ((tagless-op arith-eval 'lit) 5)
+;;;  ((tagless-op arith-eval 'lit) 3))
+;;; ;; => 8
+
+;;; ============================================================
+;;; Source Location Tracking
+;;; ============================================================
+;;;
+;;; Attach source positions to DSL programs for better errors.
+
+;;; make-source-pos : Int -> Int -> Int -> SourcePos
+;;; Create source position (line, column, offset).
+(define (make-source-pos line col offset)
+  (list 'source-pos line col offset))
+
+;;; source-pos? : Any -> Boolean
+(define (source-pos? x)
+  (and (pair? x) (eq? (car x) 'source-pos)))
+
+;;; source-pos-line : SourcePos -> Int
+(define (source-pos-line p) (list-ref p 1))
+
+;;; source-pos-col : SourcePos -> Int
+(define (source-pos-col p) (list-ref p 2))
+
+;;; source-pos-offset : SourcePos -> Int
+(define (source-pos-offset p) (list-ref p 3))
+
+;;; no-source-pos : SourcePos
+(define no-source-pos (make-source-pos 0 0 0))
+
+;;; make-located : a -> SourcePos -> Located a
+;;; Attach source location to a value.
+(define (make-located value pos)
+  (list 'located value pos))
+
+;;; located? : Any -> Boolean
+(define (located? x)
+  (and (pair? x) (eq? (car x) 'located)))
+
+;;; located-value : Located a -> a
+(define (located-value loc) (list-ref loc 1))
+
+;;; located-pos : Located a -> SourcePos
+(define (located-pos loc) (list-ref loc 2))
+
+;;; make-located-instruction : Symbol -> Any -> Continuation -> SourcePos -> LocatedInstruction
+;;; Create instruction with source location.
+(define (make-located-instruction tag payload k pos)
+  (list tag payload k pos))
+
+;;; instruction-pos : LocatedInstruction -> SourcePos
+(define (instruction-pos instr)
+  (if (>= (length instr) 4)
+      (list-ref instr 3)
+      no-source-pos))
+
+;;; dsl-emit-at : Symbol -> Any -> SourcePos -> DSL Instruction ()
+;;; Emit instruction with source location.
+(define (dsl-emit-at tag payload pos)
+  (free (make-located-instruction tag payload pure-free pos)))
+
+;;; dsl-request-at : Symbol -> Any -> SourcePos -> DSL Instruction Response
+;;; Request with source location.
+(define (dsl-request-at tag payload pos)
+  (free (make-located-instruction tag payload pure-free pos)))
+
+;;; format-source-pos : SourcePos -> String
+;;; Format source position for error messages.
+(define (format-source-pos pos)
+  (if (source-pos? pos)
+      (format "~a:~a" (source-pos-line pos) (source-pos-col pos))
+      "<unknown>"))
+
+;;; dsl-error-at : SourcePos -> Symbol -> String -> DSL Instruction a
+;;; Emit error with location.
+(define (dsl-error-at pos tag message)
+  (dsl-emit 'dsl-error (list pos tag message)))
+
+;;; ============================================================
+;;; Interpreter Middleware
+;;; ============================================================
+;;;
+;;; Composable interpreter transformations.
+
+;;; Middleware : Interpreter -> Interpreter
+;;; A middleware wraps an interpreter, adding behavior.
+
+;;; middleware-identity : Middleware
+;;; The identity middleware (does nothing).
+(define (middleware-identity interp)
+  interp)
+
+;;; middleware-compose : Middleware -> Middleware -> Middleware
+;;; Compose two middlewares (outer wraps inner).
+(define (middleware-compose outer inner)
+  (lambda (interp)
+          (outer (inner interp))))
+
+;;; middleware-stack : List Middleware -> Middleware
+;;; Compose a list of middlewares into one.
+(define (middleware-stack middlewares)
+  (fold-right middleware-compose middleware-identity middlewares))
+
+;;; middleware-logging : (Symbol -> Any -> Any -> ()) -> Middleware
+;;; Log all instruction executions.
+(define (middleware-logging log-fn)
+  (lambda (interp)
+          (let ([handler (interpreter-handler interp)])
+               (make-interpreter
+                (lambda (tag payload)
+                        (let ([result (handler tag payload)])
+                             (log-fn tag payload result)
+                             result))))))
+
+;;; middleware-timing : (Symbol -> Number -> ()) -> Middleware
+;;; Time instruction execution (requires current-time).
+(define (middleware-timing on-timing)
+  (lambda (interp)
+          (let ([handler (interpreter-handler interp)])
+               (make-interpreter
+                (lambda (tag payload)
+                        (let* ([start (current-time)]
+                               [result (handler tag payload)]
+                               [end (current-time)]
+                               [elapsed (- end start)])
+                              (on-timing tag elapsed)
+                              result))))))
+
+;;; current-time : -> Number
+;;; Get current time in milliseconds (placeholder - use system time).
+(define (current-time)
+  ;; In a real implementation, this would use system time
+  0)
+
+;;; middleware-cache : HashTable -> List Symbol -> Middleware
+;;; Cache results for specified instruction tags.
+;;; Note: Only valid for pure, deterministic instructions.
+(define (middleware-cache cache cacheable-tags)
+  (lambda (interp)
+          (let ([handler (interpreter-handler interp)])
+               (make-interpreter
+                (lambda (tag payload)
+                        (if (memq tag cacheable-tags)
+                            (let ([key (cons tag payload)])
+                                 (let ([cached (hashtable-ref cache key 'not-found)])
+                                      (if (eq? cached 'not-found)
+                                          (let ([result (handler tag payload)])
+                                               (hashtable-set! cache key result)
+                                               result)
+                                          cached)))
+                            (handler tag payload)))))))
+
+;;; middleware-guard : (Symbol -> Any -> Boolean) -> (Symbol -> Any -> a) -> Middleware
+;;; Guard instructions with a predicate; call fallback on failure.
+(define (middleware-guard pred on-fail)
+  (lambda (interp)
+          (let ([handler (interpreter-handler interp)])
+               (make-interpreter
+                (lambda (tag payload)
+                        (if (pred tag payload)
+                            (handler tag payload)
+                            (on-fail tag payload)))))))
+
+;;; middleware-transform : (Symbol -> Any -> (Symbol . Any)) -> Middleware
+;;; Transform instructions before passing to handler.
+(define (middleware-transform xform)
+  (lambda (interp)
+          (let ([handler (interpreter-handler interp)])
+               (make-interpreter
+                (lambda (tag payload)
+                        (let ([transformed (xform tag payload)])
+                             (handler (car transformed) (cdr transformed))))))))
+
+;;; with-middleware : Middleware -> Interpreter -> DSL a -> a
+;;; Run DSL program with middleware-wrapped interpreter.
+(define (with-middleware middleware interp program)
+  (run-dsl (middleware interp) program))
+
+;;; ============================================================
+;;; Program Introspection & Optimization
+;;; ============================================================
+;;;
+;;; Tools for analyzing and transforming DSL programs.
+
+;;; dsl-fold-program : (a -> r) -> (Symbol -> Any -> r -> r) -> DSL f a -> Int -> r
+;;; Fold over program structure (catamorphism).
+;;; on-pure: handle terminal value
+;;; on-instr: handle instruction (tag, payload, recursive result)
+(define (dsl-fold-program on-pure on-instr program fuel)
+  (cond
+   [(<= fuel 0) (on-pure 'fuel-exhausted)]
+   [(dsl-pure? program) (on-pure (dsl-pure-value program))]
+   [else
+    (let* ([instr (dsl-instruction program)]
+           [tag (instruction-tag instr)]
+           [payload (instruction-payload instr)]
+           [cont (instruction-cont instr)]
+           ;; Continue with unit to get next instruction
+           [next-result (dsl-fold-program on-pure on-instr (cont '()) (- fuel 1))])
+          (on-instr tag payload next-result))]))
+
+;;; dsl-instruction-list : DSL f a -> Int -> List (Symbol . Any)
+;;; Extract list of (tag . payload) pairs from program.
+(define (dsl-instruction-list program fuel)
+  (dsl-fold-program
+   (lambda (_) '())
+   (lambda (tag payload rest) (cons (cons tag payload) rest))
+   program
+   fuel))
+
+;;; dsl-program-depth : DSL f a -> Int -> Int
+;;; Count instruction depth (with fuel limit).
+(define (dsl-program-depth program fuel)
+  (dsl-fold-program
+   (lambda (_) 0)
+   (lambda (tag payload rest) (+ 1 rest))
+   program
+   fuel))
+
+;;; dsl-uses-tag? : Symbol -> DSL f a -> Int -> Boolean
+;;; Check if program uses a specific instruction tag.
+(define (dsl-uses-tag? target-tag program fuel)
+  (dsl-fold-program
+   (lambda (_) #f)
+   (lambda (tag payload rest) (or (eq? tag target-tag) rest))
+   program
+   fuel))
+
+;;; dsl-tag-histogram : DSL f a -> Int -> Alist
+;;; Count occurrences of each instruction tag.
+(define (dsl-tag-histogram program fuel)
+  (let ([counts '()])
+       (dsl-fold-program
+        (lambda (_) counts)
+        (lambda (tag payload rest)
+                (let ([existing (assoc tag rest)])
+                     (if existing
+                         (map (lambda (p)
+                                      (if (eq? (car p) tag)
+                                          (cons tag (+ 1 (cdr p)))
+                                          p))
+                              rest)
+                         (cons (cons tag 1) rest))))
+        program
+        fuel)))
+
+;;; dsl-optimize-dead-code : (Symbol -> Boolean) -> DSL f a -> Int -> DSL f a
+;;; Remove instructions with side-effect-free tags whose results are unused.
+;;; Note: This is a simplified optimization; real DCE needs data flow analysis.
+(define (dsl-optimize-dead-code pure-tag? program fuel)
+  ;; For now, just return the program unchanged
+  ;; Full implementation requires tracking value usage
+  program)
+
+;;; dsl-fuse : (Symbol -> Symbol -> Maybe Symbol) -> DSL f a -> Int -> DSL f a
+;;; Fuse adjacent instructions when possible.
+;;; fuse-fn returns Just new-tag if two instructions can be fused.
+(define (dsl-fuse fuse-fn program fuel)
+  ;; Placeholder - full implementation needs instruction rewriting
+  program)
+
+;;; ============================================================
+;;; Recursive DSL Programs
+;;; ============================================================
+;;;
+;;; Support for recursive DSL definitions without stack overflow.
+
+;;; dsl-fix : ((a -> DSL f b) -> (a -> DSL f b)) -> (a -> DSL f b)
+;;; Fixed-point combinator for recursive DSL functions.
+(define (dsl-fix f)
+  (lambda args
+          (apply (f (dsl-fix f)) args)))
+
+;;; dsl-lazy : (() -> DSL f a) -> DSL f a
+;;; Delay DSL program construction.
+(define (dsl-lazy thunk)
+  ;; We emit a special 'lazy instruction that forces the thunk
+  (dsl-emit 'dsl-lazy thunk))
+
+;;; Trampoline for deep recursion
+;;; Bounce : (() -> Trampoline a)
+;;; Done : a -> Trampoline a
+
+;;; make-bounce : (() -> Trampoline a) -> Trampoline a
+(define (make-bounce thunk)
+  (list 'bounce thunk))
+
+;;; make-done : a -> Trampoline a
+(define (make-done value)
+  (list 'done value))
+
+;;; bounce? : Trampoline a -> Boolean
+(define (bounce? t)
+  (and (pair? t) (eq? (car t) 'bounce)))
+
+;;; done? : Trampoline a -> Boolean
+(define (done? t)
+  (and (pair? t) (eq? (car t) 'done)))
+
+;;; bounce-thunk : Trampoline a -> (() -> Trampoline a)
+(define (bounce-thunk t) (cadr t))
+
+;;; done-value : Trampoline a -> a
+(define (done-value t) (cadr t))
+
+;;; run-trampoline : Trampoline a -> a
+;;; Execute trampoline until completion.
+(define (run-trampoline t)
+  (if (done? t)
+      (done-value t)
+      (run-trampoline ((bounce-thunk t)))))
+
+;;; run-dsl-trampolined : Interpreter -> DSL f a -> a
+;;; Run DSL with trampolining to avoid stack overflow.
+(define (run-dsl-trampolined interp program)
+  (run-trampoline (run-dsl-trampoline-helper (interpreter-handler interp) program)))
+
+(define (run-dsl-trampoline-helper handler program)
+  (cond
+   [(pure-free? program)
+    (make-done (from-pure-free program))]
+   [(free-suspended? program)
+    (let* ([instr (from-free program)]
+           [tag (instruction-tag instr)]
+           [payload (instruction-payload instr)]
+           [cont (instruction-cont instr)]
+           [result (handler tag payload)])
+          (make-bounce
+           (lambda ()
+                   (run-dsl-trampoline-helper handler (cont result)))))]))
+
+;;; ============================================================
+;;; Testing Utilities
+;;; ============================================================
+;;;
+;;; Helpers for testing DSL interpreters and programs.
+
+;;; make-mock-interpreter : List (Symbol . Any) -> Interpreter
+;;; Create interpreter that returns predefined values.
+;;; mock-values is an alist of:
+;;;   (tag . value)              - return fixed value
+;;;   (tag . (fn . procedure))   - call procedure with payload
+;;;   (tag . (values v1 v2 ...)) - cycle through values
+(define (make-mock-interpreter mock-values)
+  (let ([call-counts (map (lambda (p) (cons (car p) 0)) mock-values)])
+       (make-interpreter
+        (lambda (tag payload)
+                ;; Increment call count
+                (set! call-counts
+                      (map (lambda (p)
+                                   (if (eq? (car p) tag)
+                                       (cons tag (+ 1 (cdr p)))
+                                       p))
+                           call-counts))
+                ;; Return mock value
+                (let ([mock (assoc tag mock-values)])
+                     (if mock
+                         (let ([val (cdr mock)])
+                              (cond
+                               ;; Function mock: (fn . procedure)
+                               [(and (pair? val) (eq? (car val) 'fn))
+                                ((cdr val) payload)]
+                               ;; Multiple return values: (values v1 v2 ...)
+                               [(and (pair? val) (eq? (car val) 'values))
+                                (let* ([vals (cdr val)]
+                                       [count (cdr (assoc tag call-counts))]
+                                       [idx (modulo (- count 1) (length vals))])
+                                      (list-ref vals idx))]
+                               ;; Plain value
+                               [else val]))
+                         (error 'mock-interpreter "No mock for instruction" tag)))))))
+
+;;; dsl-test-case : String -> DSL f a -> a -> Interpreter -> Boolean
+;;; Test that running program produces expected result.
+(define (dsl-test-case name program expected interp)
+  (let ([result (run-dsl interp program)])
+       (if (equal? result expected)
+           (begin
+            (display (format "[PASS] ~a\n" name))
+            #t)
+           (begin
+            (display (format "[FAIL] ~a: expected ~s, got ~s\n" name expected result))
+            #f))))
+
+;;; dsl-test-error : String -> DSL f a -> Symbol -> Interpreter -> Boolean
+;;; Test that running program raises an error with given tag.
+(define (dsl-test-error name program expected-tag interp)
+  (guard (ex [else
+              (let ([is-match (and (error-object? ex)
+                                   (eq? (error-object-message ex) expected-tag))])
+                   (if is-match
+                       (begin
+                        (display (format "[PASS] ~a (error)\n" name))
+                        #t)
+                       (begin
+                        (display (format "[FAIL] ~a: wrong error\n" name))
+                        #f)))])
+         (run-dsl interp program)
+         (display (format "[FAIL] ~a: no error raised\n" name))
+         #f))
+
+;;; dsl-programs-equiv? : Interpreter -> DSL f a -> DSL f a -> Boolean
+;;; Test if two programs produce the same result.
+(define (dsl-programs-equiv? interp p1 p2)
+  (equal? (run-dsl interp p1) (run-dsl interp p2)))
+
+;;; dsl-interpreter-equiv? : DSL f a -> Interpreter -> Interpreter -> Boolean
+;;; Test if two interpreters produce the same result for a program.
+(define (dsl-interpreter-equiv? program i1 i2)
+  (equal? (run-dsl i1 program) (run-dsl i2 program)))
+
+;;; make-recording-interpreter : Interpreter -> (Interpreter . (() -> List))
+;;; Wrap interpreter to record all instruction calls.
+;;; Returns (wrapped-interpreter . get-log-fn).
+(define (make-recording-interpreter base-interp)
+  (let ([log '()]
+        [handler (interpreter-handler base-interp)])
+       (cons
+        (make-interpreter
+         (lambda (tag payload)
+                 (let ([result (handler tag payload)])
+                      (set! log (cons (list tag payload result) log))
+                      result)))
+        (lambda () (reverse log)))))
+
+;;; verify-instruction-sequence : DSL f a -> Interpreter -> List Symbol -> Boolean
+;;; Verify that program executes instructions in expected order.
+(define (verify-instruction-sequence program interp expected-tags)
+  (let* ([recording (make-recording-interpreter interp)]
+         [wrapped-interp (car recording)]
+         [get-log (cdr recording)]
+         [_ (run-dsl wrapped-interp program)]
+         [log (get-log)]
+         [actual-tags (map car log)])
+        (equal? actual-tags expected-tags)))
+
+;;; ============================================================
 ;;; Example: Simple Calculator DSL
 ;;; ============================================================
 
