@@ -202,6 +202,7 @@ fn lower_list(
             "case" => return lower_case(list_expr, items),
             "prim" => return lower_prim(list_expr, items),
             "call" => return lower_call(list_expr, items),
+            "load" => return lower_load(list_expr, items),
             _ => {
                 // Check if this is a builtin primitive that should be lowered to a prim call
                 if is_builtin_prim(&head_symbol) {
@@ -599,6 +600,23 @@ fn lower_call(
         Expr::Call {
             func: Box::new(func),
             args,
+        },
+        span,
+    ))
+}
+
+fn lower_load(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() != 2 {
+        return Err(error(list_expr, "load expects (load path)"));
+    }
+    let path = lower_expr(&items[1])?;
+    Ok(SpannedExpr::new(
+        Expr::Load {
+            path: Box::new(path),
         },
         span,
     ))

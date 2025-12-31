@@ -80,4 +80,8 @@ pub enum Expr {
         args: Vec<SpannedExpr>,
     },
     Var(Symbol),
+    /// Load and evaluate a file in the current environment
+    Load {
+        path: Box<SpannedExpr>,
+    },
 }

@@ -8,6 +8,7 @@ use crate::fabric::{
 };
 use crate::thimble::apply_prim;
 use crate::tools::Span;
+use crate::tools::fold_load::load_fold_program;
 
 #[derive(Debug, Clone)]
 pub enum EvalOutcome {
@@ -58,6 +59,13 @@ enum Frame {
         env: EnvRef,
         span: Option<Span>,
     },
+    /// Load expressions from a file, evaluating them in sequence
+    Load {
+        /// Remaining expressions to evaluate
+        remaining: Vec<SpannedExpr>,
+        env: EnvRef,
+        span: Option<Span>,
+    },
 }
 
 impl Frame {
@@ -68,7 +76,8 @@ impl Frame {
             | Frame::CallFunc { env, .. }
             | Frame::CallArgs { env, .. }
             | Frame::PrimArgs { env, .. }
-            | Frame::Case { env, .. } => env,
+            | Frame::Case { env, .. }
+            | Frame::Load { env, .. } => env,
         }
     }
 
@@ -79,7 +88,8 @@ impl Frame {
             | Frame::CallFunc { span, .. }
             | Frame::CallArgs { span, .. }
             | Frame::PrimArgs { span, .. }
-            | Frame::Case { span, .. } => span.clone(),
+            | Frame::Case { span, .. }
+            | Frame::Load { span, .. } => span.clone(),
         }
     }
 
@@ -199,6 +209,27 @@ impl Frame {
                 },
                 span.clone(),
             ),
+            Frame::Load {
+                remaining, span, ..
+            } => {
+                // Reify as a sequence: current followed by remaining expressions
+                let mut exprs = vec![current];
+                exprs.extend(remaining.iter().cloned());
+                // Wrap in nested lets to sequence them
+                let mut result = exprs
+                    .pop()
+                    .unwrap_or_else(|| SpannedExpr::unspanned(Expr::Value(Value::Nil)));
+                for (i, expr) in exprs.into_iter().rev().enumerate() {
+                    result = SpannedExpr::new(
+                        Expr::Let {
+                            bindings: vec![(format!("#%load-seq-{i}"), expr)],
+                            body: Box::new(result),
+                        },
+                        span.clone(),
+                    );
+                }
+                result
+            }
         }
     }
 }
@@ -360,6 +391,16 @@ pub fn eval_spanned(
                 });
                 expr = *scrutinee;
             }
+            Expr::Load { path } => {
+                // Push a frame to handle the result of evaluating path
+                frames.push(Frame::Load {
+                    remaining: Vec::new(), // Will be populated after path is evaluated
+                    env: env.clone(),
+                    span: current_span,
+                });
+                // First evaluate the path expression
+                expr = *path;
+            }
         }
     }
 }
@@ -519,8 +560,75 @@ fn unwind(
                 *env = next_env;
                 return Ok(Unwind::Continue(next_expr));
             }
+            Frame::Load {
+                mut remaining,
+                env: frame_env,
+                span,
+            } => {
+                // If remaining is empty, we just evaluated the path expression
+                if remaining.is_empty() {
+                    // Value should be a string path
+                    let path = match &value {
+                        Value::String(s) => s.clone(),
+                        _ => {
+                            return Err(SpannedEvalError::new(
+                                EvalError::TypeMismatch("load expects a string path"),
+                                frame_span,
+                            ));
+                        }
+                    };
+
+                    // Load the file
+                    let loaded_exprs = load_file_for_eval(&path).map_err(|e| {
+                        SpannedEvalError::new(
+                            EvalError::IOError(format!("load: {}", e)),
+                            frame_span.clone(),
+                        )
+                    })?;
+
+                    if loaded_exprs.is_empty() {
+                        // Empty file, return Nil
+                        value = Value::Nil;
+                        // Continue unwinding
+                    } else {
+                        // Set up to evaluate the loaded expressions
+                        let mut exprs = loaded_exprs.into_iter();
+                        let first = exprs.next().unwrap();
+                        remaining = exprs.collect();
+
+                        if !remaining.is_empty() {
+                            frames.push(Frame::Load {
+                                remaining,
+                                env: frame_env.clone(),
+                                span,
+                            });
+                        }
+                        *env = frame_env;
+                        return Ok(Unwind::Continue(first));
+                    }
+                } else {
+                    // We just finished evaluating one expression from the file
+                    // Continue with the next expression
+                    let next_expr = remaining.remove(0);
+
+                    if !remaining.is_empty() {
+                        frames.push(Frame::Load {
+                            remaining,
+                            env: frame_env.clone(),
+                            span,
+                        });
+                    }
+                    *env = frame_env;
+                    return Ok(Unwind::Continue(next_expr));
+                }
+            }
         }
     }
+}
+
+/// Load a file and return its expressions for evaluation.
+fn load_file_for_eval(path: &str) -> Result<Vec<SpannedExpr>, String> {
+    load_fold_program(path).map_err(|e| e.to_string())
 }
 
 /// Apply a callable (closure or primitive) to arguments.
