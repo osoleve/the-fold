@@ -408,7 +408,7 @@ impl Parser {
 
         // Collect digits
         while let Some(c) = self.peek() {
-            if c.is_ascii_hexdigit() && c.to_digit(radix).is_some() {
+            if c.is_ascii_hexdigit() && c.is_digit(radix) {
                 digits.push(c);
                 self.advance();
             } else if c.is_alphanumeric() || c == '_' {
@@ -423,10 +423,14 @@ impl Parser {
             return Err(self.error("radix number digits"));
         }
 
-        let value = i64::from_str_radix(&digits, radix)
-            .map_err(|_| self.error("valid radix number"))?;
+        let value =
+            i64::from_str_radix(&digits, radix).map_err(|_| self.error("valid radix number"))?;
 
-        Ok(Sexp::Number(NumberLit::Integer(if negative { -value } else { value })))
+        Ok(Sexp::Number(NumberLit::Integer(if negative {
+            -value
+        } else {
+            value
+        })))
     }
 
     fn parse_char(&mut self) -> Result<Sexp, ParseError> {

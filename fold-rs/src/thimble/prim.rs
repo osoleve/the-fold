@@ -1419,7 +1419,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
         }
         "block-tag" => {
             let block = expect_block(args)?;
-            Ok(Value::Symbol(block.tag.clone()))
+            Ok(Value::Symbol(block.tag))
         }
         "block-payload" => {
             let block = expect_block(args)?;
@@ -4608,9 +4608,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
 
             // Write session file
             let name_str = name.as_str();
-            if let Err(e) =
-                write_session_file(&session_id, role, &model_str, &name_str)
-            {
+            if let Err(e) = write_session_file(&session_id, role, &model_str, &name_str) {
                 return Err(EvalError::IOError(format!(
                     "hi: failed to write session: {}",
                     e
@@ -5076,7 +5074,7 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             Ok(Value::Nil)
         }
 
-        _ => Err(EvalError::UnknownPrimitive(op.clone())),
+        _ => Err(EvalError::UnknownPrimitive(*op)),
     }
 }
 
@@ -5298,7 +5296,7 @@ where
 
 fn expect_symbol(value: &Value) -> Result<Symbol, EvalError> {
     match value {
-        Value::Symbol(sym) => Ok(sym.clone()),
+        Value::Symbol(sym) => Ok(*sym),
         _ => Err(EvalError::TypeMismatch("expected symbol")),
     }
 }

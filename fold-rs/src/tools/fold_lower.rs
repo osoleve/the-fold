@@ -83,40 +83,38 @@ pub fn lower_program(exprs: &[Spanned<Sexp>]) -> Result<Vec<SpannedExpr>, LowerE
     let mut body_exprs: Vec<SpannedExpr> = Vec::new();
 
     for expr in exprs {
-        if let Sexp::List(items) = &expr.value {
-            if let Some(head) = items.first().and_then(|h| symbol_name(h)) {
-                if head == "define" && items.len() == 3 {
-                    // Extract the define binding
-                    if let Sexp::Symbol(name) = &items[1].value {
-                        let value = lower_expr(&items[2])?;
-                        defines.push((Symbol::intern(name), value));
-                        continue;
-                    } else if let Sexp::List(sig) = &items[1].value {
-                        // Function shorthand: (define (name params...) body)
-                        if !sig.is_empty() {
-                            if let Sexp::Symbol(name) = &sig[0].value {
-                                let params: Vec<Symbol> = sig[1..]
-                                    .iter()
-                                    .map(|p| match &p.value {
-                                        Sexp::Symbol(s) => Ok(Symbol::intern(s)),
-                                        _ => {
-                                            Err(error(p, "define function params must be symbols"))
-                                        }
-                                    })
-                                    .collect::<Result<_, _>>()?;
-                                let body = lower_expr(&items[2])?;
-                                let lambda = SpannedExpr::new(
-                                    Expr::Fn {
-                                        params,
-                                        body: Box::new(body),
-                                    },
-                                    Some(expr.span.clone()),
-                                );
-                                defines.push((Symbol::intern(name), lambda));
-                                continue;
-                            }
-                        }
-                    }
+        if let Sexp::List(items) = &expr.value
+            && let Some(head) = items.first().and_then(symbol_name)
+            && head == "define"
+            && items.len() == 3
+        {
+            // Extract the define binding
+            if let Sexp::Symbol(name) = &items[1].value {
+                let value = lower_expr(&items[2])?;
+                defines.push((Symbol::intern(name), value));
+                continue;
+            } else if let Sexp::List(sig) = &items[1].value {
+                // Function shorthand: (define (name params...) body)
+                if !sig.is_empty()
+                    && let Sexp::Symbol(name) = &sig[0].value
+                {
+                    let params: Vec<Symbol> = sig[1..]
+                        .iter()
+                        .map(|p| match &p.value {
+                            Sexp::Symbol(s) => Ok(Symbol::intern(s)),
+                            _ => Err(error(p, "define function params must be symbols")),
+                        })
+                        .collect::<Result<_, _>>()?;
+                    let body = lower_expr(&items[2])?;
+                    let lambda = SpannedExpr::new(
+                        Expr::Fn {
+                            params,
+                            body: Box::new(body),
+                        },
+                        Some(expr.span.clone()),
+                    );
+                    defines.push((Symbol::intern(name), lambda));
+                    continue;
                 }
             }
         }
@@ -578,7 +576,10 @@ fn lower_let(
 
     // Regular let: (let ((name expr) ...) body ...)
     if items.len() < 3 {
-        return Err(error(list_expr, "let expects (let ((name expr) ...) body ...)"));
+        return Err(error(
+            list_expr,
+            "let expects (let ((name expr) ...) body ...)",
+        ));
     }
     let bindings_list = match &items[1].value {
         Sexp::List(list) => list,
@@ -1197,7 +1198,10 @@ fn lower_bound(
 ) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
     if items.len() != 2 {
-        return Err(error(list_expr, "top-level-bound? expects (top-level-bound? 'symbol)"));
+        return Err(error(
+            list_expr,
+            "top-level-bound? expects (top-level-bound? 'symbol)",
+        ));
     }
 
     // The argument should be a quoted symbol: 'symbol or (quote symbol)
@@ -1291,7 +1295,10 @@ fn lower_define_test(
 ) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
     if items.len() < 3 {
-        return Err(error(list_expr, "define-test expects (define-test name body...)"));
+        return Err(error(
+            list_expr,
+            "define-test expects (define-test name body...)",
+        ));
     }
 
     let name = match &items[1].value {
@@ -1320,15 +1327,21 @@ fn lower_define_test(
     //           (register-test 'name test-thunk)
     //           (run-test 'name test-thunk))
     let test_thunk_sym = Symbol::intern("#%test-thunk");
-    let quoted_name = SpannedExpr::new(Expr::Quote(Value::Symbol(Symbol::intern(&name))), span.clone());
+    let quoted_name = SpannedExpr::new(
+        Expr::Quote(Value::Symbol(Symbol::intern(&name))),
+        span.clone(),
+    );
 
     // (register-test 'name test-thunk)
     let register_call = SpannedExpr::new(
         Expr::Call {
-            func: Box::new(SpannedExpr::new(Expr::Var(Symbol::intern("register-test")), None)),
+            func: Box::new(SpannedExpr::new(
+                Expr::Var(Symbol::intern("register-test")),
+                None,
+            )),
             args: vec![
                 quoted_name.clone(),
-                SpannedExpr::new(Expr::Var(test_thunk_sym.clone()), None),
+                SpannedExpr::new(Expr::Var(test_thunk_sym), None),
             ],
         },
         span.clone(),
@@ -1337,10 +1350,13 @@ fn lower_define_test(
     // (run-test 'name test-thunk)
     let run_call = SpannedExpr::new(
         Expr::Call {
-            func: Box::new(SpannedExpr::new(Expr::Var(Symbol::intern("run-test")), None)),
+            func: Box::new(SpannedExpr::new(
+                Expr::Var(Symbol::intern("run-test")),
+                None,
+            )),
             args: vec![
                 quoted_name,
-                SpannedExpr::new(Expr::Var(test_thunk_sym.clone()), None),
+                SpannedExpr::new(Expr::Var(test_thunk_sym), None),
             ],
         },
         span.clone(),
@@ -1376,7 +1392,10 @@ fn lower_test_group(
 ) -> Result<SpannedExpr, LowerError> {
     let span = Some(list_expr.span.clone());
     if items.len() < 2 {
-        return Err(error(list_expr, "test-group expects (test-group name tests...)"));
+        return Err(error(
+            list_expr,
+            "test-group expects (test-group name tests...)",
+        ));
     }
 
     let name = match &items[1].value {

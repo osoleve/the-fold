@@ -59,13 +59,6 @@ impl Symbol {
     pub fn as_str(&self) -> String {
         interner().lock().unwrap().get(self.0).to_string()
     }
-
-    /// Get a reference to the interned string.
-    /// Note: This returns a String due to borrow checker limitations with the global mutex.
-    /// For performance-critical code, prefer caching the result.
-    pub fn to_string(&self) -> String {
-        self.as_str()
-    }
 }
 
 impl fmt::Debug for Symbol {

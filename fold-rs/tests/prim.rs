@@ -508,13 +508,25 @@ fn interpolation_utils() {
 #[test]
 fn assoc_ops() {
     // Create alist: ((a . 1) (b . 2) (c . 3))
-    let pair_a = prim("cons", &[Value::Symbol(Symbol::intern("a")), Value::Number(1)]);
-    let pair_b = prim("cons", &[Value::Symbol(Symbol::intern("b")), Value::Number(2)]);
-    let pair_c = prim("cons", &[Value::Symbol(Symbol::intern("c")), Value::Number(3)]);
+    let pair_a = prim(
+        "cons",
+        &[Value::Symbol(Symbol::intern("a")), Value::Number(1)],
+    );
+    let pair_b = prim(
+        "cons",
+        &[Value::Symbol(Symbol::intern("b")), Value::Number(2)],
+    );
+    let pair_c = prim(
+        "cons",
+        &[Value::Symbol(Symbol::intern("c")), Value::Number(3)],
+    );
     let alist = prim("list", &[pair_a, pair_b, pair_c]);
 
     // assoc finds by key
-    let found = prim("assoc", &[Value::Symbol(Symbol::intern("b")), alist.clone()]);
+    let found = prim(
+        "assoc",
+        &[Value::Symbol(Symbol::intern("b")), alist.clone()],
+    );
     match found {
         Value::Pair(car, cdr) => {
             assert!(matches!(*car, Value::Symbol(ref s) if s == "b"));

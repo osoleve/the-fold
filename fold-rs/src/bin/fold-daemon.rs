@@ -57,7 +57,7 @@ fn handle_define_form(sexp: &Sexp, env: &EnvRef) -> Result<String, String> {
                 match eval_spanned(expr, env.clone(), DEFAULT_FUEL) {
                     Ok(EvalOutcome::Done(value)) => {
                         // Bind the value in the session environment
-                        Env::insert(env, name.clone(), value);
+                        Env::insert(env, name, value);
                         Ok(format!("; defined {}", name))
                     }
                     Ok(EvalOutcome::Suspended { .. }) => {
