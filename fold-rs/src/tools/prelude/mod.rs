@@ -97,6 +97,7 @@ const SORTING: &str = include_str!("sorting.ss");
 const TYPES: &str = include_str!("types.ss");
 const KINDS: &str = include_str!("kinds.ss");
 const INFER: &str = include_str!("infer.ss");
+const COLLECTION_ADVANCED: &str = include_str!("collection-advanced.ss");
 const MISSING: &str = include_str!("missing.ss");
 const PATH: &str = include_str!("path.ss");
 const ENCODING: &str = include_str!("encoding.ss");
@@ -258,6 +259,9 @@ fn assemble_prelude() -> String {
     source.push_str(KINDS);
     source.push('\n');
     source.push_str(INFER);
+    source.push('\n');
+    // Advanced collection data structures
+    source.push_str(COLLECTION_ADVANCED);
     source.push('\n');
     source.push_str(MISSING);
     source.push('\n');
