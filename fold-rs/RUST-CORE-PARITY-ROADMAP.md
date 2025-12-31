@@ -59,36 +59,26 @@
 ## Milestone 2: Exception Handling
 
 **Goal:** Support guard and condition system for error recovery
+**Status:** ✅ Complete (13 tests passing)
 
 ### Features
 
 | Feature | Status | Location | Notes |
 |---------|--------|----------|-------|
-| Condition type | **Missing** | value.rs | Structured exception values |
-| `guard` form | **Missing** | fold_lower.rs, eval.rs | Pattern-based exception catching |
-| `raise`/`error` | **Partial** | prim.rs | `error` exists but needs condition support |
-| `condition?` | **Missing** | prim.rs | Predicate for conditions |
-| `condition-message` | **Missing** | prim.rs | Extract message from condition |
-| `with-exception-handler` | **Missing** | eval.rs | Low-level handler registration |
+| Condition type | **Done** | value.rs | `Value::Condition { kind, message, irritants }` |
+| `guard` form | **Done** | fold_lower.rs, eval.rs | Pattern-based exception catching |
+| `raise`/`error` | **Done** | prim.rs | Full condition support |
+| `condition?` | **Done** | prim.rs | Predicate for conditions |
+| `condition-message` | **Done** | prim.rs | Extract message from condition |
+| `with-exception-handler` | **Done** | eval.rs | Low-level handler registration |
 
-### Implementation Plan
+### Implementation Details
 
-1. **Condition values**
-   - Add `Value::Condition { kind: Symbol, message: String, irritants: Vec<Value> }`
-   - Or use tagged blocks: `(condition kind message irritants)`
-
-2. **Exception mechanism**
-   - Evaluator maintains exception handler stack
-   - `raise` unwinds to nearest handler
-   - `guard` installs handler and catches matching conditions
-
-3. **guard form**
-   ```scheme
-   (guard (exn
-           ((file-error? exn) "file not found")
-           ((io-error? exn) "io error"))
-     body...)
-   ```
+The exception system uses a handler stack in the evaluator:
+- `Frame::ExceptionHandler` tracks active handlers
+- `raise` unwinds the stack looking for handlers
+- `guard` expands to `with-exception-handler` + condition matching
+- Conditions are structured values with kind, message, and irritants
 
 ---
 
@@ -160,61 +150,64 @@ The `define-record-type` special form in `fold_lower.rs`:
 ## Milestone 5: Mutable Data Structures
 
 **Goal:** Support hashtables and mutable bytevectors
+**Status:** ✅ Hashtables Complete (13 tests passing)
 
 ### Features
 
 | Feature | Status | Location | Notes |
 |---------|--------|----------|-------|
-| `make-hashtable` | **Missing** | prim.rs, value.rs | Need Value::Hashtable |
-| `hashtable-set!` | **Missing** | prim.rs | Mutate hashtable |
-| `hashtable-ref` | **Missing** | prim.rs | Query hashtable |
-| `hashtable-keys` | **Missing** | prim.rs | List all keys |
+| `make-hashtable` | **Done** | prim.rs, value.rs | `Value::Hashtable(Rc<RefCell<HashMap>>)` |
+| `hashtable-set!` | **Done** | prim.rs | Mutate hashtable |
+| `hashtable-ref` | **Done** | prim.rs | Query hashtable |
+| `hashtable-keys` | **Done** | prim.rs | List all keys |
+| `hashtable-values` | **Done** | prim.rs | List all values |
+| `hashtable-contains?` | **Done** | prim.rs | Key existence check |
+| `hashtable-delete!` | **Done** | prim.rs | Remove key |
+| `hashtable-size` | **Done** | prim.rs | Entry count |
+| `hashtable-copy` | **Done** | prim.rs | Shallow copy |
+| `hashtable-clear!` | **Done** | prim.rs | Remove all entries |
+| `hashtable?` | **Done** | prim.rs | Type predicate |
 | `make-bytevector` | **Exists** | prim.rs | `bv-make` |
 | `bytevector-u8-set!` | **Missing** | prim.rs | Mutate bytevector |
 | `bytevector-copy!` | **Missing** | prim.rs | Copy with mutation |
 | Little-endian ops | **Missing** | prim.rs | `bytevector-u32-ref`, etc. |
 
-### Implementation Plan
+### Implementation Notes
 
-1. **Hashtable**
-   - Add `Value::Hashtable(Rc<RefCell<HashMap<Value, Value>>>)`
-   - Implement hash/eq for Value (already have `hash-value`)
-   - Add primitives: make, set!, ref, delete!, keys, values, contains?
-
-2. **Mutable bytevectors**
-   - Current bytevectors may be immutable
-   - Need `Rc<RefCell<Vec<u8>>>` for mutation
-   - Add u8/u16/u32/u64 accessors with endianness
+Hashtables use `Value::Hashtable(Rc<RefCell<HashMap<Value, Value>>>)` with interior mutability. Hash and Eq are implemented for Value to enable this.
 
 ---
 
 ## Milestone 6: Port System
 
 **Goal:** Support string ports and file I/O with Scheme semantics
+**Status:** ✅ String Ports Complete (17 tests passing)
 
 ### Features
 
 | Feature | Status | Location | Notes |
 |---------|--------|----------|-------|
-| `open-input-string` | **Missing** | prim.rs, value.rs | String input port |
-| `open-output-string` | **Missing** | prim.rs, value.rs | String output port |
-| `get-output-string` | **Missing** | prim.rs | Extract from output port |
-| `read` | **Missing** | prim.rs | Parse S-expr from port |
-| `read-char` | **Missing** | prim.rs | Single char input |
-| `peek-char` | **Missing** | prim.rs | Lookahead |
+| `open-input-string` | **Done** | prim.rs, value.rs | String input port |
+| `open-output-string` | **Done** | prim.rs, value.rs | String output port |
+| `get-output-string` | **Done** | prim.rs | Extract from output port |
+| `read` | **Done** | prim.rs | Parse S-expr from port (8 tests) |
+| `read-char` | **Done** | prim.rs | Single char input |
+| `peek-char` | **Done** | prim.rs | Lookahead |
+| `write-char` | **Done** | prim.rs | Single char output |
+| `port-eof?` | **Done** | prim.rs | EOF detection |
+| `input-port?` | **Done** | prim.rs | Type predicate |
+| `output-port?` | **Done** | prim.rs | Type predicate |
+| `close-port` | **Done** | prim.rs | Close port |
 | File ports | **Missing** | prim.rs | `open-input-file`, etc. |
 | Current ports | **Missing** | Global state | `current-input-port`, etc. |
 
-### Implementation Plan
+### Implementation Notes
 
-1. **Port type**
-   - Add `Value::Port(Rc<RefCell<Port>>)`
-   - Port enum: StringInput, StringOutput, FileInput, FileOutput
-   - Track position, buffer, etc.
+Ports use `Value::Port(Rc<RefCell<Port>>)` where Port is an enum:
+- `StringInput { content: String, position: usize }`
+- `StringOutput { buffer: String }`
 
-2. **Reading**
-   - Integrate parser with port system
-   - `read` calls parser on port contents
+The `read` primitive integrates with the parser to read S-expressions from ports.
 
 ---
 
@@ -240,12 +233,13 @@ The lowerer has special handling for `define-test` and `test-group` that bypasse
 ## Milestone 8: Full Prelude Compatibility
 
 **Goal:** All prelude.ss functions work
+**Status:** Partial (Unicode aliases done)
 
 ### Features
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Unicode aliases | **Missing** | Parser: `λ`, `∧`, `∨`, `π` |
+| Unicode aliases | **Done** | Parser: `λ`, `∧`, `∨`, `¬`, `π`, `τ`, `φ`, `∞`, `≤`, `≥`, `≠`, `→` (10 tests) |
 | Result type | **Partial** | `ok?`, `error?`, `unwrap-ok` in prelude |
 | Monads | **Partial** | Maybe, Either work (pure Scheme) |
 | Format strings | **Partial** | Basic `~a`, `~s` work |
@@ -284,13 +278,19 @@ Based on dependencies and unblocking value:
 
 ## Quick Wins
 
-These can be implemented quickly and provide immediate value:
+Status of quick wins:
 
-1. **Verify set-car!/set-cdr!** - Listed in builtins, may already work
-2. **Add `exit` primitive** - Simple process exit
-3. **Unicode symbol aliases in parser** - λ = lambda, etc.
-4. **Basic hashtable** - Enables many patterns
-5. **letrec desugaring** - Transform to fix + mutation
+1. ~~**Verify set-car!/set-cdr!**~~ - ❌ NOT implemented (pairs are immutable `Box<Value>`)
+2. **Add `exit` primitive** - Still missing
+3. ~~**Unicode symbol aliases in parser**~~ - ✅ Done (12 aliases, 10 tests)
+4. ~~**Basic hashtable**~~ - ✅ Done (11 primitives, 13 tests)
+5. ~~**letrec desugaring**~~ - ✅ Done (13 tests)
+
+### Remaining Quick Wins
+
+1. **Add `exit` primitive** - Simple process exit with status code
+2. **Bytevector mutation** - Change from `Vec<u8>` to `Rc<RefCell<Vec<u8>>>`
+3. **File ports** - Extend port system with file I/O
 
 ---
 
@@ -321,3 +321,74 @@ These can be implemented quickly and provide immediate value:
 - Chez Scheme documentation: https://cisco.github.io/ChezScheme/csug9.5/
 - R6RS standard: http://www.r6rs.org/
 - SRFI documents for specific features
+
+---
+
+## Implementation Patterns & Lessons Learned
+
+### Architecture: lower_expr vs lower_program
+
+The lowering system has two entry points with different semantics:
+
+- **`lower_expr()`**: Lowers a single S-expression to SpannedExpr. Returns one expression.
+- **`lower_program()`**: Lowers multiple top-level forms, handling `define` and `define-record-type` specially by collecting bindings and wrapping the body in nested `let`s.
+
+**Key insight**: When a special form like `define-record-type` generates multiple bindings, it needs integration with `lower_program` to work at top-level. The pattern is:
+
+1. Create an `extract_*_bindings()` helper that returns `Vec<(Symbol, SpannedExpr)>`
+2. Modify `lower_program` to recognize the form and call the helper
+3. Keep `lower_*()` for expression-context usage (wraps bindings in nested lets)
+
+### Testing Multi-Expression Programs
+
+For tests with multiple top-level forms (like define followed by usage):
+
+```rust
+use fold_rs::tools::{format_value, lower_program, parse_fold_program};
+
+fn eval(input: &str) -> String {
+    let exprs = parse_fold_program(input, None).expect("parse failed");
+    let lowered = lower_program(&exprs).expect("lower failed");
+    let env = Env::new();
+
+    let mut last_result = String::from("()");
+    for expr in lowered {
+        match eval_spanned(expr, env.clone(), 100000) {
+            Ok(EvalOutcome::Done(value)) => last_result = format_value(&value),
+            // ... error handling
+        }
+    }
+    last_result
+}
+```
+
+**Common mistake**: Using `parse_fold_expr` which only parses the first expression, silently ignoring the rest.
+
+### Output Formatting
+
+- **`format_value()`**: Pretty prints values in Scheme syntax (`#t`, `#f`, `(1 2 3)`)
+- **`Debug` format**: Rust-style output (`Bool(true)`, `Pair(Number(1), ...)`)
+
+Use `format_value` for test assertions that compare against expected Scheme output.
+
+### Known Limitations
+
+| Feature | Issue | Workaround |
+|---------|-------|------------|
+| `set-car!`/`set-cdr!` | Listed in builtins but returns UnknownPrimitive | Pairs use `Box<Value>` (immutable). Would need `Rc<RefCell<>>` |
+| Pair mutation | Pairs are structurally immutable | Use vectors or hashtables for mutable collections |
+| Bytevector mutation | `bv-make` creates immutable bytevector | Would need `Rc<RefCell<Vec<u8>>>` |
+
+### Test Count Summary
+
+| Test File | Count | Feature |
+|-----------|-------|---------|
+| `tests/records.rs` | 14 | define-record-type |
+| `tests/hashtable.rs` | 13 | Hashtable operations |
+| `tests/string_ports.rs` | 9 | String port I/O |
+| `tests/read.rs` | 8 | read primitive |
+| `tests/exception.rs` | 13 | guard/conditions |
+| `tests/set_mutation.rs` | 9 | set! variable mutation |
+| `tests/letrec.rs` | 13 | letrec mutual recursion |
+| `tests/unicode_aliases.rs` | 10 | Unicode symbol aliases |
+| **Total new tests** | **89+** | |
