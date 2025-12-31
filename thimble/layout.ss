@@ -369,3 +369,140 @@
                                                    (canvas-set (canvas-set canvas ox y vt)
                                                                right y vt))))])
                            canvas))))))
+
+;;; ============================================================
+;;; Text Flow (Wrapping, Alignment, Text Blocks)
+;;; ============================================================
+
+;;; --- Word Splitting ---
+
+;;; split-words : String → (List String)
+;;; Split string into words (by spaces).
+(define (split-words str)
+  (let loop ([chars (string->list str)]
+             [current '()]
+             [words '()])
+       (cond
+        [(null? chars)
+         (reverse (if (null? current)
+                      words
+                      (cons (list->string (reverse current)) words)))]
+        [(char=? (car chars) #\space)
+         (if (null? current)
+             (loop (cdr chars) '() words)
+             (loop (cdr chars) '()
+                   (cons (list->string (reverse current)) words)))]
+        [else
+         (loop (cdr chars) (cons (car chars) current) words)])))
+
+;;; --- Text Wrapping ---
+
+;;; wrap-text : String × Nat → (List String)
+;;; Break text at word boundaries to fit within given width.
+;;; Words longer than width are not broken (placed on own line).
+(define (wrap-text text width)
+  (if (<= width 0)
+      '()
+      (let ([words (split-words text)])
+           (if (null? words)
+               '("")
+               (let loop ([words words]
+                          [current-line ""]
+                          [lines '()])
+                    (if (null? words)
+                        (reverse (if (string=? current-line "")
+                                     lines
+                                     (cons current-line lines)))
+                        (let* ([word (car words)]
+                               [word-len (string-length word)]
+                               [line-len (string-length current-line)]
+                               [would-be (if (= line-len 0)
+                                             word-len
+                                             (+ line-len 1 word-len))])
+                              (cond
+                               ;; Empty line, just add word (even if too long)
+                               [(= line-len 0)
+                                (loop (cdr words) word lines)]
+                               ;; Fits on current line
+                               [(<= would-be width)
+                                (loop (cdr words)
+                                      (string-append current-line " " word)
+                                      lines)]
+                               ;; Doesn't fit, start new line
+                               [else
+                                (loop (cdr words)
+                                      word
+                                      (cons current-line lines))]))))))))
+
+;;; --- Text Alignment ---
+
+;;; align-left : String × Nat → String
+;;; Left-align string, pad with spaces to reach width.
+(define (align-left str width)
+  (let ([len (string-length str)])
+       (if (>= len width)
+           (substring str 0 width)  ; Truncate if too long
+           (string-append str (make-string (- width len) #\space)))))
+
+;;; align-right : String × Nat → String
+;;; Right-align string, pad with spaces on left.
+(define (align-right str width)
+  (let ([len (string-length str)])
+       (if (>= len width)
+           (substring str 0 width)
+           (string-append (make-string (- width len) #\space) str))))
+
+;;; align-center : String × Nat → String
+;;; Center string, pad with spaces on both sides.
+(define (align-center str width)
+  (let* ([len (string-length str)]
+         [total-pad (- width len)])
+        (if (<= total-pad 0)
+            (substring str 0 width)
+            (let* ([left-pad (quotient total-pad 2)]
+                   [right-pad (- total-pad left-pad)])
+                  (string-append (make-string left-pad #\space)
+                                 str
+                                 (make-string right-pad #\space))))))
+
+;;; --- Drawing Helpers ---
+
+;;; draw-lines : Canvas × Point × (List String) → Canvas
+;;; Draw multiple lines vertically, one per row starting at point.
+(define (draw-lines c pt lines)
+  (let ([x (point-x pt)]
+        [y (point-y pt)])
+       (let loop ([lines lines] [row 0] [canvas c])
+            (if (null? lines)
+                canvas
+                (loop (cdr lines)
+                      (+ row 1)
+                      (draw-string canvas (point x (+ y row)) (car lines)))))))
+
+;;; draw-text-block : Canvas × Rect × String × Symbol → Canvas
+;;; Draw wrapped and aligned text within a rectangle.
+;;; Alignment can be: 'left, 'right, 'center
+(define (draw-text-block c rect text alignment)
+  (let* ([ox (point-x (rect-origin rect))]
+         [oy (point-y (rect-origin rect))]
+         [w (rect-width rect)]
+         [h (rect-height rect)]
+         [lines (wrap-text text w)]
+         [align-fn (case alignment
+                         [(left) align-left]
+                         [(right) align-right]
+                         [(center) align-center]
+                         [else align-left])]
+         [aligned-lines (map (lambda (line) (align-fn line w)) lines)])
+        ;; Only draw as many lines as fit in rect height
+        (let loop ([lines aligned-lines] [row 0] [canvas c])
+             (if (or (null? lines) (>= row h))
+                 canvas
+                 (loop (cdr lines)
+                       (+ row 1)
+                       (draw-string canvas (point ox (+ oy row)) (car lines)))))))
+
+;;; draw-text-wrapped : Canvas × Point × String × Nat → Canvas
+;;; Simple wrapped text drawing without alignment (left-aligned).
+(define (draw-text-wrapped c pt text width)
+  (draw-lines c pt (wrap-text text width)))
