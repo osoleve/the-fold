@@ -8,6 +8,11 @@ use crate::fabric::{
 };
 use crate::thimble::apply_prim;
 use crate::tools::Span;
+use smallvec::SmallVec;
+
+/// SmallVec for evaluated values - inline storage for up to 4 elements
+/// to avoid heap allocation for common function calls and let bindings.
+type ValueVec = SmallVec<[Value; 4]>;
 
 #[derive(Debug, Clone)]
 pub enum EvalOutcome {
@@ -26,7 +31,7 @@ enum Frame {
     Let {
         bindings: Vec<(Symbol, SpannedExpr)>,
         index: usize,
-        values: Vec<Value>,
+        values: ValueVec,
         body: SpannedExpr,
         env: EnvRef,
         span: Option<Span>,
@@ -40,7 +45,7 @@ enum Frame {
         func: Value,
         args: Vec<SpannedExpr>,
         index: usize,
-        values: Vec<Value>,
+        values: ValueVec,
         env: EnvRef,
         span: Option<Span>,
     },
@@ -48,7 +53,7 @@ enum Frame {
         op: Symbol,
         args: Vec<SpannedExpr>,
         index: usize,
-        values: Vec<Value>,
+        values: ValueVec,
         env: EnvRef,
         span: Option<Span>,
     },
@@ -286,7 +291,7 @@ pub fn eval_spanned(
                     frames.push(Frame::Let {
                         bindings,
                         index: 0,
-                        values: Vec::new(),
+                        values: SmallVec::new(),
                         body: *body,
                         env: env.clone(),
                         span: current_span,
@@ -319,7 +324,7 @@ pub fn eval_spanned(
                         op,
                         args,
                         index: 0,
-                        values: Vec::new(),
+                        values: SmallVec::new(),
                         env: env.clone(),
                         span: current_span,
                     });
@@ -441,7 +446,7 @@ fn unwind(
             } => {
                 let func = value;
                 if args.is_empty() {
-                    let (next_expr, next_env) = apply_closure(func, Vec::new(), frame_span)?;
+                    let (next_expr, next_env) = apply_closure(func, SmallVec::new(), frame_span)?;
                     *env = next_env;
                     return Ok(Unwind::Continue(next_expr));
                 }
@@ -451,7 +456,7 @@ fn unwind(
                     func,
                     args,
                     index: 0,
-                    values: Vec::new(),
+                    values: SmallVec::new(),
                     env: frame_env,
                     span,
                 });
@@ -527,7 +532,7 @@ fn unwind(
 /// Returns the next expression to evaluate and the environment to use.
 fn apply_closure(
     func: Value,
-    args: Vec<Value>,
+    args: ValueVec,
     span: Option<Span>,
 ) -> Result<(SpannedExpr, EnvRef), SpannedEvalError> {
     match func {
