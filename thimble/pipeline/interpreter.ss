@@ -1,0 +1,854 @@
+;;; thimble/pipeline/interpreter.ss — Pipeline Effect Interpreter
+;;;
+;;; This is the impure shell that executes pipeline effects.
+;;; Effects from fabric/stitches/pipeline/effects.ss are interpreted here.
+;;;
+;;; This is Shell code: handles IO, may fail, contains defensive logic.
+;;;
+;;; Features:
+;;;   - Effect interpretation (LLM, shell, Fold, HTTP, etc.)
+;;;   - State management during execution
+;;;   - Logging and metrics collection
+;;;   - Checkpoint persistence
+;;;   - Error recovery
+;;;
+;;; Dependencies:
+;;;   - fabric/stitches/pipeline/stage.ss
+;;;   - fabric/stitches/pipeline/effects.ss
+;;;   - fabric/stitches/pipeline/context.ss
+;;;   - thimble/fs.ss (for file operations)
+
+(load "fabric/stitches/pipeline/stage.ss")
+(load "fabric/stitches/pipeline/effects.ss")
+(load "fabric/stitches/pipeline/context.ss")
+
+;;; ============================================================
+;;; Interpreter State
+;;; ============================================================
+
+;;; Current session for Fold IPC
+(define *pipeline-session* (make-parameter "pipeline"))
+
+;;; ============================================================
+;;; Main Interpreter Entry Point
+;;; ============================================================
+
+;;; run-pipeline : PipelineDef -> Any -> (StageResult . PipelineState)
+;;; Execute a pipeline with input, return result and final state.
+(define (run-pipeline pipeline-def input)
+  (let* ([stage (pipeline-def-stage pipeline-def)]
+         [config (pipeline-def-config pipeline-def)]
+         [ctx (build-context-from-config config)]
+         [state empty-state])
+        (interpret-pipeline stage ctx state input)))
+
+;;; run-pipeline-with-context : Stage -> PipelineContext -> Any -> (StageResult . PipelineState)
+;;; Execute pipeline with provided context.
+(define (run-pipeline-with-context stage ctx input)
+  (interpret-pipeline stage ctx empty-state input))
+
+;;; ============================================================
+;;; Pipeline Interpretation Loop
+;;; ============================================================
+
+;;; interpret-pipeline : Stage -> Context -> State -> Input -> (Result . State)
+(define (interpret-pipeline stage ctx state input)
+  (let ([result (run-stage stage ctx input)])
+       (interpret-result result ctx state input)))
+
+;;; interpret-result : StageResult|Effect -> Context -> State -> Input -> (Result . State)
+(define (interpret-result result ctx state input)
+  (cond
+   ;; Pure StageResult - return as-is
+   [(stage-result? result)
+    (cons result state)]
+   
+   ;; Stage effect - interpret it
+   [(stage-effect? result)
+    (interpret-effect result ctx state)]
+   
+   ;; Council effect - special handling
+   [(council-effect? result)
+    (interpret-council-effect result ctx state)]
+   
+   ;; Race effect - parallel execution
+   [(and (pair? result) (eq? (car result) 'race-effect))
+    (interpret-race-effect result ctx state)]
+   
+   ;; Unknown - wrap as error
+   [else
+    (cons (stage-err 'unknown-result
+                     "Unrecognized result type"
+                     result)
+          state)]))
+
+;;; ============================================================
+;;; Effect Interpretation
+;;; ============================================================
+
+;;; interpret-effect : Effect -> Context -> State -> (Result . State)
+(define (interpret-effect effect ctx state)
+  (let ([type (stage-effect-type effect)]
+        [payload (stage-effect-payload effect)]
+        [input (stage-effect-input effect)])
+       (case type
+             [(llm) (interpret-llm-effect payload ctx state input)]
+             [(fold) (interpret-fold-effect payload ctx state input)]
+             [(shell) (interpret-shell-effect payload ctx state input)]
+             [(store) (interpret-store-effect payload ctx state input)]
+             [(log) (interpret-log-effect payload ctx state input)]
+             [(checkpoint) (interpret-checkpoint-effect payload ctx state input)]
+             [(http) (interpret-http-effect payload ctx state input)]
+             [(await) (interpret-await-effect payload ctx state input)]
+             [(beads) (interpret-beads-effect payload ctx state input)]
+             [(git) (interpret-git-effect payload ctx state input)]
+             [(pipeline) (interpret-pipeline-effect payload ctx state input)]
+             [else
+              (cons (stage-err 'unknown-effect
+                               (format "Unknown effect type: ~a" type)
+                               effect)
+                    state)])))
+
+;;; ============================================================
+;;; LLM Effect Interpretation
+;;; ============================================================
+
+;;; interpret-llm-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-llm-effect payload ctx state input)
+  (let ([op (car payload)]
+        [model (cadr payload)]
+        [prompt-template (caddr payload)])
+       (case op
+             [(call)
+              (let* ([prompt (expand-template-with-ctx prompt-template ctx input)]
+                     [system-prompt (get-system-prompt ctx)]
+                     [response (call-llm-api model system-prompt prompt)])
+                    (if (llm-response-ok? response)
+                        (let ([new-state (state-add-log state
+                                                        (make-log-entry 'debug
+                                                                        (format "LLM ~a called" model)
+                                                                        '()))])
+                             (cons (stage-ok (llm-response-text response)) new-state))
+                        (cons (stage-err 'llm-error
+                                         (llm-response-error response)
+                                         response)
+                              state)))]
+             [(call-with-system)
+              (let* ([system-prompt (caddr payload)]
+                     [user-prompt (cadddr payload)]
+                     [expanded-user (expand-template-with-ctx user-prompt ctx input)]
+                     [response (call-llm-api model system-prompt expanded-user)])
+                    (if (llm-response-ok? response)
+                        (cons (stage-ok (llm-response-text response)) state)
+                        (cons (stage-err 'llm-error
+                                         (llm-response-error response)
+                                         response)
+                              state)))]
+             [(call-json)
+              (let* ([prompt (expand-template-with-ctx prompt-template ctx input)]
+                     [system-prompt (string-append (get-system-prompt ctx)
+                                                   "\n\nRespond with valid JSON only.")]
+                     [response (call-llm-api model system-prompt prompt)])
+                    (if (llm-response-ok? response)
+                        (let ([parsed (parse-json-string (llm-response-text response))])
+                             (if parsed
+                                 (cons (stage-ok parsed) state)
+                                 (cons (stage-err 'json-parse-error
+                                                  "Failed to parse LLM response as JSON"
+                                                  (llm-response-text response))
+                                       state)))
+                        (cons (stage-err 'llm-error
+                                         (llm-response-error response)
+                                         response)
+                              state)))]
+             [else
+              (cons (stage-err 'unknown-llm-op
+                               (format "Unknown LLM operation: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Fold Effect Interpretation
+;;; ============================================================
+
+;;; interpret-fold-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-fold-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(eval)
+              (let* ([expr-template (cadr payload)]
+                     [expr (expand-template-with-ctx expr-template ctx input)]
+                     [result (fold-ipc-eval expr)])
+                    (if (fold-result-ok? result)
+                        (cons (stage-ok (fold-result-value result)) state)
+                        (cons (stage-err 'fold-error
+                                         (fold-result-error result)
+                                         result)
+                              state)))]
+             [(call)
+              (let* ([fn-name (cadr payload)]
+                     [args (caddr payload)]
+                     [expr (format "(~a ~a)" fn-name
+                                   (apply string-append
+                                          (map (lambda (a) (format " ~s" a)) args)))]
+                     [result (fold-ipc-eval expr)])
+                    (if (fold-result-ok? result)
+                        (cons (stage-ok (fold-result-value result)) state)
+                        (cons (stage-err 'fold-error
+                                         (fold-result-error result)
+                                         result)
+                              state)))]
+             [(load)
+              (let* ([path (cadr payload)]
+                     [result (fold-ipc-eval (format "(load ~s)" path))])
+                    (if (fold-result-ok? result)
+                        (cons (stage-ok '()) state)
+                        (cons (stage-err 'fold-load-error
+                                         (fold-result-error result)
+                                         result)
+                              state)))]
+             [(forum-post)
+              (let* ([channel (cadr payload)]
+                     [title (caddr payload)]
+                     [body (cadddr payload)]
+                     [expr (format "(msg '~a ~s ~s)" channel title body)]
+                     [result (fold-ipc-eval expr)])
+                    (if (fold-result-ok? result)
+                        (cons (stage-ok (fold-result-value result)) state)
+                        (cons (stage-err 'forum-error
+                                         (fold-result-error result)
+                                         result)
+                              state)))]
+             [else
+              (cons (stage-err 'unknown-fold-op
+                               (format "Unknown Fold operation: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Shell Effect Interpretation
+;;; ============================================================
+
+;;; interpret-shell-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-shell-effect payload ctx state input)
+  (let ([op (car payload)]
+        [cmd-template (cadr payload)])
+       (case op
+             [(run)
+              (let* ([cmd (expand-template-with-ctx cmd-template ctx input)]
+                     [result (shell-exec cmd)])
+                    (if (shell-result-ok? result)
+                        (let ([new-state (state-add-log state
+                                                        (make-log-entry 'debug
+                                                                        (format "Shell: ~a" cmd)
+                                                                        '()))])
+                             (cons (stage-ok (shell-result-stdout result)) new-state))
+                        (cons (stage-err 'shell-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(run-stdin)
+              (let* ([cmd (expand-template-with-ctx cmd-template ctx input)]
+                     [result (shell-exec-with-stdin cmd input)])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok (shell-result-stdout result)) state)
+                        (cons (stage-err 'shell-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(run-env)
+              (let* ([env-vars (cadr payload)]
+                     [cmd (expand-template-with-ctx (caddr payload) ctx input)]
+                     [result (shell-exec-with-env env-vars cmd)])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok (shell-result-stdout result)) state)
+                        (cons (stage-err 'shell-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [else
+              (cons (stage-err 'unknown-shell-op
+                               (format "Unknown shell operation: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Log Effect Interpretation
+;;; ============================================================
+
+;;; interpret-log-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-log-effect payload ctx state input)
+  (let ([level (car payload)]
+        [message (cadr payload)])
+       (let* ([expanded (expand-template-with-ctx message ctx input)]
+              [entry (make-log-entry level expanded input)]
+              [new-state (state-add-log state entry)])
+             ;; Also write to pipeline log file
+             (write-pipeline-log entry)
+             (cons (stage-ok input) new-state))))
+
+;;; ============================================================
+;;; Checkpoint Effect Interpretation
+;;; ============================================================
+
+;;; interpret-checkpoint-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-checkpoint-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(save)
+              (let* ([name (cadr payload)]
+                     [new-state (state-set-checkpoint state name input)]
+                     [run-id (ctx-run-id ctx)])
+                    ;; Persist to CAS
+                    (when run-id
+                          (persist-checkpoint run-id name input))
+                    (cons (stage-ok input) new-state))]
+             [(save-value)
+              (let* ([name (cadr payload)]
+                     [value (caddr payload)]
+                     [new-state (state-set-checkpoint state name value)])
+                    (cons (stage-ok input) new-state))]
+             [(restore)
+              (let* ([name (cadr payload)]
+                     [value (state-get-checkpoint state name)])
+                    (if value
+                        (cons (stage-ok value) state)
+                        ;; Try loading from CAS
+                        (let ([run-id (ctx-run-id ctx)])
+                             (if run-id
+                                 (let ([persisted (load-checkpoint run-id name)])
+                                      (if persisted
+                                          (cons (stage-ok persisted) state)
+                                          (cons (stage-err 'checkpoint-not-found
+                                                           (format "No checkpoint: ~a" name)
+                                                           name)
+                                                state)))
+                                 (cons (stage-err 'checkpoint-not-found
+                                                  (format "No checkpoint: ~a" name)
+                                                  name)
+                                       state)))))]
+             [(exists)
+              (let* ([name (cadr payload)]
+                     [value (state-get-checkpoint state name)])
+                    (cons (stage-ok (if value #t #f)) state))]
+             [(clear)
+              (let* ([name (cadr payload)]
+                     [new-state (state-set-checkpoint state name #f)])
+                    (cons (stage-ok '()) new-state))]
+             [else
+              (cons (stage-err 'unknown-checkpoint-op
+                               (format "Unknown checkpoint op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; HTTP Effect Interpretation
+;;; ============================================================
+
+;;; interpret-http-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-http-effect payload ctx state input)
+  (let ([op (car payload)]
+        [url-template (cadr payload)])
+       (case op
+             [(get)
+              (let* ([url (expand-template-with-ctx url-template ctx input)]
+                     [result (http-fetch-get url)])
+                    (if (http-result-ok? result)
+                        (cons (stage-ok (http-result-body result)) state)
+                        (cons (stage-err 'http-error
+                                         (http-result-error result)
+                                         result)
+                              state)))]
+             [(get-json)
+              (let* ([url (expand-template-with-ctx url-template ctx input)]
+                     [result (http-fetch-get url)])
+                    (if (http-result-ok? result)
+                        (let ([parsed (parse-json-string (http-result-body result))])
+                             (if parsed
+                                 (cons (stage-ok parsed) state)
+                                 (cons (stage-err 'json-parse-error
+                                                  "Failed to parse HTTP response as JSON"
+                                                  (http-result-body result))
+                                       state)))
+                        (cons (stage-err 'http-error
+                                         (http-result-error result)
+                                         result)
+                              state)))]
+             [else
+              (cons (stage-err 'unknown-http-op
+                               (format "Unknown HTTP op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Beads Effect Interpretation
+;;; ============================================================
+
+;;; interpret-beads-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-beads-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(create)
+              (let* ([title (cadr payload)]
+                     [result (shell-exec (format "bd create ~s" title))])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok (shell-result-stdout result)) state)
+                        (cons (stage-err 'beads-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(create-full)
+              (let* ([title (cadr payload)]
+                     [description (caddr payload)]
+                     [type (cadddr payload)]
+                     [priority (list-ref payload 4)]
+                     [cmd (format "bd create ~s -d ~s -t ~a -p ~a"
+                                  title description type priority)]
+                     [result (shell-exec cmd)])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok (shell-result-stdout result)) state)
+                        (cons (stage-err 'beads-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(close)
+              (let* ([id (cadr payload)]
+                     [result (shell-exec (format "bd close ~a" id))])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok '()) state)
+                        (cons (stage-err 'beads-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(ready)
+              (let ([result (shell-exec "bd ready --json")])
+                   (if (shell-result-ok? result)
+                       (let ([parsed (parse-json-string (shell-result-stdout result))])
+                            (cons (stage-ok (or parsed '())) state))
+                       (cons (stage-err 'beads-error
+                                        (shell-result-stderr result)
+                                        result)
+                             state)))]
+             [else
+              (cons (stage-err 'unknown-beads-op
+                               (format "Unknown beads op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Git Effect Interpretation
+;;; ============================================================
+
+;;; interpret-git-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-git-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(status)
+              (let ([result (shell-exec "git status --porcelain")])
+                   (if (shell-result-ok? result)
+                       (cons (stage-ok (shell-result-stdout result)) state)
+                       (cons (stage-err 'git-error
+                                        (shell-result-stderr result)
+                                        result)
+                             state)))]
+             [(diff)
+              (let ([result (shell-exec "git diff")])
+                   (if (shell-result-ok? result)
+                       (cons (stage-ok (shell-result-stdout result)) state)
+                       (cons (stage-err 'git-error
+                                        (shell-result-stderr result)
+                                        result)
+                             state)))]
+             [(commit)
+              (let* ([message (cadr payload)]
+                     [result (shell-exec (format "git add -A && git commit -m ~s" message))])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok (shell-result-stdout result)) state)
+                        (cons (stage-err 'git-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(push)
+              (let ([result (shell-exec "git push")])
+                   (if (shell-result-ok? result)
+                       (cons (stage-ok '()) state)
+                       (cons (stage-err 'git-error
+                                        (shell-result-stderr result)
+                                        result)
+                             state)))]
+             [else
+              (cons (stage-err 'unknown-git-op
+                               (format "Unknown git op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Pipeline Effect Interpretation (Nesting)
+;;; ============================================================
+
+;;; interpret-pipeline-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-pipeline-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(invoke)
+              (let* ([pipeline (cadr payload)]
+                     ;; Inherit fuel from parent, minus some for the invocation
+                     [child-fuel (max 0 (- (ctx-fuel ctx) 100))]
+                     [child-ctx (ctx-with-fuel ctx child-fuel)]
+                     [result (interpret-pipeline pipeline child-ctx empty-state input)])
+                    ;; Merge child state into parent
+                    (let ([child-result (car result)]
+                          [child-state (cdr result)])
+                         (cons child-result
+                               (merge-states state child-state))))]
+             [(invoke-fuel)
+              (let* ([fuel (cadr payload)]
+                     [pipeline (caddr payload)]
+                     [child-ctx (ctx-with-fuel ctx fuel)]
+                     [result (interpret-pipeline pipeline child-ctx empty-state input)])
+                    (cons (car result)
+                          (merge-states state (cdr result))))]
+             [(spawn)
+              ;; Async execution - return job ID
+              (let* ([pipeline (cadr payload)]
+                     [job-id (generate-job-id)])
+                    ;; Queue the pipeline for background execution
+                    (queue-pipeline-job job-id pipeline ctx input)
+                    (cons (stage-ok job-id) state))]
+             [(await)
+              (let* ([job-id (cadr payload)]
+                     [result (await-pipeline-job job-id)])
+                    (if result
+                        (cons (stage-ok result) state)
+                        (cons (stage-err 'pipeline-timeout
+                                         "Timed out waiting for pipeline"
+                                         job-id)
+                              state)))]
+             [else
+              (cons (stage-err 'unknown-pipeline-op
+                               (format "Unknown pipeline op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Council Effect Interpretation
+;;; ============================================================
+
+;;; interpret-council-effect : CouncilEffect -> Context -> State -> (Result . State)
+(define (interpret-council-effect effect ctx state)
+  (let ([mode (council-effect-mode effect)]
+        [config (council-effect-config effect)]
+        [topic (council-effect-topic effect)])
+       (case mode
+             [(sequential) (run-sequential-council config topic ctx state)]
+             [(parallel) (run-parallel-council config topic ctx state)]
+             [(vote) (run-vote-council config topic ctx state)]
+             [(debate) (run-debate-council config topic ctx state)]
+             [(consensus) (run-consensus-council config topic ctx state)]
+             [else
+              (cons (stage-err 'unknown-council-mode
+                               (format "Unknown council mode: ~a" mode)
+                               effect)
+                    state)])))
+
+;;; run-sequential-council : Config -> Topic -> Context -> State -> (Result . State)
+(define (run-sequential-council config topic ctx state)
+  (let ([models (council-models config)]
+        [rounds (council-rounds config)]
+        [moderator (council-moderator config)]
+        [round-prompts (council-round-prompts config)]
+        [synthesis-prompt (council-synthesis-prompt config)])
+       (let loop ([round 1]
+                  [history '()]
+                  [current-state state])
+            (if (> round rounds)
+                ;; All rounds complete, synthesize
+                (let ([synthesis-result
+                       (call-llm-api moderator
+                                     ""
+                                     (format "~a\n\nDiscussion:\n~a"
+                                             synthesis-prompt
+                                             (format-history history)))])
+                     (if (llm-response-ok? synthesis-result)
+                         (cons (stage-ok (make-council-result
+                                          history
+                                          (llm-response-text synthesis-result)
+                                          #f  ; consensus not checked
+                                          '()
+                                          '()
+                                          history))
+                               current-state)
+                         (cons (stage-err 'council-synthesis-failed
+                                          (llm-response-error synthesis-result)
+                                          synthesis-result)
+                               current-state)))
+                ;; Run this round
+                (let ([round-prompt (if (< round (length round-prompts))
+                                        (list-ref round-prompts (- round 1))
+                                        (car (reverse round-prompts)))])
+                     (let round-loop ([remaining-models models]
+                                      [round-responses '()]
+                                      [s current-state])
+                          (if (null? remaining-models)
+                              ;; Round complete
+                              (loop (+ round 1)
+                                    (append history (list (cons round (reverse round-responses))))
+                                    s)
+                              ;; Get response from next model
+                              (let* ([model (car remaining-models)]
+                                     [prompt (format "Topic: ~a\n\n~a\n\nPrior responses:\n~a"
+                                                     topic
+                                                     round-prompt
+                                                     (format-responses round-responses))]
+                                     [response (call-llm-api model "" prompt)])
+                                    (if (llm-response-ok? response)
+                                        (round-loop (cdr remaining-models)
+                                                    (cons (cons model (llm-response-text response))
+                                                          round-responses)
+                                                    s)
+                                        ;; Model failed, continue with others
+                                        (round-loop (cdr remaining-models)
+                                                    (cons (cons model "(no response)")
+                                                          round-responses)
+                                                    s))))))))))
+
+;;; run-parallel-council : Config -> Topic -> Context -> State -> (Result . State)
+(define (run-parallel-council config topic ctx state)
+  (let ([models (council-models config)]
+        [synthesizer (council-moderator config)]
+        [prompt (car (council-round-prompts config))]
+        [synthesis-prompt (council-synthesis-prompt config)])
+       ;; Get all responses in parallel (sequentially for now)
+       (let loop ([remaining models]
+                  [responses '()])
+            (if (null? remaining)
+                ;; All responses collected, synthesize
+                (let* ([full-prompt (format "~a\n\nPerspectives:\n~a"
+                                            synthesis-prompt
+                                            (format-responses (reverse responses)))]
+                       [synthesis (call-llm-api synthesizer "" full-prompt)])
+                      (if (llm-response-ok? synthesis)
+                          (cons (stage-ok (make-council-result
+                                           responses
+                                           (llm-response-text synthesis)
+                                           #f
+                                           '()
+                                           '()
+                                           (list responses)))
+                                state)
+                          (cons (stage-err 'council-synthesis-failed
+                                           (llm-response-error synthesis)
+                                           synthesis)
+                                state)))
+                ;; Get next response
+                (let* ([model (car remaining)]
+                       [full-prompt (format "~a\n\nTopic: ~a"
+                                            (expand-template prompt (list (cons 'topic topic)))
+                                            topic)]
+                       [response (call-llm-api model "" full-prompt)])
+                      (loop (cdr remaining)
+                            (cons (cons model
+                                        (if (llm-response-ok? response)
+                                            (llm-response-text response)
+                                            "(no response)"))
+                                  responses)))))))
+
+;;; Placeholder implementations for other council modes
+(define (run-vote-council config topic ctx state)
+  (run-parallel-council config topic ctx state))
+
+(define (run-debate-council config topic ctx state)
+  (run-sequential-council config topic ctx state))
+
+(define (run-consensus-council config topic ctx state)
+  (run-sequential-council config topic ctx state))
+
+;;; ============================================================
+;;; Helper Functions
+;;; ============================================================
+
+;;; expand-template-with-ctx : String -> Context -> Input -> String
+(define (expand-template-with-ctx template ctx input)
+  (let ([bindings (append (list (cons "input" input))
+                          (map (lambda (p) (cons (symbol->string (car p)) (cdr p)))
+                               (ctx-env ctx)))])
+       (expand-template template bindings)))
+
+;;; get-system-prompt : Context -> String
+(define (get-system-prompt ctx)
+  (let ([persona (ctx-persona ctx)])
+       (if persona
+           (persona-system-prompt persona)
+           "")))
+
+;;; build-context-from-config : Alist -> PipelineContext
+(define (build-context-from-config config)
+  (let ([fuel (or (assq-ref config 'fuel) 10000)]
+        [model (or (assq-ref config 'model) 'sonnet)])
+       (ctx-extend-env
+        (ctx-with-fuel empty-context fuel)
+        (list (cons 'default-model model)))))
+
+;;; assq-ref : Alist -> Symbol -> Any
+(define (assq-ref alist key)
+  (let ([entry (assq key alist)])
+       (if entry (cdr entry) #f)))
+
+;;; merge-states : State -> State -> State
+(define (merge-states parent child)
+  (make-pipeline-state
+   (append (state-log child) (state-log parent))
+   (append (state-artifacts child) (state-artifacts parent))
+   (append (state-checkpoints child) (state-checkpoints parent))
+   (append (state-metrics child) (state-metrics parent))
+   (state-cache parent)))  ; Don't merge cache
+
+;;; format-history : List (Round . List (Model . Response)) -> String
+(define (format-history history)
+  (apply string-append
+         (map (lambda (round-entry)
+                      (format "Round ~a:\n~a\n"
+                              (car round-entry)
+                              (format-responses (cdr round-entry))))
+              history)))
+
+;;; format-responses : List (Model . Response) -> String
+(define (format-responses responses)
+  (apply string-append
+         (map (lambda (r)
+                      (format "  ~a: ~a\n" (car r) (cdr r)))
+              responses)))
+
+;;; generate-job-id : -> String
+(define (generate-job-id)
+  (format "job-~a" (random 1000000)))
+
+;;; ============================================================
+;;; External API Stubs (to be implemented)
+;;; ============================================================
+
+;;; call-llm-api : Symbol -> String -> String -> LLMResponse
+(define (call-llm-api model system-prompt user-prompt)
+  ;; TODO: Integrate with actual LLM API
+  (list 'llm-response #t "Mock response" #f))
+
+(define (llm-response-ok? r) (list-ref r 1))
+(define (llm-response-text r) (list-ref r 2))
+(define (llm-response-error r) (list-ref r 3))
+
+;;; fold-ipc-eval : String -> FoldResult
+(define (fold-ipc-eval expr)
+  ;; TODO: Use actual Fold IPC
+  (list 'fold-result #t "mock-value" #f))
+
+(define (fold-result-ok? r) (list-ref r 1))
+(define (fold-result-value r) (list-ref r 2))
+(define (fold-result-error r) (list-ref r 3))
+
+;;; shell-exec : String -> ShellResult
+(define (shell-exec cmd)
+  ;; TODO: Implement actual shell execution
+  (list 'shell-result #t "" ""))
+
+(define (shell-exec-with-stdin cmd stdin)
+  (list 'shell-result #t "" ""))
+
+(define (shell-exec-with-env env cmd)
+  (list 'shell-result #t "" ""))
+
+(define (shell-result-ok? r) (list-ref r 1))
+(define (shell-result-stdout r) (list-ref r 2))
+(define (shell-result-stderr r) (list-ref r 3))
+
+;;; http-fetch-get : String -> HTTPResult
+(define (http-fetch-get url)
+  (list 'http-result #t "" #f))
+
+(define (http-result-ok? r) (list-ref r 1))
+(define (http-result-body r) (list-ref r 2))
+(define (http-result-error r) (list-ref r 3))
+
+;;; parse-json-string : String -> Any
+(define (parse-json-string s)
+  ;; TODO: Implement JSON parsing
+  '())
+
+;;; write-pipeline-log : LogEntry -> ()
+(define (write-pipeline-log entry)
+  ;; TODO: Write to log file
+  (void))
+
+;;; persist-checkpoint : RunId -> Name -> Value -> ()
+(define (persist-checkpoint run-id name value)
+  ;; TODO: Persist to CAS
+  (void))
+
+;;; load-checkpoint : RunId -> Name -> Any
+(define (load-checkpoint run-id name)
+  ;; TODO: Load from CAS
+  #f)
+
+;;; queue-pipeline-job : JobId -> Pipeline -> Context -> Input -> ()
+(define (queue-pipeline-job job-id pipeline ctx input)
+  ;; TODO: Queue for background execution
+  (void))
+
+;;; await-pipeline-job : JobId -> Any
+(define (await-pipeline-job job-id)
+  ;; TODO: Wait for job completion
+  #f)
+
+;;; interpret-await-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-await-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(timeout)
+              ;; Just pause execution
+              (let ([ms (cadr payload)])
+                   ;; TODO: Actually sleep
+                   (cons (stage-ok '()) state))]
+             [(forum-tag)
+              ;; TODO: Poll forum for tag
+              (cons (stage-await (cadr payload)) state)]
+             [(file)
+              ;; TODO: Wait for file
+              (cons (stage-await (list 'file (cadr payload))) state)]
+             [(signal)
+              (cons (stage-await (list 'signal (cadr payload))) state)]
+             [else
+              (cons (stage-err 'unknown-await-op
+                               (format "Unknown await op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; interpret-store-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-store-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(put)
+              ;; TODO: Store in CAS
+              (cons (stage-ok "mock-hash") state)]
+             [(get)
+              (let ([hash (cadr payload)])
+                   ;; TODO: Fetch from CAS
+                   (cons (stage-ok '()) state))]
+             [(has)
+              (let ([hash (cadr payload)])
+                   ;; TODO: Check CAS
+                   (cons (stage-ok #f) state))]
+             [(pin)
+              (cons (stage-ok '()) state)]
+             [else
+              (cons (stage-err 'unknown-store-op
+                               (format "Unknown store op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; interpret-race-effect : RaceEffect -> Context -> State -> (Result . State)
+(define (interpret-race-effect effect ctx state)
+  (let ([stages (list-ref effect 1)]
+        [input (list-ref effect 2)])
+       ;; For now, just run first stage
+       (if (null? stages)
+           (cons (stage-err 'race-empty "No stages to race" '()) state)
+           (interpret-pipeline (car stages) ctx state input))))
