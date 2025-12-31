@@ -84,4 +84,9 @@ pub enum Expr {
     Load {
         path: Box<SpannedExpr>,
     },
+    /// Define a variable in the current environment
+    Define {
+        name: Symbol,
+        value: Box<SpannedExpr>,
+    },
 }

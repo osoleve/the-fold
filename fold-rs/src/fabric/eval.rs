@@ -66,6 +66,12 @@ enum Frame {
         env: EnvRef,
         span: Option<Span>,
     },
+    /// Define a new binding in the environment
+    Define {
+        name: Symbol,
+        env: EnvRef,
+        span: Option<Span>,
+    },
 }
 
 impl Frame {
@@ -77,7 +83,8 @@ impl Frame {
             | Frame::CallArgs { env, .. }
             | Frame::PrimArgs { env, .. }
             | Frame::Case { env, .. }
-            | Frame::Load { env, .. } => env,
+            | Frame::Load { env, .. }
+            | Frame::Define { env, .. } => env,
         }
     }
 
@@ -89,7 +96,8 @@ impl Frame {
             | Frame::CallArgs { span, .. }
             | Frame::PrimArgs { span, .. }
             | Frame::Case { span, .. }
-            | Frame::Load { span, .. } => span.clone(),
+            | Frame::Load { span, .. }
+            | Frame::Define { span, .. } => span.clone(),
         }
     }
 
@@ -230,6 +238,13 @@ impl Frame {
                 }
                 result
             }
+            Frame::Define { name, span, .. } => SpannedExpr::new(
+                Expr::Define {
+                    name: name.clone(),
+                    value: Box::new(current),
+                },
+                span.clone(),
+            ),
         }
     }
 }
@@ -401,6 +416,16 @@ pub fn eval_spanned(
                 // First evaluate the path expression
                 expr = *path;
             }
+            Expr::Define { name, value } => {
+                // Push a frame to handle the result of evaluating value
+                frames.push(Frame::Define {
+                    name,
+                    env: env.clone(),
+                    span: current_span,
+                });
+                // Evaluate the value expression
+                expr = *value;
+            }
         }
     }
 }
@@ -454,14 +479,29 @@ fn unwind(
             } => {
                 values.push(value);
                 if index + 1 < bindings.len() {
-                    *env = frame_env.clone();
+                    // Build environment with all bindings collected so far.
+                    // We use frame_env as the parent (not current env) because current env
+                    // may be polluted by function calls (closures capture their
+                    // definition-time env, not the let*'s accumulated env).
+                    //
+                    // However, we also need to preserve any `define` bindings that were
+                    // added during evaluation. Defines use Env::insert to mutate in place,
+                    // so they're visible via frame_env's bindings map.
+                    let accumulated: Vec<_> = bindings
+                        .iter()
+                        .take(index + 1)
+                        .map(|(name, _)| name.clone())
+                        .zip(values.iter().cloned())
+                        .collect();
+                    let next_env = Env::extend(frame_env.clone(), accumulated);
+                    *env = next_env.clone();
                     let next_expr = bindings[index + 1].1.clone();
                     frames.push(Frame::Let {
                         bindings,
                         index: index + 1,
                         values,
                         body,
-                        env: frame_env.clone(),
+                        env: next_env, // Use next_env so defines are preserved
                         span,
                     });
                     return Ok(Unwind::Continue(next_expr));
@@ -472,6 +512,7 @@ fn unwind(
                     new_bindings.push((name, values[i].clone()));
                 }
 
+                // Extend frame_env with all bindings for the body
                 *env = Env::extend(frame_env, new_bindings);
                 return Ok(Unwind::Continue(body));
             }
@@ -597,30 +638,46 @@ fn unwind(
                         remaining = exprs.collect();
 
                         if !remaining.is_empty() {
+                            // Use current env (which may have been modified by defines)
                             frames.push(Frame::Load {
                                 remaining,
-                                env: frame_env.clone(),
+                                env: env.clone(),
                                 span,
                             });
                         }
-                        *env = frame_env;
+                        // Don't override env - keep any defines that were made
                         return Ok(Unwind::Continue(first));
                     }
                 } else {
                     // We just finished evaluating one expression from the file
-                    // Continue with the next expression
+                    // Continue with the next expression, using current env
+                    // (which may have been modified by defines in the file)
                     let next_expr = remaining.remove(0);
 
                     if !remaining.is_empty() {
+                        // Use current env for remaining expressions
                         frames.push(Frame::Load {
                             remaining,
-                            env: frame_env.clone(),
+                            env: env.clone(),
                             span,
                         });
                     }
-                    *env = frame_env;
+                    // Don't restore frame_env - keep current env with any defines
+                    let _ = frame_env; // silence unused warning
                     return Ok(Unwind::Continue(next_expr));
                 }
+            }
+            Frame::Define {
+                name,
+                env: frame_env,
+                ..
+            } => {
+                // Mutate the environment in place so the binding is visible
+                // through the parent chain of any environment that references frame_env
+                Env::insert(&frame_env, name, value.clone());
+                // Keep current env pointing to frame_env
+                *env = frame_env;
+                // Return the value (like Scheme's define which returns void, but we return the value)
             }
         }
     }

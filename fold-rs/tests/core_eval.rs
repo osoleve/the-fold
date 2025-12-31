@@ -103,3 +103,104 @@ fn case_matches_block() {
     let out = eval_loop(expr, env, 10).unwrap();
     assert!(matches!(out, EvalOutcome::Done(Value::Address(_))));
 }
+
+/// Test that define inside a let binding propagates to subsequent bindings and body.
+/// This is essential for (load ...) to work correctly.
+#[test]
+fn define_inside_let_propagates() {
+    let env = Env::new();
+    // (let ([_dummy (define y 42)])
+    //   y)
+    // Should evaluate to 42
+    let expr = Expr::Let {
+        bindings: vec![(
+            sym("_dummy"),
+            spanned(Expr::Define {
+                name: sym("y"),
+                value: Box::new(spanned(Expr::Value(Value::Number(42)))),
+            }),
+        )],
+        body: Box::new(spanned(Expr::Var(sym("y")))),
+    };
+
+    let out = eval_loop(expr, env, 100).unwrap();
+    assert!(
+        matches!(out, EvalOutcome::Done(Value::Number(42))),
+        "Expected 42, got {:?}",
+        out
+    );
+}
+
+/// Test that multiple defines inside let bindings accumulate.
+#[test]
+fn multiple_defines_in_let_accumulate() {
+    let env = Env::new();
+    // (let ([_d1 (define x 10)]
+    //       [_d2 (define y 20)])
+    //   (+ x y))
+    let expr = Expr::Let {
+        bindings: vec![
+            (
+                sym("_d1"),
+                spanned(Expr::Define {
+                    name: sym("x"),
+                    value: Box::new(spanned(Expr::Value(Value::Number(10)))),
+                }),
+            ),
+            (
+                sym("_d2"),
+                spanned(Expr::Define {
+                    name: sym("y"),
+                    value: Box::new(spanned(Expr::Value(Value::Number(20)))),
+                }),
+            ),
+        ],
+        body: Box::new(spanned(Expr::Prim {
+            op: sym("add"),
+            args: vec![spanned(Expr::Var(sym("x"))), spanned(Expr::Var(sym("y")))],
+        })),
+    };
+
+    let out = eval_loop(expr, env, 100).unwrap();
+    assert!(
+        matches!(out, EvalOutcome::Done(Value::Number(30))),
+        "Expected 30, got {:?}",
+        out
+    );
+}
+
+/// Test let* style nested lets where later bindings use earlier ones.
+#[test]
+fn nested_let_uses_earlier_bindings() {
+    let env = Env::new();
+    // (let ((a 10))
+    //   (let ((b (+ a 5)))
+    //     (+ a b)))
+    // Simulates let* lowering
+    let expr = Expr::Let {
+        bindings: vec![(sym("a"), spanned(Expr::Value(Value::Number(10))))],
+        body: Box::new(spanned(Expr::Let {
+            bindings: vec![(
+                sym("b"),
+                spanned(Expr::Prim {
+                    op: sym("add"),
+                    args: vec![
+                        spanned(Expr::Var(sym("a"))),
+                        spanned(Expr::Value(Value::Number(5))),
+                    ],
+                }),
+            )],
+            body: Box::new(spanned(Expr::Prim {
+                op: sym("add"),
+                args: vec![spanned(Expr::Var(sym("a"))), spanned(Expr::Var(sym("b")))],
+            })),
+        })),
+    };
+
+    let out = eval_loop(expr, env, 100).unwrap();
+    assert!(
+        matches!(out, EvalOutcome::Done(Value::Number(25))),
+        "Expected 25, got {:?}",
+        out
+    );
+}
