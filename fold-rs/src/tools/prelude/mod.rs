@@ -51,6 +51,11 @@ const STRING_CORE: &str = include_str!("string-core.ss");
 const STRING_FORMAT: &str = include_str!("string-format.ss");
 const STRING_SEARCH: &str = include_str!("string-search.ss");
 const CHAR: &str = include_str!("char.ss");
+const FUNCTION_EXT: &str = include_str!("function-ext.ss");
+const LIST_UTIL: &str = include_str!("list-util.ss");
+const NUMERIC_UTIL: &str = include_str!("numeric-util.ss");
+const TREE_UTIL: &str = include_str!("tree-util.ss");
+const CONTROL_FLOW: &str = include_str!("control-flow.ss");
 const COLLECTION: &str = include_str!("collection.ss"); // Marker file
 const COLLECTION_ALIST: &str = include_str!("collection-alist.ss");
 const COLLECTION_DICT: &str = include_str!("collection-dict.ss");
@@ -143,6 +148,16 @@ fn assemble_prelude() -> String {
     source.push_str(STRING_SEARCH);
     source.push('\n');
     source.push_str(CHAR);
+    source.push('\n');
+    source.push_str(FUNCTION_EXT);
+    source.push('\n');
+    source.push_str(LIST_UTIL);
+    source.push('\n');
+    source.push_str(NUMERIC_UTIL);
+    source.push('\n');
+    source.push_str(TREE_UTIL);
+    source.push('\n');
+    source.push_str(CONTROL_FLOW);
     source.push('\n');
     // Collection module with submodules
     source.push_str(COLLECTION); // Marker comment
