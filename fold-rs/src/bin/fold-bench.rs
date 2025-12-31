@@ -49,7 +49,11 @@ fn main() {
 
     println!("--- Tier 1 (Cost 1) - O(1) trivial ---");
     bench_prim("number?", &[Value::Number(42)], iterations);
-    bench_prim("symbol?", &[Value::Symbol(Symbol::intern("foo"))], iterations);
+    bench_prim(
+        "symbol?",
+        &[Value::Symbol(Symbol::intern("foo"))],
+        iterations,
+    );
     bench_prim("null?", &[Value::Nil], iterations);
     bench_prim(
         "pair?",
@@ -217,10 +221,7 @@ fn main() {
         iterations,
     );
     let block_bytes_sym = Symbol::intern("block->bytes");
-    let block_bytes = match apply_prim(
-        &block_bytes_sym,
-        std::slice::from_ref(&test_block),
-    ) {
+    let block_bytes = match apply_prim(&block_bytes_sym, std::slice::from_ref(&test_block)) {
         Ok(Value::Bytevector(bytes)) => Value::Bytevector(bytes),
         Ok(_) => panic!("block->bytes did not return bytevector"),
         Err(err) => panic!("block->bytes failed: {err:?}"),

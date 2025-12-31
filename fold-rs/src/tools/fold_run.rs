@@ -1,7 +1,9 @@
 use std::fmt;
 use std::path::Path;
 
-use crate::fabric::{EvalOutcome, Expr, SpannedEvalError, SpannedExpr, Symbol, Value, eval_spanned};
+use crate::fabric::{
+    EvalOutcome, Expr, SpannedEvalError, SpannedExpr, Symbol, Value, eval_spanned,
+};
 use crate::tools::fold_load::{LoadError, load_fold_program};
 use crate::tools::prelude::prelude_env;
 
@@ -54,7 +56,7 @@ fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
     for expr in exprs {
         match &expr.expr {
             Expr::Define { name, value } => {
-                bindings.push((name.clone(), (**value).clone()));
+                bindings.push((*name, (**value).clone()));
             }
             Expr::Load { .. } => {
                 // Load expressions need special handling - their defines should propagate
@@ -72,7 +74,7 @@ fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
         if bindings.is_empty() {
             SpannedExpr::unspanned(Expr::Value(Value::Nil))
         } else {
-            let last_name = bindings.last().unwrap().0.clone();
+            let last_name = bindings.last().unwrap().0;
             SpannedExpr::unspanned(Expr::Var(last_name))
         }
     } else if body_exprs.len() == 1 {

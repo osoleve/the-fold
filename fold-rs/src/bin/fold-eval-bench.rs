@@ -79,12 +79,7 @@ fn main() {
     );
 
     // Variable lookup
-    bench_eval(
-        "let binding (1 var)",
-        "(let ((x 42)) x)",
-        iterations,
-        fuel,
-    );
+    bench_eval("let binding (1 var)", "(let ((x 42)) x)", iterations, fuel);
     bench_eval(
         "let binding (3 vars)",
         "(let ((x 1) (y 2) (z 3)) (+ x (+ y z)))",
@@ -105,12 +100,7 @@ fn main() {
     );
 
     // Function calls
-    bench_eval(
-        "lambda call (0 args)",
-        "((lambda () 42))",
-        iterations,
-        fuel,
-    );
+    bench_eval("lambda call (0 args)", "((lambda () 42))", iterations, fuel);
     bench_eval(
         "lambda call (1 arg)",
         "((lambda (x) (+ x 1)) 10)",
@@ -131,18 +121,8 @@ fn main() {
     );
 
     // Conditionals
-    bench_eval(
-        "if true branch",
-        "(if #t 1 2)",
-        iterations,
-        fuel,
-    );
-    bench_eval(
-        "if false branch",
-        "(if #f 1 2)",
-        iterations,
-        fuel,
-    );
+    bench_eval("if true branch", "(if #t 1 2)", iterations, fuel);
+    bench_eval("if false branch", "(if #f 1 2)", iterations, fuel);
     bench_eval(
         "nested if (3 deep)",
         "(if #t (if #t (if #t 1 2) 3) 4)",
@@ -280,18 +260,8 @@ fn main() {
     println!();
     println!("--- Symbol Operations ---");
 
-    bench_eval(
-        "symbol creation",
-        "'foo",
-        iterations,
-        fuel,
-    );
-    bench_eval(
-        "symbol comparison",
-        "(eq? 'foo 'foo)",
-        iterations,
-        fuel,
-    );
+    bench_eval("symbol creation", "'foo", iterations, fuel);
+    bench_eval("symbol comparison", "(eq? 'foo 'foo)", iterations, fuel);
     bench_eval(
         "symbol->string",
         "(symbol->string 'hello-world)",
@@ -367,7 +337,12 @@ where
     let ms = ns_total / 1_000_000.0;
 
     if us_per_op >= 1000.0 {
-        println!("  {}: {:.2}ms total, {:.2}ms/op", name, ms, us_per_op / 1000.0);
+        println!(
+            "  {}: {:.2}ms total, {:.2}ms/op",
+            name,
+            ms,
+            us_per_op / 1000.0
+        );
     } else if us_per_op >= 1.0 {
         println!("  {}: {:.2}ms total, {:.1}µs/op", name, ms, us_per_op);
     } else {

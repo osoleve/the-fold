@@ -311,7 +311,7 @@ pub fn load_prelude(env: EnvRef, fuel: usize) -> Result<EnvRef, String> {
                 if let Value::Pair(name_box, value_box) = &**head
                     && let Value::Symbol(name) = &**name_box
                 {
-                    Env::insert(&env, name.clone(), (**value_box).clone());
+                    Env::insert(&env, *name, (**value_box).clone());
                 }
                 current = tail;
             }

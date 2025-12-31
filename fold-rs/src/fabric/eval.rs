@@ -204,7 +204,7 @@ impl Frame {
                 }
                 SpannedExpr::new(
                     Expr::Prim {
-                        op: op.clone(),
+                        op: *op,
                         args: rebuilt,
                     },
                     span.clone(),
@@ -246,7 +246,7 @@ impl Frame {
             }
             Frame::Define { name, span, .. } => SpannedExpr::new(
                 Expr::Define {
-                    name: name.clone(),
+                    name: *name,
                     value: Box::new(current),
                 },
                 span.clone(),
@@ -507,7 +507,7 @@ fn unwind(
                     let accumulated: Vec<_> = bindings
                         .iter()
                         .take(index + 1)
-                        .map(|(name, _)| name.clone())
+                        .map(|(name, _)| *name)
                         .zip(values.iter().cloned())
                         .collect();
                     let next_env = Env::extend(frame_env.clone(), accumulated);
