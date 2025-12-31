@@ -86,6 +86,7 @@ const SET_EXT: &str = include_str!("set-ext.ss"); // Deprecated - merged into co
 const LOGIC_EXT: &str = include_str!("logic-ext.ss");
 const MONAD: &str = include_str!("monad.ss"); // Marker file
 const MONAD_CORE: &str = include_str!("monad-core.ss");
+const MONAD_UTIL: &str = include_str!("monad-util.ss");
 const TYPES: &str = include_str!("types.ss");
 const KINDS: &str = include_str!("kinds.ss");
 const INFER: &str = include_str!("infer.ss");
@@ -226,6 +227,8 @@ fn assemble_prelude() -> String {
     source.push_str(MONAD); // Marker comment
     source.push('\n');
     source.push_str(MONAD_CORE);
+    source.push('\n');
+    source.push_str(MONAD_UTIL);
     source.push('\n');
     // Type system modules
     source.push_str(TYPES);
