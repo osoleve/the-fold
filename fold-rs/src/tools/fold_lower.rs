@@ -574,9 +574,9 @@ fn lower_let(
         ));
     }
 
-    // Regular let: (let ((name expr) ...) body)
-    if items.len() != 3 {
-        return Err(error(list_expr, "let expects (let ((name expr) ...) body)"));
+    // Regular let: (let ((name expr) ...) body ...)
+    if items.len() < 3 {
+        return Err(error(list_expr, "let expects (let ((name expr) ...) body ...)"));
     }
     let bindings_list = match &items[1].value {
         Sexp::List(list) => list,
