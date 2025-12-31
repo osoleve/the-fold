@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::fabric::symbol::Symbol;
+use crate::fabric::value::Value;
 use crate::tools::Span;
 
 #[derive(Debug, Clone)]
@@ -20,6 +21,8 @@ pub enum EvalError {
     UnknownPrimitive(Symbol),
     Unimplemented(&'static str),
     IOError(String),
+    /// Uncaught exception condition
+    UncaughtException(Value),
 }
 
 /// An evaluation error with an optional source location.
@@ -78,6 +81,7 @@ impl fmt::Display for EvalError {
             EvalError::UnknownPrimitive(op) => write!(f, "unknown primitive: {op}"),
             EvalError::Unimplemented(feature) => write!(f, "unimplemented: {feature}"),
             EvalError::IOError(msg) => write!(f, "I/O error: {msg}"),
+            EvalError::UncaughtException(val) => write!(f, "uncaught exception: {val:?}"),
         }
     }
 }

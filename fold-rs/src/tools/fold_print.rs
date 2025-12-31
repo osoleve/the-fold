@@ -47,6 +47,14 @@ pub fn format_value(value: &Value) -> String {
                 crate::fabric::Port::StringOutput { .. } => "#<output-port>".to_string(),
             }
         }
+        Value::Condition { kind, message, irritants } => {
+            if irritants.is_empty() {
+                format!("#<condition {} \"{}\">", kind.as_str(), message)
+            } else {
+                let irr_str: Vec<String> = irritants.iter().map(format_value).collect();
+                format!("#<condition {} \"{}\" [{}]>", kind.as_str(), message, irr_str.join(" "))
+            }
+        }
         Value::Nil => "()".to_string(),
     }
 }

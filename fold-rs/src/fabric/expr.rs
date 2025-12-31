@@ -93,4 +93,9 @@ pub enum Expr {
     Bound {
         name: Symbol,
     },
+    /// Install an exception handler and evaluate body
+    WithExceptionHandler {
+        handler: Box<SpannedExpr>,
+        body: Box<SpannedExpr>,
+    },
 }

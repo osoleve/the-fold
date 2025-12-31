@@ -35,6 +35,12 @@ pub enum Value {
     Hashtable(Rc<RefCell<HashMap<Value, Value>>>),
     /// Port for I/O operations (string or file)
     Port(Rc<RefCell<Port>>),
+    /// Exception condition with kind, message, and irritants
+    Condition {
+        kind: Symbol,
+        message: String,
+        irritants: Vec<Value>,
+    },
     Nil,
 }
 
@@ -58,6 +64,18 @@ impl PartialEq for Value {
             (Value::Block(a), Value::Block(b)) => a == b,
             (Value::Hashtable(a), Value::Hashtable(b)) => Rc::ptr_eq(a, b),
             (Value::Port(a), Value::Port(b)) => Rc::ptr_eq(a, b),
+            (
+                Value::Condition {
+                    kind: k1,
+                    message: m1,
+                    irritants: i1,
+                },
+                Value::Condition {
+                    kind: k2,
+                    message: m2,
+                    irritants: i2,
+                },
+            ) => k1 == k2 && m1 == m2 && i1 == i2,
             (Value::Nil, Value::Nil) => true,
             _ => false,
         }
@@ -102,6 +120,15 @@ impl std::hash::Hash for Value {
             Value::Port(port) => {
                 // Use pointer address for hashing
                 (Rc::as_ptr(port) as usize).hash(state);
+            }
+            Value::Condition {
+                kind,
+                message,
+                irritants,
+            } => {
+                kind.hash(state);
+                message.hash(state);
+                irritants.hash(state);
             }
             Value::Nil => {}
         }

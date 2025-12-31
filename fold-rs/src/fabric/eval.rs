@@ -78,6 +78,22 @@ enum Frame {
         env: EnvRef,
         span: Option<Span>,
     },
+    /// Exception handler - marks a point in the stack where exceptions should be caught
+    ExceptionHandler {
+        /// The handler function - takes the condition as an argument
+        handler: Value,
+        /// The environment to use when calling the handler
+        env: EnvRef,
+        /// Depth of the frame stack when this handler was installed
+        stack_depth: usize,
+        span: Option<Span>,
+    },
+    /// Installing an exception handler - first evaluate the handler, then the body
+    InstallHandler {
+        body: SpannedExpr,
+        env: EnvRef,
+        span: Option<Span>,
+    },
 }
 
 impl Frame {
@@ -90,7 +106,9 @@ impl Frame {
             | Frame::PrimArgs { env, .. }
             | Frame::Case { env, .. }
             | Frame::Load { env, .. }
-            | Frame::Define { env, .. } => env,
+            | Frame::Define { env, .. }
+            | Frame::ExceptionHandler { env, .. }
+            | Frame::InstallHandler { env, .. } => env,
         }
     }
 
@@ -103,7 +121,9 @@ impl Frame {
             | Frame::PrimArgs { span, .. }
             | Frame::Case { span, .. }
             | Frame::Load { span, .. }
-            | Frame::Define { span, .. } => span.clone(),
+            | Frame::Define { span, .. }
+            | Frame::ExceptionHandler { span, .. }
+            | Frame::InstallHandler { span, .. } => span.clone(),
         }
     }
 
@@ -251,6 +271,21 @@ impl Frame {
                 },
                 span.clone(),
             ),
+            Frame::ExceptionHandler { .. } => {
+                // Exception handlers don't modify the expression structure
+                // They just mark a point where exceptions are caught
+                current
+            }
+            Frame::InstallHandler { body, span, .. } => {
+                // Reify as: (with-exception-handler current body)
+                SpannedExpr::new(
+                    Expr::WithExceptionHandler {
+                        handler: Box::new(current),
+                        body: Box::new(body.clone()),
+                    },
+                    span.clone(),
+                )
+            }
         }
     }
 }
@@ -355,8 +390,21 @@ pub fn eval_spanned(
             }
             Expr::Prim { op, args } => {
                 if args.is_empty() {
-                    let value = apply_prim(&op, &[])
-                        .map_err(|e| SpannedEvalError::new(e, current_span.clone()))?;
+                    // Call primitive with no args - check for exceptions
+                    let value = match apply_prim(&op, &[]) {
+                        Ok(v) => v,
+                        Err(EvalError::UncaughtException(condition)) => {
+                            // Exception was raised - unwind to nearest handler
+                            match unwind_exception(condition, &mut frames, &mut env)? {
+                                Unwind::Continue(next_expr) => {
+                                    expr = next_expr;
+                                    continue;
+                                }
+                                Unwind::Done(value) => return Ok(EvalOutcome::Done(value)),
+                            }
+                        }
+                        Err(e) => return Err(SpannedEvalError::new(e, current_span.clone())),
+                    };
                     match unwind(value, &mut frames, &mut env)? {
                         Unwind::Continue(next_expr) => {
                             expr = next_expr;
@@ -442,6 +490,18 @@ pub fn eval_spanned(
                     }
                     Unwind::Done(value) => return Ok(EvalOutcome::Done(value)),
                 }
+            }
+            Expr::WithExceptionHandler { handler, body } => {
+                // First evaluate the handler expression to get a closure
+                // Then install it as an exception handler frame
+                // Then evaluate the body
+                frames.push(Frame::InstallHandler {
+                    body: *body,
+                    env: env.clone(),
+                    span: current_span,
+                });
+                // Evaluate the handler first - when it returns, we'll install it
+                expr = *handler;
             }
         }
     }
@@ -604,8 +664,15 @@ fn unwind(
                     });
                     return Ok(Unwind::Continue(next_expr));
                 }
-                value =
-                    apply_prim(&op, &values).map_err(|e| SpannedEvalError::new(e, frame_span))?;
+                // Call the primitive - if it raises an exception, unwind to handler
+                match apply_prim(&op, &values) {
+                    Ok(v) => value = v,
+                    Err(EvalError::UncaughtException(condition)) => {
+                        // Exception was raised - unwind to nearest handler
+                        return unwind_exception(condition, frames, env);
+                    }
+                    Err(e) => return Err(SpannedEvalError::new(e, frame_span)),
+                }
             }
             Frame::Case {
                 arms,
@@ -696,8 +763,75 @@ fn unwind(
                 *env = frame_env;
                 // Return the value (like Scheme's define which returns void, but we return the value)
             }
+            Frame::ExceptionHandler { .. } => {
+                // During normal unwinding, we pass through exception handlers
+                // They are only activated when an exception is raised
+            }
+            Frame::InstallHandler {
+                body,
+                env: frame_env,
+                span,
+                ..
+            } => {
+                // We just finished evaluating the handler expression
+                // value should be a closure - install it as an exception handler
+                let handler = value;
+                // Install the exception handler frame with current stack depth
+                let stack_depth = frames.len();
+                frames.push(Frame::ExceptionHandler {
+                    handler,
+                    env: frame_env.clone(),
+                    stack_depth,
+                    span: span.clone(),
+                });
+                // Now evaluate the body - wrap in a call if needed
+                // The body should be a thunk (zero-argument function), so call it
+                *env = frame_env;
+                // Wrap body in a Call to invoke it
+                let body_call = SpannedExpr::new(
+                    Expr::Call {
+                        func: Box::new(body),
+                        args: vec![],
+                    },
+                    span,
+                );
+                return Ok(Unwind::Continue(body_call));
+            }
         }
     }
+}
+
+/// Unwind the frame stack to the nearest exception handler and invoke it.
+/// Returns the next expression to evaluate and the environment to use.
+fn unwind_exception(
+    condition: Value,
+    frames: &mut Vec<Frame>,
+    env: &mut EnvRef,
+) -> Result<Unwind, SpannedEvalError> {
+    // Search for the nearest exception handler
+    while let Some(frame) = frames.pop() {
+        if let Frame::ExceptionHandler {
+            handler,
+            env: handler_env,
+            span,
+            ..
+        } = frame
+        {
+            // Found a handler - invoke it with the condition
+            *env = handler_env;
+            // Call the handler with the condition as argument
+            let (next_expr, next_env) =
+                apply_closure(handler, SmallVec::from_vec(vec![condition]), span)?;
+            *env = next_env;
+            return Ok(Unwind::Continue(next_expr));
+        }
+    }
+
+    // No handler found - return as an uncaught exception
+    Err(SpannedEvalError::new(
+        EvalError::UncaughtException(condition),
+        None,
+    ))
 }
 
 /// Load a file and return its expressions for evaluation.

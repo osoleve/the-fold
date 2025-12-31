@@ -2918,6 +2918,90 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             // Throw an error (ignores message due to EvalError type constraints)
             Err(EvalError::TypeMismatch("error raised"))
         }
+        "make-condition" => {
+            // (make-condition 'kind "message" irritant1 irritant2 ...)
+            if args.is_empty() {
+                return Err(EvalError::TypeMismatch(
+                    "make-condition expects at least 1 arg: kind",
+                ));
+            }
+            let kind = match &args[0] {
+                Value::Symbol(sym) => sym.clone(),
+                _ => return Err(EvalError::TypeMismatch("condition kind must be a symbol")),
+            };
+            let message = if args.len() > 1 {
+                match &args[1] {
+                    Value::String(s) => s.clone(),
+                    _ => return Err(EvalError::TypeMismatch("condition message must be a string")),
+                }
+            } else {
+                String::new()
+            };
+            let irritants = if args.len() > 2 {
+                args[2..].to_vec()
+            } else {
+                Vec::new()
+            };
+            Ok(Value::Condition {
+                kind,
+                message,
+                irritants,
+            })
+        }
+        "condition?" => {
+            // Type predicate for conditions
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("condition? expects 1 arg"));
+            }
+            Ok(Value::Bool(matches!(args[0], Value::Condition { .. })))
+        }
+        "condition-kind" => {
+            // Get the kind symbol from a condition
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("condition-kind expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Condition { kind, .. } => Ok(Value::Symbol(kind.clone())),
+                _ => Err(EvalError::TypeMismatch("condition-kind expects a condition")),
+            }
+        }
+        "condition-message" => {
+            // Get the message string from a condition
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("condition-message expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Condition { message, .. } => Ok(Value::String(message.clone())),
+                _ => Err(EvalError::TypeMismatch("condition-message expects a condition")),
+            }
+        }
+        "condition-irritants" => {
+            // Get the irritants list from a condition
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("condition-irritants expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Condition { irritants, .. } => {
+                    // Convert irritants vec to proper list
+                    let mut list = Value::Nil;
+                    for item in irritants.iter().rev() {
+                        list = Value::Pair(Box::new(item.clone()), Box::new(list));
+                    }
+                    Ok(list)
+                }
+                _ => Err(EvalError::TypeMismatch("condition-irritants expects a condition")),
+            }
+        }
+        "raise" => {
+            // Raise an exception by returning it as an UncaughtException error
+            // The actual unwinding is handled by the evaluator
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("raise expects 1 arg"));
+            }
+            // Return the value as an uncaught exception
+            // This will trigger exception unwinding in the evaluator
+            Err(EvalError::UncaughtException(args[0].clone()))
+        }
         "deep-equal?" => {
             // Deep structural equality (like equal? in Scheme)
             if args.len() != 2 {
@@ -5363,6 +5447,86 @@ pub fn apply_prim(op: &Symbol, args: &[Value]) -> Result<Value, EvalError> {
             }
             Ok(Value::Symbol(Symbol::intern("#<eof>")))
         }
+        "read" => {
+            if args.len() != 1 {
+                return Err(EvalError::TypeMismatch("read expects 1 arg"));
+            }
+            match &args[0] {
+                Value::Port(port_ref) => {
+                    // Get the remaining content from the port
+                    let (remaining, start_pos) = {
+                        let port = port_ref.borrow();
+                        match &*port {
+                            crate::fabric::Port::StringInput { content, position } => {
+                                if *position >= content.len() {
+                                    // Return EOF object
+                                    return Ok(Value::Symbol(Symbol::intern("#<eof>")));
+                                }
+                                (content[*position..].to_string(), *position)
+                            }
+                            _ => return Err(EvalError::TypeMismatch("expected input port")),
+                        }
+                    };
+
+                    // Parse the S-expression
+                    use crate::tools::fold_parse::parse_fold_expr;
+                    use crate::tools::fold_lower::value_from_spanned_public;
+
+                    match parse_fold_expr(&remaining, Some("<port>")) {
+                        Ok(spanned_sexp) => {
+                            // Convert parsed S-expression to Value
+                            let value = value_from_spanned_public(&spanned_sexp)
+                                .map_err(|e| EvalError::IOError(format!("parse error: {}", e)))?;
+
+                            // Calculate how much was consumed by examining the span
+                            // We need to update the port position
+                            let bytes_consumed = {
+                                // Count UTF-8 bytes up to the end of the parsed expression
+                                let mut consumed = 0;
+                                let end_line = spanned_sexp.span.end_line;
+                                let end_column = spanned_sexp.span.end_column;
+
+                                // Track position through the string
+                                for (line_idx, line) in remaining.lines().enumerate() {
+                                    let current_line = line_idx + 1;
+                                    if current_line < end_line {
+                                        // Consume entire line plus newline
+                                        consumed += line.len() + 1; // +1 for \n
+                                    } else if current_line == end_line {
+                                        // Consume up to end_column
+                                        let mut col = 1;
+                                        for ch in line.chars() {
+                                            if col >= end_column {
+                                                break;
+                                            }
+                                            consumed += ch.len_utf8();
+                                            col += 1;
+                                        }
+                                        break;
+                                    }
+                                }
+                                consumed
+                            };
+
+                            // Update port position
+                            {
+                                let mut port = port_ref.borrow_mut();
+                                match &mut *port {
+                                    crate::fabric::Port::StringInput { position, .. } => {
+                                        *position = start_pos + bytes_consumed;
+                                    }
+                                    _ => {}
+                                }
+                            }
+
+                            Ok(value)
+                        }
+                        Err(e) => Err(EvalError::IOError(format!("read error: {}", e))),
+                    }
+                }
+                _ => Err(EvalError::TypeMismatch("expected port")),
+            }
+        }
 
         _ => Err(EvalError::UnknownPrimitive(op.clone())),
     }
@@ -5783,6 +5947,9 @@ fn value_to_display_string(value: &Value) -> String {
         Value::Primitive(name) => format!("#<primitive {}>", name),
         Value::Hashtable(_) => "#<hashtable>".to_string(),
         Value::Port(_) => "#<port>".to_string(),
+        Value::Condition { kind, message, .. } => {
+            format!("#<condition:{} {}>", kind, message)
+        }
     }
 }
 
@@ -5816,6 +5983,10 @@ fn value_to_write_string(value: &Value) -> String {
         Value::Primitive(name) => format!("#<primitive {}>", name),
         Value::Hashtable(_) => "#<hashtable>".to_string(),
         Value::Port(_) => "#<port>".to_string(),
+        Value::Condition { kind, message, irritants } => {
+            let irr_strs: Vec<String> = irritants.iter().map(value_to_write_string).collect();
+            format!("#<condition:{} \"{}\" {}>", kind, message, irr_strs.join(" "))
+        }
     }
 }
 

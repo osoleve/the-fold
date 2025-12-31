@@ -275,8 +275,11 @@ fn is_builtin_prim(name: &str) -> bool {
             // Port operations
             | "open-input-string" | "open-output-string" | "get-output-string"
             | "port?" | "input-port?" | "output-port?"
-            | "read-char" | "peek-char" | "write-char"
+            | "read-char" | "peek-char" | "write-char" | "read"
             | "eof-object?" | "eof-object"
+            // Exception handling
+            | "make-condition" | "condition?" | "condition-kind" | "condition-message"
+            | "condition-irritants" | "raise"
     )
 }
 
@@ -316,6 +319,8 @@ fn lower_list(
             "when" => return lower_when(list_expr, items),
             "define-test" => return lower_define_test(list_expr, items),
             "test-group" => return lower_test_group(list_expr, items),
+            "with-exception-handler" => return lower_with_exception_handler(list_expr, items),
+            "guard" => return lower_guard(list_expr, items),
             _ => {
                 // Check if this is a builtin primitive that should be lowered to a prim call
                 if is_builtin_prim(&head_symbol) {
@@ -921,6 +926,11 @@ fn value_from_spanned(expr: &Spanned<Sexp>) -> Result<Value, LowerError> {
     }
 }
 
+/// Public wrapper for value_from_spanned (used by read primitive)
+pub fn value_from_spanned_public(expr: &Spanned<Sexp>) -> Result<Value, LowerError> {
+    value_from_spanned(expr)
+}
+
 /// Lower (define name value) or (define (name args...) body)
 fn lower_define(
     list_expr: &Spanned<Sexp>,
@@ -1471,4 +1481,117 @@ fn error_at(expr: &Spanned<Sexp>, message: &str) -> LowerError {
         message: message.to_string(),
         span: expr.span.clone(),
     }
+}
+
+/// Lower (with-exception-handler handler body) to WithExceptionHandler expression
+fn lower_with_exception_handler(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() != 3 {
+        return Err(error(
+            list_expr,
+            "with-exception-handler expects (with-exception-handler handler body)",
+        ));
+    }
+
+    let handler = lower_expr(&items[1])?;
+    let body = lower_expr(&items[2])?;
+
+    Ok(SpannedExpr::new(
+        Expr::WithExceptionHandler {
+            handler: Box::new(handler),
+            body: Box::new(body),
+        },
+        span,
+    ))
+}
+
+/// Lower (guard (var clause...) body...) to with-exception-handler + cond
+/// Example:
+/// (guard (exn
+///         ((eq? (condition-kind exn) 'file-error) "file error!")
+///         ((eq? (condition-kind exn) 'type-error) "type error!")
+///         (else (raise exn)))
+///   body...)
+///
+/// Lowers to:
+/// (with-exception-handler
+///   (lambda (exn)
+///     (cond
+///       ((eq? (condition-kind exn) 'file-error) "file error!")
+///       ((eq? (condition-kind exn) 'type-error) "type error!")
+///       (else (raise exn))))
+///   (lambda () body...))
+fn lower_guard(
+    list_expr: &Spanned<Sexp>,
+    items: &[Spanned<Sexp>],
+) -> Result<SpannedExpr, LowerError> {
+    let span = Some(list_expr.span.clone());
+    if items.len() < 3 {
+        return Err(error(
+            list_expr,
+            "guard expects (guard (var clause...) body...)",
+        ));
+    }
+
+    // Parse the guard pattern (var clause...)
+    let guard_pattern = match &items[1].value {
+        Sexp::List(pattern) if !pattern.is_empty() => pattern,
+        _ => return Err(error(&items[1], "guard expects (var clause...)")),
+    };
+
+    // Extract the exception variable
+    let exn_var = match &guard_pattern[0].value {
+        Sexp::Symbol(s) => Symbol::intern(s),
+        _ => return Err(error(&guard_pattern[0], "guard variable must be a symbol")),
+    };
+
+    // Build cond clauses from guard clauses
+    let mut cond_items = vec![Spanned {
+        value: Sexp::Symbol("cond".to_string()),
+        span: list_expr.span.clone(),
+    }];
+    cond_items.extend(guard_pattern[1..].iter().cloned());
+
+    let cond_expr_sexp = Spanned {
+        value: Sexp::List(cond_items),
+        span: list_expr.span.clone(),
+    };
+    let cond_expr = lower_expr(&cond_expr_sexp)?;
+
+    // Build handler lambda: (lambda (exn) <cond>)
+    let handler = SpannedExpr::new(
+        Expr::Fn {
+            params: vec![exn_var],
+            body: Box::new(cond_expr),
+        },
+        span.clone(),
+    );
+
+    // Build body expressions into a lambda
+    let body_exprs = if items.len() == 3 {
+        lower_expr(&items[2])?
+    } else {
+        lower_begin_exprs(&items[2..], span.clone())?
+    };
+
+    let body_lambda = SpannedExpr::new(
+        Expr::Fn {
+            params: vec![],
+            body: Box::new(body_exprs),
+        },
+        span.clone(),
+    );
+
+    // Build (with-exception-handler handler body-lambda)
+    // with-exception-handler will evaluate body-lambda to get a thunk and call it
+    Ok(SpannedExpr::new(
+        Expr::WithExceptionHandler {
+            handler: Box::new(handler),
+            body: Box::new(body_lambda),
+        },
+        span,
+    ))
 }
