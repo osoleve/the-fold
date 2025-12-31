@@ -1879,7 +1879,6 @@
  (cons 'string-blank? string-blank?)
  (cons 'string-capitalize string-capitalize)
  (cons 'string-center string-center)
- (cons 'string-center-fn string-center-fn)
  (cons 'string-chars string-chars)
  (cons 'string-contains? string-contains?)
  (cons 'string-count string-count)

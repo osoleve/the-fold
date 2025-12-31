@@ -67,14 +67,14 @@
                                                                                                  neighbors)))
                                                                                  (if (car result)
                                                                                      result
-                                                                                     (list #f (dict-set (car (cdr result)) v 2)))))))))))
-                                      ; Check from each unvisited vertex
-                                      (car (foldl (fn (acc v)
-                                                      (if (car acc)
-                                                          acc ; Already found cycle
-                                                          (dfs-cycle v (car (cdr acc)))))
-                                                  (list #f '())
-                                                  vertices))))))))
+                                                                                     (list #f (dict-set (car (cdr result)) v 2))))))))))))
+                                     ; Check from each unvisited vertex
+                                     (car (foldl (fn (acc v)
+                                                     (if (car acc)
+                                                         acc ; Already found cycle
+                                                         (dfs-cycle v (car (cdr acc)))))
+                                                 (list #f '())
+                                                 vertices)))))))
 
 ; graph-find-cycle: Find a cycle in the graph if one exists
 ; Returns list of vertices forming cycle, or #f if no cycle
@@ -144,41 +144,41 @@
                                                                             (dfs-finish n (car acc) (car (cdr acc))))
                                                                         (list new-visited finish-order)
                                                                         neighbors)))
-                                                        (list (car result) (cons v (car (cdr result))))))))))
-                     ; Get finish order from all vertices
-                     (let ((finish-result (foldl (fn (acc v)
-                                                     (dfs-finish v (car acc) (car (cdr acc))))
-                                                 (list '() '())
-                                                 vertices)))
-                          (let ((finish-order (car (cdr finish-result)))
-                                ; Reverse graph
-                                (rev-g (graph-reverse g)))
-                               ; Second DFS pass on reversed graph in finish order
-                               (let ((dfs-component (fix dfs-component
-                                                         (fn (v visited)
-                                                             (if (member? v visited)
-                                                                 (list '() visited)
-                                                                 (let ((new-visited (cons v visited))
-                                                                       (neighbors (graph-neighbors rev-g v)))
-                                                                      (let ((result (foldl (fn (acc n)
-                                                                                               (let ((sub (dfs-component n (car (cdr acc)))))
-                                                                                                    (list (append (car acc) (car sub))
-                                                                                                          (car (cdr sub)))))
-                                                                                           (list (list v) new-visited)
-                                                                                           neighbors)))
-                                                                           result)))))))
-                                    (let ((scc-helper (fix scc-helper
-                                                           (fn (order visited sccs)
-                                                               (if (null? order)
-                                                                   sccs
-                                                                   (let ((v (car order)))
-                                                                        (if (member? v visited)
-                                                                            (scc-helper (cdr order) visited sccs)
-                                                                            (let ((result (dfs-component v visited)))
-                                                                                 (scc-helper (cdr order)
-                                                                                             (car (cdr result))
-                                                                                             (cons (car result) sccs))))))))))
-                                         (scc-helper finish-order '() '())))))))))))
+                                                        (list (car result) (cons v (car (cdr result)))))))))))
+                    ; Get finish order from all vertices
+                    (let ((finish-result (foldl (fn (acc v)
+                                                    (dfs-finish v (car acc) (car (cdr acc))))
+                                                (list '() '())
+                                                vertices)))
+                         (let ((finish-order (car (cdr finish-result)))
+                               ; Reverse graph
+                               (rev-g (graph-reverse g)))
+                              ; Second DFS pass on reversed graph in finish order
+                              (let ((dfs-component (fix dfs-component
+                                                        (fn (v visited)
+                                                            (if (member? v visited)
+                                                                (list '() visited)
+                                                                (let ((new-visited (cons v visited))
+                                                                      (neighbors (graph-neighbors rev-g v)))
+                                                                     (let ((result (foldl (fn (acc n)
+                                                                                              (let ((sub (dfs-component n (car (cdr acc)))))
+                                                                                                   (list (append (car acc) (car sub))
+                                                                                                         (car (cdr sub)))))
+                                                                                          (list (list v) new-visited)
+                                                                                          neighbors)))
+                                                                          result)))))))
+                                   (let ((scc-helper (fix scc-helper
+                                                          (fn (order visited sccs)
+                                                              (if (null? order)
+                                                                  sccs
+                                                                  (let ((v (car order)))
+                                                                       (if (member? v visited)
+                                                                           (scc-helper (cdr order) visited sccs)
+                                                                           (let ((result (dfs-component v visited)))
+                                                                                (scc-helper (cdr order)
+                                                                                            (car (cdr result))
+                                                                                            (cons (car result) sccs))))))))))
+                                        (scc-helper finish-order '() '()))))))))))
 
 ; graph-is-dag?: Check if graph is a directed acyclic graph
 (graph-is-dag? (fn (g)

@@ -516,6 +516,9 @@
 (some? any)
 
 ; filter-not: Keep elements that don't match
+(filter-not (fn (pred lst)
+                (filter (fn (x) (not (pred x))) lst)))
+
 ; remove: Remove first occurrence
 ; remove-all: Remove all occurrences
 (remove-all (fn (x lst)

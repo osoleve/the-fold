@@ -41,3 +41,6 @@
 (group-by (fn (key-fn lst)
               (let ((keys (nub (map key-fn lst))))
                    (map (fn (k) (filter (fn (x) (eq? (key-fn x) k)) lst)) keys))))
+
+; group-by-key: Alias for group-by
+(group-by-key group-by)

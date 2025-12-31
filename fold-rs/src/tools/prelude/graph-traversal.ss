@@ -130,10 +130,10 @@
                                                                                             neighbors)))
                                                                        (helper (append rest-queue neighbors)
                                                                                (cons current visited)
-                                                                               new-parents)))))))))
-                                (if (= u v)
-                                    (list u)
-                                    (helper (list u) '() (dict-set '() u #f))))))))
+                                                                               new-parents))))))))))
+                               (if (= u v)
+                                   (list u)
+                                   (helper (list u) '() (dict-set '() u #f)))))))
 
 ; graph-all-paths: Find all simple paths from u to v (DFS based)
 ; Warning: can be exponential in large graphs

@@ -32,6 +32,9 @@
 ; queue-to-list: Convert queue to list
 (queue-to-list id)
 
+; queue-normalize: Normalize queue (no-op for list-based queue)
+(queue-normalize id)
+
 ; ============================================
 ; Stack Operations (LIFO, list-based)
 ; ============================================

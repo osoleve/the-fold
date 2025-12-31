@@ -679,11 +679,7 @@ mod tests {
         assert!(result.is_ok(), "prelude should parse: {:?}", result.err());
     }
 
-    // NOTE: test_prelude_lowers is disabled because the prelude has a pre-existing
-    // lowering issue that predates this refactoring. The fold_repl_cli test was
-    // already failing before the modularization work began.
     #[test]
-    #[ignore = "Pre-existing lowering issue with graph-find-path let structure"]
     fn test_prelude_lowers() {
         let source = prelude_source();
         let parsed = parse_fold_expr(source, Some("<prelude>")).expect("prelude should parse");
