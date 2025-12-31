@@ -45,10 +45,20 @@ const NUMERIC_CORE: &str = include_str!("numeric-core.ss");
 const NUMERIC_STATS: &str = include_str!("numeric-stats.ss");
 const NUMERIC_SEQUENCE: &str = include_str!("numeric-sequence.ss");
 const COMPARISON: &str = include_str!("comparison.ss");
+const PREDICATE: &str = include_str!("predicate.ss");
 const STRING: &str = include_str!("string.ss"); // Marker file
 const STRING_CORE: &str = include_str!("string-core.ss");
 const STRING_FORMAT: &str = include_str!("string-format.ss");
 const STRING_SEARCH: &str = include_str!("string-search.ss");
+const CHAR: &str = include_str!("char.ss");
+const FUNCTION_EXT: &str = include_str!("function-ext.ss");
+const LIST_UTIL: &str = include_str!("list-util.ss");
+const NUMERIC_UTIL: &str = include_str!("numeric-util.ss");
+const TREE_UTIL: &str = include_str!("tree-util.ss");
+const CONTROL_FLOW: &str = include_str!("control-flow.ss");
+const MATH_UTIL: &str = include_str!("math-util.ss");
+const GENERAL_UTIL: &str = include_str!("general-util.ss");
+const LIST_EXTRA: &str = include_str!("list-extra.ss");
 const COLLECTION: &str = include_str!("collection.ss"); // Marker file
 const COLLECTION_ALIST: &str = include_str!("collection-alist.ss");
 const COLLECTION_DICT: &str = include_str!("collection-dict.ss");
@@ -76,6 +86,14 @@ const SET_EXT: &str = include_str!("set-ext.ss"); // Deprecated - merged into co
 const LOGIC_EXT: &str = include_str!("logic-ext.ss");
 const MONAD: &str = include_str!("monad.ss"); // Marker file
 const MONAD_CORE: &str = include_str!("monad-core.ss");
+const MONAD_UTIL: &str = include_str!("monad-util.ss");
+const STRING_UTIL: &str = include_str!("string-util.ss");
+const STATISTICS: &str = include_str!("statistics.ss");
+const SEARCH_ALGORITHMS: &str = include_str!("search-algorithms.ss");
+const LENS: &str = include_str!("lens.ss");
+const PLIST: &str = include_str!("plist.ss");
+const VECTOR_UTIL: &str = include_str!("vector-util.ss");
+const SORTING: &str = include_str!("sorting.ss");
 const TYPES: &str = include_str!("types.ss");
 const KINDS: &str = include_str!("kinds.ss");
 const INFER: &str = include_str!("infer.ss");
@@ -129,6 +147,8 @@ fn assemble_prelude() -> String {
     source.push('\n');
     source.push_str(COMPARISON);
     source.push('\n');
+    source.push_str(PREDICATE);
+    source.push('\n');
     // String module with submodules
     source.push_str(STRING); // Marker comment
     source.push('\n');
@@ -137,6 +157,24 @@ fn assemble_prelude() -> String {
     source.push_str(STRING_FORMAT);
     source.push('\n');
     source.push_str(STRING_SEARCH);
+    source.push('\n');
+    source.push_str(CHAR);
+    source.push('\n');
+    source.push_str(FUNCTION_EXT);
+    source.push('\n');
+    source.push_str(LIST_UTIL);
+    source.push('\n');
+    source.push_str(NUMERIC_UTIL);
+    source.push('\n');
+    source.push_str(TREE_UTIL);
+    source.push('\n');
+    source.push_str(CONTROL_FLOW);
+    source.push('\n');
+    source.push_str(MATH_UTIL);
+    source.push('\n');
+    source.push_str(GENERAL_UTIL);
+    source.push('\n');
+    source.push_str(LIST_EXTRA);
     source.push('\n');
     // Collection module with submodules
     source.push_str(COLLECTION); // Marker comment
@@ -196,6 +234,23 @@ fn assemble_prelude() -> String {
     source.push_str(MONAD); // Marker comment
     source.push('\n');
     source.push_str(MONAD_CORE);
+    source.push('\n');
+    source.push_str(MONAD_UTIL);
+    source.push('\n');
+    // Additional utility modules
+    source.push_str(STRING_UTIL);
+    source.push('\n');
+    source.push_str(STATISTICS);
+    source.push('\n');
+    source.push_str(SEARCH_ALGORITHMS);
+    source.push('\n');
+    source.push_str(LENS);
+    source.push('\n');
+    source.push_str(PLIST);
+    source.push('\n');
+    source.push_str(VECTOR_UTIL);
+    source.push('\n');
+    source.push_str(SORTING);
     source.push('\n');
     // Type system modules
     source.push_str(TYPES);
@@ -664,7 +719,11 @@ pub const PRIMITIVE_NAMES: &[&str] = &[
 pub fn primitives_env() -> EnvRef {
     let env = Env::new();
     for &name in PRIMITIVE_NAMES {
-        Env::insert(&env, Symbol::intern(name), Value::Primitive(Symbol::intern(name)));
+        Env::insert(
+            &env,
+            Symbol::intern(name),
+            Value::Primitive(Symbol::intern(name)),
+        );
     }
     env
 }

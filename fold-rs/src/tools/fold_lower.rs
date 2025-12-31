@@ -99,7 +99,9 @@ pub fn lower_program(exprs: &[Spanned<Sexp>]) -> Result<Vec<SpannedExpr>, LowerE
                                     .iter()
                                     .map(|p| match &p.value {
                                         Sexp::Symbol(s) => Ok(Symbol::intern(s)),
-                                        _ => Err(error(p, "define function params must be symbols")),
+                                        _ => {
+                                            Err(error(p, "define function params must be symbols"))
+                                        }
                                     })
                                     .collect::<Result<_, _>>()?;
                                 let body = lower_expr(&items[2])?;
@@ -1022,11 +1024,12 @@ fn lower_begin(
     Ok(result)
 }
 
-/// Helper to lower a sequence of expressions (like begin body)
-/// Takes a slice of expressions (not including "begin" keyword) and a span
-fn lower_begin_exprs(exprs: &[Spanned<Sexp>], span: Option<Span>) -> Result<SpannedExpr, LowerError> {
+/// Lower a sequence of expressions as an implicit begin
+fn lower_begin_exprs(
+    exprs: &[Spanned<Sexp>],
+    span: Option<Span>,
+) -> Result<SpannedExpr, LowerError> {
     if exprs.is_empty() {
-        // Empty sequence returns nil
         return Ok(SpannedExpr::new(Expr::Value(Value::Nil), span));
     }
 
