@@ -7,12 +7,12 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | **Milestone 1: Core Language** | Partial | Named let done, missing set!, letrec, internal defines |
-| **Milestone 2: Exceptions** | Not Started | No guard, conditions, or exception handlers |
+| **Milestone 2: Exceptions** | **Done** | guard, conditions, raise implemented (13 tests) |
 | **Milestone 3: Macros** | Not Started | define-syntax explicitly skipped |
 | **Milestone 4: Records** | Not Started | No define-record-type |
 | **Milestone 5: Mutable Data** | **Done** | Hashtables implemented (13 tests), bytevector mutation pending |
-| **Milestone 6: Ports** | **Partial** | String ports done (9 tests), file ports pending |
-| **Milestone 7: Test Framework** | Blocked | Needs macros and exceptions |
+| **Milestone 6: Ports** | **Done** | String ports + read primitive (17 tests), file ports pending |
+| **Milestone 7: Test Framework** | **Unblocked** | Exceptions done; needs set! for statistics |
 | **Milestone 8: Prelude Compat** | **Partial** | Unicode aliases done (10 tests), format strings pending |
 
 ---
