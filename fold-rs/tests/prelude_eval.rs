@@ -1,4 +1,4 @@
-use fold_rs::fabric::env::Env;
+use fold_rs::fabric::{Symbol, env::Env};
 use fold_rs::tools::prelude_env;
 
 /// Test that the full prelude can be loaded and evaluated.
@@ -15,21 +15,21 @@ fn test_prelude_evaluates() {
             println!("Prelude loaded successfully!");
             // Check that some expected bindings exist
 
-            let map_sym = "map".to_string();
+            let map_sym = Symbol::intern("map");
             if Env::lookup(&env, &map_sym).is_some() {
                 println!("✓ 'map' is defined");
             } else {
                 panic!("'map' should be defined in prelude");
             }
 
-            let filter_sym = "filter".to_string();
+            let filter_sym = Symbol::intern("filter");
             if Env::lookup(&env, &filter_sym).is_some() {
                 println!("✓ 'filter' is defined");
             } else {
                 panic!("'filter' should be defined in prelude");
             }
 
-            let foldl_sym = "foldl".to_string();
+            let foldl_sym = Symbol::intern("foldl");
             if Env::lookup(&env, &foldl_sym).is_some() {
                 println!("✓ 'foldl' is defined");
             } else {

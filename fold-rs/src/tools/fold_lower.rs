@@ -378,7 +378,7 @@ fn expand_quasiquote_dotted_list(
     for head in heads.iter().rev() {
         let head_expr = expand_quasiquote(head)?;
         result = Expr::Prim {
-            op: "cons".to_string(),
+            op: Symbol::intern("cons"),
             args: vec![
                 SpannedExpr::new(head_expr, Some(head.span.clone())),
                 SpannedExpr::unspanned(result),
@@ -431,14 +431,14 @@ fn lower_let(
             _ => return Err(error(&items[2], "named let expects bindings list")),
         };
 
-        let mut params: Vec<String> = Vec::new();
+        let mut params: Vec<Symbol> = Vec::new();
         let mut init_exprs: Vec<SpannedExpr> = Vec::new();
 
         for binding in bindings_list {
             match &binding.value {
                 Sexp::List(pair) if pair.len() == 2 => {
                     let name = match &pair[0].value {
-                        Sexp::Symbol(sym) => sym.clone(),
+                        Sexp::Symbol(sym) => Symbol::intern(sym),
                         _ => return Err(error(&pair[0], "binding name must be a symbol")),
                     };
                     params.push(name);
@@ -466,7 +466,7 @@ fn lower_let(
 
         let fixed = SpannedExpr::new(
             Expr::Fix {
-                name: loop_name.clone(),
+                name: Symbol::intern(loop_name),
                 value: Box::new(lambda),
             },
             span.clone(),
@@ -829,7 +829,7 @@ fn lower_define(
             let value = lower_expr(&items[2])?;
             Ok(SpannedExpr::new(
                 Expr::Define {
-                    name: name.clone(),
+                    name: Symbol::intern(name),
                     value: Box::new(value),
                 },
                 span,
@@ -838,13 +838,13 @@ fn lower_define(
         // Function define: (define (name args...) body...)
         Sexp::List(name_and_params) if !name_and_params.is_empty() => {
             let name = match &name_and_params[0].value {
-                Sexp::Symbol(s) => s.clone(),
+                Sexp::Symbol(s) => Symbol::intern(s),
                 _ => return Err(error(&name_and_params[0], "function name must be a symbol")),
             };
             let params: Result<Vec<_>, _> = name_and_params[1..]
                 .iter()
                 .map(|p| match &p.value {
-                    Sexp::Symbol(s) => Ok(s.clone()),
+                    Sexp::Symbol(s) => Ok(Symbol::intern(s)),
                     _ => Err(error(p, "parameter must be a symbol")),
                 })
                 .collect();
@@ -907,7 +907,7 @@ fn lower_begin(
         let lowered = lower_expr(expr)?;
         result = SpannedExpr::new(
             Expr::Let {
-                bindings: vec![(format!("#%begin-{}", i), lowered)],
+                bindings: vec![(Symbol::intern(&format!("#%begin-{}", i)), lowered)],
                 body: Box::new(result),
             },
             span.clone(),

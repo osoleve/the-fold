@@ -47,7 +47,7 @@ fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
     // Collect defines and load expressions, treating them as "transparent"
     // Load expressions are evaluated but don't consume the result - their defines
     // should be visible to subsequent expressions
-    let mut bindings: Vec<(String, SpannedExpr)> = Vec::new();
+    let mut bindings: Vec<(Symbol, SpannedExpr)> = Vec::new();
     let mut body_exprs: Vec<SpannedExpr> = Vec::new();
     let mut loads: Vec<SpannedExpr> = Vec::new();
 
@@ -82,7 +82,7 @@ fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
         let mut iter = body_exprs.into_iter();
         let mut current = iter.next().unwrap();
         for (index, next) in iter.enumerate() {
-            let name = format!("#%fold-seq-{index}");
+            let name = Symbol::intern(&format!("#%fold-seq-{index}"));
             current = SpannedExpr::new(
                 Expr::Let {
                     bindings: vec![(name, current)],
@@ -121,7 +121,7 @@ fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
         for (i, load) in loads.into_iter().rev().enumerate() {
             result = SpannedExpr::new(
                 Expr::Let {
-                    bindings: vec![(format!("#%load-{i}"), load)],
+                    bindings: vec![(Symbol::intern(&format!("#%load-{i}")), load)],
                     body: Box::new(result),
                 },
                 None,

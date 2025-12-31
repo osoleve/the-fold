@@ -95,7 +95,7 @@ fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
     }
 
     // Collect defines and convert them to let* bindings
-    let mut bindings: Vec<(String, SpannedExpr)> = Vec::new();
+    let mut bindings: Vec<(Symbol, SpannedExpr)> = Vec::new();
     let mut body_exprs: Vec<SpannedExpr> = Vec::new();
 
     for expr in exprs {
@@ -125,7 +125,7 @@ fn sequence_exprs(exprs: Vec<SpannedExpr>) -> SpannedExpr {
         let mut iter = body_exprs.into_iter();
         let mut current = iter.next().unwrap();
         for (index, next) in iter.enumerate() {
-            let name = format!("#%fold-seq-{index}");
+            let name = Symbol::intern(&format!("#%fold-seq-{index}"));
             current = SpannedExpr::new(
                 Expr::Let {
                     bindings: vec![(name, current)],

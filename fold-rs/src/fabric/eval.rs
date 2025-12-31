@@ -236,7 +236,7 @@ impl Frame {
                 for (i, expr) in exprs.into_iter().rev().enumerate() {
                     result = SpannedExpr::new(
                         Expr::Let {
-                            bindings: vec![(format!("#%load-seq-{i}"), expr)],
+                            bindings: vec![(Symbol::intern(&format!("#%load-seq-{i}")), expr)],
                             body: Box::new(result),
                         },
                         span.clone(),
