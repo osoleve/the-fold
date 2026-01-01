@@ -7,11 +7,7 @@
 #   echo "(+ 1 2)" | ./fold.sh  — Pipe expression
 #   SESSION=my-session ./fold.sh "(+ 1 2)"  — Use specific session
 #
-# Environment:
-#   FOLD_USE_SCHEME=1  — Force Scheme backend (skip Rust)
-#
-# When daemon is not running, prefers Rust backend (fold-rs/target/release/fold-repl)
-# if available, otherwise falls back to Chez Scheme.
+# When daemon is not running, falls back to Chez Scheme.
 
 set -e
 cd "$(dirname "$0")"
@@ -28,10 +24,6 @@ RESPONSE_FILE="$RESPONSES_DIR/$SESSION_ID.txt"
 ERROR_FILE="$RESPONSES_DIR/$SESSION_ID.error.txt"
 TIMEOUT=30
 
-# Find Rust binary (preferred) or Scheme for fallback mode
-SCRIPT_DIR="$(dirname "$0")"
-RUST_REPL="$SCRIPT_DIR/fold-rs/target/release/fold-repl"
-
 find_scheme() {
     for cmd in scheme chez-scheme chezscheme petite; do
         if command -v "$cmd" &> /dev/null; then
@@ -44,31 +36,12 @@ find_scheme() {
 
 # Check if daemon is running
 if [ ! -f "$READY_FILE" ]; then
-    echo "Daemon not running, falling back to direct execution..."
+    echo "Daemon not running, falling back to Chez Scheme..."
 
-    # Prefer Rust binary if available (unless FOLD_USE_SCHEME is set)
-    if [ -x "$RUST_REPL" ] && [ -z "$FOLD_USE_SCHEME" ]; then
-        if [ -n "$1" ]; then
-            # Argument provided
-            if [ -f "$1" ]; then
-                "$RUST_REPL" --file "$1"
-            else
-                "$RUST_REPL" --expr "$*"
-            fi
-        elif [ ! -t 0 ]; then
-            # Read from stdin (piped input)
-            "$RUST_REPL"
-        else
-            echo "Usage: ./fold.sh \"(expression)\" or echo \"(expr)\" | ./fold.sh"
-            exit 1
-        fi
-        exit 0
-    fi
-
-    # Fall back to Scheme
+    # Use Scheme for direct execution
     SCHEME_CMD=$(find_scheme) || {
-        echo "Error: Neither Rust binary nor Chez Scheme found."
-        echo "Run 'cargo build --release' in fold-rs/ to build the Rust REPL."
+        echo "Error: Chez Scheme not found."
+        echo "Please install Chez Scheme to run The Fold."
         exit 1
     }
 
