@@ -63,6 +63,18 @@ let healthServer = null;
 // ============================================================
 
 /**
+ * Wrap an expression in parentheses if it's not already parenthesized
+ * This allows @fold + 1 2 to work like @fold (+ 1 2)
+ */
+function ensureParenthesized(expr) {
+  const trimmed = expr.trim();
+  if (trimmed.startsWith('(')) {
+    return trimmed;
+  }
+  return `(${trimmed})`;
+}
+
+/**
  * Execute a Scheme expression via the Fold REPL daemon
  */
 async function evalScheme(expression) {
@@ -266,7 +278,8 @@ client.on(Events.MessageCreate, async (message) => {
 
       try {
         await message.react('🤔');
-        const result = await evalScheme(content);
+        const expr = ensureParenthesized(content);
+        const result = await evalScheme(expr);
         const response = '```scheme\n' + result.slice(0, 1900) + '\n```';
         await message.reply(response);
       } catch (e) {
@@ -474,7 +487,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
           }
 
           await interaction.deferReply();
-          const expr = interaction.options.getString('expression');
+          const exprInput = interaction.options.getString('expression');
+          const expr = ensureParenthesized(exprInput);
           const result = await evalScheme(expr);
           await interaction.editReply({
             content: '```scheme\n' + result.slice(0, 1900) + '\n```',
