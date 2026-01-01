@@ -84,6 +84,9 @@ async function evalScheme(expression) {
   const pollInterval = 100;
   let waited = 0;
 
+  // Daemon writes .error.txt for errors
+  const errorPath = responsePath.replace('.txt', '.error.txt');
+
   while (waited < maxWait) {
     await new Promise(r => setTimeout(r, pollInterval));
     waited += pollInterval;
@@ -92,6 +95,12 @@ async function evalScheme(expression) {
       const response = fs.readFileSync(responsePath, 'utf8');
       fs.unlinkSync(responsePath);  // Clean up
       return response;
+    }
+
+    if (fs.existsSync(errorPath)) {
+      const error = fs.readFileSync(errorPath, 'utf8');
+      fs.unlinkSync(errorPath);  // Clean up
+      throw new Error(error.trim());
     }
   }
 
