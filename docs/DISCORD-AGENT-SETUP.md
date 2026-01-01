@@ -1,272 +1,185 @@
 # Discord Agent Setup Guide
 
-**Status**: Ready for testing
-**First Agent**: opus (Shepherd architecture advisor)
-**Date**: 2025-12-31
+**Status**: ✅ Production (Opus working)
+**Date**: 2026-01-01
 
 ---
 
-## Overview
-
-This guide walks through setting up the first Discord agent (opus) end-to-end.
-
-### What You'll Build
+## Architecture
 
 ```
-User types "@opus what's the best state management approach?"
+User: "@opus what's the best state management?"
          ↓
-Discord Bot (bot.js) receives message
+Discord Bot (bot.js) detects mention, reacts with 🤔
          ↓
-Bot writes trigger file: .fold-repl/requests/opus-discord-trigger.ss
+Creates trigger: .fold-repl/triggers/opus-discord-trigger.ss
          ↓
-Daemon polls, detects trigger (discord-daemon-poll.ss)
+discord-poll-daemon polls every 5s, finds trigger
          ↓
-Runs opus-discord-pipeline with Discord context
+Calls: node agents/invoke-opus.js <trigger-file>
          ↓
-Pipeline calls LLM, gets response
+invoke-opus.js runs: claude --print --model opus
          ↓
-Writes to .fold-repl/discord-outbox/12345.json
+Real Claude Opus responds with architectural guidance
          ↓
-Bridge (bridge.js) watches outbox, posts to Discord
+Response written to:
+  - forum/chat/<timestamp>-opus.sexp (Fold forum)
+  - .fold-repl/discord-outbox/<timestamp>-opus.json
          ↓
-User sees opus's reply in Discord
+Discord bridge (in bot.js) watches outbox, posts to Discord
+         ↓
+User sees Opus reply in Discord
 ```
+
+**Key Innovation**: Trigger files in dedicated `.fold-repl/triggers/` directory (not `.fold-repl/requests/`) to avoid conflict with REPL daemon.
 
 ---
 
 ## Prerequisites
 
-- [ ] Discord server (you have admin access)
-- [ ] Node.js 18+ installed
-- [ ] The Fold daemon running (`./daemon.sh start`)
-- [ ] LLM API configured (for opus to call)
+- Discord server (admin access)
+- Node.js 18+
+- Claude Code CLI (already installed)
+- `.env.discord` file with bot credentials
 
 ---
 
-## Step 1: Discord Bot Setup
+## Quick Start
 
-### 1.1 Create Discord Application
-
-1. Go to https://discord.com/developers/applications
-2. Click "New Application"
-3. Name: "The Fold" (or your preference)
-4. Go to "Bot" tab → "Add Bot"
-5. **Copy Bot Token** (you'll need this)
-6. Enable these Privileged Gateway Intents:
-   - ✓ Server Members Intent
-   - ✓ Message Content Intent
-7. Go to "OAuth2" → "General"
-8. **Copy Client ID**
-
-### 1.2 Invite Bot to Server
-
-1. Go to "OAuth2" → "URL Generator"
-2. Select scopes:
-   - ✓ bot
-   - ✓ applications.commands
-3. Select bot permissions:
-   - ✓ Read Messages/View Channels
-   - ✓ Send Messages
-   - ✓ Create Public Threads
-   - ✓ Manage Webhooks
-   - ✓ Add Reactions
-   - ✓ Use Slash Commands
-4. Copy the generated URL, open in browser
-5. Select your server, authorize
-
-### 1.3 Get Channel IDs
-
-In Discord (with Developer Mode enabled):
-1. Right-click each channel → "Copy Channel ID"
-2. Note down IDs for:
-   - `#consult` (where @opus will respond)
-   - Any other channels you want to map
-
-### 1.4 Get Guild ID
-
-Right-click your server icon → "Copy Server ID"
-
----
-
-## Step 2: Configure Environment
-
-Create `/home/oso/the-fold/.env.discord`:
+### 1. Set Up Environment
 
 ```bash
-# Copy from example
+cd /home/oso/the-fold
+
+# Copy template and fill in your Discord credentials
 cp .env.discord.example .env.discord
-
-# Edit with your values
-vim .env.discord
+vim .env.discord  # Add DISCORD_BOT_TOKEN, CLIENT_ID, channel IDs
 ```
 
-**Minimum required for opus:**
-
+**Minimum required:**
 ```bash
-DISCORD_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
-DISCORD_CLIENT_ID=YOUR_CLIENT_ID_HERE
-DISCORD_GUILD_ID=YOUR_GUILD_ID_HERE  # Optional
-DISCORD_CHANNEL_CONSULT=YOUR_CONSULT_CHANNEL_ID
+DISCORD_BOT_TOKEN=your-bot-token
+DISCORD_CLIENT_ID=your-client-id
+DISCORD_GUILD_ID=your-guild-id  # Optional
+DISCORD_CHANNEL_GENERAL=your-chat-channel-id
+DISCORD_CHANNEL_CONSULT=your-consult-channel-id
 ```
 
-### Load environment:
+### 2. Install Discord Bot Dependencies
 
 ```bash
-# Add to your shell rc (~/.bashrc or ~/.zshrc):
-if [ -f /home/oso/the-fold/.env.discord ]; then
-  export $(cat /home/oso/the-fold/.env.discord | grep -v '^#' | xargs)
-fi
-
-# Or source manually:
-export $(cat .env.discord | grep -v '^#' | xargs)
-```
-
----
-
-## Step 3: Install Discord Bot Dependencies
-
-```bash
-cd /home/oso/the-fold/thimble/discord
+cd thimble/discord
 npm install
 ```
 
-This installs `discord.js` and dependencies.
-
----
-
-## Step 4: Integrate Daemon Polling
-
-Edit your daemon's main loop to poll for Discord triggers.
-
-**Option A: Modify existing daemon**
-
-Add to `thimble/repl-daemon.ss` or wherever your daemon loop is:
-
-```scheme
-(load "agents/discord-daemon-poll.ss")
-
-;; In your daemon loop:
-(define (daemon-loop)
-  (let loop ()
-       ;; Existing work
-       (process-repl-requests)
-
-       ;; New: Poll for Discord triggers
-       (poll-discord-triggers)
-
-       (sleep 5)  ; Poll every 5 seconds
-       (loop)))
-```
-
-**Option B: Run separate Discord poller**
+### 3. Start All Components
 
 ```bash
-# In a separate terminal/screen/tmux session:
-while true; do
-  ./fold.sh -c "(load \"agents/discord-daemon-poll.ss\") (poll-discord-triggers)"
-  sleep 5
-done
-```
-
----
-
-## Step 5: Start the Discord Bot
-
-### 5.1 Test bot connection first
-
-```bash
+# Terminal 1: Discord bot
 cd /home/oso/the-fold/thimble/discord
-node bot.js
+./start-bot.sh
+
+# Terminal 2: Discord trigger polling daemon
+cd /home/oso/the-fold
+./scripts/discord-poll-daemon.sh
+
+# Terminal 3: Fold chat trigger polling daemon
+cd /home/oso/the-fold
+./scripts/fold-agent-poll-daemon.sh
 ```
 
-You should see:
-```
-✅ Logged in as TheFold#1234
-📡 Session ID: discord-bot-12345
-🔗 Watching 11 channels
-```
+### 4. Test
 
-If you see errors, check:
-- Bot token is correct
-- Bot has been invited to the server
-- Intents are enabled in Discord Developer Portal
+In Discord: `@opus What are the core principles of The Fold?`
 
-### 5.2 Test bridge (separate terminal)
-
-The bridge watches the outbox and posts to Discord:
-
-```bash
-cd /home/oso/the-fold/thimble/discord
-# Bridge is integrated into bot.js, so it starts automatically
-```
+Expected:
+- Bot reacts with 🤔
+- ~10-30s delay (LLM thinking)
+- Opus replies with architectural guidance
 
 ---
 
-## Step 6: Test Opus Agent
+## How It Works
 
-### 6.1 Manual Trigger Test (No Discord)
+### Discord Bot (`thimble/discord/bot.js`)
 
-Test the pipeline without Discord:
+- Listens for @mentions of opus, pedagogue, archivist
+- Writes trigger files to `.fold-repl/triggers/<agent>-discord-trigger.ss`
+- Runs Discord → Fold bridge (watches outbox, posts responses)
 
-```bash
-./fold.sh agents/test-opus-discord.ss
-```
+### Polling Daemons
 
-In the REPL:
+**discord-poll-daemon** (`scripts/discord-poll-daemon.sh`):
+- Polls `.fold-repl/triggers/` every 5 seconds
+- Processes Discord triggers (`*-discord-trigger.ss`)
+- Calls LLM via invoke scripts
 
+**fold-agent-poll-daemon** (`scripts/fold-agent-poll-daemon.sh`):
+- Polls `.fold-repl/triggers/` every 5 seconds
+- Processes Fold chat tags (`*-fold-trigger.ss`)
+- Same LLM integration
+
+Both daemons run `agents/llm-agent-poll.ss` which:
+- Detects trigger files
+- Calls `node agents/invoke-<agent>.js <trigger-file>`
+- Implements loop prevention (max 3 bot→bot turns)
+
+### LLM Invokers (`agents/invoke-*.js`)
+
+Simple Node.js scripts that:
+- Read trigger file (S-expression)
+- Build prompt with system message + user question
+- Run: `claude --print --model <model>`
+- Return response to stdout
+
+**Current agents:**
+- `invoke-opus.js` - Architectural guidance (Opus model)
+- `invoke-pedagogue.js` - Teaching (samples from multiple models)
+- `invoke-archivist.js` - Research (Sonnet model)
+
+---
+
+## Trigger File Format
+
+Location: `.fold-repl/triggers/<agent>-discord-trigger.ss` or `<agent>-fold-trigger.ss`
+
+Format (S-expression):
 ```scheme
-;; Create a test trigger file
-(create-test-trigger 'opus "What are the core principles of The Fold?")
-
-;; Manually poll (simulates daemon)
-(load "agents/discord-daemon-poll.ss")
-(poll-discord-triggers)
+((session-id . "discord-1234567890")
+ (agent . opus)
+ (channel . chat)
+ (author . "username")
+ (body . "@opus What is content-addressable storage?"))
 ```
-
-**Expected:**
-1. Pipeline runs
-2. LLM is called (if API configured)
-3. Response written to `.fold-repl/discord-outbox/*.json`
-4. Bridge picks it up and would post to Discord
-
-### 6.2 Live Discord Test
-
-With bot running:
-
-1. Go to `#consult` channel in Discord
-2. Type: `@opus What's the best way to handle state in The Fold?`
-3. Watch for:
-   - Bot reacts with 🤔 (acknowledging)
-   - Daemon log shows: `📬 Discord trigger for opus`
-   - Pipeline runs
-   - Opus replies in Discord
 
 ---
 
-## Step 7: Verify the Flow
+## Loop Prevention
 
-### Check logs:
+Bot-to-bot conversations are limited to prevent infinite loops:
 
-**Bot log:**
+- **Human message** → Reset counter to 1, respond
+- **Bot message, count < 3** → Increment counter, respond
+- **Bot message, count ≥ 3** → Skip response, reset counter
+
+Counter stored in: `.fold-repl/bot-message-count.txt`
+
+---
+
+## Logs
+
 ```bash
-# Should show:
-Agent mention detected: @opus
-✅ Posted to Discord #consult
-```
+# Discord bot output
+tail -f /tmp/discord-bot.log
 
-**Daemon log:**
-```bash
-tail -f .fold-repl/daemon.log
-# Should show:
-📬 Discord trigger for opus
-▶️  Running opus pipeline
-✅ opus: Pipeline complete
-```
+# Discord trigger polling
+tail -f logs/discord-poll.log
 
-**Outbox:**
-```bash
-ls -la .fold-repl/discord-outbox/
-# Should create/delete files as messages are processed
+# Fold chat trigger polling
+tail -f logs/fold-agent-poll.log
+
+# Forum posts
+ls -lt forum/chat/ | head
 ```
 
 ---
@@ -274,84 +187,87 @@ ls -la .fold-repl/discord-outbox/
 ## Troubleshooting
 
 ### Bot doesn't see messages
-
 - Enable "Message Content Intent" in Discord Developer Portal
-- Re-invite bot with correct permissions
+- Verify bot invited with correct permissions
 
-### Daemon not detecting triggers
+### No response to @opus
+- Check bot is running: `ps aux | grep "node bot.js"`
+- Check trigger created: `ls -la .fold-repl/triggers/`
+- Check daemon running: `ps aux | grep discord-poll`
+- Check logs: `tail -f logs/discord-poll.log`
 
-- Check `.fold-repl/requests/` for trigger files
-- Verify daemon is running: `./daemon.sh status`
-- Check daemon is loading `discord-daemon-poll.ss`
+### "REPL daemon consuming triggers" error
+- Old bug: Fixed by moving triggers from `.fold-repl/requests/` to `.fold-repl/triggers/`
+- If trigger files show "invalid syntax" errors, check they're in correct directory
 
-### Pipeline errors
+### Response delay
+- Normal: 10-30s for Claude Opus to respond
+- Check LLM is being called: `tail -f logs/discord-poll.log` should show "🤖 Calling LLM API..."
 
-- Check LLM API is configured
-- Verify `opus-discord-pipeline` loads: `./fold.sh -c "(load \"agents/pipelines/discord-agent.ss\") opus-discord-pipeline"`
+---
 
-### No response in Discord
+## Configuration
 
-- Check `.fold-repl/discord-outbox/` has files
-- Verify bridge.js is running
-- Check webhook permissions in Discord channel
+### Add New Agent
 
-### Bot replies but opus doesn't
+1. Create invoker: `agents/invoke-<name>.js`
+   ```javascript
+   #!/usr/bin/env node
+   const { execSync } = require('child_process');
+   const fs = require('fs');
 
-- Check channel mapping: `DISCORD_CHANNEL_CONSULT` is set
-- Verify trigger file was created in `.fold-repl/requests/`
-- Check daemon polling interval (should be ≤ 15 seconds)
+   // Parse trigger file...
+   // Build prompt with system message...
+   // Call: claude --print --model <model>
+   ```
+
+2. Add to `agents/llm-agent-poll.ss`:
+   ```scheme
+   (define *agents* '(opus pedagogue archivist newagent))
+   ```
+
+3. Update Discord bot `thimble/discord/config.js`:
+   ```javascript
+   const CONSULTATION_AGENTS = ['opus', 'pedagogue', 'archivist', 'newagent'];
+   ```
+
+4. Restart daemons
+
+### Change Model
+
+Edit `agents/invoke-<agent>.js`, change:
+```javascript
+execSync(`claude --print --model opus < ${promptFile}`)
+```
+
+Options: `opus`, `sonnet`, `haiku`
+
+---
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `thimble/discord/bot.js` | Discord bot, bridge, slash commands |
+| `thimble/discord/start-bot.sh` | Convenience script to start bot |
+| `scripts/discord-poll-daemon.sh` | Discord trigger polling daemon |
+| `scripts/fold-agent-poll-daemon.sh` | Fold chat trigger polling daemon |
+| `agents/llm-agent-poll.ss` | Core polling logic + loop prevention |
+| `agents/invoke-opus.js` | Opus LLM invoker (Claude Code headless) |
+| `agents/invoke-pedagogue.js` | Pedagogue LLM invoker |
+| `agents/invoke-archivist.js` | Archivist LLM invoker |
+| `.env.discord.example` | Environment template |
 
 ---
 
 ## Next Steps
 
-Once opus works:
-
-1. **Add pedagogue and archivist** - Same pattern, already coded
-2. **Set up other channels** - Map engineering, philosophy, etc.
-3. **Enable scheduled agents** - kimi news, sentinel reviews
-4. **Add council** - Multi-model deliberation with `@council`
-
----
-
-## Quick Command Reference
-
-```bash
-# Start daemon
-./daemon.sh start
-
-# Start Discord bot
-cd thimble/discord && node bot.js
-
-# Check logs
-tail -f .fold-repl/daemon.log
-tail -f logs/agents.log
-
-# Test opus manually
-./fold.sh agents/test-opus-discord.ss
-
-# Create test trigger
-./fold.sh -c "(load \"agents/test-opus-discord.ss\") (create-test-trigger 'opus \"test question\")"
-
-# Poll triggers manually
-./fold.sh -c "(load \"agents/discord-daemon-poll.ss\") (poll-discord-triggers)"
-```
+- [ ] Add pedagogue and archivist invoke scripts (if not done)
+- [ ] Test loop prevention (bot→bot conversations)
+- [ ] Set up additional Discord channels (engineering, philosophy, etc.)
+- [ ] Enable scheduled agents (kimi, sentinel, etc.)
+- [ ] Add council deliberation (@council for multi-model consensus)
 
 ---
 
-## Files Created
-
-| File | Purpose |
-|------|---------|
-| `fabric/stitches/pipeline/effects.ss` | Discord effects (post, reply, react, etc.) |
-| `fabric/stitches/pipeline/context.ss` | Discord context extensions |
-| `thimble/pipeline/interpreter.ss` | Discord effect handlers |
-| `thimble/discord/bridge.js` | Outbox → Discord bridge |
-| `agents/pipelines/discord-agent.ss` | opus, pedagogue, archivist pipelines |
-| `agents/discord-daemon-poll.ss` | Trigger polling for daemon |
-| `agents/test-opus-discord.ss` | Test script |
-| `.env.discord.example` | Environment template |
-
----
-
-**Ready to test?** Start with Step 1.1 and work your way through. If you hit issues, check the troubleshooting section.
+**Production Ready**: Opus is live! Tag @opus in Discord to test.
