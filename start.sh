@@ -146,10 +146,11 @@ else
         )
 
         # Wait briefly to ensure it started
-        sleep 2
+        sleep 3
 
         if pgrep -f "node.*discord.*bot.js" > /dev/null; then
             echo "✓ Discord bot started (logs: /tmp/discord-bot.log)"
+            # Note: Slash command registration errors are non-critical
         else
             echo "⚠ Discord bot failed to start (check /tmp/discord-bot.log)"
         fi
