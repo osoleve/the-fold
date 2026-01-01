@@ -264,62 +264,62 @@
     
     ((name . make-string) (category . string) (signature . "(make-string len [char])")
      (description . "Create a string of given length, optionally with fill char.")
-     (examples . ("(prim 'make-string 5 #\x) → \"xxxxx\"")))
+     (examples . ("(prim 'make-string 5 #\\x) → \"xxxxx\"")))
     
     ((name . string->list) (category . string) (signature . "(string->list s)")
      (description . "Convert string to list of characters.")
-     (examples . ("(prim 'string->list \"abc\") → (#\a #\b #\c)")))
+     (examples . ("(prim 'string->list \"abc\") → (#\\a #\\b #\\c)")))
     
     ((name . list->string) (category . string) (signature . "(list->string chars)")
      (description . "Convert list of characters to string.")
-     (examples . ("(prim 'list->string '(#\a #\b #\c)) → \"abc\"")))
+     (examples . ("(prim 'list->string '(#\\a #\\b #\\c)) → \"abc\"")))
     
     ;; ============================================================
     ;; Character Operations
     ;; ============================================================
     ((name . char->integer) (category . character) (signature . "(char->integer c)")
      (description . "Get Unicode code point of character.")
-     (examples . ("(prim 'char->integer #\A) → 65")))
+     (examples . ("(prim 'char->integer #\\A) → 65")))
     
     ((name . integer->char) (category . character) (signature . "(integer->char n)")
      (description . "Get character from Unicode code point.")
-     (examples . ("(prim 'integer->char 65) → #\A")))
+     (examples . ("(prim 'integer->char 65) → #\\A")))
     
     ((name . char=?) (category . character) (signature . "(char=? a b)")
      (description . "Test if two characters are equal.")
-     (examples . ("(prim 'char=? #\a #\a) → #t")))
+     (examples . ("(prim 'char=? #\\a #\\a) → #t")))
     
     ((name . char<?) (category . character) (signature . "(char<? a b)")
      (description . "Test if character a is less than b.")
-     (examples . ("(prim 'char<? #\a #\b) → #t")))
+     (examples . ("(prim 'char<? #\\a #\\b) → #t")))
     
     ((name . char-alphabetic?) (category . character) (signature . "(char-alphabetic? c)")
      (description . "Test if character is alphabetic.")
-     (examples . ("(prim 'char-alphabetic? #\a) → #t")))
+     (examples . ("(prim 'char-alphabetic? #\\a) → #t")))
     
     ((name . char-numeric?) (category . character) (signature . "(char-numeric? c)")
      (description . "Test if character is a digit.")
-     (examples . ("(prim 'char-numeric? #\5) → #t")))
+     (examples . ("(prim 'char-numeric? #\\5) → #t")))
     
     ((name . char-whitespace?) (category . character) (signature . "(char-whitespace? c)")
      (description . "Test if character is whitespace.")
-     (examples . ("(prim 'char-whitespace? #\space) → #t")))
+     (examples . ("(prim 'char-whitespace? #\\space) → #t")))
     
     ((name . char-upper-case?) (category . character) (signature . "(char-upper-case? c)")
      (description . "Test if character is uppercase.")
-     (examples . ("(prim 'char-upper-case? #\A) → #t")))
+     (examples . ("(prim 'char-upper-case? #\\A) → #t")))
     
     ((name . char-lower-case?) (category . character) (signature . "(char-lower-case? c)")
      (description . "Test if character is lowercase.")
-     (examples . ("(prim 'char-lower-case? #\a) → #t")))
+     (examples . ("(prim 'char-lower-case? #\\a) → #t")))
     
     ((name . char-upcase) (category . character) (signature . "(char-upcase c)")
      (description . "Convert character to uppercase.")
-     (examples . ("(prim 'char-upcase #\a) → #\A")))
+     (examples . ("(prim 'char-upcase #\\a) → #\\A")))
     
     ((name . char-downcase) (category . character) (signature . "(char-downcase c)")
      (description . "Convert character to lowercase.")
-     (examples . ("(prim 'char-downcase #\A) → #\a")))
+     (examples . ("(prim 'char-downcase #\\A) → #\\a")))
     
     ;; ============================================================
     ;; Conversion Operations
@@ -443,7 +443,7 @@
     
     ((name . char?) (category . type) (signature . "(char? obj)")
      (description . "Test if object is a character.")
-     (examples . ("(prim 'char? #\a) → #t")))
+     (examples . ("(prim 'char? #\\a) → #t")))
     
     ((name . bytevector?) (category . type) (signature . "(bytevector? obj)")
      (description . "Test if object is a bytevector.")
