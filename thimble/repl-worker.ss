@@ -127,35 +127,39 @@
 
 (define (scheme-eval-string str)
   "Evaluate a string containing Scheme expressions.
-   Returns (values result last-defined-name) where last-defined-name
-   is the symbol of the last definition, or #f if none."
+   Returns (values result last-defined-name last-def-expr) where:
+   - last-defined-name is the symbol of the last definition, or #f
+   - last-def-expr is the full definition expression, or #f"
   (let ([port (open-input-string str)])
        (let loop ([last-result (void)]
-                  [last-def-name #f])
+                  [last-def-name #f]
+                  [last-def-expr #f])
             (let ([expr (read port)])
                  (if (eof-object? expr)
-                     (values last-result last-def-name)
+                     (values last-result last-def-name last-def-expr)
                      (let ([is-def (definition? expr)]
                            [result (eval expr)])
                           (loop result
                                 (if is-def
                                     (definition-name expr)
-                                    last-def-name))))))))
+                                    last-def-name)
+                                (if is-def
+                                    expr
+                                    last-def-expr))))))))
 
 (define (scheme-eval-and-capture session-id str)
   "Evaluate expressions and capture both stdout and return value.
-   For definitions, returns the content-address of the defined value."
+   For definitions, returns the content-address of the definition expression."
   (let ([output-port (open-output-string)])
-       (let-values ([(result def-name)
+       (let-values ([(result def-name def-expr)
                      (parameterize ([current-output-port output-port]
                                     [*current-session-id* session-id])
                                    (scheme-eval-string str))])
                    (let ([output (get-output-string output-port)])
                         (cond
-                         ;; Definition: return content-address
-                         [def-name
-                           (let* ([value (eval def-name)]
-                                  [addr (content-address value)])
+                         ;; Definition: return content-address of the definition expression
+                         [def-expr
+                           (let ([addr (content-address def-expr)])
                                  (if (> (string-length output) 0)
                                      (string-append output "\n" addr)
                                      addr))]
