@@ -240,7 +240,7 @@
     
     ((name . string-ref) (category . string) (signature . "(string-ref s i)")
      (description . "Return character at index i in string s.")
-     (examples . ("(prim 'string-ref \"hello\" 0) → #\h")))
+     (examples . ("(prim 'string-ref \"hello\" 0) → #\\h")))
     
     ((name . string-append) (category . string) (signature . "(string-append s ...)")
      (description . "Concatenate strings. Variadic.")
@@ -763,19 +763,8 @@
             #f
             (car candidates))))
 
-;;; string-downcase : String → String
-(define (string-downcase str)
-  (list->string (map char-downcase (string->list str))))
-
-;;; string-contains? : String × String → Boolean
-(define (string-contains? haystack needle)
-  (let ([nlen (string-length needle)]
-        [hlen (string-length haystack)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i nlen) hlen) #f]
-             [(string=? needle (substring haystack i (+ i nlen))) #t]
-             [else (loop (+ i 1))]))))
+;;; NOTE: string-downcase and string-contains? are provided by prelude.ss
+;;; (loaded transitively via prim.ss)
 
 ;;; edit-distance : String × String → Nat
 ;;; Simple Levenshtein distance for typo suggestions.

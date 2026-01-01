@@ -283,22 +283,7 @@
                   (display "^")
                   (newline)))))
 
-;;; string-split : String × Char → (List String)
-(define (string-split str delim)
-  (let loop ([chars (string->list str)]
-             [current '()]
-             [result '()])
-       (cond
-        [(null? chars)
-         (reverse (cons (list->string (reverse current)) result))]
-        [(char=? (car chars) delim)
-         (loop (cdr chars)
-               '()
-               (cons (list->string (reverse current)) result))]
-        [else
-         (loop (cdr chars)
-               (cons (car chars) current)
-               result)])))
+;;; NOTE: string-split is provided by prelude.ss (loaded above)
 
 ;;; ============================================================
 ;;; Error Helpers for Common Cases

@@ -354,6 +354,112 @@
        (and (<= suf-len str-len)
             (string=? (substring str (- str-len suf-len) str-len) suffix))))
 
+;;; string-index-of : String × String → (Maybe Integer)
+;;; Find first occurrence of needle in haystack.
+;;; Returns index or #f if not found.
+(define (string-index-of haystack needle)
+  (let ([h-len (string-length haystack)]
+        [n-len (string-length needle)])
+       (cond
+        [(= n-len 0) 0]
+        [(> n-len h-len) #f]
+        [else
+         (let loop ([i 0])
+              (cond
+               [(> (+ i n-len) h-len) #f]
+               [(string=? (substring haystack i (+ i n-len)) needle) i]
+               [else (loop (+ i 1))]))])))
+
+;;; string-last-index-of : String × String → (Maybe Integer)
+;;; Find last occurrence of needle in haystack.
+;;; Returns index or #f if not found.
+(define (string-last-index-of haystack needle)
+  (let ([h-len (string-length haystack)]
+        [n-len (string-length needle)])
+       (cond
+        [(= n-len 0) h-len]
+        [(> n-len h-len) #f]
+        [else
+         (let loop ([i (- h-len n-len)])
+              (cond
+               [(< i 0) #f]
+               [(string=? (substring haystack i (+ i n-len)) needle) i]
+               [else (loop (- i 1))]))])))
+
+;;; string-replace : String × String × String → String
+;;; Replace all occurrences of old with new.
+(define (string-replace str old new)
+  (let ([old-len (string-length old)])
+       (cond
+        [(= old-len 0) str]
+        [else
+         (let loop ([start 0]
+                    [result ""])
+              (let ([idx (string-index-of (substring str start (string-length str)) old)])
+                   (if idx
+                       (let ([pos (+ start idx)])
+                            (loop (+ pos old-len)
+                                  (string-append result
+                                                 (substring str start pos)
+                                                 new)))
+                       (string-append result (substring str start (string-length str))))))])))
+
+;;; string-reverse : String → String
+;;; Reverse a string.
+(define (string-reverse str)
+  (list->string (reverse (string->list str))))
+
+;;; string-empty? : String → Boolean
+;;; Check if string is empty.
+(define (string-empty? str)
+  (= (string-length str) 0))
+
+;;; string-blank? : String → Boolean
+;;; Check if string is empty or contains only whitespace.
+(define (string-blank? str)
+  (let ([len (string-length str)])
+       (let loop ([i 0])
+            (cond
+             [(>= i len) #t]
+             [(whitespace? (string-ref str i)) (loop (+ i 1))]
+             [else #f]))))
+
+;;; string-all-match? : String × (Char → Boolean) → Boolean
+;;; Check if all characters in string satisfy predicate.
+(define (string-all-match? str predicate)
+  (let ([len (string-length str)])
+       (let loop ([i 0])
+            (cond
+             [(>= i len) #t]
+             [(predicate (string-ref str i)) (loop (+ i 1))]
+             [else #f]))))
+
+;;; string-upcase : String → String
+;;; Convert string to uppercase.
+(define (string-upcase str)
+  (list->string (map char-upcase (string->list str))))
+
+;;; string-downcase : String → String
+;;; Convert string to lowercase.
+(define (string-downcase str)
+  (list->string (map char-downcase (string->list str))))
+
+;;; string-pad-left : String × Integer × Char → String
+;;; Pad string on the left to reach target width.
+(define (string-pad-left str width pad-char)
+  (let ([len (string-length str)])
+       (if (>= len width)
+           str
+           (string-append (make-string (- width len) pad-char) str))))
+
+;;; string-pad-right : String × Integer × Char → String
+;;; Pad string on the right to reach target width.
+(define (string-pad-right str width pad-char)
+  (let ([len (string-length str)])
+       (if (>= len width)
+           str
+           (string-append str (make-string (- width len) pad-char)))))
+
 ;;; ============================================================
 ;;; Debug Utilities
 ;;; ============================================================
