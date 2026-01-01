@@ -156,7 +156,7 @@ async function handleAgentMention(message) {
   // Write trigger file for daemon
   const triggerPath = path.join(
     __dirname,
-    config.BOT_CONFIG.replRequestDir,
+    '../../.fold-repl/triggers',
     `${agentToInvoke}-discord-trigger.ss`
   );
 

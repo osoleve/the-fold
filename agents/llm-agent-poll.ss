@@ -4,7 +4,7 @@
 ;;; Processes triggers and calls actual LLM APIs for responses.
 ;;; Includes depth-based loop prevention.
 
-(define *trigger-dir* ".fold-repl/requests")
+(define *trigger-dir* ".fold-repl/triggers")
 (define *agents* '(opus pedagogue archivist))
 (define *state-file* ".fold-repl/bot-message-count.txt")
 (define *max-depth* 3)
@@ -28,10 +28,15 @@
   (for-each check-agent *agents*))
 
 (define (check-agent agent)
-  (let ([trigger-file (format "~a/~a-fold-trigger.ss" *trigger-dir* agent)])
-       (when (file-exists? trigger-file)
+  ;; Check both fold-trigger and discord-trigger files
+  (let ([fold-trigger (format "~a/~a-fold-trigger.ss" *trigger-dir* agent)]
+        [discord-trigger (format "~a/~a-discord-trigger.ss" *trigger-dir* agent)])
+       (when (file-exists? fold-trigger)
              (display (format "📬 Fold trigger for ~a\n" agent))
-             (process-trigger agent trigger-file))))
+             (process-trigger agent fold-trigger))
+       (when (file-exists? discord-trigger)
+             (display (format "📬 Discord trigger for ~a\n" agent))
+             (process-trigger agent discord-trigger))))
 
 (define (process-trigger agent trigger-file)
   (let ([trigger-data (call-with-input-file trigger-file read)])
