@@ -7,20 +7,14 @@
 #   ./daemon.sh status   — Check if daemon is running
 #   ./daemon.sh fg       — Run daemon in foreground (for debugging)
 #   ./daemon.sh cleanup  — Cleanup stale workers by heartbeat age
-#
-# Environment:
-#   FOLD_USE_SCHEME=1  — Force Scheme daemon (skip Rust)
-#
-# Prefers Rust daemon if available, otherwise falls back to Chez Scheme.
 
 set -e
 cd "$(dirname "$0")"
 
 READY_FILE=".fold-repl/ready"
 PID_FILE=".fold-repl/daemon.pid"
-RUST_DAEMON="./fold-rs/target/release/fold-daemon"
 
-# Find Scheme (for fallback)
+# Find Chez Scheme
 find_scheme() {
     for cmd in scheme chez-scheme chezscheme petite; do
         if command -v "$cmd" &> /dev/null; then
@@ -42,20 +36,14 @@ case "$1" in
         echo "Starting REPL daemon in background..."
         mkdir -p .fold-repl
 
-        # Prefer Rust daemon if available (unless FOLD_USE_SCHEME is set)
-        if [ -x "$RUST_DAEMON" ] && [ -z "$FOLD_USE_SCHEME" ]; then
-            echo "Using Rust daemon..."
-            nohup "$RUST_DAEMON" > .fold-repl/daemon.log 2>&1 &
-        else
-            SCHEME_CMD=$(find_scheme) || {
-                echo "Error: Neither Rust daemon nor Chez Scheme found."
-                echo "Run 'cargo build --release' in fold-rs/ to build the Rust daemon."
-                exit 1
-            }
-            echo "Using Scheme daemon..."
-            export FOLD_SCHEME_CMD="$SCHEME_CMD"
-            nohup "$SCHEME_CMD" --script start-daemon.ss > .fold-repl/daemon.log 2>&1 &
-        fi
+        SCHEME_CMD=$(find_scheme) || {
+            echo "Error: Chez Scheme not found."
+            echo "Install with: apt install chezscheme"
+            exit 1
+        }
+        echo "Using Chez Scheme daemon..."
+        export FOLD_SCHEME_CMD="$SCHEME_CMD"
+        nohup "$SCHEME_CMD" --script start-daemon.ss > .fold-repl/daemon.log 2>&1 &
         echo $! > "$PID_FILE"
 
         # Wait for ready file
@@ -102,7 +90,7 @@ case "$1" in
     cleanup)
         echo "Cleaning up stale workers..."
         SCHEME_CMD=$(find_scheme) || {
-            echo "Error: Chez Scheme not found (cleanup only applies to Scheme daemon)."
+            echo "Error: Chez Scheme not found."
             exit 1
         }
         export FOLD_SCHEME_CMD="$SCHEME_CMD"
@@ -124,17 +112,12 @@ case "$1" in
         echo "Running daemon in foreground (Ctrl+C to stop)..."
         mkdir -p .fold-repl
 
-        # Prefer Rust daemon if available (unless FOLD_USE_SCHEME is set)
-        if [ -x "$RUST_DAEMON" ] && [ -z "$FOLD_USE_SCHEME" ]; then
-            exec "$RUST_DAEMON"
-        else
-            SCHEME_CMD=$(find_scheme) || {
-                echo "Error: Neither Rust daemon nor Chez Scheme found."
-                exit 1
-            }
-            export FOLD_SCHEME_CMD="$SCHEME_CMD"
-            exec "$SCHEME_CMD" --script start-daemon.ss
-        fi
+        SCHEME_CMD=$(find_scheme) || {
+            echo "Error: Chez Scheme not found."
+            exit 1
+        }
+        export FOLD_SCHEME_CMD="$SCHEME_CMD"
+        exec "$SCHEME_CMD" --script start-daemon.ss
         ;;
 
     *)
