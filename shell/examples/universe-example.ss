@@ -4,7 +4,10 @@
 ;;; programmatically in your own Scheme code.
 ;;;
 ;;; Run with: scheme --script shell/universe-example.ss
+;;;
+;;; NOTE: string-contains? provided by core/prelude.ss
 
+(load "core/prelude.ss")
 (import (shell universe-serialize))
 
 (display "Universe Serialization Example\n")
@@ -157,17 +160,10 @@
 (display "\nExample 7: Universe statistics\n")
 (display "-------------------------------\n")
 
+;;; NOTE: string-contains? provided by core/prelude.ss
+
 (define (count-by-directory files dir)
   (length (filter (lambda (f) (string-contains? f dir)) files)))
-
-(define (string-contains? haystack needle)
-  (let ([hlen (string-length haystack)]
-        [nlen (string-length needle)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i nlen) hlen) #f]
-             [(string=? needle (substring haystack i (+ i nlen))) #t]
-             [else (loop (+ i 1))]))))
 
 (display "Directory breakdown:\n")
 (display "  forum/poetry:      ")

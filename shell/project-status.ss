@@ -5,8 +5,10 @@
 ;;;
 ;;; This is Shell code: uses IO, runs system commands.
 ;;;
-;;; Dependencies (load from ccverse root):
-;;;   (load "core/prelude.ss")
+;;; Dependencies:
+(load "core/prelude.ss")
+
+;;; NOTE: string-trim, string-split provided by core/prelude.ss
 ;;;
 ;;; Provides:
 ;;;   (count-tests path)      - Count test files and test cases
@@ -122,16 +124,6 @@
                                                                     (+ count 1)
                                                                     count))))))))))
 
-;;; string-trim : String -> String
-;;; Remove leading whitespace from string.
-(define (string-trim str)
-  (let ([len (string-length str)])
-       (let loop ([i 0])
-            (cond
-             [(>= i len) ""]
-             [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
-             [else (substring str i len)]))))
-
 ;;; count-tests : String -> Alist
 ;;; Count test files and test cases in a directory tree.
 ;;; Returns: ((files . N) (cases . M))
@@ -208,6 +200,7 @@
 
 ;;; parse-git-status : String -> Alist
 ;;; Parse git status output into structured data.
+;;; NOTE: uses string-split from core/prelude.ss
 (define (parse-git-status output)
   (let ([lines (string-split output #\newline)])
        (let loop ([lines lines]
@@ -243,25 +236,6 @@
                                  (loop (cdr lines) modified (cons file-part staged) untracked)]
                                 [else
                                  (loop (cdr lines) modified staged untracked)]))))))))
-
-;;; string-split : String x Char -> (List String)
-;;; Split string by delimiter character.
-(define (string-split str delim)
-  (let ([len (string-length str)])
-       (let loop ([i 0] [start 0] [acc '()])
-            (cond
-             [(>= i len)
-              (reverse (if (> i start)
-                           (cons (substring str start i) acc)
-                           acc))]
-             [(char=? (string-ref str i) delim)
-              (loop (+ i 1)
-                    (+ i 1)
-                    (if (> i start)
-                        (cons (substring str start i) acc)
-                        acc))]
-             [else
-              (loop (+ i 1) start acc)]))))
 
 ;;; git-status-info : -> Alist
 ;;; Get structured git status information.

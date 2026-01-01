@@ -26,6 +26,9 @@
 (import (chezscheme)
         (shell universe-serialize))
 
+;;; NOTE: string utilities provided by core/prelude.ss
+(load "core/prelude.ss")
+
 ;;; ============================================================
 ;;; Command-line Argument Parsing
 ;;; ============================================================
@@ -96,23 +99,6 @@
                   (display "Use --help for usage information.\n")
                   (exit 1)])))))
 
-;;; Split string by delimiter
-(define (string-split str delim)
-  (let ([len (string-length str)])
-       (let loop ([start 0]
-                  [i 0]
-                  [result '()])
-            (cond
-             [(= i len)
-              (if (= start len)
-                  (reverse result)
-                  (reverse (cons (substring str start len) result)))]
-             [(char=? (string-ref str i) delim)
-              (loop (+ i 1)
-                    (+ i 1)
-                    (cons (substring str start i) result))]
-             [else
-              (loop start (+ i 1) result)]))))
 
 ;;; ============================================================
 ;;; Main Program

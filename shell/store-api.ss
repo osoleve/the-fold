@@ -14,6 +14,9 @@
 ;;;   Tier 5-6: Filtering and searching operations
 
 (source-directories (cons "core" (source-directories)))
+
+;;; NOTE: string utilities provided by core/prelude.ss
+(load "core/prelude.ss")
 (load "core/block.ss")
 (load "core/sha256.ss")
 (load "shell/fs.ss")
@@ -84,15 +87,6 @@
                            (let ([payload-str (utf8->string (block-payload b))])
                                 (string-contains? payload-str substring)))))
 
-;;; Helper: string-contains?
-(define (string-contains? haystack needle)
-  (let ([h-len (string-length haystack)]
-        [n-len (string-length needle)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i n-len) h-len) #f]
-             [(string=? (substring haystack i (+ i n-len)) needle) #t]
-             [else (loop (+ i 1))]))))
 
 ;;; store-find-by-ref : FSCap Hash → (List Block)
 ;;; Find all blocks that reference given hash.

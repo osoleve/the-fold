@@ -17,6 +17,9 @@
 ;;;   - fabric/stitches/pipeline/effects.ss
 ;;;   - fabric/stitches/pipeline/context.ss
 ;;;   - thimble/fs.ss (for file operations)
+;;;
+;;; NOTE: Standard string utilities provided by core/prelude.ss.
+;;;       string-rindex is unique to this module.
 
 (load "core/pipeline/stage.ss")
 (load "core/pipeline/effects.ss")

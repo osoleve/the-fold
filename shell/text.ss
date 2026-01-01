@@ -14,6 +14,9 @@
 ;;;   5. Detect homoglyph attacks (confusables)
 ;;;
 ;;; Design principle: REJECT by default. Quarantine what we must keep.
+;;;
+;;; NOTE: Standard string utilities are provided by core/prelude.ss.
+;;;       string-any? is unique to this module.
 
 ;;; ============================================================
 ;;; Character Classification

@@ -46,41 +46,18 @@
 ;;; ============================================================
 ;;; String Utilities
 ;;; ============================================================
-
-;;; string-trim : String -> String
-;;; Remove leading and trailing whitespace.
-(define (string-trim str)
-  (let* ([len (string-length str)]
-         [start (let loop ([i 0])
-                     (cond
-                      [(>= i len) len]
-                      [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
-                      [else i]))]
-         [end (let loop ([i (- len 1)])
-                   (cond
-                    [(< i start) start]
-                    [(char-whitespace? (string-ref str i)) (loop (- i 1))]
-                    [else (+ i 1)]))])
-        (substring str start end)))
+;;;
+;;; NOTE: string-trim, string-split, string-join, string-contains?,
+;;; string-starts-with? (alias for string-prefix?) are provided by
+;;; core/prelude.ss which is loaded above.
 
 ;;; string-prefix? : String x String -> Boolean
-(define (string-prefix? prefix str)
-  (let ([plen (string-length prefix)]
-        [slen (string-length str)])
-       (and (>= slen plen)
-            (string=? prefix (substring str 0 plen)))))
-
-;;; string-contains? : String x String -> Boolean
-(define (string-contains? str needle)
-  (let ([nlen (string-length needle)]
-        [slen (string-length str)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i nlen) slen) #f]
-             [(string=? needle (substring str i (+ i nlen))) #t]
-             [else (loop (+ i 1))]))))
+;;; Alias for string-starts-with? from prelude.
+(define string-prefix? string-starts-with?)
 
 ;;; string-index : String x Char -> Nat | #f
+;;; Find first occurrence of character in string.
+;;; (Different from prelude's string-index-of which takes a substring.)
 (define (string-index str ch)
   (let ([len (string-length str)])
        (let loop ([i 0])
@@ -90,6 +67,8 @@
              [else (loop (+ i 1))]))))
 
 ;;; string-index-right : String x Char -> Nat | #f
+;;; Find last occurrence of character in string.
+;;; (Different from prelude's string-last-index-of which takes a substring.)
 (define (string-index-right str ch)
   (let ([len (string-length str)])
        (let loop ([i (- len 1)])
@@ -97,33 +76,6 @@
              [(< i 0) #f]
              [(char=? (string-ref str i) ch) i]
              [else (loop (- i 1))]))))
-
-;;; string-split : String x Char -> (List String)
-(define (string-split str sep)
-  (let ([len (string-length str)])
-       (let loop ([i 0] [start 0] [parts '()])
-            (cond
-             [(>= i len)
-              (if (= start i)
-                  (reverse parts)
-                  (reverse (cons (substring str start i) parts)))]
-             [(char=? (string-ref str i) sep)
-              (loop (+ i 1)
-                    (+ i 1)
-                    (cons (substring str start i) parts))]
-             [else
-              (loop (+ i 1) start parts)]))))
-
-;;; string-join : (List String) x String -> String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([ss (cdr strs)]
-                 [result (car strs)])
-           (if (null? ss)
-               result
-               (loop (cdr ss)
-                     (string-append result sep (car ss)))))))
 
 ;;; ============================================================
 ;;; Path Utilities
@@ -255,7 +207,7 @@
                        [rest (substring trimmed start (string-length trimmed))]
                        [end (or (string-index rest #\space)
                                 (string-index rest #
-ewline)
+                                              ewline)
                                 (string-index rest #\)))])
                       (if (and end (> end 0))
                           (string->symbol (substring rest 0 end))

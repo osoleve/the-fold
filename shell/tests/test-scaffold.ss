@@ -3,6 +3,17 @@
 ;;; This test file verifies the scaffolding system in isolation.
 
 ;;; ============================================================
+;;; Load Dependencies
+;;; ============================================================
+
+(load "core/prelude.ss")
+
+;;; NOTE: string utilities provided by core/prelude.ss
+;;;   - string-upcase
+;;;   - string-downcase
+;;;   - string-contains?
+
+;;; ============================================================
 ;;; Minimal Dependencies for Testing
 ;;; ============================================================
 
@@ -34,13 +45,6 @@
 (define (timestamp-year ts)
   (substring ts 0 4))
 
-;;; String utilities
-(define (string-upcase str)
-  (list->string (map char-upcase (string->list str))))
-
-(define (string-downcase str)
-  (list->string (map char-downcase (string->list str))))
-
 ;;; ============================================================
 ;;; Load the module under test
 ;;; ============================================================
@@ -69,14 +73,6 @@
        (display "\n    got: ")
        (display actual)))
   (newline))
-
-;;; ============================================================
-;;; Helper Functions
-;;; ============================================================
-
-;;; Helper: string-contains?
-(define (string-contains? haystack needle)
-  (not (not (string-search needle haystack))))
 
 ;;; ============================================================
 ;;; Tests

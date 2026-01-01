@@ -11,6 +11,13 @@
 ;;;   - Integrates with the new help system
 ;;;   - Provides quick fix suggestions
 ;;;
+;;; Dependencies:
+;;;   core/prelude.ss, core/help.ss, shell/error-fmt.ss
+;;;
+;;; NOTE: string utilities provided by core/prelude.ss:
+;;;       string-contains?, string-trim, string-split, string-index-of
+;;;       Unique to this module: string-replace-all, string-find-pattern
+;;;
 ;;; This is Shell code: provides user-facing error improvements.
 
 (load "core/prelude.ss")
@@ -478,41 +485,7 @@
                [(char=? (string-ref str i) char) i]
                [else (loop (+ i 1))])))))
 
-(define (string-trim str)
-  "Remove whitespace from both ends of string"
-  (let ([start (let loop ([i 0])
-                    (if (and (< i (string-length str))
-                             (char-whitespace? (string-ref str i)))
-                        (loop (+ i 1))
-                        i))]
-        [end (let loop ([i (- (string-length str) 1)])
-                  (if (and (>= i 0)
-                           (char-whitespace? (string-ref str i)))
-                      (loop (- i 1))
-                      i))])
-       (if (<= start end)
-           (substring str start (+ end 1))
-           "")))
-
-(define (string-split str . delim)
-  "Split string by delimiter (default space)"
-  (let ([delimiter (if (null? delim) #\space (car delim))])
-       (let loop ([start 0]
-                  [result '()])
-            (let ([pos (let inner ([i start])
-                            (if (>= i (string-length str))
-                                #f
-                                (if (char=? (string-ref str i) delimiter)
-                                    i
-                                    (inner (+ i 1)))))])
-                 (if pos
-                     (loop (+ pos 1)
-                           (cons (substring str start pos) result))
-                     (reverse (cons (substring str start (string-length str)) result)))))))
-
-(define (string-contains? haystack needle)
-  "Check if needle is in haystack"
-  (and (string-find-pattern haystack needle) #t))
+;;; NOTE: string-trim, string-split, string-contains? provided by core/prelude.ss
 
 ;;; ============================================================
 ;;; Enhanced Guard Macro

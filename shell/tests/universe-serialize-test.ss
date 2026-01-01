@@ -2,6 +2,12 @@
 ;;;
 ;;; Test harness for shell/universe-serialize.ss
 
+;;; Load dependencies
+(load "core/prelude.ss")
+
+;;; NOTE: string utilities provided by core/prelude.ss
+;;;   - string-contains?
+
 ;;; Load the library
 (import (shell universe-serialize))
 
@@ -140,21 +146,12 @@
       #f
       (any (lambda (f) (string-contains? f "readme.txt")) all-sexp-files))
 
-;;; Helper for string-contains? test
+;;; Helper function
 (define (any pred lst)
   (if (null? lst)
       #f
       (or (pred (car lst))
           (any pred (cdr lst)))))
-
-(define (string-contains? haystack needle)
-  (let ([hlen (string-length haystack)]
-        [nlen (string-length needle)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i nlen) hlen) #f]
-             [(string=? needle (substring haystack i (+ i nlen))) #t]
-             [else (loop (+ i 1))]))))
 
 ;;; Test 3: Filtered scanning
 (display "\nTest 3: Filtered scanning\n")

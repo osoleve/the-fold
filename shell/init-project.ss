@@ -23,6 +23,10 @@
 ;;;   - Git initialization
 ;;;   - Test scaffolding
 ;;;   - CI/CD setup options
+;;;
+;;; NOTE: string-join provided by core/prelude.ss
+
+(load "core/prelude.ss")
 
 ;;; ============================================================
 ;;; Configuration
@@ -396,16 +400,7 @@
 (define (path-join . parts)
   (string-join parts "/"))
 
-;;; string-join : (List String) × String → String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([ss (cdr strs)]
-                 [result (car strs)])
-           (if (null? ss)
-               result
-               (loop (cdr ss)
-                     (string-append result sep (car ss)))))))
+;;; NOTE: string-join provided by core/prelude.ss
 
 ;;; make-directory : Path → void
 (define (make-directory path)

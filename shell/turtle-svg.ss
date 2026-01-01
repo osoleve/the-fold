@@ -10,6 +10,9 @@
 ;;;   - shell/turtle-path.ss (for path command accessors)
 ;;;   - shell/turtle.ss (for drawing record)
 
+;;; NOTE: string utilities provided by core/prelude.ss
+(load "core/prelude.ss")
+
 ;;; ============================================================
 ;;; SVG Document Structure
 ;;; ============================================================
@@ -280,17 +283,6 @@
 ;;; Utility Functions
 ;;; ============================================================
 
-;;; string-join : (List String) x String -> String
-;;; Join strings with a separator.
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([rest (cdr strs)]
-                 [result (car strs)])
-           (if (null? rest)
-               result
-               (loop (cdr rest)
-                     (string-append result sep (car rest)))))))
 
 ;;; exists : (A -> Bool) x (List A) -> Bool
 ;;; Check if any element satisfies predicate.

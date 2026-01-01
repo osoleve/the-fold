@@ -10,6 +10,11 @@
 ;;; Usage in exploration scripts:
 ;;;   (guard (e (else (display (format-exploration-error e))))
 ;;;   Instead of: (guard (e (else (display (condition-message e))))
+;;;
+;;; NOTE: string-contains? provided by core/prelude.ss.
+;;;       string-replace-all and string-find-pattern are unique to this module.
+
+(load "core/prelude.ss")
 
 ;;; ============================================================
 ;;; Error Message Formatting
@@ -77,15 +82,7 @@
 ;;; String Utilities
 ;;; ============================================================
 
-;;; string-contains? : String × String → Bool
-(define (string-contains? str substr)
-  (let ([slen (string-length str)]
-        [sub-len (string-length substr)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i sub-len) slen) #f]
-             [(string=? substr (substring str i (+ i sub-len))) #t]
-             [else (loop (+ i 1))]))))
+;;; NOTE: string-contains? provided by core/prelude.ss
 
 ;;; string-replace-all : String × String × String → String
 ;;; Replace all occurrences of pattern with replacement.

@@ -6,8 +6,12 @@
 ;;; This is Shell code: uses IO, handles file parsing.
 ;;;
 ;;; Dependencies:
-;;;   core/prelude.ss (when loaded from root)
-;;;   ../core/prelude.ss (when loaded from shell/)
+;;;   core/prelude.ss
+;;;
+;;; NOTE: string utilities provided by core/prelude.ss:
+;;;       string-contains?, string-split, string-join, string-starts-with?,
+;;;       string-ends-with?, string-downcase
+;;;       Unique to this module: string-split-at (splits at substring)
 ;;;
 ;;; API:
 ;;;   (extract-definitions path) - Extract all define/define-record-type forms
@@ -16,10 +20,7 @@
 ;;;   (build-concept-graph path) - Build a graph of concepts and their relationships
 ;;;   (render-concept-map graph) - Render as readable text output
 
-;; Load prelude from appropriate path
-(if (file-exists? "../core/prelude.ss")
-    (load "../fabric/stitches/prelude.ss")       ; From shell/
-    (load "core/prelude.ss"))         ; From root
+(load "core/prelude.ss")
 
 ;;; ============================================================
 ;;; S-expression File Reader
@@ -297,16 +298,7 @@
                   '()))]
         [else '()])))
 
-;;; string-contains? : String x String -> Boolean
-;;; Check if str contains substr.
-(define (string-contains? str substr)
-  (let ([str-len (string-length str)]
-        [sub-len (string-length substr)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i sub-len) str-len) #f]
-             [(string-prefix? substr (substring str i str-len)) #t]
-             [else (loop (+ i 1))]))))
+;;; NOTE: string-contains? provided by core/prelude.ss
 
 ;;; string-split-at : String x String -> (List String)
 ;;; Split string at delimiter (simple version).
@@ -321,30 +313,18 @@
                     (substring str (+ i delim-len) str-len))]
              [else (loop (+ i 1))]))))
 
-;;; string-split : String x Char -> (List String)
-;;; Split string by character.
-(define (string-split str char)
-  (let ([len (string-length str)])
-       (let loop ([i 0] [start 0] [acc '()])
-            (cond
-             [(= i len)
-              (reverse (cons (substring str start len) acc))]
-             [(char=? (string-ref str i) char)
-              (loop (+ i 1) (+ i 1) (cons (substring str start i) acc))]
-             [else (loop (+ i 1) start acc)]))))
+;;; NOTE: string-split, string-prefix? (string-starts-with?), string-suffix? (string-ends-with?)
+;;;       provided by core/prelude.ss
 
-;;; string-prefix? defined in fs.ss, redefine locally for standalone use
+;;; string-prefix? : String × String → Boolean
+;;; Alias for string-starts-with? from prelude
 (define (string-prefix? prefix str)
-  (let ([plen (string-length prefix)]
-        [len (string-length str)])
-       (and (>= len plen)
-            (string=? prefix (substring str 0 plen)))))
+  (string-starts-with? str prefix))
 
+;;; string-suffix? : String × String → Boolean
+;;; Alias for string-ends-with? from prelude
 (define (string-suffix? suffix str)
-  (let ([slen (string-length suffix)]
-        [len (string-length str)])
-       (and (>= len slen)
-            (string=? suffix (substring str (- len slen) len)))))
+  (string-ends-with? str suffix))
 
 ;;; ============================================================
 ;;; Concept Graph Building
@@ -408,10 +388,7 @@
                           #f)))
         fns)))
 
-;;; string-downcase : String -> String
-;;; Convert string to lowercase.
-(define (string-downcase str)
-  (list->string (map char-downcase (string->list str))))
+;;; NOTE: string-downcase provided by core/prelude.ss
 
 ;;; filter-map : (a -> b | #f) x (List a) -> (List b)
 ;;; Map and filter out #f results.

@@ -22,6 +22,8 @@
 (source-directories (cons "core" (source-directories)))
 (source-directories (cons "shell" (source-directories)))
 
+(load "core/prelude.ss")
+
 ;;; ============================================================
 ;;; Toolkit Registry
 ;;; ============================================================
@@ -158,15 +160,12 @@
                                    (display (format "    Load: (toolkit-load '~a)\n\n" name))))
                       tools)))))))
 
+;;; NOTE: string-upcase provided by core/prelude.ss
+
 ;;; category-name : Symbol → String
 ;;; Convert category symbol to display name.
 (define (category-name sym)
   (string-upcase (symbol->string sym)))
-
-;;; string-upcase : String → String
-;;; Convert string to uppercase.
-(define (string-upcase str)
-  (list->string (map char-upcase (string->list str))))
 
 ;;; ============================================================
 ;;; Loading Tools

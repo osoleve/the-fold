@@ -29,6 +29,7 @@
 (source-directories (cons "core" (source-directories)))
 (source-directories (cons "shell" (source-directories)))
 
+;;; NOTE: string utilities provided by core/prelude.ss
 (load "prelude.ss")
 (load "types.ss")
 (load "kinds.ss")
@@ -79,17 +80,6 @@
     (string-append "Vector(" (type->string (cadr type)) ")")]
    [else (format "~s" type)]))
 
-;;; string-join : (List String) × String → String
-;;; Join strings with separator.
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([remaining (cdr strs)]
-                 [result (car strs)])
-           (if (null? remaining)
-               result
-               (loop (cdr remaining)
-                     (string-append result sep (car remaining)))))))
 
 ;;; display-type : Type → void
 ;;; Pretty-print a type with indentation for nested structures.

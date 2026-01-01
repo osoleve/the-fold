@@ -13,6 +13,9 @@
 ;;;   thimble/fs.ss
 ;;;   thimble/store-api.ss
 ;;;
+;;; NOTE: Standard string utilities provided by core/prelude.ss.
+;;;       string-trim-newlines is unique to this module.
+;;;
 ;;; Usage:
 ;;;   (load "shell/graph-export.ss")
 ;;;

@@ -1,16 +1,10 @@
 ;;; thimble/tests/test-layout.ss — Test vectors for Text Layout Primitives
 
+(load "core/prelude.ss")
 (load "shell/layout.ss")
 
-;;; Helper for string-contains?
-(define (string-contains? str pattern)
-  (let ([str-len (string-length str)]
-        [pat-len (string-length pattern)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i pat-len) str-len) #f]
-             [(string=? (substring str i (+ i pat-len)) pattern) #t]
-             [else (loop (+ i 1))]))))
+;;; NOTE: string utilities provided by core/prelude.ss
+;;;   - string-contains?
 
 ;;; ============================================================
 ;;; Test 1: Canvas Construction

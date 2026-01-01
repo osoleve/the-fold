@@ -24,6 +24,8 @@
 ;;;   - Multiple formatting styles (compact, expanded, canonical)
 ;;;   - Batch formatting for directories
 
+(load "core/prelude.ss")
+
 ;;; ============================================================
 ;;; Configuration
 ;;; ============================================================
@@ -364,48 +366,9 @@
 ;;; ============================================================
 ;;; Utility Functions
 ;;; ============================================================
-
-;;; string-trim : String → String
-(define (string-trim str)
-  (let* ([len (string-length str)]
-         [start (let loop ([i 0])
-                     (cond
-                      [(>= i len) len]
-                      [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
-                      [else i]))]
-         [end (let loop ([i (- len 1)])
-                   (cond
-                    [(< i start) start]
-                    [(char-whitespace? (string-ref str i)) (loop (- i 1))]
-                    [else (+ i 1)]))])
-        (substring str start end)))
-
-;;; string-join : (List String) × String → String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([ss (cdr strs)]
-                 [result (car strs)])
-           (if (null? ss)
-               result
-               (loop (cdr ss)
-                     (string-append result sep (car ss)))))))
-
-;;; string-split : String × Char → (List String)
-(define (string-split str sep)
-  (let ([len (string-length str)])
-       (let loop ([i 0] [start 0] [parts '()])
-            (cond
-             [(>= i len)
-              (if (= start i)
-                  (reverse parts)
-                  (reverse (cons (substring str start i) parts)))]
-             [(char=? (string-ref str i) sep)
-              (loop (+ i 1)
-                    (+ i 1)
-                    (cons (substring str start i) parts))]
-             [else
-              (loop (+ i 1) start parts)]))))
+;;;
+;;; NOTE: string-trim, string-join, string-split are provided
+;;; by core/prelude.ss which is loaded above.
 
 (display "\n")
 (display "Code formatter loaded.\n")

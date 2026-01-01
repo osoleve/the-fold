@@ -15,6 +15,13 @@
 ;;; Dependencies:
 ;;;   shell/fs.ss (for file operations)
 ;;;   shell/text.ss (for text utilities)
+;;;   core/prelude.ss (for string utilities)
+;;;
+;;; NOTE: string utilities (string-join, string-split, string-trim, string-contains?,
+;;;       string-upcase, string-downcase, etc.) are provided by core/prelude.ss.
+;;;       string-search is unique to this module.
+
+(load "core/prelude.ss")
 
 ;;; ============================================================
 ;;; Template Registry

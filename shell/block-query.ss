@@ -6,6 +6,8 @@
 ;;;   (query (refs-count > 2))
 ;;;   (query (tag-matches "^test-"))
 
+;;; NOTE: string-contains? is provided by core/prelude.ss
+
 (library (shell block-query)
          (export
           ;; Query execution
@@ -54,7 +56,7 @@
          (define (payload-contains substring)
            (lambda (blk)
                    (let ([payload-str (utf8->string (block-payload blk))])
-                        (string-contains payload-str substring))))
+                        (string-contains? payload-str substring))))
          
          ;;; payload-matches : String → QueryPattern
          ;;; Match blocks whose payload matches regex
@@ -135,11 +137,6 @@
                               (cons hash (fetch hash)))
                       all-hashes))))
          
-         ;;; Helper: string-contains
-         (define (string-contains str substring)
-           (let ([len (string-length substring)])
-                (let loop ([i 0])
-                     (cond
-                      [(> (+ i len) (string-length str)) #f]
-                      [(string=? (substring str i (+ i len)) substring) #t]
-                      [else (loop (+ i 1))])))))
+         ;;; NOTE: string-contains? provided by core/prelude.ss
+         ;;; If this module is used standalone, ensure core/prelude.ss is loaded.
+         )

@@ -5,6 +5,9 @@
 ;;;
 ;;; Dependencies:
 ;;;   shell/fs.ss
+(load "core/prelude.ss")
+
+;;; NOTE: string-contains?, string-split provided by core/prelude.ss
 ;;;
 ;;; Operations:
 ;;;   (history-init! path) — Initialize history from file
@@ -240,36 +243,6 @@
              matches)))
        
        (display "\n")))
-
-(define (string-contains? str pattern)
-  "Check if str contains pattern (case-sensitive)"
-  (guard (e [else #f])
-         (let* ([str-len (string-length str)]
-                [pat-len (string-length pattern)])
-               (if (> pat-len str-len)
-                   #f
-                   (let loop ([i 0])
-                        (cond
-                         [(> (+ i pat-len) str-len) #f]
-                         [(string=? (substring str i (+ i pat-len)) pattern) #t]
-                         [else (loop (+ i 1))]))))))
-
-(define (string-split str delimiter)
-  "Split string by delimiter character"
-  (let loop ([chars (string->list str)]
-             [current '()]
-             [result '()])
-       (cond
-        [(null? chars)
-         (reverse (cons (list->string (reverse current)) result))]
-        [(char=? (car chars) delimiter)
-         (loop (cdr chars)
-               '()
-               (cons (list->string (reverse current)) result))]
-        [else
-         (loop (cdr chars)
-               (cons (car chars) current)
-               result)])))
 
 ;;; ============================================================
 ;;; Replaying Commands

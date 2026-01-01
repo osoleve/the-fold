@@ -17,6 +17,8 @@
 ;;;
 ;;; For advanced layering with transparency and z-ordering, see shell/layers.ss
 
+(load "core/prelude.ss")
+
 ;;; ============================================================
 ;;; Data Structures
 ;;; ============================================================
@@ -288,15 +290,14 @@
 ;;; String Utilities
 ;;; ============================================================
 
+;;; NOTE: string-pad-left, string-pad-right provided by core/prelude.ss
+
 ;;; string-pad : String × Nat × Char → String
 ;;; Pad string to target length with pad-char on the right.
 ;;; If string is already longer, return as-is.
+;;; (Convenience wrapper around string-pad-right)
 (define (string-pad str target-len pad-char)
-  (let ([current-len (string-length str)])
-       (if (>= current-len target-len)
-           str
-           (string-append str
-                          (make-string (- target-len current-len) pad-char)))))
+  (string-pad-right str target-len pad-char))
 
 ;;; ============================================================
 ;;; Box Drawing (Optional Enhancement)

@@ -13,6 +13,10 @@
 ;;;     workers/<session-id>.*       — Worker metadata
 ;;;
 ;;; This is Shell code: uses IO and process spawning.
+;;;
+;;; NOTE: string-contains? provided by core/prelude.ss
+
+(load "core/prelude.ss")
 
 ;;; ============================================================
 ;;; Configuration
@@ -34,14 +38,7 @@
 ;;; Utilities
 ;;; ============================================================
 
-(define (string-contains? str needle)
-  (let ([slen (string-length str)]
-        [nlen (string-length needle)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i nlen) slen) #f]
-             [(string=? (substring str i (+ i nlen)) needle) #t]
-             [else (loop (+ i 1))]))))
+;;; NOTE: string-contains? provided by core/prelude.ss
 
 (define (windows?)
   (let ([os (getenv "OS")])

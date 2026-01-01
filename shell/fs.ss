@@ -6,6 +6,13 @@
 ;;;
 ;;; This is Shell code: impure, defensive, handles failure.
 ;;;
+;;; Dependencies:
+;;;   core/prelude.ss
+;;;
+;;; NOTE: string utilities (string-starts-with?, string-ends-with?) provided by core/prelude.ss
+;;;       string-prefix? and string-suffix? are aliases (defined locally for convenience)
+;;;       string-rindex is unique to this module
+;;;
 ;;; Capabilities:
 ;;;   (make-fs-capability store-path) → FS
 ;;;
@@ -32,6 +39,8 @@
 
 ;;; Capabilities are opaque records — unforgeable at runtime.
 ;;; Core cannot construct these; only Shell can mint them.
+
+(load "core/prelude.ss")
 
 (define-record-type fs-capability
   (fields store-path))
@@ -97,20 +106,14 @@
             base)))
 
 ;;; string-suffix? : String × String → Boolean
-;;; Check if str ends with suffix.
+;;; Alias for string-ends-with? from prelude (note: reversed argument order)
 (define (string-suffix? suffix str)
-  (let ([slen (string-length suffix)]
-        [len (string-length str)])
-       (and (>= len slen)
-            (string=? suffix (substring str (- len slen) len)))))
+  (string-ends-with? str suffix))
 
 ;;; string-prefix? : String × String → Boolean
-;;; Check if str starts with prefix.
+;;; Alias for string-starts-with? from prelude (note: reversed argument order)
 (define (string-prefix? prefix str)
-  (let ([plen (string-length prefix)]
-        [len (string-length str)])
-       (and (>= len plen)
-            (string=? prefix (substring str 0 plen)))))
+  (string-starts-with? str prefix))
 
 ;;; string-rindex : String × Char → Nat | #f
 ;;; Find last occurrence of char in string.

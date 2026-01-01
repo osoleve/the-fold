@@ -6,7 +6,11 @@
 ;;; This is Shell code: formats output, provides user-facing messages.
 ;;;
 ;;; Dependencies:
-;;;   None (pure formatting)
+;;;   core/prelude.ss
+;;;
+;;; NOTE: string utilities provided by core/prelude.ss:
+;;;       string-contains?, string-join, string-replace
+;;;       Unique to this module: string-replace-once, string-find
 ;;;
 ;;; Operations:
 ;;;   (format-error condition) — Format error with context
@@ -27,6 +31,8 @@
 ;;; ============================================================
 ;;; Configuration
 ;;; ============================================================
+
+(load "core/prelude.ss")
 
 (define *use-colors* #t)
 (define *show-suggestions* #t)
@@ -201,21 +207,7 @@
                            (cdr vals))
                      str)))))
 
-;;; string-replace : String × String × String → String
-;;; Replace all occurrences of pattern with replacement.
-(define (string-replace str pattern replacement)
-  (let ([plen (string-length pattern)]
-        [rlen (string-length replacement)]
-        [slen (string-length str)])
-       (let loop ([i 0] [result ""])
-            (cond
-             [(>= i slen) result]
-             [(and (<= (+ i plen) slen)
-                   (string=? pattern (substring str i (+ i plen))))
-              (loop (+ i plen) (string-append result replacement))]
-             [else
-              (loop (+ i 1)
-                    (string-append result (string (string-ref str i))))]))))
+;;; NOTE: string-replace provided by core/prelude.ss
 
 ;;; string-replace-once : String × String × String → String
 ;;; Replace first occurrence of pattern.
@@ -341,15 +333,7 @@
 ;;; Utility Functions
 ;;; ============================================================
 
-;;; string-contains? : String × String → Bool
-(define (string-contains? str needle)
-  (let ([nlen (string-length needle)]
-        [slen (string-length str)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i nlen) slen) #f]
-             [(string=? needle (substring str i (+ i nlen))) #t]
-             [else (loop (+ i 1))]))))
+;;; NOTE: string-contains? provided by core/prelude.ss
 
 ;;; make-string : Nat × Char → String
 (define (make-string n ch)
@@ -383,16 +367,7 @@
                                                      (reverse lines)
                                                      (loop (cons line lines)))))))))
 
-;;; string-join : (List String) × String → String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([ss (cdr strs)]
-                 [result (car strs)])
-           (if (null? ss)
-               result
-               (loop (cdr ss)
-                     (string-append result sep (car ss)))))))
+;;; NOTE: string-join provided by core/prelude.ss
 
 ;;; ============================================================
 ;;; Condition Inspection

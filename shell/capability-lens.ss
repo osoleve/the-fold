@@ -11,36 +11,18 @@
 (load "shell/fs.ss")
 (load "shell/text.ss")
 (load "shell/edit.ss")
+(load "core/prelude.ss")
 
 ;;; ============================================================
 ;;; Small Utilities
 ;;; ============================================================
 
-(define (string-prefix? prefix str)
-  (let ([plen (string-length prefix)]
-        [slen (string-length str)])
-       (and (<= plen slen)
-            (string=? prefix (substring str 0 plen)))))
+;;; NOTE: string utilities (string-starts-with?, string-ends-with?, string-downcase,
+;;;       string-upcase, string-join) are provided by core/prelude.ss
 
-(define (string-suffix? suffix str)
-  (let ([slen (string-length suffix)]
-        [len (string-length str)])
-       (and (<= slen len)
-            (string=? suffix (substring str (- len slen) len)))))
-
-(define (string-downcase str)
-  (list->string (map char-downcase (string->list str))))
-
-(define (string-upcase str)
-  (list->string (map char-upcase (string->list str))))
-
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([rest (cdr strs)] [acc (car strs)])
-           (if (null? rest)
-               acc
-               (loop (cdr rest) (string-append acc sep (car rest)))))))
+;;; string-prefix? and string-suffix? are aliases for prelude functions
+(define string-prefix? string-starts-with?)
+(define string-suffix? string-ends-with?)
 
 (define (unique lst)
   (let loop ([xs lst] [seen '()] [acc '()])

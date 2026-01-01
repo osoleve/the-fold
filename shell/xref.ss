@@ -22,6 +22,12 @@
 ;;; Dependencies:
 ;;;   shell/fs.ss
 ;;;   shell/edit.ss
+;;;   core/prelude.ss (for string-trim, etc.)
+;;;
+;;; NOTE: string-trim provided by core/prelude.ss.
+;;;       string-split-lines is unique to this module.
+
+(load "core/prelude.ss")
 
 ;;; Set up source-directories to find shell modules
 (source-directories (cons "shell" (source-directories)))
@@ -413,23 +419,7 @@
 ;;; Utilities
 ;;; ============================================================
 
-;;; string-trim : String → String
-;;; Remove leading and trailing whitespace.
-(define (string-trim str)
-  (let* ([len (string-length str)]
-         [start (let loop ([i 0])
-                     (cond
-                      [(>= i len) len]
-                      [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
-                      [else i]))]
-         [end (let loop ([i (- len 1)])
-                   (cond
-                    [(< i 0) 0]
-                    [(char-whitespace? (string-ref str i)) (loop (- i 1))]
-                    [else (+ i 1)]))])
-        (if (>= start end)
-            ""
-            (substring str start end))))
+;;; NOTE: string-trim provided by core/prelude.ss
 
 ;;; remove-duplicates : (List α) → (List α)
 ;;; Remove duplicate elements from a list.

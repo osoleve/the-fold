@@ -14,7 +14,11 @@
 ;;;   (render-graph-ascii graph)      - Render dependency graph as ASCII art
 ;;;
 ;;; Dependencies:
-;;;   - core/prelude.ss (for filter, fold-left, etc.)
+;;;   - core/prelude.ss (for filter, fold-left, string-contains?, etc.)
+;;;
+;;; NOTE: string utilities provided by core/prelude.ss
+
+(load "core/prelude.ss")
 
 ;;; ============================================================
 ;;; Path Utilities (reused from fs.ss patterns)
@@ -520,16 +524,7 @@
       '()
       (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
-;;; string-contains : String x String -> Boolean
-;;; Check if str contains substr.
-(define (string-contains str substr)
-  (let ([len (string-length substr)]
-        [slen (string-length str)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i len) slen) #f]
-             [(string=? (substring str i (+ i len)) substr) #t]
-             [else (loop (+ i 1))]))))
+;;; NOTE: string-contains? provided by core/prelude.ss
 
 ;;; ============================================================
 ;;; Quick Analysis Functions

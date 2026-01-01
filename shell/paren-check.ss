@@ -9,6 +9,10 @@
 ;;;   (paren-balance "path/to/file.ss")         ; Just the final balance
 ;;;
 ;;; This is Shell code: file IO for analysis.
+;;;
+;;; NOTE: string-trim provided by core/prelude.ss
+
+(load "core/prelude.ss")
 
 ;;; ============================================================
 ;;; Core Balance Calculation
@@ -199,21 +203,7 @@
       str
       (string-append (substring str 0 (- max-len 3)) "...")))
 
-(define (string-trim str)
-  (let* ([len (string-length str)]
-         [start (let loop ([i 0])
-                     (if (or (>= i len)
-                             (not (char-whitespace? (string-ref str i))))
-                         i
-                         (loop (+ i 1))))]
-         [end (let loop ([i (- len 1)])
-                   (if (or (< i 0)
-                           (not (char-whitespace? (string-ref str i))))
-                       (+ i 1)
-                       (loop (- i 1))))])
-        (if (>= start end)
-            ""
-            (substring str start end))))
+;;; NOTE: string-trim provided by core/prelude.ss
 
 ;;; ============================================================
 ;;; Quick Diagnostic

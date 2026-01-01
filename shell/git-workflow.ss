@@ -6,8 +6,11 @@
 ;;; This is Shell code: executes git commands, manages state.
 ;;;
 ;;; Dependencies:
+;;;   core/prelude.ss
 ;;;   shell/git.ss (if available)
 ;;;   shell/fs.ss
+;;;
+;;; NOTE: string utilities (string-contains?, string-trim) provided by core/prelude.ss
 ;;;
 ;;; Operations:
 ;;;   (quick-commit msg) — Add all, commit with message
@@ -31,6 +34,8 @@
 ;;; ============================================================
 ;;; Configuration
 ;;; ============================================================
+
+(load "core/prelude.ss")
 
 (define *default-branch* "main")
 (define *feature-prefix* "feature/")
@@ -351,31 +356,6 @@
 (define (format-timestamp)
   (let ([t (current-time 'time-utc)])
        (format "~a" (time-second t))))
-
-;;; string-contains? : String × String → Bool
-(define (string-contains? str needle)
-  (let ([nlen (string-length needle)]
-        [slen (string-length str)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i nlen) slen) #f]
-             [(string=? needle (substring str i (+ i nlen))) #t]
-             [else (loop (+ i 1))]))))
-
-;;; string-trim : String → String
-(define (string-trim str)
-  (let* ([len (string-length str)]
-         [start (let loop ([i 0])
-                     (cond
-                      [(>= i len) len]
-                      [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
-                      [else i]))]
-         [end (let loop ([i (- len 1)])
-                   (cond
-                    [(< i start) start]
-                    [(char-whitespace? (string-ref str i)) (loop (- i 1))]
-                    [else (+ i 1)]))])
-        (substring str start end)))
 
 (display "\n")
 (display "Git workflow helpers loaded.\n")

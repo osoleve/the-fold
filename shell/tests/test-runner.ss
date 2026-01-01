@@ -103,11 +103,21 @@
 ;;; ============================================================
 ;;;
 ;;; Required:
-;;;   - None (standalone)
+;;;   - core/prelude.ss (string utilities)
 ;;;
 ;;; Optional (for tests themselves):
 ;;;   - core/test-framework.ss (used by most test files)
-;;;   - core/prelude.ss (utilities)
+
+;;; ============================================================
+;;; Load Dependencies
+;;; ============================================================
+
+(load "core/prelude.ss")
+
+;;; NOTE: string utilities provided by core/prelude.ss
+;;;   - string-contains?
+;;;   - string-starts-with?
+;;;   - string-ends-with?
 
 ;;; ============================================================
 ;;; ANSI Color Codes
@@ -169,31 +179,6 @@
 ;;; ============================================================
 ;;; Test Discovery
 ;;; ============================================================
-
-;;; string-contains? : String × String → Boolean
-;;; Check if needle is a substring of haystack
-(define (string-contains? haystack needle)
-  (let ([h-len (string-length haystack)]
-        [n-len (string-length needle)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i n-len) h-len) #f]
-             [(string=? (substring haystack i (+ i n-len)) needle) #t]
-             [else (loop (+ i 1))]))))
-
-;;; string-starts-with? : String × String → Boolean
-(define (string-starts-with? str prefix)
-  (let ([s-len (string-length str)]
-        [p-len (string-length prefix)])
-       (and (>= s-len p-len)
-            (string=? (substring str 0 p-len) prefix))))
-
-;;; string-ends-with? : String × String → Boolean
-(define (string-ends-with? str suffix)
-  (let ([s-len (string-length str)]
-        [x-len (string-length suffix)])
-       (and (>= s-len x-len)
-            (string=? (substring str (- s-len x-len) s-len) suffix))))
 
 ;;; list-directory : String → (List String)
 ;;; List all files in a directory using system commands

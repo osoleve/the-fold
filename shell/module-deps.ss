@@ -28,6 +28,10 @@
 
 (load "fs.ss")
 (load "edit.ss")
+(load "core/prelude.ss")
+
+;;; NOTE: string-contains?, string-starts-with?, string-last-index-of, string-join
+;;;       are provided by core/prelude.ss
 
 ;;; ============================================================
 ;;; Dependency Extraction
@@ -57,8 +61,8 @@
 (define (normalize-path base-file load-path)
   (cond
    ;; Absolute or rooted path
-   [(or (string-prefix? "/" load-path)
-        (string-prefix? "../" load-path))
+   [(or (string-starts-with? load-path "/")
+        (string-starts-with? load-path "../"))
     load-path]
    ;; Relative to base file's directory
    [else
@@ -73,19 +77,10 @@
 ;;; Extract directory part of a file path.
 ;;; E.g., "shell/repl.ss" → "shell", "foo.ss" → ""
 (define (path-directory path)
-  (let ([idx (string-last-index-of path #\/)])
+  (let ([idx (string-last-index-of path "/")])
        (if idx
            (substring path 0 idx)
            "")))
-
-;;; string-last-index-of : String × Char → Nat | #f
-;;; Find last occurrence of character in string.
-(define (string-last-index-of str ch)
-  (let loop ([i (- (string-length str) 1)])
-       (cond
-        [(< i 0) #f]
-        [(char=? (string-ref str i) ch) i]
-        [else (loop (- i 1))])))
 
 ;;; normalize-path-components : String → String
 ;;; Normalize ".." components in a path.
@@ -140,12 +135,6 @@
                result
                (loop (cdr remaining)
                      (string-append result "/" (car remaining)))))))
-
-;;; string-prefix? : String × String → Boolean
-;;; Check if str starts with prefix.
-(define (string-prefix? prefix str)
-  (and (<= (string-length prefix) (string-length str))
-       (string=? prefix (substring str 0 (string-length prefix)))))
 
 ;;; analyze-file-deps : FS × String → (List String)
 ;;; Analyze a single file and return normalized dependency paths.
@@ -420,17 +409,6 @@
                      (display (format "  <- ~a\n" (car entry))))
              rdeps))
         (display "\n")))
-
-;;; string-contains? : String × String → Boolean
-;;; Check if haystack contains needle.
-(define (string-contains? needle haystack)
-  (let ([nlen (string-length needle)]
-        [hlen (string-length haystack)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i nlen) hlen) #f]
-             [(string=? needle (substring haystack i (+ i nlen))) #t]
-             [else (loop (+ i 1))]))))
 
 ;;; check-circular-deps : FS × String → void
 ;;; Check for circular dependencies in a directory.

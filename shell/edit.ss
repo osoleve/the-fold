@@ -9,6 +9,8 @@
 ;;;   shell/fs.ss
 ;;;   shell/text.ss
 
+(load "core/prelude.ss")
+
 ;;; ============================================================
 ;;; Core Text File Operations
 ;;; ============================================================
@@ -32,6 +34,9 @@
 ;;; ============================================================
 ;;; Line-Oriented Helpers
 ;;; ============================================================
+;;;
+;;; NOTE: string-split, string-join, string-replace are provided
+;;; by core/prelude.ss which is loaded above.
 
 ;;; file->lines : FS × Path → (List String)
 ;;; Read file and split into lines.
@@ -42,36 +47,6 @@
 ;;; Join lines with newlines and write to file.
 (define (lines->file! fs path lines)
   (write-text-file! fs path (string-join lines "\n")))
-
-;;; string-split : String × Char → (List String)
-;;; Split string by delimiter character.
-(define (string-split str delim)
-  (let loop ([chars (string->list str)]
-             [current '()]
-             [result '()])
-       (cond
-        [(null? chars)
-         (reverse (cons (list->string (reverse current)) result))]
-        [(char=? (car chars) delim)
-         (loop (cdr chars)
-               '()
-               (cons (list->string (reverse current)) result))]
-        [else
-         (loop (cdr chars)
-               (cons (car chars) current)
-               result)])))
-
-;;; string-join : (List String) × String → String
-;;; Join strings with separator.
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([strs (cdr strs)]
-                 [result (car strs)])
-           (if (null? strs)
-               result
-               (loop (cdr strs)
-                     (string-append result sep (car strs)))))))
 
 ;;; ============================================================
 ;;; Transform-in-Place
@@ -87,10 +62,21 @@
 ;;; ============================================================
 ;;; String Manipulation Helpers
 ;;; ============================================================
+;;;
+;;; NOTE: string-replace from prelude replaces ALL occurrences.
+;;; These helpers provide first-occurrence replacement and matching.
 
-;;; string-replace : String × String × String → String
+;;; string-match-at? : String × String × Nat → Boolean
+;;; Check if pattern matches at position in str.
+(define (string-match-at? str pattern pos)
+  (let ([pat-len (string-length pattern)]
+        [str-len (string-length str)])
+       (and (<= (+ pos pat-len) str-len)
+            (string=? pattern (substring str pos (+ pos pat-len))))))
+
+;;; string-replace-first : String × String × String → String
 ;;; Replace first occurrence of old with new in str.
-(define (string-replace str old new)
+(define (string-replace-first str old new)
   (let ([old-len (string-length old)]
         [str-len (string-length str)])
        (let loop ([i 0])
@@ -102,26 +88,6 @@
                new
                (substring str (+ i old-len) str-len))]
              [else (loop (+ i 1))]))))
-
-;;; string-replace-all : String × String × String → String
-;;; Replace all occurrences of old with new in str.
-(define (string-replace-all str old new)
-  (let ([old-len (string-length old)])
-       (if (= old-len 0)
-           str
-           (let loop ([str str])
-                (let ([replaced (string-replace str old new)])
-                     (if (string=? replaced str)
-                         str
-                         (loop replaced)))))))
-
-;;; string-match-at? : String × String × Nat → Boolean
-;;; Check if pattern matches at position in str.
-(define (string-match-at? str pattern pos)
-  (let ([pat-len (string-length pattern)]
-        [str-len (string-length str)])
-       (and (<= (+ pos pat-len) str-len)
-            (string=? pattern (substring str pos (+ pos pat-len))))))
 
 ;;; ============================================================
 ;;; S-Expression File Operations

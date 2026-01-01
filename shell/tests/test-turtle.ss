@@ -7,22 +7,21 @@
 ;;; Dependencies: All turtle modules
 
 ;;; ============================================================
+;;; Load Dependencies
+;;; ============================================================
+
+(load "core/prelude.ss")
+
+;;; NOTE: string utilities provided by core/prelude.ss
+;;;   - string-contains?
+
+;;; ============================================================
 ;;; Test Framework
 ;;; ============================================================
 
 (define *test-count* 0)
 (define *pass-count* 0)
 (define *fail-count* 0)
-
-;;; Helper function for string tests
-(define (string-contains? str substr)
-  (let ([str-len (string-length str)]
-        [sub-len (string-length substr)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i sub-len) str-len) #f]
-             [(string=? (substring str i (+ i sub-len)) substr) #t]
-             [else (loop (+ i 1))]))))
 
 (define (test name expected actual)
   (set! *test-count* (+ *test-count* 1))

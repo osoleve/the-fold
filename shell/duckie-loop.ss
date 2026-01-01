@@ -40,6 +40,10 @@
 ;;; From thimble/duckie-persist.ss — The memory
 (load "shell/duckie-persist.ss")
 
+;;; From core/prelude.ss — The string utilities
+;;; NOTE: string-trim provided by core/prelude.ss
+(load "core/prelude.ss")
+
 ;;; ============================================================
 ;;; State Definition
 ;;; ============================================================
@@ -175,21 +179,7 @@
                     #f
                     trimmed)))))
 
-;;; string-trim : String → String
-;;; Remove leading and trailing whitespace.
-(define (string-trim s)
-  (let* ([len (string-length s)]
-         [start (let loop ([i 0])
-                     (if (or (>= i len)
-                             (not (char-whitespace? (string-ref s i))))
-                         i
-                         (loop (+ i 1))))]
-         [end (let loop ([i (- len 1)])
-                   (if (or (< i start)
-                           (not (char-whitespace? (string-ref s i))))
-                       (+ i 1)
-                       (loop (- i 1))))])
-        (substring s start end)))
+;;; NOTE: string-trim provided by core/prelude.ss
 
 ;;; ============================================================
 ;;; Command Parsing

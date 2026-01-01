@@ -19,6 +19,9 @@
 ;;;
 ;;; This is Shell code: manages loading and state.
 
+;;; NOTE: string utilities provided by core/prelude.ss
+(load "core/prelude.ss")
+
 ;;; ============================================================
 ;;; Configuration
 ;;; ============================================================
@@ -54,11 +57,9 @@
            filename)))
 
 ;;; string-suffix? : String String -> Bool
+;;; Alias for string-ends-with? from prelude.ss (swapped argument order)
 (define (string-suffix? suffix str)
-  (let ([slen (string-length suffix)]
-        [len (string-length str)])
-       (and (>= len slen)
-            (string=? suffix (substring str (- len slen) len)))))
+  (string-ends-with? str suffix))
 
 ;;; filter-map : (A -> B | #f) (List A) -> (List B)
 (define (filter-map f lst)

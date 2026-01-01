@@ -26,6 +26,8 @@
 ;;;   - Coverage comparison (regression detection)
 ;;;   - Uncovered code highlighting
 
+(load "core/prelude.ss")
+
 ;;; ============================================================
 ;;; Configuration
 ;;; ============================================================
@@ -357,6 +359,13 @@
 ;;; ============================================================
 ;;; Utility Functions
 ;;; ============================================================
+;;;
+;;; NOTE: string-split, string-trim, string-starts-with? are provided
+;;; by core/prelude.ss which is loaded above.
+
+;;; string-prefix? : String × String → Bool
+;;; Alias for string-starts-with? from prelude.
+(define string-prefix? string-starts-with?)
 
 ;;; current-timestamp : → Nat
 (define (current-timestamp)
@@ -370,44 +379,6 @@
        (if (null? parts)
            path
            (car (reverse parts)))))
-
-;;; string-split : String × Char → (List String)
-(define (string-split str sep)
-  (let ([len (string-length str)])
-       (let loop ([i 0] [start 0] [parts '()])
-            (cond
-             [(>= i len)
-              (if (= start i)
-                  (reverse parts)
-                  (reverse (cons (substring str start i) parts)))]
-             [(char=? (string-ref str i) sep)
-              (loop (+ i 1)
-                    (+ i 1)
-                    (cons (substring str start i) parts))]
-             [else
-              (loop (+ i 1) start parts)]))))
-
-;;; string-trim : String → String
-(define (string-trim str)
-  (let* ([len (string-length str)]
-         [start (let loop ([i 0])
-                     (cond
-                      [(>= i len) len]
-                      [(char-whitespace? (string-ref str i)) (loop (+ i 1))]
-                      [else i]))]
-         [end (let loop ([i (- len 1)])
-                   (cond
-                    [(< i start) start]
-                    [(char-whitespace? (string-ref str i)) (loop (- i 1))]
-                    [else (+ i 1)]))])
-        (substring str start end)))
-
-;;; string-prefix? : String × String → Bool
-(define (string-prefix? prefix str)
-  (let ([plen (string-length prefix)]
-        [slen (string-length str)])
-       (and (>= slen plen)
-            (string=? prefix (substring str 0 plen)))))
 
 ;;; make-string : Nat × Char → String
 (define (make-string n ch)

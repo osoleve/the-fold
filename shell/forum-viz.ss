@@ -4,6 +4,10 @@
 ;;; Display post chains, trees, and relationships.
 ;;;
 ;;; This is Shell code: uses IO, defensive.
+;;;
+;;; NOTE: string-split provided by core/prelude.ss
+
+(load "core/prelude.ss")
 
 ;;; ============================================================
 ;;; ASCII Tree Drawing
@@ -71,25 +75,7 @@
                   (substring first 0 (min (string-length first) 50))])))))
 
 ;;; string-prefix? is now provided by shell/fs.ss
-
-;;; string-split : String × Char → List<String>
-(define (string-split str delim)
-  (let loop ([chars (string->list str)]
-             [current '()]
-             [result '()])
-       (cond
-        [(null? chars)
-         (reverse (if (null? current)
-                      result
-                      (cons (list->string (reverse current)) result)))]
-        [(char=? (car chars) delim)
-         (loop (cdr chars)
-               '()
-               (cons (list->string (reverse current)) result))]
-        [else
-         (loop (cdr chars)
-               (cons (car chars) current)
-               result)])))
+;;; NOTE: string-split provided by core/prelude.ss
 
 ;;; ============================================================
 ;;; Post Statistics

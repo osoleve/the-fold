@@ -20,6 +20,9 @@
 ;;;   - Definition complexity (based on form size)
 ;;;   - Test coverage (definitions exercised by tests)
 
+;;; NOTE: string utilities provided by core/prelude.ss
+(load "core/prelude.ss")
+
 ;;; ============================================================
 ;;; File Metrics
 ;;; ============================================================
@@ -68,23 +71,6 @@
         [(char=? (string-ref trimmed 0) #\;) 'comment]
         [else 'code])))
 
-;;; string-trim : String → String
-;;; Remove leading and trailing whitespace.
-(define (string-trim str)
-  (let* ([len (string-length str)]
-         [start (let loop ([i 0])
-                     (if (or (>= i len)
-                             (not (char-whitespace? (string-ref str i))))
-                         i
-                         (loop (+ i 1))))]
-         [end (let loop ([i len])
-                   (if (or (<= i start)
-                           (not (char-whitespace? (string-ref str (- i 1)))))
-                       i
-                       (loop (- i 1))))])
-        (if (>= start end)
-            ""
-            (substring str start end))))
 
 ;;; ============================================================
 ;;; S-Expression Analysis
