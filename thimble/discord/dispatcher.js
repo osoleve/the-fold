@@ -231,6 +231,27 @@ function checkAgentToAgent(isBot) {
   return { allowed: true };
 }
 
+/**
+ * Check if this is a self-mention (agent tagging itself)
+ * @param {string} authorName - Name of the message author
+ * @param {string} agentId - Target agent being mentioned
+ * @returns {{ allowed: boolean, reason?: string }}
+ */
+function checkSelfMention(authorName, agentId) {
+  // Normalize names for comparison
+  const normalizedAuthor = authorName.toLowerCase().replace(/[^a-z]/g, '');
+  const normalizedAgent = agentId.toLowerCase();
+
+  // Check if author name contains the agent name (e.g., "Haiku" mentioning "@haiku")
+  if (normalizedAuthor.includes(normalizedAgent) || normalizedAgent.includes(normalizedAuthor)) {
+    return {
+      allowed: false,
+      reason: `Self-mention blocked: ${authorName} cannot tag @${agentId}`,
+    };
+  }
+  return { allowed: true };
+}
+
 // ============================================================
 // Main Dispatch Check
 // ============================================================
@@ -267,6 +288,18 @@ function checkDispatch(message, agentId, state) {
       reason: a2aCheck.reason,
       notifyUser: false,
       policy: 'agent_to_agent',
+    };
+  }
+
+  // Check self-mention (agent tagging itself)
+  const authorName = message.author?.username || message.author?.displayName || '';
+  const selfCheck = checkSelfMention(authorName, agentId);
+  if (!selfCheck.allowed) {
+    return {
+      allowed: false,
+      reason: selfCheck.reason,
+      notifyUser: false,
+      policy: 'self_mention',
     };
   }
 
@@ -399,6 +432,7 @@ module.exports = {
   checkMessageBudget,
   checkCircuitBreaker,
   checkAgentToAgent,
+  checkSelfMention,
 
   // State updates
   updateStateAfterDispatch,

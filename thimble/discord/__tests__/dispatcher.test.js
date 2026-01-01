@@ -237,10 +237,43 @@ describe('dispatcher', () => {
     });
   });
 
+  describe('checkSelfMention', () => {
+    test('blocks haiku from tagging @haiku', () => {
+      const result = dispatcher.checkSelfMention('Haiku', 'haiku');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('Self-mention');
+    });
+
+    test('blocks Sonnet from tagging @sonnet', () => {
+      const result = dispatcher.checkSelfMention('Sonnet', 'sonnet');
+      expect(result.allowed).toBe(false);
+    });
+
+    test('allows haiku to tag @sonnet', () => {
+      const result = dispatcher.checkSelfMention('Haiku', 'sonnet');
+      expect(result.allowed).toBe(true);
+    });
+
+    test('allows human users to tag any agent', () => {
+      const result = dispatcher.checkSelfMention('Andy', 'opus');
+      expect(result.allowed).toBe(true);
+    });
+
+    test('handles partial name matches (e.g., HaikuBot tagging haiku)', () => {
+      const result = dispatcher.checkSelfMention('HaikuBot', 'haiku');
+      expect(result.allowed).toBe(false);
+    });
+
+    test('handles Discord display names with special chars', () => {
+      const result = dispatcher.checkSelfMention('Haiku 🤖', 'haiku');
+      expect(result.allowed).toBe(false);
+    });
+  });
+
   describe('checkDispatch', () => {
-    function createMockMessage(isBot, channelId = 'channel-1') {
+    function createMockMessage(isBot, channelId = 'channel-1', username = 'TestUser') {
       return {
-        author: { bot: isBot },
+        author: { bot: isBot, username },
         channel: {
           id: channelId,
           isThread: () => false,
@@ -319,6 +352,22 @@ describe('dispatcher', () => {
       expect(result.allowed).toBe(false);
       expect(result.policy).toBe('channel_allowlist');
       expect(result.notifyUser).toBe(false);
+    });
+
+    test('denies self-mention (agent tagging itself)', () => {
+      const message = createMockMessage(true, 'channel-1', 'Haiku');
+      const state = dispatcher.loadState();
+      const result = dispatcher.checkDispatch(message, 'haiku', state);
+      expect(result.allowed).toBe(false);
+      expect(result.policy).toBe('self_mention');
+      expect(result.notifyUser).toBe(false);
+    });
+
+    test('allows cross-agent mentions', () => {
+      const message = createMockMessage(true, 'channel-1', 'Sonnet');
+      const state = dispatcher.loadState();
+      const result = dispatcher.checkDispatch(message, 'haiku', state);
+      expect(result.allowed).toBe(true);
     });
   });
 

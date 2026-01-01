@@ -78,7 +78,7 @@ const config = {
   antiloop: {
     // Maximum agent turns per thread before blocking
     maxThreadDepth: parseInt(process.env.ANTILOOP_MAX_DEPTH, 10) ||
-      fileConfig?.antiloop?.maxThreadDepth || 3,
+      fileConfig?.antiloop?.maxThreadDepth || 10,
 
     // Message budget per agent (count, not tokens)
     messageBudget: {
