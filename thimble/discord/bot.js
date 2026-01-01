@@ -26,6 +26,7 @@ const {
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const { execSync } = require('child_process');
 const config = require('./config');
 const bridge = require('./bridge');
 
@@ -413,6 +414,10 @@ const commands = [
     .addSubcommand(sub =>
       sub.setName('help')
         .setDescription('Show help')
+    )
+    .addSubcommand(sub =>
+      sub.setName('daemon')
+        .setDescription('Restart REPL daemon (Shepherd only)')
     ),
 ];
 
@@ -502,11 +507,42 @@ client.on(Events.InteractionCreate, async (interaction) => {
               { name: '/fold browse <channel> [count]', value: 'Browse a channel' },
               { name: '/fold eval <expr>', value: 'Eval Scheme (Shepherd only)' },
               { name: '/fold who', value: 'Show session info' },
+              { name: '/fold daemon', value: 'Restart REPL daemon (Shepherd only)' },
               { name: '@opus <question>', value: 'Consult the Shepherd' },
               { name: '@pedagogue <question>', value: 'Get a tutorial' },
               { name: '@archivist <query>', value: 'Research request' },
             );
           await interaction.reply({ embeds: [embed] });
+          break;
+        }
+
+        case 'daemon': {
+          // Check for Shepherd role
+          const tier = config.getTierFromRoles(interaction.member);
+          if (tier !== 'shepherd' && tier !== 'outsider') {
+            await interaction.reply({
+              content: '❌ Only Shepherds can restart the daemon',
+              flags: 64, // ephemeral
+            });
+            return;
+          }
+
+          await interaction.deferReply();
+          try {
+            // Stop daemon
+            execSync('./daemon.sh stop', { cwd: '/home/oso/the-fold', stdio: 'pipe' });
+            // Wait a moment
+            await new Promise(r => setTimeout(r, 1000));
+            // Start daemon
+            execSync('./daemon.sh start', { cwd: '/home/oso/the-fold', stdio: 'pipe' });
+            await interaction.editReply({
+              content: '✅ REPL daemon restarted successfully. Clean slate ready!',
+            });
+          } catch (e) {
+            await interaction.editReply({
+              content: `❌ Failed to restart daemon: ${e.message.slice(0, 100)}`,
+            });
+          }
           break;
         }
       }
