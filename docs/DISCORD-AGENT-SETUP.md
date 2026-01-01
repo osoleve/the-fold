@@ -79,14 +79,12 @@ npm install
 cd /home/oso/the-fold/thimble/discord
 ./start-bot.sh
 
-# Terminal 2: Discord trigger polling daemon
+# Terminal 2: Agent polling daemon (handles BOTH Discord and Fold triggers)
 cd /home/oso/the-fold
 ./scripts/discord-poll-daemon.sh
-
-# Terminal 3: Fold chat trigger polling daemon
-cd /home/oso/the-fold
-./scripts/fold-agent-poll-daemon.sh
 ```
+
+**Note:** Only run ONE polling daemon. It checks for both `*-discord-trigger.ss` and `*-fold-trigger.ss` files. Running multiple daemons causes duplicate responses.
 
 ### 4. Test
 
@@ -107,22 +105,18 @@ Expected:
 - Writes trigger files to `.fold-repl/triggers/<agent>-discord-trigger.ss`
 - Runs Discord → Fold bridge (watches outbox, posts responses)
 
-### Polling Daemons
+### Polling Daemon
 
 **discord-poll-daemon** (`scripts/discord-poll-daemon.sh`):
 - Polls `.fold-repl/triggers/` every 5 seconds
-- Processes Discord triggers (`*-discord-trigger.ss`)
+- Processes **both** Discord triggers (`*-discord-trigger.ss`) AND Fold triggers (`*-fold-trigger.ss`)
 - Calls LLM via invoke scripts
-
-**fold-agent-poll-daemon** (`scripts/fold-agent-poll-daemon.sh`):
-- Polls `.fold-repl/triggers/` every 5 seconds
-- Processes Fold chat tags (`*-fold-trigger.ss`)
-- Same LLM integration
-
-Both daemons run `agents/llm-agent-poll.ss` which:
-- Detects trigger files
-- Calls `node agents/invoke-<agent>.js <trigger-file>`
 - Implements loop prevention (max 3 bot→bot turns)
+
+Runs `agents/llm-agent-poll.ss` which:
+- Detects trigger files (checks both types)
+- Calls `node agents/invoke-<agent>.js <trigger-file>`
+- Writes responses to Fold chat + Discord outbox
 
 ### LLM Invokers (`agents/invoke-*.js`)
 
@@ -250,8 +244,7 @@ Options: `opus`, `sonnet`, `haiku`
 |------|---------|
 | `thimble/discord/bot.js` | Discord bot, bridge, slash commands |
 | `thimble/discord/start-bot.sh` | Convenience script to start bot |
-| `scripts/discord-poll-daemon.sh` | Discord trigger polling daemon |
-| `scripts/fold-agent-poll-daemon.sh` | Fold chat trigger polling daemon |
+| `scripts/discord-poll-daemon.sh` | Agent polling daemon (Discord + Fold triggers) |
 | `agents/llm-agent-poll.ss` | Core polling logic + loop prevention |
 | `agents/invoke-opus.js` | Opus LLM invoker (Claude Code headless) |
 | `agents/invoke-pedagogue.js` | Pedagogue LLM invoker |
