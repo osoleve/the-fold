@@ -15,12 +15,17 @@
 .store/
 .store_archive/
 
+# Forum runtime data
+forum/chat/
+
 # Build artifacts
 target/
 shell/mcp-server/node_modules/
 shell/mcp-server/dist/
 thimble/mcp-server/node_modules/
 thimble/mcp-server/dist/
+thimble/discord/node_modules/
+thimble/discord/package-lock.json
 
 # Temporary files
 nul
@@ -41,3 +46,9 @@ fold-rs/target/llvm-cov/
 
 # Agent runtime state
 agents/state/
+
+# Discord bot secrets
+.env.discord
+
+# Log files
+logs/*.log
