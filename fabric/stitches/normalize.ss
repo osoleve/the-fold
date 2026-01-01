@@ -22,24 +22,24 @@
 (load "fabric/stitches/prelude.ss")
 
 ;;; ============================================================
-;;; Environment
+;;; Environment (prefixed to avoid collision with eval.ss)
 ;;; ============================================================
 
 ;;; An environment is a list of symbols, with the innermost binding first.
 ;;; Index 0 refers to (car env), index 1 to (cadr env), etc.
 
-;;; env-empty : Env
+;;; norm-env-empty : Env
 ;;; The empty environment with no bindings.
-(define env-empty '())
+(define norm-env-empty '())
 
-;;; env-extend : Env × Symbol → Env
+;;; norm-env-extend : Env × Symbol → Env
 ;;; Extend environment with a new symbol binding.
-(define (env-extend env sym)
+(define (norm-env-extend env sym)
   (cons sym env))
 
-;;; env-lookup : Env × Symbol → (Option Nat)
+;;; norm-env-lookup : Env × Symbol → (Option Nat)
 ;;; Returns the de Bruijn index if found, #f otherwise.
-(define (env-lookup env sym)
+(define (norm-env-lookup env sym)
   (let loop ([e env] [i 0])
        (cond
         [(null? e) #f]
@@ -53,7 +53,7 @@
 ;;; normalize : S-expr → S-expr
 ;;; Convert an expression to de Bruijn form.
 (define (normalize expr)
-  (normalize-with-env expr env-empty))
+  (normalize-with-env expr norm-env-empty))
 
 ;;; normalize-with-env : S-expr × Env → S-expr
 ;;; Convert expression to de Bruijn form using given environment.
@@ -61,7 +61,7 @@
   (cond
    ;; Symbols: look up in environment
    [(symbol? expr)
-    (let ([idx (env-lookup env expr)])
+    (let ([idx (norm-env-lookup env expr)])
          (if idx
              `(dv ,idx)      ; Bound variable → de Bruijn index
              expr))]          ; Free variable → keep as symbol
@@ -76,7 +76,7 @@
          (symbol? (caadr expr)))
     (let* ([var (caadr expr)]
            [body (caddr expr)]
-           [new-env (env-extend env var)])
+           [new-env (norm-env-extend env var)])
           `(fn ,(normalize-with-env body new-env)))]
    
    ;; (let ((var val)) body) → (let (normalized-val) normalized-body)
@@ -88,7 +88,7 @@
            [var (car binding)]
            [val (cadr binding)]
            [body (caddr expr)]
-           [new-env (env-extend env var)])
+           [new-env (norm-env-extend env var)])
           `(let (,(normalize-with-env val env))
             ,(normalize-with-env body new-env)))]
    
@@ -100,7 +100,7 @@
          (symbol? (caadr expr)))
     (let* ([f (caadr expr)]
            [body (caddr expr)]
-           [new-env (env-extend env f)])
+           [new-env (norm-env-extend env f)])
           `(fix ,(normalize-with-env body new-env)))]
    
    ;; (quote datum) → (quote datum) unchanged
@@ -117,14 +117,14 @@
 ;;; free-vars : S-expr → (List Symbol)
 ;;; Collect free variables in the expression (before normalization).
 (define (free-vars expr)
-  (free-vars-with-env expr env-empty))
+  (free-vars-with-env expr norm-env-empty))
 
 ;;; free-vars-with-env : S-expr × Env → (List Symbol)
 ;;; Collect free variables using given environment.
 (define (free-vars-with-env expr env)
   (cond
    [(symbol? expr)
-    (if (env-lookup env expr)
+    (if (norm-env-lookup env expr)
         '()
         (list expr))]
    [(not (pair? expr)) '()]
@@ -132,18 +132,18 @@
    [(eq? (car expr) 'fn)
     (let* ([var (caadr expr)]
            [body (caddr expr)])
-          (free-vars-with-env body (env-extend env var)))]
+          (free-vars-with-env body (norm-env-extend env var)))]
    [(eq? (car expr) 'let)
     (let* ([binding (caadr expr)]
            [var (car binding)]
            [val (cadr binding)]
            [body (caddr expr)])
           (append (free-vars-with-env val env)
-                  (free-vars-with-env body (env-extend env var))))]
+                  (free-vars-with-env body (norm-env-extend env var))))]
    [(eq? (car expr) 'fix)
     (let* ([f (caadr expr)]
            [body (caddr expr)])
-          (free-vars-with-env body (env-extend env f)))]
+          (free-vars-with-env body (norm-env-extend env f)))]
    [else
     (apply append (map (lambda (e) (free-vars-with-env e env)) expr))]))
 

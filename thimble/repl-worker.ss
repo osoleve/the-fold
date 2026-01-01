@@ -112,26 +112,30 @@
   (cond
    [(and (pair? expr) (eq? (car expr) 'define))
     (let ([form (cadr expr)])
-      (cond
-       [(pair? form)
-        ;; (define (name args...) body...)
-        ;; Convert to (fn (args...) body...) for normalization
-        (cons 'fn (cons (cdr form) (cddr expr)))]
-       [else
-        ;; (define name value)
-        ;; Just return the value
-        (caddr expr)]))]
+         (cond
+          [(pair? form)
+           ;; (define (name args...) body...)
+           ;; Convert to (fn (args...) body...) for normalization
+           (cons 'fn (cons (cdr form) (cddr expr)))]
+          [else
+           ;; (define name value)
+           ;; Just return the value
+           (caddr expr)]))]
    [else expr]))
 
 ;;; content-address : Any → String
 ;;; Compute the content-address (SHA-256 hex) of any Scheme value.
-;;; For definitions, hashes the extracted body (not the outer define form).
-;;; This ensures different function bodies produce different addresses.
+;;; For definitions, hashes the normalized body (not the outer define form).
+;;; Normalization converts to de Bruijn indices, ensuring α-equivalent
+;;; expressions (same structure, different variable names) hash identically.
 (define (content-address value)
   (let* ([body-to-hash (if (pair? value)
                            (extract-definition-body value)
                            value)]
-         [serialized (string->utf8 (format "~s" body-to-hash))]
+         [normalized (if (pair? body-to-hash)
+                         (normalize body-to-hash)
+                         body-to-hash)]
+         [serialized (string->utf8 (format "~s" normalized))]
          [hash (sha256 serialized)])
         (hash->hex hash)))
 
@@ -188,9 +192,9 @@
                          ;; Definition: return content-address of the definition expression
                          [def-expr
                            (let ([addr (content-address def-expr)])
-                                 (if (> (string-length output) 0)
-                                     (string-append output "\n" addr)
-                                     addr))]
+                                (if (> (string-length output) 0)
+                                    (string-append output "\n" addr)
+                                    addr))]
                          ;; Only output, no meaningful return value
                          [(and (eq? result (void)) (> (string-length output) 0))
                           output]
