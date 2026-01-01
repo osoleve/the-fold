@@ -1,7 +1,7 @@
 ;;; fabric/stitches/numerical/test-integrators.ss — Tests for Numerical Integration
 
 (load "core/test-framework.ss")
-(load "core/numerical/integrators.ss")
+(load "user/physics/numerical/integrators.ss")
 
 ;;; Helper for numeric comparison
 (define (assert-= actual expected tolerance)

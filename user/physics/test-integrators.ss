@@ -3,7 +3,7 @@
 ;;; NOTE: Run from fabric/stitches directory
 
 (load "core/test-framework.ss")
-(load "core/physics-2d/integrators.ss")
+(load "user/physics/integrators.ss")
 
 ;;; Helper for numeric comparison
 (define (assert-= actual expected tolerance)

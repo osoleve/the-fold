@@ -17,9 +17,9 @@
 
 (load "core/prelude.ss")
 (load "core/vec2.ss")
-(load "core/physics-2d/integrators.ss")
-(load "core/physics-2d/collision-detection.ss")
-(load "core/physics-2d/collision-response.ss")
+(load "user/physics/integrators.ss")
+(load "user/physics/collision-detection.ss")
+(load "user/physics/collision-response.ss")
 
 ;;; ============================================================
 ;;; Physics Entity

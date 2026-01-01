@@ -13,7 +13,7 @@
 
 ;;; Load dependencies using absolute paths from project root
 (load "core/test-framework.ss")
-(load "core/physics-2d/world.ss")
+(load "user/physics/world.ss")
 
 ;;; ============================================================
 ;;; Test Helpers

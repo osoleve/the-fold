@@ -18,7 +18,7 @@
 
 (load "core/prelude.ss")
 (load "core/vec2.ss")
-(load "core/physics-2d/integrators.ss")
+(load "user/physics/integrators.ss")
 
 ;;; ============================================================
 ;;; Collision Manifold

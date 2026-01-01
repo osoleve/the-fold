@@ -19,7 +19,7 @@
 
 (load "core/prelude.ss")
 (load "core/vec2.ss")
-(load "core/numerical/integrators.ss")
+(load "user/physics/numerical/integrators.ss")
 
 ;;; ============================================================
 ;;; 2D Physics Body State
