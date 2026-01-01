@@ -20,12 +20,11 @@ forum/chat/
 
 # Build artifacts
 target/
-shell/mcp-server/node_modules/
-shell/mcp-server/dist/
-thimble/mcp-server/node_modules/
-thimble/mcp-server/dist/
-thimble/discord/node_modules/
-thimble/discord/package-lock.json
+
+# Node.js (shell has some JS utilities)
+node_modules/
+package-lock.json
+dist/
 
 # Temporary files
 nul
