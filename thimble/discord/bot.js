@@ -422,7 +422,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           if (tier !== 'shepherd' && tier !== 'outsider') {
             await interaction.reply({
               content: '❌ Only Shepherds can eval arbitrary expressions',
-              ephemeral: true,
+              flags: 64, // ephemeral
             });
             return;
           }
@@ -471,11 +471,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     } catch (e) {
       console.error(`Command error: ${e.message}`);
-      const errorMsg = `❌ Error: ${e.message}`;
-      if (interaction.deferred) {
-        await interaction.editReply({ content: errorMsg });
-      } else {
-        await interaction.reply({ content: errorMsg, ephemeral: true });
+      try {
+        const errorMsg = `❌ Error: ${e.message.slice(0, 200)}`;
+        if (interaction.deferred) {
+          await interaction.editReply({ content: errorMsg });
+        } else {
+          await interaction.reply({ content: errorMsg, flags: 64 }); // ephemeral
+        }
+      } catch (replyErr) {
+        // Interaction expired or already replied - just log it
+        console.error(`Failed to send error reply: ${replyErr.message}`);
       }
     }
   }
