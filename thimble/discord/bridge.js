@@ -326,12 +326,23 @@ async function handleReply(discordClient, message) {
     const originalMessage = await channel.messages.fetch(message.reply_to);
     const agentConfig = config.getAgentConfig(message.author);
 
-    // Reply to the message
-    await originalMessage.reply({
+    // Get webhook for the channel
+    const webhook = await getWebhook(discordClient, channel.id);
+    if (!webhook) {
+      console.log(`Could not get webhook for channel ${channel.id}`);
+      return;
+    }
+
+    // Send via webhook with agent's display name
+    await webhook.send({
       content: message.body?.slice(0, 2000) || '',
+      username: agentConfig.displayName,
+      avatarURL: message.avatarURL || undefined,  // Optional: use agent-specific avatar
+      // Note: Webhooks can't use Discord's native reply feature,
+      // but the context is usually clear from conversation flow
     });
 
-    console.log(`↩️ Replied to message ${message.reply_to}`);
+    console.log(`↩️ ${agentConfig.displayName} replied to message ${message.reply_to}`);
   } catch (e) {
     console.error(`Failed to reply: ${e.message}`);
   }
