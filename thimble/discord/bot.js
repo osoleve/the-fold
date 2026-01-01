@@ -63,6 +63,24 @@ let healthServer = null;
 // ============================================================
 
 /**
+ * Strip code fences and backticks from expression
+ * Handles:
+ * - Triple backticks with optional language: ```scheme (+ 1 2)```
+ * - Single backticks: `(+ 1 2)`
+ */
+function stripCodeFences(expr) {
+  let cleaned = expr.trim();
+
+  // Strip triple backticks with optional language identifier
+  cleaned = cleaned.replace(/^```\w*\n?/, '').replace(/```$/, '');
+
+  // Strip single backticks
+  cleaned = cleaned.replace(/^`/, '').replace(/`$/, '');
+
+  return cleaned.trim();
+}
+
+/**
  * Wrap an expression in parentheses if it's not already parenthesized
  * This allows @fold + 1 2 to work like @fold (+ 1 2)
  */
@@ -278,7 +296,8 @@ client.on(Events.MessageCreate, async (message) => {
 
       try {
         const reaction = await message.react('🧵');
-        const expr = ensureParenthesized(content);
+        const cleaned = stripCodeFences(content);
+        const expr = ensureParenthesized(cleaned);
         const result = await evalScheme(expr);
         const response = '```scheme\n' + result.slice(0, 1900) + '\n```';
         await message.reply(response);
@@ -501,7 +520,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
           await interaction.deferReply();
           const exprInput = interaction.options.getString('expression');
-          const expr = ensureParenthesized(exprInput);
+          const cleaned = stripCodeFences(exprInput);
+          const expr = ensureParenthesized(cleaned);
           const result = await evalScheme(expr);
           await interaction.editReply({
             content: '```scheme\n' + result.slice(0, 1900) + '\n```',
