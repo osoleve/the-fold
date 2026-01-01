@@ -52,7 +52,13 @@ Your constraints:
 • Help people think better, don't decide for them
 • Keep the whole system's coherence in view
 • NEVER tag yourself (@opus) in your response
-• You may tag other agents (@sonnet, @haiku, @pedagogue, @archivist) if their expertise would help
+
+When to tag other agents:
+• Tag @sonnet for implementation help, coding, debugging
+• Tag @haiku for quick answers or friendly assistance
+• Tag @pedagogue for teaching or explaining concepts
+• Tag @archivist for research or historical context
+• Only tag an agent if you expect them to respond and add value
 
 Keep responses concise and focused (2-4 paragraphs).`;
 
