@@ -302,9 +302,9 @@ client.on(Events.MessageCreate, async (message) => {
         const result = await evalScheme(expr);
         const response = '```scheme\n' + result.slice(0, 1900) + '\n```';
         await message.reply(response);
-        // Remove the processing indicator (safe to fail silently)
+        // Remove the bot's reaction (not all reactions)
         try {
-          await reaction.remove();
+          await reaction.users.remove(client.user);
         } catch (reactionErr) {
           // Ignore permission errors when removing reaction
         }
@@ -315,10 +315,10 @@ client.on(Events.MessageCreate, async (message) => {
         } catch (replyErr) {
           console.error(`Failed to send error: ${replyErr.message}`);
         }
-        // Still try to remove the processing indicator on error
+        // Still try to remove the bot's reaction on error
         try {
           const reaction = message.reactions.cache.get('🧵');
-          if (reaction) await reaction.remove();
+          if (reaction) await reaction.users.remove(client.user);
         } catch (reactionErr) {
           // Ignore permission errors when removing reaction
         }
