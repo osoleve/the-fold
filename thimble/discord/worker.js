@@ -130,6 +130,23 @@ async function invokeAgent(task) {
 }
 
 // ============================================================
+// Response Sanitization
+// ============================================================
+
+/**
+ * Break self-mentions in agent responses by inserting a dot after @
+ * e.g., "@haiku" from Haiku becomes "@.haiku" so Discord doesn't parse it as a mention
+ * @param {string} response - The agent's response
+ * @param {string} agentId - The agent's ID (e.g., "haiku", "sonnet")
+ * @returns {string} - Sanitized response
+ */
+function breakSelfMentions(response, agentId) {
+  // Match @agentId with word boundary (case insensitive)
+  const pattern = new RegExp(`@(${agentId})\\b`, 'gi');
+  return response.replace(pattern, '@.$1');
+}
+
+// ============================================================
 // Discord Posting
 // ============================================================
 
@@ -218,10 +235,13 @@ async function processNextTask() {
     const result = await invokeAgent(task);
 
     if (result.success) {
-      // Post response to Discord
-      await postResponse(task, result.response);
+      // Break any self-mentions before posting
+      const sanitizedResponse = breakSelfMentions(result.response, task.agentId);
 
-      // Save to Fold forum
+      // Post response to Discord
+      await postResponse(task, sanitizedResponse);
+
+      // Save to Fold forum (use original response for archival)
       saveToForum(task, result.response);
 
       // Update anti-loop state
