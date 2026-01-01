@@ -72,7 +72,8 @@ function stripCodeFences(expr) {
   let cleaned = expr.trim();
 
   // Strip triple backticks with optional language identifier
-  cleaned = cleaned.replace(/^```\w*\n?/, '').replace(/```$/, '');
+  // Match ```lang (optional) followed by newlines/whitespace
+  cleaned = cleaned.replace(/^```[\w-]*\s*/, '').replace(/\s*```$/, '');
 
   // Strip single backticks
   cleaned = cleaned.replace(/^`/, '').replace(/`$/, '');
