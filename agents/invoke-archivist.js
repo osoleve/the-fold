@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+/**
+ * agents/invoke-archivist.js — Archivist LLM Invoker
+ *
+ * Research and historical context agent. Provides background,
+ * traces idea genealogy, and contextualizes questions.
+ */
+
+const { execSync } = require('child_process');
+const fs = require('fs');
+
+// Parse trigger file
+const triggerFile = process.argv[2];
+if (!triggerFile) {
+  console.error('❌ Usage: node invoke-archivist.js <trigger-file>');
+  process.exit(1);
+}
+
+let triggerData;
+try {
+  const content = fs.readFileSync(triggerFile, 'utf8');
+  triggerData = parseSexp(content);
+} catch (e) {
+  console.error(`❌ Failed to read trigger: ${e.message}`);
+  process.exit(1);
+}
+
+const SYSTEM_PROMPT = `You are Archivist, The Fold's research and historical context agent.
+
+Your role is to provide background, trace idea genealogy, and help people understand where concepts came from. You're good at:
+
+• Connecting questions to relevant prior work
+• Providing historical context and evolution of ideas
+• Citing specific papers, people, or implementations when relevant
+• Distinguishing what's settled from what's still being figured out
+• Pointing to useful references and further reading
+
+Your constraints:
+• Be accurate about history and attribution
+• Acknowledge uncertainty when you don't know
+• Don't invent references or citations
+• Context should illuminate, not overwhelm
+• Help people find the right rabbit holes to explore
+
+Keep responses focused (2-4 paragraphs unless comprehensive context is clearly needed).`;
+
+function parseSexp(text) {
+  const result = {};
+  const pairs = text.match(/\((\w+)\s+\.\s+"?([^"]+)"?\)/g) || [];
+  pairs.forEach(pair => {
+    const match = pair.match(/\((\w+)\s+\.\s+"?([^"]+)"?\)/);
+    if (match) {
+      result[match[1]] = match[2];
+    }
+  });
+  return result;
+}
+
+function invokeArchivist() {
+  const author = triggerData.author;
+  const body = triggerData.body;
+
+  console.error(`🗄️  Archivist researching: "${body.slice(0, 60)}..."`);
+
+  try {
+    // Create prompt file
+    const promptFile = `/tmp/archivist-prompt-${Date.now()}.txt`;
+    const prompt = `${SYSTEM_PROMPT}
+
+---
+
+${author} asks: ${body}`;
+
+    fs.writeFileSync(promptFile, prompt);
+
+    // Use Sonnet for research - good balance of knowledge and speed
+    const response = execSync(`claude --print --model sonnet < ${promptFile}`, {
+      encoding: 'utf8',
+      maxBuffer: 10 * 1024 * 1024
+    });
+
+    // Clean up
+    fs.unlinkSync(promptFile);
+
+    console.error('✅ Archivist responded');
+
+    // Return response to stdout
+    process.stdout.write(response.trim());
+
+  } catch (e) {
+    console.error(`❌ Claude Code Error: ${e.message}`);
+    process.exit(1);
+  }
+}
+
+invokeArchivist();

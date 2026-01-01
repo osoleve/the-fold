@@ -133,25 +133,25 @@ async function logToFold(message) {
  * Check for agent mentions and trigger consultation
  */
 async function handleAgentMention(message) {
-  // Check if bot was mentioned
-  const botMentioned = message.mentions.users.has(message.client.user.id);
-  if (!botMentioned) return false;
-
   const content = message.content.toLowerCase();
 
-  // Bot was mentioned, check which agent to invoke
-  // Default to opus if just @Opus with no agent name
-  let agentToInvoke = 'opus';
+  // Look for @agent mentions in the message
+  // Match patterns like: @opus, @pedagogue, @archivist
+  let agentToInvoke = null;
 
-  // Check if a specific agent was named
   for (const agent of config.CONSULTATION_AGENTS) {
-    if (content.includes(agent)) {
+    // Match @agent (with word boundary to avoid partial matches)
+    const pattern = new RegExp(`@${agent}\\b`, 'i');
+    if (pattern.test(content)) {
       agentToInvoke = agent;
       break;
     }
   }
 
-  console.log(`Bot mentioned, invoking agent: ${agentToInvoke}`);
+  // No agent mentioned
+  if (!agentToInvoke) return false;
+
+  console.log(`Agent mentioned: @${agentToInvoke}`);
 
   // Write trigger file for daemon
   const triggerPath = path.join(
