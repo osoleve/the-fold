@@ -473,27 +473,3 @@
                      (type->string (typed-type tv)))
       (format "~s" tv)))
 
-;;; print-typed : TypedValue → void
-(define (print-typed tv)
-  (display (show-typed tv))
-  (newline))
-
-;;; ============================================================
-;;; REPL Support
-;;; ============================================================
-
-;;; typed-repl-eval : Expr → void
-;;; Evaluate and display with types (for REPL use).
-(define (typed-repl-eval expr)
-  (let ([result (typed-run expr 1000)])
-       (cond
-        [(and (pair? result) (eq? (car result) 'ok))
-         (print-typed (cadr result))]
-        [(and (pair? result) (eq? (car result) 'error))
-         (display "Type error: ")
-         (display (format-type-error result))
-         (newline)]
-        [else
-         (display "Error: ")
-         (display result)
-         (newline)])))

@@ -258,28 +258,15 @@
 ;;; ============================================================
 ;;; Display Functions
 ;;; ============================================================
-(test-section "Display (visual inspection)")
+(test-section "show-typed")
 
-(display "
---- show-typed ---
-")
-(display (show-typed (typed 'Int 42)))
-(newline)
-(display (show-typed (typed '(-> Int Int) '<closure>)))
-(newline)
+(test "show-typed int"
+      "42 : Int"
+      (show-typed (typed 'Int 42)))
 
-(display "
---- typed-repl-eval ---
-")
-(typed-repl-eval '42)
-(typed-repl-eval '(prim 'add 10 20))
-(typed-repl-eval '(fn (x) (prim 'mul x 2)))
-(typed-repl-eval '((fn (x) x) "hello"))
-
-(display "
---- type error example ---
-")
-(typed-repl-eval 'undefined)
+(test "show-typed function"
+      "<closure> : (-> Int Int)"
+      (show-typed (typed '(-> Int Int) '<closure>)))
 
 ;;; ============================================================
 ;;; Typed Prelude

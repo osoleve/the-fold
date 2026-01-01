@@ -385,6 +385,28 @@
 
 ;;; These functions are available after (load-core)
 
+;;; print-typed : TypedValue → void
+;;; Display a typed value with its type annotation.
+(define (print-typed tv)
+  (display (show-typed tv))
+  (newline))
+
+;;; typed-repl-eval : Expr → void
+;;; Evaluate and display with types (for REPL use).
+(define (typed-repl-eval expr)
+  (let ([result (typed-run expr 1000)])
+       (cond
+        [(and (pair? result) (eq? (car result) 'ok))
+         (print-typed (cadr result))]
+        [(and (pair? result) (eq? (car result) 'error))
+         (display "Type error: ")
+         (display (format-type-error result))
+         (newline)]
+        [else
+         (display "Error: ")
+         (display result)
+         (newline)])))
+
 ;;; t : Expr → void
 ;;; Typed evaluation: type-check and evaluate, display result with type.
 (define (t expr)
