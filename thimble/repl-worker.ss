@@ -7,6 +7,13 @@
 ;;;   .fold-repl/responses/<session-id>.error.txt
 ;;;
 ;;; The broker daemon spawns one worker per session-id.
+;;;
+;;; When a definition is evaluated, returns the content-address (SHA-256)
+;;; of the defined value instead of void.
+
+;;; Load hashing dependencies early for content-addressing
+(load "fabric/stitches/sha256.ss")
+(load "fabric/stitches/cas.ss")
 
 (define *poll-interval-ns* 100000000)  ; 100ms
 (define *heartbeat-interval* 5)        ; seconds
@@ -90,37 +97,82 @@
   (cdr (assq 'expression request)))
 
 ;;; ============================================================
+;;; Content Addressing
+;;; ============================================================
+
+;;; content-address : Any → String
+;;; Compute the content-address (SHA-256 hex) of any Scheme value.
+(define (content-address value)
+  (let* ([serialized (string->utf8 (format "~s" value))]
+         [hash (sha256 serialized)])
+        (hash->hex hash)))
+
+;;; definition? : S-expr → Boolean
+;;; Check if an expression is a definition form.
+(define (definition? expr)
+  (and (pair? expr)
+       (memq (car expr) '(define define-syntax))))
+
+;;; definition-name : S-expr → Symbol
+;;; Extract the name being defined from a definition form.
+(define (definition-name expr)
+  (let ([form (cadr expr)])
+       (if (pair? form)
+           (car form)   ; (define (foo x) ...) -> foo
+           form)))      ; (define foo ...) -> foo
+
+;;; ============================================================
 ;;; Evaluation
 ;;; ============================================================
 
 (define (scheme-eval-string str)
-  "Evaluate a string containing Scheme expressions."
+  "Evaluate a string containing Scheme expressions.
+   Returns (values result last-defined-name) where last-defined-name
+   is the symbol of the last definition, or #f if none."
   (let ([port (open-input-string str)])
-       (let loop ([last-result (void)])
+       (let loop ([last-result (void)]
+                  [last-def-name #f])
             (let ([expr (read port)])
                  (if (eof-object? expr)
-                     last-result
-                     (loop (eval expr)))))))
+                     (values last-result last-def-name)
+                     (let ([is-def (definition? expr)]
+                           [result (eval expr)])
+                          (loop result
+                                (if is-def
+                                    (definition-name expr)
+                                    last-def-name))))))))
 
 (define (scheme-eval-and-capture session-id str)
-  "Evaluate expressions and capture both stdout and return value."
+  "Evaluate expressions and capture both stdout and return value.
+   For definitions, returns the content-address of the defined value."
   (let ([output-port (open-output-string)])
-       (let ([result
-              (parameterize ([current-output-port output-port]
-                             [*current-session-id* session-id])
-                            (scheme-eval-string str))])
-            (let ([output (get-output-string output-port)])
-                 (cond
-                  [(and (eq? result (void)) (> (string-length output) 0))
-                   output]
-                  [(> (string-length output) 0)
-                   (string-append output
-                                  (if (eq? result (void))
-                                      ""
-                                      (string-append "\n=> " (format "~a" result))))]
-                  [(not (eq? result (void)))
-                   (format "~a" result)]
-                  [else ""])))))
+       (let-values ([(result def-name)
+                     (parameterize ([current-output-port output-port]
+                                    [*current-session-id* session-id])
+                                   (scheme-eval-string str))])
+                   (let ([output (get-output-string output-port)])
+                        (cond
+                         ;; Definition: return content-address
+                         [def-name
+                           (let* ([value (eval def-name)]
+                                  [addr (content-address value)])
+                                 (if (> (string-length output) 0)
+                                     (string-append output "\n" addr)
+                                     addr))]
+                         ;; Only output, no meaningful return value
+                         [(and (eq? result (void)) (> (string-length output) 0))
+                          output]
+                         ;; Both output and result
+                         [(> (string-length output) 0)
+                          (string-append output
+                                         (if (eq? result (void))
+                                             ""
+                                             (string-append "\n=> " (format "~a" result))))]
+                         ;; Only result, no output
+                         [(not (eq? result (void)))
+                          (format "~a" result)]
+                         ;; Nothing
+                         [else ""])))))
 
 ;;; ============================================================
 ;;; Response Helpers
