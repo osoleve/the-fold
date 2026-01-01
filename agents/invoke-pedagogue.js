@@ -8,6 +8,7 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs');
+const { parseTrigger } = require('./lib/parse-trigger');
 
 // Parse trigger file
 const triggerFile = process.argv[2];
@@ -19,7 +20,7 @@ if (!triggerFile) {
 let triggerData;
 try {
   const content = fs.readFileSync(triggerFile, 'utf8');
-  triggerData = parseSexp(content);
+  triggerData = parseTrigger(content);
 } catch (e) {
   console.error(`❌ Failed to read trigger: ${e.message}`);
   process.exit(1);
@@ -43,18 +44,6 @@ Your constraints:
 • Guide toward understanding, don't just give answers
 
 Keep responses focused (2-4 paragraphs unless a longer explanation is clearly needed).`;
-
-function parseSexp(text) {
-  const result = {};
-  const pairs = text.match(/\((\w+)\s+\.\s+"?([^"]+)"?\)/g) || [];
-  pairs.forEach(pair => {
-    const match = pair.match(/\((\w+)\s+\.\s+"?([^"]+)"?\)/);
-    if (match) {
-      result[match[1]] = match[2];
-    }
-  });
-  return result;
-}
 
 function invokePedagogue() {
   const author = triggerData.author;
