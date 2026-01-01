@@ -104,17 +104,34 @@
 ;;; Content Addressing
 ;;; ============================================================
 
+;;; extract-definition-body : S-expr → S-expr
+;;; Extract the actual code being defined (without the 'define' keyword).
+;;; For (define (foo x) x), returns (fn (x) x) for normalization.
+;;; For (define foo 42), returns 42.
+(define (extract-definition-body expr)
+  (cond
+   [(and (pair? expr) (eq? (car expr) 'define))
+    (let ([form (cadr expr)])
+      (cond
+       [(pair? form)
+        ;; (define (name args...) body...)
+        ;; Convert to (fn (args...) body...) for normalization
+        (cons 'fn (cons (cdr form) (cddr expr)))]
+       [else
+        ;; (define name value)
+        ;; Just return the value
+        (caddr expr)]))]
+   [else expr]))
+
 ;;; content-address : Any → String
 ;;; Compute the content-address (SHA-256 hex) of any Scheme value.
-;;; Normalizes expressions using de Bruijn indices for α-equivalence:
-;;; (define (foo x) x) and (define (foo y) y) produce the same address.
+;;; For definitions, hashes the extracted body (not the outer define form).
+;;; This ensures different function bodies produce different addresses.
 (define (content-address value)
-  (let* ([normalized (guard (e [else value])
-                            ;; Try to normalize if it's a pair (expression)
-                            (if (pair? value)
-                                (normalize value)
-                                value))]
-         [serialized (string->utf8 (format "~s" normalized))]
+  (let* ([body-to-hash (if (pair? value)
+                           (extract-definition-body value)
+                           value)]
+         [serialized (string->utf8 (format "~s" body-to-hash))]
          [hash (sha256 serialized)])
         (hash->hex hash)))
 
