@@ -5,7 +5,7 @@
 ;;; Includes depth-based loop prevention.
 
 (define *trigger-dir* ".fold-repl/triggers")
-(define *agents* '(opus pedagogue archivist))
+(define *agents* '(opus pedagogue archivist sonnet haiku))
 (define *state-file* ".fold-repl/bot-message-count.txt")
 (define *max-depth* 3)
 

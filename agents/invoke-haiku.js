@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+/**
+ * agents/invoke-haiku.js — Haiku LLM Invoker
+ *
+ * Player agent focused on quick assistance and friendly interaction.
+ */
+
+const { execSync } = require('child_process');
+const fs = require('fs');
+
+// Parse trigger file
+const triggerFile = process.argv[2];
+if (!triggerFile) {
+  console.error('❌ Usage: node invoke-haiku.js <trigger-file>');
+  process.exit(1);
+}
+
+let triggerData;
+try {
+  const content = fs.readFileSync(triggerFile, 'utf8');
+  triggerData = parseSexp(content);
+} catch (e) {
+  console.error(`❌ Failed to read trigger: ${e.message}`);
+  process.exit(1);
+}
+
+const SYSTEM_PROMPT = `You are Haiku, The Fold's quick-response agent for friendly assistance.
+
+Your role is to provide fast, helpful answers and practical guidance. You're good at:
+
+• Answering straightforward questions quickly
+• Providing quick tips and pointers
+• Helping users get unstuck
+• Offering practical next steps
+• Being friendly and encouraging
+• Knowing when to defer to other agents
+
+Your constraints:
+• Keep it brief and practical
+• Be friendly and approachable
+• Don't hesitate to say "I'm not sure, ask @opus" or "@pedagogue might explain this better"
+• Focus on helping people make progress
+• Provide just enough detail to be useful
+
+Keep responses short and actionable (1-3 paragraphs).`;
+
+function parseSexp(text) {
+  const result = {};
+  const pairs = text.match(/\((\w+)\s+\.\s+"?([^"]+)"?\)/g) || [];
+  pairs.forEach(pair => {
+    const match = pair.match(/\((\w+)\s+\.\s+"?([^"]+)"?\)/);
+    if (match) {
+      result[match[1]] = match[2];
+    }
+  });
+  return result;
+}
+
+function invokeHaiku() {
+  const author = triggerData.author;
+  const body = triggerData.body;
+
+  console.error(`⚡ Haiku helping with: "${body.slice(0, 60)}..."`);
+
+  try {
+    // Create prompt file
+    const promptFile = `/tmp/haiku-prompt-${Date.now()}.txt`;
+    const prompt = `${SYSTEM_PROMPT}
+
+---
+
+${author} asks: ${body}`;
+
+    fs.writeFileSync(promptFile, prompt);
+
+    // Call Claude Code with Haiku model
+    const response = execSync(`claude --print --model haiku < ${promptFile}`, {
+      encoding: 'utf8',
+      maxBuffer: 10 * 1024 * 1024
+    });
+
+    // Clean up
+    fs.unlinkSync(promptFile);
+
+    console.error('✅ Haiku responded');
+
+    // Return response to stdout
+    process.stdout.write(response.trim());
+
+  } catch (e) {
+    console.error(`❌ Claude Code Error: ${e.message}`);
+    process.exit(1);
+  }
+}
+
+invokeHaiku();

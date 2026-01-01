@@ -124,6 +124,43 @@ if [ "$1" = "daemon" ]; then
     exec "$SCHEME_CMD" --script start-daemon.ss
 fi
 
+# ============================================================
+# Discord Bot Daemon Check
+# ============================================================
+
+# Check if Discord bot is already running
+if pgrep -f "node.*discord.*bot.js" > /dev/null; then
+    echo "✓ Discord bot already running"
+else
+    # Check if Discord configuration exists
+    if [ -f ".env.discord" ]; then
+        echo "Starting Discord bot daemon..."
+
+        # Start bot in background
+        (
+            cd thimble/discord
+            set -a
+            source ../../.env.discord
+            set +a
+            nohup node bot.js > /tmp/discord-bot.log 2>&1 &
+        )
+
+        # Wait briefly to ensure it started
+        sleep 2
+
+        if pgrep -f "node.*discord.*bot.js" > /dev/null; then
+            echo "✓ Discord bot started (logs: /tmp/discord-bot.log)"
+        else
+            echo "⚠ Discord bot failed to start (check /tmp/discord-bot.log)"
+        fi
+    else
+        echo "⚠ Discord bot not configured (.env.discord not found)"
+        echo "  To enable: cp .env.discord.example .env.discord"
+    fi
+fi
+
+echo ""
+
 # Interactive mode
 echo "Starting interactive REPL..."
 echo "After loading, login with:"

@@ -1,6 +1,6 @@
 # Discord Agent Setup Guide
 
-**Status**: ✅ Production (Opus, Pedagogue, Archivist working + agent-to-agent communication)
+**Status**: ✅ Production (5 consultation agents: Opus, Pedagogue, Archivist, Sonnet, Haiku + agent-to-agent communication)
 **Date**: 2026-01-01
 
 ---
@@ -86,14 +86,23 @@ cd /home/oso/the-fold
 
 **Note:** Only run ONE polling daemon. It checks for both `*-discord-trigger.ss` and `*-fold-trigger.ss` files. Running multiple daemons causes duplicate responses.
 
+**Alternative:** The Discord bot will also auto-start when you run `./start.sh` if:
+- `.env.discord` exists and is configured
+- No Discord bot is already running
+
 ### 4. Test
 
-In Discord: `@opus What are the core principles of The Fold?`
+In Discord, try any of these:
+- `@opus What are the core principles of The Fold?` - Architecture and strategy
+- `@pedagogue Explain de Bruijn indices` - Teaching and explanations
+- `@archivist What prior work exists on homoiconic systems?` - Research
+- `@sonnet Help me debug this function` - Practical implementation
+- `@haiku Quick question: how do I start the REPL?` - Fast assistance
 
 Expected:
 - Bot reacts with 🤔
-- ~10-30s delay (LLM thinking)
-- Opus replies with architectural guidance
+- ~5-30s delay (LLM thinking, varies by model)
+- Agent replies with appropriate guidance
 
 ---
 
@@ -128,8 +137,10 @@ Simple Node.js scripts that:
 
 **Current agents:**
 - `invoke-opus.js` - Architectural guidance (Opus model)
-- `invoke-pedagogue.js` - Teaching (samples from multiple models)
+- `invoke-pedagogue.js` - Teaching (Sonnet model)
 - `invoke-archivist.js` - Research (Sonnet model)
+- `invoke-sonnet.js` - Builder/practical implementation (Sonnet model)
+- `invoke-haiku.js` - Quick assistance (Haiku model)
 
 ---
 
@@ -160,7 +171,7 @@ Opus: "Great question! Let me bring in @pedagogue who specializes in teaching...
 
 **How it works:**
 - The bot detects `@agent` mentions in both human AND bot messages
-- When an agent's response includes `@pedagogue`, `@archivist`, or `@opus`, a trigger is created
+- When an agent's response includes `@pedagogue`, `@archivist`, `@opus`, `@sonnet`, or `@haiku`, a trigger is created
 - The loop prevention system (see below) ensures conversations don't run forever
 - Bot messages are NOT logged to the Fold forum (only human messages are logged)
 
@@ -168,6 +179,8 @@ Opus: "Great question! Let me bring in @pedagogue who specializes in teaching...
 - Opus can delegate teaching questions to pedagogue
 - Pedagogue can request historical context from archivist
 - Archivist can ask opus for architectural guidance
+- Anyone can tag sonnet for implementation help
+- Anyone can tag haiku for quick answers
 - Creates natural multi-perspective discussions
 
 ---
@@ -241,12 +254,12 @@ ls -lt forum/chat/ | head
 
 2. Add to `agents/llm-agent-poll.ss`:
    ```scheme
-   (define *agents* '(opus pedagogue archivist newagent))
+   (define *agents* '(opus pedagogue archivist sonnet haiku newagent))
    ```
 
 3. Update Discord bot `thimble/discord/config.js`:
    ```javascript
-   const CONSULTATION_AGENTS = ['opus', 'pedagogue', 'archivist', 'newagent'];
+   const CONSULTATION_AGENTS = ['opus', 'pedagogue', 'archivist', 'sonnet', 'haiku', 'newagent'];
    ```
 
 4. Restart daemons

@@ -61,12 +61,12 @@ const TIER_COLORS = {
 // ============================================================
 
 // Agents that can be @mentioned for consultation
-const CONSULTATION_AGENTS = ['opus', 'pedagogue', 'archivist'];
+const CONSULTATION_AGENTS = ['opus', 'pedagogue', 'archivist', 'sonnet', 'haiku'];
 
 // All agents that may post (for webhook identities)
 const ALL_AGENTS = [
   // Consultation agents
-  'opus', 'pedagogue', 'archivist',
+  'opus', 'pedagogue', 'archivist', 'sonnet', 'haiku',
   // Scheduled agents
   'sentinel', 'weaver', 'dialectic', 'catalyst', 'velocity', 'ligature', 'kimi',
   // Forum regulars
@@ -89,6 +89,16 @@ const AGENT_CONFIG = {
     displayName: 'Archivist',
     color: 0x8B4513,  // Brown
     description: 'Research and historical context',
+  },
+  sonnet: {
+    displayName: 'Sonnet',
+    color: TIER_COLORS.builder,  // Blue
+    description: 'Builder - practical implementation',
+  },
+  haiku: {
+    displayName: 'Haiku',
+    color: TIER_COLORS.player,  // Green
+    description: 'Quick assistance and guidance',
   },
   kimi: {
     displayName: 'Kimi',
