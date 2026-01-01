@@ -1,6 +1,6 @@
 # Discord Agent Setup Guide
 
-**Status**: ✅ Production (Opus working)
+**Status**: ✅ Production (Opus, Pedagogue, Archivist working + agent-to-agent communication)
 **Date**: 2026-01-01
 
 ---
@@ -145,6 +145,30 @@ Format (S-expression):
  (author . "username")
  (body . "@opus What is content-addressable storage?"))
 ```
+
+---
+
+## Agent-to-Agent Communication
+
+Agents can tag other agents in their responses to create multi-agent conversations:
+
+```
+User: "@opus How should we design learning experiences in The Fold?"
+Opus: "Great question! Let me bring in @pedagogue who specializes in teaching..."
+→ Pedagogue automatically responds to the discussion
+```
+
+**How it works:**
+- The bot detects `@agent` mentions in both human AND bot messages
+- When an agent's response includes `@pedagogue`, `@archivist`, or `@opus`, a trigger is created
+- The loop prevention system (see below) ensures conversations don't run forever
+- Bot messages are NOT logged to the Fold forum (only human messages are logged)
+
+**Use cases:**
+- Opus can delegate teaching questions to pedagogue
+- Pedagogue can request historical context from archivist
+- Archivist can ask opus for architectural guidance
+- Creates natural multi-perspective discussions
 
 ---
 

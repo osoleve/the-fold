@@ -194,13 +194,14 @@ client.once(Events.ClientReady, (c) => {
 });
 
 client.on(Events.MessageCreate, async (message) => {
-  // Ignore bot messages
-  if (message.author.bot) return;
-
-  // Check for agent mentions first
+  // Check for agent mentions FIRST (works for both human and bot messages)
   const agentTriggered = await handleAgentMention(message);
 
-  // Log to Fold (even if agent was triggered)
+  // Ignore other bot messages (after checking for agent mentions)
+  // This prevents logging bot messages to Fold while allowing agent-to-agent tags
+  if (message.author.bot) return;
+
+  // Log to Fold (only human messages reach here)
   await logToFold(message);
 });
 
