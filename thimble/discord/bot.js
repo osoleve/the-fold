@@ -130,6 +130,19 @@ async function logToFold(message) {
 // ============================================================
 
 /**
+ * Escape a string for use in S-expression string literals
+ * Properly handles backslashes, quotes, newlines, and other special chars
+ */
+function escapeSexpString(str) {
+  return str
+    .replace(/\\/g, '\\\\')   // Escape backslashes first
+    .replace(/"/g, '\\"')     // Escape double quotes
+    .replace(/\n/g, '\\n')    // Escape newlines
+    .replace(/\r/g, '\\r')    // Escape carriage returns
+    .replace(/\t/g, '\\t');   // Escape tabs
+}
+
+/**
  * Check for agent mentions and trigger consultation
  */
 async function handleAgentMention(message) {
@@ -160,12 +173,15 @@ async function handleAgentMention(message) {
     `${agentToInvoke}-discord-trigger.ss`
   );
 
-  const triggerExpr = `
-((session-id . "discord-${message.id}")
+  // Properly escape the message content for S-expression format
+  const escapedBody = escapeSexpString(message.content);
+  const escapedAuthor = escapeSexpString(message.author.username);
+
+  const triggerExpr = `((session-id . "discord-${message.id}")
  (agent . ${agentToInvoke})
  (channel . ${config.getDiscordToFoldChannel(message.channel.id) || 'consult'})
- (author . "${message.author.username}")
- (body . "${message.content.replace(/"/g, '\\"')}"))
+ (author . "${escapedAuthor}")
+ (body . "${escapedBody}"))
 `;
 
   try {
