@@ -6,7 +6,7 @@
 ;;; Schedule: Daily at 6am UTC
 ;;; Trigger: (run-pipeline arxiv-pipeline '((category . "cs.AI") (days . 1)))
 
-(load "fabric/stitches/pipeline/dsl.ss")
+(load "core/pipeline/dsl.ss")
 
 ;;; ============================================================
 ;;; Pipeline Configuration

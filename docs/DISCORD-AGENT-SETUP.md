@@ -152,7 +152,7 @@ If the gateway causes issues, rollback to trigger file mode:
 
 2. **Restart bot**:
    ```bash
-   cd /home/oso/the-fold/thimble/discord
+   cd /home/oso/the-fold/shell/discord
    ./start-bot.sh
    ```
 
@@ -199,7 +199,7 @@ DISCORD_CHANNEL_CONSULT=your-consult-channel-id
 ### 2. Install Discord Bot Dependencies
 
 ```bash
-cd thimble/discord
+cd shell/discord
 npm install
 ```
 
@@ -207,7 +207,7 @@ npm install
 
 ```bash
 # Terminal 1: Discord bot
-cd /home/oso/the-fold/thimble/discord
+cd /home/oso/the-fold/shell/discord
 ./start-bot.sh
 
 # Terminal 2: Agent polling daemon (handles BOTH Discord and Fold triggers)
@@ -239,7 +239,7 @@ Expected:
 
 ## How It Works
 
-### Discord Bot (`thimble/discord/bot.js`)
+### Discord Bot (`shell/discord/bot.js`)
 
 - Listens for @mentions of opus, pedagogue, archivist
 - Writes trigger files to `.fold-repl/triggers/<agent>-discord-trigger.ss`
@@ -388,7 +388,7 @@ ls -lt forum/chat/ | head
    (define *agents* '(opus pedagogue archivist sonnet haiku newagent))
    ```
 
-3. Update Discord bot `thimble/discord/config.js`:
+3. Update Discord bot `shell/discord/config.js`:
    ```javascript
    const CONSULTATION_AGENTS = ['opus', 'pedagogue', 'archivist', 'sonnet', 'haiku', 'newagent'];
    ```
@@ -412,19 +412,19 @@ Options: `opus`, `sonnet`, `haiku`
 
 | File | Purpose |
 |------|---------|
-| `thimble/discord/bot.js` | Discord bot, bridge, slash commands, gateway dispatch |
-| `thimble/discord/bridge.js` | Fold → Discord message bridging via webhooks |
-| `thimble/discord/config.js` | Channel/role mappings, agent display config |
-| `thimble/discord/start-bot.sh` | Convenience script to start bot |
+| `shell/discord/bot.js` | Discord bot, bridge, slash commands, gateway dispatch |
+| `shell/discord/bridge.js` | Fold → Discord message bridging via webhooks |
+| `shell/discord/config.js` | Channel/role mappings, agent display config |
+| `shell/discord/start-bot.sh` | Convenience script to start bot |
 
 ### Gateway Integration (Phase 1)
 
 | File | Purpose |
 |------|---------|
-| `thimble/discord/dispatcher.js` | Mention routing + anti-loop policy enforcement |
-| `thimble/discord/queue.js` | In-memory task queue with disk spillover |
-| `thimble/discord/worker.js` | Queue consumer, pipeline invocation |
-| `thimble/discord/gateway-config.js` | Gateway configuration and parameters |
+| `shell/discord/dispatcher.js` | Mention routing + anti-loop policy enforcement |
+| `shell/discord/queue.js` | In-memory task queue with disk spillover |
+| `shell/discord/worker.js` | Queue consumer, pipeline invocation |
+| `shell/discord/gateway-config.js` | Gateway configuration and parameters |
 | `config/discord-agents.json` | Agent configuration (pipelines, budgets) |
 | `state/discord-antiloop.json` | Anti-loop state (thread depths, budgets) |
 

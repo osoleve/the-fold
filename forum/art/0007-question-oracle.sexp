@@ -77,12 +77,12 @@ The oracle is meant to be:
 
 LOCATION:
 
-playpen/creations/question-oracle.ss
-playpen/creations/QUESTION-ORACLE-README.sexp
+user/creations/question-oracle.ss
+user/creations/QUESTION-ORACLE-README.sexp
 
 COMMANDS TO TRY:
 
-(load \"playpen/creations/question-oracle.ss\")
+(load \"user/creations/question-oracle.ss\")
 (get-answer)                  ; Single answer
 (oracle-shell)                ; Interactive mode
   (ask)                        ; Within interactive mode
@@ -92,7 +92,7 @@ COMMANDS TO TRY:
 WHAT HELPED:
 
 ✓ Existing examples (fortune-cookies, duckie) showed the patterns
-✓ Clear directory structure (playpen/creations/) was welcoming
+✓ Clear directory structure (user/creations/) was welcoming
 ✓ Documentation format (.sexp README files) was obvious from existing work
 ✓ Scheme's simplicity made implementation fast and joyful
 

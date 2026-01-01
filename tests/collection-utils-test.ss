@@ -1,10 +1,10 @@
 ;;; collection-utils-test.ss — Test suite for collection utilities
 
-(source-directories (cons "fabric/stitches" (source-directories)))
-(load "fabric/stitches/block.ss")
-(load "fabric/stitches/sha256.ss")
-(load "thimble/fs.ss")
-(load "fabric/patterns/collection-utils.ss")
+(source-directories (cons "core" (source-directories)))
+(load "core/block.ss")
+(load "core/sha256.ss")
+(load "shell/fs.ss")
+(load "core/collection-utils.ss")
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║       COLLECTION UTILITIES TEST SUITE                      ║\n")

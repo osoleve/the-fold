@@ -35,7 +35,7 @@ The classic game loop, adapted for our companion:
 
 State:
   (define-type LoopState
-    (duckie  Duckie)      ; from playpen/duckie.ss
+    (duckie  Duckie)      ; from user/duckie.ss
     (canvas  Canvas)      ; from shell/layout.ss
     (frame   Nat)         ; animation frame counter
     (running Bool))       ; loop control
@@ -101,8 +101,8 @@ Integrate with duckie.ss mood transitions:
 
 === Integration Points ===
 
-  - playpen/duckie.ss   — DUCKIE state and mood logic
-  - playpen/sprites.ss  — Sprite selection (once created)
+  - user/duckie.ss   — DUCKIE state and mood logic
+  - user/sprites.ss  — Sprite selection (once created)
   - shell/layout.ss     — Canvas and drawing
   - core/parse.ss       — Command parsing
   - shell/fs.ss         — Persistence (save/load)

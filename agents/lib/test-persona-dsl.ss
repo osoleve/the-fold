@@ -3,7 +3,7 @@
 ;;; Run from project root:
 ;;;   scheme --script agents/lib/test-persona-dsl.ss
 
-(load "fabric/stitches/test-framework.ss")
+(load "core/test-framework.ss")
 (load "agents/lib/persona-dsl.ss")
 
 ;;; ============================================================

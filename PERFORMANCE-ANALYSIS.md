@@ -177,10 +177,10 @@ For blocks >10KB, serialization starts to show linear scaling costs.
 
 ## Related Documents
 
-- `fabric/patterns/GRAPH-OPTIMIZATIONS.md` - Graph algorithm optimizations
-- `fabric/stitches/bench-prim.ss` - Primitive fuel cost benchmarks
-- `fabric/stitches/bench-core.ss` - Core system benchmarks
-- `fabric/patterns/bench-graph-algorithms.ss` - Graph algorithm benchmarks
+- `core/GRAPH-OPTIMIZATIONS.md` - Graph algorithm optimizations
+- `core/bench-prim.ss` - Primitive fuel cost benchmarks
+- `core/bench-core.ss` - Core system benchmarks
+- `core/bench-graph-algorithms.ss` - Graph algorithm benchmarks
 
 ## Future Work
 

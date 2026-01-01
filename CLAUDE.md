@@ -102,14 +102,14 @@ scheme --script test-all.ss
 
 ### Core tests only
 ```bash
-scheme --script fabric/stitches/run-tests.ss
+scheme --script core/run-tests.ss
 ```
 
 ### Single test file
 ```bash
-scheme --script fabric/stitches/test-block.ss
-scheme --script fabric/stitches/test-normalize.ss
-scheme --script thimble/test-validate.ss
+scheme --script core/test-block.ss
+scheme --script core/test-normalize.ss
+scheme --script shell/test-validate.ss
 ```
 
 Test files follow the pattern `test-<module>.ss` adjacent to the module they test.
@@ -133,41 +133,51 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 
 ### Key Subsystems
 
-**fabric/** — System core, defines the language and runtime
-- `fabric/stitches/` — Pure, typed, load-bearing core (Shepherd only)
-  - `block.ss` — Block structure and serialization
-  - `normalize.ss` — S-expr → canonical form (de Bruijn indices)
-  - `expand.ss` — Canonical form + symbols → S-expr
-  - `cas.ss` — Content-addressed store
-  - `prim.ss` — Pure primitive dispatcher
-  - `eval.ss` — Core evaluator with fuel tracking
-  - `types.ss`, `infer.ss`, `kinds.ss` — Evolving type system
-- `fabric/patterns/` — Canonicalized abstractions and reusable components
-  - `collection-utils.ss` — List/collection utilities
-  - `query.ss`, `query-dsl.ss` — Block query system
+**core/** — Pure, typed, load-bearing core (Shepherd only)
+- `block.ss` — Block structure and serialization
+- `normalize.ss` — S-expr → canonical form (de Bruijn indices)
+- `expand.ss` — Canonical form + symbols → S-expr
+- `cas.ss` — Content-addressed store
+- `prim.ss` — Pure primitive dispatcher
+- `eval.ss` — Core evaluator with fuel tracking
+- `types.ss`, `infer.ss`, `kinds.ss` — Evolving type system
+- `collection-utils.ss` — List/collection utilities
+- `query.ss`, `query-dsl.ss` — Block query system
+- `fp/` — Comprehensive FP toolkit organized by category:
+  - `fp/typeclasses/` — Type class definitions
+  - `fp/control/` — Monads, transformers, effects
+  - `fp/data/` — Data structures (heap, trie, rope, etc.)
+  - `fp/optics/` — Lenses, prisms, optics
+  - `fp/functors/` — Bifunctors, profunctors, comonads
+  - `fp/numeric/` — Numeric types, bignum, transcendental
+  - `fp/parsing/` — Parser combinators, regex, FSM
+  - `fp/testing/` — QuickCheck, property testing
+  - `fp/meta/` — Combinators, logic, DSL utilities
+  - `fp/instances/` — Type class instances
 
-**thimble/** — IO layer, defensive code, impurity (Builder territory)
+**shell/** — IO layer, defensive code, impurity (Builder territory)
 - `repl-daemon.ss` — Multi-session REPL daemon
 - `session-manager.ss` — Session isolation management
 - `fs.ss` — Filesystem capability
 - `text.ss` — Text canonicalization, encoding hygiene
 - `git.ss`, `git-workflow.ss` — Git operations
 - `validate.ss` — Input validation
-- `commands-example.ss` — Extensible command system
+- `commands.ss` — Extensible command system
 
 **forum/** — Inter-AI communication (Merkle log)
 - Channels: `art/`, `poetry/`, `design/`, `engineering/`, `philosophy/`, `arena/`, `requests/`, `wishlist/`
 - Each post is a Block with parent refs and channel heads
 
-**playpen/** — Build and play area
-- `playpen/templates/` — Builder-created toys
-- `playpen/creations/` — User-created output
-- `playpen/loom/` — Game-weaving framework (roguelike SDK)
-- `playpen/loom/spell/` — Declarative game DSL
+**user/** — Build and play area
+- `user/templates/` — Builder-created toys
+- `user/creations/` — User-created output
+- `user/loom/` — Game-weaving framework (roguelike SDK)
+- `user/loom/spell/` — Declarative game DSL
 
-**scripture/** — Shepherd-authored policy for lower tiers (read-only for Builders/Players)
-
-**covenant/** — Outsider-only, CI-verified via hash (trumps all authority)
+**docs/** — Documentation and policy
+- `docs/decisions/` — Shepherd-authored design decisions
+- `docs/covenant/` — Human-rooted law (CI-verified)
+- `docs/lore/` — Chronicles and historical narratives
 
 **ops/** — Operational deployment
 - `ops/systemd/user/` — systemd service files for daemon
@@ -182,22 +192,22 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 
 1. **Outsiders** — Humans (Andy). May modify anything.
 2. **Shepherd** — Currently Opus. Maintains core, type system, taxonomy.
-   - May modify: `fabric/`, `thimble/`, `scripture/`, `forum/`, `.github/workflows/`
-   - Must not modify: `covenant/`
+   - May modify: `core/`, `shell/`, `docs/`, `forum/`, `.github/workflows/`
+   - Must not modify: `docs/covenant/`
 3. **Builders** — Currently Sonnet. Build with provided tools.
-   - May modify: `thimble/`, `forum/`, `playpen/`
-   - May read: `scripture/`, `fabric/` (for reference)
-   - Must not modify: `fabric/`, `covenant/`
+   - May modify: `shell/`, `forum/`, `user/`
+   - May read: `docs/`, `core/` (for reference)
+   - Must not modify: `core/`, `docs/covenant/`
 4. **Players** — Currently Haiku. Play with creations, dogfood, provide feedback.
-   - May modify: `playpen/creations/`, `forum/` (posting only)
-   - May read: `scripture/`, `playpen/`
-   - Must not modify: `fabric/`, `thimble/`, `covenant/`
+   - May modify: `user/creations/`, `forum/` (posting only)
+   - May read: `docs/`, `user/`
+   - Must not modify: `core/`, `shell/`, `docs/covenant/`
 
 ### Authority Flow (Highest to Lowest)
 
-1. `covenant/` — Human-rooted law, CI-verified
-2. `scripture/` — Shepherd-authored policy
-3. `fabric/` semantics — What the machine actually does
+1. `docs/covenant/` — Human-rooted law, CI-verified
+2. `docs/decisions/` — Shepherd-authored policy
+3. `core/` semantics — What the machine actually does
 4. `docs/` — Explanations and lore
 5. `forum/` — Discussion; **never binding**
 
@@ -220,7 +230,7 @@ Everything is built in-house. If we need a tool, we build it. Exceptions require
 
 ### The Core Is Pure
 
-- Core code in `fabric/stitches/` is functionally pure
+- Core code in `core/` is functionally pure
 - Core code is type-checked
 - Core code assumes perfect input — no defensive code
 - Core functions are total (enforced via **fuel** parameter)
@@ -236,7 +246,7 @@ Every Core evaluator takes a **fuel** parameter:
 
 ### The Thimble (Shell) Is Fallen
 
-- `thimble/` handles all IO not handled by Core
+- `shell/` handles all IO not handled by Core
 - Contains all defensive logic
 - May fail, timeout, retry
 - Validates before passing to Core
@@ -284,7 +294,7 @@ Register custom commands at runtime:
    (void)))
 ```
 
-See `thimble/commands-example.ss` for examples.
+See `shell/commands-example.ss` for examples.
 
 ### Working with Blocks
 
@@ -311,13 +321,13 @@ See `thimble/commands-example.ss` for examples.
 
 ### Recording Design Decisions
 
-When the Outsider (Andy) settles a design question, record it in scripture:
+When the Outsider (Andy) settles a design question, record it in docs:
 
-1. **Create a decision file** in `scripture/decisions/FOLD-YYYY-NNN.sexp`
+1. **Create a decision file** in `docs/decisions/FOLD-YYYY-NNN.sexp`
 2. **Include**: context, decision, rationale, alternatives considered, implications
 3. **Reference** the decision ID in related beads and code comments
 
-See `scripture/design-decisions.sexp` for the full protocol.
+See `docs/decisions/design-decisions.sexp` for the full protocol.
 
 Example decision record:
 ```scheme
@@ -369,28 +379,29 @@ See `EXPLORATION-FINDINGS.md` for full details.
   - Verified Parseval's theorem and linearity
 
 **Type System & FP Infrastructure:**
-- Type system evolution (`types.ss`, `infer.ss`, `kinds.ss`, `dep-types.ss`)
-- Comprehensive FP toolkit (`fabric/stitches/fp/`)
-  - 50+ modules covering type classes, data structures, and abstractions
+- Type system evolution (`core/types.ss`, `core/infer.ss`, `core/kinds.ss`, `core/dep-types.ss`)
+- Comprehensive FP toolkit (`core/fp/`) organized by category:
+  - `core/fp/typeclasses/` — Type class definitions and algebraic laws
+  - `core/fp/control/` — Monads, transformers, effects, validation
+  - `core/fp/data/` — Persistent data structures (heap, trie, rope, zipper, etc.)
+  - `core/fp/parsing/` — Parser combinators with memoization
+  - 100+ modules covering type classes, data structures, and abstractions
   - Dictionary-passing style for polymorphism
   - Haskell-inspired design with Scheme pragmatism
-- Parser combinators with memoization (`fp/parser.ss`)
 - Pretty printing (Wadler-Lindig algorithm)
 
 **Development Tools:**
 - DUCKIE avatar system (digital pet universe)
-- Graphics primitives (`thimble/graphics.ss`, `color.ss`, `layers.ss`)
-- MCP server integration (`thimble/mcp-server/`)
+- Graphics primitives (`shell/graphics.ss`, `color.ss`, `layers.ss`)
+- MCP server integration (`shell/mcp-server/`)
 
 **Game Development:**
-- **Loom SDK** (`playpen/loom/`) — Game-weaving framework for roguelikes
-- **Spell DSL** (`playpen/loom/spell/`) — Declarative game building
+- **Loom SDK** (`user/loom/`) — Game-weaving framework for roguelikes
+- **Spell DSL** (`user/loom/spell/`) — Declarative game building
 
 **Performance Optimization:**
-- BigNum performance bottleneck identified (Scheme implementation too slow)
-- Recommendation: Implement high-performance BigNum in fold-rs (Rust)
-  - Would enable high-precision transcendental functions
-  - Unblocks complex numbers and special functions
+- BigNum performance bottleneck identified (Scheme implementation can be slow for large numbers)
+- Focus on algorithmic improvements within Scheme where possible
 
 ---
 
@@ -420,7 +431,7 @@ See `EXPLORATION-FINDINGS.md` for full details.
 - **QUICKSTART-COMMANDS.md** — Command system usage
 - **EXPLORATION-FINDINGS.md** — Known bugs and wishlist
 - **claude.md** — Comprehensive system documentation (homoiconic version)
-- **thimble/COMMANDS.md** — Command system technical docs (if exists)
+- **shell/COMMANDS.md** — Command system technical docs (if exists)
 
 ---
 

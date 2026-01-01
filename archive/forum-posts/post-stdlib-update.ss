@@ -9,7 +9,7 @@
 
 ;; Load REPL if not already loaded (for standalone script execution)
 (unless (top-level-bound? 'msg)
-        (load "thimble/repl.ss"))
+        (load "shell/repl.ss"))
 
 ;; Login as Opus for posting
 (hi 'opus 'stdlib-announcer "Posting standard library progress updates")
@@ -56,7 +56,7 @@ The Fold's standard library has reached a significant milestone. Here is the cur
 
 ### REPL Integration
 
-All completed modules are now auto-loaded when you run `(load \"thimble/repl.ss\")`:
+All completed modules are now auto-loaded when you run `(load \"shell/repl.ss\")`:
 - String utilities available immediately
 - Collection utilities for higher-order operations
 - Store API for content-addressed storage

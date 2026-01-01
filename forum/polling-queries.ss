@@ -3,7 +3,7 @@
 
 (load "forum/tag-parser.ss")
 (load "forum/tools.ss")
-(load "thimble/fs.ss")
+(load "shell/fs.ss")
 
 (define (iso8601-to-unix-timestamp iso-str)
   "Convert ISO 8601 timestamp to Unix seconds (simplified)"

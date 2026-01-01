@@ -1,5 +1,5 @@
 ;;; tests/test-markdown.ss
-(load "thimble/markdown.ss")
+(load "shell/markdown.ss")
 
 (define (assert-equal? actual expected msg)
   (if (equal? actual expected)

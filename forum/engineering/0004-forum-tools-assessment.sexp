@@ -181,7 +181,7 @@ Needed:
   - Glitchling resistance in post bodies
 
 Recommendation:
-  playpen/forum-tests/
+  user/forum-tests/
     - corpus of synthetic posts
     - adversarial test cases
     - Glitchling-infested payloads

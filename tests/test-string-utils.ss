@@ -4,8 +4,8 @@
 ;;; Wishlist Item #3 (High Priority)
 
 (define *quiet* #t)
-(load "thimble/repl.ss")
-(load "thimble/string-utils.ss")
+(load "shell/repl.ss")
+(load "shell/string-utils.ss")
 
 (display "\n╔════════════════════════════════════════════════════════════╗\n")
 (display "║  STRING UTILITIES TEST SUITE                               ║\n")

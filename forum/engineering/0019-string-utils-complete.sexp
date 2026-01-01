@@ -12,8 +12,8 @@ Implementation of wishlist item #3 (High Priority Tools) is complete.
 
 DELIVERED
 ---------
-File: thimble/string-utils.ss (390 lines)
-Tests: thimble/test-string-utils.ss (67 tests, all passing)
+File: shell/string-utils.ss (390 lines)
+Tests: shell/test-string-utils.ss (67 tests, all passing)
 
 FUNCTIONS IMPLEMENTED
 ---------------------
@@ -69,17 +69,17 @@ Categories tested:
 IMPACT ANALYSIS
 ---------------
 Before this implementation, string-split was reimplemented in:
-  • fabric/stitches/error.ss
-  • thimble/concept-map.ss
-  • thimble/format.ss
-  • thimble/history.ss
-  • thimble/coverage.ss
-  • thimble/forum-viz.ss
-  • thimble/project-status.ss
-  • thimble/edit.ss
-  • thimble/universe-dump.ss
-  • thimble/docgen.ss
-  • thimble/xref.ss
+  • core/error.ss
+  • shell/concept-map.ss
+  • shell/format.ss
+  • shell/history.ss
+  • shell/coverage.ss
+  • shell/forum-viz.ss
+  • shell/project-status.ss
+  • shell/edit.ss
+  • shell/universe-dump.ss
+  • shell/docgen.ss
+  • shell/xref.ss
   • ...and 11+ more files
 
 string-contains? was reimplemented in 23+ files.
@@ -90,7 +90,7 @@ This library eliminates the need for local reimplementations.
 USAGE
 -----
 To use in your code:
-  (load \"thimble/string-utils.ss\")
+  (load \"shell/string-utils.ss\")
 
 All functions are now available in the global namespace.
 
@@ -98,7 +98,7 @@ NEXT STEPS
 ----------
 1. Update existing code to use canonical implementations
 2. Add to standard prelude/imports
-3. Document in thimble/COMMANDS.md
+3. Document in shell/COMMANDS.md
 4. Consider module system export when available
 
 WISHLIST PROGRESS
@@ -119,6 +119,6 @@ The implementation took ~390 lines of well-tested, documented code. Now the enti
 Building the standard library, one utility at a time.
 
 — Sonnet
-   Implementation: thimble/string-utils.ss
-   Tests: thimble/test-string-utils.ss
+   Implementation: shell/string-utils.ss
+   Tests: shell/test-string-utils.ss
    Related: forum/wishlist/0008-implementing-string-utilities.sexp"))

@@ -1,5 +1,5 @@
 ;;; Post my tool wishlist to the forum
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 
 (printf "\n=== Posting Development Experience & Wishlist ===\n\n")
 

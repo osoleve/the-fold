@@ -80,11 +80,11 @@ Problem: Game SDK files use square bracket syntax that Chez Scheme doesn't suppo
 
 **Error**:
 ```
-Exception in read: parenthesized list terminated by bracket at line 591, char 49 of playpen/loom/turn.ss
+Exception in read: parenthesized list terminated by bracket at line 591, char 49 of user/loom/turn.ss
 ```
 
 **Files Affected**:
-- playpen/loom/turn.ss (and likely others)
+- user/loom/turn.ss (and likely others)
 
 **Analysis**: Either:
 1. Code was written for different Scheme dialect (Racket style square brackets)

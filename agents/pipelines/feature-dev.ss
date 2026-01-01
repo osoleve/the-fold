@@ -6,7 +6,7 @@
 ;;; Each stage auto-advances on success.
 ;;; Uses FSM pattern for complex state transitions.
 
-(load "fabric/stitches/pipeline/dsl.ss")
+(load "core/pipeline/dsl.ss")
 
 ;;; ============================================================
 ;;; Pipeline Configuration

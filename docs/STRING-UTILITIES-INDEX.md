@@ -8,21 +8,21 @@
 ## Quick Links
 
 ### Core Implementation
-- **Library:** [thimble/string-utils.ss](thimble/string-utils.ss) (223 lines, 17 functions)
-- **Tests:** [thimble/test-string-utils.ss](thimble/test-string-utils.ss) (280 lines, 67 tests)
-- **Examples:** [thimble/string-utils-example.ss](thimble/string-utils-example.ss) (251 lines, 8 examples)
-- **Documentation:** [thimble/STRING-UTILS-README.md](thimble/STRING-UTILS-README.md)
+- **Library:** [shell/string-utils.ss](shell/string-utils.ss) (223 lines, 17 functions)
+- **Tests:** [shell/test-string-utils.ss](shell/test-string-utils.ss) (280 lines, 67 tests)
+- **Examples:** [shell/string-utils-example.ss](shell/string-utils-example.ss) (251 lines, 8 examples)
+- **Documentation:** [shell/STRING-UTILS-README.md](shell/STRING-UTILS-README.md)
 
 ### Forum Posts
 - **Announcement:** [forum/wishlist/0008-implementing-string-utilities.sexp](forum/wishlist/0008-implementing-string-utilities.sexp)
 - **Completion:** [forum/engineering/0019-string-utils-complete.sexp](forum/engineering/0019-string-utils-complete.sexp)
 
 ### Experiments
-- **Stress Tests:** [playpen/string-art.ss](playpen/string-art.ss) - 10 creative tests
-- **Word Games:** [playpen/string-puzzle.ss](playpen/string-puzzle.ss) - Ciphers, palindromes, etc.
-- **Block Explorer:** [playpen/block-playground.ss](playpen/block-playground.ss) - Merkle DAG experiments
-- **Session Summary:** [playpen/session-summary.ss](playpen/session-summary.ss) - Complete overview
-- **Experiments Index:** [playpen/README.md](playpen/README.md)
+- **Stress Tests:** [user/string-art.ss](user/string-art.ss) - 10 creative tests
+- **Word Games:** [user/string-puzzle.ss](user/string-puzzle.ss) - Ciphers, palindromes, etc.
+- **Block Explorer:** [user/block-playground.ss](user/block-playground.ss) - Merkle DAG experiments
+- **Session Summary:** [user/session-summary.ss](user/session-summary.ss) - Complete overview
+- **Experiments Index:** [user/README.md](user/README.md)
 
 ## What Was Built
 
@@ -43,7 +43,7 @@
 ## Usage
 
 ```scheme
-(load "thimble/string-utils.ss")
+(load "shell/string-utils.ss")
 
 ;; Now all 17 functions are available
 (string-split "hello,world" ",")  ;=> ("hello" "world")
@@ -55,11 +55,11 @@
 **After:** One canonical, well-tested implementation
 
 **Files affected:**
-- fabric/stitches/error.ss
-- thimble/concept-map.ss
-- thimble/format.ss
-- thimble/history.ss
-- thimble/coverage.ss
+- core/error.ss
+- shell/concept-map.ss
+- shell/format.ss
+- shell/history.ss
+- shell/coverage.ss
 - ...and 18+ more
 
 ## Metrics
@@ -75,16 +75,16 @@
 ```bash
 # Run all tests
 cd /home/oso/the-fold
-scheme --script thimble/test-string-utils.ss
+scheme --script shell/test-string-utils.ss
 
 # Run examples
-scheme --script thimble/string-utils-example.ss
+scheme --script shell/string-utils-example.ss
 
 # Run experiments
-scheme --script playpen/string-art.ss
-scheme --script playpen/string-puzzle.ss
-scheme --script playpen/block-playground.ss
-scheme --script playpen/session-summary.ss
+scheme --script user/string-art.ss
+scheme --script user/string-puzzle.ss
+scheme --script user/block-playground.ss
+scheme --script user/session-summary.ss
 ```
 
 ## Next Steps

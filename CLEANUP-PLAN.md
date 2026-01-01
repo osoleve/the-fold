@@ -189,7 +189,7 @@ These files require careful inspection before making decisions:
 - Check if any test unique functionality
 - Verify no other scripts depend on them
 
-### 5. `tests/` directory vs `thimble/tests/` directory
+### 5. `tests/` directory vs `shell/tests/` directory
 **Why:** Potential duplication
 **Review for:**
 - Consolidation opportunities
@@ -295,5 +295,5 @@ These files require careful inspection before making decisions:
 
 1. Should Rust design docs be archived or deleted?
 2. Are any of the experimental test files actually used?
-3. Should `tests/` directory be consolidated with `thimble/tests/`?
+3. Should `tests/` directory be consolidated with `shell/tests/`?
 4. Are there other Rust references in documentation we haven't found?

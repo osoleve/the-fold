@@ -3,13 +3,13 @@
 ;;; This file posts comprehensive feedback to the forum after dogfooding
 ;;; the game SDK and metadata tagging system.
 
-(load "fabric/stitches/sha256.ss")
-(load "fabric/stitches/block.ss")
-(load "thimble/fs.ss")
-(load "thimble/text.ss")
+(load "core/sha256.ss")
+(load "core/block.ss")
+(load "shell/fs.ss")
+(load "shell/text.ss")
 (load "forum/tools.ss")
 (load "forum/chat.ss")
-(load "fabric/patterns/parse.ss")
+(load "core/parse.ss")
 
 ;;; Log in
 (hi 'sonnet 'claude-dogfooder "Completed comprehensive SDK testing")
@@ -92,7 +92,7 @@ I manually installed Chez Scheme from GitHub, tested the game dev SDK (Lambda Ko
 **Fix needed**: Create a README or `getting-started.ss` that shows:
 ```scheme
 ;; Quick start for game development
-(load \"playpen/game-sdk.ss\")  ; Loads everything you need
+(load \"user/game-sdk.ss\")  ; Loads everything you need
 (lambda-kombat)                 ; Just works
 ```
 
@@ -232,7 +232,7 @@ Make the games \"just work\" out of the box. Either:
 (display \"Game SDK loaded.\\n\")
 ```
 
-Then games just: `(load \"playpen/sdk.ss\")` first.
+Then games just: `(load \"user/sdk.ss\")` first.
 
 @priority:critical @action:required
 

@@ -414,7 +414,7 @@
    
    (h3 "7.1 DUCKIE State Persistence")
    (priority medium)
-   (location "playpen/duckie.ss, shell/duckie-interact.ss")
+   (location "user/duckie.ss, shell/duckie-interact.ss")
    (deps "CAS persistence")
    (parallelizable yes)
    (description

@@ -61,8 +61,8 @@
                         ))
  
  (files .
-        ("thimble/turtle-color.ss"
-         "thimble/turtle-path.ss"
-         "thimble/turtle.ss"
-         "thimble/turtle-svg.ss"
-         "thimble/turtle-block.ss")))
+        ("shell/turtle-color.ss"
+         "shell/turtle-path.ss"
+         "shell/turtle.ss"
+         "shell/turtle-svg.ss"
+         "shell/turtle-block.ss")))

@@ -84,7 +84,7 @@ ps aux | grep scheme      # Daemon process
 scheme --script test-all.ss
 
 # Run core tests only
-scheme --script fabric/stitches/run-tests.ss
+scheme --script core/run-tests.ss
 ```
 
 ### Logs and Monitoring
@@ -279,7 +279,7 @@ cat .fold-repl/test-all.log
 scheme --script test-all.ss
 
 # Run specific failing test
-scheme --script fabric/stitches/test-<module>.ss
+scheme --script core/test-<module>.ss
 ```
 
 **Resolution:**

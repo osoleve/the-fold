@@ -23,8 +23,8 @@
 ;;;
 ;;;   (run-persona my-persona)  ; => "You are MyAgent.\nYour voice is warm.\n..."
 
-(load "fabric/stitches/fp/dsl.ss")
-(load "thimble/string-utils.ss")
+(load "core/fp/meta/dsl.ss")
+(load "shell/string-utils.ss")
 
 ;;; ============================================================
 ;;; Prompt DSL Instructions

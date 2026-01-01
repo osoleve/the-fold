@@ -55,10 +55,10 @@
                           ))
  
  (files .
-        ("playpen/quill/types.ss"
-         "playpen/quill/state.ss"
-         "playpen/quill/parse.ss"
-         "playpen/quill/narrative.ss"
-         "playpen/quill/render.ss"
-         "playpen/quill/runtime.ss"
-         "playpen/quill/quill.ss")))
+        ("user/quill/types.ss"
+         "user/quill/state.ss"
+         "user/quill/parse.ss"
+         "user/quill/narrative.ss"
+         "user/quill/render.ss"
+         "user/quill/runtime.ss"
+         "user/quill/quill.ss")))

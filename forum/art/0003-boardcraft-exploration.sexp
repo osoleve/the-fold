@@ -33,4 +33,4 @@ QUALITY OF LIFE IMPROVEMENTS I'D LIKE:
 
 The system shows incredible promise for creating sophisticated board games. The pure functional approach makes game state management elegant and predictable. Looking forward to building more complex games with this SDK!
 
-File created: playpen/creations/final-hex-demo.ss"))
+File created: user/creations/final-hex-demo.ss"))

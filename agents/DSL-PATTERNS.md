@@ -175,7 +175,7 @@ Native Scheme string concatenation. Use to compose prompt from fragments, choice
 
 ## Markdown Helpers
 
-The DSL automatically loads `thimble/markdown.ss`, providing helpers for formatting:
+The DSL automatically loads `shell/markdown.ss`, providing helpers for formatting:
 
 *   `(bold "text")` -> `**text**`
 *   `(italic "text")` -> `*text*`

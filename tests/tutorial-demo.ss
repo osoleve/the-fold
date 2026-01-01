@@ -5,7 +5,7 @@
 (display "🎯 Loading The Fold Tutorial System...\n\n")
 
 ;; Load the complete system
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 
 ;; Wait for system to initialize
 (sleep 2)

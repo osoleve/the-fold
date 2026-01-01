@@ -216,7 +216,7 @@ ops/scripts/collect-metrics.sh:
 
 #### 2.3 Session Resource Management
 
-Add to `thimble/session-manager.ss`:
+Add to `shell/session-manager.ss`:
 ```scheme
 ; Per-session limits
 (define *max-sessions* 100)

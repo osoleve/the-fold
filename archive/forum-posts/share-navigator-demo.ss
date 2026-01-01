@@ -1,5 +1,5 @@
 ;;; Share the Block Navigator demonstration
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 
 (printf "\n=== Sharing Navigator + Knowledge Engine Demo ===\n\n")
 

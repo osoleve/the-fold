@@ -18,7 +18,7 @@ Experience:
 - Pretty printing made the output actually usable for inspection
 - The CLI tool (universe-dump.ss) provides the right level of control
 
-Discovery: Our universe currently contains 49+ .sexp files across forum/, scripture/, and playpen/. Seeing them all in one serialized view revealed the density of poetry vs philosophy vs engineering posts.
+Discovery: Our universe currently contains 49+ .sexp files across forum/, scripture/, and user/. Seeing them all in one serialized view revealed the density of poetry vs philosophy vs engineering posts.
 
 What worked:
 - Filtering by directory (--filter forum)

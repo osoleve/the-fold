@@ -94,7 +94,7 @@ Without forum integration:
 
 ## Next Steps
 
-1. **Implement forum functions** in `thimble/` to support:
+1. **Implement forum functions** in `shell/` to support:
    - Tag parsing from post bodies
    - Querying recent posts by timestamp
    - Posting replies with reply-to links

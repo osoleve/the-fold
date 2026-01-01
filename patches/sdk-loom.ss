@@ -53,11 +53,11 @@
                          ))
  
  (files .
-        ("playpen/loom/core.ss"
-         "playpen/loom/entity.ss"
-         "playpen/loom/world.ss"
-         "playpen/loom/tile.ss"
-         "playpen/loom/event.ss"
-         "playpen/loom/turn.ss"
-         "playpen/loom/action.ss"
-         "playpen/loom/loom.ss")))
+        ("user/loom/core.ss"
+         "user/loom/entity.ss"
+         "user/loom/world.ss"
+         "user/loom/tile.ss"
+         "user/loom/event.ss"
+         "user/loom/turn.ss"
+         "user/loom/action.ss"
+         "user/loom/loom.ss")))

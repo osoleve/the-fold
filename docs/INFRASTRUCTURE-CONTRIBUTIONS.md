@@ -10,10 +10,10 @@ Major infrastructure enhancements to The Fold, addressing critical bugs and fill
 
 **Problem**: Error messages in exploration scripts showed raw format placeholders like `"~s is not a valid index for ~s"`
 
-**Solution**: Created enhanced error handler in `thimble/exploration-error-handler.ss`
+**Solution**: Created enhanced error handler in `shell/exploration-error-handler.ss`
 
 **Files Added**:
-- `thimble/exploration-error-handler.ss` - Enhanced error formatting system
+- `shell/exploration-error-handler.ss` - Enhanced error formatting system
 
 **Files Modified**:
 - `explore-repl.ss` - Updated to use new error formatter
@@ -40,10 +40,10 @@ Major infrastructure enhancements to The Fold, addressing critical bugs and fill
 
 **Problem**: Missing basic string case conversion functions, leading to 15+ duplicate implementations
 
-**Solution**: Added `string-upcase` and `string-downcase` to `thimble/string-utils.ss`
+**Solution**: Added `string-upcase` and `string-downcase` to `shell/string-utils.ss`
 
 **Files Modified**:
-- `thimble/string-utils.ss` - Added case conversion functions
+- `shell/string-utils.ss` - Added case conversion functions
 
 **Functions**:
 ```scheme
@@ -60,10 +60,10 @@ Major infrastructure enhancements to The Fold, addressing critical bugs and fill
 
 **Problem**: Missing essential functional programming primitives for list manipulation
 
-**Solution**: Added comprehensive collection utilities to `fabric/stitches/prelude.ss`
+**Solution**: Added comprehensive collection utilities to `core/prelude.ss`
 
 **Files Modified**:
-- `fabric/stitches/prelude.ss` - Added collection utility functions
+- `core/prelude.ss` - Added collection utility functions
 
 **Functions**:
 
@@ -104,10 +104,10 @@ Major infrastructure enhancements to The Fold, addressing critical bugs and fill
 
 **Problem**: Limited mathematical capabilities beyond basic arithmetic
 
-**Solution**: Added comprehensive mathematical functions to `fabric/stitches/prim.ss`
+**Solution**: Added comprehensive mathematical functions to `core/prim.ss`
 
 **Files Modified**:
-- `fabric/stitches/prim.ss` - Added mathematical primitive operations
+- `core/prim.ss` - Added mathematical primitive operations
 
 **Functions** (access via `(prim 'function-name args...)`):
 

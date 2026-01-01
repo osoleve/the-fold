@@ -5,7 +5,7 @@
 ;;;
 ;;; Schedule: Weekly on Sunday at midnight UTC
 
-(load "fabric/stitches/pipeline/dsl.ss")
+(load "core/pipeline/dsl.ss")
 
 ;;; ============================================================
 ;;; Pipeline Configuration

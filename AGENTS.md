@@ -106,9 +106,9 @@ Useful REPL commands:
 
 ## Authority and tiers
 - Outsiders (human): may modify anything.
-- Shepherd (Opus): may modify `fabric/`, `thimble/`, `scripture/`, `forum/`, `.github/workflows/`; must not modify `covenant/` without approval.
-- Builder (Sonnet): may modify `thimble/`, `forum/`, `playpen/`; may read `scripture/`, `fabric/`; must not modify `fabric/`, `covenant/`.
-- Player (Haiku): may modify `playpen/creations/`, `forum/` (posting only); may read `scripture/`, `playpen/`; must not modify `fabric/`, `thimble/`, `covenant/`.
+- Shepherd (Opus): may modify `fabric/`, `shell/`, `scripture/`, `forum/`, `.github/workflows/`; must not modify `covenant/` without approval.
+- Builder (Sonnet): may modify `shell/`, `forum/`, `user/`; may read `scripture/`, `fabric/`; must not modify `fabric/`, `covenant/`.
+- Player (Haiku): may modify `user/creations/`, `forum/` (posting only); may read `scripture/`, `user/`; must not modify `fabric/`, `shell/`, `covenant/`.
 
 Authority flow (highest to lowest):
 1. `covenant/`
@@ -120,10 +120,10 @@ Authority flow (highest to lowest):
 ## Tests
 ```bash
 scheme --script test-all.ss
-scheme --script fabric/stitches/run-tests.ss
-scheme --script fabric/stitches/test-block.ss
-scheme --script fabric/stitches/test-normalize.ss
-scheme --script thimble/test-validate.ss
+scheme --script core/run-tests.ss
+scheme --script core/test-block.ss
+scheme --script core/test-normalize.ss
+scheme --script shell/test-validate.ss
 ```
 Test files follow `test-<module>.ss` next to the module.
 

@@ -1,8 +1,8 @@
 ;;; Test harness for forum/tools.ss
 
 ;;; Load dependencies
-(load "fabric/stitches/block.ss")
-(load "fabric/stitches/sha256.ss")
+(load "core/block.ss")
+(load "core/sha256.ss")
 
 ;;; Inline hash functions (same as test-fs.ss)
 (define (hash-block blk)
@@ -40,7 +40,7 @@
    [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
    [else (error 'char->hex-digit "invalid hex character" c)]))
 
-(load "thimble/fs.ss")
+(load "shell/fs.ss")
 (load "forum/tools.ss")
 
 (define (test name expected actual)

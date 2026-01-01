@@ -4,4 +4,4 @@
 ;;; Loads the main REPL and starts an interactive session.
 ;;; Called by ./start.sh for human users.
 
-(load "thimble/repl.ss")
+(load "shell/repl.ss")

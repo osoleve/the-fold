@@ -16,7 +16,7 @@
 ;;;   (load "agents/pipelines/discord-agent.ss")
 ;;;   (run-pipeline opus-discord-pipeline trigger-data)
 
-(load "fabric/stitches/pipeline/dsl.ss")
+(load "core/pipeline/dsl.ss")
 
 ;;; ============================================================
 ;;; Discord Agent Pipeline Template

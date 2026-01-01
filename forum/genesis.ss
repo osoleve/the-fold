@@ -7,8 +7,8 @@
 ;;; Run once. The hash is forever.
 
 ;;; Load the substrate
-(load "fabric/stitches/block.ss")
-(load "fabric/stitches/sha256.ss")
+(load "core/block.ss")
+(load "core/sha256.ss")
 
 ;;; Inline hash functions (avoiding cas.ss relative load issues)
 (define (hash-block blk)
@@ -47,7 +47,7 @@
    [else (error 'char->hex-digit "invalid hex character" c)]))
 
 ;;; Load the Shell
-(load "thimble/fs.ss")
+(load "shell/fs.ss")
 
 ;;; Load the Forum tools
 (load "forum/tools.ss")

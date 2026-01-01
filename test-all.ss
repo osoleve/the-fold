@@ -13,8 +13,8 @@
 ;;; Setup
 ;;; ============================================================
 
-(source-directories (cons "fabric/stitches" (source-directories)))
-(load "fabric/stitches/test-framework.ss")
+(source-directories (cons "core" (source-directories)))
+(load "core/test-framework.ss")
 
 ;;; format-condition : Condition → String
 ;;; Format a Chez Scheme condition with its irritants properly filled in.
@@ -249,23 +249,23 @@ Working directory: " (current-directory) "
        
        (case mode
              [(all)
-              (run-test-category "CORE TESTS" "fabric/stitches" core-tests)
+              (run-test-category "CORE TESTS" "core" core-tests)
               (display "
 ")
-              (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
+              (run-test-category "SHELL TESTS" "shell/tests" shell-tests)]
              
              [(core)
-              (run-test-category "CORE TESTS" "fabric/stitches" core-tests)]
+              (run-test-category "CORE TESTS" "core" core-tests)]
              
              [(shell)
-              (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
+              (run-test-category "SHELL TESTS" "shell/tests" shell-tests)]
              
              [(quick)
               (let ([quick-core (filter (lambda (t) (not (member t slow-tests))) core-tests)])
-                   (run-test-category "CORE TESTS (quick)" "fabric/stitches" quick-core))
+                   (run-test-category "CORE TESTS (quick)" "core" quick-core))
               (display "
 ")
-              (run-test-category "SHELL TESTS" "thimble/tests" shell-tests)]
+              (run-test-category "SHELL TESTS" "shell/tests" shell-tests)]
              
              [else
               (display (string-append "Unknown mode: " (symbol->string mode) "

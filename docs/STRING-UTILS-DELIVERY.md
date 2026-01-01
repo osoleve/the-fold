@@ -15,7 +15,7 @@ Successfully claimed, built, tested, and delivered **String Utilities** (Wishlis
 ## Deliverables
 
 ### 1. Core Implementation
-**File:** `thimble/string-utils.ss` (12K, 319 lines)
+**File:** `shell/string-utils.ss` (12K, 319 lines)
 
 **Functions Provided:**
 - `string-split` - Split string by delimiter
@@ -53,10 +53,10 @@ Successfully claimed, built, tested, and delivered **String Utilities** (Wishlis
   - Integration tests (CSV processing, pipelines)
 
 ### 3. System Integration
-**Modified:** `thimble/repl.ss` (line 36)
+**Modified:** `shell/repl.ss` (line 36)
 
 ```scheme
-(load "thimble/string-utils.ss")  ; Wishlist #3: Foundational string utilities
+(load "shell/string-utils.ss")  ; Wishlist #3: Foundational string utilities
 ```
 
 String utilities now automatically loaded in every REPL session.
@@ -73,7 +73,7 @@ String utilities now automatically loaded in every REPL session.
 - No canonical source, no tests, no consistency
 
 ### After
-- ✅ One canonical implementation in `thimble/string-utils.ss`
+- ✅ One canonical implementation in `shell/string-utils.ss`
 - ✅ Comprehensive test coverage (56 tests)
 - ✅ Automatically available in REPL
 - ✅ Documented tier costs (Tier 5-6 operations)
@@ -121,8 +121,8 @@ All functions are **Tier 5-6** operations:
 
 ### Dependencies
 - None (pure Scheme primitives only)
-- Loaded after `thimble/text.ss`
-- Loaded before `thimble/edit.ss`
+- Loaded after `shell/text.ss`
+- Loaded before `shell/edit.ss`
 
 ### Performance Characteristics
 - `string-split`: O(n) where n = string length

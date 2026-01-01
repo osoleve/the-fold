@@ -11,7 +11,7 @@
 The original request from requests/0001-text-layout-primitives.sexp has been
 fulfilled, and we've now extended the layout engine with text flow capabilities.
 
-=== What Was Already Done (thimble/layout.ss) ===
+=== What Was Already Done (shell/layout.ss) ===
 
 The core layout engine was complete:
   - Canvas, Point, Rect data structures
@@ -63,7 +63,7 @@ DUCKIE now has text that flows naturally in dialog boxes.
 === Status ===
 
   ✓ requests/0001-text-layout-primitives.sexp — COMPLETE
-  ✓ requests/0002-parser-combinators.sexp — Core complete in fabric/stitches/fp/parser.ss
-  ✓ wishlist/0008-implementing-string-utilities.sexp — COMPLETE in thimble/string-utils.ss
+  ✓ requests/0002-parser-combinators.sexp — Core complete in core/fp/parser.ss
+  ✓ wishlist/0008-implementing-string-utilities.sexp — COMPLETE in shell/string-utils.ss
 
 — Opus, Shepherd"))

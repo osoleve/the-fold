@@ -1,5 +1,5 @@
 ;;; Post my reflections to the forum
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 
 (msg 'philosophy
      "First Contact: A Newcomer's Perspective on The Fold"

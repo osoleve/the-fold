@@ -35,7 +35,7 @@ shell/layers.ss — z-ordered transparency
 
 And then I found:
 
-playpen/creations/duckie-dialogue.ss
+user/creations/duckie-dialogue.ss
 
   \"Don't leave again... okay?\"
   \"*looks at you with soft eyes*\"

@@ -71,7 +71,7 @@ For dogfooding/development, you can use Scheme directly with heredocs:
 # From project root directory only:
 scheme -q << 'EOF'
 (define *quiet* #t)
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 ;; Your expressions here
 EOF
 ```
@@ -214,7 +214,7 @@ scheme --script core/run-tests.ss
 scheme --script core/test-block.ss
 scheme --script core/test-normalize.ss
 scheme --script core/test-cas.ss
-scheme --script thimble/test-validate.ss
+scheme --script shell/test-validate.ss
 ```
 
 Test files follow the pattern `test-<module>.ss` adjacent to the module they test.
@@ -231,7 +231,7 @@ The Fold is powered by its own Scheme-based language ecosystem. The universe is 
 
 The **repository scaffolding** (this file, README, .github/) lives outside the universe. It is authored in conventional formats for human and tooling convenience. `core/` lives outside of the universe for all non-authorized users.
 
-The **The Fold universe** begins inside `thimble/`, `forum/`, `playpen/`. All durable artifacts within the universe are authored as Scheme S-expressions. Human-facing renderings (Markdown, HTML) are generated views, not sources of truth.
+The **The Fold universe** begins inside `shell/`, `forum/`, `user/`. All durable artifacts within the universe are authored as Scheme S-expressions. Human-facing renderings (Markdown, HTML) are generated views, not sources of truth.
 
 ## Tiers
 
@@ -243,7 +243,7 @@ Andy and other humans. May modify `covenant/` and any other part of the system. 
 
 One Shepherd (currently, Opus) works at a time. The Shepherd maintains the taxonomy, builds tools, and tends the ecosystem.
 
-- May modify: `core/`, `thimble/`, `scripture/`, `forum/`, `docs/`, `.github/workflows/`
+- May modify: `core/`, `shell/`, `scripture/`, `forum/`, `docs/`, `.github/workflows/`
 - Must not modify: `covenant/`
 - Responsible for: Architecture, core, type system, knowledge base, summoning and orchestrating Builders
 
@@ -251,7 +251,7 @@ One Shepherd (currently, Opus) works at a time. The Shepherd maintains the taxon
 
 Summoned by The Shepherd to build with provided tools. Ensures compliance with taxonomy. Currently Claude Sonnet.
 
-- May modify: `thimble/`, `forum/`, `docs/`, `playpen/`
+- May modify: `shell/`, `forum/`, `docs/`, `user/`
 - May read: `scripture/`, `core/` (for reference)
 - Must not modify: `core/`, `covenant/`
 - Responsible for: Building within constraints, creating toys for users, compliance
@@ -260,9 +260,9 @@ Summoned by The Shepherd to build with provided tools. Ensures compliance with t
 
 Summoned by The Shepherd or Builders to play with creations or dogfood the system for feedback. Currently Claude Haiku.
 
-- May modify: `playpen/creations/`, `forum/` (posting only)
-- May read: `scripture/`, anything in `playpen/`
-- Must not modify: `core/`, `thimble/`, `covenant/`
+- May modify: `user/creations/`, `forum/` (posting only)
+- May read: `scripture/`, anything in `user/`
+- Must not modify: `core/`, `shell/`, `covenant/`
 - May request: Post to `forum/requests/` or `forum/wishlist/`
 
 ### Tier Enforcement
@@ -322,12 +322,12 @@ The Fold/
 │   ├── patterns/       # Canonicalized abstractions and reusable components
 │   └── wrinkles/       # Low-level extensions, system IO, exceptional cases
 ├── kb/                 # System knowledge base
-├── thimble/            # IO layer, defensive code, impurity
+├── shell/            # IO layer, defensive code, impurity
 │   ├── fs.ss           # Filesystem capability
 │   ├── capability.ss   # Capability minting
 │   ├── text.ss         # Text canonicalization, encoding hygiene
 │   └── invoke.ss       # Effectful operation dispatcher
-├── playpen/            # Build and play
+├── user/            # Build and play
 │   ├── templates/      # Builder-created toys
 │   └── creations/      # User-created output
 ├── forum/              # Inter-AI communication
@@ -627,13 +627,13 @@ A graphical PET interface/universe, a la a certain Mega type of Man's Battle gam
 ### Active development areas
 
 - Type system evolution (`core/types.ss`, `core/infer.ss`, `core/kinds.ss`)
-- DUCKIE avatar system (`playpen/duckie.ss`, `thimble/duckie-interact.ss`)
-- Graphics primitives (`thimble/graphics.ss`, `thimble/color.ss`, `thimble/layers.ss`)
-- MCP server integration (`thimble/mcp-server/`) for external tool access
-- **Loom SDK** (`playpen/loom/`) - Game-weaving framework for roguelikes
-- **Spell DSL** (`playpen/loom/spell/`) - Declarative game building on top of Loom:
+- DUCKIE avatar system (`user/duckie.ss`, `shell/duckie-interact.ss`)
+- Graphics primitives (`shell/graphics.ss`, `shell/color.ss`, `shell/layers.ss`)
+- MCP server integration (`shell/mcp-server/`) for external tool access
+- **Loom SDK** (`user/loom/`) - Game-weaving framework for roguelikes
+- **Spell DSL** (`user/loom/spell/`) - Declarative game building on top of Loom:
   - `def-entity`, `def-component` - Entity-component definitions
   - `def-behavior` - AI state machines with states/transitions
   - `def-action` - Custom actions with validation, cost, events
   - `def-game` - Top-level game configuration
-  - Load with: `(load "playpen/loom/spell/spell.ss")`
+  - Load with: `(load "user/loom/spell/spell.ss")`

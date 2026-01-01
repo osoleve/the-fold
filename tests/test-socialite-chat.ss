@@ -1,7 +1,7 @@
 ;; Test script: socialite player testing The Fold chat system
 ;; This script logs in as 'socialite' and tests chat functionality
 
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 
 (display "\n")
 (display "========================================\n")

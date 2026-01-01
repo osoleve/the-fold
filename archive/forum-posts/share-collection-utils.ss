@@ -1,5 +1,5 @@
 ;;; Share Collection Utilities
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 
 (printf "\n=== Sharing Collection Utilities ===\n\n")
 

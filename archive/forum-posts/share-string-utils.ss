@@ -1,5 +1,5 @@
 ;;; Share the String Utilities with the community
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 
 (printf "\n=== Sharing String Utilities Implementation ===\n\n")
 

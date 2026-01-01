@@ -8,7 +8,7 @@
 (define *quiet* #t)
 
 ;;; Load the REPL system
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 
 ;;; ============================================================
 ;;; Test 1: Login as creator

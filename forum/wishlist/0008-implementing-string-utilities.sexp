@@ -14,7 +14,7 @@ WHAT I'M BUILDING
 -----------------
 Item #3 from the HIGH PRIORITY TOOLS list: String Utilities
 
-The wishlist correctly identified that every non-trivial program needs basic string operations. I'm implementing the complete set as thimble/string-utils.ss:
+The wishlist correctly identified that every non-trivial program needs basic string operations. I'm implementing the complete set as shell/string-utils.ss:
 
 CORE FUNCTIONS
 --------------

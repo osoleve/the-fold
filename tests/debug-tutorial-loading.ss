@@ -4,7 +4,7 @@
 
 ;; Test basic loading
 (display "1. Testing basic REPL load...\n")
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 (sleep 1)
 
 ;; Check if tutorial functions are available
@@ -48,7 +48,7 @@
     (display "✅ Loaded\n")
     (begin
      (display "❌ Not loaded - attempting manual load...\n")
-     (load "thimble/tutorial-simple.ss")
+     (load "shell/tutorial-simple.ss")
      (test-function "start-tutorial (after manual load)" 'start-tutorial)))
 
 (display "Interactive tutorial: ")
@@ -56,7 +56,7 @@
     (display "✅ Loaded\n")
     (begin
      (display "❌ Not loaded - attempting manual load...\n")
-     (load "thimble/interactive-tutorial.ss")
+     (load "shell/interactive-tutorial.ss")
      (test-function "interactive-tutorial (after manual load)" 'interactive-tutorial)))
 
 ;; Test if we can call the functions after manual loading

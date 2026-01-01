@@ -609,7 +609,7 @@ const rateLimiter = new RateLimiter({
 ## File Deliverables
 
 ```
-thimble/discord/
+shell/discord/
 ├── bot.js                 # Main bot entry point
 ├── bridge.js              # Fold ↔ Discord sync
 ├── commands/

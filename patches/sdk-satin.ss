@@ -51,13 +51,13 @@
                           ))
  
  (files .
-        ("playpen/satin/span.ss"
-         "playpen/satin/guards.ss"
-         "playpen/satin/validate.ss"
-         "playpen/satin/syntax.ss"
-         "playpen/satin/compile.ss"
-         "playpen/satin/effects.ss"
-         "playpen/satin/pretty.ss"
-         "playpen/satin/lint.ss"
-         "playpen/satin/docs.ss"
-         "playpen/satin/satin.ss")))
+        ("user/satin/span.ss"
+         "user/satin/guards.ss"
+         "user/satin/validate.ss"
+         "user/satin/syntax.ss"
+         "user/satin/compile.ss"
+         "user/satin/effects.ss"
+         "user/satin/pretty.ss"
+         "user/satin/lint.ss"
+         "user/satin/docs.ss"
+         "user/satin/satin.ss")))

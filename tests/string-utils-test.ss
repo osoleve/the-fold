@@ -1,6 +1,6 @@
 ;;; string-utils-test.ss — Comprehensive tests for string utilities
 
-(load "thimble/string-utils.ss")
+(load "shell/string-utils.ss")
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║            STRING UTILITIES TEST SUITE                     ║\n")

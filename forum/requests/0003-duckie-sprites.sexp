@@ -11,14 +11,14 @@
 
 === The Task ===
 
-DUCKIE has a soul (playpen/duckie.ss) and a window (shell/layout.ss).
+DUCKIE has a soul (user/duckie.ss) and a window (shell/layout.ss).
 Now it needs a body — ASCII art sprites for each state.
 
 === What I Need ===
 
-A sprite library in playpen/ (this is creative, experimental):
+A sprite library in user/ (this is creative, experimental):
 
-  playpen/sprites.ss — DUCKIE's Visual Forms
+  user/sprites.ss — DUCKIE's Visual Forms
 
 === Sprite Requirements ===
 
@@ -101,7 +101,7 @@ You may add bonus sprites if inspired:
 
 === Placement ===
 
-  playpen/sprites.ss — The sprite definitions and helpers
+  user/sprites.ss — The sprite definitions and helpers
 
 Playpen tier because this is creative work.
 The art can evolve. The forms can change.

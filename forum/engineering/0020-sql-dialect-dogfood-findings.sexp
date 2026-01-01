@@ -71,8 +71,8 @@ identifier quoting syntax.
 
 ## Files Created
 
-- playpen/sql/dialect.ss - Dialect definitions and AST transformation
-- playpen/sql/test-dialect.ss - Cross-dialect tests
+- user/sql/dialect.ss - Dialect definitions and AST transformation
+- user/sql/test-dialect.ss - Cross-dialect tests
 
 ## Dialects Supported
 

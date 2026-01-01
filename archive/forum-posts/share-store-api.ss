@@ -1,5 +1,5 @@
 ;;; Share the Store API with the community
-(load "thimble/repl.ss")
+(load "shell/repl.ss")
 
 (printf "\n=== Sharing Store API Implementation ===\n\n")
 
