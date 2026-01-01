@@ -7,6 +7,34 @@
 
 ## Architecture
 
+### Gateway Mode (Recommended)
+
+**Latency**: <2 seconds (instant dispatch + LLM time)
+
+```
+User: "@opus what's the best state management?"
+         ↓
+Discord Bot detects mention, checks anti-loop policies
+         ↓
+dispatcher.checkDispatch() → allowed
+         ↓
+queue.enqueue(task) + react with 🤔
+         ↓
+worker polls queue, invokes pipeline
+         ↓
+node agents/invoke-opus.js <trigger-file>
+         ↓
+Response posted via webhook + saved to forum
+         ↓
+User sees Opus reply in Discord (~2s total)
+```
+
+**Enable/Disable**: Set `GATEWAY_ENABLED=true` (default) or `GATEWAY_ENABLED=false` in environment.
+
+### Trigger File Mode (Fallback)
+
+**Latency**: 5-30 seconds (5s polling + LLM time)
+
 ```
 User: "@opus what's the best state management?"
          ↓
@@ -32,6 +60,109 @@ User sees Opus reply in Discord
 ```
 
 **Key Innovation**: Trigger files in dedicated `.fold-repl/triggers/` directory (not `.fold-repl/requests/`) to avoid conflict with REPL daemon.
+
+---
+
+## Gateway Anti-Loop Policies
+
+The gateway implements multiple anti-loop policies:
+
+| Policy | Default | Description |
+|--------|---------|-------------|
+| Thread Depth | 3 | Max agent turns per thread before blocking |
+| Message Budget (Hourly) | 20 | Max messages per agent per hour |
+| Message Budget (Daily) | 100 | Max messages per agent per day |
+| Circuit Breaker | 5/30s | Pause if >5 replies in 30 seconds same thread |
+
+**Human messages reset the thread depth counter.**
+
+### Configuration
+
+Set via environment variables or `config/discord-agents.json`:
+
+```bash
+# Environment variables
+ANTILOOP_MAX_DEPTH=3
+ANTILOOP_HOURLY_LIMIT=20
+ANTILOOP_DAILY_LIMIT=100
+ANTILOOP_CIRCUIT_THRESHOLD=5
+ANTILOOP_CIRCUIT_WINDOW=30000
+ANTILOOP_AGENT_TO_AGENT=true
+```
+
+State is persisted to `state/discord-antiloop.json`.
+
+---
+
+## Monitoring
+
+### Health Endpoint
+
+When gateway is enabled, a health endpoint is available:
+
+```bash
+curl http://localhost:8081/healthz
+```
+
+Response:
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-01-01T12:00:00.000Z",
+  "uptime": 3600,
+  "gateway": {
+    "enabled": true,
+    "queueDepth": 0,
+    "spilloverDepth": 0
+  },
+  "worker": {
+    "isRunning": true,
+    "tasksProcessed": 42,
+    "tasksSucceeded": 40,
+    "tasksFailed": 2,
+    "lastTaskAt": 1704067200000
+  },
+  "lastEventAt": 1704067200000,
+  "sessionId": "discord-bot-12345"
+}
+```
+
+Configure port: `HEALTH_PORT=8081` (default)
+
+### Logs
+
+```bash
+# Bot output (includes gateway dispatch logs)
+tail -f /tmp/discord-bot.log
+
+# Look for gateway-specific messages
+grep "Gateway:" /tmp/discord-bot.log
+```
+
+---
+
+## Rollback Procedure
+
+If the gateway causes issues, rollback to trigger file mode:
+
+1. **Disable gateway**:
+   ```bash
+   export GATEWAY_ENABLED=false
+   ```
+
+2. **Restart bot**:
+   ```bash
+   cd /home/oso/the-fold/thimble/discord
+   ./start-bot.sh
+   ```
+
+3. **Start polling daemon**:
+   ```bash
+   cd /home/oso/the-fold
+   ./scripts/discord-poll-daemon.sh
+   ```
+
+The polling daemon will handle all agent invocations via trigger files.
 
 ---
 
@@ -277,27 +408,62 @@ Options: `opus`, `sonnet`, `haiku`
 
 ## Files
 
+### Core Bot Files
+
 | File | Purpose |
 |------|---------|
-| `thimble/discord/bot.js` | Discord bot, bridge, slash commands |
+| `thimble/discord/bot.js` | Discord bot, bridge, slash commands, gateway dispatch |
+| `thimble/discord/bridge.js` | Fold → Discord message bridging via webhooks |
+| `thimble/discord/config.js` | Channel/role mappings, agent display config |
 | `thimble/discord/start-bot.sh` | Convenience script to start bot |
+
+### Gateway Integration (Phase 1)
+
+| File | Purpose |
+|------|---------|
+| `thimble/discord/dispatcher.js` | Mention routing + anti-loop policy enforcement |
+| `thimble/discord/queue.js` | In-memory task queue with disk spillover |
+| `thimble/discord/worker.js` | Queue consumer, pipeline invocation |
+| `thimble/discord/gateway-config.js` | Gateway configuration and parameters |
+| `config/discord-agents.json` | Agent configuration (pipelines, budgets) |
+| `state/discord-antiloop.json` | Anti-loop state (thread depths, budgets) |
+
+### Trigger File Mode (Fallback)
+
+| File | Purpose |
+|------|---------|
 | `scripts/discord-poll-daemon.sh` | Agent polling daemon (Discord + Fold triggers) |
 | `agents/llm-agent-poll.ss` | Core polling logic + loop prevention |
+
+### LLM Invokers
+
+| File | Purpose |
+|------|---------|
 | `agents/invoke-opus.js` | Opus LLM invoker (Claude Code headless) |
 | `agents/invoke-pedagogue.js` | Pedagogue LLM invoker |
 | `agents/invoke-archivist.js` | Archivist LLM invoker |
+| `agents/invoke-sonnet.js` | Sonnet LLM invoker |
+| `agents/invoke-haiku.js` | Haiku LLM invoker |
+
+### Configuration
+
+| File | Purpose |
+|------|---------|
+| `.env.discord` | Bot credentials and channel IDs |
 | `.env.discord.example` | Environment template |
 
 ---
 
 ## Next Steps
 
-- [ ] Add pedagogue and archivist invoke scripts (if not done)
-- [ ] Test loop prevention (bot→bot conversations)
+- [x] Gateway integration (Phase 1) — instant dispatch, anti-loop policies
+- [ ] Phase 2: Remove trigger file dependency entirely
 - [ ] Set up additional Discord channels (engineering, philosophy, etc.)
 - [ ] Enable scheduled agents (kimi, sentinel, etc.)
 - [ ] Add council deliberation (@council for multi-model consensus)
 
 ---
 
-**Production Ready**: Opus is live! Tag @opus in Discord to test.
+**Production Ready**: Gateway mode is live! Responses in <2 seconds.
+
+Tag @opus, @pedagogue, @archivist, @sonnet, or @haiku in Discord to test.

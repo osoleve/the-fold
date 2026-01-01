@@ -6,12 +6,16 @@
   "scripts": {
     "start": "node bot.js",
     "dev": "node --watch bot.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "seed": "node ../../scripts/seed-discord.js"
   },
   "dependencies": {
     "discord.js": "^14.14.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
   "engines": {
     "node": ">=18.0.0"
   },

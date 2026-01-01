@@ -25,8 +25,15 @@ const {
 
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 const config = require('./config');
 const bridge = require('./bridge');
+
+// Gateway integration modules
+const gatewayConfig = require('./gateway-config');
+const dispatcher = require('./dispatcher');
+const queue = require('./queue');
+const worker = require('./worker');
 
 // ============================================================
 // Bot Setup
@@ -43,6 +50,12 @@ const client = new Client({
 
 // Session ID for REPL communication
 const SESSION_ID = `discord-bot-${process.pid}`;
+
+// Track last event for health endpoint
+let lastEventTimestamp = null;
+
+// Health server reference
+let healthServer = null;
 
 // ============================================================
 // REPL Bridge
@@ -207,10 +220,73 @@ client.once(Events.ClientReady, (c) => {
 
   // Start the Discord → Fold bridge
   bridge.start(c);
+
+  // Start gateway worker if enabled
+  if (gatewayConfig.enabled) {
+    worker.start(c);
+    console.log(`🚀 Gateway dispatch enabled`);
+  } else {
+    console.log(`📋 Gateway dispatch disabled, using trigger file flow`);
+  }
+
+  // Start health server if enabled
+  if (gatewayConfig.health.enabled) {
+    startHealthServer();
+  }
 });
 
 client.on(Events.MessageCreate, async (message) => {
-  // Check for agent mentions FIRST (works for both human and bot messages)
+  // Track last event time for health endpoint
+  lastEventTimestamp = Date.now();
+
+  // NEW: Gateway dispatch path (if enabled)
+  if (gatewayConfig.enabled) {
+    const agentId = dispatcher.parseAgentMention(message.content);
+
+    if (agentId) {
+      const state = dispatcher.loadState();
+      const decision = dispatcher.checkDispatch(message, agentId, state);
+
+      if (decision.allowed) {
+        // Enqueue task for worker
+        queue.enqueue({
+          taskId: `gw-${message.id}`,
+          agentId,
+          channelId: message.channel.id,
+          threadId: message.channel.isThread?.() ? message.channel.id : null,
+          messageId: message.id,
+          content: message.content,
+          authorId: message.author.id,
+          authorName: message.author.username,
+          isBot: message.author.bot,
+          enqueuedAt: Date.now(),
+        });
+
+        // Acknowledge
+        await message.react('🤔');
+        console.log(`📋 Gateway: Queued task for @${agentId}`);
+      } else if (decision.notifyUser) {
+        // Notify user of rate limit
+        try {
+          await message.reply(`⏳ ${decision.reason}`);
+        } catch (e) {
+          console.error(`Failed to send rate limit notice: ${e.message}`);
+        }
+      }
+
+      // Skip trigger file path when gateway handles the mention
+      if (decision.allowed || decision.notifyUser) {
+        // Still log human messages to Fold
+        if (!message.author.bot) {
+          await logToFold(message);
+        }
+        return;
+      }
+    }
+  }
+
+  // EXISTING: Trigger file path (fallback or when gateway disabled)
+  // Check for agent mentions (works for both human and bot messages)
   const agentTriggered = await handleAgentMention(message);
 
   // Ignore other bot messages (after checking for agent mentions)
@@ -441,6 +517,86 @@ async function registerCommands() {
     console.error('Failed to register commands:', e);
   }
 }
+
+// ============================================================
+// Health Endpoint
+// ============================================================
+
+function startHealthServer() {
+  const port = gatewayConfig.health.port;
+
+  healthServer = http.createServer((req, res) => {
+    if (req.url === '/healthz' || req.url === '/health') {
+      const workerStats = worker.getStats();
+      const queueDepth = queue.fullDepth();
+
+      const health = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        gateway: {
+          enabled: gatewayConfig.enabled,
+          queueDepth: queueDepth.memory,
+          spilloverDepth: queueDepth.spillover,
+        },
+        worker: {
+          isRunning: workerStats.isRunning,
+          tasksProcessed: workerStats.tasksProcessed,
+          tasksSucceeded: workerStats.tasksSucceeded,
+          tasksFailed: workerStats.tasksFailed,
+          lastTaskAt: workerStats.lastTaskAt,
+        },
+        lastEventAt: lastEventTimestamp,
+        sessionId: SESSION_ID,
+      };
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(health, null, 2));
+    } else {
+      res.writeHead(404);
+      res.end('Not Found');
+    }
+  });
+
+  healthServer.listen(port, () => {
+    console.log(`🏥 Health endpoint: http://localhost:${port}/healthz`);
+  });
+}
+
+// ============================================================
+// Graceful Shutdown
+// ============================================================
+
+async function shutdown(signal) {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+
+  // Stop worker
+  if (gatewayConfig.enabled) {
+    worker.stop();
+    console.log('✓ Worker stopped');
+  }
+
+  // Close health server
+  if (healthServer) {
+    healthServer.close();
+    console.log('✓ Health server closed');
+  }
+
+  // Destroy Discord client
+  try {
+    await client.destroy();
+    console.log('✓ Discord client disconnected');
+  } catch (e) {
+    console.error(`Error destroying client: ${e.message}`);
+  }
+
+  console.log('👋 Goodbye!');
+  process.exit(0);
+}
+
+// Register shutdown handlers
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 // ============================================================
 // Startup

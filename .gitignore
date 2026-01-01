@@ -38,6 +38,9 @@ archive/
 # bv (beads viewer) local config and caches
 .bv/
 
+# Gateway runtime state
+state/
+
 # Coverage reports
 coverage.lcov
 fold-rs/coverage.lcov
