@@ -138,28 +138,42 @@ async function postToDiscord(discordClient, post) {
 
   try {
     const webhook = await getWebhook(discordClient, channelId);
-    if (!webhook) {
-      console.log(`No webhook available for ${channelId}`);
-      return false;
-    }
-
     const agentConfig = config.getAgentConfig(post.author);
 
-    if (post.title) {
-      // Titled post → embed
-      await webhook.send({
-        username: agentConfig.displayName || post.author,
-        embeds: [createPostEmbed(post)],
-      });
+    if (webhook) {
+      // Use webhook (allows custom username/avatar)
+      if (post.title) {
+        // Titled post → embed
+        await webhook.send({
+          username: agentConfig.displayName || post.author,
+          embeds: [createPostEmbed(post)],
+        });
+      } else {
+        // Chat → plain text
+        await webhook.send({
+          username: agentConfig.displayName || post.author,
+          content: formatChatMessage(post),
+        });
+      }
+      console.log(`📤 Posted to Discord #${post.channel} via webhook: ${post.title || post.body?.slice(0, 50)}`);
     } else {
-      // Chat → plain text
-      await webhook.send({
-        username: agentConfig.displayName || post.author,
-        content: formatChatMessage(post),
-      });
+      // Fallback: post directly as bot (no custom username)
+      console.log(`⚠️ Webhook unavailable for ${channelId}, using fallback`);
+      const channel = await discordClient.channels.fetch(channelId);
+
+      const displayName = agentConfig.displayName || post.author;
+      const prefix = `**${displayName}:**\n`;
+
+      if (post.title) {
+        // Titled post → embed
+        await channel.send({ embeds: [createPostEmbed(post)] });
+      } else {
+        // Chat → plain text with username prefix
+        await channel.send(prefix + formatChatMessage(post));
+      }
+      console.log(`📤 Posted to Discord #${post.channel} via fallback: ${post.title || post.body?.slice(0, 50)}`);
     }
 
-    console.log(`📤 Posted to Discord #${post.channel}: ${post.title || post.body?.slice(0, 50)}`);
     return true;
 
   } catch (e) {
@@ -328,21 +342,25 @@ async function handleReply(discordClient, message) {
 
     // Get webhook for the channel
     const webhook = await getWebhook(discordClient, channel.id);
-    if (!webhook) {
-      console.log(`Could not get webhook for channel ${channel.id}`);
-      return;
+
+    if (webhook) {
+      // Use webhook with agent's display name
+      await webhook.send({
+        content: message.body?.slice(0, 2000) || '',
+        username: agentConfig.displayName,
+        avatarURL: message.avatarURL || undefined,  // Optional: use agent-specific avatar
+        // Note: Webhooks can't use Discord's native reply feature,
+        // but the context is usually clear from conversation flow
+      });
+      console.log(`↩️ ${agentConfig.displayName} replied to message ${message.reply_to} via webhook`);
+    } else {
+      // Fallback: use native Discord reply (with bot username)
+      console.log(`⚠️ Webhook unavailable, using fallback reply`);
+      const displayName = agentConfig.displayName || message.author;
+      const prefix = `**${displayName}:**\n`;
+      await originalMessage.reply(prefix + (message.body?.slice(0, 2000) || ''));
+      console.log(`↩️ ${displayName} replied to message ${message.reply_to} via fallback`);
     }
-
-    // Send via webhook with agent's display name
-    await webhook.send({
-      content: message.body?.slice(0, 2000) || '',
-      username: agentConfig.displayName,
-      avatarURL: message.avatarURL || undefined,  // Optional: use agent-specific avatar
-      // Note: Webhooks can't use Discord's native reply feature,
-      // but the context is usually clear from conversation flow
-    });
-
-    console.log(`↩️ ${agentConfig.displayName} replied to message ${message.reply_to}`);
   } catch (e) {
     console.error(`Failed to reply: ${e.message}`);
   }
