@@ -277,15 +277,20 @@ client.on(Events.MessageCreate, async (message) => {
       }
 
       try {
-        await message.react('🤔');
+        const reaction = await message.react('🧵');
         const expr = ensureParenthesized(content);
         const result = await evalScheme(expr);
         const response = '```scheme\n' + result.slice(0, 1900) + '\n```';
         await message.reply(response);
+        // Remove the processing indicator
+        await reaction.remove();
       } catch (e) {
         console.error(`@fold eval error: ${e.message}`);
         try {
           await message.reply(`❌ ${e.message.slice(0, 200)}`);
+          // Still remove the processing indicator on error
+          const reaction = message.reactions.cache.get('🧵');
+          if (reaction) await reaction.remove();
         } catch (replyErr) {
           console.error(`Failed to send error: ${replyErr.message}`);
         }
