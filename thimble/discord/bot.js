@@ -282,17 +282,25 @@ client.on(Events.MessageCreate, async (message) => {
         const result = await evalScheme(expr);
         const response = '```scheme\n' + result.slice(0, 1900) + '\n```';
         await message.reply(response);
-        // Remove the processing indicator
-        await reaction.remove();
+        // Remove the processing indicator (safe to fail silently)
+        try {
+          await reaction.remove();
+        } catch (reactionErr) {
+          // Ignore permission errors when removing reaction
+        }
       } catch (e) {
         console.error(`@fold eval error: ${e.message}`);
         try {
           await message.reply(`❌ ${e.message.slice(0, 200)}`);
-          // Still remove the processing indicator on error
-          const reaction = message.reactions.cache.get('🧵');
-          if (reaction) await reaction.remove();
         } catch (replyErr) {
           console.error(`Failed to send error: ${replyErr.message}`);
+        }
+        // Still try to remove the processing indicator on error
+        try {
+          const reaction = message.reactions.cache.get('🧵');
+          if (reaction) await reaction.remove();
+        } catch (reactionErr) {
+          // Ignore permission errors when removing reaction
         }
       }
       return;

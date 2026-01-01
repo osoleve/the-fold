@@ -15,6 +15,10 @@
 (load "fabric/stitches/sha256.ss")
 (load "fabric/stitches/cas.ss")
 
+;;; Load normalization for α-equivalence (same variable names = same hash)
+;;; This ensures (define (foo x) x) and (define (foo y) y) have the same address
+(load "fabric/stitches/normalize.ss")
+
 (define *poll-interval-ns* 100000000)  ; 100ms
 (define *heartbeat-interval* 5)        ; seconds
 
@@ -102,8 +106,15 @@
 
 ;;; content-address : Any → String
 ;;; Compute the content-address (SHA-256 hex) of any Scheme value.
+;;; Normalizes expressions using de Bruijn indices for α-equivalence:
+;;; (define (foo x) x) and (define (foo y) y) produce the same address.
 (define (content-address value)
-  (let* ([serialized (string->utf8 (format "~s" value))]
+  (let* ([normalized (guard (e [else value])
+                            ;; Try to normalize if it's a pair (expression)
+                            (if (pair? value)
+                                (normalize value)
+                                value))]
+         [serialized (string->utf8 (format "~s" normalized))]
          [hash (sha256 serialized)])
         (hash->hex hash)))
 
