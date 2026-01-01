@@ -339,8 +339,14 @@ impl Daemon {
     /// Run the daemon loop.
     fn run(&mut self) {
         let poll_interval = Duration::from_millis(POLL_INTERVAL_MS);
+        let mut iteration = 0;
 
         loop {
+            iteration += 1;
+            if iteration % 100 == 0 {
+                eprintln!("[DEBUG] Poll iteration {}", iteration);
+            }
+
             // Check if ready file still exists (deletion signals shutdown)
             if !Path::new(READY_FILE).exists() {
                 println!("Ready file removed, shutting down...");
@@ -348,7 +354,14 @@ impl Daemon {
             }
 
             self.poll_requests();
+
+            if iteration % 100 == 0 {
+                eprintln!("[DEBUG] About to sleep...");
+            }
             thread::sleep(poll_interval);
+            if iteration % 100 == 0 {
+                eprintln!("[DEBUG] Woke from sleep");
+            }
         }
     }
 }

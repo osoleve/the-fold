@@ -26,6 +26,7 @@ const {
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
+const bridge = require('./bridge');
 
 // ============================================================
 // Bot Setup
@@ -94,7 +95,10 @@ async function logToFold(message) {
   const tier = config.getTierFromRoles(message.member);
   const author = message.author.username.replace(/[^a-zA-Z0-9_-]/g, '_');
   const body = message.content;
-  const timestamp = message.createdAt.toISOString();
+
+  // Map tier to model for hi command
+  const modelTier = tier === 'shepherd' ? 'opus' :
+                    tier === 'builder' ? 'sonnet' : 'haiku';
 
   // Escape the body for Scheme
   const escapedBody = body
@@ -102,7 +106,15 @@ async function logToFold(message) {
     .replace(/"/g, '\\"')
     .replace(/\n/g, '\\n');
 
-  const expr = `(post! fs '${author} '${tier} '${foldChannel} "${escapedBody}" "${timestamp}")`;
+  // Use hi + chat/msg instead of post!
+  // For chat channel, use (chat "message")
+  // For other channels, use (msg 'channel "title" "body")
+  let expr;
+  if (foldChannel === 'chat') {
+    expr = `(begin (hi '${modelTier} '${author}) (chat "${escapedBody}"))`;
+  } else {
+    expr = `(begin (hi '${modelTier} '${author}) (msg '${foldChannel} "" "${escapedBody}"))`;
+  }
 
   try {
     await evalScheme(expr);
@@ -121,36 +133,51 @@ async function logToFold(message) {
  * Check for agent mentions and trigger consultation
  */
 async function handleAgentMention(message) {
+  // Check if bot was mentioned
+  const botMentioned = message.mentions.users.has(message.client.user.id);
+  if (!botMentioned) return false;
+
   const content = message.content.toLowerCase();
 
+  // Bot was mentioned, check which agent to invoke
+  // Default to opus if just @Opus with no agent name
+  let agentToInvoke = 'opus';
+
+  // Check if a specific agent was named
   for (const agent of config.CONSULTATION_AGENTS) {
-    if (content.includes(`@${agent}`)) {
-      console.log(`Agent mention detected: @${agent}`);
+    if (content.includes(agent)) {
+      agentToInvoke = agent;
+      break;
+    }
+  }
 
-      // Write trigger file for daemon
-      const triggerPath = path.join(
-        __dirname,
-        config.BOT_CONFIG.replRequestDir,
-        `${agent}-discord-trigger.ss`
-      );
+  console.log(`Bot mentioned, invoking agent: ${agentToInvoke}`);
 
-      const triggerExpr = `
+  // Write trigger file for daemon
+  const triggerPath = path.join(
+    __dirname,
+    config.BOT_CONFIG.replRequestDir,
+    `${agentToInvoke}-discord-trigger.ss`
+  );
+
+  const triggerExpr = `
 ((session-id . "discord-${message.id}")
- (agent . ${agent})
+ (agent . ${agentToInvoke})
  (channel . ${config.getDiscordToFoldChannel(message.channel.id) || 'consult'})
  (author . "${message.author.username}")
  (body . "${message.content.replace(/"/g, '\\"')}"))
 `;
 
-      fs.writeFileSync(triggerPath, triggerExpr);
-
-      // Acknowledge
-      await message.react('🤔');
-      return true;
-    }
+  try {
+    fs.writeFileSync(triggerPath, triggerExpr);
+    console.log(`Trigger file written: ${triggerPath}`);
+  } catch (e) {
+    console.error(`Failed to write trigger file: ${e.message}`);
   }
 
-  return false;
+  // Acknowledge
+  await message.react('🤔');
+  return true;
 }
 
 // ============================================================
@@ -161,6 +188,9 @@ client.once(Events.ClientReady, (c) => {
   console.log(`✅ Logged in as ${c.user.tag}`);
   console.log(`📡 Session ID: ${SESSION_ID}`);
   console.log(`🔗 Watching ${Object.keys(config.CHANNEL_MAP).length} channels`);
+
+  // Start the Discord → Fold bridge
+  bridge.start(c);
 });
 
 client.on(Events.MessageCreate, async (message) => {
