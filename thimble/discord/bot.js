@@ -239,6 +239,38 @@ client.on(Events.MessageCreate, async (message) => {
   // Track last event time for health endpoint
   lastEventTimestamp = Date.now();
 
+  // Check for @fold mention (sugar for /fold eval)
+  if (message.mentions.has(client.user) && !message.author.bot) {
+    // Extract expression after the mention
+    const content = message.content
+      .replace(new RegExp(`<@!?${client.user.id}>`, 'g'), '')
+      .trim();
+
+    if (content) {
+      // Check permissions (shepherd/outsider only)
+      const tier = config.getTierFromRoles(message.member);
+      if (tier !== 'shepherd' && tier !== 'outsider') {
+        await message.reply('❌ Only Shepherds can eval expressions');
+        return;
+      }
+
+      try {
+        await message.react('🤔');
+        const result = await evalScheme(content);
+        const response = '```scheme\n' + result.slice(0, 1900) + '\n```';
+        await message.reply(response);
+      } catch (e) {
+        console.error(`@fold eval error: ${e.message}`);
+        try {
+          await message.reply(`❌ ${e.message.slice(0, 200)}`);
+        } catch (replyErr) {
+          console.error(`Failed to send error: ${replyErr.message}`);
+        }
+      }
+      return;
+    }
+  }
+
   // NEW: Gateway dispatch path (if enabled)
   if (gatewayConfig.enabled) {
     const agentId = dispatcher.parseAgentMention(message.content);
