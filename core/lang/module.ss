@@ -53,12 +53,8 @@
 ;;; ============================================================
 
 ;;; *module-paths* : Hashtable Symbol → String
-;;; Maps module names to file paths
+;;; Maps module names to file paths (includes both pre-registered and discovered)
 (define *module-paths* (make-eq-hashtable))
-
-;;; *module-path-cache* : Hashtable Symbol → String
-;;; Cache for discovered paths
-(define *module-path-cache* (make-eq-hashtable))
 
 ;;; *header-cache* : Hashtable String → (name . deps) | #f
 ;;; Cache for parsed headers (keyed by file path)
@@ -145,9 +141,8 @@
  (register-module-path! 'parser-combinators "core/fp/parsing/parser-combinators.ss"))
 
 ;;; clear-module-caches! : → void
-;;; Clear all module caches (useful after file modifications).
+;;; Clear header cache (useful after file modifications).
 (define (clear-module-caches!)
-  (hashtable-clear! *module-path-cache*)
   (hashtable-clear! *header-cache*))
 
 ;;; ============================================================
@@ -246,15 +241,15 @@
 
 ;;; module-name->path : Symbol → String | #f
 ;;; Get file path for module, using registry or searching.
+;;; Discovered modules are registered in *module-paths* so they appear in (modules).
 (define (module-name->path name)
   ;; Check explicit registry first
   (or (hashtable-ref *module-paths* name #f)
-      ;; Then check cache
-      (hashtable-ref *module-path-cache* name #f)
-      ;; Then search
+      ;; Then search and register if found
       (let ([found (find-module-path name)])
            (when found
-                 (hashtable-set! *module-path-cache* name found))
+                 ;; Register in *module-paths* so it appears in (modules) listing
+                 (hashtable-set! *module-paths* name found))
            found)))
 
 ;;; ============================================================
