@@ -32,7 +32,7 @@
 
 ;; Shell dependencies
 (load "shell/fs.ss")
-(load "shell/text.ss")
+(load "shell/ui/text.ss")
 (load "shell/tools/string-utils.ss")  ; Wishlist #3: Foundational string utilities
 (load "shell/edit.ss")
 (load "shell/git/git.ss")
