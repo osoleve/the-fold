@@ -263,9 +263,6 @@
      (cond
       [(and (pair? result) (eq? (car result) 'error))
        (display "  ~ star connected (skipped: eigenvalue error)\n")]
-      [(= result 0)
-       ;; Numerical precision issue - λ_1 not recognized as ~0
-       (display "  ~ star connected (skipped: numerical precision)\n")]
       [else (test "star is connected" 1 result)]))
 
 ;; λ_max should be n for star
@@ -285,8 +282,6 @@
      (cond
       [(and (pair? result) (eq? (car result) 'error))
        (display "  ~ cycle C_5 connected (skipped: eigenvalue error)\n")]
-      [(= result 0)
-       (display "  ~ cycle C_5 connected (skipped: numerical precision)\n")]
       [else (test "cycle C_5 is connected" 1 result)]))
 
 ;; Cycle should not be bipartite (odd cycle)

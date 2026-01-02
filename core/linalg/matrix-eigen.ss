@@ -477,9 +477,16 @@
 ;;; ============================================================
 
 ;;; eigenvalues : Matrix → Vec | Error
-;;; Convenience function to get just eigenvalues
+;;; Convenience function to get just eigenvalues.
+;;; Uses symmetric-eigen for symmetric matrices (more stable),
+;;; qr-algorithm-shifted otherwise.
 (define (eigenvalues a)
-  (qr-algorithm-shifted a))
+  (if (matrix-symmetric? a)
+      (let ([result (symmetric-eigen a)])
+           (if (and (pair? result) (eq? (car result) 'error))
+               result
+               (car result)))  ; symmetric-eigen returns (eigenvalues . eigenvectors)
+      (qr-algorithm-shifted a)))
 
 ;;; eigenvectors : Matrix → Matrix | Error
 ;;; Convenience function to get just eigenvectors

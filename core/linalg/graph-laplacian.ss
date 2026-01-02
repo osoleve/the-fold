@@ -233,20 +233,29 @@
 ;;;
 ;;; The multiplicity of eigenvalue 0 equals the number of
 ;;; connected components in the graph.
+;;;
+;;; Uses relative tolerance based on largest eigenvalue to handle
+;;; numerical precision issues across different graph scales.
 (define (laplacian-connected-components adj)
   (let* ([L (laplacian adj)]
          [eigs (eigenvalues L)])
         (if (and (pair? eigs) (eq? (car eigs) 'error))
             eigs  ; Return error
-            (let ([tol 1e-8]
-                  [n (vector-length eigs)])
-                 (let loop ([i 0] [count 0])
-                      (if (= i n)
-                          count
-                          (loop (+ i 1)
-                                (if (< (abs (vector-ref eigs i)) tol)
-                                    (+ count 1)
-                                    count))))))))
+            (let* ([n (vector-length eigs)]
+                   ;; Find max eigenvalue for relative tolerance
+                   [max-eig (let loop ([i 0] [m 0])
+                                 (if (= i n)
+                                     m
+                                     (loop (+ i 1) (max m (abs (vector-ref eigs i))))))]
+                   ;; Relative tolerance with floor of 1e-8
+                   [tol (* 1e-8 (max 1.0 max-eig))])
+                  (let loop ([i 0] [count 0])
+                       (if (= i n)
+                           count
+                           (loop (+ i 1)
+                                 (if (< (abs (vector-ref eigs i)) tol)
+                                     (+ count 1)
+                                     count))))))))
 
 ;;; ============================================================
 ;;; Spectral Partitioning
