@@ -252,6 +252,17 @@ bd graph <id>                     # ASCII DAG visualization
 bd blocked                        # Show all blocked issues
 ```
 
+### Planning for Parallelism
+
+**Prioritize swarm-compatible plans.** When breaking down work:
+
+1. **Identify independent tracks** — Tasks that don't share dependencies can run in parallel
+2. **Minimize dependency chains** — Prefer wide DAGs over deep chains
+3. **Create clear interfaces** — Define boundaries so parallel work doesn't conflict
+4. **Use epics as coordination points** — Group related parallel work under a parent issue
+
+A swarm-compatible plan enables multiple agents (or sessions) to work simultaneously, dramatically improving throughput.
+
 ### Parallel Work (Swarms)
 
 For epics with multiple parallel tracks:
