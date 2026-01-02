@@ -146,27 +146,34 @@
 ;;; count-paren-delta : String → Int
 ;;; Count net change in paren depth for a line.
 ;;; Positive = more opens than closes, negative = more closes.
-;;; Skips content after semicolon (comments).
+;;; Skips content after semicolon (comments) and inside strings.
+;;; Handles escaped quotes within strings.
 (define (count-paren-delta line)
   (let ([len (string-length line)])
-       (let loop ([i 0] [delta 0] [in-string? #f])
+       (let loop ([i 0] [delta 0] [in-string? #f] [escaped? #f])
             (if (>= i len)
                 delta
                 (let ([ch (string-ref line i)])
                      (cond
-                      ;; Toggle string state on quote (simple: doesn't handle escapes)
+                      ;; If previous char was backslash, skip this char
+                      [escaped?
+                       (loop (+ i 1) delta in-string? #f)]
+                      ;; Backslash starts escape sequence
+                      [(char=? ch #\\)
+                       (loop (+ i 1) delta in-string? #t)]
+                      ;; Toggle string state on unescaped quote
                       [(char=? ch #\")
-                       (loop (+ i 1) delta (not in-string?))]
+                       (loop (+ i 1) delta (not in-string?) #f)]
                       ;; Skip rest of line on comment (only if not in string)
                       [(and (not in-string?) (char=? ch #\;))
                        delta]
                       ;; Count parens only outside strings
                       [(and (not in-string?) (char=? ch #\())
-                       (loop (+ i 1) (+ delta 1) in-string?)]
+                       (loop (+ i 1) (+ delta 1) in-string? #f)]
                       [(and (not in-string?) (char=? ch #\)))
-                       (loop (+ i 1) (- delta 1) in-string?)]
+                       (loop (+ i 1) (- delta 1) in-string? #f)]
                       [else
-                       (loop (+ i 1) delta in-string?)]))))))
+                       (loop (+ i 1) delta in-string? #f)]))))))
 
 ;;; sexp-size : Sexp → Nat
 ;;; Count the number of nodes in an S-expression tree.
@@ -526,12 +533,16 @@
                            (map (lambda (fd)
                                         (definition-info-references (cdr fd)))
                                 all-defs)))]
+         ;; Build hashtable for O(1) lookup instead of O(n) member checks
+         [ref-table (let ([ht (make-eq-hashtable)])
+                         (for-each (lambda (sym) (hashtable-set! ht sym #t)) all-refs)
+                         ht)]
          ;; Find definitions whose names are never referenced
          [dead (filter
                 (lambda (fd)
                         (let ([name (definition-info-name (cdr fd))])
                              (and name  ; Skip anonymous definitions
-                                  (not (member name all-refs)))))
+                                  (not (hashtable-ref ref-table name #f)))))
                 all-defs)]
          [live-count (- (length all-defs) (length dead))])
         (make-dead-code-report
