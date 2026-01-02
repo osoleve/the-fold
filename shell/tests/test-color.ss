@@ -2,7 +2,7 @@
 ;;;
 ;;; Run with: scheme --script shell/test-color.ss
 
-(load "shell/color.ss")
+(load "shell/ui/color.ss")
 
 ;;; ============================================================
 ;;; Test 1: Color Construction

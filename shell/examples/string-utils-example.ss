@@ -2,7 +2,7 @@
 ;;;
 ;;; Demonstrates the canonical string utilities in thimble/string-utils.ss
 
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 (printf "\n=== String Utilities Examples ===\n\n")
 

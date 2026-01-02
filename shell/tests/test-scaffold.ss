@@ -1,4 +1,4 @@
-;;; Test harness for shell/scaffold.ss
+;;; Test harness for shell/tools/scaffold.ss
 ;;;
 ;;; This test file verifies the scaffolding system in isolation.
 
@@ -49,7 +49,7 @@
 ;;; Load the module under test
 ;;; ============================================================
 
-(load "shell/scaffold.ss")
+(load "shell/tools/scaffold.ss")
 
 ;;; ============================================================
 ;;; Test Framework

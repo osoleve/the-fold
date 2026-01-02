@@ -5,7 +5,7 @@
 ;;;
 ;;; Usage:
 ;;;   (load "shell/repl.ss")
-;;;   (load "shell/scaffold.ss")
+;;;   (load "shell/tools/scaffold.ss")
 ;;;   ;; Then try examples below
 
 ;;; ============================================================

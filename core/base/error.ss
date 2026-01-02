@@ -224,31 +224,6 @@
              [str2 (symbol->string s2)])
             (<= (edit-distance str1 str2) 2))))
 
-;;; edit-distance : String × String → Int
-;;; Levenshtein distance between two strings.
-(define (edit-distance s1 s2)
-  (let* ([len1 (string-length s1)]
-         [len2 (string-length s2)]
-         [matrix (make-vector (* (+ len1 1) (+ len2 1)) 0)])
-        ;; Initialize first row and column
-        (do ([i 0 (+ i 1)]) ((> i len1))
-            (vector-set! matrix (* i (+ len2 1)) i))
-        (do ([j 0 (+ j 1)]) ((> j len2))
-            (vector-set! matrix j j))
-        ;; Fill matrix
-        (do ([i 1 (+ i 1)]) ((> i len1))
-            (do ([j 1 (+ j 1)]) ((> j len2))
-                (let* ([cost (if (char=? (string-ref s1 (- i 1))
-                                         (string-ref s2 (- j 1)))
-                                 0 1)]
-                       [idx (+ (* i (+ len2 1)) j)]
-                       [del (+ 1 (vector-ref matrix (+ (* (- i 1) (+ len2 1)) j)))]
-                       [ins (+ 1 (vector-ref matrix (+ (* i (+ len2 1)) (- j 1))))]
-                       [sub (+ cost (vector-ref matrix (+ (* (- i 1) (+ len2 1)) (- j 1))))])
-                      (vector-set! matrix idx (min del ins sub)))))
-        ;; Return final distance
-        (vector-ref matrix (+ (* len1 (+ len2 1)) len2))))
-
 ;;; ============================================================
 ;;; Pretty Printing
 ;;; ============================================================

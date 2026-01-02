@@ -22,7 +22,7 @@
 (load "shell/fs.ss")
 (load "shell/store-api.ss")
 (load "core/data/graph-algorithms.ss")
-(load "shell/benchmark.ss")
+(load "shell/tools/benchmark.ss")
 
 ;;; ============================================================
 ;;; Test Graph Generators

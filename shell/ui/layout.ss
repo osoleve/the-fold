@@ -15,7 +15,7 @@
 ;;;   Composition: composite, blit
 ;;;   Rendering: canvas->string
 ;;;
-;;; For advanced layering with transparency and z-ordering, see shell/layers.ss
+;;; For advanced layering with transparency and z-ordering, see shell/ui/layers.ss
 
 (load "core/base/prelude.ss")
 
@@ -196,7 +196,7 @@
 ;;; Source overwrites dest (no transparency).
 ;;;
 ;;; Note: For transparency-aware compositing, see composite-with-transparency
-;;; or use the layering system in shell/layers.ss
+;;; or use the layering system in shell/ui/layers.ss
 (define (composite dest src pt)
   (let ([ox (point-x pt)]
         [oy (point-y pt)]

@@ -8,7 +8,7 @@
 ;;; Dependencies:
 ;;;   - shell/turtle-color.ss (for color12->svg-hex)
 ;;;   - shell/turtle-path.ss (for path command accessors)
-;;;   - shell/turtle.ss (for drawing record)
+;;;   - shell/ui/turtle.ss (for drawing record)
 
 ;;; NOTE: string utilities provided by core/prelude.ss
 (load "core/base/prelude.ss")

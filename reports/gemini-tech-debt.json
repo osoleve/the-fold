@@ -1,0 +1,133 @@
+Loaded cached credentials.
+[AgentExecutor] Blocked call: Unauthorized tool call: 'run_shell_command' is not available to this agent.
+Error executing tool run_shell_command: Tool "run_shell_command" not found in registry. Tools must use the exact names that are registered. Did you mean one of: "search_file_content", "read_file", "save_memory"?
+{
+  "session_id": "52c6d4a4-7cc4-40e5-a2e3-661f52bb2ddc",
+  "response": "Technical Debt Analysis Report\n\n### Executive Summary\nThe `the-fold` codebase exhibits a clear structural divide: `core/` is well-organized and tested, while `shell/` is flat, monolithic, and partially tested. The most critical technical debt lies in the lack of modularization in `shell/`, duplicated utility logic (e.g., string algorithms), and unmanaged JavaScript scripts in `agents/` and `ops/`.\n\n### 1. Duplicated Code (High Impact)\n**Finding:** Identical or near-identical logic is copy-pasted across multiple modules.\n*   **Specific Instance:** The `edit-distance` algorithm (Levenshtein distance) is re-implemented in at least 4 locations:\n    *   `shell/commands.ss`\n    *   `core/base/error.ss`\n    *   `core/util/help.ss`\n    *   `user/satin/validate.ss` (renamed `satin-edit-distance`)\n*   **Recommendation:** Extract `edit-distance` and other shared string utilities into a dedicated `core/util/string.ss` or `shell/string-utils.ss` module and import it everywhere.\n\n### 2. Missing Tests (Medium-High Impact)\n**Finding:** Test coverage is inconsistent.\n*   **JavaScript:** The `agents/` and `ops/` directories contain loose JavaScript files (e.g., `invoke-opus.js`, `seed-discord.js`) with **no visible test infrastructure** or `package.json` to manage dependencies/scripts (except in `shell/discord`).\n*   **Shell Modules:** While `shell/` has a `tests/` subdirectory, coverage is spotty.\n    *   **Covered:** `commands.ss`, `repl.ss`, `docgen.ss`.\n    *   **Uncovered:** `animation.ss`, `duckie-loop.ss`, `git.ss`, `git-workflow.ss`.\n*   **Recommendation:**\n    1.  Initialize a root-level `package.json` (or strictly scoped workspace) to manage JS dependencies and run tests (e.g., using `jest` or `mocha`).\n    2.  Add basic \"smoke tests\" for the uncovered `shell/` modules.\n\n### 3. Complex Functions & Structure (Medium Impact)\n**Finding:** `shell/` acts as a \"kitchen sink.\"\n*   **Flat Directory:** `shell/` contains over 80 files in its root. This makes navigation difficult and encourages tight coupling.\n*   **God-Module Risks:** Files like `shell/commands.ss` and `shell/repl.ss` are well-written but handle logic that could be split (e.g., `commands.ss` handles registry *and* fuzzy matching *and* error recovery).\n*   **Recommendation:** Group `shell/` files into subdirectories by domain, e.g., `shell/git/` (`git.ss`, `git-workflow.ss`), `shell/ui/` (`animation.ss`, `graphics.ss`), `shell/tools/`.\n\n### 4. Outdated Patterns & Inconsistency (Low-Medium Impact)\n**Finding:** Documentation standards vary wildly.\n*   `core/` uses `README.sexp` (structured data).\n*   `shell/` uses a mix of `COMMANDS.md`, `SCAFFOLD-README.md`, and `README.sexp`.\n*   **Recommendation:** Adopt a single standard (likely Markdown `README.md` for broader tool compatibility/readability) and convert `README.sexp` files or generate them from MD.\n\n### 5. Documentation Gaps (Low Impact)\n**Finding:**\n*   `agents/` directory lacks a `README` explaining the agent interface or how `invoke-*.js` scripts are called.\n*   Complex modules like `shell/duckie-loop.ss` lack high-level architectural documentation explaining their lifecycle.\n\n### Prioritized Action Plan\n1.  **Refactor String Utils:** Centralize `edit-distance` to stop the bleeding of copy-paste code.\n2.  **Organize Shell:** Move related `shell/*.ss` files into 3-4 semantic subdirectories.\n3.  **JS Harness:** Create a basic `package.json` and test setup for the agent scripts.",
+  "stats": {
+    "models": {
+      "gemini-3-pro-preview": {
+        "api": {
+          "totalRequests": 6,
+          "totalErrors": 0,
+          "totalLatencyMs": 52019
+        },
+        "tokens": {
+          "input": 24227,
+          "prompt": 48910,
+          "candidates": 1453,
+          "total": 52609,
+          "cached": 24683,
+          "thoughts": 2246,
+          "tool": 0
+        }
+      },
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 11,
+          "totalErrors": 0,
+          "totalLatencyMs": 33534
+        },
+        "tokens": {
+          "input": 30983,
+          "prompt": 75389,
+          "candidates": 695,
+          "total": 77752,
+          "cached": 44406,
+          "thoughts": 1668,
+          "tool": 0
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 21,
+      "totalSuccess": 20,
+      "totalFail": 1,
+      "totalDurationMs": 35089,
+      "totalDecisions": {
+        "accept": 0,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 20
+      },
+      "byName": {
+        "list_directory": {
+          "count": 10,
+          "success": 10,
+          "fail": 0,
+          "durationMs": 713,
+          "decisions": {
+            "accept": 0,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 10
+          }
+        },
+        "glob": {
+          "count": 7,
+          "success": 7,
+          "fail": 0,
+          "durationMs": 208,
+          "decisions": {
+            "accept": 0,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 7
+          }
+        },
+        "delegate_to_agent": {
+          "count": 1,
+          "success": 1,
+          "fail": 0,
+          "durationMs": 34120,
+          "decisions": {
+            "accept": 0,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 1
+          }
+        },
+        "run_shell_command": {
+          "count": 1,
+          "success": 0,
+          "fail": 1,
+          "durationMs": 0,
+          "decisions": {
+            "accept": 0,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        },
+        "read_file": {
+          "count": 1,
+          "success": 1,
+          "fail": 0,
+          "durationMs": 5,
+          "decisions": {
+            "accept": 0,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 1
+          }
+        },
+        "search_file_content": {
+          "count": 1,
+          "success": 1,
+          "fail": 0,
+          "durationMs": 43,
+          "decisions": {
+            "accept": 0,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 1
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}

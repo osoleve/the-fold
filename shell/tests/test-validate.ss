@@ -1,8 +1,8 @@
-;;; Test harness for shell/validate.ss
+;;; Test harness for shell/tools/validate.ss
 ;;;
 ;;; Run from ccverse root: scheme --script shell/test-validate.ss
 
-(load "shell/validate.ss")
+(load "shell/tools/validate.ss")
 
 ;;; Helper to test validations (now using Result type)
 ;;; Validators return (ok #t) for valid or (error message) for invalid
@@ -37,7 +37,7 @@
        (display (pred obj))))
   (newline))
 
-(display "Validation Tests (shell/validate.ss)\n")
+(display "Validation Tests (shell/tools/validate.ss)\n")
 (display "====================================\n\n")
 
 ;;; ============================================================
@@ -242,4 +242,4 @@
 (define block-large (make-block 'large large-payload empty-refs))
 (test-valid "block with large payload" validate-block block-large #t)
 
-(display "\n✓ All shell/validate.ss tests complete.\n")
+(display "\n✓ All shell/tools/validate.ss tests complete.\n")

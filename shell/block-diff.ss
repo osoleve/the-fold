@@ -30,11 +30,11 @@
 (source-directories (cons "core" (source-directories)))
 (source-directories (cons "shell" (source-directories)))
 
-(load "prelude.ss")
-(load "block.ss")
-(load "cas.ss")
-(load "normalize.ss")
-(load "expand.ss")
+(load "base/prelude.ss")
+(load "blocks/block.ss")
+(load "blocks/cas.ss")
+(load "blocks/normalize.ss")
+(load "blocks/expand.ss")
 (load "cas-persist.ss")
 
 ;;; ============================================================

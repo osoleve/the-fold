@@ -7,7 +7,7 @@
 ;;;
 ;;; Dependencies:
 ;;;   - shell/layout.ss (canvas, point, rect)
-;;;   - shell/layers.ss (layer system)
+;;;   - shell/ui/layers.ss (layer system)
 ;;;
 ;;; Exports:
 ;;;   Direction: 'north 'south 'east 'west 'northeast 'northwest 'southeast 'southwest

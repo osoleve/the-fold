@@ -1,12 +1,12 @@
 # Scaffolding System
 
-The scaffolding system (`shell/scaffold.ss`) provides code generation from templates to accelerate development in The Fold.
+The scaffolding system (`shell/tools/scaffold.ss`) provides code generation from templates to accelerate development in The Fold.
 
 ## Quick Start
 
 ```scheme
 ;; Load in REPL
-(load "shell/scaffold.ss")
+(load "shell/tools/scaffold.ss")
 
 ;; Create a new shell module
 (scaffold 'shell-module "my-module"

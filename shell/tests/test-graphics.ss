@@ -8,8 +8,8 @@
 (load "core/base/sha256.ss")
 (load "core/blocks/cas.ss")
 (load "shell/layout.ss")
-(load "shell/color.ss")
-(load "shell/graphics.ss")
+(load "shell/ui/color.ss")
+(load "shell/ui/graphics.ss")
 
 (display "\n")
 (display "==============================================================\n")

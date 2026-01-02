@@ -1,6 +1,6 @@
 # String Utilities
 
-**Location:** `shell/string-utils.ss`
+**Location:** `shell/tools/string-utils.ss`
 **Status:** ✅ Complete (2025-12-27)
 **Tests:** 67/67 passing
 **Wishlist:** Item #3 (High Priority Tools)
@@ -12,7 +12,7 @@ Canonical string utility functions for The Fold. This library eliminates the nee
 ## Quick Start
 
 ```scheme
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 ;; Split and join
 (string-split "foo,bar,baz" ",")  ;=> ("foo" "bar" "baz")
@@ -94,9 +94,9 @@ scheme --script shell/test-string-utils.ss
 This library eliminates duplicate implementations in:
 - `core/error.ss`
 - `shell/concept-map.ss`
-- `shell/format.ss`
+- `shell/tools/format.ss`
 - `shell/history.ss`
-- `shell/coverage.ss`
+- `shell/tools/coverage.ss`
 - ...and 18+ more files
 
 ## Future Work

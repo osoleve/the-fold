@@ -628,7 +628,7 @@ A graphical PET interface/universe, a la a certain Mega type of Man's Battle gam
 
 - Type system evolution (`core/types.ss`, `core/infer.ss`, `core/kinds.ss`)
 - DUCKIE avatar system (`user/duckie.ss`, `shell/duckie-interact.ss`)
-- Graphics primitives (`shell/graphics.ss`, `shell/color.ss`, `shell/layers.ss`)
+- Graphics primitives (`shell/ui/graphics.ss`, `shell/ui/color.ss`, `shell/ui/layers.ss`)
 - MCP server integration (`shell/mcp-server/`) for external tool access
 - **Loom SDK** (`user/loom/`) - Game-weaving framework for roguelikes
 - **Spell DSL** (`user/loom/spell/`) - Declarative game building on top of Loom:

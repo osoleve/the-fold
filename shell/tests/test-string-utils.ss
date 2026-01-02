@@ -3,7 +3,7 @@
 ;;; Comprehensive test suite for thimble/string-utils.ss
 ;;; Validates all string operations with edge cases and Unicode handling.
 
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 (define test-count 0)
 (define pass-count 0)

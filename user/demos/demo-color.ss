@@ -4,7 +4,7 @@
 ;;; Shows off the ANSI color capabilities of the canvas system.
 
 ;;; Load color-enabled layout
-(load "shell/layout-color.ss")
+(load "shell/ui/layout-color.ss")
 
 ;;; ============================================================
 ;;; Demo 1: Basic Colors

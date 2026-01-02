@@ -24,9 +24,9 @@
 ;;;   shell/edit.ss
 ;;;   core/prelude.ss (for string-trim, etc.)
 ;;;
-;;; NOTE: string-trim and string-split-lines provided by shell/string-utils.ss.
+;;; NOTE: string-trim and string-split-lines provided by shell/tools/string-utils.ss.
 
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 ;;; Set up source-directories to find shell modules
 (source-directories (cons "shell" (source-directories)))

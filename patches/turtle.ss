@@ -63,6 +63,6 @@
  (files .
         ("shell/turtle-color.ss"
          "shell/turtle-path.ss"
-         "shell/turtle.ss"
+         "shell/ui/turtle.ss"
          "shell/turtle-svg.ss"
          "shell/turtle-block.ss")))

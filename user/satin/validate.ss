@@ -338,39 +338,9 @@
 ;;; ============================================================
 
 ;;; Generate suggestions for a misspelled ID
-(define (satin-suggest-id target candidates)
+(define (satin-find-suggestions target candidates)
   (let ([target-str (symbol->string target)])
        (filter
         (lambda (c)
-                (< (satin-edit-distance target-str (symbol->string c)) 3))
+                (< (edit-distance target-str (symbol->string c)) 3))
         candidates)))
-
-;;; Simple edit distance (Levenshtein)
-(define (satin-edit-distance s1 s2)
-  (let* ([len1 (string-length s1)]
-         [len2 (string-length s2)]
-         [matrix (make-vector (+ len1 1) #f)])
-        ;; Initialize matrix
-        (do ([i 0 (+ i 1)])
-            ((> i len1))
-            (vector-set! matrix i (make-vector (+ len2 1) 0)))
-        ;; Fill first row and column
-        (do ([i 0 (+ i 1)])
-            ((> i len1))
-            (vector-set! (vector-ref matrix i) 0 i))
-        (do ([j 0 (+ j 1)])
-            ((> j len2))
-            (vector-set! (vector-ref matrix 0) j j))
-        ;; Fill rest
-        (do ([i 1 (+ i 1)])
-            ((> i len1))
-            (do ([j 1 (+ j 1)])
-                ((> j len2))
-                (let* ([cost (if (char=? (string-ref s1 (- i 1))
-                                         (string-ref s2 (- j 1)))
-                                 0 1)]
-                       [del (+ (vector-ref (vector-ref matrix (- i 1)) j) 1)]
-                       [ins (+ (vector-ref (vector-ref matrix i) (- j 1)) 1)]
-                       [sub (+ (vector-ref (vector-ref matrix (- i 1)) (- j 1)) cost)])
-                      (vector-set! (vector-ref matrix i) j (min del ins sub)))))
-        (vector-ref (vector-ref matrix len1) len2)))

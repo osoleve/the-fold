@@ -21,8 +21,8 @@
 ;;;       "..."))
 ;;;   persona-prompt  ; Return the prompt
 
-(load "shell/string-utils.ss")
-(load "shell/markdown.ss")
+(load "shell/tools/string-utils.ss")
+(load "shell/tools/markdown.ss")
 
 ;; Determine fragments directory - tries multiple fallback paths
 (define (get-fragments-dir)

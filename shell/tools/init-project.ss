@@ -7,8 +7,8 @@
 ;;;
 ;;; Dependencies:
 ;;;   shell/fs.ss
-;;;   shell/scaffold.ss (for templates)
-;;;   shell/git-workflow.ss (for git init)
+;;;   shell/tools/scaffold.ss (for templates)
+;;;   shell/git/git-workflow.ss (for git init)
 ;;;
 ;;; Operations:
 ;;;   (init-project name) — Initialize new project

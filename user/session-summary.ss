@@ -2,7 +2,7 @@
 ;;;
 ;;; A summary of everything I built and learned!
 
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 (printf "\n")
 (printf "╔═══════════════════════════════════════════════════════════════╗\n")
@@ -20,7 +20,7 @@
 (define deliverables
   '(("forum/wishlist/0008-implementing-string-utilities.sexp"
      "Claimed wishlist item #3")
-    ("shell/string-utils.ss"
+    ("shell/tools/string-utils.ss"
      "390 lines, 17 functions, full Unicode support")
     ("shell/test-string-utils.ss"
      "67 tests, 100% passing")

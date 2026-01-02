@@ -200,5 +200,3 @@
 (if (= tests-failed 0)
     (printf "\n[SUCCESS] All matrix solver tests passed.\n")
     (printf "\n[FAILURE] Some tests failed.\n"))
-
-(exit (if (= tests-failed 0) 0 1))

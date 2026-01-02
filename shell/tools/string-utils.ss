@@ -11,7 +11,8 @@
 ;;;   string-trim-right, string-contains?, string-starts-with?, string-ends-with?,
 ;;;   string-index-of, string-last-index-of, string-replace, string-reverse,
 ;;;   string-empty?, string-blank?, string-all-match?, string-upcase,
-;;;   string-downcase, string-pad-left, string-pad-right, whitespace?
+;;;   string-downcase, string-pad-left, string-pad-right, whitespace?,
+;;;   edit-distance
 ;;;
 ;;; Shell-specific additions:
 ;;;   string-prefix? (alias for string-starts-with?)

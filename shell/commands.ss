@@ -188,41 +188,6 @@
             #f
             (car candidates))))
 
-;;; edit-distance : String × String → Nat
-;;; Compute Levenshtein edit distance between two strings.
-;;; Simple implementation for typo detection.
-(define (edit-distance s1 s2)
-  (let ([len1 (string-length s1)]
-        [len2 (string-length s2)])
-       (let ([matrix (make-vector (* (+ len1 1) (+ len2 1)) 0)])
-            ;; Helper to get matrix index
-            (define (matrix-idx i j)
-              (+ (* i (+ len2 1)) j))
-            ;; Initialize first row and column
-            (do ([i 0 (+ i 1)])
-                ((> i len1))
-                (vector-set! matrix (matrix-idx i 0) i))
-            (do ([j 0 (+ j 1)])
-                ((> j len2))
-                (vector-set! matrix (matrix-idx 0 j) j))
-            ;; Fill matrix
-            (do ([i 1 (+ i 1)])
-                ((> i len1))
-                (do ([j 1 (+ j 1)])
-                    ((> j len2))
-                    (let* ([cost (if (char=? (string-ref s1 (- i 1))
-                                             (string-ref s2 (- j 1)))
-                                     0
-                                     1)]
-                           [above (vector-ref matrix (matrix-idx (- i 1) j))]
-                           [left (vector-ref matrix (matrix-idx i (- j 1)))]
-                           [diag (vector-ref matrix (matrix-idx (- i 1) (- j 1)))]
-                           [min-val (min (+ above 1)
-                                         (+ left 1)
-                                         (+ diag cost))])
-                          (vector-set! matrix (matrix-idx i j) min-val))))
-            (vector-ref matrix (matrix-idx len1 len2)))))
-
 ;;; ============================================================
 ;;; Core Command Handlers
 ;;; ============================================================

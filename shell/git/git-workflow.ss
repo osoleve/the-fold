@@ -7,7 +7,7 @@
 ;;;
 ;;; Dependencies:
 ;;;   core/prelude.ss
-;;;   shell/git.ss (if available)
+;;;   shell/git/git.ss (if available)
 ;;;   shell/fs.ss
 ;;;
 ;;; NOTE: string utilities (string-contains?, string-trim) provided by core/prelude.ss
@@ -265,7 +265,7 @@
 ;;; Git Command Wrappers
 ;;; ============================================================
 ;;; These wrap the underlying git operations.
-;;; In a real implementation, these would call shell/git.ss functions.
+;;; In a real implementation, these would call shell/git/git.ss functions.
 
 (define (git-add-all)
   (system "git add -A"))

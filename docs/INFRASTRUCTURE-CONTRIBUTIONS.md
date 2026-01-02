@@ -40,10 +40,10 @@ Major infrastructure enhancements to The Fold, addressing critical bugs and fill
 
 **Problem**: Missing basic string case conversion functions, leading to 15+ duplicate implementations
 
-**Solution**: Added `string-upcase` and `string-downcase` to `shell/string-utils.ss`
+**Solution**: Added `string-upcase` and `string-downcase` to `shell/tools/string-utils.ss`
 
 **Files Modified**:
-- `shell/string-utils.ss` - Added case conversion functions
+- `shell/tools/string-utils.ss` - Added case conversion functions
 
 **Functions**:
 ```scheme

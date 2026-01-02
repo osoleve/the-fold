@@ -1,0 +1,13 @@
+{
+  "name": "the-fold-ops",
+  "version": "1.0.0",
+  "description": "Operational scripts for The Fold",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:watch": "node --test --watch tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

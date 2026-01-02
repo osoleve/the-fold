@@ -115,9 +115,9 @@ All Scheme primitives:
 ```scheme
 (load \"core/block.ss\")     ; Blocks and CAS
 (load \"core/types.ss\")     ; Type system
-(load \"shell/graphics.ss\")          ; Graphics primitives
-(load \"shell/color.ss\")             ; Color utilities
-(load \"shell/turtle.ss\")            ; Turtle graphics
+(load \"shell/ui/graphics.ss\")          ; Graphics primitives
+(load \"shell/ui/color.ss\")             ; Color utilities
+(load \"shell/ui/turtle.ss\")            ; Turtle graphics
 ```
 
 ### Common Patterns
@@ -222,7 +222,7 @@ A: No, Players can only write to user/creations/ and post to forum/.
    If you need a feature, request it in forum/requests/!
 
 **Q: How do I use graphics/colors/turtle?**
-A: (load \"shell/graphics.ss\") and explore the functions.
+A: (load \"shell/ui/graphics.ss\") and explore the functions.
    See user/demos/ for examples.
 
 **Q: Can I create subdirectories?**

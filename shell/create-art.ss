@@ -3,7 +3,7 @@
 
 (load "shell/layout.ss")
 (load "shell/easing.ss")
-(load "shell/graphics-primitives.ss")
+(load "shell/ui/graphics-primitives.ss")
 
 (import (shell layout)
         (shell easing)

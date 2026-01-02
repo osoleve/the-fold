@@ -460,6 +460,36 @@
            str
            (string-append str (make-string (- width len) pad-char)))))
 
+;;; edit-distance : String × String → Nat
+;;; Compute the Levenshtein distance between two strings.
+(define (edit-distance s1 s2)
+  (let ([len1 (string-length s1)]
+        [len2 (string-length s2)])
+       (cond
+        [(= len1 0) len2]
+        [(= len2 0) len1]
+        [else
+         (let ([matrix (make-vector (* (+ len1 1) (+ len2 1)) 0)])
+              ;; Initialize first row and column
+              (do ([i 0 (+ i 1)]) ((> i len1))
+                  (vector-set! matrix (* i (+ len2 1)) i))
+              (do ([j 0 (+ j 1)]) ((> j len2))
+                  (vector-set! matrix j j))
+              ;; Fill matrix
+              (do ([i 1 (+ i 1)])
+                  ((> i len1))
+                  (do ([j 1 (+ j 1)])
+                      ((> j len2))
+                      (let* ([cost (if (char=? (string-ref s1 (- i 1))
+                                               (string-ref s2 (- j 1)))
+                                       0 1)]
+                             [del (+ 1 (vector-ref matrix (+ (* (- i 1) (+ len2 1)) j)))]
+                             [ins (+ 1 (vector-ref matrix (+ (* i (+ len2 1)) (- j 1))))]
+                             [sub (+ cost (vector-ref matrix (+ (* (- i 1) (+ len2 1)) (- j 1))))])
+                            (vector-set! matrix (+ (* i (+ len2 1)) j) (min del ins sub)))))
+              ;; Return final distance
+              (vector-ref matrix (+ (* len1 (+ len2 1)) len2)))])))
+
 ;;; ============================================================
 ;;; Debug Utilities
 ;;; ============================================================

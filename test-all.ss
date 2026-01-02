@@ -93,37 +93,37 @@
 ;;; Core tests in dependency order
 (define core-tests
   '(;; Layer 0: Foundation
-    "test-prelude.ss"
-    "test-sha256.ss"
+    "base/test-prelude.ss"
+    "base/test-sha256.ss"
     ;; Layer 1: Block System
-    "test-block.ss"
-    "test-cas.ss"
-    "test-cas-gc.ss"
+    "blocks/test-block.ss"
+    "blocks/test-cas.ss"
+    "blocks/test-cas-gc.ss"
     ;; Layer 2: Language Core
-    "test-normalize.ss"
-    "test-prim.ss"
-    "test-parse.ss"
-    "test-fold-parse.ss"
+    "blocks/test-normalize.ss"
+    "lang/test-prim.ss"
+    "lang/test-parse.ss"
+    "lang/test-fold-parse.ss"
     ;; Layer 3: Type System
-    "test-types.ss"
-    "test-kinds.ss"
+    "types/test-types.ss"
+    "types/test-kinds.ss"
     ;; Layer 4: Type Inference
-    "test-infer.ss"
-    "test-resolve.ss"
-    "test-annotate.ss"
+    "types/test-infer.ss"
+    "types/test-resolve.ss"
+    "types/test-annotate.ss"
     ;; Layer 5: Evaluation
-    "test-eval.ss"
-    "test-typed-eval.ss"
-    "test-debug.ss"
+    "lang/test-eval.ss"
+    "lang/test-typed-eval.ss"
+    "util/test-debug.ss"
     ;; Layer 6: Compilation Pipeline
-    "test-compile.ss"
+    "lang/test-compile.ss"
     ;; Layer 7: Error System
-    "test-error.ss"
+    "base/test-error.ss"
     ;; Layer 8: Linear Algebra
-    "test-vec.ss"
-    "test-matrix.ss"
-    "test-matrix-decomp.ss"
-    "test-matrix-solvers.ss"))
+    "linalg/test-vec.ss"
+    "linalg/test-matrix.ss"
+    "linalg/test-matrix-decomp.ss"
+    "linalg/test-matrix-solvers.ss"))
 
 ;;; Shell tests (validated, stable)
 (define shell-tests

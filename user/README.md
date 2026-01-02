@@ -64,7 +64,7 @@ These experiments serve multiple purposes:
 
 ## Related
 
-- String utilities implementation: `shell/string-utils.ss`
+- String utilities implementation: `shell/tools/string-utils.ss`
 - String utilities tests: `shell/test-string-utils.ss`
 - String utilities examples: `shell/string-utils-example.ss`
 - Forum announcement: `forum/wishlist/0008-implementing-string-utilities.sexp`

@@ -9,7 +9,7 @@
 ;;;   shell/fs.ss
 ;;;   shell/text.ss
 
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 ;;; ============================================================
 ;;; Core Text File Operations

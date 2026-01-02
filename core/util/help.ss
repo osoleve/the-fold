@@ -766,41 +766,6 @@
 ;;; NOTE: string-downcase and string-contains? are provided by prelude.ss
 ;;; (loaded transitively via prim.ss)
 
-;;; edit-distance : String × String → Nat
-;;; Simple Levenshtein distance for typo suggestions.
-(define (edit-distance s1 s2)
-  (let ([len1 (string-length s1)]
-        [len2 (string-length s2)])
-       (if (zero? len1)
-           len2
-           (if (zero? len2)
-               len1
-               (let ([matrix (make-vector (* (+ len1 1) (+ len2 1)) 0)])
-                    ;; Initialize
-                    (do ([i 0 (+ i 1)])
-                        ((> i len1))
-                        (vector-set! matrix (+ (* i (+ len2 1)) 0) i))
-                    (do ([j 0 (+ j 1)])
-                        ((> j len2))
-                        (vector-set! matrix j j))
-                    ;; Fill matrix
-                    (do ([i 1 (+ i 1)])
-                        ((> i len1))
-                        (do ([j 1 (+ j 1)])
-                            ((> j len2))
-                            (let* ([cost (if (char=? (string-ref s1 (- i 1))
-                                                     (string-ref s2 (- j 1)))
-                                             0
-                                             1)]
-                                   [above (vector-ref matrix (+ (* (- i 1) (+ len2 1)) j))]
-                                   [left (vector-ref matrix (+ (* i (+ len2 1)) (- j 1)))]
-                                   [diag (vector-ref matrix (+ (* (- i 1) (+ len2 1)) (- j 1)))]
-                                   [min-val (min (+ above 1)
-                                                 (+ left 1)
-                                                 (+ diag cost))])
-                                  (vector-set! matrix (+ (* i (+ len2 1)) j) min-val))))
-                    (vector-ref matrix (+ (* len1 (+ len2 1)) len2)))))))
-
 ;;; find : Procedure × (List Any) → Any | #f
 (define (find pred lst)
   (cond

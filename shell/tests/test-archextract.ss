@@ -1,10 +1,10 @@
-;;; Test harness for shell/archextract.ss
+;;; Test harness for shell/tools/archextract.ss
 
 ;;; Load dependencies from core
 (load "core/base/prelude.ss")
 
 ;;; Load the archextract module
-(load "shell/archextract.ss")
+(load "shell/tools/archextract.ss")
 
 ;;; ============================================================
 ;;; Test Framework

@@ -15,7 +15,7 @@
 ;;;   - core/cas.ss (store!, fetch)
 ;;;   - shell/turtle-color.ss (color12->list, list->color12)
 ;;;   - shell/turtle-path.ss (path-cmd->sexpr, sexpr->path-cmd)
-;;;   - shell/turtle.ss (drawing record)
+;;;   - shell/ui/turtle.ss (drawing record)
 
 ;;; ============================================================
 ;;; Drawing Serialization

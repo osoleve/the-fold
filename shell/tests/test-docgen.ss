@@ -11,7 +11,7 @@
 (load "core/test-framework.ss")
 
 ;;; Load the module under test
-(load "shell/docgen.ss")
+(load "shell/tools/docgen.ss")
 
 (display "
 Docgen Tests

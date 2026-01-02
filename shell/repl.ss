@@ -33,9 +33,9 @@
 ;; Shell dependencies
 (load "shell/fs.ss")
 (load "shell/text.ss")
-(load "shell/string-utils.ss")  ; Wishlist #3: Foundational string utilities
+(load "shell/tools/string-utils.ss")  ; Wishlist #3: Foundational string utilities
 (load "shell/edit.ss")
-(load "shell/git.ss")
+(load "shell/git/git.ss")
 (load "shell/session-manager.ss")  ; Must be before forum/chat.ss
 
 ;; Forum dependencies
@@ -48,7 +48,7 @@
 (load "shell/survey.ss")
 
 ;; Export utilities
-(load "shell/export.ss")
+(load "shell/tools/export.ss")
 
 ;; Games
 (load "user/templates/lambda-kombat.ss")

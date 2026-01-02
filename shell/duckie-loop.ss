@@ -19,20 +19,20 @@
 ;;; From playpen/environment.ss — The world
 (load "user/environment.ss")
 
-;;; From shell/color.ss — The palette
-(load "shell/color.ss")
+;;; From shell/ui/color.ss — The palette
+(load "shell/ui/color.ss")
 
-;;; From shell/layout-color.ss — The colored canvas
-(load "shell/layout-color.ss")
+;;; From shell/ui/layout-color.ss — The colored canvas
+(load "shell/ui/layout-color.ss")
 
-;;; From shell/layers.ss — The depth system
-(load "shell/layers.ss")
+;;; From shell/ui/layers.ss — The depth system
+(load "shell/ui/layers.ss")
 
-;;; From shell/animation.ss — The motion
-(load "shell/animation.ss")
+;;; From shell/ui/animation.ss — The motion
+(load "shell/ui/animation.ss")
 
-;;; From shell/particles.ss — The sparkle
-(load "shell/particles.ss")
+;;; From shell/ui/particles.ss — The sparkle
+(load "shell/ui/particles.ss")
 
 ;;; From core/parse.ss — The ears
 (load "core/lang/parse.ss")
@@ -545,7 +545,7 @@
                                 ;; Compose all layers into final canvas
                                 (let* ([stack (make-layer-stack (list bg-layer sprite-layer particle-layer ui-layer))]
                                        [final-canvas (flatten-layers stack width height)])
-                                      final-canvas))))))))
+                                      final-canvas)))))))
 
 ;;; ============================================================
 ;;; Display — Output to Terminal
@@ -556,7 +556,7 @@
 ;;; Clear the terminal screen.
 ;;; Uses ANSI escape sequence for portability.
 (define (clear-screen)
-  (display "\x1B[2J\x1B[H")
+  (display "\x1b;[2J\x1b;[H")
   (flush-output-port (current-output-port)))
 
 ;;; display-canvas : Canvas → ()

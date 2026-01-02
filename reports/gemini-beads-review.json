@@ -1,0 +1,42 @@
+Loaded cached credentials.
+{
+  "session_id": "3d3efca9-4e25-4e3e-8770-92670031093a",
+  "response": "Based on the provided task tracker data and file structure, here is a strategic prioritization analysis.\n\n### 1. Duplicates & Overlapping Areas\nThere is significant clustering around three main \"super-epics.\" Consolidating these will reduce cognitive load.\n\n*   **The \"Math Core\" Cluster:**\n    *   **Overlap:** `fold-1e0` (Linear Algebra Epic) heavily overlaps with specialized tasks like `fold-l7o` (Matrix operations), `fold-uqu` (Parallel matrix ops), `fold-145` (SVD), and `fold-ygg` (Iterative solvers).\n    *   **Dependency:** The **Autodiff Epic** (`fold-bym`) and **Optimization Epic** (`fold-pd2`) are tightly coupled. `fold-qce` (Differentiable physics) acts as a bridge between Physics and Autodiff.\n    *   **Recommendation:** Treat Linear Algebra, Autodiff, and Numeric Tower (`fold-5cy`) as a single \"Numeric Foundation\" milestone.\n\n*   **The \"Identity & Social\" Cluster:**\n    *   **Overlap:** `fold-jx0` (Agent Identity Epic) covers `fold-sjv`, `fold-9if`, `fold-n5z`, and `fold-u4x`.\n    *   **Redundancy:** `fold-386` (Identity preferences) and `fold-u4x` (Identity record schema) likely refer to the same data structure work.\n\n*   **The \"Graph & Visualization\" Cluster:**\n    *   **Overlap:** `fold-rm6` (Declarative Graphics Epic) should subsume `fold-hh3` (SVG renderer) and `fold-dgy` (Graph visualization).\n    *   **Matrix-Graph duality:** `fold-f9a` (Graph Laplacian) and `fold-bms` (Eigenvector centrality) sit at the intersection of Linear Algebra and Graph Theory.\n\n### 2. Parallelization Opportunities\nThe codebase seems effectively split into \"Engine/Core\" and \"Domain Libraries,\" allowing distinct streams of work:\n\n*   **Stream A: The Compiler/Runtime Team**\n    *   Work on **Language Features** like `fold-ypt` (Algebraic effects), `fold-0ak` (Effect system), and `fold-n7e` (Rank-N polymorphism).\n    *   Work on **Tooling** like `fold-n3b` (REPL command palette) and `fold-0mz` (Structured editing).\n    *   *Independent of math logic.*\n\n*   **Stream B: The Math/Physics Team**\n    *   Work on **Domain Epics** (Topology, Game Theory, Signal Processing).\n    *   *Note:* These teams are currently blocked by the \"Numeric Foundation\" (see below). Once `fold-1e0` (Linalg) is stable, the Physics and Geometry teams can work in parallel.\n\n*   **Stream C: The Platform Team**\n    *   Work on **Identity** (`fold-jx0`) and **Forum/Discord** integration.\n    *   *Completely independent of the core language and math libraries.*\n\n### 3. Highest Impact (First Moves)\nTo unblock the massive list of P2 domain libraries, the foundational types must be solidified immediately.\n\n1.  **`fold-bym` (Autodiff Engine Epic) [P1]:** This is the \"killer feature\" implied by the roadmap (differentiable physics, ML, optimization). Until this is done, `fold-qce`, `fold-pd2`, and most of the optimization tasks are blocked or will need rewrites.\n2.  **`fold-1e0` (Linear Algebra Epic) [P2]:** Despite being P2, it is a **hard dependency** for Graph Algorithms, Physics, Signal Processing, and Optimization. Elevate this to P1.\n3.  **`fold-ypt` (Algebraic Effect Handlers) [P1]:** This appears to be a core architectural decision for managing side effects (state, random, IO) in the physics and simulation engines.\n\n### 4. Stale or Low-Value Issues\n*   **`fold-ped` [P2] (\"Working demo files should be consolidated\"):** This is vague housekeeping. Better to enforce this via CI or a specific \"Examples Gallery\" task (`fold-tca`).\n*   **`fold-386` [P3] (\"Add identity preferences\"):** Likely premature until the core Identity Epic (`fold-jx0`) is further along.\n*   **Refactoring Tasks (P2):** Tasks like `fold-8o0`, `fold-mlz`, `fold-o9e` (Refactor x into semantic submodules) carry high merge-conflict risk if done while feature work is active in those files. Defer until the P1 feature freeze.\n\n### 5. Missing Dependencies & Risks\n*   **Testing Infrastructure:** While `fold-ixe` (Test suite for autodiff) exists, there is no generic \"Property-based testing\" epic listed, despite tasks like `fold-hex` (Contracts with refinement types). A `QuickCheck`-style library is often essential for verifying complex math libraries.\n*   **Documentation Generator:** `fold-ggs` asks for documentation, and `fold-c1c` asks for an auto-doc extractor. There is a risk of writing docs that immediately rot without a proper pipeline (e.g., \"Literate Programming\" support or doc-tests).\n\n### Strategic Recommendation\n\n**Phase 1: The Numeric Backbone (Weeks 1-4)**\nFocus exclusively on **Linear Algebra** and **Autodiff**. Pause work on higher-level libraries (Game Theory, Topology) until vectors, matrices, and gradients are first-class citizens.\n*   *Key Tasks:* `fold-bym`, `fold-1e0`, `fold-5cy`.\n\n**Phase 2: The Runtime Core (Weeks 2-6)**\nParallel track for implementing **Algebraic Effects** and **Type System Extensions**. This dictates how the libraries in Phase 3 will handle state and randomness.\n*   *Key Tasks:* `fold-ypt`, `fold-0ak`, `fold-n7e`.\n\n**Phase 3: Domain Explosion (Week 6+)**\nOnce the backbone (Math) and control flow (Effects) are set, release the parallel streams to implement Physics, Signal Processing, and Geometry on top of the stable core.",
+  "stats": {
+    "models": {
+      "gemini-3-pro-preview": {
+        "api": {
+          "totalRequests": 1,
+          "totalErrors": 0,
+          "totalLatencyMs": 27237
+        },
+        "tokens": {
+          "input": 6925,
+          "prompt": 10581,
+          "candidates": 1406,
+          "total": 13259,
+          "cached": 3656,
+          "thoughts": 1272,
+          "tool": 0
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 0,
+      "totalSuccess": 0,
+      "totalFail": 0,
+      "totalDurationMs": 0,
+      "totalDecisions": {
+        "accept": 0,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 0
+      },
+      "byName": {}
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}

@@ -8,10 +8,10 @@
 ;;;
 ;;; Architecture:
 ;;;   - Canvas Layer: 2D character grids (from shell/layout.ss)
-;;;   - Color Layer: RGB/palette colors + ANSI output (from shell/color.ss)
-;;;   - Primitive Layer: Shapes, lines, circles (from shell/graphics-primitives.ss)
-;;;   - Composition Layer: Transparency, z-ordering (from shell/layers.ss)
-;;;   - Animation Layer: Easing functions (from shell/animation.ss)
+;;;   - Color Layer: RGB/palette colors + ANSI output (from shell/ui/color.ss)
+;;;   - Primitive Layer: Shapes, lines, circles (from shell/ui/graphics-primitives.ss)
+;;;   - Composition Layer: Transparency, z-ordering (from shell/ui/layers.ss)
+;;;   - Animation Layer: Easing functions (from shell/ui/animation.ss)
 ;;;   - Block Layer: Content-addressed storage of graphics (THIS FILE)
 ;;;
 ;;; Block Integration:
@@ -35,7 +35,7 @@
 ;;;   - core/cas.ss
 ;;;   - shell/fs.ss
 ;;;   - shell/layout.ss
-;;;   - shell/color.ss
+;;;   - shell/ui/color.ss
 ;;;
 ;;; Load them via shell/repl.ss or manually before loading this file.
 ;;;
@@ -627,6 +627,6 @@
 ;;;
 ;;; Integration with existing systems:
 ;;;   - Uses shell/layout.ss for canvas primitives
-;;;   - Uses shell/color.ss for color representation
+;;;   - Uses shell/ui/color.ss for color representation
 ;;;   - Uses core/block.ss + core/cas.ss for storage
 ;;;   - Uses shell/fs.ss for persistence

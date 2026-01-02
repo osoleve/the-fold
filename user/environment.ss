@@ -13,8 +13,8 @@
 ;;; Dependencies
 ;;; ============================================================
 
-(load "shell/color.ss")
-(load "shell/layout-color.ss")
+(load "shell/ui/color.ss")
+(load "shell/ui/layout-color.ss")
 (load "user/security-utils.ss")
 
 ;;; ============================================================
@@ -81,11 +81,11 @@
             [cy (point-y center)])
            (let ([c (draw-char-colored canvas center #\o ripple-color color-default)])
                 (if (> radius 0)
-                    (let ([c (draw-char-colored c (point (max 0 (- cx 1)) cy) #\. ripple-color color-default)]
-                          [c (draw-char-colored c (point (+ cx 1) cy) #\. ripple-color color-default)]
-                          [c (draw-char-colored c (point cx (max 0 (- cy 1))) #\. ripple-color color-default)]
-                          [c (draw-char-colored c (point cx (+ cy 1)) #\. ripple-color color-default)])
-                         c)
+                    (let* ([c (draw-char-colored c (point (max 0 (- cx 1)) cy) #\. ripple-color color-default)]
+                           [c (draw-char-colored c (point (+ cx 1) cy) #\. ripple-color color-default)]
+                           [c (draw-char-colored c (point cx (max 0 (- cy 1))) #\. ripple-color color-default)]
+                           [c (draw-char-colored c (point cx (+ cy 1)) #\. ripple-color color-default)])
+                          c)
                     c)))))
 
 ;;; render-pond : Canvas × TimeOfDay → Canvas

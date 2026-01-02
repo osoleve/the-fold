@@ -11,7 +11,7 @@
 ;;;   (bold "text") -> "**text**"
 ;;;   (bullet-list '("a" "b")) -> "• a\\n• b"
 
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 ;;; ============================================================
 ;;; Inline Formatting

@@ -24,7 +24,7 @@
 ;;;   (run-persona my-persona)  ; => "You are MyAgent.\nYour voice is warm.\n..."
 
 (load "core/fp/meta/dsl.ss")
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 ;;; ============================================================
 ;;; Prompt DSL Instructions

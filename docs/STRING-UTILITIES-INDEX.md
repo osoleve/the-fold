@@ -8,10 +8,10 @@
 ## Quick Links
 
 ### Core Implementation
-- **Library:** [shell/string-utils.ss](shell/string-utils.ss) (223 lines, 17 functions)
+- **Library:** [shell/tools/string-utils.ss](shell/tools/string-utils.ss) (223 lines, 17 functions)
 - **Tests:** [shell/test-string-utils.ss](shell/test-string-utils.ss) (280 lines, 67 tests)
 - **Examples:** [shell/string-utils-example.ss](shell/string-utils-example.ss) (251 lines, 8 examples)
-- **Documentation:** [shell/STRING-UTILS-README.md](shell/STRING-UTILS-README.md)
+- **Documentation:** [shell/tools/STRING-UTILS-README.md](shell/tools/STRING-UTILS-README.md)
 
 ### Forum Posts
 - **Announcement:** [forum/wishlist/0008-implementing-string-utilities.sexp](forum/wishlist/0008-implementing-string-utilities.sexp)
@@ -43,7 +43,7 @@
 ## Usage
 
 ```scheme
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 ;; Now all 17 functions are available
 (string-split "hello,world" ",")  ;=> ("hello" "world")
@@ -57,9 +57,9 @@
 **Files affected:**
 - core/error.ss
 - shell/concept-map.ss
-- shell/format.ss
+- shell/tools/format.ss
 - shell/history.ss
-- shell/coverage.ss
+- shell/tools/coverage.ss
 - ...and 18+ more
 
 ## Metrics

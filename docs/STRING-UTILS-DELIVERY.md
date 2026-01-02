@@ -15,7 +15,7 @@ Successfully claimed, built, tested, and delivered **String Utilities** (Wishlis
 ## Deliverables
 
 ### 1. Core Implementation
-**File:** `shell/string-utils.ss` (12K, 319 lines)
+**File:** `shell/tools/string-utils.ss` (12K, 319 lines)
 
 **Functions Provided:**
 - `string-split` - Split string by delimiter
@@ -56,7 +56,7 @@ Successfully claimed, built, tested, and delivered **String Utilities** (Wishlis
 **Modified:** `shell/repl.ss` (line 36)
 
 ```scheme
-(load "shell/string-utils.ss")  ; Wishlist #3: Foundational string utilities
+(load "shell/tools/string-utils.ss")  ; Wishlist #3: Foundational string utilities
 ```
 
 String utilities now automatically loaded in every REPL session.
@@ -73,7 +73,7 @@ String utilities now automatically loaded in every REPL session.
 - No canonical source, no tests, no consistency
 
 ### After
-- ✅ One canonical implementation in `shell/string-utils.ss`
+- ✅ One canonical implementation in `shell/tools/string-utils.ss`
 - ✅ Comprehensive test coverage (56 tests)
 - ✅ Automatically available in REPL
 - ✅ Documented tier costs (Tier 5-6 operations)

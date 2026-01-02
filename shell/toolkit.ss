@@ -39,22 +39,22 @@
 ;;; Tool registry: ((name category description file) ...)
 (define *toolkit-tools*
   '(;; Building Tools
-    (module-deps building "Analyze module dependencies and detect cycles" "module-deps.ss")
+    (module-deps building "Analyze module dependencies and detect cycles" "tools/module-deps.ss")
     (xref building "Find all uses and definitions of symbols" "xref.ss")
     (commands building "Structured command registry system" "commands.ss")
     (edit building "Text file editing utilities" "edit.ss")
-    (validate building "Validation utilities for blocks and data" "validate.ss")
+    (validate building "Validation utilities for blocks and data" "tools/validate.ss")
     (meta building "Inline metadata tag parser" "meta.ss")
-    (scaffold building "Code scaffolding and templating system" "scaffold.ss")
-    (format building "Code formatter and pretty-printer" "format.ss")
-    (init-project building "Project initialization wizard" "init-project.ss")
+    (scaffold building "Code scaffolding and templating system" "tools/scaffold.ss")
+    (format building "Code formatter and pretty-printer" "tools/format.ss")
+    (init-project building "Project initialization wizard" "tools/init-project.ss")
     
     ;; Workflow Tools
     (test-runner workflow "Comprehensive test automation and discovery" "test-runner.ss")
     (watch workflow "File watching with auto-reload and auto-test" "watch.ss")
     (history workflow "Persistent REPL command history" "history.ss")
-    (docgen workflow "Documentation generator for Scheme code" "docgen.ss")
-    (git-workflow workflow "Git workflow helpers and shortcuts" "git-workflow.ss")
+    (docgen workflow "Documentation generator for Scheme code" "tools/docgen.ss")
+    (git-workflow workflow "Git workflow helpers and shortcuts" "git/git-workflow.ss")
     
     ;; Introspection Tools
     (block-diff introspection "Compare and diff blocks structurally" "block-diff.ss")
@@ -76,8 +76,8 @@
     (project-status analysis "Show project status and metrics" "project-status.ss")
     (concept-map analysis "Generate concept maps" "concept-map.ss")
     (perf-monitor analysis "Real-time performance monitoring dashboard" "perf-monitor.ss")
-    (benchmark analysis "Benchmarking harness with statistics" "benchmark.ss")
-    (coverage analysis "Code coverage analyzer" "coverage.ss")))
+    (benchmark analysis "Benchmarking harness with statistics" "tools/benchmark.ss")
+    (coverage analysis "Code coverage analyzer" "tools/coverage.ss")))
 
 ;;; ============================================================
 ;;; Help System

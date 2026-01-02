@@ -26,7 +26,7 @@
 ;;; ============================================================
 
 ;; Useful string utilities (string-trim, string-blank?, etc).
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 ;;; ============================================================
 ;;; Quill Modules (load order)

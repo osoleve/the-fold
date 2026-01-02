@@ -13,9 +13,9 @@
 ;;; Dependencies
 ;;; ============================================================
 
-(load "shell/color.ss")
-(load "shell/layout-color.ss")
-(load "shell/animation.ss")
+(load "shell/ui/color.ss")
+(load "shell/ui/layout-color.ss")
+(load "shell/ui/animation.ss")
 
 ;;; ============================================================
 ;;; Particle Type

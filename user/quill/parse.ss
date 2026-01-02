@@ -6,7 +6,7 @@
 ;;; Depends on fabric/stitches/parse.ss (parser combinators).
 
 (load "core/lang/parse.ss")
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 
 ;;; Helpers
 (define (quill-parse-complete parser input)

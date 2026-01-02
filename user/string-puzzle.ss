@@ -2,7 +2,7 @@
 ;;;
 ;;; A fun text adventure using string utilities!
 
-(load "shell/string-utils.ss")
+(load "shell/tools/string-utils.ss")
 (load "user/security-utils.ss")
 
 ;;; Secure helper functions with validation
