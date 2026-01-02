@@ -113,9 +113,19 @@
 (define COLOR-TYPE-RGB 1)
 (define COLOR-TYPE-PALETTE 2)
 
+;;; clamp-byte : Integer → Byte
+;;; Clamp an integer to valid byte range [0, 255].
+(define (clamp-byte n)
+  (cond
+   [(not (integer? n)) 0]
+   [(< n 0) 0]
+   [(> n 255) 255]
+   [else n]))
+
 ;;; serialize-color : Color → Bytevector
 ;;; Serialize a color to bytes.
 ;;; Format: [type : 1 byte][data : 0-3 bytes]
+;;; Defensive: Clamps RGB/palette values to valid byte range.
 (define (serialize-color c)
   (cond
    [(color-default? c)
@@ -124,9 +134,9 @@
          bv)]
    [(color-rgb? c)
     (let ([bv (make-bytevector 4)]
-          [r (cadr c)]
-          [g (caddr c)]
-          [b (cadddr c)])
+          [r (clamp-byte (cadr c))]
+          [g (clamp-byte (caddr c))]
+          [b (clamp-byte (cadddr c))])
          (bytevector-u8-set! bv 0 COLOR-TYPE-RGB)
          (bytevector-u8-set! bv 1 r)
          (bytevector-u8-set! bv 2 g)
@@ -134,7 +144,7 @@
          bv)]
    [(color-palette? c)
     (let ([bv (make-bytevector 2)]
-          [n (cadr c)])
+          [n (clamp-byte (cadr c))])
          (bytevector-u8-set! bv 0 COLOR-TYPE-PALETTE)
          (bytevector-u8-set! bv 1 n)
          bv)]
@@ -144,25 +154,36 @@
          (bytevector-u8-set! bv 0 COLOR-TYPE-DEFAULT)
          bv)]))
 
-;;; deserialize-color : Bytevector × Nat → (Color . Nat)
+;;; deserialize-color : Bytevector × Nat → (Color . Nat) | #f
 ;;; Deserialize a color from bytes at given offset.
-;;; Returns (color . new-offset).
+;;; Returns (color . new-offset) or #f if bytevector is too short.
+;;; Defensive: Validates bytevector bounds before reading.
 (define (deserialize-color bv offset)
-  (let ([type (bytevector-u8-ref bv offset)])
-       (cond
-        [(= type COLOR-TYPE-DEFAULT)
-         (cons color-default (+ offset 1))]
-        [(= type COLOR-TYPE-RGB)
-         (let ([r (bytevector-u8-ref bv (+ offset 1))]
-               [g (bytevector-u8-ref bv (+ offset 2))]
-               [b (bytevector-u8-ref bv (+ offset 3))])
-              (cons (make-color-rgb r g b) (+ offset 4)))]
-        [(= type COLOR-TYPE-PALETTE)
-         (let ([n (bytevector-u8-ref bv (+ offset 1))])
-              (cons (make-color-palette n) (+ offset 2)))]
-        [else
-         ;; Unknown type, treat as default
-         (cons color-default (+ offset 1))])))
+  (let ([len (bytevector-length bv)])
+       ;; Need at least 1 byte for type
+       (if (>= offset len)
+           #f
+           (let ([type (bytevector-u8-ref bv offset)])
+                (cond
+                 [(= type COLOR-TYPE-DEFAULT)
+                  (cons color-default (+ offset 1))]
+                 [(= type COLOR-TYPE-RGB)
+                  ;; Need 4 bytes total (type + 3 RGB)
+                  (if (> (+ offset 4) len)
+                      #f
+                      (let ([r (bytevector-u8-ref bv (+ offset 1))]
+                            [g (bytevector-u8-ref bv (+ offset 2))]
+                            [b (bytevector-u8-ref bv (+ offset 3))])
+                           (cons (make-color-rgb r g b) (+ offset 4))))]
+                 [(= type COLOR-TYPE-PALETTE)
+                  ;; Need 2 bytes total (type + palette index)
+                  (if (> (+ offset 2) len)
+                      #f
+                      (let ([n (bytevector-u8-ref bv (+ offset 1))])
+                           (cons (make-color-palette n) (+ offset 2))))]
+                 [else
+                  ;; Unknown type, treat as default
+                  (cons color-default (+ offset 1))])))))
 
 ;;; colored-canvas->block : Canvas × (Vector Cell) → Block
 ;;; Store a canvas with full color information.
@@ -210,41 +231,86 @@
          [payload (bytevector-concat (append header cell-parts))])
         (make-block 'colored-canvas payload empty-refs)))
 
+;;; valid-char-code? : Integer → Boolean
+;;; Check if an integer is a valid Unicode code point.
+;;; Excludes surrogates (0xD800-0xDFFF) and values > 0x10FFFF.
+(define (valid-char-code? n)
+  (and (integer? n)
+       (>= n 0)
+       (<= n #x10FFFF)
+       (not (and (>= n #xD800) (<= n #xDFFF)))))
+
+;;; safe-integer->char : Integer → Char
+;;; Convert integer to char, returning space for invalid codes.
+(define (safe-integer->char n)
+  (if (valid-char-code? n)
+      (integer->char n)
+      #\space))
+
+
 ;;; block->colored-canvas : Block → (Canvas . Vector Cell) | #f
 ;;; Reconstruct a colored canvas from a block.
 ;;; Returns (canvas . color-cells) or #f if block is invalid.
+;;; Defensive: Validates payload bounds and character codes.
 (define (block->colored-canvas blk)
   (if (not (eq? (block-tag blk) 'colored-canvas))
       #f
-      (let* ([payload (block-payload blk)]
-             [w (bytes-le->u32 payload 0)]
-             [h (bytes-le->u32 payload 4)]
-             [cell-count (* w h)]
-             [canvas-cells (make-vector cell-count #\space)]
-             [color-cells (make-vector cell-count #f)])
-            ;; Parse each cell
-            (let loop ([i 0] [offset 8])
-                 (if (>= i cell-count)
-                     ;; Build canvas and return
-                     (let ([canvas (make-canvas% w h canvas-cells)])
-                          (cons canvas color-cells))
-                     (let* (;; Character (4 bytes UTF-32)
-                            [char-code (bytes-le->u32 payload offset)]
-                            [ch (integer->char char-code)]
-                            [offset (+ offset 4)]
-                            ;; Foreground color
-                            [fg-result (deserialize-color payload offset)]
-                            [fg (car fg-result)]
-                            [offset (cdr fg-result)]
-                            ;; Background color
-                            [bg-result (deserialize-color payload offset)]
-                            [bg (car bg-result)]
-                            [offset (cdr bg-result)]
-                            ;; Create cell
-                            [cell (make-cell ch fg bg)])
-                           (vector-set! canvas-cells i ch)
-                           (vector-set! color-cells i cell)
-                           (loop (+ i 1) offset)))))))
+      (parse-colored-canvas-payload (block-payload blk))))
+
+;;; parse-colored-canvas-payload : Bytevector → (Canvas . Vector Cell) | #f
+;;; Internal: Parse colored canvas from payload bytes.
+(define (parse-colored-canvas-payload payload)
+  (let ([payload-len (bytevector-length payload)])
+       ;; Need at least 8 bytes for width and height
+       (if (< payload-len 8)
+           #f
+           (let ([w (bytes-le->u32 payload 0)]
+                 [h (bytes-le->u32 payload 4)])
+                ;; Sanity check dimensions (max 10000x10000 to prevent DoS)
+                (if (or (> w 10000) (> h 10000) (= w 0) (= h 0))
+                    #f
+                    (parse-colored-canvas-cells payload payload-len w h))))))
+
+;;; parse-colored-canvas-cells : Bytevector × Nat × Nat × Nat → (Canvas . Vector Cell) | #f
+;;; Internal: Parse cell data from payload.
+(define (parse-colored-canvas-cells payload payload-len w h)
+  (let* ([cell-count (* w h)]
+         [canvas-cells (make-vector cell-count #\space)]
+         [color-cells (make-vector cell-count #f)])
+        (let loop ([i 0] [offset 8])
+             (cond
+              ;; Done - build and return result
+              [(>= i cell-count)
+               (cons (make-canvas% w h canvas-cells) color-cells)]
+              ;; Not enough bytes for char code
+              [(> (+ offset 4) payload-len)
+               #f]
+              ;; Parse one cell
+              [else
+               (let ([result (parse-one-cell payload offset)])
+                    (if (not result)
+                        #f
+                        (let ([ch (car result)]
+                              [cell (cadr result)]
+                              [next-offset (cddr result)])
+                             (vector-set! canvas-cells i ch)
+                             (vector-set! color-cells i cell)
+                             (loop (+ i 1) next-offset))))]))))
+
+;;; parse-one-cell : Bytevector × Nat → (Char Cell . Nat) | #f
+;;; Internal: Parse one cell from payload at offset.
+;;; Returns (char cell . new-offset) or #f on failure.
+(define (parse-one-cell payload offset)
+  (let* ([char-code (bytes-le->u32 payload offset)]
+         [ch (safe-integer->char char-code)]
+         [fg-result (deserialize-color payload (+ offset 4))])
+        (if (not fg-result)
+            #f
+            (let ([bg-result (deserialize-color payload (cdr fg-result))])
+                 (if (not bg-result)
+                     #f
+                     (let ([cell (make-cell ch (car fg-result) (car bg-result))])
+                          (cons ch (cons cell (cdr bg-result)))))))))
 
 ;;; store-colored-canvas! : FS × Canvas × (Vector Cell) → Bytevector
 ;;; Store a colored canvas in the CAS and return its hash.
