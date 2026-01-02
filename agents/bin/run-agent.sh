@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+export PATH=/usr/local/bin:/usr/bin:/bin:/home/oso/.local/bin
 #
 # run-agent.sh - Execute a persona's workflow
 #
