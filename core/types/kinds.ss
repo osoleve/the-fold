@@ -450,6 +450,277 @@
                   (=> (Monoid a) a))))))
 
 ;;; ============================================================
+;;; Contravariant and Bifunctors
+;;; ============================================================
+
+;;; Contravariant : (* → *) → Constraint
+;;; The dual of Functor — consumes rather than produces values.
+;;; contramap : (a → b) → f b → f a   (note the flip!)
+(define TC-Contravariant
+  (make-typeclass
+   'Contravariant
+   (K=> (K=> K* K*) K-constraint)
+   '()
+   `((contramap . (∀ (f a b)
+                     (=> (Contravariant f)
+                         (-> (-> a b) (@ f b) (@ f a))))))))
+
+;;; Bifunctor : (* → * → *) → Constraint
+;;; Functor in two arguments — can map over both.
+;;; bimap : (a → b) → (c → d) → p a c → p b d
+;;; first : (a → b) → p a c → p b c
+;;; second : (c → d) → p a c → p a d
+(define TC-Bifunctor
+  (make-typeclass
+   'Bifunctor
+   (K=> (K=>* K* K* K*) K-constraint)  ; (* → * → *) → Constraint
+   '()
+   `((bimap  . (∀ (p a b c d)
+                  (=> (Bifunctor p)
+                      (-> (-> a b) (-> c d) (@ (@ p a) c) (@ (@ p b) d)))))
+     (first  . (∀ (p a b c)
+                  (=> (Bifunctor p)
+                      (-> (-> a b) (@ (@ p a) c) (@ (@ p b) c)))))
+     (second . (∀ (p a c d)
+                  (=> (Bifunctor p)
+                      (-> (-> c d) (@ (@ p a) c) (@ (@ p a) d))))))))
+
+;;; ============================================================
+;;; Category Theory Type Classes
+;;; ============================================================
+
+;;; Category : (* → * → *) → Constraint
+;;; A category has objects (types) and morphisms between them.
+;;; id : cat a a                         (identity morphism)
+;;; . : cat b c → cat a b → cat a c      (composition)
+(define TC-Category
+  (make-typeclass
+   'Category
+   (K=> (K=>* K* K* K*) K-constraint)  ; (* → * → *) → Constraint
+   '()
+   `((id . (∀ (cat a)
+              (=> (Category cat)
+                  (@ (@ cat a) a))))
+     (∘  . (∀ (cat a b c)
+              (=> (Category cat)
+                  (-> (@ (@ cat b) c) (@ (@ cat a) b) (@ (@ cat a) c))))))))
+
+;;; Profunctor : (* → * → *) → Constraint
+;;; Contravariant in first argument, covariant in second.
+;;; dimap : (a → b) → (c → d) → p b c → p a d
+(define TC-Profunctor
+  (make-typeclass
+   'Profunctor
+   (K=> (K=>* K* K* K*) K-constraint)
+   '()
+   `((dimap . (∀ (p a b c d)
+                 (=> (Profunctor p)
+                     (-> (-> a b) (-> c d) (@ (@ p b) c) (@ (@ p a) d)))))
+     (lmap  . (∀ (p a b c)
+                 (=> (Profunctor p)
+                     (-> (-> a b) (@ (@ p b) c) (@ (@ p a) c)))))
+     (rmap  . (∀ (p a c d)
+                 (=> (Profunctor p)
+                     (-> (-> c d) (@ (@ p a) c) (@ (@ p a) d))))))))
+
+;;; Arrow : (* → * → *) → Constraint
+;;; Generalization of functions with structured computation.
+(define TC-Arrow
+  (make-typeclass
+   'Arrow
+   (K=> (K=>* K* K* K*) K-constraint)
+   '(Category)
+   `((arr    . (∀ (arr a b)
+                  (=> (Arrow arr)
+                      (-> (-> a b) (@ (@ arr a) b)))))
+     (first* . (∀ (arr a b c)
+                  (=> (Arrow arr)
+                      (-> (@ (@ arr a) b) (@ (@ arr (× a c)) (× b c))))))
+     (second* . (∀ (arr a b c)
+                   (=> (Arrow arr)
+                       (-> (@ (@ arr a) b) (@ (@ arr (× c a)) (× c b))))))
+     (***    . (∀ (arr a b c d)
+                  (=> (Arrow arr)
+                      (-> (@ (@ arr a) b) (@ (@ arr c) d)
+                          (@ (@ arr (× a c)) (× b d))))))
+     (&&&   . (∀ (arr a b c)
+                 (=> (Arrow arr)
+                     (-> (@ (@ arr a) b) (@ (@ arr a) c)
+                         (@ (@ arr a) (× b c)))))))))
+
+;;; ============================================================
+;;; Multi-Parameter Type Classes with Functional Dependencies
+;;; ============================================================
+
+;;; Multi-parameter type classes constrain relationships between
+;;; multiple type parameters. Functional dependencies guide type
+;;; inference by declaring which parameters determine others.
+;;;
+;;; Example:
+;;;   class MonadReader r m | m -> r where
+;;;     ask :: m r
+;;;     local :: (r -> r) -> m a -> m a
+;;;
+;;; The fundep "m -> r" means: knowing m determines r uniquely.
+;;; This enables the type checker to infer r from m.
+
+;;; Multi-parameter type class with functional dependencies
+(define-record-type mparam-typeclass
+  (fields
+   name        ; Symbol
+   params      ; (List Symbol) — type parameters (e.g., (r m))
+   param-kinds ; (List Kind) — kind of each parameter
+   fundeps     ; (List (List Symbol × List Symbol)) — functional deps
+   supers      ; (List Constraint)
+   methods))   ; (List (name . type-scheme))
+
+;;; make-mparam-typeclass is provided by define-record-type
+
+;;; fundep : (List Symbol) × (List Symbol) → FunDep
+;;; Create a functional dependency: lhs -> rhs
+(define (fundep lhs rhs)
+  (cons lhs rhs))
+
+;;; fundep-lhs : FunDep → (List Symbol)
+(define (fundep-lhs fd) (car fd))
+
+;;; fundep-rhs : FunDep → (List Symbol)
+(define (fundep-rhs fd) (cdr fd))
+
+;;; ============================================================
+;;; Multi-Parameter Type Class Examples
+;;; ============================================================
+
+;;; Convertible a b — convert between types
+;;; No fundeps: a and b are independent
+(define TC-Convertible
+  (make-mparam-typeclass
+   'Convertible
+   '(a b)
+   (list K* K*)
+   '()  ; no functional dependencies
+   '()
+   `((convert . (∀ (a b)
+                   (=> (Convertible a b)
+                       (-> a b)))))))
+
+;;; Collection c e | c -> e — collections with element type
+;;; The fundep c -> e means the collection type determines element type
+(define TC-Collection
+  (make-mparam-typeclass
+   'Collection
+   '(c e)
+   (list K* K*)
+   (list (fundep '(c) '(e)))  ; c determines e
+   '()
+   `((empty   . (∀ (c e)
+                   (=> (Collection c e) c)))
+     (insert  . (∀ (c e)
+                   (=> (Collection c e)
+                       (-> e c c))))
+     (member? . (∀ (c e)
+                   (=> ((Collection c e) (Eq e))
+                       (-> e c Bool)))))))
+
+;;; MonadReader r m | m -> r — reader monad class
+;;; The monad type determines the environment type
+(define TC-MonadReader
+  (make-mparam-typeclass
+   'MonadReader
+   '(r m)
+   (list K* (K=> K* K*))  ; r : *, m : * → *
+   (list (fundep '(m) '(r)))
+   '(Monad)
+   `((ask   . (∀ (r m)
+                 (=> (MonadReader r m)
+                     (@ m r))))
+     (local . (∀ (r m a)
+                 (=> (MonadReader r m)
+                     (-> (-> r r) (@ m a) (@ m a))))))))
+
+;;; MonadState s m | m -> s — state monad class
+(define TC-MonadState
+  (make-mparam-typeclass
+   'MonadState
+   '(s m)
+   (list K* (K=> K* K*))
+   (list (fundep '(m) '(s)))
+   '(Monad)
+   `((get    . (∀ (s m)
+                  (=> (MonadState s m)
+                      (@ m s))))
+     (put    . (∀ (s m)
+                  (=> (MonadState s m)
+                      (-> s (@ m Unit)))))
+     (modify . (∀ (s m)
+                  (=> (MonadState s m)
+                      (-> (-> s s) (@ m Unit))))))))
+
+;;; MonadWriter w m | m -> w — writer monad class
+(define TC-MonadWriter
+  (make-mparam-typeclass
+   'MonadWriter
+   '(w m)
+   (list K* (K=> K* K*))
+   (list (fundep '(m) '(w)))
+   '(Monad Monoid)  ; w must be a Monoid
+   `((tell   . (∀ (w m)
+                  (=> (MonadWriter w m)
+                      (-> w (@ m Unit)))))
+     (listen . (∀ (w m a)
+                  (=> (MonadWriter w m)
+                      (-> (@ m a) (@ m (× a w))))))
+     (pass   . (∀ (w m a)
+                  (=> (MonadWriter w m)
+                      (-> (@ m (× a (-> w w))) (@ m a))))))))
+
+;;; ============================================================
+;;; Functional Dependency Utilities
+;;; ============================================================
+
+;;; apply-fundep : FunDep × TypeSubst → TypeSubst
+;;; Given known type bindings, derive new bindings from fundep.
+(define (apply-fundep fd subst)
+  ;; If all LHS params are bound in subst, RHS params
+  ;; can be determined (in actual resolution, looked up from instance)
+  (let* ([lhs (fundep-lhs fd)]
+         [rhs (fundep-rhs fd)]
+         [lhs-bound? (andmap (lambda (p) (assq p subst)) lhs)])
+        (if lhs-bound?
+            ;; LHS determines RHS — mark RHS as determinable
+            (map (lambda (p) (cons p 'determined)) rhs)
+            '())))
+
+;;; fundeps-closure : (List FunDep) × (Set Symbol) → (Set Symbol)
+;;; Compute the closure of known parameters under functional deps.
+(define (fundeps-closure fundeps known)
+  ;; Add new elements to set without duplicates
+  (define (add-new acc new-elems)
+    (fold-left (lambda (a e)
+                       (if (memq e a) a (cons e a)))
+               acc
+               new-elems))
+  (let loop ([known known])
+       (let ([new-known
+              (fold-left
+               (lambda (acc fd)
+                       (if (andmap (lambda (p) (memq p acc)) (fundep-lhs fd))
+                           (add-new acc (fundep-rhs fd))
+                           acc))
+               known
+               fundeps)])
+            (if (= (length new-known) (length known))
+                known
+                (loop new-known)))))
+
+;;; check-fundep-consistency : (List FunDep) × Instance × Instance → Bool
+;;; Check that two instances don't violate functional dependencies.
+;;; If instances agree on LHS types, they must agree on RHS types.
+(define (check-fundep-consistency fundeps inst1 inst2)
+  ;; Placeholder — full implementation requires type unification
+  #t)
+
+;;; ============================================================
 ;;; Type Class Instances
 ;;; ============================================================
 

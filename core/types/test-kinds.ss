@@ -232,6 +232,98 @@
 ;;; Note: Instance implementations are deferred.
 ;;; See docs/decisions/ADR-001-type-classes-deferred.md
 
+;;; ============================================================
+;;; Category Theory Type Classes
+;;; ============================================================
+(test-section "Category Theory Type Classes")
+
+;; TC-Contravariant
+(test "Contravariant exists" #t (typeclass? TC-Contravariant))
+(test "Contravariant name" 'Contravariant (typeclass-name TC-Contravariant))
+(test "Contravariant kind" '(⇒ (⇒ * *) Constraint) (typeclass-kind TC-Contravariant))
+(test "Contravariant has contramap" #t (pair? (assq 'contramap (typeclass-methods TC-Contravariant))))
+
+;; TC-Bifunctor
+(test "Bifunctor exists" #t (typeclass? TC-Bifunctor))
+(test "Bifunctor name" 'Bifunctor (typeclass-name TC-Bifunctor))
+(test "Bifunctor kind" '(⇒ (⇒ * (⇒ * *)) Constraint) (typeclass-kind TC-Bifunctor))
+(test "Bifunctor has bimap" #t (pair? (assq 'bimap (typeclass-methods TC-Bifunctor))))
+(test "Bifunctor has first" #t (pair? (assq 'first (typeclass-methods TC-Bifunctor))))
+(test "Bifunctor has second" #t (pair? (assq 'second (typeclass-methods TC-Bifunctor))))
+
+;; TC-Category
+(test "Category exists" #t (typeclass? TC-Category))
+(test "Category name" 'Category (typeclass-name TC-Category))
+(test "Category kind" '(⇒ (⇒ * (⇒ * *)) Constraint) (typeclass-kind TC-Category))
+(test "Category has id" #t (pair? (assq 'id (typeclass-methods TC-Category))))
+(test "Category has compose" #t (pair? (assq '∘ (typeclass-methods TC-Category))))
+
+;; TC-Profunctor
+(test "Profunctor exists" #t (typeclass? TC-Profunctor))
+(test "Profunctor name" 'Profunctor (typeclass-name TC-Profunctor))
+(test "Profunctor has dimap" #t (pair? (assq 'dimap (typeclass-methods TC-Profunctor))))
+(test "Profunctor has lmap" #t (pair? (assq 'lmap (typeclass-methods TC-Profunctor))))
+(test "Profunctor has rmap" #t (pair? (assq 'rmap (typeclass-methods TC-Profunctor))))
+
+;; TC-Arrow
+(test "Arrow exists" #t (typeclass? TC-Arrow))
+(test "Arrow name" 'Arrow (typeclass-name TC-Arrow))
+(test "Arrow requires Category" '(Category) (typeclass-supers TC-Arrow))
+(test "Arrow has arr" #t (pair? (assq 'arr (typeclass-methods TC-Arrow))))
+
+;;; ============================================================
+;;; Multi-Parameter Type Classes
+;;; ============================================================
+(test-section "Multi-Parameter Type Classes")
+
+;; TC-Convertible
+(test "Convertible exists" #t (mparam-typeclass? TC-Convertible))
+(test "Convertible name" 'Convertible (mparam-typeclass-name TC-Convertible))
+(test "Convertible params" '(a b) (mparam-typeclass-params TC-Convertible))
+(test "Convertible param-kinds" (list K* K*) (mparam-typeclass-param-kinds TC-Convertible))
+(test "Convertible no fundeps" '() (mparam-typeclass-fundeps TC-Convertible))
+
+;; TC-Collection with fundep
+(test "Collection exists" #t (mparam-typeclass? TC-Collection))
+(test "Collection params" '(c e) (mparam-typeclass-params TC-Collection))
+(test "Collection has fundep" 1 (length (mparam-typeclass-fundeps TC-Collection)))
+
+;; TC-MonadReader with fundep
+(test "MonadReader exists" #t (mparam-typeclass? TC-MonadReader))
+(test "MonadReader params" '(r m) (mparam-typeclass-params TC-MonadReader))
+(test "MonadReader requires Monad" '(Monad) (mparam-typeclass-supers TC-MonadReader))
+(test "MonadReader fundep m->r" '((m) . (r)) (car (mparam-typeclass-fundeps TC-MonadReader)))
+
+;; TC-MonadState
+(test "MonadState exists" #t (mparam-typeclass? TC-MonadState))
+(test "MonadState fundep m->s" '((m) . (s)) (car (mparam-typeclass-fundeps TC-MonadState)))
+(test "MonadState has get" #t (pair? (assq 'get (mparam-typeclass-methods TC-MonadState))))
+(test "MonadState has put" #t (pair? (assq 'put (mparam-typeclass-methods TC-MonadState))))
+
+;; TC-MonadWriter
+(test "MonadWriter exists" #t (mparam-typeclass? TC-MonadWriter))
+(test "MonadWriter supers" '(Monad Monoid) (mparam-typeclass-supers TC-MonadWriter))
+
+;;; ============================================================
+;;; Functional Dependency Utilities
+;;; ============================================================
+(test-section "Functional Dependency Utilities")
+
+(test "fundep construction" '((a) . (b)) (fundep '(a) '(b)))
+(test "fundep-lhs" '(a) (fundep-lhs (fundep '(a) '(b))))
+(test "fundep-rhs" '(b) (fundep-rhs (fundep '(a) '(b))))
+
+;; fundeps-closure
+(test "fundeps-closure simple"
+      '(b a)
+      (fundeps-closure (list (fundep '(a) '(b))) '(a)))
+(test "fundeps-closure chain"
+      '(c b a)
+      (fundeps-closure (list (fundep '(a) '(b)) (fundep '(b) '(c))) '(a)))
+(test "fundeps-closure no match"
+      '(x)
+      (fundeps-closure (list (fundep '(a) '(b))) '(x)))
+
 (newline)
-(display "✓ All higher-kinded type tests complete.
-")
+(display "All higher-kinded type tests complete.")
+(newline)
