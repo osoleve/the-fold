@@ -1,4 +1,6 @@
 ;;; core/base/prelude.ss — Shared Utilities for Core Modules
+;;; @module prelude
+;;; @requires
 ;;;
 ;;; Common pure functions used across core/ modules.
 ;;; This is the ONLY place for these implementations.

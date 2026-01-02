@@ -1,4 +1,6 @@
 ;;; core/base/sha256.ss — SHA-256 implementation (FIPS 180-4)
+;;; @module sha256
+;;; @requires
 ;;;
 ;;; sha256 : Bytevector → Bytevector (32 bytes)
 ;;;

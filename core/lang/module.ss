@@ -1,17 +1,23 @@
-;;; fabric/stitches/module.ss — Simple Module System for The Fold
+;;; core/lang/module.ss — Module System for The Fold
+;;; @module module
+;;; @requires prelude
 ;;;
 ;;; Provides a module loader that:
 ;;;   - Tracks loaded modules to avoid reloading
 ;;;   - Automatically loads dependencies in order
+;;;   - Parses @module/@requires annotations from file headers
 ;;;   - Records load times for performance metrics
+;;;   - Provides discovery functions for LLMs and users
 ;;;
 ;;; Usage:
-;;;   (require 'compile)        ; Load core/compile.ss and dependencies
+;;;   (require 'compile)        ; Load module and its dependencies
 ;;;   (require 'eval 'infer)    ; Load multiple modules
+;;;   (modules)                 ; List all registered modules
+;;;   (module-info 'eval)       ; Show module details (deps, path, status)
 ;;;   (module-stats)            ; Show load times
 ;;;   (module-deps 'eval)       ; Show dependencies of a module
 ;;;
-;;; Module Manifest (at top of .ss files):
+;;; Module Header Format (at top of .ss files):
 ;;;   ;;; @module eval
 ;;;   ;;; @requires prelude block prim
 ;;;
@@ -43,7 +49,223 @@
 (hashtable-set! *module-registry* 'prelude (cons #t 0))
 
 ;;; ============================================================
-;;; Dependency Declarations
+;;; Module Path Registry
+;;; ============================================================
+
+;;; *module-paths* : Hashtable Symbol → String
+;;; Maps module names to file paths
+(define *module-paths* (make-eq-hashtable))
+
+;;; *module-path-cache* : Hashtable Symbol → String
+;;; Cache for discovered paths
+(define *module-path-cache* (make-eq-hashtable))
+
+;;; *header-cache* : Hashtable String → (name . deps) | #f
+;;; Cache for parsed headers (keyed by file path)
+(define *header-cache* (make-hashtable string-hash string=?))
+
+;;; *core-search-dirs* : (List String)
+;;; Directories to search when resolving module names
+(define *core-search-dirs*
+  '("base" "blocks" "lang" "types" "data" "query" "util"
+    "linalg" "numeric" "autodiff" "random" "pipeline" "info-theory"
+    "fp" "fp/control" "fp/numeric" "fp/parsing" "fp/meta"
+    "fp/data" "fp/game" "fp/symbolic" "fp/measure" "fp/control-systems"))
+
+;;; register-module-path! : Symbol × String → void
+;;; Register a module's file path.
+(define (register-module-path! name path)
+  (hashtable-set! *module-paths* name path))
+
+;;; Initialize known module paths (core modules)
+(begin
+ ;; BASE layer
+ (register-module-path! 'prelude "core/base/prelude.ss")
+ (register-module-path! 'sha256 "core/base/sha256.ss")
+ (register-module-path! 'error "core/base/error.ss")
+ 
+ ;; Block layer
+ (register-module-path! 'block "core/blocks/block.ss")
+ (register-module-path! 'cas "core/blocks/cas.ss")
+ (register-module-path! 'normalize "core/blocks/normalize.ss")
+ (register-module-path! 'expand "core/blocks/expand.ss")
+ 
+ ;; Lang layer
+ (register-module-path! 'parse "core/lang/parse.ss")
+ (register-module-path! 'span "core/lang/span.ss")
+ (register-module-path! 'fold-parse "core/lang/fold-parse.ss")
+ (register-module-path! 'prim "core/lang/prim.ss")
+ (register-module-path! 'eval "core/lang/eval.ss")
+ (register-module-path! 'compile "core/lang/compile.ss")
+ (register-module-path! 'module "core/lang/module.ss")
+ (register-module-path! 'nbe "core/lang/nbe.ss")
+ 
+ ;; Types layer
+ (register-module-path! 'types "core/types/types.ss")
+ (register-module-path! 'kinds "core/types/kinds.ss")
+ (register-module-path! 'infer "core/types/infer.ss")
+ (register-module-path! 'resolve "core/types/resolve.ss")
+ (register-module-path! 'annotate "core/types/annotate.ss")
+ (register-module-path! 'dep-types "core/types/dep-types.ss")
+ 
+ ;; Query layer
+ (register-module-path! 'query "core/query/query.ss")
+ (register-module-path! 'query-dsl "core/query/query-dsl.ss")
+ 
+ ;; Data layer
+ (register-module-path! 'data-structures "core/data/data-structures.ss")
+ (register-module-path! 'collection-utils "core/data/collection-utils.ss")
+ (register-module-path! 'graph-algorithms "core/data/graph-algorithms.ss")
+ 
+ ;; Linalg layer
+ (register-module-path! 'vec "core/linalg/vec.ss")
+ (register-module-path! 'matrix "core/linalg/matrix.ss")
+ (register-module-path! 'matrix-decomp "core/linalg/matrix-decomp.ss")
+ (register-module-path! 'matrix-solvers "core/linalg/matrix-solvers.ss")
+ (register-module-path! 'sparse "core/linalg/sparse.ss")
+ 
+ ;; Numeric layer
+ (register-module-path! 'complex "core/numeric/complex.ss")
+ (register-module-path! 'dft "core/numeric/dft.ss")
+ (register-module-path! 'convolution "core/numeric/convolution.ss")
+ 
+ ;; FP layers
+ (register-module-path! 'transcendental "core/fp/numeric/transcendental.ss")
+ (register-module-path! 'monad "core/fp/control/monad.ss")
+ (register-module-path! 'parser-combinators "core/fp/parsing/parser-combinators.ss"))
+
+;;; clear-module-caches! : → void
+;;; Clear all module caches (useful after file modifications).
+(define (clear-module-caches!)
+  (hashtable-clear! *module-path-cache*)
+  (hashtable-clear! *header-cache*))
+
+;;; ============================================================
+;;; Header Parsing
+;;; ============================================================
+
+;;; read-header-lines : String × Nat → (List String) | #f
+;;; Read first n lines from file for header parsing. Returns #f if file doesn't exist.
+(define (read-header-lines filepath n)
+  (guard (exn [else #f])
+         (call-with-input-file filepath
+                               (lambda (port)
+                                       (let loop ([i 0] [lines '()])
+                                            (if (>= i n)
+                                                (reverse lines)
+                                                (let ([line (get-line port)])
+                                                     (if (eof-object? line)
+                                                         (reverse lines)
+                                                         (loop (+ i 1) (cons line lines))))))))))
+
+;;; extract-annotation : String × String → String | #f
+;;; Extract value from ";;; @key value" line.
+(define (extract-annotation line prefix)
+  (let ([trimmed (string-trim line)])
+       (and (string-starts-with? trimmed ";;;")
+            (let ([after-comment (string-trim (substring trimmed 3 (string-length trimmed)))])
+                 (and (string-starts-with? after-comment prefix)
+                      (string-trim (substring after-comment
+                                              (string-length prefix)
+                                              (string-length after-comment))))))))
+
+;;; parse-module-name : (List String) → Symbol | #f
+;;; Extract module name from @module annotation.
+(define (parse-module-name lines)
+  (let loop ([lines lines])
+       (cond
+        [(null? lines) #f]
+        [else
+         (let ([name (extract-annotation (car lines) "@module ")])
+              (if (and name (> (string-length name) 0))
+                  (string->symbol name)
+                  (loop (cdr lines))))])))
+
+;;; parse-requires : (List String) → (List Symbol)
+;;; Extract dependencies from @requires annotation.
+(define (parse-requires lines)
+  (let loop ([lines lines])
+       (cond
+        [(null? lines) '()]
+        [else
+         (let ([deps (extract-annotation (car lines) "@requires ")])
+              (if deps
+                  (filter (lambda (s) (> (string-length (symbol->string s)) 0))
+                          (map string->symbol
+                               (filter (lambda (s) (> (string-length s) 0))
+                                       (string-split deps #\space))))
+                  (loop (cdr lines))))])))
+
+;;; parse-module-header : String → (name . deps) | #f
+;;; Parse @module/@requires from file. Returns (name . deps) or #f.
+;;; Only caches successful parses (not file-not-found failures).
+(define (parse-module-header filepath)
+  ;; Check cache first
+  (let ([cached (hashtable-ref *header-cache* filepath 'not-found)])
+       (if (not (eq? cached 'not-found))
+           cached
+           (let* ([lines (read-header-lines filepath 40)]
+                  [result (and lines
+                               (let ([name (parse-module-name lines)])
+                                    (and name
+                                         (cons name (parse-requires lines)))))])
+                 ;; Only cache successful parses (don't cache failures)
+                 (when result
+                       (hashtable-set! *header-cache* filepath result))
+                 result))))
+
+;;; ============================================================
+;;; Path Resolution
+;;; ============================================================
+
+;;; find-module-path : Symbol → String | #f
+;;; Find file path for a module by searching known locations.
+(define (find-module-path name)
+  (let ([name-str (symbol->string name)])
+       ;; Try direct core/<name>.ss first
+       (let ([direct (string-append "core/" name-str ".ss")])
+            (if (file-exists? direct)
+                direct
+                ;; Search subdirectories
+                (let loop ([dirs *core-search-dirs*])
+                     (if (null? dirs)
+                         #f
+                         (let ([path (string-append "core/" (car dirs) "/" name-str ".ss")])
+                              (if (file-exists? path)
+                                  path
+                                  (loop (cdr dirs))))))))))
+
+;;; module-name->path : Symbol → String | #f
+;;; Get file path for module, using registry or searching.
+(define (module-name->path name)
+  ;; Check explicit registry first
+  (or (hashtable-ref *module-paths* name #f)
+      ;; Then check cache
+      (hashtable-ref *module-path-cache* name #f)
+      ;; Then search
+      (let ([found (find-module-path name)])
+           (when found
+                 (hashtable-set! *module-path-cache* name found))
+           found)))
+
+;;; ============================================================
+;;; Auto-Registration from Headers
+;;; ============================================================
+
+;;; auto-register-module! : Symbol → void
+;;; Parse module header and register dependencies if not already known.
+;;; Uses the requested name (not the header's @module name) as the key.
+(define (auto-register-module! name)
+  (unless (hashtable-contains? *module-deps* name)
+          (let ([path (module-name->path name)])
+               (when path
+                     (let ([header (parse-module-header path)])
+                          (when header
+                                ;; Register under the requested name, using deps from header
+                                (hashtable-set! *module-deps* name (cdr header))))))))
+
+;;; ============================================================
+;;; Dependency Declarations (Hardcoded Fallbacks)
 ;;; ============================================================
 
 ;;; Known dependencies (hardcoded for now, could parse from files)
@@ -106,7 +328,8 @@
 ;;; Load a single module (without dependencies).
 (define (load-module! name)
   (unless (module-loaded? name)
-          (let* ([path (string-append (symbol->string name) ".ss")]
+          (let* ([path (or (module-name->path name)
+                           (string-append (symbol->string name) ".ss"))]
                  [start (current-time-ms)])
                 (load path)
                 (let ([duration (- (current-time-ms) start)])
@@ -127,6 +350,7 @@
 
 ;;; require-one : Symbol → void
 ;;; Load a module and all its dependencies.
+;;; Auto-registers dependencies from file headers if not already known.
 ;;; Detects circular dependencies and raises an error with the cycle path.
 (define (require-one name)
   (cond
@@ -137,8 +361,10 @@
     (error 'require-one
            (string-append "Circular dependency detected: "
                           (format-cycle name *loading-stack*)))]
-   ;; Not loaded yet - load dependencies, then this module
+   ;; Not loaded yet - auto-register, load dependencies, then this module
    [else
+    ;; Try to discover dependencies from header if not known
+    (auto-register-module! name)
     (let ([deps (hashtable-ref *module-deps* name '())])
          ;; Push onto loading stack
          (set! *loading-stack* (cons name *loading-stack*))
@@ -282,3 +508,115 @@
 (define (require-all)
   (let ([all-modules (vector->list (hashtable-keys *module-deps*))])
        (for-each require-one all-modules)))
+
+;;; ============================================================
+;;; Module Discovery (LLM-Friendly)
+;;; ============================================================
+
+;;; modules : → void
+;;; List all registered modules grouped by category.
+;;; Useful for discovering available functionality.
+(define (modules)
+  (display "\n")
+  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
+  (display "  │                    AVAILABLE MODULES                               │\n")
+  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "\n")
+  
+  ;; Group modules by directory
+  (let* ([all-modules (vector->list (hashtable-keys *module-paths*))]
+         [sorted (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b))) all-modules)])
+        
+        ;; BASE modules
+        (display "  BASE (foundation, no dependencies):\n")
+        (display "    prelude sha256 error\n\n")
+        
+        ;; BLOCKS modules
+        (display "  BLOCKS (content-addressed storage):\n")
+        (display "    block cas normalize expand\n\n")
+        
+        ;; LANG modules
+        (display "  LANG (evaluation, compilation):\n")
+        (display "    parse span fold-parse prim eval compile nbe\n\n")
+        
+        ;; TYPES modules
+        (display "  TYPES (type system):\n")
+        (display "    types kinds infer resolve annotate dep-types\n\n")
+        
+        ;; QUERY modules
+        (display "  QUERY (pattern matching):\n")
+        (display "    query query-dsl\n\n")
+        
+        ;; DATA modules
+        (display "  DATA (data structures):\n")
+        (display "    data-structures collection-utils graph-algorithms\n\n")
+        
+        ;; LINALG modules
+        (display "  LINALG (linear algebra):\n")
+        (display "    vec matrix matrix-decomp matrix-solvers sparse\n\n")
+        
+        ;; NUMERIC modules
+        (display "  NUMERIC (numerical computing):\n")
+        (display "    complex dft convolution transcendental\n\n")
+        
+        ;; FP modules
+        (display "  FP (functional programming toolkit):\n")
+        (display "    monad parser-combinators\n\n")
+        
+        (display "  Usage: (require 'module-name) to load a module\n")
+        (display "         (module-info 'module-name) for details\n")
+        (display "         (module-stats) for load times\n\n")))
+
+;;; module-info : Symbol → void
+;;; Show detailed information about a module.
+;;; Useful for understanding dependencies before loading.
+(define (module-info name)
+  (display "\n")
+  (display (format "  Module: ~a\n" name))
+  (display "  ────────────────────────────────────────────────────────\n")
+  
+  ;; Path
+  (let ([path (module-name->path name)])
+       (if path
+           (display (format "  Path: ~a\n" path))
+           (display "  Path: (not registered)\n")))
+  
+  ;; Load status
+  (display (format "  Status: ~a\n" (if (module-loaded? name) "LOADED" "not loaded")))
+  
+  ;; Load time
+  (let ([time (module-load-time name)])
+       (when time
+             (display (format "  Load time: ~ams\n" time))))
+  
+  ;; Dependencies
+  (let ([deps (hashtable-ref *module-deps* name 'not-found)])
+       (cond
+        [(eq? deps 'not-found)
+         ;; Try to discover from header
+         (let ([path (module-name->path name)])
+              (if path
+                  (let ([header (parse-module-header path)])
+                       (if header
+                           (begin
+                            (display (format "  Dependencies: ~a (from header)\n"
+                                             (if (null? (cdr header)) "(none)" (cdr header)))))
+                           (display "  Dependencies: (unknown - no header annotations)\n")))
+                  (display "  Dependencies: (unknown - module not found)\n")))]
+        [(null? deps)
+         (display "  Dependencies: (none)\n")]
+        [else
+         (display (format "  Dependencies: ~a\n" deps))]))
+  
+  ;; Transitive dependencies
+  (let ([all (all-deps name)])
+       (unless (null? all)
+               (display (format "  Transitive: ~a\n" all))))
+  
+  (display "\n"))
+
+;;; list-registered-modules : → (List Symbol)
+;;; Return a list of all registered module names.
+(define (list-registered-modules)
+  (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
+        (vector->list (hashtable-keys *module-paths*))))

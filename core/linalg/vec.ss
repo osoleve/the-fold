@@ -1,4 +1,6 @@
-;;; fabric/stitches/vec.ss — Vector Operations
+;;; core/linalg/vec.ss — Vector Operations
+;;; @module vec
+;;; @requires prelude
 ;;;
 ;;; Core vector operations for linear algebra.
 ;;;

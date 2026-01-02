@@ -1,4 +1,6 @@
-;;; fabric/stitches/block.ss — The fundamental unit of The Fold
+;;; core/blocks/block.ss — The fundamental unit of The Fold
+;;; @module block
+;;; @requires prelude
 ;;;
 ;;; Block = {tag, payload, refs[]}
 ;;;
@@ -11,7 +13,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 ;;;
-;;; See fabric/stitches/MODULES.md for full dependency graph.
+;;; See core/blocks/MODULES.md for full dependency graph.
 
 (load "core/base/prelude.ss")
 

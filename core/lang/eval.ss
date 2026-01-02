@@ -1,4 +1,6 @@
-;;; fabric/stitches/eval.ss — The Evaluator with Fuel
+;;; core/lang/eval.ss — The Evaluator with Fuel
+;;; @module eval
+;;; @requires prelude block prim reverse-diff
 ;;;
 ;;; The lens that lets the telescope see.
 ;;;

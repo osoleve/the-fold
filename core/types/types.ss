@@ -1,4 +1,6 @@
-;;; fabric/stitches/types.ss — The Type System of The Fold
+;;; core/types/types.ss — The Type System of The Fold
+;;; @module types
+;;; @requires prelude
 ;;;
 ;;; Types are Blocks. Types are S-expressions. Types are data.
 ;;;

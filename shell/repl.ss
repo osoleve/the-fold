@@ -30,6 +30,9 @@
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 
+;; Module system (provides (require), (modules), (module-info))
+(load "core/lang/module.ss")
+
 ;; Shell dependencies
 (load "shell/fs.ss")
 (load "shell/ui/text.ss")
@@ -253,6 +256,13 @@
   (display "    (load-core)            Load Core modules + playground\n")
   (display "    (playground-help)      Playground commands (after load-core)\n")
   (display "    (playground-demo)      Try the playground (after load-core)\n")
+  (display "\n")
+  (display "  MODULE SYSTEM:\n")
+  (display "    (modules)              List all available modules\n")
+  (display "    (module-info 'name)    Show module details (path, deps, status)\n")
+  (display "    (require 'name)        Load a module with its dependencies\n")
+  (display "    (module-stats)         Show loaded modules and timings\n")
+  (display "    (module-graph)         Show dependency graph\n")
   (display "\n")
   (display "  DEVELOPMENT TOOLKIT:\n")
   (display "    (run-tests)            Run all tests (scheme --script test-all.ss)\n")
