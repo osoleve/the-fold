@@ -47,11 +47,11 @@
         [else "??"]))
 
 ;;; fuel-bar : Nat × Nat × Nat → String
-;;; Create ASCII fuel bar.
+;;; Create ASCII fuel bar with clamping for safety.
 (define (fuel-bar used total width)
-  (let* ([pct (if (zero? total) 0 (/ used total))]
-         [filled (round (* width pct))]
-         [empty (- width filled)])
+  (let* ([pct (if (zero? total) 0 (min 1.0 (/ used total)))]
+         [filled (min width (max 0 (round (* width pct))))]
+         [empty (max 0 (- width filled))])
         (string-append
          "["
          (make-string filled #\#)

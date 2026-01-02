@@ -511,17 +511,22 @@
 
 ;;; step-until-depth : Debugger × Nat → Debugger
 ;;; Step until expression depth decreases or completion.
+;;; Guards against stepping when debugger is already in terminal state.
 (define (step-until-depth d target-depth)
-  (let loop ([d (step-with-fuel d)])
-       (let ([status (debugger-status d)]
-             [current-depth (call-depth (debugger-expr d))])
-            (cond
-             [(eq? status 'complete) d]
-             [(eq? status 'error) d]
-             [(eq? status 'out-of-fuel) d]
-             [(eq? status 'breakpoint) d]
-             [(<= current-depth target-depth) d]
-             [else (loop (step-with-fuel d))]))))
+  ;; Check terminal states before stepping
+  (let ([status (debugger-status d)])
+       (if (memq status '(complete error out-of-fuel breakpoint))
+           d
+           (let loop ([d (step-with-fuel d)])
+                (let ([status (debugger-status d)]
+                      [current-depth (call-depth (debugger-expr d))])
+                     (cond
+                      [(eq? status 'complete) d]
+                      [(eq? status 'error) d]
+                      [(eq? status 'out-of-fuel) d]
+                      [(eq? status 'breakpoint) d]
+                      [(<= current-depth target-depth) d]
+                      [else (loop (step-with-fuel d))]))))))
 
 ;;; ============================================================
 ;;; Continue with Fuel Tracking
