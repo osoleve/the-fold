@@ -88,6 +88,42 @@
               (inr (fmap-g f (from-inr fg))))))
 
 ;;; ------------------------------------------------------------
+;;; N-ary Coproduct Fmap (Row-based)
+;;; ------------------------------------------------------------
+;;;
+;;; Generate fmap for arbitrary functor rows, not just binary coproducts.
+
+;;; make-row-fmap : FunctorRow -> Alist(Symbol, Fmap) -> ((a -> b) -> Row a -> Row b)
+;;; Build an fmap that handles any functor in the row.
+;;; fmap-alist maps functor tags to their fmap implementations.
+(define (make-row-fmap row fmap-alist)
+  (lambda (f value)
+          (row-fmap-helper f value 0 (functor-row-functors row) fmap-alist)))
+
+;;; row-fmap-helper : (a -> b) -> Row a -> Nat -> (List Symbol) -> Alist -> Row b
+(define (row-fmap-helper f value depth functors fmap-alist)
+  (cond
+   [(null? functors)
+    (error 'row-fmap "Value not in row" value)]
+   [(inl? value)
+    ;; We're at this functor's level
+    (let* ([tag (car functors)]
+           [fmap-entry (assq tag fmap-alist)])
+          (if fmap-entry
+              (inl ((cdr fmap-entry) f (from-inl value)))
+              (error 'row-fmap "No fmap for functor" tag)))]
+   [(inr? value)
+    ;; Descend into the next level
+    (inr (row-fmap-helper f (from-inr value) (+ depth 1) (cdr functors) fmap-alist))]
+   [else
+    (error 'row-fmap "Malformed coproduct value" value)]))
+
+;;; register-fmap : Alist -> Symbol -> Fmap -> Alist
+;;; Add a functor's fmap to the registry
+(define (register-fmap alist tag fmap-fn)
+  (cons (cons tag fmap-fn) alist))
+
+;;; ------------------------------------------------------------
 ;;; Functor Rows (Type-safe Injection)
 ;;; ------------------------------------------------------------
 ;;;
@@ -238,6 +274,12 @@
              [(put) (list 'put (cadr cmd) (f (caddr cmd)))]
              [else (error 'state-f-fmap "Unknown state operation" tag)])))
 
+;;; Standard fmap registry for common functors
+;;; Maps functor tags to their fmap implementations
+(define standard-fmap-registry
+  (list (cons 'Arith arith-fmap)
+        (cons 'State state-f-fmap)))
+
 ;;; ------------------------------------------------------------
 ;;; Free over Coproduct
 ;;; ------------------------------------------------------------
@@ -261,23 +303,35 @@
 ;;; Define the combined row
 (define arith-state-row (make-functor-row '(Arith State)))
 
-;;; Arithmetic operations in combined DSL
-(define (dsl-lit n)
-  (free (build-injection-path 0 (list 'lit n pure-free))))
+;;; Build the row-aware fmap for this combination
+(define arith-state-fmap
+  (make-row-fmap arith-state-row standard-fmap-registry))
 
-(define (dsl-add x y)
-  (free-bind arith-fmap x
-             (lambda (vx)
-                     (free-bind arith-fmap y
-                                (lambda (vy)
-                                        (free (build-injection-path 0 (list 'add-result (+ vx vy)))))))))
+;;; Arithmetic operations in combined DSL
+;;; Uses tag-based injection for row polymorphism
+(define (dsl-lit row n)
+  (free (inject row (make-tagged-functor 'Arith (list 'lit n)))))
+
+;;; dsl-add : Row -> Free Row a -> Free Row a -> Free Row a
+;;; Builds an 'add AST node containing the two sub-expressions.
+;;; This is a constructor, not an evaluator - it preserves structure.
+(define (dsl-add row x y)
+  (free (inject row (make-tagged-functor 'Arith (list 'add x y)))))
 
 ;;; State operations in combined DSL
-(define dsl-get
-  (free (build-injection-path 1 (list 'get pure-free))))
+;;; Uses tag-based injection for row polymorphism
+(define (dsl-get row)
+  (free (inject row (make-tagged-functor 'State (list 'get pure-free)))))
 
-(define (dsl-put s)
-  (free (build-injection-path 1 (list 'put s (pure-free '())))))
+(define (dsl-put row s)
+  (free (inject row (make-tagged-functor 'State (list 'put s (pure-free '()))))))
+
+;;; Convenience wrappers for the default arith-state-row
+;;; Note: prefixed with 'free-' to avoid shadowing effect operations
+(define (free-arith-lit n) (dsl-lit arith-state-row n))
+(define (free-arith-add x y) (dsl-add arith-state-row x y))
+(define free-state-get (dsl-get arith-state-row))
+(define (free-state-put s) (dsl-put arith-state-row s))
 
 ;;; ============================================================
 ;;; Part 2: Effect Composition
@@ -306,7 +360,7 @@
   (cadr stack))
 
 ;;; run-with-stack : HandlerStack -> Eff e a -> b
-;;; Run computation with a stack of handlers
+;;; Run computation with a stack of handlers (iterative approach)
 (define (run-with-stack stack eff)
   (let loop ([handlers (handler-stack-handlers stack)] [computation eff])
        (if (null? handlers)
@@ -315,6 +369,18 @@
                (error 'run-with-stack "Unhandled effect" (eff-op-effect computation)))
            (loop (cdr handlers)
                  (handle (car handlers) computation)))))
+
+;;; run-with-composed-stack : HandlerStack -> Eff e a -> b
+;;; Run computation with composed handlers (single-pass, more efficient)
+;;; Composes all handlers into one before running.
+(define (run-with-composed-stack stack eff)
+  (let ([handlers (handler-stack-handlers stack)])
+       (if (null? handlers)
+           (if (eff-pure? eff)
+               (eff-pure-value eff)
+               (error 'run-with-composed-stack "Unhandled effect" (eff-op-effect eff)))
+           (let ([composed (combine-effect-handlers handlers)])
+                (handle composed eff)))))
 
 ;;; push-handler : Handler -> HandlerStack -> HandlerStack
 (define (push-handler handler stack)
@@ -662,39 +728,91 @@
 ;;; Convert between Free monad and Tagless final representations.
 ;;; This enables using both approaches together.
 
+;;; ------------------------------------------------------------
+;;; Generic Tagless -> Free Conversion
+;;; ------------------------------------------------------------
+
+;;; tagless->free : (Dict -> a) -> Dict -> a
+;;; Convert a tagless program to Free representation using a provided
+;;; AST-building dictionary. The dict-factory should return a dictionary
+;;; whose operations build AST nodes instead of computing values.
+(define (tagless->free program ast-dict)
+  (program ast-dict))
+
+;;; make-ast-dict : (List (Symbol . (args -> AST))) -> Dict
+;;; Create an AST-building dictionary from operation specs.
+;;; Each spec maps an operation name to a function that builds an AST node.
+(define (make-ast-dict tag specs)
+  (make-dict tag
+             (map (lambda (spec)
+                          (cons (car spec)
+                                (cdr spec)))
+                  specs)))
+
+;;; Standard AST-building dictionary for expressions
+(define expr-ast-dict
+  (make-ast-dict 'expr-ast
+                 `((lit . ,(lambda (n) (list 'lit n)))
+                   (add . ,(lambda (x y) (list 'add x y)))
+                   (neg . ,(lambda (x) (list 'neg x))))))
+
 ;;; tagless-program->free : (Dict -> a) -> Free F a
-;;; Convert a tagless program to Free representation
-;;; (Uses an AST-building dictionary)
+;;; Convert an expression program to Free representation.
+;;; Convenience wrapper using the standard expr AST dict.
 (define (tagless-program->free program)
-  (let ([ast-dict (make-expr-dict
-                   (lambda (n) (list 'lit n))
-                   (lambda (x y) (list 'add x y))
-                   (lambda (x) (list 'neg x)))])
-       (program ast-dict)))
+  (tagless->free program expr-ast-dict))
 
-;;; free-term->tagless : Free F a -> (Dict -> a)
-;;; Convert a Free term to a tagless program
-(define (free-term->tagless term)
+;;; ------------------------------------------------------------
+;;; Generic Free -> Tagless Conversion
+;;; ------------------------------------------------------------
+
+;;; free->tagless : (Term -> Dict -> a) -> Term -> (Dict -> a)
+;;; Convert a Free term to a tagless program using a provided interpreter.
+(define (free->tagless interpret-fn term)
   (lambda (d)
-          (interpret-arith-term term d)))
+          (interpret-fn term d)))
 
-(define (interpret-arith-term term d)
+;;; make-term-interpreter : (List (Symbol . (Dict -> Args -> Result))) -> (Term -> Dict -> Result)
+;;; Create an interpreter from operation handlers.
+(define (make-term-interpreter handlers)
+  (lambda (term d)
+          (term-interpret-with-handlers handlers term d)))
+
+(define (term-interpret-with-handlers handlers term d)
   (cond
-   [(and (pair? term) (eq? (car term) 'lit))
-    (expr-lit d (cadr term))]
-   [(and (pair? term) (eq? (car term) 'add))
-    (expr-add d
-              (interpret-arith-term (cadr term) d)
-              (interpret-arith-term (caddr term) d))]
-   [(and (pair? term) (eq? (car term) 'neg))
-    (expr-neg d
-              (interpret-arith-term (cadr term) d))]
    [(pure-free? term)
     (from-pure-free term)]
    [(free-suspended? term)
-    ;; Handle suspended computation
-    (interpret-arith-term (from-free term) d)]
+    (term-interpret-with-handlers handlers (from-free term) d)]
+   [(pair? term)
+    (let ([handler (assq (car term) handlers)])
+         (if handler
+             ((cdr handler) d term
+              (lambda (sub) (term-interpret-with-handlers handlers sub d)))
+             (error 'term-interpret "Unknown term type" (car term))))]
    [else term]))
+
+;;; Standard expression interpreter handlers
+(define expr-interpret-handlers
+  `((lit . ,(lambda (d term recurse)
+                    (expr-lit d (cadr term))))
+    (add . ,(lambda (d term recurse)
+                    (expr-add d (recurse (cadr term)) (recurse (caddr term)))))
+    (neg . ,(lambda (d term recurse)
+                    (expr-neg d (recurse (cadr term)))))))
+
+;;; free-term->tagless : Free F a -> (Dict -> a)
+;;; Convert an expression term to a tagless program.
+;;; Convenience wrapper using standard expr interpreter.
+(define (free-term->tagless term)
+  (free->tagless
+   (make-term-interpreter expr-interpret-handlers)
+   term))
+
+;;; interpret-arith-term : Term -> Dict -> Result
+;;; Direct interpreter for arithmetic terms (legacy compatibility)
+(define (interpret-arith-term term d)
+  ((make-term-interpreter expr-interpret-handlers) term d))
 
 ;;; ============================================================
 ;;; Integration: Effect + Tagless Bridge

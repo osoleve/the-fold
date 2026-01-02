@@ -303,6 +303,134 @@
                     (assert-true (dict-has? result 'from-t2)))))
 
 ;;; ============================================================
+;;; N-ary Row Fmap Tests
+;;; ============================================================
+
+(test-group row-fmap
+            (define-test make-row-fmap-creates-function
+              (let ([row (make-functor-row '(Arith State))]
+                    [fmap-fn (make-row-fmap (make-functor-row '(Arith State))
+                                            standard-fmap-registry)])
+                   (assert-true (procedure? fmap-fn))))
+            
+            (define-test row-fmap-handles-first-functor
+              (let* ([row (make-functor-row '(Arith State))]
+                     [fmap-fn (make-row-fmap row standard-fmap-registry)]
+                     ;; Create an Arith value at index 0 (inl)
+                     [value (inl (list 'neg 5))]
+                     [result (fmap-fn add1 value)])
+                    ;; Should still be inl after mapping
+                    (assert-true (inl? result))))
+            
+            (define-test row-fmap-handles-second-functor
+              (let* ([row (make-functor-row '(Arith State))]
+                     [fmap-fn (make-row-fmap row standard-fmap-registry)]
+                     ;; Create a State value at index 1 (inr (inl ...))
+                     ;; Use identity since state-f-fmap applies f to continuation
+                     [value (inr (inl (list 'put 42 'cont)))]
+                     [result (fmap-fn identity value)])
+                    ;; Should still be inr after mapping
+                    (assert-true (inr? result)))))
+
+;;; ============================================================
+;;; Tag-based DSL Operations Tests
+;;; ============================================================
+
+(test-group tag-based-dsl
+            (define-test dsl-lit-uses-tag-injection
+              (let* ([row (make-functor-row '(Arith State))]
+                     [term (dsl-lit row 42)])
+                    ;; Should be a free term
+                    (assert-true (free-suspended? term))
+                    ;; The injected value should be at index 0 (Arith)
+                    (assert-true (inl? (from-free term)))))
+            
+            (define-test dsl-get-uses-tag-injection
+              (let* ([row (make-functor-row '(Arith State))]
+                     [term (dsl-get row)])
+                    ;; Should be a free term
+                    (assert-true (free-suspended? term))
+                    ;; The injected value should be at index 1 (State)
+                    (assert-true (inr? (from-free term)))))
+            
+            (define-test dsl-operations-work-with-different-row-order
+              ;; Key test: changing row order should still work
+              (let* ([row (make-functor-row '(State Arith))]  ; Reversed order!
+                     [lit-term (dsl-lit row 10)]
+                     [get-term (dsl-get row)])
+                    ;; Now Arith is at index 1, State at index 0
+                    (assert-true (inr? (from-free lit-term)))   ; Arith at index 1 = inr
+                    (assert-true (inl? (from-free get-term))))) ; State at index 0 = inl
+            
+            (define-test dsl-add-constructs-ast-node
+              ;; dsl-add should build an AST node, not evaluate
+              (let* ([row (make-functor-row '(Arith State))]
+                     [x (dsl-lit row 3)]
+                     [y (dsl-lit row 4)]
+                     [add-term (dsl-add row x y)])
+                    ;; Should be a free term
+                    (assert-true (free-suspended? add-term))
+                    ;; The inner value should be an 'add node with children
+                    (let* ([injected (from-free add-term)]
+                           [inner (from-inl injected)])  ; Arith at index 0
+                          (assert-equal 'add (car inner))
+                          ;; Children should be the original terms
+                          (assert-true (free-suspended? (cadr inner)))
+                          (assert-true (free-suspended? (caddr inner))))))
+            )
+
+;;; ============================================================
+;;; Optimized Handler Stack Tests
+;;; ============================================================
+
+(test-group optimized-handler-stack
+            (define-test run-with-composed-stack-works
+              ;; Should produce same result as run-with-stack
+              (let* ([h (deep-handler identity '())]
+                     [stack (make-handler-stack (list h))]
+                     [result (run-with-composed-stack stack (eff-return 42))])
+                    (assert-equal 42 result))))
+
+;;; ============================================================
+;;; Generic Tagless Bridge Tests
+;;; ============================================================
+
+(test-group generic-tagless-bridge
+            (define-test tagless->free-with-custom-dict
+              (let* ([custom-ast-dict (make-ast-dict 'custom
+                                                     `((lit . ,(lambda (n) (list 'NUM n)))
+                                                       (add . ,(lambda (x y) (list 'PLUS x y)))
+                                                       (neg . ,(lambda (x) (list 'MINUS x)))))]
+                     [program (lambda (d)
+                                      (expr-add d (expr-lit d 1) (expr-lit d 2)))]
+                     [ast (tagless->free program custom-ast-dict)])
+                    ;; Should use custom constructors
+                    (assert-equal 'PLUS (car ast))))
+            
+            (define-test make-term-interpreter-works
+              (let* ([handlers `((lit . ,(lambda (d term recurse) (cadr term)))
+                                 (add . ,(lambda (d term recurse)
+                                                 (+ (recurse (cadr term))
+                                                    (recurse (caddr term))))))]
+                     [interp (make-term-interpreter handlers)]
+                     [term '(add (lit 3) (lit 4))])
+                    (assert-equal 7 (interp term '()))))
+            
+            (define-test free->tagless-with-custom-interpreter
+              (let* ([double-handlers
+                      `((lit . ,(lambda (d term recurse)
+                                        (* 2 (expr-lit d (cadr term)))))
+                        (add . ,(lambda (d term recurse)
+                                        (expr-add d (recurse (cadr term)) (recurse (caddr term)))))
+                        (neg . ,(lambda (d term recurse)
+                                        (expr-neg d (recurse (cadr term))))))]
+                     [term '(lit 5)]
+                     [program (free->tagless (make-term-interpreter double-handlers) term)]
+                     [result (program eval-expr-dict)])
+                    ;; Should double the literal
+                    (assert-equal 10 result))))
+
+;;; ============================================================
 ;;; Integration Tests
 ;;; ============================================================
 
