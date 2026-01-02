@@ -24,6 +24,7 @@ const CHANNEL_MAP = {
   bugs: process.env.DISCORD_CHANNEL_BUGS,
   arena: process.env.DISCORD_CHANNEL_ARENA,
   news: process.env.DISCORD_CHANNEL_NEWS,
+  'special-report': process.env.DISCORD_CHANNEL_SPECIAL_REPORT,
   consult: process.env.DISCORD_CHANNEL_CONSULT,
   'agent-logs': process.env.DISCORD_CHANNEL_AGENT_LOGS,
 };
