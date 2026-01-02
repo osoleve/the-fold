@@ -108,6 +108,62 @@
 ;;; Colored Canvas Block Storage
 ;;; ============================================================
 
+;;; Color type codes for serialization
+(define COLOR-TYPE-DEFAULT 0)
+(define COLOR-TYPE-RGB 1)
+(define COLOR-TYPE-PALETTE 2)
+
+;;; serialize-color : Color → Bytevector
+;;; Serialize a color to bytes.
+;;; Format: [type : 1 byte][data : 0-3 bytes]
+(define (serialize-color c)
+  (cond
+   [(color-default? c)
+    (let ([bv (make-bytevector 1)])
+         (bytevector-u8-set! bv 0 COLOR-TYPE-DEFAULT)
+         bv)]
+   [(color-rgb? c)
+    (let ([bv (make-bytevector 4)]
+          [r (cadr c)]
+          [g (caddr c)]
+          [b (cadddr c)])
+         (bytevector-u8-set! bv 0 COLOR-TYPE-RGB)
+         (bytevector-u8-set! bv 1 r)
+         (bytevector-u8-set! bv 2 g)
+         (bytevector-u8-set! bv 3 b)
+         bv)]
+   [(color-palette? c)
+    (let ([bv (make-bytevector 2)]
+          [n (cadr c)])
+         (bytevector-u8-set! bv 0 COLOR-TYPE-PALETTE)
+         (bytevector-u8-set! bv 1 n)
+         bv)]
+   [else
+    ;; Fallback to default
+    (let ([bv (make-bytevector 1)])
+         (bytevector-u8-set! bv 0 COLOR-TYPE-DEFAULT)
+         bv)]))
+
+;;; deserialize-color : Bytevector × Nat → (Color . Nat)
+;;; Deserialize a color from bytes at given offset.
+;;; Returns (color . new-offset).
+(define (deserialize-color bv offset)
+  (let ([type (bytevector-u8-ref bv offset)])
+       (cond
+        [(= type COLOR-TYPE-DEFAULT)
+         (cons color-default (+ offset 1))]
+        [(= type COLOR-TYPE-RGB)
+         (let ([r (bytevector-u8-ref bv (+ offset 1))]
+               [g (bytevector-u8-ref bv (+ offset 2))]
+               [b (bytevector-u8-ref bv (+ offset 3))])
+              (cons (make-color-rgb r g b) (+ offset 4)))]
+        [(= type COLOR-TYPE-PALETTE)
+         (let ([n (bytevector-u8-ref bv (+ offset 1))])
+              (cons (make-color-palette n) (+ offset 2)))]
+        [else
+         ;; Unknown type, treat as default
+         (cons color-default (+ offset 1))])))
+
 ;;; colored-canvas->block : Canvas × (Vector Cell) → Block
 ;;; Store a canvas with full color information.
 ;;;
@@ -127,9 +183,81 @@
 ;;; Note: This is more complex but preserves full color data.
 ;;; For simple ASCII rendering, use canvas->block instead.
 (define (colored-canvas->block canvas color-cells)
-  ;; TODO: Implement full color serialization when color rendering is needed
-  ;; For now, fall back to basic canvas storage
-  (canvas->block canvas))
+  (let* ([w (canvas-width canvas)]
+         [h (canvas-height canvas)]
+         [cell-count (* w h)]
+         ;; Build list of payload parts
+         [header (list (u32->bytes-le w) (u32->bytes-le h))]
+         ;; Serialize each cell
+         [cell-parts
+          (let loop ([i 0] [acc '()])
+               (if (>= i cell-count)
+                   (reverse acc)
+                   (let* ([cell (vector-ref color-cells i)]
+                          [ch (cell%-char cell)]
+                          [fg (cell%-fg cell)]
+                          [bg (cell%-bg cell)]
+                          ;; Character as UTF-32 (4 bytes, little-endian)
+                          [char-bv (u32->bytes-le (char->integer ch))]
+                          ;; Foreground color
+                          [fg-bv (serialize-color fg)]
+                          ;; Background color
+                          [bg-bv (serialize-color bg)])
+                         (loop (+ i 1)
+                               (cons bg-bv
+                                     (cons fg-bv
+                                           (cons char-bv acc)))))))]
+         [payload (bytevector-concat (append header cell-parts))])
+        (make-block 'colored-canvas payload empty-refs)))
+
+;;; block->colored-canvas : Block → (Canvas . Vector Cell) | #f
+;;; Reconstruct a colored canvas from a block.
+;;; Returns (canvas . color-cells) or #f if block is invalid.
+(define (block->colored-canvas blk)
+  (if (not (eq? (block-tag blk) 'colored-canvas))
+      #f
+      (let* ([payload (block-payload blk)]
+             [w (bytes-le->u32 payload 0)]
+             [h (bytes-le->u32 payload 4)]
+             [cell-count (* w h)]
+             [canvas-cells (make-vector cell-count #\space)]
+             [color-cells (make-vector cell-count #f)])
+            ;; Parse each cell
+            (let loop ([i 0] [offset 8])
+                 (if (>= i cell-count)
+                     ;; Build canvas and return
+                     (let ([canvas (make-canvas% w h canvas-cells)])
+                          (cons canvas color-cells))
+                     (let* (;; Character (4 bytes UTF-32)
+                            [char-code (bytes-le->u32 payload offset)]
+                            [ch (integer->char char-code)]
+                            [offset (+ offset 4)]
+                            ;; Foreground color
+                            [fg-result (deserialize-color payload offset)]
+                            [fg (car fg-result)]
+                            [offset (cdr fg-result)]
+                            ;; Background color
+                            [bg-result (deserialize-color payload offset)]
+                            [bg (car bg-result)]
+                            [offset (cdr bg-result)]
+                            ;; Create cell
+                            [cell (make-cell ch fg bg)])
+                           (vector-set! canvas-cells i ch)
+                           (vector-set! color-cells i cell)
+                           (loop (+ i 1) offset)))))))
+
+;;; store-colored-canvas! : FS × Canvas × (Vector Cell) → Bytevector
+;;; Store a colored canvas in the CAS and return its hash.
+(define (store-colored-canvas! fs canvas color-cells)
+  (fs-store! fs (colored-canvas->block canvas color-cells)))
+
+;;; fetch-colored-canvas : FS × Bytevector → (Canvas . Vector Cell) | #f
+;;; Fetch a colored canvas by its hash from the CAS.
+(define (fetch-colored-canvas fs hash)
+  (let ([blk (fs-fetch fs hash)])
+       (if blk
+           (block->colored-canvas blk)
+           #f)))
 
 ;;; ============================================================
 ;;; Scene Block Storage
