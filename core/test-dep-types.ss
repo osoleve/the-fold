@@ -51,8 +51,8 @@
   (display "--- Pi Type Construction ---
 ")
   (test "t-pi creates Pi type"
-        '(Π ((n : Nat)) (Vec n))
-        (t-pi 'n 'Nat '(Vec n)))
+        '(Π ((n : Nat)) (List Nat))
+        (t-pi 'n 'Nat '(List Nat)))
   
   (test "t-pi* creates nested Pi"
         '(Π ((a : Type)) (Π ((x : a)) a))
@@ -62,29 +62,29 @@
   (display "
 --- Pi Type Predicates ---
 ")
-  (test-true "pi-type? on Pi" (pi-type? '(Π ((n : Nat)) (Vec n))))
+  (test-true "pi-type? on Pi" (pi-type? '(Π ((n : Nat)) (List Nat))))
   (test-false "pi-type? on arrow" (pi-type? '(-> Nat Nat)))
-  (test "pi-var extracts variable" 'n (pi-var '(Π ((n : Nat)) (Vec n))))
-  (test "pi-domain extracts domain" 'Nat (pi-domain '(Π ((n : Nat)) (Vec n))))
-  (test "pi-codomain extracts codomain" '(Vec n) (pi-codomain '(Π ((n : Nat)) (Vec n))))
+  (test "pi-var extracts variable" 'n (pi-var '(Π ((n : Nat)) (List Nat))))
+  (test "pi-domain extracts domain" 'Nat (pi-domain '(Π ((n : Nat)) (List Nat))))
+  (test "pi-codomain extracts codomain" '(List Nat) (pi-codomain '(Π ((n : Nat)) (List Nat))))
   
   ;; Sigma type construction
   (display "
 --- Sigma Type Construction ---
 ")
   (test "t-sigma creates Sigma type"
-        '(Σ ((n : Nat)) (Vec n))
-        (t-sigma 'n 'Nat '(Vec n)))
+        '(Σ ((n : Nat)) (List Nat))
+        (t-sigma 'n 'Nat '(List Nat)))
   
   ;; Sigma type predicates
   (display "
 --- Sigma Type Predicates ---
 ")
-  (test-true "sigma-type? on Sigma" (sigma-type? '(Σ ((n : Nat)) (Vec n))))
+  (test-true "sigma-type? on Sigma" (sigma-type? '(Σ ((n : Nat)) (List Nat))))
   (test-false "sigma-type? on product" (sigma-type? '(× Nat Nat)))
-  (test "sigma-var extracts variable" 'n (sigma-var '(Σ ((n : Nat)) (Vec n))))
-  (test "sigma-fst-type extracts first type" 'Nat (sigma-fst-type '(Σ ((n : Nat)) (Vec n))))
-  (test "sigma-snd-type extracts second type" '(Vec n) (sigma-snd-type '(Σ ((n : Nat)) (Vec n))))
+  (test "sigma-var extracts variable" 'n (sigma-var '(Σ ((n : Nat)) (List Nat))))
+  (test "sigma-fst-type extracts first type" 'Nat (sigma-fst-type '(Σ ((n : Nat)) (List Nat))))
+  (test "sigma-snd-type extracts second type" '(List Nat) (sigma-snd-type '(Σ ((n : Nat)) (List Nat))))
   
   ;; Universe types
   (display "
@@ -103,11 +103,11 @@
 --- Type Display ---
 ")
   (test "dep-type->string for Pi"
-        "Π(n : Nat). (Vec n)"
-        (dep-type->string '(Π ((n : Nat)) (Vec n))))
+        "Π(n : Nat). (List Nat)"
+        (dep-type->string '(Π ((n : Nat)) (List Nat))))
   (test "dep-type->string for Sigma"
-        "Σ(n : Nat). (Vec n)"
-        (dep-type->string '(Σ ((n : Nat)) (Vec n))))
+        "Σ(n : Nat). (List Nat)"
+        (dep-type->string '(Σ ((n : Nat)) (List Nat))))
   (test "dep-type->string for Type"
         "Type"
         (dep-type->string 'Type))
@@ -120,8 +120,8 @@
 --- NbE Values ---
 ")
   (test-true "V-lam creates lambda" (V-lam? (V-lam 'x 'x '())))
-  (test-true "V-pi creates Pi" (V-pi? (V-pi (V-base 'Nat) (make-closure 'n '(Vec n) '()))))
-  (test-true "V-sigma creates Sigma" (V-sigma? (V-sigma (V-base 'Nat) (make-closure 'n '(Vec n) '()))))
+  (test-true "V-pi creates Pi" (V-pi? (V-pi (V-base 'Nat) (make-closure 'n '(List Nat) '()))))
+  (test-true "V-sigma creates Sigma" (V-sigma? (V-sigma (V-base 'Nat) (make-closure 'n '(List Nat) '()))))
   (test-true "V-type creates Type" (V-type? (V-type 0)))
   (test-true "V-pair creates pair" (V-pair? (V-pair (V-base 3) (V-base 'hello))))
   (test-true "V-neutral creates neutral" (V-neutral? (V-neutral (N-var 0))))
