@@ -273,49 +273,98 @@
                              (loop (+ i 1) (cons i part-a) part-b)
                              (loop (+ i 1) part-a (cons i part-b)))))))))
 
+;;; extract-induced-subgraph : Matrix × (List Nat) → Matrix
+;;; Extract the induced subgraph containing only the specified nodes.
+;;; Returns a new adjacency matrix with nodes renumbered 0..n-1.
+(define (extract-induced-subgraph adj nodes)
+  (let* ([n (length nodes)]
+         [node-vec (list->vector nodes)]
+         [result (make-matrix n n 0)])
+        ;; Build mapping from original indices to new indices
+        (do ([new-i 0 (+ new-i 1)])
+            [(= new-i n) result]
+            (let ([orig-i (vector-ref node-vec new-i)])
+                 (do ([new-j 0 (+ new-j 1)])
+                     [(= new-j n)]
+                     (let ([orig-j (vector-ref node-vec new-j)])
+                          (matrix-set! result new-i new-j
+                                       (matrix-ref adj orig-i orig-j))))))))
+
+;;; remap-partition : (List Nat) × (List Nat) → (List Nat)
+;;; Remap local node indices back to original node indices.
+(define (remap-partition local-nodes original-nodes)
+  (let ([node-vec (list->vector original-nodes)])
+       (map (lambda (local-idx) (vector-ref node-vec local-idx))
+            local-nodes)))
+
 ;;; spectral-partition-k : Matrix × Nat → (List (List Nat))
-;;; Partition graph into k groups using spectral clustering.
+;;; Partition graph into k groups using recursive spectral bisection.
 ;;;
-;;; Uses the first k eigenvectors of the normalized Laplacian
-;;; (excluding the constant eigenvector) and performs k-means
-;;; clustering in the spectral embedding space.
+;;; Uses the Fiedler vector (second smallest eigenvector of Laplacian)
+;;; to recursively bisect the graph until k partitions are obtained.
 ;;;
-;;; Note: This is a simplified version using recursive bisection.
-;;; For production use, proper k-means on spectral embedding is preferred.
+;;; Algorithm:
+;;;   1. Compute Fiedler vector of current graph
+;;;   2. Split nodes by sign of Fiedler components
+;;;   3. Recursively partition each half with proper subgraph extraction
 (define (spectral-partition-k adj k)
-  (if (<= k 1)
-      (list (let ([n (adjacency-matrix-node-count adj)])
-                 (let loop ([i 0] [nodes '()])
+  (let ([n (adjacency-matrix-node-count adj)])
+       (if (<= k 1)
+           ;; Base case: return all nodes as one partition
+           (list (let loop ([i 0] [nodes '()])
                       (if (= i n)
                           (reverse nodes)
-                          (loop (+ i 1) (cons i nodes))))))
-      (let ([result (spectral-partition adj)])
-           (if (and (pair? result) (eq? (car result) 'error))
-               result
-               (let ([part-a (car result)]
-                     [part-b (cdr result)])
-                    ;; Recursively partition each half
-                    ;; This is simplified - proper k-partition would be more sophisticated
-                    (if (<= k 2)
-                        (list part-a part-b)
-                        ;; Split larger partition further
-                        (if (>= (length part-a) (length part-b))
-                            (append (subgraph-partition adj part-a (quotient k 2))
-                                    (subgraph-partition adj part-b (- k (quotient k 2))))
-                            (append (subgraph-partition adj part-b (quotient k 2))
-                                    (subgraph-partition adj part-a (- k (quotient k 2)))))))))))
+                          (loop (+ i 1) (cons i nodes)))))
+           (let ([result (spectral-partition adj)])
+                (if (and (pair? result) (eq? (car result) 'error))
+                    result
+                    (let ([part-a (car result)]
+                          [part-b (cdr result)])
+                         (if (<= k 2)
+                             ;; Two partitions requested - done
+                             (list part-a part-b)
+                             ;; Recursively partition with proper subgraph extraction
+                             (let* ([k-a (quotient k 2)]
+                                    [k-b (- k k-a)]
+                                    ;; Partition the larger group more
+                                    [partitions-a (subgraph-partition adj part-a k-a)]
+                                    [partitions-b (subgraph-partition adj part-b k-b)])
+                                   (if (and (pair? partitions-a) (eq? (car partitions-a) 'error))
+                                       partitions-a
+                                       (if (and (pair? partitions-b) (eq? (car partitions-b) 'error))
+                                           partitions-b
+                                           (append partitions-a partitions-b)))))))))))
 
 ;;; subgraph-partition : Matrix × (List Nat) × Nat → (List (List Nat))
-;;; Helper: partition a subgraph induced by given nodes.
+;;; Partition a subgraph induced by given nodes using recursive bisection.
+;;; Extracts the induced subgraph and recomputes Fiedler vector.
 (define (subgraph-partition adj nodes k)
-  (if (or (<= k 1) (<= (length nodes) 1))
-      (list nodes)
-      ;; For simplicity, just split the list in half for now
-      ;; A proper implementation would extract subgraph and recurse
-      (let* ([mid (quotient (length nodes) 2)]
-             [part-a (take mid nodes)]
-             [part-b (drop mid nodes)])
-            (list part-a part-b))))
+  (cond
+   [(<= k 1) (list nodes)]
+   [(<= (length nodes) 1) (list nodes)]
+   [(<= (length nodes) k)
+    ;; Not enough nodes to partition further - return as singletons
+    (map list nodes)]
+   [else
+    ;; Extract induced subgraph and partition recursively
+    (let* ([subgraph (extract-induced-subgraph adj nodes)]
+           [result (spectral-partition subgraph)])
+          (if (and (pair? result) (eq? (car result) 'error))
+              ;; Fallback: split in half if spectral partition fails
+              (let* ([mid (quotient (length nodes) 2)]
+                     [part-a (take mid nodes)]
+                     [part-b (drop mid nodes)])
+                    (append (subgraph-partition adj part-a (quotient k 2))
+                            (subgraph-partition adj part-b (- k (quotient k 2)))))
+              ;; Remap local indices back to original and recurse
+              (let* ([local-a (car result)]
+                     [local-b (cdr result)]
+                     [orig-a (remap-partition local-a nodes)]
+                     [orig-b (remap-partition local-b nodes)]
+                     [k-a (quotient k 2)]
+                     [k-b (- k k-a)])
+                    (append (subgraph-partition adj orig-a k-a)
+                            (subgraph-partition adj orig-b k-b)))))]))
 
 ;;; take : Nat × (List a) → (List a)
 (define (take n lst)

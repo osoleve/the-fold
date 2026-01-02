@@ -28,7 +28,7 @@
 ;;; Note: vec-norm and vec-dot are defined in vec.ss
 ;;; This file assumes vec.ss is loaded (via matrix.ss dependency)
 
-;;; matrix-copy : Matrix → Matrix
+;;; matrix-copy : Matrix -> Matrix
 (define (matrix-copy m)
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
@@ -38,13 +38,13 @@
             [(= i (* rows cols)) (list 'matrix rows cols new-data)]
             (vector-set! new-data i (vector-ref data i)))))
 
-;;; matrix-set! : Matrix × Nat × Nat × Num → Void
+;;; matrix-set! : Matrix x Nat x Nat x Num -> Void
 (define (matrix-set! m i j val)
   (let ([cols (matrix-cols m)]
         [data (matrix-data m)])
        (vector-set! data (+ (* i cols) j) val)))
 
-;;; matrix-column : Matrix × Nat → Vec
+;;; matrix-column : Matrix x Nat -> Vec
 (define (matrix-column m j)
   (let* ([rows (matrix-rows m)]
          [result (make-vector rows 0)])
@@ -57,7 +57,7 @@
 ;;; LU Decomposition
 ;;; ============================================================
 
-;;; matrix-lu : Matrix → (Matrix × Matrix × Vec) | Error
+;;; matrix-lu : Matrix -> (Matrix x Matrix x Vec) | Error
 (define (matrix-lu a)
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)])
@@ -124,7 +124,7 @@
                                              (find-pivot (+ i 1) i val)
                                              (find-pivot (+ i 1) max-row max-val)))))))))))
 
-;;; matrix-lu-solve : (L × U × P) × Vec → Vec
+;;; matrix-lu-solve : (L x U x P) x Vec -> Vec
 ;;; Solve Ax = b given LU decomposition with permutation.
 ;;; Algorithm: 1) Apply P to b, 2) Forward substitute Ly = Pb, 3) Back substitute Ux = y
 (define (matrix-lu-solve lu-result b)
@@ -165,7 +165,49 @@
 ;;; QR Decomposition
 ;;; ============================================================
 
-;;; matrix-qr : Matrix → (Matrix × Matrix) | Error
+;;; qr-find-orthogonal-basis : Matrix x Nat x Nat -> Vec | #f
+;;; Find a unit vector orthogonal to columns 0..j-1 of Q.
+;;; Tries standard basis vectors e_0, e_1, ... until one works.
+(define (qr-find-orthogonal-basis q j m)
+  (let find-loop ([k 0])
+       (if (= k m)
+           #f  ; Failed to find orthogonal vector
+           (let* ([e-k (vec-unit m k)]
+                  ;; Orthogonalize e_k against columns 0..j-1 of Q
+                  [v (let orth-loop ([p 0] [curr e-k])
+                          (if (= p j)
+                              curr
+                              (let* ([q-p (matrix-column q p)]
+                                     [proj (vec-dot q-p curr)])
+                                    (orth-loop (+ p 1)
+                                               (vec-sub curr (vec-scale proj q-p))))))]
+                  [v-norm (vec-norm v)])
+                 (if (> v-norm *matrix-tolerance*)
+                     (vec-scale (/ 1.0 v-norm) v)
+                     (find-loop (+ k 1)))))))
+
+;;; qr-orthogonalize-remaining! : Matrix x Matrix x Nat x Nat x Nat -> Void
+;;; Orthogonalize columns j+1..n-1 against column j.
+(define (qr-orthogonalize-remaining! q r j m n)
+  (do ([i (+ j 1) (+ i 1)])
+      [(= i n)]
+      (let* ([col-i (matrix-column q i)]
+             [col-j (matrix-column q j)]
+             [proj (vec-dot col-j col-i)])
+            (matrix-set! r j i proj)
+            (do ([row 0 (+ row 1)])
+                [(= row m)]
+                (matrix-set! q row i
+                             (- (matrix-ref q row i)
+                                (* proj (matrix-ref q row j))))))))
+
+;;; matrix-qr : Matrix -> (Matrix x Matrix) | Error
+;;;
+;;; QR decomposition using Modified Gram-Schmidt algorithm.
+;;; Handles singular/rank-deficient matrices gracefully by finding
+;;; orthogonal basis vectors when linear dependence is detected.
+;;; This allows eigenvalue algorithms to converge to 0 eigenvalues
+;;; for singular matrices like graph Laplacians.
 (define (matrix-qr a)
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)])
@@ -178,34 +220,37 @@
                           (list q r)
                           (let* ([col-j (matrix-column q j)]
                                  [norm (vec-norm col-j)])
-                                (matrix-set! r j j norm)
                                 (if (< norm *matrix-tolerance*)
-                                    `(error linearly-dependent ,j)
+                                    ;; Linear dependence - find orthogonal basis vector
+                                    (let ([basis-vec (qr-find-orthogonal-basis q j m)])
+                                         (if (not basis-vec)
+                                             `(error rank-deficient-recovery-failed ,j)
+                                             (begin
+                                              (matrix-set! r j j 0)
+                                              ;; Set column j to basis vector
+                                              (do ([row 0 (+ row 1)])
+                                                  [(= row m)]
+                                                  (matrix-set! q row j (vector-ref basis-vec row)))
+                                              ;; Orthogonalize remaining columns
+                                              (qr-orthogonalize-remaining! q r j m n)
+                                              (col-loop (+ j 1)))))
+                                    ;; Standard case - linearly independent
                                     (begin
+                                     (matrix-set! r j j norm)
                                      ;; Normalize column j
                                      (do ([i 0 (+ i 1)])
                                          [(= i m)]
                                          (matrix-set! q i j (/ (matrix-ref q i j) norm)))
                                      ;; Orthogonalize remaining columns
-                                     (do ([i (+ j 1) (+ i 1)])
-                                         [(= i n)]
-                                         (let* ([col-i (matrix-column q i)]
-                                                [col-j-norm (matrix-column q j)]
-                                                [proj (vec-dot col-j-norm col-i)])
-                                               (matrix-set! r j i proj)
-                                               (do ([row 0 (+ row 1)])
-                                                   [(= row m)]
-                                                   (matrix-set! q row i
-                                                                (- (matrix-ref q row i)
-                                                                   (* proj (matrix-ref q row j)))))))
+                                     (qr-orthogonalize-remaining! q r j m n)
                                      (col-loop (+ j 1)))))))))))
 
 ;;; ============================================================
 ;;; Cholesky Decomposition
 ;;; ============================================================
 
-;;; matrix-cholesky : Matrix → (List Matrix) | Error
-;;; Returns (list L) where A = L × L^T for positive-definite A.
+;;; matrix-cholesky : Matrix -> (List Matrix) | Error
+;;; Returns (list L) where A = L x L^T for positive-definite A.
 (define (matrix-cholesky a)
   (let ([n (matrix-rows a)])
        (if (not (= n (matrix-cols a)))
