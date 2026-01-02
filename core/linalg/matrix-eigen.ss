@@ -192,6 +192,7 @@
     (matrix-diagonal a)]
    [else
     (let* ([n active-size]
+           [full-n (matrix-rows a)]  ;; Use full matrix size for identity
            [i (- n 1)]
            ;; Check if we can deflate (subdiagonal element small)
            [sub (if (>= i 1) (matrix-ref a i (- i 1)) 0)])
@@ -200,8 +201,8 @@
               (qr-algorithm-shifted-loop a (- active-size 1) iter max-iter tol)
               ;; Compute Wilkinson shift from bottom 2x2 block
               (let* ([shift (wilkinson-shift a n)]
-                     ;; Shift: A - σI
-                     [a-shifted (matrix-sub a (matrix-scale shift (identity n)))]
+                     ;; Shift: A - σI (identity must match full matrix size)
+                     [a-shifted (matrix-sub a (matrix-scale shift (identity full-n)))]
                      [qr-result (matrix-qr a-shifted)])
                     (if (and (pair? qr-result) (eq? (car qr-result) 'error))
                         ;; QR failed - try without shift
@@ -210,7 +211,7 @@
                                [r (cadr qr-result)]
                                ;; A' = RQ + σI
                                [rq (matrix-mul r q)]
-                               [a-new (matrix-add rq (matrix-scale shift (identity n)))])
+                               [a-new (matrix-add rq (matrix-scale shift (identity full-n)))])
                               (qr-algorithm-shifted-loop a-new active-size (+ iter 1) max-iter tol))))))]))
 
 ;;; wilkinson-shift : Matrix × Nat → Num
@@ -227,8 +228,12 @@
              ;; 2x2 block eigenvalue closer to a[n-1,n-1]
              [d (/ (- a-jj a-ii) 2)]
              [sign-d (if (>= d 0) 1 -1)]
-             [denom (+ (abs d) (sqrt (+ (* d d) (* a-ji a-ij))))])
-            (if (= denom 0)
+             ;; Guard against negative discriminant from numerical errors
+             [discriminant (+ (* d d) (* a-ji a-ij))]
+             [denom (if (< discriminant 0)
+                        (abs d)  ;; Fallback: use |d| when discriminant is negative
+                        (+ (abs d) (sqrt discriminant)))])
+            (if (< denom *eigen-tolerance*)
                 a-ii
                 (- a-ii (/ (* sign-d a-ji a-ij) denom))))))
 

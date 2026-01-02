@@ -619,9 +619,8 @@
                    (=> (Collection c e)
                        (-> e c c))))
      (member? . (∀ (c e)
-                   (=> (Collection c e)
-                       (=> (Eq e)
-                           (-> e c Bool))))))))
+                   (=> ((Collection c e) (Eq e))
+                       (-> e c Bool))))))))
 
 ;;; MonadReader r m | m -> r — reader monad class
 ;;; The monad type determines the environment type

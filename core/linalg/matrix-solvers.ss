@@ -132,8 +132,8 @@
            (let* ([q (car qr)]
                   [r (cadr qr)]
                   ;; Solve Rx = Q^T b
-                  ;; Qt-b = Q^T * b
-                  [qt-b (vec-matrix-mul b q)])
+                  ;; Qt-b = Q^T * b (transpose Q then multiply by b)
+                  [qt-b (matrix-vec-mul (matrix-transpose q) b)])
                  (matrix-back-substitute r qt-b)))))
 
 ;;; ============================================================
