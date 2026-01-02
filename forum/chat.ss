@@ -416,6 +416,62 @@
   text)  ; Simple version - just return text as-is for now
 
 ;;; ============================================================
+;;; Discord Outbox Helper
+;;; ============================================================
+
+;;; write-discord-outbox! : String × String × String × Symbol × (Option String) → void
+;;; Write a message to the Discord outbox for the bridge to pick up.
+;;; Channel is the Fold channel name (e.g., 'engineering).
+;;; Author is the poster's name.
+;;; Body is the message content.
+;;; Title is optional (for forum posts vs chat).
+(define (write-discord-outbox! channel author body tier . maybe-title)
+  (let* ([outbox-dir ".fold-repl/discord-outbox"]
+         [timestamp (current-milliseconds)]
+         [filename (format "~a/~a-~a.json" outbox-dir timestamp author)])
+        ;; Ensure outbox directory exists
+        (unless (file-exists? outbox-dir)
+                (mkdir outbox-dir))
+        ;; Write JSON file
+        (call-with-output-file filename
+                               (lambda (port)
+                                       (display "{\n" port)
+                                       (display (format "  \"channel\": \"~a\",\n" channel) port)
+                                       (display (format "  \"body\": \"~a\",\n" (escape-json-string body)) port)
+                                       (display (format "  \"author\": \"~a\",\n" author) port)
+                                       (display (format "  \"tier\": \"~a\"" tier) port)
+                                       (when (and (pair? maybe-title) (car maybe-title))
+                                             (display ",\n" port)
+                                             (display (format "  \"title\": \"~a\"" (escape-json-string (car maybe-title))) port))
+                                       (display "\n}\n" port)))
+        (void)))
+
+;;; escape-json-string : String → String
+;;; Escape special characters for JSON string values.
+(define (escape-json-string str)
+  (let loop ([i 0]
+             [result ""])
+       (if (>= i (string-length str))
+           result
+           (let ([ch (string-ref str i)])
+                (loop (+ i 1)
+                      (string-append result
+                                     (cond
+                                      [(char=? ch #\") "\\\""]
+                                      [(char=? ch #\\) "\\\\"]
+                                      [(char=? ch #\newline) "\\n"]
+                                      [(char=? ch #\return) "\\r"]
+                                      [(char=? ch #\tab) "\\t"]
+                                      [else (string ch)])))))))
+
+;;; current-milliseconds : → Integer
+;;; Get current time in milliseconds.
+(define (current-milliseconds)
+  (let ([now (current-time)])
+       (+ (* (time-second now) 1000)
+          (quotient (time-nanosecond now) 1000000))))
+
+;;; ============================================================
 ;;; msg/3 — Post to Forum
 ;;; ============================================================
 
@@ -446,6 +502,8 @@
               [hash (fs-store! fs blk)])
              (fs-write-head! fs forum hash)
              (fs-pin! fs hash)
+             ;; Sync to Discord outbox for bridge pickup
+             (write-discord-outbox! (symbol->string forum) (symbol->string author) txt tier title)
              (display (format "Posted to #~a: ~a\n" forum title))
              (display (format "Hash: ~a\n" (hash->hex hash)))
              hash)))
@@ -580,6 +638,8 @@
               [hash (fs-store! fs blk)])
              (fs-write-head! fs 'chat hash)
              (fs-pin! fs hash)
+             ;; Sync to Discord outbox for bridge pickup
+             (write-discord-outbox! "chat" (symbol->string author) txt tier)
              (display (format "~a: ~a\n" author txt))
              hash)))
 
@@ -616,6 +676,8 @@
               [hash (fs-store! fs blk)])
              (fs-write-head! fs 'bugs hash)
              (fs-pin! fs hash)
+             ;; Sync to Discord outbox for bridge pickup
+             (write-discord-outbox! "bugs" (symbol->string author) description tier title)
              (display (format "🐛 Bug reported: ~a\n" title))
              (display (format "Hash: ~a\n" (hash->hex hash)))
              hash)))
