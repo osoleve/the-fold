@@ -71,6 +71,18 @@
         [(char=? (string-ref trimmed 0) #\;) 'comment]
         [else 'code])))
 
+;;; string-count-char : String × Char → Nat
+;;; Count occurrences of a character in a string.
+(define (string-count-char str ch)
+  (let ([len (string-length str)])
+       (let loop ([i 0] [count 0])
+            (if (>= i len)
+                count
+                (loop (+ i 1)
+                      (if (char=? (string-ref str i) ch)
+                          (+ count 1)
+                          count))))))
+
 
 ;;; ============================================================
 ;;; S-Expression Analysis
@@ -86,6 +98,75 @@
                                           (if (eof-object? sexp)
                                               (reverse sexps)
                                               (loop (cons sexp sexps))))))))
+
+;;; read-all-sexps-with-lines : String → (List (Cons Nat Sexp))
+;;; Read all S-expressions from a file with their starting line numbers.
+;;; Returns list of (line-number . sexp) pairs.
+;;;
+;;; Strategy: Scan file to find line numbers where top-level forms start,
+;;; then read sexps and pair them with their line numbers.
+(define (read-all-sexps-with-lines path)
+  (let* ([lines (read-file-lines path)]
+         ;; Find lines where top-level sexps start (lines beginning with '(')
+         [form-start-lines (find-form-start-lines lines)])
+        (call-with-input-file path
+                              (lambda (port)
+                                      (let loop ([results '()] [line-nums form-start-lines])
+                                           (let ([sexp (read port)])
+                                                (if (eof-object? sexp)
+                                                    (reverse results)
+                                                    ;; Pair this sexp with next available line number
+                                                    (loop (cons (cons (if (null? line-nums) 0 (car line-nums)) sexp)
+                                                                results)
+                                                          (if (null? line-nums) '() (cdr line-nums))))))))))
+
+;;; find-form-start-lines : (List String) → (List Nat)
+;;; Find line numbers where top-level forms start.
+;;; A top-level form starts when we're at depth 0 and see '('.
+;;; Tracks paren depth across lines, ignoring parens in comments and strings.
+(define (find-form-start-lines lines)
+  (let loop ([lines lines] [line-num 1] [depth 0] [results '()])
+       (if (null? lines)
+           (reverse results)
+           (let* ([line (car lines)]
+                  [trimmed (string-trim line)]
+                  ;; Check if this line starts a new top-level form
+                  [starts-form? (and (= depth 0)
+                                     (> (string-length trimmed) 0)
+                                     (char=? (string-ref trimmed 0) #\())]
+                  ;; Update depth by counting parens (simple: ignores strings/comments)
+                  [new-depth (+ depth (count-paren-delta line))])
+                 (loop (cdr lines)
+                       (+ line-num 1)
+                       new-depth
+                       (if starts-form?
+                           (cons line-num results)
+                           results))))))
+
+;;; count-paren-delta : String → Int
+;;; Count net change in paren depth for a line.
+;;; Positive = more opens than closes, negative = more closes.
+;;; Skips content after semicolon (comments).
+(define (count-paren-delta line)
+  (let ([len (string-length line)])
+       (let loop ([i 0] [delta 0] [in-string? #f])
+            (if (>= i len)
+                delta
+                (let ([ch (string-ref line i)])
+                     (cond
+                      ;; Toggle string state on quote (simple: doesn't handle escapes)
+                      [(char=? ch #\")
+                       (loop (+ i 1) delta (not in-string?))]
+                      ;; Skip rest of line on comment (only if not in string)
+                      [(and (not in-string?) (char=? ch #\;))
+                       delta]
+                      ;; Count parens only outside strings
+                      [(and (not in-string?) (char=? ch #\())
+                       (loop (+ i 1) (+ delta 1) in-string?)]
+                      [(and (not in-string?) (char=? ch #\)))
+                       (loop (+ i 1) (- delta 1) in-string?)]
+                      [else
+                       (loop (+ i 1) delta in-string?)]))))))
 
 ;;; sexp-size : Sexp → Nat
 ;;; Count the number of nodes in an S-expression tree.
@@ -202,13 +283,18 @@
          [code-count (length (filter (lambda (t) (eq? t 'code)) line-types))]
          [comment-count (length (filter (lambda (t) (eq? t 'comment)) line-types))]
          [blank-count (length (filter (lambda (t) (eq? t 'blank)) line-types))]
-         [sexps (guard (ex [else '()])  ; Handle parse errors gracefully
-                       (read-all-sexps path))]
+         ;; Read sexps with line numbers
+         [sexps-with-lines (guard (ex [else '()])
+                                  (read-all-sexps-with-lines path))]
+         [sexps (map cdr sexps-with-lines)]
+         ;; Extract definitions with their actual line numbers
          [definitions (filter-map
-                       (lambda (sexp)
-                               (and (definition? sexp)
-                                    (analyze-definition sexp 0)))  ; TODO: track line numbers
-                       sexps)]
+                       (lambda (line-sexp)
+                               (let ([line (car line-sexp)]
+                                     [sexp (cdr line-sexp)])
+                                    (and (definition? sexp)
+                                         (analyze-definition sexp line))))
+                       sexps-with-lines)]
          [loads (filter-map extract-load-path sexps)]
          [max-nest (if (null? sexps)
                        0
@@ -408,6 +494,205 @@
                                            (complexity-score def)))))
             (file-metrics-definitions fm)))
    file-analyses))
+
+;;; ============================================================
+;;; Dead Code Detection
+;;; ============================================================
+
+(define-record-type dead-code-report
+  (fields
+   all-definitions    ; List of (file . definition-info) pairs
+   all-references     ; Set of all referenced symbols
+   dead-definitions   ; List of (file . definition-info) never referenced
+   dead-count         ; Number of dead definitions
+   live-count))       ; Number of live definitions
+
+;;; find-dead-code : (List FileMetrics) → DeadCodeReport
+;;; Find definitions that are never referenced by any other definition.
+;;; Note: This may report false positives for:
+;;;   - Entry points (main functions, REPL commands)
+;;;   - Exported API functions
+;;;   - Record type accessors (auto-generated)
+(define (find-dead-code file-analyses)
+  (let* (;; Collect all definitions with their file context
+         [all-defs (apply append
+                          (map (lambda (fm)
+                                       (map (lambda (d) (cons (file-metrics-path fm) d))
+                                            (file-metrics-definitions fm)))
+                               file-analyses))]
+         ;; Collect all referenced symbols across all definitions
+         [all-refs (unique
+                    (apply append
+                           (map (lambda (fd)
+                                        (definition-info-references (cdr fd)))
+                                all-defs)))]
+         ;; Find definitions whose names are never referenced
+         [dead (filter
+                (lambda (fd)
+                        (let ([name (definition-info-name (cdr fd))])
+                             (and name  ; Skip anonymous definitions
+                                  (not (member name all-refs)))))
+                all-defs)]
+         [live-count (- (length all-defs) (length dead))])
+        (make-dead-code-report
+         all-defs
+         all-refs
+         dead
+         (length dead)
+         live-count)))
+
+;;; print-dead-code-report : DeadCodeReport → void
+(define (print-dead-code-report report)
+  (display "=== Dead Code Analysis ===\n\n")
+  (display (format "Total definitions: ~a\n" (+ (dead-code-report-dead-count report)
+                                                (dead-code-report-live-count report))))
+  (display (format "Live (referenced): ~a\n" (dead-code-report-live-count report)))
+  (display (format "Dead (unreferenced): ~a\n\n" (dead-code-report-dead-count report)))
+  
+  (let ([dead (dead-code-report-dead-definitions report)])
+       (if (null? dead)
+           (display "No dead code found.\n")
+           (begin
+            (display "Potentially dead definitions:\n")
+            (for-each
+             (lambda (fd)
+                     (let ([file (car fd)]
+                           [def (cdr fd)])
+                          (display (format "  ~a:~a - ~a (~a)\n"
+                                           file
+                                           (definition-info-line-number def)
+                                           (definition-info-name def)
+                                           (definition-info-type def)))))
+             dead)))))
+
+;;; find-dead-code-in-directory : String → DeadCodeReport
+;;; Convenience function to analyze a single directory.
+(define (find-dead-code-in-directory path)
+  (let ([dm (analyze-directory path)])
+       (find-dead-code (directory-metrics-files dm))))
+
+;;; ============================================================
+;;; Dependency Analysis
+;;; ============================================================
+
+(define-record-type dependency-graph
+  (fields
+   nodes             ; List of definition names (symbols)
+   edges             ; List of (from . to) pairs
+   in-degree         ; Alist of (symbol . count) for incoming edges
+   out-degree))      ; Alist of (symbol . count) for outgoing edges
+
+;;; build-dependency-graph : (List FileMetrics) → DependencyGraph
+;;; Build a graph of definition dependencies.
+(define (build-dependency-graph file-analyses)
+  (let* ([all-defs (apply append
+                          (map file-metrics-definitions file-analyses))]
+         [def-names (filter symbol?
+                            (map definition-info-name all-defs))]
+         ;; Build edges: (definer . referenced)
+         [edges (apply append
+                       (map (lambda (def)
+                                    (let ([name (definition-info-name def)]
+                                          [refs (definition-info-references def)])
+                                         (if name
+                                             ;; Only include edges to other definitions
+                                             (filter-map
+                                              (lambda (ref)
+                                                      (and (member ref def-names)
+                                                           (not (eq? ref name))  ; No self-loops
+                                                           (cons name ref)))
+                                              refs)
+                                             '())))
+                            all-defs))]
+         ;; Compute in-degree (how many depend on this)
+         [in-deg (map (lambda (name)
+                              (cons name
+                                    (length (filter (lambda (e) (eq? (cdr e) name)) edges))))
+                      def-names)]
+         ;; Compute out-degree (how many this depends on)
+         [out-deg (map (lambda (name)
+                               (cons name
+                                     (length (filter (lambda (e) (eq? (car e) name)) edges))))
+                       def-names)])
+        (make-dependency-graph def-names edges in-deg out-deg)))
+
+;;; find-dependency-roots : DependencyGraph → (List Symbol)
+;;; Find definitions that nothing depends on (potential entry points).
+(define (find-dependency-roots graph)
+  (filter (lambda (name)
+                  (let ([entry (assq name (dependency-graph-in-degree graph))])
+                       (and entry (= (cdr entry) 0))))
+          (dependency-graph-nodes graph)))
+
+;;; find-dependency-leaves : DependencyGraph → (List Symbol)
+;;; Find definitions that don't depend on anything (primitives/base).
+(define (find-dependency-leaves graph)
+  (filter (lambda (name)
+                  (let ([entry (assq name (dependency-graph-out-degree graph))])
+                       (and entry (= (cdr entry) 0))))
+          (dependency-graph-nodes graph)))
+
+;;; find-most-depended-on : DependencyGraph × Nat → (List (Cons Symbol Nat))
+;;; Find definitions with the highest in-degree (most depended upon).
+(define (find-most-depended-on graph n)
+  (let* ([sorted (list-sort
+                  (lambda (a b) (> (cdr a) (cdr b)))
+                  (dependency-graph-in-degree graph))])
+        (take (min n (length sorted)) sorted)))
+
+;;; find-most-dependencies : DependencyGraph × Nat → (List (Cons Symbol Nat))
+;;; Find definitions with the highest out-degree (most dependencies).
+(define (find-most-dependencies graph n)
+  (let* ([sorted (list-sort
+                  (lambda (a b) (> (cdr a) (cdr b)))
+                  (dependency-graph-out-degree graph))])
+        (take (min n (length sorted)) sorted)))
+
+;;; print-dependency-report : DependencyGraph → void
+(define (print-dependency-report graph)
+  (display "=== Dependency Analysis ===\n\n")
+  (display (format "Total definitions: ~a\n" (length (dependency-graph-nodes graph))))
+  (display (format "Total dependencies: ~a\n\n" (length (dependency-graph-edges graph))))
+  
+  (display "--- Most Depended On (top 10) ---\n")
+  (for-each
+   (lambda (entry)
+           (display (format "  ~a: ~a dependents\n" (car entry) (cdr entry))))
+   (find-most-depended-on graph 10))
+  (newline)
+  
+  (display "--- Most Dependencies (top 10) ---\n")
+  (for-each
+   (lambda (entry)
+           (display (format "  ~a: ~a dependencies\n" (car entry) (cdr entry))))
+   (find-most-dependencies graph 10))
+  (newline)
+  
+  (let ([roots (find-dependency-roots graph)])
+       (display (format "--- Entry Points (~a definitions with no dependents) ---\n"
+                        (length roots)))
+       (for-each
+        (lambda (name)
+                (display (format "  ~a\n" name)))
+        (take (min 20 (length roots)) roots))
+       (when (> (length roots) 20)
+             (display (format "  ... and ~a more\n" (- (length roots) 20)))))
+  (newline))
+
+;;; export-dependency-dot : DependencyGraph × String → void
+;;; Export dependency graph in DOT format for visualization.
+(define (export-dependency-dot graph output-path)
+  (call-with-output-file output-path
+                         (lambda (port)
+                                 (display "digraph dependencies {\n" port)
+                                 (display "  rankdir=LR;\n" port)
+                                 (display "  node [shape=box];\n" port)
+                                 (for-each
+                                  (lambda (edge)
+                                          (display (format "  \"~a\" -> \"~a\";\n" (car edge) (cdr edge)) port))
+                                  (dependency-graph-edges graph))
+                                 (display "}\n" port)))
+  (display (format "Exported to ~a\n" output-path)))
 
 ;;; ============================================================
 ;;; Full Codebase Report
