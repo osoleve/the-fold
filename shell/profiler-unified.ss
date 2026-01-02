@@ -382,7 +382,8 @@
          "  ------\n"
          (format "    Allocated:   ~a\n" mem-total)
          "\n"
-         "  COST MODEL (~a)\n"
+         (format "  COST MODEL (~a)\n" (cdr (assq 'cost-model metadata)))
+         "  ----------\n"
          (format "    Total Cost:  ~a\n" total-cost)
          (render-cost-breakdown cost-breakdown)
          "\n"
@@ -404,12 +405,14 @@
                              breakdown)))))
 
 ;;; format-elapsed : Integer (nanoseconds) -> String
+;;; Handles negative values by clamping to 0
 (define (format-elapsed ns)
-  (cond
-   [(< ns 1000) (format "~ans" ns)]
-   [(< ns 1000000) (format "~aus" (quotient ns 1000))]
-   [(< ns 1000000000) (format "~ams" (quotient ns 1000000))]
-   [else (format "~as" (quotient ns 1000000000))]))
+  (let ([ns (max 0 ns)])  ; Clamp to non-negative
+       (cond
+        [(< ns 1000) (format "~ans" ns)]
+        [(< ns 1000000) (format "~aus" (quotient ns 1000))]
+        [(< ns 1000000000) (format "~ams" (quotient ns 1000000))]
+        [else (format "~as" (quotient ns 1000000000))])))
 
 ;;; display-unified-profile : UnifiedProfiler -> void
 (define (display-unified-profile up)

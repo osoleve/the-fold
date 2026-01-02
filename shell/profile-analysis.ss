@@ -236,13 +236,16 @@
 
 (define (severity-color sev)
   ;; ANSI color codes (if terminal supports)
-  (case sev
-        [(critical) "\x1b[31m"]  ; Red
-        [(warning) "\x1b[33m"]    ; Yellow
-        [(info) "\x1b[36m"]       ; Cyan
-        [else ""]))
+  ;; Use string constructor since \x1b syntax is invalid in Chez
+  (let ([esc (integer->char 27)])
+       (case sev
+             [(critical) (string esc #\[ #\3 #\1 #\m)]  ; Red
+             [(warning) (string esc #\[ #\3 #\3 #\m)]   ; Yellow
+             [(info) (string esc #\[ #\3 #\6 #\m)]      ; Cyan
+             [else ""])))
 
-(define (reset-color) "\x1b[0m")
+(define (reset-color)
+  (string (integer->char 27) #\[ #\0 #\m))
 
 ;;; render-hint : Hint → String
 (define (render-hint h)

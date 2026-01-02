@@ -436,6 +436,27 @@
             
             (define-test arrow-to-sort
               (assert-true (kinds-equal? '(⇒ * □) '(⇒ * □))))
+            
+            ;; KN-app readback: neutral application produces correct syntax
+            (define-test readback-kn-app
+              (let* ([neutral-app (KN-app (KN-var 'kappa) (KV-star))]
+                     [result (kind-readback-neutral 0 neutral-app)])
+                    (assert-equal '(kappa *) result)))
+            
+            ;; Dependent arrow readback: codomain mentioning bound var produces Πκ
+            (define-test readback-dependent-arrow
+              (let* ([dep-clo (make-kind-closure 'k 'k '())]  ; body is k itself
+                     [kv (KV-arrow (KV-star) dep-clo)]
+                     [result (kind-readback 0 kv)])
+                    ;; Should produce Πκ syntax: (Πκ ((k0 : *)) k0)
+                    (assert-equal 'Πκ (car result))
+                    (assert-equal '* (caddr (car (cadr result))))))  ; domain is *
+            
+            ;; Arrow vs Pi equivalence: non-dependent Pi equals arrow
+            (define-test arrow-pi-equivalence
+              (let* ([arrow-val (eval-kind '(⇒ * *) kind-empty-env)]
+                     [pi-val (eval-kind (K-pi 'k '* '*) kind-empty-env)])
+                    (assert-true (kind-equiv? 0 arrow-val pi-val))))
             )
 
 ;;; ============================================================
