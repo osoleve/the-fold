@@ -769,10 +769,72 @@
       stream-nil))
 
 ;;; stream-cartesian : Stream a -> Stream b -> Stream (a . b)
-;;; Cartesian product of two streams (via monad bind).
-;;; Note: This interleaves elements to ensure fair enumeration
-;;; of the infinite product.
+;;; Fair Cartesian product using Cantor's diagonal enumeration.
+;;; Enumerates pairs by diagonal sum: (0,0), (0,1), (1,0), (0,2), (1,1), (2,0), ...
+;;; This ensures every pair (i,j) eventually appears, even for infinite streams.
 (define (stream-cartesian xs ys)
-  (stream-bind xs
-               (lambda (x)
-                       (stream-map (lambda (y) (cons x y)) ys))))
+  ;; Convert to vectors for O(1) indexed access (memoizes as we go)
+  (let ([xs-vec (make-vector 0)]
+        [ys-vec (make-vector 0)]
+        [xs-done #f]
+        [ys-done #f])
+       ;; Ensure element at index i is cached, return #f if stream exhausted before i
+       (define (ensure-cached! vec-box done-box stream i)
+         (let ([vec (unbox vec-box)])
+              (if (< i (vector-length vec))
+                  #t  ; Already cached
+                  (if (unbox done-box)
+                      #f  ; Stream exhausted
+                      ;; Extend cache
+                      (let loop ([s (if (= (vector-length vec) 0)
+                                        stream
+                                        (stream-drop (vector-length vec) stream))]
+                                 [v vec])
+                           (if (stream-nil? s)
+                               (begin
+                                (set-box! done-box #t)
+                                (set-box! vec-box v)
+                                (< i (vector-length v)))
+                               (if (> (vector-length v) i)
+                                   (begin
+                                    (set-box! vec-box v)
+                                    #t)
+                                   (loop (stream-tail s)
+                                         (vector-append v (vector (stream-head s)))))))))))
+       ;; Boxes for mutable state
+       (let ([xs-vec-box (box (vector))]
+             [ys-vec-box (box (vector))]
+             [xs-done-box (box #f)]
+             [ys-done-box (box #f)])
+            ;; Generate pairs by diagonal
+            (define (diagonal-stream diag)
+              (let ([pairs (diagonal-pairs diag)])
+                   (if (null? pairs)
+                       ;; Check if we should continue to next diagonal
+                       (if (and (unbox xs-done-box) (unbox ys-done-box))
+                           stream-nil
+                           (diagonal-stream (+ diag 1)))
+                       (stream-append (list->stream pairs)
+                                      (lambda () (diagonal-stream (+ diag 1)))))))
+            ;; Get valid pairs for diagonal k: (0,k), (1,k-1), ..., (k,0)
+            (define (diagonal-pairs k)
+              (let loop ([i 0] [acc '()])
+                   (if (> i k)
+                       (reverse acc)
+                       (let ([j (- k i)])
+                            (if (and (ensure-cached! xs-vec-box xs-done-box xs j)
+                                     (ensure-cached! ys-vec-box ys-done-box ys i))
+                                (loop (+ i 1)
+                                      (cons (cons (vector-ref (unbox xs-vec-box) j)
+                                                  (vector-ref (unbox ys-vec-box) i))
+                                            acc))
+                                (loop (+ i 1) acc))))))
+            (diagonal-stream 0))))
+
+;;; stream-append : Stream a -> (() -> Stream a) -> Stream a
+;;; Append a stream with a lazily-evaluated second stream.
+(define (stream-append s1 thunk)
+  (if (stream-nil? s1)
+      (thunk)
+      (stream-cons (stream-head s1)
+                   (lambda () (stream-append (stream-tail s1) thunk)))))

@@ -590,10 +590,28 @@
             (define-test stream-cartesian-finite
               (let* ([xs (list->stream '(1 2))]
                      [ys (list->stream '(a b))]
-                     [prod (stream-cartesian xs ys)])
-                    ;; With diagonal bind, we get interleaved results
-                    ;; First element is (1 . a) from first row
-                    (assert-equal (cons 1 'a) (stream-head prod)))))
+                     [prod (stream-cartesian xs ys)]
+                     [all-pairs (stream->list 10 prod)])
+                    ;; Cantor diagonal enumeration produces all 4 pairs
+                    (assert-equal 4 (length all-pairs))
+                    ;; First element is (1 . a) from diagonal 0
+                    (assert-equal (cons 1 'a) (stream-head prod))
+                    ;; All pairs should be present
+                    (assert-true (if (member (cons 1 'a) all-pairs) #t #f))
+                    (assert-true (if (member (cons 2 'a) all-pairs) #t #f))
+                    (assert-true (if (member (cons 1 'b) all-pairs) #t #f))
+                    (assert-true (if (member (cons 2 'b) all-pairs) #t #f))))
+            
+            (define-test stream-cartesian-infinite
+              ;; Test that infinite streams produce off-diagonal elements
+              (let* ([nats (stream-iterate (lambda (x) (+ x 1)) 0)]
+                     [prod (stream-cartesian nats nats)]
+                     [first-20 (stream->list 20 prod)])
+                    ;; Off-diagonal elements must appear (this was the bug)
+                    (assert-true (if (member (cons 0 1) first-20) #t #f))
+                    (assert-true (if (member (cons 1 0) first-20) #t #f))
+                    (assert-true (if (member (cons 0 2) first-20) #t #f))
+                    (assert-true (if (member (cons 2 0) first-20) #t #f)))))
 
 ;;; ============================================================
 ;;; Type Class Dictionary Tests
