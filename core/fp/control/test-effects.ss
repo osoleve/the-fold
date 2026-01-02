@@ -1,18 +1,96 @@
-;;; fabric/stitches/fp/test-effects.ss — Tests for Algebraic Effects
+;;; core/fp/control/test-effects.ss --- Tests for Algebraic Effects
 
-;;; NOTE: Run from fabric/stitches directory
+;;; NOTE: Run from project root
 
 (load "core/test-framework.ss")
 (load "core/fp/control/effects.ss")
 
-(display "
-")
-(display "==============================================================
-")
-(display "         ALGEBRAIC EFFECTS TESTS
-")
-(display "==============================================================
-")
+(display "\n")
+(display "==============================================================\n")
+(display "         ALGEBRAIC EFFECTS TESTS\n")
+(display "==============================================================\n")
+
+;;; ============================================================
+;;; Effect Signature Tests
+;;; ============================================================
+
+(test-group effect-signatures
+            (define-test make-effect-sig-test
+              (let ([sig (make-effect-sig 'TestEffect
+                                          (list (make-operation 'op1 'Int 'String)))])
+                   (assert-true (effect-sig? sig))
+                   (assert-equal 'TestEffect (effect-sig-name sig))
+                   (assert-equal 1 (length (effect-sig-operations sig)))))
+            
+            (define-test make-operation-test
+              (let ([op (make-operation 'myop 'Input 'Output)])
+                   (assert-true (operation? op))
+                   (assert-equal 'myop (operation-name op))
+                   (assert-equal 'Input (operation-param-type op))
+                   (assert-equal 'Output (operation-result-type op))))
+            
+            (define-test lookup-operation-test
+              (let ([op (lookup-operation sig-State 'get)])
+                   (assert-true (operation? op))
+                   (assert-equal 'get (operation-name op))))
+            
+            (define-test lookup-operation-not-found-test
+              (let ([op (lookup-operation sig-State 'nonexistent)])
+                   (assert-false op)))
+            
+            (define-test builtin-signatures-test
+              (assert-true (effect-sig? sig-State))
+              (assert-true (effect-sig? sig-Reader))
+              (assert-true (effect-sig? sig-Writer))
+              (assert-true (effect-sig? sig-Exception))
+              (assert-true (effect-sig? sig-NonDet))
+              (assert-true (effect-sig? sig-Console))
+              (assert-true (effect-sig? sig-Async))))
+
+;;; ============================================================
+;;; Effect Row Tests
+;;; ============================================================
+
+(test-group effect-rows
+            (define-test empty-row-test
+              (assert-true (effect-row? empty-row))
+              (assert-equal '() (effect-row-effects empty-row)))
+            
+            (define-test row-add-test
+              (let ([row (row-add empty-row 'State)])
+                   (assert-true (row-contains? row 'State))
+                   (assert-false (row-contains? row 'Writer))))
+            
+            (define-test row-add-duplicate-test
+              (let* ([row1 (row-add empty-row 'State)]
+                     [row2 (row-add row1 'State)])
+                    ;; Should not duplicate
+                    (assert-equal 1 (length (effect-row-effects row2)))))
+            
+            (define-test row-remove-test
+              (let* ([row1 (row-add (row-add empty-row 'State) 'Writer)]
+                     [row2 (row-remove row1 'State)])
+                    (assert-false (row-contains? row2 'State))
+                    (assert-true (row-contains? row2 'Writer))))
+            
+            (define-test row-union-test
+              (let* ([row1 (row-add empty-row 'State)]
+                     [row2 (row-add empty-row 'Writer)]
+                     [combined (row-union row1 row2)])
+                    (assert-true (row-contains? combined 'State))
+                    (assert-true (row-contains? combined 'Writer))))
+            
+            (define-test row-difference-test
+              (let* ([row1 (row-add (row-add empty-row 'State) 'Writer)]
+                     [row2 (row-add empty-row 'State)]
+                     [diff (row-difference row1 row2)])
+                    (assert-true (row-contains? diff 'Writer))
+                    (assert-false (row-contains? diff 'State))))
+            
+            (define-test row-var-test
+              (let ([rv (make-row-var 'r)])
+                   (assert-true (row-var? rv))
+                   (assert-equal 'r (row-var-name rv)))))
 
 ;;; ============================================================
 ;;; Eff Structure Tests
@@ -33,7 +111,13 @@
             (define-test eff-return-test
               (let ([e (eff-return 42)])
                    (assert-true (eff-pure? e))
-                   (assert-equal 42 (eff-pure-value e)))))
+                   (assert-equal 42 (eff-pure-value e))))
+            
+            (define-test eff-ap-test
+              (let* ([ef (eff-return add1)]
+                     [ea (eff-return 41)]
+                     [result (run-state 0 (eff-ap ef ea))])
+                    (assert-equal 42 (car result)))))
 
 ;;; ============================================================
 ;;; Effect Structure Tests
@@ -44,7 +128,11 @@
               (let ([e (make-effect 'my-tag 'my-payload)])
                    (assert-true (effect? e))
                    (assert-equal 'my-tag (effect-tag e))
-                   (assert-equal 'my-payload (effect-payload e)))))
+                   (assert-equal 'my-payload (effect-payload e))))
+            
+            (define-test effect-label-test
+              (let ([e (make-effect 'state-get '())])
+                   (assert-equal 'State (effect-label e)))))
 
 ;;; ============================================================
 ;;; Eff Monad Laws
@@ -75,6 +163,62 @@
                     (assert-equal (car lhs) (car rhs)))))
 
 ;;; ============================================================
+;;; Handler Tests
+;;; ============================================================
+
+(test-group handlers
+            (define-test make-handler-test
+              (let ([h (make-handler identity '() 'deep)])
+                   (assert-true (handler? h))
+                   (assert-equal 'deep (handler-semantics h))))
+            
+            (define-test deep-handler-test
+              (let ([h (deep-handler identity '())])
+                   (assert-equal 'deep (handler-semantics h))))
+            
+            (define-test shallow-handler-test
+              (let ([h (shallow-handler identity '())])
+                   (assert-equal 'shallow (handler-semantics h))))
+            
+            (define-test handle-pure-test
+              (let* ([h (deep-handler
+                         (lambda (x) (* x 2))
+                         '())]
+                     [result (handle h (eff-return 21))])
+                    (assert-equal 42 result)))
+            
+            (define-test handler-lookup-test
+              (let ([h (deep-handler identity
+                                     `((test-op . ,(lambda (p k) 'handled))))])
+                   (assert-true (procedure? (handler-lookup h 'test-op)))
+                   (assert-false (handler-lookup h 'unknown-op)))))
+
+;;; ============================================================
+;;; Handler Composition Tests
+;;; ============================================================
+
+(test-group handler-composition
+            (define-test compose-handlers-test
+              (let* ([h1 (deep-handler add1 '())]
+                     [h2 (deep-handler (lambda (x) (* x 2)) '())]
+                     [h3 (compose-handlers h1 h2)]
+                     [result (handle h3 (eff-return 20))])
+                    ;; h1 first: 20 + 1 = 21, then h2: 21 * 2 = 42
+                    (assert-equal 42 result)))
+            
+            (define-test nest-handlers-test
+              (let* ([h1 (deep-handler add1 '())]
+                     [h2 (deep-handler (lambda (x) (* x 2)) '())]
+                     [h (nest-handlers (list h1 h2))]
+                     [result (handle h (eff-return 20))])
+                    (assert-equal 42 result)))
+            
+            (define-test nest-handlers-empty-test
+              (let* ([h (nest-handlers '())]
+                     [result (handle h (eff-return 42))])
+                    (assert-equal 42 result))))
+
+;;; ============================================================
 ;;; State Effect Tests
 ;;; ============================================================
 
@@ -93,6 +237,11 @@
               (let ([result (run-state 10 (state-modify add1))])
                    (assert-equal '() (car result))
                    (assert-equal 11 (cdr result))))
+            
+            (define-test state-gets-test
+              (let ([result (run-state 10 (state-gets (lambda (x) (* x 2))))])
+                   (assert-equal 20 (car result))
+                   (assert-equal 10 (cdr result))))  ; state unchanged
             
             (define-test state-sequence-test
               (let ([result (run-state 0
@@ -114,7 +263,18 @@
                                                                    (lambda (_)
                                                                            state-get)))))])
                    (assert-equal 7 (car result))
-                   (assert-equal 7 (cdr result)))))
+                   (assert-equal 7 (cdr result))))
+            
+            (define-test local-state-test
+              (let ([result (run-state 100
+                                       (eff-bind (local-state 0
+                                                              (eff-bind counter-increment
+                                                                        (lambda (_) state-get)))
+                                                 (lambda (inner-result)
+                                                         (eff-bind state-get
+                                                                   (lambda (outer-state)
+                                                                           (eff-return (list inner-result outer-state)))))))])
+                   (assert-equal '(1 100) (car result)))))
 
 ;;; ============================================================
 ;;; Reader Effect Tests
@@ -124,6 +284,10 @@
             (define-test reader-ask-test
               (let ([result (run-reader "environment" reader-ask)])
                    (assert-equal "environment" result)))
+            
+            (define-test reader-asks-test
+              (let ([result (run-reader 10 (reader-asks (lambda (x) (* x 2))))])
+                   (assert-equal 20 result)))
             
             (define-test reader-in-bind-test
               (let ([result (run-reader 10
@@ -165,6 +329,10 @@
               (let ([result (run-writer (log-info "test message"))])
                    (assert-equal '() (car result))
                    (assert-equal '((info "test message")) (cdr result))))
+            
+            (define-test log-debug-test
+              (let ([result (run-writer (log-debug "debug msg"))])
+                   (assert-equal '((debug "debug msg")) (cdr result))))
             
             (define-test multiple-log-levels-test
               (let ([result (run-writer
@@ -213,7 +381,11 @@
                                                    (eff-throw "too big")
                                                    (eff-return x)))))])
                    (assert-true (left? result))
-                   (assert-equal "too big" (from-left result)))))
+                   (assert-equal "too big" (from-left result))))
+            
+            (define-test eff-try-test
+              (let ([result (run-state 0 (eff-try (eff-throw "err")))])
+                   (assert-true (left? (car result))))))
 
 ;;; ============================================================
 ;;; NonDet Effect Tests
@@ -230,6 +402,14 @@
             
             (define-test nondet-fail-test
               (let ([result (run-nondet nondet-fail)])
+                   (assert-equal '() result)))
+            
+            (define-test nondet-guard-pass-test
+              (let ([result (run-nondet (nondet-guard #t))])
+                   (assert-equal 1 (length result))))
+            
+            (define-test nondet-guard-fail-test
+              (let ([result (run-nondet (nondet-guard #f))])
                    (assert-equal '() result)))
             
             (define-test nondet-bind-test
@@ -255,7 +435,19 @@
             
             (define-test nondet-first-empty-test
               (let ([result (run-nondet-first nondet-fail)])
-                   (assert-true (nothing? result)))))
+                   (assert-true (nothing? result))))
+            
+            (define-test nondet-bounded-test
+              (let ([result (run-nondet-bounded 3 (nondet-choose '(1 2 3 4 5)))])
+                   (assert-equal 3 (length result))))
+            
+            (define-test nondet-from-maybe-just-test
+              (let ([result (run-nondet (nondet-from-maybe (just 42)))])
+                   (assert-equal '(42) result)))
+            
+            (define-test nondet-from-maybe-nothing-test
+              (let ([result (run-nondet (nondet-from-maybe nothing))])
+                   (assert-equal '() result))))
 
 ;;; ============================================================
 ;;; Console Effect Tests
@@ -272,6 +464,11 @@
               (let ([result (run-console-pure '("input")
                                               console-read)])
                    (assert-equal "input" (car result))))
+            
+            (define-test console-print-line-test
+              (let ([result (run-console-pure '()
+                                              (console-print-line "hello"))])
+                   (assert-equal '("hello\n") (cdr result))))
             
             (define-test console-interaction-test
               (let ([result (run-console-pure '("Alice")
@@ -309,23 +506,14 @@
                                                                                    (eff-bind (async-await f2)
                                                                                              (lambda (v2)
                                                                                                      (eff-return (+ v1 v2)))))))))))])
-                   (assert-equal 30 result))))
-
-;;; ============================================================
-;;; Handler Tests
-;;; ============================================================
-
-(test-group handlers
-            (define-test make-handler-test
-              (let ([h (make-handler identity (lambda (eff k) 'handled))])
-                   (assert-true (handler? h))))
+                   (assert-equal 30 result)))
             
-            (define-test handle-pure-test
-              (let* ([h (make-handler
-                         (lambda (x) (* x 2))
-                         (lambda (eff k) 'effect))]
-                     [result (handle h (eff-return 21))])
-                    (assert-equal 42 result))))
+            (define-test async-parallel-test
+              (let ([result (run-async-sync
+                             (async-parallel (list (eff-return 1)
+                                                   (eff-return 2)
+                                                   (eff-return 3))))])
+                   (assert-equal '(1 2 3) result))))
 
 ;;; ============================================================
 ;;; Combining Effects Tests
@@ -350,6 +538,13 @@
                    (assert-equal '(2 4 6) (car result))
                    (assert-equal '(1 2 3) (cdr result))))
             
+            (define-test eff-filter-m-test
+              (let ([result (run-state 0
+                                       (eff-filter-m (lambda (x)
+                                                             (eff-return (even? x)))
+                                                     '(1 2 3 4 5 6)))])
+                   (assert-equal '(2 4 6) (car result))))
+            
             (define-test eff-for-each-test
               (let ([result (run-writer
                              (eff-for-each writer-tell '(a b c)))])
@@ -364,7 +559,28 @@
                                                  0
                                                  '(1 2 3 4 5)))])
                    (assert-equal 15 (car result))
-                   (assert-equal 15 (cdr result)))))
+                   (assert-equal 15 (cdr result))))
+            
+            (define-test eff-fold-right-test
+              (let ([result (run-writer
+                             (eff-fold-right (lambda (x acc)
+                                                     (eff-bind (writer-tell x)
+                                                               (lambda (_)
+                                                                       (eff-return (cons x acc)))))
+                                             '()
+                                             '(1 2 3)))])
+                   (assert-equal '(1 2 3) (car result))
+                   (assert-equal '(3 2 1) (cdr result))))  ; told in reverse order
+            
+            (define-test eff-replicate-test
+              (let ([result (run-state 0
+                                       (eff-replicate 5 (eff-bind state-get
+                                                                  (lambda (n)
+                                                                          (eff-bind (state-put (+ n 1))
+                                                                                    (lambda (_)
+                                                                                            (eff-return n)))))))])
+                   (assert-equal '(0 1 2 3 4) (car result))
+                   (assert-equal 5 (cdr result)))))
 
 ;;; ============================================================
 ;;; eff-when / eff-unless Tests
@@ -404,7 +620,116 @@
             (define-test eff-lift2-test
               (let ([result (run-state 0
                                        (eff-lift2 + (eff-return 20) (eff-return 22)))])
+                   (assert-equal 42 (car result))))
+            
+            (define-test eff-lift3-test
+              (let ([result (run-state 0
+                                       (eff-lift3 (lambda (a b c) (+ a b c))
+                                                  (eff-return 10)
+                                                  (eff-return 20)
+                                                  (eff-return 12)))])
                    (assert-equal 42 (car result)))))
+
+;;; ============================================================
+;;; Effect Constraints Tests
+;;; ============================================================
+
+(test-group effect-constraints
+            (define-test make-effect-constraint-test
+              (let ([c (make-effect-constraint '(State Writer))])
+                   (assert-true (effect-constraint? c))
+                   (assert-equal '(State Writer) (effect-constraint-effects c))))
+            
+            (define-test check-effects-pure-test
+              (assert-true (check-effects '() (eff-return 42))))
+            
+            (define-test check-effects-allowed-test
+              (assert-true (check-effects '(State) state-get))))
+
+;;; ============================================================
+;;; Combined Effect Handlers Tests
+;;; ============================================================
+
+(test-group combined-handlers
+            (define-test run-state-writer-test
+              (let ([result (run-state-writer 0
+                                              (eff-bind (state-put 10)
+                                                        (lambda (_)
+                                                                (eff-bind (writer-tell "set to 10")
+                                                                          (lambda (_)
+                                                                                  state-get)))))])
+                   ;; Result is ((value . state) . log)
+                   (assert-equal 10 (caar result))     ; value
+                   (assert-equal 10 (cdar result))     ; state
+                   (assert-equal '("set to 10") (cdr result))))  ; log
+            
+            (define-test run-reader-writer-test
+              (let ([result (run-reader-writer "env"
+                                               (eff-bind reader-ask
+                                                         (lambda (e)
+                                                                 (eff-bind (writer-tell e)
+                                                                           (lambda (_)
+                                                                                   (eff-return 42))))))])
+                   (assert-equal 42 (car result))
+                   (assert-equal '("env") (cdr result)))))
+
+;;; ============================================================
+;;; Scoped Effects Tests
+;;; ============================================================
+
+(test-group scoped-effects
+            (define-test with-state-test
+              (let ([result (run-state 999
+                                       (with-state 0
+                                                   (eff-bind counter-increment
+                                                             (lambda (_) state-get))))])
+                   ;; Inner state scope returns 1, outer state unchanged
+                   (assert-equal 1 (car result))
+                   (assert-equal 999 (cdr result))))
+            
+            (define-test with-writer-test
+              (let ([result (run-state 0
+                                       (with-writer
+                                        (eff-bind (writer-tell "hi")
+                                                  (lambda (_) (eff-return 42)))))])
+                   ;; Returns (value . log) pair
+                   (assert-equal 42 (caar result))
+                   (assert-equal '("hi") (cdar result))))
+            
+            (define-test with-nondet-test
+              (let ([result (run-state 0
+                                       (with-nondet (nondet-choose '(1 2 3))))])
+                   (assert-equal '(1 2 3) (car result)))))
+
+;;; ============================================================
+;;; Resumable Continuations Tests
+;;; ============================================================
+
+(test-group resumable-continuations
+            (define-test resume-test
+              (let* ([captured-k #f]
+                     [eff (make-eff-op (make-effect 'test '())
+                                       (lambda (resp)
+                                               (eff-return (* resp 2))))]
+                     [k (eff-op-cont eff)]
+                     [resumed (resume k 21)])
+                    (assert-equal 42 (car (run-state 0 resumed)))))
+            
+            (define-test abort-test
+              (let ([result (run-state 0 (abort 42))])
+                   (assert-equal 42 (car result)))))
+
+;;; ============================================================
+;;; Interleaving Tests
+;;; ============================================================
+
+(test-group interleaving
+            (define-test interleave-first-completes-test
+              (let ([result (run-state 0
+                                       (interleave (eff-return 'a)
+                                                   (eff-return 'b)))])
+                   (assert-true (left? (car result)))
+                   (assert-equal 'a (from-left (car result))))))
 
 ;;; ============================================================
 ;;; Practical Examples
@@ -443,18 +768,6 @@
                    (assert-true (not (not (member '(3 7) result))))
                    (assert-true (not (not (member '(4 6) result))))))
             
-            ;; State + Writer: logging counter
-            (define (logged-increment)
-              (eff-bind state-get
-                        (lambda (n)
-                                (eff-bind (writer-tell (string-append "incrementing from "
-                                                                      (number->string n)))
-                                          (lambda (_)
-                                                  (state-put (+ n 1)))))))
-            
-            ;; Note: This requires effect layering which is complex
-            ;; We'll test state and writer separately instead
-            
             ;; Exception in computation
             (define (safe-divide a b)
               (if (= b 0)
@@ -469,27 +782,72 @@
             (define-test safe-divide-failure-test
               (let ([result (run-exception (safe-divide 10 0))])
                    (assert-true (left? result))
-                   (assert-equal "division by zero" (from-left result)))))
+                   (assert-equal "division by zero" (from-left result))))
+            
+            ;; Pythonic-style with guard
+            (define (pythagorean-triples limit)
+              (eff-bind (nondet-choose (range 1 limit))
+                        (lambda (a)
+                                (eff-bind (nondet-choose (range a limit))
+                                          (lambda (b)
+                                                  (eff-bind (nondet-choose (range b limit))
+                                                            (lambda (c)
+                                                                    (eff-bind (nondet-guard (= (+ (* a a) (* b b)) (* c c)))
+                                                                              (lambda (_)
+                                                                                      (eff-return (list a b c)))))))))))
+            
+            (define-test pythagorean-triples-test
+              (let ([result (run-nondet (pythagorean-triples 15))])
+                   (assert-true (not (not (member '(3 4 5) result))))
+                   (assert-true (not (not (member '(5 12 13) result)))))))
+
+;;; ============================================================
+;;; Deep vs Shallow Handler Tests
+;;; ============================================================
+
+(test-group deep-vs-shallow
+            ;; Test that deep handlers wrap the entire continuation
+            (define-test deep-handler-wraps-continuation-test
+              (let* ([counter 0]
+                     [h (deep-handler
+                         identity
+                         `((count . ,(lambda (payload k)
+                                             (set! counter (+ counter 1))
+                                             (k '())))))]
+                     [eff (eff-bind (perform (make-effect 'count '()))
+                                    (lambda (_)
+                                            (eff-bind (perform (make-effect 'count '()))
+                                                      (lambda (_)
+                                                              (perform (make-effect 'count '()))))))]
+                     [result (handle h eff)])
+                    (assert-equal 3 counter)))
+            
+            ;; Test that shallow handlers only handle once
+            (define-test shallow-handler-once-test
+              (let* ([h (shallow-handler
+                         identity
+                         `((incr . ,(lambda (payload k)
+                                            ;; Return the continuation as-is
+                                            ;; (it won't be re-wrapped)
+                                            (k (+ payload 1))))))]
+                     ;; First step only
+                     [eff (perform (make-effect 'incr 0))])
+                    ;; Shallow handler processes just the first op
+                    ;; Result is (eff-pure 1) because the return case is identity
+                    (let ([result (handle h eff)])
+                         (assert-true (eff-pure? result))
+                         (assert-equal 1 (eff-pure-value result))))))
 
 ;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 
-(display "
-")
-(display "==============================================================
-")
-(printf "Tests passed: ~a
-" *tests-passed*)
-(printf "Tests failed: ~a
-" *tests-failed*)
-(printf "Total tests:  ~a
-" *tests-run*)
+(display "\n")
+(display "==============================================================\n")
+(printf "Tests passed: ~a\n" *tests-passed*)
+(printf "Tests failed: ~a\n" *tests-failed*)
+(printf "Total tests:  ~a\n" *tests-run*)
 
 (if (= *tests-failed* 0)
-    (display "
-[SUCCESS] All effects tests passed.
-")
-    (display "
-[FAILURE] Some effects tests failed.
-"))
+    (display "\n[SUCCESS] All effects tests passed.\n")
+    (display "\n[FAILURE] Some effects tests failed.\n"))
