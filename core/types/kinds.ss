@@ -61,6 +61,94 @@
   `(κ∀ ,vars ,body))
 
 ;;; ============================================================
+;;; Dependent Kinds (Phase 1 Foundation)
+;;; ============================================================
+
+;;; Dependent Kind Grammar Extension:
+;;;
+;;;   Kind ::= ...
+;;;          | (Πκ ((var : Kind)) Kind)   ; Dependent kind (Pi at kind level)
+;;;          | □                          ; Sort (kind of kinds) - level 0
+;;;          | (□ n)                      ; Leveled sort at level n
+;;;
+;;; Dependent kinds enable:
+;;;   - Type-level functions that compute kinds
+;;;   - Vector n : Nat → * → * (kind depends on value!)
+;;;   - More expressive type constructors
+
+;;; K-pi : Symbol × Kind × Kind → Kind
+;;; Construct a dependent kind: Π(var : domain). codomain
+;;; The codomain may mention var.
+(define (K-pi var domain codomain)
+  `(Πκ ((,var : ,domain)) ,codomain))
+
+;;; K-sort : → Kind | Nat → Kind
+;;; Construct the sort (kind of kinds).
+;;; Without argument: □ (level 0)
+;;; With argument n: □n (explicit level)
+(define (K-sort . args)
+  (if (null? args)
+      '□
+      (let ([level (car args)])
+           (if (and (integer? level) (>= level 0))
+               `(□ ,level)
+               (error 'K-sort "level must be non-negative integer" level)))))
+
+;;; sort? : Any → Boolean
+;;; Returns true if k is a sort (□ or □n).
+(define (sort? k)
+  (or (eq? k '□)
+      (and (pair? k)
+           (eq? (car k) '□)
+           (= (length k) 2)
+           (integer? (cadr k))
+           (>= (cadr k) 0))))
+
+;;; sort-level : Kind → Nat
+;;; Extract the level from a sort. □ has level 0.
+(define (sort-level k)
+  (cond
+   [(eq? k '□) 0]
+   [(and (pair? k) (eq? (car k) '□)) (cadr k)]
+   [else (error 'sort-level "not a sort" k)]))
+
+;;; dep-kind? : Kind → Boolean
+;;; Returns true only for Πκ kinds.
+(define (dep-kind? k)
+  (and (pair? k)
+       (eq? (car k) 'Πκ)
+       (= (length k) 3)
+       (let ([binding (cadr k)])
+            (and (list? binding)
+                 (= (length binding) 1)
+                 (let ([b (car binding)])
+                      (and (list? b)
+                           (= (length b) 3)
+                           (symbol? (car b))
+                           (eq? (cadr b) ':)))))))
+
+;;; dep-kind-var : Kind → Symbol
+;;; Extract the bound variable from a dependent kind.
+(define (dep-kind-var k)
+  (if (dep-kind? k)
+      (caar (cadr k))
+      (error 'dep-kind-var "not a dependent kind" k)))
+
+;;; dep-kind-domain : Kind → Kind
+;;; Extract the domain from a dependent kind.
+(define (dep-kind-domain k)
+  (if (dep-kind? k)
+      (caddar (cadr k))
+      (error 'dep-kind-domain "not a dependent kind" k)))
+
+;;; dep-kind-codomain : Kind → Kind
+;;; Extract the codomain from a dependent kind.
+(define (dep-kind-codomain k)
+  (if (dep-kind? k)
+      (caddr k)
+      (error 'dep-kind-codomain "not a dependent kind" k)))
+
+;;; ============================================================
 ;;; Kind Predicates
 ;;; ============================================================
 
@@ -70,6 +158,8 @@
    [(eq? k '*) #t]
    [(eq? k 'Constraint) #t]
    [(eq? k 'Row) #t]
+   ;; Sort (kind of kinds) - bare □
+   [(eq? k '□) #t]
    ;; Kind variable (κ-prefixed symbols)
    [(kind-var? k) #t]
    [(not (pair? k)) #f]
@@ -84,6 +174,17 @@
          (list? (cadr k))
          (andmap symbol? (cadr k))
          (kind? (caddr k)))]
+   ;; Dependent kind: (Πκ ((var : domain)) codomain)
+   [(eq? (car k) 'Πκ)
+    (and (= (length k) 3)
+         (dep-kind? k)  ; Validates structure
+         (kind? (dep-kind-domain k))
+         (kind? (dep-kind-codomain k)))]
+   ;; Leveled sort: (□ n)
+   [(eq? (car k) '□)
+    (and (= (length k) 2)
+         (integer? (cadr k))
+         (>= (cadr k) 0))]
    [else #f]))
 
 ;;; kind-var? : Any → Boolean
@@ -868,13 +969,27 @@
    [(eq? k '*) "*"]
    [(eq? k 'Constraint) "Constraint"]
    [(eq? k 'Row) "Row"]
+   ;; Sort (kind of kinds)
+   [(eq? k '□) "[]"]
+   [(and (pair? k) (eq? (car k) '□))
+    (string-append "[]" (number->string (cadr k)))]
+   ;; Kind variable
    [(kind-var? k) (symbol->string k)]
+   ;; Kind arrow
    [(kind-arrow? k)
     (let ([param (kind->string (kind-param k))]
           [result (kind->string (kind-result k))])
          (if (kind-arrow? (kind-param k))
              (string-append "(" param ") ⇒ " result)
              (string-append param " ⇒ " result)))]
+   ;; Dependent kind: Pi(x : K). K'
+   [(dep-kind? k)
+    (let ([var (symbol->string (dep-kind-var k))]
+          [domain (kind->string (dep-kind-domain k))]
+          [codomain (kind->string (dep-kind-codomain k))])
+         (string-append "Pi(" var " : " domain "). " codomain))]
+   ;; Arbitrary symbol (used in dependent kind domains like 'Nat)
+   [(symbol? k) (symbol->string k)]
    [(pair? k) (format "~s" k)]
    [else "?"]))
 
