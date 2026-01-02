@@ -169,6 +169,39 @@
   ;; Note: η-equivalence requires careful handling in NbE
   ;; For now just test basic lambda normalization
   
+  ;; Truly dependent types (body references bound variable)
+  (display "
+--- Truly Dependent Types ---
+")
+  ;; Vec n Int - length-indexed vector, the canonical dependent type example
+  (test "t-pi with dependent body (Vec n Int)"
+        '(Π ((n : Nat)) (Vec n Int))
+        (t-pi 'n 'Nat '(Vec n Int)))
+  (test "t-sigma with dependent body (Vec n Int)"
+        '(Σ ((n : Nat)) (Vec n Int))
+        (t-sigma 'n 'Nat '(Vec n Int)))
+  ;; Multi-parameter dependent Pi
+  (test "nested dependent Pi (curried Vec constructor)"
+        '(Π ((n : Nat)) (Π ((A : Type)) (Vec n A)))
+        (t-pi* '((n . Nat) (A . Type)) '(Vec n A)))
+  ;; Matrix with dependent dimensions
+  (test "Matrix with dependent dimensions"
+        '(Π ((m : Nat)) (Π ((n : Nat)) (Matrix m n Int)))
+        (t-pi* '((m . Nat) (n . Nat)) '(Matrix m n Int)))
+  ;; Identity type - classic dependent type
+  (test "dependent identity type (propositional equality)"
+        '(Π ((A : Type)) (Π ((x : A)) (Π ((y : A)) (Id A x y))))
+        (t-pi* '((A . Type) (x . A) (y . A)) '(Id A x y)))
+  
+  ;; Wellformedness checks
+  (display "
+--- Wellformedness Tests ---
+")
+  (test-true "well-formed Vec type" (well-formed-dep-type? '(Vec 3 Int)))
+  (test-true "well-formed Matrix type" (well-formed-dep-type? '(Matrix 2 3 Int)))
+  (test-true "well-formed Pi type" (well-formed-dep-type? '(Π ((n : Nat)) (Vec n Int))))
+  (test-true "well-formed nested Pi" (well-formed-dep-type? '(Π ((A : Type)) (Π ((x : A)) A))))
+  
   ;; Summary
   (display "
 === Test Summary ===

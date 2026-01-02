@@ -35,9 +35,8 @@
       (log2 x)))
 
 ;;; safe-log2 : Number -> Number
-;;; Log base 2 with convention that log(0) contributes 0.
-(define (safe-log2 x)
-  (entropy-log2 x))
+;;; Alias for entropy-log2; used in cross-entropy for readability.
+(define safe-log2 entropy-log2)
 
 ;;; plogp : Number -> Number
 ;;; Compute p * log2(p) with convention 0 * log(0) = 0.
@@ -154,12 +153,14 @@
         (mutual-information joint-probs marginal-x marginal-y)))
 
 ;;; compute-marginal-x : (List (List Number)) -> (List Number)
-;;; Sum over columns to get P(X).
+;;; For joint matrix where entry (i,j) = P(X=i, Y=j),
+;;; sum each row over all columns to get P(X=i).
 (define (compute-marginal-x joint-probs)
   (map (lambda (row) (fold-left + 0 row)) joint-probs))
 
 ;;; compute-marginal-y : (List (List Number)) -> (List Number)
-;;; Sum over rows to get P(Y).
+;;; For joint matrix where entry (i,j) = P(X=i, Y=j),
+;;; sum each column over all rows to get P(Y=j).
 (define (compute-marginal-y joint-probs)
   (if (null? joint-probs)
       '()
@@ -250,20 +251,20 @@
            (log2 width))))
 
 ;;; exponential-entropy : Number -> Number
-;;; Differential entropy of exponential with rate lambda.
-;;; h(X) = 1 - log2(lambda)
+;;; Differential entropy of exponential with rate lambda (in bits).
+;;; h(X) = log2(e/lambda) = log2(e) - log2(lambda)
 (define (exponential-entropy lambda)
   (if (<= lambda 0)
       +inf.0
-      (- 1 (log2 lambda))))
+      (- (log2 (exp-num 1)) (log2 lambda))))
 
 ;;; laplace-entropy : Number -> Number
-;;; Differential entropy of Laplace with scale b.
-;;; h(X) = 1 + log2(2b)
+;;; Differential entropy of Laplace with scale b (in bits).
+;;; h(X) = log2(2*b*e) = log2(e) + log2(2b)
 (define (laplace-entropy b)
   (if (<= b 0)
       -inf.0
-      (+ 1 (log2 (* 2 b)))))
+      (+ (log2 (exp-num 1)) (log2 (* 2 b)))))
 
 ;;; ============================================================
 ;;; Entropy Estimation from Samples
@@ -343,9 +344,10 @@
 ;;;   alpha -> 1: Shannon entropy (limit)
 ;;;   alpha = 2: Collision entropy
 ;;;   alpha -> inf: Min-entropy
+;;; Returns +inf.0 for invalid alpha (negative values).
 (define (renyi-entropy alpha probs)
   (cond
-   [(< alpha 0) (error 'renyi-entropy "alpha must be non-negative")]
+   [(< alpha 0) +inf.0]  ; Undefined for negative alpha
    [(= alpha 1) (entropy probs)]  ; Shannon entropy as limit
    [(= alpha 0) (log2 (length (filter (lambda (p) (> p 0)) probs)))]  ; Hartley
    [else

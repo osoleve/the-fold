@@ -145,19 +145,23 @@
   (display "\n--- Cross Entropy Tests ---\n")
   (test-approx "H(P,P) = H(P)"
                1.0 (cross-entropy '(0.5 0.5) '(0.5 0.5)) 0.0001)
-  (test-approx "H(P,Q) >= H(P)"
-               1.0 (cross-entropy '(0.5 0.5) '(0.5 0.5)) 0.0001)
+  (test-true "H(P,Q) >= H(P) when P≠Q"
+             (let ([p '(0.8 0.2)]
+                   [q '(0.5 0.5)])
+                  (>= (cross-entropy p q) (entropy p))))
   
   ;; KL divergence
   (display "\n--- KL Divergence Tests ---\n")
   (test-approx "D_KL(P||P) = 0"
                0.0 (kl-divergence '(0.5 0.5) '(0.5 0.5)) 0.0001)
-  (test-approx "D_KL(P||Q) >= 0"
-               0.0 (kl-divergence '(0.5 0.5) '(0.5 0.5)) 0.0001)
+  (test-true "D_KL(P||Q) >= 0"
+             (>= (kl-divergence '(0.9 0.1) '(0.5 0.5)) 0))
   (test-true "D_KL asymmetric"
              (let ([d1 (kl-divergence '(0.9 0.1) '(0.5 0.5))]
                    [d2 (kl-divergence '(0.5 0.5) '(0.9 0.1))])
                   (not (= d1 d2))))
+  (test "D_KL = +inf when Q has zero where P doesn't"
+        +inf.0 (kl-divergence '(0.5 0.5) '(1.0 0.0)))
   
   ;; Jensen-Shannon divergence
   (display "\n--- Jensen-Shannon Divergence Tests ---\n")
@@ -168,6 +172,17 @@
                    [jsd2 (jensen-shannon-divergence '(0.5 0.5) '(0.9 0.1))])
                   (< (abs (- jsd1 jsd2)) 0.0001)))
   
+  ;; Conditional entropy
+  (display "\n--- Conditional Entropy Tests ---\n")
+  (let ([independent-joint '((0.25 0.25) (0.25 0.25))]
+        [marginal-y '(0.5 0.5)])
+       (test-approx "H(X|Y) for independent = H(X)"
+                    1.0 (conditional-entropy independent-joint marginal-y) 0.0001))
+  (let ([correlated-joint '((0.5 0) (0 0.5))]
+        [marginal-y '(0.5 0.5)])
+       (test-approx "H(X|Y) when X=Y = 0"
+                    0.0 (conditional-entropy correlated-joint marginal-y) 0.0001))
+  
   ;; Continuous entropy
   (display "\n--- Differential Entropy Tests ---\n")
   ;; Gaussian entropy in bits: (1/2) * log2(2 * pi * e * sigma^2)
@@ -176,10 +191,17 @@
                2.047 (gaussian-entropy 1) 0.01)
   (test-approx "H(Uniform [0,1]) = 0"
                0.0 (uniform-entropy 0 1) 0.0001)
+  ;; Differential entropy CAN be negative (unlike discrete entropy)
+  (test-approx "H(Uniform [0,0.5]) = -1 (differential can be negative)"
+               -1.0 (uniform-entropy 0 0.5) 0.0001)
   (test-approx "H(Uniform [0,2]) = 1"
                1.0 (uniform-entropy 0 2) 0.0001)
-  (test-approx "H(Exponential λ=1) = 1"
-               1.0 (exponential-entropy 1) 0.001)
+  ;; Exponential entropy: log2(e/λ) = log2(e) ≈ 1.4427 for λ=1
+  (test-approx "H(Exponential λ=1) = log2(e) ≈ 1.443"
+               1.4427 (exponential-entropy 1) 0.001)
+  ;; Laplace entropy: log2(2*b*e) for b=1: log2(2e) ≈ 2.4427
+  (test-approx "H(Laplace b=1) = log2(2e) ≈ 2.443"
+               2.4427 (laplace-entropy 1) 0.001)
   
   ;; Renyi entropy
   (display "\n--- Renyi Entropy Tests ---\n")
@@ -210,9 +232,13 @@
   
   ;; PMI
   (display "\n--- Pointwise Mutual Information Tests ---\n")
+  ;; PMI = log2(P(x,y) / (P(x) * P(y)))
+  ;; For independent: P(x,y) = P(x)*P(y), so PMI = 0
   (test-approx "PMI(independent) = 0"
                0.0 (pointwise-mutual-information 0.25 0.5 0.5) 0.0001)
-  (test-approx "PMI(P(x,y) = P(x)) = log2(1/P(y))"
+  ;; For P(x,y)=0.5, P(x)=0.5, P(y)=0.5: PMI = log2(0.5 / 0.25) = log2(2) = 1
+  ;; This indicates positive association (co-occurrence above independence)
+  (test-approx "PMI with positive association"
                1.0 (pointwise-mutual-information 0.5 0.5 0.5) 0.0001)
   
   ;; Sample entropy
