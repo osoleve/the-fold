@@ -118,7 +118,12 @@
     ;; Layer 6: Compilation Pipeline
     "test-compile.ss"
     ;; Layer 7: Error System
-    "test-error.ss"))
+    "test-error.ss"
+    ;; Layer 8: Linear Algebra
+    "test-vec.ss"
+    "test-matrix.ss"
+    "test-matrix-decomp.ss"
+    "test-matrix-solvers.ss"))
 
 ;;; Shell tests (validated, stable)
 (define shell-tests

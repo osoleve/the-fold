@@ -132,6 +132,12 @@
 ;;; Layer 7: Error System
 (run-test-file "test-error.ss")
 
+;;; Layer 8: Linear Algebra
+(run-test-file "test-vec.ss")
+(run-test-file "test-matrix.ss")
+(run-test-file "test-matrix-decomp.ss")
+(run-test-file "test-matrix-solvers.ss")
+
 ;;; ============================================================
 ;;; Summary
 ;;; ============================================================
