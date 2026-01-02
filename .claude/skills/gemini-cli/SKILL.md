@@ -20,44 +20,46 @@ Consider gemini-3-pro-preview to be a peer of Opus, and gemini-3-flash-preview t
 
 ### Basic Headless Invocation
 
-The Gemini CLI supports headless mode through standard input and command-line arguments:
+The Gemini CLI supports headless mode through positional arguments and standard input:
 
 ```bash
-# Basic prompt via stdin
-echo "Your prompt here" | gemini -p
-
-# Prompt via command-line argument
-gemini -p "Your prompt here"
+# Prompt via positional argument (preferred)
+gemini "Your prompt here"
 
 # With specific model selection
-gemini -m gemini-3-pro-preview -p "Your prompt here"
-gemini -m gemini-3-flash-preview -p "Your prompt here"
+gemini -m gemini-3-pro-preview "Your prompt here"
+gemini -m gemini-3-flash-preview "Your prompt here"
+
+# Prompt via stdin
+echo "Your prompt here" | gemini
 ```
 
 ### Output Control
 
 ```bash
 # JSON output for parsing
-gemini --output-format json -p "Your prompt here"
+gemini --output-format json "Your prompt here"
 
 # Stream responses (for long outputs)
-gemini --output-format stream-json -p "Your prompt here"
+gemini --output-format stream-json "Your prompt here"
 
 # Save output to file
-gemini -p "Your prompt here" > output.txt
+gemini "Your prompt here" > output.txt
 ```
 
 ### Configuration Options
 
 | Option | Description | Example |
 |--------|-------------|---------|
-| `--prompt, -p` | Run in headless mode | `gemini -p "query"` |
-| `--output-format` | Specify output format (text, json, stream-json) | `gemini -p "query" --output-format json` |
-| `--model, -m` | Specify the Gemini model | `gemini -p "query" -m gemini-3-pro-preview` |
-| `--debug, -d` | Enable debug mode | `gemini -p "query" --debug` |
-| `--include-directories` | Include additional directories in context | `gemini -p "query" --include-directories src,docs` |
-| `--yolo, -y` | Auto-approve all actions | `gemini -p "query" --yolo` |
-| `--approval-mode` | Set approval mode (auto_edit, manual, etc) | `gemini -p "query" --approval-mode auto_edit` |
+| `[query..]` | Positional prompt (preferred) | `gemini "query"` |
+| `--output-format, -o` | Output format (text, json, stream-json) | `gemini --output-format json "query"` |
+| `--model, -m` | Specify the Gemini model | `gemini -m gemini-3-pro-preview "query"` |
+| `--debug, -d` | Enable debug mode | `gemini --debug "query"` |
+| `--include-directories` | Additional directories for context (array) | `gemini --include-directories src docs "query"` |
+| `--yolo, -y` | Auto-approve all actions | `gemini --yolo "query"` |
+| `--approval-mode` | Approval mode (default, auto_edit, yolo) | `gemini --approval-mode auto_edit "query"` |
+| `--sandbox, -s` | Run in sandbox mode | `gemini --sandbox "query"` |
+| `--resume, -r` | Resume previous session | `gemini --resume latest` |
 
 For complete details on all available configuration options, settings files, and environment variables, see the Gemini CLI Configuration Guide.
 
@@ -68,7 +70,7 @@ For complete details on all available configuration options, settings files, and
 ```bash
 for file in src/*.py; do
     echo "Analyzing $file..."
-    result=$(cat "$file" | gemini -p "Find potential bugs and suggest improvements" --output-format json)
+    result=$(cat "$file" | gemini --output-format json "Find potential bugs and suggest improvements")
     echo "$result" | jq -r '.response' > "reports/$(basename "$file").analysis"
     echo "Completed analysis for $(basename "$file")" >> reports/progress.log
 done
@@ -77,56 +79,64 @@ done
 ### Example 2: QA
 
 ```bash
-gemini -p "Review the newly implemented higher-kinded types (HKTs) for ..."
+gemini "Review the newly implemented higher-kinded types (HKTs) for ..."
 ```
 
 ### Example 3: User Simulation and Feedback
 
 ```bash
 # Simulate user perspective on new feature
-gemini -m gemini-3-flash-preview -p "Act as a new user encountering this interface for the first time. What's confusing? What delights you?" \
-  --include-directories shell,docs \
-  --output-format json > user/feedback/gemini-ux-review-$(date +%Y%m%d).json
+gemini -m gemini-3-flash-preview \
+  --include-directories shell docs \
+  --output-format json \
+  "Act as a new user encountering this interface for the first time. What's confusing? What delights you?" \
+  > user/feedback/gemini-ux-review-$(date +%Y%m%d).json
 
 # Quick usability check on CLI help text
-cat shell/commands.ss | gemini -p "Is this help text clear to a beginner? Suggest improvements."
+cat shell/commands.ss | gemini "Is this help text clear to a beginner? Suggest improvements."
 ```
 
 ### Example 4: Second Opinion/Adversarial Review
 
 ```bash
 # Challenge architectural decisions
-gemini -m gemini-3-pro-preview -p "Review this type system design. What edge cases might break it? What performance issues do you foresee?" \
+gemini -m gemini-3-pro-preview \
   --include-directories core/types \
+  "Review this type system design. What edge cases might break it? What performance issues do you foresee?" \
   > docs/peer-review/type-system-critique-$(date +%Y%m%d).md
 
 # Adversarial review of security-sensitive code
-gemini -p "You are a security auditor. Find vulnerabilities in this validation logic. Consider injection attacks, bypasses, and edge cases." \
-  --include-directories shell/validate.ss \
-  --output-format json | jq -r '.findings[]' > reports/security-review.txt
+gemini --include-directories shell \
+  --output-format json \
+  "You are a security auditor. Find vulnerabilities in validate.ss. Consider injection attacks, bypasses, and edge cases." \
+  | jq -r '.findings[]' > reports/security-review.txt
 ```
 
 ### Example 5: Tech Debt Report
 
 ```bash
 # Generate comprehensive tech debt inventory
-gemini -m gemini-3-pro-preview -p "Analyze this codebase for technical debt. Identify: duplicated code, missing tests, complex functions, outdated patterns, performance bottlenecks, and documentation gaps. Prioritize by impact." \
-  --include-directories core,shell \
-  --output-format json > reports/tech-debt-$(date +%Y%m%d).json
+gemini -m gemini-3-pro-preview \
+  --include-directories core shell \
+  --output-format json \
+  "Analyze this codebase for technical debt. Identify: duplicated code, missing tests, complex functions, outdated patterns, performance bottlenecks, and documentation gaps. Prioritize by impact." \
+  > reports/tech-debt-$(date +%Y%m%d).json
 
 # Focus on specific subsystem
-gemini -p "Identify refactoring opportunities in this module. What would make it more maintainable?" \
-  --include-directories core/types \
+gemini --include-directories core/types \
+  "Identify refactoring opportunities in this module. What would make it more maintainable?" \
   | tee reports/types-refactor-suggestions.md
 ```
 
 ## Best Practices
 
-1. **Escape Properly**: Quote prompts containing special characters or multiple lines
-2. **Use Pipes**: Leverage stdin for complex prompts from files or command output
-3. **Model Selection**: Generally trust "auto", but if you're not satisfied try gemini-3-pro-preview
-4. **Error Handling**: Check exit codes and stderr for API errors
-5. **Rate Limiting**: Be mindful of API quotas in automated scripts
+1. **Use Positional Args**: Use `gemini "prompt"` not the deprecated `-p` flag
+2. **Escape Properly**: Quote prompts containing special characters or multiple lines
+3. **Use Pipes**: Leverage stdin for complex prompts from files or command output
+4. **Model Selection**: Generally trust "auto", but if you're not satisfied try gemini-3-pro-preview
+5. **Error Handling**: Check exit codes (non-zero = failure) and stderr for API errors
+6. **Rate Limiting**: Be mindful of API quotas in automated scripts
+7. **JSON Output**: When using `--output-format json`, the response is in the `.response` field
 
 ## Piping and Composition
 
@@ -134,16 +144,17 @@ Combine with shell tools for powerful workflows:
 
 ```bash
 # Process file through Gemini, save result
-cat input.txt | gemini -p "Summarize this" > summary.txt
+cat input.txt | gemini "Summarize this" > summary.txt
 
 # Chain with other commands
-gemini -p "Generate test data in JSON" --output-format json | jq '.items[]' | while read item; do ...; done
+gemini --output-format json "Generate test data in JSON" | jq '.items[]' | while read item; do ...; done
 
 # Use heredoc for multi-line prompts
-gemini -p << 'EOF'
+gemini "$(cat << 'EOF'
 Your multi-line
 prompt here
 EOF
+)"
 ```
 
 ## Integration with The Fold
