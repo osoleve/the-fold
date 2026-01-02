@@ -221,18 +221,58 @@ See `agents/README.md` for full documentation.
 
 This project uses **bd** (beads) for dependency-aware issue tracking.
 
-### Essential Commands
+### Finding Work
 
 ```bash
-bd ready                          # Show unblocked work
-bd show <id>                      # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id> --reason "..."      # Complete work
-bd dep tree <id>                  # Visualize dependencies
-bd sync                           # Sync with git
+bd ready                          # Show unblocked work (no blockers)
+bd list --status=open             # All open issues
+bd list --status=in_progress      # Your active work
+bd show <id>                      # View issue details with dependencies
+bd search "query" --status open   # Full-text search with filters
 ```
 
-### Session Completion Protocol
+### Creating & Updating
+
+```bash
+bd create --title="..." --type=task --priority=2   # New issue
+bd q "Quick task title"           # Quick capture (returns ID only, for scripting)
+bd update <id> --status=in_progress  # Claim work
+bd close <id> --reason="..."      # Complete work
+bd close <id1> <id2> ...          # Close multiple at once
+```
+
+Priority: 0-4 (0=critical, 2=medium, 4=backlog). NOT "high"/"medium"/"low".
+
+### Dependencies & Structure
+
+```bash
+bd dep add <issue> <depends-on>   # Add dependency
+bd dep tree <id>                  # Text tree view
+bd graph <id>                     # ASCII DAG visualization
+bd blocked                        # Show all blocked issues
+```
+
+### Parallel Work (Swarms)
+
+For epics with multiple parallel tracks:
+
+```bash
+bd swarm validate <epic-id>       # Check DAG structure, parallelism
+bd swarm create <epic-id>         # Create coordination molecule
+bd swarm status <epic-id>         # Show completed/active/ready/blocked
+```
+
+### Hygiene & Search
+
+```bash
+bd stale                          # Issues with no recent updates
+bd orphans                        # Issues in commits but still open
+bd count --by-status              # Aggregate statistics
+bd comments add <id> "note"       # Add comment without state change
+bd defer <id>                     # Put on ice (not blocked, just postponed)
+```
+
+### Sync & Session End
 
 **Work is NOT complete until `git push` succeeds:**
 

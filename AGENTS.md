@@ -130,29 +130,55 @@ Test files follow `test-<module>.ss` next to the module.
 ## Issue tracking with bd (beads)
 Beads chains issues together like beads on a string, with dependency relationships that prevent agents from duplicating effort.
 
-### Quick reference
+### Finding Work
 ```bash
-# Finding and claiming work
-bd ready                        # Show unblocked work ready to claim
-bd show <id>                    # View issue details
-bd update <id> --status in_progress  # Claim work (mark as in progress)
+bd ready                          # Show unblocked work (no blockers)
+bd list --status=open             # All open issues
+bd list --status=in_progress      # Your active work
+bd show <id>                      # View issue details with dependencies
+bd search "query" --status open   # Full-text search with filters
+```
 
-# Creating and managing issues
-bd create "Issue title"         # Create new issue
-bd create "Title" -d "Description" -p 0 -t feature  # Create with details
-bd list                         # List all issues
-bd list --status open           # List open issues
-bd list --priority 0            # List by priority (0-4, 0=highest)
+### Creating & Updating
+```bash
+bd create --title="..." --type=task --priority=2   # New issue
+bd q "Quick task title"           # Quick capture (returns ID only, for scripting)
+bd update <id> --status=in_progress  # Claim work
+bd close <id> --reason="..."      # Complete work
+bd close <id1> <id2> ...          # Close multiple at once
+```
 
-# Dependencies
-bd dep add <id1> <id2>          # Make id2 block id1 (id2 must complete first)
-bd dep tree <id>                # Visualize dependency tree
-bd dep cycles                   # Detect circular dependencies
+Priority: 0-4 (0=critical, 2=medium, 4=backlog). NOT "high"/"medium"/"low".
 
-# Completing work
-bd close <id>                   # Complete work
-bd close <id> --reason "Fixed in PR #42"  # Close with reason
-bd sync                         # Sync with git (auto-export/import)
+### Dependencies & Structure
+```bash
+bd dep add <issue> <depends-on>   # Add dependency
+bd dep tree <id>                  # Text tree view
+bd graph <id>                     # ASCII DAG visualization
+bd blocked                        # Show all blocked issues
+```
+
+### Parallel Work (Swarms)
+For epics with multiple parallel tracks:
+```bash
+bd swarm validate <epic-id>       # Check DAG structure, parallelism
+bd swarm create <epic-id>         # Create coordination molecule
+bd swarm status <epic-id>         # Show completed/active/ready/blocked
+```
+
+### Hygiene & Search
+```bash
+bd stale                          # Issues with no recent updates
+bd orphans                        # Issues in commits but still open
+bd count --by-status              # Aggregate statistics
+bd comments add <id> "note"       # Add comment without state change
+bd defer <id>                     # Put on ice (not blocked, just postponed)
+```
+
+### Sync
+```bash
+bd sync                           # Sync with git (auto-export/import)
+bd sync --status                  # Check sync status without syncing
 ```
 
 ### Landing the plane (session completion)
@@ -179,40 +205,20 @@ CRITICAL RULES:
 - Never say "ready to push when you are" - you must push
 - If push fails, resolve and retry until it succeeds
 
-### Using beads for AI collaboration
-Beads prevents work conflicts through dependencies:
-- blocks: Task B must complete before task A can start
-- related: Soft connection, does not block progress
-- parent-child: Epic/subtask hierarchical relationship
-- discovered-from: Auto-created when AI discovers related work
+### Agent best practices
+1. Create issues for discovered work with `bd q` or `bd create`
+2. Check dependencies before starting (`bd show <id>`)
+3. Claim work immediately (`bd update <id> --status=in_progress`)
+4. Use `bd comments add` for notes without state changes
+5. File issues for incomplete work before ending session
+6. Use `--json` flag for programmatic parsing
 
-### Agent integration features
-- Ready work detection: `bd ready` shows only unblocked work
-- JSON output: Use `--json` flags for programmatic parsing
-- Auto-sync: Git integration keeps issues synced across machines
-- Database extension: Applications can extend SQLite for custom workflows
-
-### Best practices for agents
-1. Create issues for discovered work
-2. Check dependencies before starting
-3. Claim work immediately (set status to `in_progress`)
-4. File issues for incomplete work before ending session
-5. Use descriptive titles
-
-### Database and sync
+### Database discovery
 Beads auto-discovers your database:
 1. `--db /path/to/db.db` flag
 2. `$BEADS_DB` environment variable
 3. `.beads/*.db` in current directory or ancestors
 4. `~/.beads/default.db` as fallback
-
-Git workflow (auto-sync):
-- Export to JSONL after CRUD operations (5s debounce)
-- Import from JSONL when newer than DB (after git pull)
-- Works seamlessly across machines and team members
-- No manual export/import needed
-
-Disable with: `--no-auto-flush` or `--no-auto-import`
 
 <!-- bv-agent-instructions-v1 -->
 
