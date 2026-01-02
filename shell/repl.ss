@@ -78,6 +78,9 @@
 ;; Patch system
 (load "shell/patches.ss")
 
+;; Lens navigation system
+(load "shell/lens/navigator.ss")
+
 ;; Tutorial system - Load early to ensure functions are available
 (load "shell/tutorial-session-fix.ss")   ; Fixed tutorial with session handling and error recovery
 
@@ -231,6 +234,18 @@
   (display "    (apply-patch 'name)    Load a patch (e.g., 'turtle)\n")
   (display "    (patch-info 'name)     Show patch details\n")
   (display "    (applied-patches)      List currently loaded patches\n")
+  (display "\n")
+  (display "  LENS NAVIGATION:\n")
+  (display "    (lens-jump 'sym)       Jump to symbol definition\n")
+  (display "    (lens-callers 'sym)    Who calls this symbol?\n")
+  (display "    (lens-callees 'sym)    What does this symbol call?\n")
+  (display "    (lens-test 'sym)       Find related tests\n")
+  (display "    (lens-slice-up 'sym)   Transitive dependents\n")
+  (display "    (lens-slice-down 'sym) Transitive dependencies\n")
+  (display "    (lens-path 'a 'b)      Find call path from a to b\n")
+  (display "    (lens-stats)           Show navigation statistics\n")
+  (display "    (lens-rebuild!)        Rebuild all indices\n")
+  (display "    (lens-help)            Lens command reference\n")
   (display "\n")
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")
