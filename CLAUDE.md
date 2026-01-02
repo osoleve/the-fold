@@ -103,36 +103,34 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 
 ### Core Subsystems
 
-**Type System:**
-- `types.ss` — Base and compound types (Int, Bool, ->, ×, +, List, etc.)
-- `dep-types.ss` — Dependent types: Pi (Π), Sigma (Σ), Vec, Matrix, Universe
-- `infer.ss` — Bidirectional type inference
-- `dep-infer.ss` — Dependent type inference
-- `kinds.ss` — Higher-kinded types
+Core is organized into domain-driven subdirectories:
+
+| Directory | Purpose | Key Modules |
+|-----------|---------|-------------|
+| `base/` | Foundation (no deps) | prelude.ss, sha256.ss, error.ss |
+| `blocks/` | Block system & CAS | block.ss, cas.ss, normalize.ss |
+| `types/` | Type system | types.ss, dep-types.ss, infer.ss, kinds.ss |
+| `lang/` | Evaluation & compilation | eval.ss, compile.ss, module.ss, nbe.ss |
+| `linalg/` | Linear algebra (331 tests) | vec.ss, matrix.ss, matrix-decomp.ss, matrix-solvers.ss |
+| `numeric/` | Numerical computing | complex.ss (56 tests), dft.ss (46 tests) |
+| `autodiff/` | Automatic differentiation | comp-graph.ss, reverse-diff.ss |
+| `data/` | Data structures | data-structures.ss, graph-algorithms.ss |
+| `query/` | Query DSL & patterns | query.ss, query-dsl.ss, aho-corasick.ss |
+| `util/` | General utilities | debug.ss, pretty.ss, help.ss |
+| `info-theory/` | Information theory (57 tests) | entropy.ss |
+| `random/` | Probability | prng.ss, distributions.ss |
+| `pipeline/` | Agent workflows | stage.ss, effects.ss, council.ss |
 
 **FP Toolkit (`core/fp/`):**
-- `control/` — Monads, effects, continuations, free monads, state
+- `control/` — Monads, effects, continuations, free monads
 - `numeric/` — Transcendental functions (59 tests)
 - `parsing/` — Parser combinators with memoization
 - `meta/` — DSL utilities, logic programming
 - `data/` — Lazy streams, persistent structures
-
-**Mathematical Computing:**
-- `vec.ss`, `matrix.ss` — Linear algebra (55 + 50 tests)
-- `matrix-decomp.ss` — LU, QR, Cholesky (22 tests)
-- `matrix-solvers.ss` — Linear equation solvers (204 tests)
-- `complex.ss` — Complex numbers (56 tests)
-- `dft.ss` — FFT/DFT algorithms (46 tests)
-- `info-theory/entropy.ss` — Shannon entropy, KL divergence, mutual information (57 tests)
-
-**Automatic Differentiation:**
-- `comp-graph.ss` — Computational graphs
-- `reverse-diff.ss` — Reverse-mode AD (backpropagation)
-- `higher-order-diff.ss` — Higher-order derivatives
-
-**Pipeline Framework (`core/pipeline/`):**
-- Multi-stage agent workflows with effect handling
-- Council primitives for multi-model deliberation
+- `game/` — Game theory, Nash equilibrium (26 tests)
+- `symbolic/` — Symbolic expressions (55 tests)
+- `measure/` — Units of measure (47 tests)
+- `control-systems/` — Control theory, state space models (21 tests)
 
 ### Shell Subsystems
 
