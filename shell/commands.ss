@@ -429,5 +429,66 @@
    "Display all channels with post counts.\n  Usage: (cmd 'channels)\n         (channels)"
    channels-handler))
 
+;;; ============================================================
+;;; Profiler Commands (loaded dynamically)
+;;; ============================================================
+
+;;; register-profiler-commands! : → void
+;;; Register profiler commands (call after loading profile-repl.ss)
+(define (register-profiler-commands!)
+  (register-command!
+   'profile
+   "Profile an expression"
+   "Profile expression execution and track fuel consumption.\n  Usage: (profile '(fib 10))\n         (profile '(fib 10) 5000)  ; with fuel budget\n  Returns the result and stores profile for further analysis."
+   repl-profile)
+  
+  (register-command!
+   'profile-report
+   "Show profile report"
+   "Display detailed profile report for last run.\n  Usage: (profile-report)\n  Shows fuel usage, hotspots, and call tree."
+   repl-profile-report)
+  
+  (register-command!
+   'profile-viz
+   "Visualize profile"
+   "Display visual profile with flame graph and bars.\n  Usage: (profile-viz)\n  Shows ASCII flame graph and fuel consumption bars."
+   repl-profile-viz)
+  
+  (register-command!
+   'profile-hints
+   "Show optimization hints"
+   "Analyze profile and suggest optimizations.\n  Usage: (profile-hints)\n  Detects tail-call opportunities, fusion candidates, etc."
+   repl-profile-hints)
+  
+  (register-command!
+   'profile-tree
+   "Show call tree"
+   "Display call tree with fuel consumption.\n  Usage: (profile-tree)"
+   repl-profile-tree)
+  
+  (register-command!
+   'profile-flame
+   "Show flame graph"
+   "Display ASCII flame graph.\n  Usage: (profile-flame)"
+   repl-profile-flame)
+  
+  (register-command!
+   'profile-history
+   "Show profile history"
+   "Display recent profile runs.\n  Usage: (profile-history)"
+   repl-profile-history)
+  
+  (register-command!
+   'set-baseline
+   "Set profile baseline"
+   "Set current profile as baseline for regression detection.\n  Usage: (set-baseline)"
+   repl-set-baseline)
+  
+  (register-command!
+   'qprofile
+   "Quick profile"
+   "Profile with minimal output, returns (fuel . result).\n  Usage: (qprofile '(+ 1 2))"
+   qprofile))
+
 ;;; Auto-register core commands on load
 (register-core-commands!)
