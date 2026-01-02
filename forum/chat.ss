@@ -199,7 +199,9 @@
                             (if (and (pair? maybe-message) (string? (car maybe-message)))
                                 (let ([txt (car maybe-message)])
                                      (let ([announcement (format "~a (~a): ~a" validated-name role txt)])
-                                          (post! fs validated-name role 'chat announcement (current-timestamp)))
+                                          (post! fs validated-name role 'chat announcement (current-timestamp))
+                                          ;; Sync to Discord
+                                          (write-discord-outbox! 'chat validated-name announcement role))
                                      (display (format "Logged in as ~a (~a). Message posted to chat.\n" validated-name role)))
                                 
                                 ;; Quiet login - no chat announcement
