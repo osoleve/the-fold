@@ -129,7 +129,8 @@
 (define shell-tests
   '("test-validate.ss"
     "test-block-index.ss"
-    "test-duckie-persist.ss"))
+    "test-duckie-persist.ss"
+    "test-string-utils.ss"))
 
 ;;; Slow tests (excluded from 'quick' mode)
 (define slow-tests

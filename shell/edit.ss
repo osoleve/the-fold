@@ -9,7 +9,7 @@
 ;;;   shell/fs.ss
 ;;;   shell/text.ss
 
-(load "core/prelude.ss")
+(load "shell/string-utils.ss")
 
 ;;; ============================================================
 ;;; Core Text File Operations
@@ -35,8 +35,8 @@
 ;;; Line-Oriented Helpers
 ;;; ============================================================
 ;;;
-;;; NOTE: string-split, string-join, string-replace are provided
-;;; by core/prelude.ss which is loaded above.
+;;; NOTE: string-split, string-join, string-replace, string-replace-first
+;;; are provided by shell/string-utils.ss which is loaded above.
 
 ;;; file->lines : FS × Path → (List String)
 ;;; Read file and split into lines.
@@ -66,31 +66,8 @@
 ;;; NOTE: string-replace from prelude replaces ALL occurrences.
 ;;; These helpers provide first-occurrence replacement and matching.
 
-;;; string-match-at? : String × String × Nat → Boolean
-;;; Check if pattern matches at position in str.
-(define (string-match-at? str pattern pos)
-  (let ([pat-len (string-length pattern)]
-        [str-len (string-length str)])
-       (and (<= (+ pos pat-len) str-len)
-            (string=? pattern (substring str pos (+ pos pat-len))))))
-
-;;; string-replace-first : String × String × String → String
-;;; Replace first occurrence of old with new in str.
-(define (string-replace-first str old new)
-  (let ([old-len (string-length old)]
-        [str-len (string-length str)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i old-len) str-len) str]  ; Not found
-             [(string-match-at? str old i)
-              (string-append
-               (substring str 0 i)
-               new
-               (substring str (+ i old-len) str-len))]
-             [else (loop (+ i 1))]))))
-
 ;;; ============================================================
-;;; S-Expression File Operations
+;;; File Replacement Operations
 ;;; ============================================================
 
 ;;; read-sexpr-file : FS × Path → (List S-expr)

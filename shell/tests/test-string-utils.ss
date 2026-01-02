@@ -363,6 +363,119 @@
               '("🔥" "💧" "🌍"))
 
 ;;; ============================================================
+;;; Additional String Search Tests
+;;; ============================================================
+
+(printf "\n=== Testing string-last-index-of ===\n")
+
+(assert-equal "find last occurrence"
+              (string-last-index-of "hello hello" "lo")
+              9)
+
+(assert-equal "last occurrence at start"
+              (string-last-index-of "hello" "he")
+              0)
+
+(assert-equal "last occurrence not found"
+              (string-last-index-of "hello" "xyz")
+              #f)
+
+(printf "\n=== Testing string-index-right ===\n")
+
+(assert-equal "find last char"
+              (string-index-right "hello" #\l)
+              3)
+
+(assert-equal "char not found from right"
+              (string-index-right "hello" #\x)
+              #f)
+
+;;; ============================================================
+;;; String Transformation Tests
+;;; ============================================================
+
+(printf "\n=== Testing string-reverse ===\n")
+
+(assert-equal "reverse basic string"
+              (string-reverse "hello")
+              "olleh")
+
+(assert-equal "reverse empty string"
+              (string-reverse "")
+              "")
+
+(printf "\n=== Testing string-upcase/downcase ===\n")
+
+(assert-equal "upcase"
+              (string-upcase "hello")
+              "HELLO")
+
+(assert-equal "downcase"
+              (string-downcase "HELLO")
+              "hello")
+
+;;; ============================================================
+;;; String Padding Tests
+;;; ============================================================
+
+(printf "\n=== Testing string-pad ===\n")
+
+(assert-equal "pad-left"
+              (string-pad-left "42" 5 #\0)
+              "00042")
+
+(assert-equal "pad-left already long"
+              (string-pad-left "hello" 3 #\space)
+              "hello")
+
+(assert-equal "pad-right"
+              (string-pad-right "hi" 5 #\space)
+              "hi   ")
+
+;;; ============================================================
+;;; Additional Predicate Tests
+;;; ============================================================
+
+(printf "\n=== Testing string-all-match? ===\n")
+
+(assert-equal "all match digits"
+              (string-all-match? "12345" char-numeric?)
+              #t)
+
+(assert-equal "not all match digits"
+              (string-all-match? "123a5" char-numeric?)
+              #f)
+
+;;; ============================================================
+;;; Integration and Edge Case Tests
+;;; ============================================================
+
+(printf "\n=== Testing Integration Cases ===\n")
+
+(assert-equal "split with string delimiter"
+              (string-split "a<sep>b<sep>c" "<sep>")
+              '("a" "b" "c"))
+
+(assert-equal "split with empty string delimiter"
+              (string-split "hi" "")
+              '("h" "i"))
+
+(assert-equal "CSV pipeline"
+              (map string-trim (string-split "foo, bar, baz" #\,))
+              '("foo" "bar" "baz"))
+
+(assert-equal "word extraction"
+              (string-join
+               (filter (lambda (s) (not (string-empty? s)))
+                       (string-split "one  two  three" #\space))
+               " ")
+              "one two three")
+
+(assert-equal "trim-check-empty"
+              (string-empty? (string-trim "   "))
+              #t)
+
+;;; ============================================================
 ;;; Test Summary
 ;;; ============================================================
 

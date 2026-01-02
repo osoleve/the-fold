@@ -24,10 +24,9 @@
 ;;;   shell/edit.ss
 ;;;   core/prelude.ss (for string-trim, etc.)
 ;;;
-;;; NOTE: string-trim provided by core/prelude.ss.
-;;;       string-split-lines is unique to this module.
+;;; NOTE: string-trim and string-split-lines provided by shell/string-utils.ss.
 
-(load "core/prelude.ss")
+(load "shell/string-utils.ss")
 
 ;;; Set up source-directories to find shell modules
 (source-directories (cons "shell" (source-directories)))
@@ -147,24 +146,6 @@
   (if (and (> line-no 0) (<= line-no (length lines)))
       (list-ref lines (- line-no 1))
       ""))
-
-;;; string-split-lines : String → (List String)
-;;; Split string into lines.
-(define (string-split-lines str)
-  (let loop ([chars (string->list str)]
-             [current '()]
-             [result '()])
-       (cond
-        [(null? chars)
-         (reverse (cons (list->string (reverse current)) result))]
-        [(char=? (car chars) #\newline)
-         (loop (cdr chars)
-               '()
-               (cons (list->string (reverse current)) result))]
-        [else
-         (loop (cdr chars)
-               (cons (car chars) current)
-               result)])))
 
 ;;; ============================================================
 ;;; Definition Finding

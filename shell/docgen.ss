@@ -31,9 +31,8 @@
 ;;; NOTE: Run from project root directory.
 
 ;;; Set up source-directories for module loading
-(source-directories (cons "core" (source-directories)))
-
-(load "prelude.ss")
+(source-directories (cons "shell" (source-directories)))
+(load "string-utils.ss")
 
 ;;; ============================================================
 ;;; Configuration
@@ -55,31 +54,10 @@
 ;;; Alias for string-starts-with? from prelude.
 (define string-prefix? string-starts-with?)
 
-;;; string-index : String x Char -> Nat | #f
-;;; Find first occurrence of character in string.
-;;; (Different from prelude's string-index-of which takes a substring.)
-(define (string-index str ch)
-  (let ([len (string-length str)])
-       (let loop ([i 0])
-            (cond
-             [(>= i len) #f]
-             [(char=? (string-ref str i) ch) i]
-             [else (loop (+ i 1))]))))
-
-;;; string-index-right : String x Char -> Nat | #f
-;;; Find last occurrence of character in string.
-;;; (Different from prelude's string-last-index-of which takes a substring.)
-(define (string-index-right str ch)
-  (let ([len (string-length str)])
-       (let loop ([i (- len 1)])
-            (cond
-             [(< i 0) #f]
-             [(char=? (string-ref str i) ch) i]
-             [else (loop (- i 1))]))))
-
 ;;; ============================================================
-;;; Path Utilities
+;;; Comment Parsing Utilities
 ;;; ============================================================
+
 
 ;;; path-basename : Path -> String
 (define (path-basename path)
