@@ -49,10 +49,10 @@
 (load "shell/watch.ss")
 
 ;;; Watch a single file:
-(watch-file "core/block.ss"
+(watch-file "core/blocks/block.ss"
             (lambda (changed-files)
                     (display "Block module changed!\n")
-                    (load "core/block.ss")))
+                    (load "core/blocks/block.ss")))
 
 ;;; Watch a directory with pattern:
 (watch-dir "core" "*.ss"
@@ -85,7 +85,7 @@
 ;;;   Watcher object
 ;;;
 ;;; Example:
-;;;   (watch-file "core/block.ss"
+;;;   (watch-file "core/blocks/block.ss"
 ;;;     (lambda (files)
 ;;;       (load (car files))))
 
@@ -273,7 +273,7 @@
 
 ;;; Custom Actions with Error Handling:
 
-(watch-file "core/block.ss"
+(watch-file "core/blocks/block.ss"
             (lambda (changed-files)
                     (guard (e [else
                                (display "Error reloading: ")
@@ -281,7 +281,7 @@
                                    (display (format-condition e))
                                    (display e))
                                (newline)])
-                           (load "core/block.ss")
+                           (load "core/blocks/block.ss")
                            (display "Reloaded successfully\n")
                            ;; Run smoke test
                            (let ([test-block (make-block 'test #vu8(1 2 3) empty-refs)])
@@ -292,7 +292,7 @@
 ;;; Smart Reload (reload module + dependents):
 
 (load "shell/watch-daemon-integration.ss")
-(watch-with-smart-reload "core/block.ss")
+(watch-with-smart-reload "core/blocks/block.ss")
 ;;;
 ;;; When core/block.ss changes, automatically reloads:
 ;;;   1. core/block.ss itself
@@ -304,15 +304,15 @@
 
 (define *reload-in-progress* #f)
 
-(watch-file "core/block.ss"
+(watch-file "core/blocks/block.ss"
             (lambda (files)
                     (unless *reload-in-progress*
                             (set! *reload-in-progress* #t)
                             (guard (e [else
                                        (set! *reload-in-progress* #f)
                                        (raise e)])
-                                   (load "core/block.ss")
-                                   (load "core/normalize.ss")  ; depends on block
+                                   (load "core/blocks/block.ss")
+                                   (load "core/blocks/normalize.ss")  ; depends on block
                                    (load "shell/fs.ss")         ; depends on block
                                    (set! *reload-in-progress* #f)
                                    (display "Cascade reload complete\n")))))

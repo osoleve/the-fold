@@ -22,11 +22,11 @@
 ;;;   - eval.ss
 
 (load "core/base/prelude.ss")
-(load "core/parse.ss")
-(load "core/span.ss")
-(load "core/fold-parse.ss")
-(load "core/normalize.ss")
-(load "core/expand.ss")
+(load "core/lang/parse.ss")
+(load "core/lang/span.ss")
+(load "core/lang/fold-parse.ss")
+(load "core/blocks/normalize.ss")
+(load "core/blocks/expand.ss")
 (load "core/types/types.ss")
 (load "core/types/infer.ss")
 (load "core/lang/eval.ss")

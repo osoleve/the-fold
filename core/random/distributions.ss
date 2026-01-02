@@ -20,7 +20,7 @@
 ;;;   - fp/transcendental.ss
 ;;;   - random/prng.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/control/state.ss")
 (load "core/fp/numeric/transcendental.ss")
 (load "core/random/prng.ss")
@@ -369,7 +369,7 @@
 (define (normal-pdf x mean stddev)
   (let* ([z (/ (- x mean) stddev)]
          [coef (/ 1 (* stddev (sqrt (* 2 (pi-value)))))])
-    (* coef (exp-num (* -0.5 z z)))))
+        (* coef (exp-num (* -0.5 z z)))))
 
 ;;; Standard normal PDF
 (define (standard-normal-pdf x)
@@ -467,8 +467,8 @@
          [x (abs x)]
          [t (/ 1 (+ 1 (* p x)))]
          [y (- 1 (* (+ (* (+ (* (+ (* (+ (* a5 t) a4) t) a3) t) a2) t) a1)
-                      t (exp-num (* -0.5 x x))))])
-    (* 0.5 (+ 1 (* sign y)))))
+                    t (exp-num (* -0.5 x x))))])
+        (* 0.5 (+ 1 (* sign y)))))
 
 ;;; Normal CDF
 ;;; normal-cdf : Float x Float x Float -> Float
@@ -534,7 +534,7 @@
              [t (sqrt (* -2 (log-num p*)))]
              [num (+ a0 (* a1 t) (* a2 t t))]
              [den (+ 1 (* b1 t) (* b2 t t) (* b3 t t t))])
-        (* sign (- t (/ num den))))))
+            (* sign (- t (/ num den))))))
 
 ;;; Normal Quantile
 ;;; normal-quantile : Float x Float x Float -> Float

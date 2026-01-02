@@ -14,10 +14,10 @@
 ;;;   - autodiff/comp-graph.ss (for dual numbers)
 ;;;   - autodiff/reverse-diff.ss (for traced values)
 
-(load "core/prelude.ss")
-(load "core/kinds.ss")
-(load "core/infer.ss")     ; For unify, needed by resolve
-(load "core/resolve.ss")
+(load "core/base/prelude.ss")
+(load "core/types/kinds.ss")
+(load "core/types/infer.ss")     ; For unify, needed by resolve
+(load "core/types/resolve.ss")
 (load "core/autodiff/comp-graph.ss")
 (load "core/autodiff/reverse-diff.ss")
 

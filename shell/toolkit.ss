@@ -22,7 +22,7 @@
 (source-directories (cons "core" (source-directories)))
 (source-directories (cons "shell" (source-directories)))
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Toolkit Registry

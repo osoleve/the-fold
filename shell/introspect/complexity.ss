@@ -21,7 +21,7 @@
 ;;;   - Test coverage (definitions exercised by tests)
 
 ;;; NOTE: string utilities provided by core/prelude.ss
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; File Metrics

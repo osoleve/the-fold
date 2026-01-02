@@ -14,7 +14,7 @@
 ;;; NOTE: string-contains? provided by core/prelude.ss.
 ;;;       string-replace-all and string-find-pattern are unique to this module.
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Error Message Formatting

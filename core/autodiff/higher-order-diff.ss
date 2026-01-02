@@ -20,9 +20,9 @@
 ;;;   - autodiff/reverse-diff.ss (for reverse mode)
 
 ;;; NOTE: Run from project root directory
-(load "core/prelude.ss")
-(load "core/vec.ss")
-(load "core/matrix.ss")
+(load "core/base/prelude.ss")
+(load "core/linalg/vec.ss")
+(load "core/linalg/matrix.ss")
 (load "core/autodiff/comp-graph.ss")
 (load "core/autodiff/reverse-diff.ss")
 

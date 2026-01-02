@@ -11,7 +11,7 @@
 (load "shell/fs.ss")
 (load "shell/text.ss")
 (load "shell/edit.ss")
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Small Utilities

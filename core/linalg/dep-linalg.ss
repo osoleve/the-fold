@@ -3,12 +3,12 @@
 ;;; Dimension-safe wrappers for linalg operations.
 ;;; These use Pi types to track vector and matrix dimensions at type level.
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/linalg/vec.ss")
 (load "core/linalg/matrix.ss")
-(load "core/dep-types.ss")
-(load "core/dep-infer.ss")
-(load "core/nbe.ss")
+(load "core/types/dep-types.ss")
+(load "core/types/dep-infer.ss")
+(load "core/lang/nbe.ss")
 
 ;;; ============================================================
 ;;; Vector Operations

@@ -342,20 +342,20 @@
 (dev-mode-on)
 
 ;;; Example 5: Custom action
-(watch-file "core/block.ss"
+(watch-file "core/blocks/block.ss"
             (lambda (files)
-                    (load "core/block.ss")
+                    (load "core/blocks/block.ss")
                     (system "scheme --script core/test-block.ss")))
 
 ;;; Example 6: Multiple watchers
 (for-each auto-reload
-          '("core/block.ss"
-            "core/normalize.ss"
+          '("core/blocks/block.ss"
+            "core/blocks/normalize.ss"
             "shell/fs.ss"))
 
 ;;; Example 7: Smart reload
 (load "shell/watch-daemon-integration.ss")
-(watch-with-smart-reload "core/block.ss")
+(watch-with-smart-reload "core/blocks/block.ss")
 
 ;;; ============================================================
 ;;; FUTURE ENHANCEMENTS

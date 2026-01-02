@@ -20,8 +20,8 @@
 ;;;
 ;;; This is Shell code: provides user-facing error improvements.
 
-(load "core/prelude.ss")
-(load "core/help.ss")  ; For function suggestions
+(load "core/base/prelude.ss")
+(load "core/util/help.ss")  ; For function suggestions
 (load "shell/error-fmt.ss")     ; For base error formatting
 
 ;;; ============================================================

@@ -31,9 +31,9 @@
 ;;;   - reverse-diff.ss (for traced evaluation)
 
 (load "core/base/prelude.ss")
-(load "core/block.ss")
+(load "core/blocks/block.ss")
 (load "core/lang/prim.ss")
-(load "core/reverse-diff.ss")
+(load "core/autodiff/reverse-diff.ss")
 
 ;;; ============================================================
 ;;; Fuel

@@ -14,7 +14,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; PipelineContext — Read-Only Environment

@@ -26,7 +26,7 @@
 ;;;
 ;;; NOTE: string-join provided by core/prelude.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Configuration

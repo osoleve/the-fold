@@ -12,7 +12,7 @@
 ;;; Dependencies:
 ;;;   - fp/parser.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/parsing/parser.ss")
 
 ;;; ============================================================

@@ -15,8 +15,8 @@
 ;;;   - physics-2d/collision-detection.ss
 ;;;   - physics-2d/collision-response.ss
 
-(load "core/prelude.ss")
-(load "core/vec2.ss")
+(load "core/base/prelude.ss")
+(load "core/linalg/vec2.ss")
 (load "user/physics/integrators.ss")
 (load "user/physics/collision-detection.ss")
 (load "user/physics/collision-response.ss")

@@ -92,7 +92,7 @@
   (display "\n")
   (display "Press Ctrl+C or run (stop-watching) to stop.\n")
   (display "\n")
-  (watch-file "core/block.ss"
+  (watch-file "core/blocks/block.ss"
               (lambda (changed-files)
                       (display "\n")
                       (display "🔨 Rebuilding and testing...\n")
@@ -103,7 +103,7 @@
                                      (display e))
                                  (newline)])
                              ;; Reload module
-                             (load "core/block.ss")
+                             (load "core/blocks/block.ss")
                              (display "  ✓ Reloaded core/block.ss\n")
                              ;; Run tests
                              (system "scheme --script core/test-block.ss")
@@ -129,11 +129,11 @@
   (display "\n")
   
   ;; Watch core/block.ss
-  (watch-file "core/block.ss"
+  (watch-file "core/blocks/block.ss"
               (lambda (files)
                       (display "\n🔵 core/block.ss changed → reloading + testing\n")
                       (guard (e [else (display "Error in block.ss\n")])
-                             (load "core/block.ss")
+                             (load "core/blocks/block.ss")
                              (system "scheme --script core/test-block.ss"))))
   
   ;; Watch shell/fs.ss

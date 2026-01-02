@@ -17,7 +17,7 @@
 ;;;
 ;;; For advanced layering with transparency and z-ordering, see shell/layers.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Data Structures

@@ -18,7 +18,7 @@
 ;;;   - fp/free.ss
 ;;;   - fp/effects.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/control/free.ss")
 (load "core/fp/control/effects.ss")
 

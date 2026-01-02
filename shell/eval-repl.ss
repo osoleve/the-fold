@@ -19,8 +19,8 @@
 ;; Ensure core is in path
 (source-directories (cons "core" (source-directories)))
 
-(load "core/compile.ss")
-(load "core/error.ss")
+(load "core/lang/compile.ss")
+(load "core/base/error.ss")
 
 ;;; ============================================================
 ;;; Error Display with Source Context

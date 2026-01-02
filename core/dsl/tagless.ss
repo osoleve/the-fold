@@ -22,7 +22,7 @@
 ;;;
 ;;; This is Core code: pure, total, assumes reasonable input.
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Algebra Definition

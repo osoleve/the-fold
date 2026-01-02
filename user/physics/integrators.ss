@@ -17,8 +17,8 @@
 ;;;   - vec2.ss (2D vector math)
 ;;;   - numerical/integrators.ss (generic methods)
 
-(load "core/prelude.ss")
-(load "core/vec2.ss")
+(load "core/base/prelude.ss")
+(load "core/linalg/vec2.ss")
 (load "user/physics/numerical/integrators.ss")
 
 ;;; ============================================================

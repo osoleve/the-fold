@@ -1,8 +1,8 @@
 ;;; Test harness for shell/fs.ss
 
 ;;; Load from core directory
-(load "core/block.ss")
-(load "core/sha256.ss")
+(load "core/blocks/block.ss")
+(load "core/base/sha256.ss")
 
 ;;; Can't load cas.ss directly — it has relative loads. We just need hash-block.
 ;;; Inline the hash functions we need:

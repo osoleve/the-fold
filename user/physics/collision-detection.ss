@@ -12,8 +12,8 @@
 ;;;   - prelude.ss
 ;;;   - vec2.ss
 
-(load "core/prelude.ss")
-(load "core/vec2.ss")
+(load "core/base/prelude.ss")
+(load "core/linalg/vec2.ss")
 
 ;;; ============================================================
 ;;; Shape Primitives

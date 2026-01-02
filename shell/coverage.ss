@@ -26,7 +26,7 @@
 ;;;   - Coverage comparison (regression detection)
 ;;;   - Uncovered code highlighting
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Configuration

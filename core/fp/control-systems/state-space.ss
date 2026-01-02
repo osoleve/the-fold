@@ -22,9 +22,9 @@
 ;;;   - core/matrix.ss
 ;;;   - core/matrix-decomp.ss (for some operations)
 
-(load "core/prelude.ss")
-(load "core/matrix.ss")
-(load "core/matrix-decomp.ss")
+(load "core/base/prelude.ss")
+(load "core/linalg/matrix.ss")
+(load "core/linalg/matrix-decomp.ss")
 
 ;;; ============================================================
 ;;; State Space Representation

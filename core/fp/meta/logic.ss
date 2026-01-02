@@ -19,7 +19,7 @@
 ;;;   - fp/combinators.ss
 ;;;   - fp/stream.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/meta/combinators.ss")
 (load "core/fp/data/stream.ss")
 

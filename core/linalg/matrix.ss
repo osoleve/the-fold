@@ -11,7 +11,7 @@
 ;;;   - prelude.ss
 ;;;   - vec.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/linalg/vec.ss")
 
 ;;; ============================================================

@@ -11,7 +11,7 @@
 ;;;   - shell/turtle.ss (for drawing record)
 
 ;;; NOTE: string utilities provided by core/prelude.ss
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; SVG Document Structure

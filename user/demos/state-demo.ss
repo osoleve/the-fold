@@ -10,9 +10,9 @@
 
 ;; Try to load from project root first, fall back to relative
 (guard (exn [else (void)])
-       (load "core/prelude.ss")
-       (load "core/eval.ss")
-       (load "core/state.ss"))
+       (load "core/base/prelude.ss")
+       (load "core/lang/eval.ss")
+       (load "core/util/state.ss"))
 
 ;; Fall back to relative paths (running from core/)
 (guard (exn [else (void)])

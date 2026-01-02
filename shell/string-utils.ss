@@ -22,7 +22,7 @@
 ;;;   string-index-right (find last char index)
 ;;;   string-replace-first (replace only first occurrence)
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Shell-Specific Aliases

@@ -1,6 +1,6 @@
 ;;; Test harness for core/infer.ss — Type Inference
 
-(load "core/block.ss")
+(load "core/blocks/block.ss")
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 (load "core/types/infer.ss")

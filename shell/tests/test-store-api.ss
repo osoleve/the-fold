@@ -1,8 +1,8 @@
 ;;; test-store-api.ss --- Comprehensive test suite for Store API
 
 (source-directories (cons "core" (source-directories)))
-(load "core/block.ss")
-(load "core/sha256.ss")
+(load "core/blocks/block.ss")
+(load "core/base/sha256.ss")
 (load "shell/fs.ss")
 (load "shell/store-api.ss")
 

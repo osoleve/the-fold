@@ -224,7 +224,7 @@ Docgen Tests
             
             (define-test docgen-file-on-real-file
               ;; Test on actual prelude.ss file
-              (let ([doc (docgen-file "core/prelude.ss")])
+              (let ([doc (docgen-file "core/base/prelude.ss")])
                    (assert-true (pair? doc))
                    (assert-equal "prelude" (cdr (assq 'module doc)))
                    (assert-true (list? (cdr (assq 'exports doc))))))

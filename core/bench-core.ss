@@ -6,12 +6,12 @@
 ;;; - Normalization and expansion
 ;;; - Store performance at scale
 
-(load "core/prelude.ss")
-(load "core/block.ss")
-(load "core/sha256.ss")
-(load "core/normalize.ss")
-(load "core/expand.ss")
-(load "core/cas.ss")
+(load "core/base/prelude.ss")
+(load "core/blocks/block.ss")
+(load "core/base/sha256.ss")
+(load "core/blocks/normalize.ss")
+(load "core/blocks/expand.ss")
+(load "core/blocks/cas.ss")
 (load "shell/benchmark.ss")
 
 (printf "\n╔═══════════════════════════════════════════════════════════════╗\n")

@@ -17,7 +17,7 @@
 ;;;   - prelude.ss
 ;;;   - fp/combinators.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/meta/combinators.ss")
 
 ;;; ============================================================

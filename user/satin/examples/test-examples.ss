@@ -4,7 +4,7 @@
 ;;;   scheme --script playpen/satin/examples/test-examples.ss
 
 ;; Load prelude and Satin
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "user/satin/satin.ss")
 
 (display "Testing Satin Examples

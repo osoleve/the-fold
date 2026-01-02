@@ -6,7 +6,7 @@
 ;;; Load Dependencies
 ;;; ============================================================
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; NOTE: string utilities provided by core/prelude.ss
 ;;;   - string-upcase

@@ -12,7 +12,7 @@
 ;;;
 ;;; NOTE: string-trim provided by core/prelude.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Core Balance Calculation

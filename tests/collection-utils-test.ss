@@ -1,10 +1,10 @@
 ;;; collection-utils-test.ss — Test suite for collection utilities
 
 (source-directories (cons "core" (source-directories)))
-(load "core/block.ss")
-(load "core/sha256.ss")
+(load "core/blocks/block.ss")
+(load "core/base/sha256.ss")
 (load "shell/fs.ss")
-(load "core/collection-utils.ss")
+(load "core/data/collection-utils.ss")
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║       COLLECTION UTILITIES TEST SUITE                      ║\n")

@@ -70,18 +70,19 @@
                       (apply format template irritants))))
       (format "~a" e)))
 
-(define (run-test-file filename)
-  (display (string-append "
-=== Running " filename " ===
+(define (run-test-file subdir filename)
+  (let ([path (string-append "core/" subdir "/" filename)])
+       (display (string-append "
+=== Running " path " ===
 "))
-  (set! test-count (+ test-count 1))
-  (guard (exn [else
-               (set! fail-count (+ fail-count 1))
-               (display "FAILED: ")
-               (display (format-condition exn))
-               (newline)])
-         (load (string-append "core/" filename))
-         (set! pass-count (+ pass-count 1))))
+       (set! test-count (+ test-count 1))
+       (guard (exn [else
+                    (set! fail-count (+ fail-count 1))
+                    (display "FAILED: ")
+                    (display (format-condition exn))
+                    (newline)])
+              (load path)
+              (set! pass-count (+ pass-count 1)))))
 
 ;;; ============================================================
 ;;; Run Tests in Dependency Order
@@ -96,47 +97,67 @@
 (display (string-append "Working directory: " (current-directory) "
 "))
 
-;;; Layer 0: Foundation
-(run-test-file "test-prelude.ss")
-(run-test-file "test-sha256.ss")
+;;; Layer 0: Foundation (base/)
+(run-test-file "base" "test-prelude.ss")
+(run-test-file "base" "test-sha256.ss")
+(run-test-file "base" "test-error.ss")
 
-;;; Layer 1: Block System
-(run-test-file "test-block.ss")
-(run-test-file "test-cas.ss")
+;;; Layer 1: Block System (blocks/)
+(run-test-file "blocks" "test-block.ss")
+(run-test-file "blocks" "test-cas.ss")
+(run-test-file "blocks" "test-normalize.ss")
+(run-test-file "blocks" "test-expand.ss")
 
-;;; Layer 2: Language Core
-(run-test-file "test-normalize.ss")
-(run-test-file "test-prim.ss")
-(run-test-file "test-parse.ss")
+;;; Layer 2: Language Core (lang/)
+(run-test-file "lang" "test-prim.ss")
+(run-test-file "lang" "test-parse.ss")
+(run-test-file "lang" "test-span.ss")
+(run-test-file "lang" "test-fold-parse.ss")
+(run-test-file "lang" "test-eval.ss")
 
-;;; Layer 3: Type System
-(run-test-file "test-types.ss")
-(run-test-file "test-kinds.ss")
+;;; Layer 3: Type System (types/)
+(run-test-file "types" "test-types.ss")
+(run-test-file "types" "test-kinds.ss")
+(run-test-file "types" "test-infer.ss")
+(run-test-file "types" "test-resolve.ss")
+(run-test-file "types" "test-infer-constraints.ss")
+(run-test-file "types" "test-annotate.ss")
 
-;;; Layer 4: Type Inference
-(run-test-file "test-infer.ss")
-(run-test-file "test-resolve.ss")
-(run-test-file "test-infer-constraints.ss")
-(run-test-file "test-annotate.ss")
+;;; Layer 4: Linear Algebra (linalg/)
+(run-test-file "linalg" "test-vec.ss")
+(run-test-file "linalg" "test-vec2.ss")
+(run-test-file "linalg" "test-matrix.ss")
+(run-test-file "linalg" "test-matrix-decomp.ss")
+(run-test-file "linalg" "test-matrix-solvers.ss")
+(run-test-file "linalg" "test-dep-linalg.ss")
 
-;;; Layer 4.5: Automatic Differentiation Type Class
-(run-test-file "test-differentiable.ss")
+;;; Layer 5: Numeric (numeric/)
+(run-test-file "numeric" "test-complex.ss")
+(run-test-file "numeric" "test-dft.ss")
+(run-test-file "numeric" "test-convolution.ss")
 
-;;; Layer 5: Evaluation
-(run-test-file "test-eval.ss")
-(run-test-file "test-typed-eval.ss")
+;;; Layer 6: Automatic Differentiation (autodiff/)
+(run-test-file "autodiff" "test-comp-graph.ss")
+(run-test-file "autodiff" "test-reverse-diff.ss")
+(run-test-file "autodiff" "test-differentiable.ss")
+(run-test-file "autodiff" "test-higher-order-diff.ss")
 
-;;; Layer 6: Compilation Pipeline
-(run-test-file "test-compile.ss")
+;;; Layer 7: Data Structures (data/)
+(run-test-file "data" "test-data-structures.ss")
+(run-test-file "data" "test-collection-utils.ss")
+(run-test-file "data" "test-graph-algorithms.ss")
 
-;;; Layer 7: Error System
-(run-test-file "test-error.ss")
+;;; Layer 8: Query System (query/)
+(run-test-file "query" "test-aho-corasick.ss")
+(run-test-file "query" "test-patterns-parse.ss")
+(run-test-file "query" "test-query-dsl.ss")
+(run-test-file "query" "test-query-patterns.ss")
 
-;;; Layer 8: Linear Algebra
-(run-test-file "test-vec.ss")
-(run-test-file "test-matrix.ss")
-(run-test-file "test-matrix-decomp.ss")
-(run-test-file "test-matrix-solvers.ss")
+;;; Layer 9: Utilities (util/)
+(run-test-file "util" "test-debug.ss")
+(run-test-file "util" "test-pretty.ss")
+(run-test-file "util" "test-help.ss")
+(run-test-file "util" "test-state.ss")
 
 ;;; ============================================================
 ;;; Summary

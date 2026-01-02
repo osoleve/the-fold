@@ -2,7 +2,7 @@
 ;;;
 ;;; Run from project root: scheme --script fabric/stitches/test-types.ss
 
-(load "core/block.ss")
+(load "core/blocks/block.ss")
 (load "core/types/types.ss")
 
 (define (test name expected actual)

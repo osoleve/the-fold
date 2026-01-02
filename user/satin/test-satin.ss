@@ -5,7 +5,7 @@
 ;;; Run from project root: scheme --script playpen/satin/test-satin.ss
 
 ;; Load prelude first to establish context
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;; Load the main Satin module (which loads Quill)
 (load "user/satin/satin.ss")

@@ -1,7 +1,7 @@
 ;;; Test harness for shell/archextract.ss
 
 ;;; Load dependencies from core
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; Load the archextract module
 (load "shell/archextract.ss")
@@ -112,7 +112,7 @@
 ;;; ============================================================
 
 (display "\nTest 5: Analyze actual module (fabric/stitches/prelude.ss)\n")
-(let ([mod (analyze-module "core/prelude.ss")])
+(let ([mod (analyze-module "core/base/prelude.ss")])
      (test-true "module analyzed" (and mod #t))
      (test "module name" "prelude" (cdr (assq 'name mod)))
      ;; prelude.ss has no loads
@@ -121,7 +121,7 @@
      (test-true "prelude has defines" (> (length (cdr (assq 'defines mod))) 5)))
 
 (display "\nTest 6: Analyze module with loads (fabric/stitches/block.ss)\n")
-(let ([mod (analyze-module "core/block.ss")])
+(let ([mod (analyze-module "core/blocks/block.ss")])
      (test-true "module analyzed" (and mod #t))
      (test "module name" "block" (cdr (assq 'name mod)))
      ;; block.ss loads prelude.ss

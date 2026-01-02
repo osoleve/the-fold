@@ -12,12 +12,12 @@
 ;;; of the defined value instead of void.
 
 ;;; Load hashing dependencies early for content-addressing
-(load "core/sha256.ss")
-(load "core/cas.ss")
+(load "core/base/sha256.ss")
+(load "core/blocks/cas.ss")
 
 ;;; Load normalization for α-equivalence (same variable names = same hash)
 ;;; This ensures (define (foo x) x) and (define (foo y) y) have the same address
-(load "core/normalize.ss")
+(load "core/blocks/normalize.ss")
 
 (define *poll-interval-ns* 100000000)  ; 100ms
 (define *heartbeat-interval* 5)        ; seconds

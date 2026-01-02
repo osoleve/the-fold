@@ -75,7 +75,7 @@
   (newline)
   
   (test "see with path"
-        '(("see" . "core/block.ss"))
+        '(("see" . "core/blocks/block.ss"))
         (extract-tags "@see:core/block.ss"))
   
   (test "ref with id"
@@ -227,7 +227,7 @@
         (get-priority "@priority:critical"))
   
   (test "get-references"
-        '("core/block.ss" "0001")
+        '("core/blocks/block.ss" "0001")
         (get-references "@see:core/block.ss @ref:0001"))
   
   (test "is-draft?"
@@ -297,7 +297,7 @@
         (extract-tags "The Block is born. @status:complete @topic:architecture"))
   
   (test "wishlist reference"
-        '(("see" . "core/block.ss") ("todo" . "implement") ("priority" . "high"))
+        '(("see" . "core/blocks/block.ss") ("todo" . "implement") ("priority" . "high"))
         (extract-tags "We now have content-addressing. @see:core/block.ss
 The next step is normalization. @todo:implement @priority:high"))
   

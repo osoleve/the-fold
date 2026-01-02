@@ -16,8 +16,8 @@
 ;;;   - vec2.ss
 ;;;   - physics-2d/integrators.ss (for Body2D)
 
-(load "core/prelude.ss")
-(load "core/vec2.ss")
+(load "core/base/prelude.ss")
+(load "core/linalg/vec2.ss")
 (load "user/physics/integrators.ss")
 
 ;;; ============================================================

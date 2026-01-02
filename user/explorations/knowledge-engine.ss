@@ -6,8 +6,8 @@
 ;; Set up source path
 (source-directories (cons "core" (source-directories)))
 
-(load "core/block.ss")
-(load "core/sha256.ss")
+(load "core/blocks/block.ss")
+(load "core/base/sha256.ss")
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║     KNOWLEDGE ENGINE — Building Blocks of Thought          ║\n")

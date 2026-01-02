@@ -1,6 +1,6 @@
 ;;; Test harness for core/resolve.ss — Type Class Instance Resolution
 
-(load "core/block.ss")
+(load "core/blocks/block.ss")
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 (load "core/types/infer.ss")

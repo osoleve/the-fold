@@ -20,7 +20,7 @@
 ;;;   - random/prng.ss
 ;;;   - random/distributions.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/control/state.ss")
 (load "core/random/prng.ss")
 (load "core/random/distributions.ss")

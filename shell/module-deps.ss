@@ -15,7 +15,7 @@
 ;;; Usage:
 ;;;   (analyze-module-deps fs "shell/repl.ss")
 ;;;   (find-module-deps fs "core")               ; analyze entire directory
-;;;   (find-reverse-deps fs "core/block.ss")     ; what depends on this?
+;;;   (find-reverse-deps fs "core/blocks/block.ss")     ; what depends on this?
 ;;;   (check-circular-deps fs "shell")           ; find cycles
 ;;;   (deps-report fs "." "dependency-report.txt") ; generate report
 ;;;
@@ -28,7 +28,7 @@
 
 (load "fs.ss")
 (load "edit.ss")
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; NOTE: string-contains?, string-starts-with?, string-last-index-of, string-join
 ;;;       are provided by core/prelude.ss
@@ -84,7 +84,7 @@
 
 ;;; normalize-path-components : String → String
 ;;; Normalize ".." components in a path.
-;;; E.g., "shell/../core/block.ss" → "core/block.ss"
+;;; E.g., "shell/../core/block.ss" → "core/blocks/block.ss"
 (define (normalize-path-components path)
   (let* ([parts (string-split-path path)]
          [normalized (normalize-parts parts)])

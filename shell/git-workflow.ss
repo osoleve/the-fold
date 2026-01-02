@@ -35,7 +35,7 @@
 ;;; Configuration
 ;;; ============================================================
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 (define *default-branch* "main")
 (define *feature-prefix* "feature/")

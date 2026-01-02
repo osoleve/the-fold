@@ -3,10 +3,10 @@
 ;;; NOTE: Run from project root: scheme --script shell/tests/test-graphics.ss
 
 (load "core/test-framework.ss")
-(load "core/prelude.ss")
-(load "core/block.ss")
-(load "core/sha256.ss")
-(load "core/cas.ss")
+(load "core/base/prelude.ss")
+(load "core/blocks/block.ss")
+(load "core/base/sha256.ss")
+(load "core/blocks/cas.ss")
 (load "shell/layout.ss")
 (load "shell/color.ss")
 (load "shell/graphics.ss")

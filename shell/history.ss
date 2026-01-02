@@ -5,7 +5,7 @@
 ;;;
 ;;; Dependencies:
 ;;;   shell/fs.ss
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; NOTE: string-contains?, string-split provided by core/prelude.ss
 ;;;

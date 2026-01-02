@@ -28,7 +28,7 @@
 ;;;   m >>= return      = m
 ;;;   (m >>= f) >>= g   = m >>= (\x -> f x >>= g)
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/meta/combinators.ss")
 
 ;;; ============================================================

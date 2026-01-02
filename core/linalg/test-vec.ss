@@ -1,6 +1,6 @@
 ;;; fabric/stitches/test-vec.ss — Tests for Vector Operations
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/linalg/vec.ss")
 
 ;;; ============================================================

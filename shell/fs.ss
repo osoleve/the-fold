@@ -40,7 +40,7 @@
 ;;; Capabilities are opaque records — unforgeable at runtime.
 ;;; Core cannot construct these; only Shell can mint them.
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 (define-record-type fs-capability
   (fields store-path))

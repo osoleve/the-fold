@@ -58,7 +58,7 @@
          (import (chezscheme))
          
          ;;; NOTE: string utilities provided by core/prelude.ss
-         (include "core/prelude.ss")
+         (include "core/base/prelude.ss")
          
          ;;; ============================================================
          ;;; Path Utilities

@@ -2,9 +2,9 @@
 ;;;
 ;;; Verifies the State monad implementation.
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/test-framework.ss")
-(load "core/eval.ss")
+(load "core/lang/eval.ss")
 (load "core/util/state.ss")
 
 ;;; ============================================================

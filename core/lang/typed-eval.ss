@@ -26,13 +26,13 @@
 ;;;   - annotate.ss
 
 (load "core/base/prelude.ss")
-(load "core/block.ss")
+(load "core/blocks/block.ss")
 (load "core/lang/prim.ss")
 (load "core/lang/eval.ss")
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 (load "core/types/infer.ss")
-(load "core/annotate.ss")
+(load "core/types/annotate.ss")
 
 ;;; ============================================================
 ;;; Typed Values

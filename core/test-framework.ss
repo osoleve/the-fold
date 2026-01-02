@@ -17,7 +17,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss (for result types)
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Test Registry

@@ -51,7 +51,7 @@
 (stop-watching)
 
 ;;; Or stop a specific watcher:
-(define my-watcher (auto-reload "core/block.ss"))
+(define my-watcher (auto-reload "core/blocks/block.ss"))
 (stop-watcher! my-watcher)
 
 ;;; ============================================================
@@ -82,10 +82,10 @@
 ;;; ============================================================
 
 ;;; Watch a file with custom action:
-(watch-file "core/block.ss"
+(watch-file "core/blocks/block.ss"
             (lambda (changed-files)
                     (display "Block module changed! Running tests...\n")
-                    (load "core/block.ss")
+                    (load "core/blocks/block.ss")
                     (system "scheme --script core/test-block.ss")))
 
 ;;; Watch directory with pattern:
@@ -129,14 +129,14 @@
 
 ;;; Pattern 2: Watch multiple related files
 (for-each auto-reload
-          '("core/block.ss"
-            "core/normalize.ss"
-            "core/expand.ss"))
+          '("core/blocks/block.ss"
+            "core/blocks/normalize.ss"
+            "core/blocks/expand.ss"))
 
 ;;; Pattern 3: Watch and run specific tests
-(watch-file "core/block.ss"
+(watch-file "core/blocks/block.ss"
             (lambda (files)
-                    (load "core/block.ss")
+                    (load "core/blocks/block.ss")
                     (system "scheme --script core/test-block.ss")))
 
 ;;; Pattern 4: Conditional reload (only if no syntax errors)
@@ -222,9 +222,9 @@
 ;;;   Syntax errors shouldn't crash watchers. Wrap in guard.
 
 ;;; Tip 8: Watch tests for modules you're working on
-;;;   (watch-file "core/block.ss"
+;;;   (watch-file "core/blocks/block.ss"
 ;;;     (lambda (f)
-;;;       (load "core/block.ss")
+;;;       (load "core/blocks/block.ss")
 ;;;       (system "scheme --script core/test-block.ss")))
 
 ;;; ============================================================

@@ -1,6 +1,6 @@
 ;;; Test harness for core/kinds.ss — Higher-Kinded Types
 
-(load "core/block.ss")
+(load "core/blocks/block.ss")
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 

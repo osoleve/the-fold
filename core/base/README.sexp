@@ -6,7 +6,6 @@ making them safe to load first in any context.")
  (modules
   ((prelude.ss "Pure utility functions, list operations, string utilities")
    (sha256.ss "Cryptographic hashing for content addressing")
-   (error.ss "Error types and reporting")
-   (span.ss "Source location tracking")))
+   (error.ss "Error types, reporting, and suggestions")))
  (dependencies none)
  (load-order "Load these first, before any other core modules"))

@@ -22,7 +22,7 @@
 ;;; ============================================================
 
 ;; Core prelude (needed for parsing)
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;; Quill runtime (required for compilation targets)
 (load "user/quill/quill.ss")

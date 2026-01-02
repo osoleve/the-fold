@@ -12,7 +12,7 @@
 ;;; Dependencies:
 ;;;   - prim.ss (for primitive metadata)
 
-(load "core/prim.ss")
+(load "core/lang/prim.ss")
 
 ;;; ============================================================
 ;;; Primitive Documentation Database

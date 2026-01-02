@@ -5,7 +5,7 @@
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
-(load "core/nbe.ss")
+(load "core/lang/nbe.ss")
 (load "core/types/infer.ss")
 (load "core/types/dep-infer.ss")
 

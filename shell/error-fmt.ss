@@ -32,7 +32,7 @@
 ;;; Configuration
 ;;; ============================================================
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 (define *use-colors* #t)
 (define *show-suggestions* #t)

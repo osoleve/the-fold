@@ -21,7 +21,7 @@
 ;;;       string-upcase, string-downcase, etc.) are provided by core/prelude.ss.
 ;;;       string-search is unique to this module.
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Template Registry

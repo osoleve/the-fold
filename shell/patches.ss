@@ -20,7 +20,7 @@
 ;;; This is Shell code: manages loading and state.
 
 ;;; NOTE: string utilities provided by core/prelude.ss
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Configuration

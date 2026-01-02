@@ -20,7 +20,7 @@
 ;;;   (build-concept-graph path) - Build a graph of concepts and their relationships
 ;;;   (render-concept-map graph) - Render as readable text output
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; S-expression File Reader

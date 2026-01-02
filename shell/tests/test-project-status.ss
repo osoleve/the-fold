@@ -8,7 +8,7 @@
 ;;; Setup
 ;;; ============================================================
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "shell/project-status.ss")
 
 ;;; Test counter

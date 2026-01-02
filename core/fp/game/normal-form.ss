@@ -19,7 +19,7 @@
 ;;; Dependencies:
 ;;;   - core/prelude.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Game Representation

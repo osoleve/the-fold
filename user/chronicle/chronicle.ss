@@ -30,7 +30,7 @@
 ;;; Dependencies
 ;;; ============================================================
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/meta/combinators.ss")
 (load "core/dsl/quasi.ss")
 
@@ -372,8 +372,8 @@
                          '()
                          #f
                          #f)])
-    ;; Enter the first scene to apply on-enter effects
-    (chronicle-enter-scene chronicle run)))
+        ;; Enter the first scene to apply on-enter effects
+        (chronicle-enter-scene chronicle run)))
 
 ;;; Enter a scene (applies on-enter effects)
 (define (chronicle-enter-scene chronicle run)

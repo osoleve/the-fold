@@ -21,7 +21,7 @@
 ;;;   We use a free monad-like encoding where effects are operations
 ;;;   that can be interpreted by handlers.
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/meta/combinators.ss")
 (load "core/fp/control/continuation.ss")
 

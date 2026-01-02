@@ -14,7 +14,7 @@
 ;;;
 ;;; This module builds on combinators.ss for Maybe type and basic combinators.
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/meta/combinators.ss")
 
 ;;; ============================================================

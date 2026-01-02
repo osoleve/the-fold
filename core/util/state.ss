@@ -22,7 +22,7 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; State Monad Primitives (as Fold expressions)

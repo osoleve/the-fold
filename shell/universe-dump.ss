@@ -27,7 +27,7 @@
         (shell universe-serialize))
 
 ;;; NOTE: string utilities provided by core/prelude.ss
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Command-line Argument Parsing

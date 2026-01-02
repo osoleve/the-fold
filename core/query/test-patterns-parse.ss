@@ -70,7 +70,7 @@
 
 ;; With path in value
 (test "path in value"
-      '((see . "core/block.ss"))
+      '((see . "core/blocks/block.ss"))
       (extract-tags "Check @see:core/block.ss"))
 
 ;; Hierarchical value
@@ -223,7 +223,7 @@
 
 (test "valid-tag-value? valid"
       #t
-      (valid-tag-value? "core/block.ss"))
+      (valid-tag-value? "core/blocks/block.ss"))
 
 (test "valid-tag-value? with special chars"
       #t

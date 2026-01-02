@@ -1,6 +1,6 @@
 ;;; fabric/stitches/fp/test-transcendental.ss — Tests for Transcendental Functions
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/numeric/transcendental.ss")
 
 (define tests-passed 0)

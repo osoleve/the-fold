@@ -17,8 +17,8 @@
 ;;;   - prelude.ss
 ;;;   - eval.ss
 
-(load "core/prelude.ss")
-(load "core/eval.ss")
+(load "core/base/prelude.ss")
+(load "core/lang/eval.ss")
 
 ;;; ============================================================
 ;;; Debugger State

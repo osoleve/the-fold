@@ -349,7 +349,7 @@
    
    (h3 "5.2 Type Class Resolution Scaling")
    (priority medium)
-   (location "core/resolve.ss")
+   (location "core/types/resolve.ss")
    (deps "infer.ss, module.ss")
    (parallelizable no)
    (description

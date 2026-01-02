@@ -27,8 +27,8 @@
 (source-directories (cons "core" (source-directories)))
 
 ;; Core dependencies
-(load "core/block.ss")
-(load "core/sha256.ss")
+(load "core/blocks/block.ss")
+(load "core/base/sha256.ss")
 
 ;; Shell dependencies
 (load "shell/fs.ss")
@@ -61,13 +61,13 @@
 (load "shell/block-explorer.ss")
 
 ;; Metadata tagging system
-(load "core/parse.ss")
-(load "core/query.ss")
+(load "core/lang/parse.ss")
+(load "core/query/query.ss")
 
 ;; Standard library: Store API and Collection Utilities
 (load "shell/store-api.ss")
-(load "core/collection-utils.ss")
-(load "core/query-dsl.ss")  ; Query DSL (depends on store-api)
+(load "core/data/collection-utils.ss")
+(load "core/query/query-dsl.ss")  ; Query DSL (depends on store-api)
 
 ;; Command system
 (load "shell/commands.ss")
@@ -350,14 +350,14 @@
       (begin
        (display "Loading Core modules...\n")
        ;; These modules are standalone (no internal loads)
-       (load "core/normalize.ss")
-       (load "core/expand.ss")
-       (load "core/prim.ss")
-       (load "core/eval.ss")
-       (load "core/types.ss")
-       (load "core/kinds.ss")
-       (load "core/infer.ss")
-       (load "core/annotate.ss")
+       (load "core/blocks/normalize.ss")
+       (load "core/blocks/expand.ss")
+       (load "core/lang/prim.ss")
+       (load "core/lang/eval.ss")
+       (load "core/types/types.ss")
+       (load "core/types/kinds.ss")
+       (load "core/types/infer.ss")
+       (load "core/types/annotate.ss")
        (load "core/typed-eval.ss")
        ;; Note: cas.ss, parse.ss, validate.ss have internal loads
        ;; that conflict with repl.ss. Hash/block functions are already

@@ -15,7 +15,7 @@
 ;;;   - prelude.ss
 ;;;   - autodiff/comp-graph.ss (for tape infrastructure)
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/autodiff/comp-graph.ss")
 
 ;;; ============================================================

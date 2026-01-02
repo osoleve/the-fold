@@ -7,7 +7,7 @@
 ;;;
 ;;; NOTE: string-contains? provided by core/prelude.ss
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (import (shell universe-serialize))
 
 (display "Universe Serialization Example\n")

@@ -32,21 +32,21 @@
           ;; Watch core modules
           (display "Core modules:\n")
           (set! *dev-watchers*
-                (cons (watch-file "core/block.ss"
+                (cons (watch-file "core/blocks/block.ss"
                                   (lambda (f)
                                           (display "↻ Reloading core/block.ss\n")
                                           (guard (e [else (display "✗ Failed to reload\n")])
-                                                 (load "core/block.ss")
+                                                 (load "core/blocks/block.ss")
                                                  (display "✓ Reloaded\n"))))
                       *dev-watchers*))
           (display "  ✓ Watching core/block.ss\n")
           
           (set! *dev-watchers*
-                (cons (watch-file "core/normalize.ss"
+                (cons (watch-file "core/blocks/normalize.ss"
                                   (lambda (f)
                                           (display "↻ Reloading core/normalize.ss\n")
                                           (guard (e [else (display "✗ Failed to reload\n")])
-                                                 (load "core/normalize.ss")
+                                                 (load "core/blocks/normalize.ss")
                                                  (display "✓ Reloaded\n"))))
                       *dev-watchers*))
           (display "  ✓ Watching core/normalize.ss\n")
@@ -186,12 +186,12 @@
 
 ;;; Module dependency graph (manually maintained for now)
 (define *module-deps*
-  '(("core/block.ss" . ())
-    ("core/sha256.ss" . ())
-    ("core/normalize.ss" . ("core/block.ss"))
-    ("core/expand.ss" . ("core/block.ss" "core/normalize.ss"))
-    ("shell/fs.ss" . ("core/block.ss" "core/sha256.ss"))
-    ("forum/tools.ss" . ("core/block.ss" "shell/fs.ss"))))
+  '(("core/blocks/block.ss" . ())
+    ("core/base/sha256.ss" . ())
+    ("core/blocks/normalize.ss" . ("core/blocks/block.ss"))
+    ("core/blocks/expand.ss" . ("core/blocks/block.ss" "core/blocks/normalize.ss"))
+    ("shell/fs.ss" . ("core/blocks/block.ss" "core/base/sha256.ss"))
+    ("forum/tools.ss" . ("core/blocks/block.ss" "shell/fs.ss"))))
 
 ;;; smart-reload : String → void
 ;;; Reload a module and all modules that depend on it.

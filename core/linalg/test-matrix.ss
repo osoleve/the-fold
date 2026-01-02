@@ -1,6 +1,6 @@
 ;;; fabric/stitches/test-matrix.ss — Tests for Matrix Operations
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/linalg/vec.ss")
 (load "core/linalg/matrix.ss")
 

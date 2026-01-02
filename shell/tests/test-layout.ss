@@ -1,6 +1,6 @@
 ;;; thimble/tests/test-layout.ss — Test vectors for Text Layout Primitives
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "shell/layout.ss")
 
 ;;; NOTE: string utilities provided by core/prelude.ss

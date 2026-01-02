@@ -5,7 +5,7 @@
 ;;;
 ;;; Depends on fabric/stitches/parse.ss (parser combinators).
 
-(load "core/parse.ss")
+(load "core/lang/parse.ss")
 (load "shell/string-utils.ss")
 
 ;;; Helpers

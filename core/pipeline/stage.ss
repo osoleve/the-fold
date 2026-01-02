@@ -25,7 +25,7 @@
 ;;;   f >>> stage-pure id  = f
 ;;;   (f >>> g) >>> h      = f >>> (g >>> h)
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 (load "core/fp/meta/combinators.ss")
 
 ;;; ============================================================

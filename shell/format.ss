@@ -24,7 +24,7 @@
 ;;;   - Multiple formatting styles (compact, expanded, canonical)
 ;;;   - Batch formatting for directories
 
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Configuration

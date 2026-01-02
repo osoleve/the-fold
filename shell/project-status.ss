@@ -6,7 +6,7 @@
 ;;; This is Shell code: uses IO, runs system commands.
 ;;;
 ;;; Dependencies:
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; NOTE: string-trim, string-split provided by core/prelude.ss
 ;;;

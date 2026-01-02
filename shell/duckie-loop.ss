@@ -35,14 +35,14 @@
 (load "shell/particles.ss")
 
 ;;; From core/parse.ss — The ears
-(load "core/parse.ss")
+(load "core/lang/parse.ss")
 
 ;;; From thimble/duckie-persist.ss — The memory
 (load "shell/duckie-persist.ss")
 
 ;;; From core/prelude.ss — The string utilities
 ;;; NOTE: string-trim provided by core/prelude.ss
-(load "core/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; State Definition

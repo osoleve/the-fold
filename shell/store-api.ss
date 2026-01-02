@@ -16,9 +16,9 @@
 (source-directories (cons "core" (source-directories)))
 
 ;;; NOTE: string utilities provided by core/prelude.ss
-(load "core/prelude.ss")
-(load "core/block.ss")
-(load "core/sha256.ss")
+(load "core/base/prelude.ss")
+(load "core/blocks/block.ss")
+(load "core/base/sha256.ss")
 (load "shell/fs.ss")
 
 ;;; ============================================================
