@@ -35,6 +35,10 @@
 ;;; Order in which modules were loaded (for diagnostics)
 (define *load-order* '(prelude))
 
+;;; *loading-stack* : List Symbol
+;;; Stack of modules currently being loaded (for circular dependency detection)
+(define *loading-stack* '())
+
 ;;; Register prelude as already loaded (we loaded it above)
 (hashtable-set! *module-registry* 'prelude (cons #t 0))
 
@@ -109,15 +113,41 @@
                      (hashtable-set! *module-registry* name (cons #t duration))
                      (set! *load-order* (cons name *load-order*))))))
 
+;;; format-cycle : Symbol × (List Symbol) → String
+;;; Format a circular dependency chain for error message.
+(define (format-cycle name stack)
+  (let* ([cycle-start (member name stack)]
+         [cycle (if cycle-start
+                    (reverse (cons name cycle-start))
+                    (reverse (cons name stack)))])
+        (apply string-append
+               (cons (symbol->string (car cycle))
+                     (map (lambda (m) (string-append " -> " (symbol->string m)))
+                          (cdr cycle))))))
+
 ;;; require-one : Symbol → void
 ;;; Load a module and all its dependencies.
+;;; Detects circular dependencies and raises an error with the cycle path.
 (define (require-one name)
-  (unless (module-loaded? name)
-          (let ([deps (hashtable-ref *module-deps* name '())])
-               ;; Load dependencies first
-               (for-each require-one deps)
-               ;; Then load this module
-               (load-module! name))))
+  (cond
+   ;; Already loaded - nothing to do
+   [(module-loaded? name) (void)]
+   ;; Currently loading - circular dependency detected!
+   [(memq name *loading-stack*)
+    (error 'require-one
+           (string-append "Circular dependency detected: "
+                          (format-cycle name *loading-stack*)))]
+   ;; Not loaded yet - load dependencies, then this module
+   [else
+    (let ([deps (hashtable-ref *module-deps* name '())])
+         ;; Push onto loading stack
+         (set! *loading-stack* (cons name *loading-stack*))
+         ;; Load dependencies first (may raise circular dependency error)
+         (for-each require-one deps)
+         ;; Then load this module
+         (load-module! name)
+         ;; Pop from loading stack
+         (set! *loading-stack* (cdr *loading-stack*)))]))
 
 ;;; require : Symbol ... → void
 ;;; Load one or more modules with their dependencies.
@@ -132,6 +162,49 @@
 ;;; Get declared dependencies for a module.
 (define (module-deps name)
   (hashtable-ref *module-deps* name '()))
+
+;;; loading-stack : → (List Symbol)
+;;; Get the current loading stack (modules in progress).
+(define (loading-stack)
+  *loading-stack*)
+
+;;; detect-cycle : Symbol → (List Symbol) | #f
+;;; Check if loading a module would create a circular dependency.
+;;; Returns the cycle path if a cycle exists, #f otherwise.
+(define (detect-cycle name)
+  (detect-cycle-helper name '()))
+
+;;; detect-cycle-helper : Symbol × (List Symbol) → (List Symbol) | #f
+(define (detect-cycle-helper name visited)
+  (cond
+   [(memq name visited)
+    ;; Found a cycle - return the path
+    (reverse (cons name (member name (reverse visited))))]
+   [(module-loaded? name) #f]
+   [else
+    (let ([deps (module-deps name)])
+         (let loop ([remaining deps])
+              (cond
+               [(null? remaining) #f]
+               [else
+                (let ([result (detect-cycle-helper (car remaining)
+                                                   (cons name visited))])
+                     (if result
+                         result
+                         (loop (cdr remaining))))])))]))
+
+;;; validate-deps : → (List (module . cycle))
+;;; Check all registered modules for circular dependencies.
+;;; Returns a list of (module . cycle-path) pairs for any cycles found.
+(define (validate-deps)
+  (let ([modules (vector->list (hashtable-keys *module-deps*))])
+       (filter (lambda (x) x)
+               (map (lambda (m)
+                            (let ([cycle (detect-cycle m)])
+                                 (if cycle
+                                     (cons m cycle)
+                                     #f)))
+                    modules))))
 
 ;;; all-deps : Symbol → (List Symbol)
 ;;; Get all transitive dependencies for a module.

@@ -1,4 +1,4 @@
-;;; fabric/stitches/dep-infer.ss — Dependent Type Inference
+;;; core/types/dep-infer.ss — Dependent Type Inference
 ;;;
 ;;; Extends bidirectional type inference to handle dependent types.
 ;;;

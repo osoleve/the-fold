@@ -1,4 +1,4 @@
-;;; fabric/stitches/dep-types.ss — Dependent Type Extensions
+;;; core/types/dep-types.ss — Dependent Type Extensions
 ;;;
 ;;; Extends the base type system with dependent types:
 ;;;   - Pi types (Π) — Dependent function types

@@ -227,10 +227,13 @@
 (define (vec-norm-l1 v)
   (vec-fold (lambda (acc x) (+ acc (abs x))) 0 v))
 
-;;; vec-norm-linf : Vec Num → Num
+;;; vec-norm-linf : Vec Num → Num | Error
 ;;; L-infinity norm (maximum absolute value).
+;;; Returns error for empty vectors (consistent with vec-max).
 (define (vec-norm-linf v)
-  (vec-fold (lambda (acc x) (max acc (abs x))) 0 v))
+  (if (vec-empty? v)
+      '(error empty-vector)
+      (vec-fold (lambda (acc x) (max acc (abs x))) 0 v)))
 
 ;;; vec-normalize : Vec Num → Vec Num | Error
 ;;; Normalize to unit length.

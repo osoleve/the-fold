@@ -208,6 +208,9 @@
         5
         (vec-norm-linf (vec 1 -5 3)))
   
+  (test-error "vec-norm-linf empty"
+              (vec-norm-linf (vec)))
+  
   (let ([normalized (vec-normalize (vec 3 4 0))])
        (test "vec-normalize preserves direction"
              #t
