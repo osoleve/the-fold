@@ -430,6 +430,79 @@
    channels-handler))
 
 ;;; ============================================================
+;;; Debugger Commands (loaded dynamically)
+;;; ============================================================
+
+;;; register-debugger-commands! : → void
+;;; Register debugger commands (call after loading debug-repl.ss)
+(define (register-debugger-commands!)
+  (register-command!
+   'debug
+   "Start debugging expression"
+   "Begin interactive debugging with fuel tracking.\n  Usage: (debug '(+ 1 2))\n         (debug '(fib 10) 5000)  ; with fuel budget\n  Starts a new debug session for the expression."
+   cmd-debug)
+  
+  (register-command!
+   'step
+   "Execute one debug step"
+   "Execute one reduction step in the debugger.\n  Usage: (step)\n  Shows current expr, fuel consumed, environment."
+   cmd-step)
+  
+  (register-command!
+   'next
+   "Step over (don't descend)"
+   "Execute current expression without descending into calls.\n  Usage: (next)"
+   cmd-next)
+  
+  (register-command!
+   'continue
+   "Run to breakpoint/completion"
+   "Continue execution until breakpoint or completion.\n  Usage: (continue)"
+   cmd-continue)
+  
+  (register-command!
+   'break
+   "Set breakpoint"
+   "Set breakpoint on function name.\n  Usage: (break 'fn-name)\n  Example: (break 'foldl)"
+   cmd-break)
+  
+  (register-command!
+   'inspect
+   "Show environment bindings"
+   "Display current environment with values.\n  Usage: (inspect)"
+   cmd-inspect)
+  
+  (register-command!
+   'dbg-fuel
+   "Show fuel status"
+   "Display detailed fuel consumption.\n  Usage: (dbg-fuel)"
+   cmd-fuel)
+  
+  (register-command!
+   'trace
+   "Show execution trace"
+   "Display execution trace with fuel costs.\n  Usage: (trace)"
+   cmd-trace)
+  
+  (register-command!
+   'dbg-undo
+   "Undo last step"
+   "Undo the last debug step.\n  Usage: (dbg-undo)"
+   cmd-undo)
+  
+  (register-command!
+   'dbg-reset
+   "Reset to initial state"
+   "Reset debugger to initial state.\n  Usage: (dbg-reset)"
+   cmd-reset)
+  
+  (register-command!
+   'dbg-quit
+   "Quit debug session"
+   "End the current debug session.\n  Usage: (dbg-quit)"
+   cmd-quit-debug))
+
+;;; ============================================================
 ;;; Profiler Commands (loaded dynamically)
 ;;; ============================================================
 

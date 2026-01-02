@@ -25,7 +25,7 @@
 ;;; render-flame-graph : Profiler → String
 ;;; Render an ASCII flame graph
 (define (render-flame-graph p)
-  (let* ([root (car (profiler-call-stack p))]
+  (let* ([root (profiler-root p)]
          [total-fuel (node-fuel-consumed root)]
          [lines (flame-lines root 0 *flame-width* total-fuel)])
         (string-append
@@ -132,7 +132,7 @@
 ;;; render-tree-with-bars : Profiler → String
 ;;; Render call tree with inline fuel consumption bars
 (define (render-tree-with-bars p)
-  (let* ([root (car (profiler-call-stack p))]
+  (let* ([root (profiler-root p)]
          [total (node-fuel-consumed root)])
         (string-append
          "\n  CALL TREE (with fuel bars)\n"

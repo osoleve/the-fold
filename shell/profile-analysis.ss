@@ -80,7 +80,7 @@
 (define *fusable-ops* '(map filter foldl foldr))
 
 (define (detect-fusion-opportunities p)
-  (let* ([root (car (profiler-call-stack p))]
+  (let* ([root (profiler-root p)]
          [pairs (find-adjacent-calls root *fusable-ops*)])
         (map (lambda (pair)
                      (let ([outer (car pair)]
@@ -237,12 +237,12 @@
 (define (severity-color sev)
   ;; ANSI color codes (if terminal supports)
   (case sev
-        [(critical) "\x1b;[31m"]  ; Red
-        [(warning) "\x1b;[33m"]    ; Yellow
-        [(info) "\x1b;[36m"]       ; Cyan
+        [(critical) "\x1b[31m"]  ; Red
+        [(warning) "\x1b[33m"]    ; Yellow
+        [(info) "\x1b[36m"]       ; Cyan
         [else ""]))
 
-(define (reset-color) "\x1b;[0m")
+(define (reset-color) "\x1b[0m")
 
 ;;; render-hint : Hint → String
 (define (render-hint h)

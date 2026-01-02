@@ -299,3 +299,254 @@
 (define (trace-expr expr fuel)
   (let ([d (run-debug expr fuel)])
        (reverse (debugger-trace d))))
+
+;;; ============================================================
+;;; Fuel-Tracking Debugger Extension
+;;; ============================================================
+;;;
+;;; Extended debugger state with detailed fuel tracking:
+;;;   - fuel-trace: List of (expr fuel-before fuel-after fuel-consumed)
+;;;   - fuel-budget: Initial fuel budget
+;;;   - call-stack: Current call stack with fuel annotations
+
+;;; make-fuel-debugger : Expr × Env × Fuel → Debugger
+;;; Create a debugger with fuel tracking extensions.
+(define (make-fuel-debugger expr env fuel)
+  `(debugger
+    (expr . ,expr)
+    (env . ,env)
+    (fuel . ,fuel)
+    (breakpoints . ())
+    (trace . ())
+    (history . ())
+    (status . ready)
+    (fuel-budget . ,fuel)
+    (fuel-trace . ())
+    (call-stack . ())))
+
+;;; fuel-debugger? : Debugger → Boolean
+(define (fuel-debugger? d)
+  (and (debugger? d)
+       (pair? (assq 'fuel-budget (cdr d)))))
+
+;;; debugger-fuel-budget : Debugger → Nat
+(define (debugger-fuel-budget d)
+  (or (debugger-get d 'fuel-budget)
+      (debugger-fuel d)))
+
+;;; debugger-fuel-trace : Debugger → List
+(define (debugger-fuel-trace d)
+  (or (debugger-get d 'fuel-trace) '()))
+
+;;; debugger-call-stack : Debugger → List
+(define (debugger-call-stack d)
+  (or (debugger-get d 'call-stack) '()))
+
+;;; debugger-fuel-used : Debugger → Nat
+;;; Calculate total fuel consumed.
+(define (debugger-fuel-used d)
+  (- (debugger-fuel-budget d) (debugger-fuel d)))
+
+;;; debugger-fuel-pct : Debugger → Number
+;;; Calculate percentage of fuel used.
+(define (debugger-fuel-pct d)
+  (let ([budget (debugger-fuel-budget d)])
+       (if (zero? budget)
+           0
+           (* 100.0 (/ (debugger-fuel-used d) budget)))))
+
+;;; ============================================================
+;;; Fuel-Tracking Step
+;;; ============================================================
+
+;;; step-with-fuel : Debugger → Debugger
+;;; Execute one step and record fuel consumption details.
+(define (step-with-fuel d)
+  (let ([expr (debugger-expr d)]
+        [env (debugger-env d)]
+        [fuel (debugger-fuel d)]
+        [fuel-trace (debugger-fuel-trace d)]
+        [trace (debugger-trace d)]
+        [history (debugger-history d)]
+        [call-stack (debugger-call-stack d)])
+       
+       (if (zero? fuel)
+           (debugger-set d 'status 'out-of-fuel)
+           
+           (let* ([step-budget (min fuel *step-fuel*)]
+                  [fuel-before fuel]
+                  [result (eval-expr expr env step-budget)])
+                 (cond
+                  ;; Completed
+                  [(eq? (car result) 'ok)
+                   (let* ([value (cadr result)]
+                          [remaining (caddr result)]
+                          [used (- step-budget remaining)]
+                          [fuel-after (- fuel used)]
+                          [fuel-entry `(,expr ,fuel-before ,fuel-after ,used)])
+                         (debugger-update d
+                                          `((expr . ,value)
+                                            (fuel . ,fuel-after)
+                                            (trace . ,(cons `(step ,expr -> ,value (fuel ,used)) trace))
+                                            (fuel-trace . ,(cons fuel-entry fuel-trace))
+                                            (history . ,(cons (list expr env fuel) history))
+                                            (status . ,(if (value? value) 'complete 'ready)))))]
+                  
+                  ;; Suspended
+                  [(eq? (car result) 'suspended)
+                   (let* ([new-expr (cadr result)]
+                          [new-env (caddr result)]
+                          [fuel-after (- fuel step-budget)]
+                          [fuel-entry `(,expr ,fuel-before ,fuel-after ,step-budget)])
+                         (debugger-update d
+                                          `((expr . ,new-expr)
+                                            (env . ,new-env)
+                                            (fuel . ,fuel-after)
+                                            (trace . ,(cons `(step ,expr -> suspended (fuel ,step-budget)) trace))
+                                            (fuel-trace . ,(cons fuel-entry fuel-trace))
+                                            (history . ,(cons (list expr env fuel) history))
+                                            (status . ready))))]
+                  
+                  ;; Error
+                  [else
+                   (debugger-update d
+                                    `((trace . ,(cons `(error ,(cadr result) ,(caddr result)) trace))
+                                      (status . error)
+                                      (error . ,result)))])))))
+
+;;; ============================================================
+;;; Fuel Analysis
+;;; ============================================================
+
+;;; fuel-by-expr-type : Debugger → Alist
+;;; Group fuel consumption by expression type.
+(define (fuel-by-expr-type d)
+  (let ([fuel-trace (debugger-fuel-trace d)])
+       (let loop ([entries fuel-trace] [acc '()])
+            (if (null? entries)
+                acc
+                (let* ([entry (car entries)]
+                       [expr (car entry)]
+                       [fuel-used (cadddr entry)]
+                       [type (expr-type expr)]
+                       [existing (assq type acc)])
+                      (loop (cdr entries)
+                            (if existing
+                                (map (lambda (e)
+                                             (if (eq? (car e) type)
+                                                 (cons type (+ fuel-used (cdr e)))
+                                                 e))
+                                     acc)
+                                (cons (cons type fuel-used) acc))))))))
+
+;;; expr-type : Expr → Symbol
+;;; Classify expression for fuel analysis.
+(define (expr-type expr)
+  (cond
+   [(not (pair? expr)) 'literal]
+   [(symbol? expr) 'variable]
+   [else
+    (let ([head (car expr)])
+         (cond
+          [(eq? head 'fn) 'lambda]
+          [(eq? head 'fix) 'fix]
+          [(eq? head 'let) 'let]
+          [(eq? head 'if) 'if]
+          [(eq? head 'case) 'case]
+          [(eq? head 'prim) 'prim]
+          [(eq? head 'call) 'call]
+          [(eq? head 'quote) 'quote]
+          [else 'application]))]))
+
+;;; fuel-hotspots : Debugger × Nat → List
+;;; Get top N fuel-consuming steps.
+(define (fuel-hotspots d n)
+  (let* ([fuel-trace (debugger-fuel-trace d)]
+         [sorted (list-sort (lambda (a b)
+                                    (> (cadddr a) (cadddr b)))
+                            fuel-trace)])
+        (take-up-to-debug n sorted)))
+
+;;; take-up-to-debug : Nat × List → List
+(define (take-up-to-debug n lst)
+  (if (or (zero? n) (null? lst))
+      '()
+      (cons (car lst) (take-up-to-debug (- n 1) (cdr lst)))))
+
+;;; fuel-summary : Debugger → Alist
+;;; Get fuel consumption summary.
+(define (fuel-summary d)
+  (let ([budget (debugger-fuel-budget d)]
+        [remaining (debugger-fuel d)]
+        [used (debugger-fuel-used d)]
+        [pct (debugger-fuel-pct d)]
+        [by-type (fuel-by-expr-type d)]
+        [steps (length (debugger-trace d))])
+       `((budget . ,budget)
+         (remaining . ,remaining)
+         (used . ,used)
+         (percentage . ,pct)
+         (steps . ,steps)
+         (by-type . ,by-type))))
+
+;;; ============================================================
+;;; Step-Over (Next)
+;;; ============================================================
+
+;;; next : Debugger → Debugger
+;;; Step over: execute until the current expression fully evaluates
+;;; without descending into sub-expressions during display.
+(define (next d)
+  (let ([initial-depth (call-depth (debugger-expr d))])
+       (step-until-depth d initial-depth)))
+
+;;; call-depth : Expr → Nat
+;;; Estimate nesting depth of expression.
+(define (call-depth expr)
+  (cond
+   [(not (pair? expr)) 0]
+   [(memq (car expr) '(fn fix quote)) 0]
+   [else
+    (+ 1 (apply max (cons 0 (map call-depth (cdr expr)))))]))
+
+;;; step-until-depth : Debugger × Nat → Debugger
+;;; Step until expression depth decreases or completion.
+(define (step-until-depth d target-depth)
+  (let loop ([d (step-with-fuel d)])
+       (let ([status (debugger-status d)]
+             [current-depth (call-depth (debugger-expr d))])
+            (cond
+             [(eq? status 'complete) d]
+             [(eq? status 'error) d]
+             [(eq? status 'out-of-fuel) d]
+             [(eq? status 'breakpoint) d]
+             [(<= current-depth target-depth) d]
+             [else (loop (step-with-fuel d))]))))
+
+;;; ============================================================
+;;; Continue with Fuel Tracking
+;;; ============================================================
+
+;;; continue-with-fuel : Debugger → Debugger
+;;; Run to completion/breakpoint with fuel tracking.
+(define (continue-with-fuel d)
+  (let ([breakpoints (debugger-breakpoints d)])
+       (if (null? breakpoints)
+           (run-until-fuel d (lambda (e) #f))
+           (run-until-fuel d (lambda (e)
+                                     (ormap (lambda (bp) (bp e)) breakpoints))))))
+
+;;; run-until-fuel : Debugger × (Expr → Bool) → Debugger
+;;; Run with fuel tracking until predicate matches.
+(define (run-until-fuel d pred)
+  (let loop ([d d])
+       (let ([status (debugger-status d)]
+             [expr (debugger-expr d)])
+            (cond
+             [(eq? status 'complete) d]
+             [(eq? status 'error) d]
+             [(eq? status 'out-of-fuel) d]
+             [(pred expr)
+              (debugger-set d 'status 'breakpoint)]
+             [else
+              (loop (step-with-fuel d))]))))
