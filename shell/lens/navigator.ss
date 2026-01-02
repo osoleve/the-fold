@@ -98,12 +98,7 @@
                    (printf "\n    ... and ~a more\n" more))))
         (display "\n")))
 
-;;; take : (List α) × Nat -> (List α)
-;;; Take first n elements from list.
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;;; take is provided by core/prelude.ss with signature (n lst)
 
 ;;; ============================================================
 ;;; Test Navigation

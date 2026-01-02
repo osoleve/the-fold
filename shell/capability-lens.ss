@@ -20,9 +20,9 @@
 ;;; NOTE: string utilities (string-starts-with?, string-ends-with?, string-downcase,
 ;;;       string-upcase, string-join) are provided by core/prelude.ss
 
-;;; string-prefix? and string-suffix? are aliases for prelude functions
-(define string-prefix? string-starts-with?)
-(define string-suffix? string-ends-with?)
+;;; string-prefix? and string-suffix? wrap prelude functions with consistent (pattern str) order
+(define (string-prefix? prefix str) (string-starts-with? str prefix))
+(define (string-suffix? suffix str) (string-ends-with? str suffix))
 
 (define (unique lst)
   (let loop ([xs lst] [seen '()] [acc '()])

@@ -222,7 +222,7 @@
                                                    (string-append current "/" name)))
                                       entries)])
                                    (loop (append full-paths rest) results)))]
-                        [(string-suffix? current ".ss")
+                        [(string-suffix? ".ss" current)
                          (loop rest (cons current results))]
                         [else
                          (loop rest results)]))))))
@@ -237,13 +237,7 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; string-suffix? : String × String -> Boolean
-(define (string-suffix? str suffix)
-  (let ([str-len (string-length str)]
-        [suf-len (string-length suffix)])
-       (and (>= str-len suf-len)
-            (string=? (substring str (- str-len suf-len) str-len)
-                      suffix))))
+;;; string-suffix? is provided by shell/string-utils.ss with signature (suffix str)
 
 ;;; ============================================================
 ;;; Public API

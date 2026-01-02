@@ -214,7 +214,7 @@
                                                    (string-append current "/" name)))
                                       entries)])
                                    (loop (append full-paths rest) results)))]
-                        [(and (string-suffix? current ".ss")
+                        [(and (string-suffix? ".ss" current)
                               (is-test-file? current))
                          (loop rest (cons current results))]
                         [else
@@ -236,13 +236,7 @@
   (let ([basename (path-basename path)])
        (string-prefix? basename "test-")))
 
-;;; string-suffix? : String × String -> Boolean
-(define (string-suffix? str suffix)
-  (let ([str-len (string-length str)]
-        [suf-len (string-length suffix)])
-       (and (>= str-len suf-len)
-            (string=? (substring str (- str-len suf-len) str-len)
-                      suffix))))
+;;; string-suffix? is provided by shell/string-utils.ss with signature (suffix str)
 
 ;;; list-all-tests : -> void
 ;;; Display all test files in the codebase.

@@ -29,12 +29,16 @@
 ;;; ============================================================
 
 ;;; string-prefix? : String × String → Boolean
-;;; Alias for string-starts-with? (common in shell code)
-(define string-prefix? string-starts-with?)
+;;; Check if str starts with prefix.
+;;; Note: Argument order is (prefix str) for consistency with shell code patterns.
+(define (string-prefix? prefix str)
+  (string-starts-with? str prefix))
 
 ;;; string-suffix? : String × String → Boolean
-;;; Alias for string-ends-with? (common in shell code)
-(define string-suffix? string-ends-with?)
+;;; Check if str ends with suffix.
+;;; Note: Argument order is (suffix str) for consistency with shell code patterns.
+(define (string-suffix? suffix str)
+  (string-ends-with? str suffix))
 
 ;;; ============================================================
 ;;; Shell-Specific Extensions
