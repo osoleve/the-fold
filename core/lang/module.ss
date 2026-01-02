@@ -64,13 +64,23 @@
 ;;; Cache for parsed headers (keyed by file path)
 (define *header-cache* (make-hashtable string-hash string=?))
 
-;;; *core-search-dirs* : (List String)
+;;; *module-search-dirs* : (List String)
 ;;; Directories to search when resolving module names
-(define *core-search-dirs*
-  '("base" "blocks" "lang" "types" "data" "query" "util"
-    "linalg" "numeric" "autodiff" "random" "pipeline" "info-theory"
-    "fp" "fp/control" "fp/numeric" "fp/parsing" "fp/meta"
-    "fp/data" "fp/game" "fp/symbolic" "fp/measure" "fp/control-systems"))
+(define *module-search-dirs*
+  '(;; Core directories
+    "core/base" "core/blocks" "core/lang" "core/types" "core/data"
+    "core/query" "core/util" "core/linalg" "core/numeric" "core/autodiff"
+    "core/random" "core/pipeline" "core/info-theory"
+    ;; FP subdirectories
+    "core/fp" "core/fp/control" "core/fp/numeric" "core/fp/parsing"
+    "core/fp/meta" "core/fp/data" "core/fp/game" "core/fp/symbolic"
+    "core/fp/measure" "core/fp/control-systems"
+    ;; Shell directories
+    "shell" "shell/tests"))
+
+;;; *header-scan-limit* : Nat
+;;; Number of lines to scan for header annotations
+(define *header-scan-limit* 60)
 
 ;;; register-module-path! : Symbol × String → void
 ;;; Register a module's file path.
@@ -182,19 +192,21 @@
                   (loop (cdr lines))))])))
 
 ;;; parse-requires : (List String) → (List Symbol)
-;;; Extract dependencies from @requires annotation.
+;;; Extract dependencies from ALL @requires annotations.
+;;; Supports multiple @requires lines and accumulates all deps.
 (define (parse-requires lines)
-  (let loop ([lines lines])
+  (let loop ([lines lines] [acc '()])
        (cond
-        [(null? lines) '()]
+        [(null? lines) (reverse acc)]
         [else
          (let ([deps (extract-annotation (car lines) "@requires ")])
               (if deps
-                  (filter (lambda (s) (> (string-length (symbol->string s)) 0))
-                          (map string->symbol
-                               (filter (lambda (s) (> (string-length s) 0))
-                                       (string-split deps #\space))))
-                  (loop (cdr lines))))])))
+                  (let ([parsed (filter (lambda (s) (> (string-length (symbol->string s)) 0))
+                                        (map string->symbol
+                                             (filter (lambda (s) (> (string-length s) 0))
+                                                     (string-split deps #\space))))])
+                       (loop (cdr lines) (append (reverse parsed) acc)))
+                  (loop (cdr lines) acc)))])))
 
 ;;; parse-module-header : String → (name . deps) | #f
 ;;; Parse @module/@requires from file. Returns (name . deps) or #f.
@@ -204,7 +216,7 @@
   (let ([cached (hashtable-ref *header-cache* filepath 'not-found)])
        (if (not (eq? cached 'not-found))
            cached
-           (let* ([lines (read-header-lines filepath 40)]
+           (let* ([lines (read-header-lines filepath *header-scan-limit*)]
                   [result (and lines
                                (let ([name (parse-module-name lines)])
                                     (and name
@@ -220,20 +232,17 @@
 
 ;;; find-module-path : Symbol → String | #f
 ;;; Find file path for a module by searching known locations.
+;;; Searches core/, shell/, and all subdirectories in *module-search-dirs*.
 (define (find-module-path name)
   (let ([name-str (symbol->string name)])
-       ;; Try direct core/<name>.ss first
-       (let ([direct (string-append "core/" name-str ".ss")])
-            (if (file-exists? direct)
-                direct
-                ;; Search subdirectories
-                (let loop ([dirs *core-search-dirs*])
-                     (if (null? dirs)
-                         #f
-                         (let ([path (string-append "core/" (car dirs) "/" name-str ".ss")])
-                              (if (file-exists? path)
-                                  path
-                                  (loop (cdr dirs))))))))))
+       ;; Search all registered directories
+       (let loop ([dirs *module-search-dirs*])
+            (if (null? dirs)
+                #f
+                (let ([path (string-append (car dirs) "/" name-str ".ss")])
+                     (if (file-exists? path)
+                         path
+                         (loop (cdr dirs))))))))
 
 ;;; module-name->path : Symbol → String | #f
 ;;; Get file path for module, using registry or searching.
@@ -513,9 +522,65 @@
 ;;; Module Discovery (LLM-Friendly)
 ;;; ============================================================
 
+;;; extract-category : String → String
+;;; Extract category from path like "core/base/foo.ss" → "BASE"
+(define (extract-category path)
+  (cond
+   [(string-starts-with? path "core/base/") "BASE"]
+   [(string-starts-with? path "core/blocks/") "BLOCKS"]
+   [(string-starts-with? path "core/lang/") "LANG"]
+   [(string-starts-with? path "core/types/") "TYPES"]
+   [(string-starts-with? path "core/query/") "QUERY"]
+   [(string-starts-with? path "core/data/") "DATA"]
+   [(string-starts-with? path "core/linalg/") "LINALG"]
+   [(string-starts-with? path "core/numeric/") "NUMERIC"]
+   [(string-starts-with? path "core/autodiff/") "AUTODIFF"]
+   [(string-starts-with? path "core/random/") "RANDOM"]
+   [(string-starts-with? path "core/pipeline/") "PIPELINE"]
+   [(string-starts-with? path "core/info-theory/") "INFO-THEORY"]
+   [(string-starts-with? path "core/util/") "UTIL"]
+   [(string-starts-with? path "core/fp/") "FP"]
+   [(string-starts-with? path "shell/") "SHELL"]
+   [else "OTHER"]))
+
+;;; category-description : String → String
+;;; Return description for category.
+(define (category-description cat)
+  (cond
+   [(string=? cat "BASE") "foundation, no dependencies"]
+   [(string=? cat "BLOCKS") "content-addressed storage"]
+   [(string=? cat "LANG") "evaluation, compilation"]
+   [(string=? cat "TYPES") "type system"]
+   [(string=? cat "QUERY") "pattern matching, search"]
+   [(string=? cat "DATA") "data structures"]
+   [(string=? cat "LINALG") "linear algebra"]
+   [(string=? cat "NUMERIC") "numerical computing"]
+   [(string=? cat "AUTODIFF") "automatic differentiation"]
+   [(string=? cat "RANDOM") "randomness, probability"]
+   [(string=? cat "PIPELINE") "agent pipelines"]
+   [(string=? cat "INFO-THEORY") "information theory"]
+   [(string=? cat "UTIL") "utilities"]
+   [(string=? cat "FP") "functional programming toolkit"]
+   [(string=? cat "SHELL") "shell, REPL, IO"]
+   [else ""]))
+
+;;; group-modules-by-category : → Hashtable String → (List Symbol)
+;;; Group all registered modules by their category.
+(define (group-modules-by-category)
+  (let ([groups (make-hashtable string-hash string=?)]
+        [modules (vector->list (hashtable-keys *module-paths*))])
+       (for-each
+        (lambda (mod)
+                (let* ([path (hashtable-ref *module-paths* mod "")]
+                       [cat (extract-category path)]
+                       [existing (hashtable-ref groups cat '())])
+                      (hashtable-set! groups cat (cons mod existing))))
+        modules)
+       groups))
+
 ;;; modules : → void
 ;;; List all registered modules grouped by category.
-;;; Useful for discovering available functionality.
+;;; Dynamically builds listing from *module-paths* registry.
 (define (modules)
   (display "\n")
   (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
@@ -523,45 +588,32 @@
   (display "  └────────────────────────────────────────────────────────────────────┘\n")
   (display "\n")
   
-  ;; Group modules by directory
-  (let* ([all-modules (vector->list (hashtable-keys *module-paths*))]
-         [sorted (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b))) all-modules)])
+  (let* ([groups (group-modules-by-category)]
+         [categories '("BASE" "BLOCKS" "LANG" "TYPES" "QUERY" "DATA"
+                       "LINALG" "NUMERIC" "AUTODIFF" "RANDOM" "PIPELINE"
+                       "INFO-THEORY" "UTIL" "FP" "SHELL" "OTHER")])
         
-        ;; BASE modules
-        (display "  BASE (foundation, no dependencies):\n")
-        (display "    prelude sha256 error\n\n")
-        
-        ;; BLOCKS modules
-        (display "  BLOCKS (content-addressed storage):\n")
-        (display "    block cas normalize expand\n\n")
-        
-        ;; LANG modules
-        (display "  LANG (evaluation, compilation):\n")
-        (display "    parse span fold-parse prim eval compile nbe\n\n")
-        
-        ;; TYPES modules
-        (display "  TYPES (type system):\n")
-        (display "    types kinds infer resolve annotate dep-types\n\n")
-        
-        ;; QUERY modules
-        (display "  QUERY (pattern matching):\n")
-        (display "    query query-dsl\n\n")
-        
-        ;; DATA modules
-        (display "  DATA (data structures):\n")
-        (display "    data-structures collection-utils graph-algorithms\n\n")
-        
-        ;; LINALG modules
-        (display "  LINALG (linear algebra):\n")
-        (display "    vec matrix matrix-decomp matrix-solvers sparse\n\n")
-        
-        ;; NUMERIC modules
-        (display "  NUMERIC (numerical computing):\n")
-        (display "    complex dft convolution transcendental\n\n")
-        
-        ;; FP modules
-        (display "  FP (functional programming toolkit):\n")
-        (display "    monad parser-combinators\n\n")
+        (for-each
+         (lambda (cat)
+                 (let ([mods (hashtable-ref groups cat '())])
+                      (unless (null? mods)
+                              (let ([desc (category-description cat)]
+                                    [sorted-mods (sort (lambda (a b)
+                                                               (string<? (symbol->string a)
+                                                                         (symbol->string b)))
+                                                       mods)])
+                                   (display (format "  ~a~a:\n"
+                                                    cat
+                                                    (if (string=? desc "")
+                                                        ""
+                                                        (string-append " (" desc ")"))))
+                                   (display "    ")
+                                   (display (apply string-append
+                                                   (map (lambda (m)
+                                                                (string-append (symbol->string m) " "))
+                                                        sorted-mods)))
+                                   (display "\n\n")))))
+         categories)
         
         (display "  Usage: (require 'module-name) to load a module\n")
         (display "         (module-info 'module-name) for details\n")
