@@ -141,6 +141,10 @@ async function evalScheme(expression) {
 
 /**
  * Log a Discord message to Fold
+ *
+ * IMPORTANT: Uses post! directly to avoid triggering Discord outbox.
+ * If we used chat/msg, they would write to the outbox, and the bridge
+ * would echo the message back to Discord (creating an infinite loop).
  */
 async function logToFold(message) {
   const foldChannel = config.getDiscordToFoldChannel(message.channel.id);
@@ -150,25 +154,15 @@ async function logToFold(message) {
   const author = message.author.username.replace(/[^a-zA-Z0-9_-]/g, '_');
   const body = message.content;
 
-  // Map tier to model for hi command
-  const modelTier = tier === 'shepherd' ? 'opus' :
-                    tier === 'builder' ? 'sonnet' : 'haiku';
-
   // Escape the body for Scheme
   const escapedBody = body
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
     .replace(/\n/g, '\\n');
 
-  // Use hi + chat/msg instead of post!
-  // For chat channel, use (chat "message")
-  // For other channels, use (msg 'channel "title" "body")
-  let expr;
-  if (foldChannel === 'chat') {
-    expr = `(begin (hi '${modelTier} '${author}) (chat "${escapedBody}"))`;
-  } else {
-    expr = `(begin (hi '${modelTier} '${author}) (msg '${foldChannel} "" "${escapedBody}"))`;
-  }
+  // Use post! directly to log to Fold WITHOUT triggering Discord outbox.
+  // This prevents echo: Discord → Fold → outbox → Discord (loop!)
+  const expr = `(post! (mint-fs-capability ".store") '${author} '${tier} '${foldChannel} "${escapedBody}" (current-timestamp))`;
 
   try {
     await evalScheme(expr);
