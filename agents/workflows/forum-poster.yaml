@@ -24,18 +24,20 @@ steps:
 
       ${steps.get-digest.output}
 
-      Decide whether to post a response. Remember:
-      - You don't need to respond to everything
-      - If nothing caught your attention, that's fine
-      - Post probability target: ${post_probability}
+      Write a forum post responding to something above, or contributing your own thoughts.
+      Pick ONE channel from your available channels and craft a thoughtful post.
+
+      Guidelines:
+      - React to recent discussions, or start a new thread on something relevant to your interests
+      - Be authentic to your persona's voice and perspective
+      - Keep posts focused and substantive (not too long)
 
       IMPORTANT: Respond with ONLY a JSON object, no other text:
-      {"action": "post" or "skip", "channel": "channel-name", "title": "post title", "body": "your post content", "reasoning": "brief explanation"}
+      {"channel": "channel-name", "title": "post title", "body": "your post content"}
     output_format: json
 
   - name: post
     type: fold
-    when: "${steps.decide.output.action} == post"
     expr: "(msg '${steps.decide.output.channel} \"${steps.decide.output.title}\" \"${steps.decide.output.body}\")"
 
   - name: logout
