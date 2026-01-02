@@ -1,12 +1,19 @@
-;;; shell/profile-repl.ss — REPL Profiler Integration
+;;; shell/profile-repl.ss --- REPL Profiler Integration
 ;;;
 ;;; Provides REPL commands for profiling:
-;;;   (profile expr)      - Profile an expression
-;;;   (profile-report)    - Show last profile report
-;;;   (profile-hints)     - Show optimization hints
-;;;   (profile-history)   - Show profile history
-;;;   (profile-compare)   - Compare profiles
-;;;   (profile-baseline)  - Set baseline for regression
+;;;   (profile expr)               - Profile an expression
+;;;   (profile-report)             - Show last profile report
+;;;   (profile-hints)              - Show optimization hints
+;;;   (profile-history)            - Show profile history
+;;;   (profile-compare)            - Compare profiles
+;;;   (profile-baseline)           - Set baseline for regression
+;;;
+;;; Extended commands (unified profiler):
+;;;   (profile-memory expr)        - Profile with memory tracking
+;;;   (profile-callgraph)          - Show call graph for last profile
+;;;   (profile-costs)              - Show cost breakdown
+;;;   (profile-save-last filename) - Save last profile to file
+;;;   (profile-load-and-compare f) - Load and compare with current
 ;;;
 ;;; This is Shell code: stateful REPL integration.
 ;;;
@@ -14,20 +21,30 @@
 ;;;   - core/util/profile.ss
 ;;;   - shell/profile-viz.ss
 ;;;   - shell/profile-analysis.ss
+;;;   - shell/profiler-unified.ss
+;;;   - shell/profile-persist.ss
 
 (load "core/util/profile.ss")
 (load "shell/profile-viz.ss")
 (load "shell/profile-analysis.ss")
+(load "shell/profiler-unified.ss")
+(load "shell/profile-persist.ss")
 
 ;;; ============================================================
 ;;; Profile Session State
 ;;; ============================================================
 
-;;; Current profiler result
+;;; Current profiler result (basic)
 (define *current-profile* #f)
+
+;;; Current unified profiler result
+(define *current-unified-profile* #f)
 
 ;;; Profile history (list of (name . profiler) pairs)
 (define *profile-history* '())
+
+;;; Unified profile history
+(define *unified-profile-history* '())
 
 ;;; Maximum history size
 (define *max-profile-history* 10)
@@ -295,3 +312,247 @@
 (define prof-tree repl-profile-tree)
 (define prof-flame repl-profile-flame)
 (define prof-hist repl-profile-history)
+
+;;; ============================================================
+;;; Unified Profiler Commands
+;;; ============================================================
+
+;;; profile-memory : Expr [x Fuel] -> UnifiedProfiler
+;;; Profile an expression with full memory tracking.
+(define repl-profile-memory
+  (case-lambda
+   [(expr)
+    (repl-profile-memory expr *default-profile-fuel*)]
+   [(expr fuel)
+    (let* ([up (profile-unified expr `((fuel-budget . ,fuel)
+                                       (track-memory . #t)
+                                       (build-call-graph . #t)))]
+           [status (unified-profiler-status up)])
+          ;; Store results
+          (set! *current-unified-profile* up)
+          (set! *current-profile* (unified-profiler-base up))
+          ;; Add to history
+          (add-to-unified-history expr up)
+          ;; Display summary
+          (display-unified-profile up)
+          ;; Return status and value
+          (if (eq? status 'complete)
+              (begin
+               (display (format "  Result: ~a\n\n" (unified-profiler-expr up)))
+               (unified-profiler-expr up))
+              (begin
+               (display (format "  Status: ~a\n\n" status))
+               `(profile-status ,status))))]))
+
+;;; add-to-unified-history : Expr x UnifiedProfiler -> void
+(define (add-to-unified-history expr up)
+  (let* ([entry (cons expr up)]
+         [new-history (cons entry *unified-profile-history*)])
+        (set! *unified-profile-history*
+              (if (> (length new-history) *max-profile-history*)
+                  (take *max-profile-history* new-history)
+                  new-history))))
+
+;;; profile-callgraph : -> void
+;;; Display call graph for the last unified profile.
+(define (repl-profile-callgraph)
+  (if *current-unified-profile*
+      (begin
+       (display (render-call-graph-report *current-unified-profile*))
+       (void))
+      (if *current-profile*
+          ;; Fall back to building graph from basic profile
+          (let ([graph (build-call-graph *current-profile*)])
+               (display (call-graph-summary graph))
+               (display (call-graph->ascii graph))
+               (void))
+          (display "  No profile available. Run (profile expr) or (profile-memory expr) first.\n"))))
+
+;;; profile-costs : -> void
+;;; Display cost breakdown for the last unified profile.
+(define (repl-profile-costs)
+  (if *current-unified-profile*
+      (begin
+       (display (render-cost-report *current-unified-profile*))
+       (void))
+      (display "  No unified profile available. Run (profile-memory expr) first.\n")))
+
+;;; profile-save-last : String -> Boolean
+;;; Save the last unified profile to a file.
+(define (repl-profile-save-last filename)
+  (if *current-unified-profile*
+      (if (profile-save *current-unified-profile* filename)
+          (begin
+           (display (format "  Profile saved to: ~a\n" filename))
+           #t)
+          (begin
+           (display "  Failed to save profile.\n")
+           #f))
+      (display "  No unified profile available. Run (profile-memory expr) first.\n")))
+
+;;; profile-load-and-compare : String -> void
+;;; Load a profile from file and compare with the current profile.
+(define (repl-profile-load-and-compare filename)
+  (if *current-unified-profile*
+      (display (profile-load-and-compare *current-unified-profile* filename))
+      (display "  No current profile to compare. Run (profile-memory expr) first.\n")))
+
+;;; profile-unified-history : -> void
+;;; Display unified profile history.
+(define (repl-profile-unified-history)
+  (if (null? *unified-profile-history*)
+      (display "  No unified profile history.\n")
+      (begin
+       (display "\n  UNIFIED PROFILE HISTORY\n")
+       (display "  =======================\n\n")
+       (let loop ([hist *unified-profile-history*] [i 0])
+            (unless (null? hist)
+                    (let* ([entry (car hist)]
+                           [expr (car entry)]
+                           [up (cdr entry)]
+                           [stats (unified-profile-stats up)]
+                           [fuel-stats (cdr (assq 'fuel stats))]
+                           [mem-stats (cdr (assq 'memory stats))]
+                           [fuel (cdr (assq 'used-fuel fuel-stats))]
+                           [mem (cdr (assq 'total-formatted mem-stats))]
+                           [status (unified-profiler-status up)])
+                          (display (format "  [~a] ~a\n      Status: ~a, Fuel: ~a, Memory: ~a\n\n"
+                                           i
+                                           (truncate-expr expr 50)
+                                           status fuel mem))
+                          (loop (cdr hist) (+ i 1))))))))
+
+;;; profile-memory-report : -> void
+;;; Display memory allocation report.
+(define (repl-profile-memory-report)
+  (if *current-unified-profile*
+      (begin
+       (display (render-memory-report *current-unified-profile*))
+       (void))
+      (display "  No unified profile available. Run (profile-memory expr) first.\n")))
+
+;;; profile-export : String -> Boolean
+;;; Export current profile to CSV.
+(define (repl-profile-export-csv filename)
+  (if *current-unified-profile*
+      (if (profile-export-csv *current-unified-profile* filename)
+          (begin
+           (display (format "  Profile exported to: ~a\n" filename))
+           #t)
+          (begin
+           (display "  Failed to export profile.\n")
+           #f))
+      (display "  No unified profile available. Run (profile-memory expr) first.\n")))
+
+;;; profile-with-model : Expr x CostModel [x Fuel] -> UnifiedProfiler
+;;; Profile with a specific cost model.
+(define repl-profile-with-model
+  (case-lambda
+   [(expr model)
+    (repl-profile-with-model expr model *default-profile-fuel*)]
+   [(expr model fuel)
+    (let* ([up (profile-unified expr `((fuel-budget . ,fuel)
+                                       (cost-model . ,model)
+                                       (track-memory . #t)
+                                       (build-call-graph . #t)))]
+           [status (unified-profiler-status up)])
+          (set! *current-unified-profile* up)
+          (set! *current-profile* (unified-profiler-base up))
+          (add-to-unified-history expr up)
+          (display-unified-profile up)
+          (if (eq? status 'complete)
+              (unified-profiler-expr up)
+              `(profile-status ,status)))]))
+
+;;; profile-full-report : -> void
+;;; Display complete profile report (all sections).
+(define (repl-profile-full-report)
+  (if *current-unified-profile*
+      (begin
+       (display-unified-profile *current-unified-profile*)
+       (display (render-memory-report *current-unified-profile*))
+       (display (render-cost-report *current-unified-profile*))
+       (display (render-call-graph-report *current-unified-profile*))
+       (void))
+      (display "  No unified profile available. Run (profile-memory expr) first.\n")))
+
+;;; profile-save-report : String -> Boolean
+;;; Save full report to a text file.
+(define (repl-profile-save-report filename)
+  (if *current-unified-profile*
+      (if (profile-save-full-report *current-unified-profile* filename)
+          (begin
+           (display (format "  Report saved to: ~a\n" filename))
+           #t)
+          (begin
+           (display "  Failed to save report.\n")
+           #f))
+      (display "  No unified profile available. Run (profile-memory expr) first.\n")))
+
+;;; ============================================================
+;;; Extended Aliases
+;;; ============================================================
+
+(define prof-mem repl-profile-memory)
+(define prof-graph repl-profile-callgraph)
+(define prof-costs repl-profile-costs)
+(define prof-save repl-profile-save-last)
+(define prof-load-cmp repl-profile-load-and-compare)
+(define prof-uhist repl-profile-unified-history)
+(define prof-mem-report repl-profile-memory-report)
+(define prof-export repl-profile-export-csv)
+(define prof-full repl-profile-full-report)
+
+;;; ============================================================
+;;; Help for new commands
+;;; ============================================================
+
+(define (profile-help)
+  (display "
+  PROFILER COMMANDS
+  =================
+
+  Basic Profiling:
+    (profile expr)              Profile expression (fuel only)
+    (profile expr fuel)         Profile with custom fuel budget
+    (profile-report)            Show detailed report
+    (profile-viz)               Visual profile (flame graph, bars)
+    (profile-hints)             Optimization suggestions
+    (profile-tree)              Call tree view
+    (profile-flame)             Flame graph view
+
+  Unified Profiling (with memory + call graph):
+    (profile-memory expr)       Profile with memory tracking
+    (profile-callgraph)         Show call graph
+    (profile-costs)             Show cost breakdown by category
+    (profile-memory-report)     Detailed memory report
+    (profile-full-report)       Complete report (all sections)
+
+  History & Comparison:
+    (profile-history)           Show basic profile history
+    (profile-unified-history)   Show unified profile history
+    (profile-recall n)          Recall profile #n from history
+    (profile-compare n1 n2)     Compare two profiles
+
+  Persistence:
+    (profile-save-last file)    Save last profile to file
+    (profile-load-and-compare f) Compare current with saved
+    (profile-save-report file)  Save full report as text
+    (profile-export-csv file)   Export stats as CSV
+
+  Configuration:
+    (profile-set-fuel n)        Set default fuel budget
+    (profile-baseline)          Set current as baseline
+    (profile-clear-baseline)    Clear baseline
+    (profile-clear-history)     Clear history
+
+  Short Aliases:
+    prof, prof-mem, prof-graph, prof-costs, prof-save,
+    prof-load-cmp, prof-full, prof-export, prof-uhist
+"))
+
+;;; ============================================================
+;;; Module Loading Confirmation
+;;; ============================================================
+
+(define *profile-repl-loaded* #t)
