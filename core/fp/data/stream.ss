@@ -457,3 +457,322 @@
 ;;; Pair each element with its index.
 (define (stream-enumerate s)
   (stream-zip naturals s))
+
+;;; ============================================================
+;;; Delay/Force Primitives
+;;; ============================================================
+;;;
+;;; These provide explicit delay/force semantics for lazy evaluation.
+;;; While Scheme thunks already provide laziness, these forms make
+;;; the intent clearer and can be extended with memoization.
+
+;;; delay : (() -> a) -> Delayed a
+;;; Create a delayed computation (a thunk wrapped with a tag).
+(define (delay thunk)
+  (list 'delayed thunk #f #f))  ; (tag, thunk, computed?, cached-value)
+
+;;; force : Delayed a -> a
+;;; Force evaluation of a delayed computation.
+;;; Memoizes the result for subsequent forces.
+(define (force delayed)
+  (if (and (pair? delayed) (eq? (car delayed) 'delayed))
+      (if (caddr delayed)  ; already computed?
+          (cadddr delayed)  ; return cached value
+          (let ([val ((cadr delayed))])
+               (set-car! (cddr delayed) #t)
+               (set-car! (cdddr delayed) val)
+               val))
+      (error 'force "not a delayed value")))
+
+;;; delayed? : Any -> Boolean
+(define (delayed? x)
+  (and (pair? x) (eq? (car x) 'delayed)))
+
+;;; ============================================================
+;;; Type Class Instances (Dictionary-Passing Style)
+;;; ============================================================
+;;;
+;;; Following The Fold's convention, type classes are represented
+;;; as dictionaries (records with operations). This enables
+;;; polymorphic code without Haskell-style implicit instances.
+
+;;; ============================================================
+;;; Functor Instance for Stream
+;;; ============================================================
+;;;
+;;; Functor laws:
+;;;   1. fmap id = id (identity)
+;;;   2. fmap (f . g) = fmap f . fmap g (composition)
+;;;
+;;; Note: stream-map already satisfies the Functor interface.
+;;; We provide an explicit dictionary for consistency with the
+;;; type class system.
+
+;;; stream-functor : Functor Stream
+;;; The Functor dictionary for Stream.
+(define stream-functor
+  (list 'functor stream-map))
+
+;;; functor-fmap : Functor f -> (a -> b) -> f a -> f b
+;;; Generic fmap accessor.
+(define (functor-fmap functor)
+  (cadr functor))
+
+;;; stream-fmap : (a -> b) -> Stream a -> Stream b
+;;; Alias for stream-map, emphasizing the Functor interface.
+(define stream-fmap stream-map)
+
+;;; ============================================================
+;;; Applicative Instance for Stream
+;;; ============================================================
+;;;
+;;; Applicative laws:
+;;;   1. pure id <*> v = v (identity)
+;;;   2. pure (.) <*> u <*> v <*> w = u <*> (v <*> w) (composition)
+;;;   3. pure f <*> pure x = pure (f x) (homomorphism)
+;;;   4. u <*> pure y = pure ($ y) <*> u (interchange)
+;;;
+;;; For infinite streams, we use the ZipList semantics:
+;;;   pure x = repeat x (infinite stream of x)
+;;;   fs <*> xs = zipWith ($) fs xs
+
+;;; stream-pure : a -> Stream a
+;;; Lift a value into an infinite stream (ZipList-style).
+(define stream-pure stream-repeat)
+
+;;; stream-ap : Stream (a -> b) -> Stream a -> Stream b
+;;; Apply a stream of functions to a stream of values.
+;;; Uses ZipList semantics: apply pointwise.
+(define (stream-ap fs xs)
+  (stream-zip-with (lambda (f x) (f x)) fs xs))
+
+;;; stream-applicative : Applicative Stream
+;;; The Applicative dictionary for Stream.
+(define stream-applicative
+  (list 'applicative
+        stream-functor     ; parent Functor
+        stream-pure        ; pure
+        stream-ap))        ; <*>
+
+;;; applicative-pure : Applicative f -> a -> f a
+(define (applicative-pure app)
+  (caddr app))
+
+;;; applicative-ap : Applicative f -> f (a -> b) -> f a -> f b
+(define (applicative-ap app)
+  (cadddr app))
+
+;;; stream-lift2 : (a -> b -> c) -> Stream a -> Stream b -> Stream c
+;;; Lift a binary function to operate on streams.
+(define (stream-lift2 f xs ys)
+  (stream-ap (stream-map (lambda (x) (lambda (y) (f x y))) xs) ys))
+
+;;; stream-lift3 : (a -> b -> c -> d) -> Stream a -> Stream b -> Stream c -> Stream d
+(define (stream-lift3 f xs ys zs)
+  (stream-ap
+   (stream-ap (stream-map (lambda (x) (lambda (y) (lambda (z) (f x y z)))) xs) ys)
+   zs))
+
+;;; ============================================================
+;;; Monad Instance for Stream
+;;; ============================================================
+;;;
+;;; Monad laws:
+;;;   1. return a >>= f = f a (left identity)
+;;;   2. m >>= return = m (right identity)
+;;;   3. (m >>= f) >>= g = m >>= (\x -> f x >>= g) (associativity)
+;;;
+;;; For streams, we use the diagonal semantics for bind:
+;;; Conceptually, stream-bind produces a stream of streams,
+;;; then we extract the diagonal to get a flat stream.
+;;;
+;;; This is different from the ZipList Applicative but provides
+;;; a valid Monad instance.
+
+;;; stream-return : a -> Stream a
+;;; Lift a value into a singleton-like stream.
+;;; For monad consistency, we return a repeating stream.
+(define stream-return stream-repeat)
+
+;;; stream-bind : Stream a -> (a -> Stream b) -> Stream b
+;;; Monadic bind using diagonal extraction.
+;;; Takes nth element from the nth stream produced by f.
+(define (stream-bind s f)
+  (stream-diagonal (stream-map f s)))
+
+;;; stream-diagonal : Stream (Stream a) -> Stream a
+;;; Extract the diagonal from a stream of streams.
+;;; Returns: 1st elem of 1st stream, 2nd elem of 2nd stream, etc.
+(define (stream-diagonal ss)
+  (if (stream-nil? ss)
+      stream-nil
+      (let ([inner (stream-head ss)])
+           (if (stream-nil? inner)
+               (stream-diagonal (stream-map stream-tail (stream-tail ss)))
+               (stream-cons (stream-head inner)
+                            (lambda ()
+                                    (stream-diagonal
+                                     (stream-map stream-tail (stream-tail ss)))))))))
+
+;;; stream-join : Stream (Stream a) -> Stream a
+;;; Flatten a stream of streams (monadic join).
+;;; Alias for stream-diagonal.
+(define stream-join stream-diagonal)
+
+;;; stream-monad : Monad Stream
+;;; The Monad dictionary for Stream.
+(define stream-monad
+  (list 'monad
+        stream-applicative  ; parent Applicative
+        stream-return       ; return
+        stream-bind))       ; >>=
+
+;;; monad-return : Monad m -> a -> m a
+(define (monad-return monad)
+  (caddr monad))
+
+;;; monad-bind : Monad m -> m a -> (a -> m b) -> m b
+(define (monad-bind monad)
+  (cadddr monad))
+
+;;; stream-then : Stream a -> Stream b -> Stream b
+;;; Sequence two streams, discarding the first result.
+(define (stream-then s1 s2)
+  (stream-bind s1 (lambda (_) s2)))
+
+;;; ============================================================
+;;; Codata and Coinductive Patterns
+;;; ============================================================
+;;;
+;;; Streams are the canonical example of CODATA - they are defined
+;;; by their observations (destructors) rather than construction.
+;;;
+;;; Data (inductive): defined by how we BUILD it
+;;;   - Lists: nil | cons head tail
+;;;   - Finite, structural recursion terminates
+;;;
+;;; Codata (coinductive): defined by how we OBSERVE it
+;;;   - Streams: head and tail observations
+;;;   - Potentially infinite, corecursion produces values
+;;;
+;;; The key insight: we don't ask "how was this stream built?"
+;;; but rather "what do we observe when we examine it?"
+
+;;; coalgebra-step : (s -> (a . s)) -> s -> Stream a
+;;; Build a stream from a coalgebra (unfold step function).
+;;; The coalgebra returns (value . next-state) pairs.
+(define (coalgebra-step step seed)
+  (let ([pair (step seed)])
+       (stream-cons (car pair)
+                    (lambda () (coalgebra-step step (cdr pair))))))
+
+;;; anamorphism : (s -> Maybe (a . s)) -> s -> Stream a
+;;; Build a stream using an anamorphism (unfold).
+;;; Returns empty stream when step returns nothing.
+;;; This is just stream-unfold with a different name emphasizing
+;;; the recursion scheme perspective.
+(define anamorphism stream-unfold)
+
+;;; coiterate : (s -> s) -> s -> Stream s
+;;; Coiterate: produce stream of states by repeated application.
+;;; This is the coinductive version of iterate.
+(define (coiterate f seed)
+  (stream-cons seed (lambda () (coiterate f (f seed)))))
+
+;;; bisimulation-equal? : Int -> Stream a -> Stream a -> Boolean
+;;; Check if two streams are equal up to depth n.
+;;; Full stream equality is undecidable for infinite streams,
+;;; so we use bounded bisimulation.
+(define (bisimulation-equal? n s1 s2)
+  (cond
+   [(<= n 0) #t]
+   [(and (stream-nil? s1) (stream-nil? s2)) #t]
+   [(or (stream-nil? s1) (stream-nil? s2)) #f]
+   [(not (equal? (stream-head s1) (stream-head s2))) #f]
+   [else (bisimulation-equal? (- n 1) (stream-tail s1) (stream-tail s2))]))
+
+;;; ============================================================
+;;; Additional Infinite Stream Generators
+;;; ============================================================
+
+;;; squares : Stream Int
+;;; Perfect squares: 0, 1, 4, 9, 16, 25, ...
+(define squares
+  (stream-map (lambda (n) (* n n)) naturals))
+
+;;; cubes : Stream Int
+;;; Perfect cubes: 0, 1, 8, 27, 64, 125, ...
+(define cubes
+  (stream-map (lambda (n) (* n n n)) naturals))
+
+;;; evens : Stream Int
+;;; Even numbers: 0, 2, 4, 6, 8, ...
+(define evens
+  (stream-filter even? naturals))
+
+;;; odds : Stream Int
+;;; Odd numbers: 1, 3, 5, 7, 9, ...
+(define odds
+  (stream-filter odd? naturals))
+
+;;; ============================================================
+;;; Fuel-Based Operations (For Termination Safety)
+;;; ============================================================
+;;;
+;;; Operations on potentially infinite streams need fuel limits
+;;; to guarantee termination. These complement stream-fold.
+
+;;; stream-for-each/fuel : (a -> ()) -> Int -> Stream a -> ()
+;;; Apply effectful operation to each element up to fuel limit.
+(define (stream-for-each/fuel f fuel s)
+  (when (and (> fuel 0) (not (stream-nil? s)))
+        (f (stream-head s))
+        (stream-for-each/fuel f (- fuel 1) (stream-tail s))))
+
+;;; stream-length/fuel : Int -> Stream a -> Int
+;;; Compute length of stream up to fuel limit.
+;;; Returns fuel if stream is longer than fuel.
+(define (stream-length/fuel fuel s)
+  (let loop ([n 0] [fuel fuel] [s s])
+       (cond
+        [(<= fuel 0) n]
+        [(stream-nil? s) n]
+        [else (loop (+ n 1) (- fuel 1) (stream-tail s))])))
+
+;;; stream-reverse/fuel : Int -> Stream a -> Stream a
+;;; Reverse the first n elements of a stream.
+(define (stream-reverse/fuel fuel s)
+  (list->stream (reverse (stream->list fuel s))))
+
+;;; stream-last/fuel : Int -> Stream a -> Maybe a
+;;; Get the last element within fuel elements.
+(define (stream-last/fuel fuel s)
+  (let loop ([last nothing] [fuel fuel] [s s])
+       (cond
+        [(<= fuel 0) last]
+        [(stream-nil? s) last]
+        [else (loop (just (stream-head s)) (- fuel 1) (stream-tail s))])))
+
+;;; ============================================================
+;;; Stream Comprehensions (via Monad)
+;;; ============================================================
+;;;
+;;; Using the monad interface, we can express list-comprehension
+;;; style patterns for streams.
+
+;;; stream-guard : Boolean -> Stream ()
+;;; Filter guard for stream comprehensions.
+;;; Returns singleton () if true, empty if false.
+(define (stream-guard condition)
+  (if condition
+      (stream-cons '() (lambda () stream-nil))
+      stream-nil))
+
+;;; stream-cartesian : Stream a -> Stream b -> Stream (a . b)
+;;; Cartesian product of two streams (via monad bind).
+;;; Note: This interleaves elements to ensure fair enumeration
+;;; of the infinite product.
+(define (stream-cartesian xs ys)
+  (stream-bind xs
+               (lambda (x)
+                       (stream-map (lambda (y) (cons x y)) ys))))

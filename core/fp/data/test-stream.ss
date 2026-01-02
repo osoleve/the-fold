@@ -337,6 +337,293 @@
                                  (+ (list-ref fibs 8) (list-ref fibs 7))))))
 
 ;;; ============================================================
+;;; Delay/Force Tests
+;;; ============================================================
+
+(test-group delay-force
+            (define-test delay-creates-delayed
+              (let ([d (delay (lambda () 42))])
+                   (assert-true (delayed? d))))
+            
+            (define-test force-evaluates-thunk
+              (let ([d (delay (lambda () (+ 20 22)))])
+                   (assert-equal 42 (force d))))
+            
+            (define-test force-memoizes-result
+              (let* ([count 0]
+                     [d (delay (lambda ()
+                                       (set! count (+ count 1))
+                                       (* count 10)))])
+                    ;; Force multiple times
+                    (force d)
+                    (force d)
+                    (force d)
+                    ;; Should only have evaluated once
+                    (assert-equal 1 count)
+                    (assert-equal 10 (force d))))
+            
+            (define-test delayed-predicate
+              (assert-true (delayed? (delay (lambda () 1))))
+              (assert-false (delayed? 42))
+              (assert-false (delayed? '(not delayed)))))
+
+;;; ============================================================
+;;; Functor Instance Tests
+;;; ============================================================
+
+(test-group stream-functor-tests
+            (define-test functor-identity-law
+              ;; fmap id = id
+              (let* ([s (list->stream '(1 2 3 4 5))]
+                     [mapped (stream-fmap identity s)])
+                    (assert-equal '(1 2 3 4 5) (stream->list 10 mapped))))
+            
+            (define-test functor-composition-law
+              ;; fmap (f . g) = fmap f . fmap g
+              (let* ([s (list->stream '(1 2 3))]
+                     [f (lambda (x) (* x 2))]
+                     [g (lambda (x) (+ x 1))]
+                     [composed (stream-fmap (lambda (x) (f (g x))) s)]
+                     [sequential (stream-fmap f (stream-fmap g s))])
+                    (assert-equal (stream->list 10 composed)
+                                  (stream->list 10 sequential))))
+            
+            (define-test functor-dictionary
+              ;; Verify the functor dictionary structure
+              (assert-equal 'functor (car stream-functor))
+              (let ([fmap-fn (functor-fmap stream-functor)])
+                   (assert-equal '(2 4 6)
+                                 (stream->list 3 (fmap-fn (lambda (x) (* x 2)) (stream-from 1)))))))
+
+;;; ============================================================
+;;; Applicative Instance Tests
+;;; ============================================================
+
+(test-group stream-applicative-tests
+            (define-test applicative-pure-creates-infinite
+              ;; pure x = repeat x
+              (let ([s (stream-pure 42)])
+                   (assert-equal '(42 42 42 42 42) (stream->list 5 s))))
+            
+            (define-test applicative-ap-zips
+              ;; fs <*> xs applies pointwise
+              (let* ([fs (list->stream (list add1 (lambda (x) (* x 2)) (lambda (x) (- x 3))))]
+                     [xs (list->stream '(10 20 30))]
+                     [result (stream-ap fs xs)])
+                    (assert-equal '(11 40 27) (stream->list 10 result))))
+            
+            (define-test applicative-identity-law
+              ;; pure id <*> v = v
+              (let* ([v (list->stream '(1 2 3 4))]
+                     [result (stream-ap (stream-pure identity) v)])
+                    (assert-equal '(1 2 3 4) (stream->list 10 result))))
+            
+            (define-test applicative-homomorphism-law
+              ;; pure f <*> pure x = pure (f x)
+              (let* ([f (lambda (x) (* x 2))]
+                     [x 21]
+                     [left (stream-ap (stream-pure f) (stream-pure x))]
+                     [right (stream-pure (f x))])
+                    ;; Both should produce infinite streams of 42
+                    (assert-equal (stream->list 5 left) (stream->list 5 right))))
+            
+            (define-test stream-lift2-test
+              (let* ([xs (list->stream '(1 2 3))]
+                     [ys (list->stream '(10 20 30))]
+                     [sums (stream-lift2 + xs ys)])
+                    (assert-equal '(11 22 33) (stream->list 5 sums))))
+            
+            (define-test stream-lift3-test
+              (let* ([xs (list->stream '(1 2 3))]
+                     [ys (list->stream '(10 20 30))]
+                     [zs (list->stream '(100 200 300))]
+                     [sums (stream-lift3 (lambda (x y z) (+ x y z)) xs ys zs)])
+                    (assert-equal '(111 222 333) (stream->list 5 sums)))))
+
+;;; ============================================================
+;;; Monad Instance Tests
+;;; ============================================================
+
+(test-group stream-monad-tests
+            (define-test monad-return-creates-stream
+              ;; return x = repeat x
+              (let ([s (stream-return 42)])
+                   (assert-equal '(42 42 42) (stream->list 3 s))))
+            
+            (define-test stream-diagonal-test
+              ;; Diagonal extracts i-th element from i-th stream
+              (let* ([streams (list->stream
+                               (list (list->stream '(a b c))
+                                     (list->stream '(d e f))
+                                     (list->stream '(g h i))))]
+                     [diag (stream-diagonal streams)])
+                    (assert-equal '(a e i) (stream->list 10 diag))))
+            
+            (define-test stream-diagonal-infinite-test
+              ;; Diagonal works with infinite streams
+              (let* ([make-row (lambda (n) (stream-iterate (lambda (x) (+ x 10)) n))]
+                     [matrix (stream-map make-row (stream-from 0))]
+                     [diag (stream-diagonal matrix)])
+                    ;; Row 0: 0, 10, 20, 30, ...
+                    ;; Row 1: 1, 11, 21, 31, ...
+                    ;; Row 2: 2, 12, 22, 32, ...
+                    ;; Diagonal: 0, 11, 22, 33, 44, ...
+                    (assert-equal '(0 11 22 33 44) (stream->list 5 diag))))
+            
+            (define-test stream-join-test
+              ;; join = diagonal for streams
+              (let* ([nested (list->stream
+                              (list (list->stream '(1 2 3))
+                                    (list->stream '(4 5 6))
+                                    (list->stream '(7 8 9))))]
+                     [joined (stream-join nested)])
+                    (assert-equal '(1 5 9) (stream->list 5 joined))))
+            
+            (define-test stream-then-test
+              ;; Sequence discards first result
+              (let* ([s1 (list->stream '(1 2 3))]
+                     [s2 (list->stream '(a b c))]
+                     [result (stream-then s1 s2)])
+                    ;; With diagonal semantics, s1 produces rows
+                    ;; and we get diagonal of those rows
+                    (assert-true (not (stream-nil? result))))))
+
+;;; ============================================================
+;;; Codata Pattern Tests
+;;; ============================================================
+
+(test-group codata-patterns
+            (define-test coalgebra-step-test
+              ;; Build stream from coalgebra
+              (let* ([step (lambda (n) (cons n (+ n 1)))]  ; produce n, next state is n+1
+                     [s (coalgebra-step step 0)])
+                    (assert-equal '(0 1 2 3 4) (stream->list 5 s))))
+            
+            (define-test anamorphism-test
+              ;; Same as unfold
+              (let* ([step (lambda (n)
+                                   (if (> n 5) nothing
+                                       (just (cons (* n 2) (+ n 1)))))]
+                     [s (anamorphism step 1)])
+                    (assert-equal '(2 4 6 8 10) (stream->list 10 s))))
+            
+            (define-test coiterate-test
+              ;; Coiterate produces stream of states
+              (let ([s (coiterate (lambda (x) (* x 2)) 1)])
+                   (assert-equal '(1 2 4 8 16) (stream->list 5 s))))
+            
+            (define-test bisimulation-equal-test
+              ;; Bisimulation equality check
+              (let ([s1 (stream-from 0)]
+                    [s2 (stream-from 0)]
+                    [s3 (stream-from 1)])
+                   (assert-true (bisimulation-equal? 100 s1 s2))
+                   (assert-false (bisimulation-equal? 1 s1 s3))))
+            
+            (define-test bisimulation-empty-test
+              (assert-true (bisimulation-equal? 10 stream-nil stream-nil))))
+
+;;; ============================================================
+;;; Additional Infinite Stream Tests
+;;; ============================================================
+
+(test-group additional-infinite-streams
+            (define-test squares-test
+              (assert-equal '(0 1 4 9 16 25) (stream->list 6 squares)))
+            
+            (define-test cubes-test
+              (assert-equal '(0 1 8 27 64 125) (stream->list 6 cubes)))
+            
+            (define-test evens-test
+              (assert-equal '(0 2 4 6 8 10) (stream->list 6 evens)))
+            
+            (define-test odds-test
+              (assert-equal '(1 3 5 7 9 11) (stream->list 6 odds))))
+
+;;; ============================================================
+;;; Fuel-Based Operation Tests
+;;; ============================================================
+
+(test-group fuel-operations
+            (define-test stream-length-fuel-finite
+              (let ([s (list->stream '(1 2 3 4 5))])
+                   (assert-equal 5 (stream-length/fuel 100 s))))
+            
+            (define-test stream-length-fuel-infinite
+              (let ([s (stream-from 0)])
+                   ;; Returns fuel limit when stream is longer
+                   (assert-equal 10 (stream-length/fuel 10 s))))
+            
+            (define-test stream-reverse-fuel-test
+              (let* ([s (stream-from 0)]
+                     [rev (stream-reverse/fuel 5 s)])
+                    (assert-equal '(4 3 2 1 0) (stream->list 10 rev))))
+            
+            (define-test stream-last-fuel-finite
+              (let* ([s (list->stream '(1 2 3 4 5))]
+                     [last (stream-last/fuel 100 s)])
+                    (assert-true (just? last))
+                    (assert-equal 5 (from-just last))))
+            
+            (define-test stream-last-fuel-limited
+              (let* ([s (stream-from 10)]
+                     [last (stream-last/fuel 5 s)])
+                    (assert-true (just? last))
+                    (assert-equal 14 (from-just last))))
+            
+            (define-test stream-last-fuel-empty
+              (assert-true (nothing? (stream-last/fuel 100 stream-nil)))))
+
+;;; ============================================================
+;;; Stream Comprehension Tests
+;;; ============================================================
+
+(test-group stream-comprehensions
+            (define-test stream-guard-true
+              (let ([s (stream-guard #t)])
+                   (assert-equal 1 (stream-length/fuel 10 s))
+                   (assert-equal '(()) (stream->list 1 s))))
+            
+            (define-test stream-guard-false
+              (assert-true (stream-nil? (stream-guard #f))))
+            
+            (define-test stream-cartesian-finite
+              (let* ([xs (list->stream '(1 2))]
+                     [ys (list->stream '(a b))]
+                     [prod (stream-cartesian xs ys)])
+                    ;; With diagonal bind, we get interleaved results
+                    ;; First element is (1 . a) from first row
+                    (assert-equal (cons 1 'a) (stream-head prod)))))
+
+;;; ============================================================
+;;; Type Class Dictionary Tests
+;;; ============================================================
+
+(test-group type-class-dictionaries
+            (define-test applicative-dictionary-structure
+              (assert-equal 'applicative (car stream-applicative))
+              ;; Contains parent functor
+              (assert-equal 'functor (car (cadr stream-applicative))))
+            
+            (define-test monad-dictionary-structure
+              (assert-equal 'monad (car stream-monad))
+              ;; Contains parent applicative
+              (assert-equal 'applicative (car (cadr stream-monad))))
+            
+            (define-test applicative-accessors
+              (let ([pure (applicative-pure stream-applicative)]
+                    [ap (applicative-ap stream-applicative)])
+                   (assert-equal '(5 5 5) (stream->list 3 (pure 5)))
+                   (assert-equal '(2 4 6)
+                                 (stream->list 3
+                                               (ap (stream-pure (lambda (x) (* x 2)))
+                                                   (list->stream '(1 2 3)))))))
+            
+            (define-test monad-accessors
+              (let ([ret (monad-return stream-monad)])
+                   (assert-equal '(7 7 7) (stream->list 3 (ret 7))))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 
