@@ -15,6 +15,19 @@
 (load "core/lang/prim.ss")
 
 ;;; ============================================================
+;;; Autodoc Integration Hooks
+;;; ============================================================
+
+;;; These are set by autodoc.ss when it loads, enabling unified help.
+;;; *autodoc-help-handler*   : Symbol → void (displays full doc)
+;;; *autodoc-lookup*         : Symbol → Entry | #f (checks if symbol exists)
+;;; *autodoc-search-handler* : String → (List Symbol) (searches by pattern)
+
+(define *autodoc-help-handler* #f)
+(define *autodoc-lookup* #f)
+(define *autodoc-search-handler* #f)
+
+;;; ============================================================
 ;;; Primitive Documentation Database
 ;;; ============================================================
 
@@ -541,9 +554,11 @@
 ")
        (display "
 ")
-       (display "  Use (help 'primitive-name) for detailed help on a specific primitive.
+       (display "  Use (help 'name) for detailed help on a specific symbol.
 ")
-       (display "  Use (apropos \"pattern\") to search for primitives by name.
+       (display "  Use (apropos \"pattern\") to search by name.
+")
+       (display "  Use (doc 'name) for full documentation (with examples).
 ")
        (display "
 ")
@@ -578,18 +593,37 @@
        (display "
 "))
       
-      ;; Show help for specific primitive
+      ;; Show help for specific primitive or user-defined function
       (let* ([prim-name (car args)]
-             [doc (find-primitive-doc prim-name)])
-            (if doc
-                (display-primitive-help doc)
-                (begin
-                 (display (format "Unknown primitive: ~a
-" prim-name))
-                 (let ([suggestion (suggest-primitive prim-name)])
-                      (when suggestion
-                            (display (format "Did you mean: ~a?
-" suggestion)))))))))
+             [prim-doc (find-primitive-doc prim-name)])
+            (cond
+             ;; Found in primitives
+             [prim-doc
+              (display-primitive-help prim-doc)]
+             ;; Try autodoc for user-defined functions
+             [(and *autodoc-lookup*
+                   (*autodoc-lookup* prim-name))
+              (*autodoc-help-handler* prim-name)]
+             ;; Neither primitive nor autodoc - show suggestions
+             [else
+              (display (format "\n  '~a' not found in primitives.\n" prim-name))
+              (let ([suggestion (suggest-primitive prim-name)])
+                   (when suggestion
+                         (display (format "  Did you mean primitive: ~a?\n" suggestion))))
+              ;; Check autodoc if available
+              (when *autodoc-search-handler*
+                    (let ([autodoc-matches (*autodoc-search-handler* (symbol->string prim-name))])
+                         (unless (null? autodoc-matches)
+                                 (display "\n  Found in autodoc:\n")
+                                 (for-each (lambda (s) (display (format "    ~a\n" s)))
+                                           (if (> (length autodoc-matches) 5)
+                                               (list-head autodoc-matches 5)
+                                               autodoc-matches))
+                                 (when (> (length autodoc-matches) 5)
+                                       (display (format "    ... and ~a more\n" (- (length autodoc-matches) 5))))
+                                 (display (format "\n  Use (doc '~a) for full documentation.\n"
+                                                  (car autodoc-matches))))))
+              (display "\n")]))))
 
 ;;; apropos : String → void
 ;;; Search for primitives whose names contain the given pattern.

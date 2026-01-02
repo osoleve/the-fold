@@ -817,6 +817,24 @@
              syms))
 
 ;;; ============================================================
+;;; Help System Integration
+;;; ============================================================
+
+;;; autodoc-lookup : Symbol → Entry | #f
+;;; Check if symbol exists in autodoc (for help integration).
+(define (autodoc-lookup name)
+  (unless *autodoc-initialized*
+          (build-autodoc-index!))
+  (hashtable-ref *autodoc-registry* name #f))
+
+;;; Register hooks with help.ss (if loaded)
+;;; These hooks allow (help 'name) to dispatch to autodoc for non-primitives.
+(when (top-level-bound? '*autodoc-help-handler*)
+      (set! *autodoc-help-handler* doc)
+      (set! *autodoc-lookup* autodoc-lookup)
+      (set! *autodoc-search-handler* doc-search))
+
+;;; ============================================================
 ;;; Initialization Message
 ;;; ============================================================
 
@@ -824,4 +842,6 @@
 (display "Commands: (doc 'name), (doc-search \"pattern\"), (doc-category 'cat)\n")
 (display "          (doc-examples 'name), (doc-stats), (doc-categories)\n")
 (display "          (doc-refresh!) to rebuild index\n")
+(when (top-level-bound? '*autodoc-help-handler*)
+      (display "          (help 'name) now works for all symbols\n"))
 (display "\n")
