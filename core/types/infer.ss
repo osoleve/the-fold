@@ -1,4 +1,6 @@
-;;; fabric/stitches/infer.ss — Bidirectional Type Inference
+;;; core/types/infer.ss — Bidirectional Type Inference
+;;; @module infer
+;;; @requires prelude types kinds
 ;;;
 ;;; Types flow in two directions:
 ;;;   - Inference (↑): Expression → Type (synthesize a type)

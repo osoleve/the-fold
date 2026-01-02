@@ -1,4 +1,6 @@
-;;; fabric/stitches/fold-parse.ss — Fold Syntax Parser
+;;; core/lang/fold-parse.ss — Fold Syntax Parser
+;;; @module fold-parse
+;;; @requires prelude span
 ;;;
 ;;; Parses Fold's S-expression syntax using spanned combinators.
 ;;; Returns AST nodes with source spans for error reporting.

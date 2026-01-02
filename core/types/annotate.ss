@@ -1,4 +1,6 @@
-;;; fabric/stitches/annotate.ss — Type-Annotated AST
+;;; core/types/annotate.ss — Type-Annotated AST
+;;; @module annotate
+;;; @requires prelude types kinds infer
 ;;;
 ;;; Every expression, annotated with its type.
 ;;;

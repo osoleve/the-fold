@@ -1,4 +1,6 @@
-;;; fabric/stitches/span.ss — Position-Aware Parser Combinators
+;;; core/lang/span.ss — Position-Aware Parser Combinators
+;;; @module span
+;;; @requires prelude parse
 ;;;
 ;;; Extends parse.ss with source location tracking for error reporting.
 ;;;

@@ -1,4 +1,6 @@
-;;; fabric/stitches/resolve.ss — Type Class Instance Resolution
+;;; core/types/resolve.ss — Type Class Instance Resolution
+;;; @module resolve
+;;; @requires prelude types kinds
 ;;;
 ;;; When we see (fmap f xs) and xs : List Nat, we need to find
 ;;; the Functor instance for List and extract its fmap method.

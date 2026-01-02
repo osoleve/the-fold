@@ -1,4 +1,6 @@
-;;; fabric/stitches/cas.ss — Content-Addressed Store
+;;; core/blocks/cas.ss — Content-Addressed Store
+;;; @module cas
+;;; @requires prelude block sha256
 ;;;
 ;;; Every Block has a cryptographic hash that IS its identity.
 ;;; Same content = same hash, forever.

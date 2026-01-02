@@ -1,4 +1,6 @@
-;;; fabric/stitches/error.ss — Unified Error System
+;;; core/base/error.ss — Unified Error System
+;;; @module error
+;;; @requires prelude span
 ;;;
 ;;; Standardized error types with:
 ;;;   - Phase identification (where it happened)

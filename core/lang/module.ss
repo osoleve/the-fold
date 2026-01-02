@@ -269,44 +269,12 @@
                                 (hashtable-set! *module-deps* name (cdr header))))))))
 
 ;;; ============================================================
-;;; Dependency Declarations (Hardcoded Fallbacks)
+;;; Bootstrap Dependencies
 ;;; ============================================================
 
-;;; Known dependencies (hardcoded for now, could parse from files)
-(begin
- ;; Layer 0: Foundation
- (hashtable-set! *module-deps* 'prelude '())
- (hashtable-set! *module-deps* 'sha256 '(prelude))
- 
- ;; Layer 1: Block System
- (hashtable-set! *module-deps* 'block '(prelude))
- (hashtable-set! *module-deps* 'cas '(prelude block sha256))
- 
- ;; Layer 2: Language Core
- (hashtable-set! *module-deps* 'parse '(prelude))
- (hashtable-set! *module-deps* 'span '(prelude parse))
- (hashtable-set! *module-deps* 'fold-parse '(prelude span))
- (hashtable-set! *module-deps* 'normalize '(prelude))
- (hashtable-set! *module-deps* 'expand '(prelude))
- (hashtable-set! *module-deps* 'prim '(prelude))
- 
- ;; Layer 3: Type System
- (hashtable-set! *module-deps* 'types '(prelude))
- (hashtable-set! *module-deps* 'kinds '(prelude types))
- 
- ;; Layer 4: Type Inference
- (hashtable-set! *module-deps* 'infer '(prelude types kinds))
- (hashtable-set! *module-deps* 'resolve '(prelude types kinds))
- (hashtable-set! *module-deps* 'annotate '(prelude types kinds infer))
- 
- ;; Layer 5: Evaluation
- (hashtable-set! *module-deps* 'eval '(prelude block prim))
- 
- ;; Layer 6: Compilation
- (hashtable-set! *module-deps* 'compile '(prelude parse span fold-parse normalize expand types infer eval))
- 
- ;; Layer 7: Error System
- (hashtable-set! *module-deps* 'error '(prelude span)))
+;;; prelude is the foundation - it has no dependencies
+;;; All other modules now declare deps via @requires headers
+(hashtable-set! *module-deps* 'prelude '())
 
 ;;; ============================================================
 ;;; Module Loading

@@ -1,4 +1,6 @@
-;;; fabric/stitches/expand.ss — De Bruijn expansion with symbol supply
+;;; core/blocks/expand.ss — De Bruijn expansion with symbol supply
+;;; @module expand
+;;; @requires prelude
 ;;;
 ;;; The inverse of normalize: given a de Bruijn form and a supply
 ;;; of symbols, produce an S-expression with named variables.
