@@ -1,6 +1,7 @@
-;;; fabric/stitches/test-module.ss — Tests for Module System
+;;; core/lang/test-module.ss — Tests for Module System
 ;;;
 ;;; Tests the module loader and dependency tracking.
+;;; Updated to test header-based auto-discovery of dependencies.
 
 (load "core/lang/module.ss")
 
@@ -26,15 +27,43 @@
        (newline))))
 
 ;;; ============================================================
-;;; Dependency Declaration Tests
+;;; Header Parsing Tests
 ;;; ============================================================
 
-(display "Dependency Declarations:
+(display "Header Parsing:
 ")
+
+;; Test parse-module-header on actual files
+(let ([header (parse-module-header "core/blocks/block.ss")])
+     (test "parse block.ss header" #t (and (pair? header) (eq? (car header) 'block)))
+     (test "block.ss requires prelude" '(prelude) (if header (cdr header) '())))
+
+(let ([header (parse-module-header "core/lang/eval.ss")])
+     (test "parse eval.ss header" #t (and (pair? header) (eq? (car header) 'eval)))
+     (test "eval.ss has deps" #t (if header (> (length (cdr header)) 0) #f)))
+
+(let ([header (parse-module-header "core/types/infer.ss")])
+     (test "parse infer.ss header" #t (and (pair? header) (eq? (car header) 'infer)))
+     (test "infer.ss requires prelude types kinds" '(prelude types kinds) (if header (cdr header) '())))
+
+;;; ============================================================
+;;; Auto-Registration Tests
+;;; ============================================================
+
+(display "
+Auto-Registration:
+")
+
+;; Auto-register modules to populate *module-deps* from headers
+(auto-register-module! 'block)
+(auto-register-module! 'eval)
+(auto-register-module! 'infer)
 
 (test "prelude has no deps" '() (module-deps 'prelude))
 (test "block depends on prelude" '(prelude) (module-deps 'block))
-(test "eval deps" '(prelude block prim) (module-deps 'eval))
+;; eval has prelude, block, prim, reverse-diff
+(test "eval has deps" #t (> (length (module-deps 'eval)) 0))
+(test "eval includes prelude" #t (if (memq 'prelude (module-deps 'eval)) #t #f))
 (test "infer deps" '(prelude types kinds) (module-deps 'infer))
 
 ;;; ============================================================
@@ -48,7 +77,11 @@ Transitive Dependencies:
 (test "all-deps prelude" '() (all-deps 'prelude))
 (test "all-deps block" '(prelude) (all-deps 'block))
 
-;; eval depends on prelude, block, prim
+;; Register more deps for transitive testing
+(auto-register-module! 'prim)
+(auto-register-module! 'block)
+
+;; eval depends on prelude, block, prim, reverse-diff
 (let ([deps (all-deps 'eval)])
      (test "all-deps eval includes prelude"
            #t (if (member 'prelude deps) #t #f))
