@@ -572,12 +572,36 @@
 
 ;;; manyTill : Parser a × Parser end → Parser (List a)
 ;;; Parse until end parser succeeds.
+;;; Detects and breaks infinite loops when body parser succeeds without consuming input.
 (define (many-till p end)
-  (parser-or (parser-then end (parser-pure '()))
-             (parser-bind p (lambda (x)
-                                    (parser-bind (many-till p end)
-                                                 (lambda (xs)
-                                                         (parser-pure (cons x xs))))))))
+  (make-parser
+   (lambda (state)
+           (let loop ([acc '()]
+                      [current-state state])
+                ;; First try end parser
+                (let ([end-result (run-parser end current-state)])
+                     (if (right? end-result)
+                         ;; End succeeded - return accumulated results
+                         (right (cons (reverse acc) (cdr (from-right end-result))))
+                         ;; End failed - try body parser
+                         (let ([start-offset (pos-offset (state-pos current-state))]
+                               [body-result (run-parser p current-state)])
+                              (if (right? body-result)
+                                  (let* ([val-state (from-right body-result)]
+                                         [val (car val-state)]
+                                         [new-state (cdr val-state)]
+                                         [end-offset (pos-offset (state-pos new-state))])
+                                        ;; Check if any input was consumed
+                                        (if (= start-offset end-offset)
+                                            ;; No input consumed - infinite loop detected
+                                            (left (make-parse-error
+                                                   (state-pos current-state)
+                                                   "many-till: body parser succeeded without consuming input (infinite loop)"
+                                                   '()))
+                                            ;; Input consumed - continue
+                                            (loop (cons val acc) new-state)))
+                                  ;; Body parser failed - propagate error
+                                  body-result))))))))
 
 ;;; ============================================================
 ;;; Lookahead

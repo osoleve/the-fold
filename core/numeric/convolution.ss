@@ -37,19 +37,21 @@
 ;;; (f * g)[n] = Σ(k=0 to M-1) f[n-k] * g[k]
 (define (convolve-direct-full signal kernel)
   (let* ([n (vector-length signal)]
-         [m (vector-length kernel)]
-         [output-len (+ n m -1)]
-         [result (make-vector output-len 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i output-len) result)
-            (let ([sum 0])
-                 (do ([j 0 (+ j 1)])
-                     ((= j m)
-                      (vector-set! result i sum))
-                     (let ([k (- i j)])
-                          (when (and (>= k 0) (< k n))
-                                (set! sum (+ sum (* (vector-ref signal k)
-                                                    (vector-ref kernel j)))))))))))
+         [m (vector-length kernel)])
+        (if (or (= n 0) (= m 0))
+            (vector)  ; Empty input => empty output
+            (let* ([output-len (+ n m -1)]
+                   [result (make-vector output-len 0)])
+                  (do ([i 0 (+ i 1)])
+                      ((= i output-len) result)
+                      (let ([sum 0])
+                           (do ([j 0 (+ j 1)])
+                               ((= j m)
+                                (vector-set! result i sum))
+                               (let ([k (- i j)])
+                                    (when (and (>= k 0) (< k n))
+                                          (set! sum (+ sum (* (vector-ref signal k)
+                                                              (vector-ref kernel j)))))))))))))
 
 ;;; convolve-direct-same : Vector[Number] × Vector[Number] → Vector[Number]
 ;;; Compute 'same' mode convolution (output length = signal length).
@@ -293,36 +295,38 @@
 ;;; Normalize signal to have zero mean and unit variance.
 ;;; Useful for preprocessing before correlation.
 (define (normalize-signal signal)
-  (let* ([n (vector-length signal)]
-         ;; Calculate mean
-         [sum 0]
-         [mean 0]
-         ;; Calculate variance
-         [var-sum 0]
-         [variance 0]
-         [stddev 0]
-         [result (make-vector n)])
-        ;; Compute mean
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (set! sum (+ sum (vector-ref signal i))))
-        (set! mean (/ sum n))
-        ;; Compute variance
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (let ([diff (- (vector-ref signal i) mean)])
-                 (set! var-sum (+ var-sum (* diff diff)))))
-        (set! variance (/ var-sum n))
-        (set! stddev (sqrt variance))
-        ;; Normalize
-        (if (< stddev 1e-10)
-            ;; Signal is constant, return zeros
-            result
-            (begin
-             (do ([i 0 (+ i 1)])
-                 ((= i n) result)
-                 (vector-set! result i
-                              (/ (- (vector-ref signal i) mean) stddev)))))))
+  (let ([n (vector-length signal)])
+       (if (= n 0)
+           (vector)  ; Empty input => empty output
+           (let* ([;; Calculate mean
+                   sum 0]
+                  [mean 0]
+                  ;; Calculate variance
+                  [var-sum 0]
+                  [variance 0]
+                  [stddev 0]
+                  [result (make-vector n)])
+                 ;; Compute mean
+                 (do ([i 0 (+ i 1)])
+                     ((= i n))
+                     (set! sum (+ sum (vector-ref signal i))))
+                 (set! mean (/ sum n))
+                 ;; Compute variance
+                 (do ([i 0 (+ i 1)])
+                     ((= i n))
+                     (let ([diff (- (vector-ref signal i) mean)])
+                          (set! var-sum (+ var-sum (* diff diff)))))
+                 (set! variance (/ var-sum n))
+                 (set! stddev (sqrt variance))
+                 ;; Normalize
+                 (if (< stddev 1e-10)
+                     ;; Signal is constant, return zeros
+                     result
+                     (begin
+                      (do ([i 0 (+ i 1)])
+                          ((= i n) result)
+                          (vector-set! result i
+                                       (/ (- (vector-ref signal i) mean) stddev)))))))))
 
 ;;; ============================================================
 ;;; 2D Convolution (for images, matrices)
