@@ -281,7 +281,8 @@
         (if tape
             ;; Guard against zero base with fractional/negative exponents
             (if (and (= bv 0) (< n 1))
-                +nan.0  ; Undefined derivative at 0 for n < 1
+                ;; Return traced NaN to maintain structure invariant
+                (traced-op 'pow +nan.0 (list base) (list +nan.0) tape)
                 (traced-op 'pow result (list base)
                            (list (* n (expt bv (- n 1))))
                            tape))
@@ -426,12 +427,11 @@
                      (let* ([result-id (traced-id result)]
                             [arg-ids (map traced-id traced-args)]
                             [grads (backward tape result-id 1)])
-                           ;; For each input, check if it's the same as output (identity)
-                           ;; or get gradient from backward pass
+                           ;; Get gradient for each input from backward pass
+                           ;; Note: identity function works correctly - backward initializes
+                           ;; output gradient to seed (1), which is the correct gradient for identity
                            (map (lambda (arg-id)
-                                        (if (= arg-id result-id)
-                                            1  ; Identity function: gradient is 1
-                                            (hashtable-ref grads arg-id 0)))
+                                        (hashtable-ref grads arg-id 0))
                                 arg-ids))
                      ;; Constant function - all gradients are 0
                      (map (lambda (_) 0) args))))))
