@@ -171,45 +171,55 @@
 ;;; set-remove : α Set → Set
 ;;; Remove element from set. Returns new set.
 (define (set-remove elem set)
-  (cond
-   [(null? set) '()]
-   [(equal? elem (car set)) (cdr set)]
-   [else (cons (car set) (set-remove elem (cdr set)))]))
+  (let loop ([remaining set]
+             [acc '()])
+       (cond
+        [(null? remaining) (reverse acc)]
+        [(equal? elem (car remaining))
+         (append (reverse acc) (cdr remaining))]
+        [else (loop (cdr remaining) (cons (car remaining) acc))])))
 
 ;;; set-union : Set Set → Set
 ;;; Union of two sets.
 (define (set-union set1 set2)
-  (if (null? set1)
-      set2
-      (set-union (cdr set1)
-                 (set-add (car set1) set2))))
+  (let loop ([remaining set1]
+             [result set2])
+       (if (null? remaining)
+           result
+           (loop (cdr remaining)
+                 (set-add (car remaining) result)))))
 
 ;;; set-intersection : Set Set → Set
 ;;; Intersection of two sets.
 (define (set-intersection set1 set2)
-  (cond
-   [(null? set1) '()]
-   [(set-member? (car set1) set2)
-    (cons (car set1) (set-intersection (cdr set1) set2))]
-   [else (set-intersection (cdr set1) set2)]))
+  (let loop ([remaining set1]
+             [acc '()])
+       (cond
+        [(null? remaining) (reverse acc)]
+        [(set-member? (car remaining) set2)
+         (loop (cdr remaining) (cons (car remaining) acc))]
+        [else (loop (cdr remaining) acc)])))
 
 ;;; set-difference : Set Set → Set
 ;;; Elements in set1 but not in set2.
 (define (set-difference set1 set2)
-  (cond
-   [(null? set1) '()]
-   [(set-member? (car set1) set2)
-    (set-difference (cdr set1) set2)]
-   [else (cons (car set1) (set-difference (cdr set1) set2))]))
+  (let loop ([remaining set1]
+             [acc '()])
+       (cond
+        [(null? remaining) (reverse acc)]
+        [(set-member? (car remaining) set2)
+         (loop (cdr remaining) acc)]
+        [else (loop (cdr remaining) (cons (car remaining) acc))])))
 
 ;;; set-subset? : Set Set → Boolean
 ;;; Check if set1 is a subset of set2.
 (define (set-subset? set1 set2)
-  (cond
-   [(null? set1) #t]
-   [(set-member? (car set1) set2)
-    (set-subset? (cdr set1) set2)]
-   [else #f]))
+  (let loop ([remaining set1])
+       (cond
+        [(null? remaining) #t]
+        [(set-member? (car remaining) set2)
+         (loop (cdr remaining))]
+        [else #f])))
 
 ;;; set-size : Set → Nat
 ;;; Get number of elements in set.
@@ -224,9 +234,11 @@
 ;;; list->set : (List α) → Set
 ;;; Convert list to set (removes duplicates).
 (define (list->set lst)
-  (if (null? lst)
-      '()
-      (set-add (car lst) (list->set (cdr lst)))))
+  (let loop ([remaining lst]
+             [acc set-empty])
+       (if (null? remaining)
+           acc
+           (loop (cdr remaining) (set-add (car remaining) acc)))))
 
 ;;; ============================================================
 ;;; Dictionary/Map — Key-Value Pairs
@@ -272,12 +284,13 @@
 ;;; dict-dissoc : κ Dict → Dict
 ;;; Remove key from dictionary. Returns new dictionary.
 (define (dict-dissoc key dict)
-  (cond
-   [(null? dict) '()]
-   [(equal? key (car (car dict)))
-    (cdr dict)]
-   [else (cons (car dict)
-               (dict-dissoc key (cdr dict)))]))
+  (let loop ([remaining dict]
+             [acc '()])
+       (cond
+        [(null? remaining) (reverse acc)]
+        [(equal? key (car (car remaining)))
+         (append (reverse acc) (cdr remaining))]
+        [else (loop (cdr remaining) (cons (car remaining) acc))])))
 
 ;;; dict-keys : Dict → (List κ)
 ;;; Get list of all keys.
@@ -297,12 +310,14 @@
 ;;; dict-merge : Dict Dict → Dict
 ;;; Merge two dictionaries. If keys overlap, dict2 wins.
 (define (dict-merge dict1 dict2)
-  (if (null? dict2)
-      dict1
-      (dict-merge (dict-assoc (car (car dict2))
-                              (cdr (car dict2))
-                              dict1)
-                  (cdr dict2))))
+  (let loop ([remaining dict2]
+             [result dict1])
+       (if (null? remaining)
+           result
+           (loop (cdr remaining)
+                 (dict-assoc (car (car remaining))
+                             (cdr (car remaining))
+                             result)))))
 
 ;;; dict-map-values : (ν → μ) Dict → Dict
 ;;; Apply function to all values, keeping keys the same.
@@ -314,11 +329,13 @@
 ;;; dict-filter : (κ ν → Boolean) Dict → Dict
 ;;; Filter dictionary by predicate on key-value pairs.
 (define (dict-filter pred dict)
-  (cond
-   [(null? dict) '()]
-   [(pred (car (car dict)) (cdr (car dict)))
-    (cons (car dict) (dict-filter pred (cdr dict)))]
-   [else (dict-filter pred (cdr dict))]))
+  (let loop ([remaining dict]
+             [acc '()])
+       (cond
+        [(null? remaining) (reverse acc)]
+        [(pred (car (car remaining)) (cdr (car remaining)))
+         (loop (cdr remaining) (cons (car remaining) acc))]
+        [else (loop (cdr remaining) acc)])))
 
 ;;; dict-size : Dict → Nat
 ;;; Get number of key-value pairs.
