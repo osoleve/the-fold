@@ -75,6 +75,17 @@
 ;;; Alias for fold-right (Haskell naming convention).
 (define foldr fold-right)
 
+;;; cons* : α × ... × β → (Improper List)
+;;; Build an improper list from arguments, with the last as the tail.
+;;; (cons* a) => a
+;;; (cons* a b) => (cons a b)
+;;; (cons* a b c) => (cons a (cons b c))
+(define (cons* . args)
+  (cond
+   [(null? args) (error 'cons* "requires at least one argument")]
+   [(null? (cdr args)) (car args)]
+   [else (cons (car args) (apply cons* (cdr args)))]))
+
 ;;; zip : (List α) × (List β) → (List (Pair α β))
 ;;; Zip two lists together. Stops at shorter list.
 (define (zip xs ys)

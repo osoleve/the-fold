@@ -1043,31 +1043,25 @@
         (set-box! counter (+ ts 1))
         ts))
 
-;;; evict-oldest! : BoundedMemoTable × Nat → ()
-;;; Evict the oldest entries to make room for new ones.
+;;; evict-random! : BoundedMemoTable × Nat → ()
+;;; Evict random entries to make room for new ones.
+;;; Uses O(k) random eviction instead of O(N log N) LRU sort.
 ;;; Removes approximately 10% of entries to amortize eviction cost.
-(define (evict-oldest! table count-to-evict)
+(define (evict-random! table count-to-evict)
   (let* ([cache (memo-table-cache table)]
          [keys (hashtable-keys cache)]
          [n (vector-length keys)]
-         [keys-and-times
-          ;; Collect all keys with their timestamps
-          (let loop ([i 0] [acc '()])
-               (if (>= i n)
-                   acc
-                   (let* ([k (vector-ref keys i)]
-                          [v (hashtable-ref cache k #f)]
-                          [ts (if v (memo-entry-timestamp v) 0)])
-                         (loop (+ i 1) (cons (cons k ts) acc)))))])
-        ;; Sort by timestamp (oldest first)
-        (let* ([sorted (list-sort (lambda (a b) (< (cdr a) (cdr b)))
-                                  keys-and-times)]
-               [to-remove (if (> (length sorted) count-to-evict)
-                              (list-head sorted count-to-evict)
-                              sorted)])
-              ;; Remove oldest entries
-              (for-each (lambda (kv) (hashtable-delete! cache (car kv)))
-                        to-remove))))
+         [to-evict (min count-to-evict n)])
+        ;; Remove random entries by selecting random indices
+        (let loop ([remaining to-evict] [available n])
+             (when (and (> remaining 0) (> available 0))
+                   ;; Pick a random index in [0, available)
+                   (let ([idx (random available)])
+                        ;; Delete the key at that index
+                        (hashtable-delete! cache (vector-ref keys idx))
+                        ;; Swap with last element to maintain valid range
+                        (vector-set! keys idx (vector-ref keys (- available 1)))
+                        (loop (- remaining 1) (- available 1)))))))
 
 ;;; memo-lookup : MemoTable × Symbol × Nat → (Maybe Result)
 ;;; Look up a cached result. Updates access time for bounded tables.
@@ -1097,7 +1091,7 @@
             ;; Check if we need to evict
             (when (>= current-size limit)
                   ;; Evict 10% of entries to amortize eviction cost
-                  (evict-oldest! table (max 1 (quotient limit 10))))
+                  (evict-random! table (max 1 (quotient limit 10))))
             ;; Store with timestamp
             (let ([ts (next-timestamp! table)])
                  (hashtable-set! cache key (make-memo-entry result ts))))

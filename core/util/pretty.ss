@@ -53,9 +53,6 @@
 (define (doc-concat d1 d2)
   (vector 'doc-concat d1 d2))
 
-(define (doc-group doc)
-  (vector 'doc-group doc))
-
 (define (doc-union d1 d2)
   (vector 'doc-union d1 d2))
 
@@ -86,8 +83,36 @@
 (define (doc-concat-left d) (vector-ref d 1))
 (define (doc-concat-right d) (vector-ref d 2))
 (define (doc-group-doc d) (vector-ref d 1))
+(define (doc-group-flat d) (vector-ref d 2))  ; pre-computed flattened version
 (define (doc-union-left d) (vector-ref d 1))
 (define (doc-union-right d) (vector-ref d 2))
+
+;;; ============================================================
+;;; Flattening Helper (for doc-group construction)
+;;; ============================================================
+;;;
+;;; flatten-inner is used during doc-group construction to pre-compute
+;;; the flattened version. It differs from flatten in that it retrieves
+;;; the pre-computed flattened version from doc-group nodes rather than
+;;; recursing, avoiding exponential re-traversal.
+
+(define (flatten-inner doc)
+  (cond
+   [(doc-empty? doc) doc]
+   [(doc-text? doc) doc]
+   [(doc-line? doc) (vector 'doc-text " ")]  ; line becomes space
+   [(doc-hardline? doc) doc]  ; hardline never flattens
+   [(doc-nest? doc) (vector 'doc-nest (doc-nest-n doc) (flatten-inner (doc-nest-doc doc)))]
+   [(doc-concat? doc) (vector 'doc-concat (flatten-inner (doc-concat-left doc))
+                              (flatten-inner (doc-concat-right doc)))]
+   [(doc-group? doc) (doc-group-flat doc)]  ; use pre-computed flattened version
+   [(doc-union? doc) (doc-union-left doc)]  ; take flattened version
+   [else doc]))
+
+;;; doc-group : Doc -> Doc
+;;; Create a group with pre-computed flattened version.
+(define (doc-group doc)
+  (vector 'doc-group doc (flatten-inner doc)))
 
 ;;; ============================================================
 ;;; Primitive Documents
@@ -276,6 +301,7 @@
 
 ;;; flatten : Doc -> Doc
 ;;; Replace line breaks with spaces.
+;;; Uses pre-computed flattened version for doc-group to avoid exponential traversal.
 (define (flatten doc)
   (cond
    [(doc-empty? doc) empty]
@@ -285,7 +311,7 @@
    [(doc-nest? doc) (doc-nest (doc-nest-n doc) (flatten (doc-nest-doc doc)))]
    [(doc-concat? doc) (doc-concat (flatten (doc-concat-left doc))
                                   (flatten (doc-concat-right doc)))]
-   [(doc-group? doc) (flatten (doc-group-doc doc))]
+   [(doc-group? doc) (doc-group-flat doc)]  ; use pre-computed flattened version
    [(doc-union? doc) (doc-union-left doc)]  ; take flattened version
    [else doc]))
 
@@ -341,7 +367,7 @@
              (be w k (cons (cons i (doc-concat-left doc))
                            (cons (cons i (doc-concat-right doc)) rest)))]
             [(doc-group? doc)
-             (let ([flattened (flatten (doc-group-doc doc))])
+             (let ([flattened (doc-group-flat doc)])  ; use pre-computed flattened version
                   (if (fits? (- w k) (list (cons i flattened)))
                       (be w k (cons (cons i flattened) rest))
                       (be w k (cons (cons i (doc-group-doc doc)) rest))))]
@@ -373,7 +399,7 @@
            (fits? w (cons (cons i (doc-concat-left doc))
                           (cons (cons i (doc-concat-right doc)) rest)))]
           [(doc-group? doc)
-           (fits? w (cons (cons i (flatten (doc-group-doc doc))) rest))]
+           (fits? w (cons (cons i (doc-group-flat doc)) rest))]  ; use pre-computed
           [(doc-union? doc)
            (fits? w (cons (cons i (doc-union-left doc)) rest))]
           [else #t]))]))

@@ -65,10 +65,15 @@
 ;;; Dense Adjacency Matrix
 ;;; ============================================================
 
+;;; Maximum node count for dense adjacency matrices.
+;;; Beyond this threshold, use edges->sparse-adjacency instead.
+(define *dense-adjacency-max-nodes* 10000)
+
 ;;; edges->adjacency-matrix : (List Edge) × [Nat] × [Boolean] → Matrix
 ;;; Convert edge list to dense adjacency matrix.
 ;;; Optional node-count overrides inferred count.
 ;;; If undirected is #t, adds both (i,j) and (j,i) for each edge.
+;;; Raises error if n > *dense-adjacency-max-nodes* (use sparse matrix instead).
 (define (edges->adjacency-matrix edges . opts)
   (let* ([n (if (and (not (null? opts)) (car opts))
                 (car opts)
@@ -76,6 +81,10 @@
          [undirected (if (and (not (null? opts)) (not (null? (cdr opts))))
                          (cadr opts)
                          #f)]
+         [_ (when (> n *dense-adjacency-max-nodes*)
+                  (error 'edges->adjacency-matrix
+                         (format "node count ~a exceeds dense matrix limit ~a; use edges->sparse-adjacency instead"
+                                 n *dense-adjacency-max-nodes*)))]
          [data (make-vector (* n n) 0)])
         ;; Fill matrix
         (for-each

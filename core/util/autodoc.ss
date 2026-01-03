@@ -219,12 +219,13 @@
 
 ;;; parse-see-also : String → (List Symbol)
 (define (parse-see-also line)
-  (let* ([after-colon (substring line
-                                 (+ 1 (string-find-char line #\:))
-                                 (string-length line))]
-         [parts (string-split after-colon #\,)])
-        (map (lambda (p) (string->symbol (string-trim p)))
-             (filter (lambda (p) (not (string=? (string-trim p) ""))) parts))))
+  (let ([colon-pos (string-find-char line #\:)])
+       (if (not colon-pos)
+           '()
+           (let* ([after-colon (substring line (+ 1 colon-pos) (string-length line))]
+                  [parts (string-split after-colon #\,)])
+                 (map (lambda (p) (string->symbol (string-trim p)))
+                      (filter (lambda (p) (not (string=? (string-trim p) ""))) parts))))))
 
 ;;; ============================================================
 ;;; Signature Extraction
@@ -370,10 +371,10 @@
                (let ([line (list-ref lines i)])
                     (if (and (string-contains? line "Usage:")
                              (string-starts-with? (string-trim line) ";;;"))
-                        (let ([rest (substring line
-                                               (+ (string-find-pos line "Usage:") 6)
-                                               (string-length line))])
-                             (string-trim rest))
+                        (let ([usage-pos (string-find-pos line "Usage:")])
+                             (if (not usage-pos)
+                                 (if (null? usage-lines) #f (string-join usage-lines "\n"))
+                                 (string-trim (substring line (+ usage-pos 6) (string-length line)))))
                         (if (and (not (null? usage-lines))
                                  (string-starts-with? (string-trim line) ";;;"))
                             (loop (- i 1) (cons (strip-comment-prefix line) usage-lines))

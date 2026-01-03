@@ -388,7 +388,13 @@
                 (let* ([init-type (cadr init-result)]
                        [s1 (caddr init-result)]
                        [combined-subst (compose-subst s1 subst)]
-                       [gen-type (generalize env (apply-subst combined-subst init-type))]
+                       ;; Apply substitution to env before generalizing to avoid
+                       ;; over-generalization of constrained type variables
+                       [subst-env (map (lambda (p)
+                                               (cons (car p)
+                                                     (apply-subst combined-subst (cdr p))))
+                                       env)]
+                       [gen-type (generalize subst-env (apply-subst combined-subst init-type))]
                        [new-env (tenv-extend env var gen-type)])
                       (infer-let (cdr bindings) body new-env combined-subst))
                 init-result))))

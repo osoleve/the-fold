@@ -94,8 +94,30 @@
              (state-line s)
              (state-column s)))
 
+;;; state-remaining : State → Nat
+;;; Number of characters remaining in input from current offset.
+(define (state-remaining s)
+  (- (string-length (state-input s)) (state-offset s)))
+
+;;; state-remaining-input : State → String
+;;; Return the unconsumed portion of the input string.
+;;; Note: This creates a new string; use sparingly (e.g., for debugging).
+(define (state-remaining-input s)
+  (substring (state-input s) (state-offset s) (string-length (state-input s))))
+
+;;; state-peek : State → Char
+;;; Return character at current offset (assumes not at end).
+(define (state-peek s)
+  (string-ref (state-input s) (state-offset s)))
+
+;;; state-empty? : State → Boolean
+;;; Check if no more input remains.
+(define (state-empty? s)
+  (>= (state-offset s) (string-length (state-input s))))
+
 ;;; advance-state : State × Char → State
-;;; Advance state by one character, updating line/column.
+;;; Advance state by one character, updating offset and line/column.
+;;; Note: The original input string is retained; only offset changes.
 (define (advance-state s char)
   (let ([input (state-input s)]
         [offset (state-offset s)]
@@ -103,12 +125,12 @@
         [col (state-column s)]
         [file (state-file s)])
        (if (char=? char #\newline)
-           (make-state (substring input 1 (string-length input))
+           (make-state input
                        (+ offset 1)
                        (+ line 1)
                        1
                        file)
-           (make-state (substring input 1 (string-length input))
+           (make-state input
                        (+ offset 1)
                        line
                        (+ col 1)
@@ -168,38 +190,35 @@
 ;;; Consume one character.
 (define s-item
   (lambda (state)
-          (let ([input (state-input state)])
-               (if (= (string-length input) 0)
-                   (spanned-failure "any character" state)
-                   (let* ([char (string-ref input 0)]
-                          [start-span (state-span state)]
-                          [next-state (advance-state state char)]
-                          [end-span (state-span next-state)])
-                         (spanned-success char next-state (merge-spans start-span end-span)))))))
+          (if (state-empty? state)
+              (spanned-failure "any character" state)
+              (let* ([char (state-peek state)]
+                     [start-span (state-span state)]
+                     [next-state (advance-state state char)]
+                     [end-span (state-span next-state)])
+                    (spanned-success char next-state (merge-spans start-span end-span))))))
 
 ;;; s-eof : SpannedParser Unit
 ;;; Succeed only at end of input.
 (define s-eof
   (lambda (state)
-          (let ([input (state-input state)])
-               (if (= (string-length input) 0)
-                   (spanned-success '() state (state-span state))
-                   (spanned-failure "end of input" state)))))
+          (if (state-empty? state)
+              (spanned-success '() state (state-span state))
+              (spanned-failure "end of input" state))))
 
 ;;; s-satisfy : (Char → Bool) × String → SpannedParser Char
 ;;; Consume a character if predicate holds.
 (define (s-satisfy pred label)
   (lambda (state)
-          (let ([input (state-input state)])
-               (if (= (string-length input) 0)
-                   (spanned-failure label state)
-                   (let ([char (string-ref input 0)])
-                        (if (pred char)
-                            (let* ([start-span (state-span state)]
-                                   [next-state (advance-state state char)]
-                                   [end-span (state-span next-state)])
-                                  (spanned-success char next-state (merge-spans start-span end-span)))
-                            (spanned-failure label state)))))))
+          (if (state-empty? state)
+              (spanned-failure label state)
+              (let ([char (state-peek state)])
+                   (if (pred char)
+                       (let* ([start-span (state-span state)]
+                              [next-state (advance-state state char)]
+                              [end-span (state-span next-state)])
+                             (spanned-success char next-state (merge-spans start-span end-span)))
+                       (spanned-failure label state))))))
 
 ;;; ============================================================
 ;;; Character Parsers (Spanned)
@@ -227,17 +246,25 @@
 (define (s-string target)
   (lambda (state)
           (let ([tlen (string-length target)]
-                [input (state-input state)])
-               (if (< (string-length input) tlen)
+                [input (state-input state)]
+                [offset (state-offset state)])
+               (if (< (state-remaining state) tlen)
                    (spanned-failure target state)
-                   (let ([prefix (substring input 0 tlen)])
-                        (if (string=? prefix target)
-                            (let loop ([s state] [chars (string->list target)])
-                                 (if (null? chars)
+                   ;; Compare character-by-character without creating substring
+                   (let check-loop ([i 0])
+                        (if (= i tlen)
+                            ;; Match succeeded, advance through all chars for line/column tracking
+                            (let advance-loop ([s state] [j 0])
+                                 (if (= j tlen)
                                      (spanned-success target s
                                                       (merge-spans (state-span state) (state-span s)))
-                                     (loop (advance-state s (car chars)) (cdr chars))))
-                            (spanned-failure target state)))))))
+                                     (advance-loop (advance-state s (string-ref input (+ offset j)))
+                                                   (+ j 1))))
+                            ;; Still checking
+                            (if (char=? (string-ref input (+ offset i))
+                                        (string-ref target i))
+                                (check-loop (+ i 1))
+                                (spanned-failure target state))))))))
 
 ;;; ============================================================
 ;;; Spanned Combinators — Core

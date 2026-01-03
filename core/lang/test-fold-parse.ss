@@ -99,7 +99,7 @@
 (let ([s (advance-state (initial-state "ab") #\a)])
      (test "advance-state input"
            "b"
-           (state-input s))
+           (state-remaining-input s))
      (test "advance-state column"
            2
            (state-column s)))
@@ -125,7 +125,7 @@
            (spanned-value result))
      (test "s-item remaining"
            "bc"
-           (state-input (spanned-state result))))
+           (state-remaining-input (spanned-state result))))
 
 (let ([result (run-spanned s-item "")])
      (test "s-item empty fails"
