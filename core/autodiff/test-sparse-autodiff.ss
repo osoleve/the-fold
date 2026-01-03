@@ -450,6 +450,70 @@
                     (assert-true (< ratio 0.5)))))
 
 ;;; ============================================================
+;;; Scalability Tests (fold-hls0)
+;;; ============================================================
+
+(test-group scalability-tests
+            
+            (define-test detect-sparsity-large-diagonal
+              ;; Large diagonal function f(x) = (x_1^2, x_2^2, ..., x_N^2)
+              ;; Sparsity pattern should have exactly N entries (diagonal)
+              ;; Tests that detect-sparsity doesn't allocate dense M×N matrix
+              (let* ([n 50]
+                     [f (lambda args (map traced-sq args))]
+                     [args (make-list n 1.0)]
+                     [pattern (detect-sparsity f args 1e-8)])
+                    ;; Should have exactly N non-zero entries (diagonal)
+                    (assert-equal n (pattern-nnz pattern))
+                    (assert-equal n (pattern-rows pattern))
+                    (assert-equal n (pattern-cols pattern))))
+            
+            (define-test detect-sparsity-sum
+              ;; Function f(x1,...,xn) = x1 + x2 + ... + xn
+              ;; Gradient should be all 1s, so all n entries should be non-zero
+              (let* ([n 30]
+                     ;; Sum all inputs
+                     [f (lambda args
+                                (fold-left traced-add (car args) (cdr args)))]
+                     [args (make-list n 1.0)]
+                     [pattern (detect-sparsity f args 1e-8)])
+                    ;; Scalar output, so m=1
+                    (assert-equal 1 (pattern-rows pattern))
+                    (assert-equal n (pattern-cols pattern))
+                    ;; All n entries should be non-zero (gradient is all 1s)
+                    (assert-equal n (pattern-nnz pattern))))
+            
+            (define-test sparse-hessian-exact-quadratic-sum
+              ;; f(x,y,z) = x*y + y*z
+              ;; Hessian has off-diagonal entries at (0,1), (1,0), (1,2), (2,1)
+              (let* ([f (lambda (x y z)
+                                (hd-add (hd-mul x y) (hd-mul y z)))]
+                     [args '(1.0 2.0 3.0)]
+                     [H (sparse-hessian-exact f args)])
+                    ;; Should have 4 non-zero entries
+                    (assert-equal 4 (sparse-coo-nnz H))
+                    ;; x*y contributes 1 to H[0,1] and H[1,0]
+                    (assert-= (sparse-coo-ref H 0 1) 1.0 0.0001)
+                    (assert-= (sparse-coo-ref H 1 0) 1.0 0.0001)
+                    ;; y*z contributes 1 to H[1,2] and H[2,1]
+                    (assert-= (sparse-coo-ref H 1 2) 1.0 0.0001)
+                    (assert-= (sparse-coo-ref H 2 1) 1.0 0.0001)))
+            
+            (define-test sparse-hessian-exact-sparse-structure
+              ;; Verify sparse Hessian only stores non-zeros
+              ;; f(x,y,z) = x^2 + y^2 - diagonal Hessian
+              (let* ([f (lambda (x y z)
+                                (hd-add (hd-mul x x) (hd-mul y y)))]
+                     [args '(1.0 2.0 3.0)]
+                     [H (sparse-hessian-exact f args)])
+                    ;; Only 2 non-zero entries: H[0,0]=2, H[1,1]=2
+                    ;; z has no second derivative
+                    (assert-equal 2 (sparse-coo-nnz H))
+                    (assert-= (sparse-coo-ref H 0 0) 2.0 0.0001)
+                    (assert-= (sparse-coo-ref H 1 1) 2.0 0.0001)
+                    (assert-= (sparse-coo-ref H 2 2) 0.0 0.0001))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 

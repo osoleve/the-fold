@@ -175,8 +175,9 @@
 (define (pattern-col-indices p) (list-ref p 5))
 
 ;;; detect-sparsity : ((Traced ...) -> (List Traced)) x (List Number) x Num -> SparsityPattern
-;;; Detect sparsity pattern of Jacobian by probing with numeric differentiation.
+;;; Detect sparsity pattern of Jacobian using reverse-mode autodiff.
 ;;; Returns pattern of (i,j) pairs where |J[i,j]| > tolerance.
+;;; O(m) backward passes, O(nnz) space - never allocates dense M×N matrix.
 (define (detect-sparsity f args tolerance)
   (let* ([n (length args)]
          [sample-result (apply f (map (lambda (x) (make-traced-var x (make-reverse-tape)))
@@ -184,20 +185,34 @@
          [m (if (or (traced? sample-result) (not (list? sample-result)))
                 1
                 (length sample-result))]
-         ;; Compute full Jacobian to detect pattern
-         [J (jacobian f args)]
-         ;; Collect non-zero entries
+         ;; Collect (row, col) pairs directly from reverse-mode gradients
+         ;; One backward pass per output row
          [entries (let loop-i ([i 0] [acc '()])
                        (if (= i m)
                            acc
-                           (loop-i (+ i 1)
-                                   (let loop-j ([j 0] [acc2 acc])
-                                        (if (= j n)
-                                            acc2
-                                            (loop-j (+ j 1)
-                                                    (if (> (abs (matrix-ref J i j)) tolerance)
-                                                        (cons (cons i j) acc2)
-                                                        acc2)))))))]
+                           (begin
+                            (reset-traced-ids!)
+                            (let* ([tape (make-reverse-tape)]
+                                   [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
+                                   [outputs (apply f traced-args)]
+                                   [output-i (if (or (traced? outputs) (not (list? outputs)))
+                                                 outputs
+                                                 (list-ref outputs i))]
+                                   [grads (if (traced? output-i)
+                                              (backward tape (traced-id output-i) 1)
+                                              (make-hashtable equal-hash equal?))]
+                                   [arg-ids (map traced-id traced-args)]
+                                   ;; Collect non-zero entries for this row
+                                   [row-entries (let loop-j ([j 0] [ids arg-ids] [row-acc '()])
+                                                     (if (null? ids)
+                                                         row-acc
+                                                         (let ([grad (hashtable-ref grads (car ids) 0)])
+                                                              (loop-j (+ j 1)
+                                                                      (cdr ids)
+                                                                      (if (> (abs grad) tolerance)
+                                                                          (cons (cons i j) row-acc)
+                                                                          row-acc)))))])
+                                  (loop-i (+ i 1) (append row-entries acc))))))]
          [nnz (length entries)]
          [row-idx (make-vector nnz 0)]
          [col-idx (make-vector nnz 0)])
@@ -412,23 +427,38 @@
 ;;; sparse-hessian-exact : ((List Hyperdual) -> Hyperdual) x (List Number) -> SparseCOO
 ;;; Compute exact sparse Hessian using hyperdual numbers.
 ;;; More accurate than finite difference approach.
+;;; O(n^2) hyperdual evaluations but O(nnz) space - never allocates dense N×N matrix.
 (define (sparse-hessian-exact f args)
   (let* ([n (length args)]
-         ;; Compute full Hessian using hyperdual numbers
-         [H (hessian-forward f args)]
-         ;; Convert to sparse COO, keeping only non-zeros
+         ;; Compute Hessian entries directly using hyperdual numbers
+         ;; Only collect non-zero triplets
          [triplets (let loop-i ([i 0] [acc '()])
                         (if (= i n)
                             acc
                             (loop-i (+ i 1)
-                                    (let loop-j ([j 0] [acc2 acc])
+                                    ;; Only compute upper triangle (Hessian is symmetric)
+                                    (let loop-j ([j i] [acc2 acc])
                                          (if (= j n)
                                              acc2
-                                             (let ([hij (matrix-ref H i j)])
-                                                  (loop-j (+ j 1)
-                                                          (if (= hij 0)
-                                                              acc2
-                                                              (cons (list i j hij) acc2)))))))))])
+                                             (let* ([hd-args (let loop ([xs args] [k 0])
+                                                                  (if (null? xs)
+                                                                      '()
+                                                                      (cons (cond
+                                                                             [(and (= k i) (= k j)) (hd-var12 (car xs))]  ; diagonal
+                                                                             [(= k i) (hd-var1 (car xs))]
+                                                                             [(= k j) (hd-var2 (car xs))]
+                                                                             [else (hd-lift (car xs))])
+                                                                            (loop (cdr xs) (+ k 1)))))]
+                                                    [result-hd (apply f hd-args)]
+                                                    [h-ij (hd-deriv12 result-hd)])
+                                                   (loop-j (+ j 1)
+                                                           (if (= h-ij 0)
+                                                               acc2
+                                                               ;; Add both (i,j) and (j,i) for symmetry if off-diagonal
+                                                               (if (= i j)
+                                                                   (cons (list i j h-ij) acc2)
+                                                                   (cons (list j i h-ij)
+                                                                         (cons (list i j h-ij) acc2)))))))))))])
         (sparse-coo-from-triplets n n triplets)))
 
 ;;; ============================================================
