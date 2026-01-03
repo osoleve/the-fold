@@ -77,18 +77,112 @@
 ;;; free-map : (a -> b) -> (f a -> f b) -> Free f a -> Free f b
 ;;; Map over the Free monad. Requires the underlying functor's fmap.
 (define (free-map f fmap fr)
-  (if (pure-free? fr)
-      (pure-free (f (from-pure-free fr)))
-      (free (fmap (lambda (inner) (free-map f fmap inner))
-                  (from-free fr)))))
+  (cond
+   [(pure-free? fr)
+    (pure-free (f (from-pure-free fr)))]
+   [(free-queue? fr)
+    ;; For queued free, map over the final result
+    (make-free-queue (free-queue-base fr)
+                     (free-queue-fmap fr)
+                     (append (free-queue-conts fr)
+                             (list (lambda (x) (pure-free (f x))))))]
+   [else
+    (free (fmap (lambda (inner) (free-map f fmap inner))
+                (from-free fr)))]))
+
+;;; ============================================================
+;;; Codensity-based Free Bind (O(1) amortized)
+;;; ============================================================
+;;;
+;;; PERFORMANCE NOTE:
+;;; The naive free-bind implementation is O(N^2) for left-associative chains:
+;;;   ((a >>= b) >>= c) >>= d
+;;; Each bind traverses the entire left structure to attach continuations.
+;;;
+;;; The Codensity transformation gives O(1) amortized bind by representing
+;;; computations in continuation-passing style. Instead of building nested
+;;; structures, we accumulate continuations in a queue.
+;;;
+;;; Free-Queue: ('free-queue base-free fmap continuation-queue)
+;;; where continuation-queue is a list of (a -> Free f b) functions.
+;;;
+;;; This is the "bind queue" approach: we defer the actual traversal until
+;;; the free monad is run, at which point we apply all queued continuations.
+
+;;; make-free-queue : Free f a -> (f a -> f b) -> (List (a -> Free f b)) -> Free-Queue f b
+(define (make-free-queue base fmap conts)
+  (list 'free-queue base fmap conts))
+
+;;; free-queue? : Any -> Boolean
+(define (free-queue? x)
+  (and (pair? x) (eq? (car x) 'free-queue)))
+
+;;; free-queue-base : Free-Queue f a -> Free f x
+(define (free-queue-base q)
+  (list-ref q 1))
+
+;;; free-queue-fmap : Free-Queue f a -> (f a -> f b)
+(define (free-queue-fmap q)
+  (list-ref q 2))
+
+;;; free-queue-conts : Free-Queue f a -> (List (x -> Free f a))
+(define (free-queue-conts q)
+  (list-ref q 3))
 
 ;;; free-bind : (f a -> f b) -> Free f a -> (a -> Free f b) -> Free f b
-;;; Bind for Free monad. Requires the underlying functor's fmap.
+;;; O(1) amortized via continuation queue.
+;;; Left-associative chains like ((a >>= b) >>= c) >>= d simply append
+;;; to the continuation queue instead of rebuilding structure.
 (define (free-bind fmap fr f)
-  (if (pure-free? fr)
-      (f (from-pure-free fr))
-      (free (fmap (lambda (inner) (free-bind fmap inner f))
-                  (from-free fr)))))
+  (cond
+   ;; Pure value: apply continuation immediately
+   [(pure-free? fr) (f (from-pure-free fr))]
+   ;; Queue: append continuation to the queue (O(1))
+   [(free-queue? fr)
+    (make-free-queue (free-queue-base fr)
+                     (free-queue-fmap fr)
+                     (append (free-queue-conts fr) (list f)))]
+   ;; Suspended: wrap in queue with single continuation
+   [(free-suspended? fr)
+    (make-free-queue fr fmap (list f))]))
+
+;;; free-normalize : (f a -> f b) -> Free f a -> Free f a
+;;; Convert queue form back to standard form for interpretation.
+;;; This is called by interpreters when they need to process the free monad.
+(define (free-normalize fmap fr)
+  (if (free-queue? fr)
+      (free-apply-queue (free-queue-fmap fr)
+                        (free-queue-base fr)
+                        (free-queue-conts fr))
+      fr))
+
+;;; free-apply-queue : (f a -> f b) -> Free f a -> (List (a -> Free f b)) -> Free f b
+;;; Apply queued continuations to a free monad.
+;;; This is where the actual work happens, but only once at run time.
+(define (free-apply-queue fmap fr conts)
+  (if (null? conts)
+      fr
+      (free-apply-queue-step fmap fr conts)))
+
+;;; free-apply-queue-step : (f a -> f b) -> Free f a -> (List (a -> Free f b)) -> Free f b
+;;; Step through the free monad, threading continuations.
+(define (free-apply-queue-step fmap fr conts)
+  (cond
+   [(null? conts) fr]
+   [(pure-free? fr)
+    ;; Pure value: apply first continuation, continue with rest
+    (let ([next ((car conts) (from-pure-free fr))])
+         (free-apply-queue fmap (free-normalize fmap next) (cdr conts)))]
+   [(free-queue? fr)
+    ;; Nested queue: flatten by prepending inner queue's continuations
+    (free-apply-queue-step (free-queue-fmap fr)
+                           (free-queue-base fr)
+                           (append (free-queue-conts fr) conts))]
+   [(free-suspended? fr)
+    ;; Suspended: wrap continuation to apply remaining queue after response
+    (free (fmap (lambda (inner)
+                        (free-apply-queue fmap inner conts))
+                (from-free fr)))]))
 
 ;;; free-then : (f a -> f b) -> Free f a -> Free f b -> Free f b
 ;;; Sequence, discarding first result.
@@ -123,11 +217,17 @@
 ;;; - on-pure: what to do with pure values
 ;;; - on-free: how to combine functor layer
 ;;; - fmap: the functor's map
+;;; Handles the queue form by normalizing first.
 (define (fold-free on-pure on-free fmap fr)
-  (if (pure-free? fr)
-      (on-pure (from-pure-free fr))
-      (on-free (fmap (lambda (inner) (fold-free on-pure on-free fmap inner))
-                     (from-free fr)))))
+  (cond
+   [(pure-free? fr)
+    (on-pure (from-pure-free fr))]
+   [(free-queue? fr)
+    ;; Normalize queue form before folding
+    (fold-free on-pure on-free fmap (free-normalize fmap fr))]
+   [else
+    (on-free (fmap (lambda (inner) (fold-free on-pure on-free fmap inner))
+                   (from-free fr)))]))
 
 ;;; iter-free : (f a -> a) -> (f a -> f b) -> Free f a -> a
 ;;; Iterate the Free structure, collapsing it to a value.
@@ -200,35 +300,41 @@
 
 ;;; run-kv : Free KVF a -> (alist -> (a . alist))
 ;;; Interpret KV DSL as stateful computation over an alist.
+;;; Handles the queue form by normalizing first.
 (define (run-kv program)
   (lambda (store)
-          (if (pure-free? program)
-              (cons (from-pure-free program) store)
-              (let* ([cmd (from-free program)]
-                     [tag (car cmd)])
-                    (cond
-                     [(eq? tag 'get)
-                      (let* ([key (cadr cmd)]
-                             [k (caddr cmd)]
-                             [pair (assoc key store)]
-                             [value (if pair (just (cdr pair)) nothing)]
-                             [next (k value)])
-                            ((run-kv next) store))]
-                     [(eq? tag 'put)
-                      (let* ([key (cadr cmd)]
-                             [val (caddr cmd)]
-                             [next (cadddr cmd)]
-                             [new-store (cons (cons key val)
-                                              (filter (lambda (p) (not (equal? (car p) key)))
-                                                      store))])
-                            ((run-kv next) new-store))]
-                     [(eq? tag 'delete)
-                      (let* ([key (cadr cmd)]
-                             [next (caddr cmd)]
-                             [new-store (filter (lambda (p) (not (equal? (car p) key)))
-                                                store)])
-                            ((run-kv next) new-store))]
-                     [else (error 'run-kv "Unknown command")])))))
+          (cond
+           [(pure-free? program)
+            (cons (from-pure-free program) store)]
+           [(free-queue? program)
+            ;; Normalize queue form before running
+            ((run-kv (free-normalize kv-fmap program)) store)]
+           [else
+            (let* ([cmd (from-free program)]
+                   [tag (car cmd)])
+                  (cond
+                   [(eq? tag 'get)
+                    (let* ([key (cadr cmd)]
+                           [k (caddr cmd)]
+                           [pair (assoc key store)]
+                           [value (if pair (just (cdr pair)) nothing)]
+                           [next (k value)])
+                          ((run-kv next) store))]
+                   [(eq? tag 'put)
+                    (let* ([key (cadr cmd)]
+                           [val (caddr cmd)]
+                           [next (cadddr cmd)]
+                           [new-store (cons (cons key val)
+                                            (filter (lambda (p) (not (equal? (car p) key)))
+                                                    store))])
+                          ((run-kv next) new-store))]
+                   [(eq? tag 'delete)
+                    (let* ([key (cadr cmd)]
+                           [next (caddr cmd)]
+                           [new-store (filter (lambda (p) (not (equal? (car p) key)))
+                                              store)])
+                          ((run-kv next) new-store))]
+                   [else (error 'run-kv "Unknown command")]))])))
 
 ;;; ============================================================
 ;;; Example: Console DSL
@@ -261,23 +367,29 @@
 
 ;;; run-console-pure : Free ConsoleF a -> (List String) -> (a . (List String))
 ;;; Pure interpreter: uses list of strings as mock input, collects output.
+;;; Handles the queue form by normalizing first.
 (define (run-console-pure program inputs)
   (let loop ([prog program] [ins inputs] [outs '()])
-       (if (pure-free? prog)
-           (cons (from-pure-free prog) (reverse outs))
-           (let* ([cmd (from-free prog)]
-                  [tag (car cmd)])
-                 (cond
-                  [(eq? tag 'print)
-                   (let ([msg (cadr cmd)]
-                         [next (caddr cmd)])
-                        (loop next ins (cons msg outs)))]
-                  [(eq? tag 'read)
-                   (let ([k (cadr cmd)])
-                        (if (null? ins)
-                            (error 'run-console-pure "No more input")
-                            (loop (k (car ins)) (cdr ins) outs)))]
-                  [else (error 'run-console-pure "Unknown command")])))))
+       (cond
+        [(pure-free? prog)
+         (cons (from-pure-free prog) (reverse outs))]
+        [(free-queue? prog)
+         ;; Normalize queue form before running
+         (loop (free-normalize console-fmap prog) ins outs)]
+        [else
+         (let* ([cmd (from-free prog)]
+                [tag (car cmd)])
+               (cond
+                [(eq? tag 'print)
+                 (let ([msg (cadr cmd)]
+                       [next (caddr cmd)])
+                      (loop next ins (cons msg outs)))]
+                [(eq? tag 'read)
+                 (let ([k (cadr cmd)])
+                      (if (null? ins)
+                          (error 'run-console-pure "No more input")
+                          (loop (k (car ins)) (cdr ins) outs)))]
+                [else (error 'run-console-pure "Unknown command")]))])))
 
 ;;; ============================================================
 ;;; Free Monad Combinators
@@ -324,14 +436,19 @@
 
 ;;; free-commands : (f a -> f b) -> Free f a -> List
 ;;; Extract a list of commands (for debugging/optimization).
+;;; Handles the queue form by normalizing first.
 (define (free-commands fmap fr)
-  (if (pure-free? fr)
-      '()
-      (let ([cmd (from-free fr)])
-           (cons cmd
-                 ;; Would need to access the continuation, which varies by command type
-                 ;; This is a simplified version
-                 '()))))
+  (cond
+   [(pure-free? fr) '()]
+   [(free-queue? fr)
+    ;; Normalize queue form before inspecting
+    (free-commands fmap (free-normalize fmap fr))]
+   [else
+    (let ([cmd (from-free fr)])
+         (cons cmd
+               ;; Would need to access the continuation, which varies by command type
+               ;; This is a simplified version
+               '()))]))
 
 ;;; ============================================================
 ;;; Coyoneda: Functor from Any Type

@@ -202,6 +202,86 @@
   (test-true "well-formed Pi type" (well-formed-dep-type? '(Π ((n : Nat)) (Vec n Int))))
   (test-true "well-formed nested Pi" (well-formed-dep-type? '(Π ((A : Type)) (Π ((x : A)) A))))
   
+  ;; Capture-avoiding substitution tests
+  (display "
+--- Capture-Avoiding Substitution Tests ---
+")
+  ;; Basic substitution
+  (test "subst in simple type"
+        'Int
+        (dep-subst-type 'x 'x 'Int))
+  (test "subst preserves other vars"
+        'y
+        (dep-subst-type 'y 'x 'Int))
+  (test "subst in arrow type"
+        '(-> Int Int)
+        (dep-subst-type '(-> x x) 'x 'Int))
+  
+  ;; Shadowing works correctly
+  ;; When x shadows, the domain is still substituted (x isn't bound in the domain)
+  ;; but x in the body is shadowed
+  (test "subst respects Pi shadowing - domain still subst"
+        '(Π ((x : Nat)) x)  ; Nat not x, so no substitution; body x is shadowed
+        (dep-subst-type '(Π ((x : Nat)) x) 'x 'Int))
+  (test "subst in Pi domain before shadow"
+        '(Π ((y : Int) (x : y)) x)
+        (dep-subst-type '(Π ((y : x) (x : y)) x) 'x 'Int))
+  
+  ;; Capture-avoiding: substituting a term with free var y into a binder for y
+  ;; (Π ((y : Nat)) (f y)) [x := y] should become (Π ((y0 : Nat)) (f y0)) with y substituted
+  (test "capture-avoiding Pi substitution"
+        (let ([result (dep-subst-type '(Π ((y : Nat)) (f y x)) 'x 'y)])
+             ;; Result should be (Π ((y0 : Nat)) (f y0 y)) - y0 is fresh
+             ;; Check that bound var is renamed and body has correct substitution
+             (and (pi-type? result)
+                  (not (eq? (pi-var result) 'y))  ; y must be renamed
+                  (let* ([renamed-var (pi-var result)]
+                         [body (pi-codomain result)])
+                        ;; Body should be (f <renamed-var> y)
+                        (and (equal? (car body) 'f)
+                             (equal? (cadr body) renamed-var)
+                             (equal? (caddr body) 'y)))))
+        #t)
+  
+  ;; Capture-avoiding in Sigma
+  (test "capture-avoiding Sigma substitution"
+        (let ([result (dep-subst-type '(Σ ((y : Nat)) (Pair y x)) 'x 'y)])
+             ;; y must be renamed to avoid capture
+             (and (sigma-type? result)
+                  (not (eq? (sigma-var result) 'y))))
+        #t)
+  
+  ;; Multi-parameter Pi - all bindings should be processed
+  (test "multi-param Pi substitution processes all bindings"
+        (let ([result (dep-subst-type '(Π ((a : x) (b : x) (c : x)) (f a b c x)) 'x 'Int)])
+             ;; All x's should be replaced with Int
+             (and (pi-type? result)
+                  (let ([bindings (pi-bindings result)])
+                       (and (equal? (cdr (car bindings)) 'Int)
+                            (equal? (cdr (cadr bindings)) 'Int)
+                            (equal? (cdr (caddr bindings)) 'Int)))))
+        #t)
+  
+  ;; Dependent binding where later bindings use earlier bound vars
+  (test "multi-param Pi with dependency between bindings"
+        (dep-subst-type '(Π ((A : Type) (x : A)) (Vec A x)) 'T 'Nat)
+        '(Π ((A : Type) (x : A)) (Vec A x)))  ; T not in type, no change
+  
+  ;; Free variables helper
+  (test "dep-free-vars basic"
+        '(x)
+        (dep-free-vars 'x))
+  (test "dep-free-vars arrow"
+        (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
+              (dep-free-vars '(-> x y)))
+        '(x y))
+  (test "dep-free-vars Pi binds correctly"
+        (dep-free-vars '(Π ((x : Nat)) x))
+        '())  ; x is bound
+  (test "dep-free-vars Pi free in domain"
+        (dep-free-vars '(Π ((x : y)) x))
+        '(y))  ; y is free in domain
+  
   ;; Summary
   (display "
 === Test Summary ===

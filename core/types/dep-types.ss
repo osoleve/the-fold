@@ -269,77 +269,227 @@
     (apply append (map (lambda (sub) (dep-free-tvars-with bound sub)) (cdr t)))]))
 
 ;;; ============================================================
-;;; Substitution with Dependent Types
+;;; Substitution with Dependent Types (Capture-Avoiding)
 ;;; ============================================================
 
+;;; fresh-var : Symbol × (List Symbol) → Symbol
+;;; Generate a fresh variable name that is not in the avoid list.
+(define (fresh-var base avoid)
+  (let loop ([n 0])
+       (let ([candidate (string->symbol
+                         (string-append (symbol->string base)
+                                        (number->string n)))])
+            (if (memq candidate avoid)
+                (loop (+ n 1))
+                candidate))))
+
+;;; dep-free-vars : Type → (List Symbol)
+;;; Collect all free variables in a type (not just type vars, but term vars too).
+(define (dep-free-vars t)
+  (dep-free-vars-with '() t))
+
+(define (dep-free-vars-with bound t)
+  (cond
+   [(symbol? t)
+    (if (or (memq t bound) (base-type? t))
+        '()
+        (list t))]
+   [(not (pair? t)) '()]
+   [(or (hole? t) (universe-type? t)) '()]
+   
+   ;; Pi type: (Π ((x : A) ...) B) - bindings are bound in later bindings and body
+   [(eq? (car t) 'Π)
+    (let* ([bindings (cadr t)]
+           [body (caddr t)])
+          (dep-free-vars-in-bindings-and-body bound bindings body))]
+   
+   ;; Sigma type: (Σ ((x : A)) B) - x is bound in B
+   [(eq? (car t) 'Σ)
+    (let* ([binding (car (cadr t))]
+           [body (caddr t)]
+           [domain-vars (dep-free-vars-with bound (binding-type binding))]
+           [new-bound (cons (binding-var binding) bound)]
+           [body-vars (dep-free-vars-with new-bound body)])
+          (append domain-vars body-vars))]
+   
+   ;; Forall: (∀ (vars ...) body)
+   [(eq? (car t) '∀)
+    (let ([new-bound (append (cadr t) bound)])
+         (dep-free-vars-with new-bound (caddr t)))]
+   
+   ;; Mu: (μ var body)
+   [(eq? (car t) 'μ)
+    (let ([new-bound (cons (cadr t) bound)])
+         (dep-free-vars-with new-bound (caddr t)))]
+   
+   ;; Lambda: (fn (x) body) or (lambda (x) body)
+   [(or (eq? (car t) 'fn) (eq? (car t) 'lambda))
+    (let ([params (cadr t)]
+          [body (caddr t)])
+         (let ([new-bound (if (list? params)
+                              (append params bound)
+                              (cons params bound))])
+              (dep-free-vars-with new-bound body)))]
+   
+   [else
+    (apply append (map (lambda (sub) (dep-free-vars-with bound sub)) (cdr t)))]))
+
+;;; dep-free-vars-in-bindings-and-body : (List Symbol) × (List Binding) × Type → (List Symbol)
+;;; Helper for Pi types: each binding's var is bound in subsequent bindings and body.
+(define (dep-free-vars-in-bindings-and-body bound bindings body)
+  (if (null? bindings)
+      (dep-free-vars-with bound body)
+      (let* ([b (car bindings)]
+             [bvar (binding-var b)]
+             [btype (binding-type b)]
+             [domain-vars (dep-free-vars-with bound btype)]
+             [new-bound (cons bvar bound)]
+             [rest-vars (dep-free-vars-in-bindings-and-body new-bound (cdr bindings) body)])
+            (append domain-vars rest-vars))))
+
 ;;; dep-subst-type : Type × Symbol × Type → Type
-;;; Substitute var with replacement in type, handling dependent types.
+;;; Substitute var with replacement in type, with capture-avoiding substitution.
+;;; When substituting into a binder, if the bound variable would capture free
+;;; variables in the replacement, we alpha-rename the binder first.
 (define (dep-subst-type type var replacement)
   (cond
    [(eq? type var) replacement]
    [(or (base-type? type) (hole? type) (universe-type? type)) type]
-   [(type-var? type) type]
+   [(symbol? type) type]  ; Other symbols (not the var we're substituting)
    [(not (pair? type)) type]
    
-   ;; Pi type: substitute in domain and codomain (unless shadowed)
+   ;; Pi type: substitute in bindings and body with capture-avoidance
    [(eq? (car type) 'Π)
     (let* ([bindings (cadr type)]
            [body (caddr type)]
-           [bound-vars (map binding-var bindings)])
-          (if (memq var bound-vars)
-              ;; var is shadowed - substitute only in domains before shadow
-              (let ([new-bindings (dep-subst-bindings-until bindings var replacement)])
-                   `(Π ,new-bindings ,body))
-              ;; var not shadowed - substitute everywhere
-              (let ([new-bindings (map (lambda (b)
-                                               (list (binding-var b) ':
-                                                     (dep-subst-type (binding-type b) var replacement)))
-                                       bindings)]
-                    [new-body (dep-subst-type body var replacement)])
-                   `(Π ,new-bindings ,new-body))))]
+           [replacement-fv (dep-free-vars replacement)])
+          (dep-subst-pi-bindings bindings body var replacement replacement-fv))]
    
-   ;; Sigma type: substitute in both components (unless shadowed)
+   ;; Sigma type: substitute with capture-avoidance
    [(eq? (car type) 'Σ)
     (let* ([binding (car (cadr type))]
            [body (caddr type)]
-           [bound-var (binding-var binding)])
-          (if (eq? var bound-var)
-              ;; var is shadowed - substitute only in domain
-              `(Σ ((,bound-var : ,(dep-subst-type (binding-type binding) var replacement)))
-                ,body)
-              ;; var not shadowed - substitute in both
-              `(Σ ((,bound-var : ,(dep-subst-type (binding-type binding) var replacement)))
-                ,(dep-subst-type body var replacement))))]
+           [bound-var (binding-var binding)]
+           [domain (binding-type binding)]
+           [replacement-fv (dep-free-vars replacement)])
+          (cond
+           ;; var is shadowed - substitute only in domain
+           [(eq? var bound-var)
+            `(Σ ((,bound-var : ,(dep-subst-type domain var replacement)))
+              ,body)]
+           ;; bound-var would capture - alpha-rename first
+           [(memq bound-var replacement-fv)
+            (let* ([all-vars (append replacement-fv (dep-free-vars body))]
+                   [fresh (fresh-var bound-var all-vars)]
+                   [renamed-body (dep-subst-type body bound-var fresh)]
+                   [new-domain (dep-subst-type domain var replacement)]
+                   [new-body (dep-subst-type renamed-body var replacement)])
+                  `(Σ ((,fresh : ,new-domain)) ,new-body))]
+           ;; Safe to substitute
+           [else
+            `(Σ ((,bound-var : ,(dep-subst-type domain var replacement)))
+              ,(dep-subst-type body var replacement))]))]
    
-   ;; Forall and mu - handle binding
+   ;; Forall - handle binding with capture-avoidance
    [(eq? (car type) '∀)
-    (if (memq var (cadr type))
-        type
-        `(∀ ,(cadr type) ,(dep-subst-type (caddr type) var replacement)))]
+    (let ([bound-vars (cadr type)]
+          [body (caddr type)])
+         (if (memq var bound-vars)
+             type  ; var is shadowed
+             (let ([replacement-fv (dep-free-vars replacement)])
+                  (if (ormap (lambda (bv) (memq bv replacement-fv)) bound-vars)
+                      ;; Would capture - need to rename
+                      (let* ([all-vars (append replacement-fv (dep-free-vars body))]
+                             [renamed-vars-body
+                              (fold-left
+                               (lambda (acc bv)
+                                       (let ([vars (car acc)]
+                                             [b (cdr acc)])
+                                            (if (memq bv replacement-fv)
+                                                (let ([fresh (fresh-var bv all-vars)])
+                                                     (cons (cons fresh vars)
+                                                           (dep-subst-type b bv fresh)))
+                                                (cons (cons bv vars) b))))
+                               (cons '() body)
+                               bound-vars)]
+                             [new-vars (reverse (car renamed-vars-body))]
+                             [renamed-body (cdr renamed-vars-body)])
+                            `(∀ ,new-vars ,(dep-subst-type renamed-body var replacement)))
+                      ;; Safe to substitute
+                      `(∀ ,bound-vars ,(dep-subst-type body var replacement))))))]
+   
+   ;; Mu - handle binding with capture-avoidance
    [(eq? (car type) 'μ)
-    (if (eq? var (cadr type))
-        type
-        `(μ ,(cadr type) ,(dep-subst-type (caddr type) var replacement)))]
+    (let ([bound-var (cadr type)]
+          [body (caddr type)])
+         (cond
+          [(eq? var bound-var) type]  ; var is shadowed
+          [(memq bound-var (dep-free-vars replacement))
+           ;; Would capture - rename
+           (let* ([all-vars (append (dep-free-vars replacement) (dep-free-vars body))]
+                  [fresh (fresh-var bound-var all-vars)]
+                  [renamed-body (dep-subst-type body bound-var fresh)])
+                 `(μ ,fresh ,(dep-subst-type renamed-body var replacement)))]
+          [else
+           `(μ ,bound-var ,(dep-subst-type body var replacement))]))]
    
    ;; Default recursive case
    [else
     (cons (car type)
           (map (lambda (sub) (dep-subst-type sub var replacement)) (cdr type)))]))
 
-;;; dep-subst-bindings-until : (List Binding) × Symbol × Type → (List Binding)
-(define (dep-subst-bindings-until bindings var replacement)
+;;; dep-subst-pi-bindings : (List Binding) × Type × Symbol × Type × (List Symbol) → Type
+;;; Substitute through Pi type bindings with proper capture-avoidance.
+;;; Each binding's var becomes bound for subsequent bindings and the body.
+(define (dep-subst-pi-bindings bindings body var replacement replacement-fv)
   (if (null? bindings)
-      '()
+      ;; No more bindings - just substitute in body
+      `(Π () ,(dep-subst-type body var replacement))
       (let* ([b (car bindings)]
              [bvar (binding-var b)]
-             [btype (binding-type b)])
-            (if (eq? bvar var)
-                ;; This binding shadows var - substitute in its type but stop
-                (cons (list bvar ': (dep-subst-type btype var replacement))
-                      (cdr bindings))
-                ;; Not shadowed yet - substitute and continue
-                (cons (list bvar ': (dep-subst-type btype var replacement))
-                      (dep-subst-bindings-until (cdr bindings) var replacement))))))
+             [btype (binding-type b)]
+             [rest (cdr bindings)])
+            (cond
+             ;; var is shadowed by this binding
+             [(eq? var bvar)
+              ;; Substitute only in this binding's type, leave rest alone
+              `(Π ,(cons (list bvar ': (dep-subst-type btype var replacement))
+                         rest)
+                ,body)]
+             ;; bvar would capture free vars in replacement - alpha-rename
+             [(memq bvar replacement-fv)
+              (let* ([all-vars (append replacement-fv
+                                       (dep-free-vars body)
+                                       (apply append (map (lambda (b) (dep-free-vars (binding-type b))) rest)))]
+                     [fresh (fresh-var bvar all-vars)]
+                     ;; Rename bvar to fresh in rest of bindings and body
+                     [renamed-rest (map (lambda (rb)
+                                                (list (binding-var rb) ':
+                                                      (dep-subst-type (binding-type rb) bvar fresh)))
+                                        rest)]
+                     [renamed-body (dep-subst-type body bvar fresh)]
+                     ;; Now substitute in this binding's type
+                     [new-btype (dep-subst-type btype var replacement)]
+                     ;; Recursively process rest with fresh var in replacement-fv
+                     [new-replacement-fv (cons fresh (remove bvar replacement-fv))]
+                     [result (dep-subst-pi-bindings renamed-rest renamed-body var replacement new-replacement-fv)])
+                    ;; Prepend this binding to result
+                    `(Π ,(cons (list fresh ': new-btype) (cadr result))
+                      ,(caddr result)))]
+             ;; Safe to substitute
+             [else
+              (let* ([new-btype (dep-subst-type btype var replacement)]
+                     [result (dep-subst-pi-bindings rest body var replacement replacement-fv)])
+                    `(Π ,(cons (list bvar ': new-btype) (cadr result))
+                      ,(caddr result)))]))))
+
+;;; remove : α × (List α) → (List α)
+;;; Remove first occurrence of element from list.
+(define (remove x lst)
+  (cond
+   [(null? lst) '()]
+   [(equal? x (car lst)) (cdr lst)]
+   [else (cons (car lst) (remove x (cdr lst)))]))
 
 ;;; ============================================================
 ;;; Type Display with Dependent Types

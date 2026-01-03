@@ -177,42 +177,130 @@
                                 *eigen-tolerance*)])
                       (qr-algorithm-shifted-loop a n 0 max-iter tol))))))
 
-;;; qr-algorithm-shifted-loop : Matrix × Nat × Nat × Nat × Num → Vec | Error
-;;; Work on deflating the matrix as eigenvalues converge
+;;; qr-algorithm-shifted-loop : Matrix × Nat × Nat × Nat × Num → Vec | (complex-eigenvalues Vec)
+;;; Work on deflating the matrix as eigenvalues converge.
+;;; Returns either a vector of real eigenvalues, or a tagged result indicating
+;;; complex eigenvalues were detected: (complex-eigenvalues eigenvalue-vector)
+;;; where eigenvalue-vector contains the real parts for complex pairs.
 (define (qr-algorithm-shifted-loop a active-size iter max-iter tol)
   (cond
    [(>= iter max-iter)
-    ;; Return best estimate
-    (matrix-diagonal a)]
+    ;; Return best estimate - check for unresolved 2x2 blocks
+    (extract-eigenvalues-with-complex-check a (matrix-rows a) tol)]
    [(<= active-size 0)
     ;; All eigenvalues found
-    (matrix-diagonal a)]
+    (extract-eigenvalues-with-complex-check a (matrix-rows a) tol)]
    [(= active-size 1)
     ;; Single element remaining - it's an eigenvalue
-    (matrix-diagonal a)]
+    (extract-eigenvalues-with-complex-check a (matrix-rows a) tol)]
+   [(= active-size 2)
+    ;; 2x2 block: check if it represents complex conjugate pair
+    (let ([complex-pair (detect-complex-2x2-block a (- active-size 2) tol)])
+         (if complex-pair
+             ;; Complex eigenvalues detected - mark result and return
+             (extract-eigenvalues-with-complex-check a (matrix-rows a) tol)
+             ;; Real eigenvalues in 2x2 block - continue normal deflation
+             (let* ([n active-size]
+                    [full-n (matrix-rows a)]
+                    [i (- n 1)]
+                    [sub (if (>= i 1) (matrix-ref a i (- i 1)) 0)])
+                   (if (< (abs sub) tol)
+                       (qr-algorithm-shifted-loop a (- active-size 1) iter max-iter tol)
+                       (qr-iterate-once a active-size iter max-iter tol full-n)))))]
    [else
     (let* ([n active-size]
            [full-n (matrix-rows a)]  ;; Use full matrix size for identity
            [i (- n 1)]
-           ;; Check if we can deflate (subdiagonal element small)
-           [sub (if (>= i 1) (matrix-ref a i (- i 1)) 0)])
-          (if (< (abs sub) tol)
-              ;; Deflate: eigenvalue found, continue with smaller matrix
-              (qr-algorithm-shifted-loop a (- active-size 1) iter max-iter tol)
-              ;; Compute Wilkinson shift from bottom 2x2 block
-              (let* ([shift (wilkinson-shift a n)]
-                     ;; Shift: A - σI (identity must match full matrix size)
-                     [a-shifted (matrix-sub a (matrix-scale shift (identity full-n)))]
-                     [qr-result (matrix-qr a-shifted)])
-                    (if (and (pair? qr-result) (eq? (car qr-result) 'error))
-                        ;; QR failed - try without shift
-                        (qr-algorithm-loop a iter max-iter tol)
-                        (let* ([q (car qr-result)]
-                               [r (cadr qr-result)]
-                               ;; A' = RQ + σI
-                               [rq (matrix-mul r q)]
-                               [a-new (matrix-add rq (matrix-scale shift (identity full-n)))])
-                              (qr-algorithm-shifted-loop a-new active-size (+ iter 1) max-iter tol))))))]))
+           ;; Check for 2x2 block representing complex eigenvalues first
+           [has-complex-block (and (>= i 1)
+                                   (detect-complex-2x2-block a (- i 1) tol))])
+          (if has-complex-block
+              ;; Complex conjugate pair detected in bottom 2x2
+              ;; Deflate by 2 (skip the 2x2 block as a unit)
+              (qr-algorithm-shifted-loop a (- active-size 2) iter max-iter tol)
+              ;; Check standard deflation (subdiagonal element small)
+              (let ([sub (if (>= i 1) (matrix-ref a i (- i 1)) 0)])
+                   (if (< (abs sub) tol)
+                       ;; Deflate: eigenvalue found, continue with smaller matrix
+                       (qr-algorithm-shifted-loop a (- active-size 1) iter max-iter tol)
+                       ;; Continue QR iteration
+                       (qr-iterate-once a active-size iter max-iter tol full-n)))))]))
+
+;;; qr-iterate-once : Matrix × Nat × Nat × Nat × Num × Nat → Vec | (complex-eigenvalues Vec)
+;;; Perform one QR iteration with Wilkinson shift
+(define (qr-iterate-once a active-size iter max-iter tol full-n)
+  (let* ([shift (wilkinson-shift a active-size)]
+         ;; Shift: A - σI (identity must match full matrix size)
+         [a-shifted (matrix-sub a (matrix-scale shift (identity full-n)))]
+         [qr-result (matrix-qr a-shifted)])
+        (if (and (pair? qr-result) (eq? (car qr-result) 'error))
+            ;; QR failed - try without shift
+            (qr-algorithm-loop a iter max-iter tol)
+            (let* ([q (car qr-result)]
+                   [r (cadr qr-result)]
+                   ;; A' = RQ + σI
+                   [rq (matrix-mul r q)]
+                   [a-new (matrix-add rq (matrix-scale shift (identity full-n)))])
+                  (qr-algorithm-shifted-loop a-new active-size (+ iter 1) max-iter tol)))))
+
+;;; detect-complex-2x2-block : Matrix × Nat × Num → Boolean | (real imag)
+;;; Check if the 2x2 block at position (start, start) represents complex eigenvalues.
+;;; Returns #f if eigenvalues are real, or (real-part . imaginary-part) if complex.
+;;; A 2x2 block has complex eigenvalues when its discriminant is negative.
+(define (detect-complex-2x2-block a start tol)
+  (let* ([i start]
+         [j (+ start 1)]
+         [n (matrix-rows a)])
+        (if (>= j n)
+            #f  ;; Not enough room for 2x2 block
+            (let* ([a-ii (matrix-ref a i i)]
+                   [a-ij (matrix-ref a i j)]
+                   [a-ji (matrix-ref a j i)]
+                   [a-jj (matrix-ref a j j)]
+                   ;; Check if subdiagonal is significant (indicates unreduced 2x2)
+                   [sub-significant? (> (abs a-ji) tol)]
+                   ;; Eigenvalues of 2x2: λ = (trace ± sqrt(trace² - 4*det)) / 2
+                   ;; Complex when discriminant = trace² - 4*det < 0
+                   [trace (+ a-ii a-jj)]
+                   [det (- (* a-ii a-jj) (* a-ij a-ji))]
+                   [discriminant (- (* trace trace) (* 4 det))])
+                  (if (and sub-significant? (< discriminant (- tol)))
+                      ;; Complex eigenvalues: return (real-part . imaginary-part)
+                      (cons (/ trace 2) (/ (sqrt (- discriminant)) 2))
+                      #f)))))
+
+;;; extract-eigenvalues-with-complex-check : Matrix × Nat × Num → Vec | (complex-eigenvalues Vec info)
+;;; Extract eigenvalues from quasi-upper-triangular matrix, detecting complex pairs.
+;;; Returns either a plain vector (all real) or a tagged result with complex info.
+(define (extract-eigenvalues-with-complex-check a n tol)
+  (let ([eigenvalues (make-vector n 0)]
+        [complex-info '()])
+       (let loop ([i 0])
+            (cond
+             [(>= i n)
+              ;; Done - return result
+              (if (null? complex-info)
+                  eigenvalues
+                  `(complex-eigenvalues ,eigenvalues ,complex-info))]
+             [(>= (+ i 1) n)
+              ;; Last element - must be real
+              (vector-set! eigenvalues i (matrix-ref a i i))
+              (loop (+ i 1))]
+             [else
+              ;; Check for 2x2 block
+              (let ([complex-pair (detect-complex-2x2-block a i tol)])
+                   (if complex-pair
+                       ;; Complex conjugate pair - store real parts and record info
+                       (begin
+                        (vector-set! eigenvalues i (car complex-pair))
+                        (vector-set! eigenvalues (+ i 1) (car complex-pair))
+                        (set! complex-info
+                              (cons (list i (car complex-pair) (cdr complex-pair)) complex-info))
+                        (loop (+ i 2)))
+                       ;; Real eigenvalue
+                       (begin
+                        (vector-set! eigenvalues i (matrix-ref a i i))
+                        (loop (+ i 1)))))]))))
 
 ;;; wilkinson-shift : Matrix × Nat → Num
 ;;; Compute Wilkinson shift from bottom 2x2 block for faster convergence.
@@ -322,6 +410,11 @@
 ;;;   tol     - Convergence tolerance
 ;;;
 ;;; Returns: (eigenvalues-vector . eigenvector-matrix) or error
+;;;
+;;; Errors:
+;;;   (error not-square rows cols) - Matrix is not square
+;;;   (error complex-eigenvalues eigenvalues info) - Matrix has complex eigenvalues
+;;;   (error eigenvector-computation-failed index eigenvalue) - Could not compute eigenvector
 (define (eigen-decomposition a . opts)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
@@ -337,30 +430,33 @@
                             (car rest1)
                             *eigen-tolerance*)]
                    ;; Step 1: Get eigenvalues using shifted QR
-                   [eigenvalues (qr-algorithm-shifted a max-iter tol)])
-                  (if (and (pair? eigenvalues) (eq? (car eigenvalues) 'error))
-                      eigenvalues
-                      ;; Step 2: Get eigenvectors for each eigenvalue
-                      (let ([eigenvectors (make-matrix n n 0)])
-                           (let loop ([i 0])
-                                (if (= i n)
-                                    (cons eigenvalues eigenvectors)
-                                    (let* ([lambda-i (vector-ref eigenvalues i)]
-                                           [v-i (inverse-iteration a lambda-i (vec-unit n i) max-iter tol)])
-                                          (if (and (pair? v-i) (eq? (car v-i) 'error))
-                                              ;; Inverse iteration failed - use fallback
-                                              (begin
-                                               ;; Store unit vector as fallback
-                                               (do ([j 0 (+ j 1)])
-                                                   ((= j n))
-                                                   (matrix-set! eigenvectors j i (if (= j i) 1 0)))
-                                               (loop (+ i 1)))
-                                              (begin
-                                               ;; Store eigenvector as column i
-                                               (do ([j 0 (+ j 1)])
-                                                   ((= j n))
-                                                   (matrix-set! eigenvectors j i (vector-ref v-i j)))
-                                               (loop (+ i 1)))))))))))))
+                   [eigenvalue-result (qr-algorithm-shifted a max-iter tol)])
+                  (cond
+                   ;; Check for explicit error from QR algorithm
+                   [(and (pair? eigenvalue-result) (eq? (car eigenvalue-result) 'error))
+                    eigenvalue-result]
+                   ;; Check for complex eigenvalues indicator
+                   [(and (pair? eigenvalue-result) (eq? (car eigenvalue-result) 'complex-eigenvalues))
+                    ;; Return as error - cannot compute real eigenvectors for complex eigenvalues
+                    eigenvalue-result]
+                   [else
+                    ;; eigenvalue-result is a vector of real eigenvalues
+                    (let ([eigenvalues eigenvalue-result]
+                          [eigenvectors (make-matrix n n 0)])
+                         (let loop ([i 0])
+                              (if (= i n)
+                                  (cons eigenvalues eigenvectors)
+                                  (let* ([lambda-i (vector-ref eigenvalues i)]
+                                         [v-i (inverse-iteration a lambda-i (vec-unit n i) max-iter tol)])
+                                        (if (and (pair? v-i) (eq? (car v-i) 'error))
+                                            ;; Inverse iteration failed - return error instead of incorrect fallback
+                                            `(error eigenvector-computation-failed ,i ,lambda-i)
+                                            ;; Store eigenvector as column i
+                                            (begin
+                                             (do ([j 0 (+ j 1)])
+                                                 ((= j n))
+                                                 (matrix-set! eigenvectors j i (vector-ref v-i j)))
+                                             (loop (+ i 1))))))))])))))
 
 ;;; ============================================================
 ;;; Symmetric Matrix Eigenvalue (more efficient)
@@ -451,7 +547,7 @@
 ;;; eigenvalue-condition : Matrix → Num | Error
 ;;;
 ;;; Estimate the condition number based on eigenvalues.
-;;; For normal matrices: κ = |λ_max| / |λ_min|
+;;; For normal matrices: kappa = |lambda_max| / |lambda_min|
 (define (eigenvalue-condition a . opts)
   (let* ([max-iter (if (and (pair? opts) (integer? (car opts)))
                        (car opts)
@@ -462,24 +558,35 @@
          [tol (if (and (pair? rest1) (number? (car rest1)))
                   (car rest1)
                   *eigen-tolerance*)]
-         [eigenvalues (qr-algorithm-shifted a max-iter tol)])
-        (if (and (pair? eigenvalues) (eq? (car eigenvalues) 'error))
-            eigenvalues
-            (let* ([abs-eigenvalues (vec-map abs eigenvalues)]
-                   [max-ev (vec-max abs-eigenvalues)]
-                   [min-ev (vec-min abs-eigenvalues)])
-                  (if (< (abs min-ev) tol)
-                      +inf.0  ;; Singular or near-singular
-                      (/ (abs max-ev) (abs min-ev)))))))
+         [eigenvalue-result (qr-algorithm-shifted a max-iter tol)])
+        (cond
+         ;; Check for explicit error
+         [(and (pair? eigenvalue-result) (eq? (car eigenvalue-result) 'error))
+          eigenvalue-result]
+         ;; Check for complex eigenvalues
+         [(and (pair? eigenvalue-result) (eq? (car eigenvalue-result) 'complex-eigenvalues))
+          eigenvalue-result]
+         [else
+          ;; eigenvalue-result is a vector of real eigenvalues
+          (let* ([eigenvalues eigenvalue-result]
+                 [abs-eigenvalues (vec-map abs eigenvalues)]
+                 [max-ev (vec-max abs-eigenvalues)]
+                 [min-ev (vec-min abs-eigenvalues)])
+                (if (< (abs min-ev) tol)
+                    +inf.0  ;; Singular or near-singular
+                    (/ (abs max-ev) (abs min-ev))))])))
 
 ;;; ============================================================
 ;;; Utilities
 ;;; ============================================================
 
-;;; eigenvalues : Matrix → Vec | Error
+;;; eigenvalues : Matrix → Vec | (complex-eigenvalues Vec info) | Error
 ;;; Convenience function to get just eigenvalues.
 ;;; Uses symmetric-eigen for symmetric matrices (more stable),
 ;;; qr-algorithm-shifted otherwise.
+;;; For non-symmetric matrices with complex eigenvalues, returns
+;;; (complex-eigenvalues eigenvalue-vector complex-info) where complex-info
+;;; is a list of (index real-part imaginary-part) for each complex pair.
 (define (eigenvalues a)
   (if (matrix-symmetric? a)
       (let ([result (symmetric-eigen a)])
@@ -489,12 +596,19 @@
       (qr-algorithm-shifted a)))
 
 ;;; eigenvectors : Matrix → Matrix | Error
-;;; Convenience function to get just eigenvectors
+;;; Convenience function to get just eigenvectors.
+;;; Returns error for matrices with complex eigenvalues.
 (define (eigenvectors a)
   (let ([result (eigen-decomposition a)])
-       (if (and (pair? result) (eq? (car result) 'error))
-           result
-           (cdr result))))
+       (cond
+        ;; Check for explicit error
+        [(and (pair? result) (eq? (car result) 'error))
+         result]
+        ;; Check for complex eigenvalues
+        [(and (pair? result) (eq? (car result) 'complex-eigenvalues))
+         `(error complex-eigenvalues-no-real-eigenvectors ,(cadr result) ,(caddr result))]
+        [else
+         (cdr result)])))
 
 ;;; verify-eigenvalue : Matrix × Num × Vec × [Num] → Boolean
 ;;; Check if (λ, v) is an eigenpair: ||Av - λv|| < tol

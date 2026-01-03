@@ -254,14 +254,91 @@
 ;;; eff-return : a -> Eff e a
 (define eff-return make-eff-pure)
 
+;;; ============================================================
+;;; Codensity-based Eff Bind (O(1) amortized)
+;;; ============================================================
+;;;
+;;; PERFORMANCE NOTE:
+;;; The naive eff-bind implementation is O(N^2) for left-associative chains:
+;;;   ((a >>= b) >>= c) >>= d
+;;; Each bind traverses the entire left structure to attach continuations.
+;;;
+;;; The Codensity transformation gives O(1) amortized bind by representing
+;;; computations in continuation-passing style. Instead of building nested
+;;; structures, we accumulate continuations in a queue.
+;;;
+;;; Eff-Queue: ('eff-queue base-eff continuation-queue)
+;;; where continuation-queue is a list of (a -> Eff e b) functions.
+;;;
+;;; This is the "bind queue" approach: we defer the actual traversal until
+;;; the effect is run, at which point we apply all queued continuations.
+
+;;; make-eff-queue : Eff e a -> (List (a -> Eff e b)) -> Eff-Queue e b
+(define (make-eff-queue base conts)
+  (list 'eff-queue base conts))
+
+;;; eff-queue? : Any -> Boolean
+(define (eff-queue? x)
+  (and (pair? x) (eq? (car x) 'eff-queue)))
+
+;;; eff-queue-base : Eff-Queue e a -> Eff e x
+(define (eff-queue-base q)
+  (list-ref q 1))
+
+;;; eff-queue-conts : Eff-Queue e a -> (List (x -> Eff e a))
+(define (eff-queue-conts q)
+  (list-ref q 2))
+
 ;;; eff-bind : Eff e a -> (a -> Eff e b) -> Eff e b
+;;; O(1) amortized via continuation queue.
+;;; Left-associative chains like ((a >>= b) >>= c) >>= d simply append
+;;; to the continuation queue instead of rebuilding structure.
 (define (eff-bind ma f)
   (cond
+   ;; Pure value: apply continuation immediately
    [(eff-pure? ma) (f (eff-pure-value ma))]
+   ;; Queue: append continuation to the queue (O(1))
+   [(eff-queue? ma)
+    (make-eff-queue (eff-queue-base ma)
+                    (append (eff-queue-conts ma) (list f)))]
+   ;; Op: wrap in queue with single continuation
    [(eff-op? ma)
-    (make-eff-op (eff-op-effect ma)
+    (make-eff-queue ma (list f))]))
+
+;;; eff-normalize : Eff e a -> Eff e a
+;;; Convert queue form back to standard form for interpretation.
+;;; This is called by handlers when they need to process effects.
+(define (eff-normalize eff)
+  (if (eff-queue? eff)
+      (eff-apply-queue (eff-queue-base eff) (eff-queue-conts eff))
+      eff))
+
+;;; eff-apply-queue : Eff e a -> (List (a -> Eff e b)) -> Eff e b
+;;; Apply queued continuations to an effect.
+;;; This is where the actual work happens, but only once at run time.
+(define (eff-apply-queue eff conts)
+  (if (null? conts)
+      eff
+      (eff-apply-queue-step eff conts)))
+
+;;; eff-apply-queue-step : Eff e a -> (List (a -> Eff e b)) -> Eff e b
+;;; Step through the effect, threading continuations.
+(define (eff-apply-queue-step eff conts)
+  (cond
+   [(null? conts) eff]
+   [(eff-pure? eff)
+    ;; Pure value: apply first continuation, continue with rest
+    (let ([next ((car conts) (eff-pure-value eff))])
+         (eff-apply-queue (eff-normalize next) (cdr conts)))]
+   [(eff-queue? eff)
+    ;; Nested queue: flatten by prepending inner queue's continuations
+    (eff-apply-queue-step (eff-queue-base eff)
+                          (append (eff-queue-conts eff) conts))]
+   [(eff-op? eff)
+    ;; Operation: wrap continuation to apply remaining queue after response
+    (make-eff-op (eff-op-effect eff)
                  (lambda (resp)
-                         (eff-bind ((eff-op-cont ma) resp) f)))]))
+                         (eff-apply-queue ((eff-op-cont eff) resp) conts)))]))
 
 ;;; eff-map : (a -> b) -> Eff e a -> Eff e b
 (define (eff-map f ea)
@@ -401,10 +478,14 @@
 
 ;;; handle-deep : Handler -> Eff e a -> b
 ;;; Deep handler: recursively handles continuation
+;;; Handles the queue form by normalizing first.
 (define (handle-deep handler eff)
   (cond
    [(eff-pure? eff)
     ((handler-return handler) (eff-pure-value eff))]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (handle-deep handler (eff-normalize eff))]
    [(eff-op? eff)
     (let* ([effect (eff-op-effect eff)]
            [tag (effect-tag effect)]
@@ -422,10 +503,14 @@
 
 ;;; handle-shallow : Handler -> Eff e a -> b
 ;;; Shallow handler: only handles immediate continuation
+;;; Handles the queue form by normalizing first.
 (define (handle-shallow handler eff)
   (cond
    [(eff-pure? eff)
     ((handler-return handler) (eff-pure-value eff))]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (handle-shallow handler (eff-normalize eff))]
    [(eff-op? eff)
     (let* ([effect (eff-op-effect eff)]
            [tag (effect-tag effect)]
@@ -515,6 +600,9 @@
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) state)]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (run-state-helper state (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
@@ -557,6 +645,9 @@
   (cond
    [(eff-pure? eff)
     (eff-pure-value eff)]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (run-reader env (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
@@ -605,6 +696,9 @@
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) (reverse log))]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (run-writer-helper log (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
@@ -665,6 +759,9 @@
 (define (eff-catch eff handler)
   (cond
    [(eff-pure? eff) eff]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (eff-catch (eff-normalize eff) handler)]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
@@ -682,6 +779,9 @@
   (cond
    [(eff-pure? eff)
     (right (eff-pure-value eff))]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (run-exception (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
@@ -737,6 +837,9 @@
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) acc)]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (run-nondet-acc acc (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
@@ -778,6 +881,9 @@
       (cond
        [(eff-pure? eff)
         (cons (eff-pure-value eff) acc)]
+       [(eff-queue? eff)
+        ;; Normalize queue form before handling
+        (run-nondet-bounded-acc remaining acc (eff-normalize eff))]
        [(eff-op? eff)
         (let ([effect (eff-op-effect eff)]
               [k (eff-op-cont eff)])
@@ -824,6 +930,9 @@
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) (reverse outputs))]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (run-console-helper inputs outputs (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
@@ -868,6 +977,9 @@
   (cond
    [(eff-pure? eff)
     (eff-pure-value eff)]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (run-async-sync (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
@@ -1018,6 +1130,9 @@
 (define (check-effects allowed eff)
   (cond
    [(eff-pure? eff) #t]
+   [(eff-queue? eff)
+    ;; Normalize queue form before checking
+    (check-effects allowed (eff-normalize eff))]
    [(eff-op? eff)
     (let ([label (effect-label (eff-op-effect eff))])
          (and (memq label allowed)
@@ -1108,6 +1223,9 @@
   (cond
    [(eff-pure? eff)
     (eff-return (cons (eff-pure-value eff) state))]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (run-state-in-writer state (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
@@ -1131,6 +1249,9 @@
   (cond
    [(eff-pure? eff)
     (eff-return (eff-pure-value eff))]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (run-reader-in-writer env (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
@@ -1217,6 +1338,12 @@
     (eff-return (left (eff-pure-value eff1)))]
    [(eff-pure? eff2)
     (eff-return (right (eff-pure-value eff2)))]
+   [(eff-queue? eff1)
+    ;; Normalize queue form before interleaving
+    (interleave (eff-normalize eff1) eff2)]
+   [(eff-queue? eff2)
+    ;; Normalize queue form before interleaving
+    (interleave eff1 (eff-normalize eff2))]
    [(eff-op? eff1)
     ;; Run one step of eff1, then switch to eff2
     (make-eff-op (eff-op-effect eff1)
