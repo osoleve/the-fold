@@ -205,7 +205,7 @@
                                (run-stage (stage->>> stage-read stage-read) test-ctx 5))))
                    
                    (test ">>> propagates errors"
-                         'error
+                         'err
                          (stage-result-tag
                           (run-stage (stage->>> (stage-fail 'e "m")
                                                 (stage-arr (lambda (x) x)))
@@ -245,7 +245,24 @@
                    (test "&&& fails if second fails"
                          'err
                          (stage-result-tag
-                          (run-stage (stage-&&& stage-read (stage-fail 'e "m")) test-ctx 1)))))
+                          (run-stage (stage-&&& stage-read (stage-fail 'e "m")) test-ctx 1)))
+                   
+                   ;; Test effect handling in fanout
+                   (let ([effect-stage (make-effect-stage 'test-effect "payload")])
+                        (test "&&& with both effects produces fanout-effect"
+                              #t
+                              (fanout-effect?
+                               (run-stage (stage-&&& effect-stage effect-stage) test-ctx 42)))
+                        
+                        (test "&&& with effect and ok produces fanout-effect"
+                              #t
+                              (fanout-effect?
+                               (run-stage (stage-&&& effect-stage stage-read) test-ctx 42)))
+                        
+                        (test "&&& with ok and effect produces fanout-effect"
+                              #t
+                              (fanout-effect?
+                               (run-stage (stage-&&& stage-read effect-stage) test-ctx 42))))))
 
 ;;; ============================================================
 ;;; Split Composition (***)
@@ -475,12 +492,12 @@
                         (test "stage-choice routes left"
                               10
                               (stage-result-value
-                               (run-stage (stage-||| double negate) test-ctx (left 5))))
+                               (run-stage (stage-choice double negate) test-ctx (left 5))))
                         
                         (test "stage-choice routes right"
                               -5
                               (stage-result-value
-                               (run-stage (stage-||| double negate) test-ctx (right 5)))))))
+                               (run-stage (stage-choice double negate) test-ctx (right 5)))))))
 
 ;;; ============================================================
 ;;; Context Operations

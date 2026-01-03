@@ -149,6 +149,11 @@
              (let ([p '(0.8 0.2)]
                    [q '(0.5 0.5)])
                   (>= (cross-entropy p q) (entropy p))))
+  ;; Support mismatch: Q=0 where P>0 means infinite cross-entropy
+  (test "H(P,Q) = +inf when Q has zero where P doesn't"
+        +inf.0 (cross-entropy '(0.5 0.5) '(1.0 0.0)))
+  (test "H(P,Q) = +inf with complete mismatch"
+        +inf.0 (cross-entropy '(0.0 1.0) '(1.0 0.0)))
   
   ;; KL divergence
   (display "\n--- KL Divergence Tests ---\n")
@@ -182,6 +187,12 @@
         [marginal-y '(0.5 0.5)])
        (test-approx "H(X|Y) when X=Y = 0"
                     0.0 (conditional-entropy correlated-joint marginal-y) 0.0001))
+  ;; conditional-entropy-direct tests
+  (test-approx "H(X|Y) direct computation"
+               1.0 (conditional-entropy-direct '((0.5 0.5) (0.5 0.5)) '(0.5 0.5)) 0.0001)
+  ;; Zero weights should return 0, not crash with division by zero
+  (test "H(X|Y) direct with zero weights = 0"
+        0 (conditional-entropy-direct '((0.5 0.5)) '(0)))
   
   ;; Continuous entropy
   (display "\n--- Differential Entropy Tests ---\n")

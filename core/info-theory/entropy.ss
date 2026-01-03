@@ -38,6 +38,15 @@
 ;;; Alias for entropy-log2; used in cross-entropy for readability.
 (define safe-log2 entropy-log2)
 
+;;; any2 : (a b -> Boolean) (List a) (List b) -> Boolean
+;;; Check if predicate holds for any pair of corresponding elements.
+(define (any2 pred xs ys)
+  (cond
+   [(null? xs) #f]
+   [(null? ys) #f]
+   [(pred (car xs) (car ys)) #t]
+   [else (any2 pred (cdr xs) (cdr ys))]))
+
 ;;; plogp : Number -> Number
 ;;; Compute p * log2(p) with convention 0 * log(0) = 0.
 (define (plogp p)
@@ -123,12 +132,15 @@
 ;;; Compute H(X|Y) directly from conditional probability distributions.
 ;;; Input: list of P(X|Y=y) for each y, weighted by P(Y=y).
 ;;; Each row is a conditional distribution P(X|Y=y).
+;;; Returns 0 when total weight is zero (no conditioning events).
 (define (conditional-entropy-direct conditional-probs weights-y)
-  (let* ([total-weight (fold-left + 0 weights-y)]
-         [normalized-weights (map (lambda (w) (/ w total-weight)) weights-y)]
-         [conditional-entropies (map entropy conditional-probs)])
-        (fold-left + 0
-                   (map * normalized-weights conditional-entropies))))
+  (let ([total-weight (fold-left + 0 weights-y)])
+       (if (<= total-weight 0)
+           0  ; No conditioning events; return 0 entropy
+           (let* ([normalized-weights (map (lambda (w) (/ w total-weight)) weights-y)]
+                  [conditional-entropies (map entropy conditional-probs)])
+                 (fold-left + 0
+                            (map * normalized-weights conditional-entropies))))))
 
 ;;; ============================================================
 ;;; Mutual Information
@@ -189,15 +201,19 @@
 ;;; Cross entropy H(P,Q) = -sum(p_i * log2(q_i))
 ;;; Measures the average number of bits needed to encode samples
 ;;; from P using a code optimized for Q.
+;;; Returns +inf.0 when Q has zero probability for events where P > 0.
 (define (cross-entropy p q)
   (if (null? p)
       0
-      (- (fold-left + 0
-                    (map (lambda (pi qi)
-                                 (if (<= pi 0)
-                                     0
-                                     (* pi (safe-log2 qi))))
-                         p q)))))
+      ;; Check for support mismatch: if Q(x)=0 but P(x)>0, return +inf.0
+      (if (any2 (lambda (pi qi) (and (> pi 0) (<= qi 0))) p q)
+          +inf.0
+          (- (fold-left + 0
+                        (map (lambda (pi qi)
+                                     (if (<= pi 0)
+                                         0
+                                         (* pi (safe-log2 qi))))
+                             p q))))))
 
 ;;; kl-divergence : (List Number) -> (List Number) -> Number
 ;;; Kullback-Leibler divergence D_KL(P||Q) = sum(p_i * log2(p_i/q_i))

@@ -11,7 +11,7 @@
 ;;; Features:
 ;;;   - StageResult sum type (ok, err, retry, skip, halt, await)
 ;;;   - Stage constructors (pure, read, ask, local)
-;;;   - Arrow-style composition (>>>, &&&, |||, ***)
+;;;   - Arrow-style composition (>>>, &&&, choice, ***)
 ;;;   - Conditional stages (if, case, when, unless)
 ;;;   - Monadic interface (bind, map, sequence)
 ;;;   - Effect staging (perform, for interpreter)
@@ -239,12 +239,12 @@
 (define (stage-second s)
   (make-stage 'second
               (lambda (ctx input)
-                      (let ([c (car input)]
-                            [a (cdr input)]
-                            [r (run-stage s ctx a)])
-                           (if (stage-ok? r)
-                               (stage-ok (cons c (stage-result-value r)))
-                               r)))))
+                      (let* ([c (car input)]
+                             [a (cdr input)]
+                             [r (run-stage s ctx a)])
+                            (if (stage-ok? r)
+                                (stage-ok (cons c (stage-result-value r)))
+                                r)))))
 
 ;;; stage-split : Stage ctx a b -> Stage ctx c d -> Stage ctx (a . c) (b . d)
 ;;; Apply two stages in parallel to pair components (***).
@@ -256,19 +256,46 @@
 
 ;;; stage-fanout : Stage ctx a b -> Stage ctx a c -> Stage ctx a (b . c)
 ;;; Apply two stages to same input, pair results (&&&).
+;;; Handles effects: if branches return effects, produces a combined fanout-effect.
 (define (stage-fanout s1 s2)
   (make-stage 'fanout
               (lambda (ctx input)
                       (let ([r1 (run-stage s1 ctx input)]
                             [r2 (run-stage s2 ctx input)])
                            (cond
+                            ;; Both pure values: pair them
                             [(and (stage-ok? r1) (stage-ok? r2))
                              (stage-ok (cons (stage-result-value r1)
                                              (stage-result-value r2)))]
+                            ;; Error propagation (errors take priority)
                             [(stage-err? r1) r1]
                             [(stage-err? r2) r2]
+                            ;; Halt propagation
                             [(stage-halt? r1) r1]
                             [(stage-halt? r2) r2]
+                            ;; Both effects: combine into fanout-effect
+                            [(and (stage-effect? r1) (stage-effect? r2))
+                             (list 'stage-effect 'fanout
+                                   (cons r1 r2)  ; payload is pair of effects
+                                   input)]
+                            ;; One effect, one ok: wrap in fanout-effect with value
+                            [(and (stage-effect? r1) (stage-ok? r2))
+                             (list 'stage-effect 'fanout
+                                   (cons r1 (stage-result-value r2))
+                                   input)]
+                            [(and (stage-ok? r1) (stage-effect? r2))
+                             (list 'stage-effect 'fanout
+                                   (cons (stage-result-value r1) r2)
+                                   input)]
+                            ;; Effect with skip: effect takes priority
+                            [(and (stage-effect? r1) (stage-skip? r2))
+                             (list 'stage-effect 'fanout
+                                   (cons r1 '())
+                                   input)]
+                            [(and (stage-skip? r1) (stage-effect? r2))
+                             (list 'stage-effect 'fanout
+                                   (cons '() r2)
+                                   input)]
                             ;; If one skips, still return the other
                             [(and (stage-skip? r1) (stage-ok? r2))
                              (stage-ok (cons '() (stage-result-value r2)))]
@@ -319,7 +346,7 @@
                           (stage-ok input)))))
 
 ;;; stage-choice : Stage ctx a c -> Stage ctx b c -> Stage ctx (Either a b) c
-;;; Route either left or right to appropriate stage (|||).
+;;; Route either left or right to appropriate stage (choice combinator).
 (define (stage-choice s-left s-right)
   (make-stage 'choice
               (lambda (ctx input)
@@ -327,8 +354,9 @@
                           (run-stage s-left ctx (from-left input))
                           (run-stage s-right ctx (from-right input))))))
 
-;;; ||| : Stage ctx a c -> Stage ctx b c -> Stage ctx (Either a b) c
-(define stage-||| stage-choice)
+;;; Note: The Haskell-style ||| operator is available as stage-choice
+;;; Using stage-||| as an identifier causes reader issues in Chez Scheme
+;;; due to | being a symbol delimiter.
 
 ;;; +++ : Stage ctx a b -> Stage ctx c d -> Stage ctx (Either a c) (Either b d)
 (define (stage-+++ s1 s2)
@@ -500,6 +528,22 @@
 ;;; stage-effect-input : Effect -> Any
 (define (stage-effect-input e) (list-ref e 3))
 
+;;; fanout-effect? : Effect -> Boolean
+;;; Check if effect is a combined fanout effect from parallel execution.
+(define (fanout-effect? e)
+  (and (stage-effect? e)
+       (eq? (stage-effect-type e) 'fanout)))
+
+;;; fanout-effect-left : Effect -> Any
+;;; Extract left branch result from fanout effect.
+(define (fanout-effect-left e)
+  (car (stage-effect-payload e)))
+
+;;; fanout-effect-right : Effect -> Any
+;;; Extract right branch result from fanout effect.
+(define (fanout-effect-right e)
+  (cdr (stage-effect-payload e)))
+
 ;;; ============================================================
 ;;; Utility Stages
 ;;; ============================================================
@@ -645,7 +689,7 @@
 ;;; Composition:
 ;;;   stage->>>, stage-<<<, stage-compose
 ;;;   stage-first, stage-second, stage-***, stage-&&&
-;;;   stage-left, stage-right, stage-|||, stage-+++
+;;;   stage-left, stage-right, stage-choice, stage-+++
 ;;;
 ;;; Conditionals:
 ;;;   stage-if, stage-when, stage-unless, stage-case, stage-guard
@@ -661,7 +705,8 @@
 ;;;
 ;;; Effects:
 ;;;   make-effect-stage, stage-effect?, stage-effect-type,
-;;;   stage-effect-payload, stage-effect-input
+;;;   stage-effect-payload, stage-effect-input,
+;;;   fanout-effect?, fanout-effect-left, fanout-effect-right
 ;;;
 ;;; Utilities:
 ;;;   stage-id, stage-const, stage-dup, stage-swap, stage-fst, stage-snd
