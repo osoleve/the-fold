@@ -109,18 +109,19 @@
 (define (council-sequential-with-prompts models rounds moderator round-prompts)
   (make-stage 'council-sequential
               (lambda (ctx input)
-                      (list 'council-effect 'sequential
-                            (make-council-config
-                             models
-                             'sequential
-                             rounds
-                             moderator
-                             "${input}"
-                             round-prompts
-                             "Synthesize the discussion. Note areas of consensus and remaining disagreement."
-                             #f
-                             60000)
-                            input))))
+                      (list 'stage-effect 'council
+                            (list 'sequential
+                                  (make-council-config
+                                   models
+                                   'sequential
+                                   rounds
+                                   moderator
+                                   "${input}"
+                                   round-prompts
+                                   "Synthesize the discussion. Note areas of consensus and remaining disagreement."
+                                   #f
+                                   60000)
+                                  input)))))
 
 ;;; ============================================================
 ;;; Parallel Council (Independent + Synthesize)
@@ -140,18 +141,19 @@
 (define (council-parallel-with-prompt models synthesizer synthesis-prompt)
   (make-stage 'council-parallel
               (lambda (ctx input)
-                      (list 'council-effect 'parallel
-                            (make-council-config
-                             models
-                             'parallel
-                             1
-                             synthesizer
-                             "${input}"
-                             '("Share your perspective on: ${topic}")
-                             synthesis-prompt
-                             #f
-                             60000)
-                            input))))
+                      (list 'stage-effect 'council
+                            (list 'parallel
+                                  (make-council-config
+                                   models
+                                   'parallel
+                                   1
+                                   synthesizer
+                                   "${input}"
+                                   '("Share your perspective on: ${topic}")
+                                   synthesis-prompt
+                                   #f
+                                   60000)
+                                  input)))))
 
 ;;; ============================================================
 ;;; Voting Council
@@ -164,24 +166,25 @@
 (define (council-vote models options)
   (make-stage 'council-vote
               (lambda (ctx input)
-                      (list 'council-effect 'vote
-                            (make-council-config
-                             models
-                             'vote
-                             1
-                             #f
-                             "${input}"
-                             (list (string-append
-                                    "Choose one of these options and explain briefly:\n"
-                                    (apply string-append
-                                           (map (lambda (i opt)
-                                                        (string-append "  " (number->string i) ". " opt "\n"))
-                                                (iota (length options) 1)
-                                                options))))
-                             #f
-                             #f
-                             30000)
-                            input))))
+                      (list 'stage-effect 'council
+                            (list 'vote
+                                  (make-council-config
+                                   models
+                                   'vote
+                                   1
+                                   #f
+                                   "${input}"
+                                   (list (string-append
+                                          "Choose one of these options and explain briefly:\n"
+                                          (apply string-append
+                                                 (map (lambda (i opt)
+                                                              (string-append "  " (number->string i) ". " opt "\n"))
+                                                      (iota (length options) 1)
+                                                      options))))
+                                   #f
+                                   #f
+                                   30000)
+                                  input)))))
 
 ;;; ============================================================
 ;;; Debate Council
@@ -194,20 +197,21 @@
 (define (council-debate pro-model con-model judge-model)
   (make-stage 'council-debate
               (lambda (ctx input)
-                      (list 'council-effect 'debate
-                            (make-council-config
-                             (list pro-model con-model judge-model)
-                             'debate
-                             3  ; Opening, rebuttal, closing
-                             judge-model
-                             "${input}"
-                             '("Opening: Make your strongest case for your assigned position."
-                               "Rebuttal: Respond to your opponent's arguments."
-                               "Closing: Summarize your position and why it should prevail.")
-                             "Judge the debate. Who made the stronger argument and why?"
-                             #f
-                             90000)
-                            input))))
+                      (list 'stage-effect 'council
+                            (list 'debate
+                                  (make-council-config
+                                   (list pro-model con-model judge-model)
+                                   'debate
+                                   3  ; Opening, rebuttal, closing
+                                   judge-model
+                                   "${input}"
+                                   '("Opening: Make your strongest case for your assigned position."
+                                     "Rebuttal: Respond to your opponent's arguments."
+                                     "Closing: Summarize your position and why it should prevail.")
+                                   "Judge the debate. Who made the stronger argument and why?"
+                                   #f
+                                   90000)
+                                  input)))))
 
 ;;; ============================================================
 ;;; Consensus Seeking Council
@@ -221,20 +225,21 @@
 (define (council-consensus models max-rounds)
   (make-stage 'council-consensus
               (lambda (ctx input)
-                      (list 'council-effect 'consensus
-                            (make-council-config
-                             models
-                             'consensus
-                             max-rounds
-                             (car models)  ; First model moderates
-                             "${input}"
-                             '("Share your position on this question."
-                               "Do you agree with any of the other positions? What would change your mind?"
-                               "Can we find common ground? What do we all agree on?")
-                             "Summarize areas of consensus and remaining disagreement."
-                             #t  ; Require consensus
-                             60000)
-                            input))))
+                      (list 'stage-effect 'council
+                            (list 'consensus
+                                  (make-council-config
+                                   models
+                                   'consensus
+                                   max-rounds
+                                   (car models)  ; First model moderates
+                                   "${input}"
+                                   '("Share your position on this question."
+                                     "Do you agree with any of the other positions? What would change your mind?"
+                                     "Can we find common ground? What do we all agree on?")
+                                   "Summarize areas of consensus and remaining disagreement."
+                                   #t  ; Require consensus
+                                   60000)
+                                  input)))))
 
 ;;; ============================================================
 ;;; Council Helpers
@@ -246,22 +251,24 @@
   (make-stage 'with-moderator
               (lambda (ctx input)
                       (let ([result (run-stage council-stage ctx input)])
-                           (if (and (pair? result) (eq? (car result) 'council-effect))
-                               (let ([effect-type (list-ref result 1)]
-                                     [config (list-ref result 2)]
-                                     [topic (list-ref result 3)])
-                                    (list 'council-effect effect-type
-                                          (make-council-config
-                                           (council-models config)
-                                           (council-mode config)
-                                           (council-rounds config)
-                                           moderator  ; Override
-                                           (council-topic-template config)
-                                           (council-round-prompts config)
-                                           (council-synthesis-prompt config)
-                                           (council-require-consensus config)
-                                           (council-timeout config))
-                                          topic))
+                           (if (council-effect? result)
+                               (let* ([payload (stage-effect-payload result)]
+                                      [effect-type (car payload)]
+                                      [config (cadr payload)]
+                                      [topic (caddr payload)])
+                                     (list 'stage-effect 'council
+                                           (list effect-type
+                                                 (make-council-config
+                                                  (council-models config)
+                                                  (council-mode config)
+                                                  (council-rounds config)
+                                                  moderator  ; Override
+                                                  (council-topic-template config)
+                                                  (council-round-prompts config)
+                                                  (council-synthesis-prompt config)
+                                                  (council-require-consensus config)
+                                                  (council-timeout config))
+                                                 topic)))
                                result)))))
 
 ;;; with-council-timeout : Nat -> Stage ctx i CouncilResult -> Stage ctx i CouncilResult
@@ -270,22 +277,24 @@
   (make-stage 'with-timeout
               (lambda (ctx input)
                       (let ([result (run-stage council-stage ctx input)])
-                           (if (and (pair? result) (eq? (car result) 'council-effect))
-                               (let ([effect-type (list-ref result 1)]
-                                     [config (list-ref result 2)]
-                                     [topic (list-ref result 3)])
-                                    (list 'council-effect effect-type
-                                          (make-council-config
-                                           (council-models config)
-                                           (council-mode config)
-                                           (council-rounds config)
-                                           (council-moderator config)
-                                           (council-topic-template config)
-                                           (council-round-prompts config)
-                                           (council-synthesis-prompt config)
-                                           (council-require-consensus config)
-                                           timeout-ms)  ; Override
-                                          topic))
+                           (if (council-effect? result)
+                               (let* ([payload (stage-effect-payload result)]
+                                      [effect-type (car payload)]
+                                      [config (cadr payload)]
+                                      [topic (caddr payload)])
+                                     (list 'stage-effect 'council
+                                           (list effect-type
+                                                 (make-council-config
+                                                  (council-models config)
+                                                  (council-mode config)
+                                                  (council-rounds config)
+                                                  (council-moderator config)
+                                                  (council-topic-template config)
+                                                  (council-round-prompts config)
+                                                  (council-synthesis-prompt config)
+                                                  (council-require-consensus config)
+                                                  timeout-ms)  ; Override
+                                                 topic)))
                                result)))))
 
 ;;; ============================================================
@@ -363,7 +372,8 @@
 (define (council config)
   (make-stage 'council
               (lambda (ctx input)
-                      (list 'council-effect (council-mode config) config input))))
+                      (list 'stage-effect 'council
+                            (list (council-mode config) config input)))))
 
 ;;; council-then : Stage ctx String CouncilResult -> (CouncilResult -> Stage ctx CouncilResult o) -> Stage ctx String o
 ;;; Chain council result to another stage.
@@ -399,14 +409,20 @@
 ;;; ============================================================
 
 ;;; council-effect? : Any -> Boolean
+;;; Checks for standard stage-effect with 'council type.
 (define (council-effect? x)
-  (and (pair? x) (eq? (car x) 'council-effect)))
+  (and (stage-effect? x)
+       (eq? (stage-effect-type x) 'council)))
 
 ;;; council-effect-mode : CouncilEffect -> Symbol
-(define (council-effect-mode e) (list-ref e 1))
+;;; Payload structure: (list mode config topic)
+(define (council-effect-mode e)
+  (car (stage-effect-payload e)))
 
 ;;; council-effect-config : CouncilEffect -> CouncilConfig
-(define (council-effect-config e) (list-ref e 2))
+(define (council-effect-config e)
+  (cadr (stage-effect-payload e)))
 
 ;;; council-effect-topic : CouncilEffect -> String
-(define (council-effect-topic e) (list-ref e 3))
+(define (council-effect-topic e)
+  (caddr (stage-effect-payload e)))

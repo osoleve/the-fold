@@ -659,18 +659,25 @@
 ;;; Make a DFA complete by adding explicit dead state with self-loops
 ;;; for all missing transitions
 (define (fsm-complete dfa)
+  ;; Helper: check if a transition exists and has non-empty targets
+  (define (has-valid-transition? key transitions)
+    (let ([found (assoc key transitions)])
+         (and found (not (null? (cdr found))))))
+  ;; Helper: remove transitions with empty target lists
+  (define (filter-empty-transitions transitions)
+    (filter (lambda (t) (not (null? (cdr t)))) transitions))
   (let* ([states (fsm-states dfa)]
          [alphabet (fsm-alphabet dfa)]
          [transitions (fsm-transitions dfa)]
          [dead-state '__dead__]
-         ;; Check if we need a dead state (any missing transitions)
+         ;; Check if we need a dead state (any missing or empty transitions)
          [missing-trans
           (fold-left
            (lambda (acc state)
                    (fold-left
                     (lambda (acc2 sym)
                             (let ([key (cons state sym)])
-                                 (if (assoc key transitions)
+                                 (if (has-valid-transition? key transitions)
                                      acc2
                                      (cons (cons key (list dead-state)) acc2))))
                     acc
@@ -680,14 +687,16 @@
          ;; Add self-loops for dead state on all symbols
          [dead-loops
           (map (lambda (sym) (cons (cons dead-state sym) (list dead-state)))
-               alphabet)])
+               alphabet)]
+         ;; Filter out empty transitions from original
+         [clean-transitions (filter-empty-transitions transitions)])
         (if (null? missing-trans)
             ;; DFA is already complete
             dfa
             ;; Add dead state and all missing transitions
             (make-fsm (cons dead-state states)
                       alphabet
-                      (append missing-trans dead-loops transitions)
+                      (append missing-trans dead-loops clean-transitions)
                       (fsm-start dfa)
                       (fsm-accepting dfa)))))
 

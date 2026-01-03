@@ -73,25 +73,26 @@
 
 ;;; build-payload-contains-predicate : String -> (Block -> Boolean)
 ;;; Creates a predicate that matches blocks whose payload contains a substring.
-;;; Payload is interpreted as UTF-8 string.
+;;; Payload is interpreted as UTF-8 string. Binary payloads are skipped gracefully.
 ;;;
 ;;; Example:
 ;;;   (build-payload-contains-predicate "Turing")
-;;;   -> (lambda (b) (string-contains? (utf8->string (block-payload b)) "Turing"))
+;;;   -> (lambda (b) (string-contains? (safe-utf8->string (block-payload b)) "Turing"))
 (define (build-payload-contains-predicate substring)
   (lambda (block)
-          (let ([payload-str (utf8->string (block-payload block))])
+          (let ([payload-str (safe-utf8->string (block-payload block))])
                (query-string-contains? payload-str substring))))
 
 ;;; build-payload-matches-predicate : (String -> Boolean) -> (Block -> Boolean)
 ;;; Creates a predicate using a custom payload matcher function.
 ;;; The matcher receives the payload as a UTF-8 string.
+;;; Binary payloads are converted to empty string.
 ;;;
 ;;; Example:
 ;;;   (build-payload-matches-predicate (lambda (s) (> (string-length s) 100)))
 (define (build-payload-matches-predicate matcher)
   (lambda (block)
-          (let ([payload-str (utf8->string (block-payload block))])
+          (let ([payload-str (safe-utf8->string (block-payload block))])
                (matcher payload-str))))
 
 ;;; build-has-refs-predicate : -> (Block -> Boolean)
@@ -262,7 +263,7 @@
 ;;; Fields:
 ;;;   tag          -> Symbol
 ;;;   payload      -> Bytevector
-;;;   payload-str  -> String
+;;;   payload-str  -> String (empty string for binary payloads)
 ;;;   payload-size -> Integer
 ;;;   refs         -> Vector
 ;;;   refs-count   -> Integer
@@ -270,7 +271,7 @@
   (case field
         [(tag) (block-tag block)]
         [(payload) (block-payload block)]
-        [(payload-str) (utf8->string (block-payload block))]
+        [(payload-str) (safe-utf8->string (block-payload block))]
         [(payload-size) (bytevector-length (block-payload block))]
         [(refs) (block-refs block)]
         [(refs-count) (vector-length (block-refs block))]
@@ -566,6 +567,14 @@
 ;;; ============================================================
 ;;; Section 9: Utility Functions
 ;;; ============================================================
+
+;;; safe-utf8->string : Bytevector -> String
+;;; Safely convert a bytevector to a UTF-8 string.
+;;; Returns empty string if the bytevector contains invalid UTF-8.
+;;; This is necessary because block payloads may contain binary data.
+(define (safe-utf8->string bv)
+  (guard (ex [else ""])
+         (utf8->string bv)))
 
 ;;; query-string-contains? : String String -> Boolean
 ;;; Check if haystack contains needle as a substring.

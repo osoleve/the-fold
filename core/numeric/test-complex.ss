@@ -278,10 +278,12 @@
       (complex-zero)
       (complex-pow (complex-zero) (make-complex 2 0)))
 
-;; 0^i should return 0 (real part is 0, not negative)
-(test "0^i = 0"
-      (complex-zero)
-      (complex-pow (complex-zero) (make-complex 0 1)))
+;; 0^i is undefined (oscillates on unit circle); returns NaN
+(let ([result (complex-pow (complex-zero) (make-complex 0 1))])
+     (test "0^i is undefined (NaN)"
+           #t
+           (and (nan? (complex-real result))
+                (nan? (complex-imag result)))))
 
 ;; 0^(1+i) should return 0 (real part is positive)
 (test "0^(1+i) = 0"

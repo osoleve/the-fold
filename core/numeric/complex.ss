@@ -203,6 +203,8 @@
 ;;; complex-pow : Complex × Complex → Complex
 ;;; Complex exponentiation.
 ;;; z^w = e^(w * log(z))
+;;; Note: 0^w is only defined when Re(w) > 0 and Im(w) = 0.
+;;; When Im(w) != 0, the limit oscillates on the unit circle and is undefined.
 (define (complex-pow z w)
   (if (complex-zero? z)
       (cond
@@ -210,6 +212,9 @@
         (error 'complex-pow "0^0 is undefined" (list z w))]
        [(< (complex-real w) 0)
         (error 'complex-pow "0^(-n) is undefined (division by zero)" (list z w))]
+       [(and (= (complex-real w) 0) (not (= (complex-imag w) 0)))
+        ;; 0^(bi) for b != 0 is undefined (oscillates on unit circle)
+        (make-complex +nan.0 +nan.0)]
        [else (make-complex 0 0)])
       (complex-exp (complex-mul w (complex-log z)))))
 

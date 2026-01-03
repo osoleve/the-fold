@@ -261,8 +261,9 @@
                ;; Split generator into two independent streams
                [(random-split)
                 (let ([children (gen-split gen)])
-                     ;; Return the pair of children, continue with first child
-                     (run-random-helper (car children) (k children)))]
+                     ;; Return the pair of children, continue with second child
+                     ;; so returned generators and continuation use independent streams
+                     (run-random-helper (cadr children) (k children)))]
                
                ;; Generate random bytes
                [(random-bytes)

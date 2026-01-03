@@ -179,23 +179,44 @@
 
 ;;; with-retry-policy : RetryPolicy -> Stage -> Stage
 ;;; Apply retry policy to stage.
+;;; Returns stage-retry result with delay for interpreter to handle,
+;;; since Core is pure and cannot perform IO like sleeping.
 (define (with-retry-policy policy stage)
-  (make-stage 'with-retry
-              (lambda (ctx input)
-                      (let loop ([attempt 0])
-                           (let ([result (run-stage stage ctx input)])
-                                (if (stage-ok? result)
-                                    result
-                                    (if (and (< attempt (retry-max-attempts policy))
-                                             (stage-err? result)
-                                             ((retry-on-predicate policy) (stage-err-code result)))
-                                        (begin
-                                         ;; Delay is captured as effect for interpreter
-                                         (loop (+ attempt 1)))
-                                        (case (retry-on-exhaust policy)
-                                              [(fail) result]
-                                              [(halt) (stage-halt "Retry exhausted")]
-                                              [else result]))))))))
+  (let ([max-attempts (retry-max-attempts policy)]
+        [delay-fn (retry-delay-fn policy)]
+        [retry-pred (retry-on-predicate policy)]
+        [exhaust-action (retry-on-exhaust policy)])
+       (make-stage 'with-retry
+                   (lambda (ctx input)
+                           ;; Retrieve current attempt from context env, default to 0
+                           (let* ([attempt (or (ctx-env-ref ctx 'retry-attempt) 0)]
+                                  [result (run-stage stage ctx input)])
+                                 (cond
+                                  ;; Success - return result
+                                  [(stage-ok? result) result]
+                                  ;; Error that should be retried
+                                  [(and (stage-err? result)
+                                        (< attempt max-attempts)
+                                        (retry-pred (stage-err-code result)))
+                                   ;; Return retry result with delay for interpreter
+                                   ;; Interpreter will wait, increment attempt in context, and re-run
+                                   (stage-retry
+                                    (format "Retry attempt ~a/~a: ~a"
+                                            (+ attempt 1)
+                                            max-attempts
+                                            (stage-err-message result))
+                                    (delay-fn attempt))]
+                                  ;; Exhausted or non-retryable error
+                                  [else
+                                   (case exhaust-action
+                                         [(fail) result]
+                                         [(halt) (stage-halt
+                                                  (format "Retry exhausted after ~a attempts: ~a"
+                                                          attempt
+                                                          (if (stage-err? result)
+                                                              (stage-err-message result)
+                                                              "unknown error")))]
+                                         [else result])])))))))
 
 ;;; gate : (a -> Boolean) -> Stage -> Stage
 ;;; Only proceed if condition met.
@@ -279,7 +300,7 @@
   (make-stage 'race
               (lambda (ctx input)
                       ;; Interpreter handles actual racing
-                      (list 'race-effect stages input))))
+                      (list 'stage-effect 'race stages input))))
 
 ;;; all-of : List Stage -> Stage ctx a (List b)
 ;;; All stages must succeed.
