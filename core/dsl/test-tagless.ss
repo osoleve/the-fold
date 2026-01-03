@@ -11,7 +11,7 @@
 
 (test-group tagless-dict-basics
             (define-test make-dict-creates-dictionary
-              (let ([d (make-dict 'test '((foo . ,(lambda (x) x))))])
+              (let ([d (make-dict 'test `((foo . ,(lambda (x) x))))])
                    (assert-equal 'test (dict-tag d))))
             
             (define-test dict-ref-finds-operation

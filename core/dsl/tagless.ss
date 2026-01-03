@@ -359,8 +359,9 @@
 (define (env-var d name) ((dict-ref d 'var) name))
 
 ;;; Run with empty initial environment
+;;; program is a function (dict -> (env -> result)), so apply dict first, then env
 (define (run-env-expr d program)
-  (program '()))
+  ((program d) '()))
 
 ;;; Example: let x = 5 in let y = 3 in x + y
 (define (example-let d)

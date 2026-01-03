@@ -158,6 +158,23 @@
               (eq? (caar segments) 'splice))
          (cadar segments)]
         
+        ;; Check for improper-tail (last segment marks improper list)
+        [(and (pair? segments)
+              (pair? (car (reverse segments)))
+              (eq? (caar (reverse segments)) 'improper-tail))
+         ;; Build with cons* to preserve improper list structure
+         (let* ([rev-segs (reverse segments)]
+                [tail-expr (cadar rev-segs)]
+                [head-segs (reverse (cdr rev-segs))]
+                [head-args (map (lambda (seg)
+                                        (if (and (pair? seg) (eq? (car seg) 'splice))
+                                            (cadr seg)
+                                            seg))
+                                head-segs)])
+               (if (null? head-args)
+                   tail-expr
+                   `(cons* ,@head-args ,tail-expr)))]
+        
         ;; Multiple segments → use append
         [else
          (let ([args (map (lambda (seg)
@@ -179,13 +196,13 @@
              (reverse segments)
              (reverse (cons `(list ,@(reverse current-list)) segments)))]
         
-        ;; Improper list tail
+        ;; Improper list tail - use 'improper-tail marker to preserve dotted pair structure
         [(not (pair? remaining))
-         ;; Flush current list, add tail as splice-like
+         ;; Flush current list, add tail as improper-tail (not splice)
          (let ([segs (if (null? current-list)
                          segments
                          (cons `(list ,@(reverse current-list)) segments))])
-              (reverse (cons `(splice (list ,(qq-expand-depth remaining depth))) segs)))]
+              (reverse (cons `(improper-tail ,(qq-expand-depth remaining depth)) segs)))]
         
         ;; Unquote-splicing at depth 1 → start new segment
         [(and (unquote-splicing? (car remaining)) (= depth 1))
