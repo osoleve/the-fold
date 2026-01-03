@@ -59,10 +59,10 @@
                             "Rate this paper 1-10 for relevance to AI safety/alignment research. Respond with just a number.\n\n${input}")
                    (ask-llm 'haiku
                             "Rate this paper 1-10 for technical depth and novelty. Respond with just a number.\n\n${input}"))
-                  ;; Parse scores
+                  ;; Parse scores (stage-&&& returns a list of two elements)
                   (stage-arr (lambda (scores)
                                      (let ([safety-score (string->number (car scores))]
-                                           [tech-score (string->number (cdr scores))])
+                                           [tech-score (string->number (cadr scores))])
                                           (list (cons 'safety-score (or safety-score 0))
                                                 (cons 'tech-score (or tech-score 0))
                                                 (cons 'total (+ (or safety-score 0)
