@@ -411,6 +411,47 @@
               (assert-false (validate-all positive? '(1 2 -3 4 5)))))
 
 ;;; ============================================================
+;;; Generator Tests
+;;; ============================================================
+
+(test-group generator
+            (define-test generator-to-list-empty-test
+              (let* ([gen (make-generator (lambda (yield) (cont-return '())))]
+                     [result (generator-to-list gen)])
+                    (assert-equal '() result)))
+            
+            (define-test generator-to-list-single-test
+              (let* ([gen (make-generator (lambda (yield)
+                                                  (yield 42)))]
+                     [result (generator-to-list gen)])
+                    (assert-equal '(42) result)))
+            
+            (define-test generator-to-list-multiple-test
+              (let* ([gen (make-generator
+                           (lambda (yield-fn)
+                                   ;; Use callCC at the top level to enable escaping
+                                   (callCC (lambda (exit)
+                                                   (eval-cont (yield-fn 1))
+                                                   (eval-cont (yield-fn 2))
+                                                   (eval-cont (yield-fn 3))
+                                                   (exit (cont-return '()))))))]
+                     [result (generator-to-list gen)])
+                    (assert-equal '(1 2 3) result)))
+            
+            (define-test generator-to-list-range-test
+              (let* ([gen (make-generator
+                           (lambda (yield-fn)
+                                   (callCC (lambda (exit)
+                                                   (let loop ([i 0])
+                                                        (if (< i 5)
+                                                            (begin
+                                                             (eval-cont (yield-fn i))
+                                                             (loop (+ i 1)))
+                                                            (exit (cont-return '()))))))))]
+                     [result (generator-to-list gen)])
+                    (assert-equal '(0 1 2 3 4) result))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 

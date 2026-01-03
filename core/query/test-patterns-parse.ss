@@ -71,7 +71,7 @@
 ;; With path in value
 (test "path in value"
       '((see . "core/blocks/block.ss"))
-      (extract-tags "Check @see:core/block.ss"))
+      (extract-tags "Check @see:core/blocks/block.ss"))
 
 ;; Hierarchical value
 (test "hierarchical value"
@@ -160,8 +160,39 @@
       '((cmd . "rm"))
       (safe-extract-tags "@cmd:rm&rf"))
 
-;; Path traversal in value (allowed, just characters)
-(test "path traversal chars"
+;; Path traversal protection tests
+(test "path traversal Unix ../ rejected"
+      '((path . ""))
+      (safe-extract-tags "@path:../secret"))
+
+;; Windows backslash not allowed by char-value?, so parsing stops at backslash
+;; Result is ".." which is harmless (no trailing slash)
+(test "path traversal Windows ..\\ stops at backslash"
+      '((path . ".."))
+      (safe-extract-tags "@path:..\\secret"))
+
+(test "path traversal in middle rejected"
+      '((path . ""))
+      (safe-extract-tags "@path:foo/../bar"))
+
+(test "path traversal multiple rejected"
+      '((path . ""))
+      (safe-extract-tags "@path:../../etc/passwd"))
+
+(test "double dots without slash allowed"
+      '((file . "file..name"))
+      (safe-extract-tags "@file:file..name"))
+
+(test "double dots at end allowed"
+      '((file . "name.."))
+      (safe-extract-tags "@file:name.."))
+
+(test "legitimate relative path allowed"
+      '((path . "./current/dir"))
+      (safe-extract-tags "@path:./current/dir"))
+
+;; Unsanitized extraction still allows path traversal (for testing)
+(test "extract-tags allows path traversal (no sanitization)"
       '((path . "../secret"))
       (extract-tags "@path:../secret"))
 

@@ -192,15 +192,22 @@
         (assert-equal -10.0 (vec2-y vel))
         (assert-equal 90.0 (vec2-y pos))))
 
-(define-test "pure-apply-force modifies velocity"
-  (let* ([pw (make-pure-world test-gravity)]
+(define-test "pure-apply-force accumulates force for next step"
+  (let* ([pw (make-pure-world (vec2 0 0))]  ; No gravity for this test
          [entity (make-pure-entity 'ball (vec2 0 0) 1.0)]
          [pw2 (pure-world-add-entity pw entity)]
          [pw3 (pure-apply-force pw2 'ball (vec2 10 0))]
-         [ball (pure-world-get-entity pw3 'ball)]
-         [vel (entity-vel ball)])
-        ;; Force of 10 on mass 1 = velocity change of 10
-        (assert-equal 10.0 (vec2-x vel))))
+         ;; Force is accumulated, not applied yet
+         [ball-before (pure-world-get-entity pw3 'ball)]
+         [vel-before (entity-vel ball-before)]
+         ;; Now step to apply the force: Δv = (F/m) * dt = 10 * 1.0 = 10
+         [pw4 (pure-step pw3 1.0)]
+         [ball-after (pure-world-get-entity pw4 'ball)]
+         [vel-after (entity-vel ball-after)])
+        ;; Before step, velocity unchanged
+        (assert-equal 0 (vec2-x vel-before))
+        ;; After step with dt=1.0, velocity = 10
+        (assert-equal 10.0 (vec2-x vel-after))))
 
 (define-test "pure-set-position sets position"
   (let* ([pw (make-pure-world test-gravity)]
@@ -237,14 +244,19 @@
         (assert-equal 'ball id)
         (assert-true (and (pure-world-get-entity new-world 'ball) #t))))
 
-(define-test "run-physics-pure applies force"
-  (let* ([pw (make-pure-world test-gravity)]
+(define-test "run-physics-pure applies force during step"
+  (let* ([pw (make-pure-world (vec2 0 0))]  ; No gravity
          [entity (make-pure-entity 'ball (vec2 0 0) 1.0)]
          [pw2 (pure-world-add-entity pw entity)]
-         [program (phys-apply-force 'ball (vec2 5 0))]
+         ;; Apply force then step to integrate it
+         [program (phys-bind (phys-apply-force 'ball (vec2 5 0))
+                             (lambda (_)
+                                     (phys-bind (phys-step 1.0)
+                                                (lambda (_)
+                                                        (phys-get-entity 'ball)))))]
          [result ((run-physics-pure program) pw2)]
-         [new-world (cdr result)]
-         [ball (pure-world-get-entity new-world 'ball)])
+         [ball (car result)])
+        ;; Force 5 on mass 1 for dt=1.0 → Δv = 5
         (assert-equal 5.0 (vec2-x (entity-vel ball)))))
 
 (define-test "run-physics-pure steps simulation"
@@ -301,6 +313,84 @@
         ;; (using simple Euler integration)
         (let ([y (vec2-y (entity-pos final-entity))])
              (assert-true (< (abs (- y 90.0)) 10.0)))))  ; Allow numerical error from Euler
+
+;;; ============================================================
+;;; Force Integration Tests (Time-Dependent Behavior)
+;;; ============================================================
+
+(define-test "force integration depends on dt"
+  ;; Same force, different dt should give different results
+  (let* ([pw (make-pure-world (vec2 0 0))]  ; No gravity
+         [entity (make-pure-entity 'ball (vec2 0 0) 2.0)]  ; mass = 2
+         [pw2 (pure-world-add-entity pw entity)]
+         ;; Apply force F=10, then step with dt=0.1
+         [pw3-small (pure-apply-force pw2 'ball (vec2 10 0))]
+         [pw4-small (pure-step pw3-small 0.1)]
+         [ball-small (pure-world-get-entity pw4-small 'ball)]
+         [vel-small (vec2-x (entity-vel ball-small))]
+         ;; Apply force F=10, then step with dt=1.0
+         [pw3-large (pure-apply-force pw2 'ball (vec2 10 0))]
+         [pw4-large (pure-step pw3-large 1.0)]
+         [ball-large (pure-world-get-entity pw4-large 'ball)]
+         [vel-large (vec2-x (entity-vel ball-large))])
+        ;; Δv = (F/m) * dt = (10/2) * dt = 5 * dt
+        ;; For dt=0.1: Δv = 0.5
+        ;; For dt=1.0: Δv = 5.0
+        (assert-true (< (abs (- vel-small 0.5)) 0.001))
+        (assert-true (< (abs (- vel-large 5.0)) 0.001))))
+
+(define-test "multiple forces accumulate correctly"
+  (let* ([pw (make-pure-world (vec2 0 0))]
+         [entity (make-pure-entity 'ball (vec2 0 0) 1.0)]
+         [pw2 (pure-world-add-entity pw entity)]
+         ;; Apply multiple forces
+         [pw3 (pure-apply-force pw2 'ball (vec2 10 0))]
+         [pw4 (pure-apply-force pw3 'ball (vec2 5 0))]
+         [pw5 (pure-apply-force pw4 'ball (vec2 0 3))]
+         ;; Step to integrate them
+         [pw6 (pure-step pw5 1.0)]
+         [ball (pure-world-get-entity pw6 'ball)]
+         [vel (entity-vel ball)])
+        ;; Total force = (15, 3), mass = 1, dt = 1
+        ;; Δv = (15, 3)
+        (assert-equal 15.0 (vec2-x vel))
+        (assert-equal 3.0 (vec2-y vel))))
+
+(define-test "forces clear after step"
+  (let* ([pw (make-pure-world (vec2 0 0))]
+         [entity (make-pure-entity 'ball (vec2 0 0) 1.0)]
+         [pw2 (pure-world-add-entity pw entity)]
+         ;; Apply force and step
+         [pw3 (pure-apply-force pw2 'ball (vec2 10 0))]
+         [pw4 (pure-step pw3 1.0)]
+         [ball1 (pure-world-get-entity pw4 'ball)]
+         ;; Step again without new forces
+         [pw5 (pure-step pw4 1.0)]
+         [ball2 (pure-world-get-entity pw5 'ball)])
+        ;; First step: velocity = 10
+        (assert-equal 10.0 (vec2-x (entity-vel ball1)))
+        ;; Second step: velocity unchanged (no new forces)
+        (assert-equal 10.0 (vec2-x (entity-vel ball2)))))
+
+(define-test "impulse vs force with small dt"
+  ;; Impulse should change velocity instantly
+  ;; Force with very small dt should approximate impulse
+  (let* ([pw (make-pure-world (vec2 0 0))]
+         [entity1 (make-pure-entity 'ball1 (vec2 0 0) 1.0)]
+         [entity2 (make-pure-entity 'ball2 (vec2 10 0) 1.0)]
+         [pw2 (pure-world-add-entity pw entity1)]
+         [pw3 (pure-world-add-entity pw2 entity2)]
+         ;; Apply impulse of 10 to ball1
+         [pw4 (pure-apply-impulse pw3 'ball1 (vec2 10 0))]
+         [ball1-impulse (pure-world-get-entity pw4 'ball1)]
+         ;; Apply force of 1000 with dt=0.01 to ball2 (should ≈ impulse of 10)
+         [pw5 (pure-apply-force pw3 'ball2 (vec2 1000 0))]
+         [pw6 (pure-step pw5 0.01)]
+         [ball2-force (pure-world-get-entity pw6 'ball2)])
+        ;; Impulse: instant Δv = 10
+        (assert-equal 10.0 (vec2-x (entity-vel ball1-impulse)))
+        ;; Force: Δv = (1000/1) * 0.01 = 10
+        (assert-true (< (abs (- (vec2-x (entity-vel ball2-force)) 10.0)) 0.001))))
 
 ;;; ============================================================
 ;;; Falling Body Scenario Test

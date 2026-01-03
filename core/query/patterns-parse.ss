@@ -248,12 +248,35 @@
 ;;; - No path traversal: ../
 ;;; - No control characters
 (define (sanitize-tag-value s)
-  (list->string
-   (filter (lambda (c)
-                   (and (char>=? c #\space)  ; No control chars
-                        (char<=? c #\~)       ; Printable ASCII
-                        (not (memv c '(#\$ #\` #\& #\| #\;)))))
-           (string->list s))))
+  ;; First, check for path traversal patterns (before filtering chars)
+  (if (has-path-traversal? s)
+      ""  ; Reject completely if path traversal detected
+      ;; Then, remove dangerous characters
+      (list->string
+       (filter (lambda (c)
+                       (and (char>=? c #\space)  ; No control chars
+                            (char<=? c #\~)       ; Printable ASCII
+                            (not (memv c '(#\$ #\` #\& #\| #\; #\\)))))
+               (string->list s)))))
+
+;;; has-path-traversal? : String -> Boolean
+;;; True if string contains path traversal sequences.
+;;; Checks for: ../ ..\ ..\\ (handles both Unix and Windows)
+(define (has-path-traversal? s)
+  (let ([len (string-length s)])
+       (let loop ([i 0])
+            (cond
+             [(>= i (- len 2)) #f]  ; Not enough chars left for ../
+             [(and (char=? (string-ref s i) #\.)
+                   (char=? (string-ref s (+ i 1)) #\.))
+              ;; Found ".." - check next char
+              (if (>= (+ i 2) len)
+                  #f  ; ".." at end of string is OK
+                  (let ([next-char (string-ref s (+ i 2))])
+                       (or (char=? next-char #\/)
+                           (char=? next-char #\\)
+                           (loop (+ i 1)))))]
+             [else (loop (+ i 1))]))))
 
 ;;; safe-extract-tags : String -> (Listof (Pair Symbol (U String #t)))
 ;;; Extract tags with sanitized values.

@@ -235,6 +235,59 @@
              (complex-pow (make-complex 2 0) (make-complex 3 0))
              1e-10)
 
+;;; Edge cases for 0^w
+(printf "\n--- Powers of Zero (Edge Cases) ---\n")
+
+;; 0^0 should error
+(let ([caught #f])
+     (guard (ex [else (set! caught #t)])
+            (complex-pow (complex-zero) (complex-zero)))
+     (test "0^0 raises error" #t caught))
+
+;; 0^(-1) should error
+(let ([caught #f])
+     (guard (ex [else (set! caught #t)])
+            (complex-pow (complex-zero) (make-complex -1 0)))
+     (test "0^(-1) raises error" #t caught))
+
+;; 0^(-2) should error
+(let ([caught #f])
+     (guard (ex [else (set! caught #t)])
+            (complex-pow (complex-zero) (make-complex -2 0)))
+     (test "0^(-2) raises error" #t caught))
+
+;; 0^(-1+i) should error (negative real part)
+(let ([caught #f])
+     (guard (ex [else (set! caught #t)])
+            (complex-pow (complex-zero) (make-complex -1 1)))
+     (test "0^(-1+i) raises error" #t caught))
+
+;; 0^(-0.5) should error
+(let ([caught #f])
+     (guard (ex [else (set! caught #t)])
+            (complex-pow (complex-zero) (make-complex -0.5 0)))
+     (test "0^(-0.5) raises error" #t caught))
+
+;; 0^1 should return 0
+(test "0^1 = 0"
+      (complex-zero)
+      (complex-pow (complex-zero) (make-complex 1 0)))
+
+;; 0^2 should return 0
+(test "0^2 = 0"
+      (complex-zero)
+      (complex-pow (complex-zero) (make-complex 2 0)))
+
+;; 0^i should return 0 (real part is 0, not negative)
+(test "0^i = 0"
+      (complex-zero)
+      (complex-pow (complex-zero) (make-complex 0 1)))
+
+;; 0^(1+i) should return 0 (real part is positive)
+(test "0^(1+i) = 0"
+      (complex-zero)
+      (complex-pow (complex-zero) (make-complex 1 1)))
+
 ;;; ============================================================
 ;;; Trigonometric Functions
 ;;; ============================================================

@@ -264,10 +264,20 @@
 ;;; Collect all yielded values into a list.
 (define (generator-to-list gen)
   (let ([body (list-ref gen 1)])
-       (let loop ([acc '()])
-            (callCC (lambda (k)
-                            ;; This is simplified; full impl needs more machinery
-                            acc)))))
+       ;; Create a custom yield that accumulates values
+       (let* ([values '()]
+              [custom-yield
+               (lambda (val)
+                       ;; Capture current continuation and escape
+                       (callCC (lambda (k)
+                                       ;; Store value
+                                       (set! values (append values (list val)))
+                                       ;; Continue the generator
+                                       (k (cont-return val)))))])
+             ;; Run the body with custom yield
+             (eval-cont (body custom-yield))
+             ;; Return accumulated values
+             values)))
 
 ;;; ============================================================
 ;;; Trampolined Recursion

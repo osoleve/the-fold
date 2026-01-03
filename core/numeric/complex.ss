@@ -205,9 +205,12 @@
 ;;; z^w = e^(w * log(z))
 (define (complex-pow z w)
   (if (complex-zero? z)
-      (if (complex-zero? w)
-          (error 'complex-pow "0^0 is undefined" (list z w))
-          (make-complex 0 0))
+      (cond
+       [(complex-zero? w)
+        (error 'complex-pow "0^0 is undefined" (list z w))]
+       [(< (complex-real w) 0)
+        (error 'complex-pow "0^(-n) is undefined (division by zero)" (list z w))]
+       [else (make-complex 0 0)])
       (complex-exp (complex-mul w (complex-log z)))))
 
 ;;; complex-sqrt : Complex → Complex

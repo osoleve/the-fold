@@ -359,12 +359,15 @@
 ;;; Suitable for testing, property-based testing, and autodiff.
 
 ;;; Pure world state representation:
-;;;   (entities gravity)
-;;; Where entities is an alist of (id . entity)
+;;;   (entities gravity forces)
+;;; Where:
+;;;   - entities is an alist of (id . entity)
+;;;   - gravity is a Vec2
+;;;   - forces is an alist of (id . force-accumulator)
 
 ;;; make-pure-world : Vec2 -> PureWorld
 (define (make-pure-world gravity)
-  (list '() gravity))
+  (list '() gravity '()))
 
 ;;; pure-world-entities : PureWorld -> Alist
 (define (pure-world-entities pw) (car pw))
@@ -372,9 +375,16 @@
 ;;; pure-world-gravity : PureWorld -> Vec2
 (define (pure-world-gravity pw) (cadr pw))
 
+;;; pure-world-forces : PureWorld -> Alist
+(define (pure-world-forces pw) (if (null? (cddr pw)) '() (caddr pw)))
+
 ;;; pure-world-with-entities : PureWorld -> Alist -> PureWorld
 (define (pure-world-with-entities pw entities)
-  (list entities (pure-world-gravity pw)))
+  (list entities (pure-world-gravity pw) (pure-world-forces pw)))
+
+;;; pure-world-with-forces : PureWorld -> Alist -> PureWorld
+(define (pure-world-with-forces pw forces)
+  (list (pure-world-entities pw) (pure-world-gravity pw) forces))
 
 ;;; pure-world-get-entity : PureWorld -> id -> Entity | #f
 (define (pure-world-get-entity pw id)
@@ -403,8 +413,25 @@
        (pure-world-with-entities pw entities)))
 
 ;;; pure-apply-force : PureWorld -> id -> Vec2 -> PureWorld
-;;; Apply force to entity (pure version).
+;;; Accumulate force to be applied during next step.
 (define (pure-apply-force pw id force)
+  (let* ([forces (pure-world-forces pw)]
+         [existing (assoc id forces)]
+         [current-force (if existing (cdr existing) (vec2 0 0))]
+         [new-force (vec2-add current-force force)]
+         [new-forces (if existing
+                         (map (lambda (p)
+                                      (if (equal? (car p) id)
+                                          (cons id new-force)
+                                          p))
+                              forces)
+                         (cons (cons id new-force) forces))])
+        (pure-world-with-forces pw new-forces)))
+
+;;; pure-apply-impulse : PureWorld -> id -> Vec2 -> PureWorld
+;;; Apply impulse (instant velocity change) to entity.
+;;; Unlike force, impulse is instant so no dt needed: Δv = J/m
+(define (pure-apply-impulse pw id impulse)
   (pure-world-update-entity pw id
                             (lambda (e)
                                     (if (entity-static? e)
@@ -412,13 +439,9 @@
                                         (let* ([body (entity-body e)]
                                                [inv-mass (body-inv-mass body)]
                                                [new-vel (vec2-add (body-vel body)
-                                                                  (vec2-scale force inv-mass))]
+                                                                  (vec2-scale impulse inv-mass))]
                                                [new-body (body-with-vel body new-vel)])
                                               (entity-with-body e new-body))))))
-
-;;; pure-apply-impulse : PureWorld -> id -> Vec2 -> PureWorld
-(define (pure-apply-impulse pw id impulse)
-  (pure-apply-force pw id impulse))  ; Same effect for instantaneous
 
 ;;; pure-set-position : PureWorld -> id -> Vec2 -> PureWorld
 (define (pure-set-position pw id pos)
@@ -438,9 +461,11 @@
 
 ;;; pure-step : PureWorld -> Number -> PureWorld
 ;;; Simple Euler integration step (no collision detection).
+;;; Applies accumulated forces, then clears them.
 (define (pure-step pw dt)
   (let* ([gravity (pure-world-gravity pw)]
          [entities (pure-world-entities pw)]
+         [forces (pure-world-forces pw)]
          [updated (map (lambda (p)
                                (let ([id (car p)]
                                      [e (cdr p)])
@@ -451,7 +476,11 @@
                                                [inv-mass (body-inv-mass body)]
                                                ;; Apply gravity
                                                [gravity-force (vec2-scale gravity mass)]
-                                               [accel (vec2-scale gravity-force inv-mass)]
+                                               ;; Apply accumulated forces
+                                               [accumulated (let ([pair (assoc id forces)])
+                                                                 (if pair (cdr pair) (vec2 0 0)))]
+                                               [total-force (vec2-add gravity-force accumulated)]
+                                               [accel (vec2-scale total-force inv-mass)]
                                                [new-vel (vec2-add (body-vel body)
                                                                   (vec2-scale accel dt))]
                                                ;; Update position
@@ -462,7 +491,8 @@
                                                           new-pos)])
                                               (cons id (entity-with-body e new-body))))))
                        entities)])
-        (pure-world-with-entities pw updated)))
+        ;; Clear accumulated forces after applying them
+        (pure-world-with-forces (pure-world-with-entities pw updated) '())))
 
 ;;; run-physics-pure : Free PhysicsF a -> PureWorld -> (a . PureWorld)
 ;;; Run a physics program purely (no mutation).
