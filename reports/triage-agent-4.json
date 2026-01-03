@@ -1,0 +1,200 @@
+{
+  "triage_id": "triage-agent-4",
+  "original_report": "gemini-flashmob-agent-4.json",
+  "timestamp": "2026-01-03T16:00:00Z",
+  "validated_issues": [
+    {
+      "file": "agents/lib/parse-trigger.js",
+      "line": 20,
+      "original_description": "Fragile Parenthesis Normalization: The check for '((' and '))' is too strict and doesn't handle internal whitespace. Additionally, slice(1, -1) on '((...))' removes only one level, but logic fails if file contains multiple top-level S-expressions or comments.",
+      "original_severity": "medium",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "The code at lines 15-20 actually strips comments BEFORE the parenthesis check. Lines 15-18 filter out lines starting with ';'. The '((' check on line 23 happens AFTER comment stripping. The slice(1, -1) correctly removes the outer layer from '((...))' to get '(...)'. For a simple alist parser designed for trigger files (not a general S-expression parser), this is acceptable behavior."
+    },
+    {
+      "file": "agents/lib/parse-trigger.js",
+      "line": 26,
+      "original_description": "Regex Termination Bug: The unquoted value pattern [^)]\\s]+ will prematurely terminate if a symbol contains a literal ')' (even if escaped or inside a nested structure). This makes the parser fragile to valid S-expression variations.",
+      "original_severity": "high",
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "The regex on line 31 is '\\((\\w[\\w-]*)\\s+\\.\\s+(\"(?:[^\"\\\\]|\\\\.)*\"|[^)]+)\\)'. The unquoted value pattern [^)]+ will indeed stop at the first ')'. However, for the limited use case of parsing trigger alists with simple key-value pairs, this is unlikely to cause issues in practice. Downgrade to medium since trigger files typically don't contain nested S-expressions in values."
+    },
+    {
+      "file": "agents/lib/parse-trigger.js",
+      "line": 41,
+      "original_description": "Incomplete Unescaping: The manual unescaping logic only handles a small subset of standard escape sequences (\\n, \\r, \\t, \\\", \\\\). Other common escapes like \\b, \\f, or hex/unicode escapes will be left in their literal escaped form.",
+      "original_severity": "medium",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at lines 40-47, the code actually handles \\n, \\r, \\t, \\b, \\f, \\\", and \\\\. The QA report missed that \\b and \\f ARE handled (lines 44-45). Hex/unicode escapes are not standard Scheme escapes and aren't commonly needed in trigger files. The escape handling is adequate for the use case."
+    },
+    {
+      "file": "agents/lib/parse-trigger.js",
+      "line": 0,
+      "original_description": "Missing Comment Support: S-expression files frequently use ';' for comments. This parser will attempt to match comment text as keys or values if they contain dots or parentheses.",
+      "original_severity": "low",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Lines 15-18 explicitly strip comments before parsing: '.filter(line => !line.trim().startsWith(';'))'. Comments ARE handled - they are removed entirely before the regex matching happens. This issue is factually incorrect."
+    },
+    {
+      "file": "agents/personas/dialectic-dsl.ss",
+      "line": 54,
+      "original_description": "Potential List Index Out of Bounds: The code assumes resolution-methods and resolution-framing will always contain at least 2 elements. While choose-n 2 currently satisfies this, the code will crash if source lists are ever shortened.",
+      "original_severity": "medium",
+      "validation": "uncertain",
+      "adjusted_severity": "low",
+      "reasoning": "Looking at lines 18-24 and 27-32, both lists have 5 and 4 elements respectively. The choose-n function (from persona-prompt-gen.ss lines 116-131) safely handles cases where n >= list length by returning all items shuffled. So if source lists had fewer than 2 elements, choose-n would still return what's available. However, car/cadr on lines 52/55 and 62/65 WOULD fail if the returned list had < 2 elements. This is a theoretical concern but unlikely given the static data."
+    },
+    {
+      "file": "agents/personas/dialectic-dsl.ss",
+      "line": 104,
+      "original_description": "Embedded Selection in Sign-off: The random selection for the sign-off happens at prompt generation time. If intent is for agent to 'choose' its sign-off style during conversation, this hard-codes it into the system prompt for that specific run.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "This is accurate. The (choice ...) on lines 101-105 evaluates at load time, fixing the sign-off in the generated prompt. However, this appears to be intentional design - each invocation gets a randomized but consistent personality. Not a bug, just a design observation."
+    },
+    {
+      "file": "agents/regulars.md",
+      "line": 0,
+      "original_description": "Minor formatting inconsistency: Some entries have slightly different formatting for personality traits vs background, but as a context file for LLMs this is negligible.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "The file is well-structured with consistent use of headers (##), bullet points (-), and descriptive prose. Minor variations in how different character traits are described is natural and acceptable for LLM context. This is more of a style note than an issue."
+    },
+    {
+      "file": "agents/invoke-archivist.js",
+      "line": 86,
+      "original_description": "Environment Dependency: Use of execSync with 'claude' CLI assumes the command is in the system PATH and pre-authenticated. Likely to fail in production/daemon environments unless environment is perfectly mirrored.",
+      "original_severity": "high",
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "Line 84 does use execSync with 'claude --print --model sonnet'. This assumes claude CLI is installed, in PATH, and authenticated. For The Fold's production deployment (debian-8gb-ash-1 server as mentioned in CLAUDE.md), this is likely pre-configured. Downgrade to medium as this is a deployment concern, not a code bug, and the server is documented as a controlled environment."
+    },
+    {
+      "file": "agents/invoke-archivist.js",
+      "line": 78,
+      "original_description": "Temp File Collision Risk: Using Date.now() for temp filenames is susceptible to collisions if multiple trigger events occur in the same millisecond. Use of UUID or crypto.randomBytes is recommended.",
+      "original_severity": "medium",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at line 73, the filename is: '/tmp/archivist-prompt-${Date.now()}-${Math.random().toString(36).slice(2)}.txt'. The code uses BOTH Date.now() AND Math.random() - the combination makes collision extremely unlikely. The QA report appears to have only noticed Date.now() and missed the random suffix."
+    },
+    {
+      "file": "agents/invoke-archivist.js",
+      "line": 35,
+      "original_description": "Outdated Tagging Convention: The prompt version uses @agents/invoke-opus.js style tags, while Discord integration expects short tags like @opus. This will cause the agent to fail to trigger other agents in Discord.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at lines 29-57 (SYSTEM_PROMPT), there is no mention of '@agents/invoke-opus.js'. The prompt explicitly tells the agent to use short tags: 'Tag @opus for connecting history...', 'Tag @sonnet for implementation details...', 'Tag @haiku for quick pointers...'. Line 35 says 'Connecting questions to relevant prior work' - nothing about tagging. The QA report appears to have misread the file."
+    },
+    {
+      "file": "agents/invoke-archivist.js",
+      "line": 83,
+      "original_description": "Prompt Injection Vulnerability: Direct interpolation of ${author} and ${body} into the prompt allows a user to 'break out' of the user-query block and provide instructions that contradict the SYSTEM_PROMPT.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "Lines 74-78 construct the prompt with direct interpolation: '${author} asks: ${body}'. A malicious user could craft a message like 'Ignore all previous instructions...' in the body. However, this is a Discord bot responding to @archivist tags - the attack surface is limited to Discord users who can message the bot. Medium severity is appropriate as modern LLMs have some injection resistance, but the concern is valid."
+    },
+    {
+      "file": "agents/pipelines/tech-debt.ss",
+      "line": 38,
+      "original_description": "Broken Paths: Shell commands reference directories 'fabric' and 'thimble' which do not exist in the project root. Should likely be 'core' or 'agents'. Pipeline will fail on first 'find' command.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at lines 35-44, the shell commands reference 'core shell' NOT 'fabric' or 'thimble'. For example: \"find core shell -name '*.ss' -exec wc -l {} + | tail -1\". Both 'core' and 'shell' directories exist (verified via ls). The QA report made an incorrect claim about the directory references."
+    },
+    {
+      "file": "agents/pipelines/tech-debt.ss",
+      "line": 53,
+      "original_description": "Broken Data Flow Logic: In the chain macro, each stage-&&& passes its output to the next. Since run-shell ignores input, the final stage-arr only receives results of the last pair of metrics. Attempts to access (caar metrics) and (caadr metrics) will result in index out of bounds errors.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "The QA report misunderstands the data flow. Looking at lines 32-58, stage-&&& creates nested pairs: ((line . file) . ((todo . fixme) . (test . issues))). The stage-arr on line 48 correctly destructures this: car gets (line . file), cdr gets ((todo . fixme) . (test . issues)), then it extracts all 6 values properly. The code structure matches the expected output structure. This is correct arrow-style composition."
+    },
+    {
+      "file": "agents/pipelines/tech-debt.ss",
+      "line": 142,
+      "original_description": "Invalid Model Reference: 'gemini-3' is likely a typo for 'gemini-1.5-pro' or future-dated placeholder. It will cause runtime error if LLM provider doesn't recognize the model string.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "Line 141 shows: (council-sequential '(opus gemini-3) 2 'opus). 'gemini-3' is indeed not a valid model name. Current Gemini models are gemini-1.5-pro, gemini-1.5-flash, etc. This will likely cause a runtime error when the council attempts to use this model. However, this is a pipeline that may have future model support planned, so marking as medium rather than high."
+    },
+    {
+      "file": "agents/pipelines/tech-debt.ss",
+      "line": 173,
+      "original_description": "Shell Injection in Bead Creation: ${input} is passed directly to beads-create. If extracted 'TITLE' contains single quotes or semicolons, it could lead to arbitrary shell command execution or broken issue creation.",
+      "original_severity": "medium",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at line 185, beads-create is called with '${input}'. However, beads-create (from effects.ss lines 286-290) is an EFFECT that returns '(effect 'beads (list 'create title))' - it doesn't directly execute shell commands. The interpreter handles the effect, which would use proper bd CLI invocation. The ${input} is string interpolation within the pipeline DSL, not shell interpolation. No shell injection risk exists here."
+    }
+  ],
+  "gaps_found": [
+    {
+      "file": "agents/lib/parse-trigger.js",
+      "line": 31,
+      "severity": "medium",
+      "description": "Regex doesn't handle multiline quoted strings correctly. The pattern '\"(?:[^\"\\\\]|\\\\.)*\"' expects the entire quoted string on one line. Multiline string values (common in S-expressions) will fail to parse or be truncated.",
+      "category": "edge-case"
+    },
+    {
+      "file": "agents/invoke-archivist.js",
+      "line": 84,
+      "severity": "low",
+      "description": "No timeout specified on execSync. If the claude CLI hangs (network issues, rate limiting), the process will hang indefinitely. Should use timeout option in execSync.",
+      "category": "performance"
+    },
+    {
+      "file": "agents/invoke-archivist.js",
+      "line": 70,
+      "severity": "low",
+      "description": "Error message truncation at 60 characters (body.slice(0, 60)) could cut off important context in error logs for debugging.",
+      "category": "other"
+    },
+    {
+      "file": "agents/pipelines/tech-debt.ss",
+      "line": 100,
+      "severity": "low",
+      "description": "The run-shell command 'head -100 ${input}' in code-quality-stage assumes ${input} is a valid filename. If shuf returns empty results or malformed paths, this will fail silently or error.",
+      "category": "edge-case"
+    },
+    {
+      "file": "agents/pipelines/tech-debt.ss",
+      "line": 136,
+      "severity": "medium",
+      "description": "In deliberation-stage (lines 136-138), the format string uses (cadr data) and (cddr data) to access nested checkpoint data, but the structure from stage-&&& would give ((hotspots . quality-reviews)), so (cadr data) gets quality-reviews and (cddr data) is '(). This will produce malformed output.",
+      "category": "logic"
+    },
+    {
+      "file": "agents/pipelines/tech-debt.ss",
+      "line": 217,
+      "severity": "low",
+      "description": "In post-report-stage (lines 217-219), (cddr data) is used to get issues-created count, but with the nested &&& structure, this would be accessing the wrong part of the pair. Should be (cdr (cdr data)) or restructured.",
+      "category": "logic"
+    },
+    {
+      "file": "agents/personas/dialectic-dsl.ss",
+      "line": 7,
+      "severity": "low",
+      "description": "The load path 'agents/lib/persona-prompt-gen.ss' is relative and assumes the script is run from project root. If run from a different directory, the load will fail.",
+      "category": "edge-case"
+    }
+  ],
+  "summary": {
+    "confirmed": 6,
+    "rejected": 9,
+    "uncertain": 1,
+    "gaps_found": 7,
+    "notes": "The QA report had significant accuracy issues. 9 of 16 reported issues were rejected after source code review. Key false positives: (1) parse-trigger.js actually DOES handle comments (rejected 2 issues), (2) tech-debt.ss uses correct 'core shell' directories not 'fabric thimble', (3) the data flow logic in gather-metrics-stage is actually correct with proper pair nesting, (4) invoke-archivist.js DOES use random suffix for temp files and DOES use correct @opus style tags, (5) beads-create is an effect DSL not shell execution. Valid concerns: regex fragility for complex S-expressions, prompt injection in archivist, and the invalid 'gemini-3' model reference. New gaps found include multiline string handling, missing timeout on execSync, and data structure mismatches in later pipeline stages."
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "triage_id": "triage-agent-2",
+  "original_report": "gemini-flashmob-agent-2.json",
+  "timestamp": "2026-01-03T16:05:00Z",
+  "validated_issues": [
+    {
+      "file": "core/linalg/matrix-decomp.ss",
+      "line": 36,
+      "original_description": "matrix-copy initializes new-data with integer 0. For floating-point matrices, 0.0 is preferred for type consistency.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Valid observation. The code uses (make-vector (* rows cols) 0) with integer 0. However, the values are immediately overwritten in the loop (lines 37-39) copying from the source matrix, so this only affects uninitialized memory briefly. The practical impact is negligible since all values are replaced. Style issue only."
+    },
+    {
+      "file": "core/linalg/sparse.ss",
+      "line": 523,
+      "original_description": "sparse-coo-add-impl uses a dense accumulator vector of size (* rows cols). This causes O(N^2) memory usage, leading to exhaustion for large sparse matrices.",
+      "original_severity": "high",
+      "validation": "confirmed",
+      "adjusted_severity": "high",
+      "reasoning": "Verified at line 523: [acc (make-vector (* rows cols) 0)]. For a 10000x10000 sparse matrix with only 1000 non-zeros, this allocates 100 million elements instead of working proportionally to nnz. This completely defeats the purpose of sparse matrix storage and will cause memory exhaustion for large sparse matrices. A hash-based or sorted merge approach should be used instead."
+    },
+    {
+      "file": "core/linalg/sparse.ss",
+      "line": 654,
+      "original_description": "sparse-csr-mul uses a dense accumulator vector of size (* ma nb). This defeats the purpose of sparse matrix multiplication for large matrices.",
+      "original_severity": "high",
+      "validation": "confirmed",
+      "adjusted_severity": "high",
+      "reasoning": "Verified at lines 653-654: [acc (make-vector (* ma nb) 0)] in sparse-csr-mul. Same critical issue as sparse-coo-add-impl - dense accumulator for sparse output. For multiplying two 10000x10000 sparse matrices, this allocates 100 million elements regardless of actual non-zero count. Standard sparse multiplication algorithms (e.g., symbolic then numeric phases, or row-by-row accumulation) avoid this."
+    },
+    {
+      "file": "core/linalg/sparse.ss",
+      "line": 370,
+      "original_description": "dense->sparse-coo uses quotient and remainder in a loop; maintaining separate counters would be more efficient for large indices.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Verified at lines 370-371: uses (quotient i cols) and (remainder i cols) in the extraction loop. However, this loop only iterates over nnz (non-zero elements), not the full matrix. For truly sparse matrices, nnz << rows*cols, so the overhead is minimal. The optimization would help dense-ish matrices but has limited impact for typical sparse use cases. Downgraded to low."
+    },
+    {
+      "file": "core/autodiff/reverse-diff.ss",
+      "line": 77,
+      "original_description": "*current-tape* parameter is defined but unused in arithmetic operations (lines 118-240). Operations extract tape from inputs instead.",
+      "original_severity": "medium",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "The *current-tape* parameter IS used - specifically in with-fresh-ad-scope (line 56) for parameterized scoping. The design is intentional: arithmetic operations extract tape from their traced value inputs (which is correct - the tape belongs to the values being differentiated, not a global state). The parameter enables nested AD scopes. This is good design, not a bug."
+    },
+    {
+      "file": "core/autodiff/reverse-diff.ss",
+      "line": 143,
+      "original_description": "Arithmetic operations do not check if inputs 'a' and 'b' share the same tape, which can lead to corrupted gradients if values from different AD scopes are mixed.",
+      "original_severity": "medium",
+      "validation": "uncertain",
+      "adjusted_severity": "medium",
+      "reasoning": "Verified: traced-add (line 143) uses (or ...) to get the first available tape without checking tape identity. If a user accidentally mixes traced values from different gradient computations, the results would be silently wrong. However, the with-fresh-ad-scope mechanism (line 54-57) creates isolated scopes which should prevent this in normal use. This is a potential footgun but may be acceptable as caller responsibility."
+    },
+    {
+      "file": "core/autodiff/reverse-diff.ss",
+      "line": 271,
+      "original_description": "traced-pow only supports constant exponents. Differentiating with respect to the exponent is not supported.",
+      "original_severity": "low",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "This is documented behavior, not a bug. The function signature is traced-pow : Traced|Number x Number -> Traced (line 269). The exponent is explicitly typed as plain Number, not Traced|Number. This is a deliberate API design choice. To differentiate x^y w.r.t. both, use traced-exp(traced-mul(y, traced-log(x)))."
+    },
+    {
+      "file": "core/numeric/dft.ss",
+      "line": 155,
+      "original_description": "ifft-radix2-inplace! has an empty termination expression in the stage loop. While valid, it is less idiomatic than providing the vector as a return value.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Verified at lines 154-155: (do ([s 1 (+ s 1)]) ((> s log2n)) ...) has no return value in the termination clause. The actual return (a) happens at line 174 after the scaling loop. Compare to fft-radix2-inplace! (line 117) which returns 'a' in its stage loop termination. This is a minor style inconsistency that doesn't affect correctness."
+    },
+    {
+      "file": "core/numeric/dft.ss",
+      "line": 294,
+      "original_description": "zero-pad guesses the zero type by inspecting the first element of the input. This fails to distinguish complex/real if the input vector is empty.",
+      "original_severity": "low",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "The code at lines 292-298 CORRECTLY handles empty vectors: (if (> m 0) ... 0). When the input is empty (m=0), it defaults to numeric 0, which is the only sensible choice since there's no type information available. This is proper edge case handling, not a bug."
+    }
+  ],
+  "gaps_found": [
+    {
+      "file": "core/linalg/sparse.ss",
+      "line": 568,
+      "severity": "low",
+      "description": "In sparse-coo-add-impl extraction phase (lines 562-572), quotient/remainder is used again to compute row/col from linear index k. Same minor inefficiency as flagged for dense->sparse-coo.",
+      "category": "performance"
+    },
+    {
+      "file": "core/linalg/sparse.ss",
+      "line": 692,
+      "severity": "low",
+      "description": "In sparse-csr-mul extraction phase (lines 686-698), same quotient/remainder pattern used to extract row/col from linear index. Consistent with other dense-accumulator extractions.",
+      "category": "performance"
+    },
+    {
+      "file": "core/linalg/matrix-decomp.ss",
+      "line": 50,
+      "severity": "low",
+      "description": "matrix-column (lines 48-53) also uses integer 0 for initialization: (make-vector rows 0). Same style issue as matrix-copy. Values are overwritten immediately.",
+      "category": "other"
+    },
+    {
+      "file": "core/autodiff/reverse-diff.ss",
+      "line": 470,
+      "severity": "low",
+      "description": "numerical-gradient uses (iota (length args)) to generate indices. If args is empty, this works correctly, but the function could document that it returns '() for empty input.",
+      "category": "other"
+    },
+    {
+      "file": "core/linalg/sparse.ss",
+      "line": 710,
+      "severity": "medium",
+      "description": "sparse-csr-scale and sparse-coo-scale (lines 704-719) use vec-map which creates new vectors. For large sparse matrices this is correct, but vec-copy is called separately for indices before vec-map for values - could be combined into a single pass.",
+      "category": "performance"
+    }
+  ],
+  "summary": {
+    "confirmed": 5,
+    "rejected": 3,
+    "uncertain": 1,
+    "gaps_found": 5,
+    "notes": "The two HIGH severity issues in sparse.ss (dense accumulator for COO addition and CSR multiplication) are legitimate and serious architectural flaws that defeat the purpose of sparse matrix operations. These should be prioritized for fixing. Three issues were rejected: the *current-tape* parameter is intentionally designed for scoping, traced-pow's constant exponent is documented API design, and zero-pad correctly handles empty vectors. The medium severity issue about tape identity checking is uncertain - it's a potential footgun but may be acceptable as caller responsibility given the scoping mechanism. Several low-severity style and minor performance issues were confirmed."
+  }
+}

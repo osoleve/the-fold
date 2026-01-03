@@ -1,0 +1,220 @@
+{
+  "summary_id": "flashmob-triage-summary",
+  "timestamp": "2026-01-03T17:00:00Z",
+  "triage_reports": [
+    "triage-agent-1.json",
+    "triage-agent-2.json",
+    "triage-agent-3.json",
+    "triage-agent-4.json",
+    "triage-agent-5.json",
+    "triage-agent-69da.json",
+    "triage-agent-0547.json",
+    "triage-agent-1862.json"
+  ],
+  "aggregate_statistics": {
+    "total_issues_reviewed": 84,
+    "confirmed": 50,
+    "rejected": 28,
+    "uncertain": 6,
+    "qa_accuracy_rate": "59.5%",
+    "total_gaps_found": 46
+  },
+  "confirmed_by_severity": {
+    "high": 8,
+    "medium": 21,
+    "low": 21
+  },
+  "high_priority_issues": [
+    {
+      "file": "core/linalg/matrix.ss",
+      "line": 62,
+      "description": "matrix-from-lists crashes with 'car of empty list' error if any row after the first is shorter than the first row",
+      "severity": "high",
+      "triage_source": "triage-agent-1"
+    },
+    {
+      "file": "core/numeric/complex.ss",
+      "line": 206,
+      "description": "complex-pow returns (complex 0 0) for 0^w when w has negative real part; mathematically should be infinity/error",
+      "severity": "high",
+      "triage_source": "triage-agent-1"
+    },
+    {
+      "file": "core/linalg/sparse.ss",
+      "line": 523,
+      "description": "sparse-coo-add-impl uses O(N^2) dense accumulator, defeating sparse storage purpose and causing memory exhaustion",
+      "severity": "high",
+      "triage_source": "triage-agent-2"
+    },
+    {
+      "file": "core/linalg/sparse.ss",
+      "line": 654,
+      "description": "sparse-csr-mul uses O(N^2) dense accumulator, defeating sparse storage purpose and causing memory exhaustion",
+      "severity": "high",
+      "triage_source": "triage-agent-2"
+    },
+    {
+      "file": "core/linalg/matrix-eigen.ss",
+      "line": 352,
+      "description": "eigen-decomposition uses unit vectors as fallback when inverse iteration fails; mathematically incorrect for general matrices",
+      "severity": "high",
+      "upgraded_from": "medium",
+      "triage_source": "triage-agent-3"
+    },
+    {
+      "file": "core/numeric/convolution.ss",
+      "line": 309,
+      "description": "normalize-signal causes division by zero for empty vectors (no guard for n=0)",
+      "severity": "high",
+      "triage_source": "triage-agent-3"
+    },
+    {
+      "file": "core/query/query.ss",
+      "line": 41,
+      "description": "(cdr (assq 'body post)) crashes if post lacks 'body' field; pattern appears at lines 41, 71, 94, 136, 148",
+      "severity": "high",
+      "triage_source": "triage-agent-69da"
+    },
+    {
+      "file": "core/query/patterns-parse.ss",
+      "line": 182,
+      "description": "sanitize-tag-value claims to prevent path traversal (../) but does not filter '.' or '/' characters",
+      "severity": "high",
+      "upgraded_from": "medium",
+      "triage_source": "triage-agent-0547"
+    }
+  ],
+  "notable_false_positives": [
+    {
+      "description": "quat-from-euler 'y' component calculation allegedly wrong - formula is actually correct per ZYX standard",
+      "triage_source": "triage-agent-3",
+      "original_severity": "high"
+    },
+    {
+      "description": "d-pow negative exponent infinite recursion - code explicitly handles negative exponents at lines 202-204",
+      "triage_source": "triage-agent-3",
+      "original_severity": "high"
+    },
+    {
+      "description": "tech-debt.ss references 'fabric' and 'thimble' directories - actually references 'core shell' which exist",
+      "triage_source": "triage-agent-4",
+      "original_severity": "high"
+    },
+    {
+      "description": "parse-trigger.js missing comment support - comments ARE stripped before parsing at lines 15-18",
+      "triage_source": "triage-agent-4",
+      "original_severity": "low"
+    },
+    {
+      "description": "llm-agent-poll.ss global depth counter - now uses per-agent state files (state-file-for agent)",
+      "triage_source": "triage-agent-5",
+      "original_severity": "high"
+    },
+    {
+      "description": "llm-agent-poll.ss race condition in save-count! - now uses atomic temp-file-then-rename pattern",
+      "triage_source": "triage-agent-5",
+      "original_severity": "high"
+    },
+    {
+      "description": "llm-agent-poll.ss incomplete JSON escaping - now handles all control chars U+0000-U+001F per RFC 8259",
+      "triage_source": "triage-agent-5",
+      "original_severity": "high"
+    }
+  ],
+  "notable_gaps_found": [
+    {
+      "file": "core/linalg/vec.ss",
+      "line": 188,
+      "description": "vec-div does not handle division by zero - will throw unhandled exception",
+      "severity": "medium",
+      "triage_source": "triage-agent-1"
+    },
+    {
+      "file": "core/linalg/matrix.ss",
+      "line": 71,
+      "description": "matrix-from-lists silently truncates rows LONGER than first row - silent data loss",
+      "severity": "medium",
+      "triage_source": "triage-agent-1"
+    },
+    {
+      "file": "core/numeric/complex.ss",
+      "line": 129,
+      "description": "complex-div throws exception instead of returning error value - inconsistent with Core 'total' philosophy",
+      "severity": "medium",
+      "triage_source": "triage-agent-1"
+    },
+    {
+      "file": "core/numeric/convolution.ss",
+      "line": 41,
+      "description": "convolve-direct-full produces output-len=-1 for empty inputs, causing make-vector failure",
+      "severity": "medium",
+      "triage_source": "triage-agent-3"
+    },
+    {
+      "file": "agents/lib/parse-trigger.js",
+      "line": 31,
+      "description": "Regex doesn't handle multiline quoted strings - common in S-expressions",
+      "severity": "medium",
+      "triage_source": "triage-agent-4"
+    },
+    {
+      "file": "agents/pipelines/tech-debt.ss",
+      "line": 136,
+      "description": "deliberation-stage data structure access (cadr/cddr) mismatched with stage-&&& output structure",
+      "severity": "medium",
+      "triage_source": "triage-agent-4"
+    },
+    {
+      "file": "agents/llm-agent-poll.ss",
+      "line": 51,
+      "description": "process-trigger uses bare (read) to parse trigger files with no validation - security concern",
+      "severity": "medium",
+      "triage_source": "triage-agent-5"
+    },
+    {
+      "file": "core/data/collection-utils.ss",
+      "line": 142,
+      "description": "collection-all? has inconsistent missing-block behavior vs collection-any?",
+      "severity": "medium",
+      "triage_source": "triage-agent-69da"
+    },
+    {
+      "file": "core/query/query.ss",
+      "line": 159,
+      "description": "count-string-occurrences has same O(N^2) complexity issue as count-occurrences",
+      "severity": "medium",
+      "triage_source": "triage-agent-69da"
+    }
+  ],
+  "observations": {
+    "qa_quality_variance": "High variance across QA agents: agent-69da had 100% accuracy while agent-5 had only 42% accuracy (8 confirmed, 10 rejected)",
+    "line_number_accuracy": "Many QA reports had incorrect line numbers (off by 10-200+ lines), suggesting agents worked with outdated file versions or had counting issues",
+    "outdated_reports": "Several 'high' severity bugs in agent-5's report were already fixed in current code (atomic writes, JSON escaping, per-agent state files)",
+    "severity_adjustments": "2 issues upgraded from medium to high (eigen unit vector fallback, path traversal gap); 4 issues downgraded from high to medium",
+    "common_patterns": {
+      "fabric_to_core_renames": "Multiple files still have 'fabric/stitches/' or 'fabric/patterns/' in header comments after being moved to 'core/'",
+      "tail_recursion": "Many data structure functions are not tail-recursive - acknowledged as simple implementation tradeoff",
+      "dense_accumulators": "Sparse matrix operations using dense accumulators is a critical architectural flaw"
+    }
+  },
+  "recommendations": {
+    "immediate_fixes": [
+      "Fix sparse matrix O(N^2) memory issue (sparse-coo-add-impl, sparse-csr-mul)",
+      "Add missing body field guard in query.ss (high crash risk)",
+      "Fix complex-pow 0^(-n) mathematical error",
+      "Add path traversal protection to sanitize-tag-value"
+    ],
+    "short_term": [
+      "Fix matrix-from-lists crash on ragged input",
+      "Fix normalize-signal division by zero",
+      "Fix eigen-decomposition unit vector fallback",
+      "Add empty input guards to convolution functions"
+    ],
+    "tech_debt": [
+      "Update file header paths from fabric/ to core/",
+      "Consider tail-recursive rewrites for data structure functions",
+      "Add caching to forum query functions",
+      "Standardize error handling (throw vs return error value)"
+    ]
+  }
+}

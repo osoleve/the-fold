@@ -1,0 +1,243 @@
+{
+  "triage_id": "triage-agent-5",
+  "original_report": "gemini-flashmob-agent-5.json",
+  "timestamp": "2026-01-03T16:00:00Z",
+  "validated_issues": [
+    {
+      "file": "agents/lib/test-persona-dsl.ss",
+      "line": 14,
+      "original_description": "Inefficient string-contains: Uses substring in a loop, leading to O(N*M) complexity and excessive allocations. Most Scheme implementations provide a more efficient built-in or SRFI utility.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "The issue is technically correct - the string-contains helper does iterate with substring comparisons, which is O(N*M). However, for a test file with small strings, this is acceptable. Chez Scheme does not have a built-in string-contains, so this implementation is reasonable. Severity is appropriately low."
+    },
+    {
+      "file": "agents/lib/test-persona-dsl.ss",
+      "line": 46,
+      "original_description": "Weak Assertions: emit-multiple-test only asserts that the result is a string, which is a very weak test. It should verify that the output actually contains the expected lines.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Looking at lines 41-49, emit-multiple-test only checks (string? result) and (> (string-length result) 0). This is indeed weak - it should verify that 'Line 1', 'Line 2', 'Line 3' appear in the output. The test passes even if the DSL completely malfunctions. Low severity is correct since this is a test quality issue, not a production bug."
+    },
+    {
+      "file": "agents/lib/test-persona-dsl.ss",
+      "line": 16,
+      "original_description": "Inconsistent Indentation: The indentation in the string-contains helper deviates from the 2-space convention used elsewhere in the project.",
+      "original_severity": "low",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Examining lines 14-21, the indentation appears consistent with the project's standard style. The let and let loop constructs use 5-space continuation which is idiomatic for nested let bindings in Scheme. The cond clauses are properly aligned. This is not a real issue."
+    },
+    {
+      "file": "agents/personas/velocity-dsl.ss",
+      "line": 10,
+      "original_description": "Primitive Misuse: Uses legacy 'choice' and 'choose-n' from persona-prompt-gen.ss instead of the modern 'pick' and 'pick-n' from the Enhanced Persona DSL (persona-dsl.ss). This creates architectural fragmentation.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "The file loads persona-prompt-gen.ss (line 7) and uses 'choice' (lines 11, 111) and 'choose-n' (lines 19, 27). The newer persona-dsl.ss provides 'pick' and 'pick-n' with the monadic DSL pattern. However, both systems coexist by design - persona-prompt-gen.ss is the imperative style, persona-dsl.ss is the monadic style. velocity-dsl.ss is internally consistent with the older API. This is tech debt rather than a bug. Downgrading to low severity."
+    },
+    {
+      "file": "agents/personas/velocity-dsl.ss",
+      "line": 33,
+      "original_description": "Manual String Formatting: Uses brittle string-append and manual bullet points instead of structured emit-list and emit-section procedures provided by the new DSL.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Lines 33-116 use string-append with manual formatting. This is the expected style for persona-prompt-gen.ss users. It's not 'brittle' per se - it works correctly - but it's more verbose than the DSL approach. This is a style/modernization suggestion rather than a bug. Severity is appropriate."
+    },
+    {
+      "file": "agents/personas/velocity-dsl.ss",
+      "line": 50,
+      "original_description": "Unsafe List Access: Accessing items with (car profiling-approaches) and (cadr profiling-approaches) assumes choose-n always returns at least two items. Fragile pattern.",
+      "original_severity": "low",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at lines 18-23 and 50-53: choose-n is called with n=2 on a list of 4 items. The choose-n implementation in persona-prompt-gen.ss (lines 116-131) explicitly handles edge cases and will return min(n, length) items. Since the list has 4 items and n=2, it will always return exactly 2 items. The car/cadr pattern is safe here. The fragility concern would only apply if someone modified the list to have fewer items."
+    },
+    {
+      "file": "agents/defaults.yaml",
+      "line": 5,
+      "original_description": "Model Inconsistency: The 'model' field is set to 'opencode/big-pickle', but JavaScript invokers (like invoke-pedagogue.js) hardcode 'sonnet'. This makes global model configuration impossible via YAML.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "defaults.yaml line 5 sets model: opencode/big-pickle, but invoke-pedagogue.js line 84 hardcodes --model sonnet. The YAML configuration is indeed not being consumed. This creates confusion about the actual model being used. Medium severity is appropriate - it's a configuration/documentation mismatch that could lead to operational confusion."
+    },
+    {
+      "file": "agents/defaults.yaml",
+      "line": 6,
+      "original_description": "Tier Contradiction: The YAML defines 'tier: haiku', but llm-agent-poll.ss hardcodes 'tier: shepherd' when writing posts.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "defaults.yaml line 6 sets tier: haiku, but llm-agent-poll.ss line 102 hardcodes (tier . shepherd) when writing chat posts. This is a real inconsistency. The YAML tier configuration is not being used. Medium severity is appropriate."
+    },
+    {
+      "file": "agents/defaults.yaml",
+      "line": 9,
+      "original_description": "Documentation Gap: Comments describe a process pool logic (square root of persona count) that is not implemented in the provided polling scripts.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Lines 9-15 describe a process pool with sqrt(persona_count) processes and staggered intervals, but this logic is not implemented in llm-agent-poll.ss. The comment describes aspirational architecture, not current reality. Low severity is correct - it's documentation drift."
+    },
+    {
+      "file": "agents/invoke-pedagogue.js",
+      "line": 54,
+      "original_description": "Inconsistent Tagging: The SYSTEM_PROMPT instructs the agent to tag others using full names. Every other agent in the system uses short names like @opus. This inconsistency likely breaks cross-agent triggers.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Reading lines 29-58, the SYSTEM_PROMPT actually instructs: 'Tag @opus for philosophical depth' (line 52), 'Tag @sonnet for hands-on coding' (line 53), etc. These ARE the short names. The report is incorrect - the prompt uses @opus, @sonnet, @haiku, @archivist which matches the system convention. The description 'full names' is wrong."
+    },
+    {
+      "file": "agents/invoke-pedagogue.js",
+      "line": 79,
+      "original_description": "Command Injection Risk: Using execSync with a template literal for the shell command is dangerous. Should use spawnSync or the 'input' option for better security.",
+      "original_severity": "high",
+      "validation": "uncertain",
+      "adjusted_severity": "medium",
+      "reasoning": "Line 84: execSync(`claude --print --model sonnet < ${promptFile}`, ...). The promptFile is constructed from Date.now() and Math.random() (line 73), not user input. The actual prompt content is written to the file, not interpolated into the shell command. The concern is valid in principle, but the current implementation sanitizes the attack vector by using file-based input. The risk is lower than stated. Downgrading to medium due to defense in depth concerns."
+    },
+    {
+      "file": "agents/invoke-pedagogue.js",
+      "line": 85,
+      "original_description": "Cleanup Failure: fs.unlinkSync(promptFile) is outside the catch block. If execSync fails, the temp file is never deleted, leading to /tmp pollution.",
+      "original_severity": "medium",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at lines 80-106, the cleanup is in a finally block (lines 97-105), not 'outside the catch block'. The finally block runs whether execSync succeeds or fails, properly cleaning up. The file existence is checked before unlinking. This issue was already fixed or the report is based on outdated code."
+    },
+    {
+      "file": "agents/invoke-pedagogue.js",
+      "line": 6,
+      "original_description": "Misleading Header: The JSDoc says the agent 'samples from multiple models,' but the implementation only uses 'sonnet'.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Line 5 says 'samples from multiple models to provide diverse pedagogical perspectives' but line 84 only uses --model sonnet. The comment is misleading - it describes planned functionality, not current behavior. Low severity is correct - it's a documentation issue."
+    },
+    {
+      "file": "agents/llm-agent-poll.ss",
+      "line": 76,
+      "original_description": "Stderr Leakage: The shell command uses 2>&1, which merges stderr into the response string. This causes internal log messages to be included in the final forum/chat post and breaks error detection logic.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at line 85: `node ~a ~a 2>/dev/null`. The command uses 2>/dev/null, which DISCARDS stderr, not merges it with stdout. The report claims 2>&1 which would merge stderr, but the code uses 2>/dev/null. This is the opposite of what was reported."
+    },
+    {
+      "file": "agents/llm-agent-poll.ss",
+      "line": 9,
+      "original_description": "Global Depth Counter: The bot-message-count.txt file is global for all agents and threads. Concurrent conversations will share the same counter, causing premature truncation.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at lines 9-11 and 14-20: The state file is now per-agent using (state-file-for agent) which returns '.fold-repl/bot-message-count-~a.txt' with the agent name. Each agent has its own counter file. The global counter issue appears to have been fixed."
+    },
+    {
+      "file": "agents/llm-agent-poll.ss",
+      "line": 19,
+      "original_description": "Race Condition: save-count! deletes and then writes the state file. This is not atomic; concurrent pollers will encounter file-not-found errors or reset each other's counts.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at lines 22-33: save-count! now uses atomic write pattern - write to temp file first (line 27-29), then delete existing file if present (lines 31-32), then rename temp to target (line 33). This is the standard atomic write pattern. The race condition has been addressed."
+    },
+    {
+      "file": "agents/llm-agent-poll.ss",
+      "line": 151,
+      "original_description": "Incomplete JSON Escaping: escape-json only handles quotes, backslashes, and newlines. It fails to escape other control characters (tabs, carriage returns), resulting in invalid JSON.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at lines 161-181: escape-json now handles quotes (line 171), backslashes (line 172), newlines (line 173), carriage returns (line 174), tabs (line 175), backspace (line 176), formfeed (line 177), AND all control characters U+0000-U+001F as \\uXXXX (lines 178-180). The function is now RFC 8259 compliant as noted in the comment. This issue has been fixed."
+    },
+    {
+      "file": "agents/llm-agent-poll.ss",
+      "line": 135,
+      "original_description": "Inefficient String Operations: string-join uses string-append in loops, resulting in O(N^2) complexity.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Lines 146-154 show string-join uses repeated string-append in a loop, which is O(N^2) for N strings. However, for typical use cases (small numbers of lines), this is not a practical issue. In Chez Scheme, building a list and using a single apply string-append (like in run-persona) would be more efficient. Downgrading to low as it's a micro-optimization issue."
+    },
+    {
+      "file": "agents/llm-agent-poll.ss",
+      "line": 121,
+      "original_description": "Temp File Collisions: shell-command-to-string uses current-milliseconds for temp filenames, which can collide in high-concurrency environments.",
+      "original_severity": "medium",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Looking at lines 129-132: The temp filename is now constructed with both current-milliseconds AND (random 100000), making collisions extremely unlikely. The comment on line 132 even notes 'Add randomness for concurrency'. This issue has been addressed."
+    }
+  ],
+  "gaps_found": [
+    {
+      "file": "agents/lib/test-persona-dsl.ss",
+      "line": 6,
+      "severity": "low",
+      "description": "Hardcoded load path assumes execution from project root. Running from a different directory will fail with cryptic errors.",
+      "category": "edge-case"
+    },
+    {
+      "file": "agents/lib/test-persona-dsl.ss",
+      "line": 253,
+      "severity": "medium",
+      "description": "sentinel-v2-loads-test uses global side effect (load) inside a test. If the file fails to load, subsequent tests may fail with confusing errors. The load should be wrapped in a guard.",
+      "category": "logic"
+    },
+    {
+      "file": "agents/personas/velocity-dsl.ss",
+      "line": 118,
+      "severity": "low",
+      "description": "File ends with bare 'persona-prompt' expression which relies on implicit return. This could cause issues if loaded vs executed as a script.",
+      "category": "edge-case"
+    },
+    {
+      "file": "agents/llm-agent-poll.ss",
+      "line": 51,
+      "severity": "medium",
+      "description": "process-trigger uses bare (read) to parse trigger files with no validation. A malformed trigger file could cause arbitrary Scheme execution or crash the poller.",
+      "category": "security"
+    },
+    {
+      "file": "agents/llm-agent-poll.ss",
+      "line": 88,
+      "severity": "low",
+      "description": "Error detection uses (string-prefix? \"\\u274c\" response) which checks for the emoji prefix, but errors from the claude CLI might not start with that emoji. Silent failures possible.",
+      "category": "logic"
+    },
+    {
+      "file": "agents/llm-agent-poll.ss",
+      "line": 106,
+      "severity": "low",
+      "description": "in-reply-to field uses session-id from trigger data without validating it exists. If trigger lacks session-id, this will produce (in-reply-to . #f) which may confuse downstream consumers.",
+      "category": "edge-case"
+    },
+    {
+      "file": "agents/invoke-pedagogue.js",
+      "line": 11,
+      "severity": "medium",
+      "description": "parseTrigger is required from './lib/parse-trigger' but no validation that the module exists. If missing, the script fails with an unhelpful MODULE_NOT_FOUND error.",
+      "category": "edge-case"
+    },
+    {
+      "file": "agents/invoke-pedagogue.js",
+      "line": 62,
+      "severity": "low",
+      "description": "triggerData.author defaults to 'unknown' if missing, but triggerData.body empty check happens after. If triggerData itself is malformed (not an object), the script crashes.",
+      "category": "edge-case"
+    }
+  ],
+  "summary": {
+    "confirmed": 8,
+    "rejected": 10,
+    "uncertain": 1,
+    "gaps_found": 8,
+    "notes": "The original QA report appears to be based on an older version of the codebase. Many high-severity issues reported (race conditions in save-count!, incomplete JSON escaping, global depth counter, stderr leakage) have already been fixed in the current code. The most significant remaining confirmed issues are: (1) YAML configuration not being consumed by invokers (model/tier hardcoded), (2) string-join O(N^2) complexity, (3) weak test assertions in test-persona-dsl.ss, and (4) legacy DSL usage in velocity-dsl.ss. New gaps identified include potential security concern with unvalidated trigger file parsing and missing error handling in the Node.js invoker."
+  }
+}

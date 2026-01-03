@@ -1,0 +1,134 @@
+{
+  "triage_id": "triage-agent-3",
+  "original_report": "gemini-flashmob-agent-3.json",
+  "timestamp": "2026-01-03T16:00:00Z",
+  "validated_issues": [
+    {
+      "file": "core/linalg/quaternion.ss",
+      "line": 64,
+      "original_description": "Logic error in quat-from-euler: the 'y' component calculation uses '(* sr sp sy)' which is a typo for '(* sr cp sy)'. This results in incorrect quaternion values for ZYX Euler rotations.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "The formula is mathematically correct for ZYX Euler to quaternion conversion. Verified against standard reference: w = cr*cp*cy + sr*sp*sy, x = sr*cp*cy - cr*sp*sy, y = cr*sp*cy + sr*cp*sy, z = cr*cp*sy - sr*sp*cy. All four components match the standard formula exactly. The QA agent appears to have misread the code or confused the formula."
+    },
+    {
+      "file": "core/linalg/quaternion.ss",
+      "line": 361,
+      "original_description": "The quat-slerp function performs two redundant calls to quat-dot for the same pair of quaternions, which is inefficient for a performance-critical interpolation routine.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "Confirmed. Line 358 computes dot = (quat-dot a b), then line 361 recomputes (quat-dot a b) instead of using the stored dot variable. This is wasteful for a performance-critical function. The second call should use the original dot value (before abs was applied)."
+    },
+    {
+      "file": "core/linalg/quaternion.ss",
+      "line": 420,
+      "original_description": "Hardcoded PI literal (3.141592653589793) used in quat-to-euler instead of a global constant, which is inconsistent with Core library standards.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Confirmed, but line number is wrong. The hardcoded PI literal is on line 420, not line 257 as reported. The issue is valid - using a global constant would be more maintainable and consistent."
+    },
+    {
+      "file": "core/linalg/matrix-eigen.ss",
+      "line": 182,
+      "original_description": "Deflation logic in qr-algorithm-shifted-loop is flawed. It reduces the 'active-size' for shift calculation but continues to perform QR decomposition on the full-sized matrix. This negates the performance benefits of deflation and can introduce numerical noise into already converged eigenvalues.",
+      "original_severity": "high",
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "The observation is correct - the code uses active-size only for Wilkinson shift calculation and deflation checks, but performs QR on the full matrix. This reduces efficiency but does NOT introduce numerical noise to converged eigenvalues since the full QR preserves eigenvalues. Downgraded from high to medium because correctness is not affected, only performance. The line number should be 182 (start of qr-algorithm-shifted-loop), not 156."
+    },
+    {
+      "file": "core/linalg/matrix-eigen.ss",
+      "line": 352,
+      "original_description": "The eigen-decomposition function uses unit vectors as a fallback when inverse iteration fails to converge. This is mathematically incorrect as unit vectors are not eigenvectors of general matrices.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "high",
+      "reasoning": "Confirmed and severity upgraded. Using unit vectors as fallback eigenvectors is mathematically incorrect and will silently produce wrong results. A unit vector e_i is only an eigenvector if column i of A is a scalar multiple of e_i, which is not generally true. The fallback should either return an error or use a more sophisticated approach. Line is 352-357, not 273."
+    },
+    {
+      "file": "core/linalg/matrix-eigen.ss",
+      "line": 236,
+      "original_description": "wilkinson-shift lacks a guard for the case where d=0 and discriminant < 0 for non-symmetric matrices, potentially leading to a division by zero if tolerance is very small.",
+      "original_severity": "low",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "The guard exists on line 236-237: 'if (< denom *eigen-tolerance*) a-ii'. When denom is near zero (including the d=0 case with negative discriminant), the function returns a-ii directly, avoiding division. The QA agent missed this guard clause."
+    },
+    {
+      "file": "core/autodiff/differentiable.ss",
+      "line": 195,
+      "original_description": "d-pow implementation lacks handling for negative exponents (n < 0), which will result in infinite recursion and a stack overflow.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "The code explicitly handles negative exponents on lines 202-204: '[(< n 0) (d/ (lift 1) (d-pow inst x (- n)))]'. This correctly computes x^(-n) = 1/x^n where (- n) is positive, terminating the recursion. The QA agent either did not read the full function or misunderstood it."
+    },
+    {
+      "file": "core/autodiff/differentiable.ss",
+      "line": 243,
+      "original_description": "derivative-at relies on hardcoded list indexing (cadr) of the resolution result. This is brittle and will fail if the instance database order changes or if resolution returns a decorated result.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "Confirmed. The code '(cadr (resolve-differentiable 'Dual))' assumes resolution always succeeds and returns a specific structure. If resolve returns an error like '(error not-found), cadr would return 'not-found instead of an instance, leading to runtime failures. The code should check for success first. Line is 243, not 194."
+    },
+    {
+      "file": "core/numeric/convolution.ss",
+      "line": 309,
+      "original_description": "normalize-signal does not check for empty vectors, leading to a division by zero error when calculating the mean for a signal of length zero.",
+      "original_severity": "high",
+      "validation": "confirmed",
+      "adjusted_severity": "high",
+      "reasoning": "Confirmed. On line 309, '(set! mean (/ sum n))' will cause division by zero if n=0 (empty vector). There is no guard for empty input. The line is 309, not 234 as reported."
+    },
+    {
+      "file": "core/numeric/convolution.ss",
+      "line": 275,
+      "original_description": "find-peaks uses non-strict inequalities (>=) for neighbor comparisons. In the presence of a plateau in the signal, it will return multiple indices for the same peak instead of a single peak or the plateau center.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Confirmed, but severity reduced to low. The behavior is documented implicitly - 'find indices where signal exceeds threshold'. Returning all plateau points may be intentional for some use cases. However, for typical peak detection, returning the plateau center would be preferable. The line is 275-276, not 185."
+    }
+  ],
+  "gaps_found": [
+    {
+      "file": "core/numeric/convolution.ss",
+      "line": 41,
+      "severity": "medium",
+      "description": "convolve-direct-full computes output-len as (n + m - 1) without checking for empty inputs. If both signal and kernel are empty vectors (n=0, m=0), output-len becomes -1, causing make-vector to fail or produce undefined behavior.",
+      "category": "edge-case"
+    },
+    {
+      "file": "core/linalg/quaternion.ss",
+      "line": 358,
+      "severity": "low",
+      "description": "In quat-slerp, the variable 'dot' is shadowed: first assigned (quat-dot a b), then reassigned to (abs dot). This shadowing makes the code harder to understand and led to the inefficiency bug on line 361. Better naming (e.g., 'raw-dot' and 'abs-dot') would improve clarity.",
+      "category": "other"
+    },
+    {
+      "file": "core/linalg/matrix-eigen.ss",
+      "line": 349,
+      "severity": "low",
+      "description": "In eigen-decomposition, inverse-iteration is called with vec-unit as initial guess, but if the eigenvalue has multiplicity > 1, this may not find all independent eigenvectors. The algorithm doesn't detect or handle repeated eigenvalues.",
+      "category": "logic"
+    },
+    {
+      "file": "core/numeric/convolution.ss",
+      "line": 265,
+      "severity": "low",
+      "description": "find-peaks returns an empty vector for signals with fewer than 3 points, but doesn't distinguish between 'no peaks found' and 'input too short'. For a 2-element signal, there could still be a local maximum at index 0 or 1 compared to the other element.",
+      "category": "edge-case"
+    }
+  ],
+  "summary": {
+    "confirmed": 6,
+    "rejected": 4,
+    "uncertain": 0,
+    "gaps_found": 4,
+    "notes": "The QA agent had a 60% accuracy rate on reported issues. The most significant false positive was the quat-from-euler 'bug' which was actually correct code. Three high-severity issues were confirmed (with one upgraded, one downgraded): the unit vector fallback in eigen-decomposition (upgraded to high), the normalize-signal division by zero (confirmed high), and the deflation logic (downgraded to medium). The d-pow negative exponent claim was incorrect - the code handles this case. Several line numbers in the original report were incorrect. Four gaps were identified, including an edge case bug in convolve-direct-full that could cause failures on empty inputs."
+  }
+}
