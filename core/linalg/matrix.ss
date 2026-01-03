@@ -316,11 +316,12 @@
 (define (matrix-square? m)
   (= (matrix-rows m) (matrix-cols m)))
 
-;;; matrix-symmetric? : Matrix Num → Boolean
-;;; Check if matrix equals its transpose.
-(define (matrix-symmetric? m)
-  (and (matrix-square? m)
-       (matrix-equal? m (matrix-transpose m))))
+;;; matrix-symmetric? : Matrix [Num] → Boolean
+;;; Check if matrix equals its transpose (with tolerance).
+(define (matrix-symmetric? m . tol-arg)
+  (let ([tol (if (null? tol-arg) 1e-10 (car tol-arg))])
+       (and (matrix-square? m)
+            (matrix-approx-equal? m (matrix-transpose m) tol))))
 
 ;;; trace : Matrix Num → Num
 ;;; Sum of diagonal elements.
