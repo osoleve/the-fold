@@ -137,6 +137,10 @@
 
 ;;; random-shuffle-eff : List a -> Eff Random (List a)
 ;;; Fisher-Yates shuffle using Random effect.
+;;; NOTE: Uses vector mutation internally for efficiency. Safe with single-shot
+;;; handlers like run-random, but NOT safe with multi-shot continuations
+;;; (e.g., NonDet/backtracking). For backtracking contexts, use a purely
+;;; functional shuffle instead.
 (define (random-shuffle-eff lst)
   (let ([n (length lst)])
        (if (<= n 1)
