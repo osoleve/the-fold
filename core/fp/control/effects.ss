@@ -573,8 +573,10 @@
                       ;; but with the ORIGINAL environment restored
                       (run-reader env (k scoped-result)))]
                [else
-                ;; Unknown effect, can't handle
-                (error 'run-reader "Unhandled effect" (effect-tag effect))]))]))
+                ;; Unknown effect, delegate to outer handler
+                (make-eff-op effect
+                             (lambda (resp)
+                                     (run-reader env (k resp))))]))]))
 
 ;;; ============================================================
 ;;; Writer Effect
@@ -613,21 +615,38 @@
                [(writer-listen)
                 ;; Run inner computation, capture its log
                 (let* ([inner (effect-payload effect)]
-                       [inner-result (run-writer inner)]
-                       [inner-val (car inner-result)]
-                       [inner-log (cdr inner-result)])
-                      (run-writer-helper (append (reverse inner-log) log)
-                                         (k (cons inner-val inner-log))))]
+                       [inner-result (run-writer inner)])
+                      ;; Check if inner-result is an unhandled effect operation
+                      (if (eff-op? inner-result)
+                          ;; Bubble up the unhandled effect, wrapping continuation
+                          (make-eff-op (eff-op-effect inner-result)
+                                       (lambda (resp)
+                                               (run-writer-helper log
+                                                                  (k (cons ((eff-op-cont inner-result) resp)
+                                                                           '())))))
+                          ;; Normal case: inner-result is (val . log) pair
+                          (let ([inner-val (car inner-result)]
+                                [inner-log (cdr inner-result)])
+                               (run-writer-helper (append (reverse inner-log) log)
+                                                  (k (cons inner-val inner-log))))))]
                [(writer-pass)
                 ;; Run inner, apply function to transform output
                 (let* ([inner (effect-payload effect)]
-                       [inner-result (run-writer inner)]
-                       [val-and-f (car inner-result)]
-                       [inner-log (cdr inner-result)]
-                       [val (car val-and-f)]
-                       [f (cdr val-and-f)])
-                      (run-writer-helper (append (map f (reverse inner-log)) log)
-                                         (k val)))]
+                       [inner-result (run-writer inner)])
+                      ;; Check if inner-result is an unhandled effect operation
+                      (if (eff-op? inner-result)
+                          ;; Bubble up the unhandled effect, wrapping continuation
+                          (make-eff-op (eff-op-effect inner-result)
+                                       (lambda (resp)
+                                               (run-writer-helper log
+                                                                  (k ((eff-op-cont inner-result) resp)))))
+                          ;; Normal case: inner-result is ((val . f) . log) pair
+                          (let* ([val-and-f (car inner-result)]
+                                 [inner-log (cdr inner-result)]
+                                 [val (car val-and-f)]
+                                 [f (cdr val-and-f)])
+                                (run-writer-helper (append (map f (reverse inner-log)) log)
+                                                   (k val)))))]
                [else
                 (make-eff-op effect
                              (lambda (resp)
@@ -731,7 +750,10 @@
                                 acc
                                 options))]
                [else
-                (error 'run-nondet "Unhandled effect" (effect-tag effect))]))]))
+                ;; Unknown effect, delegate to outer handler
+                (make-eff-op effect
+                             (lambda (resp)
+                                     (run-nondet-acc acc (k resp))))]))]))
 
 ;;; run-nondet-first : Eff NonDet a -> Maybe a
 ;;; Handle non-determinism, returning first result.
@@ -772,7 +794,10 @@
                                          new-acc
                                          (- remain added)))))]
                    [else
-                    (error 'run-nondet-bounded "Unhandled effect" (effect-tag effect))]))])))
+                    ;; Unknown effect, delegate to outer handler
+                    (make-eff-op effect
+                                 (lambda (resp)
+                                         (run-nondet-bounded-acc remaining acc (k resp))))]))])))
 
 ;;; ============================================================
 ;;; Console Effect
@@ -858,7 +883,10 @@
                 (let ([future (effect-payload effect)])
                      (run-async-sync (k (cdr future))))]
                [else
-                (error 'run-async-sync "Unhandled effect" (effect-tag effect))]))]))
+                ;; Unknown effect, delegate to outer handler
+                (make-eff-op effect
+                             (lambda (resp)
+                                     (run-async-sync (k resp))))]))]))
 
 ;;; gensym counter
 (define *gensym-counter* 0)
