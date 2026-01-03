@@ -72,12 +72,13 @@
 ;;; from-inr : (+ f g) a -> g a
 (define (from-inr x) (cadr x))
 
-;;; coproduct-fmap : (fa -> fb) -> (ga -> gb) -> (+ f g) a -> (+ f g) b
-;;; Functor instance for coproduct
-(define (coproduct-fmap fmap-f fmap-g fg)
+;;; coproduct-fmap : (a -> b) -> ((a -> b) -> fa -> fb) -> ((a -> b) -> ga -> gb) -> (+ f g) a -> (+ f g) b
+;;; Functor instance for coproduct. Takes the mapping function f and the
+;;; fmap implementations for each side of the coproduct.
+(define (coproduct-fmap f fmap-f fmap-g fg)
   (if (inl? fg)
-      (inl (fmap-f (from-inl fg)))
-      (inr (fmap-g (from-inr fg)))))
+      (inl (fmap-f f (from-inl fg)))
+      (inr (fmap-g f (from-inr fg)))))
 
 ;;; make-coproduct-fmap : (fa -> fb) -> (ga -> gb) -> ((+ f g) a -> (+ f g) b)
 ;;; Create a combined fmap for a coproduct functor
@@ -257,14 +258,20 @@
 ;;; ------------------------------------------------------------
 
 ;;; StateF s a = GetF (s -> a) | PutF s a
+;;;
+;;; Note: State functor commands must include continuations for fmap to work.
+;;; - get: (list 'get k) where k : s -> a
+;;; - put: (list 'put s k) where k : a (the continuation value)
 
-;;; get-f : StateF s (Free StateF s)
-(define (get-f)
-  (make-tagged-functor 'State (list 'get)))
+;;; get-f : (s -> a) -> StateF s a
+;;; Create a get command with continuation k that receives the state.
+(define (get-f k)
+  (make-tagged-functor 'State (list 'get k)))
 
-;;; put-f : s -> StateF s (Free StateF ())
-(define (put-f s)
-  (make-tagged-functor 'State (list 'put s)))
+;;; put-f : s -> a -> StateF s a
+;;; Create a put command that sets state to s and continues with k.
+(define (put-f s k)
+  (make-tagged-functor 'State (list 'put s k)))
 
 ;;; state-f-fmap : (a -> b) -> StateF s a -> StateF s b
 (define (state-f-fmap f cmd)
@@ -359,14 +366,21 @@
 (define (handler-stack-handlers stack)
   (cadr stack))
 
-;;; run-with-stack : HandlerStack -> Eff e a -> b
-;;; Run computation with a stack of handlers (iterative approach)
-(define (run-with-stack stack eff)
+;;; run-with-stack : HandlerStack -> Eff e a -> b | (init-values... -> b)
+;;; Run computation with a stack of handlers (iterative approach).
+;;; If the final result is a procedure (from function-returning handlers
+;;; like state+writer-handler), pass optional init-values to it.
+(define (run-with-stack stack eff . init-values)
   (let loop ([handlers (handler-stack-handlers stack)] [computation eff])
        (if (null? handlers)
-           (if (eff-pure? computation)
-               (eff-pure-value computation)
-               (error 'run-with-stack "Unhandled effect" (eff-op-effect computation)))
+           (let ([result (if (eff-pure? computation)
+                             (eff-pure-value computation)
+                             (error 'run-with-stack "Unhandled effect"
+                                    (eff-op-effect computation)))])
+                ;; If result is a procedure and we have init-values, apply them
+                (if (and (procedure? result) (pair? init-values))
+                    (apply result init-values)
+                    result))
            (loop (cdr handlers)
                  (handle (car handlers) computation)))))
 
@@ -478,10 +492,13 @@
                               (lambda (s) ((k '()) s)))))))
 
 ;;; state+writer-handler : s -> Handler
-;;; Handle both State and Writer effects
+;;; Handle both State and Writer effects.
+;;; Returns a function (s, log) -> (value, state, log).
+;;; Call result with (init-state '()) to run.
 (define (state+writer-handler init-state)
   (deep-handler
-   (lambda (a) (list a init-state '()))  ; (value, state, log)
+   ;; Return case: return a function that captures final state and log
+   (lambda (a) (lambda (s log) (list a s (reverse log))))
    `((state-get . ,(lambda (payload k)
                            (lambda (s log) ((k s) s log))))
      (state-put . ,(lambda (payload k)
@@ -784,6 +801,21 @@
     (from-pure-free term)]
    [(free-suspended? term)
     (term-interpret-with-handlers handlers (from-free term) d)]
+   ;; Handle coproduct wrappers by unwrapping to find the actual term
+   [(inl? term)
+    (term-interpret-with-handlers handlers (from-inl term) d)]
+   [(inr? term)
+    (term-interpret-with-handlers handlers (from-inr term) d)]
+   ;; Handle tagged-functor by extracting the operation from the value
+   [(tagged-functor? term)
+    (let* ([inner (tagged-functor-value term)]
+           [handler (assq (car inner) handlers)])
+          (if handler
+              ((cdr handler) d inner
+               (lambda (sub) (term-interpret-with-handlers handlers sub d)))
+              (error 'term-interpret "Unknown term type in tagged-functor"
+                     (car inner) (tagged-functor-tag term))))]
+   ;; Handle raw operation terms (e.g., (lit 5), (add x y))
    [(pair? term)
     (let ([handler (assq (car term) handlers)])
          (if handler
