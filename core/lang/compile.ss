@@ -257,13 +257,8 @@
                               (if (result-ok? r3)
                                   (result-ok (result-value r3) `(expr ,(result-value r2)))
                                   r3)
-                              ;; Phase 4: Evaluation (preserve type info)
-                              (let ([type (result-value r3)]
-                                    [r4 (adapt-eval (result-value r2) fuel)])
-                                   (if (result-ok? r4)
-                                       ;; Combine value with type as (typed type value)
-                                       (result-ok `(typed ,type ,(result-value r4)))
-                                       r4)))))))))
+                              ;; Phase 4: Evaluation
+                              (adapt-eval (result-value r2) fuel))))))))
 
 ;;; ============================================================
 ;;; Convenience Functions
@@ -318,16 +313,12 @@
                         r))))))
 
 ;;; compile-expr : S-expr → Result
-;;; Compile an already-parsed expression (with type preservation).
+;;; Compile an already-parsed expression.
 (define (compile-expr expr)
   (let ([r1 (adapt-infer expr)])
        (if (not (result-ok? r1))
            r1
-           (let ([type (result-value r1)]
-                 [r2 (adapt-eval expr *default-fuel*)])
-                (if (result-ok? r2)
-                    (result-ok `(typed ,type ,(result-value r2)))
-                    r2)))))
+           (adapt-eval expr *default-fuel*))))
 
 ;;; ============================================================
 ;;; Error Formatting
