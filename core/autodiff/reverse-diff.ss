@@ -281,7 +281,8 @@
         (if tape
             ;; Guard against zero base with fractional/negative exponents
             (if (and (= bv 0) (< n 1))
-                +nan.0  ; Undefined derivative at 0 for n < 1
+                ;; Return traced NaN to maintain structure invariant
+                (traced-op 'pow +nan.0 (list base) (list +nan.0) tape)
                 (traced-op 'pow result (list base)
                            (list (* n (expt bv (- n 1))))
                            tape))

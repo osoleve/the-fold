@@ -142,7 +142,7 @@
 
 ;;; collect-refs : Bytevector × (Bytevector → Block) → (List Bytevector)
 ;;; Collect all transitive references from a block.
-;;; Uses iterative traversal. Prepends new refs to avoid O(N²) append.
+;;; Uses iterative DFS traversal with O(1) cons operations.
 (define (collect-refs hash fetch)
   (let ([visited (make-hashtable equal-hash equal?)]
         [queue (list hash)]
@@ -163,11 +163,16 @@
                           (set! results (cons current results))
                           (let ([blk (fetch current)])
                                (if blk
-                                   ;; Prepend new refs to queue
-                                   (let ([new-refs (filter
-                                                    (lambda (r) (not (hashtable-ref visited r #f)))
-                                                    (vector->list (block-refs blk)))])
-                                        (set! queue (append new-refs rest-queue)))
+                                   ;; Prepend refs to stack via O(1) cons operations
+                                   (let ([refs (block-refs blk)])
+                                        (set! queue
+                                              (let fold-refs ([i 0] [acc rest-queue])
+                                                   (if (>= i (vector-length refs))
+                                                       acc
+                                                       (let ([ref (vector-ref refs i)])
+                                                            (if (hashtable-ref visited ref #f)
+                                                                (fold-refs (+ i 1) acc)
+                                                                (fold-refs (+ i 1) (cons ref acc))))))))
                                    (set! queue rest-queue)))
                           (loop))))))))
 
