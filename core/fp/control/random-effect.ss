@@ -240,6 +240,24 @@
                        [new-gen (cdr result)])
                       (run-random-helper new-gen (k val)))]
                
+               ;; Split generator into two independent streams
+               [(random-split)
+                (let ([children (gen-split gen)])
+                     ;; Return the pair of children, continue with first child
+                     (run-random-helper (car children) (k children)))]
+               
+               ;; Generate random bytes
+               [(random-bytes)
+                (let* ([n (effect-payload effect)]
+                       [result (run-state-monad (random-bytes n) gen)]
+                       [bytes (car result)]
+                       [new-gen (cdr result)])
+                      (run-random-helper new-gen (k bytes)))]
+               
+               ;; Get current generator state (for serialization)
+               [(get-random-state)
+                (run-random-helper gen (k gen))]
+               
                ;; Unknown effect - pass through
                [else
                 (make-eff-op effect
@@ -254,6 +272,47 @@
 ;;; Run Random effect in a scope, returning only the result.
 (define (with-random-eff seed eff)
   (eff-return (run-random seed eff)))
+
+;;; ============================================================
+;;; Split Operation (for Parallel Simulations)
+;;; ============================================================
+
+;;; random-split-eff : Eff Random (GenState . GenState)
+;;; Split the current generator into two independent streams.
+;;; Returns a pair of generator states for use in parallel computations.
+(define random-split-eff
+  (perform (make-effect 'random-split '())))
+
+;;; ============================================================
+;;; Random Bytes (for UUIDs, Crypto Placeholders, etc.)
+;;; ============================================================
+
+;;; random-bytes-eff : Nat -> Eff Random Bytevector
+;;; Generate a bytevector of n random bytes.
+(define (random-bytes-eff n)
+  (perform (make-effect 'random-bytes n)))
+
+;;; ============================================================
+;;; Serialization API (for Resumable Sessions)
+;;; ============================================================
+
+;;; get-random-state-eff : Eff Random GenState
+;;; Get the current generator state (for serialization).
+(define get-random-state-eff
+  (perform (make-effect 'get-random-state '())))
+
+;;; serialize-random-state : GenState -> String
+;;; Convert generator state to a storable string.
+(define serialize-random-state gen->string)
+
+;;; deserialize-random-state : String -> GenState
+;;; Parse generator state from string.
+(define deserialize-random-state string->gen)
+
+;;; run-random-resume : String -> Eff Random a -> a
+;;; Resume a random computation from serialized state.
+(define (run-random-resume state-string eff)
+  (run-random-with-gen (deserialize-random-state state-string) eff))
 
 ;;; ============================================================
 ;;; Example Usage

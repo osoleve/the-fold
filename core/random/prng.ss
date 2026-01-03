@@ -447,3 +447,150 @@
                    [else (error 'gen-advance "unknown generator" gen)])])
            (gen-advance (- n 1) (cdr (next gen))))))
 
+;;; ============================================================
+;;; Generator Splitting (for Parallel Simulations)
+;;; ============================================================
+
+;;; gen-split : GenState -> (GenState . GenState)
+;;; Split a generator into two independent streams.
+;;; Each child stream is deterministic and independent.
+(define (gen-split gen)
+  (cond
+   [(pcg? gen)
+    ;; PCG split: derive two new generators with different stream IDs
+    ;; Use the current state to seed two new PCGs with distinct streams
+    (let* ([state (pcg-state gen)]
+           [inc (pcg-inc gen)]
+           ;; Generate two seeds from current state
+           [seed1 (u64 (+ state #x9e3779b97f4a7c15))]
+           [seed2 (u64 (+ seed1 #x9e3779b97f4a7c15))]
+           ;; Create two new PCGs with different stream IDs
+           [stream1 (u64 (+ inc 2))]
+           [stream2 (u64 (+ inc 4))])
+          (cons (make-pcg seed1 stream1)
+                (make-pcg seed2 stream2)))]
+   
+   [(splitmix? gen)
+    ;; Splitmix split: generate two seeds and create new generators
+    (let* ([r1 (splitmix-next gen)]
+           [seed1 (car r1)]
+           [g1 (cdr r1)]
+           [r2 (splitmix-next g1)]
+           [seed2 (car r2)])
+          (cons (make-splitmix seed1)
+                (make-splitmix seed2)))]
+   
+   [(xorshift128? gen)
+    ;; Xorshift split: use splitmix to derive new states
+    (let* ([combined (u64 (+ (xorshift128-s0 gen) (xorshift128-s1 gen)))]
+           [sm (make-splitmix combined)]
+           [r1 (splitmix-next sm)]
+           [r2 (splitmix-next (cdr r1))]
+           [r3 (splitmix-next (cdr r2))]
+           [r4 (splitmix-next (cdr r3))])
+          (cons (list 'xorshift128
+                      (if (= (car r1) 0) 1 (car r1))
+                      (if (= (car r2) 0) 1 (car r2)))
+                (list 'xorshift128
+                      (if (= (car r3) 0) 1 (car r3))
+                      (if (= (car r4) 0) 1 (car r4)))))]
+   
+   [else (error 'gen-split "unknown generator type" gen)]))
+
+;;; random-split : State GenState (GenState . GenState)
+;;; Split as a State monad computation, returning both children.
+(define random-split
+  (make-state
+   (lambda (gen)
+           (let ([children (gen-split gen)])
+                ;; Return one child, use the other as new state
+                (cons children (car children))))))
+
+;;; ============================================================
+;;; Random Bytes Generation
+;;; ============================================================
+
+;;; random-bytes : Integer -> State GenState Bytevector
+;;; Generate a bytevector of n random bytes.
+(define (random-bytes n)
+  (if (<= n 0)
+      (state-pure (make-bytevector 0))
+      (make-state
+       (lambda (gen)
+               (let ([bv (make-bytevector n)])
+                    (let loop ([i 0] [g gen])
+                         (if (>= i n)
+                             (cons bv g)
+                             ;; Generate bytes 4 or 8 at a time
+                             (cond
+                              [(pcg? g)
+                               (let* ([r (pcg-next g)]
+                                      [val (car r)]
+                                      [ng (cdr r)])
+                                     ;; PCG gives 32 bits = 4 bytes
+                                     (let byte-loop ([j 0] [v val])
+                                          (if (or (>= (+ i j) n) (>= j 4))
+                                              (loop (+ i 4) ng)
+                                              (begin
+                                               (bytevector-u8-set! bv (+ i j) (bitwise-and v #xff))
+                                               (byte-loop (+ j 1) (ash v -8))))))]
+                              
+                              [(or (splitmix? g) (xorshift128? g))
+                               (let* ([next (if (splitmix? g) splitmix-next xorshift128-next)]
+                                      [r (next g)]
+                                      [val (car r)]
+                                      [ng (cdr r)])
+                                     ;; 64 bits = 8 bytes
+                                     (let byte-loop ([j 0] [v val])
+                                          (if (or (>= (+ i j) n) (>= j 8))
+                                              (loop (+ i 8) ng)
+                                              (begin
+                                               (bytevector-u8-set! bv (+ i j) (bitwise-and v #xff))
+                                               (byte-loop (+ j 1) (ash v -8))))))]
+                              
+                              [else (error 'random-bytes "unknown generator" g)]))))))))
+
+;;; ============================================================
+;;; Generator Serialization (for Resumable Sessions)
+;;; ============================================================
+
+;;; gen-serialize : GenState -> S-expr
+;;; Convert generator state to a serializable S-expression.
+(define (gen-serialize gen)
+  (cond
+   [(pcg? gen)
+    `(pcg ,(pcg-state gen) ,(pcg-inc gen))]
+   
+   [(splitmix? gen)
+    `(splitmix ,(splitmix-state gen))]
+   
+   [(xorshift128? gen)
+    `(xorshift128 ,(xorshift128-s0 gen) ,(xorshift128-s1 gen))]
+   
+   [else (error 'gen-serialize "unknown generator type" gen)]))
+
+;;; gen-deserialize : S-expr -> GenState
+;;; Reconstruct generator state from S-expression.
+(define (gen-deserialize sexpr)
+  (case (car sexpr)
+        [(pcg)
+         (list 'pcg (cadr sexpr) (caddr sexpr))]
+        
+        [(splitmix)
+         (list 'splitmix (cadr sexpr))]
+        
+        [(xorshift128)
+         (list 'xorshift128 (cadr sexpr) (caddr sexpr))]
+        
+        [else (error 'gen-deserialize "unknown generator type" (car sexpr))]))
+
+;;; gen->string : GenState -> String
+;;; Convert generator state to a human-readable string.
+(define (gen->string gen)
+  (format "~s" (gen-serialize gen)))
+
+;;; string->gen : String -> GenState
+;;; Parse generator state from string.
+(define (string->gen str)
+  (gen-deserialize (read (open-input-string str))))
+

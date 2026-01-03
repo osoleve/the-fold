@@ -654,3 +654,102 @@
   (if (<= n 0)
       t
       (spiral (rt (fd t size) 90) (+ size growth) growth (- n 1))))
+
+;;; ============================================================
+;;; Imperative Interface (Logo-style)
+;;; ============================================================
+;;;
+;;; These procedures use a global *current-turtle* parameter for
+;;; Logo-style programming where commands mutate state in place.
+;;; Use (reset-turtle!) to start fresh, then fd!, rt!, etc.
+
+;;; *current-turtle* : Parameter holding the active turtle
+(define *current-turtle* (make-parameter (make-turtle)))
+
+;;; reset-turtle! : -> Turtle
+;;; Reset to a fresh turtle and return it.
+(define (reset-turtle!)
+  (*current-turtle* (make-turtle))
+  (*current-turtle*))
+
+;;; fd! : Real -> Turtle
+;;; Move forward, mutating current turtle.
+(define (fd! distance)
+  (*current-turtle* (fd (*current-turtle*) distance))
+  (*current-turtle*))
+
+;;; forward! : Real -> Turtle
+(define forward! fd!)
+
+;;; bk! : Real -> Turtle
+;;; Move backward, mutating current turtle.
+(define (bk! distance)
+  (*current-turtle* (bk (*current-turtle*) distance))
+  (*current-turtle*))
+
+;;; back! : Real -> Turtle
+(define back! bk!)
+
+;;; rt! : Real -> Turtle
+;;; Turn right, mutating current turtle.
+(define (rt! angle)
+  (*current-turtle* (rt (*current-turtle*) angle))
+  (*current-turtle*))
+
+;;; right! : Real -> Turtle
+(define right! rt!)
+
+;;; lt! : Real -> Turtle
+;;; Turn left, mutating current turtle.
+(define (lt! angle)
+  (*current-turtle* (lt (*current-turtle*) angle))
+  (*current-turtle*))
+
+;;; left! : Real -> Turtle
+(define left! lt!)
+
+;;; pu! : -> Turtle
+;;; Pen up, mutating current turtle.
+(define (pu!)
+  (*current-turtle* (pu (*current-turtle*)))
+  (*current-turtle*))
+
+;;; penup! : -> Turtle
+(define penup! pu!)
+
+;;; pd! : -> Turtle
+;;; Pen down, mutating current turtle.
+(define (pd!)
+  (*current-turtle* (pd (*current-turtle*)))
+  (*current-turtle*))
+
+;;; pendown! : -> Turtle
+(define pendown! pd!)
+
+;;; home! : -> Turtle
+;;; Return home, mutating current turtle.
+(define (home!)
+  (*current-turtle* (home (*current-turtle*)))
+  (*current-turtle*))
+
+;;; setxy! : Real x Real -> Turtle
+;;; Move to position, mutating current turtle.
+(define (setxy! x y)
+  (*current-turtle* (setxy (*current-turtle*) x y))
+  (*current-turtle*))
+
+;;; setcolor! : Color12 -> Turtle
+;;; Set pen color, mutating current turtle.
+(define (setcolor! color)
+  (*current-turtle* (setpencolor (*current-turtle*) color))
+  (*current-turtle*))
+
+;;; current-turtle : -> Turtle
+;;; Get the current turtle.
+(define (current-turtle)
+  (*current-turtle*))
+
+;;; current-svg : -> String
+;;; Get SVG of current turtle's drawing.
+(define (current-svg)
+  (turtle->svg (*current-turtle*)))
