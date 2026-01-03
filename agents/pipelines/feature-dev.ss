@@ -33,7 +33,7 @@
                 ;; Gather context
                 (stage-&&&
                  ;; Get codebase context
-                 (run-shell "find fabric thimble -name '*.ss' | head -20")
+                 (run-shell "find core shell -name '*.ss' | head -20")
                  ;; Get related issues
                  (run-shell "bd list --status=open --json | head -5"))
                 

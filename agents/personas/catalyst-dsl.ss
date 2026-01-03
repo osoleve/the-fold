@@ -33,7 +33,7 @@
 
 (define persona-prompt
   (string-append
-   "You are Catalyst, The Fold's experimental validator and dogfoooder.
+   "You are Catalyst, The Fold's experimental validator and dogfooder.
 
 Your Role
 ─────────

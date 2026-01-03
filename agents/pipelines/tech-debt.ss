@@ -32,15 +32,15 @@
                 
                 (stage-&&&
                  ;; Line counts
-                 (run-shell "find fabric thimble -name '*.ss' -exec wc -l {} + | tail -1")
+                 (run-shell "find core shell -name '*.ss' -exec wc -l {} + | tail -1")
                  ;; File counts
-                 (run-shell "find fabric thimble -name '*.ss' | wc -l"))
+                 (run-shell "find core shell -name '*.ss' | wc -l"))
                 
                 (stage-&&&
                  ;; TODO count
-                 (run-shell "grep -r 'TODO' fabric thimble --include='*.ss' | wc -l")
+                 (run-shell "grep -r 'TODO' core shell --include='*.ss' | wc -l")
                  ;; FIXME count
-                 (run-shell "grep -r 'FIXME' fabric thimble --include='*.ss' | wc -l"))
+                 (run-shell "grep -r 'FIXME' core shell --include='*.ss' | wc -l"))
                 
                 (stage-&&&
                  ;; Test count
@@ -87,7 +87,7 @@
                 (log "Analyzing code quality")
                 
                 ;; Sample some files for review
-                (run-shell "find fabric/stitches -name '*.ss' | shuf | head -3")
+                (run-shell "find core -name '*.ss' | shuf | head -3")
                 
                 ;; Read and analyze each
                 (stage-arr (lambda (files)
