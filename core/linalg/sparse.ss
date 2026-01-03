@@ -214,75 +214,117 @@
 
 ;;; coo->csr : SparseCOO → SparseCSR
 ;;; Convert COO to CSR format.
+;;; Uses sort-based algorithm to avoid O(rows) auxiliary storage.
+;;; Complexity: O(nnz log nnz) time, O(nnz) space.
 (define (coo->csr coo)
   (let* ([rows (sparse-coo-rows coo)]
          [cols (sparse-coo-cols coo)]
          [row-idx (sparse-coo-row-indices coo)]
          [col-idx (sparse-coo-col-indices coo)]
          [vals (sparse-coo-values coo)]
-         [nnz (sparse-coo-nnz coo)]
-         ;; Count elements per row
-         [row-counts (make-vector rows 0)])
-        ;; First pass: count entries per row
-        (do ([k 0 (+ k 1)])
-            ((= k nnz))
-            (let ([r (vector-ref row-idx k)])
-                 (vector-set! row-counts r (+ 1 (vector-ref row-counts r)))))
-        ;; Build row pointers (cumulative sum)
-        (let ([row-ptrs (make-vector (+ rows 1) 0)])
-             (do ([i 0 (+ i 1)]
-                  [cumsum 0 (+ cumsum (vector-ref row-counts i))])
-                 ((= i rows) (vector-set! row-ptrs rows cumsum))
-                 (vector-set! row-ptrs i cumsum))
-             ;; Create output arrays
-             (let ([out-cols (make-vector nnz 0)]
-                   [out-vals (make-vector nnz 0)]
-                   [current-pos (vec-copy row-ptrs)])
-                  ;; Second pass: place elements
+         [nnz (sparse-coo-nnz coo)])
+        (if (= nnz 0)
+            ;; Empty matrix: just create empty CSR
+            (let ([row-ptrs (make-vector (+ rows 1) 0)])
+                 (make-sparse-csr rows cols row-ptrs (make-vector 0 0) (make-vector 0 0)))
+            ;; Sort triplets by row index (then by column for stability)
+            (let* ([indices (make-vector nnz 0)])
+                  ;; Initialize index array
                   (do ([k 0 (+ k 1)])
                       ((= k nnz))
-                      (let* ([r (vector-ref row-idx k)]
-                             [pos (vector-ref current-pos r)])
-                            (vector-set! out-cols pos (vector-ref col-idx k))
-                            (vector-set! out-vals pos (vector-ref vals k))
-                            (vector-set! current-pos r (+ pos 1))))
-                  (make-sparse-csr rows cols row-ptrs out-cols out-vals)))))
+                      (vector-set! indices k k))
+                  ;; Sort indices by (row, col) lexicographic order
+                  (vector-sort!
+                   (lambda (a b)
+                           (let ([ra (vector-ref row-idx a)]
+                                 [rb (vector-ref row-idx b)])
+                                (or (< ra rb)
+                                    (and (= ra rb)
+                                         (< (vector-ref col-idx a)
+                                            (vector-ref col-idx b))))))
+                   indices)
+                  ;; Build row pointers and sorted output arrays
+                  (let ([row-ptrs (make-vector (+ rows 1) 0)]
+                        [out-cols (make-vector nnz 0)]
+                        [out-vals (make-vector nnz 0)])
+                       ;; Fill sorted arrays and build row pointers
+                       (do ([k 0 (+ k 1)]
+                            [current-row 0 (vector-ref row-idx (vector-ref indices k))])
+                           ((= k nnz)
+                            ;; Fill remaining row pointers
+                            (do ([r (+ current-row 1) (+ r 1)])
+                                ((> r rows))
+                                (vector-set! row-ptrs r nnz)))
+                           (let* ([idx (vector-ref indices k)]
+                                  [r (vector-ref row-idx idx)]
+                                  [c (vector-ref col-idx idx)]
+                                  [v (vector-ref vals idx)])
+                                 ;; Update row pointers for any rows we skipped
+                                 (when (> r current-row)
+                                       (do ([prev-row (+ current-row 1) (+ prev-row 1)])
+                                           ((> prev-row r))
+                                           (vector-set! row-ptrs prev-row k)))
+                                 ;; Store sorted entry
+                                 (vector-set! out-cols k c)
+                                 (vector-set! out-vals k v)))
+                       (make-sparse-csr rows cols row-ptrs out-cols out-vals))))))
 
 ;;; coo->csc : SparseCOO → SparseCSC
 ;;; Convert COO to CSC format.
+;;; Uses sort-based algorithm to avoid O(cols) auxiliary storage.
+;;; Complexity: O(nnz log nnz) time, O(nnz) space.
 (define (coo->csc coo)
   (let* ([rows (sparse-coo-rows coo)]
          [cols (sparse-coo-cols coo)]
          [row-idx (sparse-coo-row-indices coo)]
          [col-idx (sparse-coo-col-indices coo)]
          [vals (sparse-coo-values coo)]
-         [nnz (sparse-coo-nnz coo)]
-         ;; Count elements per column
-         [col-counts (make-vector cols 0)])
-        ;; First pass: count entries per column
-        (do ([k 0 (+ k 1)])
-            ((= k nnz))
-            (let ([c (vector-ref col-idx k)])
-                 (vector-set! col-counts c (+ 1 (vector-ref col-counts c)))))
-        ;; Build column pointers
-        (let ([col-ptrs (make-vector (+ cols 1) 0)])
-             (do ([j 0 (+ j 1)]
-                  [cumsum 0 (+ cumsum (vector-ref col-counts j))])
-                 ((= j cols) (vector-set! col-ptrs cols cumsum))
-                 (vector-set! col-ptrs j cumsum))
-             ;; Create output arrays
-             (let ([out-rows (make-vector nnz 0)]
-                   [out-vals (make-vector nnz 0)]
-                   [current-pos (vec-copy col-ptrs)])
-                  ;; Second pass: place elements
+         [nnz (sparse-coo-nnz coo)])
+        (if (= nnz 0)
+            ;; Empty matrix: just create empty CSC
+            (let ([col-ptrs (make-vector (+ cols 1) 0)])
+                 (make-sparse-csc rows cols col-ptrs (make-vector 0 0) (make-vector 0 0)))
+            ;; Sort triplets by column index (then by row for stability)
+            (let* ([indices (make-vector nnz 0)])
+                  ;; Initialize index array
                   (do ([k 0 (+ k 1)])
                       ((= k nnz))
-                      (let* ([c (vector-ref col-idx k)]
-                             [pos (vector-ref current-pos c)])
-                            (vector-set! out-rows pos (vector-ref row-idx k))
-                            (vector-set! out-vals pos (vector-ref vals k))
-                            (vector-set! current-pos c (+ pos 1))))
-                  (make-sparse-csc rows cols col-ptrs out-rows out-vals)))))
+                      (vector-set! indices k k))
+                  ;; Sort indices by (col, row) lexicographic order
+                  (vector-sort!
+                   (lambda (a b)
+                           (let ([ca (vector-ref col-idx a)]
+                                 [cb (vector-ref col-idx b)])
+                                (or (< ca cb)
+                                    (and (= ca cb)
+                                         (< (vector-ref row-idx a)
+                                            (vector-ref row-idx b))))))
+                   indices)
+                  ;; Build column pointers and sorted output arrays
+                  (let ([col-ptrs (make-vector (+ cols 1) 0)]
+                        [out-rows (make-vector nnz 0)]
+                        [out-vals (make-vector nnz 0)])
+                       ;; Fill sorted arrays and build column pointers
+                       (do ([k 0 (+ k 1)]
+                            [current-col 0 (vector-ref col-idx (vector-ref indices k))])
+                           ((= k nnz)
+                            ;; Fill remaining column pointers
+                            (do ([c (+ current-col 1) (+ c 1)])
+                                ((> c cols))
+                                (vector-set! col-ptrs c nnz)))
+                           (let* ([idx (vector-ref indices k)]
+                                  [r (vector-ref row-idx idx)]
+                                  [c (vector-ref col-idx idx)]
+                                  [v (vector-ref vals idx)])
+                                 ;; Update column pointers for any columns we skipped
+                                 (when (> c current-col)
+                                       (do ([prev-col (+ current-col 1) (+ prev-col 1)])
+                                           ((> prev-col c))
+                                           (vector-set! col-ptrs prev-col k)))
+                                 ;; Store sorted entry
+                                 (vector-set! out-rows k r)
+                                 (vector-set! out-vals k v)))
+                       (make-sparse-csc rows cols col-ptrs out-rows out-vals))))))
 
 ;;; csr->coo : SparseCSR → SparseCOO
 ;;; Convert CSR to COO format.
@@ -585,42 +627,12 @@
 
 ;;; sparse-csr-transpose : SparseCSR → SparseCSR
 ;;; Transpose A. Result is CSR of A^T (which equals CSC structure of A).
+;;; Uses COO intermediate to avoid O(cols) auxiliary storage.
+;;; Complexity: O(nnz log nnz) time, O(nnz) space.
 (define (sparse-csr-transpose csr)
-  (let* ([rows (sparse-csr-rows csr)]
-         [cols (sparse-csr-cols csr)]
-         [row-ptrs (sparse-csr-row-ptrs csr)]
-         [col-idx (sparse-csr-col-indices csr)]
-         [vals (sparse-csr-values csr)]
-         [nnz (sparse-csr-nnz csr)]
-         ;; Count entries per column (will become row pointers of transpose)
-         [col-counts (make-vector cols 0)])
-        ;; Count column occurrences
-        (do ([k 0 (+ k 1)])
-            ((= k nnz))
-            (let ([c (vector-ref col-idx k)])
-                 (vector-set! col-counts c (+ 1 (vector-ref col-counts c)))))
-        ;; Build row pointers for transpose
-        (let ([new-row-ptrs (make-vector (+ cols 1) 0)])
-             (do ([j 0 (+ j 1)]
-                  [cumsum 0 (+ cumsum (vector-ref col-counts j))])
-                 ((= j cols) (vector-set! new-row-ptrs cols cumsum))
-                 (vector-set! new-row-ptrs j cumsum))
-             ;; Fill transpose arrays
-             (let ([new-col-idx (make-vector nnz 0)]
-                   [new-vals (make-vector nnz 0)]
-                   [current-pos (vec-copy new-row-ptrs)])
-                  (do ([i 0 (+ i 1)])
-                      ((= i rows))
-                      (let ([start (vector-ref row-ptrs i)]
-                            [end (vector-ref row-ptrs (+ i 1))])
-                           (do ([k start (+ k 1)])
-                               ((= k end))
-                               (let* ([c (vector-ref col-idx k)]
-                                      [pos (vector-ref current-pos c)])
-                                     (vector-set! new-col-idx pos i)
-                                     (vector-set! new-vals pos (vector-ref vals k))
-                                     (vector-set! current-pos c (+ pos 1))))))
-                  (make-sparse-csr cols rows new-row-ptrs new-col-idx new-vals)))))
+  ;; Convert to COO, transpose, convert back to CSR using sort-based algorithm
+  (let ([coo (csr->coo csr)])
+       (coo->csr (sparse-coo-transpose coo))))
 
 ;;; sparse-coo-transpose : SparseCOO → SparseCOO
 ;;; Transpose: swap row and column indices.
