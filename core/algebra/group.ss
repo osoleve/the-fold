@@ -636,41 +636,42 @@
 
 ;;; quaternion-group : → Group
 ;;; The quaternion group Q₈.
+;;; Uses qi, qj, qk to avoid collision with Scheme's complex number i.
 (define (quaternion-group)
-  (let ([elements '(1 -1 i -i j -j k -k)])
+  (let ([elements '(e1 e-1 qi q-i qj q-j qk q-k)])
        (make-group
         elements
         (lambda (a b)
                 (case a
-                      [(1) b]
-                      [(-1) (case b
-                                  [(1) -1] [(-1) 1]
-                                  [(i) -i] [(-i) i]
-                                  [(j) -j] [(-j) j]
-                                  [(k) -k] [(-k) k])]
-                      [(i) (case b
-                                 [(1) 'i] [(-1) '-i] [(i) -1] [(-i) 1]
-                                 [(j) 'k] [(-j) '-k] [(k) '-j] [(-k) 'j])]
-                      [(-i) (case b
-                                  [(1) '-i] [(-1) 'i] [(i) 1] [(-i) -1]
-                                  [(j) '-k] [(-j) 'k] [(k) 'j] [(-k) '-j])]
-                      [(j) (case b
-                                 [(1) 'j] [(-1) '-j] [(j) -1] [(-j) 1]
-                                 [(i) '-k] [(-i) 'k] [(k) 'i] [(-k) '-i])]
-                      [(-j) (case b
-                                  [(1) '-j] [(-1) 'j] [(j) 1] [(-j) -1]
-                                  [(i) 'k] [(-i) '-k] [(k) '-i] [(-k) 'i])]
-                      [(k) (case b
-                                 [(1) 'k] [(-1) '-k] [(k) -1] [(-k) 1]
-                                 [(i) 'j] [(-i) '-j] [(j) '-i] [(-j) 'i])]
-                      [(-k) (case b
-                                  [(1) '-k] [(-1) 'k] [(k) 1] [(-k) -1]
-                                  [(i) '-j] [(-i) 'j] [(j) 'i] [(-j) '-i])]))
-        1
+                      [(e1) b]
+                      [(e-1) (case b
+                                   [(e1) 'e-1] [(e-1) 'e1]
+                                   [(qi) 'q-i] [(q-i) 'qi]
+                                   [(qj) 'q-j] [(q-j) 'qj]
+                                   [(qk) 'q-k] [(q-k) 'qk])]
+                      [(qi) (case b
+                                  [(e1) 'qi] [(e-1) 'q-i] [(qi) 'e-1] [(q-i) 'e1]
+                                  [(qj) 'qk] [(q-j) 'q-k] [(qk) 'q-j] [(q-k) 'qj])]
+                      [(q-i) (case b
+                                   [(e1) 'q-i] [(e-1) 'qi] [(qi) 'e1] [(q-i) 'e-1]
+                                   [(qj) 'q-k] [(q-j) 'qk] [(qk) 'qj] [(q-k) 'q-j])]
+                      [(qj) (case b
+                                  [(e1) 'qj] [(e-1) 'q-j] [(qj) 'e-1] [(q-j) 'e1]
+                                  [(qi) 'q-k] [(q-i) 'qk] [(qk) 'qi] [(q-k) 'q-i])]
+                      [(q-j) (case b
+                                   [(e1) 'q-j] [(e-1) 'qj] [(qj) 'e1] [(q-j) 'e-1]
+                                   [(qi) 'qk] [(q-i) 'q-k] [(qk) 'q-i] [(q-k) 'qi])]
+                      [(qk) (case b
+                                  [(e1) 'qk] [(e-1) 'q-k] [(qk) 'e-1] [(q-k) 'e1]
+                                  [(qi) 'qj] [(q-i) 'q-j] [(qj) 'q-i] [(q-j) 'qi])]
+                      [(q-k) (case b
+                                   [(e1) 'q-k] [(e-1) 'qk] [(qk) 'e1] [(q-k) 'e-1]
+                                   [(qi) 'q-j] [(q-i) 'qj] [(qj) 'qi] [(q-j) 'q-i])]))
+        'e1
         (lambda (a)
                 (case a
-                      [(1) 1] [(-1) -1]
-                      [(i) '-i] [(-i) 'i]
-                      [(j) '-j] [(-j) 'j]
-                      [(k) '-k] [(-k) 'k]))
+                      [(e1) 'e1] [(e-1) 'e-1]
+                      [(qi) 'q-i] [(q-i) 'qi]
+                      [(qj) 'q-j] [(q-j) 'qj]
+                      [(qk) 'q-k] [(q-k) 'qk]))
         eq?)))

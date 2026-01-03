@@ -272,25 +272,25 @@
 
 (define-test "quaternion-group identity"
   (let ([g (quaternion-group)])
-       (assert-equal 1 (group-identity g))))
+       (assert-equal 'e1 (group-identity g))))
 
-(define-test "quaternion i*j=k"
+(define-test "quaternion qi*qj=qk"
   (let ([g (quaternion-group)])
-       (assert-equal 'k (group-compose g 'i 'j))))
+       (assert-equal 'qk (group-compose g 'qi 'qj))))
 
-(define-test "quaternion j*k=i"
+(define-test "quaternion qj*qk=qi"
   (let ([g (quaternion-group)])
-       (assert-equal 'i (group-compose g 'j 'k))))
+       (assert-equal 'qi (group-compose g 'qj 'qk))))
 
-(define-test "quaternion k*i=j"
+(define-test "quaternion qk*qi=qj"
   (let ([g (quaternion-group)])
-       (assert-equal 'j (group-compose g 'k 'i))))
+       (assert-equal 'qj (group-compose g 'qk 'qi))))
 
-(define-test "quaternion i^2=j^2=k^2=-1"
+(define-test "quaternion qi^2=qj^2=qk^2=e-1"
   (let ([g (quaternion-group)])
-       (assert-equal -1 (group-compose g 'i 'i))
-       (assert-equal -1 (group-compose g 'j 'j))
-       (assert-equal -1 (group-compose g 'k 'k))))
+       (assert-equal 'e-1 (group-compose g 'qi 'qi))
+       (assert-equal 'e-1 (group-compose g 'qj 'qj))
+       (assert-equal 'e-1 (group-compose g 'qk 'qk))))
 
 ;;; ============================================================
 ;;; Run Tests
