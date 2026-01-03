@@ -61,24 +61,6 @@
                            (vector-set! states sid updated-parent)
                            (loop-chars (cdr chars) next-id (+ next-id 1))))))))
 
-(define (vec-append vec elem)
-  (let* ([len (vector-length vec)]
-         [new (make-vector (+ len 1))])
-        (do ([i 0 (+ i 1)])
-            ((= i len))
-            (vector-set! new i (vector-ref vec i)))
-        (vector-set! new len elem)
-        new))
-
-(define (vec-set vec idx val)
-  (let* ([len (vector-length vec)]
-         [new (make-vector len)])
-        (do ([i 0 (+ i 1)])
-            ((= i len))
-            (vector-set! new i (vector-ref vec i)))
-        (vector-set! new idx val)
-        new))
-
 ;;; Compute failures using Queue BFS (dogfooding!) with in-place mutation
 (define (compute-failures states)
   (let* ([root (vector-ref states 0)]

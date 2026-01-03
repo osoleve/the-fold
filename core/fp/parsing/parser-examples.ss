@@ -217,17 +217,18 @@
 
 ;;; sexp-unquote : Parser SExp
 (define sexp-unquote
-  (parser-bind (sexp-lexeme (char #\,))
+  (parser-bind (char #\,)
                (lambda (_)
                        (parser-or
-                        ;; ,@expr
+                        ;; ,@expr (no whitespace allowed between , and @)
                         (parser-bind (char #\@)
                                      (lambda (_)
                                              (parser-bind (make-parser (lambda (s) (run-parser sexp-value s)))
                                                           (lambda (val)
                                                                   (parser-pure (list 'unquote-splicing val))))))
-                        ;; ,expr
-                        (parser-bind (make-parser (lambda (s) (run-parser sexp-value s)))
+                        ;; ,expr (whitespace is allowed after ,)
+                        (parser-bind (parser-then sexp-whitespace
+                                                  (make-parser (lambda (s) (run-parser sexp-value s))))
                                      (lambda (val)
                                              (parser-pure (list 'unquote val))))))))
 
