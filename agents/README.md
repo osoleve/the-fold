@@ -74,7 +74,7 @@ agents/
 │   └── scheduler.sh               # Process pool scheduler & cron
 │
 ├── lib/
-│   └── persona-prompt-gen.ss      # DSL helpers (choice, choose-n, etc.)
+│   └── persona-dsl.ss             # DSL helpers (pick, pick-n, etc.)
 │
 ├── personas/
 │   ├── *.yaml                     # Persona config + YAML fallback prompts
@@ -107,28 +107,28 @@ Personas use a Scheme-based DSL to generate variable prompts:
 
 ### Core Primitives
 
-**`(choice opt1 opt2 ...)`** — Randomly select one option
+**`(pick opt1 opt2 ...)`** — Randomly select one option
 ```scheme
-(choice "warm and measured" "direct and terse")
+(pick "warm and measured" "direct and terse")
 ```
 
-**`(choose-n n list)`** — Select n distinct items without replacement
+**`(pick-n n list)`** — Select n distinct items without replacement
 ```scheme
-(choose-n 2 '("curiosity" "precision" "humor"))  ; Pick 2, no duplication
+(pick-n 2 '("curiosity" "precision" "humor"))  ; Pick 2, no duplication
 ```
 
-**`(load-fragment 'name)`** — Load reusable personality fragments
+**`(try-load-fragment 'name)`** — Load reusable personality fragments
 ```scheme
-(load-fragment 'response-postures)  ; Defines diplomatic-opener, etc.
+(try-load-fragment 'response-postures)  ; Defines diplomatic-opener, etc.
 ```
 
 ### Example: Kimi's Variable Generation
 
 Each time Kimi's prompt is generated:
 - Voice style randomly selected (4 options)
-- Signature moves emphasis varies (choose-n 2 from 6)
-- Story instincts focus shifts (choose-n 3 from 6)
-- Special segments to develop chosen (choose-n 4 from 7)
+- Signature moves emphasis varies (pick-n 2 from 6)
+- Story instincts focus shifts (pick-n 3 from 6)
+- Special segments to develop chosen (pick-n 4 from 7)
 - Sign-off varies (4 options)
 
 This creates hundreds of distinct prompt variations while maintaining core character.
@@ -174,15 +174,15 @@ The scheduler samples personas at intervals:
 
 1. **Create DSL file** (`agents/personas/my-persona-dsl.ss`):
 ```scheme
-(load "agents/lib/persona-prompt-gen.ss")
-(load-fragment 'response-postures)
+(load "agents/lib/persona-dsl.ss")
+(try-load-fragment 'response-postures)
 
 (define persona-prompt
   (string-append
     "You are my-persona.
 
 Your style is "
-    (choice "option A" "option B")
+    (pick "option A" "option B")
     "."))
 
 persona-prompt
@@ -218,7 +218,7 @@ Create reusable fragments in `agents/personas/fragments/`:
 ;;; my-fragment.ss
 (define opener "Opening text")
 (define closer "Closing text")
-(load-fragment 'my-fragment)  ; Available to all personas
+(try-load-fragment 'my-fragment)  ; Available to all personas
 ```
 
 ## Workflow Templates
@@ -433,7 +433,7 @@ Each new persona should:
 ## Contributing
 
 To add a new persona or fragment:
-1. Create DSL file with `choose-n` for variation
+1. Create DSL file with `pick-n` for variation
 2. Create YAML config with channels and defaults
 3. Test with `generate-persona-prompt.sh`
 4. Test workflow with `run-agent.sh`
