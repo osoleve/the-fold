@@ -547,8 +547,28 @@
                                           (loop (k entity) w)))]
                                [(detect-collisions)
                                 (let ([k (list-ref cmd 1)])
-                                     ;; Pure version: no collision detection (would need full impl)
-                                     (loop (k '()) w))]
+                                     ;; Pure collision detection: brute force O(N²) narrow phase
+                                     ;; Detect collisions by checking all entity pairs
+                                     (let* ([entities (pure-world-entities w)]
+                                            [collisions
+                                             (let outer-loop ([remaining entities] [cols '()])
+                                                  (if (null? remaining)
+                                                      cols
+                                                      (let* ([pair-a (car remaining)]
+                                                             [ent-a (cdr pair-a)]
+                                                             [shape-a (entity-shape ent-a)])
+                                                            (let inner-loop ([others (cdr remaining)] [acc cols])
+                                                                 (if (null? others)
+                                                                     (outer-loop (cdr remaining) acc)
+                                                                     (let* ([pair-b (car others)]
+                                                                            [ent-b (cdr pair-b)]
+                                                                            [shape-b (entity-shape ent-b)]
+                                                                            [manifold (shapes-manifold shape-a shape-b)])
+                                                                           (if manifold
+                                                                               (inner-loop (cdr others)
+                                                                                           (cons (list ent-a ent-b manifold) acc))
+                                                                               (inner-loop (cdr others) acc))))))))])
+                                           (loop (k collisions) w)))]
                                [else (error 'run-physics-pure "Unknown command" tag)]))))))
 
 ;;; ============================================================
