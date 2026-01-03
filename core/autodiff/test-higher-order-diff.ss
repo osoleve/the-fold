@@ -564,6 +564,85 @@
                         (assert-= (cadr g) 8 1e-10))))) ; 2y = 8
 
 ;;; ============================================================
+;;; Hessian Mixed Partial Tests (fold-ntpw)
+;;; ============================================================
+
+(test-group hessian-mixed-partial-tests
+            (define-test hessian-xy-product
+              ;; f(x,y) = x*y, H = [[0, 1], [1, 0]]
+              (let* ([f (lambda (x y) (jet-mul x y))]
+                     [H (hessian-jet f '(2 3))])
+                    (assert-= (matrix-ref H 0 0) 0 1e-10)
+                    (assert-= (matrix-ref H 0 1) 1 1e-10)
+                    (assert-= (matrix-ref H 1 0) 1 1e-10)
+                    (assert-= (matrix-ref H 1 1) 0 1e-10)))
+            
+            (define-test hessian-x2y3
+              ;; f(x,y) = x^2*y^3
+              ;; d^2f/dx^2 = 2y^3, d^2f/dy^2 = 6x^2*y, d^2f/dxdy = 6xy^2
+              ;; At (2, 3): H = [[54, 108], [108, 72]]
+              (let* ([f (lambda (x y) (jet-mul (jet-sq x) (jet-pow y 3)))]
+                     [H (hessian-jet f '(2 3))])
+                    (assert-= (matrix-ref H 0 0) 54 1e-10)   ; 2*27
+                    (assert-= (matrix-ref H 0 1) 108 1e-10)  ; 6*2*9
+                    (assert-= (matrix-ref H 1 0) 108 1e-10)  ; symmetric
+                    (assert-= (matrix-ref H 1 1) 72 1e-10))) ; 6*4*3
+            
+            (define-test hessian-xyz-product
+              ;; f(x,y,z) = xyz, d^2f/dxdy = z, d^2f/dxdz = y, d^2f/dydz = x
+              ;; At (2, 3, 4)
+              (let* ([f (lambda (x y z) (jet-mul x (jet-mul y z)))]
+                     [H (hessian-jet f '(2 3 4))])
+                    (assert-= (matrix-ref H 0 0) 0 1e-10)
+                    (assert-= (matrix-ref H 0 1) 4 1e-10)   ; z
+                    (assert-= (matrix-ref H 0 2) 3 1e-10)   ; y
+                    (assert-= (matrix-ref H 1 1) 0 1e-10)
+                    (assert-= (matrix-ref H 1 2) 2 1e-10)   ; x
+                    (assert-= (matrix-ref H 2 2) 0 1e-10)))
+            
+            (define-test hessian-sin-xy
+              ;; f(x,y) = sin(x*y)
+              ;; d^2f/dx^2 = -y^2*sin(xy), d^2f/dy^2 = -x^2*sin(xy)
+              ;; d^2f/dxdy = cos(xy) - xy*sin(xy)
+              (let* ([f (lambda (x y) (jet-sin (jet-mul x y)))]
+                     [x0 1.0] [y0 2.0]
+                     [xy (* x0 y0)]
+                     [H (hessian-jet f (list x0 y0))]
+                     [H00-expected (* (- (* y0 y0)) (sin xy))]
+                     [H11-expected (* (- (* x0 x0)) (sin xy))]
+                     [H01-expected (- (cos xy) (* xy (sin xy)))])
+                    (assert-= (matrix-ref H 0 0) H00-expected 1e-10)
+                    (assert-= (matrix-ref H 1 1) H11-expected 1e-10)
+                    (assert-= (matrix-ref H 0 1) H01-expected 1e-10)
+                    (assert-= (matrix-ref H 1 0) H01-expected 1e-10))))
+
+;;; ============================================================
+;;; Jet-Pow Performance Tests (fold-zf0o)
+;;; ============================================================
+
+(test-group jet-pow-performance-tests
+            (define-test jet-pow-large-exponent
+              ;; x^1000 at x=1.001 should compute correctly and fast (O(log n))
+              ;; f(x) = x^1000, f'(x) = 1000*x^999
+              ;; At x=1.001: f = 1.001^1000 ≈ 2.717, f' = 1000*1.001^999 ≈ 2714
+              (let* ([j (jet-variable 1.001 1)]
+                     [p (jet-pow j 1000)]
+                     [expected-value (expt 1.001 1000)]
+                     [expected-deriv (* 1000 (expt 1.001 999))])
+                    (assert-= (jet-value p) expected-value 1e-6)
+                    (assert-= (jet-deriv p 1) expected-deriv 1e-3)))
+            
+            (define-test jet-pow-negative-large
+              ;; x^(-100) at x=2 should work with binary exponentiation
+              ;; f(x) = x^(-100), f'(x) = -100*x^(-101)
+              (let* ([j (jet-variable 2.0 1)]
+                     [p (jet-pow j -100)]
+                     [expected-value (expt 2.0 -100)]
+                     [expected-deriv (* -100 (expt 2.0 -101))])
+                    (assert-= (jet-value p) expected-value 1e-40)
+                    (assert-= (jet-deriv p 1) expected-deriv 1e-38))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 
