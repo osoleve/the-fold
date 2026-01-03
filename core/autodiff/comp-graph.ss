@@ -263,9 +263,12 @@
          [fd (dual-deriv a)]
          [gv (dual-value b)]
          [gd (dual-deriv b)])
-        (dual (/ fv gv)
-              (/ (- (* fd gv) (* fv gd))
-                 (* gv gv)))))
+        ;; Guard against division by zero
+        (if (= gv 0)
+            (dual +nan.0 +nan.0)
+            (dual (/ fv gv)
+                  (/ (- (* fd gv) (* fv gd))
+                     (* gv gv))))))
 
 ;;; dual-neg : Dual -> Dual
 (define (dual-neg a)
@@ -306,9 +309,13 @@
 ;;; dual-log : Dual -> Dual
 ;;; d(ln x)/dx = 1/x
 (define (dual-log a)
-  (let ([a (dual-lift a)])
-       (dual (log (dual-value a))
-             (/ (dual-deriv a) (dual-value a)))))
+  (let* ([a (dual-lift a)]
+         [v (dual-value a)])
+        ;; Guard against log of non-positive values
+        (if (<= v 0)
+            (dual +nan.0 +nan.0)
+            (dual (log v)
+                  (/ (dual-deriv a) v)))))
 
 ;;; dual-sin : Dual -> Dual
 ;;; d(sin x)/dx = cos x
@@ -335,12 +342,16 @@
 ;;; dual-pow : Dual x Number -> Dual
 ;;; d(x^n)/dx = n*x^(n-1)
 (define (dual-pow base exp)
-  (let ([base (dual-lift base)]
-        [n exp])
-       (dual (expt (dual-value base) n)
-             (* n
-                (expt (dual-value base) (- n 1))
-                (dual-deriv base)))))
+  (let* ([base (dual-lift base)]
+         [n exp]
+         [bv (dual-value base)])
+        ;; Guard against zero base with fractional/negative exponents
+        (if (and (= bv 0) (< n 1))
+            (dual +nan.0 +nan.0)  ; Undefined derivative at 0 for n < 1
+            (dual (expt bv n)
+                  (* n
+                     (expt bv (- n 1))
+                     (dual-deriv base))))))
 
 ;;; ============================================================
 ;;; Inverse Trigonometric Functions
@@ -350,17 +361,23 @@
 ;;; d(asin x)/dx = 1/sqrt(1-x^2)
 (define (dual-asin a)
   (let* ([a (dual-lift a)]
-         [v (dual-value a)])
+         [v (dual-value a)]
+         [one-v2 (- 1 (* v v))]
+         ;; Add epsilon for boundary cases
+         [denom (sqrt (max one-v2 1e-15))])
         (dual (asin v)
-              (/ (dual-deriv a) (sqrt (- 1 (* v v)))))))
+              (/ (dual-deriv a) denom))))
 
 ;;; dual-acos : Dual -> Dual
 ;;; d(acos x)/dx = -1/sqrt(1-x^2)
 (define (dual-acos a)
   (let* ([a (dual-lift a)]
-         [v (dual-value a)])
+         [v (dual-value a)]
+         [one-v2 (- 1 (* v v))]
+         ;; Add epsilon for boundary cases
+         [denom (sqrt (max one-v2 1e-15))])
         (dual (acos v)
-              (/ (- (dual-deriv a)) (sqrt (- 1 (* v v)))))))
+              (/ (- (dual-deriv a)) denom))))
 
 ;;; dual-atan : Dual -> Dual
 ;;; d(atan x)/dx = 1/(1+x^2)
@@ -529,18 +546,21 @@
          [av (hd-value a)]   [bv (hd-value b)]
          [a1 (hd-deriv1 a)]  [b1 (hd-deriv1 b)]
          [a2 (hd-deriv2 a)]  [b2 (hd-deriv2 b)]
-         [a12 (hd-deriv12 a)] [b12 (hd-deriv12 b)]
-         [bv2 (* bv bv)]
-         [bv3 (* bv2 bv)])
-        (hyperdual (/ av bv)
-                   (/ (- (* a1 bv) (* av b1)) bv2)
-                   (/ (- (* a2 bv) (* av b2)) bv2)
-                   (/ (- (+ (* a12 bv2)
-                            (* 2 av b1 b2))
-                         (+ (* av b12 bv)
-                            (* a1 b2 bv)
-                            (* a2 b1 bv)))
-                      bv3))))
+         [a12 (hd-deriv12 a)] [b12 (hd-deriv12 b)])
+        ;; Guard against division by zero
+        (if (= bv 0)
+            (hyperdual +nan.0 +nan.0 +nan.0 +nan.0)
+            (let* ([bv2 (* bv bv)]
+                   [bv3 (* bv2 bv)])
+                  (hyperdual (/ av bv)
+                             (/ (- (* a1 bv) (* av b1)) bv2)
+                             (/ (- (* a2 bv) (* av b2)) bv2)
+                             (/ (- (+ (* a12 bv2)
+                                      (* 2 av b1 b2))
+                                   (+ (* av b12 bv)
+                                      (* a1 b2 bv)
+                                      (* a2 b1 bv)))
+                                bv3))))))
 
 ;;; hd-neg : Hyperdual -> Hyperdual
 (define (hd-neg a)
@@ -592,10 +612,13 @@
          [a1 (hd-deriv1 a)]
          [a2 (hd-deriv2 a)]
          [a12 (hd-deriv12 a)])
-        (hyperdual (log av)
-                   (/ a1 av)
-                   (/ a2 av)
-                   (/ (- (* a12 av) (* a1 a2)) (* av av)))))
+        ;; Guard against log of non-positive values
+        (if (<= av 0)
+            (hyperdual +nan.0 +nan.0 +nan.0 +nan.0)
+            (hyperdual (log av)
+                       (/ a1 av)
+                       (/ a2 av)
+                       (/ (- (* a12 av) (* a1 a2)) (* av av))))))
 
 ;;; hd-sin : Hyperdual -> Hyperdual
 ;;; d(sin f)/dx = f'cos f
@@ -638,14 +661,17 @@
          [bv (hd-value b)]
          [b1 (hd-deriv1 b)]
          [b2 (hd-deriv2 b)]
-         [b12 (hd-deriv12 b)]
-         [pv (expt bv n)]
-         [pv1 (expt bv (- n 1))]
-         [pv2 (expt bv (- n 2))])
-        (hyperdual pv
-                   (* n pv1 b1)
-                   (* n pv1 b2)
-                   (* n pv2 (+ (* b12 bv) (* (- n 1) b1 b2))))))
+         [b12 (hd-deriv12 b)])
+        ;; Guard against zero base with fractional/negative exponents
+        (if (and (= bv 0) (< n 1))
+            (hyperdual +nan.0 +nan.0 +nan.0 +nan.0)
+            (let* ([pv (expt bv n)]
+                   [pv1 (expt bv (- n 1))]
+                   [pv2 (expt bv (- n 2))])
+                  (hyperdual pv
+                             (* n pv1 b1)
+                             (* n pv1 b2)
+                             (* n pv2 (+ (* b12 bv) (* (- n 1) b1 b2))))))))
 
 ;;; ============================================================
 ;;; Hyperdual Inverse Trigonometric Functions
@@ -661,12 +687,14 @@
          [a2 (hd-deriv2 a)]
          [a12 (hd-deriv12 a)]
          [one-v2 (- 1 (* av av))]
-         [sqrt-one-v2 (sqrt one-v2)])
+         ;; Add epsilon for boundary cases
+         [one-v2-safe (max one-v2 1e-15)]
+         [sqrt-one-v2 (sqrt one-v2-safe)])
         (hyperdual (asin av)
                    (/ a1 sqrt-one-v2)
                    (/ a2 sqrt-one-v2)
-                   (/ (+ (* a12 one-v2) (* av a1 a2))
-                      (* one-v2 sqrt-one-v2)))))
+                   (/ (+ (* a12 one-v2-safe) (* av a1 a2))
+                      (* one-v2-safe sqrt-one-v2)))))
 
 ;;; hd-acos : Hyperdual -> Hyperdual
 ;;; d(acos f)/dx = -f'/sqrt(1-f^2)
@@ -678,12 +706,14 @@
          [a2 (hd-deriv2 a)]
          [a12 (hd-deriv12 a)]
          [one-v2 (- 1 (* av av))]
-         [sqrt-one-v2 (sqrt one-v2)])
+         ;; Add epsilon for boundary cases
+         [one-v2-safe (max one-v2 1e-15)]
+         [sqrt-one-v2 (sqrt one-v2-safe)])
         (hyperdual (acos av)
                    (/ (- a1) sqrt-one-v2)
                    (/ (- a2) sqrt-one-v2)
-                   (/ (- (+ (* a12 one-v2) (* av a1 a2)))
-                      (* one-v2 sqrt-one-v2)))))
+                   (/ (- (+ (* a12 one-v2-safe) (* av a1 a2)))
+                      (* one-v2-safe sqrt-one-v2)))))
 
 ;;; hd-atan : Hyperdual -> Hyperdual
 ;;; d(atan f)/dx = f'/(1+f^2)

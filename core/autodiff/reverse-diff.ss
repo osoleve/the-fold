@@ -179,10 +179,13 @@
          [tape (or (and (traced? a) (traced-tape a))
                    (and (traced? b) (traced-tape b)))])
         (if tape
-            (traced-op 'div result (list a b)
-                       (list (/ 1 bv)
-                             (/ (- av) (* bv bv)))
-                       tape)
+            ;; Guard against division by zero
+            (if (= bv 0)
+                +nan.0
+                (traced-op 'div result (list a b)
+                           (list (/ 1 bv)
+                                 (/ (- av) (* bv bv)))
+                           tape))
             result)))
 
 ;;; traced-neg : Traced|Number -> Traced
@@ -232,7 +235,10 @@
          [result (log av)]
          [tape (and (traced? a) (traced-tape a))])
         (if tape
-            (traced-op 'log result (list a) (list (/ 1 av)) tape)
+            ;; Guard against log of non-positive values
+            (if (<= av 0)
+                +nan.0
+                (traced-op 'log result (list a) (list (/ 1 av)) tape))
             result)))
 
 ;;; traced-sin : Traced|Number -> Traced
@@ -273,9 +279,12 @@
          [result (expt bv n)]
          [tape (and (traced? base) (traced-tape base))])
         (if tape
-            (traced-op 'pow result (list base)
-                       (list (* n (expt bv (- n 1))))
-                       tape)
+            ;; Guard against zero base with fractional/negative exponents
+            (if (and (= bv 0) (< n 1))
+                +nan.0  ; Undefined derivative at 0 for n < 1
+                (traced-op 'pow result (list base)
+                           (list (* n (expt bv (- n 1))))
+                           tape))
             result)))
 
 ;;; ============================================================
@@ -289,9 +298,12 @@
          [result (asin av)]
          [tape (and (traced? a) (traced-tape a))])
         (if tape
-            (traced-op 'asin result (list a)
-                       (list (/ 1 (sqrt (- 1 (* av av)))))
-                       tape)
+            (let* ([one-av2 (- 1 (* av av))]
+                   ;; Add epsilon for boundary cases
+                   [denom (sqrt (max one-av2 1e-15))])
+                  (traced-op 'asin result (list a)
+                             (list (/ 1 denom))
+                             tape))
             result)))
 
 ;;; traced-acos : Traced|Number -> Traced
@@ -301,9 +313,12 @@
          [result (acos av)]
          [tape (and (traced? a) (traced-tape a))])
         (if tape
-            (traced-op 'acos result (list a)
-                       (list (/ -1 (sqrt (- 1 (* av av)))))
-                       tape)
+            (let* ([one-av2 (- 1 (* av av))]
+                   ;; Add epsilon for boundary cases
+                   [denom (sqrt (max one-av2 1e-15))])
+                  (traced-op 'acos result (list a)
+                             (list (/ -1 denom))
+                             tape))
             result)))
 
 ;;; traced-atan : Traced|Number -> Traced
