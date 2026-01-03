@@ -286,30 +286,53 @@
                           (just (car stack))))))
 
 ;;; ============================================================
-;;; Accumulator State (Common Pattern)
+;;; Accumulator State (Common Pattern - O(1) Writer Pattern)
 ;;; ============================================================
+;;;
+;;; Performance note: This implementation uses cons-based accumulation
+;;; for O(1) single-element appends, but requires O(N) reversal when
+;;; reading the final result. For write-heavy workloads, this is much
+;;; faster than repeated O(N) appends.
+;;;
+;;; The accumulated list is stored in reverse order internally.
+;;; Use `state-get-log` to retrieve in correct order.
 
 ;;; state-tell : a -> State (List a) ()
 ;;; Append a value to an accumulator (like Writer).
+;;; O(1) operation using cons-based accumulation.
 (define (state-tell x)
-  (state-modify (lambda (acc) (append acc (list x)))))
+  (state-modify (lambda (acc) (cons x acc))))
 
 ;;; state-tell-all : (List a) -> State (List a) ()
 ;;; Append all values to an accumulator.
+;;; O(N) where N is length of xs.
 (define (state-tell-all xs)
-  (state-modify (lambda (acc) (append acc xs))))
+  (state-modify (lambda (acc)
+                        ;; Add xs in reverse order to maintain final order after reversal
+                        (let loop ([remaining xs] [result acc])
+                             (if (null? remaining)
+                                 result
+                                 (loop (cdr remaining) (cons (car remaining) result)))))))
 
 ;;; state-listen : State (List a) (List a)
-;;; Get the current accumulator.
-(define state-listen state-get)
+;;; Get the current accumulator in correct order.
+;;; O(N) reversal to restore order.
+(define state-listen
+  (state-bind state-get
+              (lambda (acc) (state-pure (reverse acc)))))
+
+;;; state-get-log : State (List a) (List a)
+;;; Alias for state-listen - get accumulator in correct order.
+(define state-get-log state-listen)
 
 ;;; state-clear : State (List a) (List a)
-;;; Clear the accumulator, returning old value.
+;;; Clear the accumulator, returning old value in correct order.
+;;; O(N) reversal to restore order.
 (define state-clear
   (state-bind state-get
               (lambda (acc)
                       (state-then (state-put '())
-                                  (state-pure acc)))))
+                                  (state-pure (reverse acc))))))
 
 ;;; ============================================================
 ;;; do-notation Simulation
@@ -353,9 +376,10 @@
 ;;;                                       state-pop))))
 ;;; (run-state stack-ops '())  ; => ((just . 3) . (2 1))
 ;;;
-;;; ;; Accumulator
+;;; ;; Accumulator (Writer pattern)
 ;;; (define log-ops
 ;;;   (state-then (state-tell "started")
 ;;;               (state-then (state-tell "working")
-;;;                           (state-tell "done"))))
-;;; (exec-state log-ops '())  ; => ("started" "working" "done")
+;;;                           (state-then (state-tell "done")
+;;;                                       state-listen))))
+;;; (eval-state log-ops '())  ; => ("started" "working" "done")

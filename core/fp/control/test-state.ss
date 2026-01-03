@@ -237,16 +237,21 @@
 
 (test-group accumulator-state
             (define-test tell-test
-              (assert-equal '("hello") (exec-state (state-tell "hello") '())))
+              (let ([st (state-then (state-tell "hello")
+                                    state-listen)])
+                   (assert-equal '("hello") (eval-state st '()))))
             
             (define-test tell-multiple-test
               (let ([st (state-then (state-tell "a")
                                     (state-then (state-tell "b")
-                                                (state-tell "c")))])
-                   (assert-equal '("a" "b" "c") (exec-state st '()))))
+                                                (state-then (state-tell "c")
+                                                            state-listen)))])
+                   (assert-equal '("a" "b" "c") (eval-state st '()))))
             
             (define-test tell-all-test
-              (assert-equal '(1 2 3) (exec-state (state-tell-all '(1 2 3)) '())))
+              (let ([st (state-then (state-tell-all '(1 2 3))
+                                    state-listen)])
+                   (assert-equal '(1 2 3) (eval-state st '()))))
             
             (define-test listen-test
               (let ([st (state-then (state-tell "x")
