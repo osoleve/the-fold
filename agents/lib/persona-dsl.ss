@@ -256,16 +256,22 @@
                  (take-loop (+ i 1) (cons (vector-ref vec i) acc))))))
 
 ;;; Helper: Weighted selection
+;;; Returns value from weighted options based on random value r.
+;;; Tracks last-seen value to handle edge case where r >= total weight.
 (define (weighted-select options r current-sum)
+  (weighted-select-impl options r current-sum #f))
+
+(define (weighted-select-impl options r current-sum last-value)
   (if (null? options)
-      (cdar (last-pair options))
+      ;; Fallback to last seen value (handles floating point edge cases)
+      (or last-value (error 'weighted-select "Empty options list"))
       (let* ([opt (car options)]
              [weight (car opt)]
              [value (cdr opt)]
              [next-sum (+ current-sum weight)])
             (if (< r next-sum)
                 value
-                (weighted-select (cdr options) r next-sum)))))
+                (weighted-select-impl (cdr options) r next-sum value)))))
 
 ;;; Helper: last-pair
 (define (last-pair lst)
@@ -311,6 +317,7 @@
 
 ;;; make-replay-interpreter : List Choice -> Interpreter
 ;;; Create interpreter that replays recorded choices.
+;;; Output operations use the replay's own state (not a discarded new interpreter).
 (define (make-replay-interpreter choices)
   (let ([state (make-prompt-state)]
         [choice-queue choices])
@@ -318,12 +325,62 @@
         (make-interpreter
          (lambda (tag payload)
                  (case tag
-                       [(emit emit-line emit-blank emit-section emit-list emit-numbered maybe-emit)
-                        ;; Handle output same as normal interpreter
-                        ((interpreter-handler (car (make-prompt-interpreter))) tag payload)]
+                       ;; Output operations - handle using our own state
+                       [(emit)
+                        (prompt-state-output-set! state
+                                                  (cons payload (prompt-state-output state)))
+                        '()]
                        
+                       [(emit-line)
+                        (let ([text (apply string-append payload)])
+                             (prompt-state-output-set! state
+                                                       (cons "\n" (cons text (prompt-state-output state)))))
+                        '()]
+                       
+                       [(emit-blank)
+                        (prompt-state-output-set! state
+                                                  (cons "\n" (prompt-state-output state)))
+                        '()]
+                       
+                       [(emit-section)
+                        (let* ([title payload]
+                               [underline (make-string (string-length title) #\─)])
+                              (prompt-state-output-set! state
+                                                        (cons "\n" (cons underline (cons "\n" (cons title (prompt-state-output state)))))))
+                        '()]
+                       
+                       [(emit-list)
+                        (let* ([header (car payload)]
+                               [items (cdr payload)]
+                               [bullet-lines (map (lambda (item) (string-append "• " item "\n")) items)])
+                              (prompt-state-output-set! state
+                                                        (append (reverse (cons "\n" bullet-lines))
+                                                                (cons "\n" (cons header (prompt-state-output state))))))
+                        '()]
+                       
+                       [(emit-numbered)
+                        (let* ([header (car payload)]
+                               [items (cdr payload)]
+                               [numbered-lines (let loop ([lst items] [n 1] [acc '()])
+                                                    (if (null? lst)
+                                                        (reverse acc)
+                                                        (loop (cdr lst) (+ n 1)
+                                                              (cons (string-append (number->string n) ". " (car lst) "\n") acc))))])
+                              (prompt-state-output-set! state
+                                                        (append (reverse (cons "\n" numbered-lines))
+                                                                (cons "\n" (cons header (prompt-state-output state))))))
+                        '()]
+                       
+                       [(maybe-emit)
+                        (let ([condition (car payload)]
+                              [text (cdr payload)])
+                             (when condition
+                                   (prompt-state-output-set! state
+                                                             (cons text (prompt-state-output state)))))
+                        '()]
+                       
+                       ;; Choice operations - replay from recorded choices
                        [(pick pick-n pick-weighted)
-                        ;; Replay from recorded choices
                         (if (null? choice-queue)
                             (error 'replay-interpreter "Ran out of recorded choices")
                             (let ([recorded (car choice-queue)])

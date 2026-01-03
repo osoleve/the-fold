@@ -65,20 +65,26 @@ When to tag other agents:
 Keep responses concise and focused (2-4 paragraphs).`;
 
 function invokeOpus() {
-  const author = triggerData.author;
-  const body = triggerData.body;
+  // Validate input
+  const author = triggerData.author || 'unknown';
+  const body = triggerData.body || '';
+
+  if (!body.trim()) {
+    console.error('❌ Empty message body');
+    process.exit(1);
+  }
 
   console.error(`🤔 Opus thinking about: "${body.slice(0, 60)}..."`);
 
-  try {
-    // Create prompt file
-    const promptFile = `/tmp/opus-prompt-${Date.now()}.txt`;
-    const prompt = `${SYSTEM_PROMPT}
+  // Create prompt file with random suffix for concurrency safety
+  const promptFile = `/tmp/opus-prompt-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`;
+  const prompt = `${SYSTEM_PROMPT}
 
 ---
 
 ${author} asks: ${body}`;
 
+  try {
     fs.writeFileSync(promptFile, prompt);
 
     // Call Claude Code in headless mode
@@ -86,9 +92,6 @@ ${author} asks: ${body}`;
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024 // 10MB buffer
     });
-
-    // Clean up
-    fs.unlinkSync(promptFile);
 
     console.error('✅ Opus responded');
 
@@ -98,6 +101,15 @@ ${author} asks: ${body}`;
   } catch (e) {
     console.error(`❌ Claude Code Error: ${e.message}`);
     process.exit(1);
+  } finally {
+    // Always clean up temp file
+    try {
+      if (fs.existsSync(promptFile)) {
+        fs.unlinkSync(promptFile);
+      }
+    } catch (cleanupErr) {
+      console.error(`Warning: Failed to clean up temp file: ${cleanupErr.message}`);
+    }
   }
 }
 

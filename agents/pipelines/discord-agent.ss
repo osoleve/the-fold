@@ -48,17 +48,25 @@
                   (llm-with-system model system-prompt "${input}"))
      
      ;; Stage 4: Post response to Discord
-     ;; Uses the Discord context from the trigger
+     ;; Capture both the LLM response (current input) and Discord context,
+     ;; then post the response to Discord.
      (named-stage 'post-response
-                  (stage-bind
-                   (stage-ask)  ; Get context
-                   (lambda (ctx)
-                           (let ([msg-id (ctx-discord-message-id ctx)])
-                                (if msg-id
-                                    ;; Reply to the original message
-                                    (discord-reply msg-id)
-                                    ;; Fallback: post to consult channel
-                                    (discord-chat 'consult))))))
+                  (chain
+                   ;; Capture response alongside context
+                   (stage-&&&
+                    stage-read    ; Preserve LLM response
+                    (stage-ask))  ; Get pipeline context
+                   ;; Post response using context
+                   (stage-arr
+                    (lambda (response+ctx)
+                            (let ([response (car response+ctx)]
+                                  [ctx (cdr response+ctx)])
+                                 (let ([msg-id (ctx-discord-message-id ctx)])
+                                      (if msg-id
+                                          ;; Reply to the original message
+                                          (discord-reply-with-text msg-id response)
+                                          ;; Fallback: post to consult channel
+                                          (discord-post-to 'consult response))))))))
      
      ;; Stage 5: Log completion
      (named-stage 'log-complete

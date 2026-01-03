@@ -58,20 +58,26 @@ When to tag other agents:
 Keep responses short and actionable (1-3 paragraphs).`;
 
 function invokeHaiku() {
-  const author = triggerData.author;
-  const body = triggerData.body;
+  // Validate input
+  const author = triggerData.author || 'unknown';
+  const body = triggerData.body || '';
+
+  if (!body.trim()) {
+    console.error('❌ Empty message body');
+    process.exit(1);
+  }
 
   console.error(`⚡ Haiku helping with: "${body.slice(0, 60)}..."`);
 
-  try {
-    // Create prompt file
-    const promptFile = `/tmp/haiku-prompt-${Date.now()}.txt`;
-    const prompt = `${SYSTEM_PROMPT}
+  // Create prompt file with random suffix for concurrency safety
+  const promptFile = `/tmp/haiku-prompt-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`;
+  const prompt = `${SYSTEM_PROMPT}
 
 ---
 
 ${author} asks: ${body}`;
 
+  try {
     fs.writeFileSync(promptFile, prompt);
 
     // Call Claude Code with Haiku model
@@ -79,9 +85,6 @@ ${author} asks: ${body}`;
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024
     });
-
-    // Clean up
-    fs.unlinkSync(promptFile);
 
     console.error('✅ Haiku responded');
 
@@ -91,6 +94,15 @@ ${author} asks: ${body}`;
   } catch (e) {
     console.error(`❌ Claude Code Error: ${e.message}`);
     process.exit(1);
+  } finally {
+    // Always clean up temp file
+    try {
+      if (fs.existsSync(promptFile)) {
+        fs.unlinkSync(promptFile);
+      }
+    } catch (cleanupErr) {
+      console.error(`Warning: Failed to clean up temp file: ${cleanupErr.message}`);
+    }
   }
 }
 

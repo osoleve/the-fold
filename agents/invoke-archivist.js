@@ -58,20 +58,26 @@ When to tag other agents:
 Keep responses focused (2-4 paragraphs unless comprehensive context is clearly needed).`;
 
 function invokeArchivist() {
-  const author = triggerData.author;
-  const body = triggerData.body;
+  // Validate input
+  const author = triggerData.author || 'unknown';
+  const body = triggerData.body || '';
+
+  if (!body.trim()) {
+    console.error('❌ Empty message body');
+    process.exit(1);
+  }
 
   console.error(`🗄️  Archivist researching: "${body.slice(0, 60)}..."`);
 
-  try {
-    // Create prompt file
-    const promptFile = `/tmp/archivist-prompt-${Date.now()}.txt`;
-    const prompt = `${SYSTEM_PROMPT}
+  // Create prompt file with random suffix for concurrency safety
+  const promptFile = `/tmp/archivist-prompt-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`;
+  const prompt = `${SYSTEM_PROMPT}
 
 ---
 
 ${author} asks: ${body}`;
 
+  try {
     fs.writeFileSync(promptFile, prompt);
 
     // Use Sonnet for research - good balance of knowledge and speed
@@ -79,9 +85,6 @@ ${author} asks: ${body}`;
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024
     });
-
-    // Clean up
-    fs.unlinkSync(promptFile);
 
     console.error('✅ Archivist responded');
 
@@ -91,6 +94,15 @@ ${author} asks: ${body}`;
   } catch (e) {
     console.error(`❌ Claude Code Error: ${e.message}`);
     process.exit(1);
+  } finally {
+    // Always clean up temp file
+    try {
+      if (fs.existsSync(promptFile)) {
+        fs.unlinkSync(promptFile);
+      }
+    } catch (cleanupErr) {
+      console.error(`Warning: Failed to clean up temp file: ${cleanupErr.message}`);
+    }
   }
 }
 

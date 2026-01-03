@@ -42,36 +42,43 @@
                 (save 'raw-papers))))
 
 ;;; Stage 2: Score papers for relevance
+;;; Each paper is scored and the scores are MERGED back with the original paper data.
+;;; Uses stage-fanout to run LLM scoring alongside identity to preserve original paper.
 (define score-papers
   (named-stage 'score
                (chain
-                ;; For each paper, get relevance scores
+                ;; For each paper, get relevance scores AND preserve original data
                 (map-stage
                  (chain
-                  ;; Prepare paper context
-                  (stage-arr (lambda (paper)
-                                     (format "Title: ~a\nAbstract: ~a"
-                                             (assq-ref paper 'title)
-                                             (assq-ref paper 'abstract))))
-                  ;; Get parallel relevance scores
+                  ;; Run identity (to preserve paper) alongside LLM scoring
                   (stage-&&&
-                   (ask-llm 'haiku
-                            "Rate this paper 1-10 for relevance to AI safety/alignment research. Respond with just a number.\n\n${input}")
-                   (ask-llm 'haiku
-                            "Rate this paper 1-10 for technical depth and novelty. Respond with just a number.\n\n${input}"))
-                  ;; Parse scores (stage-&&& returns a list of two elements)
-                  (stage-arr (lambda (scores)
-                                     (let ([safety-score (string->number (car scores))]
-                                           [tech-score (string->number (cadr scores))])
-                                          (list (cons 'safety-score (or safety-score 0))
-                                                (cons 'tech-score (or tech-score 0))
-                                                (cons 'total (+ (or safety-score 0)
-                                                                (or tech-score 0)))))))
-                  ;; Reattach to original paper
-                  (stage-arr (lambda (scores)
-                                     ;; Input is available via closure
-                                     scores))))
-                ;; Checkpoint scored papers
+                   ;; Left branch: preserve original paper
+                   stage-read
+                   ;; Right branch: format and score
+                   (chain
+                    (stage-arr (lambda (paper)
+                                       (format "Title: ~a\nAbstract: ~a"
+                                               (assq-ref paper 'title)
+                                               (assq-ref paper 'abstract))))
+                    (stage-&&&
+                     (ask-llm 'haiku
+                              "Rate this paper 1-10 for relevance to AI safety/alignment research. Respond with just a number.\n\n${input}")
+                     (ask-llm 'haiku
+                              "Rate this paper 1-10 for technical depth and novelty. Respond with just a number.\n\n${input}"))))
+                  ;; Merge paper with scores
+                  (stage-arr (lambda (result)
+                                     ;; result is (paper . (safety-score-str . tech-score-str))
+                                     (let* ([paper (car result)]
+                                            [scores (cdr result)]
+                                            [safety-score (string->number (car scores))]
+                                            [tech-score (string->number (cadr scores))])
+                                           ;; Merge scores into paper alist
+                                           (append paper
+                                                   (list (cons 'safety-score (or safety-score 0))
+                                                         (cons 'tech-score (or tech-score 0))
+                                                         (cons 'total (+ (or safety-score 0)
+                                                                         (or tech-score 0))))))))))
+                ;; Checkpoint scored papers (now with full paper data + scores)
                 (save 'scored-papers))))
 
 ;;; Stage 3: Filter to high-relevance papers

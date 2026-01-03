@@ -6,22 +6,31 @@
 
 (define *trigger-dir* ".fold-repl/triggers")
 (define *agents* '(opus pedagogue archivist sonnet haiku))
-(define *state-file* ".fold-repl/bot-message-count.txt")
+;;; Per-agent state files to avoid race conditions between concurrent agents
+(define (state-file-for agent)
+  (format ".fold-repl/bot-message-count-~a.txt" agent))
 (define *max-depth* 3)
 
-;;; Load bot message count
-(define (load-count)
-  (if (file-exists? *state-file*)
-      (call-with-input-file *state-file* read)
-      0))
+;;; Load bot message count for specific agent
+(define (load-count agent)
+  (let ([state-file (state-file-for agent)])
+       (if (file-exists? state-file)
+           (guard (e [else 0])  ; Handle read errors gracefully
+                  (call-with-input-file state-file read))
+           0)))
 
-;;; Save bot message count
-(define (save-count! n)
-  (when (file-exists? *state-file*)
-        (delete-file *state-file*))
-  (call-with-output-file *state-file*
-                         (lambda (port)
-                                 (write n port))))
+;;; Save bot message count atomically (write to temp, rename)
+(define (save-count! agent n)
+  (let* ([state-file (state-file-for agent)]
+         [tmp-file (format "~a.tmp.~a" state-file (current-milliseconds))])
+        ;; Write to temp file first
+        (call-with-output-file tmp-file
+                               (lambda (port)
+                                       (write n port)))
+        ;; Atomic rename
+        (when (file-exists? state-file)
+              (delete-file state-file))
+        (rename-file tmp-file state-file)))
 
 ;;; Check for and process triggers
 (define (poll-triggers)
@@ -47,33 +56,33 @@
        (let* ([author-val (cdr (assq 'author trigger-data))]
               [author (if (symbol? author-val) (symbol->string author-val) author-val)]
               [author-is-agent (member (string->symbol author) *agents*)]
-              [count (load-count)])
+              [count (load-count agent)])  ; Per-agent count
              
              (cond
               ;; From human - reset counter and respond
               [(not author-is-agent)
                (display "   ✓ From human, responding\n")
                (create-llm-response agent trigger-data trigger-file)
-               (save-count! 1)]
+               (save-count! agent 1)]
               
               ;; From bot but under limit - increment and respond
               [(< count *max-depth*)
                (display (format "   ✓ From bot, depth ~a/~a, responding\n" count *max-depth*))
                (create-llm-response agent trigger-data trigger-file)
-               (save-count! (+ count 1))]
+               (save-count! agent (+ count 1))]
               
               ;; Over limit - skip
               [else
                (display (format "   ✗ Max depth reached (~a/~a), skipping\n" count *max-depth*))
                (delete-file trigger-file)
-               (save-count! 0)]))))  ; Reset for next conversation
+               (save-count! agent 0)]))))  ; Reset for next conversation
 
 (define (create-llm-response agent trigger-data trigger-file)
   (display "   🤖 Calling LLM API...\n")
   
-  ;; Call the Node.js LLM invoker
+  ;; Call the Node.js LLM invoker (stderr goes to /dev/null to avoid polluting response)
   (let* ([invoke-script (format "agents/invoke-~a.js" agent)]
-         [cmd (format "node ~a ~a 2>&1" invoke-script trigger-file)]
+         [cmd (format "node ~a ~a 2>/dev/null" invoke-script trigger-file)]
          [response (shell-command-to-string cmd)])
         
         (if (string-prefix? "❌" response)
@@ -116,9 +125,11 @@
                   (delete-file trigger-file)
                   (display "   🗑️  Trigger processed\n")))))
 
-;;; Shell command helper
+;;; Shell command helper (unique temp files to avoid collisions)
 (define (shell-command-to-string cmd)
-  (let* ([tmp-file (format "/tmp/fold-llm-~a.txt" (current-milliseconds))]
+  (let* ([tmp-file (format "/tmp/fold-llm-~a-~a.txt"
+                           (current-milliseconds)
+                           (random 100000))]  ; Add randomness for concurrency
          [full-cmd (format "~a > ~a" cmd tmp-file)])
         (system full-cmd)
         (let ([result (call-with-input-file tmp-file
@@ -147,7 +158,7 @@
   (and (>= (string-length str) (string-length prefix))
        (string=? (substring str 0 (string-length prefix)) prefix)))
 
-;;; Escape quotes for JSON
+;;; Escape special characters for JSON (RFC 8259 compliant)
 (define (escape-json str)
   (let loop ([i 0]
              [result ""])
@@ -160,6 +171,13 @@
                                       [(char=? ch #\") "\\\""]
                                       [(char=? ch #\\) "\\\\"]
                                       [(char=? ch #\newline) "\\n"]
+                                      [(char=? ch #\return) "\\r"]
+                                      [(char=? ch #\tab) "\\t"]
+                                      [(char=? ch #\backspace) "\\b"]
+                                      [(char=? ch #\page) "\\f"]
+                                      ;; Control chars (U+0000 to U+001F) as \uXXXX
+                                      [(< (char->integer ch) 32)
+                                       (format "\\u~4,'0x" (char->integer ch))]
                                       [else (string ch)])))))))
 
 (define (current-milliseconds)
