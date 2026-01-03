@@ -553,6 +553,84 @@
                   (=> (Monoid a) a))))))
 
 ;;; ============================================================
+;;; Numeric Type Classes
+;;; ============================================================
+
+;;; Num : * → Constraint
+;;; The core numeric type class for basic arithmetic.
+;;; Provides addition, subtraction, multiplication, negation.
+(define TC-Num
+  (make-typeclass
+   'Num
+   (K=> K* K-constraint)
+   '()
+   `((+       . (∀ (a) (=> (Num a) (-> a a a))))
+     (-       . (∀ (a) (=> (Num a) (-> a a a))))
+     (*       . (∀ (a) (=> (Num a) (-> a a a))))
+     (negate  . (∀ (a) (=> (Num a) (-> a a))))
+     (abs     . (∀ (a) (=> (Num a) (-> a a))))
+     (signum  . (∀ (a) (=> (Num a) (-> a a))))
+     (fromInteger . (∀ (a) (=> (Num a) (-> Int a)))))))
+
+;;; Fractional : * → Constraint
+;;; Division and reciprocal for fractional types.
+(define TC-Fractional
+  (make-typeclass
+   'Fractional
+   (K=> K* K-constraint)
+   '(Num)
+   `((/      . (∀ (a) (=> (Fractional a) (-> a a a))))
+     (recip  . (∀ (a) (=> (Fractional a) (-> a a))))
+     (fromRational . (∀ (a) (=> (Fractional a) (-> Rational a)))))))
+
+;;; Floating : * → Constraint
+;;; Transcendental functions for floating-point types.
+(define TC-Floating
+  (make-typeclass
+   'Floating
+   (K=> K* K-constraint)
+   '(Fractional)
+   `((pi     . (∀ (a) (=> (Floating a) a)))
+     (exp    . (∀ (a) (=> (Floating a) (-> a a))))
+     (log    . (∀ (a) (=> (Floating a) (-> a a))))
+     (sqrt   . (∀ (a) (=> (Floating a) (-> a a))))
+     (**     . (∀ (a) (=> (Floating a) (-> a a a))))
+     (sin    . (∀ (a) (=> (Floating a) (-> a a))))
+     (cos    . (∀ (a) (=> (Floating a) (-> a a))))
+     (tan    . (∀ (a) (=> (Floating a) (-> a a))))
+     (asin   . (∀ (a) (=> (Floating a) (-> a a))))
+     (acos   . (∀ (a) (=> (Floating a) (-> a a))))
+     (atan   . (∀ (a) (=> (Floating a) (-> a a))))
+     (sinh   . (∀ (a) (=> (Floating a) (-> a a))))
+     (cosh   . (∀ (a) (=> (Floating a) (-> a a))))
+     (tanh   . (∀ (a) (=> (Floating a) (-> a a))))
+     (asinh  . (∀ (a) (=> (Floating a) (-> a a))))
+     (acosh  . (∀ (a) (=> (Floating a) (-> a a))))
+     (atanh  . (∀ (a) (=> (Floating a) (-> a a)))))))
+
+;;; Real : * → Constraint
+;;; Types that can be converted to Rational.
+(define TC-Real
+  (make-typeclass
+   'Real
+   (K=> K* K-constraint)
+   '(Num Ord)
+   `((toRational . (∀ (a) (=> (Real a) (-> a Rational)))))))
+
+;;; Integral : * → Constraint
+;;; Integer-like types with quotient and remainder.
+(define TC-Integral
+  (make-typeclass
+   'Integral
+   (K=> K* K-constraint)
+   '(Real)
+   `((quot     . (∀ (a) (=> (Integral a) (-> a a a))))
+     (rem      . (∀ (a) (=> (Integral a) (-> a a a))))
+     (div      . (∀ (a) (=> (Integral a) (-> a a a))))
+     (mod      . (∀ (a) (=> (Integral a) (-> a a a))))
+     (toInteger . (∀ (a) (=> (Integral a) (-> a Int)))))))
+
+;;; ============================================================
 ;;; Contravariant and Bifunctors
 ;;; ============================================================
 

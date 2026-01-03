@@ -337,3 +337,556 @@
   (if (= idx 0)
       (cons (f (car lst)) (cdr lst))
       (cons (car lst) (hod-list-update (cdr lst) (- idx 1) f))))
+
+
+;;; ============================================================
+;;; JET NUMBERS: Arbitrary-Order Forward Mode Differentiation
+;;; ============================================================
+
+;;; A jet number represents a truncated power series:
+;;;   f(x + e) = f(x) + f'(x)e + f''(x)e^2/2! + ... + f^(n)(x)e^n/n!
+;;;
+;;; We store the Taylor coefficients directly (divided by factorial):
+;;;   jet = (jet coeffs) where coeffs = [c0, c1, c2, ..., cn]
+;;;   represents c0 + c1*e + c2*e^2 + ... + cn*e^n
+;;;
+;;; To get the k-th derivative at x: k! * (jet-coeff jet k)
+
+;;; jet : (List Number) -> Jet
+;;; Create a jet number from coefficients [c0, c1, c2, ...].
+;;; c_k represents the k-th Taylor coefficient (derivative/k!)
+(define (jet coeffs)
+  (list 'jet (list->vector coeffs)))
+
+;;; jet? : Any -> Boolean
+(define (jet? x)
+  (and (pair? x) (eq? (car x) 'jet)))
+
+;;; jet-coeffs : Jet -> Vector
+(define (jet-coeffs j)
+  (if (jet? j) (cadr j) (vector j)))
+
+;;; jet-order : Jet -> Nat
+;;; Maximum derivative order this jet can compute.
+(define (jet-order j)
+  (if (jet? j)
+      (- (vector-length (jet-coeffs j)) 1)
+      0))
+
+;;; jet-coeff : Jet x Nat -> Number
+;;; Get the k-th Taylor coefficient.
+(define (jet-coeff j k)
+  (if (jet? j)
+      (let ([coeffs (jet-coeffs j)])
+           (if (< k (vector-length coeffs))
+               (vector-ref coeffs k)
+               0))
+      (if (= k 0) j 0)))
+
+;;; jet-deriv : Jet x Nat -> Number
+;;; Get the k-th derivative at the base point.
+;;; d^k f/dx^k = k! * c_k
+(define (jet-deriv j k)
+  (* (factorial k) (jet-coeff j k)))
+
+;;; factorial : Nat -> Nat
+(define (factorial n)
+  (if (<= n 1) 1 (* n (factorial (- n 1)))))
+
+;;; jet-value : Jet -> Number
+;;; Get the function value (0-th derivative).
+(define (jet-value j)
+  (jet-coeff j 0))
+
+;;; jet-lift : Number -> Jet
+;;; Lift a constant to a jet (all derivatives = 0).
+(define (jet-lift x)
+  (if (jet? x) x (jet (list x))))
+
+;;; jet-variable : Number x Nat -> Jet
+;;; Create a jet for a variable with order n.
+;;; d/dx x = 1, all higher derivatives = 0.
+(define (jet-variable x order)
+  (jet (cons x (cons 1 (make-list order 0)))))
+
+;;; ============================================================
+;;; Jet Number Arithmetic
+;;; ============================================================
+
+;;; Helper: pad coefficient vectors to same length
+(define (jet-pad-coeffs v1 v2)
+  (let* ([n1 (vector-length v1)]
+         [n2 (vector-length v2)]
+         [n (max n1 n2)]
+         [pad (lambda (v len)
+                      (if (= len (vector-length v))
+                          v
+                          (let ([result (make-vector len 0)])
+                               (do ([i 0 (+ i 1)])
+                                   ((= i (vector-length v)) result)
+                                   (vector-set! result i (vector-ref v i))))))])
+        (values (pad v1 n) (pad v2 n) n)))
+
+;;; jet-add : Jet x Jet -> Jet
+;;; (f + g)^(k) = f^(k) + g^(k)
+(define (jet-add a b)
+  (let* ([a (jet-lift a)]
+         [b (jet-lift b)]
+         [ca (jet-coeffs a)]
+         [cb (jet-coeffs b)])
+        (let-values ([(pa pb n) (jet-pad-coeffs ca cb)])
+                    (let ([result (make-vector n 0)])
+                         (do ([i 0 (+ i 1)])
+                             ((= i n) (jet (vector->list result)))
+                             (vector-set! result i (+ (vector-ref pa i)
+                                                      (vector-ref pb i))))))))
+
+;;; jet-sub : Jet x Jet -> Jet
+(define (jet-sub a b)
+  (let* ([a (jet-lift a)]
+         [b (jet-lift b)]
+         [ca (jet-coeffs a)]
+         [cb (jet-coeffs b)])
+        (let-values ([(pa pb n) (jet-pad-coeffs ca cb)])
+                    (let ([result (make-vector n 0)])
+                         (do ([i 0 (+ i 1)])
+                             ((= i n) (jet (vector->list result)))
+                             (vector-set! result i (- (vector-ref pa i)
+                                                      (vector-ref pb i))))))))
+
+;;; jet-neg : Jet -> Jet
+(define (jet-neg a)
+  (let* ([a (jet-lift a)]
+         [ca (jet-coeffs a)]
+         [n (vector-length ca)]
+         [result (make-vector n 0)])
+        (do ([i 0 (+ i 1)])
+            ((= i n) (jet (vector->list result)))
+            (vector-set! result i (- (vector-ref ca i))))))
+
+;;; jet-mul : Jet x Jet -> Jet
+;;; Cauchy product: c_k = sum_{j=0}^{k} a_j * b_{k-j}
+(define (jet-mul a b)
+  (let* ([a (jet-lift a)]
+         [b (jet-lift b)]
+         [ca (jet-coeffs a)]
+         [cb (jet-coeffs b)])
+        (let-values ([(pa pb n) (jet-pad-coeffs ca cb)])
+                    (let ([result (make-vector n 0)])
+                         (do ([k 0 (+ k 1)])
+                             ((= k n) (jet (vector->list result)))
+                             (let ([sum 0])
+                                  (do ([j 0 (+ j 1)])
+                                      ((> j k))
+                                      (set! sum (+ sum (* (vector-ref pa j)
+                                                          (vector-ref pb (- k j))))))
+                                  (vector-set! result k sum)))))))
+
+;;; jet-sq : Jet -> Jet
+(define (jet-sq a)
+  (jet-mul a a))
+
+;;; jet-div : Jet x Jet -> Jet
+;;; Compute c = a/b where b_0 * c_k = a_k - sum_{j=1}^{k} b_j * c_{k-j}
+(define (jet-div a b)
+  (let* ([a (jet-lift a)]
+         [b (jet-lift b)]
+         [ca (jet-coeffs a)]
+         [cb (jet-coeffs b)])
+        (let-values ([(pa pb n) (jet-pad-coeffs ca cb)])
+                    (let ([result (make-vector n 0)]
+                          [b0 (vector-ref pb 0)])
+                         (do ([k 0 (+ k 1)])
+                             ((= k n) (jet (vector->list result)))
+                             (let ([sum (vector-ref pa k)])
+                                  (do ([j 1 (+ j 1)])
+                                      ((> j k))
+                                      (set! sum (- sum (* (vector-ref pb j)
+                                                          (vector-ref result (- k j))))))
+                                  (vector-set! result k (/ sum b0))))))))
+
+;;; jet-recip : Jet -> Jet
+;;; 1/a
+(define (jet-recip a)
+  (jet-div (jet-lift 1) a))
+
+;;; ============================================================
+;;; Jet Transcendental Functions
+;;; ============================================================
+
+;;; For exp, sin, cos, log, sqrt, we use the recurrence relations
+;;; derived from the differential equations they satisfy.
+
+;;; jet-exp : Jet -> Jet
+;;; d(exp(f))/dx = exp(f) * f'
+;;; Recurrence: c_k = (1/k) * sum_{j=1}^{k} j * a_j * c_{k-j}
+(define (jet-exp a)
+  (let* ([a (jet-lift a)]
+         [ca (jet-coeffs a)]
+         [n (vector-length ca)]
+         [result (make-vector n 0)])
+        ;; c_0 = exp(a_0)
+        (vector-set! result 0 (exp (vector-ref ca 0)))
+        ;; Recurrence for higher terms
+        (do ([k 1 (+ k 1)])
+            ((= k n) (jet (vector->list result)))
+            (let ([sum 0])
+                 (do ([j 1 (+ j 1)])
+                     ((> j k))
+                     (set! sum (+ sum (* j
+                                         (vector-ref ca j)
+                                         (vector-ref result (- k j))))))
+                 (vector-set! result k (/ sum k))))))
+
+;;; jet-log : Jet -> Jet
+;;; d(log(f))/dx = f'/f
+;;; Recurrence: c_k = (1/a_0) * (a_k - (1/k) * sum_{j=1}^{k-1} j * c_j * a_{k-j})
+(define (jet-log a)
+  (let* ([a (jet-lift a)]
+         [ca (jet-coeffs a)]
+         [n (vector-length ca)]
+         [result (make-vector n 0)]
+         [a0 (vector-ref ca 0)])
+        ;; c_0 = log(a_0)
+        (vector-set! result 0 (log a0))
+        ;; Recurrence for higher terms
+        (do ([k 1 (+ k 1)])
+            ((= k n) (jet (vector->list result)))
+            (let ([sum 0])
+                 (do ([j 1 (+ j 1)])
+                     ((>= j k))
+                     (set! sum (+ sum (* j
+                                         (vector-ref result j)
+                                         (vector-ref ca (- k j))))))
+                 (vector-set! result k (/ (- (vector-ref ca k) (/ sum k)) a0))))))
+
+;;; jet-sqrt : Jet -> Jet
+;;; d(sqrt(f))/dx = f'/(2*sqrt(f))
+;;; Recurrence: c_k = (1/(2*c_0)) * (a_k - sum_{j=1}^{k-1} c_j * c_{k-j})
+(define (jet-sqrt a)
+  (let* ([a (jet-lift a)]
+         [ca (jet-coeffs a)]
+         [n (vector-length ca)]
+         [result (make-vector n 0)]
+         [c0 (sqrt (vector-ref ca 0))])
+        ;; c_0 = sqrt(a_0)
+        (vector-set! result 0 c0)
+        ;; Recurrence for higher terms
+        (do ([k 1 (+ k 1)])
+            ((= k n) (jet (vector->list result)))
+            (let ([sum 0])
+                 ;; Only sum up to k-1 to avoid doubling the middle term
+                 (do ([j 1 (+ j 1)])
+                     ((>= j k))
+                     (set! sum (+ sum (* (vector-ref result j)
+                                         (vector-ref result (- k j))))))
+                 (vector-set! result k (/ (- (vector-ref ca k) sum) (* 2 c0)))))))
+
+;;; jet-sin-cos : Jet -> (Values Jet Jet)
+;;; Compute sin and cos simultaneously using coupled recurrence.
+;;; d(sin(f))/dx = cos(f) * f', d(cos(f))/dx = -sin(f) * f'
+(define (jet-sin-cos a)
+  (let* ([a (jet-lift a)]
+         [ca (jet-coeffs a)]
+         [n (vector-length ca)]
+         [sin-result (make-vector n 0)]
+         [cos-result (make-vector n 0)]
+         [a0 (vector-ref ca 0)])
+        ;; Initial values
+        (vector-set! sin-result 0 (sin a0))
+        (vector-set! cos-result 0 (cos a0))
+        ;; Coupled recurrence
+        (do ([k 1 (+ k 1)])
+            ((= k n) (values (jet (vector->list sin-result))
+                             (jet (vector->list cos-result))))
+            (let ([sin-sum 0]
+                  [cos-sum 0])
+                 (do ([j 1 (+ j 1)])
+                     ((> j k))
+                     (let ([aj (vector-ref ca j)])
+                          (set! sin-sum (+ sin-sum (* j aj (vector-ref cos-result (- k j)))))
+                          (set! cos-sum (+ cos-sum (* j aj (vector-ref sin-result (- k j)))))))
+                 (vector-set! sin-result k (/ sin-sum k))
+                 (vector-set! cos-result k (/ (- cos-sum) k))))))
+
+;;; jet-sin : Jet -> Jet
+(define (jet-sin a)
+  (let-values ([(s c) (jet-sin-cos a)]) s))
+
+;;; jet-cos : Jet -> Jet
+(define (jet-cos a)
+  (let-values ([(s c) (jet-sin-cos a)]) c))
+
+;;; jet-tan : Jet -> Jet
+;;; tan(f) = sin(f)/cos(f)
+(define (jet-tan a)
+  (let-values ([(s c) (jet-sin-cos a)])
+              (jet-div s c)))
+
+;;; jet-pow : Jet x Number -> Jet
+;;; f^n using exp(n * log(f))
+(define (jet-pow base exp)
+  (let ([base (jet-lift base)])
+       (if (= exp 0)
+           (jet (list 1))
+           (if (integer? exp)
+               ;; For integer exponents, use repeated multiplication
+               (let loop ([n (abs exp)]
+                          [result (jet (list 1))])
+                    (if (= n 0)
+                        (if (< exp 0) (jet-recip result) result)
+                        (loop (- n 1) (jet-mul result base))))
+               ;; For non-integer, use exp/log
+               (jet-exp (jet-mul (jet-lift exp) (jet-log base)))))))
+
+;;; ============================================================
+;;; Higher-Order Derivative Computation with Jets
+;;; ============================================================
+
+;;; nth-derivative : (Jet -> Jet) x Number x Nat -> Number
+;;; Compute the n-th derivative of f at x.
+;;; f must use jet-* operations.
+(define (nth-derivative f x n)
+  (let* ([j (jet-variable x n)]
+         [result (f j)])
+        (jet-deriv result n)))
+
+;;; all-derivatives : (Jet -> Jet) x Number x Nat -> (List Number)
+;;; Compute derivatives 0 through n at x.
+;;; Returns (f(x), f'(x), f''(x), ..., f^(n)(x))
+(define (all-derivatives f x n)
+  (let* ([j (jet-variable x n)]
+         [result (f j)])
+        (map (lambda (k) (jet-deriv result k))
+             (iota (+ n 1)))))
+
+;;; ============================================================
+;;; Taylor Series Expansion
+;;; ============================================================
+
+;;; taylor-coefficients : (Jet -> Jet) x Number x Nat -> (List Number)
+;;; Compute Taylor series coefficients at x up to order n.
+;;; Returns (c_0, c_1, ..., c_n) where f(x + h) ~ sum c_k * h^k
+(define (taylor-coefficients f x n)
+  (let* ([j (jet-variable x n)]
+         [result (f j)])
+        (map (lambda (k) (jet-coeff result k))
+             (iota (+ n 1)))))
+
+;;; taylor-series : (Jet -> Jet) x Number x Nat -> (Number -> Number)
+;;; Return a function that evaluates the Taylor series approximation.
+(define (taylor-series f x n)
+  (let ([coeffs (taylor-coefficients f x n)])
+       (lambda (h)
+               (let loop ([cs coeffs] [power 1] [sum 0])
+                    (if (null? cs)
+                        sum
+                        (loop (cdr cs)
+                              (* power h)
+                              (+ sum (* (car cs) power))))))))
+
+;;; taylor-remainder-bound : (Jet -> Jet) x Number x Number x Nat -> Number
+;;; Lagrange remainder estimate: |R_n(h)| <= M * |h|^(n+1) / (n+1)!
+;;; where M is the max of |f^(n+1)| on [x, x+h].
+;;; This computes f^(n+1)(x) as an estimate for M.
+(define (taylor-remainder-bound f x h n)
+  (let ([deriv-n+1 (abs (nth-derivative f x (+ n 1)))])
+       (/ (* deriv-n+1 (expt (abs h) (+ n 1)))
+          (factorial (+ n 1)))))
+
+;;; ============================================================
+;;; Mixed Partial Derivatives
+;;; ============================================================
+
+;;; For multivariate functions, mixed partials are computed by
+;;; treating one variable at a time as "active" (with jet structure)
+;;; while others are constants.
+
+;;; partial-derivative : ((List Jet) -> Jet) x (List Number) x Nat x Nat -> Number
+;;; Compute d^n f / dx_i^n where i is the specified variable index.
+;;; For multivariate functions, we make variable i active and others constant.
+(define (partial-derivative f args var-index n)
+  (let* ([num-args (length args)]
+         ;; Create jets: active variable gets jet-variable, others get jet-lift
+         [jets (map (lambda (x i)
+                            (if (= i var-index)
+                                (jet-variable x n)
+                                (jet-lift x)))
+                    args (iota num-args))]
+         [result (apply f jets)])
+        (jet-deriv result n)))
+
+;;; mixed-partial : ((List Jet) -> Jet) x (List Number) x (List Nat) -> Number
+;;; Compute mixed partial derivative d^|k| f / (dx1^k1 * dx2^k2 * ...)
+;;; where k = (k1, k2, ...) specifies the order with respect to each variable.
+;;;
+;;; Example: (mixed-partial f '(1 2) '(2 1)) computes d^3f/dx1^2 dx2
+;;; at point (1, 2).
+;;;
+;;; NOTE: For true mixed partials (multiple variables with non-zero orders),
+;;; this uses nested differentiation which is more expensive but exact.
+(define (mixed-partial f args orders)
+  (let* ([active-indices (filter (lambda (i) (> (list-ref orders i) 0))
+                                 (iota (length args)))])
+        (if (= (length active-indices) 1)
+            ;; Single variable partial - use jet directly
+            (partial-derivative f args (car active-indices) (list-ref orders (car active-indices)))
+            ;; True mixed partial - use nested differentiation
+            ;; d^2f/dx_i dx_j = d/dx_j (df/dx_i)
+            (if (null? active-indices)
+                (jet-value (apply f (map jet-lift args)))
+                (let* ([first-var (car active-indices)]
+                       [first-order (list-ref orders first-var)]
+                       [remaining-orders (list-update orders first-var (lambda (_) 0))]
+                       ;; Create a function that computes df/dx_first
+                       [inner-f (lambda jets
+                                        (let* ([args-inner (map jet-value jets)]
+                                               [first-jet (jet-variable (list-ref args-inner first-var) first-order)]
+                                               [jets-inner (map (lambda (x i)
+                                                                        (if (= i first-var) first-jet x))
+                                                                jets (iota (length jets)))]
+                                               [result (apply f jets-inner)])
+                                              (jet (list (jet-deriv result first-order)))))])
+                      (mixed-partial inner-f args remaining-orders))))))
+
+;;; ============================================================
+;;; Gradient, Hessian, and Higher-Order Tensors via Jets
+;;; ============================================================
+
+;;; gradient-jet : ((List Jet) -> Jet) x (List Number) -> (List Number)
+;;; Compute gradient using jets (forward mode).
+(define (gradient-jet f args)
+  (let ([n (length args)])
+       (map (lambda (i)
+                    (partial-derivative f args i 1))
+            (iota n))))
+
+;;; hessian-jet : ((List Jet) -> Jet) x (List Number) -> Matrix
+;;; Compute Hessian using jets.
+(define (hessian-jet f args)
+  (let* ([n (length args)]
+         [result (make-vector (* n n) 0)])
+        (do ([i 0 (+ i 1)])
+            ((= i n) (list 'matrix n n result))
+            (do ([j i (+ j 1)])
+                ((= j n))
+                ;; Compute d^2f/dx_i dx_j
+                ;; For i=j: d^2f/dx_i^2
+                ;; For i!=j: use finite difference on gradient
+                (let* ([orders (make-list n 0)]
+                       [orders-i (list-update orders i (lambda (_) 1))]
+                       [orders-ij (list-update orders-i j (lambda (x) (+ x 1)))]
+                       ;; Use jets with appropriate orders
+                       [jets (map (lambda (x k) (jet-variable x (+ k 1)))
+                                  args orders-ij)]
+                       [result-jet (apply f jets)]
+                       ;; Extract the cross-derivative coefficient
+                       [h-ij (if (= i j)
+                                 (jet-deriv result-jet 2)
+                                 ;; Mixed partial: need different approach
+                                 (let* ([epsilon 1e-8]
+                                        [args+ (list-update args j (lambda (x) (+ x epsilon)))]
+                                        [args- (list-update args j (lambda (x) (- x epsilon)))]
+                                        [gi+ (partial-derivative f args+ i 1)]
+                                        [gi- (partial-derivative f args- i 1)])
+                                       (/ (- gi+ gi-) (* 2 epsilon))))])
+                      (vector-set! result (+ (* i n) j) h-ij)
+                      (when (not (= i j))
+                            (vector-set! result (+ (* j n) i) h-ij)))))))
+
+;;; third-derivative-tensor : (Jet -> Jet) x Number -> (List (List (List Number)))
+;;; Compute the third derivative tensor for a single-variable function.
+;;; For multivariate, this returns d^3f/dx^3.
+(define (third-derivative-single f x)
+  (nth-derivative f x 3))
+
+;;; ============================================================
+;;; Repeated Differentiation Operators
+;;; ============================================================
+
+;;; diff-n : ((Dual -> Dual) -> (Dual -> Dual)) -> Nat -> (Dual -> Dual) -> (Dual -> Dual)
+;;; Apply differentiation n times using dual numbers.
+;;; diff-operator is a function that differentiates once.
+(define (diff-n n)
+  (lambda (f)
+          (if (= n 0)
+              f
+              (let loop ([k n] [g f])
+                   (if (= k 0)
+                       g
+                       (loop (- k 1)
+                             (lambda (x)
+                                     ;; Differentiate g at x
+                                     (dual-deriv (g (dual-variable x))))))))))
+
+;;; diff-operator : (Number -> Number) x Number x Nat -> Number
+;;; Compute n-th derivative of f at x using nested dual numbers.
+;;; Note: This has exponential complexity for large n.
+;;; For efficiency, prefer jet-based nth-derivative.
+(define (diff-operator-naive f x n)
+  (if (= n 0)
+      (f x)
+      (forward-diff (lambda (y) (diff-operator-naive f y (- n 1))) x)))
+
+;;; ============================================================
+;;; Convenience: Common Higher-Order Derivatives
+;;; ============================================================
+
+;;; second-derivative-jet : (Jet -> Jet) x Number -> Number
+;;; Compute f''(x) using jets.
+(define (second-derivative-jet f x)
+  (nth-derivative f x 2))
+
+;;; third-derivative-jet : (Jet -> Jet) x Number -> Number
+;;; Compute f'''(x) using jets.
+(define (third-derivative-jet f x)
+  (nth-derivative f x 3))
+
+;;; fourth-derivative-jet : (Jet -> Jet) x Number -> Number
+;;; Compute f''''(x) using jets.
+(define (fourth-derivative-jet f x)
+  (nth-derivative f x 4))
+
+;;; laplacian : ((List Jet) -> Jet) x (List Number) -> Number
+;;; Compute the Laplacian (sum of second partial derivatives).
+(define (laplacian f args)
+  (let ([n (length args)])
+       (apply + (map (lambda (i)
+                             (partial-derivative f args i 2))
+                     (iota n)))))
+
+;;; ============================================================
+;;; Derivative-Based Function Properties
+;;; ============================================================
+
+;;; is-critical-point? : ((List Jet) -> Jet) x (List Number) x Number -> Boolean
+;;; Check if args is a critical point (all partials are zero).
+(define (is-critical-point? f args tolerance)
+  (let ([grad (gradient-jet f args)])
+       (andmap (lambda (g) (< (abs g) tolerance)) grad)))
+
+;;; classify-critical-point : ((List Jet) -> Jet) x (List Number) -> Symbol
+;;; Classify a critical point using the Hessian.
+;;; Returns 'minimum, 'maximum, 'saddle, or 'inconclusive.
+(define (classify-critical-point f args)
+  (let* ([H (hessian-jet f args)]
+         [n (matrix-rows H)])
+        (if (= n 1)
+            ;; 1D case: check second derivative
+            (let ([d2 (matrix-ref H 0 0)])
+                 (cond [(> d2 0) 'minimum]
+                       [(< d2 0) 'maximum]
+                       [else 'inconclusive]))
+            ;; Multivariate: check eigenvalues (simplified - check determinant and trace)
+            (if (= n 2)
+                (let* ([a (matrix-ref H 0 0)]
+                       [b (matrix-ref H 0 1)]
+                       [c (matrix-ref H 1 0)]
+                       [d (matrix-ref H 1 1)]
+                       [det (- (* a d) (* b c))]
+                       [trace (+ a d)])
+                      (cond [(and (> det 0) (> trace 0)) 'minimum]
+                            [(and (> det 0) (< trace 0)) 'maximum]
+                            [(< det 0) 'saddle]
+                            [else 'inconclusive]))
+                'inconclusive))))
