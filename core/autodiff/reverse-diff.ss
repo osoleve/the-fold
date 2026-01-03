@@ -427,12 +427,11 @@
                      (let* ([result-id (traced-id result)]
                             [arg-ids (map traced-id traced-args)]
                             [grads (backward tape result-id 1)])
-                           ;; For each input, check if it's the same as output (identity)
-                           ;; or get gradient from backward pass
+                           ;; Get gradient for each input from backward pass
+                           ;; Note: identity function works correctly - backward initializes
+                           ;; output gradient to seed (1), which is the correct gradient for identity
                            (map (lambda (arg-id)
-                                        (if (= arg-id result-id)
-                                            1  ; Identity function: gradient is 1
-                                            (hashtable-ref grads arg-id 0)))
+                                        (hashtable-ref grads arg-id 0))
                                 arg-ids))
                      ;; Constant function - all gradients are 0
                      (map (lambda (_) 0) args))))))
