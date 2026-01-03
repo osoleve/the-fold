@@ -693,39 +693,41 @@
 (define (V-type-prim-op v) (cadr v))
 (define (V-type-prim-args v) (caddr v))
 
+;;; all-numeric-bases? : (List Value) → Boolean
+;;; Check if all values are base numeric values.
+(define (all-numeric-bases? args)
+  (and (pair? args)
+       (pair? (cdr args))  ; At least 2 args for binary ops
+       (let loop ([remaining args])
+            (or (null? remaining)
+                (and (V-base? (car remaining))
+                     (number? (V-base-val (car remaining)))
+                     (loop (cdr remaining)))))))
+
+;;; extract-base-numbers : (List Value) → (List Number)
+;;; Extract numeric values from base values.
+(define (extract-base-numbers args)
+  (map V-base-val args))
+
 ;;; type-level-reduce : Symbol × (List Value) → Value
 ;;; Try to reduce a type-level primitive.
+;;; Handles variadic arithmetic operations properly.
 (define (type-level-reduce op args)
   (case op
-        ;; Arithmetic
+        ;; Arithmetic (variadic)
         [(+)
-         (if (and (pair? args)
-                  (pair? (cdr args))
-                  (V-base? (car args))
-                  (V-base? (cadr args))
-                  (number? (V-base-val (car args)))
-                  (number? (V-base-val (cadr args))))
-             (V-base (+ (V-base-val (car args)) (V-base-val (cadr args))))
+         (if (all-numeric-bases? args)
+             (V-base (apply + (extract-base-numbers args)))
              (V-type-prim op args))]
         
         [(-)
-         (if (and (pair? args)
-                  (pair? (cdr args))
-                  (V-base? (car args))
-                  (V-base? (cadr args))
-                  (number? (V-base-val (car args)))
-                  (number? (V-base-val (cadr args))))
-             (V-base (- (V-base-val (car args)) (V-base-val (cadr args))))
+         (if (all-numeric-bases? args)
+             (V-base (apply - (extract-base-numbers args)))
              (V-type-prim op args))]
         
         [(*)
-         (if (and (pair? args)
-                  (pair? (cdr args))
-                  (V-base? (car args))
-                  (V-base? (cadr args))
-                  (number? (V-base-val (car args)))
-                  (number? (V-base-val (cadr args))))
-             (V-base (* (V-base-val (car args)) (V-base-val (cadr args))))
+         (if (all-numeric-bases? args)
+             (V-base (apply * (extract-base-numbers args)))
              (V-type-prim op args))]
         
         ;; Comparison (for conditional types)

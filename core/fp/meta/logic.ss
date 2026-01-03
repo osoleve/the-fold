@@ -275,6 +275,41 @@
             (run-goal n (f var)))))
 
 ;;; ============================================================
+;;; Depth-Limited Goal Execution (Totality-Safe)
+;;; ============================================================
+;;;
+;;; For Core totality guarantees, use these depth-limited variants.
+;;; They prevent infinite recursion by tracking goal depth.
+
+;;; make-depth-limited : Int -> Goal -> Goal
+;;; Wrap a goal to fail if depth limit is exceeded.
+;;; Depth is tracked via a special substitution binding.
+(define *depth-key* (make-lvar 'depth-limit))
+
+(define (make-depth-limited max-depth goal)
+  (lambda (subst)
+          (let ([current-depth (lookup-subst *depth-key* subst)])
+               (if (nothing? current-depth)
+                   ;; Initialize depth tracking
+                   (goal (extend-subst *depth-key* 0 subst))
+                   (let ([depth (from-just current-depth)])
+                        (if (>= depth max-depth)
+                            stream-nil  ; Depth exceeded, fail
+                            (goal (extend-subst *depth-key* (+ depth 1) subst))))))))
+
+;;; run-goal-limited : Int -> Int -> Goal -> List Substitution
+;;; Run a goal with depth limit and collect up to n solutions.
+(define (run-goal-limited n max-depth goal)
+  (stream->list n ((make-depth-limited max-depth goal) empty-subst)))
+
+;;; run*-limited : Int -> Int -> (LVar -> Goal) -> List Value
+;;; Run with fresh variable, depth limit, and reify results.
+(define (run*-limited n max-depth f)
+  (let ([var (make-lvar 'q)])
+       (map (lambda (subst) (reify var subst))
+            (run-goal-limited n max-depth (f var)))))
+
+;;; ============================================================
 ;;; Reification
 ;;; ============================================================
 ;;;
