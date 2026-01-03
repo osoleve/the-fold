@@ -214,7 +214,23 @@
               (let* ([g-spec (scalar-fn 2 (lambda (x y) (traced-add x y)))]
                      [f-spec (scalar-fn 3 (lambda (x y z) (traced-mul x (traced-add y z))))]
                      [result (compose-gradient-fns f-spec g-spec)])
-                    (assert-true (error-of-kind? result 'composition-dimension-mismatch)))))
+                    (assert-true (error-of-kind? result 'composition-dimension-mismatch))))
+            
+            (define-test compose-vector-fn-with-scalar-fn
+              ;; g: R^1 -> R^2 (vector function returning list)
+              ;; f: R^2 -> R (scalar function taking 2 inputs)
+              ;; f o g: R^1 -> R
+              ;; This tests that vector function outputs are correctly spread as args to f
+              (let* ([g-spec (vector-fn 1 2 (lambda (x) (list x (traced-mul 2 x))))]
+                     [f-spec (scalar-fn 2 (lambda (a b) (traced-add a b)))]
+                     [composed (compose-gradient-fns f-spec g-spec)])
+                    (assert-true (gradient-spec? composed))
+                    (assert-equal (gradient-spec-input-dim composed) 1)
+                    ;; At x=3: g(3) = (3, 6), f(3, 6) = 9
+                    ;; Gradient: d(x + 2x)/dx = 3
+                    (let ([result (safe-gradient composed '(3.0))])
+                         (assert-true (dim-gradient? result))
+                         (assert-= (car (dim-gradient-values result)) 3.0 0.01)))))
 
 ;;; ============================================================
 ;;; Type Annotation Generation

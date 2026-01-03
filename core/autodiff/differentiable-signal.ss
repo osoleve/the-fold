@@ -498,6 +498,27 @@
                    [grad (complex-scale (* 2 g-k) (complex-conjugate x-k))])
                   (vector-set! result k grad)))))
 
+;;; power-spectrum-grad-real : Vector[Complex] x Vector[Number] -> Vector[Complex]
+;;; Compute gradient of power spectrum for REAL DFT input.
+;;;
+;;; For real input x, the DFT X = DFT(x) has conjugate symmetry: X[k] = conj(X[N-k]).
+;;; When backpropagating through DFT and power spectrum, we need to account for
+;;; this constraint. The effective gradient is 2*X (not 2*conj(X)).
+;;;
+;;; Use this when x was real, then use dft-vjp-real to get the input gradient.
+(define (power-spectrum-grad-real X output-grad)
+  (let* ([n (vector-length X)]
+         [result (make-vector n)])
+        (do ([k 0 (+ k 1)])
+            ((= k n) result)
+            (let* ([x-k (vector-ref X k)]
+                   [g-k (if (< k (vector-length output-grad))
+                            (vector-ref output-grad k)
+                            0)]
+                   ;; For real DFT: use X instead of conj(X)
+                   [grad (complex-scale (* 2 g-k) x-k)])
+                  (vector-set! result k grad)))))
+
 ;;; ============================================================
 ;;; Magnitude Spectrum Gradient
 ;;; ============================================================

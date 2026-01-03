@@ -161,6 +161,7 @@
                     (assert-= (vector-length input-grad) n 0.001)))
             
             ;; Test 3: DFT VJP numerical verification
+            ;; For REAL input signal, use power-spectrum-grad-real with dft-vjp-real
             (define-test dft-vjp-numerical-check
               (let* ([n 4]
                      [signal '#(1.0 2.0 3.0 4.0)]
@@ -170,8 +171,9 @@
                      ;; Numerical gradient
                      [num-grad (numerical-gradient-signal loss-fn signal 1e-6)]
                      ;; Analytical gradient via VJP
+                     ;; For REAL input, use power-spectrum-grad-real (not power-spectrum-grad)
                      [X (dft (real->complex-vec signal))]
-                     [grad-X (power-spectrum-grad X (make-vector n 1))]
+                     [grad-X (power-spectrum-grad-real X (make-vector n 1))]
                      [anal-grad (dft-vjp-real grad-X)])
                     ;; Compare numerical and analytical gradients
                     (assert-vec-= anal-grad num-grad 1e-3))))
@@ -195,21 +197,57 @@
                     (assert-= (vector-length input-grad) n 0.001)))
             
             ;; Test 2: DFT VJP produces correct gradient for linear loss
+            ;; For loss L = Re(sum_k X[k]) where X = DFT(x)
+            ;; dL/dX[k] = 1 (all ones)
+            ;; dL/dx = F^H * dL/dX = N * IDFT([1,1,1,1]) = [4,0,0,0]
             (define-test dft-vjp-linear-loss
-              ;; For loss L = Re(sum_k X[k]) where X = DFT(x)
-              ;; dL/dX[k] = 1 (all ones)
-              ;; dL/dx = DFT(dL/dX) = DFT([1,1,1,1]) = [4,0,0,0] (DC component)
               (let* ([n 4]
                      [output-grad (vector (make-complex 1 0)
                                           (make-complex 1 0)
                                           (make-complex 1 0)
                                           (make-complex 1 0))]
                      [input-grad (dft-vjp output-grad)])
-                    ;; DFT of constant vector is [n, 0, 0, 0]
+                    ;; For constant output gradient, VJP gives [N, 0, 0, 0]
                     (assert-= (complex-real (vector-ref input-grad 0)) 4.0 1e-6)
                     (assert-= (complex-real (vector-ref input-grad 1)) 0.0 1e-6)
                     (assert-= (complex-real (vector-ref input-grad 2)) 0.0 1e-6)
-                    (assert-= (complex-real (vector-ref input-grad 3)) 0.0 1e-6))))
+                    (assert-= (complex-real (vector-ref input-grad 3)) 0.0 1e-6)))
+            
+            ;; Test 3: DFT VJP satisfies adjoint property <DFT(x), y> = <x, VJP(y)>
+            ;; This is the defining property of the correct VJP
+            (define-test dft-vjp-adjoint-property
+              (let* ([n 4]
+                     ;; Test vector x (input to DFT)
+                     [x (vector (make-complex 1 2)
+                                (make-complex 3 -1)
+                                (make-complex 0 4)
+                                (make-complex -2 1))]
+                     ;; Test vector y (output gradient)
+                     [y (vector (make-complex 2 1)
+                                (make-complex -1 3)
+                                (make-complex 1 0)
+                                (make-complex 0 -2))]
+                     ;; Compute DFT(x)
+                     [Fx (dft x)]
+                     ;; Compute VJP(y) = F^H * y
+                     [FHy (dft-vjp y)]
+                     ;; <Fx, y> = sum_k conj(Fx[k]) * y[k]
+                     [lhs (let ([sum (make-complex 0 0)])
+                               (do ([k 0 (+ k 1)])
+                                   ((= k n) sum)
+                                   (set! sum (complex-add sum
+                                                          (complex-mul (complex-conjugate (vector-ref Fx k))
+                                                                       (vector-ref y k))))))]
+                     ;; <x, FHy> = sum_n conj(x[n]) * FHy[n]
+                     [rhs (let ([sum (make-complex 0 0)])
+                               (do ([k 0 (+ k 1)])
+                                   ((= k n) sum)
+                                   (set! sum (complex-add sum
+                                                          (complex-mul (complex-conjugate (vector-ref x k))
+                                                                       (vector-ref FHy k))))))])
+                    ;; The two inner products should be equal
+                    (assert-= (complex-real lhs) (complex-real rhs) 1e-6)
+                    (assert-= (complex-imag lhs) (complex-imag rhs) 1e-6))))
 
 ;;; ============================================================
 ;;; Convolution VJP Tests
@@ -369,6 +407,7 @@
 (test-group e2e-gradient-tests
             
             ;; Test 1: Full pipeline - signal -> DFT -> power -> gradient
+            ;; For REAL input, use power-spectrum-grad-real
             (define-test e2e-power-spectrum-gradient
               (let* ([signal '#(1.0 0.0 -1.0 0.0)]  ; Simple sinusoidal pattern
                      ;; Loss = sum of power spectrum
@@ -376,10 +415,10 @@
                                       (sum-power (dft (real->complex-vec s))))]
                      ;; Numerical gradient
                      [num-grad (numerical-gradient-signal loss-fn signal 1e-6)]
-                     ;; Analytical: power gradient -> DFT VJP
+                     ;; Analytical: power gradient -> DFT VJP (use real variant)
                      [X (dft (real->complex-vec signal))]
                      [n (vector-length signal)]
-                     [grad-X (power-spectrum-grad X (make-vector n 1))]
+                     [grad-X (power-spectrum-grad-real X (make-vector n 1))]
                      [anal-grad (dft-vjp-real grad-X)])
                     ;; Verify match
                     (assert-vec-= anal-grad num-grad 1e-3)))

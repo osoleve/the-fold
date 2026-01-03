@@ -89,6 +89,22 @@
             (list (/ (- (* d (car b)) (* b1 (cadr b))) det)
                   (/ (- (* a (cadr b)) (* c (car b))) det)))))
 
+;;; solve-2x2-regularized : (List (List Number)) x (List Number) x Number -> (List Number)
+;;; Solve (A + lambda*I) * x = b with Levenberg-Marquardt regularization.
+;;; Falls back to gradient direction when still singular.
+(define (solve-2x2-regularized A b lambda)
+  (let* ([a (+ (caar A) lambda)] [b1 (cadar A)]
+         [c (caadr A)] [d (+ (cadadr A) lambda)]
+         [det (- (* a d) (* b1 c))])
+        (if (< (abs det) 1e-12)
+            ;; Even regularized matrix is singular - fall back to scaled gradient
+            (let ([grad-norm (sqrt (+ (* (car b) (car b)) (* (cadr b) (cadr b))))])
+                 (if (< grad-norm 1e-12)
+                     '(0 0)  ; At a critical point
+                     (map (lambda (g) (/ g grad-norm)) b)))  ; Normalized gradient direction
+            (list (/ (- (* d (car b)) (* b1 (cadr b))) det)
+                  (/ (- (* a (cadr b)) (* c (car b))) det)))))
+
 ;;; matrix-to-lists : Matrix -> (List (List Number))
 ;;; Convert matrix to list of rows.
 (define (matrix-to-lists m)
@@ -116,6 +132,17 @@
         (if (eq? delta 'singular)
             'singular
             (map + point delta))))
+
+;;; newton-step-regularized : ((List Jet) -> Jet) x (List Number) x Number -> (List Number)
+;;; Compute Newton step with Levenberg-Marquardt regularization.
+;;; Never returns 'singular - always produces a valid step direction.
+(define (newton-step-regularized f-jet point lambda)
+  (let* ([grad (gradient-jet f-jet point)]
+         [H (hessian-jet f-jet point)]
+         [H-lists (matrix-to-lists H)]
+         [neg-grad (map - grad)]
+         [delta (solve-2x2-regularized H-lists neg-grad lambda)])
+        (map + point delta)))
 
 ;;; newton-optimize : ((List Jet) -> Jet) x (Number -> Number) x (List Number) x Number x Nat -> (List Number)
 ;;; Full Newton optimization with convergence check.

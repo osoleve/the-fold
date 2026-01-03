@@ -109,34 +109,43 @@
 
 ;;; sparse-grad-add : SparseGrad x SparseGrad -> SparseGrad
 ;;; Add two sparse gradients. Result may have more entries if indices differ.
+;;; Uses hash table to avoid O(max-idx) memory allocation for high indices.
 (define (sparse-grad-add g1 g2)
-  ;; Use a simple merge approach: collect all entries, accumulate
   (let* ([n1 (sparse-grad-nnz g1)]
          [n2 (sparse-grad-nnz g2)]
          [idx1 (sparse-grad-indices g1)]
          [val1 (sparse-grad-values g1)]
          [idx2 (sparse-grad-indices g2)]
          [val2 (sparse-grad-values g2)]
-         ;; Find maximum index to size accumulator
-         [max-idx (max (if (> n1 0)
-                           (vec-fold max 0 idx1)
-                           0)
-                       (if (> n2 0)
-                           (vec-fold max 0 idx2)
-                           0))]
-         [acc (make-vector (+ max-idx 1) 0)])
+         ;; Use hashtable for O(nnz) memory instead of O(max-idx)
+         [acc (make-hashtable equal-hash equal?)])
         ;; Accumulate from g1
         (do ([k 0 (+ k 1)])
             ((= k n1))
-            (let ([i (vector-ref idx1 k)])
-                 (vector-set! acc i (+ (vector-ref acc i) (vector-ref val1 k)))))
+            (let ([i (vector-ref idx1 k)]
+                  [v (vector-ref val1 k)])
+                 (hashtable-set! acc i (+ (hashtable-ref acc i 0) v))))
         ;; Accumulate from g2
         (do ([k 0 (+ k 1)])
             ((= k n2))
-            (let ([i (vector-ref idx2 k)])
-                 (vector-set! acc i (+ (vector-ref acc i) (vector-ref val2 k)))))
-        ;; Convert back to sparse
-        (dense->sparse-grad acc)))
+            (let ([i (vector-ref idx2 k)]
+                  [v (vector-ref val2 k)])
+                 (hashtable-set! acc i (+ (hashtable-ref acc i 0) v))))
+        ;; Convert hashtable to sparse gradient
+        (let-values ([(keys vals) (hashtable-entries acc)])
+                    (let* ([ks (vector->list keys)]
+                           [vs (vector->list vals)]
+                           ;; Filter out zeros
+                           [nz-pairs (filter (lambda (p) (not (= (cdr p) 0)))
+                                             (map cons ks vs))]
+                           [nnz (length nz-pairs)]
+                           [indices (make-vector nnz 0)]
+                           [values (make-vector nnz 0)])
+                          (do ([k 0 (+ k 1)]
+                               [ps nz-pairs (cdr ps)])
+                              ((= k nnz) (make-sparse-grad indices values))
+                              (vector-set! indices k (caar ps))
+                              (vector-set! values k (cdar ps)))))))
 
 ;;; sparse-grad-scale : Num x SparseGrad -> SparseGrad
 ;;; Scale sparse gradient by a constant.
@@ -187,9 +196,10 @@
                 (length sample-result))]
          ;; Collect (row, col) pairs directly from reverse-mode gradients
          ;; One backward pass per output row
+         ;; Use cons instead of append to avoid O(M*NNZ) complexity
          [entries (let loop-i ([i 0] [acc '()])
                        (if (= i m)
-                           acc
+                           (reverse acc)  ; Reverse once at end: O(nnz)
                            (begin
                             (reset-traced-ids!)
                             (let* ([tape (make-reverse-tape)]
@@ -202,17 +212,17 @@
                                               (backward tape (traced-id output-i) 1)
                                               (make-hashtable equal-hash equal?))]
                                    [arg-ids (map traced-id traced-args)]
-                                   ;; Collect non-zero entries for this row
-                                   [row-entries (let loop-j ([j 0] [ids arg-ids] [row-acc '()])
-                                                     (if (null? ids)
-                                                         row-acc
-                                                         (let ([grad (hashtable-ref grads (car ids) 0)])
-                                                              (loop-j (+ j 1)
-                                                                      (cdr ids)
-                                                                      (if (> (abs grad) tolerance)
-                                                                          (cons (cons i j) row-acc)
-                                                                          row-acc)))))])
-                                  (loop-i (+ i 1) (append row-entries acc))))))]
+                                   ;; Collect non-zero entries for this row - prepend to acc
+                                   [new-acc (let loop-j ([j 0] [ids arg-ids] [current-acc acc])
+                                                 (if (null? ids)
+                                                     current-acc
+                                                     (let ([grad (hashtable-ref grads (car ids) 0)])
+                                                          (loop-j (+ j 1)
+                                                                  (cdr ids)
+                                                                  (if (> (abs grad) tolerance)
+                                                                      (cons (cons i j) current-acc)
+                                                                      current-acc)))))])
+                                  (loop-i (+ i 1) new-acc)))))]
          [nnz (length entries)]
          [row-idx (make-vector nnz 0)]
          [col-idx (make-vector nnz 0)])
