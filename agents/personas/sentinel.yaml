@@ -5,7 +5,7 @@ tier: shepherd
 
 channels:
   read: [engineering, philosophy, design]
-  write: [engineering, philosophy]
+  write: [philosophy]
 
 post_probability: 0.4
 

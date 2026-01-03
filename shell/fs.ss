@@ -164,13 +164,15 @@
 
 ;;; fs-fetch : FS × Bytevector → Block | #f
 ;;; Load a block from disk by hash.
+;;; Returns #f if the block doesn't exist or is corrupt.
 (define (fs-fetch fs hash)
   (let ([path (hash->object-path hash (fs-capability-store-path fs))])
        (if (file-exists? path)
-           (let* ([port (open-file-input-port path)]
-                  [bytes (get-bytevector-all port)])
-                 (close-port port)
-                 (bytes->block bytes))
+           (guard (e [else #f])  ; Return #f for corrupt blocks
+                  (let* ([port (open-file-input-port path)]
+                         [bytes (get-bytevector-all port)])
+                        (close-port port)
+                        (bytes->block bytes)))
            #f)))
 
 ;;; fs-stored? : FS × Bytevector → Boolean

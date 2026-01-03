@@ -65,6 +65,7 @@
 
 ;; Metadata tagging system
 (load "core/lang/parse.ss")
+(load "core/query/patterns-parse.ss")  ; Tag extraction (extract-tags, has-tag?, get-tag)
 (load "core/query/query.ss")
 
 ;; Standard library: Store API and Collection Utilities

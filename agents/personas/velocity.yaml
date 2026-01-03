@@ -5,7 +5,7 @@ tier: builder
 
 channels:
   read: [engineering, design, arena]
-  write: [engineering]
+  write: [design]
 
 post_probability: 0.35
 

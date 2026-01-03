@@ -142,11 +142,11 @@
 
 (define (get-current-step)
   (and (tutorial-session-active?)
-       (let* ((tutorial (assoc (*current-tutorial*) *tutorials*)))
-             (steps (list-ref tutorial 4))
-             (step-index (*current-step*)))
-       (and (< step-index (length steps))
-            (list-ref steps step-index)))))
+       (let* ((tutorial (assoc (*current-tutorial*) *tutorials*))
+              (steps (list-ref tutorial 4))
+              (step-index (*current-step*)))
+             (and (< step-index (length steps))
+                  (list-ref steps step-index))))))
 
 (define (get-tutorial-progress tutorial-id)
   (let ((progress (*tutorial-progress*)))
@@ -234,48 +234,48 @@
           (error 'tutorial-next "No active tutorial session. Use (start-tutorial) first."))
   
   (let* ((current-step-obj (get-current-step))
-         (tutorial (assoc (*current-tutorial*) *tutorials*))))
-  
-  (if (not current-step-obj)
-      ;; Tutorial completed
-      (begin
-       (display "\n🎉 Tutorial completed! 🎉\n\n")
-       (display (format "You've successfully completed the '~a' tutorial.\n"
-                        (list-ref tutorial 1)))
-       (display "You can start another tutorial with (start-tutorial 'tutorial-name)\n")
-       (display "Or explore The Fold on your own!\n\n")
-       (award-tutorial-badge! (*current-tutorial*))
-       (*tutorial-session* #f)
-       (*current-tutorial* #f)
-       (*current-step* 0))
-      
-      ;; Show current step
-      (let ((step-title (list-ref current-step-obj 1))
-            (step-description (list-ref current-step-obj 2))
-            (step-exercise (list-ref current-step-obj 3))
-            (step-help (list-ref current-step-obj 5))))
-      
-      (display "┌─────────────────────────────────────────────────────────────┐\n")
-      (display (format "│ Step ~a: ~a~a│\n"
-                       (+ (*current-step*) 1)
-                       step-title
-                       (make-string (- 55 (string-length step-title)
-                                       (string-length (number->string (+ (*current-step*) 1)))) #\space)))
-      (display "└─────────────────────────────────────────────────────────────┘\n\n")
-      
-      (display step-description)
-      (display "\n\n")
-      
-      (if (procedure? step-exercise)
-          (begin
-           (display "💡 Exercise: ")
-           (display step-help)
-           (display "\n\n")
-           (display "When you're ready, use (tutorial-do) to attempt this step.\n")
-           (display "Or use (tutorial-skip) to skip this step.\n"))
-          (begin
-           (display "✓ This is an informational step.\n")
-           (display "Use (tutorial-next) to continue.\n")))))))
+         (tutorial (assoc (*current-tutorial*) *tutorials*)))
+        
+        (if (not current-step-obj)
+            ;; Tutorial completed
+            (begin
+             (display "\n🎉 Tutorial completed! 🎉\n\n")
+             (display (format "You've successfully completed the '~a' tutorial.\n"
+                              (list-ref tutorial 1)))
+             (display "You can start another tutorial with (start-tutorial 'tutorial-name)\n")
+             (display "Or explore The Fold on your own!\n\n")
+             (award-tutorial-badge! (*current-tutorial*))
+             (*tutorial-session* #f)
+             (*current-tutorial* #f)
+             (*current-step* 0))
+            
+            ;; Show current step
+            (let ((step-title (list-ref current-step-obj 1))
+                  (step-description (list-ref current-step-obj 2))
+                  (step-exercise (list-ref current-step-obj 3))
+                  (step-help (list-ref current-step-obj 5)))
+                 
+                 (display "┌─────────────────────────────────────────────────────────────┐\n")
+                 (display (format "│ Step ~a: ~a~a│\n"
+                                  (+ (*current-step*) 1)
+                                  step-title
+                                  (make-string (- 55 (string-length step-title)
+                                                  (string-length (number->string (+ (*current-step*) 1)))) #\space)))
+                 (display "└─────────────────────────────────────────────────────────────┘\n\n")
+                 
+                 (display step-description)
+                 (display "\n\n")
+                 
+                 (if (procedure? step-exercise)
+                     (begin
+                      (display "💡 Exercise: ")
+                      (display step-help)
+                      (display "\n\n")
+                      (display "When you're ready, use (tutorial-do) to attempt this step.\n")
+                      (display "Or use (tutorial-skip) to skip this step.\n"))
+                     (begin
+                      (display "✓ This is an informational step.\n")
+                      (display "Use (tutorial-next) to continue.\n"))))))))
 
 ;;; tutorial-do : → void
 (define (tutorial-do)
@@ -284,32 +284,32 @@
   
   (let* ((current-step-obj (get-current-step))
          (step-exercise (list-ref current-step-obj 3))
-         (step-validation (list-ref current-step-obj 4))))
-  
-  (unless (procedure? step-exercise)
-          (error 'tutorial-do "Current step has no exercise. Use (tutorial-next) to continue."))
-  
-  (display "Attempting exercise...\n")
-  
-  (guard (e
-          [(condition? e)
-           (display "❌ Error during exercise: ")
-           (display (format-condition e))
-           (display "\nUse (tutorial-help) for guidance or (tutorial-skip) to skip.\n")]
-          [else
-           (display "❌ Unexpected error occurred.\n")
-           (display "Use (tutorial-help) for guidance or (tutorial-skip) to skip.\n")])
-         
-         (let ((result (step-exercise)))
-              (if (step-validation result)
-                  (begin
-                   (display "✅ Success! Step completed.\n\n")
-                   (*current-step* (+ (*current-step*) 1))
-                   (set-tutorial-progress! (*current-tutorial*) (*current-step*))
-                   (tutorial-next))
-                  (begin
-                   (display "❌ Step not completed correctly.\n")
-                   (display "Use (tutorial-help) for guidance or (tutorial-skip) to skip.\n")))))))
+         (step-validation (list-ref current-step-obj 4)))
+        
+        (unless (procedure? step-exercise)
+                (error 'tutorial-do "Current step has no exercise. Use (tutorial-next) to continue."))
+        
+        (display "Attempting exercise...\n")
+        
+        (guard (e
+                [(condition? e)
+                 (display "❌ Error during exercise: ")
+                 (display (format-condition e))
+                 (display "\nUse (tutorial-help) for guidance or (tutorial-skip) to skip.\n")]
+                [else
+                 (display "❌ Unexpected error occurred.\n")
+                 (display "Use (tutorial-help) for guidance or (tutorial-skip) to skip.\n")])
+               
+               (let ((result (step-exercise)))
+                    (if (step-validation result)
+                        (begin
+                         (display "✅ Success! Step completed.\n\n")
+                         (*current-step* (+ (*current-step*) 1))
+                         (set-tutorial-progress! (*current-tutorial*) (*current-step*))
+                         (tutorial-next))
+                        (begin
+                         (display "❌ Step not completed correctly.\n")
+                         (display "Use (tutorial-help) for guidance or (tutorial-skip) to skip.\n"))))))))
 
 ;;; tutorial-skip : → void
 (define (tutorial-skip)
@@ -326,53 +326,53 @@
   (unless (tutorial-session-active?)
           (error 'tutorial-help "No active tutorial session. Use (start-tutorial) first."))
   
-  (let ((current-step-obj (get-current-step))))
-  (if current-step-obj
-      (let ((step-help (list-ref current-step-obj 5))))
-      (display "\n📚 Help for current step:\n")
-      (display step-help)
-      (display "\n\n"))
-  (display "No help available - tutorial may be completed.\n"))))
+  (let ((current-step-obj (get-current-step)))
+       (if current-step-obj
+           (let ((step-help (list-ref current-step-obj 5)))
+                (display "\n📚 Help for current step:\n")
+                (display step-help)
+                (display "\n\n"))
+           (display "No help available - tutorial may be completed.\n"))))
 
 ;;; tutorial-status : → void
 (define (tutorial-status)
   (if (tutorial-session-active?)
-      (let* ((tutorial (assoc (*current-tutorial*) *tutorials*)))
-            (steps (list-ref tutorial 4))
-            (total-steps (length steps))
-            (current-step-num (*current-step*))
-            (progress-percent (round (* (/ current-step-num total-steps) 100))))
-      
-      (display "\n📊 Tutorial Status:\n")
-      (display (format "Tutorial: ~a\n" (list-ref tutorial 1)))
-      (display (format "Progress: ~a/~a steps (~a%)\n"
-                       current-step-num total-steps progress-percent))
-      
-      (if (< current-step-num total-steps)
-          (let ((current-step-obj (get-current-step))))
-          (display (format "Current step: ~a\n" (list-ref current-step-obj 1))))
-      (display "Status: Tutorial completed!\n"))
-  
-  (display "\n"))
+      (let* ((tutorial (assoc (*current-tutorial*) *tutorials*))
+             (steps (list-ref tutorial 4))
+             (total-steps (length steps))
+             (current-step-num (*current-step*))
+             (progress-percent (round (* (/ current-step-num total-steps) 100))))
+            
+            (display "\n📊 Tutorial Status:\n")
+            (display (format "Tutorial: ~a\n" (list-ref tutorial 1)))
+            (display (format "Progress: ~a/~a steps (~a%)\n"
+                             current-step-num total-steps progress-percent))
+            
+            (if (< current-step-num total-steps)
+                (let ((current-step-obj (get-current-step)))
+                     (display (format "Current step: ~a\n" (list-ref current-step-obj 1))))
+                (display "Status: Tutorial completed!\n"))
+            
+            (display "\n"))
       (display "No active tutorial session.\n")))
 
 ;;; list-tutorials : [Symbol] → void
 (define (list-tutorials . tier-opt)
-  (let* ((session (read-session)))
-        (tier (if (null? tier-opt)
-                  (and session (cdr (assq 'tier session)))
-                  (car tier-opt))))
-  (if tier
-      (list-tutorials-for-tier tier)
-      (display "No active session and no tier specified. Login or specify tier.\n"))))
+  (let* ((session (read-session))
+         (tier (if (null? tier-opt)
+                   (and session (cdr (assq 'tier session)))
+                   (car tier-opt))))
+        (if tier
+            (list-tutorials-for-tier tier)
+            (display "No active session and no tier specified. Login or specify tier.\n"))))
 
 ;;; export-tutorial-progress
 (define (export-tutorial-progress)
-  (let ((progress (*tutorial-progress*))))
-  (display "Tutorial Progress Export:\n")
-  (display "========================\n\n")
-  (hash-table-walk
-   progress
-   (lambda (tutorial-id step-count)
-           (display (format "~a: ~a steps completed\n" tutorial-id step-count))))
-  (display "\n")))
+  (let ((progress (*tutorial-progress*)))
+       (display "Tutorial Progress Export:\n")
+       (display "========================\n\n")
+       (hash-table-walk
+        progress
+        (lambda (tutorial-id step-count)
+                (display (format "~a: ~a steps completed\n" tutorial-id step-count))))
+       (display "\n")))
