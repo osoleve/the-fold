@@ -97,16 +97,21 @@
 ;;;   So: dL/dx = DFT(dL/dX) when treating the gradient as input.
 ;;;   But we need to handle complex gradients properly.
 ;;;
-;;;   Actually, for a general complex gradient dL/dX, the VJP is:
-;;;   dL/dx = DFT(conj(dL/dX)) for a loss that's a function of both real and imag parts.
+;;;   The VJP is the adjoint of DFT, which is F^H (conjugate transpose).
+;;;   Since IDFT(v) = (1/N) * F^H * v, we have: F^H * v = N * IDFT(v)
 ;;;
-;;;   For the typical case where loss is real-valued (like power spectrum),
-;;;   and input is real, the formula simplifies to: dL/dx = DFT(dL/dX).
+;;;   Therefore: dL/dx = F^H * dL/dX = N * IDFT(dL/dX)
 ;;;
 ;;; Note: This assumes the gradient dL/dX already accounts for complex conjugation
 ;;; where needed (e.g., for power spectrum, dL/dX[k] = 2*conj(X[k]) * dL/d|X[k]|^2).
 (define (dft-vjp output-grad)
-  (dft output-grad))
+  (let* ([n (vector-length output-grad)]
+         [idft-result (idft output-grad)]
+         [result (make-vector n)])
+        ;; Scale by N to get F^H * output-grad
+        (do ([i 0 (+ i 1)])
+            ((= i n) result)
+            (vector-set! result i (complex-scale n (vector-ref idft-result i))))))
 
 ;;; dft-vjp-real : Vector[Number] -> Vector[Number]
 ;;; VJP for real-valued DFT - extracts real part of gradient.

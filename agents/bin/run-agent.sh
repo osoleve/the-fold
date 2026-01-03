@@ -77,6 +77,8 @@ VARS[model]="$MODEL"
 VARS[system_prompt]=$("$AGENTS_DIR/bin/generate-persona-prompt.sh" "$PERSONA_NAME" || yq -r '.system // ""' "$PERSONA_FILE")
 VARS[channels.read]=$(yq -r '(.channels.read // []) | join(", ")' "$PERSONA_FILE")
 VARS[channels.write]=$(yq -r '(.channels.write // []) | join(", ")' "$PERSONA_FILE")
+# Scheme list format for digest filtering: '(poetry philosophy design)
+VARS[channels.write.scheme]=$(yq -r '(.channels.write // []) | map("'"'"'" + .) | join(" ") | "(list " + . + ")"' "$PERSONA_FILE")
 VARS[post_probability]=$(yq -r '.post_probability // 0.5' "$PERSONA_FILE")
 
 # Probabilistic skipping: skip if random() > post_probability
@@ -236,22 +238,29 @@ $PROMPT"
             # Robust JSON extraction
             # 1. Try extracting from ```json block
             CLEAN_JSON=$(echo "$OUTPUT" | sed -n '/^```json$/,/^```$/p' | sed '1d;$d')
-            
+
             # 2. If empty, try extracting from generic ``` block
             if [[ -z "$CLEAN_JSON" || "$CLEAN_JSON" =~ ^[[:space:]]*$ ]]; then
                 CLEAN_JSON=$(echo "$OUTPUT" | sed -n '/^```$/,/^```$/p' | sed '1d;$d')
             fi
-            
+
             # 3. If still empty, assume raw output is JSON
             if [[ -z "$CLEAN_JSON" || "$CLEAN_JSON" =~ ^[[:space:]]*$ ]]; then
                 CLEAN_JSON="$OUTPUT"
             fi
 
-            # 4. Validate with jq
+            # 4. If not valid JSON, try to extract {...} from within prose
             if ! echo "$CLEAN_JSON" | jq . >/dev/null 2>&1; then
-                log "  -> WARNING: Failed to parse JSON from LLM output. Saving raw output."
-                # Don't fail hard here, let the next steps handle empty/invalid JSON if they need it
-                # But keep CLEAN_JSON as is so we can inspect it
+                # Try to find JSON object pattern in the text
+                # Use perl for reliable multiline JSON extraction
+                EXTRACTED_JSON=$(echo "$OUTPUT" | perl -0777 -ne 'print $1 if /(\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})/s' 2>/dev/null)
+                if [[ -n "$EXTRACTED_JSON" ]] && echo "$EXTRACTED_JSON" | jq . >/dev/null 2>&1; then
+                    log "  -> Extracted JSON from prose"
+                    CLEAN_JSON="$EXTRACTED_JSON"
+                else
+                    log "  -> WARNING: Failed to parse JSON from LLM output. Saving raw output."
+                    # Don't fail hard here, let the next steps handle empty/invalid JSON if they need it
+                fi
             fi
             
             OUTPUT="$CLEAN_JSON"

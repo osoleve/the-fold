@@ -729,6 +729,89 @@
     (let ([fs (mint-fs-capability ".store")])
          (display-digest-posts fs n))]))
 
+;;; digest-posts-for-channels : (List Symbol) [× Nat] → void
+;;; Display recent forum posts filtered to specific channels only.
+;;; Used by agents to see only posts from channels they can write to.
+(define digest-posts-for-channels
+  (case-lambda
+   [(channel-list)
+    (digest-posts-for-channels channel-list 10)]
+   [(channel-list n)
+    (let ([fs (mint-fs-capability ".store")])
+         (display-digest-posts-for-channels fs channel-list n))]))
+
+;;; display-digest-posts-for-channels : FS × (List Symbol) × Nat → void
+;;; Show recent forum activity filtered to specific channels.
+(define (display-digest-posts-for-channels fs channel-list n)
+  (newline)
+  (display "╔══════════════════════════════════════════════════════════════╗\n")
+  (display "║                    THE FOLD — FORUM DIGEST                   ║\n")
+  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (newline)
+  
+  ;; System messages (if any)
+  (display-system-messages fs)
+  
+  ;; Recent posts (filtered to channel-list)
+  (display "┌─────────────────────────────────────────────────────────────┐\n")
+  (display (format "│ RECENT POSTS (~a)~a│\n"
+                   (string-join (map symbol->string channel-list) ", ")
+                   (make-string (max 0 (- 43 (string-length
+                                              (string-join (map symbol->string channel-list) ", ")))) #\space)))
+  (display "└─────────────────────────────────────────────────────────────┘\n")
+  (display-recent-posts-for-channels fs channel-list n)
+  (newline))
+
+;;; display-recent-posts-for-channels : FS × (List Symbol) × Nat → void
+;;; Show recent posts filtered to specific channels only.
+(define (display-recent-posts-for-channels fs channel-list n)
+  (let* ([target-channels (filter (lambda (c)
+                                          (memq c channel-list))
+                                  (list-channels fs))]
+         ;; Collect posts with hashes from target channels only
+         [all-posts (apply append
+                           (map (lambda (c)
+                                        (map (lambda (hash-post)
+                                                     (cons (car hash-post)
+                                                           (cons (cons 'channel-name c) (cdr hash-post))))
+                                             (collect-channel-with-hash fs c)))
+                                target-channels))]
+         ;; Sort by timestamp
+         [sorted (list-sort
+                  (lambda (a b)
+                          (string>? (cdr (assq 'timestamp (cdr a)))
+                                    (cdr (assq 'timestamp (cdr b)))))
+                  all-posts)]
+         [recent (take (min n (length sorted)) sorted)])
+        (if (null? recent)
+            (display "  (no posts yet in these channels)\n")
+            (for-each
+             (lambda (hash-post)
+                     (let* ([hash (car hash-post)]
+                            [post (cdr hash-post)]
+                            [channel (cdr (assq 'channel-name post))]
+                            [author (cdr (assq 'author post))]
+                            [body (cdr (assq 'body post))]
+                            [title (assq 'title post)]
+                            [hash-prefix (substring (hash->hex hash) 0 6)]
+                            [parent-hash (assq 'parent-hash post)]
+                            [is-reply? (and parent-hash (cdr parent-hash))]
+                            [indent (if is-reply? "    ↳ " "  ")])
+                           (display (format "~a#~a | ~a [~a]: ~a~a\n"
+                                            indent
+                                            channel
+                                            author
+                                            hash-prefix
+                                            (truncate-string
+                                             (if title
+                                                 (format "[~a] ~a" (cdr title) body)
+                                                 body)
+                                             50)
+                                            (if is-reply?
+                                                (format " (→ ~a)" (substring (cdr parent-hash) 0 6))
+                                                "")))))
+             recent))))
+
 ;;; ============================================================
 ;;; Convenience: who/0 — Show Current Session
 ;;; ============================================================

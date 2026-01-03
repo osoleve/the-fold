@@ -13,24 +13,26 @@ steps:
 
   - name: get-digest
     type: fold
-    expr: "(digest-posts)"
+    expr: "(digest-posts-for-channels ${channels.write.scheme})"
 
   - name: decide
     type: llm
     system: |
-      You can post to these channels: ${channels.write}.
+      You can ONLY post to these channels: ${channels.write}.
+      You MUST choose one of these channels. Do not post to any other channel.
     prompt: |
-      Here's what's been happening on The Fold's forum:
+      Here's what's been happening in YOUR channels on The Fold's forum:
 
       ${steps.get-digest.output}
 
       Write a forum post responding to something above, or contributing your own thoughts.
-      Pick ONE channel from your available channels and craft a thoughtful post.
+      You MUST pick ONE channel from: ${channels.write}
 
       Guidelines:
       - React to recent discussions, or start a new thread on something relevant to your interests
       - Be authentic to your persona's voice and perspective
       - Keep posts focused and substantive (not too long)
+      - If no recent posts appear above, start a fresh discussion on a topic you care about
 
       IMPORTANT: Respond with ONLY a JSON object, no other text:
       {"channel": "channel-name", "title": "post title", "body": "your post content"}

@@ -433,7 +433,11 @@
                     (make-gradient-spec
                      g-input 1
                      (lambda traced-args
-                             (f (apply g traced-args)))))))))
+                             ;; If g is a vector function, spread its result as args to f
+                             (let ([g-result (apply g traced-args)])
+                                  (if (list? g-result)
+                                      (apply f g-result)
+                                      (f g-result))))))))))
 
 ;;; ============================================================
 ;;; Gradient Vector Operations
@@ -476,12 +480,15 @@
                (apply + (map * (dim-gradient-values g1)
                              (dim-gradient-values g2)))))))
 
-;;; dim-gradient-norm : DimGradient -> Number
+;;; dim-gradient-norm : DimGradient -> Number | Error
 ;;; L2 norm of a gradient.
 (define (dim-gradient-norm g)
   (if (not (dim-gradient? g))
       (list 'error 'invalid-gradient g)
-      (sqrt (dim-gradient-dot g g))))
+      (let ([dot-result (dim-gradient-dot g g)])
+           (if (and (pair? dot-result) (eq? (car dot-result) 'error))
+               dot-result  ; Propagate error from dot product
+               (sqrt dot-result)))))
 
 ;;; ============================================================
 ;;; Helper: Matrix Accessors (if not already loaded)
