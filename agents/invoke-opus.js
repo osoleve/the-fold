@@ -11,6 +11,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { parseTrigger } = require('./lib/parse-trigger');
+const { getModel } = require('./lib/config');
 
 // Read trigger file from command line
 const triggerFile = process.argv[2];
@@ -87,8 +88,11 @@ ${author} asks: ${body}`;
   try {
     fs.writeFileSync(promptFile, prompt);
 
+    // Get model from config (defaults.yaml or persona config)
+    const model = getModel('opus');
+
     // Call Claude Code in headless mode
-    const response = execSync(`claude --print --model opus < ${promptFile}`, {
+    const response = execSync(`claude --print --model ${model} < ${promptFile}`, {
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024 // 10MB buffer
     });

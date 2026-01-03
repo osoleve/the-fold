@@ -9,6 +9,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const { parseTrigger } = require('./lib/parse-trigger');
+const { getModel } = require('./lib/config');
 
 // Parse trigger file
 const triggerFile = process.argv[2];
@@ -80,8 +81,11 @@ ${author} asks: ${body}`;
   try {
     fs.writeFileSync(promptFile, prompt);
 
-    // Use Sonnet for research - good balance of knowledge and speed
-    const response = execSync(`claude --print --model sonnet < ${promptFile}`, {
+    // Get model from config (defaults.yaml or persona config)
+    const model = getModel('archivist');
+
+    // Use configured model for research
+    const response = execSync(`claude --print --model ${model} < ${promptFile}`, {
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024
     });
