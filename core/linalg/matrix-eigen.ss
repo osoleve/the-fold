@@ -195,22 +195,22 @@
     (extract-eigenvalues-with-complex-check a (matrix-rows a) tol)]
    [(= active-size 2)
     ;; 2x2 block: check if it represents complex conjugate pair
-    (let ([complex-pair (detect-complex-2x2-block a (- active-size 2) tol)])
-         (if complex-pair
-             ;; Complex eigenvalues detected - mark result and return
-             (extract-eigenvalues-with-complex-check a (matrix-rows a) tol)
-             ;; Real eigenvalues in 2x2 block - continue normal deflation
-             (let* ([n active-size]
-                    [full-n (matrix-rows a)]
-                    [i (- n 1)]
-                    [sub (if (>= i 1) (matrix-ref a i (- i 1)) 0)])
-                   (if (< (abs sub) tol)
-                       (qr-algorithm-shifted-loop a (- active-size 1) iter max-iter tol)
-                       (qr-iterate-once a active-size iter max-iter tol full-n)))))]
+    (let* ([full-n (matrix-rows a)]
+           [start (- full-n active-size)]
+           [complex-pair (detect-complex-2x2-block a start tol)])
+          (if complex-pair
+              ;; Complex eigenvalues detected - mark result and return
+              (extract-eigenvalues-with-complex-check a full-n tol)
+              ;; Real eigenvalues in 2x2 block - continue normal deflation
+              (let* ([i (- full-n 1)]
+                     [sub (if (>= i 1) (matrix-ref a i (- i 1)) 0)])
+                    (if (< (abs sub) tol)
+                        (qr-algorithm-shifted-loop a (- active-size 1) iter max-iter tol)
+                        (qr-iterate-once a active-size iter max-iter tol full-n)))))]
    [else
-    (let* ([n active-size]
-           [full-n (matrix-rows a)]  ;; Use full matrix size for identity
-           [i (- n 1)]
+    (let* ([full-n (matrix-rows a)]  ;; Use full matrix size for identity
+           [start (- full-n active-size)]  ;; Start of active block
+           [i (- full-n 1)]  ;; Last row of active block
            ;; Check for 2x2 block representing complex eigenvalues first
            [has-complex-block (and (>= i 1)
                                    (detect-complex-2x2-block a (- i 1) tol))])
@@ -304,11 +304,13 @@
 
 ;;; wilkinson-shift : Matrix × Nat → Num
 ;;; Compute Wilkinson shift from bottom 2x2 block for faster convergence.
-(define (wilkinson-shift a n)
-  (if (< n 2)
+;;; Takes active-size (size of active trailing block) and uses absolute indices.
+(define (wilkinson-shift a active-size)
+  (if (< active-size 2)
       0
-      (let* ([i (- n 1)]
-             [j (- n 2)]
+      (let* ([full-n (matrix-rows a)]
+             [i (- full-n 1)]  ;; Last row (absolute)
+             [j (- full-n 2)]  ;; Second-to-last row (absolute)
              [a-jj (matrix-ref a j j)]
              [a-ii (matrix-ref a i i)]
              [a-ji (matrix-ref a i j)]
