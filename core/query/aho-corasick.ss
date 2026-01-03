@@ -10,21 +10,27 @@
 (define (make-state id)
   (make-ac-state id dict-empty set-empty 0))
 
-;;; Build trie
+;;; Build trie with mutable vector to avoid O(N²) copying
 (define (build-trie patterns)
-  (let loop-patterns ([patterns patterns]
-                      [states (vector (make-state 0))]
-                      [next-id 1])
-       (if (null? patterns)
-           states
-           (let-values ([(new-states new-id)
-                         (insert-pattern (car patterns) states next-id)])
-                       (loop-patterns (cdr patterns) new-states new-id)))))
+  (let* ([total-chars (fold-left (lambda (acc p) (+ acc (string-length p))) 0 patterns)]
+         [capacity (max 64 (+ total-chars 1))]  ; Pre-allocate with estimated capacity
+         [states (make-vector capacity #f)]
+         [size 1])  ; Current size (starts at 1 for root state)
+        (vector-set! states 0 (make-state 0))
+        (let loop-patterns ([patterns patterns]
+                            [next-id 1])
+             (if (null? patterns)
+                 (vector-copy states 0 size)  ; Return only used portion
+                 (let ([new-id (insert-pattern-mut! (car patterns) states
+                                                    (lambda () size)
+                                                    (lambda (new-size) (set! size new-size))
+                                                    next-id)])
+                      (loop-patterns (cdr patterns) new-id))))))
 
-(define (insert-pattern pattern states next-id)
+;;; Mutable version: mutates states vector in place
+(define (insert-pattern-mut! pattern states get-size set-size! next-id)
   (let loop-chars ([chars (string->list pattern)]
                    [sid 0]
-                   [states states]
                    [next-id next-id])
        (if (null? chars)
            ;; Mark pattern end
@@ -34,24 +40,26 @@
                                             (ac-state-trans state)
                                             new-output
                                             (ac-state-fail state))])
-                 (values (vec-set states sid new-state) next-id))
+                 (vector-set! states sid new-state)
+                 next-id)
            ;; Process char
            (let* ([ch (car chars)]
                   [state (vector-ref states sid)]
                   [trans (ac-state-trans state)]
                   [next (dict-lookup ch trans)])
                  (if next
-                     (loop-chars (cdr chars) next states next-id)
+                     (loop-chars (cdr chars) next next-id)
                      ;; Create new state
                      (let* ([new-state (make-state next-id)]
-                            [states2 (vec-append states new-state)]
                             [new-trans (dict-assoc ch next-id trans)]
                             [updated-parent (make-ac-state sid
                                                            new-trans
                                                            (ac-state-output state)
-                                                           (ac-state-fail state))]
-                            [states3 (vec-set states2 sid updated-parent)])
-                           (loop-chars (cdr chars) next-id states3 (+ next-id 1))))))))
+                                                           (ac-state-fail state))])
+                           (vector-set! states next-id new-state)
+                           (set-size! (+ (get-size) 1))
+                           (vector-set! states sid updated-parent)
+                           (loop-chars (cdr chars) next-id (+ next-id 1))))))))
 
 (define (vec-append vec elem)
   (let* ([len (vector-length vec)]
@@ -71,26 +79,26 @@
         (vector-set! new idx val)
         new))
 
-;;; Compute failures using Queue BFS (dogfooding!)
+;;; Compute failures using Queue BFS (dogfooding!) with in-place mutation
 (define (compute-failures states)
   (let* ([root (vector-ref states 0)]
          [children (dict-values (ac-state-trans root))]
          [init-q (fold-left (lambda (q child) (queue-enqueue child q))
                             queue-empty
                             children)])
-        (bfs states init-q)))
+        (bfs-mut! states init-q)
+        states))
 
-(define (bfs states queue)
+(define (bfs-mut! states queue)
   (if (queue-empty? queue)
-      states
+      (void)
       (let-values ([(q2 sid) (queue-dequeue queue)])
                   (let* ([state (vector-ref states sid)]
                          [trans (ac-state-trans state)])
                         (let loop-trans ([keys (dict-keys trans)]
-                                         [states states]
                                          [q q2])
                              (if (null? keys)
-                                 (bfs states q)
+                                 (bfs-mut! states q)
                                  (let* ([ch (car keys)]
                                         [child-id (dict-lookup ch trans)]
                                         [fail-id (find-fail states sid ch)]
@@ -101,10 +109,9 @@
                                         [new-child (make-ac-state child-id
                                                                   (ac-state-trans child)
                                                                   new-output
-                                                                  fail-id)]
-                                        [new-states (vec-set states child-id new-child)])
+                                                                  fail-id)])
+                                       (vector-set! states child-id new-child)
                                        (loop-trans (cdr keys)
-                                                   new-states
                                                    (queue-enqueue child-id q)))))))))
 
 (define (find-fail states sid ch)
