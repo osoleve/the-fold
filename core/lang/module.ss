@@ -406,23 +406,11 @@
 
 ;;; all-deps : Symbol → (List Symbol)
 ;;; Get all transitive dependencies for a module.
-;;; Uses visited tracking to prevent infinite loops on circular dependencies.
 (define (all-deps name)
-  (all-deps-helper name '()))
-
-;;; all-deps-helper : Symbol × (List Symbol) → (List Symbol)
-;;; Helper with visited tracking for cycle prevention.
-(define (all-deps-helper name visited)
-  (if (memq name visited)
-      '()  ; Cycle detected, stop recursion
-      (let ([direct (module-deps name)])
-           (if (null? direct)
-               '()
-               (unique (append direct
-                               (apply append
-                                      (map (lambda (d)
-                                                   (all-deps-helper d (cons name visited)))
-                                           direct))))))))
+  (let ([direct (module-deps name)])
+       (if (null? direct)
+           '()
+           (unique (append direct (apply append (map all-deps direct)))))))
 
 ;;; module-stats : → void
 ;;; Display loading statistics.

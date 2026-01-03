@@ -280,7 +280,7 @@
   (if (> lo hi)
       (error 'random-int-range "lo must be <= hi" lo hi)
       (let* ([range (+ (- hi lo) 1)]
-             [threshold (modulo (expt 2 64) range)])
+             [threshold (modulo (- (expt 2 64)) range)])
             (make-state
              (lambda (gen)
                      (let loop ([g gen])
