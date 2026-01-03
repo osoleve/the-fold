@@ -99,10 +99,28 @@
         [else v])))
 
 ;;; ============================================================
+;;; Occurs Check
+;;; ============================================================
+;;;
+;;; The occurs check prevents creating circular structures during unification.
+;;; Without it, unifying ?x with (cons ?x ?x) would create an infinite term.
+
+;;; occurs? : LVar -> Value -> Substitution -> Boolean
+;;; Check if variable occurs in term (prevents circular structures).
+(define (occurs? var term subst)
+  (let ([v (walk term subst)])
+       (cond
+        [(lvar? v) (lvar=? var v)]
+        [(pair? v) (or (occurs? var (car v) subst)
+                       (occurs? var (cdr v) subst))]
+        [else #f])))
+
+;;; ============================================================
 ;;; Unification
 ;;; ============================================================
 ;;;
 ;;; Unification finds a substitution that makes two terms equal.
+;;; Includes occurs check by default for soundness.
 
 ;;; unify : Value -> Value -> Substitution -> Maybe Substitution
 ;;; Attempt to unify two terms under a substitution.
@@ -112,10 +130,16 @@
        (cond
         ;; Both are the same variable
         [(and (lvar? u) (lvar? v) (lvar=? u v)) (just subst)]
-        ;; u is a variable - bind it
-        [(lvar? u) (just (extend-subst u v subst))]
-        ;; v is a variable - bind it
-        [(lvar? v) (just (extend-subst v u subst))]
+        ;; u is a variable - bind it (with occurs check for soundness)
+        [(lvar? u)
+         (if (occurs? u v subst)
+             nothing
+             (just (extend-subst u v subst)))]
+        ;; v is a variable - bind it (with occurs check for soundness)
+        [(lvar? v)
+         (if (occurs? v u subst)
+             nothing
+             (just (extend-subst v u subst)))]
         ;; Both are pairs - unify recursively
         [(and (pair? u) (pair? v))
          (let ([s1 (unify (car u) (car v) subst)])
@@ -411,24 +435,9 @@
       0
       (+ 1 (peano->nat (cadr p)))))
 
-;;; ============================================================
-;;; Occurs Check
-;;; ============================================================
-;;;
-;;; The occurs check prevents creating circular structures.
-
-;;; occurs? : LVar -> Value -> Substitution -> Boolean
-;;; Check if variable occurs in term.
-(define (occurs? var term subst)
-  (let ([v (walk term subst)])
-       (cond
-        [(lvar? v) (lvar=? var v)]
-        [(pair? v) (or (occurs? var (car v) subst)
-                       (occurs? var (cdr v) subst))]
-        [else #f])))
-
 ;;; unify-check : Value -> Value -> Substitution -> Maybe Substitution
 ;;; Unify with occurs check.
+;;; NOTE: Now equivalent to `unify` since occurs check is the default.
 (define (unify-check u v subst)
   (let ([u (walk u subst)]
         [v (walk v subst)])
