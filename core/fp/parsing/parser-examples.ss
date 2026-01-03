@@ -420,12 +420,18 @@
 (define ini-value
   (parser-map
    (lambda (chars)
-           ;; Trim trailing whitespace
-           (let loop ([chars chars])
-                (if (or (null? chars)
-                        (not (char-whitespace? (car (reverse chars)))))
-                    (list->string chars)
-                    (loop (reverse (cdr (reverse chars)))))))
+           ;; Trim trailing whitespace - O(N) single-pass approach
+           ;; Find last non-whitespace index, then take only up to that point
+           (let* ([len (length chars)]
+                  [last-non-ws
+                   (let loop ([i (- len 1)] [lst (reverse chars)])
+                        (cond
+                         [(< i 0) -1]
+                         [(not (char-whitespace? (car lst))) i]
+                         [else (loop (- i 1) (cdr lst))]))])
+                 (if (< last-non-ws 0)
+                     ""
+                     (list->string (take (+ last-non-ws 1) chars)))))
    (many (satisfy (lambda (c) (not (char=? c %newline-ex))) "value character"))))
 
 ;;; ini-pair : Parser (String . String)

@@ -41,7 +41,7 @@
 
 ;;; char-value? : Char -> Boolean
 ;;; True if char can appear in a tag value.
-;;; Allows: alphanumeric, hyphen, dot, slash, underscore
+;;; Allows: alphanumeric, hyphen, dot, slash, underscore, colon (for hierarchical tags)
 (define (char-value? c)
   (or (and (char>=? c #\a) (char<=? c #\z))
       (and (char>=? c #\A) (char<=? c #\Z))
@@ -49,7 +49,8 @@
       (char=? c #\-)
       (char=? c #\.)
       (char=? c #\/)
-      (char=? c #\_)))
+      (char=? c #\_)
+      (char=? c #\:)))
 
 ;;; char-whitespace? : Char -> Boolean
 ;;; True if char is whitespace.
@@ -261,22 +262,35 @@
 
 ;;; has-path-traversal? : String -> Boolean
 ;;; True if string contains path traversal sequences.
-;;; Checks for: ../ ..\ ..\\ (handles both Unix and Windows)
+;;; Blocks: absolute paths (/...), and '..' anywhere in path context
 (define (has-path-traversal? s)
   (let ([len (string-length s)])
-       (let loop ([i 0])
-            (cond
-             [(>= i (- len 2)) #f]  ; Not enough chars left for ../
-             [(and (char=? (string-ref s i) #\.)
-                   (char=? (string-ref s (+ i 1)) #\.))
-              ;; Found ".." - check next char
-              (if (>= (+ i 2) len)
-                  #f  ; ".." at end of string is OK
-                  (let ([next-char (string-ref s (+ i 2))])
-                       (or (char=? next-char #\/)
-                           (char=? next-char #\\)
-                           (loop (+ i 1)))))]
-             [else (loop (+ i 1))]))))
+       (cond
+        [(= len 0) #f]
+        ;; Block absolute paths starting with /
+        [(char=? (string-ref s 0) #\/) #t]
+        ;; Check for '..' sequences
+        [else
+         (let loop ([i 0])
+              (cond
+               [(>= i (- len 1)) #f]  ; Not enough chars left for ..
+               [(and (char=? (string-ref s i) #\.)
+                     (char=? (string-ref s (+ i 1)) #\.))
+                ;; Found ".." - dangerous if:
+                ;; - at start of string (../foo)
+                ;; - at end of string (foo/..)
+                ;; - followed by / or \ (foo/../bar)
+                ;; - preceded by / (foo/..)
+                (let ([at-start (= i 0)]
+                      [at-end (>= (+ i 2) len)]
+                      [after-slash (and (> i 0) (char=? (string-ref s (- i 1)) #\/))]
+                      [before-slash (and (< (+ i 2) len)
+                                         (or (char=? (string-ref s (+ i 2)) #\/)
+                                             (char=? (string-ref s (+ i 2)) #\\)))])
+                     (if (or at-start at-end after-slash before-slash)
+                         #t  ; Path traversal detected
+                         (loop (+ i 1))))]
+               [else (loop (+ i 1))]))])))
 
 ;;; safe-extract-tags : String -> (Listof (Pair Symbol (U String #t)))
 ;;; Extract tags with sanitized values.

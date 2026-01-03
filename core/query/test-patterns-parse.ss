@@ -73,10 +73,23 @@
       '((see . "core/blocks/block.ss"))
       (extract-tags "Check @see:core/blocks/block.ss"))
 
-;; Hierarchical value
+;; Hierarchical value (with slashes)
 (test "hierarchical value"
       '((topic . "architecture/blocks"))
       (extract-tags "About @topic:architecture/blocks"))
+
+;; Hierarchical tags with colons (multi-part tags like @key:multi:part)
+(test "hierarchical tag with colons"
+      '((category . "lang:scheme:chez"))
+      (extract-tags "@category:lang:scheme:chez"))
+
+(test "hierarchical tag two-part"
+      '((scope . "core:blocks"))
+      (extract-tags "@scope:core:blocks"))
+
+(test "mixed hierarchical and simple tags"
+      '((type . "bug:security:critical") (owner . "alice"))
+      (extract-tags "@type:bug:security:critical @owner:alice"))
 
 ;;; ============================================================
 ;;; Edge Cases
@@ -166,9 +179,9 @@
       (safe-extract-tags "@path:../secret"))
 
 ;; Windows backslash not allowed by char-value?, so parsing stops at backslash
-;; Result is ".." which is harmless (no trailing slash)
-(test "path traversal Windows ..\\ stops at backslash"
-      '((path . ".."))
+;; ".." at start of value is now blocked as path traversal
+(test "path traversal Windows ..\\ rejected (starts with ..)"
+      '((path . ""))
       (safe-extract-tags "@path:..\\secret"))
 
 (test "path traversal in middle rejected"
@@ -183,18 +196,32 @@
       '((file . "file..name"))
       (safe-extract-tags "@file:file..name"))
 
-(test "double dots at end allowed"
-      '((file . "name.."))
+;; ".." at end of value is now blocked as path traversal
+(test "double dots at end rejected"
+      '((file . ""))
       (safe-extract-tags "@file:name.."))
 
 (test "legitimate relative path allowed"
       '((path . "./current/dir"))
       (safe-extract-tags "@path:./current/dir"))
 
+;; Absolute path blocking tests
+(test "absolute path rejected"
+      '((path . ""))
+      (safe-extract-tags "@path:/etc/passwd"))
+
+(test "absolute path with traversal rejected"
+      '((path . ""))
+      (safe-extract-tags "@path:/home/../etc/shadow"))
+
 ;; Unsanitized extraction still allows path traversal (for testing)
 (test "extract-tags allows path traversal (no sanitization)"
       '((path . "../secret"))
       (extract-tags "@path:../secret"))
+
+(test "extract-tags allows absolute path (no sanitization)"
+      '((path . "/etc/passwd"))
+      (extract-tags "@path:/etc/passwd"))
 
 ;;; ============================================================
 ;;; Utility Tests
@@ -259,6 +286,10 @@
 (test "valid-tag-value? with special chars"
       #t
       (valid-tag-value? "my_file-v1.2/path"))
+
+(test "valid-tag-value? with colons (hierarchical)"
+      #t
+      (valid-tag-value? "lang:scheme:chez"))
 
 ;;; ============================================================
 ;;; Summary

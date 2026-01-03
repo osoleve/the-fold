@@ -83,14 +83,19 @@
         (unique keys)))
 
 ;;; unique : (Listof a) -> (Listof a)
-;;; Remove duplicates from a list.
+;;; Remove duplicates from a list, preserving order (first occurrence wins).
+;;; Uses hash table for O(N) complexity instead of O(N^2) with member.
 (define (unique lst)
-  (let loop ([items lst] [seen '()])
-       (if (null? items)
-           (reverse seen)
-           (if (member (car items) seen)
-               (loop (cdr items) seen)
-               (loop (cdr items) (cons (car items) seen))))))
+  (let ([seen (make-hashtable equal-hash equal?)])
+       (let loop ([items lst] [acc '()])
+            (if (null? items)
+                (reverse acc)
+                (let ([x (car items)])
+                     (if (hashtable-contains? seen x)
+                         (loop (cdr items) acc)
+                         (begin
+                          (hashtable-set! seen x #t)
+                          (loop (cdr items) (cons x acc)))))))))
 
 ;;; tag-histogram : FS -> (Listof (Pair Symbol Nat))
 ;;; Count occurrences of each tag key.
@@ -108,18 +113,15 @@
 
 ;;; count-occurrences : (Listof Symbol) -> (Listof (Pair Symbol Nat))
 ;;; Count how many times each symbol appears.
+;;; Uses hash table for O(N) complexity instead of O(N^2) with remove-assq.
 (define (count-occurrences symbols)
-  (let loop ([syms symbols] [counts '()])
-       (if (null? syms)
-           counts
-           (let* ([sym (car syms)]
-                  [existing (assq sym counts)])
-                 (if existing
-                     (loop (cdr syms)
-                           (cons (cons sym (+ (cdr existing) 1))
-                                 (remove-assq sym counts)))
-                     (loop (cdr syms)
-                           (cons (cons sym 1) counts)))))))
+  (let ([counts (make-hashtable equal-hash equal?)])
+       (for-each (lambda (x)
+                         (hashtable-set! counts x
+                                         (+ 1 (hashtable-ref counts x 0))))
+                 symbols)
+       (let-values ([(keys vals) (hashtable-entries counts)])
+                   (map cons (vector->list keys) (vector->list vals)))))
 
 ;;; remove-assq : Symbol x Alist -> Alist
 ;;; Remove first pair with matching key.
@@ -164,18 +166,15 @@
         (sort-by-count-strings counts)))
 
 ;;; count-string-occurrences : (Listof String) -> (Listof (Pair String Nat))
+;;; Uses hash table for O(N) complexity instead of O(N^2) with remove-assoc.
 (define (count-string-occurrences strings)
-  (let loop ([strs strings] [counts '()])
-       (if (null? strs)
-           counts
-           (let* ([s (car strs)]
-                  [existing (assoc s counts)])
-                 (if existing
-                     (loop (cdr strs)
-                           (cons (cons s (+ (cdr existing) 1))
-                                 (remove-assoc s counts)))
-                     (loop (cdr strs)
-                           (cons (cons s 1) counts)))))))
+  (let ([counts (make-hashtable equal-hash equal?)])
+       (for-each (lambda (s)
+                         (hashtable-set! counts s
+                                         (+ 1 (hashtable-ref counts s 0))))
+                 strings)
+       (let-values ([(keys vals) (hashtable-entries counts)])
+                   (map cons (vector->list keys) (vector->list vals)))))
 
 ;;; remove-assoc : String x Alist -> Alist
 (define (remove-assoc key alist)

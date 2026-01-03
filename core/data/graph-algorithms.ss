@@ -493,13 +493,18 @@
 
 ;;; same-hash-set? : (List Hash) (List Hash) → Boolean
 ;;; Check if two lists contain the same hashes (as sets).
+;;; Uses hash table for O(N) complexity instead of O(N*M).
 (define (same-hash-set? lst1 lst2)
   (and (= (length lst1) (length lst2))
-       (let loop ([l lst1])
-            (if (null? l)
-                #t
-                (and (hash-in-list? (car l) lst2)
-                     (loop (cdr l)))))))
+       (let ([hash-set (make-hashtable equal-hash equal?)])
+            ;; Build set from lst2 for O(1) lookup
+            (for-each (lambda (h) (hashtable-set! hash-set h #t)) lst2)
+            ;; Check all elements in lst1 exist in set
+            (let loop ([l lst1])
+                 (if (null? l)
+                     #t
+                     (and (hashtable-contains? hash-set (car l))
+                          (loop (cdr l))))))))
 
 ;;; topological-sort : FSCap → (Maybe (List Hash))
 ;;; Perform topological sort on the directed graph.

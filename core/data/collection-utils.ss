@@ -139,15 +139,18 @@
 
 ;;; collection-all? : FSCap (Block → Boolean) Block → Boolean
 ;;; Check if all members satisfy predicate.
+;;; Note: Missing blocks are skipped for consistency with other collection functions.
 (define (collection-all? fs predicate collection)
   (let ([hashes (collection-hashes collection)])
        (let loop ([hashes hashes])
             (if (null? hashes)
                 #t
                 (let ([block (fs-fetch fs (car hashes))])
-                     (if (and block (predicate block))
-                         (loop (cdr hashes))
-                         #f))))))
+                     (if block
+                         (if (predicate block)
+                             (loop (cdr hashes))
+                             #f)
+                         (loop (cdr hashes))))))))
 
 ;;; collection-count-matching : FSCap (Block → Boolean) Block → Integer
 ;;; Count how many members satisfy predicate.
@@ -181,26 +184,19 @@
 ;;; collection-group-by : FSCap (Block → A) Block → (List (Pair A (List Block)))
 ;;; Group collection members by key function.
 ;;; Returns association list: ((key1 . [blocks...]) (key2 . [blocks...]) ...)
+;;; Uses hash table internally for O(N) complexity instead of O(N*G).
 (define (collection-group-by fs key-fn collection)
-  (let ([hashes (collection-hashes collection)])
-       (let loop ([hashes hashes]
-                  [groups '()])
-            (if (null? hashes)
-                groups
-                (let ([block (fs-fetch fs (car hashes))])
-                     (if block
-                         (let* ([key (key-fn block)]
-                                [existing (assoc key groups)])
-                               (if existing
-                                   (loop (cdr hashes)
-                                         (map (lambda (pair)
-                                                      (if (equal? (car pair) key)
-                                                          (cons key (cons block (cdr pair)))
-                                                          pair))
-                                              groups))
-                                   (loop (cdr hashes)
-                                         (cons (cons key (list block)) groups))))
-                         (loop (cdr hashes) groups)))))))
+  (let ([groups (make-hashtable equal-hash equal?)])
+       (fold-collection
+        fs
+        (lambda (acc block)
+                (let* ([key (key-fn block)]
+                       [existing (hashtable-ref groups key '())])
+                      (hashtable-set! groups key (cons block existing)))
+                acc)
+        '() collection)
+       (let-values ([(keys vals) (hashtable-entries groups)])
+                   (map cons (vector->list keys) (vector->list vals)))))
 
 ;;; ============================================================
 ;;; Collection Construction (Tier 5)

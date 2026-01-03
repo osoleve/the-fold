@@ -735,8 +735,8 @@
                (lambda (sign)
                        (parser-bind (some digit)
                                     (lambda (int-part)
-                                            (parser-bind (optional (parser-then (char #\.)
-                                                                                (some digit))
+                                            (parser-bind (optional (try (parser-then (char #\.)
+                                                                                     (some digit)))
                                                                    '())
                                                          (lambda (frac-part)
                                                                  (let* ([int-str (list->string int-part)]
@@ -882,11 +882,11 @@
   (if (<= n 0)
       (parser-pure '())
       (parser-or
-       (parser-bind p
-                    (lambda (x)
-                            (parser-bind (at-most (- n 1) p)
-                                         (lambda (xs)
-                                                 (parser-pure (cons x xs))))))
+       (try (parser-bind p
+                         (lambda (x)
+                                 (parser-bind (at-most (- n 1) p)
+                                              (lambda (xs)
+                                                      (parser-pure (cons x xs)))))))
        (parser-pure '()))))
 
 ;;; at-least : Nat × Parser a → Parser (List a)
