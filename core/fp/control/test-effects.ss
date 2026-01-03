@@ -912,6 +912,67 @@
                          (assert-equal 1 (eff-pure-value result))))))
 
 ;;; ============================================================
+;;; Performance Tests (NonDet O(N) Collection)
+;;; ============================================================
+
+(test-group nondet-performance
+            ;; Test that run-nondet scales linearly with many branches.
+            ;; With N branches each returning 1 result, old O(N^2) approach
+            ;; would be slow; new O(N) approach should be fast.
+            (define-test nondet-many-branches-test
+              ;; 1000 branches, each returning a single value
+              (let* ([n 1000]
+                     [result (run-nondet (nondet-choose (iota n)))])
+                    (assert-equal n (length result))
+                    ;; Verify order is preserved
+                    (assert-equal 0 (car result))
+                    (assert-equal (- n 1) (car (reverse result)))))
+            
+            (define-test nondet-deep-tree-test
+              ;; Create a binary tree of depth 8 = 256 leaves
+              ;; This tests nested NonDet where results accumulate
+              (let* ([depth 8]
+                     [eff (let loop ([d depth])
+                               (if (= d 0)
+                                   (eff-return 'leaf)
+                                   (eff-bind (nondet-choose '(left right))
+                                             (lambda (choice)
+                                                     (loop (- d 1))))))]
+                     [result (run-nondet eff)])
+                    (assert-equal 256 (length result))))  ; 2^8 = 256
+            
+            (define-test nondet-bounded-many-branches-test
+              ;; Test bounded version with many potential branches
+              (let* ([n 1000]
+                     [limit 50]
+                     [result (run-nondet-bounded limit (nondet-choose (iota n)))])
+                    (assert-equal limit (length result))
+                    ;; Should be first 50 elements in order
+                    (assert-equal 0 (car result))
+                    (assert-equal 49 (car (reverse result)))))
+            
+            (define-test nondet-cartesian-large-test
+              ;; 20 x 20 = 400 results via cartesian product
+              (let* ([n 20]
+                     [result (run-nondet
+                              (eff-bind (nondet-choose (iota n))
+                                        (lambda (x)
+                                                (eff-bind (nondet-choose (iota n))
+                                                          (lambda (y)
+                                                                  (eff-return (cons x y)))))))])
+                    (assert-equal 400 (length result))
+                    ;; First should be (0 . 0), last should be (19 . 19)
+                    (assert-equal '(0 . 0) (car result))
+                    (assert-equal '(19 . 19) (car (reverse result))))))
+
+;;; Helper: iota generates list (0 1 2 ... n-1)
+(define (iota n)
+  (let loop ([i 0] [acc '()])
+       (if (>= i n)
+           (reverse acc)
+           (loop (+ i 1) (cons i acc)))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 

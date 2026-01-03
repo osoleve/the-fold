@@ -706,19 +706,30 @@
 
 ;;; run-nondet : Eff NonDet a -> List a
 ;;; Handle non-determinism effect, collecting all results.
+;;; Uses O(N) collection via reverse-accumulate pattern instead of
+;;; O(N^2) apply-append pattern.
 (define (run-nondet eff)
+  (reverse (run-nondet-acc '() eff)))
+
+;;; run-nondet-acc : (List a) -> Eff NonDet a -> (List a)
+;;; Accumulator-based helper for run-nondet.
+;;; Collects results in reverse order (prepends via cons).
+(define (run-nondet-acc acc eff)
   (cond
    [(eff-pure? eff)
-    (list (eff-pure-value eff))]
+    (cons (eff-pure-value eff) acc)]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
          (case (effect-tag effect)
                [(nondet-choose)
                 (let ([options (effect-payload effect)])
-                     (apply append
-                            (map (lambda (opt) (run-nondet (k opt)))
-                                 options)))]
+                     ;; Fold over options, threading the accumulator
+                     ;; Each branch appends its results to acc
+                     (fold-left (lambda (acc opt)
+                                        (run-nondet-acc acc (k opt)))
+                                acc
+                                options))]
                [else
                 (error 'run-nondet "Unhandled effect" (effect-tag effect))]))]))
 
@@ -732,29 +743,34 @@
 
 ;;; run-nondet-bounded : Nat -> Eff NonDet a -> List a
 ;;; Handle non-determinism with a bound on number of results.
+;;; Uses O(N) collection via accumulator pattern.
 (define (run-nondet-bounded limit eff)
-  (run-nondet-bounded-helper limit eff))
+  (reverse (run-nondet-bounded-acc limit '() eff)))
 
-(define (run-nondet-bounded-helper remaining eff)
+;;; run-nondet-bounded-acc : Nat -> (List a) -> Eff NonDet a -> (List a)
+;;; Accumulator-based helper for run-nondet-bounded.
+;;; Returns results in reverse order; caller must reverse.
+(define (run-nondet-bounded-acc remaining acc eff)
   (if (<= remaining 0)
-      '()
+      acc
       (cond
        [(eff-pure? eff)
-        (list (eff-pure-value eff))]
+        (cons (eff-pure-value eff) acc)]
        [(eff-op? eff)
         (let ([effect (eff-op-effect eff)]
               [k (eff-op-cont eff)])
              (case (effect-tag effect)
                    [(nondet-choose)
                     (let loop ([options (effect-payload effect)]
-                               [collected '()]
+                               [acc acc]
                                [remain remaining])
                          (if (or (null? options) (<= remain 0))
-                             (reverse collected)
-                             (let ([results (run-nondet-bounded-helper remain (k (car options)))])
-                                  (loop (cdr options)
-                                        (append (reverse results) collected)
-                                        (- remain (length results))))))]
+                             acc
+                             (let* ([new-acc (run-nondet-bounded-acc remain acc (k (car options)))]
+                                    [added (- (length new-acc) (length acc))])
+                                   (loop (cdr options)
+                                         new-acc
+                                         (- remain added)))))]
                    [else
                     (error 'run-nondet-bounded "Unhandled effect" (effect-tag effect))]))])))
 

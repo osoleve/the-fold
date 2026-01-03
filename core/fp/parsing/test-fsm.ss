@@ -432,7 +432,45 @@
                              'q0 '(q1))]
                      [s (fsm->string m)])
                     (assert-true (string? s))
-                    (assert-true (> (string-length s) 0)))))
+                    (assert-true (> (string-length s) 0))))
+            
+            ;; Test DOT injection prevention
+            ;; State names with special characters should be escaped
+            (define-test fsm-to-dot-injection-test
+              ;; Test with malicious state names containing quotes, backslashes, newlines
+              ;; These could allow DOT code injection if not properly escaped
+              ;; The payload attempts to close the quoted string and inject DOT code
+              (let* ([evil-state1 (string->symbol "bad\" -> evil; \"")]
+                     [evil-state2 (string->symbol "q1")]
+                     [m (make-fsm (list evil-state1 evil-state2)
+                                  (list char-a)
+                                  (list (cons (cons evil-state1 char-a) (list evil-state2)))
+                                  evil-state1
+                                  (list evil-state2))]
+                     [dot (fsm->dot m)])
+                    ;; Output should be valid - quotes are escaped
+                    (assert-true (string? dot))
+                    ;; Escaped double-quotes should be present (injection is neutralized)
+                    (assert-true (string-contains dot "\\\""))
+                    ;; The malicious state name should appear with escaped quotes
+                    ;; NOT as: "bad" -> evil; "" (which would be injection)
+                    ;; BUT as: "bad\" -> evil; \"" (properly escaped, single quoted string)
+                    (assert-true (string-contains dot "\"bad\\\" -> evil; \\\"\""))))
+            
+            (define-test fsm-to-dot-escape-backslash-test
+              ;; Test that backslashes are properly escaped
+              (let* ([bs-state (string->symbol "q\\0")]
+                     [m (make-fsm (list bs-state) (list char-a) '() bs-state (list bs-state))]
+                     [dot (fsm->dot m)])
+                    ;; Should contain escaped backslash
+                    (assert-true (string-contains dot "\\\\"))))
+            
+            (define-test fsm-to-dot-custom-name-test
+              ;; Test that custom graph names are also escaped
+              (let* ([m (dfa '(q0) (list char-a) '() 'q0 '(q0))]
+                     [dot (fsm->dot m "test\"graph")])
+                    ;; Graph name quotes should be escaped
+                    (assert-true (string-contains dot "test\\\"graph")))))
 
 ;;; ============================================================
 ;;; Edge Cases

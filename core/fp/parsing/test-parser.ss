@@ -408,6 +408,79 @@
                                   (list->string (from-right result))))))
 
 ;;; ============================================================
+;;; Bounded Memoization Tests (DoS Prevention)
+;;; ============================================================
+
+(test-group "bounded-memo-tests"
+            ;; Test that bounded memo table enforces its limit
+            (define-test bounded-memo-limit-test
+              (let* ([limit 100]
+                     [table (make-bounded-memo-table limit)])
+                    ;; Fill the table beyond its limit
+                    (do ([i 0 (+ i 1)])
+                        ((= i (* limit 2)))  ; Add 2x limit entries
+                        (memo-store! table 'test-rule i (right (cons i '()))))
+                    ;; Verify table size is bounded (should be at most limit)
+                    (let ([size (memo-table-size table)])
+                         (assert-true (<= size limit)))))
+            
+            ;; Test that bounded table still allows cache hits
+            (define-test bounded-memo-hits-test
+              (let* ([table (make-bounded-memo-table 1000)]
+                     [mp (memo 'test (char (integer->char 97)))])
+                    ;; First parse
+                    (let ([r1 (parse-with-memo mp "abc" table)])
+                         (assert-true (right? r1))
+                         ;; Second parse should use cached result
+                         (let ([r2 (parse-with-memo mp "abc" table)])
+                              (assert-true (right? r2))
+                              (assert-equal (from-right r1) (from-right r2))))))
+            
+            ;; Test that default make-memo-table is bounded
+            (define-test default-memo-bounded-test
+              (let ([table (make-memo-table)])
+                   ;; Default table should be bounded
+                   (assert-true (bounded-memo-table? table))
+                   ;; Should have a reasonable limit
+                   (let ([stats (memo-stats table)])
+                        (assert-true (number? (cdr stats)))
+                        (assert-true (> (cdr stats) 0)))))
+            
+            ;; Test unbounded table for comparison
+            (define-test unbounded-memo-test
+              (let ([table (make-unbounded-memo-table)])
+                   (assert-true (unbounded-memo-table? table))
+                   (let ([stats (memo-stats table)])
+                        (assert-equal #f (cdr stats)))))
+            
+            ;; Test memo-table-size function
+            (define-test memo-table-size-test
+              (let ([table (make-bounded-memo-table 1000)])
+                   (assert-equal 0 (memo-table-size table))
+                   (memo-store! table 'rule1 0 (right (cons 'a '())))
+                   (assert-equal 1 (memo-table-size table))
+                   (memo-store! table 'rule1 1 (right (cons 'b '())))
+                   (assert-equal 2 (memo-table-size table))))
+            
+            ;; Test that eviction prefers older entries (LRU behavior)
+            (define-test bounded-memo-lru-test
+              (let* ([limit 10]
+                     [table (make-bounded-memo-table limit)])
+                    ;; Add entries 0-9
+                    (do ([i 0 (+ i 1)])
+                        ((= i limit))
+                        (memo-store! table 'test i (right (cons i '()))))
+                    ;; Access entry 0 to refresh its timestamp
+                    (memo-lookup table 'test 0)
+                    ;; Add more entries to trigger eviction
+                    (do ([i limit (+ i 1)])
+                        ((= i (+ limit 5)))
+                        (memo-store! table 'test i (right (cons i '()))))
+                    ;; Entry 0 should still be present (was refreshed)
+                    (let ([lookup-0 (memo-lookup table 'test 0)])
+                         (assert-true (just? lookup-0))))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 

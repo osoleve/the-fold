@@ -963,35 +963,146 @@
 ;;; have exponential backtracking.
 ;;;
 ;;; Usage:
-;;;   1. Create a memo table: (make-memo-table)
+;;;   1. Create a memo table: (make-memo-table) or (make-bounded-memo-table limit)
 ;;;   2. Wrap rules with memo: (memo 'rule-name parser)
 ;;;   3. Parse with the memo table: (parse-with-memo parser input table)
 ;;;
 ;;; Note: Memoization uses mutation internally but the interface
 ;;; remains pure from the caller's perspective.
+;;;
+;;; SECURITY: By default, memo tables are bounded to prevent memory exhaustion
+;;; attacks via crafted inputs that create many unique parse states.
+
+;;; Default maximum entries in memo table (prevents DoS via memory exhaustion)
+(define *default-memo-table-limit* 50000)
+
+;;; memo-table-entry : Result × Nat → Entry
+;;; Create a memo table entry with result and access timestamp.
+(define (make-memo-entry result timestamp)
+  (cons result timestamp))
+
+;;; memo-entry-result : Entry → Result
+(define (memo-entry-result entry) (car entry))
+
+;;; memo-entry-timestamp : Entry → Nat
+(define (memo-entry-timestamp entry) (cdr entry))
 
 ;;; make-memo-table : () → MemoTable
-;;; Create a new memoization table.
+;;; Create a new bounded memoization table with default limit.
+;;; This is the safe default that prevents memory exhaustion attacks.
 (define (make-memo-table)
-  (make-hashtable equal-hash equal?))
+  (make-bounded-memo-table *default-memo-table-limit*))
+
+;;; make-bounded-memo-table : Nat → MemoTable
+;;; Create a memoization table with specified maximum entry limit.
+;;; When the limit is exceeded, oldest entries (by access time) are evicted.
+(define (make-bounded-memo-table limit)
+  (list 'bounded-memo-table
+        (make-hashtable equal-hash equal?)  ; cache: key -> (result . timestamp)
+        (box 0)                              ; counter: access timestamp
+        (box limit)))                        ; max-entries
+
+;;; make-unbounded-memo-table : () → MemoTable
+;;; Create an unbounded memoization table.
+;;; WARNING: Only use this for trusted inputs or when you have other
+;;; safeguards against memory exhaustion attacks.
+(define (make-unbounded-memo-table)
+  (list 'unbounded-memo-table
+        (make-hashtable equal-hash equal?)))
+
+;;; bounded-memo-table? : MemoTable → Boolean
+(define (bounded-memo-table? table)
+  (and (pair? table) (eq? (car table) 'bounded-memo-table)))
+
+;;; unbounded-memo-table? : MemoTable → Boolean
+(define (unbounded-memo-table? table)
+  (and (pair? table) (eq? (car table) 'unbounded-memo-table)))
+
+;;; memo-table-cache : MemoTable → Hashtable
+(define (memo-table-cache table)
+  (cadr table))
+
+;;; memo-table-counter : BoundedMemoTable → Box Nat
+(define (memo-table-counter table)
+  (caddr table))
+
+;;; memo-table-limit : BoundedMemoTable → Box Nat
+(define (memo-table-limit table)
+  (cadddr table))
 
 ;;; memo-key : Symbol × Nat → MemoKey
 ;;; Create a memoization key from rule name and position.
 (define (memo-key name offset)
   (cons name offset))
 
+;;; next-timestamp! : BoundedMemoTable → Nat
+;;; Get and increment the access timestamp.
+(define (next-timestamp! table)
+  (let* ([counter (memo-table-counter table)]
+         [ts (unbox counter)])
+        (set-box! counter (+ ts 1))
+        ts))
+
+;;; evict-oldest! : BoundedMemoTable × Nat → ()
+;;; Evict the oldest entries to make room for new ones.
+;;; Removes approximately 10% of entries to amortize eviction cost.
+(define (evict-oldest! table count-to-evict)
+  (let* ([cache (memo-table-cache table)]
+         [keys (hashtable-keys cache)]
+         [n (vector-length keys)]
+         [keys-and-times
+          ;; Collect all keys with their timestamps
+          (let loop ([i 0] [acc '()])
+               (if (>= i n)
+                   acc
+                   (let* ([k (vector-ref keys i)]
+                          [v (hashtable-ref cache k #f)]
+                          [ts (if v (memo-entry-timestamp v) 0)])
+                         (loop (+ i 1) (cons (cons k ts) acc)))))])
+        ;; Sort by timestamp (oldest first)
+        (let* ([sorted (list-sort (lambda (a b) (< (cdr a) (cdr b)))
+                                  keys-and-times)]
+               [to-remove (if (> (length sorted) count-to-evict)
+                              (list-head sorted count-to-evict)
+                              sorted)])
+              ;; Remove oldest entries
+              (for-each (lambda (kv) (hashtable-delete! cache (car kv)))
+                        to-remove))))
+
 ;;; memo-lookup : MemoTable × Symbol × Nat → (Maybe Result)
-;;; Look up a cached result.
+;;; Look up a cached result. Updates access time for bounded tables.
 (define (memo-lookup table name offset)
-  (let ([result (hashtable-ref table (memo-key name offset) 'not-found)])
-       (if (eq? result 'not-found)
-           nothing
-           (just result))))
+  (let* ([cache (memo-table-cache table)]
+         [key (memo-key name offset)]
+         [entry (hashtable-ref cache key 'not-found)])
+        (if (eq? entry 'not-found)
+            nothing
+            (if (bounded-memo-table? table)
+                ;; Update timestamp for LRU tracking
+                (let ([ts (next-timestamp! table)])
+                     (hashtable-set! cache key
+                                     (make-memo-entry (memo-entry-result entry) ts))
+                     (just (memo-entry-result entry)))
+                ;; Unbounded: just return the result directly
+                (just entry)))))
 
 ;;; memo-store! : MemoTable × Symbol × Nat × Result → ()
-;;; Store a result in the cache.
+;;; Store a result in the cache. For bounded tables, evicts old entries if needed.
 (define (memo-store! table name offset result)
-  (hashtable-set! table (memo-key name offset) result))
+  (if (bounded-memo-table? table)
+      (let* ([cache (memo-table-cache table)]
+             [limit (unbox (memo-table-limit table))]
+             [current-size (hashtable-size cache)]
+             [key (memo-key name offset)])
+            ;; Check if we need to evict
+            (when (>= current-size limit)
+                  ;; Evict 10% of entries to amortize eviction cost
+                  (evict-oldest! table (max 1 (quotient limit 10))))
+            ;; Store with timestamp
+            (let ([ts (next-timestamp! table)])
+                 (hashtable-set! cache key (make-memo-entry result ts))))
+      ;; Unbounded: just store directly
+      (hashtable-set! (memo-table-cache table) (memo-key name offset) result)))
 
 ;;; memo : Symbol × Parser a → MemoTable → Parser a
 ;;; Create a memoizing parser. The memo table is passed at parse time.
@@ -1086,8 +1197,26 @@
 ;;; Packrat Statistics (for debugging)
 ;;; ============================================================
 
-;;; memo-stats : MemoTable → (hits . entries)
+;;; memo-stats : MemoTable → (entries . limit)
 ;;; Get statistics about memo table usage.
-;;; Note: This counts entries, not hits (hits require instrumentation).
+;;; Returns (current-entries . max-limit) for bounded tables,
+;;; or (current-entries . #f) for unbounded tables.
 (define (memo-stats table)
-  (cons 0 (hashtable-size table)))
+  (let ([cache (memo-table-cache table)])
+       (if (bounded-memo-table? table)
+           (cons (hashtable-size cache)
+                 (unbox (memo-table-limit table)))
+           (cons (hashtable-size cache) #f))))
+
+;;; memo-table-size : MemoTable → Nat
+;;; Get the current number of entries in the memo table.
+(define (memo-table-size table)
+  (hashtable-size (memo-table-cache table)))
+
+;;; memo-table-set-limit! : BoundedMemoTable × Nat → ()
+;;; Change the limit of a bounded memo table.
+;;; If new limit is smaller than current size, eviction happens on next store.
+(define (memo-table-set-limit! table new-limit)
+  (if (bounded-memo-table? table)
+      (set-box! (memo-table-limit table) new-limit)
+      (error 'memo-table-set-limit! "cannot set limit on unbounded table")))

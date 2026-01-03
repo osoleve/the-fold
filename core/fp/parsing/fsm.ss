@@ -477,11 +477,37 @@
 ;;; FSM Visualization
 ;;; ============================================================
 
+;;; Escape special characters for DOT format strings
+;;; Handles: backslash, double quote, newline, carriage return, tab
+(define (dot-escape-string str)
+  (let loop ([chars (string->list str)] [acc '()])
+       (if (null? chars)
+           (list->string (reverse acc))
+           (let ([c (car chars)])
+                (cond
+                 [(char=? c #\\)
+                  (loop (cdr chars) (cons #\\ (cons #\\ acc)))]
+                 [(char=? c #\")
+                  (loop (cdr chars) (cons #\" (cons #\\ acc)))]
+                 [(char=? c #\newline)
+                  (loop (cdr chars) (cons #\n (cons #\\ acc)))]
+                 [(char=? c #\return)
+                  (loop (cdr chars) (cons #\r (cons #\\ acc)))]
+                 [(char=? c #\tab)
+                  (loop (cdr chars) (cons #\t (cons #\\ acc)))]
+                 [else
+                  (loop (cdr chars) (cons c acc))])))))
+
+;;; Escape a symbol for use in DOT output
+(define (dot-escape-symbol sym)
+  (dot-escape-string (symbol->string sym)))
+
 ;;; Convert FSM to DOT format for Graphviz
+;;; All state names and labels are escaped to prevent DOT injection
 (define (fsm->dot fsm . name)
-  (let ([graph-name (if (null? name) "FSM" (car name))])
+  (let ([graph-name (if (null? name) "FSM" (dot-escape-string (car name)))])
        (string-append
-        "digraph " graph-name " {
+        "digraph \"" graph-name "\" {
 "
         "  rankdir=LR;
 "
@@ -489,14 +515,14 @@
 "
         ;; Mark accepting states
         (fold-left (lambda (acc s)
-                           (string-append acc "  " (symbol->string s) " [shape=doublecircle];
+                           (string-append acc "  \"" (dot-escape-symbol s) "\" [shape=doublecircle];
 "))
                    ""
                    (fsm-accepting fsm))
         ;; Start arrow
         "  __start__ [shape=none,label=\"\"];
 "
-        "  __start__ -> " (symbol->string (fsm-start fsm)) ";
+        "  __start__ -> \"" (dot-escape-symbol (fsm-start fsm)) "\";
 "
         ;; Regular transitions
         (fold-left (lambda (acc t)
@@ -505,12 +531,13 @@
                                  [tos (cdr t)])
                                 (fold-left (lambda (acc2 to)
                                                    (string-append acc2
-                                                                  "  " (symbol->string from)
-                                                                  " -> " (symbol->string to)
-                                                                  " [label=\""
-                                                                  (if (char? input)
-                                                                      (string input)
-                                                                      (symbol->string input))
+                                                                  "  \"" (dot-escape-symbol from)
+                                                                  "\" -> \"" (dot-escape-symbol to)
+                                                                  "\" [label=\""
+                                                                  (dot-escape-string
+                                                                   (if (char? input)
+                                                                       (string input)
+                                                                       (symbol->string input)))
                                                                   "\"];
 "))
                                            acc
@@ -523,9 +550,9 @@
                                  [tos (cdr e)])
                                 (fold-left (lambda (acc2 to)
                                                    (string-append acc2
-                                                                  "  " (symbol->string from)
-                                                                  " -> " (symbol->string to)
-                                                                  " [label=\"ε\",style=dashed];
+                                                                  "  \"" (dot-escape-symbol from)
+                                                                  "\" -> \"" (dot-escape-symbol to)
+                                                                  "\" [label=\"\\u03b5\",style=dashed];
 "))
                                            acc
                                            tos)))
