@@ -1,0 +1,57 @@
+{
+  "agent_id": "agent-4",
+  "timestamp": "2026-01-03T12:45:00Z",
+  "files_reviewed": [
+    {
+      "file": "agents/lib/parse-trigger.js",
+      "issues": [
+        {"severity": "medium", "line": 20, "description": "Fragile Parenthesis Normalization: The check for '((' and '))' is too strict and doesn't handle internal whitespace. Additionally, slice(1, -1) on '((...))' removes only one level, but logic fails if file contains multiple top-level S-expressions or comments."},
+        {"severity": "high", "line": 26, "description": "Regex Termination Bug: The unquoted value pattern [^)\\s]+ will prematurely terminate if a symbol contains a literal ')' (even if escaped or inside a nested structure). This makes the parser fragile to valid S-expression variations."},
+        {"severity": "medium", "line": 41, "description": "Incomplete Unescaping: The manual unescaping logic only handles a small subset of standard escape sequences (\\n, \\r, \\t, \\\", \\\\). Other common escapes like \\b, \\f, or hex/unicode escapes will be left in their literal escaped form."},
+        {"severity": "low", "line": 0, "description": "Missing Comment Support: S-expression files frequently use ';' for comments. This parser will attempt to match comment text as keys or values if they contain dots or parentheses."}
+      ],
+      "quality": 5,
+      "notes": "Parser works for simple cases but has fragile regex that breaks on edge cases. Missing comment support and incomplete escape handling."
+    },
+    {
+      "file": "agents/personas/dialectic-dsl.ss",
+      "issues": [
+        {"severity": "medium", "line": 54, "description": "Potential List Index Out of Bounds: The code assumes resolution-methods and resolution-framing will always contain at least 2 elements. While choose-n 2 currently satisfies this, the code will crash if source lists are ever shortened."},
+        {"severity": "low", "line": 104, "description": "Embedded Selection in Sign-off: The random selection for the sign-off happens at prompt generation time. If intent is for agent to 'choose' its sign-off style during conversation, this hard-codes it into the system prompt for that specific run."}
+      ],
+      "quality": 8,
+      "notes": "Well-structured DSL for generating dialectic agent prompts. Minor potential for list bounds issues if source data changes."
+    },
+    {
+      "file": "agents/regulars.md",
+      "issues": [
+        {"severity": "low", "line": 0, "description": "Minor formatting inconsistency: Some entries have slightly different formatting for personality traits vs background, but as a context file for LLMs this is negligible."}
+      ],
+      "quality": 9,
+      "notes": "Excellent documentation quality. Well-structured and provides excellent context for agent personas. No functional bugs."
+    },
+    {
+      "file": "agents/invoke-archivist.js",
+      "issues": [
+        {"severity": "high", "line": 86, "description": "Environment Dependency: Use of execSync with 'claude' CLI assumes the command is in the system PATH and pre-authenticated. Likely to fail in production/daemon environments unless environment is perfectly mirrored."},
+        {"severity": "medium", "line": 78, "description": "Temp File Collision Risk: Using Date.now() for temp filenames is susceptible to collisions if multiple trigger events occur in the same millisecond. Use of UUID or crypto.randomBytes is recommended."},
+        {"severity": "high", "line": 35, "description": "Outdated Tagging Convention: The prompt version uses @agents/invoke-opus.js style tags, while Discord integration expects short tags like @opus. This will cause the agent to fail to trigger other agents in Discord."},
+        {"severity": "medium", "line": 83, "description": "Prompt Injection Vulnerability: Direct interpolation of ${author} and ${body} into the prompt allows a user to 'break out' of the user-query block and provide instructions that contradict the SYSTEM_PROMPT."}
+      ],
+      "quality": 5,
+      "notes": "Functional but has environment dependencies, potential temp file collisions, tagging inconsistencies, and prompt injection risks."
+    },
+    {
+      "file": "agents/pipelines/tech-debt.ss",
+      "issues": [
+        {"severity": "high", "line": 38, "description": "Broken Paths: Shell commands reference directories 'fabric' and 'thimble' which do not exist in the project root. Should likely be 'core' or 'agents'. Pipeline will fail on first 'find' command."},
+        {"severity": "high", "line": 53, "description": "Broken Data Flow Logic: In the chain macro, each stage-&&& passes its output to the next. Since run-shell ignores input, the final stage-arr only receives results of the last pair of metrics. Attempts to access (caar metrics) and (caadr metrics) will result in index out of bounds errors."},
+        {"severity": "medium", "line": 142, "description": "Invalid Model Reference: 'gemini-3' is likely a typo for 'gemini-1.5-pro' or future-dated placeholder. It will cause runtime error if LLM provider doesn't recognize the model string."},
+        {"severity": "medium", "line": 173, "description": "Shell Injection in Bead Creation: ${input} is passed directly to beads-create. If extracted 'TITLE' contains single quotes or semicolons, it could lead to arbitrary shell command execution or broken issue creation."}
+      ],
+      "quality": 3,
+      "notes": "Pipeline logic and paths are fundamentally broken. Critical refactoring needed in gather-metrics-stage to correctly accumulate all six metrics. Directory references point to non-existent paths."
+    }
+  ],
+  "summary": "Critical issues found in tech-debt.ss (broken paths and data flow logic) and invoke-archivist.js (environment dependencies, tagging inconsistencies). parse-trigger.js has fragile regex that breaks on edge cases. dialectic-dsl.ss and regulars.md are in good shape with only minor issues. Recommend prioritizing fixes for the pipeline data flow and directory paths in tech-debt.ss."
+}
