@@ -117,33 +117,52 @@
 
 ;;; bytes->block : Bytevector → Block
 ;;; Deserialize a block from its canonical byte representation.
+;;; Validates bounds to prevent malformed input from causing errors.
 (define (bytes->block bv)
-  (let* ([pos 0]
-         ;; Read tag
-         [tag-len (bytes-le->u32 bv pos)]
-         [_ (set! pos (+ pos 4))]
-         [tag-bytes (make-bytevector tag-len)]
-         [_ (bytevector-copy! bv pos tag-bytes 0 tag-len)]
-         [_ (set! pos (+ pos tag-len))]
-         [tag (utf8->symbol tag-bytes)]
-         ;; Read payload
-         [payload-len (bytes-le->u32 bv pos)]
-         [_ (set! pos (+ pos 4))]
-         [payload (make-bytevector payload-len)]
-         [_ (bytevector-copy! bv pos payload 0 payload-len)]
-         [_ (set! pos (+ pos payload-len))]
-         ;; Read refs
-         [refs-count (bytes-le->u32 bv pos)]
-         [_ (set! pos (+ pos 4))]
-         [refs (make-vector refs-count)])
-        ;; Read each ref
-        (do ([i 0 (+ i 1)])
-            ((= i refs-count))
-            (let ([ref (make-bytevector address-size)])
-                 (bytevector-copy! bv pos ref 0 address-size)
-                 (vector-set! refs i ref)
-                 (set! pos (+ pos address-size))))
-        (make-block tag payload refs)))
+  (let ([bv-len (bytevector-length bv)])
+       ;; Ensure minimum size for tag length field
+       (when (< bv-len 4)
+             (error 'bytes->block "bytevector too short for tag length" bv-len))
+       (let* ([pos 0]
+              ;; Read tag
+              [tag-len (bytes-le->u32 bv pos)]
+              [_ (set! pos (+ pos 4))]
+              ;; Validate tag length
+              [_ (when (> (+ pos tag-len) bv-len)
+                       (error 'bytes->block "tag length exceeds bytevector bounds" tag-len bv-len))]
+              [tag-bytes (make-bytevector tag-len)]
+              [_ (bytevector-copy! bv pos tag-bytes 0 tag-len)]
+              [_ (set! pos (+ pos tag-len))]
+              [tag (utf8->symbol tag-bytes)]
+              ;; Read payload
+              [_ (when (> (+ pos 4) bv-len)
+                       (error 'bytes->block "bytevector too short for payload length" pos bv-len))]
+              [payload-len (bytes-le->u32 bv pos)]
+              [_ (set! pos (+ pos 4))]
+              ;; Validate payload length
+              [_ (when (> (+ pos payload-len) bv-len)
+                       (error 'bytes->block "payload length exceeds bytevector bounds" payload-len bv-len))]
+              [payload (make-bytevector payload-len)]
+              [_ (bytevector-copy! bv pos payload 0 payload-len)]
+              [_ (set! pos (+ pos payload-len))]
+              ;; Read refs
+              [_ (when (> (+ pos 4) bv-len)
+                       (error 'bytes->block "bytevector too short for refs count" pos bv-len))]
+              [refs-count (bytes-le->u32 bv pos)]
+              [_ (set! pos (+ pos 4))]
+              ;; Validate refs total size
+              [refs-total-size (* refs-count address-size)]
+              [_ (when (> (+ pos refs-total-size) bv-len)
+                       (error 'bytes->block "refs exceed bytevector bounds" refs-count bv-len))]
+              [refs (make-vector refs-count)])
+             ;; Read each ref
+             (do ([i 0 (+ i 1)])
+                 ((= i refs-count))
+                 (let ([ref (make-bytevector address-size)])
+                      (bytevector-copy! bv pos ref 0 address-size)
+                      (vector-set! refs i ref)
+                      (set! pos (+ pos address-size))))
+             (make-block tag payload refs))))
 
 ;;; ============================================================
 ;;; Block Utilities

@@ -129,13 +129,16 @@
 ;;; Create a quotient with basic simplifications.
 (define (quotient e1 e2)
   (cond
+   ;; Division by zero: return symbolic form (shell layer validates)
+   [(and (num? e2) (= (num-val e2) 0))
+    (list '/ e1 e2)]
    ;; 0 / x = 0 (assuming x != 0)
    [(and (num? e1) (= (num-val e1) 0)) (num 0)]
    ;; x / 1 = x
    [(and (num? e2) (= (num-val e2) 1)) e1]
    ;; x / x = 1 (assuming x != 0)
    [(expr=? e1 e2) (num 1)]
-   ;; n1 / n2 when exact
+   ;; n1 / n2 when exact (and e2 != 0, checked above)
    [(and (num? e1) (num? e2) (integer? (/ (num-val e1) (num-val e2))))
     (num (/ (num-val e1) (num-val e2)))]
    ;; Default
@@ -390,7 +393,27 @@
     (let ([b1 (match-expr (pow-base expr) (pow-base pattern))]
           [b2 (match-expr (pow-exp expr) (pow-exp pattern))])
          (if (and b1 b2)
-             (append b1 b2)
+             (merge-bindings b1 b2)
+             #f))]
+   
+   ;; Match difference
+   [(and (difference? pattern) (difference? expr))
+    (let ([b1 (match-expr (diff-left expr) (diff-left pattern))]
+          [b2 (if (and (diff-right pattern) (diff-right expr))
+                  (match-expr (diff-right expr) (diff-right pattern))
+                  (if (and (not (diff-right pattern)) (not (diff-right expr)))
+                      '()
+                      #f))])
+         (if (and b1 b2)
+             (merge-bindings b1 b2)
+             #f))]
+   
+   ;; Match quotient
+   [(and (quotient? pattern) (quotient? expr))
+    (let ([b1 (match-expr (quot-numer expr) (quot-numer pattern))]
+          [b2 (match-expr (quot-denom expr) (quot-denom pattern))])
+         (if (and b1 b2)
+             (merge-bindings b1 b2)
              #f))]
    
    ;; Match function application
@@ -403,6 +426,29 @@
    
    [else #f]))
 
+;;; bindings-consistent? : Bindings × Bindings → Boolean
+;;; Check if two binding lists are consistent (no conflicting values for same var).
+(define (bindings-consistent? b1 b2)
+  (let loop ([bindings b1])
+       (if (null? bindings)
+           #t
+           (let* ([pair (car bindings)]
+                  [var (car pair)]
+                  [val (cdr pair)]
+                  [existing (assq var b2)])
+                 (if existing
+                     (if (equal? val (cdr existing))
+                         (loop (cdr bindings))
+                         #f)  ; Conflict: same var, different value
+                     (loop (cdr bindings)))))))
+
+;;; merge-bindings : Bindings × Bindings → Bindings | #f
+;;; Merge two binding lists, returning #f if inconsistent.
+(define (merge-bindings b1 b2)
+  (if (bindings-consistent? b1 b2)
+      (append b1 (filter (lambda (p) (not (assq (car p) b1))) b2))
+      #f))
+
 ;;; match-list : (List Expr) × (List Pattern) → Bindings | #f
 ;;; Match a list of expressions against patterns.
 (define (match-list exprs patterns)
@@ -412,7 +458,7 @@
            (if b
                (let ([rest (match-list (cdr exprs) (cdr patterns))])
                     (if rest
-                        (append b rest)
+                        (merge-bindings b rest)
                         #f))
                #f))))
 

@@ -662,16 +662,25 @@
          [b1 (hd-deriv1 b)]
          [b2 (hd-deriv2 b)]
          [b12 (hd-deriv12 b)])
-        ;; Guard against zero base with fractional/negative exponents
-        (if (and (= bv 0) (< n 1))
-            (hyperdual +nan.0 +nan.0 +nan.0 +nan.0)
-            (let* ([pv (expt bv n)]
-                   [pv1 (expt bv (- n 1))]
-                   [pv2 (expt bv (- n 2))])
-                  (hyperdual pv
-                             (* n pv1 b1)
-                             (* n pv1 b2)
-                             (* n pv2 (+ (* b12 bv) (* (- n 1) b1 b2))))))))
+        (cond
+         ;; Guard against zero base with fractional/negative exponents
+         [(and (= bv 0) (< n 1))
+          (hyperdual +nan.0 +nan.0 +nan.0 +nan.0)]
+         ;; Special case n=1 at zero base: d²(f)/dxdy = f12
+         [(and (= bv 0) (= n 1))
+          (hyperdual 0 b1 b2 b12)]
+         ;; Special case n=2 at zero base: avoid pv2 = 0^0 ambiguity
+         [(and (= bv 0) (= n 2))
+          (hyperdual 0 0 0 (* 2 b1 b2))]
+         ;; General case
+         [else
+          (let* ([pv (expt bv n)]
+                 [pv1 (expt bv (- n 1))]
+                 [pv2 (if (>= n 2) (expt bv (- n 2)) 0)])
+                (hyperdual pv
+                           (* n pv1 b1)
+                           (* n pv1 b2)
+                           (* n pv2 (+ (* b12 bv) (* (- n 1) b1 b2)))))])))
 
 ;;; ============================================================
 ;;; Hyperdual Inverse Trigonometric Functions
