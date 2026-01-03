@@ -207,6 +207,33 @@
         (assert-true (approx= pitch (cadr result)))
         (assert-true (approx= yaw (caddr result)))))
 
+(define-test "quat-from-euler matches composition"
+  ;; Verify ZYX Euler conversion matches manual composition
+  ;; ZYX means: first roll (X), then pitch (Y), then yaw (Z)
+  (let* ([roll (/ pi 4)]   ; 45°
+         [pitch (/ pi 6)]  ; 30°
+         [yaw (/ pi 3)]    ; 60°
+         [qe (quat-from-euler roll pitch yaw)]
+         ;; Manually compose rotations: Z * Y * X (left-to-right application)
+         [qx (quat-from-axis-angle (vec3 1 0 0) roll)]
+         [qy (quat-from-axis-angle (vec3 0 1 0) pitch)]
+         [qz (quat-from-axis-angle (vec3 0 0 1) yaw)]
+         [qcomposed (quat-mul qz (quat-mul qy qx))]
+         ;; Test on multiple vectors
+         [v1 (vec3 1 0 0)]
+         [v2 (vec3 0 1 0)]
+         [v3 (vec3 1 2 3)]
+         [r1e (quat-rotate-vec3 qe v1)]
+         [r1c (quat-rotate-vec3 qcomposed v1)]
+         [r2e (quat-rotate-vec3 qe v2)]
+         [r2c (quat-rotate-vec3 qcomposed v2)]
+         [r3e (quat-rotate-vec3 qe v3)]
+         [r3c (quat-rotate-vec3 qcomposed v3)])
+        ;; Euler formula should match manual composition
+        (assert-true (vec3-nearly-equal? r1e r1c 1e-9))
+        (assert-true (vec3-nearly-equal? r2e r2c 1e-9))
+        (assert-true (vec3-nearly-equal? r3e r3c 1e-9))))
+
 (define-test "quat-to-rotation-matrix creates valid rotation"
   (let* ([q (quat-from-axis-angle (vec3 0 0 1) (/ pi 2))]
          [m (quat-to-rotation-matrix q)]
