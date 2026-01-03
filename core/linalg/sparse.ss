@@ -515,12 +515,13 @@
            (sparse-coo-add-impl a b))))
 
 ;;; sparse-coo-add-impl : SparseCOO × SparseCOO → SparseCOO
-;;; Internal: assumes dimensions match. Uses dense accumulator then extracts non-zeros.
+;;; Internal: assumes dimensions match. Uses sparse hash table accumulator.
+;;; Complexity: O(nnz_a + nnz_b) space and time.
 (define (sparse-coo-add-impl a b)
   (let* ([rows (sparse-coo-rows a)]
          [cols (sparse-coo-cols a)]
-         ;; Use dense accumulator (efficient for reasonable sizes)
-         [acc (make-vector (* rows cols) 0)])
+         ;; Use hash table for sparse accumulation (key = row*cols+col)
+         [acc (make-hashtable equal-hash equal?)])
         ;; Add entries from A
         (let ([row-idx (sparse-coo-row-indices a)]
               [col-idx (sparse-coo-col-indices a)]
@@ -530,9 +531,9 @@
                  ((= k nnz-a))
                  (let* ([i (vector-ref row-idx k)]
                         [j (vector-ref col-idx k)]
-                        [idx (+ (* i cols) j)])
-                       (vector-set! acc idx (+ (vector-ref acc idx)
-                                               (vector-ref vals k))))))
+                        [key (cons i j)]
+                        [old (hashtable-ref acc key 0)])
+                       (hashtable-set! acc key (+ old (vector-ref vals k))))))
         ;; Add entries from B
         (let ([row-idx (sparse-coo-row-indices b)]
               [col-idx (sparse-coo-col-indices b)]
@@ -542,34 +543,41 @@
                  ((= k nnz-b))
                  (let* ([i (vector-ref row-idx k)]
                         [j (vector-ref col-idx k)]
-                        [idx (+ (* i cols) j)])
-                       (vector-set! acc idx (+ (vector-ref acc idx)
-                                               (vector-ref vals k))))))
-        ;; Extract non-zeros from accumulator
-        (let* ([size (* rows cols)]
-               ;; First pass: count non-zeros
-               [nnz (let loop ([k 0] [count 0])
-                         (if (= k size)
-                             count
-                             (loop (+ k 1)
-                                   (if (not (= (vector-ref acc k) 0))
-                                       (+ count 1)
-                                       count))))]
-               [out-rows (make-vector nnz 0)]
-               [out-cols (make-vector nnz 0)]
-               [out-vals (make-vector nnz 0)])
-              ;; Second pass: extract values
-              (let loop ([k 0] [idx 0])
-                   (if (= k size)
-                       (make-sparse-coo rows cols out-rows out-cols out-vals)
-                       (let ([v (vector-ref acc k)])
-                            (if (not (= v 0))
-                                (begin
-                                 (vector-set! out-rows idx (quotient k cols))
-                                 (vector-set! out-cols idx (remainder k cols))
-                                 (vector-set! out-vals idx v)
-                                 (loop (+ k 1) (+ idx 1)))
-                                (loop (+ k 1) idx))))))))
+                        [key (cons i j)]
+                        [old (hashtable-ref acc key 0)])
+                       (hashtable-set! acc key (+ old (vector-ref vals k))))))
+        ;; Extract non-zeros from hash table
+        (let-values ([(keys values) (hashtable-entries acc)])
+                    (let* ([n (vector-length keys)]
+                           ;; Filter out zeros and collect triplets
+                           [triplets (let loop ([k 0] [result '()])
+                                          (if (= k n)
+                                              result
+                                              (let ([v (vector-ref values k)])
+                                                   (if (= v 0)
+                                                       (loop (+ k 1) result)
+                                                       (let ([key (vector-ref keys k)])
+                                                            (loop (+ k 1)
+                                                                  (cons (list (car key) (cdr key) v)
+                                                                        result)))))))]
+                           ;; Sort by (row, col) for consistent output
+                           [sorted (list-sort (lambda (a b)
+                                                      (or (< (car a) (car b))
+                                                          (and (= (car a) (car b))
+                                                               (< (cadr a) (cadr b)))))
+                                              triplets)]
+                           [nnz (length sorted)]
+                           [out-rows (make-vector nnz 0)]
+                           [out-cols (make-vector nnz 0)]
+                           [out-vals (make-vector nnz 0)])
+                          ;; Fill output vectors from sorted triplets
+                          (do ([k 0 (+ k 1)]
+                               [ts sorted (cdr ts)])
+                              ((= k nnz) (make-sparse-coo rows cols out-rows out-cols out-vals))
+                              (let ([t (car ts)])
+                                   (vector-set! out-rows k (car t))
+                                   (vector-set! out-cols k (cadr t))
+                                   (vector-set! out-vals k (caddr t))))))))
 
 ;;; ============================================================
 ;;; Sparse Matrix Transpose
@@ -639,6 +647,8 @@
 
 ;;; sparse-csr-mul : SparseCSR × SparseCSR → SparseCSR | Error
 ;;; C = A * B where A is m×k and B is k×n.
+;;; Uses sparse row accumulator (hash table) for each output row.
+;;; Complexity: O(nnz_a * avg_nnz_per_row_b) time, O(max_nnz_per_output_row) space.
 (define (sparse-csr-mul a b)
   (let ([ma (sparse-csr-rows a)] [ka (sparse-csr-cols a)]
         [kb (sparse-csr-rows b)] [nb (sparse-csr-cols b)])
@@ -650,52 +660,61 @@
                   [b-row-ptrs (sparse-csr-row-ptrs b)]
                   [b-col-idx (sparse-csr-col-indices b)]
                   [b-vals (sparse-csr-values b)]
-                  ;; Use dense accumulator for result
-                  [acc (make-vector (* ma nb) 0)])
-                 ;; For each row i in A
-                 (do ([i 0 (+ i 1)])
-                     ((= i ma))
-                     (let ([a-start (vector-ref a-row-ptrs i)]
-                           [a-end (vector-ref a-row-ptrs (+ i 1))])
-                          ;; For each non-zero A[i,k]
-                          (do ([ak a-start (+ ak 1)])
-                              ((= ak a-end))
-                              (let ([k (vector-ref a-col-idx ak)]
-                                    [a-ik (vector-ref a-vals ak)])
-                                   ;; For each non-zero B[k,j]
-                                   (let ([b-start (vector-ref b-row-ptrs k)]
-                                         [b-end (vector-ref b-row-ptrs (+ k 1))])
-                                        (do ([bk b-start (+ bk 1)])
-                                            ((= bk b-end))
-                                            (let* ([j (vector-ref b-col-idx bk)]
-                                                   [b-kj (vector-ref b-vals bk)]
-                                                   [idx (+ (* i nb) j)])
-                                                  (vector-set! acc idx
-                                                               (+ (vector-ref acc idx)
-                                                                  (* a-ik b-kj))))))))))
-                 ;; Extract non-zeros from accumulator
-                 (let* ([size (* ma nb)]
-                        [nnz (let loop ([k 0] [count 0])
-                                  (if (= k size)
-                                      count
-                                      (loop (+ k 1)
-                                            (if (not (= (vector-ref acc k) 0))
-                                                (+ count 1)
-                                                count))))]
-                        [row-idx (make-vector nnz 0)]
-                        [col-idx (make-vector nnz 0)]
-                        [vals (make-vector nnz 0)])
-                       (let loop ([k 0] [idx 0])
-                            (if (= k size)
-                                (coo->csr (make-sparse-coo ma nb row-idx col-idx vals))
-                                (let ([v (vector-ref acc k)])
-                                     (if (not (= v 0))
-                                         (begin
-                                          (vector-set! row-idx idx (quotient k nb))
-                                          (vector-set! col-idx idx (remainder k nb))
-                                          (vector-set! vals idx v)
-                                          (loop (+ k 1) (+ idx 1)))
-                                         (loop (+ k 1) idx))))))))))
+                  ;; Accumulate all rows, collecting triplets
+                  [all-triplets
+                   (let row-loop ([i 0] [triplets '()])
+                        (if (= i ma)
+                            triplets
+                            ;; Use sparse hash table accumulator for row i (keyed by column index)
+                            (let ([row-acc (make-eq-hashtable)]
+                                  [a-start (vector-ref a-row-ptrs i)]
+                                  [a-end (vector-ref a-row-ptrs (+ i 1))])
+                                 ;; For each non-zero A[i,k]
+                                 (do ([ak a-start (+ ak 1)])
+                                     ((= ak a-end))
+                                     (let ([k (vector-ref a-col-idx ak)]
+                                           [a-ik (vector-ref a-vals ak)])
+                                          ;; For each non-zero B[k,j]
+                                          (let ([b-start (vector-ref b-row-ptrs k)]
+                                                [b-end (vector-ref b-row-ptrs (+ k 1))])
+                                               (do ([bk b-start (+ bk 1)])
+                                                   ((= bk b-end))
+                                                   (let* ([j (vector-ref b-col-idx bk)]
+                                                          [b-kj (vector-ref b-vals bk)]
+                                                          [old (hashtable-ref row-acc j 0)])
+                                                         (hashtable-set! row-acc j (+ old (* a-ik b-kj))))))))
+                                 ;; Extract non-zeros from row accumulator
+                                 (let-values ([(cols vals) (hashtable-entries row-acc)])
+                                             (let* ([n (vector-length cols)]
+                                                    [row-triplets
+                                                     (let loop ([k 0] [result '()])
+                                                          (if (= k n)
+                                                              result
+                                                              (let ([v (vector-ref vals k)])
+                                                                   (if (= v 0)
+                                                                       (loop (+ k 1) result)
+                                                                       (loop (+ k 1)
+                                                                             (cons (list i (vector-ref cols k) v)
+                                                                                   result))))))])
+                                                   (row-loop (+ i 1) (append row-triplets triplets)))))))]
+                  ;; Sort triplets by (row, col)
+                  [sorted (list-sort (lambda (a b)
+                                             (or (< (car a) (car b))
+                                                 (and (= (car a) (car b))
+                                                      (< (cadr a) (cadr b)))))
+                                     all-triplets)]
+                  [nnz (length sorted)]
+                  [row-idx (make-vector nnz 0)]
+                  [col-idx (make-vector nnz 0)]
+                  [vals (make-vector nnz 0)])
+                 ;; Fill output vectors
+                 (do ([k 0 (+ k 1)]
+                      [ts sorted (cdr ts)])
+                     ((= k nnz) (coo->csr (make-sparse-coo ma nb row-idx col-idx vals)))
+                     (let ([t (car ts)])
+                          (vector-set! row-idx k (car t))
+                          (vector-set! col-idx k (cadr t))
+                          (vector-set! vals k (caddr t))))))))
 
 ;;; ============================================================
 ;;; Sparse Scalar Operations

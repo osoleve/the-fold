@@ -591,6 +591,107 @@
 
 ;;; string->gen : String -> GenState
 ;;; Parse generator state from string.
+;;; NOTE: Uses safe parsing to avoid code execution from malicious input.
+;;; Only accepts the exact format produced by gen->string.
 (define (string->gen str)
-  (gen-deserialize (read (open-input-string str))))
+  (gen-deserialize (safe-parse-gen-state str)))
+
+;;; safe-parse-gen-state : String -> S-expr
+;;; Safely parse a generator state string without using `read`.
+;;; Only accepts: (pcg N N), (splitmix N), (xorshift128 N N)
+;;; where N is a non-negative integer.
+(define (safe-parse-gen-state str)
+  (let* ([trimmed (string-trim str)]
+         [len (string-length trimmed)])
+        ;; Must start with ( and end with )
+        (unless (and (> len 2)
+                     (char=? (string-ref trimmed 0) #\()
+                     (char=? (string-ref trimmed (- len 1)) #\)))
+                (error 'safe-parse-gen-state "invalid format: expected parenthesized expression" str))
+        ;; Extract content between parens
+        (let* ([content (string-trim (substring trimmed 1 (- len 1)))]
+               [tokens (split-on-whitespace content)])
+              (when (null? tokens)
+                    (error 'safe-parse-gen-state "invalid format: empty expression" str))
+              (let ([tag (car tokens)]
+                    [args (cdr tokens)])
+                   (cond
+                    [(string=? tag "pcg")
+                     (unless (= (length args) 2)
+                             (error 'safe-parse-gen-state "pcg requires exactly 2 arguments" str))
+                     (list 'pcg
+                           (safe-parse-integer (car args) str)
+                           (safe-parse-integer (cadr args) str))]
+                    [(string=? tag "splitmix")
+                     (unless (= (length args) 1)
+                             (error 'safe-parse-gen-state "splitmix requires exactly 1 argument" str))
+                     (list 'splitmix
+                           (safe-parse-integer (car args) str))]
+                    [(string=? tag "xorshift128")
+                     (unless (= (length args) 2)
+                             (error 'safe-parse-gen-state "xorshift128 requires exactly 2 arguments" str))
+                     (list 'xorshift128
+                           (safe-parse-integer (car args) str)
+                           (safe-parse-integer (cadr args) str))]
+                    [else
+                     (error 'safe-parse-gen-state "unknown generator type" tag)])))))
+
+;;; safe-parse-integer : String x String -> Integer
+;;; Parse a string as a non-negative integer, rejecting anything else.
+(define (safe-parse-integer s original-input)
+  (let ([len (string-length s)])
+       (when (= len 0)
+             (error 'safe-parse-gen-state "invalid integer: empty string" original-input))
+       ;; Check all characters are digits
+       (let loop ([i 0])
+            (when (< i len)
+                  (let ([c (string-ref s i)])
+                       (unless (char<=? #\0 c #\9)
+                               (error 'safe-parse-gen-state "invalid integer: non-digit character" s))
+                       (loop (+ i 1)))))
+       ;; Convert to integer
+       (string->number s)))
+
+;;; split-on-whitespace : String -> (List String)
+;;; Split string on whitespace, returning list of non-empty tokens.
+(define (split-on-whitespace s)
+  (let loop ([i 0] [start #f] [tokens '()])
+       (if (>= i (string-length s))
+           (reverse (if start
+                        (cons (substring s start i) tokens)
+                        tokens))
+           (let ([c (string-ref s i)])
+                (if (or (char=? c #\space) (char=? c #\tab) (char=? c #\newline))
+                    (loop (+ i 1)
+                          #f
+                          (if start
+                              (cons (substring s start i) tokens)
+                              tokens))
+                    (loop (+ i 1)
+                          (or start i)
+                          tokens))))))
+
+;;; string-trim : String -> String
+;;; Remove leading and trailing whitespace.
+(define (string-trim s)
+  (let* ([len (string-length s)]
+         [start (let loop ([i 0])
+                     (if (and (< i len)
+                              (char-whitespace? (string-ref s i)))
+                         (loop (+ i 1))
+                         i))]
+         [end (let loop ([i len])
+                   (if (and (> i start)
+                            (char-whitespace? (string-ref s (- i 1))))
+                       (loop (- i 1))
+                       i))])
+        (substring s start end)))
+
+;;; char-whitespace? : Char -> Boolean
+;;; Check if character is whitespace.
+(define (char-whitespace? c)
+  (or (char=? c #\space)
+      (char=? c #\tab)
+      (char=? c #\newline)
+      (char=? c #\return)))
 
