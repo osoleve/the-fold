@@ -159,6 +159,9 @@
 (run-test-file "util" "test-help.ss")
 (run-test-file "util" "test-state.ss")
 
+;;; Layer 10: Simulation (sim/)
+(run-test-file "sim" "test-simulation-stream.ss")
+
 ;;; ============================================================
 ;;; Summary
 ;;; ============================================================
