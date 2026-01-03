@@ -80,12 +80,15 @@
 
 (test-group state-tests
             (define-test make-state-test
-              (let ([s (make-state "abc" (make-pos 1 1 0))])
-                   (assert-equal "abc" (state-input s))))
+              ;; make-state now takes (input, index, pos)
+              (let ([s (make-state "abc" 0 (make-pos 1 1 0))])
+                   (assert-equal "abc" (state-input s))
+                   (assert-equal 0 (state-index s))))
             
             (define-test initial-state-test
               (let ([s (initial-state "hello")])
                    (assert-equal "hello" (state-input s))
+                   (assert-equal 0 (state-index s))
                    (assert-equal 1 (pos-line (state-pos s)))
                    (assert-equal 1 (pos-col (state-pos s))))))
 
@@ -358,6 +361,51 @@
                      [result (parse-packrat mp "testing")])
                     (assert-true (right? result))
                     (assert-equal "test" (from-right result)))))
+
+;;; ============================================================
+;;; Performance Tests
+;;; ============================================================
+;;;
+;;; These tests verify that the O(N) optimization works correctly.
+;;; Before the fix, parsing used substring copying which was O(N) per
+;;; character consumed, leading to O(N^2) total time.
+;;; After the fix, we use index-based access which is O(1) per character.
+
+(test-group performance-tests
+            ;; Test parsing a large input with many
+            ;; With old O(N^2) approach, this would be very slow for 100k chars
+            ;; With new O(N) approach, this should complete quickly
+            (define-test large-input-many-test
+              (let* ([n 100000]
+                     [large-input (make-string n (integer->char 97))]  ; "aaa...a" (100k 'a's)
+                     [p (many (char (integer->char 97)))]  ; parser for many 'a's
+                     [result (parse p large-input)])
+                    (assert-true (right? result))
+                    (assert-equal n (length (from-right result)))))
+            
+            ;; Test parsing with repeated string matching
+            (define-test large-input-string-parser-test
+              (let* ([n 10000]
+                     ;; Create "abcabc...abc" (10k repetitions)
+                     [large-input (apply string-append
+                                         (map (lambda (_) "abc")
+                                              (iota n)))]
+                     [p (many (string-parser "abc"))]
+                     [result (parse p large-input)])
+                    (assert-true (right? result))
+                    (assert-equal n (length (from-right result)))))
+            
+            ;; Test that index-based access works correctly at various positions
+            (define-test index-consistency-test
+              (let* ([input "Hello, World! This is a test."]
+                     [p (many any-char)]
+                     [result (parse p input)])
+                    (assert-true (right? result))
+                    (assert-equal (string-length input)
+                                  (length (from-right result)))
+                    ;; Verify that all characters were correctly extracted
+                    (assert-equal input
+                                  (list->string (from-right result))))))
 
 ;;; ============================================================
 ;;; Summary

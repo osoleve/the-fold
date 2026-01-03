@@ -322,7 +322,61 @@
                                                           (eff-bind reader-ask
                                                                     (lambda (y)
                                                                             (eff-return (+ x y)))))))])
-                   (assert-equal 10 result))))
+                   (assert-equal 10 result)))
+            
+            (define-test reader-local-basic-test
+              ;; reader-local should modify the environment for the inner computation
+              (let ([result (run-reader 10
+                                        (reader-local (lambda (e) (+ e 5))
+                                                      reader-ask))])
+                   (assert-equal 15 result)))
+            
+            (define-test reader-local-restores-env-test
+              ;; After reader-local completes, the original environment should be restored
+              ;; This is the key test for the fix
+              (let ([result (run-reader 1
+                                        (eff-bind reader-ask
+                                                  (lambda (outer)
+                                                          (eff-bind (reader-local (lambda (e) (+ e 10))
+                                                                                  reader-ask)
+                                                                    (lambda (inner)
+                                                                            (eff-return (cons outer inner)))))))])
+                   ;; outer should be 1 (initial env)
+                   ;; inner should be 11 (modified env inside reader-local)
+                   (assert-equal '(1 . 11) result)))
+            
+            (define-test reader-local-after-continues-with-original-env-test
+              ;; Verify that subsequent operations after reader-local see the original env
+              (let ([result (run-reader 100
+                                        (eff-bind (reader-local (lambda (e) (* e 2))
+                                                                reader-ask)
+                                                  (lambda (inner)
+                                                          (eff-bind reader-ask
+                                                                    (lambda (after)
+                                                                            (eff-return (list inner after)))))))])
+                   ;; inner should be 200 (modified env)
+                   ;; after should be 100 (original env restored)
+                   (assert-equal '(200 100) result)))
+            
+            (define-test reader-local-nested-test
+              ;; Nested reader-local should stack and unstack correctly
+              (let ([result (run-reader 1
+                                        (eff-bind reader-ask
+                                                  (lambda (first)
+                                                          (eff-bind (reader-local add1
+                                                                                  (eff-bind reader-ask
+                                                                                            (lambda (second)
+                                                                                                    (eff-bind (reader-local add1
+                                                                                                                            reader-ask)
+                                                                                                              (lambda (third)
+                                                                                                                      (eff-return (list first second third)))))))
+                                                                    (lambda (nested-result)
+                                                                            (eff-bind reader-ask
+                                                                                      (lambda (after)
+                                                                                              (eff-return (cons nested-result after)))))))))])
+                   ;; first = 1 (initial), second = 2 (after first local), third = 3 (after second local)
+                   ;; after = 1 (back to original after all locals complete)
+                   (assert-equal '((1 2 3) . 1) result))))
 
 ;;; ============================================================
 ;;; Writer Effect Tests

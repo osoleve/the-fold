@@ -332,7 +332,35 @@
                     (assert-false (fsm-accepts? comp "a"))
                     (assert-true (fsm-accepts? comp ""))
                     (assert-true (fsm-accepts? comp "b"))
-                    (assert-true (fsm-accepts? comp "aa")))))
+                    (assert-true (fsm-accepts? comp "aa"))))
+            
+            (define-test fsm-complement-incomplete-dfa-test
+              ;; Test complement of an incomplete DFA
+              ;; DFA accepts only "a": state 0 -a-> state 1 (accept), no other transitions
+              ;; This is incomplete: missing transitions for 'b' from q0, and both symbols from q1
+              ;; Complement should accept everything EXCEPT "a"
+              (let* ([accepts-only-a (dfa '(q0 q1) (list char-a char-b)
+                                          (list (list 'q0 char-a 'q1))
+                                          'q0 '(q1))]
+                     [comp (fsm-complement accepts-only-a)])
+                    ;; "a" was accepted, should now be rejected
+                    (assert-false (fsm-accepts? comp "a"))
+                    ;; "" was rejected (q0 not accepting), should now be accepted
+                    (assert-true (fsm-accepts? comp ""))
+                    ;; "b" had no transition from q0 (implicit reject), should now be accepted
+                    (assert-true (fsm-accepts? comp "b"))
+                    ;; "aa" - after "a" we're at q1, then "a" has no transition (implicit reject)
+                    ;; After complement, this should be accepted
+                    (assert-true (fsm-accepts? comp "aa"))
+                    ;; "ab" - after "a" we're at q1, then "b" has no transition (implicit reject)
+                    ;; After complement, this should be accepted
+                    (assert-true (fsm-accepts? comp "ab"))
+                    ;; "ba" - "b" from q0 has no transition (implicit reject)
+                    ;; After complement, this should be accepted
+                    (assert-true (fsm-accepts? comp "ba"))
+                    ;; "bb" - "b" from q0 has no transition (implicit reject)
+                    ;; After complement, this should be accepted
+                    (assert-true (fsm-accepts? comp "bb")))))
 
 ;;; ============================================================
 ;;; Moore/Mealy Machine Tests

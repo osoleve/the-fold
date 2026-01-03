@@ -539,9 +539,11 @@
 
 ;;; reader-local : (r -> r) -> Eff Reader a -> Eff Reader a
 ;;; Modify environment for a sub-computation.
+;;; The inner computation runs with the modified environment,
+;;; then the original environment is restored for subsequent operations.
 (define (reader-local f eff)
-  (make-eff-op (make-effect 'reader-local f)
-               (lambda (_) eff)))
+  (make-eff-op (make-effect 'reader-local (cons f eff))
+               eff-return))
 
 ;;; reader-asks : (r -> a) -> Eff Reader a
 (define (reader-asks f)
@@ -562,8 +564,14 @@
                [(reader-ask)
                 (run-reader env (k env))]
                [(reader-local)
-                (let ([f (effect-payload effect)])
-                     (run-reader (f env) (k '())))]
+                (let* ([payload (effect-payload effect)]
+                       [f (car payload)]
+                       [scoped-eff (cdr payload)]
+                       ;; Run the scoped computation with the modified environment
+                       [scoped-result (run-reader (f env) scoped-eff)])
+                      ;; Resume the continuation with the scoped result,
+                      ;; but with the ORIGINAL environment restored
+                      (run-reader env (k scoped-result)))]
                [else
                 ;; Unknown effect, can't handle
                 (error 'run-reader "Unhandled effect" (effect-tag effect))]))]))
@@ -1086,8 +1094,15 @@
                [(reader-ask)
                 (run-reader-in-writer env (k env))]
                [(reader-local)
-                (let ([f (effect-payload effect)])
-                     (run-reader-in-writer (f env) (k '())))]
+                (let* ([payload (effect-payload effect)]
+                       [f (car payload)]
+                       [scoped-eff (cdr payload)])
+                      ;; Run the scoped computation with modified env
+                      ;; This returns an Eff (for writer) so we need to bind it
+                      (eff-bind (run-reader-in-writer (f env) scoped-eff)
+                                (lambda (scoped-result)
+                                        ;; Continue with original env restored
+                                        (run-reader-in-writer env (k scoped-result)))))]
                [else
                 ;; Pass through to outer handler
                 (make-eff-op effect

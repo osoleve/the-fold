@@ -36,8 +36,13 @@
 ;;; ============================================================
 
 ;;; Parser state contains:
-;;;   - input: remaining input string
-;;;   - pos: current position (line, column, offset)
+;;;   - input: the FULL input string (never copied/sliced)
+;;;   - index: current parse position in the string
+;;;   - pos: current position (line, column, offset) for error reporting
+;;;
+;;; OPTIMIZATION: Instead of using (substring s 1) to consume characters,
+;;; which copies the remainder of the string (O(N) per character = O(N²) total),
+;;; we track position with an index and use (string-ref s index) for O(1) access.
 
 ;;; make-pos : Nat × Nat × Nat → Pos
 (define (make-pos line col offset)
@@ -66,23 +71,47 @@
       (make-pos (+ (pos-line pos) 1) 1 (+ (pos-offset pos) 1))
       (make-pos (pos-line pos) (+ (pos-col pos) 1) (+ (pos-offset pos) 1))))
 
-;;; make-state : String × Pos → State
-(define (make-state input pos)
-  (list 'state input pos))
+;;; make-state : String × Nat × Pos → State
+;;; Create parser state with full input string, current index, and position.
+(define (make-state input index pos)
+  (list 'state input index pos))
 
 ;;; state? : Any → Boolean
 (define (state? s)
   (and (pair? s) (eq? (car s) 'state)))
 
 ;;; state-input : State → String
+;;; Returns the full input string (for internal use).
 (define (state-input s) (list-ref s 1))
 
+;;; state-index : State → Nat
+;;; Returns the current parse position index.
+(define (state-index s) (list-ref s 2))
+
 ;;; state-pos : State → Pos
-(define (state-pos s) (list-ref s 2))
+(define (state-pos s) (list-ref s 3))
+
+;;; state-remaining : State → String
+;;; Returns the remaining unparsed input (for compatibility/debugging).
+;;; Note: This creates a substring copy - use sparingly!
+(define (state-remaining s)
+  (let ([input (state-input s)]
+        [index (state-index s)])
+       (substring input index (string-length input))))
+
+;;; state-at-end? : State → Boolean
+;;; Check if we've reached the end of input.
+(define (state-at-end? s)
+  (>= (state-index s) (string-length (state-input s))))
+
+;;; state-current-char : State → Char
+;;; Get the current character (assumes not at end).
+(define (state-current-char s)
+  (string-ref (state-input s) (state-index s)))
 
 ;;; initial-state : String → State
 (define (initial-state input)
-  (make-state input initial-pos))
+  (make-state input 0 initial-pos))
 
 ;;; ============================================================
 ;;; Parse Error
@@ -197,52 +226,53 @@
 (define eof
   (make-parser
    (lambda (state)
-           (let ([input (state-input state)])
-                (if (string=? input "")
-                    (right (cons '() state))
-                    (left (make-parse-error
-                           (state-pos state)
-                           "expected end of input"
-                           '("end of input"))))))))
+           (if (state-at-end? state)
+               (right (cons '() state))
+               (left (make-parse-error
+                      (state-pos state)
+                      "expected end of input"
+                      '("end of input")))))))
 
 ;;; any-char : Parser Char
 ;;; Parser that consumes any single character.
+;;; O(1) per character - uses index-based access instead of substring copying.
 (define any-char
   (make-parser
    (lambda (state)
-           (let ([input (state-input state)])
-                (if (string=? input "")
-                    (left (make-parse-error
-                           (state-pos state)
-                           "unexpected end of input"
-                           '("any character")))
-                    (let* ([ch (string-ref input 0)]
-                           [rest (substring input 1 (string-length input))]
-                           [new-pos (advance-pos (state-pos state) ch)]
-                           [new-state (make-state rest new-pos)])
-                          (right (cons ch new-state))))))))
+           (if (state-at-end? state)
+               (left (make-parse-error
+                      (state-pos state)
+                      "unexpected end of input"
+                      '("any character")))
+               (let* ([ch (state-current-char state)]
+                      [new-pos (advance-pos (state-pos state) ch)]
+                      [new-state (make-state (state-input state)
+                                             (+ (state-index state) 1)
+                                             new-pos)])
+                     (right (cons ch new-state)))))))
 
 ;;; satisfy : (Char → Boolean) → String → Parser Char
 ;;; Parser that consumes char satisfying predicate.
+;;; O(1) per character - uses index-based access instead of substring copying.
 (define (satisfy pred description)
   (make-parser
    (lambda (state)
-           (let ([input (state-input state)])
-                (if (string=? input "")
-                    (left (make-parse-error
-                           (state-pos state)
-                           "unexpected end of input"
-                           (list description)))
-                    (let ([ch (string-ref input 0)])
-                         (if (pred ch)
-                             (let* ([rest (substring input 1 (string-length input))]
-                                    [new-pos (advance-pos (state-pos state) ch)]
-                                    [new-state (make-state rest new-pos)])
-                                   (right (cons ch new-state)))
-                             (left (make-parse-error
-                                    (state-pos state)
-                                    (string-append "unexpected '" (string ch) "'")
-                                    (list description))))))))))
+           (if (state-at-end? state)
+               (left (make-parse-error
+                      (state-pos state)
+                      "unexpected end of input"
+                      (list description)))
+               (let ([ch (state-current-char state)])
+                    (if (pred ch)
+                        (let* ([new-pos (advance-pos (state-pos state) ch)]
+                               [new-state (make-state (state-input state)
+                                                      (+ (state-index state) 1)
+                                                      new-pos)])
+                              (right (cons ch new-state)))
+                        (left (make-parse-error
+                               (state-pos state)
+                               (string-append "unexpected '" (string ch) "'")
+                               (list description)))))))))
 
 ;;; char : Char → Parser Char
 ;;; Parser that matches specific character.
@@ -312,35 +342,44 @@
 ;;; String Parsers
 ;;; ============================================================
 
+
 ;;; string : String → Parser String
 ;;; Match exact string.
+;;; O(len) where len is the target string length - no copying of input.
 (define (string-parser str)
   (if (string=? str "")
       (parser-pure "")
       (make-parser
        (lambda (state)
                (let* ([input (state-input state)]
-                      [len (string-length str)])
-                     (if (< (string-length input) len)
+                      [index (state-index state)]
+                      [len (string-length str)]
+                      [input-len (string-length input)]
+                      [remaining (- input-len index)])
+                     (if (< remaining len)
                          (left (make-parse-error
                                 (state-pos state)
                                 "unexpected end of input"
                                 (list (string-append "\"" str "\""))))
-                         (let ([prefix (substring input 0 len)])
-                              (if (string=? prefix str)
-                                  (let* ([rest (substring input len (string-length input))]
-                                         [new-pos (fold-left
-                                                   (lambda (p i)
-                                                           (advance-pos p (string-ref str i)))
+                         ;; Compare character by character without copying
+                         (let loop ([i 0])
+                              (if (= i len)
+                                  ;; All characters matched
+                                  (let* ([new-pos (fold-left
+                                                   (lambda (p j)
+                                                           (advance-pos p (string-ref str j)))
                                                    (state-pos state)
                                                    (iota len))]
-                                         [new-state (make-state rest new-pos)])
+                                         [new-state (make-state input (+ index len) new-pos)])
                                         (right (cons str new-state)))
-                                  (left (make-parse-error
-                                         (state-pos state)
-                                         (string-append "expected \"" str "\"")
-                                         (list (string-append "\"" str "\""))))))))))))
-
+                                  ;; Compare next character
+                                  (if (char=? (string-ref input (+ index i))
+                                              (string-ref str i))
+                                      (loop (+ i 1))
+                                      (left (make-parse-error
+                                             (state-pos state)
+                                             (string-append "expected \"" str "\"")
+                                             (list (string-append "\"" str "\"")))))))))))))
 ;;; ============================================================
 ;;; Monad Operations
 ;;; ============================================================
@@ -856,11 +895,12 @@
            (right (cons (state-pos state) state)))))
 
 ;;; get-input : Parser String
-;;; Get remaining input.
+;;; Get remaining input (from current position to end).
+;;; Note: This creates a substring copy - use sparingly in performance-critical code.
 (define get-input
   (make-parser
    (lambda (state)
-           (right (cons (state-input state) state)))))
+           (right (cons (state-remaining state) state)))))
 
 ;;; with-pos : Parser a → Parser (a × Pos)
 ;;; Attach starting position to result.
@@ -891,27 +931,28 @@
 (define (trace-parser label p)
   (make-parser
    (lambda (state)
-           (display "TRACE ")
-           (display label)
-           (display " at ")
-           (display (pos-line (state-pos state)))
-           (display ":")
-           (display (pos-col (state-pos state)))
-           (display " input='")
-           (display (if (> (string-length (state-input state)) 20)
-                        (string-append (substring (state-input state) 0 20) "...")
-                        (state-input state)))
-           (display "'")
-           (newline)
-           (let ([result (run-parser p state)])
+           (let ([remaining (state-remaining state)])
                 (display "TRACE ")
                 (display label)
-                (display " -> ")
-                (if (right? result)
-                    (display "SUCCESS")
-                    (display "FAILURE"))
+                (display " at ")
+                (display (pos-line (state-pos state)))
+                (display ":")
+                (display (pos-col (state-pos state)))
+                (display " input='")
+                (display (if (> (string-length remaining) 20)
+                             (string-append (substring remaining 0 20) "...")
+                             remaining))
+                (display "'")
                 (newline)
-                result))))
+                (let ([result (run-parser p state)])
+                     (display "TRACE ")
+                     (display label)
+                     (display " -> ")
+                     (if (right? result)
+                         (display "SUCCESS")
+                         (display "FAILURE"))
+                     (newline)
+                     result)))))
 
 ;;; ============================================================
 ;;; Packrat Parsing (Memoization)

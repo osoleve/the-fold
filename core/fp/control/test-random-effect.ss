@@ -231,6 +231,32 @@
                    (assert-true (and (>= score -100) (<= score 100))))))
 
 ;;; ============================================================
+;;; Performance Tests
+;;; ============================================================
+
+(test-group random-performance
+            ;; Test that large list shuffle completes in reasonable time
+            ;; With O(N) implementation, shuffling 10000 elements should be fast
+            ;; With O(N^2) implementation, this would take many seconds
+            (define-test large-shuffle-performance-test
+              (let* ([large-list (iota 10000)]  ; list of 0..9999
+                     [shuffled (run-random 42 (random-shuffle-eff large-list))])
+                    ;; Verify all elements are present
+                    (assert-equal 10000 (length shuffled))
+                    ;; Verify it's a permutation (sum should be same)
+                    (assert-equal (fold-left + 0 large-list)
+                                  (fold-left + 0 shuffled))
+                    ;; Verify shuffle actually changed order (statistically certain)
+                    (assert-false (equal? large-list shuffled)))))
+
+;;; Helper: iota - generate list 0 to n-1
+(define (iota n)
+  (let loop ([i (- n 1)] [acc '()])
+       (if (< i 0)
+           acc
+           (loop (- i 1) (cons i acc)))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 

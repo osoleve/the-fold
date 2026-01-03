@@ -629,9 +629,47 @@
                                       (append new-trans trans)
                                       (if is-accepting (cons cur-name accepting) accepting)))))))))
 
-;;; Complement of a DFA (requires complete DFA)
+;;; Make a DFA complete by adding explicit dead state with self-loops
+;;; for all missing transitions
+(define (fsm-complete dfa)
+  (let* ([states (fsm-states dfa)]
+         [alphabet (fsm-alphabet dfa)]
+         [transitions (fsm-transitions dfa)]
+         [dead-state '__dead__]
+         ;; Check if we need a dead state (any missing transitions)
+         [missing-trans
+          (fold-left
+           (lambda (acc state)
+                   (fold-left
+                    (lambda (acc2 sym)
+                            (let ([key (cons state sym)])
+                                 (if (assoc key transitions)
+                                     acc2
+                                     (cons (cons key (list dead-state)) acc2))))
+                    acc
+                    alphabet))
+           '()
+           states)]
+         ;; Add self-loops for dead state on all symbols
+         [dead-loops
+          (map (lambda (sym) (cons (cons dead-state sym) (list dead-state)))
+               alphabet)])
+        (if (null? missing-trans)
+            ;; DFA is already complete
+            dfa
+            ;; Add dead state and all missing transitions
+            (make-fsm (cons dead-state states)
+                      alphabet
+                      (append missing-trans dead-loops transitions)
+                      (fsm-start dfa)
+                      (fsm-accepting dfa)))))
+
+;;; Complement of a DFA
+;;; First completes the DFA (adds explicit dead state for missing transitions),
+;;; then flips accepting and non-accepting states.
 (define (fsm-complement dfa)
-  (let* ([m (if (fsm-deterministic? dfa) dfa (nfa->dfa dfa))]
+  (let* ([m0 (if (fsm-deterministic? dfa) dfa (nfa->dfa dfa))]
+         [m (fsm-complete m0)]
          [non-accepting (filter (lambda (s) (not (member s (fsm-accepting m))))
                                 (fsm-states m))])
         (make-fsm (fsm-states m) (fsm-alphabet m) (fsm-transitions m)
