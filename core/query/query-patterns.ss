@@ -234,6 +234,10 @@
 ;;; extract-numeric-value : Any -> Number | #f
 ;;; Extract a numeric value from various representations.
 ;;; Handles: numbers, bytevectors containing numeric S-expressions, strings.
+;;;
+;;; NOTE: Bytevectors are assumed to contain UTF-8 encoded text.
+;;; Non-UTF-8 data or unparseable content returns #f (comparison fails).
+;;; This is intentional - query constraints should fail safely on bad data.
 (define (extract-numeric-value val)
   (cond
    [(number? val) val]

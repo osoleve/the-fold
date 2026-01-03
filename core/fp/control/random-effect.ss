@@ -138,6 +138,11 @@
 ;;; random-shuffle-eff : List a -> Eff Random (List a)
 ;;; Fisher-Yates shuffle using Random effect.
 ;;; Pure functional implementation - safe with multi-shot continuations.
+;;;
+;;; PERFORMANCE NOTE: This implementation is O(n²) due to list traversal
+;;; in list-ref and list-set operations. For lists under ~500 elements,
+;;; this is negligible. For larger lists, consider chunking or using
+;;; a vector-based shuffle in Shell code where mutation is permitted.
 (define (random-shuffle-eff lst)
   (let ([n (length lst)])
        (if (<= n 1)

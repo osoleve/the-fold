@@ -39,8 +39,13 @@
        id))
 
 ;;; reset-traced-ids! : -> Void
-;;; Reset the ID counter (for testing). DEPRECATED: Use with-fresh-ad-scope instead.
+;;; DEPRECATED: Use with-fresh-ad-scope instead.
+;;;
+;;; WARNING: Calling this function between nested gradient computations
+;;; will corrupt the outer computation's tape. Only use for isolated tests.
+;;; For production code, always use (with-fresh-ad-scope (lambda () ...)).
 (define (reset-traced-ids!)
+  (display "WARNING: reset-traced-ids! is deprecated. Use with-fresh-ad-scope.\n")
   (*traced-id-counter* 0))
 
 ;;; with-fresh-ad-scope : (-> a) -> a
