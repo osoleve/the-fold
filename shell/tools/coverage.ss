@@ -33,8 +33,8 @@
 ;;; ============================================================
 
 (define *coverage-enabled* #f)
-(define *coverage-data* '())  ; List of (file line count) entries
-(define *coverage-functions* '())  ; List of (file function hit?) entries
+(define *coverage-data* (make-hashtable equal-hash equal?))  ; (file . line) -> hits
+(define *coverage-functions* (make-hashtable equal-hash equal?))  ; (file . name) -> function-coverage
 (define *coverage-threshold* 80)  ; Warn if coverage below this %
 
 ;;; Coverage record types
@@ -77,8 +77,8 @@
 ;;; Begin tracking code coverage.
 (define (coverage-start)
   (set! *coverage-enabled* #t)
-  (set! *coverage-data* '())
-  (set! *coverage-functions* '())
+  (set! *coverage-data* (make-hashtable equal-hash equal?))
+  (set! *coverage-functions* (make-hashtable equal-hash equal?))
   (display "Coverage tracking started\n"))
 
 ;;; coverage-stop : → CoverageReport
@@ -90,65 +90,46 @@
        report))
 
 ;;; record-line : Path × Nat → void
-;;; Record that a line was executed.
+;;; Record that a line was executed. O(1) via hashtable.
 (define (record-line file line)
   (when *coverage-enabled*
-        (let ([existing (find-coverage-entry file line)])
-             (if existing
-                 (increment-coverage! existing)
-                 (add-coverage-entry! file line)))))
+        (let* ([key (cons file line)]
+               [current (hashtable-ref *coverage-data* key 0)])
+              (hashtable-set! *coverage-data* key (+ current 1)))))
 
 ;;; record-function : Path × Symbol × Nat → void
-;;; Record that a function was executed.
+;;; Record that a function was executed. O(1) via hashtable.
 (define (record-function file name line)
   (when *coverage-enabled*
-        (let ([existing (find-function-coverage file name)])
-             (unless existing
-                     (add-function-coverage! file name line #t)))))
+        (let ([key (cons file name)])
+             (unless (hashtable-contains? *coverage-functions* key)
+                     (hashtable-set! *coverage-functions* key
+                                     (make-function-coverage file name line #t))))))
 
-;;; find-coverage-entry : Path × Nat → CoverageEntry | #f
-(define (find-coverage-entry file line)
-  (let loop ([entries *coverage-data*])
-       (cond
-        [(null? entries) #f]
-        [(and (string=? file (coverage-entry-file (car entries)))
-              (= line (coverage-entry-line (car entries))))
-         (car entries)]
-        [else (loop (cdr entries))])))
+;;; get-coverage-hits : Path × Nat → Nat
+;;; Get hit count for a file/line. O(1).
+(define (get-coverage-hits file line)
+  (hashtable-ref *coverage-data* (cons file line) 0))
 
-;;; increment-coverage! : CoverageEntry → void
-(define (increment-coverage! entry)
-  (set! *coverage-data*
-        (map (lambda (e)
-                     (if (eq? e entry)
-                         (make-coverage-entry
-                          (coverage-entry-file e)
-                          (coverage-entry-line e)
-                          (+ (coverage-entry-hits e) 1))
-                         e))
-             *coverage-data*)))
+;;; coverage-data->entries : → (List CoverageEntry)
+;;; Convert hashtable to list of entries for reporting.
+(define (coverage-data->entries)
+  (let ([entries '()])
+       (hashtable-walk *coverage-data*
+                       (lambda (key hits)
+                               (set! entries
+                                     (cons (make-coverage-entry (car key) (cdr key) hits)
+                                           entries))))
+       entries))
 
-;;; add-coverage-entry! : Path × Nat → void
-(define (add-coverage-entry! file line)
-  (set! *coverage-data*
-        (cons (make-coverage-entry file line 1)
-              *coverage-data*)))
-
-;;; find-function-coverage : Path × Symbol → FunctionCoverage | #f
-(define (find-function-coverage file name)
-  (let loop ([fns *coverage-functions*])
-       (cond
-        [(null? fns) #f]
-        [(and (string=? file (function-coverage-file (car fns)))
-              (eq? name (function-coverage-name (car fns))))
-         (car fns)]
-        [else (loop (cdr fns))])))
-
-;;; add-function-coverage! : Path × Symbol × Nat × Bool → void
-(define (add-function-coverage! file name line executed?)
-  (set! *coverage-functions*
-        (cons (make-function-coverage file name line executed?)
-              *coverage-functions*)))
+;;; function-coverage->list : → (List FunctionCoverage)
+;;; Convert hashtable to list for reporting.
+(define (function-coverage->list)
+  (let ([fns '()])
+       (hashtable-walk *coverage-functions*
+                       (lambda (key fn)
+                               (set! fns (cons fn fns))))
+       fns))
 
 ;;; ============================================================
 ;;; Test Integration
@@ -191,12 +172,14 @@
 
 ;;; generate-coverage-report : → CoverageReport
 (define (generate-coverage-report)
-  (let* ([files (collect-files-from-coverage)]
-         [file-reports (map generate-file-coverage files)]
+  (let* ([entries (coverage-data->entries)]
+         [files (collect-files-from-entries entries)]
+         [file-reports (map (lambda (f) (generate-file-coverage f entries)) files)]
          [total-lines (apply + (map file-coverage-total-lines file-reports))]
          [covered-lines (apply + (map file-coverage-covered-lines file-reports))]
-         [total-fns (length *coverage-functions*)]
-         [covered-fns (count-covered-functions)]
+         [fn-list (function-coverage->list)]
+         [total-fns (length fn-list)]
+         [covered-fns (count-covered-functions fn-list)]
          [percentage (if (= total-lines 0)
                          0
                          (quotient (* covered-lines 100) total-lines))])
@@ -209,16 +192,16 @@
          percentage
          (current-timestamp))))
 
-;;; collect-files-from-coverage : → (List Path)
-(define (collect-files-from-coverage)
+;;; collect-files-from-entries : (List CoverageEntry) → (List Path)
+(define (collect-files-from-entries entries)
   (remove-duplicates
-   (map coverage-entry-file *coverage-data*)))
+   (map coverage-entry-file entries)))
 
-;;; generate-file-coverage : Path → FileCoverage
-(define (generate-file-coverage file)
+;;; generate-file-coverage : Path × (List CoverageEntry) → FileCoverage
+(define (generate-file-coverage file entries)
   (let* ([file-entries (filter (lambda (e)
                                        (string=? file (coverage-entry-file e)))
-                               *coverage-data*)]
+                               entries)]
          [covered (length file-entries)]
          [total (count-executable-lines file)]
          [uncovered (find-uncovered-lines file file-entries)]
@@ -252,9 +235,9 @@
   ;; In real implementation, would diff against all executable lines
   '())
 
-;;; count-covered-functions : → Nat
-(define (count-covered-functions)
-  (length (filter function-coverage-executed? *coverage-functions*)))
+;;; count-covered-functions : (List FunctionCoverage) → Nat
+(define (count-covered-functions fn-list)
+  (length (filter function-coverage-executed? fn-list)))
 
 ;;; remove-duplicates : (List α) → (List α)
 (define (remove-duplicates lst)

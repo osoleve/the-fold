@@ -231,6 +231,24 @@
 ;;; Constraint Evaluation
 ;;; ============================================================
 
+;;; extract-numeric-value : Any -> Number | #f
+;;; Extract a numeric value from various representations.
+;;; Handles: numbers, bytevectors containing numeric S-expressions, strings.
+(define (extract-numeric-value val)
+  (cond
+   [(number? val) val]
+   [(bytevector? val)
+    ;; Try to parse as S-expression containing a number
+    (guard (e [else #f])
+           (let ([parsed (read (open-string-input-port (utf8->string val)))])
+                (if (number? parsed) parsed #f)))]
+   [(string? val)
+    ;; Try to parse string as number
+    (guard (e [else #f])
+           (let ([parsed (string->number val)])
+                (if parsed parsed #f)))]
+   [else #f]))
+
 ;;; eval-constraint : Constraint Env -> Boolean
 ;;; Evaluate a constraint against an environment.
 ;;;
@@ -257,20 +275,25 @@
                     ;; Apply operator
                     (case op
                           [(< <= > >= =)
-                           ;; Numeric comparison - extract from bytevector if needed
-                           (let ([n1 (if (bytevector? val1)
-                                         (bytevector-length val1)  ; placeholder
-                                         val1)]
-                                 [n2 (if (bytevector? val2)
-                                         (bytevector-length val2)
-                                         val2)])
-                                ((eval op) n1 n2))]
+                           ;; Numeric comparison - properly extract numeric values
+                           (let ([n1 (extract-numeric-value val1)]
+                                 [n2 (extract-numeric-value val2)])
+                                (if (and n1 n2)
+                                    ((case op
+                                           [(<) <]
+                                           [(<=) <=]
+                                           [(>) >]
+                                           [(>=) >=]
+                                           [(=) =]) n1 n2)
+                                    #f))]  ; Comparison fails if can't extract numbers
                           
                           [(string=? string-contains?)
                            ;; String comparison
                            (let ([s1 (if (bytevector? val1) (utf8->string val1) val1)]
                                  [s2 (if (bytevector? val2) (utf8->string val2) val2)])
-                                ((eval op) s1 s2))]
+                                (if (eq? op 'string=?)
+                                    (string=? s1 s2)
+                                    (query-string-contains? s1 s2)))]
                           
                           [else #t]))))))
 

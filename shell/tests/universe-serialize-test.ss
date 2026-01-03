@@ -66,11 +66,13 @@
   (clean-test-dir!)
   (mkdir test-dir)
   
-  ;; Create subdirectories
+  ;; Create subdirectories (including nested ones)
   (mkdir (string-append test-dir "/forum"))
   (mkdir (string-append test-dir "/forum/poetry"))
   (mkdir (string-append test-dir "/scripture"))
   (mkdir (string-append test-dir "/playpen"))
+  (mkdir (string-append test-dir "/docs"))
+  (mkdir (string-append test-dir "/docs/decisions"))
   
   ;; Create test .sexp files
   (call-with-output-file (string-append test-dir "/forum/poetry/test1.sexp")

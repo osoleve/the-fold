@@ -271,23 +271,33 @@
 ;;; Conditional Extension
 ;;; ============================================================
 
+;;; IMPORTANT: For correct conditional semantics, use cond-if-lazy with
+;;; eval-cond-dict. The thunked version prevents eager evaluation of
+;;; both branches.
+
 (define (make-cond-dict if-op)
   (make-dict 'cond `((if . ,if-op))))
 
-(define (cond-if d c t e) ((dict-ref d 'if) c t e))
+;;; cond-if-lazy : Dict -> Bool -> (() -> a) -> (() -> a) -> a
+;;; Correct conditional that takes thunks to prevent eager evaluation.
+(define (cond-if-lazy d c t-thunk e-thunk)
+  ((dict-ref d 'if) c t-thunk e-thunk))
 
-;;; Note: For conditionals, we need lazy evaluation.
-;;; The interpreter must handle this.
+;;; cond-if : Dict -> Bool -> a -> a -> a
+;;; DEPRECATED: Both branches are eagerly evaluated before the condition
+;;; is checked. Use cond-if-lazy instead for correct short-circuit behavior.
+(define (cond-if d c t e) ((dict-ref d 'if) c (lambda () t) (lambda () e)))
 
+;;; Evaluator uses thunks for short-circuit semantics
 (define eval-cond-dict
   (make-cond-dict
-   (lambda (c t e) (if c t e))))
+   (lambda (c t-thunk e-thunk) (if c (t-thunk) (e-thunk)))))
 
-;;; For pretty-printing, both branches are shown
+;;; For pretty-printing, both branches are shown (intentional)
 (define pretty-cond-dict
   (make-cond-dict
-   (lambda (c t e)
-           (string-append "(if " c " then " t " else " e ")"))))
+   (lambda (c t-thunk e-thunk)
+           (string-append "(if " c " then " (t-thunk) " else " (e-thunk) ")"))))
 
 ;;; ============================================================
 ;;; Lazy/Thunked Conditionals
@@ -716,9 +726,10 @@
            (if (and (eq? (typed-type x) 'int) (eq? (typed-type y) 'int))
                (typed-bool (= (typed-value x) (typed-value y)))
                (error 'eq "Type error: expected int")))
-   (lambda (c t e)
+   ;; Note: if takes thunks to prevent eager evaluation of branches
+   (lambda (c t-thunk e-thunk)
            (if (eq? (typed-type c) 'bool)
-               (if (typed-value c) t e)
+               (if (typed-value c) (t-thunk) (e-thunk))
                (error 'if "Type error: expected bool")))))
 
 ;;; ============================================================

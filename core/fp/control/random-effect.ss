@@ -137,27 +137,37 @@
 
 ;;; random-shuffle-eff : List a -> Eff Random (List a)
 ;;; Fisher-Yates shuffle using Random effect.
-;;; NOTE: Uses vector mutation internally for efficiency. Safe with single-shot
-;;; handlers like run-random, but NOT safe with multi-shot continuations
-;;; (e.g., NonDet/backtracking). For backtracking contexts, use a purely
-;;; functional shuffle instead.
+;;; Pure functional implementation - safe with multi-shot continuations.
 (define (random-shuffle-eff lst)
   (let ([n (length lst)])
        (if (<= n 1)
            (eff-return lst)
-           (let ([vec (list->vector lst)])
-                (letrec ([shuffle-step
-                          (lambda (i)
-                                  (if (>= i (- n 1))
-                                      (eff-return (vector->list vec))
-                                      (eff-bind (random-int-eff i (- n 1))
-                                                (lambda (j)
-                                                        ;; Swap vec[i] and vec[j]
-                                                        (let ([tmp (vector-ref vec i)])
-                                                             (vector-set! vec i (vector-ref vec j))
-                                                             (vector-set! vec j tmp)
-                                                             (shuffle-step (+ i 1)))))))])
-                        (shuffle-step 0))))))
+           ;; Purely functional Fisher-Yates using association list swaps
+           (letrec ([shuffle-step
+                     (lambda (i current-list)
+                             (if (>= i (- n 1))
+                                 (eff-return current-list)
+                                 (eff-bind (random-int-eff i (- n 1))
+                                           (lambda (j)
+                                                   (shuffle-step (+ i 1)
+                                                                 (list-swap current-list i j))))))])
+                   (shuffle-step 0 lst)))))
+
+;;; list-swap : List a -> Nat -> Nat -> List a
+;;; Swap elements at indices i and j in a list (pure).
+(define (list-swap lst i j)
+  (if (= i j)
+      lst
+      (let ([elem-i (list-ref lst i)]
+            [elem-j (list-ref lst j)])
+           (list-set (list-set lst i elem-j) j elem-i))))
+
+;;; list-set : List a -> Nat -> a -> List a
+;;; Return a new list with element at index replaced (pure).
+(define (list-set lst idx val)
+  (if (= idx 0)
+      (cons val (cdr lst))
+      (cons (car lst) (list-set (cdr lst) (- idx 1) val))))
 
 ;;; ============================================================
 ;;; Random Effect Handler

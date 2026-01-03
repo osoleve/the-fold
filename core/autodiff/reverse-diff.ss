@@ -28,19 +28,27 @@
 ;;;   - tape: the computation tape (shared across the computation)
 
 ;;; Traced value counter (for unique IDs)
-(define *traced-id-counter* 0)
+;;; Uses a parameter to support nested AD (each nesting level gets its own counter)
+(define *traced-id-counter* (make-parameter 0))
 
 ;;; fresh-id : -> Nat
-;;; Generate a unique ID.
+;;; Generate a unique ID within the current AD scope.
 (define (fresh-id)
-  (let ([id *traced-id-counter*])
-       (set! *traced-id-counter* (+ id 1))
+  (let ([id (*traced-id-counter*)])
+       (*traced-id-counter* (+ id 1))
        id))
 
 ;;; reset-traced-ids! : -> Void
-;;; Reset the ID counter (for testing).
+;;; Reset the ID counter (for testing). DEPRECATED: Use with-fresh-ad-scope instead.
 (define (reset-traced-ids!)
-  (set! *traced-id-counter* 0))
+  (*traced-id-counter* 0))
+
+;;; with-fresh-ad-scope : (-> a) -> a
+;;; Execute a computation in a fresh AD scope with its own ID counter.
+;;; This enables nested gradient computations without corrupting outer scopes.
+(define (with-fresh-ad-scope thunk)
+  (parameterize ([*traced-id-counter* 0])
+                (thunk)))
 
 ;;; traced : Number x Nat x Tape -> Traced
 ;;; Create a traced value.
@@ -386,24 +394,26 @@
 ;;; gradient : ((Traced ...) -> Traced) x (List Number) -> (List Number)
 ;;; Compute gradient of f at point args.
 ;;; f takes individual traced arguments, uses traced operations, returns traced.
+;;; Supports nested gradient computations - each call creates its own AD scope.
 (define (gradient f args)
-  (reset-traced-ids!)
-  (let* ([tape (make-reverse-tape)]
-         [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
-         [result (apply f traced-args)])
-        (if (traced? result)
-            (let* ([result-id (traced-id result)]
-                   [arg-ids (map traced-id traced-args)]
-                   [grads (backward tape result-id 1)])
-                  ;; For each input, check if it's the same as output (identity)
-                  ;; or get gradient from backward pass
-                  (map (lambda (arg-id)
-                               (if (= arg-id result-id)
-                                   1  ; Identity function: gradient is 1
-                                   (hashtable-ref grads arg-id 0)))
-                       arg-ids))
-            ;; Constant function - all gradients are 0
-            (map (lambda (_) 0) args))))
+  (with-fresh-ad-scope
+   (lambda ()
+           (let* ([tape (make-reverse-tape)]
+                  [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
+                  [result (apply f traced-args)])
+                 (if (traced? result)
+                     (let* ([result-id (traced-id result)]
+                            [arg-ids (map traced-id traced-args)]
+                            [grads (backward tape result-id 1)])
+                           ;; For each input, check if it's the same as output (identity)
+                           ;; or get gradient from backward pass
+                           (map (lambda (arg-id)
+                                        (if (= arg-id result-id)
+                                            1  ; Identity function: gradient is 1
+                                            (hashtable-ref grads arg-id 0)))
+                                arg-ids))
+                     ;; Constant function - all gradients are 0
+                     (map (lambda (_) 0) args))))))
 
 ;;; gradient-at : (Number x ... -> Number) x Number x ... -> (List Number)
 ;;; Variadic version of gradient.
@@ -412,21 +422,23 @@
 
 ;;; value-and-gradient : ((Traced ...) -> Traced) x (List Number) -> (Values Number (List Number))
 ;;; Compute both value and gradient in one pass.
+;;; Supports nested gradient computations.
 (define (value-and-gradient f args)
-  (reset-traced-ids!)
-  (let* ([tape (make-reverse-tape)]
-         [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
-         [result (apply f traced-args)])
-        (if (traced? result)
-            (let* ([val (traced-value result)]
-                   [grads (backward tape (traced-id result) 1)]
-                   [arg-ids (map traced-id traced-args)])
-                  (values val
-                          (map (lambda (id) (hashtable-ref grads id 0))
-                               arg-ids)))
-            ;; Constant function
-            (values result
-                    (map (lambda (_) 0) args)))))
+  (with-fresh-ad-scope
+   (lambda ()
+           (let* ([tape (make-reverse-tape)]
+                  [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
+                  [result (apply f traced-args)])
+                 (if (traced? result)
+                     (let* ([val (traced-value result)]
+                            [grads (backward tape (traced-id result) 1)]
+                            [arg-ids (map traced-id traced-args)])
+                           (values val
+                                   (map (lambda (id) (hashtable-ref grads id 0))
+                                        arg-ids)))
+                     ;; Constant function
+                     (values result
+                             (map (lambda (_) 0) args)))))))
 
 ;;; ============================================================
 ;;; Convenience: Single-Variable Differentiation
