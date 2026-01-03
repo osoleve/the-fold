@@ -27,6 +27,14 @@
 ;;; Finding Posts by Tag
 ;;; ============================================================
 
+;;; safe-get-body : Alist -> String
+;;; Safely extract body field from post, returning empty string if missing.
+(define (safe-get-body post)
+  (let ([body-pair (assq 'body post)])
+       (if body-pair
+           (cdr body-pair)
+           "")))
+
 ;;; find-tagged : FS x Symbol x (U String #t) -> (Listof Alist)
 ;;; Find all forum posts that have a specific tag.
 ;;; If value is #t, matches any value for that key.
@@ -38,7 +46,7 @@
   (let ([all-posts (collect-all-posts fs)])
        (filter
         (lambda (post)
-                (let* ([body (cdr (assq 'body post))]
+                (let* ([body (safe-get-body post)]
                        [tags (extract-tags body)])
                       (and (has-tag? tags key)
                            (or (eq? value #t)
@@ -68,7 +76,7 @@
   (let* ([all-posts (collect-all-posts fs)]
          [all-tags (apply append
                           (map (lambda (post)
-                                       (let ([body (cdr (assq 'body post))])
+                                       (let ([body (safe-get-body post)])
                                             (extract-tags body)))
                                all-posts))]
          [keys (map car all-tags)])
@@ -91,7 +99,7 @@
   (let* ([all-posts (collect-all-posts fs)]
          [all-tags (apply append
                           (map (lambda (post)
-                                       (let ([body (cdr (assq 'body post))])
+                                       (let ([body (safe-get-body post)])
                                             (extract-tags body)))
                                all-posts))]
          [keys (map car all-tags)]
@@ -133,7 +141,7 @@
   (let* ([all-posts (collect-all-posts fs)]
          [all-tags (apply append
                           (map (lambda (post)
-                                       (let ([body (cdr (assq 'body post))])
+                                       (let ([body (safe-get-body post)])
                                             (extract-tags body)))
                                all-posts))]
          [matching (filter (lambda (t) (eq? (car t) key)) all-tags)]
@@ -147,7 +155,7 @@
   (let* ([all-posts (collect-all-posts fs)]
          [all-tags (apply append
                           (map (lambda (post)
-                                       (let ([body (cdr (assq 'body post))])
+                                       (let ([body (safe-get-body post)])
                                             (extract-tags body)))
                                all-posts))]
          [matching (filter (lambda (t) (eq? (car t) key)) all-tags)]
