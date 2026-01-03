@@ -693,3 +693,74 @@
    (reverse (comp-graph-nodes g)))
   (when (comp-graph-output g)
         (printf "  Output: [~a]~n" (comp-graph-output g))))
+
+;;; ============================================================
+;;; Graphviz Export
+;;; ============================================================
+
+;;; graph-to-dot : CompGraph -> String
+;;; Generate DOT format representation for Graphviz visualization.
+;;; The output can be rendered with: dot -Tsvg graph.dot -o graph.svg
+(define (graph-to-dot g)
+  (let ([lines '()])
+       ;; Helper to accumulate lines
+       (define (emit line)
+         (set! lines (cons line lines)))
+       
+       ;; Header
+       (emit "digraph CompGraph {")
+       (emit "  rankdir=BT;")  ; Bottom to top (inputs at bottom)
+       (emit "  node [fontname=\"monospace\"];")
+       (emit "")
+       
+       ;; Node definitions with styling
+       (for-each
+        (lambda (entry)
+                (let ([id (car entry)]
+                      [node (cdr entry)])
+                     (cond
+                      [(node-var? node)
+                       (emit (format "  n~a [label=\"~a\" shape=ellipse style=filled fillcolor=lightblue];"
+                                     id (node-var-name node)))]
+                      [(node-const? node)
+                       (emit (format "  n~a [label=\"~a\" shape=box style=filled fillcolor=lightgray];"
+                                     id (node-const-value node)))]
+                      [(node-op? node)
+                       (emit (format "  n~a [label=\"~a\" shape=diamond style=filled fillcolor=lightyellow];"
+                                     id (node-op-name node)))])))
+        (comp-graph-nodes g))
+       
+       (emit "")
+       
+       ;; Edge definitions (from inputs to operations)
+       (for-each
+        (lambda (entry)
+                (let ([id (car entry)]
+                      [node (cdr entry)])
+                     (when (node-op? node)
+                           (for-each
+                            (lambda (input-id)
+                                    (emit (format "  n~a -> n~a;" input-id id)))
+                            (node-op-inputs node)))))
+        (comp-graph-nodes g))
+       
+       ;; Mark output node
+       (when (comp-graph-output g)
+             (emit "")
+             (emit (format "  n~a [penwidth=3 color=red];" (comp-graph-output g))))
+       
+       (emit "}")
+       
+       ;; Join lines in reverse order
+       (apply string-append
+              (map (lambda (l) (string-append l "\n"))
+                   (reverse lines)))))
+
+;;; graph-export-dot : CompGraph x String -> Void
+;;; Export graph to a DOT file for Graphviz.
+(define (graph-export-dot g filename)
+  (let ([dot-content (graph-to-dot g)])
+       (call-with-output-file filename
+                              (lambda (port)
+                                      (display dot-content port))
+                              'replace)))
