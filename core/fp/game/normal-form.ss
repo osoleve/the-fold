@@ -124,22 +124,26 @@
 ;;; Find Player 1's best responses to Player 2 playing strategy j.
 ;;; Returns list of strategy indices that maximize P1's payoff.
 (define (best-response-p1 game j)
-  (let* ([n (game-num-strategies game 0)]
-         [payoffs (map (lambda (i) (game-payoff-p1 game i j))
-                       (iota n))]
-         [max-payoff (apply max payoffs)])
-        (filter (lambda (i) (= (list-ref payoffs i) max-payoff))
-                (iota n))))
+  (let ([n (game-num-strategies game 0)])
+       (if (= n 0)
+           '()  ; No strategies available
+           (let* ([payoffs (map (lambda (i) (game-payoff-p1 game i j))
+                                (iota n))]
+                  [max-payoff (apply max payoffs)])
+                 (filter (lambda (i) (= (list-ref payoffs i) max-payoff))
+                         (iota n))))))
 
 ;;; best-response-p2 : Game × Nat → (List Nat)
 ;;; Find Player 2's best responses to Player 1 playing strategy i.
 (define (best-response-p2 game i)
-  (let* ([n (game-num-strategies game 1)]
-         [payoffs (map (lambda (j) (game-payoff-p2 game i j))
-                       (iota n))]
-         [max-payoff (apply max payoffs)])
-        (filter (lambda (j) (= (list-ref payoffs j) max-payoff))
-                (iota n))))
+  (let ([n (game-num-strategies game 1)])
+       (if (= n 0)
+           '()  ; No strategies available
+           (let* ([payoffs (map (lambda (j) (game-payoff-p2 game i j))
+                                (iota n))]
+                  [max-payoff (apply max payoffs)])
+                 (filter (lambda (j) (= (list-ref payoffs j) max-payoff))
+                         (iota n))))))
 
 ;;; ============================================================
 ;;; Dominated Strategies
@@ -369,7 +373,9 @@
   (if (or (not (= 2 (game-num-strategies game 0)))
           (not (= 2 (game-num-strategies game 1))))
       '()  ; Not a 2x2 game
-      (let* (;; Get payoffs
+      (let* (;; Epsilon for float comparison
+             [epsilon 1e-10]
+             ;; Get payoffs
              [a (game-payoff-p1 game 0 0)]
              [b (game-payoff-p1 game 0 1)]
              [c (game-payoff-p1 game 1 0)]
@@ -389,18 +395,20 @@
              ;; a*q + b*(1-q) = c*q + d*(1-q)
              ;; (a-b-c+d)*q = d-b
              [denom1 (- (+ a d) (+ b c))]
-             [q (if (= denom1 0) #f (/ (- d b) denom1))]
+             [q (if (< (abs denom1) epsilon) #f (/ (- d b) denom1))]
              ;; P1's p makes P2 indifferent
              ;; e*p + g*(1-p) = f*p + h*(1-p)
              ;; (e-f-g+h)*p = h-g
              [denom2 (- (+ e h) (+ f g))]
-             [p (if (= denom2 0) #f (/ (- h g) denom2))]
+             [p (if (< (abs denom2) epsilon) #f (/ (- h g) denom2))]
              ;; Check if mixed equilibrium is valid
              [mixed-valid? (and q p
                                 (>= q 0) (<= q 1)
                                 (>= p 0) (<= p 1)
-                                ;; Not a pure equilibrium
-                                (not (or (= p 0) (= p 1) (= q 0) (= q 1))))]
+                                ;; Allow pure equilibria (p=0/1 or q=0/1)
+                                ;; But don't duplicate pure Nash we already found
+                                (not (and (or (< (abs p) epsilon) (< (abs (- p 1)) epsilon))
+                                          (or (< (abs q) epsilon) (< (abs (- q 1)) epsilon)))))]
              [mixed-result
               (if mixed-valid?
                   (list (cons (make-mixed-strategy (list p (- 1 p)))

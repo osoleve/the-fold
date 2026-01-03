@@ -181,8 +181,11 @@
 ;;; qty-pow : Quantity × Int → Quantity
 ;;; Raise quantity to integer power.
 (define (qty-pow q n)
-  (make-qty (expt (qty-value q) n)
-            (dim-pow (qty-dim q) n)))
+  (let ([v (qty-value q)])
+       (if (and (= v 0) (< n 0))
+           (error 'qty-pow "division by zero: 0^(negative exponent)")
+           (make-qty (expt v n)
+                     (dim-pow (qty-dim q) n)))))
 
 ;;; qty-sqrt : Quantity → Quantity | #f
 ;;; Square root (dimension exponents must be even).
