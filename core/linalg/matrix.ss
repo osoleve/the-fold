@@ -57,22 +57,34 @@
 (define (make-matrix rows cols init)
   (list 'matrix rows cols (make-vector (* rows cols) init)))
 
-;;; matrix-from-lists : (List (List a)) → Matrix a
+;;; matrix-from-lists : (List (List a)) → Matrix a | Error
 ;;; Create matrix from list of row lists.
+;;; All rows must have the same length (rectangular input).
 (define (matrix-from-lists rows)
   (if (null? rows)
       (list 'matrix 0 0 (vector))
       (let* ([m (length rows)]
-             [n (length (car rows))]
-             [data (make-vector (* m n) 0)])
-            (do ([i 0 (+ i 1)]
-                 [rs rows (cdr rs)])
-                ((= i m))
-                (do ([j 0 (+ j 1)]
-                     [cs (car rs) (cdr cs)])
-                    ((= j n))
-                    (vector-set! data (+ (* i n) j) (car cs))))
-            (list 'matrix m n data))))
+             [n (length (car rows))])
+            ;; Validate that all rows have the same length
+            (let check-rows ([rs rows] [i 0])
+                 (cond
+                  [(null? rs)
+                   ;; All rows valid, construct matrix
+                   (let ([data (make-vector (* m n) 0)])
+                        (do ([i 0 (+ i 1)]
+                             [rs rows (cdr rs)])
+                            ((= i m))
+                            (do ([j 0 (+ j 1)]
+                                 [cs (car rs) (cdr cs)])
+                                ((= j n))
+                                (vector-set! data (+ (* i n) j) (car cs))))
+                        (list 'matrix m n data))]
+                  [(not (= (length (car rs)) n))
+                   ;; Row has wrong length - return error
+                   `(error ragged-input row ,i expected-length ,n actual-length ,(length (car rs)))]
+                  [else
+                   ;; Check next row
+                   (check-rows (cdr rs) (+ i 1))])))))
 
 ;;; matrix-from-vec : Nat × Nat × Vec a → Matrix a
 ;;; Create matrix from flat vector (row-major order).

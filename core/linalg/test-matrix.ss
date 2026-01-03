@@ -84,6 +84,23 @@
   (test-false "matrix? on list"
               (matrix? '((1 2) (3 4))))
   
+  (test-error "matrix-from-lists ragged - row too short"
+              (matrix-from-lists '((1 2 3) (4 5))))
+  
+  (test-error "matrix-from-lists ragged - row too long"
+              (matrix-from-lists '((1 2) (3 4 5))))
+  
+  (test-error "matrix-from-lists ragged - multiple inconsistent rows"
+              (matrix-from-lists '((1 2 3) (4 5) (6 7 8 9))))
+  
+  (test "matrix-from-lists single row"
+        '((1 2 3))
+        (matrix->lists (matrix-from-lists '((1 2 3)))))
+  
+  (test "matrix-from-lists single column"
+        '((1) (2) (3))
+        (matrix->lists (matrix-from-lists '((1) (2) (3)))))
+  
   ;; Accessors
   (display "
 --- Matrix Accessors ---
