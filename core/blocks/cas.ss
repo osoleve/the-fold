@@ -86,6 +86,18 @@
 
 ;;; The store is a hashtable: hash-bytes → Block
 ;;; We use bytevector hashes as keys via equal-hash.
+;;;
+;;; THREAD SAFETY NOTE:
+;;; This implementation is NOT thread-safe. Concurrent access to the
+;;; hashtables (*store* and *pinned*) from multiple threads can lead to
+;;; race conditions and data corruption. If multi-threaded access is
+;;; required, external synchronization (e.g., mutexes) must be used to
+;;; serialize all store operations (store!, fetch, pin!, unpin!, gc!).
+;;;
+;;; For production use, consider:
+;;; - Wrapping store operations in a mutex
+;;; - Using a thread-safe concurrent data structure
+;;; - Ensuring all access goes through a single-threaded coordinator
 (define *store* (make-hashtable equal-hash equal?))
 
 ;;; Pinned hashes are preserved during garbage collection.
@@ -130,7 +142,7 @@
 
 ;;; collect-refs : Bytevector × (Bytevector → Block) → (List Bytevector)
 ;;; Collect all transitive references from a block.
-;;; Uses BFS to avoid stack overflow on deep trees.
+;;; Uses iterative traversal. Prepends new refs to avoid O(N²) append.
 (define (collect-refs hash fetch)
   (let ([visited (make-hashtable equal-hash equal?)]
         [queue (list hash)]
@@ -138,19 +150,26 @@
        (let loop ()
             (if (null? queue)
                 results
-                (let ([current (car queue)])
-                     (set! queue (cdr queue))
-                     (unless (hashtable-ref visited current #f)
-                             (hashtable-set! visited current #t)
-                             (set! results (cons current results))
-                             (let ([blk (fetch current)])
-                                  (when blk
-                                        (vector-for-each
-                                         (lambda (ref)
-                                                 (unless (hashtable-ref visited ref #f)
-                                                         (set! queue (append queue (list ref)))))
-                                         (block-refs blk)))))
-                     (loop))))))
+                (let ([current (car queue)]
+                      [rest-queue (cdr queue)])
+                     (if (hashtable-ref visited current #f)
+                         ;; Already visited, skip
+                         (begin
+                          (set! queue rest-queue)
+                          (loop))
+                         ;; New node: mark visited, add to results
+                         (begin
+                          (hashtable-set! visited current #t)
+                          (set! results (cons current results))
+                          (let ([blk (fetch current)])
+                               (if blk
+                                   ;; Prepend new refs to queue
+                                   (let ([new-refs (filter
+                                                    (lambda (r) (not (hashtable-ref visited r #f)))
+                                                    (vector->list (block-refs blk)))])
+                                        (set! queue (append new-refs rest-queue)))
+                                   (set! queue rest-queue)))
+                          (loop))))))))
 
 ;;; pin-tree! : Bytevector → Nat
 ;;; Pin a hash and all its transitive references.
@@ -282,8 +301,20 @@
 
 ;;; fetch-sexpr : Bytevector → S-expr | #f
 ;;; Retrieve and parse an S-expression block.
+;;;
+;;; SECURITY NOTE: This uses Scheme's standard 'read' which can execute
+;;; code via reader macros (e.g., #. in some implementations). Only use
+;;; with trusted data stored via store-sexpr!. For untrusted input,
+;;; validate at the shell layer before storage.
 (define (fetch-sexpr hash)
   (let ([blk (fetch hash)])
        (if blk
-           (read (open-input-string (utf8->string (block-payload blk))))
+           (guard (ex [else #f])  ; Return #f on parse error
+                  (let* ([str (utf8->string (block-payload blk))]
+                         [port (open-input-string str)]
+                         [result (read port)])
+                        ;; Verify we consumed all input (no trailing garbage)
+                        (if (eof-object? (read port))
+                            result
+                            #f)))  ; Trailing data = malformed
            #f)))
