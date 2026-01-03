@@ -1,52 +1,52 @@
 {
   "triage_id": "triage-agent-4",
   "original_report": "gemini-flashmob-agent-4.json",
-  "timestamp": "2026-01-03T16:00:00Z",
+  "timestamp": "2026-01-03T16:30:00Z",
   "validated_issues": [
     {
       "file": "agents/lib/parse-trigger.js",
       "line": 20,
       "original_description": "Fragile Parenthesis Normalization: The check for '((' and '))' is too strict and doesn't handle internal whitespace. Additionally, slice(1, -1) on '((...))' removes only one level, but logic fails if file contains multiple top-level S-expressions or comments.",
       "original_severity": "medium",
-      "validation": "rejected",
-      "adjusted_severity": null,
-      "reasoning": "The code at lines 15-20 actually strips comments BEFORE the parenthesis check. Lines 15-18 filter out lines starting with ';'. The '((' check on line 23 happens AFTER comment stripping. The slice(1, -1) correctly removes the outer layer from '((...))' to get '(...)'. For a simple alist parser designed for trigger files (not a general S-expression parser), this is acceptable behavior."
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "The normalization at line 24 uses startsWith('((') and endsWith('))'), which fails if there is any whitespace (e.g., '( ('). Also, slice(1, -1) only removes one character from each end, so '((...))' becomes '(...)' - if this was intended to be an alist wrapper, it doesn't robustly handle the structure."
     },
     {
       "file": "agents/lib/parse-trigger.js",
       "line": 26,
-      "original_description": "Regex Termination Bug: The unquoted value pattern [^)]\\s]+ will prematurely terminate if a symbol contains a literal ')' (even if escaped or inside a nested structure). This makes the parser fragile to valid S-expression variations.",
+      "original_description": "Regex Termination Bug: The unquoted value pattern [^)\s]+ will prematurely terminate if a symbol contains a literal ')' (even if escaped or inside a nested structure). This makes the parser fragile to valid S-expression variations.",
       "original_severity": "high",
       "validation": "confirmed",
-      "adjusted_severity": "medium",
-      "reasoning": "The regex on line 31 is '\\((\\w[\\w-]*)\\s+\\.\\s+(\"(?:[^\"\\\\]|\\\\.)*\"|[^)]+)\\)'. The unquoted value pattern [^)]+ will indeed stop at the first ')'. However, for the limited use case of parsing trigger alists with simple key-value pairs, this is unlikely to cause issues in practice. Downgrade to medium since trigger files typically don't contain nested S-expressions in values."
+      "adjusted_severity": "high",
+      "reasoning": "The regex at line 31 uses [^)]+ for unquoted values. This will stop at the first closing parenthesis, causing truncation if the value contains a nested list or a symbol with a paren. This is a fundamental flaw for an S-expression parser."
     },
     {
       "file": "agents/lib/parse-trigger.js",
       "line": 41,
-      "original_description": "Incomplete Unescaping: The manual unescaping logic only handles a small subset of standard escape sequences (\\n, \\r, \\t, \\\", \\\\). Other common escapes like \\b, \\f, or hex/unicode escapes will be left in their literal escaped form.",
+      "original_description": "Incomplete Unescaping: The manual unescaping logic only handles a small subset of standard escape sequences (\n, \r, \t, \", \\). Other common escapes like \b, \f, or hex/unicode escapes will be left in their literal escaped form.",
       "original_severity": "medium",
-      "validation": "rejected",
-      "adjusted_severity": null,
-      "reasoning": "Looking at lines 40-47, the code actually handles \\n, \\r, \\t, \\b, \\f, \\\", and \\\\. The QA report missed that \\b and \\f ARE handled (lines 44-45). Hex/unicode escapes are not standard Scheme escapes and aren't commonly needed in trigger files. The escape handling is adequate for the use case."
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "While the code DOES handle \b and \f (lines 44-45), it indeed misses hex/unicode escapes and other standard escapes. The severity is low as these are rare in trigger files."
     },
     {
       "file": "agents/lib/parse-trigger.js",
       "line": 0,
       "original_description": "Missing Comment Support: S-expression files frequently use ';' for comments. This parser will attempt to match comment text as keys or values if they contain dots or parentheses.",
       "original_severity": "low",
-      "validation": "rejected",
-      "adjusted_severity": null,
-      "reasoning": "Lines 15-18 explicitly strip comments before parsing: '.filter(line => !line.trim().startsWith(';'))'. Comments ARE handled - they are removed entirely before the regex matching happens. This issue is factually incorrect."
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "The parser only strips comments that start a line (line 18). Inline comments like '(key . value) ; comment' will be incorrectly captured as part of the value or break the regex."
     },
     {
       "file": "agents/personas/dialectic-dsl.ss",
       "line": 54,
       "original_description": "Potential List Index Out of Bounds: The code assumes resolution-methods and resolution-framing will always contain at least 2 elements. While choose-n 2 currently satisfies this, the code will crash if source lists are ever shortened.",
       "original_severity": "medium",
-      "validation": "uncertain",
-      "adjusted_severity": "low",
-      "reasoning": "Looking at lines 18-24 and 27-32, both lists have 5 and 4 elements respectively. The choose-n function (from persona-prompt-gen.ss lines 116-131) safely handles cases where n >= list length by returning all items shuffled. So if source lists had fewer than 2 elements, choose-n would still return what's available. However, car/cadr on lines 52/55 and 62/65 WOULD fail if the returned list had < 2 elements. This is a theoretical concern but unlikely given the static data."
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "Lines 52 and 55 use (car resolution-methods) and (cadr resolution-methods). If the source list has fewer than 2 elements, choose-n 2 will return a shorter list, causing cadr to crash."
     },
     {
       "file": "agents/personas/dialectic-dsl.ss",
@@ -55,16 +55,16 @@
       "original_severity": "low",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "This is accurate. The (choice ...) on lines 101-105 evaluates at load time, fixing the sign-off in the generated prompt. However, this appears to be intentional design - each invocation gets a randomized but consistent personality. Not a bug, just a design observation."
+      "reasoning": "The (choice ...) on lines 101-105 is evaluated when the persona-prompt is defined, fixing the choice for the duration of that prompt's use."
     },
     {
       "file": "agents/regulars.md",
       "line": 0,
       "original_description": "Minor formatting inconsistency: Some entries have slightly different formatting for personality traits vs background, but as a context file for LLMs this is negligible.",
       "original_severity": "low",
-      "validation": "confirmed",
-      "adjusted_severity": "low",
-      "reasoning": "The file is well-structured with consistent use of headers (##), bullet points (-), and descriptive prose. Minor variations in how different character traits are described is natural and acceptable for LLM context. This is more of a style note than an issue."
+      "validation": "rejected",
+      "adjusted_severity": null,
+      "reasoning": "Review of the file shows consistent structure for all personas (name, background/traits bullets). The formatting is well-suited for LLM context."
     },
     {
       "file": "agents/invoke-archivist.js",
@@ -72,8 +72,8 @@
       "original_description": "Environment Dependency: Use of execSync with 'claude' CLI assumes the command is in the system PATH and pre-authenticated. Likely to fail in production/daemon environments unless environment is perfectly mirrored.",
       "original_severity": "high",
       "validation": "confirmed",
-      "adjusted_severity": "medium",
-      "reasoning": "Line 84 does use execSync with 'claude --print --model sonnet'. This assumes claude CLI is installed, in PATH, and authenticated. For The Fold's production deployment (debian-8gb-ash-1 server as mentioned in CLAUDE.md), this is likely pre-configured. Downgrade to medium as this is a deployment concern, not a code bug, and the server is documented as a controlled environment."
+      "adjusted_severity": "high",
+      "reasoning": "Line 84 relies on the external 'claude' CLI being available and configured, which is a significant external dependency for a script."
     },
     {
       "file": "agents/invoke-archivist.js",
@@ -82,7 +82,7 @@
       "original_severity": "medium",
       "validation": "rejected",
       "adjusted_severity": null,
-      "reasoning": "Looking at line 73, the filename is: '/tmp/archivist-prompt-${Date.now()}-${Math.random().toString(36).slice(2)}.txt'. The code uses BOTH Date.now() AND Math.random() - the combination makes collision extremely unlikely. The QA report appears to have only noticed Date.now() and missed the random suffix."
+      "reasoning": "Line 73 uses both Date.now() and a random alphanumeric suffix (Math.random().toString(36)). This combination is sufficiently unique for temporary files in this context."
     },
     {
       "file": "agents/invoke-archivist.js",
@@ -91,7 +91,7 @@
       "original_severity": "high",
       "validation": "rejected",
       "adjusted_severity": null,
-      "reasoning": "Looking at lines 29-57 (SYSTEM_PROMPT), there is no mention of '@agents/invoke-opus.js'. The prompt explicitly tells the agent to use short tags: 'Tag @opus for connecting history...', 'Tag @sonnet for implementation details...', 'Tag @haiku for quick pointers...'. Line 35 says 'Connecting questions to relevant prior work' - nothing about tagging. The QA report appears to have misread the file."
+      "reasoning": "The SYSTEM_PROMPT (lines 29-57) explicitly uses short tags like @opus and @sonnet. No outdated tagging style was found in the file."
     },
     {
       "file": "agents/invoke-archivist.js",
@@ -100,7 +100,7 @@
       "original_severity": "medium",
       "validation": "confirmed",
       "adjusted_severity": "medium",
-      "reasoning": "Lines 74-78 construct the prompt with direct interpolation: '${author} asks: ${body}'. A malicious user could craft a message like 'Ignore all previous instructions...' in the body. However, this is a Discord bot responding to @archivist tags - the attack surface is limited to Discord users who can message the bot. Medium severity is appropriate as modern LLMs have some injection resistance, but the concern is valid."
+      "reasoning": "Line 78 interpolates author and body directly. A user could easily inject instructions to bypass the system prompt's constraints."
     },
     {
       "file": "agents/pipelines/tech-debt.ss",
@@ -109,7 +109,7 @@
       "original_severity": "high",
       "validation": "rejected",
       "adjusted_severity": null,
-      "reasoning": "Looking at lines 35-44, the shell commands reference 'core shell' NOT 'fabric' or 'thimble'. For example: \"find core shell -name '*.ss' -exec wc -l {} + | tail -1\". Both 'core' and 'shell' directories exist (verified via ls). The QA report made an incorrect claim about the directory references."
+      "reasoning": "The shell commands at lines 35-44 reference 'core' and 'shell', both of which are valid directories in the project root. No reference to 'fabric' or 'thimble' was found."
     },
     {
       "file": "agents/pipelines/tech-debt.ss",
@@ -118,7 +118,7 @@
       "original_severity": "high",
       "validation": "rejected",
       "adjusted_severity": null,
-      "reasoning": "The QA report misunderstands the data flow. Looking at lines 32-58, stage-&&& creates nested pairs: ((line . file) . ((todo . fixme) . (test . issues))). The stage-arr on line 48 correctly destructures this: car gets (line . file), cdr gets ((todo . fixme) . (test . issues)), then it extracts all 6 values properly. The code structure matches the expected output structure. This is correct arrow-style composition."
+      "reasoning": "The nesting in stage-&&& (lines 35-46) correctly builds a tree of pairs ((line . file) . ((todo . fixme) . (test . issues))). The stage-arr at line 48 correctly destructures this using car/cdr. The QA report misidentified this as broken logic."
     },
     {
       "file": "agents/pipelines/tech-debt.ss",
@@ -127,74 +127,53 @@
       "original_severity": "medium",
       "validation": "confirmed",
       "adjusted_severity": "medium",
-      "reasoning": "Line 141 shows: (council-sequential '(opus gemini-3) 2 'opus). 'gemini-3' is indeed not a valid model name. Current Gemini models are gemini-1.5-pro, gemini-1.5-flash, etc. This will likely cause a runtime error when the council attempts to use this model. However, this is a pipeline that may have future model support planned, so marking as medium rather than high."
+      "reasoning": "Line 141 uses 'gemini-3' in a council call, which is not a known model name and will likely cause a failure."
     },
     {
       "file": "agents/pipelines/tech-debt.ss",
       "line": 173,
       "original_description": "Shell Injection in Bead Creation: ${input} is passed directly to beads-create. If extracted 'TITLE' contains single quotes or semicolons, it could lead to arbitrary shell command execution or broken issue creation.",
       "original_severity": "medium",
-      "validation": "rejected",
-      "adjusted_severity": null,
-      "reasoning": "Looking at line 185, beads-create is called with '${input}'. However, beads-create (from effects.ss lines 286-290) is an EFFECT that returns '(effect 'beads (list 'create title))' - it doesn't directly execute shell commands. The interpreter handles the effect, which would use proper bd CLI invocation. The ${input} is string interpolation within the pipeline DSL, not shell interpolation. No shell injection risk exists here."
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Line 185 interpolates ${input} into beads-create. While beads-create is an effect, if the downstream interpreter uses it to construct a shell command without escaping, it could be vulnerable. However, it's safer than direct run-shell."
     }
   ],
   "gaps_found": [
     {
       "file": "agents/lib/parse-trigger.js",
       "line": 31,
+      "severity": "high",
+      "description": "Nested S-expression Truncation: The use of [^)]+ for unquoted values means that any nested list like (key . (nested list)) will be parsed as '(nested', losing the rest of the structure and the closing parenthesis.",
+      "category": "logic"
+    },
+    {
+      "file": "agents/lib/parse-trigger.js",
+      "line": 31,
       "severity": "medium",
-      "description": "Regex doesn't handle multiline quoted strings correctly. The pattern '\"(?:[^\"\\\\]|\\\\.)*\"' expects the entire quoted string on one line. Multiline string values (common in S-expressions) will fail to parse or be truncated.",
+      "description": "Missing multiline support in quoted strings: The regex for quoted strings doesn't use the 's' flag, meaning quoted values containing newlines (standard in S-expressions) will fail to match.",
       "category": "edge-case"
     },
     {
       "file": "agents/invoke-archivist.js",
-      "line": 84,
-      "severity": "low",
-      "description": "No timeout specified on execSync. If the claude CLI hangs (network issues, rate limiting), the process will hang indefinitely. Should use timeout option in execSync.",
-      "category": "performance"
-    },
-    {
-      "file": "agents/invoke-archivist.js",
-      "line": 70,
-      "severity": "low",
-      "description": "Error message truncation at 60 characters (body.slice(0, 60)) could cut off important context in error logs for debugging.",
-      "category": "other"
-    },
-    {
-      "file": "agents/pipelines/tech-debt.ss",
-      "line": 100,
-      "severity": "low",
-      "description": "The run-shell command 'head -100 ${input}' in code-quality-stage assumes ${input} is a valid filename. If shuf returns empty results or malformed paths, this will fail silently or error.",
-      "category": "edge-case"
-    },
-    {
-      "file": "agents/pipelines/tech-debt.ss",
-      "line": 136,
+      "line": 73,
       "severity": "medium",
-      "description": "In deliberation-stage (lines 136-138), the format string uses (cadr data) and (cddr data) to access nested checkpoint data, but the structure from stage-&&& would give ((hotspots . quality-reviews)), so (cadr data) gets quality-reviews and (cddr data) is '(). This will produce malformed output.",
-      "category": "logic"
+      "description": "Predictable and world-writable temp file: Files are created in /tmp with a predictable prefix and without using O_EXCL. A local attacker could pre-create these files or symlink them to sensitive system files.",
+      "category": "security"
     },
     {
       "file": "agents/pipelines/tech-debt.ss",
-      "line": 217,
+      "line": 77,
       "severity": "low",
-      "description": "In post-report-stage (lines 217-219), (cddr data) is used to get issues-created count, but with the nested &&& structure, this would be accessing the wrong part of the pair. Should be (cdr (cdr data)) or restructured.",
+      "description": "Pipeline failure on empty git log: The hotspots stage will likely fail if no commits have been made in the last week, as the grep command in the shell pipeline will return a non-zero exit code.",
       "category": "logic"
-    },
-    {
-      "file": "agents/personas/dialectic-dsl.ss",
-      "line": 7,
-      "severity": "low",
-      "description": "The load path 'agents/lib/persona-prompt-gen.ss' is relative and assumes the script is run from project root. If run from a different directory, the load will fail.",
-      "category": "edge-case"
     }
   ],
   "summary": {
-    "confirmed": 6,
-    "rejected": 9,
-    "uncertain": 1,
-    "gaps_found": 7,
-    "notes": "The QA report had significant accuracy issues. 9 of 16 reported issues were rejected after source code review. Key false positives: (1) parse-trigger.js actually DOES handle comments (rejected 2 issues), (2) tech-debt.ss uses correct 'core shell' directories not 'fabric thimble', (3) the data flow logic in gather-metrics-stage is actually correct with proper pair nesting, (4) invoke-archivist.js DOES use random suffix for temp files and DOES use correct @opus style tags, (5) beads-create is an effect DSL not shell execution. Valid concerns: regex fragility for complex S-expressions, prompt injection in archivist, and the invalid 'gemini-3' model reference. New gaps found include multiline string handling, missing timeout on execSync, and data structure mismatches in later pipeline stages."
+    "confirmed": 9,
+    "rejected": 5,
+    "uncertain": 0,
+    "gaps_found": 4,
+    "notes": "The QA report was fairly accurate on logic issues but had several hallucinations regarding file paths and tagging conventions. The most critical confirmed issues are the fragile S-expression parser in parse-trigger.js and the invalid model reference in tech-debt.ss. Gaps found include more specific ways the parser breaks on valid S-expressions and a local security vulnerability in temp file handling."
   }
 }

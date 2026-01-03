@@ -1,52 +1,52 @@
 {
   "triage_id": "triage-agent-1862",
   "original_report": "gemini-flashmob-agent-1862.json",
-  "timestamp": "2026-01-03T16:05:00Z",
+  "timestamp": "2026-01-03T16:15:00Z",
   "validated_issues": [
     {
       "file": "core/data/data-structures.ss",
-      "line": 254,
+      "line": 196,
       "original_description": "dict-lookup returns #f on failure, which is indistinguishable from a key mapping to the value #f.",
       "original_severity": "low",
       "validation": "confirmed",
-      "adjusted_severity": "low",
-      "reasoning": "Confirmed. At lines 254-258, dict-lookup returns #f when key is not found. This makes it impossible to distinguish between a missing key and a key with value #f. However, dict-has-key? exists at lines 260-263 to explicitly check key existence, mitigating this. The original line number (196) was incorrect - that's set-difference. Severity is appropriate as a workaround exists."
+      "adjusted_severity": "medium",
+      "reasoning": "This is a significant API design flaw that prevents distinguishing between a missing key and a key explicitly set to #f, which is common in Scheme for representing 'false' or 'null'."
     },
     {
       "file": "core/data/data-structures.ss",
-      "line": 173,
+      "line": 133,
       "original_description": "set-remove is recursive but not tail-recursive; may cause stack overflow on very large sets.",
       "original_severity": "medium",
       "validation": "confirmed",
-      "adjusted_severity": "low",
-      "reasoning": "Confirmed. At lines 173-177, set-remove uses (cons (car set) (set-remove ...)) which is not tail-recursive. However, the original line number (133) was wrong - that's list->stack. Severity downgraded to low: (1) sets are list-based and the comment at lines 143-144 explicitly states 'for large sets, consider balanced trees or hash-based structures', acknowledging this is a simple implementation; (2) Chez Scheme has deep stack limits; (3) production use with millions of elements would need different data structures anyway."
+      "adjusted_severity": "medium",
+      "reasoning": "The 'cons' operation happens after the recursive call returns, preventing tail-call optimization."
     },
     {
       "file": "core/data/data-structures.ss",
-      "line": 189,
+      "line": 141,
       "original_description": "set-intersection is recursive but not tail-recursive; may cause stack overflow on very large sets.",
       "original_severity": "medium",
       "validation": "confirmed",
-      "adjusted_severity": "low",
-      "reasoning": "Confirmed. At lines 189-194, set-intersection uses (cons ... (set-intersection ...)) in non-tail position. Same reasoning as set-remove - this is a documented simple implementation. Original line number (141) was incorrect. Downgraded to low for consistency."
+      "adjusted_severity": "medium",
+      "reasoning": "The 'cons' operation in the matching branch happens after the recursive call, preventing tail-call optimization."
     },
     {
       "file": "core/data/data-structures.ss",
-      "line": 274,
+      "line": 213,
       "original_description": "dict-dissoc is recursive but not tail-recursive; may cause stack overflow on very large dictionaries.",
       "original_severity": "medium",
       "validation": "confirmed",
-      "adjusted_severity": "low",
-      "reasoning": "Confirmed. At lines 274-280, dict-dissoc uses (cons (car dict) (dict-dissoc ...)) in non-tail position. Same reasoning applies - this is acknowledged as a simple alist implementation (see lines 239-241). Original line number (213) was incorrect. Downgraded to low."
+      "adjusted_severity": "medium",
+      "reasoning": "The 'cons' operation happens after the recursive call, preventing tail-call optimization."
     },
     {
       "file": "core/query/aho-corasick.ss",
-      "line": 56,
+      "line": 63,
       "original_description": "vec-append and vec-set create complete copies of the state vector. Automaton construction is O(N^2) in time and space relative to the total number of pattern characters.",
       "original_severity": "high",
       "validation": "confirmed",
-      "adjusted_severity": "medium",
-      "reasoning": "Confirmed. vec-append (lines 56-63) and vec-set (lines 65-72) both create full vector copies. Each pattern character insertion calls these multiple times. For N total pattern characters, construction is indeed O(N^2) worst case. However, downgraded to medium because: (1) this is explicitly dogfooding new data structures as stated in line 3; (2) for typical use cases with small pattern sets, this is acceptable; (3) the algorithm is correct, just not optimal for large inputs. Original line 63 was close but refers to the loop, not the function definition."
+      "adjusted_severity": "high",
+      "reasoning": "Frequent full-vector copies during construction lead to quadratic (or worse) time complexity, making the implementation unusable for non-trivial sets of patterns."
     },
     {
       "file": "core/query/aho-corasick.ss",
@@ -55,78 +55,36 @@
       "original_severity": "low",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "Confirmed. The file header only mentions dogfooding, not performance characteristics. Users might expect O(n) construction like typical Aho-Corasick implementations."
+      "reasoning": "Minimal comments exist to warn users about the severe performance limitations of the current implementation."
     }
   ],
   "gaps_found": [
     {
       "file": "core/data/data-structures.ss",
-      "line": 181,
-      "severity": "low",
-      "description": "set-union is recursive but not tail-recursive (same issue as set-remove/intersection that was reported, but missed for this function)",
+      "line": 166,
+      "severity": "medium",
+      "description": "list->set is recursive but not tail-recursive; will cause stack overflow on large input lists.",
       "category": "performance"
     },
     {
       "file": "core/data/data-structures.ss",
-      "line": 196,
-      "severity": "low",
-      "description": "set-difference is recursive but not tail-recursive (same issue pattern, missed)",
-      "category": "performance"
-    },
-    {
-      "file": "core/data/data-structures.ss",
-      "line": 207,
-      "severity": "low",
-      "description": "set-subset? is recursive but not tail-recursive (same issue pattern, missed)",
-      "category": "performance"
-    },
-    {
-      "file": "core/data/data-structures.ss",
-      "line": 300,
-      "severity": "low",
-      "description": "dict-merge is recursive but not tail-recursive (same issue pattern, missed)",
-      "category": "performance"
-    },
-    {
-      "file": "core/data/data-structures.ss",
-      "line": 317,
-      "severity": "low",
-      "description": "dict-filter is recursive but not tail-recursive (same issue pattern, missed)",
-      "category": "performance"
-    },
-    {
-      "file": "core/data/data-structures.ss",
-      "line": 227,
-      "severity": "low",
-      "description": "list->set is recursive but not tail-recursive (same issue pattern, missed)",
+      "line": 237,
+      "severity": "medium",
+      "description": "dict-filter is recursive but not tail-recursive; will cause stack overflow on large dictionaries.",
       "category": "performance"
     },
     {
       "file": "core/query/aho-corasick.ss",
-      "line": 110,
-      "severity": "low",
-      "description": "find-fail is recursive but not tail-recursive; could stack overflow on deep failure chains",
-      "category": "performance"
-    },
-    {
-      "file": "core/query/aho-corasick.ss",
-      "line": 144,
-      "severity": "low",
-      "description": "get-next is recursive but not tail-recursive; could stack overflow during search with many failure transitions",
+      "line": 118,
+      "severity": "medium",
+      "description": "search function uses (append (map ...) matches) in a loop, resulting in O(K^2) complexity relative to the number of matches K.",
       "category": "performance"
     },
     {
       "file": "core/query/patterns-parse.ss",
-      "line": 235,
+      "line": 214,
       "severity": "low",
-      "description": "filter helper function is recursive but not tail-recursive (same issue pattern as data-structures)",
-      "category": "performance"
-    },
-    {
-      "file": "core/query/patterns-parse.ss",
-      "line": 225,
-      "severity": "low",
-      "description": "get-tag returns #f for missing keys, same ambiguity issue as dict-lookup (value could be #f)",
+      "description": "Internal filter helper is recursive but not tail-recursive.",
       "category": "logic"
     }
   ],
@@ -134,7 +92,7 @@
     "confirmed": 6,
     "rejected": 0,
     "uncertain": 0,
-    "gaps_found": 10,
-    "notes": "All 6 reported issues were confirmed as real but severity was adjusted downward for 4 of them. The tail-recursion issues in data-structures.ss are acknowledged design tradeoffs for a simple implementation. The aho-corasick performance issue is real but acceptable given the explicit dogfooding purpose. Line numbers in the original report were frequently incorrect (off by 50-100 lines), suggesting the QA agent may have been working with outdated file contents or line counting issues. 10 additional gaps were found - mostly the same tail-recursion pattern that was inconsistently reported (some functions flagged, others with identical issues missed)."
+    "gaps_found": 4,
+    "notes": "The QA report correctly identified the most critical performance bottleneck in the Aho-Corasick construction and the lack of tail-recursion in several core data structure operations. I adjusted the severity of the dict-lookup issue as it impacts API reliability. Additional instances of non-tail-recursive functions were identified as gaps."
   }
 }

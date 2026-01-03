@@ -1,0 +1,9 @@
+core/data/collection-utils.ss
+core/data/data-structures.ss
+core/data/test-data-structures.ss
+core/data/test-graph-algorithms.ss
+core/query/aho-corasick.ss
+core/query/patterns-parse.ss
+core/query/query.ss
+core/query/test-aho-corasick.ss
+core/query/test-patterns-parse.ss

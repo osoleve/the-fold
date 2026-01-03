@@ -1,7 +1,7 @@
 {
   "triage_id": "triage-agent-0547",
   "original_report": "gemini-flashmob-agent-0547.json",
-  "timestamp": "2026-01-03T16:30:00Z",
+  "timestamp": "2026-01-03T16:45:00Z",
   "validated_issues": [
     {
       "file": "core/data/test-data-structures.ss",
@@ -10,7 +10,7 @@
       "original_severity": "low",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "Line 1 reads ';;; fabric/patterns/test-data-structures.ss' but the file is located at 'core/data/test-data-structures.ss'. This is a documentation/comment inaccuracy. The file was likely moved from fabric/patterns/ to core/data/ and the header was not updated."
+      "reasoning": "The file header indeed refers to an incorrect path 'fabric/patterns/test-data-structures.ss'."
     },
     {
       "file": "core/query/patterns-parse.ss",
@@ -19,16 +19,16 @@
       "original_severity": "medium",
       "validation": "confirmed",
       "adjusted_severity": "medium",
-      "reasoning": "Line 8 documents '@key:multi:part - hierarchical tags' as supported syntax. However, char-value? (lines 44-52) does not include ':' as a valid value character. When parsing '@key:multi:part', it will stop at the second ':' and only capture 'multi' as the value, not 'multi:part'. This is a genuine documentation-implementation mismatch that could confuse users."
+      "reasoning": "The implementation of char-value? does not include #\: and parse-tag-at only looks for the first colon. Subsequent colons in the value will cause truncation and incorrect parsing of remaining text."
     },
     {
       "file": "core/query/patterns-parse.ss",
       "line": 182,
       "original_description": "Documentation claims sanitize-tag-value prevents path traversal (../), but the code only filters individual characters and does not check for the '..' sequence.",
       "original_severity": "medium",
-      "validation": "confirmed",
-      "adjusted_severity": "high",
-      "reasoning": "The comment on lines 246-249 explicitly states 'No path traversal: ../' but the implementation (lines 250-256) only filters individual dangerous characters ($, `, &, |, ;). The '.' and '/' characters are NOT filtered, meaning '../' passes through completely. This is a security-relevant documentation-implementation gap. Upgrading severity to high because it's in a 'Defensive Parsing (Security)' section and the documented protection does not exist."
+      "validation": "rejected",
+      "adjusted_severity": "low",
+      "reasoning": "The code contains a has-path-traversal? function (around line 265) that specifically checks for '..' followed by '/' or '\\'. It is called by sanitize-tag-value. The QA's claim that it doesn't check for '..' is factually incorrect for the current version of the code, although line numbers in the report were also inaccurate."
     },
     {
       "file": "core/query/patterns-parse.ss",
@@ -37,53 +37,53 @@
       "original_severity": "low",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "Lines 132-135 show: (let ([key-str (substring text j k)] [key-sym (string->symbol (string-downcase (substring text j k)))]) ...). The variable key-str is computed but never referenced. The substring is computed twice instead of reusing key-str for the string->symbol conversion. This is a minor code quality issue - unused variable and redundant computation."
+      "reasoning": "key-str is defined via let at line 113 but the code uses a second call to substring inside string->symbol instead of using the bound variable."
     },
     {
       "file": "core/query/patterns-parse.ss",
       "line": 126,
       "original_description": "In parse-tag-at, for empty values like '@key:', the returned end position is the index of the colon, causing the main loop to continue from the colon rather than after it, though it correctly results in no further tag match for that colon.",
       "original_severity": "low",
-      "validation": "uncertain",
+      "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "For '@key:' (empty value), lines 144-146 return end position 'k' (the colon index). The main loop at line 99 continues from position k. While this works correctly (next char is ':', not '@', so no tag match), the end position semantics are inconsistent - for tags with values, end is after the value, but for empty values, end is AT the colon. This is more of a code clarity issue than a bug, as the behavior is still correct."
+      "reasoning": "When a colon is followed by a non-value character, the parser returns 'k' (index of the colon) as the end position. This causes the outer loop to start the next search at the colon itself, which is inefficient and inconsistent with how other tokens are consumed."
     }
   ],
   "gaps_found": [
     {
-      "file": "core/data/data-structures.ss",
-      "line": 1,
-      "severity": "low",
-      "description": "Header comment says 'fabric/patterns/data-structures.ss' but actual path is 'core/data/data-structures.ss'. Same issue as the test file - the implementation file also has an outdated path in its header comment.",
-      "category": "other"
+      "file": "core/query/patterns-parse.ss",
+      "line": 10,
+      "severity": "medium",
+      "description": "The main 'Usage' examples only show 'extract-tags', which is the unsafe version. 'safe-extract-tags' (which performs sanitization) is not mentioned in the documentation, increasing the risk of developers using the insecure version by default.",
+      "category": "security"
     },
     {
       "file": "core/query/patterns-parse.ss",
-      "line": 27,
+      "line": 271,
       "severity": "low",
-      "description": "Documentation comment on line 27 says 'Value (optional) contains [a-z0-9_./-]' but char-value? (lines 44-52) also allows uppercase A-Z, which is undocumented. The implementation is more permissive than documented.",
-      "category": "other"
-    },
-    {
-      "file": "core/query/patterns-parse.ss",
-      "line": 235,
-      "severity": "low",
-      "description": "The module defines its own 'filter' function (lines 235-239) which shadows or duplicates the standard Scheme filter. This could cause confusion or conflicts if the standard filter is expected elsewhere.",
-      "category": "other"
-    },
-    {
-      "file": "core/query/test-aho-corasick.ss",
-      "line": 11,
-      "severity": "low",
-      "description": "The test comparison function at lines 11-22 assumes both expected and actual are proper lists with pairs. If actual is not a list of pairs (e.g., due to an error), string<? on non-strings in the comparator could cause a runtime error rather than a clean test failure.",
+      "description": "'has-path-traversal?' allows '..' if it is at the end of the string or not followed by a slash/backslash (e.g., '@file:..'). Depending on how the value is used (e.g., in a shell command), this could still be risky.",
       "category": "edge-case"
+    },
+    {
+      "file": "core/query/aho-corasick.ss",
+      "line": 45,
+      "severity": "medium",
+      "description": "'vec-append' and 'vec-set' are O(N) operations. Using them inside loops to build the trie and failure links results in O(S^2) complexity where S is the number of states, which is highly inefficient for larger pattern sets.",
+      "category": "performance"
+    },
+    {
+      "file": "core/query/patterns-parse.ss",
+      "line": 115,
+      "severity": "low",
+      "description": "'string-downcase' is called on keys, but 'char-key-start?' and 'char-key?' only allow lowercase letters and digits, making the downcase operation redundant unless the intention was to support case-insensitive key parsing.",
+      "category": "logic"
     }
   ],
   "summary": {
     "confirmed": 4,
-    "rejected": 0,
-    "uncertain": 1,
+    "rejected": 1,
+    "uncertain": 0,
     "gaps_found": 4,
-    "notes": "The QA report was largely accurate. All five reported issues were validated (4 confirmed, 1 uncertain). The most significant finding is the path traversal security gap (upgraded from medium to high) - the sanitize-tag-value function documents protection against '../' but provides none. Four additional gaps were identified: matching header path issue in data-structures.ss, undocumented uppercase letter support in char-value?, a locally-defined filter function that could shadow builtins, and a potential edge case in the test comparator. The hierarchical tag documentation mismatch is also noteworthy as a potential usability issue."
+    "notes": "The QA report was mostly accurate but completely missed the existence of the path traversal check function, which was actually implemented. The report also failed to identify significant performance bottlenecks in the Aho-Corasick implementation and security/documentation gaps in the pattern parser."
   }
 }

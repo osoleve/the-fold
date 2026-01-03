@@ -1,7 +1,7 @@
 {
   "triage_id": "triage-agent-69da",
   "original_report": "gemini-flashmob-agent-69da.json",
-  "timestamp": "2026-01-03T16:05:00Z",
+  "timestamp": "2026-01-03T16:20:00Z",
   "validated_issues": [
     {
       "file": "core/data/test-graph-algorithms.ss",
@@ -10,7 +10,7 @@
       "original_severity": "low",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "CONFIRMED but line number was slightly off (report said 148, actual is 142 and 506). The use of (system \"rm -rf ...\") with a hardcoded test path (.test-graph-algorithms) is safe in this context but not portable across all platforms. This is a reasonable low-severity style/portability concern for a test file."
+      "reasoning": "Confirmed at line 142. The use of 'system' for shell commands reduces portability, though it is common in test scripts. Low severity is appropriate."
     },
     {
       "file": "core/data/collection-utils.ss",
@@ -19,7 +19,7 @@
       "original_severity": "medium",
       "validation": "confirmed",
       "adjusted_severity": "medium",
-      "reasoning": "CONFIRMED. map-collection (line 69) explicitly calls (error ...) when a block is not found, while fold-collection (line 92) and filter-collection (line 77-81) silently skip missing blocks. This API inconsistency violates the principle of least surprise and could cause unexpected crashes when migrating code between these functions."
+      "reasoning": "Confirmed. map-collection (line 69) uses (error ...), while filter-collection (line 82) and fold-collection (line 93) skip missing blocks. This inconsistency can lead to brittle error handling logic."
     },
     {
       "file": "core/data/collection-utils.ss",
@@ -28,7 +28,7 @@
       "original_severity": "low",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "CONFIRMED. The implementation at lines 184-203 uses assoc (O(K) where K=groups) plus map over all groups (O(K)) for each element, resulting in O(N*K) which degrades to O(N^2) when each element has a unique key. However, for typical use cases with few groups, performance is acceptable. Low severity is appropriate."
+      "reasoning": "Confirmed at line 184. The nested loop structure with 'map' and 'assoc' leads to O(N*G) where G is number of groups, effectively O(N^2) in worst cases."
     },
     {
       "file": "core/data/collection-utils.ss",
@@ -37,16 +37,16 @@
       "original_severity": "low",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "CONFIRMED. collection-add (line 220-226) prepends without deduplication, and collection-merge (lines 243-250) even documents '(may have duplicates)' in its comment. This is intentional behavior per the comment but could cause unexpected storage growth. Low severity is appropriate as it's documented behavior."
+      "reasoning": "Confirmed at lines 220 and 243. No deduplication logic is present, allowing the same block hash to be added multiple times."
     },
     {
       "file": "core/query/query.ss",
-      "line": 41,
+      "line": 46,
       "original_description": "(cdr (assq 'body post)) will crash if a post is missing the 'body' field (assq returns #f). This occurs in multiple functions: find-tagged, list-all-tags, tag-histogram, etc.",
       "original_severity": "high",
       "validation": "confirmed",
       "adjusted_severity": "high",
-      "reasoning": "CONFIRMED. HIGH severity is correct. At line 41, (cdr (assq 'body post)) will throw an error if 'body is missing because assq returns #f and (cdr #f) is invalid. This pattern appears at lines 41, 71, 94, 136, and 148. The file header claims to be 'Shell-tier code' with 'defensive patterns' but these defensive patterns are missing for this critical case. Any malformed post without a 'body' field will crash the query system."
+      "reasoning": "Confirmed as a systemic risk. While core/query/query.ss has been partially patched with 'safe-get-body' (line 32), the identical unsafe pattern '(cdr (assq 'body post))' still exists in forum/tools.ss:179 (format-post), which is called by query.ss:204. Any post missing 'body' will still crash the display logic."
     },
     {
       "file": "core/query/query.ss",
@@ -55,16 +55,16 @@
       "original_severity": "medium",
       "validation": "confirmed",
       "adjusted_severity": "medium",
-      "reasoning": "CONFIRMED. The count-occurrences function (lines 103-114) calls remove-assq (which uses filter - O(K)) inside the main loop over N symbols, giving O(N*K) complexity. When K approaches N (many unique tags), this becomes O(N^2). Medium severity is appropriate - this will become a bottleneck with large forums but is acceptable for small datasets."
+      "reasoning": "Confirmed at line 103. 'remove-assq' is O(N) and called for every element in the list, resulting in O(N^2) complexity."
     },
     {
       "file": "core/query/query.ss",
-      "line": 38,
+      "line": 46,
       "original_description": "Functions like find-tagged and tag-histogram call collect-all-posts on every invocation. In a large forum, this causes massive I/O overhead without caching.",
       "original_severity": "medium",
       "validation": "confirmed",
       "adjusted_severity": "medium",
-      "reasoning": "CONFIRMED. collect-all-posts (lines 55-59) iterates all channels and loads all posts. Functions find-tagged (line 38), list-all-tags (line 68), tag-histogram (line 91), tag-values (line 133), and tag-value-histogram (line 147) all call collect-all-posts without any caching mechanism. For a forum with many posts, this causes repeated I/O operations. Medium severity is appropriate - this is a scalability concern but not a correctness bug."
+      "reasoning": "Confirmed. find-tagged (line 46), list-all-tags (line 76), and tag-histogram (line 99) all call 'collect-all-posts' which performs full filesystem traversal."
     }
   ],
   "gaps_found": [
@@ -72,28 +72,28 @@
       "file": "core/data/collection-utils.ss",
       "line": 142,
       "severity": "medium",
-      "description": "collection-all? has inconsistent missing-block behavior: it returns #f immediately when encountering a missing block (treating it as predicate failure), while collection-any? via collection-find would skip missing blocks. This creates asymmetric semantics between the two functions.",
+      "description": "Inconsistent behavior for missing blocks: 'collection-all?' returns #f (failure) if a block is missing, whereas 'collection-any?' (via 'collection-find') skips missing blocks and continues searching. This leads to asymmetric logic.",
       "category": "logic"
     },
     {
-      "file": "core/data/collection-utils.ss",
-      "line": 100,
-      "severity": "low",
-      "description": "foldr-collection note in docstring says 'Function signature is (Block A -> A) to match foldr convention' but this is actually reversed from how fold-collection works (A Block -> A). While documented, this inconsistency between fold-collection and foldr-collection function signatures may cause user confusion.",
-      "category": "other"
-    },
-    {
       "file": "core/query/query.ss",
-      "line": 159,
+      "line": 147,
       "severity": "medium",
-      "description": "count-string-occurrences (lines 159-170) has the same O(N^2) complexity issue as count-occurrences - it calls remove-assoc inside the loop. QA only mentioned count-occurrences but missed this duplicate pattern.",
+      "description": "'count-string-occurrences' shares the exact same O(N^2) complexity issue as 'count-occurrences' (using 'remove-assoc' in a loop), which was missed by the QA report.",
       "category": "performance"
     },
     {
       "file": "core/query/query.ss",
-      "line": 242,
+      "line": 87,
       "severity": "low",
-      "description": "Convenience functions find-by-tag, tags, and tag-report (lines 241-252) assume (fs) procedure is defined in scope. If called before REPL initialization, these will fail with an undefined variable error. Should have a guard or clearer documentation.",
+      "description": "The 'unique' utility function used for tag keys and values is O(N^2) due to the use of 'member' inside a loop. For large sets of tags, this adds unnecessary overhead.",
+      "category": "performance"
+    },
+    {
+      "file": "core/query/query.ss",
+      "line": 243,
+      "severity": "low",
+      "description": "Convenience functions (find-by-tag, tags, tag-report) implicitly depend on a global '(fs)' procedure being available in the environment, which may not be true in all execution contexts.",
       "category": "edge-case"
     }
   ],
@@ -102,6 +102,6 @@
     "rejected": 0,
     "uncertain": 0,
     "gaps_found": 4,
-    "notes": "All 7 issues from the original QA report were confirmed valid with accurate severity ratings. The high-severity issue in query.ss (missing defensive checks for assq returning #f) is the most critical finding. The QA agent did good work but missed 4 additional issues: an inconsistency in collection-all? behavior, a confusing function signature inconsistency in foldr-collection, a duplicate O(N^2) pattern in count-string-occurrences, and unguarded convenience functions in query.ss. Overall, the flashmob QA was thorough and accurate - 100% confirmation rate with reasonable severity assessments."
+    "notes": "Most issues were confirmed, though some line numbers in the original report were slightly offset. The high-severity crash in query.ss was partially addressed by a helper function in that file, but remains a critical vulnerability in the shared 'format-post' utility. Performance gaps (O(N^2) patterns) are prevalent in the query system."
   }
 }

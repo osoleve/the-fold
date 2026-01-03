@@ -1,0 +1,44 @@
+{
+  "issues": [
+    {
+      "severity": "high",
+      "file": "core/fp/control/random-effect.ss",
+      "line": 217,
+      "description": "Cryptographic Weakness: The library uses a non-cryptographically secure PRNG (PCG) for 'random-bytes-eff', despite suggesting its use for 'Crypto Placeholders' and UUIDs. PCG is a Permuted Congruential Generator and does not meet the requirements for cryptographic security, making it unsuitable for generating secrets, session tokens, or cryptographic keys.",
+      "code_snippet": "(define (random-bytes-eff n)\n  (perform (make-effect 'random-bytes n)))\n...\n[(random-bytes)\n (let* ([n (effect-payload effect)]\n        [result (run-state-monad (random-bytes n) gen)])",
+      "suggested_fix": "Replace the underlying PRNG with a Cryptographically Secure Pseudo-Random Number Generator (CSPRNG) provided by the operating system (e.g., /dev/urandom) or a dedicated crypto library for security-sensitive operations.",
+      "confidence": 0.9,
+      "category": "security"
+    },
+    {
+      "severity": "medium",
+      "file": "core/fp/parsing/fsm.ss",
+      "line": 351,
+      "description": "Injection Attack: The 'fsm->dot' function constructs Graphviz DOT files by directly concatenating state symbols and input characters without escaping. If state names or alphabet symbols are derived from untrusted input, an attacker can inject arbitrary DOT syntax to manipulate the graph structure or potentially exploit the Graphviz renderer.",
+      "code_snippet": "(define (fsm->dot fsm . name)\n  (let ([graph-name (if (null? name) \"FSM\" (car name))])\n       (string-append\n        \"digraph \" graph-name \" {\n\"\n        \"  rankdir=LR;\n\"",
+      "suggested_fix": "Implement proper escaping for labels and identifiers in the DOT output. Ensure that symbols and characters are sanitized or wrapped in quotes with internal quotes escaped before being appended to the string.",
+      "confidence": 0.85,
+      "category": "security"
+    },
+    {
+      "severity": "medium",
+      "file": "core/fp/parsing/parser.ss",
+      "line": 535,
+      "description": "Resource Exhaustion (Denial of Service): The Packrat parsing implementation uses an unbounded memoization table (hashtable) that grows with the size of the input and the number of grammar rules. Processing large or deeply nested malicious inputs could lead to memory exhaustion and a Denial of Service attack.",
+      "code_snippet": "(define (make-memo-table)\n  (make-hashtable equal-hash equal?))\n...\n(define (memo-store! table name offset result)\n  (hashtable-set! table (memo-key name offset) result))",
+      "suggested_fix": "Implement a bound on the memoization table size or use a cache with an eviction policy (e.g., LRU). Additionally, consider adding a maximum recursion depth or input size limit for the parser.",
+      "confidence": 0.8,
+      "category": "security"
+    },
+    {
+      "severity": "low",
+      "file": "core/fp/parsing/fsm.ss",
+      "line": 195,
+      "description": "Race Condition: The 'fsm-fresh-state' function relies on a global counter '*fsm-counter*' that is updated via 'set!' without synchronization. In a multi-threaded Scheme environment, this could lead to duplicate state names, causing logic errors or unpredictable behavior in FSM construction.",
+      "code_snippet": "(define *fsm-counter* 0)\n(define (fsm-fresh-state prefix)\n  (set! *fsm-counter* (+ *fsm-counter* 1))\n  (string->symbol (string-append prefix (number->string *fsm-counter*))))",
+      "suggested_fix": "Use atomic operations or mutexes to protect the global counter if the environment supports concurrency, or pass the counter state explicitly through the FSM builder functions.",
+      "confidence": 0.7,
+      "category": "security"
+    }
+  ]
+}

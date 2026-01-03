@@ -1,0 +1,89 @@
+{
+  "triage_id": "triage-agent-correctness",
+  "original_report": "gemini-flashmob-agent-correctness.json",
+  "timestamp": "2026-01-03T15:45:00Z",
+  "validated_issues": [
+    {
+      "file": "core/fp/parsing/fsm.ss",
+      "line": 431,
+      "original_description": "fsm-complement produces incorrect results for incomplete DFAs. Since nfa->dfa and fsm-minimize omit transitions to the dead state, the resulting DFA is incomplete. Complementing it without adding these transitions means the complemented FSM still won't accept strings that should lead to the dead state (and thus be accepted by the complement).",
+      "original_severity": "high",
+      "validation": "confirmed",
+      "adjusted_severity": "high",
+      "reasoning": "Confirmed. In Scheme, fsm-run returns 'nothing' if no transition exists for an input symbol. If a DFA is incomplete, both the original and the complement will return 'nothing' for strings leading to the implicit dead state, which is logically impossible for a language and its complement."
+    },
+    {
+      "file": "core/fp/control/effects.ss",
+      "line": 549,
+      "original_description": "The run-reader implementation of reader-local fails to restore the original environment after the scoped computation. Because the continuation (k '()) of the reader-local effect typically contains the entire rest of the computation (due to monadic bind), recursing with (f env) causes all subsequent operations in the chain to use the modified environment instead of only the intended sub-computation.",
+      "original_severity": "high",
+      "validation": "confirmed",
+      "adjusted_severity": "high",
+      "reasoning": "Confirmed. The implementation recurses into run-reader with the new environment on the entire remaining continuation. Since monadic bind nests the 'rest' of the computation inside the continuation of the current operation, 'local' scope leaks to everything following it."
+    },
+    {
+      "file": "core/fp/parsing/parser.ss",
+      "line": 440,
+      "original_description": "many-till is susceptible to infinite loops if the body parser p succeeds without consuming any input (e.g., an empty match or parser-pure). Unlike the many combinator, many-till lacks progress checking to break the loop when no input is consumed.",
+      "original_severity": "high",
+      "validation": "confirmed",
+      "adjusted_severity": "high",
+      "reasoning": "Confirmed. many-till lacks the offset-based progress check found in 'many'. If the body parser succeeds without consuming input, many-till will recurse infinitely, eventually causing a stack overflow."
+    },
+    {
+      "file": "core/fp/parsing/fsm.ss",
+      "line": 457,
+      "original_description": "moore-run and mealy-run incorrectly handle non-deterministic FSMs by arbitrarily taking the first state in the resulting state set (car new-states). This leads to non-deterministic or incorrect output sequences if multiple states are active in an NFA or epsilon-NFA.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "medium",
+      "reasoning": "Confirmed. The implementation of Moore and Mealy runners assumes a single active state by using 'car' on the state set returned by fsm-move. This is incorrect for NFAs where multiple states can be active simultaneously."
+    },
+    {
+      "file": "core/fp/control/effects.ss",
+      "line": 692,
+      "original_description": "run-nondet fails with an error on unknown effects, which breaks effect composition. Most other handlers in this library correctly re-emit unknown effects to allow them to be handled by outer interpreters.",
+      "original_severity": "low",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Confirmed. run-nondet uses an 'error' call in its 'else' case, whereas 'run-state' and 'run-writer' use 'make-eff-op' to propagate unknown effects to outer handlers."
+    }
+  ],
+  "gaps_found": [
+    {
+      "file": "core/fp/control/effects.ss",
+      "line": 551,
+      "severity": "low",
+      "description": "run-reader also fails on unknown effects with a hard error, similar to Issue 5, breaking composition when Reader is not the outermost effect.",
+      "category": "logic"
+    },
+    {
+      "file": "core/fp/control/effects.ss",
+      "line": 778,
+      "severity": "low",
+      "description": "run-async-sync also fails on unknown effects, preventing the execution of async computations that use other effects like State or Reader.",
+      "category": "logic"
+    },
+    {
+      "file": "core/fp/control/effects.ss",
+      "line": 906,
+      "severity": "high",
+      "description": "The reader-local environment leak bug (Issue 2) is duplicated in the combined handler run-reader-in-writer.",
+      "category": "logic"
+    },
+    {
+      "file": "core/fp/parsing/fsm.ss",
+      "line": 485,
+      "severity": "medium",
+      "description": "mealy-run also takes (car states) when calculating output, which is incorrect for non-deterministic FSMs even before moving to the next state set.",
+      "category": "logic"
+    }
+  ],
+  "summary": {
+    "confirmed": 5,
+    "rejected": 0,
+    "uncertain": 0,
+    "gaps_found": 4,
+    "notes": "All reported issues were verified and confirmed. The report had slight line number inaccuracies but code snippets were correct. Significant gaps were found in other effect handlers (Reader, Async) following the same anti-patterns as the reported bugs."
+  }
+}

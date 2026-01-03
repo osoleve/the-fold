@@ -1,154 +1,143 @@
 {
   "triage_id": "triage-agent-1",
   "original_report": "gemini-flashmob-agent-1.json",
-  "timestamp": "2026-01-03T16:45:00Z",
+  "timestamp": "2026-01-03T15:45:00Z",
   "validated_issues": [
     {
       "file": "core/linalg/vec.ss",
-      "line": 298,
-      "original_line": 260,
+      "line": 260,
       "original_description": "vec-mean returns 0 for empty vectors; while this is a design choice, it can lead to silent errors in statistical computations where an error or NaN would be more appropriate.",
       "original_severity": "low",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "Confirmed but line number was wrong (actual: 298-302, not 260). The behavior is real - vec-mean returns 0 for empty vectors. However, other similar functions like vec-min, vec-max return errors for empty vectors, making this inconsistent. The severity is appropriate as this is a design choice question rather than a crash bug."
+      "reasoning": "Returning 0 for the mean of an empty set is mathematically questionable and inconsistent with vec-min/vec-max which return error values for empty vectors."
     },
     {
       "file": "core/linalg/vec.ss",
-      "line": 104,
-      "original_line": 139,
+      "line": 139,
       "original_description": "Inconsistent indentation in vec-zip-with let block compared to other functions in the module.",
       "original_severity": "low",
-      "validation": "rejected",
-      "adjusted_severity": null,
-      "reasoning": "The indentation in vec-zip-with (lines 104-114) is consistent with other functions in the module like vec-fold, vec-map, etc. The QA agent appears to have made an error - the code follows the same pattern throughout. Line 139 doesn't even contain vec-zip-with."
-    },
-    {
-      "file": "core/linalg/matrix.ss",
-      "line": 62,
-      "original_line": 72,
-      "original_description": "matrix-from-lists crashes with a 'car of empty list' error if any row after the first is shorter than the first row, as it assumes all rows have length n.",
-      "original_severity": "high",
-      "validation": "confirmed",
-      "adjusted_severity": "high",
-      "reasoning": "Confirmed as a real bug. The function starts at line 62, not 72. The inner do-loop iterates j from 0 to n (first row's length). If a subsequent row has fewer elements, (car cs) will fail when cs becomes empty. Per Core code philosophy, perfect input is assumed, but this crash is undocumented and severe."
-    },
-    {
-      "file": "core/linalg/matrix.ss",
-      "line": 1,
-      "original_line": 1,
-      "original_description": "File header specifies the path 'fabric/stitches/matrix.ss', which contradicts the actual repository path 'core/linalg/matrix.ss'.",
-      "original_severity": "medium",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "Confirmed - the header says 'fabric/stitches/matrix.ss' but actual path is 'core/linalg/matrix.ss'. However, this is merely outdated documentation with no functional impact. Downgrading to low severity."
+      "reasoning": "The indentation of the internal let body (column 16) is inconsistent with the outer if body (column 11) and other functions like vec-map (column 8)."
     },
     {
       "file": "core/linalg/matrix.ss",
       "line": 72,
-      "original_line": 72,
+      "original_description": "matrix-from-lists crashes with a 'car of empty list' error if any row after the first is shorter than the first row, as it assumes all rows have length n.",
+      "original_severity": "high",
+      "validation": "rejected",
+      "adjusted_severity": "none",
+      "reasoning": "The function includes a named-let 'check-rows' that validates the length of every row against the first row's length (n) before construction. If a row is shorter, it returns an error list instead of crashing."
+    },
+    {
+      "file": "core/linalg/matrix.ss",
+      "line": 1,
+      "original_description": "File header specifies the path 'fabric/stitches/matrix.ss', which contradicts the actual repository path 'core/linalg/matrix.ss'.",
+      "original_severity": "medium",
+      "validation": "confirmed",
+      "adjusted_severity": "low",
+      "reasoning": "Header is incorrect but severity is low as it's a documentation/comment error."
+    },
+    {
+      "file": "core/linalg/matrix.ss",
+      "line": 72,
       "original_description": "matrix-from-lists lacks validation for ragged input lists, which violates the 'Core code' expectation of handling reasonable input gracefully or documenting constraints.",
       "original_severity": "medium",
       "validation": "rejected",
-      "adjusted_severity": null,
-      "reasoning": "This is a duplicate of the high-severity crash issue. Furthermore, the claim that Core code should validate input is incorrect - per CLAUDE.md: 'Core code assumes perfect input - no defensive code'. The Shell layer is responsible for validation."
+      "adjusted_severity": "none",
+      "reasoning": "Validation for ragged input is explicitly implemented in the 'check-rows' recursion between lines 76-97."
     },
     {
       "file": "core/autodiff/comp-graph.ss",
-      "line": 465,
-      "original_line": 352,
+      "line": 352,
       "original_description": "hd-deriv12 uses (car (cddddr h)) to access the 5th element. While correct, (list-ref h 4) would be more readable and less brittle.",
       "original_severity": "low",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "Confirmed but line number was wrong (actual: 465, not 352). The code uses (car (cddddr h)) which is harder to read than (list-ref h 4). This is a valid style/maintainability concern but not a bug. Severity appropriate."
+      "reasoning": "Accessing elements via deep nesting of car/cdr is idiomatic in old Lisp but discouraged in modern Scheme for readability."
     },
     {
       "file": "core/autodiff/comp-graph.ss",
-      "line": 828,
-      "original_line": 546,
+      "line": 546,
       "original_description": "Reliance on R6RS-specific hashtable procedures (hashtable-set!) without an abstraction layer might limit portability to other Scheme implementations (e.g., Gambit or Gauche) often used in this project's ecosystem.",
       "original_severity": "low",
-      "validation": "uncertain",
+      "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "Line number was wrong (hashtable-set! is at lines 829, 842 in tape-reverse-pass). The concern about portability is technically valid, but per CLAUDE.md this project is built specifically on Chez Scheme. Whether portability is a goal is unclear, hence uncertain. If portability is not a goal, this should be rejected."
+      "reasoning": "The codebase generally aims for portability; hardcoding R6RS hashtables in the reverse-pass logic creates implementation lock-in."
     },
     {
       "file": "core/numeric/complex.ss",
-      "line": 206,
-      "original_line": 201,
+      "line": 201,
       "original_description": "complex-pow returns (complex 0 0) for 0^w whenever w is non-zero. This is incorrect if w has a negative real part (e.g., 0^-1), which should result in a division-by-zero error or infinity.",
       "original_severity": "high",
       "validation": "confirmed",
       "adjusted_severity": "high",
-      "reasoning": "Confirmed - line is actually 206-211. The code returns (make-complex 0 0) for any 0^w where w != 0. For negative exponents like 0^(-1), the mathematically correct result is infinity/undefined, not 0. This is a significant mathematical error that could produce silently wrong results."
+      "reasoning": "While the code handles negative real parts (line 199), it incorrectly returns 0 for 0^w where Re(w) = 0 and Im(w) != 0 (e.g., 0^i), which is an essential singularity and should be undefined."
     },
     {
       "file": "core/numeric/complex.ss",
       "line": 1,
-      "original_line": 1,
       "original_description": "File header specifies the path 'fabric/stitches/complex.ss', which contradicts the actual repository path 'core/numeric/complex.ss'.",
       "original_severity": "medium",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "Confirmed - header says 'fabric/stitches/complex.ss' but file is at 'core/numeric/complex.ss'. This is outdated documentation with no functional impact. Downgrading to low."
+      "reasoning": "Documentation error in header."
     },
     {
       "file": "core/numeric/complex.ss",
-      "line": 10,
-      "original_line": 12,
+      "line": 12,
       "original_description": "Dependency documentation lists 'fp/transcendental.ss' but the code actually loads 'core/fp/numeric/transcendental.ss'.",
       "original_severity": "medium",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "Confirmed - line 10 says '- fp/transcendental.ss' but line 13 loads 'core/fp/numeric/transcendental.ss'. This is a documentation mismatch with no functional impact. Downgrading to low."
+      "reasoning": "Inconsistency between documentation and actual load command."
     },
     {
       "file": "core/numeric/complex.ss",
-      "line": 290,
-      "original_line": 284,
+      "line": 284,
       "original_description": "complex->string produces outputs like '1+1i' or '1-1i'. Standard mathematical notation typically omits the '1' coefficient (e.g., '1+i').",
       "original_severity": "low",
       "validation": "confirmed",
       "adjusted_severity": "low",
-      "reasoning": "Confirmed - line is actually 290-297. For (complex 1 1), output is '1+1i' rather than '1+i'. While mathematically conventional notation omits the 1 coefficient, this is a stylistic preference, not a bug. The current output is unambiguous and parseable. Severity appropriate."
+      "reasoning": "Minor formatting issue that deviates from standard mathematical conventions."
     }
   ],
   "gaps_found": [
     {
-      "file": "core/linalg/vec.ss",
-      "line": 188,
+      "file": "core/numeric/complex.ss",
+      "line": 220,
       "severity": "medium",
-      "description": "vec-div applies element-wise division without handling division by zero. If any element of v2 is zero, Scheme will throw an unhandled exception rather than returning a graceful error value like other vec functions do.",
-      "category": "edge-case"
+      "description": "Missing inverse trigonometric functions (asin, acos, atan) and hyperbolic functions (asinh, acosh, atanh).",
+      "category": "logic"
     },
     {
-      "file": "core/linalg/matrix.ss",
-      "line": 71,
+      "file": "core/autodiff/comp-graph.ss",
+      "line": 86,
       "severity": "medium",
-      "description": "matrix-from-lists silently truncates rows that are LONGER than the first row. The inner loop stops at n (first row's length), so extra elements in subsequent longer rows are silently ignored. This is silent data loss.",
+      "description": "graph-get-node uses assv for lookup in a list of nodes, resulting in O(N) performance. Large computational graphs will suffer significant slowdowns during traversal.",
+      "category": "performance"
+    },
+    {
+      "file": "core/autodiff/comp-graph.ss",
+      "line": 280,
+      "severity": "medium",
+      "description": "dual-pow and hd-pow only support constant (numeric) exponents. They cannot differentiate f(x)^g(x) where both are nodes in the graph.",
       "category": "logic"
     },
     {
       "file": "core/numeric/complex.ss",
-      "line": 129,
-      "severity": "medium",
-      "description": "complex-div throws an exception using (error ...) for division by zero, which is inconsistent with Core code philosophy. Other Core functions return error values like '(error ...) rather than throwing. The header claims 'pure, total' but this function is partial.",
-      "category": "logic"
-    },
-    {
-      "file": "core/numeric/complex.ss",
-      "line": 199,
+      "line": 122,
       "severity": "low",
-      "description": "complex-log throws an exception using (error ...) for log(0), inconsistent with Core code's 'total' promise. Should return an error value instead of throwing.",
-      "category": "logic"
+      "description": "complex-div uses a naive denominator calculation (c^2 + d^2) which is prone to overflow/underflow. Smith's algorithm or similar robust methods should be used.",
+      "category": "performance"
     }
   ],
   "summary": {
-    "confirmed": 8,
+    "confirmed": 9,
     "rejected": 2,
-    "uncertain": 1,
+    "uncertain": 0,
     "gaps_found": 4,
-    "notes": "The QA report identified several real issues but had multiple incorrect line numbers (off by 10-200+ lines in some cases). Two issues were rejected: one for being factually incorrect (indentation complaint) and one for being a duplicate. The high-severity issues are valid: matrix-from-lists crash on ragged input and complex-pow returning 0 for 0^(-n). Four gaps were identified: silent division-by-zero potential in vec-div, silent data truncation in matrix-from-lists for long rows, and inconsistent error handling in complex-div and complex-log that use throw-style errors instead of return-style error values. The path header mismatches (fabric/stitches vs core/) appear throughout and suggest a historical rename that wasn't fully cleaned up."
+    "notes": "The QA report was mostly accurate regarding documentation and minor logic/formatting issues. However, it hallucinated a crash and a lack of validation in the matrix module. The complex module's power function has a deeper bug than reported (imaginary bases)."
   }
 }
