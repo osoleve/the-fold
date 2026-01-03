@@ -220,7 +220,8 @@
             (define-test subst-sum
               (let* ([orig (list '+ (var 'x) (num 1))]
                      [result (subst orig 'x (num 5))])
-                    (assert-true (expr=? (list '+ (num 5) (num 1)) result))))
+                    ;; Smart constructors simplify: 5 + 1 = 6
+                    (assert-true (expr=? (num 6) result))))
             
             (define-test subst-nested
               (let* ([orig (make-pow (var 'x) (num 2))]

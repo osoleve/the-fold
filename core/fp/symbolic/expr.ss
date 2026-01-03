@@ -143,16 +143,27 @@
 
 ;;; power : Expr × Expr → Expr
 ;;; Create a power with basic simplifications.
+;;;
+;;; Note: 0^0 is undefined mathematically, but this implementation
+;;; follows the common convention in computer algebra systems and
+;;; returns 1. This is consistent with the empty product interpretation
+;;; and simplifies many combinatorial formulas. Override this behavior
+;;; in shell code if needed.
 (define (power base exp)
   (cond
-   ;; x^0 = 1
+   ;; x^0 = 1 (including 0^0 = 1, see note above)
    [(and (num? exp) (= (num-val exp) 0)) (num 1)]
    ;; x^1 = x
    [(and (num? exp) (= (num-val exp) 1)) base]
-   ;; 0^n = 0 (for n > 0)
-   [(and (num? base) (= (num-val base) 0)
-         (num? exp) (> (num-val exp) 0))
-    (num 0)]
+   ;; 0^n: returns 0 for n > 0, error for n < 0
+   [(and (num? base) (= (num-val base) 0) (num? exp))
+    (cond
+     [(> (num-val exp) 0) (num 0)]
+     [(< (num-val exp) 0)
+      ;; 0^negative is undefined - return symbolic form
+      ;; Shell layer should validate/reject if needed
+      (list '^ base exp)]
+     [else (num 1)])]  ;; 0^0 case
    ;; 1^n = 1
    [(and (num? base) (= (num-val base) 1)) (num 1)]
    ;; n1^n2 when both numeric and n2 is small integer
@@ -435,6 +446,7 @@
 
 ;;; subst : Expr × Symbol × Expr → Expr
 ;;; Substitute val for var-sym in expression.
+;;; Uses smart constructors to maintain simplification invariants.
 (define (subst expr var-sym val)
   (cond
    [(num? expr) expr]
@@ -443,20 +455,28 @@
         val
         expr)]
    [(sum? expr)
-    (make-sum (map (lambda (e) (subst e var-sym val)) (sum-terms expr)))]
+    ;; Use smart constructor for binary sums, fallback for n-ary
+    (let ([subst-terms (map (lambda (e) (subst e var-sym val)) (sum-terms expr))])
+         (if (= (length subst-terms) 2)
+             (sum (car subst-terms) (cadr subst-terms))
+             (make-sum subst-terms)))]
    [(product? expr)
-    (make-product (map (lambda (e) (subst e var-sym val)) (product-factors expr)))]
+    ;; Use smart constructor for binary products, fallback for n-ary
+    (let ([subst-factors (map (lambda (e) (subst e var-sym val)) (product-factors expr))])
+         (if (= (length subst-factors) 2)
+             (product (car subst-factors) (cadr subst-factors))
+             (make-product subst-factors)))]
    [(difference? expr)
     (if (diff-right expr)
-        (make-diff (subst (diff-left expr) var-sym val)
-                   (subst (diff-right expr) var-sym val))
+        (difference (subst (diff-left expr) var-sym val)
+                    (subst (diff-right expr) var-sym val))
         (make-neg (subst (diff-left expr) var-sym val)))]
    [(quotient? expr)
-    (make-div (subst (quot-numer expr) var-sym val)
+    (quotient (subst (quot-numer expr) var-sym val)
               (subst (quot-denom expr) var-sym val))]
    [(power? expr)
-    (make-pow (subst (pow-base expr) var-sym val)
-              (subst (pow-exp expr) var-sym val))]
+    (power (subst (pow-base expr) var-sym val)
+           (subst (pow-exp expr) var-sym val))]
    [(app? expr)
     (make-app (app-fn expr) (subst (app-arg expr) var-sym val))]
    [else expr]))
