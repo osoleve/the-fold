@@ -274,7 +274,26 @@
                                                          (eff-bind state-get
                                                                    (lambda (outer-state)
                                                                            (eff-return (list inner-result outer-state)))))))])
-                   (assert-equal '(1 100) (car result)))))
+                   (assert-equal '(1 100) (car result))))
+            
+            (define-test make-state-handler-threads-state-test
+              ;; Test that make-state-handler properly threads state through
+              ;; This is a regression test for the bug where return case
+              ;; was (lambda (a) (cons a init-state)) instead of threading state
+              (let* ([handler (make-state-handler 0)]
+                     [computation (eff-bind (state-put 10)
+                                            (lambda (_)
+                                                    (eff-bind (state-put 20)
+                                                              (lambda (_)
+                                                                      (eff-bind state-get
+                                                                                (lambda (s)
+                                                                                        (eff-return s)))))))]
+                     [result-fn (handle handler computation)]
+                     [result (result-fn 0)])  ; Apply the state-threading function
+                    ;; Should return (20 . 20) because state was threaded through
+                    ;; Bug would have returned (20 . 0) with init-state
+                    (assert-equal 20 (car result))
+                    (assert-equal 20 (cdr result)))))
 
 ;;; ============================================================
 ;;; Reader Effect Tests

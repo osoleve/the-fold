@@ -194,10 +194,14 @@
 ;;; Power function using repeated squaring.
 (define (d-pow inst x n)
   (let ([d* (get-method inst 'd*)]
+        [d/ (get-method inst 'd/)]
         [lift (get-method inst 'lift)])
        (cond
         [(= n 0) (lift 1)]
         [(= n 1) x]
+        [(< n 0)
+         ;; x^(-n) = 1 / x^n
+         (d/ (lift 1) (d-pow inst x (- n)))]
         [(even? n)
          (let ([half (d-pow inst x (/ n 2))])
               (d* half half))]

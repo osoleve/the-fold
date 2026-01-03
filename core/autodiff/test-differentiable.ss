@@ -194,7 +194,22 @@
      (let* ([x (dual-variable 5)]
             [result (d-pow inst x 0)])
            (test "d-pow x^0 value" 1 (dual-value result))
-           (test "d-pow x^0 deriv" 0 (dual-deriv result))))
+           (test "d-pow x^0 deriv" 0 (dual-deriv result)))
+     ;; x^(-1) at x=2 should give value 0.5, derivative -0.25 (d/dx x^-1 = -x^-2)
+     (let* ([x (dual-variable 2)]
+            [result (d-pow inst x -1)])
+           (test-approx "d-pow x^-1 value" 0.5 (dual-value result) 0.0001)
+           (test-approx "d-pow x^-1 deriv" -0.25 (dual-deriv result) 0.0001))
+     ;; x^(-2) at x=2 should give value 0.25, derivative -0.25 (d/dx x^-2 = -2*x^-3)
+     (let* ([x (dual-variable 2)]
+            [result (d-pow inst x -2)])
+           (test-approx "d-pow x^-2 value" 0.25 (dual-value result) 0.0001)
+           (test-approx "d-pow x^-2 deriv" -0.25 (dual-deriv result) 0.0001))
+     ;; x^(-3) at x=2 should give value 0.125, derivative -0.1875 (d/dx x^-3 = -3*x^-4)
+     (let* ([x (dual-variable 2)]
+            [result (d-pow inst x -3)])
+           (test-approx "d-pow x^-3 value" 0.125 (dual-value result) 0.0001)
+           (test-approx "d-pow x^-3 deriv" -0.1875 (dual-deriv result) 0.0001)))
 
 ;;; ============================================================
 ;;; Test derivative-at

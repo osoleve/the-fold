@@ -496,9 +496,11 @@
 
 ;;; make-state-handler : s -> Handler
 ;;; Create a state handler with initial state
+;;; NOTE: This handler is not used by run-state; kept for composability.
+;;; The handler itself returns a function (s -> (a . s)) that threads state.
 (define (make-state-handler init-state)
   (deep-handler
-   (lambda (a) (cons a init-state))  ; Will be replaced by stateful version
+   (lambda (a) (lambda (s) (cons a s)))  ; Thread the state through
    `((state-get . ,(lambda (payload k)
                            (lambda (s) ((k s) s))))
      (state-put . ,(lambda (payload k)

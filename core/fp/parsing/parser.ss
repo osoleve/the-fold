@@ -449,16 +449,49 @@
 
 ;;; many : Parser a → Parser (List a)
 ;;; Zero or more occurrences.
+;;; Detects and breaks infinite loops when parser succeeds without consuming input.
 (define (many p)
-  (parser-or (some p) (parser-pure '())))
+  (make-parser
+   (lambda (state)
+           (let loop ([acc '()]
+                      [current-state state])
+                (let ([start-offset (pos-offset (state-pos current-state))]
+                      [result (run-parser p current-state)])
+                     (if (right? result)
+                         (let* ([val-state (from-right result)]
+                                [val (car val-state)]
+                                [new-state (cdr val-state)]
+                                [end-offset (pos-offset (state-pos new-state))])
+                               ;; Check if any input was consumed
+                               (if (= start-offset end-offset)
+                                   ;; No input consumed - break to avoid infinite loop
+                                   (right (cons (reverse acc) current-state))
+                                   ;; Input consumed - continue
+                                   (loop (cons val acc) new-state)))
+                         ;; Parser failed - return accumulated results
+                         (right (cons (reverse acc) current-state))))))))
 
 ;;; some : Parser a → Parser (List a)
 ;;; One or more occurrences.
+;;; Detects and breaks infinite loops when parser succeeds without consuming input.
 (define (some p)
-  (parser-bind p (lambda (x)
-                         (parser-bind (many p)
-                                      (lambda (xs)
-                                              (parser-pure (cons x xs)))))))
+  (make-parser
+   (lambda (state)
+           (let ([first-result (run-parser p state)])
+                (if (left? first-result)
+                    ;; First parse failed
+                    first-result
+                    (let* ([val-state (from-right first-result)]
+                           [val (car val-state)]
+                           [new-state (cdr val-state)])
+                          ;; Now get the rest with many
+                          (let ([rest-result (run-parser (many p) new-state)])
+                               (if (right? rest-result)
+                                   (let* ([rest-val-state (from-right rest-result)]
+                                          [rest-vals (car rest-val-state)]
+                                          [final-state (cdr rest-val-state)])
+                                         (right (cons (cons val rest-vals) final-state)))
+                                   rest-result))))))))
 
 ;;; count : Nat × Parser a → Parser (List a)
 ;;; Exactly n occurrences.
