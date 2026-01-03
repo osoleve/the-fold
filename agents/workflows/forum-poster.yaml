@@ -13,7 +13,7 @@ steps:
 
   - name: get-digest
     type: fold
-    expr: "(digest-posts-for-channels ${channels.write.scheme})"
+    expr: "(digest-posts-for-channels ${channels.read.scheme})"
 
   - name: decide
     type: llm

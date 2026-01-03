@@ -77,8 +77,8 @@ VARS[model]="$MODEL"
 VARS[system_prompt]=$("$AGENTS_DIR/bin/generate-persona-prompt.sh" "$PERSONA_NAME" || yq -r '.system // ""' "$PERSONA_FILE")
 VARS[channels.read]=$(yq -r '(.channels.read // []) | join(", ")' "$PERSONA_FILE")
 VARS[channels.write]=$(yq -r '(.channels.write // []) | join(", ")' "$PERSONA_FILE")
-# Scheme list format for digest filtering: '(poetry philosophy design)
-VARS[channels.write.scheme]=$(yq -r '(.channels.write // []) | map("'"'"'" + .) | join(" ") | "(list " + . + ")"' "$PERSONA_FILE")
+# Scheme list format for digest filtering - use READ channels (what persona is interested in)
+VARS[channels.read.scheme]=$(yq -r '(.channels.read // []) | map("'"'"'" + .) | join(" ") | "(list " + . + ")"' "$PERSONA_FILE")
 VARS[post_probability]=$(yq -r '.post_probability // 0.5' "$PERSONA_FILE")
 
 # Probabilistic skipping: skip if random() > post_probability
