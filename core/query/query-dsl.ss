@@ -569,95 +569,112 @@
 
 ;;; query-string-contains? : String String -> Boolean
 ;;; Check if haystack contains needle as a substring.
+;;; Optimized: char-by-char comparison avoids O(N*M) substring allocations.
 (define (query-string-contains? haystack needle)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i n-len) h-len) #f]
-             [(string=? (substring haystack i (+ i n-len)) needle) #t]
-             [else (loop (+ i 1))]))))
-
-;;; bytevector-hash : Bytevector -> Integer
-;;; Hash function for bytevectors (for use in hashtables).
-(define (bytevector-hash bv)
-  (let ([len (bytevector-length bv)])
-       (let loop ([i 0] [h 0])
-            (if (>= i len)
-                (modulo (abs h) (expt 2 30))
-                (loop (+ i 1)
-                      (+ (* h 31) (bytevector-u8-ref bv i)))))))
-
-;;; ============================================================
-;;; Section 10: Query Result Formatting
-;;; ============================================================
-;;;
-;;; Functions for displaying query results.
-
-;;; print-query-results : (List Block) -> Void
-;;; Print a list of blocks in a human-readable format.
-(define (print-query-results blocks)
-  (printf "Query returned ~a result(s):\n" (length blocks))
-  (for-each
-   (lambda (block)
-           (printf "  [~a] ~a bytes, ~a refs\n"
-                   (block-tag block)
-                   (bytevector-length (block-payload block))
-                   (vector-length (block-refs block))))
-   blocks))
-
-;;; print-projection-results : (List Alist) -> Void
-;;; Print projection results (alists).
-(define (print-projection-results results)
-  (printf "Query returned ~a result(s):\n" (length results))
-  (for-each
-   (lambda (alist)
-           (printf "  {")
-           (let loop ([pairs alist] [first #t])
-                (when (pair? pairs)
-                      (unless first (printf ", "))
-                      (printf "~a: ~a" (caar pairs) (cdar pairs))
-                      (loop (cdr pairs) #f)))
-           (printf "}\n"))
-   results))
-
-;;; ============================================================
-;;; Module Export Summary
-;;; ============================================================
-;;;
-;;; Main API:
-;;;   query              - Execute a query expression
-;;;   query-count        - Count matching blocks
-;;;   query-group-by     - Group results by field
-;;;
-;;; Convenience functions:
-;;;   find-entities      - Find entity blocks
-;;;   find-relations     - Find relation blocks
-;;;   find-collections   - Find collection blocks
-;;;   find-by-content    - Find by payload content
-;;;   find-with-refs     - Find blocks with references
-;;;   find-orphans       - Find unreferenced blocks
-;;;
-;;; Query builders:
-;;;   make-tag-query     - Create tag match query
-;;;   make-content-query - Create content search query
-;;;   make-and-query     - Create AND query
-;;;   make-or-query      - Create OR query
-;;;   make-not-query     - Create NOT query
-;;;   make-select-query  - Create projection query
-;;;
-;;; Reference traversal:
-;;;   refs-to-query      - Find blocks referencing hash
-;;;   refs-from-query    - Find blocks referenced by hash
-;;;   refs-transitive    - Transitive reference closure
-;;;
-;;; Display:
-;;;   print-query-results      - Print block list
-;;;   print-projection-results - Print projection results
-
-(printf "Query DSL loaded.\n")
-(printf "  Use (query fs expr) to execute queries.\n")
-(printf "  Examples:\n")
-(printf "    (query fs '(tag . entity))\n")
-(printf "    (query fs '(and (tag . entity) (payload-contains . \"Turing\")))\n")
-(printf "    (query fs '(select (tag payload-size) (where (tag . entity))))\n")
+       (cond
+        [(= n-len 0) #t]  ; Empty needle always matches
+        [(> n-len h-len) #f]  ; Needle longer than haystack
+        [else
+         (let ([first-char (string-ref needle 0)])
+              ;; Scan for first character match, then verify rest
+              (let outer ([i 0])
+                   (cond
+                    [(> (+ i n-len) h-len) #f]
+                    [(char=? (string-ref haystack i) first-char)
+                     ;; First char matches, check remaining chars
+                     (if (let inner ([j 1])
+                              (cond
+                               [(= j n-len) #t]  ; All chars matched
+                               [(char=? (string-ref haystack (+ i j))
+                                        (string-ref needle j))
+                                (inner (+ j 1))]
+                               [else #f]))
+                         #t
+                         (outer (+ i 1)))]
+                    [else (outer (+ i 1))])))]))
+  
+  ;;; bytevector-hash : Bytevector -> Integer
+  ;;; Hash function for bytevectors (for use in hashtables).
+  (define (bytevector-hash bv)
+    (let ([len (bytevector-length bv)])
+         (let loop ([i 0] [h 0])
+              (if (>= i len)
+                  (modulo (abs h) (expt 2 30))
+                  (loop (+ i 1)
+                        (+ (* h 31) (bytevector-u8-ref bv i)))))))
+  
+  ;;; ============================================================
+  ;;; Section 10: Query Result Formatting
+  ;;; ============================================================
+  ;;;
+  ;;; Functions for displaying query results.
+  
+  ;;; print-query-results : (List Block) -> Void
+  ;;; Print a list of blocks in a human-readable format.
+  (define (print-query-results blocks)
+    (printf "Query returned ~a result(s):\n" (length blocks))
+    (for-each
+     (lambda (block)
+             (printf "  [~a] ~a bytes, ~a refs\n"
+                     (block-tag block)
+                     (bytevector-length (block-payload block))
+                     (vector-length (block-refs block))))
+     blocks))
+  
+  ;;; print-projection-results : (List Alist) -> Void
+  ;;; Print projection results (alists).
+  (define (print-projection-results results)
+    (printf "Query returned ~a result(s):\n" (length results))
+    (for-each
+     (lambda (alist)
+             (printf "  {")
+             (let loop ([pairs alist] [first #t])
+                  (when (pair? pairs)
+                        (unless first (printf ", "))
+                        (printf "~a: ~a" (caar pairs) (cdar pairs))
+                        (loop (cdr pairs) #f)))
+             (printf "}\n"))
+     results))
+  
+  ;;; ============================================================
+  ;;; Module Export Summary
+  ;;; ============================================================
+  ;;;
+  ;;; Main API:
+  ;;;   query              - Execute a query expression
+  ;;;   query-count        - Count matching blocks
+  ;;;   query-group-by     - Group results by field
+  ;;;
+  ;;; Convenience functions:
+  ;;;   find-entities      - Find entity blocks
+  ;;;   find-relations     - Find relation blocks
+  ;;;   find-collections   - Find collection blocks
+  ;;;   find-by-content    - Find by payload content
+  ;;;   find-with-refs     - Find blocks with references
+  ;;;   find-orphans       - Find unreferenced blocks
+  ;;;
+  ;;; Query builders:
+  ;;;   make-tag-query     - Create tag match query
+  ;;;   make-content-query - Create content search query
+  ;;;   make-and-query     - Create AND query
+  ;;;   make-or-query      - Create OR query
+  ;;;   make-not-query     - Create NOT query
+  ;;;   make-select-query  - Create projection query
+  ;;;
+  ;;; Reference traversal:
+  ;;;   refs-to-query      - Find blocks referencing hash
+  ;;;   refs-from-query    - Find blocks referenced by hash
+  ;;;   refs-transitive    - Transitive reference closure
+  ;;;
+  ;;; Display:
+  ;;;   print-query-results      - Print block list
+  ;;;   print-projection-results - Print projection results
+  
+  (printf "Query DSL loaded.\n")
+  (printf "  Use (query fs expr) to execute queries.\n")
+  (printf "  Examples:\n")
+  (printf "    (query fs '(tag . entity))\n")
+  (printf "    (query fs '(and (tag . entity) (payload-contains . \"Turing\")))\n")
+  (printf "    (query fs '(select (tag payload-size) (where (tag . entity))))\n")

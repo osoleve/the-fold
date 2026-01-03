@@ -230,10 +230,31 @@
             (not (string-prefix? ";;;" trimmed)))))
 
 ;;; find-uncovered-lines : Path × (List CoverageEntry) → (List Nat)
+;;; Returns line numbers that are executable but not covered.
+;;; O(E + L) where E = covered entries, L = executable lines.
 (define (find-uncovered-lines file covered-entries)
-  ;; Simplified: return empty for now
-  ;; In real implementation, would diff against all executable lines
-  '())
+  ;; Build set of covered line numbers for O(1) lookup
+  (let ([covered-set (make-eq-hashtable)])
+       ;; Populate with covered lines
+       (for-each
+        (lambda (entry)
+                (hashtable-set! covered-set (coverage-entry-line entry) #t))
+        covered-entries)
+       
+       ;; Scan file for executable lines not in covered set
+       (guard (e [else '()])  ; Return empty on file read errors
+              (call-with-input-file file
+                                    (lambda (port)
+                                            (let loop ([line-num 1]
+                                                       [uncovered '()])
+                                                 (let ([line (get-line port)])
+                                                      (if (eof-object? line)
+                                                          (reverse uncovered)
+                                                          (loop (+ line-num 1)
+                                                                (if (and (executable-line? line)
+                                                                         (not (hashtable-ref covered-set line-num #f)))
+                                                                    (cons line-num uncovered)
+                                                                    uncovered))))))))))
 
 ;;; count-covered-functions : (List FunctionCoverage) → Nat
 (define (count-covered-functions fn-list)

@@ -12,23 +12,28 @@
 function parseTrigger(text) {
   const result = {};
 
-  // Match patterns like: (key . value) or (key . "quoted value")
-  // Handle multi-line by processing the whole text
+  // Strip comments (lines starting with ; after trimming)
+  let normalized = text
+    .split('\n')
+    .filter(line => !line.trim().startsWith(';'))
+    .join('\n')
+    .trim();
 
-  // First, normalize the text (remove outer parens if present)
-  let normalized = text.trim();
+  // Remove outer parens if present (alist wrapper)
   if (normalized.startsWith('((') && normalized.endsWith('))')) {
     normalized = normalized.slice(1, -1);
   }
 
   // Match each key-value pair
-  // Pattern: (key . value) where value can be quoted or unquoted
-  const pairRegex = /\((\w[\w-]*)\s+\.\s+("(?:[^"\\]|\\.)*"|[^)\s]+)\)/g;
+  // Pattern: (key . value) where value can be:
+  //   - Quoted string: "..."
+  //   - Symbol/number: balanced parens or atom ending at close paren
+  const pairRegex = /\((\w[\w-]*)\s+\.\s+("(?:[^"\\]|\\.)*"|[^)]+)\)/g;
 
   let match;
   while ((match = pairRegex.exec(normalized)) !== null) {
     const key = match[1];
-    let value = match[2];
+    let value = match[2].trim();
 
     // Remove quotes and unescape if quoted
     if (value.startsWith('"') && value.endsWith('"')) {
@@ -36,6 +41,8 @@ function parseTrigger(text) {
         .replace(/\\n/g, '\n')
         .replace(/\\r/g, '\r')
         .replace(/\\t/g, '\t')
+        .replace(/\\b/g, '\b')
+        .replace(/\\f/g, '\f')
         .replace(/\\"/g, '"')
         .replace(/\\\\/g, '\\');
     }

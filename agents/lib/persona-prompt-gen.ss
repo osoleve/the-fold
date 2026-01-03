@@ -26,32 +26,35 @@
 
 ;; Determine fragments directory - tries multiple fallback paths
 (define (get-fragments-dir)
-  (let* ([cwd (current-directory)]
-         [candidates (list
-                      ;; Try relative to current working directory
-                      (string-append cwd "/agents/personas/fragments/")
-                      ;; Try relative to a common project root
-                      "/home/oso/the-fold/agents/personas/fragments/"
-                      ;; Try relative to Fold root (if cwd is inside project)
-                      (let loop ([path cwd])
-                           (if (string=? path "/")
-                               #f
-                               (let ([candidate (string-append path "/agents/personas/fragments/")])
-                                    (if (file-exists? candidate)
-                                        candidate
-                                        (loop (let ([last-slash (string-rindex path #\/)])
-                                                   (if last-slash
-                                                       (substring path 0 last-slash)
-                                                       "/"))))))))])
-        ;; Return first valid path
-        (let loop ([paths candidates])
-             (if (null? paths)
-                 (error 'get-fragments-dir
-                        "Could not locate fragments directory. Set FOLD_FRAGMENTS environment variable.")
-                 (let ([path (car paths)])
-                      (if (and path (file-exists? path))
-                          path
-                          (loop (cdr paths))))))))
+  ;; Check env var first (as documented in error message)
+  (let ([env-dir (getenv "FOLD_FRAGMENTS")])
+       (if (and env-dir (file-exists? env-dir))
+           env-dir
+           ;; Fall back to directory discovery
+           (let* ([cwd (current-directory)]
+                  [candidates (list
+                               ;; Try relative to current working directory
+                               (string-append cwd "/agents/personas/fragments/")
+                               ;; Try walking up to find project root
+                               (let loop ([path cwd])
+                                    (if (string=? path "/")
+                                        #f
+                                        (let ([candidate (string-append path "/agents/personas/fragments/")])
+                                             (if (file-exists? candidate)
+                                                 candidate
+                                                 (loop (let ([last-slash (string-rindex path #\/)])
+                                                            (if last-slash
+                                                                (substring path 0 last-slash)
+                                                                "/"))))))))])
+                 ;; Return first valid path
+                 (let loop ([paths candidates])
+                      (if (null? paths)
+                          (error 'get-fragments-dir
+                                 "Could not locate fragments directory. Set FOLD_FRAGMENTS environment variable.")
+                          (let ([path (car paths)])
+                               (if (and path (file-exists? path))
+                                   path
+                                   (loop (cdr paths))))))))))
 
 ;; Cache for loaded fragments to avoid redundant loads
 (define *fragment-cache* (make-eq-hashtable))

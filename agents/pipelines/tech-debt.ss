@@ -27,35 +27,35 @@
                (chain
                 (log "Gathering codebase metrics")
                 
-                ;; Parallel metric collection
-                (stage-pure '())  ; Start with empty context
-                
+                ;; Collect all 6 metrics in parallel with proper nesting
+                ;; Structure: ((line . file) . ((todo . fixme) . (test . issues)))
                 (stage-&&&
-                 ;; Line counts
-                 (run-shell "find core shell -name '*.ss' -exec wc -l {} + | tail -1")
-                 ;; File counts
-                 (run-shell "find core shell -name '*.ss' | wc -l"))
+                 ;; Left branch: line and file counts
+                 (stage-&&&
+                  (run-shell "find core shell -name '*.ss' -exec wc -l {} + | tail -1")
+                  (run-shell "find core shell -name '*.ss' | wc -l"))
+                 ;; Right branch: remaining 4 metrics
+                 (stage-&&&
+                  (stage-&&&
+                   (run-shell "grep -r 'TODO' core shell --include='*.ss' | wc -l")
+                   (run-shell "grep -r 'FIXME' core shell --include='*.ss' | wc -l"))
+                  (stage-&&&
+                   (run-shell "find . -name 'test-*.ss' | wc -l")
+                   (run-shell "bd list --status=open | wc -l"))))
                 
-                (stage-&&&
-                 ;; TODO count
-                 (run-shell "grep -r 'TODO' core shell --include='*.ss' | wc -l")
-                 ;; FIXME count
-                 (run-shell "grep -r 'FIXME' core shell --include='*.ss' | wc -l"))
-                
-                (stage-&&&
-                 ;; Test count
-                 (run-shell "find . -name 'test-*.ss' | wc -l")
-                 ;; Open issues
-                 (run-shell "bd list --status=open | wc -l"))
-                
-                ;; Structure results
+                ;; Structure results from nested pairs
+                ;; Input: ((line . file) . ((todo . fixme) . (test . issues)))
                 (stage-arr (lambda (metrics)
-                                   (list (cons 'line-count (caar metrics))
-                                         (cons 'file-count (cdar metrics))
-                                         (cons 'todo-count (caadr metrics))
-                                         (cons 'fixme-count (cdadr metrics))
-                                         (cons 'test-count (caaddr metrics))
-                                         (cons 'open-issues (cdaddr metrics)))))
+                                   (let ([left (car metrics)]      ; (line . file)
+                                         [right (cdr metrics)])    ; ((todo . fixme) . (test . issues))
+                                        (let ([todo-fixme (car right)]
+                                              [test-issues (cdr right)])
+                                             (list (cons 'line-count (car left))
+                                                   (cons 'file-count (cdr left))
+                                                   (cons 'todo-count (car todo-fixme))
+                                                   (cons 'fixme-count (cdr todo-fixme))
+                                                   (cons 'test-count (car test-issues))
+                                                   (cons 'open-issues (cdr test-issues)))))))
                 
                 (save 'metrics))))
 

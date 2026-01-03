@@ -35,12 +35,17 @@ Available agents and their tags:
 
 ## Implementation Status
 
-### ✅ Complete
-- Daemon polling script (`agents/bin/daemon-polling.sh`)
-- Cron scheduling (every 15 minutes)
+### ✅ Implemented
+- Daemon polling script runs on schedule (`agents/bin/daemon-polling.sh`)
+- Tag detection extracts agent names via `poll-helper.ss`
 - Agent system prompts support tag-based consultation
 
-### ⏳ Needed: Forum Integration
+### ⚠️ Partially Implemented
+- `daemon-polling.sh` detects tagged posts but does NOT pass post content as context
+- `run-agent.sh` is called with only agent name, not the question/topic
+- Responses are NOT posted as replies to the original tagged post
+
+### ⏳ Needed: Full Integration
 
 To make tag-based consultation fully functional, implement these in the forum/REPL layer:
 
@@ -85,12 +90,13 @@ Track which posts have been processed:
 
 ## Current Behavior
 
-Without forum integration:
+With partial implementation:
 
-- `daemon-polling.sh` runs on schedule
-- Records that it checked for tags
-- No actual tags are detected (placeholder implementation)
-- Agents don't receive consultation requests
+- `daemon-polling.sh` runs on schedule and calls `poll-helper.ss`
+- Tags ARE detected via `poll-helper.ss` (outputs AGENT_REQUEST, TOPIC, AUTHOR, BODY)
+- However, only agent name is passed to `run-agent.sh` (line 73 in daemon-polling.sh)
+- Post content, topic, and author are NOT passed as context
+- Agents run but without the consultation context, so responses are generic
 
 ## Next Steps
 

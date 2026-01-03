@@ -369,16 +369,33 @@
 ;;; ============================================================
 
 ;;; query-string-contains? : String String -> Boolean
-;;; Helper for string containment check (may already exist in query-dsl.ss).
+;;; Helper for string containment check.
+;;; Optimized: char-by-char comparison avoids O(N*M) substring allocations.
 (define (query-string-contains? haystack needle)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i n-len) h-len) #f]
-             [(string=? (substring haystack i (+ i n-len)) needle) #t]
-             [else (loop (+ i 1))]))))
-
-(printf "Query pattern matching loaded\n")
-(printf "  Advanced Datalog-style patterns with variable binding\n")
-(printf "  Usage: (pattern-query fs '((?x rel ?y)) '((< ?y 100)))\n")
+       (cond
+        [(= n-len 0) #t]  ; Empty needle always matches
+        [(> n-len h-len) #f]  ; Needle longer than haystack
+        [else
+         (let ([first-char (string-ref needle 0)])
+              ;; Scan for first character match, then verify rest
+              (let outer ([i 0])
+                   (cond
+                    [(> (+ i n-len) h-len) #f]
+                    [(char=? (string-ref haystack i) first-char)
+                     ;; First char matches, check remaining chars
+                     (if (let inner ([j 1])
+                              (cond
+                               [(= j n-len) #t]  ; All chars matched
+                               [(char=? (string-ref haystack (+ i j))
+                                        (string-ref needle j))
+                                (inner (+ j 1))]
+                               [else #f]))
+                         #t
+                         (outer (+ i 1)))]
+                    [else (outer (+ i 1))]))])))
+  
+  (printf "Query pattern matching loaded\n")
+  (printf "  Advanced Datalog-style patterns with variable binding\n")
+  (printf "  Usage: (pattern-query fs '((?x rel ?y)) '((< ?y 100)))\n")

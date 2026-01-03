@@ -49,10 +49,11 @@
   (*traced-id-counter* 0))
 
 ;;; with-fresh-ad-scope : (-> a) -> a
-;;; Execute a computation in a fresh AD scope with its own ID counter.
+;;; Execute a computation in a fresh AD scope with its own ID counter and tape.
 ;;; This enables nested gradient computations without corrupting outer scopes.
 (define (with-fresh-ad-scope thunk)
-  (parameterize ([*traced-id-counter* 0])
+  (parameterize ([*traced-id-counter* 0]
+                 [*current-tape* #f])
                 (thunk)))
 
 ;;; traced : Number x Nat x Tape -> Traced
@@ -80,8 +81,8 @@
 ;;; Mutable Tape for Recording
 ;;; ============================================================
 
-;;; Global tape for current computation
-(define *current-tape* #f)
+;;; Global tape for current computation (parameterized for nested AD)
+(define *current-tape* (make-parameter #f))
 
 ;;; make-reverse-tape : -> MutableTape
 ;;; Create a new mutable tape.
