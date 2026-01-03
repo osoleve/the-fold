@@ -96,7 +96,7 @@
 (define (V-pair? v)
   (and (pair? v) (eq? (car v) 'V-pair)))
 
-;;; V-pair-fst v) (cadr v))
+(define (V-pair-fst v) (cadr v))
 (define (V-pair-snd v) (caddr v))
 
 ;;; V-vec : Value × Value → Value
