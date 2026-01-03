@@ -437,7 +437,68 @@
                     (assert-= (jet-value p) 8 1e-12)
                     (assert-= (jet-deriv p 1) 12 1e-12)  ; 3x^2 = 12
                     (assert-= (jet-deriv p 2) 12 1e-12)  ; 6x = 12
-                    (assert-= (jet-deriv p 3) 6 1e-12))))  ; 6
+                    (assert-= (jet-deriv p 3) 6 1e-12)))  ; 6
+            
+            ;; Inverse trigonometric jet tests
+            (define-test jet-atan-at-zero
+              ;; atan(x) at x=0: value=0, deriv=1/(1+0^2)=1
+              (let* ([j (jet-variable 0 2)]
+                     [a (jet-atan j)])
+                    (assert-= (jet-value a) 0 1e-12)
+                    (assert-= (jet-deriv a 1) 1 1e-12)))  ; 1/(1+0^2) = 1
+            
+            (define-test jet-atan-at-one
+              ;; atan(x) at x=1: value=pi/4, deriv=0.5
+              (let* ([j (jet-variable 1 2)]
+                     [a (jet-atan j)])
+                    (assert-= (jet-value a) (atan 1) 1e-12)
+                    (assert-= (jet-deriv a 1) 0.5 1e-12)))  ; 1/(1+1) = 0.5
+            
+            (define-test jet-asin-at-zero
+              ;; asin(x) at x=0: value=0, deriv=1/sqrt(1-0)=1
+              (let* ([j (jet-variable 0 2)]
+                     [a (jet-asin j)])
+                    (assert-= (jet-value a) 0 1e-12)
+                    (assert-= (jet-deriv a 1) 1 1e-12)))
+            
+            (define-test jet-acos-at-zero
+              ;; acos(x) at x=0: value=pi/2, deriv=-1
+              (let* ([j (jet-variable 0 2)]
+                     [a (jet-acos j)])
+                    (assert-= (jet-value a) (acos 0) 1e-12)
+                    (assert-= (jet-deriv a 1) -1 1e-12)))
+            
+            ;; Hyperbolic jet tests
+            (define-test jet-sinh-at-zero
+              ;; sinh(x) at x=0: value=0, deriv=cosh(0)=1, second=sinh(0)=0
+              (let* ([j (jet-variable 0 3)]
+                     [s (jet-sinh j)])
+                    (assert-= (jet-value s) 0 1e-12)
+                    (assert-= (jet-deriv s 1) 1 1e-12)
+                    (assert-= (jet-deriv s 2) 0 1e-12)))
+            
+            (define-test jet-cosh-at-zero
+              ;; cosh(x) at x=0: value=1, deriv=sinh(0)=0, second=cosh(0)=1
+              (let* ([j (jet-variable 0 3)]
+                     [c (jet-cosh j)])
+                    (assert-= (jet-value c) 1 1e-12)
+                    (assert-= (jet-deriv c 1) 0 1e-12)
+                    (assert-= (jet-deriv c 2) 1 1e-12)))
+            
+            (define-test jet-tanh-at-zero
+              ;; tanh(x) at x=0: value=0, deriv=sech^2(0)=1
+              (let* ([j (jet-variable 0 2)]
+                     [t (jet-tanh j)])
+                    (assert-= (jet-value t) 0 1e-12)
+                    (assert-= (jet-deriv t 1) 1 1e-12)))
+            
+            (define-test jet-sinh-at-one
+              ;; sinh(x) at x=1: value=(e-1/e)/2, deriv=(e+1/e)/2
+              (let* ([e (exp 1)]
+                     [j (jet-variable 1 2)]
+                     [s (jet-sinh j)])
+                    (assert-= (jet-value s) (/ (- e (/ 1 e)) 2) 1e-12)
+                    (assert-= (jet-deriv s 1) (/ (+ e (/ 1 e)) 2) 1e-12))))
 
 ;;; ============================================================
 ;;; nth-Derivative Tests

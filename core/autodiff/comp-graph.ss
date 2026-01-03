@@ -343,6 +343,70 @@
                 (dual-deriv base)))))
 
 ;;; ============================================================
+;;; Inverse Trigonometric Functions
+;;; ============================================================
+
+;;; dual-asin : Dual -> Dual
+;;; d(asin x)/dx = 1/sqrt(1-x^2)
+(define (dual-asin a)
+  (let* ([a (dual-lift a)]
+         [v (dual-value a)])
+        (dual (asin v)
+              (/ (dual-deriv a) (sqrt (- 1 (* v v)))))))
+
+;;; dual-acos : Dual -> Dual
+;;; d(acos x)/dx = -1/sqrt(1-x^2)
+(define (dual-acos a)
+  (let* ([a (dual-lift a)]
+         [v (dual-value a)])
+        (dual (acos v)
+              (/ (- (dual-deriv a)) (sqrt (- 1 (* v v)))))))
+
+;;; dual-atan : Dual -> Dual
+;;; d(atan x)/dx = 1/(1+x^2)
+(define (dual-atan a)
+  (let* ([a (dual-lift a)]
+         [v (dual-value a)])
+        (dual (atan v)
+              (/ (dual-deriv a) (+ 1 (* v v))))))
+
+;;; ============================================================
+;;; Hyperbolic Functions
+;;; ============================================================
+
+;;; dual-sinh : Dual -> Dual
+;;; d(sinh x)/dx = cosh x
+(define (dual-sinh a)
+  (let* ([a (dual-lift a)]
+         [v (dual-value a)]
+         ;; sinh = (e^x - e^-x)/2, cosh = (e^x + e^-x)/2
+         [ex (exp v)]
+         [emx (exp (- v))])
+        (dual (/ (- ex emx) 2)
+              (* (/ (+ ex emx) 2) (dual-deriv a)))))
+
+;;; dual-cosh : Dual -> Dual
+;;; d(cosh x)/dx = sinh x
+(define (dual-cosh a)
+  (let* ([a (dual-lift a)]
+         [v (dual-value a)]
+         [ex (exp v)]
+         [emx (exp (- v))])
+        (dual (/ (+ ex emx) 2)
+              (* (/ (- ex emx) 2) (dual-deriv a)))))
+
+;;; dual-tanh : Dual -> Dual
+;;; d(tanh x)/dx = sech^2(x) = 1/cosh^2(x)
+(define (dual-tanh a)
+  (let* ([a (dual-lift a)]
+         [v (dual-value a)]
+         [ex (exp v)]
+         [emx (exp (- v))]
+         [cosh-v (/ (+ ex emx) 2)])
+        (dual (/ (- ex emx) (+ ex emx))
+              (/ (dual-deriv a) (* cosh-v cosh-v)))))
+
+;;; ============================================================
 ;;; Forward Mode Differentiation
 ;;; ============================================================
 
@@ -582,6 +646,119 @@
                    (* n pv1 b1)
                    (* n pv1 b2)
                    (* n pv2 (+ (* b12 bv) (* (- n 1) b1 b2))))))
+
+;;; ============================================================
+;;; Hyperdual Inverse Trigonometric Functions
+;;; ============================================================
+
+;;; hd-asin : Hyperdual -> Hyperdual
+;;; d(asin f)/dx = f'/sqrt(1-f^2)
+;;; d^2(asin f)/dxdy = (f12*(1-f^2) + f*f1*f2) / (1-f^2)^(3/2)
+(define (hd-asin a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)]
+         [one-v2 (- 1 (* av av))]
+         [sqrt-one-v2 (sqrt one-v2)])
+        (hyperdual (asin av)
+                   (/ a1 sqrt-one-v2)
+                   (/ a2 sqrt-one-v2)
+                   (/ (+ (* a12 one-v2) (* av a1 a2))
+                      (* one-v2 sqrt-one-v2)))))
+
+;;; hd-acos : Hyperdual -> Hyperdual
+;;; d(acos f)/dx = -f'/sqrt(1-f^2)
+;;; d^2(acos f)/dxdy = -(f12*(1-f^2) + f*f1*f2) / (1-f^2)^(3/2)
+(define (hd-acos a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)]
+         [one-v2 (- 1 (* av av))]
+         [sqrt-one-v2 (sqrt one-v2)])
+        (hyperdual (acos av)
+                   (/ (- a1) sqrt-one-v2)
+                   (/ (- a2) sqrt-one-v2)
+                   (/ (- (+ (* a12 one-v2) (* av a1 a2)))
+                      (* one-v2 sqrt-one-v2)))))
+
+;;; hd-atan : Hyperdual -> Hyperdual
+;;; d(atan f)/dx = f'/(1+f^2)
+;;; d^2(atan f)/dxdy = (f12*(1+f^2) - 2*f*f1*f2) / (1+f^2)^2
+(define (hd-atan a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)]
+         [one-v2 (+ 1 (* av av))])
+        (hyperdual (atan av)
+                   (/ a1 one-v2)
+                   (/ a2 one-v2)
+                   (/ (- (* a12 one-v2) (* 2 av a1 a2))
+                      (* one-v2 one-v2)))))
+
+;;; ============================================================
+;;; Hyperdual Hyperbolic Functions
+;;; ============================================================
+
+;;; hd-sinh : Hyperdual -> Hyperdual
+;;; d(sinh f)/dx = f'*cosh(f)
+;;; d^2(sinh f)/dxdy = (f12*cosh(f) + f1*f2*sinh(f))
+(define (hd-sinh a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [ex (exp av)]
+         [emx (exp (- av))]
+         [sv (/ (- ex emx) 2)]
+         [cv (/ (+ ex emx) 2)]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)])
+        (hyperdual sv
+                   (* a1 cv)
+                   (* a2 cv)
+                   (+ (* a12 cv) (* a1 a2 sv)))))
+
+;;; hd-cosh : Hyperdual -> Hyperdual
+;;; d(cosh f)/dx = f'*sinh(f)
+;;; d^2(cosh f)/dxdy = (f12*sinh(f) + f1*f2*cosh(f))
+(define (hd-cosh a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [ex (exp av)]
+         [emx (exp (- av))]
+         [sv (/ (- ex emx) 2)]
+         [cv (/ (+ ex emx) 2)]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)])
+        (hyperdual cv
+                   (* a1 sv)
+                   (* a2 sv)
+                   (+ (* a12 sv) (* a1 a2 cv)))))
+
+;;; hd-tanh : Hyperdual -> Hyperdual
+;;; d(tanh f)/dx = f'*sech^2(f) = f'/cosh^2(f)
+;;; d^2(tanh f)/dxdy = (f12 - 2*tanh(f)*f1*f2) / cosh^2(f)
+(define (hd-tanh a)
+  (let* ([a (hd-lift a)]
+         [av (hd-value a)]
+         [ex (exp av)]
+         [emx (exp (- av))]
+         [tv (/ (- ex emx) (+ ex emx))]
+         [cv (/ (+ ex emx) 2)]
+         [sech2 (/ 1 (* cv cv))]
+         [a1 (hd-deriv1 a)]
+         [a2 (hd-deriv2 a)]
+         [a12 (hd-deriv12 a)])
+        (hyperdual tv
+                   (* a1 sech2)
+                   (* a2 sech2)
+                   (* (- a12 (* 2 tv a1 a2)) sech2))))
 
 ;;; ============================================================
 ;;; Hessian via Hyperdual Numbers

@@ -202,7 +202,54 @@
               ;; x^3 at x=2 -> value=8, deriv=12 (3x^2)
               (let ([result (dual-pow (dual-variable 2) 3)])
                    (assert-equal 8 (dual-value result))
-                   (assert-equal 12 (dual-deriv result)))))
+                   (assert-equal 12 (dual-deriv result))))
+            
+            ;; Inverse trigonometric functions
+            (define-test dual-atan-correct
+              ;; atan(x) at x=1 -> value=pi/4, deriv=0.5 (1/(1+1^2))
+              (let ([result (dual-atan (dual-variable 1))])
+                   (assert-= (dual-value result) (atan 1) 0.0001)
+                   (assert-= (dual-deriv result) 0.5 0.0001)))
+            
+            (define-test dual-asin-correct
+              ;; asin(x) at x=0.5 -> value=pi/6, deriv=1/sqrt(0.75)
+              (let ([result (dual-asin (dual-variable 0.5))])
+                   (assert-= (dual-value result) (asin 0.5) 0.0001)
+                   (assert-= (dual-deriv result) (/ 1 (sqrt 0.75)) 0.0001)))
+            
+            (define-test dual-acos-correct
+              ;; acos(x) at x=0.5 -> value, deriv=-1/sqrt(0.75)
+              (let ([result (dual-acos (dual-variable 0.5))])
+                   (assert-= (dual-value result) (acos 0.5) 0.0001)
+                   (assert-= (dual-deriv result) (/ -1 (sqrt 0.75)) 0.0001)))
+            
+            ;; Hyperbolic functions
+            (define-test dual-sinh-correct
+              ;; sinh(x) at x=0 -> value=0, deriv=1 (cosh 0)
+              (let ([result (dual-sinh (dual-variable 0))])
+                   (assert-= (dual-value result) 0 0.0001)
+                   (assert-= (dual-deriv result) 1 0.0001)))
+            
+            (define-test dual-cosh-correct
+              ;; cosh(x) at x=0 -> value=1, deriv=0 (sinh 0)
+              (let ([result (dual-cosh (dual-variable 0))])
+                   (assert-= (dual-value result) 1 0.0001)
+                   (assert-= (dual-deriv result) 0 0.0001)))
+            
+            (define-test dual-tanh-correct
+              ;; tanh(x) at x=0 -> value=0, deriv=1 (sech^2 0)
+              (let ([result (dual-tanh (dual-variable 0))])
+                   (assert-= (dual-value result) 0 0.0001)
+                   (assert-= (dual-deriv result) 1 0.0001)))
+            
+            (define-test dual-sinh-at-one
+              ;; sinh(x) at x=1 -> value=(e-1/e)/2, deriv=cosh(1)
+              (let* ([e (exp 1)]
+                     [result (dual-sinh (dual-variable 1))]
+                     [expected-val (/ (- e (/ 1 e)) 2)]
+                     [expected-deriv (/ (+ e (/ 1 e)) 2)])
+                    (assert-= (dual-value result) expected-val 0.0001)
+                    (assert-= (dual-deriv result) expected-deriv 0.0001))))
 
 ;;; ============================================================
 ;;; Forward Mode Differentiation

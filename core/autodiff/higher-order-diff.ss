@@ -674,6 +674,165 @@
          (jet-exp (jet-mul (jet-lift exp) (jet-log base)))])))
 
 ;;; ============================================================
+;;; Inverse Trigonometric Functions for Jets
+;;; ============================================================
+
+;;; jet-atan : Jet -> Jet
+;;; d(atan(f))/dx = f'/(1+f^2)
+;;; Uses recurrence: a(x) = atan(f(x)), let g = 1 + f^2
+;;; c_k = (1/g_0) * (f_k - (1/k) * sum_{j=1}^{k-1} j * c_j * g_{k-j})
+(define (jet-atan a)
+  (let* ([a (jet-lift a)]
+         [ca (jet-coeffs a)]
+         [n (vector-length ca)]
+         [result (make-vector n 0)]
+         [a0 (vector-ref ca 0)]
+         ;; Compute g = 1 + f^2
+         [a-sq (jet-sq a)]
+         [g (jet-add (jet (list 1)) a-sq)]
+         [cg (jet-coeffs g)]
+         [g0 (vector-ref cg 0)])
+        ;; c_0 = atan(a_0)
+        (vector-set! result 0 (rec-atan a0))
+        ;; Recurrence similar to log
+        (do ([k 1 (+ k 1)])
+            ((= k n) (jet (vector->list result)))
+            (let ([sum 0])
+                 (do ([j 1 (+ j 1)])
+                     ((>= j k))
+                     (set! sum (rec-add sum (rec-mul j
+                                                     (rec-mul (vector-ref result j)
+                                                              (vector-ref cg (- k j)))))))
+                 (vector-set! result k (rec-div (rec-sub (vector-ref ca k) (rec-div sum k)) g0))))))
+
+;;; jet-asin : Jet -> Jet
+;;; d(asin(f))/dx = f'/sqrt(1-f^2)
+;;; Uses recurrence: let g = sqrt(1-f^2)
+;;; Similar to atan but with different denominator
+(define (jet-asin a)
+  (let* ([a (jet-lift a)]
+         [ca (jet-coeffs a)]
+         [n (vector-length ca)]
+         [result (make-vector n 0)]
+         [a0 (vector-ref ca 0)]
+         ;; Compute g = sqrt(1 - f^2)
+         [a-sq (jet-sq a)]
+         [one-a-sq (jet-sub (jet (list 1)) a-sq)]
+         [g (jet-sqrt one-a-sq)]
+         [cg (jet-coeffs g)]
+         [g0 (vector-ref cg 0)])
+        ;; c_0 = asin(a_0)
+        (vector-set! result 0 (rec-asin a0))
+        ;; Recurrence: c_k = (a_k - sum_{j=1}^{k-1} c_j * g_{k-j}) / g_0
+        (do ([k 1 (+ k 1)])
+            ((= k n) (jet (vector->list result)))
+            (let ([sum 0])
+                 (do ([j 1 (+ j 1)])
+                     ((>= j k))
+                     (set! sum (rec-add sum (rec-mul (vector-ref result j)
+                                                     (vector-ref cg (- k j))))))
+                 (vector-set! result k (rec-div (rec-sub (vector-ref ca k) sum) g0))))))
+
+;;; jet-acos : Jet -> Jet
+;;; d(acos(f))/dx = -f'/sqrt(1-f^2)
+;;; Same as asin but negated derivative
+(define (jet-acos a)
+  (let* ([a (jet-lift a)]
+         [ca (jet-coeffs a)]
+         [n (vector-length ca)]
+         [result (make-vector n 0)]
+         [a0 (vector-ref ca 0)]
+         ;; Compute g = sqrt(1 - f^2)
+         [a-sq (jet-sq a)]
+         [one-a-sq (jet-sub (jet (list 1)) a-sq)]
+         [g (jet-sqrt one-a-sq)]
+         [cg (jet-coeffs g)]
+         [g0 (vector-ref cg 0)])
+        ;; c_0 = acos(a_0)
+        (vector-set! result 0 (rec-acos a0))
+        ;; Recurrence: c_k = -(a_k - sum_{j=1}^{k-1} c_j * g_{k-j}) / g_0 (negated)
+        (do ([k 1 (+ k 1)])
+            ((= k n) (jet (vector->list result)))
+            (let ([sum 0])
+                 (do ([j 1 (+ j 1)])
+                     ((>= j k))
+                     (set! sum (rec-add sum (rec-mul (vector-ref result j)
+                                                     (vector-ref cg (- k j))))))
+                 (vector-set! result k (rec-sub 0 (rec-div (rec-sub (vector-ref ca k) sum) g0)))))))
+
+;;; ============================================================
+;;; Hyperbolic Functions for Jets
+;;; ============================================================
+
+;;; jet-sinh-cosh : Jet -> (Values Jet Jet)
+;;; Compute sinh and cosh simultaneously using coupled recurrence.
+;;; sinh' = cosh, cosh' = sinh
+(define (jet-sinh-cosh a)
+  (let* ([a (jet-lift a)]
+         [ca (jet-coeffs a)]
+         [n (vector-length ca)]
+         [sinh-result (make-vector n 0)]
+         [cosh-result (make-vector n 0)]
+         [a0 (vector-ref ca 0)]
+         [ex (rec-exp a0)]
+         [emx (rec-exp (rec-sub 0 a0))])
+        ;; Initial values: sinh(a0) = (e^a0 - e^-a0)/2, cosh(a0) = (e^a0 + e^-a0)/2
+        (vector-set! sinh-result 0 (rec-div (rec-sub ex emx) 2))
+        (vector-set! cosh-result 0 (rec-div (rec-add ex emx) 2))
+        ;; Coupled recurrence (similar to sin/cos but same signs)
+        (do ([k 1 (+ k 1)])
+            ((= k n) (values (jet (vector->list sinh-result))
+                             (jet (vector->list cosh-result))))
+            (let ([sinh-sum 0]
+                  [cosh-sum 0])
+                 (do ([j 1 (+ j 1)])
+                     ((> j k))
+                     (let ([aj (vector-ref ca j)])
+                          (set! sinh-sum (rec-add sinh-sum (rec-mul j (rec-mul aj (vector-ref cosh-result (- k j))))))
+                          (set! cosh-sum (rec-add cosh-sum (rec-mul j (rec-mul aj (vector-ref sinh-result (- k j))))))))
+                 (vector-set! sinh-result k (rec-div sinh-sum k))
+                 (vector-set! cosh-result k (rec-div cosh-sum k))))))
+
+;;; jet-sinh : Jet -> Jet
+(define (jet-sinh a)
+  (let-values ([(s c) (jet-sinh-cosh a)]) s))
+
+;;; jet-cosh : Jet -> Jet
+(define (jet-cosh a)
+  (let-values ([(s c) (jet-sinh-cosh a)]) c))
+
+;;; jet-tanh : Jet -> Jet
+;;; tanh(f) = sinh(f)/cosh(f)
+(define (jet-tanh a)
+  (let-values ([(s c) (jet-sinh-cosh a)])
+              (jet-div s c)))
+
+;;; ============================================================
+;;; Recursive Helpers for Inverse Trig
+;;; ============================================================
+
+;;; rec-atan : Number|Jet -> Number|Jet
+(define (rec-atan a)
+  (cond
+   [(jet? a) (jet-atan a)]
+   [(number? a) (atan a)]
+   [else (error 'rec-atan "unsupported type" a)]))
+
+;;; rec-asin : Number|Jet -> Number|Jet
+(define (rec-asin a)
+  (cond
+   [(jet? a) (jet-asin a)]
+   [(number? a) (asin a)]
+   [else (error 'rec-asin "unsupported type" a)]))
+
+;;; rec-acos : Number|Jet -> Number|Jet
+(define (rec-acos a)
+  (cond
+   [(jet? a) (jet-acos a)]
+   [(number? a) (acos a)]
+   [else (error 'rec-acos "unsupported type" a)]))
+
+;;; ============================================================
 ;;; Higher-Order Derivative Computation with Jets
 ;;; ============================================================
 

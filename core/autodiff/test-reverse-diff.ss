@@ -105,7 +105,45 @@
             (define-test derivative-of-cos
               ;; d/dx[cos(x)] at x=0 -> -sin(0) = 0
               (let ([f (lambda (x) (traced-cos x))])
-                   (assert-= (reverse-diff f 0) 0 0.0001))))
+                   (assert-= (reverse-diff f 0) 0 0.0001)))
+            
+            ;; Inverse trigonometric functions
+            (define-test derivative-of-atan
+              ;; d/dx[atan(x)] at x=1 -> 1/(1+1^2) = 0.5
+              (let ([f (lambda (x) (traced-atan x))])
+                   (assert-= (reverse-diff f 1) 0.5 0.0001)))
+            
+            (define-test derivative-of-asin
+              ;; d/dx[asin(x)] at x=0.5 -> 1/sqrt(1-0.25) = 1/sqrt(0.75)
+              (let ([f (lambda (x) (traced-asin x))])
+                   (assert-= (reverse-diff f 0.5) (/ 1 (sqrt 0.75)) 0.0001)))
+            
+            (define-test derivative-of-acos
+              ;; d/dx[acos(x)] at x=0.5 -> -1/sqrt(0.75)
+              (let ([f (lambda (x) (traced-acos x))])
+                   (assert-= (reverse-diff f 0.5) (/ -1 (sqrt 0.75)) 0.0001)))
+            
+            ;; Hyperbolic functions
+            (define-test derivative-of-sinh
+              ;; d/dx[sinh(x)] at x=0 -> cosh(0) = 1
+              (let ([f (lambda (x) (traced-sinh x))])
+                   (assert-= (reverse-diff f 0) 1 0.0001)))
+            
+            (define-test derivative-of-cosh
+              ;; d/dx[cosh(x)] at x=0 -> sinh(0) = 0
+              (let ([f (lambda (x) (traced-cosh x))])
+                   (assert-= (reverse-diff f 0) 0 0.0001)))
+            
+            (define-test derivative-of-tanh
+              ;; d/dx[tanh(x)] at x=0 -> sech^2(0) = 1
+              (let ([f (lambda (x) (traced-tanh x))])
+                   (assert-= (reverse-diff f 0) 1 0.0001)))
+            
+            (define-test derivative-of-sinh-at-one
+              ;; d/dx[sinh(x)] at x=1 -> cosh(1) = (e + 1/e)/2
+              (let ([f (lambda (x) (traced-sinh x))]
+                    [e (exp 1)])
+                   (assert-= (reverse-diff f 1) (/ (+ e (/ 1 e)) 2) 0.0001))))
 
 ;;; ============================================================
 ;;; Composite Functions (Chain Rule)

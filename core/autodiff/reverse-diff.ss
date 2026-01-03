@@ -265,6 +265,91 @@
             result)))
 
 ;;; ============================================================
+;;; Inverse Trigonometric Functions
+;;; ============================================================
+
+;;; traced-asin : Traced|Number -> Traced
+;;; Arcsine. d(asin a)/da = 1/sqrt(1-a^2)
+(define (traced-asin a)
+  (let* ([av (traced-value a)]
+         [result (asin av)]
+         [tape (and (traced? a) (traced-tape a))])
+        (if tape
+            (traced-op 'asin result (list a)
+                       (list (/ 1 (sqrt (- 1 (* av av)))))
+                       tape)
+            result)))
+
+;;; traced-acos : Traced|Number -> Traced
+;;; Arccosine. d(acos a)/da = -1/sqrt(1-a^2)
+(define (traced-acos a)
+  (let* ([av (traced-value a)]
+         [result (acos av)]
+         [tape (and (traced? a) (traced-tape a))])
+        (if tape
+            (traced-op 'acos result (list a)
+                       (list (/ -1 (sqrt (- 1 (* av av)))))
+                       tape)
+            result)))
+
+;;; traced-atan : Traced|Number -> Traced
+;;; Arctangent. d(atan a)/da = 1/(1+a^2)
+(define (traced-atan a)
+  (let* ([av (traced-value a)]
+         [result (atan av)]
+         [tape (and (traced? a) (traced-tape a))])
+        (if tape
+            (traced-op 'atan result (list a)
+                       (list (/ 1 (+ 1 (* av av))))
+                       tape)
+            result)))
+
+;;; ============================================================
+;;; Hyperbolic Functions
+;;; ============================================================
+
+;;; traced-sinh : Traced|Number -> Traced
+;;; Hyperbolic sine. d(sinh a)/da = cosh a
+(define (traced-sinh a)
+  (let* ([av (traced-value a)]
+         [ex (exp av)]
+         [emx (exp (- av))]
+         [result (/ (- ex emx) 2)]
+         [cosh-v (/ (+ ex emx) 2)]
+         [tape (and (traced? a) (traced-tape a))])
+        (if tape
+            (traced-op 'sinh result (list a) (list cosh-v) tape)
+            result)))
+
+;;; traced-cosh : Traced|Number -> Traced
+;;; Hyperbolic cosine. d(cosh a)/da = sinh a
+(define (traced-cosh a)
+  (let* ([av (traced-value a)]
+         [ex (exp av)]
+         [emx (exp (- av))]
+         [result (/ (+ ex emx) 2)]
+         [sinh-v (/ (- ex emx) 2)]
+         [tape (and (traced? a) (traced-tape a))])
+        (if tape
+            (traced-op 'cosh result (list a) (list sinh-v) tape)
+            result)))
+
+;;; traced-tanh : Traced|Number -> Traced
+;;; Hyperbolic tangent. d(tanh a)/da = sech^2(a) = 1/cosh^2(a)
+(define (traced-tanh a)
+  (let* ([av (traced-value a)]
+         [ex (exp av)]
+         [emx (exp (- av))]
+         [result (/ (- ex emx) (+ ex emx))]
+         [cosh-v (/ (+ ex emx) 2)]
+         [tape (and (traced? a) (traced-tape a))])
+        (if tape
+            (traced-op 'tanh result (list a)
+                       (list (/ 1 (* cosh-v cosh-v)))
+                       tape)
+            result)))
+
+;;; ============================================================
 ;;; Backward Pass
 ;;; ============================================================
 
