@@ -393,6 +393,21 @@
                      [taken (sim-take 3 stream)])
                     (assert-equal '(1 2 3) taken)))
             
+            (define-test sim-sample-variable-dt-test
+              ;; Test that sim-sample works correctly with variable timesteps
+              ;; Create a stream with non-uniform time steps: 0.0, 0.1, 0.3, 0.4, 0.9, 1.0, 1.5, 2.0, 2.1
+              (let* ([times '(0.0 0.1 0.3 0.4 0.9 1.0 1.5 2.0 2.1)]
+                     [states (map (lambda (t) (make-sim-state t t '())) times)]
+                     [stream (list->stream states)]
+                     ;; Sample at interval 1.0
+                     [sampled (sim-take 3 (sim-sample 1.0 10 stream))]
+                     [sample-times (map sim-state-time sampled)])
+                    ;; Should get states at times 0.0, 1.0, 2.0 (or first state >= those times)
+                    (assert-equal 3 (length sampled))
+                    (assert-equal 0.0 (car sample-times))      ; t=0.0
+                    (assert-equal 1.0 (cadr sample-times))     ; t>=1.0, first is 1.0
+                    (assert-equal 2.0 (caddr sample-times))))  ; t>=2.0, first is 2.0
+            
             (define-test sim-until-test
               (let* ([initial (make-sim-state 0.0 0 '())]
                      [step-fn (lambda (s)

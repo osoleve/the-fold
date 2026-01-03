@@ -319,13 +319,37 @@
 
 ;;; sim-sample : Number x Number x Stream SimState -> Stream SimState
 ;;; Sample simulation at given interval (skip intermediate states).
+;;; Works correctly with variable-timestep simulations by tracking absolute time.
 (define (sim-sample interval fuel stream)
-  (let* ([step-count (max 1 (exact (floor (/ interval (sim-state-time (stream-head (stream-tail stream)))))))])
-        (let loop ([s stream] [n 0])
-             (if (or (stream-nil? s) (>= n fuel))
-                 stream-nil
-                 (stream-cons (stream-head s)
-                              (lambda () (loop (stream-drop step-count s) (+ n 1))))))))
+  (if (stream-nil? stream)
+      stream-nil
+      (let* ([first-state (stream-head stream)]
+             [start-time (sim-state-time first-state)])
+            ;; Emit first state, then find states at start-time + interval, start-time + 2*interval, etc.
+            (stream-cons first-state
+                         (lambda ()
+                                 (sim-sample-loop interval fuel stream (+ start-time interval) 1))))))
+
+;;; sim-sample-loop : Number x Number x Stream SimState x Number x Number -> Stream SimState
+;;; Helper: consume stream until we pass next-sample-time, then emit and continue.
+(define (sim-sample-loop interval fuel stream next-sample-time count)
+  (if (>= count fuel)
+      stream-nil
+      (let loop ([s stream])
+           (cond
+            [(stream-nil? s) stream-nil]
+            [else
+             (let* ([state (stream-head s)]
+                    [t (sim-state-time state)])
+                   (if (>= t next-sample-time)
+                       ;; Found a state at or past the sample time - emit it
+                       (stream-cons state
+                                    (lambda ()
+                                            (sim-sample-loop interval fuel s
+                                                             (+ next-sample-time interval)
+                                                             (+ count 1))))
+                       ;; Keep consuming
+                       (loop (stream-tail s))))]))))
 
 ;;; sim-until : (SimState -> Boolean) x Number x Stream SimState -> (List SimState)
 ;;; Collect states until predicate returns true (with fuel limit).

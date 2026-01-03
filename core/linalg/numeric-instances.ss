@@ -401,15 +401,33 @@
 
 ;;; vec-ap : Vec (a → b) × Vec a → Vec b | Error
 ;;; Apply a vector of functions to a vector of values.
+;;; Supports broadcasting: if one operand is length-1, it broadcasts to match the other.
 (define (vec-ap fs xs)
   (let ([nf (vec-length fs)]
         [nx (vec-length xs)])
-       (if (not (= nf nx))
-           `(error dimension-mismatch ,nf ,nx)
-           (let ([result (make-vector nf 0)])
-                (do ([i 0 (+ i 1)])
-                    ((= i nf) result)
-                    (vector-set! result i ((vector-ref fs i) (vector-ref xs i))))))))
+       (cond
+        ;; Case 1: Equal lengths - standard element-wise application
+        [(= nf nx)
+         (let ([result (make-vector nf 0)])
+              (do ([i 0 (+ i 1)])
+                  ((= i nf) result)
+                  (vector-set! result i ((vector-ref fs i) (vector-ref xs i)))))]
+        ;; Case 2: Single function broadcasts to all values
+        [(= nf 1)
+         (let ([f (vector-ref fs 0)]
+               [result (make-vector nx 0)])
+              (do ([i 0 (+ i 1)])
+                  ((= i nx) result)
+                  (vector-set! result i (f (vector-ref xs i)))))]
+        ;; Case 3: Single value broadcasts to all functions
+        [(= nx 1)
+         (let ([x (vector-ref xs 0)]
+               [result (make-vector nf 0)])
+              (do ([i 0 (+ i 1)])
+                  ((= i nf) result)
+                  (vector-set! result i ((vector-ref fs i) x))))]
+        ;; Case 4: Incompatible dimensions
+        [else `(error dimension-mismatch ,nf ,nx)])))
 
 ;;; vec-lift2 : (a × b → c) × Vec a × Vec b → Vec c | Error
 ;;; Lift a binary function to work on vectors element-wise.

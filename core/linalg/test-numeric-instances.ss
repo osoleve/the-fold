@@ -231,7 +231,26 @@
             (define-test vec-lift2-test
               (let ([v1 (vec 1 2 3)]
                     [v2 (vec 4 5 6)])
-                   (assert-equal '#(5 7 9) (vec-lift2 + v1 v2)))))
+                   (assert-equal '#(5 7 9) (vec-lift2 + v1 v2))))
+            
+            (define-test vec-ap-broadcast-fn-test
+              ;; Broadcasting: single function applied to multiple values
+              (let ([fs (vec-pure (lambda (x) (+ x 1)))]
+                    [xs (vec 1 2 3)])
+                   (let ([result (vec-ap fs xs)])
+                        (assert-equal 3 (vector-length result))
+                        (assert-equal 2 (vector-ref result 0))
+                        (assert-equal 3 (vector-ref result 1))
+                        (assert-equal 4 (vector-ref result 2)))))
+            
+            (define-test vec-ap-broadcast-val-test
+              ;; Broadcasting: multiple functions applied to single value
+              (let ([fs (vec-from-list (list (lambda (x) (* x 2)) (lambda (x) (* x 3))))]
+                    [xs (vec-pure 5)])
+                   (let ([result (vec-ap fs xs)])
+                        (assert-equal 2 (vector-length result))
+                        (assert-equal 10 (vector-ref result 0))
+                        (assert-equal 15 (vector-ref result 1))))))
 
 ;;; ============================================================
 ;;; Dimension Mismatch Tests
