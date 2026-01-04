@@ -82,10 +82,10 @@
 ;;; ============================================================
 
 ;;; Gradient from dark to light (for inside = dark)
-(define *fractal-chars* " .`'-:;~=+*#%@")
+(define *fractal-chars* " .,'~-:;=+*#%@")  ; No backticks (breaks Discord)
 
 ;;; Alternative: more dramatic gradient
-(define *dramatic-chars* " .'`^\",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$")
+(define *dramatic-chars* " .,'^\":;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$")  ; No backticks
 
 (define (iter->char iters max-iters charset)
   (if (= iters max-iters)
