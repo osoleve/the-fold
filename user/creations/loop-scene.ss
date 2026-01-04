@@ -117,6 +117,26 @@
 
 ;;; Each element returns a function: t → (p → distance)
 
+;;; Helper: compute rotation from default up (0,1,0) to target up
+(define (make-orientation-transform up-vec)
+  "Create a transform that rotates from Y-up to the specified up vector.
+   Returns a function: p → rotated-p"
+  (let* ([default-up (vec3 0 1 0)]
+         [target-up (vec3-normalize up-vec)]
+         [dot (vec3-dot default-up target-up)])
+        (cond
+         ;; Already aligned
+         [(> dot 0.9999) (lambda (p) p)]
+         ;; Opposite direction - rotate 180° around X
+         [(< dot -0.9999)
+          (lambda (p) (vec3 (vec3-x p) (- (vec3-y p)) (- (vec3-z p))))]
+         ;; General case - rotate around cross product axis
+         [else
+          (let* ([cross (vec3-cross default-up target-up)]
+                 [axis (vec3-normalize cross)]
+                 [angle (acos dot)])
+                (lambda (p) (rotate-axis p axis angle)))])))
+
 (define (make-rotating-torus R r axis cycles)
   "A torus that rotates around an axis.
    R = major radius, r = minor radius
@@ -127,6 +147,20 @@
                (let ([rot-fn (rotator t)])
                     (lambda (p)
                             (sdf-torus (rot-fn p) (vec3 0 0 0) R r))))))
+
+(define (make-oriented-rotating-torus R r up-vec axis cycles)
+  "A torus with initial orientation that then rotates around an axis.
+   R = major radius, r = minor radius
+   up-vec = initial 'up' direction for the torus hole (default is Y-up)
+   axis = rotation axis for animation
+   cycles = integer number of rotations per loop"
+  (let ([orient (make-orientation-transform up-vec)]
+        [rotator (make-rotator axis cycles)])
+       (lambda (t)
+               (let ([rot-fn (rotator t)])
+                    (lambda (p)
+                            ;; First apply animation rotation, then orientation
+                            (sdf-torus (orient (rot-fn p)) (vec3 0 0 0) R r))))))
 
 (define (make-pulsing-sphere base-r pulse-amplitude cycles)
   "A sphere that pulses in size.
@@ -198,6 +232,47 @@
                                       (if (= result +inf.0)
                                           ((car remaining) p)
                                           (sdf-smooth-union result ((car remaining) p) k)))))))))
+
+;;; ============================================================
+;;; Group Transforms
+;;; ============================================================
+
+(define (group . args)
+  "Group multiple elements and apply collective transforms.
+   Keyword args:
+     :elements - list of scene elements (required)
+     :rotate - rotation axis '(x y z), animated at :cycles rate
+     :cycles - rotation cycles per loop (default 0 = no rotation)
+     :offset - position offset '(x y z) (default origin)
+     :scale - uniform scale factor (default 1.0)
+
+   Example: (group :elements (list (ball :r 0.3 :at '(1 0 0))
+                                   (ball :r 0.3 :at '(-1 0 0)))
+                   :rotate '(0 1 0) :cycles 2
+                   :offset '(0 1 0))"
+  (let* ([elements (get-keyword-arg args ':elements '())]
+         [rotate-axis (get-keyword-arg args ':rotate #f)]
+         [cycles (get-keyword-arg args ':cycles 0)]
+         [offset (get-keyword-arg args ':offset '(0 0 0))]
+         [scale-factor (get-keyword-arg args ':scale 1.0)]
+         [offset-vec (apply vec3 offset)]
+         [combined (combine-elements elements)]
+         [has-rotation (and rotate-axis (> cycles 0))]
+         [rotator (if has-rotation
+                      (make-rotator (apply vec3 rotate-axis) cycles)
+                      #f)])
+        (lambda (t)
+                (let ([base-sdf (combined t)]
+                      [rot-fn (if has-rotation (rotator t) #f)])
+                     (lambda (p)
+                             ;; Transform point: offset, scale, rotate (in reverse order)
+                             (let* ([p1 (vec3-sub p offset-vec)]  ; Remove offset
+                                    [p2 (if (= scale-factor 1.0)
+                                            p1
+                                            (vec3-scale p1 (/ 1.0 scale-factor)))]
+                                    [p3 (if rot-fn (rot-fn p2) p2)])
+                                   ;; Scale the distance too
+                                   (* (base-sdf p3) scale-factor)))))))
 
 ;;; ============================================================
 ;;; Camera Helpers
@@ -274,13 +349,18 @@
 
 (define (ring . args)
   "Create a rotating torus ring.
-   Keyword args: :R (major radius), :r (minor radius), :axis, :cycles
-   Example: (ring :R 2.0 :r 0.1 :axis '(1 0 0) :cycles 3)"
+   Keyword args: :R (major radius), :r (minor radius), :axis, :cycles, :up
+   :up sets initial orientation before animation (default Y-up)
+   Example: (ring :R 2.0 :r 0.1 :axis '(1 0 0) :cycles 3)
+   Example: (ring :R 2.0 :r 0.1 :up '(1 0 0) :axis '(0 1 0) :cycles 2)"
   (let ([R (get-keyword-arg args ':R 1.0)]
         [r (get-keyword-arg args ':r 0.1)]
         [axis (get-keyword-arg args ':axis '(0 1 0))]
-        [cycles (get-keyword-arg args ':cycles 1)])
-       (make-rotating-torus R r (apply vec3 axis) cycles)))
+        [cycles (get-keyword-arg args ':cycles 1)]
+        [up (get-keyword-arg args ':up #f)])
+       (if up
+           (make-oriented-rotating-torus R r (apply vec3 up) (apply vec3 axis) cycles)
+           (make-rotating-torus R r (apply vec3 axis) cycles))))
 
 (define (core . args)
   "Create a pulsing central sphere.
@@ -354,6 +434,11 @@
 (define :radius ':radius)
 (define :height ':height)
 (define :turns ':turns)
+(define :up ':up)
+(define :offset ':offset)
+(define :rotate ':rotate)
+(define :elements ':elements)
+(define :center-fn ':center-fn)
 
 ;;; ============================================================
 ;;; Validation
@@ -775,24 +860,23 @@
                                       [p* (vec3 (vec3-x p) displaced-y (vec3-z p))])
                                      (sdf p*)))))))
 
-(define (make-twist-deformer twist-rate cycles)
-  "Twist the shape around Y axis.
-   twist-rate = radians of twist per unit of Y."
+(define (make-twist-deformer twist-rate cycles axis)
+  "Twist the shape around an arbitrary axis.
+   twist-rate = radians of twist per unit along axis.
+   axis = normalized twist axis"
   (unless (and (integer? cycles) (positive? cycles))
           (error 'make-twist-deformer "cycles must be a positive integer"))
-  (lambda (t)
-          (let ([twist (* twist-rate (+ 1 (sin (* t cycles))))])
-               (lambda (sdf)
-                       (lambda (p)
-                               (let* ([angle (* twist (vec3-y p))]
-                                      [c (cos angle)]
-                                      [s (sin angle)]
-                                      [x (vec3-x p)]
-                                      [z (vec3-z p)]
-                                      [p* (vec3 (- (* c x) (* s z))
-                                                (vec3-y p)
-                                                (+ (* s x) (* c z)))])
-                                     (sdf p*)))))))
+  (let ([norm-axis (vec3-normalize axis)])
+       (lambda (t)
+               (let ([twist (* twist-rate (+ 1 (sin (* t cycles))))])
+                    (lambda (sdf)
+                            (lambda (p)
+                                    ;; Project p onto axis to get "height" along it
+                                    (let* ([height (vec3-dot p norm-axis)]
+                                           [angle (* twist height)]
+                                           ;; Rotate p around the axis by angle
+                                           [p* (rotate-axis p norm-axis (- angle))])
+                                          (sdf p*))))))))
 
 (define (with-wave base-elem . args)
   "Apply wave deformation to an element.
@@ -806,12 +890,15 @@
                 ((deformer t) (base-elem t)))))
 
 (define (with-twist base-elem . args)
-  "Apply twist deformation to an element.
+  "Apply twist deformation to an element around arbitrary axis.
+   Keyword args: :rate (twist per unit), :cycles, :axis (twist axis, default Y)
    Example: (with-twist (box :size '(0.5 2 0.5) :axis '(0 1 0) :cycles 1)
-                        :rate 1.5 :cycles 2)"
+                        :rate 1.5 :cycles 2)
+   Example: (with-twist elem :rate 2.0 :axis '(1 0 0) :cycles 3) ; twist around X"
   (let* ([rate (get-keyword-arg args ':rate 1.0)]
          [cycles (get-keyword-arg args ':cycles 1)]
-         [deformer (make-twist-deformer rate cycles)])
+         [axis (get-keyword-arg args ':axis '(0 1 0))]
+         [deformer (make-twist-deformer rate cycles (apply vec3 axis))])
         (lambda (t)
                 ((deformer t) (base-elem t)))))
 
@@ -842,6 +929,39 @@
          [centers (map (lambda (pos) (apply vec3 pos)) positions)])
         (lambda (t)
                 (let ([k (k-fn t)])
+                     (lambda (p)
+                             (let loop ([remaining centers] [result +inf.0])
+                                  (if (null? remaining)
+                                      result
+                                      (let ([d (sdf-sphere p (car remaining) r)])
+                                           (loop (cdr remaining)
+                                                 (if (= result +inf.0)
+                                                     d
+                                                     (sdf-smooth-union result d k)))))))))))
+
+(define (dynamic-blob . args)
+  "Blob with animated center positions - centers can merge and separate!
+   Keyword args:
+     :center-fn - function (t → list of vec3 positions)
+     :r - sphere radius
+     :k-base, :k-range, :cycles - smooth union animation
+
+   Example (two blobs merging and separating):
+     (dynamic-blob
+       :center-fn (lambda (t)
+                    (let ([spread (+ 0.3 (* 0.5 (+ 1 (cos t))))])
+                      (list (vec3 spread 0 0) (vec3 (- spread) 0 0))))
+       :r 0.5 :k-base 0.4 :k-range 0.2 :cycles 2)"
+  (let* ([center-fn (get-keyword-arg args ':center-fn
+                                     (lambda (t) (list (vec3 0.5 0 0) (vec3 -0.5 0 0))))]
+         [r (get-keyword-arg args ':r 0.4)]
+         [k-base (get-keyword-arg args ':k-base 0.3)]
+         [k-range (get-keyword-arg args ':k-range 0.1)]
+         [cycles (get-keyword-arg args ':cycles 1)]
+         [k-fn (make-breathing-union k-base k-range cycles)])
+        (lambda (t)
+                (let ([k (k-fn t)]
+                      [centers (center-fn t)])
                      (lambda (p)
                              (let loop ([remaining centers] [result +inf.0])
                                   (if (null? remaining)
