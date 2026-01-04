@@ -83,13 +83,18 @@
   (let ([d (- (vec3-dot normal point))])
        (plane3 normal d)))
 
-;;; plane3-from-points : Point3 × Point3 × Point3 → Plane3
+;;; plane3-from-points : Point3 × Point3 × Point3 → Plane3 | Error
 ;;; Create plane from three points
+;;; Returns error if points are collinear
 (define (plane3-from-points p1 p2 p3)
   (let* ([v1 (vec3-sub p2 p1)]
          [v2 (vec3-sub p3 p1)]
-         [normal (vec3-normalize (vec3-cross v1 v2))])
-        (plane3-from-point-normal p1 normal)))
+         [cp (vec3-cross v1 v2)]
+         [mag (vec3-magnitude cp)])
+        (if (< mag 1e-10)
+            (list 'error 'plane3-from-points "Collinear points do not define a unique plane")
+            (let ([normal (vec3-scale-inv cp mag)])
+                 (plane3-from-point-normal p1 normal)))))
 
 ;;; Triangle3: (triangle3 p1 p2 p3)
 (define (triangle3 p1 p2 p3)
@@ -276,9 +281,13 @@
                     (* (matrix-ref mat 3 1) y)
                     (* (matrix-ref mat 3 2) z)
                     (matrix-ref mat 3 3))])
-            (if (= nw 1)
-                (vec3 nx ny nz)
-                (vec3 (/ nx nw) (/ ny nw) (/ nz nw))))))
+            (cond
+             [(< (abs nw) 1e-10)
+              (list 'error 'transform-point "Point transformed to infinity (w=0)")]
+             [(= nw 1)
+              (vec3 nx ny nz)]
+             [else
+              (vec3 (/ nx nw) (/ ny nw) (/ nz nw))]))))
 
 ;;; transform-vector : Matrix × Vec3 → Vec3
 ;;; Apply transformation to vector (no translation)
