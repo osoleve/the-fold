@@ -351,6 +351,34 @@
          [v2 (vec3-from-cylindrical r theta z)])
         (assert (vec3-approx= v v2))))
 
+(define-test "vec3-to-spherical - origin"
+  ;; Origin should return (0, 0, 0) without domain errors
+  (let ([sph (vec3-to-spherical (vec3 0 0 0))])
+       (assert (approx= (car sph) 0))
+       (assert (approx= (cadr sph) 0))
+       (assert (approx= (caddr sph) 0))))
+
+(define-test "vec3-to-spherical - positive z-axis"
+  ;; Point on +z axis: (0, 0, 1) → (1, 0, any)
+  (let ([sph (vec3-to-spherical (vec3 0 0 1))])
+       (assert (approx= (car sph) 1))    ; r = 1
+       (assert (approx= (cadr sph) 0)))) ; theta = 0
+
+(define-test "vec3-to-spherical - negative z-axis"
+  ;; Point on -z axis: (0, 0, -1) → (1, π, any)
+  (let ([sph (vec3-to-spherical (vec3 0 0 -1))])
+       (assert (approx= (car sph) 1))            ; r = 1
+       (assert (approx= (cadr sph) 3.141592)))) ; theta = π
+
+(define-test "vec3-to-spherical - numerical stability"
+  ;; Test with vector that could cause z/r ≈ 1 (floating point edge case)
+  ;; Using a vector very close to z-axis
+  (let* ([v (vec3 1e-10 1e-10 1.0)]
+         [sph (vec3-to-spherical v)])
+        ;; Should not crash, r should be ≈ 1, theta should be ≈ 0
+        (assert (approx= (car sph) 1.0))
+        (assert (< (cadr sph) 0.01)))) ; theta very small
+
 ;;; ============================================================
 ;;; Tests auto-run when defined
 ;;; ============================================================
