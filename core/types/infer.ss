@@ -309,12 +309,13 @@
 (define (infer expr env)
   (cond
    ;; Literals
-   ;; All numeric literals infer as Int for practical reasons:
-   ;; - Nat exists but requires explicit annotation (: 42 Nat)
-   ;; - Without subtyping (Nat ⊆ Int), Nat literals wouldn't work with
-   ;;   arithmetic primitives which expect Int
-   ;; - Floats also become Int (no Real type yet — future work)
-   [(number? expr) `(ok Int ,empty-subst)]
+   ;; Numeric literals:
+   ;; - Exact integers infer as Int (Nat requires explicit annotation)
+   ;; - Inexact numbers (floats like 2.0) infer as Real for autodiff
+   [(number? expr)
+    (if (and (integer? expr) (exact? expr))
+        `(ok Int ,empty-subst)
+        `(ok Real ,empty-subst))]
    [(boolean? expr) `(ok Bool ,empty-subst)]
    [(string? expr) `(ok String ,empty-subst)]
    [(and (pair? expr) (eq? (car expr) 'quote))
@@ -737,7 +738,58 @@
     (vector? . (∀ (a) (-> a Bool)))
     (list? . (∀ (a) (-> a Bool)))
     (boolean? . (∀ (a) (-> a Bool)))
-    (procedure? . (∀ (a) (-> a Bool)))))
+    (procedure? . (∀ (a) (-> a Bool)))
+    
+    ;; Real number arithmetic (for autodiff)
+    (real+ . (-> Real Real Real))
+    (real- . (-> Real Real Real))
+    (real* . (-> Real Real Real))
+    (real/ . (-> Real Real Real))
+    (real-neg . (-> Real Real))
+    (real-abs . (-> Real Real))
+    (sqrt . (-> Real Real))
+    (exp . (-> Real Real))
+    (log . (-> Real Real))
+    (sin . (-> Real Real))
+    (cos . (-> Real Real))
+    (tan . (-> Real Real))
+    (asin . (-> Real Real))
+    (acos . (-> Real Real))
+    (atan . (-> Real Real))
+    (atan2 . (-> Real Real Real))
+    (pow . (-> Real Real Real))
+    (floor . (-> Real Int))
+    (ceiling . (-> Real Int))
+    (round . (-> Real Int))
+    (truncate . (-> Real Int))
+    (int->real . (-> Int Real))
+    (real->int . (-> Real Int))
+    
+    ;; Autodiff primitives
+    ;; lift : T → (Diff T) — Lift constant to differentiable (zero gradient)
+    (lift . (∀ (a) (-> a (Diff a))))
+    ;; primal : (Diff T) → T — Extract primal (forward) value
+    (primal . (∀ (a) (-> (Diff a) a)))
+    ;; gradient : (Diff T) → (Grad T) — Extract gradient
+    (gradient . (∀ (a) (-> (Diff a) (Grad a))))
+    ;; grad : ((Diff T) → (Diff T)) → T → T — Compute gradient at a point
+    (grad . (∀ (a) (-> (-> (Diff a) (Diff a)) a a)))
+    ;; grad-at : ((Diff T) → (Diff T)) → T → (Grad T) — Compute gradient (explicit return type)
+    (grad-at . (∀ (a) (-> (-> (Diff a) (Diff a)) a (Grad a))))
+    
+    ;; Differentiable arithmetic
+    ;; These operate on Diff values and propagate gradients
+    (d+ . (∀ (a) (-> (Diff a) (Diff a) (Diff a))))
+    (d- . (∀ (a) (-> (Diff a) (Diff a) (Diff a))))
+    (d* . (∀ (a) (-> (Diff a) (Diff a) (Diff a))))
+    (d/ . (∀ (a) (-> (Diff a) (Diff a) (Diff a))))
+    (d-neg . (∀ (a) (-> (Diff a) (Diff a))))
+    (d-sqrt . (-> (Diff Real) (Diff Real)))
+    (d-exp . (-> (Diff Real) (Diff Real)))
+    (d-log . (-> (Diff Real) (Diff Real)))
+    (d-sin . (-> (Diff Real) (Diff Real)))
+    (d-cos . (-> (Diff Real) (Diff Real)))
+    (d-pow . (-> (Diff Real) (Diff Real) (Diff Real)))))
 
 (define (lookup-prim-type op)
   (let ([entry (assq op prim-types)])

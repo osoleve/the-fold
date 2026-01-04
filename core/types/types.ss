@@ -51,6 +51,7 @@
 (define base-types
   '(Nat      ; Natural numbers (0, 1, 2, ...)
     Int      ; Integers (..., -1, 0, 1, ...)
+    Real     ; IEEE 754 floating-point (for autodiff)
     Bool     ; Boolean (#t, #f)
     Char     ; Unicode character
     Symbol   ; Interned symbols
@@ -59,6 +60,9 @@
     Unit     ; Single value ()
     Void     ; No values (bottom for returns)
     Hash))   ; 33-byte versioned address (block reference)
+
+;;; Numeric types that can be differentiated
+(define numeric-types '(Nat Int Real))
 
 ;;; base-type? : Any → Boolean
 (define (base-type? t)
@@ -92,6 +96,10 @@
    [(eq? (car t) 'List) (and (= (length t) 2) (type? (cadr t)))]
    ;; Vector type: (Vector T)
    [(eq? (car t) 'Vector) (and (= (length t) 2) (type? (cadr t)))]
+   ;; Dependent Vec type: (Vec n T) - vector of n elements of type T
+   [(eq? (car t) 'Vec) (and (= (length t) 3) (type? (caddr t)))]
+   ;; Dependent Matrix type: (Matrix m n T) - m×n matrix of type T
+   [(eq? (car t) 'Matrix) (and (= (length t) 4) (type? (cadddr t)))]
    ;; Block type: (Block Tag PayloadType)
    [(eq? (car t) 'Block) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
    ;; Ref type: (Ref T)
@@ -116,6 +124,10 @@
    [(eq? (car t) 'μ) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
    ;; Capability: (Cap name T)
    [(eq? (car t) 'Cap) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
+   ;; Differentiable type: (Diff T) where T is numeric
+   [(eq? (car t) 'Diff) (and (= (length t) 2) (type? (cadr t)))]
+   ;; Gradient type: (Grad T) - same shape as T at runtime
+   [(eq? (car t) 'Grad) (and (= (length t) 2) (type? (cadr t)))]
    [else #f]))
 
 ;;; variant? : Any → Boolean
@@ -189,6 +201,53 @@
 ;;; t-named-hole : Symbol → Type
 (define (t-named-hole name)
   `(? ,name))
+
+;;; ============================================================
+;;; Differentiable Types (Autodiff Integration)
+;;; ============================================================
+
+;;; t-diff : Type → Type
+;;; Construct a differentiable type.
+;;; (Diff T) wraps a numeric type T with gradient tracking.
+;;; Invariant: T should be a numeric type (Nat, Int, Real, Vec, Matrix).
+(define (t-diff inner-type)
+  `(Diff ,inner-type))
+
+;;; t-grad : Type → Type
+;;; Construct a gradient type.
+;;; (Grad T) represents the gradient of type T.
+;;; At runtime, (Grad T) has the same representation as T.
+(define (t-grad inner-type)
+  `(Grad ,inner-type))
+
+;;; diff-type? : Type → Boolean
+;;; Is this a differentiable type?
+(define (diff-type? t)
+  (and (pair? t) (eq? (car t) 'Diff)))
+
+;;; grad-type? : Type → Boolean
+;;; Is this a gradient type?
+(define (grad-type? t)
+  (and (pair? t) (eq? (car t) 'Grad)))
+
+;;; diff-inner-type : Type → Type
+;;; Extract the inner type from (Diff T).
+(define (diff-inner-type t)
+  (if (diff-type? t) (cadr t) t))
+
+;;; grad-inner-type : Type → Type
+;;; Extract the inner type from (Grad T).
+(define (grad-inner-type t)
+  (if (grad-type? t) (cadr t) t))
+
+;;; numeric-type? : Type → Boolean
+;;; Is this a numeric type that can be differentiated?
+(define (numeric-type? t)
+  (or (and (memq t numeric-types) #t)
+      (and (pair? t)
+           (or (eq? (car t) 'Vec)
+               (eq? (car t) 'Matrix)
+               (eq? (car t) 'Vector)))))
 
 ;;; ============================================================
 ;;; Type Accessors
@@ -373,6 +432,7 @@
 (define T-bool 'Bool)
 (define T-nat 'Nat)
 (define T-int 'Int)
+(define T-real 'Real)  ; Floating-point for autodiff
 (define T-char 'Char)
 (define T-string 'String)
 (define T-symbol 'Symbol)

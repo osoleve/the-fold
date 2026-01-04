@@ -113,6 +113,8 @@
     "types/test-infer.ss"
     "types/test-resolve.ss"
     "types/test-annotate.ss"
+    ;; Layer 4.5: Autodiff Type Integration
+    "types/test-autodiff-types.ss"
     ;; Layer 5: Evaluation
     "lang/test-eval.ss"
     "lang/test-typed-eval.ss"
