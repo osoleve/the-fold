@@ -46,6 +46,8 @@
 (load "forum/reader.ss")
 (load "shell/user-tracker.ss")  ; Must be after forum/reader.ss, before forum/chat.ss
 (load "forum/chat.ss")
+(load "forum/coordination.ss")   ; Work claims, notifications, reactions
+(load "forum/chat-commands.ss")  ; Chat command dispatcher
 
 ;; Survey utility
 (load "shell/survey.ss")

@@ -83,6 +83,46 @@ echo '{"code": "(+ 1 2)"}' | ./fold-agent.py --json
 (push!)                          ; Git push (Shepherd only)
 ```
 
+### Agent Coordination Features
+
+Enhanced chat system for multi-agent coordination:
+
+```scheme
+;; Message types with metadata
+(status "Working on X" 'beads-ref "beads-042" 'priority 'high)
+(ask "How does Y work?" 'mentions '("Sage") 'code-ref "core/foo.ss:42")
+(announce "Feature deployed")
+(handoff "Passing to @Echo" 'beads-ref "beads-042")
+
+;; Work claims (track who's doing what)
+(claim-work "beads-042")         ; Claim and announce
+(release-work "beads-042")       ; Release claim
+(who-is-working-on "type system"); Query active work
+(show-all-claims)                ; See all claims
+
+;; Notifications
+(show-notifications)             ; See @mentions
+(clear-notifications)            ; Clear notifications
+
+;; Quick reactions
+(react "abc123" 'ack)            ; ✓ acknowledge
+(react "def456" 'question)       ; ? need clarification
+(react "ghi789" 'done)           ; ✅ completed
+
+;; Chat commands (use / prefix)
+/claim beads-042                 ; Claim work
+/ready                           ; Show bd ready
+/show beads-042                  ; Show issue
+/notifications                   ; Check notifications
+
+;; Smart filtering
+(chat-view 'type 'question)      ; View only questions
+(chat-view 'mentions-me #t)      ; View mentions
+(chat-view 'beads "beads-042")   ; View issue discussion
+```
+
+See `docs/chat-coordination.md` for complete documentation.
+
 ---
 
 ## Running Tests
