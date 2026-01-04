@@ -182,6 +182,15 @@
   ;; Empty lists
   (test "crt: empty lists" 0 (crt '() '()))
   
+  ;; Non-coprime moduli (should return #f)
+  ;; gcd(4, 6) = 2 ≠ 1, so no unique solution exists
+  (test-false "crt: non-coprime moduli returns #f"
+              (crt '(1 2) '(4 6)))
+  
+  ;; Another non-coprime case: gcd(6, 9) = 3
+  (test-false "crt: non-coprime moduli (6, 9) returns #f"
+              (crt '(2 3) '(6 9)))
+  
   ;;; ============================================================
   ;;; Montgomery Multiplication
   ;;; ============================================================
@@ -192,20 +201,28 @@
   (let* ([m 17]
          [setup (montgomery-setup m)]
          [R (car setup)]
-         [m-prime (cadr setup)])
+         [R-mask (cadr setup)]
+         [R-bits (caddr setup)]
+         [m-prime (cadddr setup)])
         (test "montgomery-setup: R > m" #t (> R m))
         ;; Check R is power of 2: R & (R-1) should be 0
         (test "montgomery-setup: R is power of 2" #t
-              (= 0 (bitwise-and R (- R 1)))))
+              (= 0 (bitwise-and R (- R 1))))
+        ;; Verify R-mask = R - 1
+        (test "montgomery-setup: R-mask = R - 1" #t (= R-mask (- R 1)))
+        ;; Verify R = 2^R-bits
+        (test "montgomery-setup: R = 2^R-bits" #t (= R (bitwise-arithmetic-shift 1 R-bits))))
   
   ;; Test round-trip conversion
   (let* ([m 17]
          [a 5]
          [setup (montgomery-setup m)]
          [R (car setup)]
-         [m-prime (cadr setup)]
+         [R-mask (cadr setup)]
+         [R-bits (caddr setup)]
+         [m-prime (cadddr setup)]
          [a-mont (to-montgomery a m R)]
-         [a-back (from-montgomery a-mont m R m-prime)])
+         [a-back (from-montgomery a-mont m R-mask R-bits m-prime)])
         (test "montgomery round-trip: 5 -> mont -> 5" a a-back))
   
   ;; Test Montgomery multiplication
@@ -214,11 +231,13 @@
          [b 5]
          [setup (montgomery-setup m)]
          [R (car setup)]
-         [m-prime (cadr setup)]
+         [R-mask (cadr setup)]
+         [R-bits (caddr setup)]
+         [m-prime (cadddr setup)]
          [a-mont (to-montgomery a m R)]
          [b-mont (to-montgomery b m R)]
-         [prod-mont (montgomery-mult a-mont b-mont m R m-prime)]
-         [prod (from-montgomery prod-mont m R m-prime)])
+         [prod-mont (montgomery-mult a-mont b-mont m R-mask R-bits m-prime)]
+         [prod (from-montgomery prod-mont m R-mask R-bits m-prime)])
         (test "montgomery-mult: (3 * 5) mod 17 = 15" 15 prod))
   
   ;; Test Montgomery exponentiation
