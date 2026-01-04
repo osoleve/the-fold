@@ -229,6 +229,13 @@
 (define (video-show-frame video n)
   (display (video-frame-string video n)))
 
+;;; video-frame-codeblock : Video x Nat -> String
+;;; Get a single frame wrapped in markdown code block (preserves whitespace in Discord).
+(define (video-frame-codeblock video n)
+  (if (and (>= n 0) (< n (video-frame-count video)))
+      (string-append "```\n" (frame-render-to-string (video-get-frame video n)) "```")
+      ""))
+
 ;;; ============================================================
 ;;; Static Playback (No ANSI, prints all frames)
 ;;; ============================================================
