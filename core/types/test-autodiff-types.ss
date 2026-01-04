@@ -209,6 +209,42 @@
        (test "typeof (prim 'exp 1.0)" 'Real result))
   
   ;;; ============================================================
+  ;;; Numeric Constraint Enforcement (Negative Tests)
+  ;;; ============================================================
+  
+  (display "\n--- Numeric Constraint Enforcement ---\n")
+  
+  ;; lift with non-numeric types should fail
+  (let ([result (typeof '(prim 'lift "hello"))])
+       (test-true "lift String rejected"
+                  (and (pair? result)
+                       (eq? (car result) 'error)
+                       (eq? (cadr result) 'non-numeric-diff-type))))
+  
+  (let ([result (typeof '(prim 'lift #t))])
+       (test-true "lift Bool rejected"
+                  (and (pair? result)
+                       (eq? (car result) 'error)
+                       (eq? (cadr result) 'non-numeric-diff-type))))
+  
+  (let ([result (typeof '(prim 'lift 'symbol))])
+       (test-true "lift Symbol rejected"
+                  (and (pair? result)
+                       (eq? (car result) 'error)
+                       (eq? (cadr result) 'non-numeric-diff-type))))
+  
+  ;; Valid numeric types should still work
+  (let ([result (typeof '(prim 'lift 42))])
+       (test-true "lift Int accepted"
+                  (and (pair? result)
+                       (eq? (car result) 'Diff))))
+  
+  (let ([result (typeof '(prim 'lift 3.14))])
+       (test-true "lift Real accepted"
+                  (and (pair? result)
+                       (eq? (car result) 'Diff))))
+  
+  ;;; ============================================================
   ;;; Unification with Diff Types
   ;;; ============================================================
   

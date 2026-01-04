@@ -795,11 +795,55 @@
   (let ([entry (assq op prim-types)])
        (if entry (cdr entry) #f)))
 
+;;; ============================================================
+;;; Numeric Constraint Validation for Autodiff
+;;; ============================================================
+
+;;; Autodiff primitives with polymorphic types that require numeric inner types.
+;;; These are the primitives where the type variable 'a' in (Diff a) must be numeric.
+(define numeric-constrained-prims
+  '(lift primal gradient grad grad-at d+ d- d* d/ d-neg))
+
+;;; contains-invalid-diff? : Type → Type | #f
+;;; Returns the first non-numeric inner type found in a Diff, or #f if all valid.
+(define (contains-invalid-diff? type)
+  (cond
+   [(not (pair? type)) #f]
+   [(eq? (car type) 'Diff)
+    (let ([inner (cadr type)])
+         ;; Type variables are allowed (constraint deferred to instantiation site)
+         (if (or (type-var? inner) (numeric-type? inner))
+             ;; Check recursively in case of nested types
+             (contains-invalid-diff? inner)
+             inner))]
+   [(eq? (car type) 'Grad)
+    (let ([inner (cadr type)])
+         (if (or (type-var? inner) (numeric-type? inner))
+             (contains-invalid-diff? inner)
+             inner))]
+   [else
+    ;; Check all subexpressions
+    (let loop ([parts (cdr type)])
+         (if (null? parts)
+             #f
+             (or (contains-invalid-diff? (car parts))
+                 (loop (cdr parts)))))]))
+
 (define (infer-prim op args env)
   (let ([prim-type (lookup-prim-type op)])
        (if prim-type
            (let ([inst-type (instantiate prim-type)])
-                (infer-app-args inst-type args empty-subst env))
+                (let ([result (infer-app-args inst-type args empty-subst env)])
+                     (if (eq? (car result) 'ok)
+                         ;; Validate numeric constraint for autodiff prims
+                         (if (memq op numeric-constrained-prims)
+                             (let* ([ret-type (cadr result)]
+                                    [invalid-type (contains-invalid-diff? ret-type)])
+                                   (if invalid-type
+                                       `(error non-numeric-diff-type ,invalid-type ,op)
+                                       result))
+                             result)
+                         result)))
            `(error unknown-primitive ,op))))
 
 ;;; ============================================================
@@ -875,6 +919,10 @@
          (format "Unknown primitive: ~a" (caddr err))]
         [(no-instance-found)
          (format "No type class instance found for constraint: ~a" (caddr err))]
+        [(non-numeric-diff-type)
+         (format "Diff type requires numeric inner type, got ~a in primitive ~a"
+                 (type->string (caddr err))
+                 (cadddr err))]
         [else (format "~s" err)]))
 
 ;;; ============================================================
