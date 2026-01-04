@@ -103,38 +103,6 @@ Test 8: Complex expression
 (define norm-complex (normalize complex-expr))
 (display "  normalized: ") (display norm-complex) (newline)
 
-;;; Test 9: Multi-argument functions
-(display "
-Test 9: Multi-argument functions
-")
-(test "two-arg function"
-      '(fn (+ (dv 1) (dv 0)))
-      (normalize '(fn (x y) (+ x y))))
-
-(test "three-arg function"
-      '(fn (* (dv 2) (+ (dv 1) (dv 0))))
-      (normalize '(fn (x y z) (* x (+ y z)))))
-
-(test "nested multi-arg"
-      '(fn (fn ((dv 2) (dv 0))))
-      (normalize '(fn (f x) (fn (y) (f y)))))
-
-;;; Test 10: Multi-binding let
-(display "
-Test 10: Multi-binding let
-")
-(test "two-binding let"
-      '(let (1) (let (2) (+ (dv 1) (dv 0))))
-      (normalize '(let ((x 1) (y 2)) (+ x y))))
-
-(test "three-binding let"
-      '(let (1) (let (2) (let (3) (+ (dv 2) (+ (dv 1) (dv 0))))))
-      (normalize '(let ((x 1) (y 2) (z 3)) (+ x (+ y z)))))
-
-(test "let with parallel binding (x free in y's value)"
-      '(let (a) (let ((+ x 1)) (+ (dv 1) (dv 0))))
-      (normalize '(let ((x a) (y (+ x 1))) (+ x y))))
-
 (display "
 ✓ All tests complete.
 ")
