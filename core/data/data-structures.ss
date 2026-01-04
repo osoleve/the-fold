@@ -34,14 +34,20 @@
 ;;; Error if stack is empty.
 (define (stack-pop stack)
   (if (null? stack)
-      (error 'stack-pop "Cannot pop from empty stack")
+      (raise (condition
+              (make-error)
+              (make-who-condition 'stack-pop)
+              (make-message-condition "Cannot pop from empty stack")))
       (values (cdr stack) (car stack))))
 
 ;;; stack-peek : Stack → α
 ;;; Get top element without removing. Error if empty.
 (define (stack-peek stack)
   (if (null? stack)
-      (error 'stack-peek "Cannot peek empty stack")
+      (raise (condition
+              (make-error)
+              (make-who-condition 'stack-peek)
+              (make-message-condition "Cannot peek empty stack")))
       (car stack)))
 
 ;;; stack-size : Stack → Nat
@@ -103,7 +109,10 @@
   (let ([front (car queue)]
         [back (cdr queue)])
        (if (null? front)
-           (error 'queue-dequeue "Cannot dequeue from empty queue")
+           (raise (condition
+                   (make-error)
+                   (make-who-condition 'queue-dequeue)
+                   (make-message-condition "Cannot dequeue from empty queue")))
            (values (make-queue (cdr front) back)
                    (car front)))))
 
@@ -112,7 +121,10 @@
 (define (queue-peek queue)
   (let ([front (car queue)])
        (if (null? front)
-           (error 'queue-peek "Cannot peek empty queue")
+           (raise (condition
+                   (make-error)
+                   (make-who-condition 'queue-peek)
+                   (make-message-condition "Cannot peek empty queue")))
            (car front))))
 
 ;;; queue-size : Queue → Nat
