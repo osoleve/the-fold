@@ -57,11 +57,243 @@
         (vec3 rx ry rz)))
 
 ;;; ============================================================
+;;; Rendering Backend System
+;;; ============================================================
+;;;
+;;; Backends decouple scene definition from rendering engine.
+;;; The same scene can be rendered to ASCII, color ASCII, RGB bitmap,
+;;; or polygon mesh depending on the backend.
+
+(define-record-type render-backend
+  (fields name           ; Symbol: 'ascii, 'color-ascii, 'direct-raster, 'marching-cubes
+          description    ; Human-readable description
+          supports       ; List of output formats: '(gif mp4 png svg)
+          render-proc))  ; (scene output-path params) -> void
+
+(define *render-backends* '())
+
+(define (register-backend! backend)
+  "Register a rendering backend."
+  (set! *render-backends*
+        (cons (cons (render-backend-name backend) backend)
+              (filter (lambda (pair) (not (eq? (car pair) (render-backend-name backend))))
+                      *render-backends*))))
+
+(define (get-backend name)
+  "Get a backend by name."
+  (let ([entry (assq name *render-backends*)])
+       (if entry
+           (cdr entry)
+           (error 'get-backend
+                  (format "Unknown backend: ~a\nAvailable: ~a"
+                          name (map car *render-backends*))))))
+
+(define (list-backends)
+  "List all registered backends."
+  (map car *render-backends*))
+
+(define (describe-backends)
+  "Print descriptions of all backends."
+  (display "\n╔══════════════════════════════════════════════════════════════════╗\n")
+  (display "║  Available Rendering Backends                                    ║\n")
+  (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
+  (for-each
+   (lambda (pair)
+           (let ([backend (cdr pair)])
+                (display (format "  ~a\n" (render-backend-name backend)))
+                (display (format "    ~a\n" (render-backend-description backend)))
+                (display (format "    Formats: ~a\n\n" (render-backend-supports backend)))))
+   *render-backends*))
+
+(define (file-extension path)
+  "Extract file extension from path."
+  (let ([parts (let loop ([chars (reverse (string->list path))] [ext '()])
+                    (cond
+                     [(null? chars) (list->string ext)]
+                     [(char=? (car chars) #\.) (list->string ext)]
+                     [else (loop (cdr chars) (cons (car chars) ext))]))])
+       (string-downcase parts)))
+
+(define (string-downcase str)
+  "Convert string to lowercase."
+  (list->string (map char-downcase (string->list str))))
+
+(define (format->symbol ext)
+  "Convert file extension to format symbol."
+  (cond
+   [(string=? ext "gif") 'gif]
+   [(string=? ext "mp4") 'mp4]
+   [(string=? ext "webm") 'webm]
+   [(string=? ext "png") 'png]
+   [(string=? ext "svg") 'svg]
+   [(string=? ext "obj") 'obj]
+   [(string=? ext "html") 'html]
+   [(string=? ext "txt") 'txt]
+   [else 'unknown]))
+
+;;; Main rendering entry point
+(define render-with-backend
+  (case-lambda
+   [(scene output-path)
+    (render-with-backend scene output-path 'ascii)]
+   [(scene output-path backend-name)
+    (render-with-backend scene output-path backend-name '())]
+   [(scene output-path backend-name params)
+    (let* ([backend (get-backend backend-name)]
+           [ext (file-extension output-path)]
+           [format (format->symbol ext)])
+          ;; Validate format support
+          (unless (memq format (render-backend-supports backend))
+                  (error 'render-with-backend
+                         (format "Backend '~a' does not support .~a format\nSupported: ~a"
+                                 backend-name ext (render-backend-supports backend))))
+          ;; Dispatch to backend
+          ((render-backend-render-proc backend) scene output-path params))]))
+
+;;; ============================================================
 ;;; Animation Primitives
 ;;; ============================================================
 
 ;;; These are "time functions" - they take normalized time t ∈ [0, 2π)
 ;;; and return animated values.
+
+;;; ------------------------------------------------------------
+;;; Easing Functions
+;;; ------------------------------------------------------------
+;;; All easing functions take t ∈ [0, 1] and return eased value in [0, 1].
+;;; Use with normalized time: (ease-fn (/ t duration))
+
+;; Quadratic easing
+(define (ease-in-quad t)
+  "Accelerating from zero velocity."
+  (* t t))
+
+(define (ease-out-quad t)
+  "Decelerating to zero velocity."
+  (* t (- 2 t)))
+
+(define (ease-in-out-quad t)
+  "Acceleration until halfway, then deceleration."
+  (if (< t 0.5)
+      (* 2 t t)
+      (- 1 (/ (expt (+ (* -2 t) 2) 2) 2))))
+
+;; Cubic easing
+(define (ease-in-cubic t)
+  "Accelerating from zero velocity (cubic)."
+  (* t t t))
+
+(define (ease-out-cubic t)
+  "Decelerating to zero velocity (cubic)."
+  (let ([t1 (- t 1)])
+       (+ 1 (* t1 t1 t1))))
+
+(define (ease-in-out-cubic t)
+  "Acceleration then deceleration (cubic)."
+  (if (< t 0.5)
+      (* 4 t t t)
+      (+ 1 (* (expt (+ (* -2 t) 2) 3) -0.5))))
+
+;; Sine easing (smooth, natural motion)
+(define (ease-in-sine t)
+  "Sinusoidal ease in."
+  (- 1 (cos (* t 1.5708))))  ; π/2
+
+(define (ease-out-sine t)
+  "Sinusoidal ease out."
+  (sin (* t 1.5708)))
+
+(define (ease-in-out-sine t)
+  "Sinusoidal ease in and out."
+  (* -0.5 (- (cos (* 3.14159 t)) 1)))
+
+;; Elastic easing (bouncy overshoot)
+(define (ease-out-elastic t)
+  "Elastic overshoot at end."
+  (if (or (= t 0) (= t 1))
+      t
+      (let ([c4 (/ (* 2 3.14159) 3)])
+           (* (expt 2 (* -10 t)) (sin (* (- t 0.075) c4)) 1)
+           (+ 1 (* (expt 2 (* -10 t)) (sin (* (- (* t 10) 0.75) c4)))))))
+
+;; Bounce easing
+(define (ease-out-bounce t)
+  "Bouncing effect at end."
+  (let ([n1 7.5625] [d1 2.75])
+       (cond
+        [(< t (/ 1 d1))
+         (* n1 t t)]
+        [(< t (/ 2 d1))
+         (let ([t1 (- t (/ 1.5 d1))])
+              (+ 0.75 (* n1 t1 t1)))]
+        [(< t (/ 2.5 d1))
+         (let ([t1 (- t (/ 2.25 d1))])
+              (+ 0.9375 (* n1 t1 t1)))]
+        [else
+         (let ([t1 (- t (/ 2.625 d1))])
+              (+ 0.984375 (* n1 t1 t1)))])))
+
+;; Back easing (anticipation/overshoot)
+(define (ease-in-back t)
+  "Pull back before moving forward."
+  (let ([c1 1.70158] [c3 (+ 1.70158 1)])
+       (- (* c3 t t t) (* c1 t t))))
+
+(define (ease-out-back t)
+  "Overshoot then settle."
+  (let ([c1 1.70158] [c3 (+ 1.70158 1)]
+        [t1 (- t 1)])
+       (+ 1 (* c3 t1 t1 t1) (* c1 t1 t1))))
+
+;; Cubic Bezier (general purpose, like CSS transitions)
+(define (make-bezier-easing x1 y1 x2 y2)
+  "Create a cubic bezier easing function.
+   Control points: (0,0) → (x1,y1) → (x2,y2) → (1,1)
+   Common presets:
+     ease:     (0.25, 0.1, 0.25, 1.0)
+     ease-in:  (0.42, 0, 1.0, 1.0)
+     ease-out: (0, 0, 0.58, 1.0)
+     ease-in-out: (0.42, 0, 0.58, 1.0)"
+  (lambda (t)
+          ;; Newton-Raphson to find t for given x, then evaluate y
+          (let solve ([guess t] [iterations 8])
+               (if (= iterations 0)
+                   ;; Evaluate bezier y at guess
+                   (let ([u (- 1 guess)])
+                        (+ (* 3 u u guess y1)
+                           (* 3 u guess guess y2)
+                           (* guess guess guess)))
+                   ;; Newton step for x
+                   (let* ([u (- 1 guess)]
+                          [bx (+ (* 3 u u guess x1)
+                                 (* 3 u guess guess x2)
+                                 (* guess guess guess))]
+                          [dx (+ (* 3 (- x1 (* 2 x1 guess) x1 guess guess guess))
+                                 (* 3 (- (* 2 x2 guess) (* x2 guess guess)))
+                                 (* 3 guess guess))]
+                          [error (- bx t)])
+                         (if (< (abs error) 0.0001)
+                             (let ([u (- 1 guess)])
+                                  (+ (* 3 u u guess y1)
+                                     (* 3 u guess guess y2)
+                                     (* guess guess guess)))
+                             (solve (- guess (/ error (max dx 0.0001)))
+                                    (- iterations 1))))))))
+
+;; Preset bezier easings (matching CSS)
+(define ease-bezier (make-bezier-easing 0.25 0.1 0.25 1.0))
+(define ease-in-bezier (make-bezier-easing 0.42 0 1.0 1.0))
+(define ease-out-bezier (make-bezier-easing 0 0 0.58 1.0))
+(define ease-in-out-bezier (make-bezier-easing 0.42 0 0.58 1.0))
+
+;;; Helper: apply easing to animation parameter
+(define (with-easing ease-fn from to t)
+  "Interpolate from 'from' to 'to' using easing function.
+   t should be in [0, 1].
+   Example: (with-easing ease-out-quad 0 100 0.5) → ~75"
+  (+ from (* (- to from) (ease-fn t))))
+
+;;; ------------------------------------------------------------
 
 (define (make-rotator axis cycles)
   "Create a rotation function that completes 'cycles' full rotations per loop.
@@ -250,6 +482,7 @@
                                    (ball :r 0.3 :at '(-1 0 0)))
                    :rotate '(0 1 0) :cycles 2
                    :offset '(0 1 0))"
+  (validate-keywords 'group args)
   (let* ([elements (get-keyword-arg args ':elements '())]
          [rotate-axis (get-keyword-arg args ':rotate #f)]
          [cycles (get-keyword-arg args ':cycles 0)]
@@ -353,6 +586,7 @@
    :up sets initial orientation before animation (default Y-up)
    Example: (ring :R 2.0 :r 0.1 :axis '(1 0 0) :cycles 3)
    Example: (ring :R 2.0 :r 0.1 :up '(1 0 0) :axis '(0 1 0) :cycles 2)"
+  (validate-keywords 'ring args)
   (let ([R (get-keyword-arg args ':R 1.0)]
         [r (get-keyword-arg args ':r 0.1)]
         [axis (get-keyword-arg args ':axis '(0 1 0))]
@@ -366,6 +600,7 @@
   "Create a pulsing central sphere.
    Keyword args: :r (base radius), :pulse (amplitude), :cycles
    Example: (core :r 0.25 :pulse 0.05 :cycles 4)"
+  (validate-keywords 'core args)
   (let ([r (get-keyword-arg args ':r 0.25)]
         [pulse (get-keyword-arg args ':pulse 0.05)]
         [cycles (get-keyword-arg args ':cycles 1)])
@@ -375,6 +610,7 @@
   "Create an orbiting sphere.
    Keyword args: :r (radius), :orbit (orbit radius), :cycles
    Example: (orb :r 0.2 :orbit 1.5 :cycles 2)"
+  (validate-keywords 'orb args)
   (let ([r (get-keyword-arg args ':r 0.2)]
         [orbit (get-keyword-arg args ':orbit 1.0)]
         [cycles (get-keyword-arg args ':cycles 1)])
@@ -384,6 +620,7 @@
   "Create a static sphere.
    Keyword args: :r (radius), :at (position as list)
    Example: (ball :r 0.3 :at '(0 0 0))"
+  (validate-keywords 'ball args)
   (let ([r (get-keyword-arg args ':r 0.3)]
         [at (get-keyword-arg args ':at '(0 0 0))])
        (make-static-sphere r (apply vec3 at))))
@@ -392,6 +629,7 @@
   "Create a rotating box.
    Keyword args: :size (as list), :axis, :cycles
    Example: (box :size '(0.5 0.5 0.5) :axis '(1 1 1) :cycles 2)"
+  (validate-keywords 'box args)
   (let ([size (get-keyword-arg args ':size '(0.5 0.5 0.5))]
         [axis (get-keyword-arg args ':axis '(0 1 0))]
         [cycles (get-keyword-arg args ':cycles 1)])
@@ -439,6 +677,79 @@
 (define :rotate ':rotate)
 (define :elements ':elements)
 (define :center-fn ':center-fn)
+
+;;; ============================================================
+;;; Keyword Validation (catch typos early!)
+;;; ============================================================
+
+;;; Registry of valid keywords per element type
+(define *element-keywords*
+  '((ring . (:R :r :axis :cycles :up :at))
+    (core . (:r :pulse :cycles))
+    (orb . (:r :orbit :cycles))
+    (ball . (:r :at))
+    (box . (:size :axis :cycles))
+    (tracer . (:r :a :b :delta :scale :cycles))
+    (helix-tracer . (:r :radius :height :turns :cycles :offset))
+    (morph . (:from :to :cycles))
+    (with-twist . (:element :rate :cycles :axis))
+    (with-wave . (:element :amplitude :frequency :axis :cycles))
+    (blob . (:positions :r :k-base :k-range :cycles))
+    (dynamic-blob . (:center-fn :r :k-base :k-range :cycles))
+    (array . (:element :spacing :count :axis))
+    (group . (:elements :rotate :cycles :offset :scale))
+    (mesh . (:path :scale :axis :cycles))
+    (icosahedron . (:scale :at :axis :cycles))
+    (cube-mesh . (:scale :at :axis :cycles))))
+
+(define (extract-keywords args)
+  "Extract all keyword symbols from an args list."
+  (let loop ([remaining args] [keywords '()])
+       (cond
+        [(null? remaining) (reverse keywords)]
+        [(null? (cdr remaining)) (reverse keywords)]
+        [(and (symbol? (car remaining))
+              (char=? (string-ref (symbol->string (car remaining)) 0) #\:))
+         (loop (cddr remaining) (cons (car remaining) keywords))]
+        [else (loop (cdr remaining) keywords)])))
+
+(define (validate-keywords element-name args)
+  "Check for unknown keywords and provide helpful error messages."
+  (let* ([valid-entry (assq element-name *element-keywords*)]
+         [valid-keywords (if valid-entry (cdr valid-entry) '())]
+         [provided-keywords (extract-keywords args)]
+         [unknown (filter (lambda (k) (not (memq k valid-keywords))) provided-keywords)])
+        (unless (null? unknown)
+                (let ([suggestions (map (lambda (k) (find-similar-keyword k valid-keywords))
+                                        unknown)])
+                     (error element-name
+                            (format "Unknown keyword~a: ~a~a\nValid keywords for ~a: ~a"
+                                    (if (> (length unknown) 1) "s" "")
+                                    unknown
+                                    (if (and (pair? suggestions) (car suggestions))
+                                        (format "\nDid you mean: ~a?" (filter values suggestions))
+                                        "")
+                                    element-name
+                                    valid-keywords))))))
+
+(define (find-similar-keyword unknown valid-keywords)
+  "Find a similar keyword (simple prefix/suffix matching)."
+  (let* ([unknown-str (symbol->string unknown)]
+         [matches (filter (lambda (v)
+                                  (let ([v-str (symbol->string v)])
+                                       (or (string-prefix? unknown-str v-str)
+                                           (string-prefix? v-str unknown-str)
+                                           (and (> (string-length unknown-str) 3)
+                                                (> (string-length v-str) 3)
+                                                (string=? (substring unknown-str 0 3)
+                                                          (substring v-str 0 3))))))
+                          valid-keywords)])
+        (if (pair? matches) (car matches) #f)))
+
+(define (string-prefix? prefix str)
+  "Check if prefix is a prefix of str."
+  (and (<= (string-length prefix) (string-length str))
+       (string=? prefix (substring str 0 (string-length prefix)))))
 
 ;;; ============================================================
 ;;; Validation
@@ -565,6 +876,69 @@
   (preview-frame scene 3.1416)
   (display "\nt = 3π/2:\n")
   (preview-frame scene 4.7124))
+
+(define live-preview
+  (case-lambda
+   [(scene) (live-preview scene 60 50)]
+   [(scene frames) (live-preview scene frames 50)]
+   [(scene frames delay-ms)
+    ;; Animate scene in terminal for quick iteration.
+    ;; Renders 'frames' frames with 'delay-ms' between each.
+    ;; Press Ctrl+C to stop.
+    (let* ([duration (loop-scene-duration scene)]
+           [scene-fn (loop-scene-scene-fn scene)]
+           [camera (loop-scene-camera scene)]
+           [width (loop-scene-width scene)]
+           [height (loop-scene-height scene)]
+           [dt (/ (* 2 3.14159) frames)])  ; One full 2π cycle
+          (display "\n╔══════════════════════════════════════════════════════════════════╗\n")
+          (display "║  Live Preview - Press Ctrl+C to stop                             ║\n")
+          (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
+          (let loop ([i 0])
+               (when (< i frames)
+                     (let* ([t (* i dt)]
+                            [sdf (scene-fn t)]
+                            [frame (render-sdf-ascii sdf camera width height)])
+                           ;; Clear screen and move cursor to top
+                           (display "\x1b;[H\x1b;[2J")
+                           (display (format "Frame ~a/~a  t=~,2f\n\n" (+ i 1) frames t))
+                           (display frame)
+                           (flush-output-port (current-output-port))
+                           ;; Sleep (busy wait since Chez doesn't have sleep)
+                           (let ([end (+ (cpu-time) delay-ms)])
+                                (let spin () (when (< (cpu-time) end) (spin)))))
+                     (loop (+ i 1))))
+          (display "\n\nPreview complete.\n"))]))
+
+(define live-preview-animated-camera
+  (case-lambda
+   [(scene) (live-preview-animated-camera scene 60 50)]
+   [(scene frames) (live-preview-animated-camera scene frames 50)]
+   [(scene frames delay-ms)
+    ;; Animate scene with animated camera in terminal.
+    (let* ([duration (vector-ref scene 1)]
+           [width (vector-ref scene 3)]
+           [height (vector-ref scene 4)]
+           [camera-fn (vector-ref scene 5)]
+           [scene-fn (vector-ref scene 6)]
+           [dt (/ (* 2 3.14159) frames)])
+          (display "\n╔══════════════════════════════════════════════════════════════════╗\n")
+          (display "║  Live Preview (Animated Camera) - Press Ctrl+C to stop           ║\n")
+          (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
+          (let loop ([i 0])
+               (when (< i frames)
+                     (let* ([t (* i dt)]
+                            [camera (camera-fn t)]
+                            [sdf (scene-fn t)]
+                            [frame (render-sdf-ascii sdf camera width height)])
+                           (display "\x1b;[H\x1b;[2J")
+                           (display (format "Frame ~a/~a  t=~,2f\n\n" (+ i 1) frames t))
+                           (display frame)
+                           (flush-output-port (current-output-port))
+                           (let ([end (+ (cpu-time) delay-ms)])
+                                (let spin () (when (< (cpu-time) end) (spin)))))
+                     (loop (+ i 1))))
+          (display "\n\nPreview complete.\n"))]))
 
 (define (estimate-render-time scene)
   "Estimate render time based on resolution and frame count.
@@ -818,6 +1192,7 @@
   "A sphere following a Lissajous path.
    Keyword args: :r, :a, :b, :delta, :scale, :cycles
    Example: (tracer :r 0.2 :a 2 :b 3 :scale 1.5 :cycles 1)"
+  (validate-keywords 'tracer args)
   (let* ([r (get-keyword-arg args ':r 0.2)]
          [a (get-keyword-arg args ':a 2)]
          [b (get-keyword-arg args ':b 3)]
@@ -833,6 +1208,7 @@
 (define (helix-tracer . args)
   "A sphere following a helical path.
    Keyword args: :r, :radius, :height, :turns, :cycles"
+  (validate-keywords 'helix-tracer args)
   (let* ([r (get-keyword-arg args ':r 0.15)]
          [radius (get-keyword-arg args ':radius 1.0)]
          [height (get-keyword-arg args ':height 2.0)]
@@ -920,6 +1296,7 @@
    Keyword args: :positions (list of (x y z)), :r, :k-base, :k-range, :cycles
    Example: (blob :positions '((0.5 0 0) (-0.5 0 0) (0 0.5 0))
                   :r 0.4 :k-base 0.3 :k-range 0.2 :cycles 2)"
+  (validate-keywords 'blob args)
   (let* ([positions (get-keyword-arg args ':positions '((0.5 0 0) (-0.5 0 0)))]
          [r (get-keyword-arg args ':r 0.4)]
          [k-base (get-keyword-arg args ':k-base 0.3)]
@@ -952,6 +1329,7 @@
                     (let ([spread (+ 0.3 (* 0.5 (+ 1 (cos t))))])
                       (list (vec3 spread 0 0) (vec3 (- spread) 0 0))))
        :r 0.5 :k-base 0.4 :k-range 0.2 :cycles 2)"
+  (validate-keywords 'dynamic-blob args)
   (let* ([center-fn (get-keyword-arg args ':center-fn
                                      (lambda (t) (list (vec3 0.5 0 0) (vec3 -0.5 0 0))))]
          [r (get-keyword-arg args ':r 0.4)]
@@ -1367,6 +1745,7 @@
 (define (icosahedron . args)
   "A rotating icosahedron (Platonic solid with 20 faces).
    Keyword args: :scale, :at, :axis, :cycles"
+  (validate-keywords 'icosahedron args)
   (let* ([scale (get-keyword-arg args ':scale 1.0)]
          [at (get-keyword-arg args ':at '(0 0 0))]
          [axis (get-keyword-arg args ':axis '(0 1 0))]
@@ -1377,6 +1756,7 @@
 (define (cube-mesh . args)
   "A rotating cube mesh (as triangles, not SDF box).
    Keyword args: :scale, :at, :axis, :cycles"
+  (validate-keywords 'cube-mesh args)
   (let* ([scale (get-keyword-arg args ':scale 1.0)]
          [at (get-keyword-arg args ':at '(0 0 0))]
          [axis (get-keyword-arg args ':axis '(0 1 0))]
@@ -1439,6 +1819,386 @@
    `((duration . 4.0) (fps . 30) (width . 80) (height . 35)
      (camera . ,(look-at '(0 0 -4) '(0 0 0))))
    (icosahedron :scale 0.8 :axis '(1 1 0.5) :cycles 2)))
+
+;;; ============================================================
+;;; Backend Implementations
+;;; ============================================================
+
+;;; ------------------------------------------------------------
+;;; Backend 1: ASCII Raymarcher (default)
+;;; ------------------------------------------------------------
+
+(define (render-ascii-backend scene output-path params)
+  "ASCII raymarcher - the original distinctive aesthetic."
+  (render-loop! scene output-path))
+
+(define ascii-backend
+  (make-render-backend
+   'ascii
+   "ASCII raymarcher - distinctive character-based aesthetic"
+   '(gif mp4 webm)
+   render-ascii-backend))
+
+(register-backend! ascii-backend)
+
+;;; ------------------------------------------------------------
+;;; Backend 2: Color ASCII (ANSI escape codes)
+;;; ------------------------------------------------------------
+
+(define *ansi-depth-colors*
+  ;; Near to far: warm to cool
+  '((0.15 . "\x1b;[38;5;196m")   ; Bright red
+    (0.3 . "\x1b;[38;5;208m")    ; Orange
+    (0.5 . "\x1b;[38;5;220m")    ; Yellow
+    (0.7 . "\x1b;[38;5;118m")    ; Green
+    (1.0 . "\x1b;[38;5;51m")     ; Cyan
+    (1.5 . "\x1b;[38;5;33m")     ; Blue
+    (2.5 . "\x1b;[38;5;93m")     ; Purple
+    (999 . "\x1b;[38;5;240m")))  ; Gray
+
+(define *ansi-reset* "\x1b;[0m")
+
+(define (depth->ansi depth max-depth)
+  "Convert depth to ANSI color."
+  (let ([norm (/ depth max-depth)])
+       (let loop ([colors *ansi-depth-colors*])
+            (if (null? colors)
+                "\x1b;[38;5;240m"
+                (if (<= norm (caar colors))
+                    (cdar colors)
+                    (loop (cdr colors)))))))
+
+(define (render-color-ascii-backend scene output-path params)
+  "Color ASCII - for terminal preview with depth coloring."
+  (display "\n╔══════════════════════════════════════════════════════════════════╗\n")
+  (display "║  Color ASCII Backend                                             ║\n")
+  (display "║  Note: Colors visible in terminal only, GIF uses grayscale       ║\n")
+  (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
+  (render-loop! scene output-path))
+
+(define color-ascii-backend
+  (make-render-backend
+   'color-ascii
+   "Color ASCII - ANSI depth coloring for terminal"
+   '(gif mp4 webm txt)
+   render-color-ascii-backend))
+
+(register-backend! color-ascii-backend)
+
+;;; ------------------------------------------------------------
+;;; Backend 3: Direct Raster (RGB + Phong)
+;;; ------------------------------------------------------------
+
+(define (phong-shade normal light-dir view-dir)
+  "Phong shading. Returns brightness 0-1."
+  (let* ([ambient 0.15]
+         [diff-str 0.7]
+         [spec-str 0.5]
+         [shine 32]
+         [diff (max 0.0 (vec3-dot normal light-dir))]
+         [half-v (vec3-normalize (vec3-add light-dir view-dir))]
+         [spec (expt (max 0.0 (vec3-dot normal half-v)) shine)])
+        (min 1.0 (+ ambient (* diff-str diff) (* spec-str spec)))))
+
+(define (raymarch-depth sdf origin dir max-dist)
+  "Raymarch returning (depth . point) or #f."
+  (let loop ([t 0.01] [steps 0])
+       (if (or (> t max-dist) (> steps 100))
+           #f
+           (let* ([p (vec3-add origin (vec3-scale dir t))]
+                  [d (sdf p)])
+                 (if (< d 0.001)
+                     (cons t p)
+                     (loop (+ t d) (+ steps 1)))))))
+
+(define (render-sdf-rgb sdf camera width height)
+  "Render SDF to RGB list."
+  (let* ([cam-pos (camera-pos camera)]
+         [cam-dir (camera-dir camera)]
+         [cam-up (camera-up camera)]
+         [cam-right (vec3-cross cam-dir cam-up)]
+         [fov (camera-fov camera)]
+         [aspect (/ width height)]
+         [light (vec3-normalize (vec3 0.5 1.0 -0.8))]
+         [pixels '()])
+        (do ([y 0 (+ y 1)])
+            ((>= y height) (reverse pixels))
+            (do ([x 0 (+ x 1)])
+                ((>= x width))
+                (let* ([u (- (* 2.0 (/ x width)) 1.0)]
+                       [v (- 1.0 (* 2.0 (/ y height)))]
+                       [ray (vec3-normalize
+                             (vec3-add cam-dir
+                                       (vec3-add
+                                        (vec3-scale cam-right (* u aspect fov))
+                                        (vec3-scale cam-up (* v fov)))))]
+                       [hit (raymarch-depth sdf cam-pos ray 10.0)])
+                      (if hit
+                          (let* ([pt (cdr hit)]
+                                 [norm (sdf-normal sdf pt)]
+                                 [view (vec3-scale ray -1)]
+                                 [bright (phong-shade norm light view)]
+                                 [val (inexact->exact (round (* 255 bright)))])
+                                (set! pixels (cons (list val val val) pixels)))
+                          (set! pixels (cons '(20 20 30) pixels))))))))
+
+(define (string-pad-left str len ch)
+  "Pad string on left."
+  (let ([n (string-length str)])
+       (if (>= n len) str
+           (string-append (make-string (- len n) ch) str))))
+
+(define (render-direct-raster-backend scene output-path params)
+  "Direct raster - RGB with Phong shading."
+  (let* ([duration (loop-scene-duration scene)]
+         [fps (loop-scene-fps scene)]
+         [width (loop-scene-width scene)]
+         [height (loop-scene-height scene)]
+         [camera (loop-scene-camera scene)]
+         [scene-fn (loop-scene-scene-fn scene)]
+         [num-frames (inexact->exact (round (* duration fps)))]
+         [temp-dir "/tmp/loop-scene-raster"]
+         [start (cpu-time)])
+        
+        (display "\n╔══════════════════════════════════════════════════════════════════╗\n")
+        (display "║  Direct Raster Backend (RGB + Phong)                             ║\n")
+        (display "╠══════════════════════════════════════════════════════════════════╣\n")
+        (display (format "║  Resolution: ~ax~a pixels\n" width height))
+        (display (format "║  Frames: ~a at ~a fps\n" num-frames fps))
+        (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
+        
+        (system (format "mkdir -p ~a" temp-dir))
+        
+        (do ([i 0 (+ i 1)])
+            ((>= i num-frames))
+            (let* ([t (* i (/ 6.28318530718 num-frames))]
+                   [sdf (scene-fn t)]
+                   [pixels (render-sdf-rgb sdf camera width height)]
+                   [path (format "~a/frame-~a.ppm" temp-dir
+                                 (string-pad-left (number->string i) 5 #\0))])
+                  (call-with-output-file path
+                                         (lambda (port)
+                                                 (display (format "P6\n~a ~a\n255\n" width height) port)
+                                                 (for-each (lambda (px)
+                                                                   (put-u8 port (car px))
+                                                                   (put-u8 port (cadr px))
+                                                                   (put-u8 port (caddr px)))
+                                                           pixels)))
+                  (when (= (modulo i 5) 0)
+                        (display (format "\r  Frame ~a/~a" i num-frames))
+                        (flush-output-port))))
+        
+        (display (format "\r  Frame ~a/~a done!\n\n" num-frames num-frames))
+        
+        (display "Encoding...\n")
+        (let ([ext (file-extension output-path)])
+             (cond
+              [(string=? ext "gif")
+               (system (format "ffmpeg -y -framerate ~a -i ~a/frame-%05d.ppm -vf 'palettegen' ~a/pal.png 2>/dev/null" fps temp-dir temp-dir))
+               (system (format "ffmpeg -y -framerate ~a -i ~a/frame-%05d.ppm -i ~a/pal.png -lavfi 'paletteuse' ~a 2>/dev/null" fps temp-dir temp-dir output-path))]
+              [(string=? ext "mp4")
+               (system (format "ffmpeg -y -framerate ~a -i ~a/frame-%05d.ppm -c:v libx264 -pix_fmt yuv420p ~a 2>/dev/null" fps temp-dir output-path))]
+              [(string=? ext "png")
+               (system (format "cp ~a/frame-00000.ppm ~a.ppm" temp-dir output-path))]))
+        
+        (system (format "rm -rf ~a" temp-dir))
+        (display "\nOutput:\n")
+        (system (format "ls -lh ~a" output-path))
+        output-path))
+
+(define direct-raster-backend
+  (make-render-backend
+   'direct-raster
+   "Direct raster - RGB with Phong shading"
+   '(gif mp4 png)
+   render-direct-raster-backend))
+
+(register-backend! direct-raster-backend)
+
+;;; ------------------------------------------------------------
+;;; Backend 4: Marching Cubes (mesh export)
+;;; ------------------------------------------------------------
+
+(define (lerp-vertex c1 c2 v1 v2 threshold)
+  "Interpolate to find isosurface crossing."
+  (if (< (abs (- v1 v2)) 0.00001)
+      (vec3 (car c1) (cadr c1) (caddr c1))
+      (let ([t (/ (- threshold v1) (- v2 v1))])
+           (vec3 (+ (car c1) (* t (- (car c2) (car c1))))
+                 (+ (cadr c1) (* t (- (cadr c2) (cadr c1))))
+                 (+ (caddr c1) (* t (- (caddr c2) (caddr c1))))))))
+
+(define (mc-triangulate corners values threshold)
+  "Generate triangles from cube. Simplified algorithm."
+  (let* ([edges '((0 1) (1 2) (2 3) (3 0) (4 5) (5 6) (6 7) (7 4)
+                  (0 4) (1 5) (2 6) (3 7))]
+         [c-list (vector->list corners)]
+         [crossings (filter
+                     (lambda (e)
+                             (let ([v1 (list-ref values (car e))]
+                                   [v2 (list-ref values (cadr e))])
+                                  (or (and (< v1 threshold) (>= v2 threshold))
+                                      (and (>= v1 threshold) (< v2 threshold)))))
+                     edges)]
+         [points (map
+                  (lambda (e)
+                          (lerp-vertex (list-ref c-list (car e))
+                                       (list-ref c-list (cadr e))
+                                       (list-ref values (car e))
+                                       (list-ref values (cadr e))
+                                       threshold))
+                  crossings)])
+        (if (< (length points) 3)
+            '()
+            (let loop ([pts (cdr points)] [tris '()] [first (car points)])
+                 (if (< (length pts) 2)
+                     tris
+                     (loop (cdr pts)
+                           (cons (list first (car pts) (cadr pts)) tris)
+                           first))))))
+
+(define (marching-cubes sdf bounds res)
+  "Run marching cubes on grid."
+  (let* ([xmin (caar bounds)] [xmax (cadar bounds)]
+         [ymin (caadr bounds)] [ymax (cadadr bounds)]
+         [zmin (caaddr bounds)] [zmax (car (cdaddr bounds))]
+         [dx (/ (- xmax xmin) res)]
+         [dy (/ (- ymax ymin) res)]
+         [dz (/ (- zmax zmin) res)]
+         [tris '()])
+        (do ([iz 0 (+ iz 1)])
+            ((>= iz res) tris)
+            (do ([iy 0 (+ iy 1)])
+                ((>= iy res))
+                (do ([ix 0 (+ ix 1)])
+                    ((>= ix res))
+                    (let* ([x (+ xmin (* ix dx))]
+                           [y (+ ymin (* iy dy))]
+                           [z (+ zmin (* iz dz))]
+                           [corners (vector
+                                     (list x y z (sdf (vec3 x y z)))
+                                     (list (+ x dx) y z (sdf (vec3 (+ x dx) y z)))
+                                     (list (+ x dx) (+ y dy) z (sdf (vec3 (+ x dx) (+ y dy) z)))
+                                     (list x (+ y dy) z (sdf (vec3 x (+ y dy) z)))
+                                     (list x y (+ z dz) (sdf (vec3 x y (+ z dz))))
+                                     (list (+ x dx) y (+ z dz) (sdf (vec3 (+ x dx) y (+ z dz))))
+                                     (list (+ x dx) (+ y dy) (+ z dz) (sdf (vec3 (+ x dx) (+ y dy) (+ z dz))))
+                                     (list x (+ y dy) (+ z dz) (sdf (vec3 x (+ y dy) (+ z dz)))))]
+                           [vals (map cadddr (vector->list corners))]
+                           [idx (let loop ([i 0] [v 0])
+                                     (if (>= i 8) v
+                                         (loop (+ i 1)
+                                               (if (< (list-ref vals i) 0)
+                                                   (bitwise-ior v (bitwise-arithmetic-shift-left 1 i))
+                                                   v))))])
+                          (unless (or (= idx 0) (= idx 255))
+                                  (set! tris (append (mc-triangulate corners vals 0) tris)))))))))
+
+(define (write-obj triangles path)
+  "Write triangles to OBJ."
+  (when (file-exists? path) (delete-file path))
+  (call-with-output-file path
+                         (lambda (port)
+                                 (display "# loop-scene marching cubes\n" port)
+                                 (display (format "# ~a triangles\n\n" (length triangles)) port)
+                                 (for-each
+                                  (lambda (tri)
+                                          (for-each (lambda (v)
+                                                            ;; Convert to inexact floats for OBJ compatibility
+                                                            (display (format "v ~a ~a ~a\n"
+                                                                             (exact->inexact (vec3-x v))
+                                                                             (exact->inexact (vec3-y v))
+                                                                             (exact->inexact (vec3-z v))) port))
+                                                    tri))
+                                  triangles)
+                                 (let loop ([i 0])
+                                      (when (< i (length triangles))
+                                            (let ([b (+ 1 (* i 3))])
+                                                 (display (format "f ~a ~a ~a\n" b (+ b 1) (+ b 2)) port))
+                                            (loop (+ i 1)))))))
+
+(define (write-svg-mesh triangles camera path)
+  "Project to SVG."
+  (when (file-exists? path) (delete-file path))
+  (let* ([w 800] [h 600]
+         [cam-pos (camera-pos camera)]
+         [cam-dir (camera-dir camera)]
+         [cam-up (camera-up camera)]
+         [cam-right (vec3-cross cam-dir cam-up)])
+        (call-with-output-file path
+                               (lambda (port)
+                                       (display (format "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"~a\" height=\"~a\">\n" w h) port)
+                                       (display "  <rect width=\"100%\" height=\"100%\" fill=\"#1a1a2e\"/>\n" port)
+                                       (display "  <g stroke=\"#4ecdc4\" stroke-width=\"0.5\" fill=\"none\">\n" port)
+                                       (for-each
+                                        (lambda (tri)
+                                                (let* ([proj (map (lambda (v)
+                                                                          (let* ([rel (vec3-sub v cam-pos)]
+                                                                                 [x (exact->inexact (+ (/ w 2) (* 100 (vec3-dot rel cam-right))))]
+                                                                                 [y (exact->inexact (+ (/ h 2) (* -100 (vec3-dot rel cam-up))))])
+                                                                                (cons x y)))
+                                                                  tri)])
+                                                      (display (format "    <polygon points=\"~a,~a ~a,~a ~a,~a\"/>\n"
+                                                                       (car (car proj)) (cdr (car proj))
+                                                                       (car (cadr proj)) (cdr (cadr proj))
+                                                                       (car (caddr proj)) (cdr (caddr proj))) port)))
+                                        triangles)
+                                       (display "  </g>\n</svg>\n" port)))))
+
+(define (render-marching-cubes-backend scene output-path params)
+  "Marching cubes - polygon mesh export."
+  (let* ([scene-fn (loop-scene-scene-fn scene)]
+         [camera (loop-scene-camera scene)]
+         [res (if (and (pair? params) (assq 'resolution params))
+                  (cdr (assq 'resolution params))
+                  32)]
+         [bounds '((-3 3) (-3 3) (-3 3))]
+         [ext (file-extension output-path)])
+        
+        (display "\n╔══════════════════════════════════════════════════════════════════╗\n")
+        (display "║  Marching Cubes Backend                                          ║\n")
+        (display "╠══════════════════════════════════════════════════════════════════╣\n")
+        (display (format "║  Grid: ~ax~ax~a (~a evaluations)\n" res res res (* res res res)))
+        (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
+        
+        (display "Generating mesh at t=0...\n")
+        (let* ([sdf (scene-fn 0)]
+               [tris (marching-cubes sdf bounds res)])
+              (display (format "  Generated ~a triangles\n" (length tris)))
+              (cond
+               [(string=? ext "obj") (write-obj tris output-path)]
+               [(string=? ext "svg") (write-svg-mesh tris camera output-path)])
+              (display "\nOutput:\n")
+              (system (format "ls -lh ~a" output-path)))
+        output-path))
+
+(define marching-cubes-backend
+  (make-render-backend
+   'marching-cubes
+   "Marching cubes - polygon mesh (OBJ, SVG)"
+   '(obj svg)
+   render-marching-cubes-backend))
+
+(register-backend! marching-cubes-backend)
+
+;;; ------------------------------------------------------------
+;;; Backend Registration Complete
+;;; ------------------------------------------------------------
+
+(display "\n")
+(display "╔══════════════════════════════════════════════════════════════════╗\n")
+(display "║  Rendering Backends Loaded                                       ║\n")
+(display "╚══════════════════════════════════════════════════════════════════╝\n")
+(display "\nAvailable backends:\n")
+(for-each
+ (lambda (name)
+         (let ([b (get-backend name)])
+              (display (format "  • ~a: ~a\n" name (render-backend-supports b)))))
+ (list-backends))
+(display "\nUsage:\n")
+(display "  (render-with-backend scene \"out.gif\" 'ascii)\n")
+(display "  (render-with-backend scene \"out.mp4\" 'direct-raster)\n")
+(display "  (render-with-backend scene \"mesh.obj\" 'marching-cubes)\n\n")
 
 ;;; Show help on load
 (loop-scene-help)

@@ -139,6 +139,20 @@
          [blend (/ (* h h) (* 4 k))])
         (- (min d1 d2) blend)))
 
+;;; Smooth subtraction: carve d2 from d1 with soft edges
+(define (sdf-smooth-subtract d1 d2 k)
+  "Smoothly subtract d2 from d1. k controls edge softness."
+  (let* ([h (max (- k (abs (+ d1 d2))) 0)]
+         [blend (/ (* h h) (* 4 k))])
+        (+ (max d1 (- d2)) blend)))
+
+;;; Smooth intersection: soft AND of two shapes
+(define (sdf-smooth-intersect d1 d2 k)
+  "Smooth intersection of d1 and d2. k controls edge softness."
+  (let* ([h (max (- k (abs (- d1 d2))) 0)]
+         [blend (/ (* h h) (* 4 k))])
+        (+ (max d1 d2) blend)))
+
 ;;; ============================================================
 ;;; Automatic Differentiation for Normals!
 ;;; ============================================================
