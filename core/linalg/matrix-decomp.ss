@@ -165,9 +165,22 @@
 ;;; QR Decomposition
 ;;; ============================================================
 
+;;; verify-orthogonal? : Vec x Matrix x Nat -> Boolean
+;;; Verify that v is orthogonal to columns 0..j-1 of q within tolerance.
+(define (verify-orthogonal? v q j)
+  (let loop ([p 0])
+       (if (= p j)
+           #t  ; All checks passed
+           (let* ([q-p (matrix-column q p)]
+                  [dot (abs (vec-dot v q-p))])
+                 (if (< dot *matrix-tolerance*)
+                     (loop (+ p 1))
+                     #f)))))  ; Orthogonality violated
+
 ;;; qr-find-orthogonal-basis : Matrix x Nat x Nat -> Vec | #f
 ;;; Find a unit vector orthogonal to columns 0..j-1 of Q.
 ;;; Tries standard basis vectors e_0, e_1, ... until one works.
+;;; Verifies orthogonality of result to prevent convergence issues.
 (define (qr-find-orthogonal-basis q j m)
   (let find-loop ([k 0])
        (if (= k m)
@@ -183,7 +196,11 @@
                                                (vec-sub curr (vec-scale proj q-p))))))]
                   [v-norm (vec-norm v)])
                  (if (> v-norm *matrix-tolerance*)
-                     (vec-scale (/ 1.0 v-norm) v)
+                     (let ([v-normalized (vec-scale (/ 1.0 v-norm) v)])
+                          ;; Verify orthogonality before accepting
+                          (if (verify-orthogonal? v-normalized q j)
+                              v-normalized
+                              (find-loop (+ k 1))))  ; Try next basis vector
                      (find-loop (+ k 1)))))))
 
 ;;; qr-orthogonalize-remaining! : Matrix x Matrix x Nat x Nat x Nat -> Void
