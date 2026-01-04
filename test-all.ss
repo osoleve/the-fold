@@ -123,7 +123,10 @@
     "linalg/test-vec.ss"
     "linalg/test-matrix.ss"
     "linalg/test-matrix-decomp.ss"
-    "linalg/test-matrix-solvers.ss"))
+    "linalg/test-matrix-solvers.ss"
+    ;; Layer 9: Random Number Generation
+    "random/test-prng.ss"
+    "random/test-distributions.ss"))
 
 ;;; Shell tests (validated, stable)
 (define shell-tests
