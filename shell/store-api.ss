@@ -96,7 +96,7 @@
                                 (let check-refs ([i 0])
                                      (cond
                                       [(>= i (vector-length refs)) #f]
-                                      [(bytevector=? (vector-ref refs i) target-hash) #t]
+                                      [(equal? (vector-ref refs i) target-hash) #t]
                                       [else (check-refs (+ i 1))]))))))
 
 ;;; ============================================================
