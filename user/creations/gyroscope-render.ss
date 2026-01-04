@@ -8,11 +8,11 @@
 
 (display "\n")
 (display "╔══════════════════════════════════════════════════════════════════╗\n")
-(display "║     GYROSCOPE: High-Resolution 60fps Animation                   ║\n")
+(display "║     GYROSCOPE: Ultra High-Resolution 60fps Animation             ║\n")
 (display "╠══════════════════════════════════════════════════════════════════╣\n")
-(display "║  Resolution: 100x44 chars (800x616 pixels)                       ║\n")
+(display "║  Resolution: 200x88 chars (1600x1232 pixels)                     ║\n")
 (display "║  Frames: 300 (5 seconds at 60fps)                                ║\n")
-(display "║  Scene: Nested rotating tori (armillary sphere)                  ║\n")
+(display "║  Scene: 4 nested rotating tori (armillary sphere)                ║\n")
 (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
 
 ;;; ============================================================
@@ -40,26 +40,34 @@
         (vec3 rx ry rz)))
 
 (define (make-gyroscope-scene t)
-  "Armillary sphere with 3 nested rings rotating on different axes"
+  "Armillary sphere with 4 nested rings rotating on different axes"
   (let* (;; Ring parameters - INTEGER rates for perfect looping!
          ;; Each rate = number of full rotations per loop
-         ;; Outer ring: 3 rotations (was 1.0)
-         [r1-R 2.0] [r1-r 0.12]
+         ;; Outermost ring: 2 rotations (slow, majestic)
+         [r0-R 2.5] [r0-r 0.10]
+         [r0-axis (vec3-normalize (vec3 0.2 1 0.3))]  ; Slight tilt
+         [r0-angle (* t 2)]
+         ;; Outer ring: 3 rotations
+         [r1-R 2.0] [r1-r 0.09]
          [r1-angle (* t 3)]
-         ;; Middle ring: 5 rotations (was 1.7)
-         [r2-R 1.5] [r2-r 0.10]
+         ;; Middle ring: 5 rotations
+         [r2-R 1.5] [r2-r 0.08]
          [r2-axis (vec3-normalize (vec3 1 0.5 0))]
          [r2-angle (* t 5)]
-         ;; Inner ring: 7 rotations (was 2.3)
-         [r3-R 1.0] [r3-r 0.08]
+         ;; Inner ring: 7 rotations
+         [r3-R 1.0] [r3-r 0.07]
          [r3-axis (vec3-normalize (vec3 0.3 1 0.5))]
          [r3-angle (* t 7)]
          ;; Central sphere: 4 pulse cycles
-         [sphere-r (+ 0.25 (* 0.05 (sin (* t 4))))])
+         [sphere-r (+ 0.22 (* 0.04 (sin (* t 4))))])
         
         (lambda (p)
                 ;; Transform point into each ring's local space
-                (let* (;; Outer ring (Y-axis rotation)
+                (let* (;; Outermost ring (tilted, slow rotation)
+                       [p0 (rotate-axis p r0-axis (- r0-angle))]
+                       [d0 (sdf-torus p0 (vec3 0 0 0) r0-R r0-r)]
+                       
+                       ;; Outer ring (Y-axis rotation)
                        [p1 (rotate-y p (- r1-angle))]
                        [d1 (sdf-torus p1 (vec3 0 0 0) r1-R r1-r)]
                        
@@ -74,22 +82,22 @@
                        ;; Central sphere
                        [d4 (sdf-sphere p (vec3 0 0 0) sphere-r)])
                       
-                      ;; Union of all elements
-                      (min d1 (min d2 (min d3 d4)))))))
+                      ;; Union of all 5 elements
+                      (min d0 (min d1 (min d2 (min d3 d4))))))))
 
 ;;; ============================================================
 ;;; Render Parameters
 ;;; ============================================================
 
-(define *width* 100)
-(define *height* 44)
+(define *width* 200)
+(define *height* 88)
 (define *num-frames* 300)
 (define *fps* 60)
 (define *frame-delay-ms* (inexact->exact (round (/ 1000.0 *fps*))))
 
-;;; Camera pulled back to see the whole gyroscope
+;;; Camera pulled back to see the whole gyroscope (4 rings now)
 (define *gyro-camera*
-  (make-camera (vec3 0 1.5 -5.5)      ; position (above and back)
+  (make-camera (vec3 0 1.8 -6.5)      ; position (further back for 4th ring)
                (vec3 0 0 0)            ; look-at center
                (vec3 0 1 0)            ; up
                1.0))                   ; fov
