@@ -24,7 +24,7 @@
 
 (define (test-error name thunk)
   (guard (ex
-          [(error? ex)
+          [(condition? ex)  ; Use condition? not error? (error? is shadowed by prelude)
            (set! tests-passed (+ tests-passed 1))
            (display "  ✓ ") (display name) (display " (error raised)") (newline)]
           [else

@@ -142,7 +142,7 @@
 
 ;;; collect-refs : Bytevector × (Bytevector → Block) → (List Bytevector)
 ;;; Collect all transitive references from a block.
-;;; Uses iterative traversal. Prepends new refs to avoid O(N²) append.
+;;; Uses iterative DFS traversal with O(1) cons operations.
 (define (collect-refs hash fetch)
   (let ([visited (make-hashtable equal-hash equal?)]
         [queue (list hash)]
@@ -163,11 +163,16 @@
                           (set! results (cons current results))
                           (let ([blk (fetch current)])
                                (if blk
-                                   ;; Prepend new refs to queue
-                                   (let ([new-refs (filter
-                                                    (lambda (r) (not (hashtable-ref visited r #f)))
-                                                    (vector->list (block-refs blk)))])
-                                        (set! queue (append new-refs rest-queue)))
+                                   ;; Prepend refs to stack via O(1) cons operations
+                                   (let ([refs (block-refs blk)])
+                                        (set! queue
+                                              (let fold-refs ([i 0] [acc rest-queue])
+                                                   (if (>= i (vector-length refs))
+                                                       acc
+                                                       (let ([ref (vector-ref refs i)])
+                                                            (if (hashtable-ref visited ref #f)
+                                                                (fold-refs (+ i 1) acc)
+                                                                (fold-refs (+ i 1) (cons ref acc))))))))
                                    (set! queue rest-queue)))
                           (loop))))))))
 
@@ -224,35 +229,40 @@
 
 ;;; gc-with-roots! : (List Bytevector) → (values Nat Nat)
 ;;; Collect blocks not reachable from the given root hashes.
-;;; First pins all reachable blocks, then collects unpinned.
+;;; Manual pins are preserved and treated as additional roots.
 ;;; Returns (collected-count remaining-count).
 (define (gc-with-roots! roots)
-  ;; Save current pins
-  (let ([saved-pins (make-hashtable equal-hash equal?)])
+  ;; Build reachable set: includes manually pinned blocks + roots
+  (let ([reachable (make-hashtable equal-hash equal?)])
+       ;; Manual pins are always reachable (preserved)
        (vector-for-each
         (lambda (h)
-                (hashtable-set! saved-pins h #t))
+                (hashtable-set! reachable h #t))
         (hashtable-keys *pinned*))
        
-       ;; Clear all pins
-       (hashtable-clear! *pinned*)
-       
-       ;; Pin from roots
+       ;; Mark all blocks reachable from roots
        (for-each
         (lambda (root)
                 (when (stored? root)
-                      (pin-tree! root)))
+                      (for-each
+                       (lambda (h)
+                               (hashtable-set! reachable h #t))
+                       (collect-refs root fetch))))
         roots)
        
-       ;; Run GC
-       (let-values ([(collected remaining) (gc!)])
-                   ;; Restore original pins for remaining blocks
-                   (vector-for-each
-                    (lambda (h)
-                            (when (hashtable-ref saved-pins h #f)
-                                  (pin! h)))
-                    (hashtable-keys *store*))
-                   (values collected remaining))))
+       ;; Collect unreachable blocks
+       (let ([to-remove '()]
+             [initial-count (store-count)])
+            (vector-for-each
+             (lambda (hash)
+                     (unless (hashtable-ref reachable hash #f)
+                             (set! to-remove (cons hash to-remove))))
+             (hashtable-keys *store*))
+            (for-each
+             (lambda (hash)
+                     (hashtable-delete! *store* hash))
+             to-remove)
+            (values (length to-remove) (store-count)))))
 
 ;;; gc-stats : → Alist
 ;;; Return statistics about pinned vs unpinned blocks.
@@ -292,11 +302,13 @@
 
 ;;; These wrap S-expressions in blocks for storage.
 
-;;; store-sexpr! : Symbol × S-expr → Bytevector
+;;; store-sexpr! : Symbol × S-expr [× Vector Bytevector] → Bytevector
 ;;; Store an S-expression as a block with given tag.
-(define (store-sexpr! tag sexpr)
+;;; Optional refs argument allows tracking block references for GC.
+(define (store-sexpr! tag sexpr . refs-arg)
   (let* ([payload (string->utf8 (format "~s" sexpr))]
-         [blk (make-block tag payload empty-refs)])
+         [refs (if (null? refs-arg) empty-refs (car refs-arg))]
+         [blk (make-block tag payload refs)])
         (store! blk)))
 
 ;;; fetch-sexpr : Bytevector → S-expr | #f

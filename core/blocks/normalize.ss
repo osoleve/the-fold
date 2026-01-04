@@ -10,9 +10,9 @@
 ;;; (fn (x) (fn (y) y))  → (fn (fn (dv 0)))
 ;;;
 ;;; Binder forms recognized:
-;;;   (fn (var) body)     - single-argument function
-;;;   (let ((var val)) body) - single binding let
-;;;   (fix (f) body)      - recursive binding
+;;;   (fn (var ...) body)        - single or multi-argument function
+;;;   (let ((var val) ...) body) - single or multi-binding let (parallel)
+;;;   (fix (f) body)             - recursive binding
 ;;;
 ;;; (dv n) represents a de Bruijn variable with index n.
 ;;;
@@ -71,28 +71,34 @@
    ;; Non-list atoms pass through
    [(not (pair? expr)) expr]
    
-   ;; (fn (var) body) → (fn normalized-body)
+   ;; (fn (var ...) body) → (fn normalized-body)
+   ;; Handles both single and multi-argument functions
    [(and (eq? (car expr) 'fn)
          (pair? (cdr expr))
-         (pair? (cadr expr))
-         (symbol? (caadr expr)))
-    (let* ([var (caadr expr)]
+         (list? (cadr expr)))
+    (let* ([params (cadr expr)]
            [body (caddr expr)]
-           [new-env (norm-env-extend env var)])
+           [new-env (fold-left norm-env-extend env params)])
           `(fn ,(normalize-with-env body new-env)))]
    
-   ;; (let ((var val)) body) → (let (normalized-val) normalized-body)
+   ;; (let ((var val) ...) body) → nested single-binding lets
+   ;; Handles both single and multi-binding lets
    [(and (eq? (car expr) 'let)
          (pair? (cdr expr))
-         (pair? (cadr expr))
-         (pair? (caadr expr)))
-    (let* ([binding (caadr expr)]
-           [var (car binding)]
-           [val (cadr binding)]
-           [body (caddr expr)]
-           [new-env (norm-env-extend env var)])
-          `(let (,(normalize-with-env val env))
-            ,(normalize-with-env body new-env)))]
+         (list? (cadr expr)))
+    (let ([bindings (cadr expr)]
+          [body (caddr expr)])
+         (let loop ([bindings bindings]
+                    [current-env env])
+              (if (null? bindings)
+                  (normalize-with-env body current-env)
+                  (let* ([binding (car bindings)]
+                         [var (car binding)]
+                         [val (cadr binding)]
+                         [norm-val (normalize-with-env val env)])
+                        `(let (,norm-val)
+                          ,(loop (cdr bindings)
+                                 (norm-env-extend current-env var)))))))]
    
    ;; (fix (f) body) → (fix normalized-body)
    ;; The recursive name is bound in the body
@@ -132,16 +138,26 @@
    [(not (pair? expr)) '()]
    [(eq? (car expr) 'quote) '()]
    [(eq? (car expr) 'fn)
-    (let* ([var (caadr expr)]
-           [body (caddr expr)])
-          (free-vars-with-env body (norm-env-extend env var)))]
+    (let* ([params (cadr expr)]
+           [body (caddr expr)]
+           [new-env (fold-left norm-env-extend env params)])
+          (free-vars-with-env body new-env))]
    [(eq? (car expr) 'let)
-    (let* ([binding (caadr expr)]
-           [var (car binding)]
-           [val (cadr binding)]
-           [body (caddr expr)])
-          (append (free-vars-with-env val env)
-                  (free-vars-with-env body (norm-env-extend env var))))]
+    (let ([bindings (cadr expr)]
+          [body (caddr expr)])
+         (let loop ([bindings bindings]
+                    [current-env env]
+                    [free-in-vals '()])
+              (if (null? bindings)
+                  (append free-in-vals
+                          (free-vars-with-env body current-env))
+                  (let* ([binding (car bindings)]
+                         [var (car binding)]
+                         [val (cadr binding)]
+                         [free-in-val (free-vars-with-env val env)])
+                        (loop (cdr bindings)
+                              (norm-env-extend current-env var)
+                              (append free-in-vals free-in-val))))))]
    [(eq? (car expr) 'fix)
     (let* ([f (caadr expr)]
            [body (caddr expr)])

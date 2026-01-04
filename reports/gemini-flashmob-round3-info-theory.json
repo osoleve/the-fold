@@ -1,0 +1,78 @@
+{
+  "session_id": "e8632b2b-9a32-4f4b-a239-65dbfe40e188",
+  "response": "I have reviewed `core/info-theory/entropy.ss` and identified several bugs, performance issues, and numerical stability concerns. My analysis covered Shannon entropy, joint and conditional measures, mutual information, divergence metrics, and sample estimation.\n\nThe most critical issue is a logic bug in `cross-entropy` where it incorrectly returns 0 instead of infinity when the second distribution has zero probability for an event that occurs in the first distribution. I also found significant performance bottlenecks in marginal probability calculations and frequency counting that would manifest with large datasets.\n\n```json\n{\n  \"files_reviewed\": [\n    \"core/info-theory/entropy.ss\"\n  ],\n  \"bugs\": [\n    {\n      \"file\": \"core/info-theory/entropy.ss\",\n      \"line\": 167,\n      \"severity\": \"P0\",\n      \"category\": \"Logic Bug\",\n      \"description\": \"cross-entropy incorrectly handles cases where qi=0 and pi>0. It uses safe-log2 which returns 0 for non-positive inputs, causing the term pi*log(qi) to be 0 instead of -inf. This results in cross-entropy returning 0 instead of +inf.0 when the support of P is not a subset of the support of Q.\",\n      \"fix_suggestion\": \"In cross-entropy, check if qi is 0 when pi > 0 and return +inf.0, or use a version of log that returns -inf for 0 specifically for the second argument.\"\n    },\n    {\n      \"file\": \"core/info-theory/entropy.ss\",\n      \"line\": 111,\n      \"severity\": \"P1\",\n      \"category\": \"Numerical Stability\",\n      \"description\": \"conditional-entropy-direct will crash with a division by zero error if the weights-y list sums to zero.\",\n      \"fix_suggestion\": \"Add a check for total-weight being zero. If total-weight is zero, return 0 or a value consistent with the project's handling of empty distributions.\"\n    },\n    {\n      \"file\": \"core/info-theory/entropy.ss\",\n      \"line\": 140,\n      \"severity\": \"P2\",\n      \"category\": \"Performance\",\n      \"description\": \"compute-marginal-y has O(N * M^2) complexity due to nested mapping and use of list-ref on rows. For large matrices, this is extremely inefficient.\",\n      \"fix_suggestion\": \"Re-implement using a single pass over the rows. Use (fold-left (lambda (acc row) (map + acc row)) (make-list n-cols 0) joint-probs).\"\n    },\n    {\n      \"file\": \"core/info-theory/entropy.ss\",\n      \"line\": 236,\n      \"severity\": \"P2\",\n      \"category\": \"Performance\",\n      \"description\": \"count-occurrences and update-count implement frequency counting in O(N*K) where N is number of samples and K is number of unique items. For large datasets, this is O(N^2).\",\n      \"fix_suggestion\": \"Use a hash table for frequency counting if available in the Scheme environment, or sort the samples first to count in O(N log N).\"\n    },\n    {\n      \"file\": \"core/info-theory/entropy.ss\",\n      \"line\": 101,\n      \"severity\": \"P2\",\n      \"category\": \"Performance\",\n      \"description\": \"joint-entropy uses (apply append joint-probs) to flatten the matrix. This creates a large intermediate list and can exceed argument limits for 'apply' in some Scheme implementations.\",\n      \"fix_suggestion\": \"Compute the sum of plogp values by iterating through the rows and columns directly without flattening the entire matrix.\"\n    },\n    {\n      \"file\": \"core/info-theory/entropy.ss\",\n      \"line\": 284,\n      \"severity\": \"P3\",\n      \"category\": \"Numerical Stability\",\n      \"description\": \"renyi-entropy uses (expt p alpha) directly. For large alpha and small p, this will underflow to 0, potentially causing log2(0) errors or returning +inf.0 incorrectly for high-order Renyi entropy.\",\n      \"fix_suggestion\": \"Implement a log-sum-exp style calculation for the Renyi sum: log2(sum(2^(alpha * log2(pi)))) = alpha*Lmax + log2(sum(2^(alpha*(Li-Lmax)))).\"\n    },\n    {\n      \"file\": \"core/info-theory/entropy.ss\",\n      \"line\": 205,\n      \"severity\": \"P3\",\n      \"category\": \"Performance\",\n      \"description\": \"Multiple continuous entropy functions (gaussian-entropy, exponential-entropy, etc.) call (exp-num 1) repeatedly to get Euler's number.\",\n      \"fix_suggestion\": \"Define a constant 'e' at the top of the file using (exp-num 1) once.\"\n    }\n  ]\n}\n```",
+  "stats": {
+    "models": {
+      "gemini-3-flash-preview": {
+        "api": {
+          "totalRequests": 6,
+          "totalErrors": 0,
+          "totalLatencyMs": 65682
+        },
+        "tokens": {
+          "input": 34439,
+          "prompt": 67103,
+          "candidates": 1366,
+          "total": 77139,
+          "cached": 32664,
+          "thoughts": 8670,
+          "tool": 0
+        }
+      }
+    },
+    "tools": {
+      "totalCalls": 5,
+      "totalSuccess": 4,
+      "totalFail": 1,
+      "totalDurationMs": 22,
+      "totalDecisions": {
+        "accept": 0,
+        "reject": 0,
+        "modify": 0,
+        "auto_accept": 4
+      },
+      "byName": {
+        "list_directory": {
+          "count": 1,
+          "success": 1,
+          "fail": 0,
+          "durationMs": 11,
+          "decisions": {
+            "accept": 0,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 1
+          }
+        },
+        "read_file": {
+          "count": 3,
+          "success": 3,
+          "fail": 0,
+          "durationMs": 11,
+          "decisions": {
+            "accept": 0,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 3
+          }
+        },
+        "run_shell_command": {
+          "count": 1,
+          "success": 0,
+          "fail": 1,
+          "durationMs": 0,
+          "decisions": {
+            "accept": 0,
+            "reject": 0,
+            "modify": 0,
+            "auto_accept": 0
+          }
+        }
+      }
+    },
+    "files": {
+      "totalLinesAdded": 0,
+      "totalLinesRemoved": 0
+    }
+  }
+}
