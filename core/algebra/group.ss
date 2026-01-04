@@ -621,8 +621,7 @@
         (lambda (x y)
                 (let ([i (index-of x elements)]
                       [j (index-of y elements)])
-                     ;; table[i] is the row for element i, column j+1 skips label
-                     (list-ref (list-ref table i) (+ j 1))))
+                     (list-ref (list-ref table (+ i 1)) (+ j 1))))
         'e
         (lambda (x) x)  ; All elements are self-inverse
         eq?)))
