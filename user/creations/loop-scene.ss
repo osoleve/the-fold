@@ -1913,10 +1913,10 @@
 
 (define (render-sdf-rgb sdf camera width height)
   "Render SDF to RGB list."
-  (let* ([cam-pos (camera-pos camera)]
-         [cam-dir (camera-dir camera)]
+  (let* ([cam-pos (camera-position camera)]
+         [cam-dir (camera-forward camera)]
          [cam-up (camera-up camera)]
-         [cam-right (vec3-cross cam-dir cam-up)]
+         [cam-right (camera-right camera)]
          [fov (camera-fov camera)]
          [aspect (/ width height)]
          [light (vec3-normalize (vec3 0.5 1.0 -0.8))]
@@ -1976,14 +1976,17 @@
                    [pixels (render-sdf-rgb sdf camera width height)]
                    [path (format "~a/frame-~a.ppm" temp-dir
                                  (string-pad-left (number->string i) 5 #\0))])
-                  (call-with-output-file path
-                                         (lambda (port)
-                                                 (display (format "P6\n~a ~a\n255\n" width height) port)
-                                                 (for-each (lambda (px)
-                                                                   (put-u8 port (car px))
-                                                                   (put-u8 port (cadr px))
-                                                                   (put-u8 port (caddr px)))
-                                                           pixels)))
+                  (let ([port (open-file-output-port path (file-options no-fail))])
+                       ;; Write header as bytes
+                       (let ([header (string->utf8 (format "P6\n~a ~a\n255\n" width height))])
+                            (put-bytevector port header))
+                       ;; Write pixel data
+                       (for-each (lambda (px)
+                                         (put-u8 port (car px))
+                                         (put-u8 port (cadr px))
+                                         (put-u8 port (caddr px)))
+                                 pixels)
+                       (close-port port))
                   (when (= (modulo i 5) 0)
                         (display (format "\r  Frame ~a/~a" i num-frames))
                         (flush-output-port))))
@@ -2121,10 +2124,10 @@
   "Project to SVG."
   (when (file-exists? path) (delete-file path))
   (let* ([w 800] [h 600]
-         [cam-pos (camera-pos camera)]
-         [cam-dir (camera-dir camera)]
+         [cam-pos (camera-position camera)]
+         [cam-dir (camera-forward camera)]
          [cam-up (camera-up camera)]
-         [cam-right (vec3-cross cam-dir cam-up)])
+         [cam-right (camera-right camera)])
         (call-with-output-file path
                                (lambda (port)
                                        (display (format "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"~a\" height=\"~a\">\n" w h) port)
