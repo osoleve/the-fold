@@ -223,19 +223,24 @@
 
 ;;; transform-rotation-axis : Vec3 × Number → Matrix
 ;;; Rotation around arbitrary axis by angle (Rodriguez formula)
+;;; Returns identity matrix if axis is zero vector
 (define (transform-rotation-axis axis angle)
-  (let* ([ax (vec3-normalize axis)]
-         [x (vec3-x ax)]
-         [y (vec3-y ax)]
-         [z (vec3-z ax)]
-         [c (cos angle)]
-         [s (sin angle)]
-         [t (- 1 c)])
-        (matrix-from-lists
-         `((,(+ (* t x x) c)      ,(- (* t x y) (* s z)) ,(+ (* t x z) (* s y)) 0)
-           (,(+ (* t x y) (* s z)) ,(+ (* t y y) c)      ,(- (* t y z) (* s x)) 0)
-           (,(- (* t x z) (* s y)) ,(+ (* t y z) (* s x)) ,(+ (* t z z) c)      0)
-           (0                     0                     0                     1)))))
+  (let ([mag (vec3-magnitude axis)])
+       (if (< mag 1e-10)
+           ; Zero axis: return identity transformation
+           (transform-identity)
+           (let* ([ax (vec3-scale-inv axis mag)]
+                  [x (vec3-x ax)]
+                  [y (vec3-y ax)]
+                  [z (vec3-z ax)]
+                  [c (cos angle)]
+                  [s (sin angle)]
+                  [t (- 1 c)])
+                 (matrix-from-lists
+                  `((,(+ (* t x x) c)      ,(- (* t x y) (* s z)) ,(+ (* t x z) (* s y)) 0)
+                    (,(+ (* t x y) (* s z)) ,(+ (* t y y) c)      ,(- (* t y z) (* s x)) 0)
+                    (,(- (* t x z) (* s y)) ,(+ (* t y z) (* s x)) ,(+ (* t z z) c)      0)
+                    (0                     0                     0                     1)))))))
 
 ;;; transform-from-quaternion : Quaternion → Matrix
 ;;; Convert quaternion to 4x4 transformation matrix
@@ -315,18 +320,36 @@
 
 ;;; distance-point-plane : Point3 × Plane3 → Number
 ;;; Signed distance (positive = in front of plane)
+;;; Handles non-unit normals correctly by dividing by magnitude
 (define (distance-point-plane point plane)
-  (+ (vec3-dot (plane3-normal plane) point)
-     (plane3-d plane)))
+  (let ([n (plane3-normal plane)]
+        [d (plane3-d plane)])
+       (/ (+ (vec3-dot n point) d)
+          (vec3-magnitude n))))
 
 ;;; distance-point-line : Point3 × Line3 → Number
 (define (distance-point-line point line)
+  ;; Optimized: compute perpendicular distance without allocating intermediate vectors
+  ;; Uses the formula: |v - (v·d)d| where d is normalized direction
   (let* ([origin (line3-origin line)]
-         [dir (vec3-normalize (line3-direction line))]
-         [v (vec3-sub point origin)]
-         [proj (vec3-scale dir (vec3-dot v dir))]
-         [perp (vec3-sub v proj)])
-        (vec3-length perp)))
+         [dir-raw (line3-direction line)]
+         [dir-len (vec3-length dir-raw)]
+         ; Normalized direction components
+         [dx (/ (vec3-x dir-raw) dir-len)]
+         [dy (/ (vec3-y dir-raw) dir-len)]
+         [dz (/ (vec3-z dir-raw) dir-len)]
+         ; Vector from origin to point
+         [vx (- (vec3-x point) (vec3-x origin))]
+         [vy (- (vec3-y point) (vec3-y origin))]
+         [vz (- (vec3-z point) (vec3-z origin))]
+         ; Projection length: v·d
+         [proj-len (+ (* vx dx) (* vy dy) (* vz dz))]
+         ; Perpendicular components: v - (v·d)d
+         [perp-x (- vx (* proj-len dx))]
+         [perp-y (- vy (* proj-len dy))]
+         [perp-z (- vz (* proj-len dz))])
+        ; Length of perpendicular
+        (sqrt (+ (* perp-x perp-x) (* perp-y perp-y) (* perp-z perp-z)))))
 
 ;;; distance-point-sphere : Point3 × Sphere → Number
 ;;; Negative if inside
@@ -379,29 +402,30 @@
          [dir (ray3-direction ray)]
          [bmin (aabb-min box)]
          [bmax (aabb-max box)])
-        ; Helper to compute t-range for one axis
-        (define (slab-t dir-comp origin-comp box-min box-max)
+        ; Optimized: compute ranges inline without allocating lists
+        ; Helper returns (values tmin tmax) instead of list
+        (define (slab-t-bounds dir-comp origin-comp box-min box-max)
           (if (< (abs dir-comp) 1e-10)
               ; Ray parallel to slab - check if origin is within slab
               (if (and (>= origin-comp box-min) (<= origin-comp box-max))
-                  (list -1e10 1e10)  ; Effectively infinite range
-                  (list 1 -1))       ; Invalid range (will fail intersection)
+                  (values -1e10 1e10)  ; Effectively infinite range
+                  (values 1 -1))       ; Invalid range (will fail intersection)
               ; Normal case
               (let* ([inv-dir (/ 1.0 dir-comp)]
                      [t1 (* (- box-min origin-comp) inv-dir)]
                      [t2 (* (- box-max origin-comp) inv-dir)])
                     (if (< t1 t2)
-                        (list t1 t2)
-                        (list t2 t1)))))
+                        (values t1 t2)
+                        (values t2 t1)))))
         
-        (let* ([x-range (slab-t (vec3-x dir) (vec3-x origin) (vec3-x bmin) (vec3-x bmax))]
-               [y-range (slab-t (vec3-y dir) (vec3-y origin) (vec3-y bmin) (vec3-y bmax))]
-               [z-range (slab-t (vec3-z dir) (vec3-z origin) (vec3-z bmin) (vec3-z bmax))]
-               [tmin (max (car x-range) (car y-range) (car z-range))]
-               [tmax (min (cadr x-range) (cadr y-range) (cadr z-range))])
-              (if (and (<= tmin tmax) (>= tmax 0))
-                  (list tmin tmax)
-                  #f))))
+        (let*-values ([(x-min x-max) (slab-t-bounds (vec3-x dir) (vec3-x origin) (vec3-x bmin) (vec3-x bmax))]
+                      [(y-min y-max) (slab-t-bounds (vec3-y dir) (vec3-y origin) (vec3-y bmin) (vec3-y bmax))]
+                      [(z-min z-max) (slab-t-bounds (vec3-z dir) (vec3-z origin) (vec3-z bmin) (vec3-z bmax))])
+                     (let ([tmin (max x-min y-min z-min)]
+                           [tmax (min x-max y-max z-max)])
+                          (if (and (<= tmin tmax) (>= tmax 0))
+                              (list tmin tmax)
+                              #f)))))
 
 ;;; intersect-ray-triangle : Ray3 × Triangle3 → Number | #f
 ;;; Möller-Trumbore algorithm
@@ -577,19 +601,24 @@
       ;; This ensures correct merging: any real point will establish proper bounds
       (aabb (vec3 +inf.0 +inf.0 +inf.0)
             (vec3 -inf.0 -inf.0 -inf.0))
-      (let loop ([pts (cdr points)]
-                 [min-p (car points)]
-                 [max-p (car points)])
-           (if (null? pts)
-               (aabb min-p max-p)
-               (let ([p (car pts)])
-                    (loop (cdr pts)
-                          (vec3 (min (vec3-x min-p) (vec3-x p))
-                                (min (vec3-y min-p) (vec3-y p))
-                                (min (vec3-z min-p) (vec3-z p)))
-                          (vec3 (max (vec3-x max-p) (vec3-x p))
-                                (max (vec3-y max-p) (vec3-y p))
-                                (max (vec3-z max-p) (vec3-z p)))))))))
+      ;; Optimized: track min/max as scalars, construct vec3s only once
+      (let* ([first (car points)]
+             [init-x (vec3-x first)]
+             [init-y (vec3-y first)]
+             [init-z (vec3-z first)])
+            (let loop ([pts (cdr points)]
+                       [min-x init-x] [min-y init-y] [min-z init-z]
+                       [max-x init-x] [max-y init-y] [max-z init-z])
+                 (if (null? pts)
+                     (aabb (vec3 min-x min-y min-z)
+                           (vec3 max-x max-y max-z))
+                     (let* ([p (car pts)]
+                            [px (vec3-x p)]
+                            [py (vec3-y p)]
+                            [pz (vec3-z p)])
+                           (loop (cdr pts)
+                                 (min min-x px) (min min-y py) (min min-z pz)
+                                 (max max-x px) (max max-y py) (max max-z pz))))))))
 
 ;;; ============================================================
 ;;; Coordinate System Conversions
@@ -597,16 +626,15 @@
 
 ;;; vec3-to-spherical : Vec3 → (Number Number Number)
 ;;; Convert Cartesian to spherical (r, θ, φ)
-;;; theta ∈ [0, π], phi ∈ [-π, π]
 (define (vec3-to-spherical v)
   (let* ([x (vec3-x v)]
          [y (vec3-y v)]
          [z (vec3-z v)]
          [r (vec3-length v)]
-         ;; Clamp z/r to [-1, 1] to avoid acos domain errors from floating point precision
-         [theta (if (= r 0) 0 (acos (max -1.0 (min 1.0 (/ z r)))))]
-         ;; Handle z-axis case where x=0 and y=0 (atan undefined for (0,0))
-         [phi (if (and (= x 0) (= y 0)) 0 (atan y x))])
+         ; Clamp z/r to [-1, 1] to avoid acos domain errors from floating-point precision
+         [cos-theta (if (= r 0) 0 (max -1.0 (min 1.0 (/ z r))))]
+         [theta (acos cos-theta)]
+         [phi (atan y x)])
         (list r theta phi)))
 
 ;;; vec3-to-cylindrical : Vec3 → (Number Number Number)

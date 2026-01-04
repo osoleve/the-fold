@@ -206,8 +206,12 @@
         =)))                                ; Equality
 
 ;;; make-ring-z : → Ring
-;;; Create the ring Z of integers (finite subset for practical purposes).
-;;; This creates Z with elements from -100 to 100.
+;;; WARNING: This is a DEMONSTRATION-ONLY truncated representation of Z.
+;;; The finite element set [-100, 100] VIOLATES ring closure axioms:
+;;;   - Addition: 60 + 60 = 120 (outside range)
+;;;   - Multiplication: 50 * 50 = 2500 (outside range)
+;;; Use ONLY for testing with small values. For production, use make-ring-zn
+;;; for modular arithmetic, or represent Z symbolically.
 (define (make-ring-z)
   (let ([elements (range -100 101)])
        (make-ring
@@ -308,21 +312,32 @@
 (define (ideal-ring i) (list-ref i 1))
 (define (ideal-elements i) (list-ref i 2))
 
+;;; make-membership-predicate : (List Element) × (Element × Element → Boolean) → (Element → Boolean)
+;;; Create an O(1) membership predicate using hash table for performance
+;;; This is a pure interface: takes a list, returns a predicate function
+(define (make-membership-predicate elements equal-fn)
+  (let ([table (make-hashtable equal-hash equal?)])
+       ; Populate hash table
+       ; Note: We use Scheme's equal? for hashing, assuming ring elements are comparable
+       (for-each (lambda (elem) (hashtable-set! table elem #t)) elements)
+       ; Return membership predicate
+       (lambda (x)
+               (hashtable-ref table x #f))))
+
 ;;; is-valid-ideal? : Ideal → Boolean
 ;;; Verify ideal properties.
 (define (is-valid-ideal? ideal)
   (let ([r (ideal-ring ideal)]
         [i-elems (ideal-elements ideal)]
-        [r-elems (ring-elements r)]
-        [eq-fn (ring-equal-fn r)])
-       (and ; Check zero element is in ideal
-            (member-equal (ring-zero r) i-elems eq-fn)
-            ; Check closure under additive inverse
-            (let loop ([is i-elems])
-                 (if (null? is)
+        [r-elems (ring-elements r)])
+       (and ; Check zero element membership (required for subgroup)
+            (member-equal (ring-zero r) i-elems (ring-equal-fn r))
+            ; Check closure under additive inverse (required for subgroup)
+            (let loop ([as i-elems])
+                 (if (null? as)
                      #t
-                     (and (member-equal (ring-neg r (car is)) i-elems eq-fn)
-                          (loop (cdr is)))))
+                     (and (member-equal (ring-neg r (car as)) i-elems (ring-equal-fn r))
+                          (loop (cdr as)))))
             ; Check closure under addition
             (let loop ([as i-elems])
                  (if (null? as)
@@ -369,6 +384,7 @@
 ;;; ideal-product : Ideal × Ideal → Ideal
 ;;; I × J = {finite sums of i×j | i ∈ I, j ∈ J}
 ;;; Computes additive closure via fixed-point iteration
+;;; Optimized: Uses hash table to track seen elements for O(1) duplicate detection
 (define (ideal-product i1 i2)
   (let* ([r (ideal-ring i1)]
          [eq-fn (ring-equal-fn r)]
@@ -378,7 +394,15 @@
                                                             (ring-mul r a b))
                                                     (ideal-elements i2)))
                                        (ideal-elements i1)))]
-         [seeds (remove-duplicates initial-products eq-fn)])
+         ; Use hash table for O(1) duplicate detection
+         [seen (make-hashtable equal-hash equal?)]
+         [add-unique (lambda (elem lst)
+                             (if (hashtable-ref seen elem #f)
+                                 lst
+                                 (begin
+                                  (hashtable-set! seen elem #t)
+                                  (cons elem lst))))]
+         [seeds (fold-right add-unique '() initial-products)])
         (let loop ([elems seeds])
              (let* ([new-sums (apply append
                                      (map (lambda (a)
@@ -386,49 +410,63 @@
                                                                (ring-add r a b))
                                                        elems))
                                           elems))]
-                    [next-elems (remove-duplicates (append elems new-sums) eq-fn)])
+                    [next-elems (fold-right add-unique elems new-sums)])
                    (if (= (length next-elems) (length elems))
                        (make-ideal r next-elems)
                        (loop next-elems))))))
 
 ;;; is-prime-ideal? : Ideal → Boolean
-;;; I is prime if a×b ∈ I implies a ∈ I or b ∈ I
-;;; Note: A prime ideal must be proper (I ≠ R), i.e., 1 ∉ I
+;;; I is prime if it's proper (I ≠ R) and a×b ∈ I implies a ∈ I or b ∈ I
+;;; Optimized: Uses hash table for O(1) membership testing instead of O(I) linear search
 (define (is-prime-ideal? ideal)
   (let* ([r (ideal-ring ideal)]
          [i-elems (ideal-elements ideal)]
-         [r-elems (ring-elements r)])
-        ;; First check: ideal must be proper (not contain 1)
-        (if (member-equal (ring-one r) i-elems (ring-equal-fn r))
-            #f  ; If 1 ∈ I, then I = R, not a prime ideal
-            (let loop ([as r-elems])
-                 (if (null? as)
-                     #t
-                     (let inner-loop ([bs r-elems])
-                          (if (null? bs)
-                              (loop (cdr as))
-                              (let ([a (car as)]
-                                    [b (car bs)]
-                                    [prod (ring-mul r (car as) (car bs))])
-                                   (if (member-equal prod i-elems (ring-equal-fn r))
-                                       ; If a×b is in ideal, then a or b must be in ideal
-                                       (if (or (member-equal a i-elems (ring-equal-fn r))
-                                               (member-equal b i-elems (ring-equal-fn r)))
-                                           (inner-loop (cdr bs))
-                                           #f)
-                                       (inner-loop (cdr bs)))))))))))
-
-;;; is-maximal-ideal? : Ideal → Boolean
+         [r-elems (ring-elements r)]
+         ; Create O(1) membership predicate
+         [in-ideal? (make-membership-predicate i-elems (ring-equal-fn r))])
+        ; First check: ideal must be proper (not contain 1)
+        (and (not (in-ideal? (ring-one r)))
+             (let loop ([as r-elems])
+                  (if (null? as)
+                      #t
+                      (let inner-loop ([bs r-elems])
+                           (if (null? bs)
+                               (loop (cdr as))
+                               (let ([a (car as)]
+                                     [b (car bs)]
+                                     [prod (ring-mul r (car as) (car bs))])
+                                    (if (in-ideal? prod)
+                                        ; If a×b is in ideal, then a or b must be in ideal
+                                        (if (or (in-ideal? a) (in-ideal? b))
+                                            (inner-loop (cdr bs))
+                                            #f)
+                                        (inner-loop (cdr bs)))))))))))
 ;;; I is maximal if it's proper and no proper ideal contains it
+;;; Equivalently: for every x ∉ I, the ideal <I ∪ {x}> = R
 (define (is-maximal-ideal? ideal)
   (let ([r (ideal-ring ideal)]
         [i-elems (ideal-elements ideal)]
-        [r-elems (ring-elements r)])
+        [r-elems (ring-elements r)]
+        [eq-fn (ring-equal-fn r)])
        ; Check if ideal is proper (doesn't contain 1)
-       (and (not (member-equal (ring-one r) i-elems (ring-equal-fn r)))
-            ; Check no proper ideal contains it
-            ; (For finite rings, check R/I is a field)
-            #t)))  ; Simplified check
+       (and (not (member-equal (ring-one r) i-elems eq-fn))
+            ; For each element not in ideal, check if adding it generates R
+            (let loop ([candidates r-elems])
+                 (if (null? candidates)
+                     #t  ; All non-members generate R
+                     (let ([x (car candidates)])
+                          (if (member-equal x i-elems eq-fn)
+                              (loop (cdr candidates))  ; Skip elements already in ideal
+                              ; Check if <I ∪ {x}> contains 1
+                              (let ([generated (apply append
+                                                      (map (lambda (i)
+                                                                   (map (lambda (s)
+                                                                                (ring-add r i (ring-mul r s x)))
+                                                                        r-elems))
+                                                           i-elems))])
+                                   (if (member-equal (ring-one r) generated eq-fn)
+                                       (loop (cdr candidates))
+                                       #f))))))))) ; Found proper ideal containing I
 
 ;;; ============================================================
 ;;; Utilities
