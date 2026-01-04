@@ -29,7 +29,8 @@ const CHANNEL_MAP = {
   engineering: process.env.DISCORD_CHANNEL_ENGINEERING || 'CHANNEL_ID_HERE',
   philosophy: process.env.DISCORD_CHANNEL_PHILOSOPHY || 'CHANNEL_ID_HERE',
   design: process.env.DISCORD_CHANNEL_DESIGN || 'CHANNEL_ID_HERE',
-  art: process.env.DISCORD_CHANNEL_ART || 'CHANNEL_ID_HERE',
+  art: process.env.DISCORD_CHANNEL_ART || '1456337431702802565',
+  arts: process.env.DISCORD_CHANNEL_ARTS || '1456337431702802565',  // Alias for 'art'
   poetry: process.env.DISCORD_CHANNEL_POETRY || 'CHANNEL_ID_HERE',
   requests: process.env.DISCORD_CHANNEL_REQUESTS || 'CHANNEL_ID_HERE',
   wishlist: process.env.DISCORD_CHANNEL_WISHLIST || 'CHANNEL_ID_HERE',
