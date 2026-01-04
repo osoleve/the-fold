@@ -158,11 +158,16 @@
   (display "[0m"))
 
 ;;; ============================================================
-;;; Playback
+;;; Playback (Terminal Only - uses ANSI codes and blocking sleep)
 ;;; ============================================================
+
+;;; NOTE: video-play and video-play-loop use busy-wait and ANSI codes.
+;;; They only work in interactive terminals, NOT in daemon/Discord contexts.
+;;; For non-interactive use, see video-flipbook or video-frame-string.
 
 (define (sleep-ms ms)
   ;; Busy-wait approximation (Chez doesn't have usleep in base)
+  ;; WARNING: This blocks! Only use in interactive terminal.
   (let ([end (+ (cpu-time) (* ms 1000))])
        (let loop ()
             (when (< (cpu-time) end)
@@ -207,6 +212,22 @@
                (sleep-ms frame-delay-ms))))
   (ansi-show-cursor)
   (newline))
+
+;;; ============================================================
+;;; Non-Blocking Frame Access (Safe for Daemon/Discord)
+;;; ============================================================
+
+;;; video-frame-string : Video x Nat -> String
+;;; Get a single frame as a string (no ANSI, no blocking).
+(define (video-frame-string video n)
+  (if (and (>= n 0) (< n (video-frame-count video)))
+      (frame-render-to-string (video-get-frame video n))
+      ""))
+
+;;; video-show-frame : Video x Nat -> Void
+;;; Display a single frame (no ANSI, no blocking).
+(define (video-show-frame video n)
+  (display (video-frame-string video n)))
 
 ;;; ============================================================
 ;;; Static Playback (No ANSI, prints all frames)

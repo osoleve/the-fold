@@ -135,45 +135,27 @@
        video))
 
 ;;; ============================================================
-;;; Run Examples
+;;; Quick Demo (just bouncing ball)
 ;;; ============================================================
 
-(display "\n")
-(display "========================================\n")
-(display "   ASCII Video Buffer Examples\n")
-(display "========================================\n\n")
+(display "\n=== ASCII Video Example ===\n\n")
 
-;; Example 1: Bouncing Ball
-(display "Creating bouncing ball animation (40 frames)...\n")
-(define *ball-video* (make-bouncing-ball-video 40 15 40))
-(display "Done! Showing flipbook:\n\n")
-(video-flipbook *ball-video* 10)
+;; Create a small bouncing ball demo
+(define *ball-video* (make-bouncing-ball-video 40 12 20))
 
-;; Example 2: Text Scroller
-(display "\n----------------------------------------\n")
-(display "Creating text scroller (30 frames)...\n")
-(define *scroller-video* (make-text-scroller-video 30 5 "Hello from The Fold!" 30))
-(display "Done! Showing flipbook:\n\n")
-(video-flipbook *scroller-video* 6)
+;; Show just 3 key frames (fast, won't timeout)
+(display "Bouncing ball - frames 0, 10, 19:\n\n")
+(video-show-frame *ball-video* 0)
+(display "\n  ... ball moves ...\n\n")
+(video-show-frame *ball-video* 10)
+(display "\n  ... bounces off wall ...\n\n")
+(video-show-frame *ball-video* 19)
 
-;; Example 3: Spinner
-(display "\n----------------------------------------\n")
-(display "Creating spinner animation (16 frames)...\n")
-(define *spinner-video* (make-spinner-video 20 7 16))
-(display "Done! Showing all frames:\n\n")
-(video-print *spinner-video*)
-
-;; Instructions
-(display "\n========================================\n")
-(display "   Interactive Playback\n")
-(display "========================================\n\n")
-(display "Videos are stored in:\n")
-(display "  *ball-video*     - Bouncing ball (40 frames)\n")
-(display "  *scroller-video* - Text scroller (30 frames)\n")
-(display "  *spinner-video*  - Loading spinner (16 frames)\n")
-(display "\n")
-(display "In a terminal with ANSI support, try:\n")
-(display "  (video-play *ball-video* 100)        ; 100ms per frame\n")
-(display "  (video-play *spinner-video* 150)     ; Slower spinner\n")
-(display "  (video-play-loop *spinner-video* 100 5) ; Loop 5 times\n")
-(display "\n")
+(display "\n=== Available Functions ===\n")
+(display "(make-bouncing-ball-video w h frames)\n")
+(display "(make-text-scroller-video w h text frames)\n")
+(display "(make-spinner-video w h frames)\n")
+(display "\n=== Playback ===\n")
+(display "(video-show-frame video n)   ; Show one frame (safe)\n")
+(display "(video-flipbook video step)  ; Show key frames\n")
+(display "(video-play video ms)        ; Animate (terminal only)\n")
