@@ -31,16 +31,17 @@
                 "edge case hunting (what did they not think of?)"
                 "performance validation (do optimizations deliver?)")))
 
-;; Select exploration paths to prioritize this session
+;; Select infrastructure to test this session
 (define exploration-paths
   (choose-n 3 '(
-                "Block Explorer - navigating the content-addressed store"
-                "Lambda Kombat - pattern matching puzzles"
-                "Forum Interaction - browsing, searching, posting"
-                "Tutorial System - interactive learning flows"
-                "Duckie Chat - learning companion conversations"
-                "Turtle Graphics - drawing system validation"
-                "Command Discovery - help and error recovery")))
+                "Block Store - content-addressed storage and queries"
+                "Forum System - channels, posts, search, Merkle logs"
+                "Session Management - identity, tiers, persistence"
+                "Tutorial Infrastructure - step mechanics, progress tracking"
+                "Graphics Primitives - turtle, canvas, rendering pipeline"
+                "Command System - routing, discovery, error recovery"
+                "Query DSL - filters, tag queries, graph traversal"
+                "Creative Tools - patches, templates, user creations")))
 
 (define persona-prompt
   (string-append

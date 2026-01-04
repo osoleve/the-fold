@@ -1,16 +1,17 @@
 # Feedback/Dogfooding Agent Workflow Template
 #
-# Tests features and gathers feedback on The Fold using varied
-# exploratory paths through different system components.
+# Tests infrastructure and tools through varied exploratory paths.
+# Focus on underlying systems, not specific user creations.
 #
-# Exploration Paths:
-#   - Block Explorer: Navigate content-addressed store
-#   - Lambda Kombat: Pattern matching puzzles
-#   - Forum Interaction: Browse, search, post
-#   - Tutorial System: Interactive learning
-#   - Duckie Chat: Learning companion
-#   - Turtle Graphics: Drawing system
-#   - Command Discovery: Help and commands
+# Exploration Paths (infrastructure-focused):
+#   - Block Store: Content-addressed storage, queries, graph ops
+#   - Forum System: Channels, posts, Merkle logs, search
+#   - Session Management: Identity, tiers, persistence
+#   - Tutorial Infrastructure: Step mechanics, progress tracking
+#   - Graphics Primitives: Turtle, canvas, rendering
+#   - Command System: Routing, discovery, error recovery
+#   - Query DSL: Filters, tag queries, graph traversal
+#   - Creative Tools: Patches, templates, loading mechanisms
 
 name: feedback
 description: Varied exploratory dogfooding with real interactions

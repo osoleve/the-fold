@@ -4,13 +4,14 @@
 ;;; Each session randomly selects exploration behaviors and depths.
 ;;;
 ;;; Exploration Paths:
-;;;   1. Block Explorer - Navigate the content-addressed store
-;;;   2. Lambda Kombat - Play pattern matching puzzles
-;;;   3. Forum Interaction - Browse, search, post
-;;;   4. Tutorial System - Start and navigate tutorials
-;;;   5. Duckie Chat - Interact with the learning companion
-;;;   6. Turtle Graphics - Create and test drawings
-;;;   7. Command Discovery - Explore help and commands
+;;;   1. Block Store - Navigate and query content-addressed storage
+;;;   2. Forum System - Browse, search, post, channels
+;;;   3. Session Management - Login, logout, identity, tiers
+;;;   4. Tutorial Infrastructure - Tutorial system mechanics
+;;;   5. Graphics Primitives - Turtle, canvas, rendering
+;;;   6. Command System - Help, discovery, error recovery
+;;;   7. Query DSL - Search, filters, block queries
+;;;   8. Creative Tools - User creations, templates, patches
 ;;;
 ;;; Usage:
 ;;;   (dogfood-session)           ; Run a varied exploration session
@@ -44,21 +45,24 @@
 
 ;;; Each path is: (name weight quick-actions deep-actions)
 ;;; Weight affects selection probability
+;;; Focus on infrastructure and tools, not specific user creations
 (define *exploration-paths*
-  '((block-explorer    3 (bx-stats bx-popular)
-                    (bx-popular bx-view-random bx-search-random bx-orphans bx-navigate-depth))
-    (lambda-kombat     2 (lk-start-quit)
-                   (lk-play-rounds lk-check-leaderboard))
-    (forum-interaction 4 (digest channels)
-                       (digest-deep browse-channels search-posts reply-test))
-    (tutorial-system   2 (list-tutorials)
-                     (start-tutorial tutorial-navigation))
-    (duckie-chat       2 (duckie-greeting)
-                 (duckie-conversation duckie-question))
-    (turtle-graphics   2 (turtle-basic)
-                     (turtle-shapes turtle-colors turtle-save))
-    (command-discovery 3 (help commands)
-                       (help-deep command-exploration typo-recovery))))
+  '((block-store       4 (bx-stats bx-popular)
+                 (bx-popular bx-view-random bx-search-random bx-orphans bx-navigate-depth))
+    (forum-system      4 (digest channels)
+                  (digest-deep browse-channels search-posts post-test))
+    (session-mgmt      3 (who session-check)
+                  (tier-verification session-persistence survey-system))
+    (tutorial-infra    2 (list-tutorials tutorial-status)
+                    (tutorial-mechanics step-navigation progress-tracking))
+    (graphics-prims    2 (turtle-create turtle-move)
+                    (turtle-paths canvas-render drawing-export))
+    (command-system    3 (help commands)
+                    (help-deep command-routing typo-recovery))
+    (query-dsl         3 (query-basic store-search)
+               (query-complex filter-chains tag-queries))
+    (creative-tools    2 (patch-system templates)
+                    (user-creations playpen-loading))))
 
 ;;; ============================================================
 ;;; Random Selection Utilities
@@ -95,99 +99,98 @@
                       (cons (list-ref remaining idx) result))))))
 
 ;;; ============================================================
-;;; Block Explorer Exploration
+;;; Block Store Exploration
 ;;; ============================================================
 
-(define (explore-block-explorer depth)
-  (display "\n=== Block Explorer Exploration ===\n\n")
-  (record-finding 'observation 'block-explorer "Starting block explorer exploration")
+(define (explore-block-store depth)
+  (display "\n=== Block Store Exploration ===\n\n")
+  (record-finding 'observation 'block-store "Starting block store exploration")
   
   ;; Always start with stats
-  (guard (ex [else (record-finding 'issue 'block-explorer
+  (guard (ex [else (record-finding 'issue 'block-store
                                    (format "bx-stats failed: ~a" ex))])
          (bx-stats)
-         (record-finding 'success 'block-explorer "bx-stats executed successfully"))
+         (record-finding 'success 'block-store "bx-stats executed successfully"))
   
   (when (eq? depth 'deep)
         ;; Try popular blocks
-        (guard (ex [else (record-finding 'issue 'block-explorer
+        (guard (ex [else (record-finding 'issue 'block-store
                                          (format "bx-popular failed: ~a" ex))])
                (bx-popular)
-               (record-finding 'success 'block-explorer "bx-popular shows referenced blocks"))
+               (record-finding 'success 'block-store "bx-popular shows referenced blocks"))
         
         ;; Try viewing a random entry if available
-        (guard (ex [else (record-finding 'observation 'block-explorer
+        (guard (ex [else (record-finding 'observation 'block-store
                                          "Could not navigate into block")])
                (let ([blocks (current-block-list)])
                     (when (and blocks (not (null? blocks)))
                           (let ([idx (random (min 5 (length blocks)))])
                                (bx-view idx)
-                               (record-finding 'success 'block-explorer
+                               (record-finding 'success 'block-store
                                                (format "Navigated to block ~a" idx))))))
         
         ;; Try search with common term
         (let ([search-terms '("post" "message" "lambda" "test" "chat")])
-             (guard (ex [else (record-finding 'issue 'block-explorer
+             (guard (ex [else (record-finding 'issue 'block-store
                                               (format "bx-search failed: ~a" ex))])
                     (bx-search (pick-random search-terms))
-                    (record-finding 'success 'block-explorer "Search functionality works")))
+                    (record-finding 'success 'block-store "Search functionality works")))
         
         ;; Check orphans
-        (guard (ex [else (record-finding 'issue 'block-explorer
+        (guard (ex [else (record-finding 'issue 'block-store
                                          (format "bx-orphans failed: ~a" ex))])
                (bx-orphans)
                (let ([orphan-count (length (current-block-list))])
-                    (record-finding 'observation 'block-explorer
+                    (record-finding 'observation 'block-store
                                     (format "Found ~a orphan blocks" orphan-count)))))
   
   (bx-home))
 
 ;;; ============================================================
-;;; Lambda Kombat Exploration
+;;; Session Management Exploration
 ;;; ============================================================
 
-(define (explore-lambda-kombat depth)
-  (display "\n=== Lambda Kombat Exploration ===\n\n")
-  (record-finding 'observation 'lambda-kombat "Starting Lambda Kombat exploration")
+(define (explore-session-mgmt depth)
+  (display "\n=== Session Management Exploration ===\n\n")
+  (record-finding 'observation 'session "Starting session management exploration")
   
-  ;; Start a game
-  (guard (ex [else (record-finding 'issue 'lambda-kombat
-                                   (format "lambda-kombat failed to start: ~a" ex))])
-         (lambda-kombat)
-         (record-finding 'success 'lambda-kombat "Game started successfully"))
+  ;; Check current session
+  (guard (ex [else (record-finding 'issue 'session
+                                   (format "who command failed: ~a" ex))])
+         (who)
+         (record-finding 'success 'session "Session info displays correctly"))
+  
+  ;; Check session persistence
+  (guard (ex [else (record-finding 'observation 'session "Session read failed")])
+         (let ([session (read-session)])
+              (if session
+                  (record-finding 'success 'session
+                                  (format "Session persists: ~a (~a)"
+                                          (cdr (assq 'name session))
+                                          (cdr (assq 'tier session))))
+                  (record-finding 'observation 'session "No active session"))))
   
   (when (eq? depth 'deep)
-        ;; Play a few rounds
-        (let play-rounds ([rounds-left (+ 2 (random 4))])
-             (when (> rounds-left 0)
-                   (guard (ex [else (record-finding 'observation 'lambda-kombat
-                                                    "Round play interrupted")])
-                          ;; Answer randomly (testing UI, not correctness)
-                          (let ([answer (+ 1 (random 4))])
-                               (lk-answer answer)
-                               (record-finding 'success 'lambda-kombat
-                                               (format "Answered round with ~a" answer)))
-                          (lk-next)
-                          (play-rounds (- rounds-left 1)))))
+        ;; Test survey system
+        (guard (ex [else (record-finding 'observation 'session "Survey list unavailable")])
+               (list-surveys)
+               (record-finding 'success 'session "Survey system accessible"))
         
-        ;; Check leaderboard
-        (guard (ex [else (record-finding 'issue 'lambda-kombat
-                                         (format "Leaderboard failed: ~a" ex))])
-               (lk-leaderboard)
-               (record-finding 'success 'lambda-kombat "Leaderboard displays correctly")))
-  
-  ;; Quit game
-  (guard (ex [else #f])
-         (lk-quit)
-         (record-finding 'success 'lambda-kombat "Game quit cleanly")))
+        ;; Check tier-based access
+        (guard (ex [else #f])
+               (let ([session (read-session)])
+                    (when session
+                          (let ([tier (cdr (assq 'tier session))])
+                               (record-finding 'observation 'session
+                                               (format "Current tier: ~a" tier))))))))
 
 ;;; ============================================================
-;;; Forum Interaction Exploration
+;;; Forum System Exploration
 ;;; ============================================================
 
-(define (explore-forum-interaction depth)
-  (display "\n=== Forum Interaction Exploration ===\n\n")
-  (record-finding 'observation 'forum "Starting forum exploration")
+(define (explore-forum-system depth)
+  (display "\n=== Forum System Exploration ===\n\n")
+  (record-finding 'observation 'forum "Starting forum system exploration")
   
   ;; Digest
   (guard (ex [else (record-finding 'issue 'forum
@@ -225,12 +228,12 @@
                (record-finding 'success 'forum "Forum summary displays"))))
 
 ;;; ============================================================
-;;; Tutorial System Exploration
+;;; Tutorial Infrastructure Exploration
 ;;; ============================================================
 
-(define (explore-tutorial-system depth)
-  (display "\n=== Tutorial System Exploration ===\n\n")
-  (record-finding 'observation 'tutorial "Starting tutorial exploration")
+(define (explore-tutorial-infra depth)
+  (display "\n=== Tutorial Infrastructure Exploration ===\n\n")
+  (record-finding 'observation 'tutorial "Starting tutorial infrastructure exploration")
   
   ;; List tutorials
   (guard (ex [else (record-finding 'issue 'tutorial
@@ -255,81 +258,88 @@
                (record-finding 'success 'tutorial "Tutorial help works"))))
 
 ;;; ============================================================
-;;; Duckie Chat Exploration
+;;; Query DSL Exploration
 ;;; ============================================================
 
-(define (explore-duckie-chat depth)
-  (display "\n=== Duckie Chat Exploration ===\n\n")
-  (record-finding 'observation 'duckie "Starting Duckie exploration")
+(define (explore-query-dsl depth)
+  (display "\n=== Query DSL Exploration ===\n\n")
+  (record-finding 'observation 'query "Starting query DSL exploration")
   
-  ;; Basic greeting
-  (guard (ex [else (record-finding 'issue 'duckie
-                                   (format "to-duckie failed: ~a" ex))])
-         (to-duckie "Hello DUCKIE!")
-         (record-finding 'success 'duckie "Duckie responds to greeting"))
+  ;; Basic store search
+  (guard (ex [else (record-finding 'issue 'query
+                                   (format "store-find-by-tag failed: ~a" ex))])
+         (let ([results (store-find-by-tag (fs) 'post)])
+              (record-finding 'success 'query
+                              (format "Tag query returned ~a results" (length results)))))
   
   (when (eq? depth 'deep)
-        ;; Ask questions
-        (let ([questions '("What can you teach me?"
-                           "How does The Fold work?"
-                           "What are blocks?"
-                           "Tell me about lambda calculus")])
-             (for-each
-              (lambda (q)
-                      (guard (ex [else (record-finding 'observation 'duckie
-                                                       (format "Question response issue: ~a" q))])
-                             (to-duckie q)
-                             (record-finding 'success 'duckie
-                                             (format "Duckie answered: ~a" (string-truncate q 30)))))
-              (pick-n-random 2 questions)))))
+        ;; Test payload search
+        (guard (ex [else (record-finding 'observation 'query "Payload search unavailable")])
+               (let ([results (store-find-by-payload-contains (fs) "test")])
+                    (record-finding 'success 'query
+                                    (format "Payload search returned ~a results" (length results)))))
+        
+        ;; Test query DSL if available
+        (guard (ex [else (record-finding 'observation 'query "Query DSL not loaded")])
+               (query (fs) '(tag . post))
+               (record-finding 'success 'query "Query DSL executes"))
+        
+        ;; Test graph queries
+        (guard (ex [else (record-finding 'observation 'query "Graph queries unavailable")])
+               (let ([all-hashes (fs-all-hashes (fs))])
+                    (when (not (null? all-hashes))
+                          (let ([refs (store-get-refs (fs) (car all-hashes))])
+                               (record-finding 'success 'query
+                                               (format "Graph query: block has ~a refs"
+                                                       (if refs (length refs) 0)))))))))
 
 ;;; ============================================================
-;;; Turtle Graphics Exploration
+;;; Graphics Primitives Exploration
 ;;; ============================================================
 
-(define (explore-turtle-graphics depth)
-  (display "\n=== Turtle Graphics Exploration ===\n\n")
-  (record-finding 'observation 'turtle "Starting turtle graphics exploration")
+(define (explore-graphics-prims depth)
+  (display "\n=== Graphics Primitives Exploration ===\n\n")
+  (record-finding 'observation 'graphics "Starting graphics primitives exploration")
   
   ;; Load turtle module if not already loaded
   (guard (ex [else #f])
          (load "shell/ui/turtle.ss"))
   
   ;; Create turtle
-  (guard (ex [else (record-finding 'issue 'turtle
+  (guard (ex [else (record-finding 'issue 'graphics
                                    (format "make-turtle failed: ~a" ex))])
          (define t (make-turtle))
-         (record-finding 'success 'turtle "Turtle created successfully")
+         (record-finding 'success 'graphics "Turtle created successfully")
          
          (when (eq? depth 'deep)
                ;; Basic movements
-               (guard (ex [else (record-finding 'issue 'turtle "Movement failed")])
+               (guard (ex [else (record-finding 'issue 'graphics "Movement failed")])
                       (set! t (fd t 50))
                       (set! t (rt t 90))
                       (set! t (fd t 50))
-                      (record-finding 'success 'turtle "Basic movement works"))
+                      (record-finding 'success 'graphics "Basic movement works"))
                
                ;; Draw a shape
-               (guard (ex [else (record-finding 'issue 'turtle "Shape drawing failed")])
+               (guard (ex [else (record-finding 'issue 'graphics "Shape drawing failed")])
                       (let loop ([i 0] [turtle t])
                            (if (< i 4)
                                (loop (+ i 1) (rt (fd turtle 30) 90))
                                (set! t turtle)))
-                      (record-finding 'success 'turtle "Square drawing works"))
+                      (record-finding 'success 'graphics "Square drawing works"))
                
                ;; Check position
                (guard (ex [else #f])
                       (let ([x (xcor t)] [y (ycor t)])
-                           (record-finding 'observation 'turtle
+                           (record-finding 'observation 'graphics
                                            (format "Final position: (~a, ~a)" x y)))))))
 
 ;;; ============================================================
-;;; Command Discovery Exploration
+;;; Command System Exploration
 ;;; ============================================================
 
-(define (explore-command-discovery depth)
-  (display "\n=== Command Discovery Exploration ===\n\n")
-  (record-finding 'observation 'commands "Starting command discovery exploration")
+(define (explore-command-system depth)
+  (display "\n=== Command System Exploration ===\n\n")
+  (record-finding 'observation 'commands "Starting command system exploration")
   
   ;; Basic help
   (guard (ex [else (record-finding 'issue 'commands "help failed")])
@@ -357,6 +367,45 @@
         (guard (ex [else #f])
                (cmd 'digestt)  ; Intentional typo
                (record-finding 'observation 'commands "Typo suggestion tested"))))
+
+;;; ============================================================
+;;; Creative Tools Exploration
+;;; ============================================================
+
+(define (explore-creative-tools depth)
+  (display "\n=== Creative Tools Exploration ===\n\n")
+  (record-finding 'observation 'creative "Starting creative tools exploration")
+  
+  ;; Check if patches are available
+  (guard (ex [else (record-finding 'observation 'creative "Patch system not loaded")])
+         (when (defined? 'apply-patch)
+               (record-finding 'success 'creative "Patch system available")))
+  
+  ;; Check for playpen templates
+  (guard (ex [else (record-finding 'observation 'creative "Templates not accessible")])
+         (let ([template-files (directory-list "user/templates")])
+              (record-finding 'success 'creative
+                              (format "Found ~a templates" (length template-files)))))
+  
+  (when (eq? depth 'deep)
+        ;; Test loading a user creation
+        (guard (ex [else (record-finding 'observation 'creative
+                                         "User creations directory not accessible")])
+               (let ([creations (directory-list "user/creations")])
+                    (when (not (null? creations))
+                          (record-finding 'success 'creative
+                                          (format "Found ~a user creations" (length creations))))))
+        
+        ;; Test playpen loading mechanism
+        (guard (ex [else (record-finding 'observation 'creative "Playpen loader not available")])
+               (when (defined? 'load-playpen)
+                     (record-finding 'success 'creative "Playpen loading infrastructure present")))
+        
+        ;; Check for creative content in store
+        (guard (ex [else #f])
+               (let ([art-posts (store-find-by-tag (fs) 'art)])
+                    (record-finding 'observation 'creative
+                                    (format "Store contains ~a art blocks" (length art-posts)))))))
 
 ;;; ============================================================
 ;;; Main Session Runner
@@ -405,13 +454,14 @@
                                        (record-finding 'issue 'session
                                                        (format "Path ~a crashed: ~a" path-name ex))])
                                   (case path-name
-                                        [(block-explorer) (explore-block-explorer depth)]
-                                        [(lambda-kombat) (explore-lambda-kombat depth)]
-                                        [(forum-interaction) (explore-forum-interaction depth)]
-                                        [(tutorial-system) (explore-tutorial-system depth)]
-                                        [(duckie-chat) (explore-duckie-chat depth)]
-                                        [(turtle-graphics) (explore-turtle-graphics depth)]
-                                        [(command-discovery) (explore-command-discovery depth)]
+                                        [(block-store) (explore-block-store depth)]
+                                        [(forum-system) (explore-forum-system depth)]
+                                        [(session-mgmt) (explore-session-mgmt depth)]
+                                        [(tutorial-infra) (explore-tutorial-infra depth)]
+                                        [(graphics-prims) (explore-graphics-prims depth)]
+                                        [(command-system) (explore-command-system depth)]
+                                        [(query-dsl) (explore-query-dsl depth)]
+                                        [(creative-tools) (explore-creative-tools depth)]
                                         [else (record-finding 'observation 'session
                                                               (format "Unknown path: ~a" path-name))]))))
               selected-paths))
