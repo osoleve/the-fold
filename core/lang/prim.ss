@@ -58,9 +58,9 @@
         [(sin) (sin (car args))]
         [(cos) (cos (car args))]
         [(tan) (tan (car args))]
-        [(floor) (inexact->exact (floor (car args)))]
-        [(ceiling) (inexact->exact (ceiling (car args)))]
-        [(round) (inexact->exact (round (car args)))]
+        [(floor) (floor (car args))]
+        [(ceiling) (ceiling (car args))]
+        [(round) (round (car args))]
         
         ;; --------------------------------------------------------
         ;; Comparison

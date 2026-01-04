@@ -20,25 +20,29 @@ No other .md files, though markdown is allowed in the body of blocks. If there i
 
 ---
 
-## ⚡ FIRST STEP: START THE SOCKET GATEWAY ⚡
+## ⚡ FIRST STEP: START THE REPL DAEMON ⚡
 
-**Before doing ANYTHING else, start the persistent Socket Gateway daemon:**
+**Before doing ANYTHING else, start the persistent REPL daemon:**
 
-**IMPORTANT:** The Fold now uses a socket-based gateway architecture (`fold-gateway.py`).
-DO NOT use the old `fold.sh` or `daemon.sh` scripts - they are deprecated.
-
-### Unix/Linux (Production)
+### Windows (Local)
 
 ```bash
-# Start the socket gateway daemon:
-cd /home/oso/the-fold
-nohup ./fold-gateway.py > gateway.log 2>&1 &
+# Start the daemon in background:
+cd /c/Users/andre/Documents/ccverse
+./DAEMON.cmd start
 
-# Verify it's running:
-ps aux | grep fold-gateway
+# Or in foreground for debugging:
+./DAEMON.cmd fg
 ```
 
-The gateway manages REPL workers via a Unix Domain Socket at `.fold-repl/fold.sock`.
+### Unix/Linux (Cloud Containers)
+
+```bash
+# This will install Chez Scheme if needed, then start the daemon:
+cd /path/to/ccverse
+chmod +x *.sh
+./daemon.sh start
+```
 
 ### Manual Chez Scheme Installation (No Package Manager)
 
@@ -85,44 +89,44 @@ scheme -q << 'EOF'
 EOF
 ```
 
-### Interacting with the Gateway (Multi-Session via Socket)
+### Interacting with the Daemon (Multi-Session IPC)
 
-The socket gateway supports **multi-session IPC** for parallel agent execution via a Unix Domain Socket. Each session has its own isolated environment.
+The daemon supports **multi-session IPC** for parallel agent execution. Each session has its own isolated environment.
 
-#### Socket-Based Communication (REQUIRED)
+#### Session-Based IPC (Recommended)
 
-**Use `fold-agent.py` - it is the ONLY supported method for interacting with The Fold.**
-
-##### fold-agent.py - The Official Client
-This is the most reliable way to interact with the REPL. It handles session persistence, code escaping, and structured JSON responses.
+Just write raw Scheme expressions to `.fold-repl/requests/<session-id>.ss`. The session ID is derived from the filename — no envelope needed!
 
 ```bash
-# Execute code (automatically manages/reuses session)
-./fold-agent.py "(+ 1 2)"
+# 1. Choose a session ID (use your agent ID or a descriptive name)
+SESSION_ID="my-session"
 
-# Use a specific session
-./fold-agent.py --session my-session "(define x 42)"
+# 2. Write raw Scheme expression:
+Write ".fold-repl/requests/${SESSION_ID}.ss" with content:
+(hi 'shepherd 'YourName "Starting work")
 
-# Full JSON interface (ideal for automation)
-echo '{"code": "(+ 1 2)", "session": "my-session"}' | ./fold-agent.py --json
+# 3. Read the response:
+Read ".fold-repl/responses/${SESSION_ID}.txt"
 ```
 
-It returns a structured JSON object:
-```json
-{
-  "status": "success",   // "success", "error", or "timeout"
-  "result": "3",         // The return value (stringified)
-  "output": "",          // Captured stdout
-  "session": "agent-...",
-  "error": null          // Error message if status is "error"
-}
+Multiple expressions work too:
+
+```scheme
+(define x 42)
+(+ x 10)
 ```
 
-**Note:** The old file-based IPC system has been replaced by socket-based communication. Always use `fold-agent.py`.
+Tip: use `./fold.sh` to write the request, wait for the response, and fall back to direct execution if the daemon isn't running.
+
+```bash
+SESSION="my-session" ./fold.sh "(digest)"
+```
+
+**Key insight:** Use session-based IPC for multitenancy. Each session gets isolated variable namespaces, preventing cross-session pollution.
 
 ### Login
 
-After starting the gateway, login with your model tier and chosen name:
+After starting the daemon, login with your model tier and chosen name:
 
 ```scheme
 (hi 'shepherd 'your-name "Your announcement message")    ; Shepherd role
@@ -130,21 +134,14 @@ After starting the gateway, login with your model tier and chosen name:
 (hi 'player 'your-name "Your announcement message")      ; Player role
 ```
 
-### Why Socket-Based Architecture?
+### Why This Architecture?
 
-The socket gateway provides sub-millisecond latency and streaming output:
+The system's Bash tool creates a new process per call - state is lost between calls. The daemon solves this:
 
-1. **Gateway** runs continuously, managing REPL worker processes
-2. **fold-agent.py** sends JSON requests over Unix Domain Socket (`.fold-repl/fold.sock`)
-3. **Gateway** spawns/reuses worker processes for each session
-4. **Worker** evaluates code and streams results back via JSON protocol
-5. **fold-agent.py** returns structured response with status, result, output, and errors
-
-Benefits over the old file-based IPC:
-- **Faster**: Sub-millisecond latency (vs 100+ms file polling)
-- **Streaming**: Real-time output from long-running operations
-- **Cleaner**: Structured JSON protocol instead of file watching
-- **Reliable**: Proper error handling and timeout management
+1. **Daemon** runs continuously, holding the full REPL environment in memory
+2. **The agent** writes expressions to `.fold-repl/requests/<session-id>.ss` (via Write tool)
+3. **Daemon** evaluates in isolated session context, writes results to `.fold-repl/responses/<session-id>.txt`
+4. **The agent** reads the response (via Read tool or cat)
 
 Session state persists! Each session maintains its own isolated environment:
 

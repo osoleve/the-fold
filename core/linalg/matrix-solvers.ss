@@ -14,47 +14,37 @@
 ;;; Basic Substitution Utilities
 ;;; ============================================================
 
-;;; matrix-forward-substitute : Matrix × Vec → Vec | Error
+;;; matrix-forward-substitute : Matrix × Vec → Vec
 ;;; Solve Ly = b where L is lower triangular.
-;;; Returns error if diagonal element is too small (singular or near-singular).
 (define (matrix-forward-substitute l b)
   (let* ([n (vector-length b)]
          [y (make-vector n 0)])
-        (let loop-i ([i 0])
-             (if (= i n)
-                 y
-                 (let ([diag (matrix-ref l i i)])
-                      (if (< (abs diag) *matrix-tolerance*)
-                          `(error singular-lower-triangular ,i)
-                          (let ([sum (let loop ([j 0] [s 0])
-                                          (if (= j i)
-                                              s
-                                              (loop (+ j 1)
-                                                    (+ s (* (matrix-ref l i j)
-                                                            (vector-ref y j))))))])
-                               (vector-set! y i (/ (- (vector-ref b i) sum) diag))
-                               (loop-i (+ i 1)))))))))
+        (do ([i 0 (+ i 1)])
+            [(= i n) y]
+            (let ([sum (let loop ([j 0] [s 0])
+                            (if (= j i)
+                                s
+                                (loop (+ j 1)
+                                      (+ s (* (matrix-ref l i j)
+                                              (vector-ref y j))))))])
+                 (vector-set! y i (/ (- (vector-ref b i) sum)
+                                     (matrix-ref l i i)))))))
 
-;;; matrix-back-substitute : Matrix × Vec → Vec | Error
+;;; matrix-back-substitute : Matrix × Vec → Vec
 ;;; Solve Ux = y where U is upper triangular.
-;;; Returns error if diagonal element is too small (singular or near-singular).
 (define (matrix-back-substitute u y)
   (let* ([n (vector-length y)]
          [x (make-vector n 0)])
-        (let loop-i ([i (- n 1)])
-             (if (< i 0)
-                 x
-                 (let ([diag (matrix-ref u i i)])
-                      (if (< (abs diag) *matrix-tolerance*)
-                          `(error singular-upper-triangular ,i)
-                          (let ([sum (let loop ([j (+ i 1)] [s 0])
-                                          (if (= j n)
-                                              s
-                                              (loop (+ j 1)
-                                                    (+ s (* (matrix-ref u i j)
-                                                            (vector-ref x j))))))])
-                               (vector-set! x i (/ (- (vector-ref y i) sum) diag))
-                               (loop-i (- i 1)))))))))
+        (do ([i (- n 1) (- i 1)])
+            [(< i 0) x]
+            (let ([sum (let loop ([j (+ i 1)] [s 0])
+                            (if (= j n)
+                                s
+                                (loop (+ j 1)
+                                      (+ s (* (matrix-ref u i j)
+                                              (vector-ref x j))))))])
+                 (vector-set! x i (/ (- (vector-ref y i) sum)
+                                     (matrix-ref u i i)))))))
 
 ;;; ============================================================
 ;;; LU-Based Solvers

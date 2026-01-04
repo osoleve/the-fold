@@ -16,8 +16,6 @@
 ;;;
 ;;; This is Shell code: uses IO, manages daemon state.
 
-(load "shell/condition-formatter.ss")
-
 ;;; ============================================================
 ;;; Configuration
 ;;; ============================================================
@@ -125,7 +123,19 @@
                   ;; Nothing
                   [else ""])))))
 
-;; format-condition now provided by shell/condition-formatter.ss
+(define (format-condition e)
+  "Format a condition with its irritants properly filled in.
+   Handles the ~s placeholders in condition messages."
+  (if (condition? e)
+      (guard (e2 [else (condition-message e)])  ; fallback to template
+             (let ([template (condition-message e)]
+                   [irritants (if (irritants-condition? e)
+                                  (condition-irritants e)
+                                  '())])
+                  (if (null? irritants)
+                      template
+                      (apply format template irritants))))
+      (format "~a" e)))
 
 (define (process-request!)
   (let ([request (read-request)])

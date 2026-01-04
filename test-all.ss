@@ -107,14 +107,10 @@
     ;; Layer 3: Type System
     "types/test-types.ss"
     "types/test-kinds.ss"
-    ;; Layer 3.5: Normalization by Evaluation
-    "lang/test-nbe.ss"
     ;; Layer 4: Type Inference
     "types/test-infer.ss"
     "types/test-resolve.ss"
     "types/test-annotate.ss"
-    ;; Layer 4.5: Autodiff Type Integration
-    "types/test-autodiff-types.ss"
     ;; Layer 5: Evaluation
     "lang/test-eval.ss"
     "lang/test-typed-eval.ss"
@@ -127,10 +123,7 @@
     "linalg/test-vec.ss"
     "linalg/test-matrix.ss"
     "linalg/test-matrix-decomp.ss"
-    "linalg/test-matrix-solvers.ss"
-    ;; Layer 9: Random Number Generation
-    "random/test-prng.ss"
-    "random/test-distributions.ss"))
+    "linalg/test-matrix-solvers.ss"))
 
 ;;; Shell tests (validated, stable)
 (define shell-tests

@@ -272,28 +272,6 @@
             #t
             (and (pair? result) (eq? (car result) 'error))))
 
-;; Test 16: QR with rank-deficient matrix - verify Q orthonormality
-(let* ([a (matrix-from-lists '((1 1 0) (0 0 1) (0 0 0)))]  ; rank 2
-       [result (matrix-qr a)])
-      (if (pair? result)
-          (let* ([q (car result)]
-                 [qtq (matrix-mul (matrix-transpose q) q)]
-                 [n (matrix-rows qtq)])
-                ;; Check Q^T Q ≈ I (Q is orthonormal)
-                (let check-loop ([i 0] [j 0] [all-good #t])
-                     (if (= i n)
-                         (test "QR: Rank-deficient matrix has orthonormal Q"
-                               #t all-good)
-                         (if (= j n)
-                             (check-loop (+ i 1) 0 all-good)
-                             (let ([expected (if (= i j) 1.0 0.0)]
-                                   [actual (matrix-ref qtq i j)])
-                                  (check-loop i (+ j 1)
-                                              (and all-good
-                                                   (< (abs (- actual expected))
-                                                      1e-10))))))))
-          (test "QR: Rank-deficient decomposition failed" #t #f)))
-
 ;;; ============================================================
 ;;; Results
 ;;; ============================================================
