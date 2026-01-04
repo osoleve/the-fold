@@ -779,16 +779,36 @@
 ;;; Parse left-associative binary operations.
 ;;; Parses: p (op p)*
 ;;; Associates: ((a op b) op c)
+;;; Detects and breaks infinite loops when op parser succeeds without consuming input.
 (define (chainl1 p op)
-  (define (rest acc)
-    (parser-or
-     (parser-bind op
-                  (lambda (f)
-                          (parser-bind p
-                                       (lambda (y)
-                                               (rest (f acc y))))))
-     (parser-pure acc)))
-  (parser-bind p rest))
+  (parser-bind p
+               (lambda (first-val)
+                       (make-parser
+                        (lambda (state)
+                                (let loop ([acc first-val]
+                                           [current-state state])
+                                     (let ([start-offset (pos-offset (state-pos current-state))]
+                                           [op-result (run-parser op current-state)])
+                                          (if (right? op-result)
+                                              (let* ([op-val-state (from-right op-result)]
+                                                     [f (car op-val-state)]
+                                                     [after-op (cdr op-val-state)]
+                                                     [p-result (run-parser p after-op)])
+                                                    (if (right? p-result)
+                                                        (let* ([p-val-state (from-right p-result)]
+                                                               [y (car p-val-state)]
+                                                               [new-state (cdr p-val-state)]
+                                                               [end-offset (pos-offset (state-pos new-state))])
+                                                              ;; Check if any input was consumed
+                                                              (if (= start-offset end-offset)
+                                                                  ;; No input consumed - break to avoid infinite loop
+                                                                  (right (cons acc current-state))
+                                                                  ;; Input consumed - continue
+                                                                  (loop (f acc y) new-state)))
+                                                        ;; p failed after op succeeded - return current acc
+                                                        (right (cons acc current-state))))
+                                              ;; op failed - return accumulated value
+                                              (right (cons acc current-state))))))))))
 
 ;;; chainl : Parser a × Parser (a × a → a) × a → Parser a
 ;;; Like chainl1, but returns default if no matches.
@@ -799,16 +819,52 @@
 ;;; Parse right-associative binary operations.
 ;;; Parses: p (op p)*
 ;;; Associates: (a op (b op c))
+;;; Detects and breaks infinite loops when op parser succeeds without consuming input.
 (define (chainr1 p op)
-  (parser-bind p
-               (lambda (x)
-                       (parser-or
-                        (parser-bind op
-                                     (lambda (f)
-                                             (parser-bind (chainr1 p op)
-                                                          (lambda (y)
-                                                                  (parser-pure (f x y))))))
-                        (parser-pure x)))))
+  (make-parser
+   (lambda (state)
+           (let ([first-result (run-parser p state)])
+                (if (right? first-result)
+                    (let* ([first-val-state (from-right first-result)]
+                           [x (car first-val-state)]
+                           [after-p (cdr first-val-state)])
+                          ;; Try to parse (op chainr1)*
+                          (let loop ([current-x x]
+                                     [current-state after-p]
+                                     [pending-ops '()])  ; Stack of (f, x) pairs for right-assoc
+                               (let ([start-offset (pos-offset (state-pos current-state))]
+                                     [op-result (run-parser op current-state)])
+                                    (if (right? op-result)
+                                        (let* ([op-val-state (from-right op-result)]
+                                               [f (car op-val-state)]
+                                               [after-op (cdr op-val-state)]
+                                               [p-result (run-parser p after-op)])
+                                              (if (right? p-result)
+                                                  (let* ([p-val-state (from-right p-result)]
+                                                         [y (car p-val-state)]
+                                                         [new-state (cdr p-val-state)]
+                                                         [end-offset (pos-offset (state-pos new-state))])
+                                                        ;; Check if any input was consumed
+                                                        (if (= start-offset end-offset)
+                                                            ;; No input consumed - break and fold
+                                                            (right (cons (fold-right-ops current-x pending-ops)
+                                                                         current-state))
+                                                            ;; Input consumed - push to stack, continue
+                                                            (loop y new-state (cons (cons f current-x) pending-ops))))
+                                                  ;; p failed - fold accumulated ops
+                                                  (right (cons (fold-right-ops current-x pending-ops)
+                                                               current-state))))
+                                        ;; op failed - fold accumulated ops
+                                        (right (cons (fold-right-ops current-x pending-ops)
+                                                     current-state))))))
+                    first-result)))))
+
+;;; Helper to fold right-associative operations
+(define (fold-right-ops final pending)
+  (if (null? pending)
+      final
+      (let ([op-x (car pending)])
+           ((car op-x) (cdr op-x) (fold-right-ops final (cdr pending))))))
 
 ;;; chainr : Parser a × Parser (a × a → a) × a → Parser a
 ;;; Like chainr1, but returns default if no matches.
@@ -817,9 +873,25 @@
 
 ;;; skip-many : Parser a → Parser ()
 ;;; Apply parser zero or more times, discarding results.
+;;; Detects and breaks infinite loops when parser succeeds without consuming input.
 (define (skip-many p)
-  (parser-or (parser-bind p (lambda (_) (skip-many p)))
-             (parser-pure '())))
+  (make-parser
+   (lambda (state)
+           (let loop ([current-state state])
+                (let ([start-offset (pos-offset (state-pos current-state))]
+                      [result (run-parser p current-state)])
+                     (if (right? result)
+                         (let* ([val-state (from-right result)]
+                                [new-state (cdr val-state)]
+                                [end-offset (pos-offset (state-pos new-state))])
+                               ;; Check if any input was consumed
+                               (if (= start-offset end-offset)
+                                   ;; No input consumed - break to avoid infinite loop
+                                   (right (cons '() current-state))
+                                   ;; Input consumed - continue
+                                   (loop new-state)))
+                         ;; Parser failed - return unit
+                         (right (cons '() current-state))))))))
 
 ;;; skip-some : Parser a → Parser ()
 ;;; Apply parser one or more times, discarding results.
@@ -846,12 +918,27 @@
 
 ;;; many-accum : (a × b → b) × b × Parser a → Parser b
 ;;; Parse zero or more, accumulating with a function.
+;;; Detects and breaks infinite loops when parser succeeds without consuming input.
 (define (many-accum f init p)
-  (define (go acc)
-    (parser-or
-     (parser-bind p (lambda (x) (go (f x acc))))
-     (parser-pure acc)))
-  (go init))
+  (make-parser
+   (lambda (state)
+           (let loop ([acc init]
+                      [current-state state])
+                (let ([start-offset (pos-offset (state-pos current-state))]
+                      [result (run-parser p current-state)])
+                     (if (right? result)
+                         (let* ([val-state (from-right result)]
+                                [val (car val-state)]
+                                [new-state (cdr val-state)]
+                                [end-offset (pos-offset (state-pos new-state))])
+                               ;; Check if any input was consumed
+                               (if (= start-offset end-offset)
+                                   ;; No input consumed - break to avoid infinite loop
+                                   (right (cons acc current-state))
+                                   ;; Input consumed - continue with accumulated value
+                                   (loop (f val acc) new-state)))
+                         ;; Parser failed - return accumulated value
+                         (right (cons acc current-state))))))))
 
 ;;; fold-p : (b × a → b) × b × Parser a → Parser b
 ;;; Left fold over parsed values.
