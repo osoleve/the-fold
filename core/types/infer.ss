@@ -171,6 +171,29 @@
         [(hole? t1) `(ok ,s)]
         [(hole? t2) `(ok ,s)]
         
+        ;; Recursive types: (μ var1 body1) ~ (μ var2 body2)
+        ;; Handle alpha-equivalence: rename var2 to var1 in body2, then unify bodies
+        ;; CRITICAL: Remove bound variable from resulting substitution!
+        [(and (pair? t1) (pair? t2) (eq? (car t1) 'μ) (eq? (car t2) 'μ))
+         (let ([var1 (cadr t1)]
+               [body1 (caddr t1)]
+               [var2 (cadr t2)]
+               [body2 (caddr t2)])
+              ;; Rename var2 to var1 in body2 for alpha-equivalence
+              (let* ([rename-subst (if (eq? var1 var2)
+                                       '()
+                                       (list (cons var2 var1)))]
+                     [body2-renamed (apply-subst rename-subst body2)]
+                     [result (unify-with s body1 body2-renamed)])
+                    (if (eq? (car result) 'ok)
+                        ;; Remove bound variables from substitution
+                        (let ([unified-subst (cadr result)])
+                             `(ok ,(filter (lambda (p)
+                                                   (not (or (eq? (car p) var1)
+                                                            (eq? (car p) var2))))
+                                           unified-subst)))
+                        result)))]
+        
         ;; Both are compound types with same constructor
         [(and (pair? t1) (pair? t2) (eq? (car t1) (car t2)))
          (unify-lists s (cdr t1) (cdr t2))]
