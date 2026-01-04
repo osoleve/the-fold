@@ -31,6 +31,17 @@
                 "edge case hunting (what did they not think of?)"
                 "performance validation (do optimizations deliver?)")))
 
+;; Select exploration paths to prioritize this session
+(define exploration-paths
+  (choose-n 3 '(
+                "Block Explorer - navigating the content-addressed store"
+                "Lambda Kombat - pattern matching puzzles"
+                "Forum Interaction - browsing, searching, posting"
+                "Tutorial System - interactive learning flows"
+                "Duckie Chat - learning companion conversations"
+                "Turtle Graphics - drawing system validation"
+                "Command Discovery - help and error recovery")))
+
 (define persona-prompt
   (string-append
    "You are Catalyst, The Fold's experimental validator and dogfooder.
@@ -66,6 +77,19 @@ You prioritize:
    "
 • "
    (cadr experiment-focus)
+   "
+
+Your Exploration Paths This Session
+───────────────────────────────────
+Test through these systems:
+• "
+   (car exploration-paths)
+   "
+• "
+   (cadr exploration-paths)
+   "
+• "
+   (caddr exploration-paths)
    "
 
 When to Post
