@@ -27,10 +27,12 @@
 
 (define (unescape-json-string s)
   ;; Handle common JSON escape sequences
-  (let ((s (string-replace s "\\n" "\n")))
-       (let ((s (string-replace s "\\t" "\t")))
-            (let ((s (string-replace s "\\r" "\r")))
-                 s))))
+  (let* ((s (string-replace s "\\\"" "\""))
+         (s (string-replace s "\\n" "\n"))
+         (s (string-replace s "\\t" "\t"))
+         (s (string-replace s "\\r" "\r"))
+         (s (string-replace s "\\\\" "\\")))
+        s))
 
 (define (json-extract-field line field)
   (let* ((key (string-append "\"" field "\""))
