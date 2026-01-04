@@ -70,6 +70,25 @@
   (let ([len (dv3-length v)])
        (dv3-scale v (dual-recip len))))
 
+;;; Additional Dual Operations
+(define (dual-abs a)
+  (let ([a (dual-lift a)])
+       (dual (abs (dual-value a))
+             (let ([v (dual-value a)])
+                  (cond [(> v 0) (dual-deriv a)]
+                        [(< v 0) (- (dual-deriv a))]
+                        [else 0])))))
+
+(define (dual-min a b)
+  (let ([a (dual-lift a)]
+        [b (dual-lift b)])
+       (if (< (dual-value a) (dual-value b)) a b)))
+
+(define (dual-max a b)
+  (let ([a (dual-lift a)]
+        [b (dual-lift b)])
+       (if (> (dual-value a) (dual-value b)) a b)))
+
 ;;; Extract just the values from a dual vec3
 (define (dv3-values v)
   (vector (dual-value (dv3-x v))
@@ -146,20 +165,18 @@
          [dist-sq (dual-add (dual-sq ring-dist) (dual-sq y))])
         (dual-sub (dual-sqrt dist-sq) (dual-lift r))))
 
-;;; Box SDF (simplified, no edge/corner smoothing)
+;;; Box SDF (fully differentiable)
 (define (sdf-box-dual p center size)
   (let* ([q (dv3-sub p (dual-vec3-const (v3-x center) (v3-y center) (v3-z center)))]
-         ;; |q| - size for each axis
-         [dx (dual-sub (dual-lift (abs (dual-value (dv3-x q)))) (dual-lift (v3-x size)))]
-         [dy (dual-sub (dual-lift (abs (dual-value (dv3-y q)))) (dual-lift (v3-y size)))]
-         [dz (dual-sub (dual-lift (abs (dual-value (dv3-z q)))) (dual-lift (v3-z size)))]
-         ;; max(d, 0) for each component
-         [mx (dual-lift (max (dual-value dx) 0))]
-         [my (dual-lift (max (dual-value dy) 0))]
-         [mz (dual-lift (max (dual-value dz) 0))])
-        ;; length(max(d,0)) + min(max(dx,dy,dz),0)
-        (dual-add (dual-sqrt (dual-add (dual-sq mx) (dual-add (dual-sq my) (dual-sq mz))))
-                  (dual-lift (min (max (dual-value dx) (max (dual-value dy) (dual-value dz))) 0)))))
+         [dx (dual-sub (dual-abs (dv3-x q)) (dual-lift (v3-x size)))]
+         [dy (dual-sub (dual-abs (dv3-y q)) (dual-lift (v3-y size)))]
+         [dz (dual-sub (dual-abs (dv3-z q)) (dual-lift (v3-z size)))]
+         [mx (dual-max dx (dual-lift 0))]
+         [my (dual-max dy (dual-lift 0))]
+         [mz (dual-max dz (dual-lift 0))]
+         [outside (dual-sqrt (dual-add (dual-sq mx) (dual-add (dual-sq my) (dual-sq mz))))]
+         [inside (dual-min (dual-max dx (dual-max dy dz)) (dual-lift 0))])
+        (dual-add outside inside)))
 
 ;;; ============================================================
 ;;; SDF Combinators (Differentiable!)
@@ -167,16 +184,34 @@
 
 (define (sdf-union-dual d1 d2)
   "Union: min of distances"
-  (let ([v1 (dual-value d1)]
-        [v2 (dual-value d2)])
-       (if (< v1 v2) d1 d2)))
+  (dual-min d1 d2))
 
 (define (sdf-smooth-union-dual d1 d2 k)
   "Smooth minimum: differentiable blending"
-  (let* ([h (max 0 (- k (abs (- (dual-value d1) (dual-value d2)))))]
-         [blend (/ (* h h) (* 4 k))])
-        (dual-sub (if (< (dual-value d1) (dual-value d2)) d1 d2)
-                  (dual-lift blend))))
+  (let* ([kd (dual-lift k)]
+         [diff (dual-sub d1 d2)]
+         [h (dual-max (dual-lift 0) (dual-sub kd (dual-abs diff)))]
+         [h-scaled (dual-div h kd)]
+         [blend (dual-mul (dual-mul h h-scaled) (dual-mul kd (dual-lift 0.25)))])
+        (dual-sub (dual-min d1 d2) blend)))
+
+;;; ============================================================
+;;; Rotation (Dual Vectors)
+;;; ============================================================
+
+(define (dv3-rotate-y v angle)
+  (let ([c (dual-lift (cos angle))] [s (dual-lift (sin angle))]
+        [x (dv3-x v)] [y (dv3-y v)] [z (dv3-z v)])
+       (dual-vec3 (dual-add (dual-mul c x) (dual-mul s z))
+                  y
+                  (dual-add (dual-mul (dual-neg s) x) (dual-mul c z)))))
+
+(define (dv3-rotate-x v angle)
+  (let ([c (dual-lift (cos angle))] [s (dual-lift (sin angle))]
+        [x (dv3-x v)] [y (dv3-y v)] [z (dv3-z v)])
+       (dual-vec3 x
+                  (dual-sub (dual-mul c y) (dual-mul s z))
+                  (dual-add (dual-mul s y) (dual-mul c z)))))
 
 ;;; ============================================================
 ;;; THE MAGIC: Autodiff Normals
@@ -189,19 +224,24 @@
 ;;;   - Once with dz=1: get df/dz
 ;;;
 ;;; The gradient IS the surface normal (normalized).
+;;; By differentiating through the rotation, we get the normal
+;;; in world space directly.
 
 (define (autodiff-normal sdf-func px py pz rotation-angle)
   "Compute surface normal using TRUE automatic differentiation"
-  ;; Run SDF with x as the variable
-  (let* ([p-dx (rotate-y (rotate-x (vec3 px py pz) (* 0.3 rotation-angle)) rotation-angle)]
-         [dx-result (sdf-func (dual-vec3-variable (v3-x p-dx) (v3-y p-dx) (v3-z p-dx) 0))]
-         [grad-x (dual-deriv dx-result)]
+  (let* ([sdf-world
+          (lambda (p-dv3)
+                  (sdf-func (dv3-rotate-y (dv3-rotate-x p-dv3 (* 0.3 rotation-angle))
+                                          rotation-angle)))]
+         ;; Run SDF with x as the variable
+         [res-x (sdf-world (dual-vec3-variable px py pz 0))]
+         [grad-x (dual-deriv res-x)]
          ;; Run SDF with y as the variable
-         [dy-result (sdf-func (dual-vec3-variable (v3-x p-dx) (v3-y p-dx) (v3-z p-dx) 1))]
-         [grad-y (dual-deriv dy-result)]
+         [res-y (sdf-world (dual-vec3-variable px py pz 1))]
+         [grad-y (dual-deriv res-y)]
          ;; Run SDF with z as the variable
-         [dz-result (sdf-func (dual-vec3-variable (v3-x p-dx) (v3-y p-dx) (v3-z p-dx) 2))]
-         [grad-z (dual-deriv dz-result)])
+         [res-z (sdf-world (dual-vec3-variable px py pz 2))]
+         [grad-z (dual-deriv res-z)])
         ;; Normalize the gradient to get the normal
         (v3-normalize (vec3 grad-x grad-y grad-z))))
 
