@@ -86,13 +86,21 @@
 
 ;;; apply-subst : Subst × Type → Type
 ;;; Apply a substitution to a type.
+;;; Includes cycle detection to prevent infinite recursion on malformed substitutions.
 (define (apply-subst s type)
+  (apply-subst-with-visited s type '()))
+
+;;; apply-subst-with-visited : Subst × Type × (List Symbol) → Type
+;;; Helper that tracks visited type variables to detect cycles.
+(define (apply-subst-with-visited s type visited)
   (cond
    [(type-var? type)
-    (let ([replacement (subst-lookup s type)])
-         (if replacement
-             (apply-subst s replacement)  ; Chase chains
-             type))]
+    (if (memq type visited)
+        type  ; Cycle detected, return type variable as-is
+        (let ([replacement (subst-lookup s type)])
+             (if replacement
+                 (apply-subst-with-visited s replacement (cons type visited))  ; Chase chains with cycle detection
+                 type)))]
    [(or (base-type? type) (hole? type)) type]
    [(not (pair? type)) type]
    ;; Don't substitute bound variables
@@ -107,15 +115,15 @@
                              bound-raw)]
            ;; Remove bound vars from substitution
            [s* (filter (lambda (p) (not (memq (car p) bound-names))) s)])
-          `(∀ ,bound-raw ,(apply-subst s* body)))]
+          `(∀ ,bound-raw ,(apply-subst-with-visited s* body visited)))]
    [(eq? (car type) 'μ)
     (let ([var (cadr type)]
           [body (caddr type)])
          (let ([s* (filter (lambda (p) (not (eq? (car p) var))) s)])
-              `(μ ,var ,(apply-subst s* body))))]
+              `(μ ,var ,(apply-subst-with-visited s* body visited))))]
    [else
     (cons (car type)
-          (map (lambda (t) (apply-subst s t)) (cdr type)))]))
+          (map (lambda (t) (apply-subst-with-visited s t visited)) (cdr type)))]))
 
 ;;; compose-subst : Subst × Subst → Subst
 ;;; Compose two substitutions: (compose s1 s2) applies s2 then s1.
