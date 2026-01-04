@@ -1842,11 +1842,26 @@
 (register-backend! ascii-backend)
 
 ;;; ------------------------------------------------------------
-;;; Backend 2: Color ASCII (ANSI escape codes)
+;;; Backend 2: Color ASCII (depth-based RGB coloring)
 ;;; ------------------------------------------------------------
 
+;;; RGB depth palette: near (warm) to far (cool)
+(define *depth-rgb-palette*
+  ;; (max-normalized-depth . (R G B))
+  '((0.15 . (255 60 60))     ; Bright red
+    (0.25 . (255 120 40))    ; Orange-red
+    (0.35 . (255 180 0))     ; Orange
+    (0.45 . (255 220 0))     ; Yellow
+    (0.55 . (180 255 60))    ; Yellow-green
+    (0.65 . (80 255 120))    ; Green
+    (0.75 . (0 255 200))     ; Cyan-green
+    (0.85 . (0 200 255))     ; Cyan
+    (0.95 . (60 140 255))    ; Blue
+    (1.0  . (120 80 255))    ; Purple
+    (999  . (80 80 100))))   ; Gray (background/far)
+
 (define *ansi-depth-colors*
-  ;; Near to far: warm to cool
+  ;; Near to far: warm to cool (for terminal preview)
   '((0.15 . "\x1b;[38;5;196m")   ; Bright red
     (0.3 . "\x1b;[38;5;208m")    ; Orange
     (0.5 . "\x1b;[38;5;220m")    ; Yellow
@@ -1868,13 +1883,154 @@
                     (cdar colors)
                     (loop (cdr colors)))))))
 
+(define (depth->rgb depth max-depth)
+  "Convert depth to RGB triplet (R G B)."
+  (let ([norm (min 1.0 (/ depth max-depth))])
+       (let loop ([colors *depth-rgb-palette*])
+            (if (null? colors)
+                '(80 80 100)
+                (if (<= norm (caar colors))
+                    (cdar colors)
+                    (loop (cdr colors)))))))
+
+;;; Render frame returning (char depth) pairs for each cell
+(define (render-sdf-frame-colored sdf camera width height max-depth)
+  "Render SDF to frame with (char . depth) per cell."
+  (let ([cells (make-vector (* width height) (cons #\space 999.0))]
+        [aspect (/ width height 2.0)])
+       (do ([row 0 (+ row 1)])
+           ((>= row height))
+           (let ([v (- 1.0 (* 2.0 (/ row (- height 1))))])
+                (do ([col 0 (+ col 1)])
+                    ((>= col width))
+                    (let* ([u (- (* 2.0 (/ col (- width 1))) 1.0)]
+                           [ray-dir (camera-ray camera u v aspect)]
+                           [hit (ray-march sdf (camera-position camera) ray-dir)])
+                          (when hit
+                                (let* ([depth (car hit)]
+                                       [hit-point (cdr hit)]
+                                       [brightness (compute-shading sdf hit-point)]
+                                       [char (brightness->char brightness)])
+                                      (vector-set! cells (+ col (* row width))
+                                                   (cons char depth))))))))
+       (list width height cells)))
+
+;;; Convert colored frame to PPM bytevector
+(define (colored-frame-to-ppm frame-data max-depth)
+  "Convert (width height cells) to PPM with per-character colors."
+  (let* ([frame-w (car frame-data)]
+         [frame-h (cadr frame-data)]
+         [cells (caddr frame-data)]
+         [char-w 8]
+         [char-h 14]
+         [img-w (* frame-w char-w)]
+         [img-h (* frame-h char-h)]
+         [header (format "P6\n~a ~a\n255\n" img-w img-h)]
+         [pixels (make-bytevector (* img-w img-h 3) 0)]
+         [bg-r 15] [bg-g 15] [bg-b 25])
+        
+        ;; Fill with dark background
+        (do ([i 0 (+ i 3)])
+            ((>= i (* img-w img-h 3)))
+            (bytevector-u8-set! pixels i bg-r)
+            (bytevector-u8-set! pixels (+ i 1) bg-g)
+            (bytevector-u8-set! pixels (+ i 2) bg-b))
+        
+        ;; Render each character with its depth color
+        (do ([cy 0 (+ cy 1)])
+            ((>= cy frame-h))
+            (do ([cx 0 (+ cx 1)])
+                ((>= cx frame-w))
+                (let* ([cell (vector-ref cells (+ cx (* cy frame-w)))]
+                       [char (car cell)]
+                       [depth (cdr cell)]
+                       [rgb (depth->rgb depth max-depth)]
+                       [fg-r (car rgb)]
+                       [fg-g (cadr rgb)]
+                       [fg-b (caddr rgb)]
+                       [glyph (get-glyph char)]
+                       [px-base-x (* cx char-w)]
+                       [px-base-y (* cy char-h)])
+                      ;; Render glyph pixels in this color
+                      (do ([gy 0 (+ gy 1)])
+                          ((>= gy char-h))
+                          (let ([row-bits (list-ref glyph gy)])
+                               (do ([gx 0 (+ gx 1)])
+                                   ((>= gx char-w))
+                                   (when (> (bitwise-and row-bits
+                                                         (bitwise-arithmetic-shift-left 1 (- 7 gx)))
+                                            0)
+                                         (let* ([px (+ px-base-x gx)]
+                                                [py (+ px-base-y gy)]
+                                                [offset (* 3 (+ px (* py img-w)))])
+                                               (bytevector-u8-set! pixels offset fg-r)
+                                               (bytevector-u8-set! pixels (+ offset 1) fg-g)
+                                               (bytevector-u8-set! pixels (+ offset 2) fg-b)))))))))
+        
+        ;; Combine header and pixels
+        (let* ([header-bytes (string->utf8 header)]
+               [result (make-bytevector (+ (bytevector-length header-bytes)
+                                           (bytevector-length pixels)))])
+              (bytevector-copy! header-bytes 0 result 0 (bytevector-length header-bytes))
+              (bytevector-copy! pixels 0 result (bytevector-length header-bytes)
+                                (bytevector-length pixels))
+              result)))
+
 (define (render-color-ascii-backend scene output-path params)
-  "Color ASCII - for terminal preview with depth coloring."
-  (display "\n╔══════════════════════════════════════════════════════════════════╗\n")
-  (display "║  Color ASCII Backend                                             ║\n")
-  (display "║  Note: Colors visible in terminal only, GIF uses grayscale       ║\n")
-  (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
-  (render-loop! scene output-path))
+  "Color ASCII - renders ASCII with depth-based coloring to video."
+  (let* ([duration (loop-scene-duration scene)]
+         [fps (loop-scene-fps scene)]
+         [width (loop-scene-width scene)]
+         [height (loop-scene-height scene)]
+         [camera (loop-scene-camera scene)]
+         [scene-fn (loop-scene-scene-fn scene)]
+         [num-frames (inexact->exact (round (* duration fps)))]
+         [temp-dir "/tmp/loop-scene-color-ascii"]
+         [max-depth 8.0])  ; Typical max depth for color mapping
+        
+        (display "\n╔══════════════════════════════════════════════════════════════════╗\n")
+        (display "║  Color ASCII Backend (RGB depth coloring)                       ║\n")
+        (display "╠══════════════════════════════════════════════════════════════════╣\n")
+        (display (format "║  Resolution: ~ax~a chars (~ax~a pixels)\n"
+                         width height (* width 8) (* height 14)))
+        (display (format "║  Frames: ~a at ~a fps\n" num-frames fps))
+        (display "║  Palette: warm (near) → cool (far)\n")
+        (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
+        
+        (system (format "mkdir -p ~a" temp-dir))
+        
+        (do ([i 0 (+ i 1)])
+            ((>= i num-frames))
+            (let* ([t (* i (/ 6.28318530718 num-frames))]
+                   [sdf (scene-fn t)]
+                   [frame-data (render-sdf-frame-colored sdf camera width height max-depth)]
+                   [ppm (colored-frame-to-ppm frame-data max-depth)]
+                   [path (format "~a/frame-~a.ppm" temp-dir
+                                 (string-pad-left (number->string i) 5 #\0))])
+                  (let ([port (open-file-output-port path (file-options no-fail))])
+                       (put-bytevector port ppm)
+                       (close-port port))
+                  (when (= (modulo i 5) 0)
+                        (display (format "\r  Frame ~a/~a" i num-frames))
+                        (flush-output-port))))
+        
+        (display (format "\r  Frame ~a/~a done!\n\n" num-frames num-frames))
+        
+        (display "Encoding...\n")
+        (let ([ext (file-extension output-path)])
+             (cond
+              [(string=? ext "gif")
+               (system (format "ffmpeg -y -framerate ~a -i ~a/frame-%05d.ppm -vf 'palettegen=max_colors=128' ~a/pal.png 2>/dev/null" fps temp-dir temp-dir))
+               (system (format "ffmpeg -y -framerate ~a -i ~a/frame-%05d.ppm -i ~a/pal.png -lavfi 'paletteuse=dither=bayer' ~a 2>/dev/null" fps temp-dir temp-dir output-path))]
+              [(string=? ext "mp4")
+               (system (format "ffmpeg -y -framerate ~a -i ~a/frame-%05d.ppm -c:v libx264 -pix_fmt yuv420p ~a 2>/dev/null" fps temp-dir output-path))]
+              [(string=? ext "webm")
+               (system (format "ffmpeg -y -framerate ~a -i ~a/frame-%05d.ppm -c:v libvpx-vp9 -pix_fmt yuv420p ~a 2>/dev/null" fps temp-dir output-path))]))
+        
+        (system (format "rm -rf ~a" temp-dir))
+        (display "\nOutput:\n")
+        (system (format "ls -lh ~a" output-path))
+        output-path))
 
 (define color-ascii-backend
   (make-render-backend
