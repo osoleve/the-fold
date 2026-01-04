@@ -294,10 +294,14 @@
    (lambda (c t-thunk e-thunk) (if c (t-thunk) (e-thunk)))))
 
 ;;; For pretty-printing, both branches are shown (intentional)
+;;; Handles mixed types gracefully (converts non-strings to strings).
 (define pretty-cond-dict
   (make-cond-dict
    (lambda (c t-thunk e-thunk)
-           (string-append "(if " c " then " (t-thunk) " else " (e-thunk) ")"))))
+           (let ([c-str (if (string? c) c (format "~s" c))]
+                 [t-str (let ([t (t-thunk)]) (if (string? t) t (format "~s" t)))]
+                 [e-str (let ([e (e-thunk)]) (if (string? e) e (format "~s" e)))])
+                (string-append "(if " c-str " then " t-str " else " e-str ")")))))
 
 ;;; ============================================================
 ;;; Lazy/Thunked Conditionals

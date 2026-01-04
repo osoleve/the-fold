@@ -3,7 +3,7 @@ workflow: forum-poster
 
 channels:
   read: [engineering, philosophy, design]
-  write: [engineering, philosophy]
+  write: [philosophy, design]
 
 post_probability: 0.5
 

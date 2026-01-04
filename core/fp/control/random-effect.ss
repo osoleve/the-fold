@@ -115,20 +115,32 @@
 
 ;;; random-weighted-eff : List (a . Number) -> Eff Random a
 ;;; Pick an element weighted by associated numbers.
+;;; Uses single-pass weighted reservoir sampling for O(n) traversal.
 (define (random-weighted-eff weighted-list)
   (if (null? weighted-list)
       (eff-throw "random-weighted-eff: empty list")
-      (let ([total (fold-left + 0 (map cdr weighted-list))])
-           (if (<= total 0)
-               (eff-throw "random-weighted-eff: total weight must be positive")
-               (eff-bind (random-float-eff 0.0 total)
-                         (lambda (r)
-                                 (eff-return
-                                  (let loop ([lst weighted-list] [acc 0])
-                                       (let ([new-acc (+ acc (cdar lst))])
-                                            (if (or (< r new-acc) (null? (cdr lst)))
-                                                (caar lst)
-                                                (loop (cdr lst) new-acc)))))))))))
+      ;; Single-pass weighted reservoir sampling:
+      ;; For each item with weight w, select it with probability w/total_so_far
+      (let loop ([lst weighted-list]
+                 [selected #f]
+                 [total 0.0])
+           (if (null? lst)
+               (if selected
+                   (eff-return selected)
+                   (eff-throw "random-weighted-eff: total weight must be positive"))
+               (let* ([pair (car lst)]
+                      [item (car pair)]
+                      [weight (cdr pair)])
+                     (if (<= weight 0)
+                         ;; Skip zero/negative weights
+                         (loop (cdr lst) selected total)
+                         (let ([new-total (+ total weight)])
+                              ;; Reservoir sampling: select with probability weight/new-total
+                              (eff-bind (random-float-eff 0.0 new-total)
+                                        (lambda (r)
+                                                (loop (cdr lst)
+                                                      (if (< r weight) item selected)
+                                                      new-total))))))))))
 
 ;;; random-list-eff : Nat -> Eff Random a -> Eff Random (List a)
 ;;; Generate a list of n random values.
@@ -203,6 +215,9 @@
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) gen)]
+   [(eff-queue? eff)
+    ;; Normalize queue form before handling
+    (run-random-helper gen (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
