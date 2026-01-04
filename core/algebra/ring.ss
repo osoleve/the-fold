@@ -384,26 +384,30 @@
 
 ;;; is-prime-ideal? : Ideal → Boolean
 ;;; I is prime if a×b ∈ I implies a ∈ I or b ∈ I
+;;; Note: A prime ideal must be proper (I ≠ R), i.e., 1 ∉ I
 (define (is-prime-ideal? ideal)
-  (let ([r (ideal-ring ideal)]
-        [i-elems (ideal-elements ideal)]
-        [r-elems (ring-elements r)])
-       (let loop ([as r-elems])
-            (if (null? as)
-                #t
-                (let inner-loop ([bs r-elems])
-                     (if (null? bs)
-                         (loop (cdr as))
-                         (let ([a (car as)]
-                               [b (car bs)]
-                               [prod (ring-mul r (car as) (car bs))])
-                              (if (member-equal prod i-elems (ring-equal-fn r))
-                                  ; If a×b is in ideal, then a or b must be in ideal
-                                  (if (or (member-equal a i-elems (ring-equal-fn r))
-                                          (member-equal b i-elems (ring-equal-fn r)))
-                                      (inner-loop (cdr bs))
-                                      #f)
-                                  (inner-loop (cdr bs))))))))))
+  (let* ([r (ideal-ring ideal)]
+         [i-elems (ideal-elements ideal)]
+         [r-elems (ring-elements r)])
+        ;; First check: ideal must be proper (not contain 1)
+        (if (member-equal (ring-one r) i-elems (ring-equal-fn r))
+            #f  ; If 1 ∈ I, then I = R, not a prime ideal
+            (let loop ([as r-elems])
+                 (if (null? as)
+                     #t
+                     (let inner-loop ([bs r-elems])
+                          (if (null? bs)
+                              (loop (cdr as))
+                              (let ([a (car as)]
+                                    [b (car bs)]
+                                    [prod (ring-mul r (car as) (car bs))])
+                                   (if (member-equal prod i-elems (ring-equal-fn r))
+                                       ; If a×b is in ideal, then a or b must be in ideal
+                                       (if (or (member-equal a i-elems (ring-equal-fn r))
+                                               (member-equal b i-elems (ring-equal-fn r)))
+                                           (inner-loop (cdr bs))
+                                           #f)
+                                       (inner-loop (cdr bs)))))))))))
 
 ;;; is-maximal-ideal? : Ideal → Boolean
 ;;; I is maximal if it's proper and no proper ideal contains it
