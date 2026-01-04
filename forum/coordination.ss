@@ -51,58 +51,51 @@
 ;;;
 ;;; Example: (claim-work "beads-042")
 (define (claim-work item)
-  (let ([session (read-session)])
-       (unless session
-               (error 'claim-work "No active session. Use (hi tier name txt) first."))
-       
-       (let* ([agent (cdr (assq 'name session))]
-              [claims (read-work-claims)]
-              [existing (assoc item claims)]
-              [timestamp (current-timestamp)])
-             
-             (when existing
-                   (let ([current-agent (cdr (assq 'agent (cdr existing)))])
-                        (unless (eq? current-agent agent)
-                                (display (format "Warning: ~a already claimed by ~a\n"
-                                                 item current-agent)))))
-             
-             (let ([new-claim `((item . ,item)
-                                (agent . ,agent)
-                                (claimed-at . ,timestamp))]
-                   [updated-claims (cons (cons item new-claim)
-                                         (filter (lambda (c) (not (equal? (car c) item)))
-                                                 claims))])
-                  (write-work-claims! updated-claims)
-                  
-                  ;; Announce to chat
-                  (chat (format "📋 Claiming work on ~a" item))
-                  
-                  (display (format "✓ Claimed ~a\n" item))))))
+  (let* ([session (read-session)]
+         [_ (unless session
+                    (error 'claim-work "No active session. Use (hi tier name txt) first."))]
+         [agent (cdr (assq 'name session))]
+         [claims (read-work-claims)]
+         [existing (assoc item claims)]
+         [_ (when existing
+                  (let ([current-agent (cdr (assq 'agent (cdr existing)))])
+                       (unless (eq? current-agent agent)
+                               (display (format "Warning: ~a already claimed by ~a\n"
+                                                item current-agent)))))]
+         [timestamp (current-timestamp)]
+         [new-claim `((item . ,item)
+                      (agent . ,agent)
+                      (claimed-at . ,timestamp))]
+         [updated-claims (cons (cons item new-claim)
+                               (filter (lambda (c) (not (equal? (car c) item)))
+                                       claims))])
+        (write-work-claims! updated-claims)
+        ;; Announce to chat
+        (chat (format "📋 Claiming work on ~a" item))
+        (display (format "✓ Claimed ~a\n" item))))
 
 ;;; release-work : String → void
 ;;; Release a work claim.
 ;;;
 ;;; Example: (release-work "beads-042")
 (define (release-work item)
-  (let ([session (read-session)])
-       (unless session
-               (error 'release-work "No active session. Use (hi tier name txt) first."))
-       
-       (let* ([agent (cdr (assq 'name session))]
-              [claims (read-work-claims)]
-              [existing (assoc item claims)])
-             
-             (if existing
-                 (let ([claimed-by (cdr (assq 'agent (cdr existing)))])
-                      (if (eq? claimed-by agent)
-                          (begin
-                           (write-work-claims! (filter (lambda (c) (not (equal? (car c) item)))
-                                                       claims))
-                           (chat (format "✅ Released work on ~a" item))
-                           (display (format "✓ Released ~a\n" item)))
-                          (display (format "Error: ~a is claimed by ~a, not you\n"
-                                           item claimed-by))))
-                 (display (format "Warning: ~a is not currently claimed\n" item))))))
+  (let* ([session (read-session)]
+         [_ (unless session
+                    (error 'release-work "No active session. Use (hi tier name txt) first."))]
+         [agent (cdr (assq 'name session))]
+         [claims (read-work-claims)]
+         [existing (assoc item claims)])
+        (if existing
+            (let ([claimed-by (cdr (assq 'agent (cdr existing)))])
+                 (if (eq? claimed-by agent)
+                     (begin
+                      (write-work-claims! (filter (lambda (c) (not (equal? (car c) item)))
+                                                  claims))
+                      (chat (format "✅ Released work on ~a" item))
+                      (display (format "✓ Released ~a\n" item)))
+                     (display (format "Error: ~a is claimed by ~a, not you\n"
+                                      item claimed-by))))
+            (display (format "Warning: ~a is not currently claimed\n" item)))))
 
 ;;; who-is-working-on : String → void
 ;;; Query who is working on an item or topic.
