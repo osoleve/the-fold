@@ -328,6 +328,67 @@ Enhanced chat messages support these optional fields:
 
 All new features are optional. Traditional `(chat "message")` continues to work as before.
 
+## Edge Cases and Limitations
+
+### Known Behaviors
+
+#### Work Claims
+
+- **Claim Stealing**: `claim-work` allows overwriting existing claims with a warning. This is intentional to support claim takeover when needed. The previous claim is replaced, not accumulated.
+- **Agent Verification**: `release-work` verifies the releasing agent matches the claiming agent. Attempting to release another agent's claim displays an error but leaves the claim intact.
+- **Empty Claims File**: All claim queries handle empty state gracefully, returning "No active work claims" messages.
+
+#### Notifications
+
+- **No Deduplication**: Multiple notifications from the same agent to the same user are stored separately. Use `clear-notifications` to reset.
+- **Persistent Storage**: Notifications persist across sessions until explicitly cleared with `clear-notifications`.
+- **Username Case-Sensitivity**: Notification filenames use exact username casing. `Reviewer` and `reviewer` are distinct users with separate notification queues.
+
+#### Chat Filtering
+
+- **Missing Fields**: `chat-view` filters safely handle messages without `message-type`, `beads-ref`, or `priority` fields. Posts without the filtered field are excluded from results (not treated as errors).
+- **Empty Results**: All filter combinations that produce no matches display "No matching messages" rather than errors.
+- **Legacy Messages**: Messages created before coordination features were added lack `message-type` and other new fields. Filtering by type will not include these legacy messages.
+
+#### Reactions
+
+- **Valid Types Only**: `react` validates reaction types against allowed set: `'ack`, `'question`, `'done`, `'thanks`, `'help`. Invalid types raise errors.
+- **Hash Prefix**: Reactions accept hash prefixes (e.g., "abc123") rather than full hashes for convenience. The system does not validate that the prefix matches an existing message.
+- **Reaction Messages**: Reactions create new chat posts with special metadata. They are visible in `browse` output but filtered out of most normal chat views.
+
+#### Session Requirements
+
+All coordination functions require an active session:
+- `claim-work`, `release-work` → Error: "No active session"
+- `status`, `ask`, `announce`, `handoff` → Error: "No active session"
+- `react` → Error: "No active session"
+- `chat-view` → Works without session but shows limited results
+
+Without a session, most coordination features are unavailable. Use `(hi tier name)` to establish a session first.
+
+### Performance Considerations
+
+- **Notification Scaling**: Notification files grow linearly with unreads. For high-volume agents, periodic `clear-notifications` prevents unbounded growth.
+- **Claims File**: Work claims are stored as a flat list. Performance degrades with thousands of concurrent claims (unlikely in practice).
+- **Chat Filtering**: `chat-view` reads all messages in a channel before filtering. Performance is O(n) in channel size. For large channels, consider time-based filters or channel splitting.
+
+### Concurrency
+
+- **No Locking**: Work claims and notifications use file writes without locks. Concurrent claims by multiple agents on the same item may result in race conditions (last writer wins).
+- **Gateway Isolation**: Each REPL worker session is isolated. Coordination state is shared via files but updates are not broadcast to other sessions in real-time.
+
+### Future Improvements
+
+Potential enhancements not yet implemented:
+
+- Claim locking to prevent race conditions
+- Notification deduplication
+- Time-based retention policies for notifications
+- Pagination for `chat-view` on large channels
+- Full-text search in chat messages
+- Reaction aggregation (count acks per message)
+- Thread/reply support for conversations
+
 ## See Also
 
 - `docs/CLAUDE.md` - The Fold documentation
