@@ -776,6 +776,8 @@
     (grad . (∀ (a) (-> (-> (Diff a) (Diff a)) a a)))
     ;; grad-at : ((Diff T) → (Diff T)) → T → (Grad T) — Compute gradient (explicit return type)
     (grad-at . (∀ (a) (-> (-> (Diff a) (Diff a)) a (Grad a))))
+    ;; grad-value : (Grad T) → T — Unwrap gradient to raw value
+    (grad-value . (∀ (a) (-> (Grad a) a)))
     
     ;; Differentiable arithmetic
     ;; These operate on Diff values and propagate gradients

@@ -178,6 +178,7 @@
   (test-true "lift has type" (and (lookup-prim-type 'lift) #t))
   (test-true "primal has type" (and (lookup-prim-type 'primal) #t))
   (test-true "gradient has type" (and (lookup-prim-type 'gradient) #t))
+  (test-true "grad-value has type" (and (lookup-prim-type 'grad-value) #t))
   (test-true "grad has type" (and (lookup-prim-type 'grad) #t))
   (test-true "d+ has type" (and (lookup-prim-type 'd+) #t))
   (test-true "d* has type" (and (lookup-prim-type 'd*) #t))
