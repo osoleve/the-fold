@@ -91,6 +91,11 @@
   (test "Fermat: 3^10 mod 11 = 1" 1 (mod-expt 3 10 11))
   (test "Fermat: 5^12 mod 13 = 1" 1 (mod-expt 5 12 13))
   
+  ;; Edge case: m = 1 (everything is 0 mod 1)
+  (test "mod-expt: 5^0 mod 1 = 0" 0 (mod-expt 5 0 1))
+  (test "mod-expt: 5^3 mod 1 = 0" 0 (mod-expt 5 3 1))
+  (test "mod-expt: 0^0 mod 1 = 0" 0 (mod-expt 0 0 1))
+  
   ;;; ============================================================
   ;;; GCD and Extended GCD
   ;;; ============================================================

@@ -54,19 +54,21 @@
 ;;; Time complexity: O(log exp)
 ;;; Assumes m > 0, exp >= 0.
 (define (mod-expt base exp m)
-  (let loop ([b (modulo base m)]
-             [e exp]
-             [result 1])
-       (cond
-        [(= e 0) result]
-        [(odd? e)
-         (loop (modulo (* b b) m)
-               (quotient e 2)
-               (modulo (* result b) m))]
-        [else
-         (loop (modulo (* b b) m)
-               (quotient e 2)
-               result)])))
+  (if (= m 1)
+      0  ; Everything is 0 mod 1
+      (let loop ([b (modulo base m)]
+                 [e exp]
+                 [result 1])
+           (cond
+            [(= e 0) result]
+            [(odd? e)
+             (loop (modulo (* b b) m)
+                   (quotient e 2)
+                   (modulo (* result b) m))]
+            [else
+             (loop (modulo (* b b) m)
+                   (quotient e 2)
+                   result)]))))
 
 ;;; ============================================================
 ;;; Extended Euclidean Algorithm
