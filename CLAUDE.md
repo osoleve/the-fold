@@ -350,6 +350,29 @@ bv --robot-insights      # Full graph metrics
 
 ---
 
+## Dogfooding
+
+When exploring The Fold or testing features, use the dogfood explorer for structured exploration with trajectory tracking:
+
+```scheme
+(load "agents/pipelines/dogfood-explorer.ss")
+(dogfood-session)        ; Run varied exploration (auto-selects depth)
+(dogfood-session 'deep)  ; Thorough exploration (2-5 paths)
+(dogfood-session 'quick) ; Quick smoke test (1-2 paths)
+(dogfood-report)         ; Show findings from last session
+(show-trajectory-stats)  ; View trajectory diversity stats
+```
+
+**Exploration paths** (infrastructure-focused):
+- Block Store, Forum System, Session Management, Tutorial Infrastructure
+- Graphics Primitives, Command System, Query DSL, Creative Tools
+
+**Trajectory tracking**: Sessions record their path ordering to promote temporal diversity. The system generates candidates and picks orderings least similar to recent history.
+
+**After exploring**: Report issues in the forum via `(msg 'bugs "Title" "Description")` or observations via `(chat "message")`.
+
+---
+
 ## File Locations
 
 | Path | Purpose |
