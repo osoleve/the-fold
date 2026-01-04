@@ -258,6 +258,17 @@
                (cdr bindings) body env
                (cons (cons name (cadr result)) acc)
                (caddr result))]
+             [(eq? (car result) 'suspended)
+              ;; Preserve context: rebuild let with evaluated bindings quoted
+              (let* ([evaluated-bindings (map (lambda (p)
+                                                      (list (car p) (list 'quote (cdr p))))
+                                              (reverse acc))]
+                     [suspended-binding (list name (cadr result))]
+                     [remaining-bindings (cdr bindings)]
+                     [new-bindings (append evaluated-bindings
+                                           (list suspended-binding)
+                                           remaining-bindings)])
+                    `(suspended (let ,new-bindings ,body) ,(caddr result)))]
              [else result]))))
 
 ;;; ============================================================
@@ -298,6 +309,10 @@
                   (if test-val
                       (eval-annotated then-expr env remaining)
                       (eval-annotated else-expr env remaining)))]
+            [(eq? (car test-result) 'suspended)
+             ;; Preserve context: rebuild if with suspended test
+             `(suspended (if ,(cadr test-result) ,then-expr ,else-expr)
+               ,(caddr test-result))]
             [else test-result]))))
 
 ;;; ============================================================
@@ -322,6 +337,16 @@
              (eval-annotated-prim-args op (cdr remaining) env
                                        (cons (cadr result) acc)
                                        (caddr result))]
+            [(eq? (car result) 'suspended)
+             ;; Preserve context: rebuild prim with evaluated args quoted
+             (let* ([evaluated-args (map (lambda (v) (list 'quote (typed-value v)))
+                                         (reverse acc))]
+                    [suspended-arg (cadr result)]
+                    [remaining-args (cdr remaining)]
+                    [new-args (append evaluated-args
+                                      (list suspended-arg)
+                                      remaining-args)])
+                   `(suspended (prim ,op ,@new-args) ,(caddr result)))]
             [else result]))))
 
 ;;; ============================================================
@@ -357,6 +382,16 @@
              (eval-annotated-call-args closure (cdr remaining) env
                                        (cons (cadr result) acc)
                                        (caddr result))]
+            [(eq? (car result) 'suspended)
+             ;; Preserve context: rebuild application with closure quoted
+             (let* ([evaluated-args (map (lambda (v) (list 'quote (typed-value v)))
+                                         (reverse acc))]
+                    [suspended-arg (cadr result)]
+                    [remaining-args (cdr remaining)]
+                    [new-args (append evaluated-args
+                                      (list suspended-arg)
+                                      remaining-args)])
+                   `(suspended ((quote ,closure) ,@new-args) ,(caddr result)))]
             [else result]))))
 
 ;;; ============================================================

@@ -247,8 +247,8 @@
                                  (if (= i n)
                                      m
                                      (loop (+ i 1) (max m (abs (vector-ref eigs i))))))]
-                   ;; Relative tolerance with floor of 1e-8
-                   [tol (* 1e-8 (max 1.0 max-eig))])
+                   ;; Relative tolerance with absolute floor of 1e-10
+                   [tol (max 1e-10 (* 1e-8 max-eig))])
                   (let loop ([i 0] [count 0])
                        (if (= i n)
                            count

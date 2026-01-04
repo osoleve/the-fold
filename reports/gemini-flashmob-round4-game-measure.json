@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-01-03T00:00:00Z",
+  "tool": "gemini-cli",
+  "model": "gemini-3-flash-preview",
+  "session_id": "c1726309-f392-4198-890a-d48ae04d9e7e",
+  "files_reviewed": [
+    "core/fp/game/normal-form.ss",
+    "core/fp/measure/units.ss"
+  ],
+  "bugs": [
+    {
+      "file": "core/fp/game/normal-form.ss",
+      "line": 110,
+      "severity": "P2",
+      "category": "Robustness",
+      "description": "best-response-p1 (and best-response-p2) will crash with an error if the game has no strategies for a player, because 'apply max' is called on an empty list.",
+      "fix_suggestion": "Add a check for null payoffs or ensure the game has at least one strategy per player before computing best response."
+    },
+    {
+      "file": "core/fp/game/normal-form.ss",
+      "line": 114,
+      "severity": "P3",
+      "category": "Efficiency",
+      "description": "best-response-p1 and best-response-p2 use 'list-ref' inside a 'filter' over the same list, resulting in O(n^2) complexity where O(n) is possible. This makes 'find-pure-nash' O(n^4).",
+      "fix_suggestion": "Iterate through the payoffs and indices together using a named let or use vectors for constant-time access during the filtering phase."
+    },
+    {
+      "file": "core/fp/game/normal-form.ss",
+      "line": 327,
+      "severity": "P2",
+      "category": "Numerical Stability",
+      "description": "solve-2x2-nash uses exact equality (=) and strict boundary checks (>= 0, <= 1) for floating point probabilities p and q. Rounding errors may cause valid mixed equilibria to be rejected (e.g., if q computes to 1.0000000000000002).",
+      "fix_suggestion": "Use a small epsilon for boundary checks and equality comparisons, e.g., (and (> q -epsilon) (< q (+ 1 epsilon)))."
+    },
+    {
+      "file": "core/fp/game/normal-form.ss",
+      "line": 329,
+      "severity": "P2",
+      "category": "Logic",
+      "description": "solve-2x2-nash explicitly excludes equilibria where p or q are 0 or 1. While these are often pure equilibria, in degenerate games, mixed equilibria can exist where one player mixes and the other plays a pure strategy; these are missed by this logic.",
+      "fix_suggestion": "Allow p and q to be 0 or 1 in the mixed strategy calculation, or handle degenerate cases where denominators are zero more comprehensively."
+    },
+    {
+      "file": "core/fp/game/normal-form.ss",
+      "line": 178,
+      "severity": "P3",
+      "category": "Logic",
+      "description": "eliminate-strategy-p1 uses (filter (lambda (x) x) ...) to remove a strategy. This will incorrectly remove any strategy name that happens to be the boolean #f.",
+      "fix_suggestion": "Filter by index instead of value, or use a unique sentinel value that cannot be a strategy name."
+    },
+    {
+      "file": "core/fp/measure/units.ss",
+      "line": 164,
+      "severity": "P2",
+      "category": "Numerical Correctness",
+      "description": "qty-pow uses 'expt' on the quantity value. If the value is 0 and the exponent n is negative, this will cause a division-by-zero error.",
+      "fix_suggestion": "Add a check for zero value when the exponent is negative and handle or error gracefully."
+    },
+    {
+      "file": "core/fp/measure/units.ss",
+      "line": 173,
+      "severity": "P3",
+      "category": "Mathematical Correctness",
+      "description": "qty-sqrt applies 'sqrt' to the quantity value without checking for negative values. While mathematically valid (returning complex numbers), it may be unexpected for physical units where magnitudes are typically non-negative.",
+      "fix_suggestion": "Consider adding a check for negative values if the library is intended for strictly real-valued physical quantities."
+    }
+  ],
+  "summary": {
+    "total_bugs": 7,
+    "by_severity": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 4,
+      "P3": 3
+    },
+    "by_file": {
+      "core/fp/game/normal-form.ss": 5,
+      "core/fp/measure/units.ss": 2
+    },
+    "by_category": {
+      "Robustness": 1,
+      "Efficiency": 1,
+      "Numerical Stability": 1,
+      "Logic": 2,
+      "Numerical Correctness": 1,
+      "Mathematical Correctness": 1
+    }
+  }
+}
