@@ -127,6 +127,31 @@ function formatChatMessage(post) {
 // ============================================================
 
 /**
+ * Prepare file attachments from paths
+ */
+function prepareAttachments(attachments) {
+  if (!attachments || !Array.isArray(attachments)) return [];
+
+  const projectRoot = path.join(__dirname, '../..');
+
+  return attachments
+    .map(filePath => {
+      // Resolve relative paths from project root
+      const resolvedPath = path.isAbsolute(filePath)
+        ? filePath
+        : path.join(projectRoot, filePath);
+
+      if (!fs.existsSync(resolvedPath)) {
+        console.warn(`⚠️ Attachment not found: ${filePath} (resolved: ${resolvedPath})`);
+        return null;
+      }
+
+      return { attachment: resolvedPath };
+    })
+    .filter(Boolean);
+}
+
+/**
  * Post a Fold message to Discord
  */
 async function postToDiscord(discordClient, post) {
@@ -139,6 +164,7 @@ async function postToDiscord(discordClient, post) {
   try {
     const webhook = await getWebhook(discordClient, channelId);
     const agentConfig = config.getAgentConfig(post.author);
+    const files = prepareAttachments(post.attachments);
 
     if (webhook) {
       // Use webhook (allows custom username/avatar)
@@ -147,15 +173,18 @@ async function postToDiscord(discordClient, post) {
         await webhook.send({
           username: agentConfig.displayName || post.author,
           embeds: [createPostEmbed(post)],
+          files,
         });
       } else {
         // Chat → plain text
         await webhook.send({
           username: agentConfig.displayName || post.author,
           content: formatChatMessage(post),
+          files,
         });
       }
-      console.log(`📤 Posted to Discord #${post.channel} via webhook: ${post.title || post.body?.slice(0, 50)}`);
+      const fileInfo = files.length > 0 ? ` (${files.length} file${files.length > 1 ? 's' : ''})` : '';
+      console.log(`📤 Posted to Discord #${post.channel} via webhook: ${post.title || post.body?.slice(0, 50)}${fileInfo}`);
     } else {
       // Fallback: post directly as bot (no custom username)
       console.log(`⚠️ Webhook unavailable for ${channelId}, using fallback`);
@@ -166,12 +195,13 @@ async function postToDiscord(discordClient, post) {
 
       if (post.title) {
         // Titled post → embed
-        await channel.send({ embeds: [createPostEmbed(post)] });
+        await channel.send({ embeds: [createPostEmbed(post)], files });
       } else {
         // Chat → plain text with username prefix
-        await channel.send(prefix + formatChatMessage(post));
+        await channel.send({ content: prefix + formatChatMessage(post), files });
       }
-      console.log(`📤 Posted to Discord #${post.channel} via fallback: ${post.title || post.body?.slice(0, 50)}`);
+      const fileInfo = files.length > 0 ? ` (${files.length} file${files.length > 1 ? 's' : ''})` : '';
+      console.log(`📤 Posted to Discord #${post.channel} via fallback: ${post.title || post.body?.slice(0, 50)}${fileInfo}`);
     }
 
     return true;
@@ -249,12 +279,15 @@ async function pollFoldPosts(evalScheme) {
  * Agents write to .fold-repl/discord-outbox/*.json when they post
  *
  * Supported outbox message types:
- *   - Regular post: { channel, title?, body, author, tier }
- *   - Reply: { reply_to, body, author }
+ *   - Regular post: { channel, title?, body, author, tier, attachments? }
+ *   - Reply: { reply_to, body, author, attachments? }
  *   - Reaction: { react_to, emoji }
  *   - Thread: { create_thread_from, thread_name, body, author }
- *   - DM: { dm_to, body, author }
- *   - Embed: { channel, embed, author, tier }
+ *   - DM: { dm_to, body, author, attachments? }
+ *   - Embed: { channel, embed, author, tier, attachments? }
+ *
+ * attachments: Array of file paths (relative to project root or absolute)
+ *              e.g., ["user/creations/output.gif", "/tmp/image.png"]
  */
 function watchOutbox(discordClient) {
   const outboxDir = path.join(__dirname, '../../.fold-repl/discord-outbox');
