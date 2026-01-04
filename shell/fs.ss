@@ -256,21 +256,26 @@
 
 ;;; fs-read-head : FS × Symbol → Bytevector | #f
 ;;; Read a channel head pointer.
+;;; Returns #f if the file doesn't exist or is corrupt.
 (define (fs-read-head fs channel)
   (let ([path (string-append (fs-capability-store-path fs)
                              "/heads/"
                              (symbol->string channel)
                              ".head")])
        (if (file-exists? path)
-           (call-with-input-file path
-                                 (lambda (port)
-                                         (let* ([line (get-line port)]
-                                                [len (string-length line)]
-                                                [clean (if (and (> len 0)
-                                                                (char=? (string-ref line (- len 1)) #\return))
-                                                           (substring line 0 (- len 1))
-                                                           line)])
-                                               (hex->hash clean))))
+           (guard (e [else #f])  ; Return #f for corrupt head files
+                  (call-with-input-file path
+                                        (lambda (port)
+                                                (let* ([line (get-line port)])
+                                                      ;; Validate line is a string
+                                                      (if (and line (string? line))
+                                                          (let* ([len (string-length line)]
+                                                                 [clean (if (and (> len 0)
+                                                                                 (char=? (string-ref line (- len 1)) #\return))
+                                                                            (substring line 0 (- len 1))
+                                                                            line)])
+                                                                (hex->hash clean))
+                                                          #f)))))  ; Return #f if line is not a string
            #f)))
 
 ;;; ============================================================
