@@ -466,6 +466,21 @@
   (show-annotated expr))
 
 ;;; ============================================================
+;;; Error Handling Setup
+;;; ============================================================
+
+;;; Track whether enhanced error handler is installed
+(define *enhanced-error-handler-installed* #f)
+
+;;; install-enhanced-error-handler : → void
+;;; Replace the default exception handler with one that uses format-error.
+;;; TEMPORARILY DISABLED - current-exception-handler not available at load time
+(define (install-enhanced-error-handler)
+  (void))  ;; Disabled for now
+
+;;(install-enhanced-error-handler)
+
+;;; ============================================================
 ;;; REPL Initialization
 ;;; ============================================================
 

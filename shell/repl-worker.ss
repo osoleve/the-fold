@@ -19,6 +19,9 @@
 ;;; This ensures (define (foo x) x) and (define (foo y) y) have the same address
 (load "core/blocks/normalize.ss")
 
+;;; Load condition formatter for better error messages
+(load "shell/condition-formatter.ss")
+
 (define *poll-interval-ns* 100000000)  ; 100ms
 (define *heartbeat-interval* 5)        ; seconds
 
@@ -48,25 +51,29 @@
 (define (daemon-running?)
   (file-exists? *ready-file*))
 
-(define (format-condition e)
-  "Format a condition with its irritants properly filled in."
-  (if (condition? e)
-      (guard (e2 [else (condition-message e)])  ; fallback to template
-             (let ([template (condition-message e)]
-                   [irritants (if (irritants-condition? e)
-                                  (condition-irritants e)
-                                  '())])
-                  (if (null? irritants)
-                      template
-                      (apply format template irritants))))
-      (format "~a" e)))
+;; format-condition now provided by shell/condition-formatter.ss
+
+(define (escape-json-string str)
+  (let ([out (open-output-string)])
+       (string-for-each
+        (lambda (c)
+                (cond
+                 [(char=? c #\") (display "\\\"" out)]
+                 [(char=? c #\) (display "\\\\") out)]
+                 [(char=? c #\b) (display "\\b" out)]
+                 [(char=? c #\f) (display "\\f" out)]
+                 [(char=? c #\n) (display "\\n" out)]
+                 [(char=? c #\r) (display "\\r" out)]
+                 [(char=? c #\t) (display "\\t" out)]
+                 [(< (char->integer c) 32)
+                  (fprintf out "\\u~4,'0x" (char->integer c))]
+                 [else (write-char c out)]))
+        str)
+       (get-output-string out)))
 
 ;;; ============================================================
 ;;; Paths
 ;;; ============================================================
-
-(define (request-path session-id)
-  (string-append *requests-dir* "/" session-id ".ss"))
 
 (define (response-path session-id)
   (string-append *responses-dir* "/" session-id ".txt"))
@@ -87,6 +94,75 @@
   (string-append *workers-dir* "/" session-id ".starting"))
 
 ;;; ============================================================
+;;; JSON Parsing (Robust, Dependency-Free)
+;;; ============================================================
+
+(define (find-unescaped-quote s start)
+  (let loop ([i start])
+       (cond
+        [(>= i (string-length s)) #f]
+        [(char=? (string-ref s i) #\")
+         (if (and (> i 0) (char=? (string-ref s (- i 1)) #\\))
+             (loop (+ i 1))
+             i)]
+        [else (loop (+ i 1))])))
+
+(define (unescape-json-string s)
+  (let ([out (open-output-string)])
+       (let loop ([i 0])
+            (cond
+             [(>= i (string-length s)) (get-output-string out)]
+             [(char=? (string-ref s i) #\\)
+              (if (< (+ i 1) (string-length s))
+                  (let ([next (string-ref s (+ i 1))])
+                       (cond
+                        [(char=? next #\n) (display #\newline out)]
+                        [(char=? next #\r) (display #\return out)]
+                        [(char=? next #\t) (display #\tab out)]
+                        [(char=? next #\") (display #\" out)]
+                        [(char=? next #\\) (display #\\ out)]
+                        [else (display next out)])
+                       (loop (+ i 2)))
+                  (loop (+ i 1)))]
+             [else
+              (display (string-ref s i) out)
+              (loop (+ i 1))]))))
+
+(define (extract-json-field s field)
+  (let* ([quoted-field (string-append "\"" field "\"")]
+         [field-pos (string-index-of s quoted-field)])
+        (if field-pos
+            (let* ([after-field (+ field-pos (string-length quoted-field))]
+                   [colon-pos (find-char s #\: after-field)])
+                  (if colon-pos
+                      (let ([val-start (find-char s #\" (+ colon-pos 1))])
+                           (if val-start
+                               (let ([val-end (find-unescaped-quote s (+ val-start 1))])
+                                    (if val-end
+                                        (unescape-json-string (substring s (+ val-start 1) val-end))
+                                        #f))
+                               #f))
+                      #f))
+            #f)))
+
+(define (find-char s target start)
+  (let loop ([i start])
+       (cond
+        [(>= i (string-length s)) #f]
+        [(char=? (string-ref s i) target) i]
+        [else (loop (+ i 1))])))
+
+(define (fold-worker-json-parse s)
+  (guard (e [else (list (cons 'error "JSON Parse Error"))])
+         (let ([code (extract-json-field s "code")]
+               [expr (extract-json-field s "expression")]
+               [fmt (extract-json-field s "format")])
+              (if (or code expr)
+                  (list (cons "code" (or code expr))
+                        (cons "format" (or fmt "json")))
+                  (list (cons 'error "Missing 'code' or 'expression' field"))))))
+
+;;; ============================================================
 ;;; Request Parsing
 ;;; ============================================================
 
@@ -105,29 +181,17 @@
 ;;; ============================================================
 
 ;;; extract-definition-body : S-expr → S-expr
-;;; Extract the actual code being defined (without the 'define' keyword).
-;;; For (define (foo x) x), returns (fn (x) x) for normalization.
-;;; For (define foo 42), returns 42.
 (define (extract-definition-body expr)
   (cond
    [(and (pair? expr) (eq? (car expr) 'define))
     (let ([form (cadr expr)])
          (cond
           [(pair? form)
-           ;; (define (name args...) body...)
-           ;; Convert to (fn (args...) body...) for normalization
            (cons 'fn (cons (cdr form) (cddr expr)))]
-          [else
-           ;; (define name value)
-           ;; Just return the value
-           (caddr expr)]))]
+          [else (caddr expr)]))]
    [else expr]))
 
 ;;; content-address : Any → String
-;;; Compute the content-address (SHA-256 hex) of any Scheme value.
-;;; For definitions, hashes the normalized body (not the outer define form).
-;;; Normalization converts to de Bruijn indices, ensuring α-equivalent
-;;; expressions (same structure, different variable names) hash identically.
 (define (content-address value)
   (let* ([body-to-hash (if (pair? value)
                            (extract-definition-body value)
@@ -140,28 +204,22 @@
         (hash->hex hash)))
 
 ;;; definition? : S-expr → Boolean
-;;; Check if an expression is a definition form.
 (define (definition? expr)
   (and (pair? expr)
        (memq (car expr) '(define define-syntax))))
 
 ;;; definition-name : S-expr → Symbol
-;;; Extract the name being defined from a definition form.
 (define (definition-name expr)
   (let ([form (cadr expr)])
        (if (pair? form)
-           (car form)   ; (define (foo x) ...) -> foo
-           form)))      ; (define foo ...) -> foo
+           (car form)
+           form)))
 
 ;;; ============================================================
 ;;; Evaluation
 ;;; ============================================================
 
 (define (scheme-eval-string str)
-  "Evaluate a string containing Scheme expressions.
-   Returns (values result last-defined-name last-def-expr) where:
-   - last-defined-name is the symbol of the last definition, or #f
-   - last-def-expr is the full definition expression, or #f"
   (let ([port (open-input-string str)])
        (let loop ([last-result (void)]
                   [last-def-name #f]
@@ -180,35 +238,18 @@
                                     last-def-expr))))))))
 
 (define (scheme-eval-and-capture session-id str)
-  "Evaluate expressions and capture both stdout and return value.
-   For definitions, returns the content-address of the definition expression."
   (let ([output-port (open-output-string)])
        (let-values ([(result def-name def-expr)
                      (parameterize ([current-output-port output-port]
                                     [*current-session-id* session-id])
                                    (scheme-eval-string str))])
                    (let ([output (get-output-string output-port)])
-                        (cond
-                         ;; Definition: return content-address of the definition expression
-                         [def-expr
-                           (let ([addr (content-address def-expr)])
-                                (if (> (string-length output) 0)
-                                    (string-append output "\n" addr)
-                                    addr))]
-                         ;; Only output, no meaningful return value
-                         [(and (eq? result (void)) (> (string-length output) 0))
-                          output]
-                         ;; Both output and result
-                         [(> (string-length output) 0)
-                          (string-append output
-                                         (if (eq? result (void))
-                                             ""
-                                             (string-append "\n=> " (format "~a" result))))]
-                         ;; Only result, no output
-                         [(not (eq? result (void)))
-                          (format "~a" result)]
-                         ;; Nothing
-                         [else ""])))))
+                        (values output
+                                (cond
+                                 [def-expr (content-address def-expr)]
+                                 [(eq? result (void)) (void)]
+                                 [else (format "~a" result)])
+                                (if def-expr #t #f))))))
 
 ;;; ============================================================
 ;;; Response Helpers
@@ -265,26 +306,88 @@
                       (delete-file path)))
         paths)))
 
+(define (request-path-ss session-id)
+  (string-append *requests-dir* "/" session-id ".ss"))
+
+(define (request-path-json session-id)
+  (string-append *requests-dir* "/" session-id ".json"))
+
 (define (process-request! session-id)
-  (let ([path (request-path session-id)])
-       (when (file-exists? path)
-             (let* ([content (call-with-input-file path get-string-all)]
-                    [request (parse-session-request content)]
-                    [expr (if request
-                              (extract-expression request)
-                              content)]
-                    [expr-str (if (string? expr)
-                                  expr
-                                  (format "~s" expr))]
-                    [resp-path (response-path session-id)]
-                    [err-path (error-path session-id)])
-                   (when (file-exists? err-path)
-                         (delete-file err-path))
-                   (guard (e [else
-                              (write-error err-path (format-condition e))])
-                          (let ([result (scheme-eval-and-capture session-id expr-str)])
-                               (write-response resp-path result)))
-                   (delete-file path)))))
+  (let ([path-ss (request-path-ss session-id)]
+        [path-json (request-path-json session-id)])
+       (cond
+        [(file-exists? path-json)
+         (process-json-request! session-id path-json)]
+        [(file-exists? path-ss)
+         (process-ss-request! session-id path-ss)])))
+
+(define (process-json-request! session-id path)
+  (let* ([content (call-with-input-file path get-string-all)]
+         [data (fold-worker-json-parse content)]
+         [resp-path (response-path session-id)]
+         [err-path (error-path session-id)])
+        (when (file-exists? err-path)
+              (delete-file err-path))
+        (let ([err (assoc 'error data)]
+              [expr (cdr (or (assoc "code" data) (assoc "expression" data) '(#f . #f)))]
+              [fmt (cdr (or (assoc "format" data) '(#f . "json")))])
+             (if err
+                 (write-response resp-path (format "{\"status\": \"error\", \"error\": \"~a\"}" (escape-json-string (cdr err))))
+                 (if expr
+                     (execute-and-respond! session-id expr (string->symbol fmt) resp-path err-path)
+                     (write-response resp-path "{\"status\": \"error\", \"error\": \"No code in JSON\"}")))
+             (delete-file path))))
+
+(define (process-ss-request! session-id path)
+  (let* ([content (call-with-input-file path get-string-all)]
+         [request (parse-session-request content)]
+         [fmt (if (and request (assq 'format request))
+                  (cdr (assq 'format request))
+                  'text)]
+         [expr (if request
+                   (extract-expression request)
+                   content)]
+         [resp-path (response-path session-id)]
+         [err-path (error-path session-id)])
+        (execute-and-respond! session-id expr fmt resp-path err-path)
+        (delete-file path)))
+
+(define (execute-and-respond! session-id expr fmt resp-path err-path)
+  (let ([expr-str (if (string? expr)
+                      expr
+                      (format "~s" expr))])
+       (when (file-exists? err-path)
+             (delete-file err-path))
+       (guard (e [else
+                  (if (eq? fmt 'json)
+                      (write-response resp-path
+                                      (format "{\"status\": \"error\", \"error\": \"~a\", \"output\": \"\", \"result\": \"\"}"
+                                              (escape-json-string (format-condition e))))
+                      (write-error err-path (format-condition e)))])
+              (let-values ([(output val is-def?) (scheme-eval-and-capture session-id expr-str)])
+                          (if (eq? fmt 'json)
+                              (let ([val-str (if (eq? val (void)) "" val)])
+                                   (write-response resp-path
+                                                   (format "{\"output\": \"~a\", \"result\": \"~a\", \"status\": \"success\"}"
+                                                           (escape-json-string output)
+                                                           (escape-json-string val-str))))
+                              (let ([legacy-resp
+                                     (cond
+                                      [is-def?
+                                       (if (> (string-length output) 0)
+                                           (string-append output "\n" val)
+                                           val)]
+                                      [(and (eq? val (void)) (> (string-length output) 0))
+                                       output]
+                                      [(> (string-length output) 0)
+                                       (string-append output
+                                                      (if (eq? val (void))
+                                                          ""
+                                                          (string-append "\n=> " val)))]
+                                      [(not (eq? val (void)))
+                                       val]
+                                      [else ""])])
+                                   (write-response resp-path legacy-resp)))))))
 
 (define (worker-loop session-id)
   (let loop ([last-heartbeat 0])
