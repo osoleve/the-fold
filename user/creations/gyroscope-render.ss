@@ -41,20 +41,21 @@
 
 (define (make-gyroscope-scene t)
   "Armillary sphere with 3 nested rings rotating on different axes"
-  (let* (;; Ring parameters: (major-radius minor-radius axis-x axis-y axis-z speed-mult)
-         ;; Outer ring: rotates slowly around Y
+  (let* (;; Ring parameters - INTEGER rates for perfect looping!
+         ;; Each rate = number of full rotations per loop
+         ;; Outer ring: 3 rotations (was 1.0)
          [r1-R 2.0] [r1-r 0.12]
-         [r1-angle (* t 1.0)]
-         ;; Middle ring: rotates around tilted axis
+         [r1-angle (* t 3)]
+         ;; Middle ring: 5 rotations (was 1.7)
          [r2-R 1.5] [r2-r 0.10]
          [r2-axis (vec3-normalize (vec3 1 0.5 0))]
-         [r2-angle (* t 1.7)]
-         ;; Inner ring: rotates faster around another axis
+         [r2-angle (* t 5)]
+         ;; Inner ring: 7 rotations (was 2.3)
          [r3-R 1.0] [r3-r 0.08]
          [r3-axis (vec3-normalize (vec3 0.3 1 0.5))]
-         [r3-angle (* t 2.3)]
-         ;; Central sphere (slow pulse)
-         [sphere-r (+ 0.25 (* 0.05 (sin (* t 3))))])
+         [r3-angle (* t 7)]
+         ;; Central sphere: 4 pulse cycles
+         [sphere-r (+ 0.25 (* 0.05 (sin (* t 4))))])
         
         (lambda (p)
                 ;; Transform point into each ring's local space
