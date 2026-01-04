@@ -233,5 +233,21 @@
              (assert (= lhs rhs)))))
 
 ;;; ============================================================
+;;; Prime Ideal Tests
+;;; ============================================================
+
+(define-test "entire ring is not a prime ideal"
+  (let* ([z5 (make-ring-zn 5)]
+         [whole-ring (make-ideal z5 (ring-elements z5))])
+        ; The entire ring R contains 1, so it cannot be a prime ideal
+        (assert (not (is-prime-ideal? whole-ring)))))
+
+(define-test "trivial ideal {0} is not prime in Z_6"
+  (let* ([z6 (make-ring-zn 6)]
+         [zero-ideal (make-ideal z6 '(0))])
+        ; {0} is not prime because 2×3 = 0 ∈ {0}, but 2,3 ∉ {0}
+        (assert (not (is-prime-ideal? zero-ideal)))))
+
+;;; ============================================================
 ;;; Tests auto-run when defined
 ;;; ============================================================
