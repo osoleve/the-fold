@@ -605,13 +605,16 @@
 
 ;;; vec3-to-spherical : Vec3 → (Number Number Number)
 ;;; Convert Cartesian to spherical (r, θ, φ)
+;;; theta ∈ [0, π], phi ∈ [-π, π]
 (define (vec3-to-spherical v)
   (let* ([x (vec3-x v)]
          [y (vec3-y v)]
          [z (vec3-z v)]
          [r (vec3-length v)]
-         [theta (if (= r 0) 0 (acos (/ z r)))]
-         [phi (atan y x)])
+         ;; Clamp z/r to [-1, 1] to avoid acos domain errors from floating point precision
+         [theta (if (= r 0) 0 (acos (max -1.0 (min 1.0 (/ z r)))))]
+         ;; Handle z-axis case where x=0 and y=0 (atan undefined for (0,0))
+         [phi (if (and (= x 0) (= y 0)) 0 (atan y x))])
         (list r theta phi)))
 
 ;;; vec3-to-cylindrical : Vec3 → (Number Number Number)
