@@ -18,6 +18,13 @@
 ;;;   (dogfood-session 'deep)     ; Run with deep exploration
 ;;;   (dogfood-session 'quick)    ; Run quick smoke tests
 ;;;   (dogfood-report)            ; Show findings from last session
+;;;   (show-trajectory-stats)     ; View trajectory diversity stats
+;;;
+;;; Trajectory Tracking:
+;;;   Sessions record their exploration path order to promote temporal
+;;;   diversity. The system generates candidate orderings and selects
+;;;   the one least similar to recent trajectories (both exact matches
+;;;   and pairwise transitions are penalized).
 
 ;;; ============================================================
 ;;; Session State
@@ -38,6 +45,164 @@
 
 (define (clear-findings!)
   (set! *dogfood-findings* '()))
+
+;;; ============================================================
+;;; Trajectory Tracking
+;;; ============================================================
+
+;;; Store trajectories to promote temporal diversity
+(define *trajectory-file* ".fold-repl/dogfood-trajectories.ss")
+(define *max-trajectories* 50)  ; Keep last N trajectories
+
+;;; load-trajectories : -> (List Trajectory)
+;;; Each trajectory is: ((timestamp . T) (paths . (p1 p2 ...)) (depth . D))
+(define (load-trajectories)
+  (guard (ex [else '()])
+         (if (file-exists? *trajectory-file*)
+             (call-with-input-file *trajectory-file* read)
+             '())))
+
+;;; save-trajectory! : (List Symbol) × Symbol -> void
+;;; Record a trajectory for future diversity calculations
+(define (save-trajectory! paths depth)
+  (let* ([existing (load-trajectories)]
+         [new-entry `((timestamp . ,(current-timestamp))
+                      (paths . ,paths)
+                      (depth . ,depth))]
+         [updated (cons new-entry
+                        (if (>= (length existing) *max-trajectories*)
+                            (list-head existing (- *max-trajectories* 1))
+                            existing))])
+        (guard (ex [else #f])
+               ;; Delete and recreate to avoid Chez Scheme file-exists error
+               (when (file-exists? *trajectory-file*)
+                     (delete-file *trajectory-file*))
+               (call-with-output-file *trajectory-file*
+                                      (lambda (port)
+                                              (write updated port)
+                                              (newline port))))))
+
+;;; trajectory-signature : (List Symbol) -> Symbol
+;;; Create a canonical signature for a path ordering
+(define (trajectory-signature paths)
+  (string->symbol
+   (apply string-append
+          (map (lambda (p) (string-append (symbol->string p) ">"))
+               paths))))
+
+;;; count-trajectory-occurrences : (List Trajectory) -> Hashtable
+;;; Count how many times each trajectory signature has occurred
+(define (count-trajectory-occurrences trajectories)
+  (let ([counts (make-eq-hashtable)])
+       (for-each
+        (lambda (traj)
+                (let* ([paths (cdr (assq 'paths traj))]
+                       [sig (trajectory-signature paths)]
+                       [current (hashtable-ref counts sig 0)])
+                      (hashtable-set! counts sig (+ current 1))))
+        trajectories)
+       counts))
+
+;;; path-pair-counts : (List Trajectory) -> Hashtable
+;;; Count transitions between paths (for Markov-style diversity)
+(define (path-pair-counts trajectories)
+  (let ([counts (make-eq-hashtable)])
+       (for-each
+        (lambda (traj)
+                (let ([paths (cdr (assq 'paths traj))])
+                     (let loop ([remaining paths])
+                          (when (>= (length remaining) 2)
+                                (let* ([pair (cons (car remaining) (cadr remaining))]
+                                       [key (string->symbol
+                                             (format "~a->~a" (car pair) (cdr pair)))]
+                                       [current (hashtable-ref counts key 0)])
+                                      (hashtable-set! counts key (+ current 1))
+                                      (loop (cdr remaining)))))))
+        trajectories)
+       counts))
+
+;;; diversity-score : (List Symbol) × Hashtable × Hashtable -> Number
+;;; Score a candidate trajectory (lower = more novel)
+(define (diversity-score candidate-paths traj-counts pair-counts)
+  (let* ([sig (trajectory-signature candidate-paths)]
+         [sig-count (hashtable-ref traj-counts sig 0)]
+         [transition-score
+          (let loop ([paths candidate-paths] [score 0])
+               (if (< (length paths) 2)
+                   score
+                   (let* ([key (string->symbol
+                                (format "~a->~a" (car paths) (cadr paths)))]
+                          [pair-count (hashtable-ref pair-counts key 0)])
+                         (loop (cdr paths) (+ score pair-count)))))])
+        ;; Base score: how many times this exact sequence occurred
+        ;; Plus penalty for common transitions
+        (+ (* sig-count 10) transition-score)))
+
+;;; select-diverse-paths : Nat × (List PathSpec) -> (List PathSpec)
+;;; Select paths with diversity bias based on trajectory history
+(define (select-diverse-paths n all-paths)
+  (let* ([trajectories (load-trajectories)]
+         [traj-counts (count-trajectory-occurrences trajectories)]
+         [pair-counts (path-pair-counts trajectories)])
+        (if (null? trajectories)
+            ;; No history: pure random selection
+            (pick-n-random n all-paths)
+            ;; Generate candidates and pick most diverse
+            (let ([candidates (map (lambda (_) (pick-n-random n all-paths))
+                                   (iota 5))]  ; Generate 5 candidates
+                  [score-path (lambda (paths)
+                                      (diversity-score (map car paths)
+                                                       traj-counts
+                                                       pair-counts))])
+                 ;; Pick candidate with lowest score (most novel)
+                 (car (list-sort (lambda (a b)
+                                         (< (score-path a) (score-path b)))
+                                 candidates))))))
+
+;;; show-trajectory-stats : -> void
+;;; Display trajectory diversity statistics
+(define (show-trajectory-stats)
+  (let* ([trajectories (load-trajectories)]
+         [traj-counts (count-trajectory-occurrences trajectories)]
+         [pair-counts (path-pair-counts trajectories)])
+        (display "\n")
+        (display "╔══════════════════════════════════════════════════════════════════╗\n")
+        (display "║                  TRAJECTORY DIVERSITY STATS                      ║\n")
+        (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
+        (display (format "Total recorded trajectories: ~a\n" (length trajectories)))
+        (display (format "Unique trajectory signatures: ~a\n"
+                         (hashtable-size traj-counts)))
+        (display (format "Unique path transitions: ~a\n\n"
+                         (hashtable-size pair-counts)))
+        
+        ;; Show most common trajectories
+        (when (> (hashtable-size traj-counts) 0)
+              (display "Most common trajectories:\n")
+              (let* ([entries (let-values ([(keys vals) (hashtable-entries traj-counts)])
+                                          (map cons (vector->list keys) (vector->list vals)))]
+                     [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) entries)]
+                     [top-5 (list-head sorted (min 5 (length sorted)))])
+                    (for-each
+                     (lambda (entry)
+                             (display (format "  ~a: ~a times\n" (car entry) (cdr entry))))
+                     top-5)))
+        
+        ;; Show recent trajectories
+        (when (not (null? trajectories))
+              (display "\nRecent trajectories:\n")
+              (for-each
+               (lambda (traj)
+                       (display (format "  ~a: ~a\n"
+                                        (cdr (assq 'timestamp traj))
+                                        (cdr (assq 'paths traj)))))
+               (list-head trajectories (min 5 (length trajectories)))))))
+
+;;; iota helper if not available
+(define (iota n)
+  (let loop ([i 0] [acc '()])
+       (if (>= i n)
+           (reverse acc)
+           (loop (+ i 1) (cons i acc)))))
 
 ;;; ============================================================
 ;;; Exploration Path Definitions
@@ -434,16 +599,16 @@
                         (make-string (- 50 (string-length *dogfood-session-start*)) #\space)))
        (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
        
-       ;; Select exploration paths (1-3 for quick, 2-5 for deep)
+       ;; Select exploration paths with diversity bias (1-3 for quick, 2-5 for deep)
        (let* ([num-paths (if (eq? depth 'quick)
                              (+ 1 (random 2))
                              (+ 2 (random 4)))]
-              [selected-paths (pick-n-random num-paths *exploration-paths*)])
+              [selected-paths (select-diverse-paths num-paths *exploration-paths*)])
              
              (set! *dogfood-exploration-path* (map car selected-paths))
              
-             (display (format "Selected exploration paths: ~a\n\n"
-                              (map car selected-paths)))
+             (display (format "Selected exploration paths: ~a\n" (map car selected-paths)))
+             (display "(diversity-optimized based on trajectory history)\n\n")
              
              ;; Run each exploration
              (for-each
@@ -464,7 +629,10 @@
                                         [(creative-tools) (explore-creative-tools depth)]
                                         [else (record-finding 'observation 'session
                                                               (format "Unknown path: ~a" path-name))]))))
-              selected-paths))
+              selected-paths)
+             
+             ;; Save trajectory for future diversity calculations
+             (save-trajectory! (map car selected-paths) depth))
        
        ;; Show summary
        (dogfood-report)))
@@ -589,8 +757,9 @@
 ;;; Load Message
 ;;; ============================================================
 
-(display "Dogfood Explorer loaded.\n")
+(display "Dogfood Explorer loaded (with trajectory tracking).\n")
 (display "  (dogfood-session)        - Run varied exploration\n")
 (display "  (dogfood-session 'deep)  - Deep exploration\n")
 (display "  (dogfood-session 'quick) - Quick smoke test\n")
 (display "  (dogfood-report)         - Show last session findings\n")
+(display "  (show-trajectory-stats)  - View trajectory diversity stats\n")
