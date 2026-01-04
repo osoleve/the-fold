@@ -268,7 +268,16 @@
                (cons (cons name (cadr result)) acc)
                (caddr result))]
              [(eq? (car result) 'suspended)
-              `(suspended (let ,(cons binding (cdr bindings)) ,body) ,env)]
+              ;; Preserve context: rebuild let with evaluated bindings quoted
+              (let* ([evaluated-bindings (map (lambda (p)
+                                                      (list (car p) (list 'quote (cdr p))))
+                                              (reverse acc))]
+                     [suspended-binding (list name (cadr result))]
+                     [remaining-bindings (cdr bindings)]
+                     [new-bindings (append evaluated-bindings
+                                           (list suspended-binding)
+                                           remaining-bindings)])
+                    `(suspended (let ,new-bindings ,body) ,(caddr result)))]
              [else result]))))
 
 ;;; ============================================================
@@ -411,7 +420,15 @@
                              (cons (cadr result) acc)
                              (caddr result))]
             [(eq? (car result) 'suspended)
-             `(suspended (prim ,op ,@(reverse acc) ,(cadr result) ,@(cdr remaining)) ,env)]
+             ;; Preserve context: quote evaluated args
+             (let* ([evaluated-args (map (lambda (v) (list 'quote v))
+                                         (reverse acc))]
+                    [suspended-arg (cadr result)]
+                    [remaining-args (cdr remaining)]
+                    [new-args (append evaluated-args
+                                      (list suspended-arg)
+                                      remaining-args)])
+                   `(suspended (prim ,op ,@new-args) ,(caddr result)))]
             [else result]))))
 
 ;;; ============================================================
@@ -452,7 +469,15 @@
                              (cons (cadr result) acc)
                              (caddr result))]
             [(eq? (car result) 'suspended)
-             `(suspended (call ,closure ,@(reverse acc) ,(cadr result) ,@(cdr remaining)) ,env)]
+             ;; Preserve context: quote closure and evaluated args
+             (let* ([evaluated-args (map (lambda (v) (list 'quote v))
+                                         (reverse acc))]
+                    [suspended-arg (cadr result)]
+                    [remaining-args (cdr remaining)]
+                    [new-args (append evaluated-args
+                                      (list suspended-arg)
+                                      remaining-args)])
+                   `(suspended (call (quote ,closure) ,@new-args) ,(caddr result)))]
             [else result]))))
 
 ;;; ============================================================

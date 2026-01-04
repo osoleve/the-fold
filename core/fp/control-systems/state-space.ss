@@ -131,8 +131,8 @@
         (let loop ([k 1] [term term] [result result] [factorial 1])
              (if (>= k fuel)
                  result
-                 (let* ([new-term (matrix-scale (matrix-mul term A) (/ 1 (* factorial k)))]
-                        [new-factorial (* factorial k)])
+                 (let* ([new-factorial (* factorial k)]
+                        [new-term (matrix-scale (/ 1 new-factorial) (matrix-mul term A))])
                        (loop (+ k 1)
                              (matrix-mul term A)
                              (matrix-add result new-term)
