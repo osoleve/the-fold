@@ -1,0 +1,95 @@
+{
+  "issues": [
+    {
+      "file_path": "/home/oso/the-fold/core/util/pretty.ss",
+      "line_number": 238,
+      "severity": "high",
+      "category": "performance",
+      "description": "The layout algorithm (Wadler-Lindig) is implemented with exponential time complexity. In the `be` and `fits?` functions, `flatten` is called on every `doc-group`, re-traversing the document tree. Nested groups will cause a combinatorial explosion of work, as sub-documents are flattened repeatedly.",
+      "code_snippet": "[(doc-group? doc)\n (let ([flattened (flatten (doc-group-doc doc))])\n      (if (fits? (- w k) (list (cons i flattened)))\n          (be w k (cons (cons i flattened) rest))\n          (be w k (cons (cons i (doc-group-doc doc)) rest))))]",
+      "suggested_fix": "Store the flattened version of a document inside the `doc-group` structure upon creation (pre-computing it) or use a memoized version of `flatten`. Ideally, follow Wadler's original design where the 'union' type specifically holds both the pre-flattened and unflattened versions to avoid redundant traversals.",
+      "confidence": 0.95
+    },
+    {
+      "file_path": "/home/oso/the-fold/core/data/graph-matrix.ss",
+      "line_number": 28,
+      "severity": "medium",
+      "category": "correctness",
+      "description": "The `edge-list?` predicate has multiple logic errors. First, it only checks the first element of the list. Second, the `let` body does not combine its validation checks with `and`, meaning the results of most checks (like `list?` and `length`) are discarded. Third, it may crash if the first element is not a list (calling `car` or `length` on a non-list).",
+      "code_snippet": "(define (edge-list? edges)\n  (and (list? edges)\n       (or (null? edges)\n           (let ([first (car edges)])\n                (and (list? first)\n                     (or (= (length first) 2)   ; Unweighted\n                         (= (length first) 3))) ; Weighted\n                (integer? (car first))\n                (integer? (cadr first))))))",
+      "suggested_fix": "Use a proper recursive check or a higher-order function like `every` to validate all edges in the list. Combine the checks in the `let` body using `and` correctly, and ensure the type is checked before accessing fields: `(every (lambda (e) (and (list? e) (<= 2 (length e) 3) (integer? (car e)) (integer? (cadr e)))) edges)`.",
+      "confidence": 1.0
+    },
+    {
+      "file_path": "/home/oso/the-fold/core/fp/numeric/transcendental.ss",
+      "line_number": 118,
+      "severity": "medium",
+      "category": "correctness",
+      "description": "The `asinh-num` function suffers from catastrophic cancellation for large negative inputs. Adding `x` to `sqrt(x^2 + 1)` when `x` is large and negative results in subtracting two very similar large numbers, leading to significant precision loss in the result.",
+      "code_snippet": "(define (asinh-num x)\n  (log (+ x (sqrt (+ (* x x) 1)))))",
+      "suggested_fix": "Use the identity `asinh(x) = sign(x) * log(|x| + sqrt(x^2 + 1))` to ensure the argument to `log` is always >= 1, avoiding the precision loss from subtraction.",
+      "confidence": 0.98
+    },
+    {
+      "file_path": "/home/oso/the-fold/core/linalg/vec2.ss",
+      "line_number": 183,
+      "severity": "medium",
+      "category": "correctness",
+      "description": "The `vec2-angle-between` function does not handle zero vectors. It divides the dot product by the product of magnitudes, which will be zero if either vector is (0, 0), leading to a division-by-zero error.",
+      "code_snippet": "(define (vec2-angle-between a b)\n  (let ([cos-theta (/ (vec2-dot a b)\n                      (* (vec2-magnitude a) (vec2-magnitude b)))])\n       ;; Clamp to avoid acos domain errors\n       (acos (max -1 (min 1 cos-theta)))))",
+      "suggested_fix": "Add a check for zero magnitudes before division. If either magnitude is near zero, the angle is undefined; return 0.0 or handle it as a specific edge case for the application.",
+      "confidence": 1.0
+    },
+    {
+      "file_path": "/home/oso/the-fold/core/data/graph-matrix.ss",
+      "line_number": 70,
+      "severity": "high",
+      "category": "performance",
+      "description": "The `edges->adjacency-matrix` function allocates a dense matrix using a vector of size N^2. For large graphs (e.g., N=50,000), this will attempt to allocate several gigabytes of contiguous memory, which can lead to out-of-memory errors or system-wide performance degradation (thrashing).",
+      "code_snippet": "[data (make-vector (* n n) 0)]",
+      "suggested_fix": "Add a guard clause to check `n` against a reasonable threshold (e.g., 10,000) before allocation, and provide a clear error message suggesting the use of sparse matrices for larger graphs.",
+      "confidence": 0.95
+    },
+    {
+      "file_path": "/home/oso/the-fold/core/data/graph-matrix.ss",
+      "line_number": 194,
+      "severity": "medium",
+      "category": "performance",
+      "description": "In-degree calculation for SparseCSR matrices is O(NNZ) because it requires scanning all column indices. Calling this for every node (as done in `degree-matrix-sparse`) results in O(N * NNZ) total complexity, which is extremely inefficient for large sparse graphs compared to the O(NNZ) complexity achievable with better data structures.",
+      "code_snippet": "(define (adjacency-in-degree m i)\n  (if (sparse-csr? m)\n      ;; For CSR, need to scan all values\n      (let ([n (sparse-csr-rows m)]\n            [row-ptrs (sparse-csr-row-ptrs m)]\n            [col-idx (sparse-csr-col-indices m)]\n            [nnz (sparse-csr-nnz m)])\n           (let loop ([k 0] [count 0])\n                (if (= k nnz)\n                    count\n                    (loop (+ k 1)\n                          (if (= (vector-ref col-idx k) i)\n                              (+ count 1)\n                              count)))))",
+      "suggested_fix": "Compute all in-degrees simultaneously in a single O(NNZ) pass over the `col-indices` array and store them in a temporary vector, or use a CSC (Compressed Sparse Column) representation for the graph when in-degree queries are frequent.",
+      "confidence": 0.9
+    },
+    {
+      "file_path": "/home/oso/the-fold/core/data/graph-matrix.ss",
+      "line_number": 334,
+      "severity": "low",
+      "category": "performance",
+      "description": "Matrix exponentiation in `adjacency-power` is implemented using linear recursion, taking O(k) matrix multiplications. For large `k`, this is significantly slower than the optimal algorithm.",
+      "code_snippet": "(define (adjacency-power m k)\n  (if (= k 0)\n      (identity (matrix-rows m))\n      (let loop ([result m] [remaining (- k 1)])\n           (if (= remaining 0)\n               result\n               (loop (matrix-mul result m) (- remaining 1))))))",
+      "suggested_fix": "Implement binary exponentiation (exponentiation by squaring) to reduce the complexity to O(log k) matrix multiplications.",
+      "confidence": 1.0
+    },
+    {
+      "file_path": "/home/oso/the-fold/core/util/pretty.ss",
+      "line_number": 288,
+      "severity": "medium",
+      "category": "correctness",
+      "description": "The `sdoc->string` function uses `(apply string-append (reverse acc))` to finalize the rendering. Many Scheme implementations have a limit on the number of arguments that can be passed to `apply` (often 4096 or similar). If a document generates more than this many string fragments (e.g., a long file), this call will crash.",
+      "code_snippet": "[(sdoc-empty? sd) (apply string-append (reverse acc))]",
+      "suggested_fix": "Use a string port (e.g., `open-output-string`) to accumulate the result iteratively, or implement a recursive `string-append` that handles large lists by joining them in chunks.",
+      "confidence": 0.9
+    }
+  ],
+  "metadata": {
+    "reviewer": "gemini-3-flash-preview",
+    "timestamp": "2026-01-03T17:35:00Z",
+    "files_reviewed": [
+      "/home/oso/the-fold/core/util/pretty.ss",
+      "/home/oso/the-fold/core/fp/numeric/transcendental.ss",
+      "/home/oso/the-fold/core/linalg/vec2.ss",
+      "/home/oso/the-fold/core/data/graph-matrix.ss"
+    ],
+    "total_issues": 8
+  }
+}

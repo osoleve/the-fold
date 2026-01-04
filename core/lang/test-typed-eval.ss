@@ -255,6 +255,11 @@
      (test "typed-type" 'Int (typed-type tv))
      (test "typed-value" 42 (typed-value tv)))
 
+;; Regression test: user data that looks like (typed ...) should not be corrupted
+(let* ([user-data '(typed foo bar)]
+       [tv (typed 'Int user-data)])
+      (test "typed-value preserves user data" user-data (typed-value tv)))
+
 ;;; ============================================================
 ;;; Display Functions
 ;;; ============================================================

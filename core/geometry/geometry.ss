@@ -223,24 +223,19 @@
 
 ;;; transform-rotation-axis : Vec3 × Number → Matrix
 ;;; Rotation around arbitrary axis by angle (Rodriguez formula)
-;;; Returns identity matrix if axis is zero vector
 (define (transform-rotation-axis axis angle)
-  (let ([mag (vec3-magnitude axis)])
-       (if (< mag 1e-10)
-           ; Zero axis: return identity transformation
-           (transform-identity)
-           (let* ([ax (vec3-scale-inv axis mag)]
-                  [x (vec3-x ax)]
-                  [y (vec3-y ax)]
-                  [z (vec3-z ax)]
-                  [c (cos angle)]
-                  [s (sin angle)]
-                  [t (- 1 c)])
-                 (matrix-from-lists
-                  `((,(+ (* t x x) c)      ,(- (* t x y) (* s z)) ,(+ (* t x z) (* s y)) 0)
-                    (,(+ (* t x y) (* s z)) ,(+ (* t y y) c)      ,(- (* t y z) (* s x)) 0)
-                    (,(- (* t x z) (* s y)) ,(+ (* t y z) (* s x)) ,(+ (* t z z) c)      0)
-                    (0                     0                     0                     1)))))))
+  (let* ([ax (vec3-normalize axis)]
+         [x (vec3-x ax)]
+         [y (vec3-y ax)]
+         [z (vec3-z ax)]
+         [c (cos angle)]
+         [s (sin angle)]
+         [t (- 1 c)])
+        (matrix-from-lists
+         `((,(+ (* t x x) c)      ,(- (* t x y) (* s z)) ,(+ (* t x z) (* s y)) 0)
+           (,(+ (* t x y) (* s z)) ,(+ (* t y y) c)      ,(- (* t y z) (* s x)) 0)
+           (,(- (* t x z) (* s y)) ,(+ (* t y z) (* s x)) ,(+ (* t z z) c)      0)
+           (0                     0                     0                     1)))))
 
 ;;; transform-from-quaternion : Quaternion → Matrix
 ;;; Convert quaternion to 4x4 transformation matrix
@@ -320,12 +315,9 @@
 
 ;;; distance-point-plane : Point3 × Plane3 → Number
 ;;; Signed distance (positive = in front of plane)
-;;; Handles non-unit normals correctly by dividing by magnitude
 (define (distance-point-plane point plane)
-  (let ([n (plane3-normal plane)]
-        [d (plane3-d plane)])
-       (/ (+ (vec3-dot n point) d)
-          (vec3-magnitude n))))
+  (+ (vec3-dot (plane3-normal plane) point)
+     (plane3-d plane)))
 
 ;;; distance-point-line : Point3 × Line3 → Number
 (define (distance-point-line point line)
@@ -578,9 +570,13 @@
 
 ;;; aabb-from-points : (List Point3) → AABB
 ;;; Compute minimal AABB containing all points
+;;; Returns a "null" AABB (min > max) for empty input, which merges correctly
 (define (aabb-from-points points)
   (if (null? points)
-      (aabb (vec3-zero) (vec3-zero))
+      ;; Empty AABB: min=+inf, max=-inf
+      ;; This ensures correct merging: any real point will establish proper bounds
+      (aabb (vec3 +inf.0 +inf.0 +inf.0)
+            (vec3 -inf.0 -inf.0 -inf.0))
       (let loop ([pts (cdr points)]
                  [min-p (car points)]
                  [max-p (car points)])
@@ -601,13 +597,16 @@
 
 ;;; vec3-to-spherical : Vec3 → (Number Number Number)
 ;;; Convert Cartesian to spherical (r, θ, φ)
+;;; theta ∈ [0, π], phi ∈ [-π, π]
 (define (vec3-to-spherical v)
   (let* ([x (vec3-x v)]
          [y (vec3-y v)]
          [z (vec3-z v)]
          [r (vec3-length v)]
-         [theta (if (= r 0) 0 (acos (/ z r)))]
-         [phi (atan y x)])
+         ;; Clamp z/r to [-1, 1] to avoid acos domain errors from floating point precision
+         [theta (if (= r 0) 0 (acos (max -1.0 (min 1.0 (/ z r)))))]
+         ;; Handle z-axis case where x=0 and y=0 (atan undefined for (0,0))
+         [phi (if (and (= x 0) (= y 0)) 0 (atan y x))])
         (list r theta phi)))
 
 ;;; vec3-to-cylindrical : Vec3 → (Number Number Number)

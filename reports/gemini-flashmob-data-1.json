@@ -1,0 +1,58 @@
+{
+  "review_type": "data-structures-bug-review",
+  "files_reviewed": [
+    "core/data/data-structures.ss",
+    "core/data/collection-utils.ss",
+    "core/data/graph-algorithms.ss"
+  ],
+  "bugs": [
+    {
+      "file": "core/data/collection-utils.ss",
+      "line": 142,
+      "severity": "P2",
+      "category": "consistency",
+      "description": "collection-all? returns #f immediately if a block is missing, whereas collection-any? skips missing blocks. This inconsistency makes collection-all? fail for collections with missing blocks even if all available blocks satisfy the predicate.",
+      "code_snippet": "(if (and block (predicate block))\n    (loop (cdr hashes))\n    #f)",
+      "fix_suggestion": "Modify collection-all? to skip missing blocks, similar to collection-any?, fold-collection, and filter-collection. \n(if block\n    (if (predicate block) (loop (cdr hashes)) #f)\n    (loop (cdr hashes)))"
+    },
+    {
+      "file": "core/data/collection-utils.ss",
+      "line": 175,
+      "severity": "P2",
+      "category": "performance",
+      "description": "collection-group-by has O(N*G) complexity where G is the number of groups. It iterates the groups list with 'map' for every element to update the group, resulting in quadratic behavior for collections with many unique keys.",
+      "code_snippet": "(map (lambda (pair)\n             (if (equal? (car pair) key)\n                 (cons key (cons block (cdr pair)))\n                 pair))\n     groups)",
+      "fix_suggestion": "Use a hash table to accumulate groups during iteration, then convert to an association list at the end for O(N) performance."
+    },
+    {
+      "file": "core/data/graph-algorithms.ss",
+      "line": 424,
+      "severity": "P3",
+      "category": "consistency",
+      "description": "topological-sort documentation claims it returns 'dependencies before dependents', which implies a reverse topological sort (build order). However, the implementation returns a standard topological sort (dependents before dependencies, i.e., parent before child).",
+      "code_snippet": ";;; Returns sorted list of hashes (dependencies before dependents)\n...\n(set! result (cons node result))",
+      "fix_suggestion": "Clarify the documentation to match the behavior (dependents before dependencies) or reverse the result list if build order is intended."
+    },
+    {
+      "file": "core/data/graph-algorithms.ss",
+      "line": 500,
+      "severity": "P2",
+      "category": "performance",
+      "description": "subgraph function has O(N * M) complexity where N is subgraph size and M is list size, due to using linear scan (hash-in-list?) inside the loop. This scales poorly for large subgraphs.",
+      "code_snippet": "(filter (lambda (n) (hash-in-list? n hash-list))\n        outgoing)",
+      "fix_suggestion": "Convert hash-list to a hash table (set) at the start of the function and use O(1) lookups for filtering neighbors."
+    },
+    {
+      "file": "core/data/collection-utils.ss",
+      "line": 223,
+      "severity": "P3",
+      "category": "logic",
+      "description": "collection-remove removes ALL instances of a block hash. Since collection-add allows duplicates (bag semantics), removing all instances when only one removal might be expected is a potential logic error or at least inconsistent with typical bag operations.",
+      "code_snippet": "(filter (lambda (h) (not (equal? h member-hash)))\n        (vector->list old-refs))",
+      "fix_suggestion": "If bag semantics are intended, remove only the first occurrence of the hash. If set semantics are intended, collection-add should prevent duplicates."
+    }
+  ],
+  "summary": "Verified the known inconsistency in collection-all?. Found performance issues in collection grouping and subgraph extraction due to inefficient list lookups. Identified a discrepancy between documentation and implementation in topological-sort order.",
+  "generated_by": "gemini-3-pro-preview",
+  "generated_at": "2026-01-03T00:00:00Z"
+}
