@@ -165,16 +165,10 @@
 ;;; fs-fetch : FS × Bytevector → Block | #f
 ;;; Load a block from disk by hash.
 ;;; Returns #f if the block doesn't exist or is corrupt.
-;;; Logs a warning to stderr if corruption is detected.
 (define (fs-fetch fs hash)
   (let ([path (hash->object-path hash (fs-capability-store-path fs))])
        (if (file-exists? path)
-           (guard (e [else
-                      ;; Log corruption warning to stderr
-                      (fprintf (current-error-port)
-                               "WARNING: Corrupt block at ~a (hash ~a)~%"
-                               path (hash->hex hash))
-                      #f])
+           (guard (e [else #f])  ; Return #f for corrupt blocks
                   (let* ([port (open-file-input-port path)]
                          [bytes (get-bytevector-all port)])
                         (close-port port)
@@ -245,66 +239,38 @@
 ;;; Head Pointers (for forum channels)
 ;;; ============================================================
 
-;;; write-file-atomically! : Path × (Port → void) → void
-;;; Write to a file atomically using write-and-rename pattern.
-;;; This prevents corruption from partial writes or daemon crashes:
-;;; 1. Write to temporary file {path}.tmp
-;;; 2. Rename temp file over target (atomic on POSIX)
-(define (write-file-atomically! path writer-fn)
-  (let ([temp-path (string-append path ".tmp")])
-       (ensure-parent-dir! path)
-       ;; Write to temp file first
-       (call-with-output-file temp-path writer-fn)
-       ;; Atomic rename over target (POSIX guarantees atomicity)
-       (when (file-exists? path)
-             (delete-file path))
-       (rename-file temp-path path)))
-
 ;;; fs-write-head! : FS × Symbol × Bytevector → void
 ;;; Write a channel head pointer (overwrites if exists).
-;;; Uses atomic write pattern to prevent corruption from crashes.
 (define (fs-write-head! fs channel hash)
   (let ([path (string-append (fs-capability-store-path fs)
                              "/heads/"
                              (symbol->string channel)
                              ".head")])
-       (write-file-atomically! path
-                               (lambda (port)
-                                       (put-string port (hash->hex hash))))))
+       (ensure-parent-dir! path)
+       ;; Delete existing file if present
+       (when (file-exists? path)
+             (delete-file path))
+       (call-with-output-file path
+                              (lambda (port)
+                                      (put-string port (hash->hex hash))))))
 
 ;;; fs-read-head : FS × Symbol → Bytevector | #f
 ;;; Read a channel head pointer.
-;;; Returns #f if the file doesn't exist or is corrupt.
-;;; Logs a warning to stderr if corruption is detected.
 (define (fs-read-head fs channel)
   (let ([path (string-append (fs-capability-store-path fs)
                              "/heads/"
                              (symbol->string channel)
                              ".head")])
        (if (file-exists? path)
-           (guard (e [else
-                      ;; Log corruption warning to stderr
-                      (fprintf (current-error-port)
-                               "WARNING: Corrupt head file at ~a~%"
-                               path)
-                      #f])
-                  (call-with-input-file path
-                                        (lambda (port)
-                                                (let* ([line (get-line port)])
-                                                      ;; Validate line is a string
-                                                      (if (and line (string? line))
-                                                          (let* ([len (string-length line)]
-                                                                 [clean (if (and (> len 0)
-                                                                                 (char=? (string-ref line (- len 1)) #\return))
-                                                                            (substring line 0 (- len 1))
-                                                                            line)])
-                                                                (hex->hash clean))
-                                                          (begin
-                                                           ;; Log invalid data warning
-                                                           (fprintf (current-error-port)
-                                                                    "WARNING: Invalid data in head file ~a~%"
-                                                                    path)
-                                                           #f))))))
+           (call-with-input-file path
+                                 (lambda (port)
+                                         (let* ([line (get-line port)]
+                                                [len (string-length line)]
+                                                [clean (if (and (> len 0)
+                                                                (char=? (string-ref line (- len 1)) #\return))
+                                                           (substring line 0 (- len 1))
+                                                           line)])
+                                               (hex->hash clean))))
            #f)))
 
 ;;; ============================================================

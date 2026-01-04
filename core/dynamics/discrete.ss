@@ -358,24 +358,18 @@
 ;;; initial: initial condition
 ;;; Returns list of (parameter, state) pairs.
 (define (bifurcation-data make-sys param-min param-max param-steps skip samples initial)
-  (if (<= param-steps 1)
-      ;; Single parameter value, avoid division by zero
-      (let* ([sys (make-sys param-min)]
-             [settled (iterate sys initial skip)]
-             [orb (orbit sys settled samples)])
-            (map (lambda (x) (cons param-min x)) (cdr orb)))
-      (let ([step (/ (- param-max param-min) (- param-steps 1))])
-           (let param-loop ([i 0] [acc '()])
-                (if (>= i param-steps)
-                    (reverse acc)
-                    (let* ([param (+ param-min (* i step))]
-                           [sys (make-sys param)]
-                           [settled (iterate sys initial skip)]
-                           [orb (orbit sys settled samples)])
-                          (param-loop (+ i 1)
-                                      (append (map (lambda (x) (cons param x))
-                                                   (cdr orb))  ;; Skip first (it's settled)
-                                              acc))))))))
+  (let ([step (/ (- param-max param-min) (- param-steps 1))])
+       (let param-loop ([i 0] [acc '()])
+            (if (>= i param-steps)
+                (reverse acc)
+                (let* ([param (+ param-min (* i step))]
+                       [sys (make-sys param)]
+                       [settled (iterate sys initial skip)]
+                       [orb (orbit sys settled samples)])
+                      (param-loop (+ i 1)
+                                  (append (map (lambda (x) (cons param x))
+                                               (cdr orb))  ;; Skip first (it's settled)
+                                          acc)))))))
 
 ;;; ============================================================
 ;;; Attractor Analysis
@@ -459,25 +453,22 @@
 ;;; autocorrelation : DDS x a x Nat x Nat x Nat x (a -> Num) -> (List Num)
 ;;; Compute autocorrelation function for lags 0 to max-lag.
 (define (autocorrelation sys initial-state skip n max-lag observable)
-  (if (<= n 0)
-      ;; No data points, return zeros to avoid division by zero
-      (replicate (+ max-lag 1) 0)
-      (let* ([orb (orbit sys (iterate sys initial-state skip) (+ n max-lag))]
-             [values (list->vector (map observable (cdr orb)))]
-             [mean (/ (fold-left + 0 (vector->list values)) (vector-length values))]
-             [centered (vec-map (lambda (x) (- x mean)) values)]
-             [variance (/ (vec-dot centered centered) (vector-length centered))])
-            (if (= variance 0)
-                (replicate (+ max-lag 1) 0)
-                (map (lambda (lag)
-                             (let ([sum (let loop ([i 0] [acc 0])
-                                             (if (>= i n)
-                                                 acc
-                                                 (loop (+ i 1)
-                                                       (+ acc (* (vector-ref centered i)
-                                                                 (vector-ref centered (+ i lag)))))))])
-                                  (/ sum (* n variance))))
-                     (iota (+ max-lag 1)))))))
+  (let* ([orb (orbit sys (iterate sys initial-state skip) (+ n max-lag))]
+         [values (list->vector (map observable (cdr orb)))]
+         [mean (/ (fold-left + 0 (vector->list values)) (vector-length values))]
+         [centered (vec-map (lambda (x) (- x mean)) values)]
+         [variance (/ (vec-dot centered centered) (vector-length centered))])
+        (if (= variance 0)
+            (replicate (+ max-lag 1) 0)
+            (map (lambda (lag)
+                         (let ([sum (let loop ([i 0] [acc 0])
+                                         (if (>= i n)
+                                             acc
+                                             (loop (+ i 1)
+                                                   (+ acc (* (vector-ref centered i)
+                                                             (vector-ref centered (+ i lag)))))))])
+                              (/ sum (* n variance))))
+                 (iota (+ max-lag 1))))))
 
 ;;; ============================================================
 ;;; Recurrence Analysis
@@ -546,17 +537,15 @@
         [d2 (dds-dimension sys2)])
        (make-deterministic-dds
         (lambda (state)
-                ;; For scalar systems (d=0), they occupy 1 slot in combined state
-                (let* ([d1-slots (max d1 1)]
-                       [s1 (if (= d1 0) (vector-ref state 0) (vec-take state d1))]
-                       [s2 (if (= d2 0) (vector-ref state d1-slots) (vec-drop state d1-slots))])
-                      (let ([next1 (coupling1 (f1 s1) s2)]
-                            [next2 (coupling2 s1 (f2 s2))])
-                           (if (and (= d1 0) (= d2 0))
-                               (vector next1 next2)
-                               ;; For vector systems, concatenate
-                               (vec-append (if (= d1 0) (vector next1) next1)
-                                           (if (= d2 0) (vector next2) next2))))))
+                (let ([s1 (if (= d1 0) (vector-ref state 0) (vec-take state d1))]
+                      [s2 (if (= d2 0) (vector-ref state 1) (vec-drop state d1))])
+                     (let ([next1 (coupling1 (f1 s1) s2)]
+                           [next2 (coupling2 s1 (f2 s2))])
+                          (if (and (= d1 0) (= d2 0))
+                              (vector next1 next2)
+                              ;; For vector systems, concatenate
+                              (vec-append (if (= d1 0) (vector next1) next1)
+                                          (if (= d2 0) (vector next2) next2))))))
         (+ (max d1 1) (max d2 1)))))
 
 ;;; ============================================================

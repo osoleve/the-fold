@@ -312,34 +312,14 @@
 (define (ideal-ring i) (list-ref i 1))
 (define (ideal-elements i) (list-ref i 2))
 
-;;; make-membership-predicate : (List Element) × (Element × Element → Boolean) → (Element → Boolean)
-;;; Create an O(1) membership predicate using hash table for performance
-;;; This is a pure interface: takes a list, returns a predicate function
-(define (make-membership-predicate elements equal-fn)
-  (let ([table (make-hashtable equal-hash equal?)])
-       ; Populate hash table
-       ; Note: We use Scheme's equal? for hashing, assuming ring elements are comparable
-       (for-each (lambda (elem) (hashtable-set! table elem #t)) elements)
-       ; Return membership predicate
-       (lambda (x)
-               (hashtable-ref table x #f))))
-
 ;;; is-valid-ideal? : Ideal → Boolean
 ;;; Verify ideal properties.
 (define (is-valid-ideal? ideal)
   (let ([r (ideal-ring ideal)]
         [i-elems (ideal-elements ideal)]
         [r-elems (ring-elements r)])
-       (and ; Check zero element membership (required for subgroup)
-            (member-equal (ring-zero r) i-elems (ring-equal-fn r))
-            ; Check closure under additive inverse (required for subgroup)
-            (let loop ([as i-elems])
-                 (if (null? as)
-                     #t
-                     (and (member-equal (ring-neg r (car as)) i-elems (ring-equal-fn r))
-                          (loop (cdr as)))))
-            ; Check closure under addition
-            (let loop ([as i-elems])
+       ; Check closure under addition
+       (and (let loop ([as i-elems])
                  (if (null? as)
                      #t
                      (let inner-loop ([bs i-elems])
@@ -384,7 +364,6 @@
 ;;; ideal-product : Ideal × Ideal → Ideal
 ;;; I × J = {finite sums of i×j | i ∈ I, j ∈ J}
 ;;; Computes additive closure via fixed-point iteration
-;;; Optimized: Uses hash table to track seen elements for O(1) duplicate detection
 (define (ideal-product i1 i2)
   (let* ([r (ideal-ring i1)]
          [eq-fn (ring-equal-fn r)]
@@ -394,15 +373,7 @@
                                                             (ring-mul r a b))
                                                     (ideal-elements i2)))
                                        (ideal-elements i1)))]
-         ; Use hash table for O(1) duplicate detection
-         [seen (make-hashtable equal-hash equal?)]
-         [add-unique (lambda (elem lst)
-                             (if (hashtable-ref seen elem #f)
-                                 lst
-                                 (begin
-                                  (hashtable-set! seen elem #t)
-                                  (cons elem lst))))]
-         [seeds (fold-right add-unique '() initial-products)])
+         [seeds (remove-duplicates initial-products eq-fn)])
         (let loop ([elems seeds])
              (let* ([new-sums (apply append
                                      (map (lambda (a)
@@ -410,37 +381,35 @@
                                                                (ring-add r a b))
                                                        elems))
                                           elems))]
-                    [next-elems (fold-right add-unique elems new-sums)])
+                    [next-elems (remove-duplicates (append elems new-sums) eq-fn)])
                    (if (= (length next-elems) (length elems))
                        (make-ideal r next-elems)
                        (loop next-elems))))))
 
 ;;; is-prime-ideal? : Ideal → Boolean
-;;; I is prime if it's proper (I ≠ R) and a×b ∈ I implies a ∈ I or b ∈ I
-;;; Optimized: Uses hash table for O(1) membership testing instead of O(I) linear search
+;;; I is prime if a×b ∈ I implies a ∈ I or b ∈ I
 (define (is-prime-ideal? ideal)
-  (let* ([r (ideal-ring ideal)]
-         [i-elems (ideal-elements ideal)]
-         [r-elems (ring-elements r)]
-         ; Create O(1) membership predicate
-         [in-ideal? (make-membership-predicate i-elems (ring-equal-fn r))])
-        ; First check: ideal must be proper (not contain 1)
-        (and (not (in-ideal? (ring-one r)))
-             (let loop ([as r-elems])
-                  (if (null? as)
-                      #t
-                      (let inner-loop ([bs r-elems])
-                           (if (null? bs)
-                               (loop (cdr as))
-                               (let ([a (car as)]
-                                     [b (car bs)]
-                                     [prod (ring-mul r (car as) (car bs))])
-                                    (if (in-ideal? prod)
-                                        ; If a×b is in ideal, then a or b must be in ideal
-                                        (if (or (in-ideal? a) (in-ideal? b))
-                                            (inner-loop (cdr bs))
-                                            #f)
-                                        (inner-loop (cdr bs)))))))))))
+  (let ([r (ideal-ring ideal)]
+        [i-elems (ideal-elements ideal)]
+        [r-elems (ring-elements r)])
+       (let loop ([as r-elems])
+            (if (null? as)
+                #t
+                (let inner-loop ([bs r-elems])
+                     (if (null? bs)
+                         (loop (cdr as))
+                         (let ([a (car as)]
+                               [b (car bs)]
+                               [prod (ring-mul r (car as) (car bs))])
+                              (if (member-equal prod i-elems (ring-equal-fn r))
+                                  ; If a×b is in ideal, then a or b must be in ideal
+                                  (if (or (member-equal a i-elems (ring-equal-fn r))
+                                          (member-equal b i-elems (ring-equal-fn r)))
+                                      (inner-loop (cdr bs))
+                                      #f)
+                                  (inner-loop (cdr bs))))))))))
+
+;;; is-maximal-ideal? : Ideal → Boolean
 ;;; I is maximal if it's proper and no proper ideal contains it
 ;;; Equivalently: for every x ∉ I, the ideal <I ∪ {x}> = R
 (define (is-maximal-ideal? ideal)
