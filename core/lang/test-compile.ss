@@ -49,6 +49,27 @@
       (test name expected (result-value result))
       (test name expected result)))
 
+;;; Extract the raw value from a typed result (typed type value) -> value
+(define (typed-result-value tv)
+  (if (and (pair? tv) (eq? (car tv) 'typed))
+      (caddr tv)
+      tv))
+
+;;; Test a typed value (extracts from (typed type value))
+(define (test-typed-value name expected result)
+  (if (result-ok? result)
+      (test name expected (typed-result-value (result-value result)))
+      (test name expected result)))
+
+;;; Test that result has expected type
+(define (test-typed-type name expected-type result)
+  (if (result-ok? result)
+      (let ([v (result-value result)])
+           (if (and (pair? v) (eq? (car v) 'typed))
+               (test name expected-type (cadr v))
+               (test name expected-type 'not-typed)))
+      (test name expected-type 'error)))
+
 ;;; ============================================================
 ;;; Result Type Tests
 ;;; ============================================================
@@ -153,19 +174,21 @@
 (display "──────────
 ")
 
-(test-value "eval number" 42 (compile "42" 'to 'eval))
-(test-value "eval string" "hello" (compile "\"hello\"" 'to 'eval))
-(test-value "eval bool true" #t (compile "#t" 'to 'eval))
-(test-value "eval bool false" #f (compile "#f" 'to 'eval))
+;; Eval now returns typed values: (typed type value)
+(test-typed-value "eval number" 42 (compile "42" 'to 'eval))
+(test-typed-type "eval number type" 'Int (compile "42" 'to 'eval))
+(test-typed-value "eval string" "hello" (compile "\"hello\"" 'to 'eval))
+(test-typed-value "eval bool true" #t (compile "#t" 'to 'eval))
+(test-typed-value "eval bool false" #f (compile "#f" 'to 'eval))
 
 ;; Arithmetic via prim (primitives are named add, mul, not +, *)
 (let ([r (compile "(prim 'add 1 2)" 'to 'eval)])
      (test "eval add is ok" #t (result-ok? r))
-     (test "eval add value" 3 (result-value r)))
+     (test-typed-value "eval add value" 3 r))
 
 (let ([r (compile "(prim 'mul 3 4)" 'to 'eval)])
      (test "eval mul is ok" #t (result-ok? r))
-     (test "eval mul value" 12 (result-value r)))
+     (test-typed-value "eval mul value" 12 r))
 
 (display "
 ")
@@ -183,12 +206,12 @@
 ;; Type inference uses implicit application, eval supports both
 (let ([r (compile "((fn (x) x) 42)" 'to 'eval)])
      (test "identity application is ok" #t (result-ok? r))
-     (test "identity returns arg" 42 (result-value r)))
+     (test-typed-value "identity returns arg" 42 r))
 
 ;; K combinator (returns first arg)
 (let ([r (compile "(((fn (x) (fn (y) x)) 1) 2)" 'to 'eval)])
      (test "K combinator is ok" #t (result-ok? r))
-     (test "K returns first" 1 (result-value r)))
+     (test-typed-value "K returns first" 1 r))
 
 (display "
 ")
@@ -204,11 +227,11 @@
 
 (let ([r (compile "(let ((x 10)) x)" 'to 'eval)])
      (test "let binding is ok" #t (result-ok? r))
-     (test "let binding value" 10 (result-value r)))
+     (test-typed-value "let binding value" 10 r))
 
 (let ([r (compile "(let ((x 10)) (let ((y 20)) (prim 'add x y)))" 'to 'eval)])
      (test "nested let is ok" #t (result-ok? r))
-     (test "nested let value" 30 (result-value r)))
+     (test-typed-value "nested let value" 30 r))
 
 (display "
 ")
@@ -226,8 +249,10 @@
 (test "typeof string" 'String (typeof "\"hi\""))
 (test "typeof bool" 'Bool (typeof "#t"))
 
-(test "eval-string number" 42 (eval-string "42"))
-(test "eval-string with prim" 7 (eval-string "(prim 'add 3 4)"))
+;; eval-string now returns typed values
+(test "eval-string number" 42 (typed-result-value (eval-string "42")))
+(test "eval-string type" 'Int (cadr (eval-string "42")))
+(test "eval-string with prim" 7 (typed-result-value (eval-string "(prim 'add 3 4)")))
 
 (display "
 ")

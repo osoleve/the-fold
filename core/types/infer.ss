@@ -86,13 +86,21 @@
 
 ;;; apply-subst : Subst × Type → Type
 ;;; Apply a substitution to a type.
+;;; Includes cycle detection to prevent infinite recursion on malformed substitutions.
 (define (apply-subst s type)
+  (apply-subst-with-visited s type '()))
+
+;;; apply-subst-with-visited : Subst × Type × (List Symbol) → Type
+;;; Helper that tracks visited type variables to detect cycles.
+(define (apply-subst-with-visited s type visited)
   (cond
    [(type-var? type)
-    (let ([replacement (subst-lookup s type)])
-         (if replacement
-             (apply-subst s replacement)  ; Chase chains
-             type))]
+    (if (memq type visited)
+        type  ; Cycle detected, return type variable as-is
+        (let ([replacement (subst-lookup s type)])
+             (if replacement
+                 (apply-subst-with-visited s replacement (cons type visited))  ; Chase chains with cycle detection
+                 type)))]
    [(or (base-type? type) (hole? type)) type]
    [(not (pair? type)) type]
    ;; Don't substitute bound variables
@@ -107,15 +115,15 @@
                              bound-raw)]
            ;; Remove bound vars from substitution
            [s* (filter (lambda (p) (not (memq (car p) bound-names))) s)])
-          `(∀ ,bound-raw ,(apply-subst s* body)))]
+          `(∀ ,bound-raw ,(apply-subst-with-visited s* body visited)))]
    [(eq? (car type) 'μ)
     (let ([var (cadr type)]
           [body (caddr type)])
          (let ([s* (filter (lambda (p) (not (eq? (car p) var))) s)])
-              `(μ ,var ,(apply-subst s* body))))]
+              `(μ ,var ,(apply-subst-with-visited s* body visited))))]
    [else
     (cons (car type)
-          (map (lambda (t) (apply-subst s t)) (cdr type)))]))
+          (map (lambda (t) (apply-subst-with-visited s t visited)) (cdr type)))]))
 
 ;;; compose-subst : Subst × Subst → Subst
 ;;; Compose two substitutions: (compose s1 s2) applies s2 then s1.
@@ -162,6 +170,29 @@
         ;; the programmer knows what they're doing with partial type annotations.
         [(hole? t1) `(ok ,s)]
         [(hole? t2) `(ok ,s)]
+        
+        ;; Recursive types: (μ var1 body1) ~ (μ var2 body2)
+        ;; Handle alpha-equivalence: rename var2 to var1 in body2, then unify bodies
+        ;; CRITICAL: Remove bound variable from resulting substitution!
+        [(and (pair? t1) (pair? t2) (eq? (car t1) 'μ) (eq? (car t2) 'μ))
+         (let ([var1 (cadr t1)]
+               [body1 (caddr t1)]
+               [var2 (cadr t2)]
+               [body2 (caddr t2)])
+              ;; Rename var2 to var1 in body2 for alpha-equivalence
+              (let* ([rename-subst (if (eq? var1 var2)
+                                       '()
+                                       (list (cons var2 var1)))]
+                     [body2-renamed (apply-subst rename-subst body2)]
+                     [result (unify-with s body1 body2-renamed)])
+                    (if (eq? (car result) 'ok)
+                        ;; Remove bound variables from substitution
+                        (let ([unified-subst (cadr result)])
+                             `(ok ,(filter (lambda (p)
+                                                   (not (or (eq? (car p) var1)
+                                                            (eq? (car p) var2))))
+                                           unified-subst)))
+                        result)))]
         
         ;; Both are compound types with same constructor
         [(and (pair? t1) (pair? t2) (eq? (car t1) (car t2)))

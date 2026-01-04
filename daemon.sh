@@ -99,9 +99,20 @@ case "$1" in
 
     status)
         if [ -f "$READY_FILE" ]; then
-            echo "Daemon is running."
             if [ -f "$PID_FILE" ]; then
-                echo "PID: $(cat $PID_FILE)"
+                PID=$(cat "$PID_FILE")
+                if ps -p "$PID" > /dev/null 2>&1; then
+                    echo "Daemon is running."
+                    echo "PID: $PID"
+                else
+                    echo "Daemon is DEAD (stale PID file)."
+                    echo "Ready file exists but process $PID is not running."
+                    echo "Run './daemon.sh stop && ./daemon.sh start' to restart."
+                    exit 1
+                fi
+            else
+                echo "Daemon state inconsistent (ready file but no PID)."
+                exit 1
             fi
         else
             echo "Daemon is not running."

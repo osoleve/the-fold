@@ -1,0 +1,154 @@
+{
+  "review_date": "2026-01-03",
+  "files_reviewed": [
+    "/home/oso/the-fold/core/fp/control/effects.ss",
+    "/home/oso/the-fold/core/fp/control/free.ss",
+    "/home/oso/the-fold/core/fp/control/continuation.ss",
+    "/home/oso/the-fold/core/fp/control/random-effect.ss"
+  ],
+  "findings": [
+    {
+      "file": "/home/oso/the-fold/core/fp/control/effects.ss",
+      "line": 577,
+      "severity": "high",
+      "category": "control-flow",
+      "title": "Reader handler fails to delegate unknown effects (Closed Handler)",
+      "description": "The `run-reader` handler raises an error when encountering unknown effects ('else' clause). This prevents composing the Reader effect with other effects (like State or Writer) if they appear within the dynamic scope of the Reader handling, especially inside `reader-local`. It forces Reader to be the innermost handler, which limits architectural flexibility.",
+      "code_snippet": "[else\n                ;; Unknown effect, can't handle\n                (error 'run-reader \"Unhandled effect\" (effect-tag effect))])])])",
+      "recommendation": "Modify the 'else' branch to re-emit the unknown effect, similar to how `run-state` handles it: `(make-eff-op effect (lambda (resp) (run-reader env (k resp))))`."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/effects.ss",
+      "line": 615,
+      "severity": "high",
+      "category": "control-flow",
+      "title": "Writer listen/pass handlers crash on composed effects",
+      "description": "In `writer-listen` and `writer-pass`, the handler recursively calls `run-writer` on the inner computation and assumes the result is a pair `(val . log)`. If the inner computation contains unhandled effects (passed through by `run-writer`'s else clause), `run-writer` returns an `Eff` (Op) instead of a pair. `(car inner-result)` will then attempt to access the Op structure as a value, leading to a crash or type error.",
+      "code_snippet": "[(writer-listen)\n                ;; Run inner computation, capture its log\n                (let* ([inner (effect-payload effect)]\n                       [inner-result (run-writer inner)]\n                       [inner-val (car inner-result)]\n                       [inner-log (cdr inner-result)])",
+      "recommendation": "The handler needs to check if `inner-result` is a pure value (pair) or an effect operation. If it's an operation, it must be lifted/bubbled up, effectively requiring a more complex interleaving of handlers (lifting the other effect over the writer log collection)."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/effects.ss",
+      "line": 258,
+      "severity": "high",
+      "category": "performance",
+      "title": "Quadratic complexity in Eff monad bind",
+      "description": "The `eff-bind` (and `free-bind` in `free.ss`) implementation performs a deep traversal of the left-hand side `Eff` structure to attach the continuation. Chains of left-associative binds (common in imperative-style blocks) result in O(N^2) complexity.",
+      "code_snippet": "[(eff-op? ma)\n    (make-eff-op (eff-op-effect ma)\n                 (lambda (resp)\n                         (eff-bind ((eff-op-cont ma) resp) f)))])",
+      "recommendation": "Implement a specialized representation for the Free monad (e.g., using a sequence of continuations or Church encoding/Codensity transformation) to support O(1) append/bind operations, or document the performance characteristic strictly."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/effects.ss",
+      "line": 734,
+      "severity": "high",
+      "category": "control-flow",
+      "title": "NonDet handler fails to delegate unknown effects",
+      "description": "Similar to `run-reader`, `run-nondet` (via `run-nondet-acc`) errors on unknown effects. This prevents interleaving NonDet with State (e.g., trying to maintain global state across branches) unless State is handled strictly inside NonDet. It prevents `(run-state s (run-nondet ...))` from working if the inner code emits State effects.",
+      "code_snippet": "[else\n                (error 'run-nondet \"Unhandled effect\" (effect-tag effect))])])])",
+      "recommendation": "Update `run-nondet-acc` to pass through unknown effects, distributing them across the non-deterministic branches or threading them appropriately."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/random-effect.ss",
+      "line": 118,
+      "severity": "low",
+      "category": "performance",
+      "title": "Linear time complexity in random-weighted-eff",
+      "description": "`random-weighted-eff` performs a linear scan (O(N)) of the list for each sample. For repeated sampling from large distributions, this is inefficient.",
+      "code_snippet": "(let loop ([lst weighted-list] [acc 0])\n                                       (let ([new-acc (+ acc (cdar lst))])\n                                            (if (or (< r new-acc) (null? (cdr lst)))\n                                                (caar lst)\n                                                (loop (cdr lst) new-acc))))",
+      "recommendation": "For single samples, this is acceptable. For repeated sampling, implement Walker's Alias Method (O(1) sampling after O(N) setup) or a binary search over cumulative weights (O(log N))."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/effects.ss",
+      "line": 861,
+      "severity": "medium",
+      "category": "control-flow",
+      "title": "Async handler enforces synchronization boundary",
+      "description": "`run-async-sync` fails on unhandled effects within the forked computation. This means you cannot fork a computation that uses effects handled by an outer handler (e.g., an outer Reader or State), severely limiting the utility of the Async effect in composed systems.",
+      "code_snippet": "[else\n                (error 'run-async-sync \"Unhandled effect\" (effect-tag effect))])])])",
+      "recommendation": "Allow `run-async-sync` to bubble up unhandled effects found within the forked computation."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/effects.ss",
+      "line": 864,
+      "severity": "medium",
+      "category": "memory",
+      "title": "Global mutable gensym counter is not thread-safe",
+      "description": "The `*gensym-counter*` variable at line 864 is a global mutable state modified via `set!`. In a multi-session REPL daemon environment, concurrent access to this counter could lead to race conditions and duplicate future IDs.",
+      "code_snippet": "(define *gensym-counter* 0)\n(define (eff-gensym prefix)\n  (set! *gensym-counter* (+ *gensym-counter* 1))\n  (cons prefix *gensym-counter*))",
+      "recommendation": "Use a session-local counter passed through the effect handler, or use atomic operations if the Scheme implementation supports them. Consider making the counter part of the async handler state."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/continuation.ss",
+      "line": 209,
+      "severity": "medium",
+      "category": "control-flow",
+      "title": "Backtracking choose may not explore all branches",
+      "description": "The `choose` function uses `callCC` to capture the continuation, but the backtracking logic checks `(just? result)` to decide whether to continue. If the computation returns `nothing` intentionally (not due to failure), it will be misinterpreted as a failed branch, causing spurious backtracking.",
+      "code_snippet": "(let ([result (run-cont (k (car remaining)) identity)])\n                                (if (just? result)\n                                    (cont-return (car remaining))\n                                    (loop (cdr remaining))))",
+      "recommendation": "Use a distinct failure token (e.g., a unique symbol or box) rather than relying on `nothing` which may be a valid return value. Or document that `nothing` is reserved for failure in this context."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/continuation.ss",
+      "line": 268,
+      "severity": "medium",
+      "category": "memory",
+      "title": "Generator accumulates values via append (O(N^2))",
+      "description": "In `generator-to-list`, values are accumulated using `(append values (list val))` which creates a new list on each yield. For generators that yield N values, this results in O(N^2) time complexity.",
+      "code_snippet": "(set! values (append values (list val)))",
+      "recommendation": "Use `cons` to prepend values and `reverse` at the end, or use a tail-recursive accumulator pattern."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/free.ss",
+      "line": 87,
+      "severity": "high",
+      "category": "performance",
+      "title": "Free monad bind has quadratic complexity",
+      "description": "The `free-bind` function recursively wraps continuations in a way that causes O(N^2) complexity for left-associated bind chains. Each bind traverses the entire structure built so far.",
+      "code_snippet": "(define (free-bind fmap fr f)\n  (if (pure-free? fr)\n      (f (from-pure-free fr))\n      (free (fmap (lambda (inner) (free-bind fmap inner f))\n                  (from-free fr)))))",
+      "recommendation": "Implement the Codensity transformation or use a continuation-passing representation to achieve O(1) bind operations. This is a well-known optimization for free monads."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/free.ss",
+      "line": 199,
+      "severity": "low",
+      "category": "control-flow",
+      "title": "kv-fmap errors on unknown commands without recovery",
+      "description": "The `kv-fmap` function calls `error` on unknown command tags. In a production DSL, this prevents extensibility and makes debugging harder.",
+      "code_snippet": "[else (error 'kv-fmap \"Unknown command\")]",
+      "recommendation": "Consider returning a sentinel value or using a more extensible pattern (e.g., a default case handler or open recursion)."
+    },
+    {
+      "file": "/home/oso/the-fold/core/fp/control/random-effect.ss",
+      "line": 263,
+      "severity": "medium",
+      "category": "control-flow",
+      "title": "random-split uses first child for continuation instead of second",
+      "description": "In `run-random-helper`, after splitting the generator, the continuation is run with the first child `(car children)`. This means both the returned pair AND the subsequent computation use the same generator stream, which defeats the purpose of splitting for independent parallel streams.",
+      "code_snippet": "[(random-split)\n                (let ([children (gen-split gen)])\n                     ;; Return the pair of children, continue with first child\n                     (run-random-helper (car children) (k children)))]",
+      "recommendation": "Continue with the second child `(cadr children)` or a newly split third generator to ensure the returned generators and the continuation use independent streams."
+    }
+  ],
+  "summary": {
+    "total_findings": 12,
+    "by_severity": {
+      "critical": 0,
+      "high": 5,
+      "medium": 5,
+      "low": 2
+    },
+    "by_category": {
+      "control-flow": 7,
+      "performance": 3,
+      "memory": 2
+    }
+  },
+  "notes": {
+    "excluded_known_issues": [
+      "effects.ss: reader-local environment leak (being fixed separately)",
+      "random-effect.ss line 145: O(N^2) list shuffling (known)",
+      "random-effect.ss line 221: PCG PRNG used for crypto placeholders (not secure, known)"
+    ],
+    "reviewer": "gemini-3-pro-preview",
+    "review_method": "static_analysis"
+  }
+}

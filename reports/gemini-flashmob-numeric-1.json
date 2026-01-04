@@ -1,0 +1,85 @@
+{
+  "review_summary": "The review confirmed all three known issues and identified critical additional bugs, including crashes on empty inputs in convolution, fundamental algorithmic inability to handle complex eigenvalues in matrix solvers, and numerical stability risks in complex arithmetic.",
+  "files_reviewed": [
+    "core/numeric/complex.ss",
+    "core/numeric/convolution.ss",
+    "core/linalg/matrix-eigen.ss"
+  ],
+  "known_issues_confirmed": [
+    {
+      "file": "core/numeric/complex.ss",
+      "line": 206,
+      "function": "complex-pow",
+      "issue": "complex-pow 0^w returns wrong value for essential singularity (when w has non-zero imaginary part)",
+      "severity": "P1",
+      "confirmed": true,
+      "analysis": "The code returns 0 for 0^w when Re(w) >= 0 (and w != 0). For purely imaginary w (or Re(w)=0, Im(w)!=0), the limit of 0^w as base approaches 0 is undefined (oscillates on the unit circle), but the function incorrectly returns 0."
+    },
+    {
+      "file": "core/numeric/convolution.ss",
+      "line": 295,
+      "function": "normalize-signal",
+      "issue": "normalize-signal division by zero on empty vectors",
+      "severity": "P1",
+      "confirmed": true,
+      "analysis": "The function calculates mean as (/ sum n). If the input vector is empty, n is 0, resulting in a division by zero error immediately after the sum loop."
+    },
+    {
+      "file": "core/linalg/matrix-eigen.ss",
+      "line": 182,
+      "function": "qr-algorithm-shifted-loop / eigen-decomposition",
+      "issue": "QR deflation flawed, unit vector fallback mathematically incorrect",
+      "severity": "P1",
+      "confirmed": true,
+      "analysis": "Deflation logic (checking only A[i][i-1]) fails to account for 2x2 blocks characteristic of complex eigenvalues in real matrices, leading to non-convergence. Additionally, eigen-decomposition falls back to returning an arbitrary unit vector when inverse iteration fails, which is mathematically false and produces invalid eigenvectors."
+    }
+  ],
+  "additional_bugs_found": [
+    {
+      "file": "core/numeric/convolution.ss",
+      "line": 38,
+      "function": "convolve-direct-full",
+      "bug_type": "edge_case",
+      "issue": "Crash on empty input vectors due to negative vector allocation size",
+      "severity": "P0",
+      "reproduction": "(convolve-direct-full #() #())",
+      "suggested_fix": "Add guards for empty input vectors (n=0 or m=0) to return an empty vector immediately."
+    },
+    {
+      "file": "core/linalg/matrix-eigen.ss",
+      "line": 219,
+      "function": "wilkinson-shift",
+      "bug_type": "logic_error",
+      "issue": "Inability to find complex eigenvalues due to real-only shift fallback",
+      "severity": "P2",
+      "reproduction": "Run eigen-decomposition on a rotation matrix (e.g., [[0 -1], [1 0]]).",
+      "suggested_fix": "Implement complex arithmetic support for shifts or Francis's Double Shift algorithm to handle complex conjugate pairs in real matrices."
+    },
+    {
+      "file": "core/numeric/complex.ss",
+      "line": 123,
+      "function": "complex-div",
+      "bug_type": "numerical_stability",
+      "issue": "Potential overflow/underflow in denominator calculation (c^2 + d^2)",
+      "severity": "P2",
+      "reproduction": "Divide by a complex number with very large or very small components.",
+      "suggested_fix": "Use Smith's method (scaling) to compute the division robustly."
+    },
+    {
+      "file": "core/linalg/matrix-eigen.ss",
+      "line": 182,
+      "function": "qr-algorithm-shifted-loop",
+      "bug_type": "logic_error",
+      "issue": "Iteration counter is not reset between deflations",
+      "severity": "P2",
+      "reproduction": "Compute eigenvalues for a large matrix where the first eigenvalue takes many iterations.",
+      "suggested_fix": "Reset iter to 0 or use a per-eigenvalue budget when recursing for the deflated matrix."
+    }
+  ],
+  "total_bugs": 7,
+  "metadata": {
+    "reviewer": "gemini-3-pro-preview",
+    "review_date": "2026-01-03",
+    "session_id": "4df14355-9ae9-41fb-8e35-b4e2faef9930"
+  }
+}
