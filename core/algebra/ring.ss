@@ -321,7 +321,7 @@
                      (let inner-loop ([bs i-elems])
                           (if (null? bs)
                               (loop (cdr as))
-                              (and (member (ring-add r (car as) (car bs)) i-elems)
+                              (and (member-equal (ring-add r (car as) (car bs)) i-elems (ring-equal-fn r))
                                    (inner-loop (cdr bs)))))))
             ; Check closure under ring multiplication
             (let loop ([rs r-elems])
@@ -330,8 +330,8 @@
                      (let inner-loop ([is i-elems])
                           (if (null? is)
                               (loop (cdr rs))
-                              (and (member (ring-mul r (car rs) (car is)) i-elems)
-                                   (member (ring-mul r (car is) (car rs)) i-elems)
+                              (and (member-equal (ring-mul r (car rs) (car is)) i-elems (ring-equal-fn r))
+                                   (member-equal (ring-mul r (car is) (car rs)) i-elems (ring-equal-fn r))
                                    (inner-loop (cdr is))))))))))
 
 ;;; make-principal-ideal : Ring × Element → Ideal
@@ -359,17 +359,28 @@
 
 ;;; ideal-product : Ideal × Ideal → Ideal
 ;;; I × J = {finite sums of i×j | i ∈ I, j ∈ J}
+;;; Computes additive closure via fixed-point iteration
 (define (ideal-product i1 i2)
   (let* ([r (ideal-ring i1)]
-         [products (apply append
-                          (map (lambda (a)
-                                       (map (lambda (b)
-                                                    (ring-mul r a b))
-                                            (ideal-elements i2)))
-                               (ideal-elements i1)))]
-         ; Generate all finite sums of products
-         [elems (remove-duplicates products (ring-equal-fn r))])
-        (make-ideal r elems)))
+         [eq-fn (ring-equal-fn r)]
+         [initial-products (apply append
+                                  (map (lambda (a)
+                                               (map (lambda (b)
+                                                            (ring-mul r a b))
+                                                    (ideal-elements i2)))
+                                       (ideal-elements i1)))]
+         [seeds (remove-duplicates initial-products eq-fn)])
+        (let loop ([elems seeds])
+             (let* ([new-sums (apply append
+                                     (map (lambda (a)
+                                                  (map (lambda (b)
+                                                               (ring-add r a b))
+                                                       elems))
+                                          elems))]
+                    [next-elems (remove-duplicates (append elems new-sums) eq-fn)])
+                   (if (= (length next-elems) (length elems))
+                       (make-ideal r next-elems)
+                       (loop next-elems))))))
 
 ;;; is-prime-ideal? : Ideal → Boolean
 ;;; I is prime if a×b ∈ I implies a ∈ I or b ∈ I
@@ -386,9 +397,10 @@
                          (let ([a (car as)]
                                [b (car bs)]
                                [prod (ring-mul r (car as) (car bs))])
-                              (if (member prod i-elems)
+                              (if (member-equal prod i-elems (ring-equal-fn r))
                                   ; If a×b is in ideal, then a or b must be in ideal
-                                  (if (or (member a i-elems) (member b i-elems))
+                                  (if (or (member-equal a i-elems (ring-equal-fn r))
+                                          (member-equal b i-elems (ring-equal-fn r)))
                                       (inner-loop (cdr bs))
                                       #f)
                                   (inner-loop (cdr bs))))))))))
@@ -400,7 +412,7 @@
         [i-elems (ideal-elements ideal)]
         [r-elems (ring-elements r)])
        ; Check if ideal is proper (doesn't contain 1)
-       (and (not (member (ring-one r) i-elems))
+       (and (not (member-equal (ring-one r) i-elems (ring-equal-fn r)))
             ; Check no proper ideal contains it
             ; (For finite rings, check R/I is a field)
             #t)))  ; Simplified check
