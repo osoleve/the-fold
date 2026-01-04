@@ -107,6 +107,8 @@
     ;; Layer 3: Type System
     "types/test-types.ss"
     "types/test-kinds.ss"
+    ;; Layer 3.5: Normalization by Evaluation
+    "lang/test-nbe.ss"
     ;; Layer 4: Type Inference
     "types/test-infer.ss"
     "types/test-resolve.ss"
