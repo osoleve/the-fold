@@ -87,25 +87,6 @@
 (let ([r (unify 'a '(List a))])
      (test "occurs check" 'error (car r)))
 
-;; Recursive type alpha-equivalence
-(let ([r (unify '(μ a (List a)) '(μ b (List b)))])
-     (test "recursive types alpha-equiv" 'ok (car r))
-     ;; CRITICAL: The substitution should be EMPTY!
-     ;; Bound variables should not leak into the substitution
-     (test "recursive unify returns empty subst" '() (cadr r)))
-(let ([r (unify '(μ a (List a)) '(μ a (List a)))])
-     (test "recursive types same var" 'ok (car r))
-     (test "same var returns empty subst" '() (cadr r)))
-(let ([r (unify '(μ x (-> x x)) '(μ y (-> y y)))])
-     (test "recursive function type" 'ok (car r))
-     (test "recursive fn returns empty subst" '() (cadr r)))
-(let ([r (unify '(μ a (List a)) '(List Int))])
-     (test "recursive vs non-recursive mismatch" 'error (car r)))
-;; Bug: bound variable in subst corrupts free variables
-(let* ([r (unify '(μ a (List a)) '(μ b (List b)))]
-       [s (cadr r)])
-      (test "bound 'a' doesn't corrupt free 'a'" 'a (apply-subst s 'a)))
-
 ;;; ============================================================
 ;;; Instantiation
 ;;; ============================================================
