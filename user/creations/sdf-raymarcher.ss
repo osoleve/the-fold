@@ -342,25 +342,25 @@
 (define (quick-torus angle)
   "Render a single torus frame at given angle"
   (let* ([scene (make-torus-scene angle)]
-         [frame (render-sdf-frame scene *default-camera* 60 24)])
+         [frame (render-sdf-frame scene *default-camera* 54 22)])  ; 54 fits Discord
         (frame-render-to-string frame)))
 
 (define (quick-blobs t)
   "Render morphing blobs at time t"
   (let* ([scene (make-morphing-blobs-scene t)]
-         [frame (render-sdf-frame scene *default-camera* 60 24)])
+         [frame (render-sdf-frame scene *default-camera* 54 22)])
         (frame-render-to-string frame)))
 
 (define (quick-atom angle)
   "Render atom at given angle"
   (let* ([scene (make-atom-scene angle)]
-         [frame (render-sdf-frame scene *close-camera* 60 24)])
+         [frame (render-sdf-frame scene *close-camera* 54 22)])
         (frame-render-to-string frame)))
 
 (define (quick-csg angle)
   "Render CSG scene (sphere - box)"
   (let* ([scene (make-csg-scene angle)]
-         [frame (render-sdf-frame scene *dramatic-camera* 60 24)])
+         [frame (render-sdf-frame scene *dramatic-camera* 54 22)])
         (frame-render-to-string frame)))
 
 ;;; For Discord: wrap in code block

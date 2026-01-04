@@ -98,17 +98,17 @@
 
 (define (quick-noise)
   "Quick smooth noise render"
-  (let ([frame (render-noise 60 24 8.0 4 0.0)])
+  (let ([frame (render-noise 54 22 8.0 4 0.0)])  ; 54 chars fits Discord
        (frame-render-to-string frame)))
 
 (define (quick-noise-fine)
   "Fine-grained noise"
-  (let ([frame (render-noise 60 24 4.0 6 42.0)])
+  (let ([frame (render-noise 54 22 4.0 6 42.0)])
        (frame-render-to-string frame)))
 
 (define (quick-clouds)
   "Cloud-like turbulent noise"
-  (let ([frame (render-noise 60 24 12.0 5 123.0)])
+  (let ([frame (render-noise 54 22 12.0 5 123.0)])
        (frame-render-to-string frame)))
 
 ;;; Discord wrappers

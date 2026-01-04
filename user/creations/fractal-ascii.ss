@@ -226,17 +226,17 @@
 
 (define (quick-mandelbrot)
   "Quick Mandelbrot render"
-  (let ([frame (render-mandelbrot 60 24 -2.5 1.0 -1.2 1.2 50)])
+  (let ([frame (render-mandelbrot 54 22 -2.5 1.0 -1.2 1.2 50)])  ; 54 fits Discord
        (frame-render-to-string frame)))
 
 (define (quick-julia c)
   "Quick Julia set render"
-  (let ([frame (render-julia 60 24 c -1.5 1.5 -1.0 1.0 50)])
+  (let ([frame (render-julia 54 22 c -1.5 1.5 -1.0 1.0 50)])
        (frame-render-to-string frame)))
 
 (define (quick-burning-ship)
   "Quick Burning Ship render"
-  (let ([frame (render-burning-ship 60 24 -2.0 1.0 -1.8 0.6 50)])
+  (let ([frame (render-burning-ship 54 22 -2.0 1.0 -1.8 0.6 50)])
        (frame-render-to-string frame)))
 
 ;;; Discord wrappers
