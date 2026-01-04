@@ -47,8 +47,9 @@
          [r0-R 2.5] [r0-r 0.10]
          [r0-axis (vec3-normalize (vec3 0.2 1 0.3))]  ; Slight tilt
          [r0-angle (* t 2)]
-         ;; Outer ring: 3 rotations
+         ;; Outer ring: 3 rotations (tilted axis so it visibly moves!)
          [r1-R 2.0] [r1-r 0.09]
+         [r1-axis (vec3-normalize (vec3 0.5 1 0.2))]
          [r1-angle (* t 3)]
          ;; Middle ring: 5 rotations
          [r2-R 1.5] [r2-r 0.08]
@@ -67,8 +68,8 @@
                        [p0 (rotate-axis p r0-axis (- r0-angle))]
                        [d0 (sdf-torus p0 (vec3 0 0 0) r0-R r0-r)]
                        
-                       ;; Outer ring (Y-axis rotation)
-                       [p1 (rotate-y p (- r1-angle))]
+                       ;; Outer ring (tilted axis rotation)
+                       [p1 (rotate-axis p r1-axis (- r1-angle))]
                        [d1 (sdf-torus p1 (vec3 0 0 0) r1-R r1-r)]
                        
                        ;; Middle ring (tilted axis)
