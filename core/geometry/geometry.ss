@@ -578,9 +578,13 @@
 
 ;;; aabb-from-points : (List Point3) → AABB
 ;;; Compute minimal AABB containing all points
+;;; Returns a "null" AABB (min > max) for empty input, which merges correctly
 (define (aabb-from-points points)
   (if (null? points)
-      (aabb (vec3-zero) (vec3-zero))
+      ;; Empty AABB: min=+inf, max=-inf
+      ;; This ensures correct merging: any real point will establish proper bounds
+      (aabb (vec3 +inf.0 +inf.0 +inf.0)
+            (vec3 -inf.0 -inf.0 -inf.0))
       (let loop ([pts (cdr points)]
                  [min-p (car points)]
                  [max-p (car points)])
