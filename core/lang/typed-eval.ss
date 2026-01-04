@@ -45,23 +45,15 @@
   `(typed ,type ,value))
 
 (define (typed? v)
-  ;; A valid typed value must be a 3-element list: (typed Type Value)
-  ;; This prevents user data like '(typed foo) or '(typed a b c d) from being mistaken
-  (and (pair? v)
-       (eq? (car v) 'typed)
-       (pair? (cdr v))
-       (pair? (cddr v))
-       (null? (cdddr v))))
+  (and (pair? v) (eq? (car v) 'typed)))
 
 (define (typed-type tv)
   (if (typed? tv) (cadr tv) '?))
 
 (define (typed-value tv)
-  ;; Extract the value from a typed wrapper, without recursion.
-  ;; Recursive unwrapping can corrupt user data that looks like (typed ...).
   (if (typed? tv)
-      (caddr tv)   ; Extract value (one level only)
-      tv))         ; Not typed, return as-is
+      (typed-value (caddr tv))  ; Recursively unwrap nested typed values
+      tv))
 
 ;;; ============================================================
 ;;; Type-Check Then Evaluate
