@@ -189,6 +189,18 @@
   (test-true "sin has type" (and (lookup-prim-type 'sin) #t))
   (test-true "cos has type" (and (lookup-prim-type 'cos) #t))
   
+  ;; Inverse trig (differentiable)
+  (test-true "d-tan has type" (and (lookup-prim-type 'd-tan) #t))
+  (test-true "d-asin has type" (and (lookup-prim-type 'd-asin) #t))
+  (test-true "d-acos has type" (and (lookup-prim-type 'd-acos) #t))
+  (test-true "d-atan has type" (and (lookup-prim-type 'd-atan) #t))
+  (test-true "d-atan2 has type" (and (lookup-prim-type 'd-atan2) #t))
+  
+  ;; Linear algebra (differentiable)
+  (test-true "d-dot has type" (and (lookup-prim-type 'd-dot) #t))
+  (test-true "d-matmul has type" (and (lookup-prim-type 'd-matmul) #t))
+  (test-true "d-transpose has type" (and (lookup-prim-type 'd-transpose) #t))
+  
   ;;; ============================================================
   ;;; Type Inference for Diff Types
   ;;; ============================================================

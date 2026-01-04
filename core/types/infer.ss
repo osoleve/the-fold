@@ -789,7 +789,22 @@
     (d-log . (-> (Diff Real) (Diff Real)))
     (d-sin . (-> (Diff Real) (Diff Real)))
     (d-cos . (-> (Diff Real) (Diff Real)))
-    (d-pow . (-> (Diff Real) (Diff Real) (Diff Real)))))
+    (d-pow . (-> (Diff Real) (Diff Real) (Diff Real)))
+    
+    ;; Inverse trigonometry (differentiable)
+    (d-tan . (-> (Diff Real) (Diff Real)))
+    (d-asin . (-> (Diff Real) (Diff Real)))
+    (d-acos . (-> (Diff Real) (Diff Real)))
+    (d-atan . (-> (Diff Real) (Diff Real)))
+    (d-atan2 . (-> (Diff Real) (Diff Real) (Diff Real)))
+    
+    ;; Linear algebra (differentiable)
+    ;; d-dot : inner product of two vectors
+    (d-dot . (∀ (n) (-> (Diff (Vec n Real)) (Diff (Vec n Real)) (Diff Real))))
+    ;; d-matmul : matrix multiplication
+    (d-matmul . (∀ (m n p) (-> (Diff (Matrix m n Real)) (Diff (Matrix n p Real)) (Diff (Matrix m p Real)))))
+    ;; d-transpose : matrix transpose
+    (d-transpose . (∀ (m n) (-> (Diff (Matrix m n Real)) (Diff (Matrix n m Real)))))))
 
 (define (lookup-prim-type op)
   (let ([entry (assq op prim-types)])
