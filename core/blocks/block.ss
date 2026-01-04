@@ -118,6 +118,7 @@
 ;;; bytes->block : Bytevector → Block
 ;;; Deserialize a block from its canonical byte representation.
 ;;; Validates bounds to prevent malformed input from causing errors.
+;;; Supports both old format (32-byte refs) and new format (33-byte refs).
 (define (bytes->block bv)
   (let ([bv-len (bytevector-length bv)])
        ;; Ensure minimum size for tag length field
@@ -150,18 +151,31 @@
                        (error 'bytes->block "bytevector too short for refs count" pos bv-len))]
               [refs-count (bytes-le->u32 bv pos)]
               [_ (set! pos (+ pos 4))]
+              ;; Detect format: check if remaining bytes fit new (33-byte) or old (32-byte) refs
+              [remaining (- bv-len pos)]
+              [old-ref-size hash-size]  ; Old format used 32-byte refs
+              [use-old-format (and (> refs-count 0)
+                                   (not (= remaining (* refs-count address-size)))
+                                   (= remaining (* refs-count old-ref-size)))]
+              [actual-ref-size (if use-old-format old-ref-size address-size)]
               ;; Validate refs total size
-              [refs-total-size (* refs-count address-size)]
+              [refs-total-size (* refs-count actual-ref-size)]
               [_ (when (> (+ pos refs-total-size) bv-len)
                        (error 'bytes->block "refs exceed bytevector bounds" refs-count bv-len))]
               [refs (make-vector refs-count)])
-             ;; Read each ref
+             ;; Read each ref, upgrading old format if needed
              (do ([i 0 (+ i 1)])
                  ((= i refs-count))
                  (let ([ref (make-bytevector address-size)])
-                      (bytevector-copy! bv pos ref 0 address-size)
+                      (if use-old-format
+                          ;; Old format: add version byte prefix
+                          (begin
+                           (bytevector-u8-set! ref 0 address-version)
+                           (bytevector-copy! bv pos ref 1 old-ref-size))
+                          ;; New format: copy directly
+                          (bytevector-copy! bv pos ref 0 address-size))
                       (vector-set! refs i ref)
-                      (set! pos (+ pos address-size))))
+                      (set! pos (+ pos actual-ref-size))))
              (make-block tag payload refs))))
 
 ;;; ============================================================
