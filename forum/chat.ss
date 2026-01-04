@@ -1019,7 +1019,9 @@
   (filter (lambda (hash-post)
                   (let ([post (cdr hash-post)])
                        (and (or (not type-filter)
-                                (eq? (cdr (assq 'message-type post)) type-filter))
+                                (let ([msg-type (assq 'message-type post)])
+                                     (and msg-type
+                                          (eq? (cdr msg-type) type-filter))))
                             (or (not mentions-me?)
                                 (and session
                                      (let ([mentions (assq 'mentions post)])
