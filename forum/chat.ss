@@ -816,17 +816,24 @@
 ;;; Convenience: who/0 — Show Current Session
 ;;; ============================================================
 
-;;; who : → void
-;;; Display current session info.
-(define (who)
+;;; who-string : → String
+;;; Build session info string.
+;;; Returns string with session information or login prompt.
+(define (who-string)
   (let ([session (read-session)])
        (if session
            (let ([name (cdr (assq 'name session))]
                  [tier (cdr (assq 'tier session))]
                  [time (cdr (assq 'login-time session))])
-                (display (format "Logged in as: ~a (~a)\n" name tier))
-                (display (format "Since: ~a\n" time)))
-           (display "No active session. Use (hi tier name txt) to login.\n"))))
+                (string-append
+                 (format "Logged in as: ~a (~a)\n" name tier)
+                 (format "Since: ~a\n" time)))
+           "No active session. Use (hi tier name txt) to login.\n")))
+
+;;; who : → void
+;;; Display current session info.
+(define (who)
+  (display (who-string)))
 
 ;;; ============================================================
 ;;; Convenience: Browse Functions
