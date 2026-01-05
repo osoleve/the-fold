@@ -22,6 +22,14 @@ from .step import (
     mock_evaluator,
     mock_api_client,
 )
+from .loop import (
+    run_loop,
+    run_loop_to_completion,
+    LoopConfig,
+    LoopResult,
+    MetaEvaluator,
+    parse_meta_command,
+)
 
 __all__ = [
     # Parse
@@ -43,4 +51,12 @@ __all__ = [
     "fold_evaluator",
     "mock_evaluator",
     "mock_api_client",
+
+    # Loop
+    "run_loop",
+    "run_loop_to_completion",
+    "LoopConfig",
+    "LoopResult",
+    "MetaEvaluator",
+    "parse_meta_command",
 ]
