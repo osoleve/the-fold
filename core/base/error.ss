@@ -69,15 +69,15 @@
 (define (make-error phase code context . details)
   `(error ,phase ,code ,context ,@details))
 
-;;; error-phase : Error → Symbol
+;;; error-phase : Error → (Option Symbol)
 (define (error-phase err)
   (and (error? err) (cadr err)))
 
-;;; error-code : Error → Symbol
+;;; error-code : Error → (Option Symbol)
 (define (error-code err)
   (and (error? err) (caddr err)))
 
-;;; error-context : Error → Any
+;;; error-context : Error → (Option α)
 (define (error-context err)
   (and (error? err) (cadddr err)))
 
@@ -85,7 +85,7 @@
 (define (error-details err)
   (and (error? err) (cddddr err)))
 
-;;; error? : Any → Boolean
+;;; error? : α → Boolean
 (define (error? x)
   (and (pair? x)
        (eq? (car x) 'error)
@@ -102,7 +102,7 @@
 ;;; Error Message Lookup
 ;;; ============================================================
 
-;;; lookup-error-message : Phase × Code → String
+;;; lookup-error-message : Symbol × Symbol → String
 (define (lookup-error-message phase code)
   (let* ([table (case phase
                       [(parse) *parse-errors*]
@@ -119,7 +119,7 @@
 ;;; Error Formatting
 ;;; ============================================================
 
-;;; format-error : Error → String
+;;; format-error : α → String
 ;;; Format an error for display.
 (define (format-error err)
   (if (not (error? err))
@@ -141,7 +141,7 @@
 (define (format-phase phase)
   (format "[~a] " phase))
 
-;;; format-location : Context → String
+;;; format-location : α → String
 (define (format-location ctx)
   (cond
    [(span? ctx)
@@ -154,7 +154,7 @@
    [(string? ctx) (format "~a: " ctx)]
    [else ""]))
 
-;;; format-details : Code × Details → String
+;;; format-details : Symbol × (List α) → String
 (define (format-details code details)
   (if (null? details)
       ""
@@ -184,7 +184,7 @@
 ;;; Suggestions
 ;;; ============================================================
 
-;;; format-suggestion : Phase × Code × Details → String
+;;; format-suggestion : Symbol × Symbol × (List α) → String
 (define (format-suggestion phase code details)
   (let ([suggestion (get-suggestion phase code details)])
        (if suggestion
@@ -192,7 +192,7 @@
   hint: ~a" suggestion)
            "")))
 
-;;; get-suggestion : Phase × Code × Details → String | #f
+;;; get-suggestion : Symbol × Symbol × (List α) → (Option String)
 (define (get-suggestion phase code details)
   (case code
         [(unbound-variable)
@@ -218,7 +218,7 @@
          "Add a closing \" to complete the string"]
         [else #f]))
 
-;;; similar-to? : Symbol × Symbol → Boolean
+;;; similar-to? : α × β → Boolean
 ;;; Check if two symbols are similar (for typo detection).
 (define (similar-to? s1 s2)
   (and (symbol? s1) (symbol? s2)
@@ -230,13 +230,13 @@
 ;;; Pretty Printing
 ;;; ============================================================
 
-;;; print-error : Error → void
+;;; print-error : Error → Void
 ;;; Print a formatted error to current output.
 (define (print-error err)
   (display (format-error err))
   (newline))
 
-;;; print-error-with-source : Error × String → void
+;;; print-error-with-source : Error × String → Void
 ;;; Print error with source code context.
 (define (print-error-with-source err source)
   (let ([ctx (error-context err)])
@@ -246,7 +246,7 @@
              (display-source-context source (span-line ctx) (span-column ctx)))
        (newline)))
 
-;;; display-source-context : String × Int × Int → void
+;;; display-source-context : String × Nat × Nat → Void
 ;;; Show the relevant line with an underline pointer.
 (define (display-source-context source line col)
   (let ([lines (string-split source #\newline)])
@@ -270,14 +270,14 @@
 (define (unbound-error var span)
   (make-error 'infer 'unbound-variable span var))
 
-;;; type-error : Type × Type × Span → Error
+;;; type-error : α × β × Span → Error
 (define (type-error expected actual span)
   (make-error 'infer 'type-mismatch span expected actual))
 
-;;; parse-error : Code × String × Int → Error
+;;; parse-error : Symbol × String × Nat → Error
 (define (parse-error code expected position)
   (make-error 'parse code (make-span "<input>" 1 position 1 position) expected))
 
-;;; eval-error : Code × Any × Span → Error
+;;; eval-error : Symbol × α × Span → Error
 (define (eval-error code value span)
   (make-error 'eval code span value))

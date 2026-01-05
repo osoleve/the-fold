@@ -260,11 +260,13 @@
 ;;; Let Evaluation
 ;;; ============================================================
 
+;;; eval-let : (List Binding) × Expr × Env × Fuel → (Result Value Error)
 (define (eval-let bindings body env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (let ,bindings ,body) ,env)
       (eval-let-bindings bindings body env '() fuel)))
 
+;;; eval-let-bindings : (List Binding) × Expr × Env × (List (Pair Symbol Value)) × Fuel → (Result Value Error)
 (define (eval-let-bindings bindings body env acc fuel)
   (if (null? bindings)
       ;; All bindings evaluated — evaluate body in extended env
@@ -312,6 +314,7 @@
 ;;; See forum/engineering/0011-adr-002-eval-mutation-exception.sexp
 ;;; ============================================================
 
+;;; eval-fix : Symbol × Expr × Env × Fuel → (Result Closure Error)
 (define (eval-fix name fn-expr env fuel)
   ;; fn-expr should be (fn (params...) body)
   (if (and (pair? fn-expr) (eq? (car fn-expr) 'fn))
@@ -329,6 +332,7 @@
 ;;; If Evaluation
 ;;; ============================================================
 
+;;; eval-if : Expr × Expr × Expr × Env × Fuel → (Result Value Error)
 (define (eval-if test-expr then-expr else-expr env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (if ,test-expr ,then-expr ,else-expr) ,env)
@@ -356,6 +360,7 @@
 ;;;
 ;;; Matches on block tag, binds payload/refs to variables.
 
+;;; eval-case : Expr × (List Clause) × Env × Fuel → (Result Value Error)
 (define (eval-case scrutinee clauses env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (case ,scrutinee ,@clauses) ,env)
@@ -372,6 +377,7 @@
                ,(caddr scrut-result))]
             [else scrut-result]))))
 
+;;; match-clauses : Block × (List Clause) × Env × Fuel → (Result Value Error)
 (define (match-clauses block clauses env fuel)
   (if (null? clauses)
       `(error no-matching-clause ,(block-tag block))
@@ -389,6 +395,7 @@
                 ;; No match, try next clause
                 (match-clauses block (cdr clauses) env fuel)))))
 
+;;; block-refs-list : Block → (List Value)
 ;;; Helper: get refs as a list
 (define (block-refs-list blk)
   (let ([refs (block-refs blk)])
@@ -403,11 +410,13 @@
 
 ;;; Primitives consume no fuel themselves; only argument evaluation costs fuel.
 
+;;; eval-prim : Symbol × (List Expr) × Env × Fuel → (Result Value Error)
 (define (eval-prim op args env fuel)
   (if (and (out-of-fuel? fuel) (pair? args))
       `(suspended (prim ,op ,@args) ,env)
       (eval-prim-args op args env '() fuel)))
 
+;;; eval-prim-args : Symbol × (List Expr) × Env × (List Value) × Fuel → (Result Value Error)
 (define (eval-prim-args op remaining env acc fuel)
   (if (null? remaining)
       ;; All args evaluated — call the primitive
@@ -431,6 +440,7 @@
 ;;; Call Evaluation (Application)
 ;;; ============================================================
 
+;;; eval-call : Expr × (List Expr) × Env × Fuel → (Result Value Error)
 (define (eval-call fn-expr arg-exprs env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (call ,fn-expr ,@arg-exprs) ,env)
@@ -447,6 +457,7 @@
              `(suspended (call ,(cadr fn-result) ,@arg-exprs) ,(caddr fn-result))]
             [else fn-result]))))
 
+;;; eval-call-args : Closure × (List Expr) × Env × (List Value) × Fuel → (Result Value Error)
 (define (eval-call-args closure remaining env acc fuel)
   (if (null? remaining)
       ;; All args evaluated — apply the closure
@@ -936,6 +947,7 @@
     ;; string-empty would be ""
     ))
 
+;;; build-prelude-env : Fuel → Env
 ;;; Build the prelude environment by evaluating definitions
 (define (build-prelude-env fuel)
   (let loop ([defs prelude-defs] [env empty-env] [remaining fuel])
@@ -1057,6 +1069,7 @@
 ;;; Traced Par/Pseq Evaluation
 ;;; ============================================================
 
+;;; eval-par-traced : Expr × Expr × Env × Fuel × Tape → (Result TracedValue Error)
 (define (eval-par-traced a-expr b-expr env fuel tape)
   (let ([a-result (eval-expr-traced a-expr env fuel tape)])
        (case (car a-result)
@@ -1068,6 +1081,7 @@
              [(suspended) a-result]
              [(error) a-result])))
 
+;;; eval-pseq-traced : Expr × Expr × Env × Fuel × Tape → (Result TracedValue Error)
 (define (eval-pseq-traced a-expr b-expr env fuel tape)
   (let ([a-result (eval-expr-traced a-expr env fuel tape)])
        (case (car a-result)
@@ -1083,11 +1097,13 @@
 ;;; Traced Let Evaluation
 ;;; ============================================================
 
+;;; eval-let-traced : (List Binding) × Expr × Env × Fuel × Tape → (Result TracedValue Error)
 (define (eval-let-traced bindings body env fuel tape)
   (if (out-of-fuel? fuel)
       `(suspended (let ,bindings ,body) ,env ,fuel ,tape)
       (eval-let-bindings-traced bindings body env '() fuel tape)))
 
+;;; eval-let-bindings-traced : (List Binding) × Expr × Env × (List (Pair Symbol Value)) × Fuel × Tape → (Result TracedValue Error)
 (define (eval-let-bindings-traced bindings body env acc fuel tape)
   (if (null? bindings)
       ;; All bindings evaluated — evaluate body in extended env
@@ -1113,6 +1129,7 @@
 ;;; Traced Fix Evaluation
 ;;; ============================================================
 
+;;; eval-fix-traced : Symbol × Expr × Env × Fuel × Tape → (Result Closure Error)
 (define (eval-fix-traced name fn-expr env fuel tape)
   (if (and (pair? fn-expr) (eq? (car fn-expr) 'fn))
       (let* ([params (cadr fn-expr)]
@@ -1127,6 +1144,7 @@
 ;;; Traced If Evaluation
 ;;; ============================================================
 
+;;; eval-if-traced : Expr × Expr × Expr × Env × Fuel × Tape → (Result TracedValue Error)
 (define (eval-if-traced test-expr then-expr else-expr env fuel tape)
   (if (out-of-fuel? fuel)
       `(suspended (if ,test-expr ,then-expr ,else-expr) ,env ,fuel ,tape)
@@ -1152,6 +1170,7 @@
 ;;; Traced Case Evaluation
 ;;; ============================================================
 
+;;; eval-case-traced : Expr × (List Clause) × Env × Fuel × Tape → (Result TracedValue Error)
 (define (eval-case-traced scrutinee clauses env fuel tape)
   (if (out-of-fuel? fuel)
       `(suspended (case ,scrutinee ,@clauses) ,env ,fuel ,tape)
@@ -1169,6 +1188,7 @@
                ,(caddr scrut-result) ,(cadddr scrut-result) ,(car (cddddr scrut-result)))]
             [else scrut-result]))))
 
+;;; match-clauses-traced : Block × (List Clause) × Env × Fuel × Tape → (Result TracedValue Error)
 (define (match-clauses-traced block clauses env fuel tape)
   (if (null? clauses)
       `(error no-matching-clause ,(block-tag block))
@@ -1191,11 +1211,13 @@
 ;;; For differentiable primitives, use traced operations.
 ;;; For non-differentiable primitives, extract primal values and use normal operations.
 
+;;; eval-prim-traced : Symbol × (List Expr) × Env × Fuel × Tape → (Result TracedValue Error)
 (define (eval-prim-traced op args env fuel tape)
   (if (and (out-of-fuel? fuel) (pair? args))
       `(suspended (prim ,op ,@args) ,env ,fuel ,tape)
       (eval-prim-args-traced op args env '() fuel tape)))
 
+;;; eval-prim-args-traced : Symbol × (List Expr) × Env × (List Value) × Fuel × Tape → (Result TracedValue Error)
 (define (eval-prim-args-traced op remaining env acc fuel tape)
   (if (null? remaining)
       ;; All args evaluated — apply the primitive (traced or normal)
@@ -1351,6 +1373,7 @@
 ;;; Traced Call Evaluation
 ;;; ============================================================
 
+;;; eval-call-traced : Expr × (List Expr) × Env × Fuel × Tape → (Result TracedValue Error)
 (define (eval-call-traced fn-expr arg-exprs env fuel tape)
   (if (out-of-fuel? fuel)
       `(suspended (call ,fn-expr ,@arg-exprs) ,env ,fuel ,tape)
@@ -1368,6 +1391,7 @@
                ,(caddr fn-result) ,(cadddr fn-result) ,(car (cddddr fn-result)))]
             [else fn-result]))))
 
+;;; eval-call-args-traced : Closure × (List Expr) × Env × (List Value) × Fuel × Tape → (Result TracedValue Error)
 (define (eval-call-args-traced closure remaining env acc fuel tape)
   (if (null? remaining)
       ;; All args evaluated — apply the closure

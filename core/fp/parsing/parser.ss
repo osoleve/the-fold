@@ -187,19 +187,19 @@
 ;;; - On success: (right (value . new-state))
 ;;; - On failure: (left error)
 
-;;; make-parser : (State → Either Error (Value × State)) → Parser
+;;; make-parser : (State → (Either Error (α × State))) → (Parser α)
 (define (make-parser run-fn)
   (list 'parser run-fn))
 
-;;; parser? : Any → Boolean
+;;; parser? : α → Boolean
 (define (parser? p)
   (and (pair? p) (eq? (car p) 'parser)))
 
-;;; run-parser : Parser × State → Either Error (Value × State)
+;;; run-parser : (Parser α) × State → (Either Error (α × State))
 (define (run-parser parser state)
   ((cadr parser) state))
 
-;;; parse : Parser × String → Either Error Value
+;;; parse : (Parser α) × String → (Either Error α)
 ;;; Run parser on input string.
 (define (parse parser input)
   (let ([result (run-parser parser (initial-state input))])
@@ -207,7 +207,7 @@
            (right (car (from-right result)))  ; Extract value
            result)))  ; Return error
 
-;;; parse-all : Parser × String → Either Error Value
+;;; parse-all : (Parser α) × String → (Either Error α)
 ;;; Run parser and require complete input consumption.
 (define (parse-all parser input)
   (let ([full-parser (parser-left parser eof)])
@@ -1017,10 +1017,10 @@
 (define (make-memo-entry result timestamp)
   (cons result timestamp))
 
-;;; memo-entry-result : (Pair α Nat) → α
+;;; memo-entry-result : (α × Nat) → α
 (define (memo-entry-result entry) (car entry))
 
-;;; memo-entry-timestamp : (Pair α Nat) → Nat
+;;; memo-entry-timestamp : (α × Nat) → Nat
 (define (memo-entry-timestamp entry) (cdr entry))
 
 ;;; make-memo-table : Unit → MemoTable
@@ -1046,27 +1046,27 @@
   (list 'unbounded-memo-table
         (make-hashtable equal-hash equal?)))
 
-;;; bounded-memo-table? : MemoTable → Bool
+;;; bounded-memo-table? : MemoTable → Boolean
 (define (bounded-memo-table? table)
   (and (pair? table) (eq? (car table) 'bounded-memo-table)))
 
-;;; unbounded-memo-table? : MemoTable → Bool
+;;; unbounded-memo-table? : MemoTable → Boolean
 (define (unbounded-memo-table? table)
   (and (pair? table) (eq? (car table) 'unbounded-memo-table)))
 
-;;; memo-table-cache : MemoTable → Hash
+;;; memo-table-cache : MemoTable → Hashtable
 (define (memo-table-cache table)
   (cadr table))
 
-;;; memo-table-counter : MemoTable → (Ref Nat)
+;;; memo-table-counter : MemoTable → (Box Nat)
 (define (memo-table-counter table)
   (caddr table))
 
-;;; memo-table-limit : MemoTable → (Ref Nat)
+;;; memo-table-limit : MemoTable → (Box Nat)
 (define (memo-table-limit table)
   (cadddr table))
 
-;;; memo-key : Symbol × Nat → (Pair Symbol Nat)
+;;; memo-key : Symbol × Nat → (Symbol × Nat)
 ;;; Create a memoization key from rule name and position.
 (define (memo-key name offset)
   (cons name offset))
@@ -1099,7 +1099,7 @@
                         (vector-set! keys idx (vector-ref keys (- available 1)))
                         (loop (- remaining 1) (- available 1)))))))
 
-;;; memo-lookup : MemoTable × Symbol × Nat → (Maybe α)
+;;; memo-lookup : MemoTable × Symbol × Nat → (Option α)
 ;;; Look up a cached result. Updates access time for bounded tables.
 (define (memo-lookup table name offset)
   (let* ([cache (memo-table-cache table)]
@@ -1134,7 +1134,7 @@
       ;; Unbounded: just store directly
       (hashtable-set! (memo-table-cache table) (memo-key name offset) result)))
 
-;;; memo : Symbol × (Parser α) → MemoTable → (Parser α)
+;;; memo : Symbol × (Parser α) → (MemoTable → (Parser α))
 ;;; Create a memoizing parser. The memo table is passed at parse time.
 ;;; This allows the same parser definition to be reused with different tables.
 (define (memo name parser)
@@ -1176,49 +1176,49 @@
 ;;;
 ;;; These combinators work with memoized parsers.
 
-;;; memo-bind : (MemoTable → (Parser α)) × (α → MemoTable → (Parser β)) → MemoTable → (Parser β)
+;;; memo-bind : (MemoTable → (Parser α)) × (α → (MemoTable → (Parser β))) → (MemoTable → (Parser β))
 ;;; Monadic bind for memoized parsers.
 (define (memo-bind mp f)
   (lambda (table)
           (parser-bind (memo-ref mp table)
                        (lambda (x) (memo-ref (f x) table)))))
 
-;;; memo-then : (MemoTable → (Parser α)) × (MemoTable → (Parser β)) → MemoTable → (Parser β)
+;;; memo-then : (MemoTable → (Parser α)) × (MemoTable → (Parser β)) → (MemoTable → (Parser β))
 ;;; Sequence memoized parsers, discarding first result.
 (define (memo-then mp1 mp2)
   (lambda (table)
           (parser-then (memo-ref mp1 table) (memo-ref mp2 table))))
 
-;;; memo-or : (MemoTable → (Parser α)) × (MemoTable → (Parser α)) → MemoTable → (Parser α)
+;;; memo-or : (MemoTable → (Parser α)) × (MemoTable → (Parser α)) → (MemoTable → (Parser α))
 ;;; Try memoized parsers in order.
 (define (memo-or mp1 mp2)
   (lambda (table)
           (parser-or (memo-ref mp1 table) (memo-ref mp2 table))))
 
-;;; memo-pure : α → MemoTable → (Parser α)
+;;; memo-pure : α → (MemoTable → (Parser α))
 ;;; Lift a value into the memoized parser context.
 (define (memo-pure x)
   (lambda (table) (parser-pure x)))
 
-;;; memo-map : (α → β) × (MemoTable → (Parser α)) → MemoTable → (Parser β)
+;;; memo-map : (α → β) × (MemoTable → (Parser α)) → (MemoTable → (Parser β))
 ;;; Map over a memoized parser.
 (define (memo-map f mp)
   (lambda (table)
           (parser-map f (memo-ref mp table))))
 
-;;; memo-many : (MemoTable → (Parser α)) → MemoTable → (Parser (List α))
+;;; memo-many : (MemoTable → (Parser α)) → (MemoTable → (Parser (List α)))
 ;;; Zero or more of a memoized parser.
 (define (memo-many mp)
   (lambda (table)
           (many (memo-ref mp table))))
 
-;;; memo-some : (MemoTable → (Parser α)) → MemoTable → (Parser (List α))
+;;; memo-some : (MemoTable → (Parser α)) → (MemoTable → (Parser (List α)))
 ;;; One or more of a memoized parser.
 (define (memo-some mp)
   (lambda (table)
           (some (memo-ref mp table))))
 
-;;; lift-parser : (Parser α) → MemoTable → (Parser α)
+;;; lift-parser : (Parser α) → (MemoTable → (Parser α))
 ;;; Lift a regular parser to work with memo combinators.
 (define (lift-parser p)
   (lambda (table) p))
@@ -1227,7 +1227,7 @@
 ;;; Packrat Statistics (for debugging)
 ;;; ============================================================
 
-;;; memo-stats : MemoTable → (Pair Nat (Maybe Nat))
+;;; memo-stats : MemoTable → (Nat × (Option Nat))
 ;;; Get statistics about memo table usage.
 ;;; Returns (current-entries . max-limit) for bounded tables,
 ;;; or (current-entries . #f) for unbounded tables.

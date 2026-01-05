@@ -82,27 +82,35 @@
 ;;; SI Base Dimensions
 ;;; ============================================================
 
+;;; dim-one : Dimension
 ;;; Dimensionless (scalar)
 (define dim-one (make-dim 0 0 0 0 0 0 0))
 
+;;; dim-length-base : Dimension
 ;;; Length — meter
 (define dim-length-base (make-dim 1 0 0 0 0 0 0))
 
+;;; dim-time-base : Dimension
 ;;; Time — second
 (define dim-time-base (make-dim 0 1 0 0 0 0 0))
 
+;;; dim-mass-base : Dimension
 ;;; Mass — kilogram
 (define dim-mass-base (make-dim 0 0 1 0 0 0 0))
 
+;;; dim-current-base : Dimension
 ;;; Electric current — ampere
 (define dim-current-base (make-dim 0 0 0 1 0 0 0))
 
+;;; dim-temperature-base : Dimension
 ;;; Temperature — kelvin
 (define dim-temperature-base (make-dim 0 0 0 0 1 0 0))
 
+;;; dim-amount-base : Dimension
 ;;; Amount of substance — mole
 (define dim-amount-base (make-dim 0 0 0 0 0 1 0))
 
+;;; dim-luminosity-base : Dimension
 ;;; Luminous intensity — candela
 (define dim-luminosity-base (make-dim 0 0 0 0 0 0 1))
 
@@ -302,43 +310,55 @@
 ;;; Common Derived Dimensions
 ;;; ============================================================
 
+;;; dim-velocity : Dimension
 ;;; Velocity: L/T
 (define dim-velocity (dim/ dim-length-base dim-time-base))
 
+;;; dim-acceleration : Dimension
 ;;; Acceleration: L/T²
 (define dim-acceleration (dim/ dim-length-base (dim-pow dim-time-base 2)))
 
+;;; dim-force : Dimension
 ;;; Force: M·L/T² (Newton)
 (define dim-force (dim* dim-mass-base dim-acceleration))
 
+;;; dim-energy : Dimension
 ;;; Energy: M·L²/T² (Joule)
 (define dim-energy (dim* dim-mass-base
                          (dim/ (dim-pow dim-length-base 2)
                                (dim-pow dim-time-base 2))))
 
+;;; dim-power : Dimension
 ;;; Power: M·L²/T³ (Watt)
 (define dim-power (dim/ dim-energy dim-time-base))
 
+;;; dim-pressure : Dimension
 ;;; Pressure: M/(L·T²) (Pascal)
 (define dim-pressure (dim/ dim-mass-base
                            (dim* dim-length-base (dim-pow dim-time-base 2))))
 
+;;; dim-frequency : Dimension
 ;;; Frequency: 1/T (Hertz)
 (define dim-frequency (dim-inv dim-time-base))
 
+;;; dim-charge : Dimension
 ;;; Electric charge: I·T (Coulomb)
 (define dim-charge (dim* dim-current-base dim-time-base))
 
+;;; dim-voltage : Dimension
 ;;; Voltage: M·L²/(T³·I) (Volt)
 (define dim-voltage (dim/ dim-power dim-current-base))
 
+;;; dim-resistance : Dimension
 ;;; Resistance: M·L²/(T³·I²) (Ohm)
 (define dim-resistance (dim/ dim-voltage dim-current-base))
 
-;;; Area: L²
+;;; dim-area : Dimension
+;;; Area: L squared
 (define dim-area (dim-pow dim-length-base 2))
 
-;;; Volume: L³
+;;; dim-volume : Dimension
+;;; Volume: L cubed
 (define dim-volume (dim-pow dim-length-base 3))
 
 ;;; ============================================================
@@ -390,25 +410,46 @@
 ;;; ============================================================
 
 ;;; SI prefix multipliers
+
+;;; yotta : Number
 (define yotta 1e24)
+;;; zetta : Number
 (define zetta 1e21)
+;;; exa : Number
 (define exa   1e18)
+;;; peta : Number
 (define peta  1e15)
+;;; tera : Number
 (define tera  1e12)
+;;; giga : Number
 (define giga  1e9)
+;;; mega : Number
 (define mega  1e6)
+;;; kilo : Number
 (define kilo  1e3)
+;;; hecto : Number
 (define hecto 1e2)
+;;; deca : Number
 (define deca  1e1)
+;;; deci : Number
 (define deci  1e-1)
+;;; centi : Number
 (define centi 1e-2)
+;;; milli : Number
 (define milli 1e-3)
+;;; micro : Number
 (define micro 1e-6)
+;;; nano : Number
 (define nano  1e-9)
+;;; pico : Number
 (define pico  1e-12)
+;;; femto : Number
 (define femto 1e-15)
+;;; atto : Number
 (define atto  1e-18)
+;;; zepto : Number
 (define zepto 1e-21)
+;;; yocto : Number
 (define yocto 1e-24)
 
 ;;; Convenient prefixed units

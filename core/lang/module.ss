@@ -140,7 +140,7 @@
  (register-module-path! 'monad "core/fp/control/monad.ss")
  (register-module-path! 'parser-combinators "core/fp/parsing/parser-combinators.ss"))
 
-;;; clear-module-caches! : → void
+;;; clear-module-caches! : → Void
 ;;; Clear header cache (useful after file modifications).
 (define (clear-module-caches!)
   (hashtable-clear! *header-cache*))
@@ -149,7 +149,7 @@
 ;;; Header Parsing
 ;;; ============================================================
 
-;;; read-header-lines : String × Nat → (List String) | #f
+;;; read-header-lines : String × Nat → (Option (List String))
 ;;; Read first n lines from file for header parsing. Returns #f if file doesn't exist.
 (define (read-header-lines filepath n)
   (guard (exn [else #f])
@@ -163,7 +163,7 @@
                                                          (reverse lines)
                                                          (loop (+ i 1) (cons line lines))))))))))
 
-;;; extract-annotation : String × String → String | #f
+;;; extract-annotation : String × String → (Option String)
 ;;; Extract value from ";;; @key value" line.
 (define (extract-annotation line prefix)
   (let ([trimmed (string-trim line)])
@@ -174,7 +174,7 @@
                                               (string-length prefix)
                                               (string-length after-comment))))))))
 
-;;; parse-module-name : (List String) → Symbol | #f
+;;; parse-module-name : (List String) → (Option Symbol)
 ;;; Extract module name from @module annotation.
 (define (parse-module-name lines)
   (let loop ([lines lines])
@@ -203,7 +203,7 @@
                        (loop (cdr lines) (append (reverse parsed) acc)))
                   (loop (cdr lines) acc)))])))
 
-;;; parse-module-header : String → (name . deps) | #f
+;;; parse-module-header : String → (Option (Pair Symbol (List Symbol)))
 ;;; Parse @module/@requires from file. Returns (name . deps) or #f.
 ;;; Only caches successful parses (not file-not-found failures).
 (define (parse-module-header filepath)
@@ -225,7 +225,7 @@
 ;;; Path Resolution
 ;;; ============================================================
 
-;;; find-module-path : Symbol → String | #f
+;;; find-module-path : Symbol → (Option String)
 ;;; Find file path for a module by searching known locations.
 ;;; Searches core/, shell/, and all subdirectories in *module-search-dirs*.
 (define (find-module-path name)
@@ -239,7 +239,7 @@
                          path
                          (loop (cdr dirs))))))))
 
-;;; module-name->path : Symbol → String | #f
+;;; module-name->path : Symbol → (Option String)
 ;;; Get file path for module, using registry or searching.
 ;;; Discovered modules are registered in *module-paths* so they appear in (modules).
 (define (module-name->path name)
@@ -256,7 +256,7 @@
 ;;; Auto-Registration from Headers
 ;;; ============================================================
 
-;;; auto-register-module! : Symbol → void
+;;; auto-register-module! : Symbol → Void
 ;;; Parse module header and register dependencies if not already known.
 ;;; Uses the requested name (not the header's @module name) as the key.
 (define (auto-register-module! name)
@@ -280,7 +280,7 @@
 ;;; Module Loading
 ;;; ============================================================
 
-;;; current-time-ms : → Nat
+;;; current-time-ms : Unit → Nat
 (define (current-time-ms)
   (let ([t (current-time)])
        (+ (* (time-second t) 1000)
@@ -291,12 +291,12 @@
   (let ([entry (hashtable-ref *module-registry* name #f)])
        (and entry (car entry))))
 
-;;; module-load-time : Symbol → Nat | #f
+;;; module-load-time : Symbol → (Option Nat)
 (define (module-load-time name)
   (let ([entry (hashtable-ref *module-registry* name #f)])
        (and entry (cdr entry))))
 
-;;; load-module! : Symbol → void
+;;; load-module! : Symbol → Void
 ;;; Load a single module (without dependencies).
 (define (load-module! name)
   (unless (module-loaded? name)
@@ -320,7 +320,7 @@
                      (map (lambda (m) (string-append " -> " (symbol->string m)))
                           (cdr cycle))))))
 
-;;; require-one : Symbol → void
+;;; require-one : Symbol → Void
 ;;; Load a module and all its dependencies.
 ;;; Auto-registers dependencies from file headers if not already known.
 ;;; Detects circular dependencies and raises an error with the cycle path.
@@ -347,7 +347,7 @@
          ;; Pop from loading stack
          (set! *loading-stack* (cdr *loading-stack*)))]))
 
-;;; require : Symbol ... → void
+;;; require : Symbol ... → Void
 ;;; Load one or more modules with their dependencies.
 (define (require . names)
   (for-each require-one names))
@@ -361,18 +361,18 @@
 (define (module-deps name)
   (hashtable-ref *module-deps* name '()))
 
-;;; loading-stack : → (List Symbol)
+;;; loading-stack : Unit → (List Symbol)
 ;;; Get the current loading stack (modules in progress).
 (define (loading-stack)
   *loading-stack*)
 
-;;; detect-cycle : Symbol → (List Symbol) | #f
+;;; detect-cycle : Symbol → (Option (List Symbol))
 ;;; Check if loading a module would create a circular dependency.
 ;;; Returns the cycle path if a cycle exists, #f otherwise.
 (define (detect-cycle name)
   (detect-cycle-helper name '()))
 
-;;; detect-cycle-helper : Symbol × (List Symbol) → (List Symbol) | #f
+;;; detect-cycle-helper : Symbol × (List Symbol) → (Option (List Symbol))
 (define (detect-cycle-helper name visited)
   (cond
    [(memq name visited)
@@ -391,7 +391,7 @@
                          result
                          (loop (cdr remaining))))])))]))
 
-;;; validate-deps : → (List (module . cycle))
+;;; validate-deps : Unit → (List (Pair Symbol (List Symbol)))
 ;;; Check all registered modules for circular dependencies.
 ;;; Returns a list of (module . cycle-path) pairs for any cycles found.
 (define (validate-deps)
@@ -412,7 +412,7 @@
            '()
            (unique (append direct (apply append (map all-deps direct)))))))
 
-;;; module-stats : → void
+;;; module-stats : Unit → Void
 ;;; Display loading statistics.
 (define (module-stats)
   (display "
@@ -444,7 +444,7 @@
 
 " (length loaded) total-time))))
 
-;;; module-graph : → void
+;;; module-graph : Unit → Void
 ;;; Display dependency graph.
 (define (module-graph)
   (display "
@@ -470,12 +470,12 @@
 ;;; Convenience
 ;;; ============================================================
 
-;;; require-core : → void
+;;; require-core : Unit → Void
 ;;; Load all core modules.
 (define (require-core)
   (require 'compile 'error 'annotate))
 
-;;; require-all : → void
+;;; require-all : Unit → Void
 ;;; Load everything.
 (define (require-all)
   (let ([all-modules (vector->list (hashtable-keys *module-deps*))])
@@ -527,7 +527,7 @@
    [(string=? cat "SHELL") "shell, REPL, IO"]
    [else ""]))
 
-;;; group-modules-by-category : → Hashtable String → (List Symbol)
+;;; group-modules-by-category : Unit → (Hashtable String (List Symbol))
 ;;; Group all registered modules by their category.
 (define (group-modules-by-category)
   (let ([groups (make-hashtable string-hash string=?)]
@@ -541,7 +541,7 @@
         modules)
        groups))
 
-;;; modules : → void
+;;; modules : Unit → Void
 ;;; List all registered modules grouped by category.
 ;;; Dynamically builds listing from *module-paths* registry.
 (define (modules)
@@ -582,7 +582,7 @@
         (display "         (module-info 'module-name) for details\n")
         (display "         (module-stats) for load times\n\n")))
 
-;;; module-info : Symbol → void
+;;; module-info : Symbol → Void
 ;;; Show detailed information about a module.
 ;;; Useful for understanding dependencies before loading.
 (define (module-info name)
@@ -630,7 +630,7 @@
   
   (display "\n"))
 
-;;; list-registered-modules : → (List Symbol)
+;;; list-registered-modules : Unit → (List Symbol)
 ;;; Return a list of all registered module names.
 (define (list-registered-modules)
   (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))

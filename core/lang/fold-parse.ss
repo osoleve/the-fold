@@ -43,7 +43,7 @@
 ;;; Lexical Elements
 ;;; ============================================================
 
-;;; fold-comment : SpannedParser ()
+;;; fold-comment : SpannedParser Unit
 ;;; Skip a line comment.
 (define fold-comment
   (s-bind (s-char #\;) (lambda (_)
@@ -52,13 +52,13 @@
                                        (lambda (_)
                                                (s-pure '()))))))
 
-;;; fold-whitespace : SpannedParser ()
+;;; fold-whitespace : SpannedParser Unit
 ;;; Skip whitespace and comments.
 (define fold-whitespace
   (s-bind (s-many (s-alt s-space fold-comment)) (lambda (_)
                                                         (s-pure '()))))
 
-;;; fold-token : (SpannedParser α) → (SpannedParser α)
+;;; fold-token : SpannedParser α → SpannedParser α
 ;;; Parse a token and skip trailing whitespace.
 (define (fold-token parser)
   (s-seq-left parser fold-whitespace))
@@ -115,13 +115,13 @@
    (s-bind (s-string "#f") (lambda (_) (s-pure #f)))))
 
 ;;; symbol-initial? : Char → Boolean
-;;; Characters that can start a symbol.
+;;; Test if character can start a symbol.
 (define (symbol-initial? c)
   (or (char-alphabetic? c)
       (memv c '(#\! #\$ #\% #\& #\* #\/ #\: #\< #\= #\> #\? #\^ #\_ #\~ #\+ #\-))))
 
 ;;; symbol-subsequent? : Char → Boolean
-;;; Characters that can follow in a symbol.
+;;; Test if character can follow in a symbol.
 (define (symbol-subsequent? c)
   (or (symbol-initial? c)
       (char-numeric? c)
@@ -210,7 +210,7 @@
   (s-bind fold-whitespace (lambda (_)
                                   (s-seq-left (s-many fold-expr) s-eof))))
 
-;;; parse-fold : String [× String] → Result
+;;; parse-fold : String × String... → (Result (List SpannedExpr) Error)
 ;;; Parse Fold source code, returning spanned AST or error.
 ;;; Result = (ok ast) | (error parse expected span)
 (define (parse-fold input . file-arg)
@@ -223,7 +223,7 @@
                    [span (state-span state)])
                   (list 'error 'parse expected span)))))
 
-;;; parse-fold-expr : String [× String] → Result
+;;; parse-fold-expr : String × String... → (Result SpannedExpr Error)
 ;;; Parse a single Fold expression.
 (define (parse-fold-expr input . file-arg)
   (let* ([file (if (null? file-arg) "<input>" (car file-arg))]
@@ -239,7 +239,7 @@
 ;;; Span Extraction Utilities
 ;;; ============================================================
 
-;;; strip-spans : SpannedExpr → Expr
+;;; strip-spans : α → α
 ;;; Remove span wrappers from an AST, leaving just the values.
 (define (strip-spans expr)
   (cond
@@ -249,7 +249,7 @@
     (map strip-spans expr)]
    [else expr]))
 
-;;; collect-spans : SpannedExpr → (List (Expr × Span))
+;;; collect-spans : α → (List (Pair α Span))
 ;;; Collect all spans from an AST.
 (define (collect-spans expr)
   (cond

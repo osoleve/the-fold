@@ -45,7 +45,7 @@
 ;;; File Scanning
 ;;; ============================================================
 
-;;; read-file-lines : String -> (List String)
+;;; read-file-lines : String → (List String)
 ;;; Read all lines from a file.
 (define (read-file-lines path)
   (guard (e [else '()])
@@ -57,7 +57,7 @@
                                                      (reverse lines)
                                                      (loop (cons line lines)))))))))
 
-;;; extract-definitions : String (List String) -> (List Entry)
+;;; extract-definitions : String × (List String) → (List Entry)
 ;;; Extract definition entries from file content.
 (define (extract-definitions path lines)
   (let loop ([lines lines]
@@ -73,27 +73,27 @@
                   [(and (>= (string-length trimmed) 4)
                         (string-starts-with? trimmed ";;; "))
                    (loop (cdr lines) (+ line-num 1) trimmed results)]
-
+                  
                   ;; Definition forms
                   [(string-starts-with? trimmed "(define ")
                    (let ([entry (parse-define path line-num trimmed prev-comment)])
                         (loop (cdr lines) (+ line-num 1) #f
                               (if entry (cons entry results) results)))]
-
+                  
                   [(string-starts-with? trimmed "(define-syntax ")
                    (let ([entry (parse-define-syntax path line-num trimmed prev-comment)])
                         (loop (cdr lines) (+ line-num 1) #f
                               (if entry (cons entry results) results)))]
-
+                  
                   ;; Any other line clears the docstring context
                   [(and (> (string-length trimmed) 0)
                         (not (string-starts-with? trimmed ";;")))
                    (loop (cdr lines) (+ line-num 1) #f results)]
-
+                  
                   [else
                    (loop (cdr lines) (+ line-num 1) prev-comment results)])))))
 
-;;; parse-define : String Int String (Maybe String) -> (Maybe Entry)
+;;; parse-define : String × Nat × String × (Option String) → (Option Entry)
 ;;; Parse a define form and extract name.
 (define (parse-define path line-num line prev-comment)
   (let ([rest (substring line 8 (string-length line))])  ; skip "(define "
@@ -126,7 +126,7 @@
                         (extract-docstring prev-comment)))
                   #f))])))
 
-;;; parse-define-syntax : String Int String (Maybe String) -> (Maybe Entry)
+;;; parse-define-syntax : String × Nat × String × (Option String) → (Option Entry)
 ;;; Parse a define-syntax form.
 (define (parse-define-syntax path line-num line prev-comment)
   (let ([rest (substring line 15 (string-length line))])  ; skip "(define-syntax "
@@ -142,7 +142,7 @@
                       (extract-docstring prev-comment)))
                 #f))))
 
-;;; find-name-end : String Int -> (Maybe Int)
+;;; find-name-end : String × Nat → (Option Nat)
 ;;; Find end of identifier in string.
 (define (find-name-end str start)
   (let ([len (string-length str)])
@@ -154,13 +154,13 @@
              [(> i start) i]
              [else #f]))))
 
-;;; char-name-constituent? : Char -> Boolean
+;;; char-name-constituent? : Char → Boolean
 (define (char-name-constituent? c)
   (or (char-alphabetic? c)
       (char-numeric? c)
       (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\:))))
 
-;;; extract-signature : (Maybe String) -> (Maybe String)
+;;; extract-signature : (Option String) → (Option String)
 ;;; Extract type signature from docstring comment.
 (define (extract-signature comment)
   (and comment
@@ -169,14 +169,14 @@
                  (< colon-pos (- (string-length comment) 1))
                  (string-trim (substring comment (+ colon-pos 1) (string-length comment)))))))
 
-;;; extract-docstring : (Maybe String) -> (Maybe String)
+;;; extract-docstring : (Option String) → (Option String)
 ;;; Extract description from docstring comment.
 (define (extract-docstring comment)
   (and comment
        (> (string-length comment) 4)
        (substring comment 4 (string-length comment))))
 
-;;; string-find-char : String Char -> (Maybe Int)
+;;; string-find-char : String × Char → (Option Nat)
 (define (string-find-char str ch)
   (let ([len (string-length str)])
        (let loop ([i 0])
@@ -185,7 +185,7 @@
              [(char=? (string-ref str i) ch) i]
              [else (loop (+ i 1))]))))
 
-;;; make-symbol-entry : Symbol Symbol String Int (Maybe String) (Maybe String) -> Entry
+;;; make-symbol-entry : Symbol × Symbol × String × Nat × (Option String) × (Option String) → Entry
 (define (make-symbol-entry name kind file line sig doc)
   `((name . ,name)
     (kind . ,kind)
@@ -198,7 +198,7 @@
 ;;; Load Statement Extraction
 ;;; ============================================================
 
-;;; extract-loads : (List String) -> (List String)
+;;; extract-loads : (List String) → (List String)
 ;;; Extract loaded file paths from source lines.
 (define (extract-loads lines)
   (let loop ([lines lines] [results '()])
@@ -217,7 +217,7 @@
 ;;; Index Building
 ;;; ============================================================
 
-;;; scan-module : String -> Module-Entry
+;;; scan-module : String → ModuleEntry
 ;;; Scan a single module file.
 (define (scan-module path)
   (let* ([lines (read-file-lines path)]
@@ -237,7 +237,7 @@
           (loads . ,loads)
           (scan-time . ,(current-time)))))
 
-;;; index-directory : String -> void
+;;; index-directory : String → Void
 ;;; Recursively index all .ss files in directory.
 (define (index-directory dir)
   (let ([files (directory-list-recursive dir ".ss")])
@@ -253,7 +253,7 @@
                       (cdr (assq 'loads entry)))))
         files)))
 
-;;; directory-list-recursive : String String -> (List String)
+;;; directory-list-recursive : String × String → (List String)
 ;;; List all files with given extension recursively.
 (define (directory-list-recursive dir ext)
   (guard (e [else '()])
@@ -273,7 +273,7 @@
 ;;; Query Functions
 ;;; ============================================================
 
-;;; index-refresh! : -> void
+;;; index-refresh! : Unit → Void
 ;;; Rebuild the entire index.
 (define (index-refresh!)
   ;; Clear existing index
@@ -297,7 +297,7 @@
 ")
   (index-stats))
 
-;;; index-find : String -> (List Entry)
+;;; index-find : String → (List Entry)
 ;;; Find symbols whose names contain pattern.
 (define (index-find pattern)
   (let ([pattern-lower (string-downcase pattern)]
@@ -310,17 +310,17 @@
         keys)
        (sort-entries-by-name results)))
 
-;;; index-lookup : Symbol -> (Maybe Entry)
+;;; index-lookup : Symbol → (Option Entry)
 ;;; Get entry for exact symbol name.
 (define (index-lookup name)
   (hashtable-ref *symbol-index* name #f))
 
-;;; index-module : String -> (Maybe Module-Entry)
+;;; index-module : String → (Option ModuleEntry)
 ;;; Get module entry by path.
 (define (index-module path)
   (hashtable-ref *module-registry* path #f))
 
-;;; index-exports : String -> (List Symbol)
+;;; index-exports : String → (List Symbol)
 ;;; Get symbols defined in module.
 (define (index-exports path)
   (let ([mod (index-module path)])
@@ -328,7 +328,7 @@
            (cdr (assq 'defines mod))
            '())))
 
-;;; index-deps : String -> (List String)
+;;; index-deps : String → (List String)
 ;;; Get modules this one depends on (loads).
 (define (index-deps path)
   (let ([mod (index-module path)])
@@ -336,12 +336,12 @@
            (cdr (assq 'loads mod))
            '())))
 
-;;; index-dependents : String -> (List String)
+;;; index-dependents : String → (List String)
 ;;; Get modules that depend on (load) this one.
 (define (index-dependents path)
   (hashtable-ref *reverse-deps* path '()))
 
-;;; index-stats : -> void
+;;; index-stats : Unit → Void
 ;;; Display index statistics.
 (define (index-stats)
   (display "
@@ -357,7 +357,7 @@
   (display "
 "))
 
-;;; sort-entries-by-name : (List Entry) -> (List Entry)
+;;; sort-entries-by-name : (List Entry) → (List Entry)
 (define (sort-entries-by-name entries)
   (list-sort
    (lambda (a b)
@@ -369,7 +369,7 @@
 ;;; Display Functions
 ;;; ============================================================
 
-;;; display-entry : Entry -> void
+;;; display-entry : Entry → Void
 ;;; Pretty print a symbol entry.
 (define (display-entry entry)
   (let ([name (cdr (assq 'name entry))]
@@ -387,7 +387,7 @@
        (when doc (printf "    ~a
 " doc))))
 
-;;; display-find-results : (List Entry) -> void
+;;; display-find-results : (List Entry) → Void
 ;;; Display search results.
 (define (display-find-results entries)
   (display "
@@ -407,12 +407,12 @@
 ;;; REPL Integration
 ;;; ============================================================
 
-;;; find : String -> void
+;;; find : String → Void
 ;;; User-friendly search command.
 (define (find pattern)
   (display-find-results (index-find pattern)))
 
-;;; describe : Symbol -> void
+;;; describe : Symbol → Void
 ;;; Show detailed info about a symbol.
 (define (describe name)
   (let ([entry (index-lookup name)])
@@ -425,11 +425,11 @@
        (display "
 ")))
 
-;;; whatis : Symbol -> void
+;;; whatis : Symbol → Void
 ;;; Alias for describe.
 (define whatis describe)
 
-;;; where : Symbol -> void
+;;; where : Symbol → Void
 ;;; Show where a symbol is defined.
 (define (where name)
   (let ([entry (index-lookup name)])
@@ -445,7 +445,7 @@
 ;;; Module Exploration
 ;;; ============================================================
 
-;;; modules : [String] -> void
+;;; modules : String... → Void
 ;;; List all indexed modules, optionally filtered by pattern.
 (define (modules . args)
   (let* ([pattern (if (null? args) "" (car args))]
@@ -480,7 +480,7 @@
         (display "
 ")))
 
-;;; deps : String -> void
+;;; deps : String → Void
 ;;; Show dependency tree for a module.
 (define (deps path)
   (let ([mod (index-module path)])
@@ -506,7 +506,7 @@
        (display "
 ")))
 
-;;; symbols : String -> void
+;;; symbols : String → Void
 ;;; List all symbols defined in a module.
 (define (symbols path)
   (let ([mod (index-module path)])
@@ -535,7 +535,7 @@
        (display "
 ")))
 
-;;; browse : -> void
+;;; browse : Unit → Void
 ;;; Interactive index browser.
 (define (browse)
   (display "

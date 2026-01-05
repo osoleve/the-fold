@@ -32,11 +32,16 @@
 (define (span? x)
   (and (pair? x) (eq? (car x) 'span)))
 
+;;; span-file : Span → String
 ;;; Span accessors
 (define (span-file s) (list-ref s 1))
+;;; span-line : Span → Nat
 (define (span-line s) (list-ref s 2))
+;;; span-column : Span → Nat
 (define (span-column s) (list-ref s 3))
+;;; span-end-line : Span → Nat
 (define (span-end-line s) (list-ref s 4))
+;;; span-end-column : Span → Nat
 (define (span-end-column s) (list-ref s 5))
 
 ;;; no-span : Span
@@ -67,16 +72,23 @@
 
 ;;; State = (state input offset line column file)
 
+;;; make-state : String × Nat × Nat × Nat × String → State
 (define (make-state input offset line column file)
   (list 'state input offset line column file))
 
+;;; state? : α → Boolean
 (define (state? x)
   (and (pair? x) (eq? (car x) 'state)))
 
+;;; state-input : State → String
 (define (state-input s) (list-ref s 1))
+;;; state-offset : State → Nat
 (define (state-offset s) (list-ref s 2))
+;;; state-line : State → Nat
 (define (state-line s) (list-ref s 3))
+;;; state-column : State → Nat
 (define (state-column s) (list-ref s 4))
+;;; state-file : State → String
 (define (state-file s) (list-ref s 5))
 
 ;;; initial-state : String [× String] → State
@@ -144,19 +156,28 @@
 ;;;   | (ok value state span)     ; value with ending state and covering span
 ;;;   | (err expected state)      ; failure with state at error position
 
+;;; spanned-success : α × State × Span → SpannedResult
 (define (spanned-success value state span)
   (list 'ok value state span))
 
+;;; spanned-failure : String × State → SpannedResult
 (define (spanned-failure expected state)
   (list 'err expected state))
 
+;;; spanned-ok? : SpannedResult → Boolean
 (define (spanned-ok? r) (and (pair? r) (eq? (car r) 'ok)))
+;;; spanned-err? : SpannedResult → Boolean
 (define (spanned-err? r) (and (pair? r) (eq? (car r) 'err)))
 
+;;; spanned-value : SpannedResult → α
 (define (spanned-value r) (list-ref r 1))
+;;; spanned-state : SpannedResult → State
 (define (spanned-state r) (list-ref r 2))
+;;; spanned-span : SpannedResult → Span
 (define (spanned-span r) (list-ref r 3))
+;;; spanned-expected : SpannedResult → String
 (define (spanned-expected r) (list-ref r 1))
+;;; spanned-error-state : SpannedResult → State
 (define (spanned-error-state r) (list-ref r 2))
 
 ;;; ============================================================
@@ -224,19 +245,24 @@
 ;;; Character Parsers (Spanned)
 ;;; ============================================================
 
+;;; s-char : Char → SpannedParser Char
 (define (s-char target)
   (s-satisfy (lambda (c) (char=? c target))
              (list->string (list target))))
 
+;;; s-digit : SpannedParser Char
 (define s-digit
   (s-satisfy char-numeric? "digit"))
 
+;;; s-alpha : SpannedParser Char
 (define s-alpha
   (s-satisfy char-alphabetic? "letter"))
 
+;;; s-space : SpannedParser Char
 (define s-space
   (s-satisfy char-whitespace? "whitespace"))
 
+;;; s-alphanum : SpannedParser Char
 (define s-alphanum
   (s-satisfy (lambda (c) (or (char-alphabetic? c) (char-numeric? c)))
              "alphanumeric"))
@@ -322,6 +348,7 @@
 ;;; Spanned Combinators — Repetition
 ;;; ============================================================
 
+;;; s-many-helper : SpannedParser α × (List α) × State → ((List α) . State)
 (define (s-many-helper parser acc state)
   (let ([result (parser state)])
        (if (spanned-ok? result)
@@ -363,21 +390,28 @@
 ;;; Spanned Utility Parsers
 ;;; ============================================================
 
+;;; s-spaces : SpannedParser (List Char)
 (define s-spaces (s-many s-space))
+;;; s-spaces1 : SpannedParser (List Char)
 (define s-spaces1 (s-many1 s-space))
 
+;;; s-lexeme : SpannedParser α → SpannedParser α
 (define (s-lexeme parser)
   (s-seq-left parser s-spaces))
 
+;;; s-symbol : String → SpannedParser String
 (define (s-symbol str)
   (s-lexeme (s-string str)))
 
+;;; s-between : SpannedParser α × SpannedParser β × SpannedParser γ → SpannedParser γ
 (define (s-between open close parser)
   (s-seq open (s-seq-left parser close)))
 
+;;; s-parens : SpannedParser α → SpannedParser α
 (define (s-parens parser)
   (s-between (s-symbol "(") (s-symbol ")") parser))
 
+;;; s-brackets : SpannedParser α → SpannedParser α
 (define (s-brackets parser)
   (s-between (s-symbol "[") (s-symbol "]") parser))
 
@@ -405,15 +439,19 @@
 ;;; A Spanned value pairs a value with its source span.
 ;;; This is used for AST nodes.
 
+;;; spanned : α × Span → (Spanned α)
 (define (spanned value span)
   (list 'spanned value span))
 
+;;; spanned-value? : α → Boolean
 (define (spanned-value? x)
   (and (pair? x) (eq? (car x) 'spanned)))
 
+;;; get-spanned-value : (Spanned α) → α
 (define (get-spanned-value sv)
   (if (spanned-value? sv) (cadr sv) sv))
 
+;;; get-value-span : (Spanned α) → Span
 (define (get-value-span sv)
   (if (spanned-value? sv) (caddr sv) no-span))
 

@@ -154,7 +154,7 @@
 ;;; Message Schedule
 ;;; ============================================================
 
-;;; make-schedule : Bytevector × Nat → Vector
+;;; make-schedule : Bytevector × Nat → (Vector Nat)
 ;;; Create 64-word message schedule from 64-byte block at offset.
 (define (make-schedule msg offset)
   (let ([W (make-vector 64)])
@@ -176,7 +176,7 @@
 ;;; Compression
 ;;; ============================================================
 
-;;; compress : Vector × Vector → Vector
+;;; compress : (Vector Nat) × (Vector Nat) → (Vector Nat)
 ;;; One round of compression (H, W) → H'
 (define (compress H W)
   (let ([a (vector-ref H 0)]

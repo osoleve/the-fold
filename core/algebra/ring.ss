@@ -37,20 +37,29 @@
 ;;; 3. Distributive: a × (b + c) = (a × b) + (a × c)
 ;;;                 (a + b) × c = (a × c) + (b × c)
 
+;;; make-ring : (List α) × (α × α → α) × (α × α → α) × α × α × (α → α) × (α × α → Boolean) → Ring
 (define (make-ring elements add-op mul-op zero one neg-fn equal-fn)
   (list 'ring elements add-op mul-op zero one neg-fn equal-fn))
 
+;;; ring? : α → Boolean
 (define (ring? x)
   (and (list? x)
        (>= (length x) 8)
        (eq? (car x) 'ring)))
 
+;;; ring-elements : Ring → (List Element)
 (define (ring-elements r) (list-ref r 1))
+;;; ring-add-op : Ring → (Element × Element → Element)
 (define (ring-add-op r) (list-ref r 2))
+;;; ring-mul-op : Ring → (Element × Element → Element)
 (define (ring-mul-op r) (list-ref r 3))
+;;; ring-zero : Ring → Element
 (define (ring-zero r) (list-ref r 4))
+;;; ring-one : Ring → Element
 (define (ring-one r) (list-ref r 5))
+;;; ring-neg-fn : Ring → (Element → Element)
 (define (ring-neg-fn r) (list-ref r 6))
+;;; ring-equal-fn : Ring → (Element × Element → Boolean)
 (define (ring-equal-fn r) (list-ref r 7))
 
 ;;; ring-order : Ring → Integer
@@ -236,11 +245,15 @@
 (define (make-ring-homomorphism source target phi)
   (list 'ring-homomorphism source target phi))
 
+;;; ring-hom? : α → Boolean
 (define (ring-hom? h)
   (and (list? h) (eq? (car h) 'ring-homomorphism)))
 
+;;; ring-hom-source : RingHomomorphism → Ring
 (define (ring-hom-source h) (list-ref h 1))
+;;; ring-hom-target : RingHomomorphism → Ring
 (define (ring-hom-target h) (list-ref h 2))
+;;; ring-hom-phi : RingHomomorphism → (Element → Element)
 (define (ring-hom-phi h) (list-ref h 3))
 
 ;;; ring-hom-apply : Homomorphism × Element → Element
@@ -306,10 +319,13 @@
 (define (make-ideal r elements)
   (list 'ideal r elements))
 
+;;; ideal? : α → Boolean
 (define (ideal? i)
   (and (list? i) (eq? (car i) 'ideal)))
 
+;;; ideal-ring : Ideal → Ring
 (define (ideal-ring i) (list-ref i 1))
+;;; ideal-elements : Ideal → (List Element)
 (define (ideal-elements i) (list-ref i 2))
 
 ;;; is-valid-ideal? : Ideal → Boolean

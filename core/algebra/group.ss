@@ -27,18 +27,25 @@
 ;;; - inverse-fn: function a → a⁻¹ such that a ∘ a⁻¹ = e
 ;;; - equal-fn: equality predicate for elements
 
+;;; make-group : (List α) × (α × α → α) × α × (α → α) × (α × α → Boolean) → Group
 (define (make-group elements op identity inverse-fn equal-fn)
   (list 'group elements op identity inverse-fn equal-fn))
 
+;;; group? : α → Boolean
 (define (group? x)
   (and (list? x)
        (>= (length x) 6)
        (eq? (car x) 'group)))
 
+;;; group-elements : Group → (List Element)
 (define (group-elements g) (list-ref g 1))
+;;; group-op : Group → (Element × Element → Element)
 (define (group-op g) (list-ref g 2))
+;;; group-identity : Group → Element
 (define (group-identity g) (list-ref g 3))
+;;; group-inverse-fn : Group → (Element → Element)
 (define (group-inverse-fn g) (list-ref g 4))
+;;; group-equal-fn : Group → (Element × Element → Boolean)
 (define (group-equal-fn g) (list-ref g 5))
 
 ;;; group-order : Group → Integer
@@ -453,16 +460,21 @@
 ;;; (homomorphism source-group target-group mapping)
 ;;; where mapping is a function Element → Element.
 
+;;; make-homomorphism : Group × Group × (Element → Element) → Homomorphism
 (define (make-homomorphism source target mapping)
   (list 'homomorphism source target mapping))
 
+;;; homomorphism? : α → Boolean
 (define (homomorphism? x)
   (and (list? x)
        (= (length x) 4)
        (eq? (car x) 'homomorphism)))
 
+;;; homomorphism-source : Homomorphism → Group
 (define (homomorphism-source h) (list-ref h 1))
+;;; homomorphism-target : Homomorphism → Group
 (define (homomorphism-target h) (list-ref h 2))
+;;; homomorphism-mapping : Homomorphism → (Element → Element)
 (define (homomorphism-mapping h) (list-ref h 3))
 
 ;;; homomorphism-apply : Homomorphism × Element → Element

@@ -235,7 +235,7 @@
 ;;; Primitive Metadata
 ;;; ============================================================
 
-;;; prim-fuel-cost : Symbol → Nat | #f
+;;; prim-fuel-cost : Symbol → (Option Nat)
 ;;; Return the fuel cost of a primitive operation.
 ;;; Note: Core eval does not charge primitives for fuel; this table is
 ;;; for benchmarking and analysis only.
@@ -403,8 +403,8 @@
         ;; --------------------------------------------------------
         [else #f]))
 
-;;; prim-arity : Symbol → (Option Nat)
-;;; Return the expected arity of a primitive (returns #f for variadic or unknown).
+;;; prim-arity : Symbol → (Option (Either Nat Symbol))
+;;; Return the expected arity of a primitive (returns #f for unknown, 'variadic for variadic).
 (define (prim-arity op)
   (case op
         ;; Unary
@@ -449,7 +449,7 @@
   (if (prim-arity op) #t #f))
 
 ;;; list-primitives : Unit → (List Symbol)
-;;; List all known primitives.
+;;; Return list of all known primitives.
 (define (list-primitives)
   '(;; Arithmetic
     add sub mul div mod neg abs sqrt expt log sin cos tan floor ceiling round

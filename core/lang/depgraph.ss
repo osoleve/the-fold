@@ -45,7 +45,7 @@
 ;;; Graph Building
 ;;; ============================================================
 
-;;; depgraph-refresh! : → void
+;;; depgraph-refresh! : Unit → Void
 ;;; Rebuild the dependency graph from the module registry.
 (define (depgraph-refresh!)
   ;; First refresh the index if needed
@@ -85,7 +85,7 @@
 ;;; Cycle Detection (Tarjan's SCC Algorithm)
 ;;; ============================================================
 
-;;; find-all-cycles : → (List (List String))
+;;; find-all-cycles : Unit → (List (List String))
 ;;; Find all strongly connected components with more than one node.
 (define (find-all-cycles)
   (let ([index 0]
@@ -195,7 +195,7 @@
                                          result
                                          (cons current result)))))))))))
 
-;;; ensure-depgraph! : → void
+;;; ensure-depgraph! : Unit → Void
 (define (ensure-depgraph!)
   (unless *depgraph-initialized*
           (depgraph-refresh!)))
@@ -204,7 +204,7 @@
 ;;; Cycle Analysis
 ;;; ============================================================
 
-;;; depgraph-cycles : → void
+;;; depgraph-cycles : Unit → Void
 ;;; Display all detected cycles.
 (define (depgraph-cycles)
   (ensure-depgraph!)
@@ -227,7 +227,7 @@
                     (loop (cdr cycles) (+ n 1))))))
   (display "\n"))
 
-;;; display-cycle : (List String) → void
+;;; display-cycle : (List String) → Void
 (define (display-cycle cycle)
   (let loop ([nodes cycle])
        (unless (null? nodes)
@@ -248,7 +248,7 @@
 ;;; Breaking Cycle Suggestions
 ;;; ============================================================
 
-;;; depgraph-suggest : String → void
+;;; depgraph-suggest : String → Void
 ;;; Suggest how to break cycles involving a module.
 (define (depgraph-suggest path)
   (ensure-depgraph!)
@@ -285,7 +285,7 @@
              cycles-involving))))
   (display "\n"))
 
-;;; cycle-edges : (List String) → (List (String . String))
+;;; cycle-edges : (List String) → (List (Pair String String))
 ;;; Extract edges from a cycle.
 (define (cycle-edges cycle)
   (if (null? cycle)
@@ -310,7 +310,7 @@
 ;;; Dependency Tree Visualization
 ;;; ============================================================
 
-;;; depgraph-tree : String [Nat] → void
+;;; depgraph-tree : String × Nat... → Void
 ;;; Display dependency tree for a module.
 (define depgraph-tree
   (case-lambda
@@ -324,7 +324,7 @@
          (display-tree path 0 max-depth visited "  "))
     (display "\n")]))
 
-;;; display-tree : String Nat Nat Hashtable String String → void
+;;; display-tree : String × Nat × Nat × (Hashtable String Boolean) × String → Void
 (define (display-tree path depth max-depth visited prefix)
   (when (<= depth max-depth)
         (let ([is-cycle (hashtable-ref visited path #f)]
@@ -348,7 +348,7 @@
 ;;; Layered View
 ;;; ============================================================
 
-;;; depgraph-layers : → void
+;;; depgraph-layers : Unit → Void
 ;;; Show modules organized by dependency layers.
 (define (depgraph-layers)
   (ensure-depgraph!)
@@ -371,7 +371,7 @@
                     (loop (cdr layers) (+ n 1)))))
   (display "\n"))
 
-;;; compute-layers : → (List (List String))
+;;; compute-layers : Unit → (List (List String))
 ;;; Compute topological layers (Kahn's algorithm variant).
 (define (compute-layers)
   (let ([in-degree (make-hashtable string-hash string=?)]
@@ -428,7 +428,7 @@
 ;;; Statistics
 ;;; ============================================================
 
-;;; depgraph-stats : → void
+;;; depgraph-stats : Unit → Void
 ;;; Display dependency graph statistics.
 (define (depgraph-stats)
   (ensure-depgraph!)
@@ -478,7 +478,7 @@
 ;;; REPL Commands (convenience wrappers)
 ;;; ============================================================
 
-;;; deps : String → void
+;;; deps : String → Void
 ;;; Show what a module depends on.
 (define (deps path)
   (ensure-depgraph!)
@@ -492,7 +492,7 @@
             d)))
   (display "\n"))
 
-;;; rdeps : String → void
+;;; rdeps : String → Void
 ;;; Show what depends on a module.
 (define (rdeps path)
   (ensure-depgraph!)
@@ -506,7 +506,7 @@
             d)))
   (display "\n"))
 
-;;; cycles : → void
+;;; cycles : Unit → Void
 ;;; Alias for depgraph-cycles.
 (define cycles depgraph-cycles)
 
