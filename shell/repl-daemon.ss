@@ -123,18 +123,46 @@
                   ;; Nothing
                   [else ""])))))
 
+(define (condition->string c)
+  "Build a human-readable string from condition components."
+  (let ([who (and (who-condition? c) (condition-who c))]
+        [msg (and (message-condition? c) (condition-message c))]
+        [irritants (and (irritants-condition? c) (condition-irritants c))])
+       (cond
+        [(and msg (null? (or irritants '())))
+         (if who (format "~a: ~a" who msg) msg)]
+        [(and msg irritants)
+         (if who
+             (format "~a: ~a ~s" who msg irritants)
+             (format "~a ~s" msg irritants))]
+        [(and who irritants)
+         (format "~a: ~s" who irritants)]
+        [who (format "error in ~a" who)]
+        [msg msg]
+        [irritants (format "error: ~s" irritants)]
+        [else "unknown error"])))
+
 (define (format-condition e)
   "Format a condition with its irritants properly filled in.
    Handles the ~s placeholders in condition messages."
   (if (condition? e)
-      (guard (e2 [else (condition-message e)])  ; fallback to template
-             (let ([template (condition-message e)]
-                   [irritants (if (irritants-condition? e)
-                                  (condition-irritants e)
-                                  '())])
-                  (if (null? irritants)
-                      template
-                      (apply format template irritants))))
+      (guard (e2 [else (condition->string e)])  ; fallback to component extraction
+             (if (message-condition? e)
+                 (let ([template (condition-message e)]
+                       [irritants (if (irritants-condition? e)
+                                      (condition-irritants e)
+                                      '())])
+                      (if (null? irritants)
+                          template
+                          ;; Try to apply format; if it fails, just append irritants
+                          (guard (e3 [else
+                                      (let ([who (and (who-condition? e) (condition-who e))])
+                                           (if who
+                                               (format "~a: ~a ~s" who template irritants)
+                                               (format "~a ~s" template irritants)))])
+                                 (apply format template irritants))))
+                 ;; No message - build description from available info
+                 (condition->string e)))
       (format "~a" e)))
 
 (define (process-request!)

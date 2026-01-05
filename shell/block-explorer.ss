@@ -88,16 +88,32 @@
            (let* ([entry (list-ref blocks n)]
                   [hash (car entry)]
                   [blk (cdr entry)])
-                 ;; Save current position to history
-                 (when (current-block-hash)
-                       (navigation-history (cons (current-block-hash) (navigation-history))))
-                 
-                 ;; Update current position
-                 (current-block-hash hash)
-                 (current-mode 'viewing)
-                 
-                 ;; Display the block
-                 (show-block-detail (fs) hash blk)))))
+                 (if (not blk)
+                     ;; Block is missing from store
+                     (begin
+                      (display "╔══════════════════════════════════════════════════════════════╗\n")
+                      (display "║                     MISSING BLOCK                            ║\n")
+                      (display "╚══════════════════════════════════════════════════════════════╝\n")
+                      (newline)
+                      (display (format "Hash: ~a\n\n" (hash->hex hash)))
+                      (display "This block is referenced but not present in the store.\n")
+                      (display "It may have been deleted or never fully stored.\n\n")
+                      (display "Commands:\n")
+                      (display "  (bx-back)    - Go back\n")
+                      (display "  (bx-home)    - Return to home\n")
+                      (newline))
+                     ;; Block exists - show details
+                     (begin
+                      ;; Save current position to history
+                      (when (current-block-hash)
+                            (navigation-history (cons (current-block-hash) (navigation-history))))
+                      
+                      ;; Update current position
+                      (current-block-hash hash)
+                      (current-mode 'viewing)
+                      
+                      ;; Display the block
+                      (show-block-detail (fs) hash blk)))))))
 
 ;;; show-block-detail : FS × Bytevector × Block → void
 ;;; Display a single block with navigation options.
