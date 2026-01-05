@@ -309,10 +309,19 @@ def step(
 
     # Check for infrastructure failures (timeout, crash) vs runtime errors
     # Runtime errors (division by zero, etc.) are still "success" - valid observation
+    #
+    # IMPORTANT: Use prefix matching, not substring matching!
+    # A Scheme program could print "Request timed out" as valid output.
+    # Only the harness generates messages with these exact prefixes.
+    infra_prefixes = (
+        "Evaluation timed out",      # From fold_evaluator timeout
+        "Evaluator not found:",      # From fold_evaluator FileNotFoundError
+        "Evaluation failed:",        # From fold_evaluator Exception
+        "Invalid JSON response:",    # From fold_evaluator JSON parse error
+    )
     is_infra_failure = (
-        "timed out" in eval_result.value.lower() or
-        "not found" in eval_result.value.lower() or
-        "Evaluation failed:" in eval_result.value
+        not eval_result.success and
+        any(eval_result.value.startswith(prefix) for prefix in infra_prefixes)
     )
 
     if is_infra_failure:
@@ -478,7 +487,24 @@ def _test_step():
     assert result7.metrics.api_duration_ms >= 0
     print("  Test 8: Metrics populated - PASS")
 
-    print("\nstep.py: 8 tests passed")
+    # Test 9: False positive prevention - runtime error with "timed out" text
+    # Should NOT be classified as infrastructure failure
+    mock_eval9 = mock_evaluator({
+        "*": EvalResult(success=False, value="Error: Request timed out (user program)", output="", session="test")
+    })
+    mock_api9 = mock_api_client(["(some-network-call)"])
+    result9 = step(
+        session_id="test-step-9",
+        status_prompt="Test prompt 9",
+        api_client=mock_api9,
+        evaluator=mock_eval9
+    )
+    # This should be "success" (infrastructure worked) even though Scheme errored
+    assert result9.status == "success", f"Expected success, got {result9.status}"
+    assert not result9.eval_success  # The Scheme eval failed
+    print("  Test 9: False positive prevention - PASS")
+
+    print("\nstep.py: 9 tests passed")
     return True
 
 

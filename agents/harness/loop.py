@@ -51,9 +51,15 @@ class LoopResult:
 # --- Meta-Command Handling ---
 
 # Patterns for meta-commands (harness-level, not sent to Fold)
-_SUBGOAL_PATTERN = re.compile(r'^\(subgoal\s+"([^"]+)"\s*\)$')
+# Use (?:[^"\\]|\\.)* to handle escaped quotes like \"
+_SUBGOAL_PATTERN = re.compile(r'^\(subgoal\s+"((?:[^"\\]|\\.)*)"\s*\)$')
 _DONE_PATTERN = re.compile(r'^\((done|task-complete)\s*\)$')
-_THINK_PATTERN = re.compile(r'^\(think\s+"([^"]+)"\s*\)$')
+_THINK_PATTERN = re.compile(r'^\(think\s+"((?:[^"\\]|\\.)*)"\s*\)$')
+
+
+def _unescape_string(s: str) -> str:
+    """Unescape common escape sequences in a captured string."""
+    return s.replace('\\"', '"').replace('\\n', '\n').replace('\\\\', '\\')
 
 
 @dataclass
@@ -77,7 +83,7 @@ def parse_meta_command(expression: str) -> MetaCommand:
     # Check for subgoal
     match = _SUBGOAL_PATTERN.match(expr)
     if match:
-        return MetaCommand(kind="subgoal", payload=match.group(1))
+        return MetaCommand(kind="subgoal", payload=_unescape_string(match.group(1)))
 
     # Check for done
     if _DONE_PATTERN.match(expr):
@@ -86,7 +92,7 @@ def parse_meta_command(expression: str) -> MetaCommand:
     # Check for think
     match = _THINK_PATTERN.match(expr)
     if match:
-        return MetaCommand(kind="think", payload=match.group(1))
+        return MetaCommand(kind="think", payload=_unescape_string(match.group(1)))
 
     return MetaCommand(kind="none")
 
@@ -411,6 +417,10 @@ def _test_loop():
     assert parse_meta_command("(task-complete)").kind == "done"
     assert parse_meta_command('(think "I should try X")').kind == "think"
     assert parse_meta_command("(+ 1 2)").kind == "none"
+    # Test escaped quotes
+    assert parse_meta_command('(subgoal "goal with \\"quotes\\"")').kind == "subgoal"
+    assert parse_meta_command('(subgoal "goal with \\"quotes\\"")').payload == 'goal with "quotes"'
+    assert parse_meta_command('(think "I said \\"hello\\"")').payload == 'I said "hello"'
     print("    PASS")
 
     # Test 4: Max steps limit

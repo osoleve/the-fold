@@ -22,8 +22,10 @@ from typing import Optional
 MAX_COMPLETION_LENGTH = 100_000  # 100KB - reasonable for any LLM output
 
 # Pre-compiled regex patterns (performance)
-_TRIPLE_FENCE_PATTERN = re.compile(r'^```[\w-]*\s*(.*?)\s*```$', re.DOTALL)
-_SINGLE_BACKTICK_PATTERN = re.compile(r'^`(.*)`$', re.DOTALL)
+# These patterns search within text (not anchored) to find code fences
+# even when surrounded by prose explanation
+_TRIPLE_FENCE_PATTERN = re.compile(r'```[\w-]*\s*(.*?)\s*```', re.DOTALL)
+_SINGLE_BACKTICK_PATTERN = re.compile(r'`([^`]+)`')
 
 
 @dataclass(frozen=True)
@@ -38,28 +40,34 @@ class ParseResult:
 
 def strip_code_fences(text: str) -> tuple[str, bool]:
     """
-    Remove code fences from text.
+    Extract code from code fences, searching within the text.
 
     Handles:
     - Triple backticks with optional language: ```scheme\n(+ 1 2)\n```
     - Single backticks: `(+ 1 2)`
 
+    IMPORTANT: This searches for code fences anywhere in the text, not just
+    when the entire text is wrapped. This prevents intro prose like
+    "I (the agent) will run:" from being mistakenly parsed as S-expressions.
+
     Returns (cleaned_text, was_transformed).
     """
     cleaned = text.strip()
-    original_cleaned = cleaned
 
-    # Strip triple backticks (handles both with/without newlines)
-    match = _TRIPLE_FENCE_PATTERN.match(cleaned)
+    # Search for triple backticks anywhere in the text (prefer this over prose)
+    match = _TRIPLE_FENCE_PATTERN.search(cleaned)
     if match:
         return (match.group(1).strip(), True)
 
-    # Strip single backticks
-    match = _SINGLE_BACKTICK_PATTERN.match(cleaned)
+    # Search for single backticks (but only if content looks like code)
+    match = _SINGLE_BACKTICK_PATTERN.search(cleaned)
     if match:
-        return (match.group(1).strip(), True)
+        content = match.group(1).strip()
+        # Only use backtick content if it looks like an S-expression
+        if content.startswith('(') or not any(c in content for c in ' \n\t'):
+            return (content, True)
 
-    # Return stripped version (transformation if whitespace was stripped)
+    # No fences found - return stripped version
     return (cleaned, cleaned != text)
 
 
@@ -282,6 +290,13 @@ def _test_parse():
         # Prose around code
         ("I'll browse the forum:\n\n```scheme\n(browse 'engineering 3)\n```\n\nThis should show recent posts.",
          True, "(browse 'engineering 3)"),
+
+        # CRITICAL: Intro prose with parentheses should NOT be extracted
+        # This was a security vulnerability - "I (the agent)" was being extracted
+        ("I (the agent) will run this code:\n\n```scheme\n(help)\n```",
+         True, "(help)"),
+        ("Here's the code (simple example):\n```\n(+ 1 2)\n```",
+         True, "(+ 1 2)"),
 
         # Nested parens
         ("(define (square x) (* x x))", True, "(define (square x) (* x x))"),
