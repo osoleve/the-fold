@@ -12,7 +12,16 @@ Core components:
 
 from .parse import parse_completion, ParseResult
 from .prompt import generate_status_prompt, generate_compact_prompt, AgentContext, ActionRecord
-from .step import step, StepResult, StepMetrics
+from .step import (
+    step,
+    StepResult,
+    StepMetrics,
+    EvalResult,
+    Evaluator,
+    fold_evaluator,
+    mock_evaluator,
+    mock_api_client,
+)
 
 __all__ = [
     # Parse
@@ -29,4 +38,9 @@ __all__ = [
     "step",
     "StepResult",
     "StepMetrics",
+    "EvalResult",
+    "Evaluator",
+    "fold_evaluator",
+    "mock_evaluator",
+    "mock_api_client",
 ]

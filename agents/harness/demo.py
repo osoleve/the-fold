@@ -81,7 +81,12 @@ def main():
     print(f"\n--- RAW COMPLETION ---")
     print(result.raw_completion[:500])
     print(f"\n--- EVAL RESULT ---")
-    print(result.eval_result[:1000] if result.eval_result else "(empty)")
+    if result.eval:
+        print(f"Value: {result.eval.value[:1000] if result.eval.value else '(empty)'}")
+        if result.eval.output:
+            print(f"Output: {result.eval.output[:500]}")
+    else:
+        print("(no eval performed)")
     print(f"\n--- METRICS ---")
     print(f"  API: {result.metrics.api_duration_ms}ms")
     print(f"  Parse: {result.metrics.parse_duration_ms}ms")
