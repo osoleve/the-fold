@@ -47,14 +47,32 @@
   (and (pair? x) (eq? (car x) 'council-config)))
 
 ;;; Accessors
+
+;;; council-models : CouncilConfig → (List Symbol)
 (define (council-models cfg) (list-ref cfg 1))
+
+;;; council-mode : CouncilConfig → Symbol
 (define (council-mode cfg) (list-ref cfg 2))
+
+;;; council-rounds : CouncilConfig → Nat
 (define (council-rounds cfg) (list-ref cfg 3))
+
+;;; council-moderator : CouncilConfig → Symbol
 (define (council-moderator cfg) (list-ref cfg 4))
+
+;;; council-topic-template : CouncilConfig → String
 (define (council-topic-template cfg) (list-ref cfg 5))
+
+;;; council-round-prompts : CouncilConfig → (List String)
 (define (council-round-prompts cfg) (list-ref cfg 6))
+
+;;; council-synthesis-prompt : CouncilConfig → String
 (define (council-synthesis-prompt cfg) (list-ref cfg 7))
+
+;;; council-require-consensus : CouncilConfig → Bool
 (define (council-require-consensus cfg) (list-ref cfg 8))
+
+;;; council-timeout : CouncilConfig → Nat
 (define (council-timeout cfg) (list-ref cfg 9))
 
 ;;; ============================================================
@@ -77,11 +95,23 @@
   (and (pair? x) (eq? (car x) 'council-result)))
 
 ;;; Result accessors
+
+;;; result-responses : CouncilResult → (Alist Symbol String)
 (define (result-responses r) (list-ref r 1))
+
+;;; result-synthesis : CouncilResult → String
 (define (result-synthesis r) (list-ref r 2))
+
+;;; result-consensus : CouncilResult → Bool
 (define (result-consensus r) (list-ref r 3))
+
+;;; result-dissent : CouncilResult → (List (Pair Symbol String))
 (define (result-dissent r) (list-ref r 4))
+
+;;; result-votes : CouncilResult → (Alist String Nat)
 (define (result-votes r) (list-ref r 5))
+
+;;; result-history : CouncilResult → (List (Alist Symbol String))
 (define (result-history r) (list-ref r 6))
 
 ;;; ============================================================
@@ -105,7 +135,7 @@
                (iota rounds 1))])
        (council-sequential-with-prompts models rounds moderator default-prompts)))
 
-;;; council-sequential-with-prompts : List Symbol -> Nat -> Symbol -> List String -> Stage
+;;; council-sequential-with-prompts : (List Symbol) × Nat × Symbol × (List String) → (Stage ctx String CouncilResult)
 (define (council-sequential-with-prompts models rounds moderator round-prompts)
   (make-stage 'council-sequential
               (lambda (ctx input)
@@ -137,7 +167,7 @@
   (council-parallel-with-prompt models synthesizer
                                 "Synthesize these independent perspectives into a coherent summary."))
 
-;;; council-parallel-with-prompt : List Symbol -> Symbol -> String -> Stage
+;;; council-parallel-with-prompt : (List Symbol) × Symbol × String → (Stage ctx String CouncilResult)
 (define (council-parallel-with-prompt models synthesizer synthesis-prompt)
   (make-stage 'council-parallel
               (lambda (ctx input)
@@ -161,7 +191,7 @@
 ;;;
 ;;; Models vote on options, with optional discussion.
 
-;;; council-vote : List Symbol -> List String -> Stage ctx String (Symbol . Alist)
+;;; council-vote : (List Symbol) × (List String) → (Stage ctx String (Pair Symbol (Alist String Nat)))
 ;;; Returns (winner . vote-counts)
 (define (council-vote models options)
   (make-stage 'council-vote
@@ -192,7 +222,7 @@
 ;;;
 ;;; Two models take opposing positions, third judges.
 
-;;; council-debate : Symbol -> Symbol -> Symbol -> Stage ctx String CouncilResult
+;;; council-debate : Symbol × Symbol × Symbol → (Stage ctx String CouncilResult)
 ;;; pro-model, con-model, judge-model
 (define (council-debate pro-model con-model judge-model)
   (make-stage 'council-debate
@@ -219,7 +249,7 @@
 ;;;
 ;;; Continue until consensus or max rounds.
 
-;;; council-consensus : List Symbol -> Nat -> Stage ctx String CouncilResult
+;;; council-consensus : (List Symbol) × Nat → (Stage ctx String CouncilResult)
 ;;; models: participating models
 ;;; max-rounds: maximum rounds before giving up
 (define (council-consensus models max-rounds)
@@ -245,7 +275,7 @@
 ;;; Council Helpers
 ;;; ============================================================
 
-;;; with-council-moderator : Symbol -> Stage ctx i CouncilResult -> Stage ctx i CouncilResult
+;;; with-council-moderator : Symbol × (Stage ctx α CouncilResult) → (Stage ctx α CouncilResult)
 ;;; Override the moderator for a council stage.
 (define (with-council-moderator moderator council-stage)
   (make-stage 'with-moderator
@@ -271,7 +301,7 @@
                                                  topic)))
                                result)))))
 
-;;; with-council-timeout : Nat -> Stage ctx i CouncilResult -> Stage ctx i CouncilResult
+;;; with-council-timeout : Nat × (Stage ctx α CouncilResult) → (Stage ctx α CouncilResult)
 ;;; Set timeout per model (milliseconds).
 (define (with-council-timeout timeout-ms council-stage)
   (make-stage 'with-timeout
@@ -301,28 +331,28 @@
 ;;; Council Result Extractors
 ;;; ============================================================
 
-;;; extract-consensus : CouncilResult -> Maybe String
+;;; extract-consensus : CouncilResult → (Maybe String)
 ;;; Get consensus text if reached.
 (define (extract-consensus result)
   (if (and (council-result? result) (result-consensus result))
       (result-synthesis result)
       #f))
 
-;;; extract-dissent : CouncilResult -> List (Model . String)
+;;; extract-dissent : CouncilResult → (List (Pair Symbol String))
 ;;; Get dissenting views.
 (define (extract-dissent result)
   (if (council-result? result)
       (result-dissent result)
       '()))
 
-;;; count-votes : CouncilResult -> Alist (Option . Nat)
+;;; count-votes : CouncilResult → (Alist String Nat)
 ;;; Get vote counts.
 (define (count-votes result)
   (if (council-result? result)
       (result-votes result)
       '()))
 
-;;; majority-position : CouncilResult -> Maybe String
+;;; majority-position : CouncilResult → (Maybe String)
 ;;; Get the majority position if one exists.
 (define (majority-position result)
   (if (council-result? result)
@@ -358,7 +388,7 @@
    '(opus sonnet haiku gemini-3 kimi)
    'opus))
 
-;;; technical-debate : Symbol -> Stage ctx String CouncilResult
+;;; technical-debate : Symbol → (Stage ctx String CouncilResult)
 ;;; Debate a technical topic between Opus and Gemini.
 (define (technical-debate topic-perspective)
   (council-debate 'opus 'gemini-3 'sonnet))
@@ -367,7 +397,7 @@
 ;;; Council as Pipeline Stage
 ;;; ============================================================
 
-;;; council : CouncilConfig -> Stage ctx String CouncilResult
+;;; council : CouncilConfig → (Stage ctx String CouncilResult)
 ;;; General council constructor from config.
 (define (council config)
   (make-stage 'council
@@ -375,14 +405,14 @@
                       (list 'stage-effect 'council
                             (list (council-mode config) config input)))))
 
-;;; council-then : Stage ctx String CouncilResult -> (CouncilResult -> Stage ctx CouncilResult o) -> Stage ctx String o
+;;; council-then : (Stage ctx String CouncilResult) × (CouncilResult → (Stage ctx CouncilResult β)) → (Stage ctx String β)
 ;;; Chain council result to another stage.
 (define (council-then council-stage handler)
   (stage-bind council-stage
               (lambda (result)
                       (handler result))))
 
-;;; council-on-consensus : Stage ctx String CouncilResult -> Stage ctx CouncilResult o -> Stage ctx String (Either CouncilResult o)
+;;; council-on-consensus : (Stage ctx String CouncilResult) × (Stage ctx CouncilResult β) → (Stage ctx String (Either CouncilResult β))
 ;;; Execute continuation only if consensus reached.
 (define (council-on-consensus council-stage continuation)
   (stage-bind council-stage
@@ -391,7 +421,7 @@
                           (stage-map right (run-stage continuation empty-context result))
                           (stage-pure (left result))))))
 
-;;; council-escalate-on-no-consensus : Stage ctx String CouncilResult -> Symbol -> Stage ctx String CouncilResult
+;;; council-escalate-on-no-consensus : (Stage ctx String CouncilResult) × Symbol → (Stage ctx String CouncilResult)
 ;;; Create bead if no consensus reached.
 (define (council-escalate-on-no-consensus council-stage escalation-channel)
   (stage-bind council-stage
@@ -408,21 +438,21 @@
 ;;; Council Effect Detection
 ;;; ============================================================
 
-;;; council-effect? : Any -> Boolean
+;;; council-effect? : Any → Bool
 ;;; Checks for standard stage-effect with 'council type.
 (define (council-effect? x)
   (and (stage-effect? x)
        (eq? (stage-effect-type x) 'council)))
 
-;;; council-effect-mode : CouncilEffect -> Symbol
+;;; council-effect-mode : CouncilEffect → Symbol
 ;;; Payload structure: (list mode config topic)
 (define (council-effect-mode e)
   (car (stage-effect-payload e)))
 
-;;; council-effect-config : CouncilEffect -> CouncilConfig
+;;; council-effect-config : CouncilEffect → CouncilConfig
 (define (council-effect-config e)
   (cadr (stage-effect-payload e)))
 
-;;; council-effect-topic : CouncilEffect -> String
+;;; council-effect-topic : CouncilEffect → String
 (define (council-effect-topic e)
   (caddr (stage-effect-payload e)))

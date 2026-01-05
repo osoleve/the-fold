@@ -32,25 +32,25 @@
 
 (define *lvar-counter* 0)
 
-;;; make-lvar : Symbol -> LVar
+;;; make-lvar : Symbol → LVar
 ;;; Create a new logic variable with an optional name hint.
 (define (make-lvar name)
   (set! *lvar-counter* (+ *lvar-counter* 1))
   (list 'lvar name *lvar-counter*))
 
-;;; lvar? : Any -> Boolean
+;;; lvar? : α → Bool
 (define (lvar? x)
   (and (pair? x) (eq? (car x) 'lvar)))
 
-;;; lvar-name : LVar -> Symbol
+;;; lvar-name : LVar → Symbol
 (define (lvar-name v)
   (list-ref v 1))
 
-;;; lvar-id : LVar -> Int
+;;; lvar-id : LVar → Nat
 (define (lvar-id v)
   (list-ref v 2))
 
-;;; lvar=? : LVar -> LVar -> Boolean
+;;; lvar=? : LVar × LVar → Bool
 (define (lvar=? v1 v2)
   (and (lvar? v1) (lvar? v2) (= (lvar-id v1) (lvar-id v2))))
 
@@ -64,12 +64,12 @@
 ;;; empty-subst : Substitution
 (define empty-subst '())
 
-;;; extend-subst : LVar -> Value -> Substitution -> Substitution
+;;; extend-subst : LVar × α × Substitution → Substitution
 ;;; Add a binding to a substitution.
 (define (extend-subst var val subst)
   (cons (cons var val) subst))
 
-;;; lookup-subst : LVar -> Substitution -> Maybe Value
+;;; lookup-subst : LVar × Substitution → (Maybe α)
 ;;; Look up a variable in a substitution.
 (define (lookup-subst var subst)
   (let loop ([s subst])
@@ -78,7 +78,7 @@
         [(lvar=? (caar s) var) (just (cdar s))]
         [else (loop (cdr s))])))
 
-;;; walk : Value -> Substitution -> Value
+;;; walk : α × Substitution → α
 ;;; Follow substitution chain to find the value of a term.
 ;;; If term is an unbound variable, return it.
 (define (walk term subst)
@@ -89,7 +89,7 @@
                (walk (from-just binding) subst)))
       term))
 
-;;; walk* : Value -> Substitution -> Value
+;;; walk* : α × Substitution → α
 ;;; Deeply walk a term, substituting all variables.
 (define (walk* term subst)
   (let ([v (walk term subst)])
@@ -104,7 +104,7 @@
 ;;;
 ;;; Unification finds a substitution that makes two terms equal.
 
-;;; unify : Value -> Value -> Substitution -> Maybe Substitution
+;;; unify : α × α × Substitution → (Maybe Substitution)
 ;;; Attempt to unify two terms under a substitution.
 (define (unify u v subst)
   (let ([u (walk u subst)]
@@ -136,17 +136,17 @@
 ;;;
 ;;; Goal : Substitution -> Stream Substitution
 
-;;; succeed : Goal
+;;; succeed : Substitution → (Stream Substitution)
 ;;; The goal that always succeeds with current substitution.
 (define (succeed subst)
   (stream-cons subst (lambda () stream-nil)))
 
-;;; fail : Goal
+;;; fail : Substitution → (Stream Substitution)
 ;;; The goal that always fails.
 (define (fail subst)
   stream-nil)
 
-;;; == : Value -> Value -> Goal
+;;; == : α × α → Goal
 ;;; Unification goal: succeed if terms can be unified.
 (define (== u v)
   (lambda (subst)
@@ -155,7 +155,7 @@
                    stream-nil
                    (stream-cons (from-just result) (lambda () stream-nil))))))
 
-;;; =/= : Value -> Value -> Goal
+;;; =/= : α × α → Goal
 ;;; Disequality goal: succeed if terms cannot be unified.
 (define (=/= u v)
   (lambda (subst)
@@ -168,33 +168,33 @@
 ;;; Goal Combinators
 ;;; ============================================================
 
-;;; conj : Goal -> Goal -> Goal
+;;; conj : Goal × Goal → Goal
 ;;; Conjunction: both goals must succeed.
 (define (conj g1 g2)
   (lambda (subst)
           (stream-flatmap g2 (g1 subst))))
 
-;;; disj : Goal -> Goal -> Goal
+;;; disj : Goal × Goal → Goal
 ;;; Disjunction: either goal may succeed.
 (define (disj g1 g2)
   (lambda (subst)
           (stream-interleave (g1 subst) (g2 subst))))
 
-;;; conj* : List Goal -> Goal
+;;; conj* : (List Goal) → Goal
 ;;; Conjunction of multiple goals.
 (define (conj* goals)
   (if (null? goals)
       succeed
       (conj (car goals) (conj* (cdr goals)))))
 
-;;; disj* : List Goal -> Goal
+;;; disj* : (List Goal) → Goal
 ;;; Disjunction of multiple goals.
 (define (disj* goals)
   (if (null? goals)
       fail
       (disj (car goals) (disj* (cdr goals)))))
 
-;;; conde : List (List Goal) -> Goal
+;;; conde : (List (List Goal)) → Goal
 ;;; Conditional: try each clause (conjunction of goals).
 (define (conde clauses)
   (disj* (map conj* clauses)))
@@ -203,30 +203,30 @@
 ;;; Fresh Variables
 ;;; ============================================================
 
-;;; call/fresh : (LVar -> Goal) -> Goal
+;;; call/fresh : (LVar → Goal) → Goal
 ;;; Create a fresh logic variable and pass it to a goal function.
 (define (call/fresh f)
   (lambda (subst)
           (let ([var (make-lvar '_)])
                ((f var) subst))))
 
-;;; fresh1 : (LVar -> Goal) -> Goal
+;;; fresh1 : (LVar → Goal) → Goal
 (define fresh1 call/fresh)
 
-;;; fresh2 : (LVar -> LVar -> Goal) -> Goal
+;;; fresh2 : (LVar → LVar → Goal) → Goal
 (define (fresh2 f)
   (call/fresh (lambda (a)
                       (call/fresh (lambda (b)
                                           (f a b))))))
 
-;;; fresh3 : (LVar -> LVar -> LVar -> Goal) -> Goal
+;;; fresh3 : (LVar → LVar → LVar → Goal) → Goal
 (define (fresh3 f)
   (call/fresh (lambda (a)
                       (call/fresh (lambda (b)
                                           (call/fresh (lambda (c)
                                                               (f a b c))))))))
 
-;;; fresh4 : (LVar -> LVar -> LVar -> LVar -> Goal) -> Goal
+;;; fresh4 : (LVar → LVar → LVar → LVar → Goal) → Goal
 (define (fresh4 f)
   (call/fresh (lambda (a)
                       (call/fresh (lambda (b)
@@ -238,12 +238,12 @@
 ;;; Running Goals
 ;;; ============================================================
 
-;;; run-goal : Int -> Goal -> List Substitution
+;;; run-goal : Nat × Goal → (List Substitution)
 ;;; Run a goal and collect up to n solutions.
 (define (run-goal n goal)
   (stream->list n (goal empty-subst)))
 
-;;; run* : Int -> (LVar -> Goal) -> List Value
+;;; run* : Nat × (LVar → Goal) → (List α)
 ;;; Run with fresh variable and reify results.
 (define (run* n f)
   (let ([var (make-lvar 'q)])
@@ -256,12 +256,13 @@
 ;;;
 ;;; Reification converts logic variables to readable values.
 
-;;; reify : Value -> Substitution -> Value
+;;; reify : α × Substitution → α
 ;;; Walk a term and replace unbound variables with symbols.
 (define (reify term subst)
   (let ([v (walk* term subst)])
        (reify-s v (build-reify-subst v empty-subst))))
 
+;;; build-reify-subst : α × Substitution → Substitution
 (define (build-reify-subst term subst)
   (let ([v (walk term subst)])
        (cond
@@ -273,9 +274,11 @@
                             (build-reify-subst (car v) subst))]
         [else subst])))
 
+;;; reify-name : Nat → Symbol
 (define (reify-name n)
   (string->symbol (string-append "_." (number->string n))))
 
+;;; reify-s : α × Substitution → α
 (define (reify-s term subst)
   (let ([v (walk term subst)])
        (cond
@@ -287,35 +290,35 @@
 ;;; List Relations
 ;;; ============================================================
 
-;;; conso : Value -> Value -> Value -> Goal
+;;; conso : α × (List α) × (List α) → Goal
 ;;; Relational cons: (cons head tail) == list
 (define (conso head tail lst)
   (== (cons head tail) lst))
 
-;;; nullo : Value -> Goal
+;;; nullo : α → Goal
 ;;; Succeed if argument is null.
 (define (nullo x)
   (== x '()))
 
-;;; pairo : Value -> Goal
+;;; pairo : α → Goal
 ;;; Succeed if argument is a pair.
 (define (pairo x)
   (fresh2 (lambda (a d)
                   (conso a d x))))
 
-;;; caro : Value -> Value -> Goal
+;;; caro : (List α) × α → Goal
 ;;; Relational car: (car lst) == val
 (define (caro lst val)
   (fresh1 (lambda (d)
                   (conso val d lst))))
 
-;;; cdro : Value -> Value -> Goal
+;;; cdro : (List α) × (List α) → Goal
 ;;; Relational cdr: (cdr lst) == val
 (define (cdro lst val)
   (fresh1 (lambda (a)
                   (conso a val lst))))
 
-;;; appendo : Value -> Value -> Value -> Goal
+;;; appendo : (List α) × (List α) × (List α) → Goal
 ;;; Relational append: (append l1 l2) == out
 (define (appendo l1 l2 out)
   (disj
@@ -326,7 +329,7 @@
                            (conso head result out)
                            (appendo tail l2 result)))))))
 
-;;; membero : Value -> Value -> Goal
+;;; membero : α × (List α) → Goal
 ;;; Relational member: x is a member of lst
 (define (membero x lst)
   (fresh2 (lambda (head tail)
@@ -334,7 +337,7 @@
                         (disj (== head x)
                               (membero x tail))))))
 
-;;; lengtho : Value -> Value -> Goal
+;;; lengtho : (List α) × Peano → Goal
 ;;; Relational length: (length lst) == n (using Peano numerals)
 (define (lengtho lst n)
   (disj
@@ -345,11 +348,12 @@
                            (== n (list 'succ m))
                            (lengtho tail m)))))))
 
-;;; reverseo : Value -> Value -> Goal
+;;; reverseo : Value → Value → Goal
 ;;; Relational reverse: (reverse lst) == out
 (define (reverseo lst out)
   (reverse-acc lst '() out))
 
+;;; reverse-acc : Value × Value × Value → Goal
 (define (reverse-acc lst acc out)
   (disj
    (conj (nullo lst) (== acc out))
@@ -364,15 +368,15 @@
 ;;;
 ;;; We use Peano numerals: zero, (succ zero), (succ (succ zero)), ...
 
-;;; zeroo : Value -> Goal
+;;; zeroo : Peano → Goal
 (define (zeroo n)
   (== n 'zero))
 
-;;; succo : Value -> Value -> Goal
+;;; succo : Peano × Peano → Goal
 (define (succo n m)
   (== m (list 'succ n)))
 
-;;; pluso : Value -> Value -> Value -> Goal
+;;; pluso : Peano × Peano × Peano → Goal
 ;;; Relational addition: x + y == z
 (define (pluso x y z)
   (disj
@@ -383,12 +387,12 @@
                            (succo z-1 z)
                            (pluso x-1 y z-1)))))))
 
-;;; minuso : Value -> Value -> Value -> Goal
+;;; minuso : Peano × Peano × Peano → Goal
 ;;; Relational subtraction: x - y == z (x >= y)
 (define (minuso x y z)
   (pluso z y x))
 
-;;; lesso : Value -> Value -> Goal
+;;; lesso : Peano × Peano → Goal
 ;;; Less than relation (strict).
 (define (lesso x y)
   (fresh1 (lambda (diff)
@@ -399,13 +403,13 @@
 ;;; Convenience: Converting Numbers
 ;;; ============================================================
 
-;;; nat->peano : Int -> Peano
+;;; nat->peano : Nat → Peano
 (define (nat->peano n)
   (if (<= n 0)
       'zero
       (list 'succ (nat->peano (- n 1)))))
 
-;;; peano->nat : Peano -> Int
+;;; peano->nat : Peano → Nat
 (define (peano->nat p)
   (if (eq? p 'zero)
       0
@@ -417,7 +421,7 @@
 ;;;
 ;;; The occurs check prevents creating circular structures.
 
-;;; occurs? : LVar -> Value -> Substitution -> Boolean
+;;; occurs? : LVar × α × Substitution → Bool
 ;;; Check if variable occurs in term.
 (define (occurs? var term subst)
   (let ([v (walk term subst)])
@@ -427,7 +431,7 @@
                        (occurs? var (cdr v) subst))]
         [else #f])))
 
-;;; unify-check : Value -> Value -> Substitution -> Maybe Substitution
+;;; unify-check : α × α × Substitution → (Maybe Substitution)
 ;;; Unify with occurs check.
 (define (unify-check u v subst)
   (let ([u (walk u subst)]
@@ -450,7 +454,7 @@
         [(equal? u v) (just subst)]
         [else nothing])))
 
-;;; ==/check : Value -> Value -> Goal
+;;; ==/check : α × α → Goal
 ;;; Unification goal with occurs check.
 (define (==/check u v)
   (lambda (subst)
@@ -466,15 +470,15 @@
 ;;; For more complex logic programming, we'd want constraints.
 ;;; This is a minimal implementation.
 
-;;; make-constraint-store : Substitution -> List Constraint -> ConstraintStore
+;;; make-constraint-store : Substitution × (List Constraint) → ConstraintStore
 (define (make-constraint-store subst constraints)
   (list 'cstore subst constraints))
 
-;;; cstore-subst : ConstraintStore -> Substitution
+;;; cstore-subst : ConstraintStore → Substitution
 (define (cstore-subst cs)
   (list-ref cs 1))
 
-;;; cstore-constraints : ConstraintStore -> List Constraint
+;;; cstore-constraints : ConstraintStore → (List Constraint)
 (define (cstore-constraints cs)
   (list-ref cs 2))
 
@@ -482,13 +486,14 @@
 ;;; Debugging Utilities
 ;;; ============================================================
 
-;;; show-subst : Substitution -> String representation
+;;; show-subst : Substitution → (List (Symbol × α))
+;;; String representation
 (define (show-subst subst)
   (map (lambda (binding)
                (cons (lvar-name (car binding)) (cdr binding)))
        subst))
 
-;;; trace-goal : String -> Goal -> Goal
+;;; trace-goal : String × Goal → Goal
 ;;; Wrap a goal with tracing output.
 (define (trace-goal label goal)
   (lambda (subst)

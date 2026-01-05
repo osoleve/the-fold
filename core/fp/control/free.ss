@@ -266,19 +266,22 @@
 ;;;   ('put key val next) — put value, then continue
 ;;;   ('delete key next)  — delete key, then continue
 
-;;; kv-get : key -> Free KVF (Maybe value)
+;;; kv-get : α → (Free KVF (Maybe β))
+;;; Get value for key from KV store.
 (define (kv-get key)
   (free (list 'get key pure-free)))
 
-;;; kv-put : key -> value -> Free KVF ()
+;;; kv-put : α × β → (Free KVF Unit)
+;;; Put key-value pair in KV store.
 (define (kv-put key val)
   (free (list 'put key val (pure-free '()))))
 
-;;; kv-delete : key -> Free KVF ()
+;;; kv-delete : α → (Free KVF Unit)
+;;; Delete key from KV store.
 (define (kv-delete key)
   (free (list 'delete key (pure-free '()))))
 
-;;; kv-fmap : (a -> b) -> KVF a -> KVF b
+;;; kv-fmap : (α → β) × (KVF α) → (KVF β)
 ;;; Functor instance for KV commands.
 (define (kv-fmap f cmd)
   (let ([tag (car cmd)])
@@ -298,7 +301,7 @@
               (list 'delete key (f next)))]
         [else (error 'kv-fmap "Unknown command")])))
 
-;;; run-kv : Free KVF a -> (alist -> (a . alist))
+;;; run-kv : (Free KVF α) → (Alist → (α . Alist))
 ;;; Interpret KV DSL as stateful computation over an alist.
 ;;; Handles the queue form by normalizing first.
 (define (run-kv program)
@@ -344,15 +347,18 @@
 ;;;   ('print msg next)    — print message, continue
 ;;;   ('read k)            — read input, pass to k
 
-;;; console-print : String -> Free ConsoleF ()
+;;; console-print : String → (Free ConsoleF Unit)
+;;; Print a message to console.
 (define (console-print msg)
   (free (list 'print msg (pure-free '()))))
 
-;;; console-read : Free ConsoleF String
+;;; console-read : (Free ConsoleF String)
+;;; Read a line from console.
 (define console-read
   (free (list 'read pure-free)))
 
-;;; console-fmap : (a -> b) -> ConsoleF a -> ConsoleF b
+;;; console-fmap : (α → β) × (ConsoleF α) → (ConsoleF β)
+;;; Functor instance for Console commands.
 (define (console-fmap f cmd)
   (let ([tag (car cmd)])
        (cond
@@ -365,7 +371,7 @@
               (list 'read (lambda (s) (f (k s)))))]
         [else (error 'console-fmap "Unknown command")])))
 
-;;; run-console-pure : Free ConsoleF a -> (List String) -> (a . (List String))
+;;; run-console-pure : (Free ConsoleF α) × (List String) → (α . (List String))
 ;;; Pure interpreter: uses list of strings as mock input, collects output.
 ;;; Handles the queue form by normalizing first.
 (define (run-console-pure program inputs)
@@ -458,17 +464,19 @@
 ;;; Coyoneda f a = exists b. (b -> a, f b)
 ;;; This gives us fmap for free!
 
-;;; make-coyoneda : f a -> Coyoneda f a
+;;; make-coyoneda : (f α) → (Coyoneda f α)
+;;; Lift a functor value into Coyoneda.
 (define (make-coyoneda fa)
   (list 'coyoneda identity fa))
 
-;;; coyoneda-map : (a -> b) -> Coyoneda f a -> Coyoneda f b
+;;; coyoneda-map : (α → β) × (Coyoneda f α) → (Coyoneda f β)
+;;; Map over a Coyoneda value.
 (define (coyoneda-map f cy)
   (let ([g (cadr cy)]
         [fa (caddr cy)])
        (list 'coyoneda (compose f g) fa)))
 
-;;; lower-coyoneda : (a -> b) -> f a -> f b) -> Coyoneda f a -> f a
+;;; lower-coyoneda : ((α → β) → (f α) → (f β)) × (Coyoneda f α) → (f α)
 ;;; Lower Coyoneda back to the original functor (requires fmap).
 (define (lower-coyoneda fmap cy)
   (let ([f (cadr cy)]

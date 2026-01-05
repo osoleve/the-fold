@@ -44,9 +44,17 @@
        (matrix? (car (cddddr sys))))) ; D
 
 ;;; Accessors
+
+;;; ss-A : SS → Matrix
 (define (ss-A sys) (cadr sys))
+
+;;; ss-B : SS → Matrix
 (define (ss-B sys) (caddr sys))
+
+;;; ss-C : SS → Matrix
 (define (ss-C sys) (cadddr sys))
+
+;;; ss-D : SS → Matrix
 (define (ss-D sys) (car (cddddr sys)))
 
 ;;; ss-order : SS → Nat
@@ -90,7 +98,7 @@
         [else
          (list 'ss A B C D)])))
 
-;;; ss-from-lists : Lists → SS
+;;; ss-from-lists : (List (List Number)) × (List (List Number)) × (List (List Number)) × (List (List Number)) → SS
 ;;; Create state space from nested lists.
 (define (ss-from-lists A-lists B-lists C-lists D-lists)
   (make-ss (matrix-from-lists A-lists)
@@ -360,7 +368,7 @@
 ;;; Common State Space Forms
 ;;; ============================================================
 
-;;; ss-identity-output : Nat → SS
+;;; ss-identity-output : Matrix × Matrix → SS
 ;;; Create a system with identity C (full state output) and no feedthrough.
 (define (ss-identity-output A B)
   (let* ([n (matrix-rows A)]

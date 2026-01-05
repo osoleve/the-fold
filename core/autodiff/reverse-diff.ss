@@ -31,14 +31,14 @@
 ;;; Uses a parameter to support nested AD (each nesting level gets its own counter)
 (define *traced-id-counter* (make-parameter 0))
 
-;;; fresh-id : -> Nat
+;;; fresh-id : Unit → Nat
 ;;; Generate a unique ID within the current AD scope.
 (define (fresh-id)
   (let ([id (*traced-id-counter*)])
        (*traced-id-counter* (+ id 1))
        id))
 
-;;; reset-traced-ids! : -> Void
+;;; reset-traced-ids! : Unit → Unit
 ;;; DEPRECATED: Use with-fresh-ad-scope instead.
 ;;;
 ;;; WARNING: Calling this function between nested gradient computations
@@ -48,7 +48,7 @@
   (display "WARNING: reset-traced-ids! is deprecated. Use with-fresh-ad-scope.\n")
   (*traced-id-counter* 0))
 
-;;; with-fresh-ad-scope : (-> a) -> a
+;;; with-fresh-ad-scope : (Unit → α) → α
 ;;; Execute a computation in a fresh AD scope with its own ID counter and tape.
 ;;; This enables nested gradient computations without corrupting outer scopes.
 (define (with-fresh-ad-scope thunk)
@@ -56,24 +56,24 @@
                  [*current-tape* #f])
                 (thunk)))
 
-;;; traced : Number x Nat x Tape -> Traced
+;;; traced : Number × Nat × Tape → TracedValue
 ;;; Create a traced value.
 (define (traced val id tape)
   (list 'traced val id tape))
 
-;;; traced? : Any -> Boolean
+;;; traced? : α → Bool
 (define (traced? x)
   (and (pair? x) (eq? (car x) 'traced)))
 
-;;; traced-value : Traced -> Number
+;;; traced-value : TracedValue → Number
 (define (traced-value t)
   (if (traced? t) (cadr t) t))
 
-;;; traced-id : Traced -> Nat
+;;; traced-id : TracedValue → Nat
 (define (traced-id t)
   (if (traced? t) (caddr t) #f))
 
-;;; traced-tape : Traced -> Tape
+;;; traced-tape : TracedValue → Tape
 (define (traced-tape t)
   (if (traced? t) (cadddr t) #f))
 
@@ -84,20 +84,20 @@
 ;;; Global tape for current computation (parameterized for nested AD)
 (define *current-tape* (make-parameter #f))
 
-;;; make-reverse-tape : -> MutableTape
+;;; make-reverse-tape : Unit → Tape
 ;;; Create a new mutable tape.
 (define (make-reverse-tape)
   (list 'reverse-tape (box '())))
 
-;;; reverse-tape? : Any -> Boolean
+;;; reverse-tape? : α → Bool
 (define (reverse-tape? t)
   (and (pair? t) (eq? (car t) 'reverse-tape)))
 
-;;; reverse-tape-entries : MutableTape -> (List TapeEntry)
+;;; reverse-tape-entries : Tape → (List α)
 (define (reverse-tape-entries t)
   (unbox (cadr t)))
 
-;;; reverse-tape-push! : MutableTape x TapeEntry -> Void
+;;; reverse-tape-push! : Tape × α → Unit
 ;;; Push an entry onto the tape.
 (define (reverse-tape-push! tape entry)
   (set-box! (cadr tape)
@@ -107,14 +107,14 @@
 ;;; Traced Variable Creation
 ;;; ============================================================
 
-;;; make-traced-var : Number x MutableTape -> Traced
+;;; make-traced-var : Number × Tape → TracedValue
 ;;; Create a traced variable (input to the computation).
 (define (make-traced-var val tape)
   (let ([id (fresh-id)])
        ;; Variables don't add to tape - they're leaves
        (traced val id tape)))
 
-;;; make-traced-const : Number x MutableTape -> Traced
+;;; make-traced-const : Number × Tape → Number
 ;;; Create a traced constant (gradient = 0).
 (define (make-traced-const val tape)
   ;; Constants don't need IDs or tape entries
@@ -134,7 +134,7 @@
                            (list result-id op-name input-ids local-grads))
        (traced result-val result-id tape)))
 
-;;; traced-add : Traced|Number x Traced|Number -> Traced
+;;; traced-add : TracedValue × TracedValue → TracedValue
 ;;; Addition with gradient tracking. d(a+b)/da = 1, d(a+b)/db = 1
 (define (traced-add a b)
   (let* ([av (traced-value a)]
@@ -146,7 +146,7 @@
             (traced-op 'add result (list a b) '(1 1) tape)
             result)))
 
-;;; traced-sub : Traced|Number x Traced|Number -> Traced
+;;; traced-sub : TracedValue × TracedValue → TracedValue
 ;;; Subtraction. d(a-b)/da = 1, d(a-b)/db = -1
 (define (traced-sub a b)
   (let* ([av (traced-value a)]
@@ -158,7 +158,7 @@
             (traced-op 'sub result (list a b) '(1 -1) tape)
             result)))
 
-;;; traced-mul : Traced|Number x Traced|Number -> Traced
+;;; traced-mul : TracedValue × TracedValue → TracedValue
 ;;; Multiplication. d(a*b)/da = b, d(a*b)/db = a
 (define (traced-mul a b)
   (let* ([av (traced-value a)]
@@ -170,7 +170,7 @@
             (traced-op 'mul result (list a b) (list bv av) tape)
             result)))
 
-;;; traced-div : Traced|Number x Traced|Number -> Traced
+;;; traced-div : TracedValue × TracedValue → TracedValue
 ;;; Division. d(a/b)/da = 1/b, d(a/b)/db = -a/b^2
 (define (traced-div a b)
   (let* ([av (traced-value a)]
@@ -188,7 +188,7 @@
                            tape))
             result)))
 
-;;; traced-neg : Traced|Number -> Traced
+;;; traced-neg : TracedValue → TracedValue
 ;;; Negation. d(-a)/da = -1
 (define (traced-neg a)
   (let* ([av (traced-value a)]
@@ -198,7 +198,7 @@
             (traced-op 'neg result (list a) '(-1) tape)
             result)))
 
-;;; traced-sq : Traced|Number -> Traced
+;;; traced-sq : TracedValue → TracedValue
 ;;; Square. d(a^2)/da = 2a
 (define (traced-sq a)
   (let* ([av (traced-value a)]
@@ -208,7 +208,7 @@
             (traced-op 'sq result (list a) (list (* 2 av)) tape)
             result)))
 
-;;; traced-sqrt : Traced|Number -> Traced
+;;; traced-sqrt : TracedValue → TracedValue
 ;;; Square root. d(sqrt(a))/da = 1/(2*sqrt(a))
 (define (traced-sqrt a)
   (let* ([av (traced-value a)]
@@ -218,7 +218,7 @@
             (traced-op 'sqrt result (list a) (list (/ 1 (* 2 result))) tape)
             result)))
 
-;;; traced-exp : Traced|Number -> Traced
+;;; traced-exp : TracedValue → TracedValue
 ;;; Exponential. d(e^a)/da = e^a
 (define (traced-exp a)
   (let* ([av (traced-value a)]
@@ -228,7 +228,7 @@
             (traced-op 'exp result (list a) (list result) tape)
             result)))
 
-;;; traced-log : Traced|Number -> Traced
+;;; traced-log : TracedValue → TracedValue
 ;;; Natural log. d(ln a)/da = 1/a
 (define (traced-log a)
   (let* ([av (traced-value a)]
@@ -241,7 +241,7 @@
                 (traced-op 'log result (list a) (list (/ 1 av)) tape))
             result)))
 
-;;; traced-sin : Traced|Number -> Traced
+;;; traced-sin : TracedValue → TracedValue
 ;;; Sine. d(sin a)/da = cos a
 (define (traced-sin a)
   (let* ([av (traced-value a)]
@@ -251,7 +251,7 @@
             (traced-op 'sin result (list a) (list (cos av)) tape)
             result)))
 
-;;; traced-cos : Traced|Number -> Traced
+;;; traced-cos : TracedValue → TracedValue
 ;;; Cosine. d(cos a)/da = -sin a
 (define (traced-cos a)
   (let* ([av (traced-value a)]
@@ -261,7 +261,7 @@
             (traced-op 'cos result (list a) (list (- (sin av))) tape)
             result)))
 
-;;; traced-tan : Traced|Number -> Traced
+;;; traced-tan : TracedValue → TracedValue
 ;;; Tangent. d(tan a)/da = sec^2(a) = 1/cos^2(a)
 (define (traced-tan a)
   (let* ([av (traced-value a)]
@@ -272,7 +272,7 @@
             (traced-op 'tan result (list a) (list (/ 1 (* c c))) tape)
             result)))
 
-;;; traced-pow : Traced|Number x Number -> Traced
+;;; traced-pow : TracedValue × Number → TracedValue
 ;;; Power. d(a^n)/da = n*a^(n-1)
 (define (traced-pow base n)
   (let* ([bv (traced-value base)]
@@ -291,7 +291,7 @@
 ;;; Inverse Trigonometric Functions
 ;;; ============================================================
 
-;;; traced-asin : Traced|Number -> Traced
+;;; traced-asin : TracedValue → TracedValue
 ;;; Arcsine. d(asin a)/da = 1/sqrt(1-a^2)
 (define (traced-asin a)
   (let* ([av (traced-value a)]
@@ -306,7 +306,7 @@
                              tape))
             result)))
 
-;;; traced-acos : Traced|Number -> Traced
+;;; traced-acos : TracedValue → TracedValue
 ;;; Arccosine. d(acos a)/da = -1/sqrt(1-a^2)
 (define (traced-acos a)
   (let* ([av (traced-value a)]
@@ -321,7 +321,7 @@
                              tape))
             result)))
 
-;;; traced-atan : Traced|Number -> Traced
+;;; traced-atan : TracedValue → TracedValue
 ;;; Arctangent. d(atan a)/da = 1/(1+a^2)
 (define (traced-atan a)
   (let* ([av (traced-value a)]
@@ -337,7 +337,7 @@
 ;;; Hyperbolic Functions
 ;;; ============================================================
 
-;;; traced-sinh : Traced|Number -> Traced
+;;; traced-sinh : TracedValue → TracedValue
 ;;; Hyperbolic sine. d(sinh a)/da = cosh a
 (define (traced-sinh a)
   (let* ([av (traced-value a)]
@@ -350,7 +350,7 @@
             (traced-op 'sinh result (list a) (list cosh-v) tape)
             result)))
 
-;;; traced-cosh : Traced|Number -> Traced
+;;; traced-cosh : TracedValue → TracedValue
 ;;; Hyperbolic cosine. d(cosh a)/da = sinh a
 (define (traced-cosh a)
   (let* ([av (traced-value a)]
@@ -363,7 +363,7 @@
             (traced-op 'cosh result (list a) (list sinh-v) tape)
             result)))
 
-;;; traced-tanh : Traced|Number -> Traced
+;;; traced-tanh : TracedValue → TracedValue
 ;;; Hyperbolic tangent. d(tanh a)/da = sech^2(a) = 1/cosh^2(a)
 (define (traced-tanh a)
   (let* ([av (traced-value a)]
@@ -382,7 +382,7 @@
 ;;; Backward Pass
 ;;; ============================================================
 
-;;; backward : MutableTape x Nat x Number -> Hashtable
+;;; backward : Tape × Nat × Number → Hash
 ;;; Compute gradients by walking tape backwards.
 ;;; Returns hashtable: id -> gradient
 (define (backward tape output-id seed)
@@ -412,7 +412,7 @@
 ;;; High-Level Interface
 ;;; ============================================================
 
-;;; gradient : ((Traced ...) -> Traced) x (List Number) -> (List Number)
+;;; gradient : ((List TracedValue) → TracedValue) × (List Number) → (List Number)
 ;;; Compute gradient of f at point args.
 ;;; f takes individual traced arguments, uses traced operations, returns traced.
 ;;; Supports nested gradient computations - each call creates its own AD scope.
@@ -436,12 +436,12 @@
                      ;; Constant function - all gradients are 0
                      (map (lambda (_) 0) args))))))
 
-;;; gradient-at : (Number x ... -> Number) x Number x ... -> (List Number)
+;;; gradient-at : (List Number) → (List Number)
 ;;; Variadic version of gradient.
 (define (gradient-at f . args)
   (gradient (lambda (xs) (apply f xs)) args))
 
-;;; value-and-gradient : ((Traced ...) -> Traced) x (List Number) -> (Values Number (List Number))
+;;; value-and-gradient : ((List TracedValue) → TracedValue) × (List Number) → (Values Number (List Number))
 ;;; Compute both value and gradient in one pass.
 ;;; Supports nested gradient computations.
 (define (value-and-gradient f args)
@@ -465,7 +465,7 @@
 ;;; Convenience: Single-Variable Differentiation
 ;;; ============================================================
 
-;;; reverse-diff : (Traced -> Traced) x Number -> Number
+;;; reverse-diff : (TracedValue → TracedValue) × Number → Number
 ;;; Compute derivative of f at x using reverse mode.
 (define (reverse-diff f x)
   (car (gradient f (list x))))
@@ -474,7 +474,7 @@
 ;;; Gradient Checking (for debugging)
 ;;; ============================================================
 
-;;; numerical-gradient : ((Number ...) -> Number) x (List Number) x Number -> (List Number)
+;;; numerical-gradient : ((List Number) → Number) × (List Number) × Number → (List Number)
 ;;; Compute gradient numerically using finite differences.
 (define (numerical-gradient f args epsilon)
   (map (lambda (i)
@@ -484,13 +484,14 @@
                         (* 2 epsilon))))
        (iota (length args))))
 
+;;; list-update : (List α) × Nat × (α → α) → (List α)
 ;;; Helper: update element at index
 (define (list-update lst idx f)
   (if (= idx 0)
       (cons (f (car lst)) (cdr lst))
       (cons (car lst) (list-update (cdr lst) (- idx 1) f))))
 
-;;; check-gradient : (List Number -> Number) x (List Number) x Number -> Boolean
+;;; check-gradient : ((List Number) → Number) × (List Number) × Number → Bool
 ;;; Check if analytical gradient matches numerical gradient.
 (define (check-gradient f args tolerance)
   (let* ([analytical (gradient f args)]
@@ -502,7 +503,7 @@
 ;;; Tape Utilities
 ;;; ============================================================
 
-;;; print-tape : MutableTape -> Void
+;;; print-tape : Tape → Unit
 ;;; Print tape contents for debugging.
 (define (print-tape tape)
   (printf "Reverse-Mode Tape (~a entries):~n"

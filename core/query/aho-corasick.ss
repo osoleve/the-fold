@@ -7,10 +7,12 @@
 (define-record-type ac-state
   (fields id trans output fail))
 
+;;; make-state : Nat → ACState
 (define (make-state id)
   (make-ac-state id dict-empty set-empty 0))
 
-;;; Build trie with mutable vector to avoid O(N²) copying
+;;; build-trie : (List String) → (Vector ACState)
+;;; Build trie with mutable vector to avoid O(N^2) copying
 (define (build-trie patterns)
   (let* ([total-chars (fold-left (lambda (acc p) (+ acc (string-length p))) 0 patterns)]
          [capacity (max 64 (+ total-chars 1))]  ; Pre-allocate with estimated capacity
@@ -27,6 +29,7 @@
                                                     next-id)])
                       (loop-patterns (cdr patterns) new-id))))))
 
+;;; insert-pattern-mut! : String × (Vector ACState) × (→ Nat) × (→ Nat Void) × Nat → Nat
 ;;; Mutable version: mutates states vector in place
 (define (insert-pattern-mut! pattern states get-size set-size! next-id)
   (let loop-chars ([chars (string->list pattern)]
@@ -61,6 +64,7 @@
                            (vector-set! states sid updated-parent)
                            (loop-chars (cdr chars) next-id (+ next-id 1))))))))
 
+;;; compute-failures : (Vector ACState) → (Vector ACState)
 ;;; Compute failures using Queue BFS (dogfooding!) with in-place mutation
 (define (compute-failures states)
   (let* ([root (vector-ref states 0)]
@@ -71,6 +75,7 @@
         (bfs-mut! states init-q)
         states))
 
+;;; bfs-mut! : (Vector ACState) × Queue → Void
 (define (bfs-mut! states queue)
   (if (queue-empty? queue)
       (void)
@@ -96,6 +101,7 @@
                                        (loop-trans (cdr keys)
                                                    (queue-enqueue child-id q)))))))))
 
+;;; find-fail : (Vector ACState) × Nat × Char → Nat
 (define (find-fail states sid ch)
   (let* ([state (vector-ref states sid)]
          [fail-id (ac-state-fail state)])
@@ -108,9 +114,12 @@
                      (find-fail states fail-id ch))))))
 
 ;;; Main API
+
+;;; make-automaton : (List String) → (Vector ACState)
 (define (make-automaton patterns)
   (compute-failures (build-trie patterns)))
 
+;;; search : (Vector ACState) × String → (List (Pair Nat String))
 (define (search automaton text)
   (let loop ([chars (string->list text)]
              [pos 0]
@@ -130,6 +139,7 @@
                                     outputs)
                                matches))))))
 
+;;; get-next : (Vector ACState) × Nat × Char → Nat
 (define (get-next automaton sid ch)
   (let ([next (dict-lookup ch (ac-state-trans (vector-ref automaton sid)))])
        (if next

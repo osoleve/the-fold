@@ -265,6 +265,8 @@
     (Option  . ,(K=> K* K*))
     (Set     . ,(K=> K* K*))
     (Ref     . ,(K=> K* K*))
+    (Stream  . ,(K=> K* K*))          ; Stream : * → *
+    (Delayed . ,(K=> K* K*))          ; Delayed : * → *
     (->      . ,(K=>* K* K* K*))      ; Binary for now
     (×       . ,(K=>* K* K* K*))      ; Binary for now
     (+       . ,(K=>* K* K* K*))      ; Binary for now

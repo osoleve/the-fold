@@ -25,10 +25,19 @@
 ;;; Character Constants (to avoid formatter issues)
 ;;; ============================================================
 
+;;; %newline : Char
 (define %newline (integer->char 10))
+
+;;; %tab : Char
 (define %tab (integer->char 9))
+
+;;; %return : Char
 (define %return (integer->char 13))
+
+;;; %backspace : Char
 (define %backspace (integer->char 8))
+
+;;; %page : Char
 (define %page (integer->char 12))
 
 ;;; ============================================================
@@ -62,6 +71,7 @@
 (define (pos-offset p) (list-ref p 3))
 
 ;;; initial-pos : Pos
+;;; Initial parsing position (line 1, column 1, offset 0).
 (define initial-pos (make-pos 1 1 0))
 
 ;;; advance-pos : Pos × Char → Pos
@@ -207,21 +217,21 @@
 ;;; Primitive Parsers
 ;;; ============================================================
 
-;;; pure : a → Parser a
+;;; parser-pure : α → (Parser α)
 ;;; Parser that succeeds with value without consuming input.
 (define (parser-pure x)
   (make-parser
    (lambda (state)
            (right (cons x state)))))
 
-;;; fail : String → Parser a
+;;; parser-fail : String → (Parser α)
 ;;; Parser that always fails with message.
 (define (parser-fail message)
   (make-parser
    (lambda (state)
            (left (make-parse-error (state-pos state) message '())))))
 
-;;; eof : Parser ()
+;;; eof : (Parser Unit)
 ;;; Parser that succeeds only at end of input.
 (define eof
   (make-parser
@@ -233,7 +243,7 @@
                       "expected end of input"
                       '("end of input")))))))
 
-;;; any-char : Parser Char
+;;; any-char : (Parser Char)
 ;;; Parser that consumes any single character.
 ;;; O(1) per character - uses index-based access instead of substring copying.
 (define any-char
@@ -251,7 +261,7 @@
                                              new-pos)])
                      (right (cons ch new-state)))))))
 
-;;; satisfy : (Char → Boolean) → String → Parser Char
+;;; satisfy : (Char → Bool) × String → (Parser Char)
 ;;; Parser that consumes char satisfying predicate.
 ;;; O(1) per character - uses index-based access instead of substring copying.
 (define (satisfy pred description)
@@ -274,19 +284,19 @@
                                (string-append "unexpected '" (string ch) "'")
                                (list description)))))))))
 
-;;; char : Char → Parser Char
+;;; char : Char → (Parser Char)
 ;;; Parser that matches specific character.
 (define (char c)
   (satisfy (lambda (ch) (char=? ch c))
            (string-append "'" (string c) "'")))
 
-;;; char-ci : Char → Parser Char
+;;; char-ci : Char → (Parser Char)
 ;;; Case-insensitive character match.
 (define (char-ci c)
   (satisfy (lambda (ch) (char-ci=? ch c))
            (string-append "'" (string c) "' (case-insensitive)")))
 
-;;; one-of : String → Parser Char
+;;; one-of : String → (Parser Char)
 ;;; Match any character in string.
 (define (one-of chars)
   (satisfy (lambda (ch)
@@ -297,7 +307,7 @@
                                 (loop (+ i 1))))))
            (string-append "one of '" chars "'")))
 
-;;; none-of : String → Parser Char
+;;; none-of : String → (Parser Char)
 ;;; Match any character NOT in string.
 (define (none-of chars)
   (satisfy (lambda (ch)
@@ -312,30 +322,30 @@
 ;;; Character Class Parsers
 ;;; ============================================================
 
-;;; digit : Parser Char
+;;; digit : (Parser Char)
 (define digit (satisfy char-numeric? "digit"))
 
-;;; letter : Parser Char
+;;; letter : (Parser Char)
 (define letter (satisfy char-alphabetic? "letter"))
 
-;;; alpha-num : Parser Char
+;;; alpha-num : (Parser Char)
 (define alpha-num
   (satisfy (lambda (c) (or (char-alphabetic? c) (char-numeric? c)))
            "alphanumeric"))
 
-;;; space : Parser Char
+;;; space : (Parser Char)
 (define space (satisfy char-whitespace? "whitespace"))
 
-;;; lower : Parser Char
+;;; lower : (Parser Char)
 (define lower (satisfy char-lower-case? "lowercase letter"))
 
-;;; upper : Parser Char
+;;; upper : (Parser Char)
 (define upper (satisfy char-upper-case? "uppercase letter"))
 
-;;; newline : Parser Char
+;;; newline-char : (Parser Char)
 (define newline-char (char %newline))
 
-;;; tab : Parser Char
+;;; tab-char : (Parser Char)
 (define tab-char (char %tab))
 
 ;;; ============================================================
@@ -343,7 +353,7 @@
 ;;; ============================================================
 
 
-;;; string : String → Parser String
+;;; string-parser : String → (Parser String)
 ;;; Match exact string.
 ;;; O(len) where len is the target string length - no copying of input.
 (define (string-parser str)
@@ -384,7 +394,7 @@
 ;;; Monad Operations
 ;;; ============================================================
 
-;;; parser-bind : Parser a × (a → Parser b) → Parser b
+;;; parser-bind : (Parser α) × (α → (Parser β)) → (Parser β)
 ;;; Monadic bind (>>=).
 (define (parser-bind p f)
   (make-parser
@@ -397,28 +407,28 @@
                            [new-state (cdr val-state)])
                           (run-parser (f val) new-state)))))))
 
-;;; parser-then : Parser a × Parser b → Parser b
+;;; parser-then : (Parser α) × (Parser β) → (Parser β)
 ;;; Sequence, discarding first result (>>).
 (define (parser-then p1 p2)
   (parser-bind p1 (lambda (_) p2)))
 
-;;; parser-left : Parser a × Parser b → Parser a
+;;; parser-left : (Parser α) × (Parser β) → (Parser α)
 ;;; Sequence, discarding second result (<*).
 (define (parser-left p1 p2)
   (parser-bind p1 (lambda (x)
                           (parser-bind p2 (lambda (_)
                                                   (parser-pure x))))))
 
-;;; parser-right : Parser a × Parser b → Parser b
+;;; parser-right : (Parser α) × (Parser β) → (Parser β)
 ;;; Sequence, discarding first result (*>). Same as parser-then.
 (define parser-right parser-then)
 
-;;; parser-map : (a → b) → Parser a → Parser b
+;;; parser-map : (α → β) × (Parser α) → (Parser β)
 ;;; Functor map.
 (define (parser-map f p)
   (parser-bind p (lambda (x) (parser-pure (f x)))))
 
-;;; parser-ap : Parser (a → b) × Parser a → Parser b
+;;; parser-ap : (Parser (α → β)) × (Parser α) → (Parser β)
 ;;; Applicative apply.
 (define (parser-ap pf pa)
   (parser-bind pf (lambda (f)
@@ -429,7 +439,7 @@
 ;;; Alternation
 ;;; ============================================================
 
-;;; parser-or : Parser a × Parser a → Parser a
+;;; parser-or : (Parser α) × (Parser α) → (Parser α)
 ;;; Try first parser, if it fails without consuming input, try second (<|>).
 (define (parser-or p1 p2)
   (make-parser
@@ -450,14 +460,14 @@
                                       result2
                                       (left (merge-errors err1 (from-left result2))))))))))))
 
-;;; choice : (List Parser) → Parser
+;;; choice : (List (Parser α)) → (Parser α)
 ;;; Try parsers in order (left to right).
 (define (choice parsers)
   (if (null? parsers)
       (parser-fail "no alternatives")
       (fold-left parser-or (car parsers) (cdr parsers))))
 
-;;; try : Parser a → Parser a
+;;; try : (Parser α) → (Parser α)
 ;;; Try parser, on failure pretend no input was consumed.
 (define (try p)
   (make-parser
@@ -471,12 +481,12 @@
                            (error-message (from-left result))
                            (error-expected (from-left result)))))))))
 
-;;; optional : Parser a → a → Parser a
+;;; optional : (Parser α) × α → (Parser α)
 ;;; Try parser, return default on failure.
 (define (optional p default)
   (parser-or p (parser-pure default)))
 
-;;; option-maybe : Parser a → Parser (Maybe a)
+;;; option-maybe : (Parser α) → (Parser (Maybe α))
 ;;; Try parser, return Just on success, Nothing on failure.
 (define (option-maybe p)
   (parser-or (parser-map just p)
@@ -486,7 +496,7 @@
 ;;; Repetition
 ;;; ============================================================
 
-;;; many : Parser a → Parser (List a)
+;;; many : (Parser α) → (Parser (List α))
 ;;; Zero or more occurrences.
 ;;; Detects and breaks infinite loops when parser succeeds without consuming input.
 (define (many p)
@@ -510,7 +520,7 @@
                          ;; Parser failed - return accumulated results
                          (right (cons (reverse acc) current-state))))))))
 
-;;; some : Parser a → Parser (List a)
+;;; some : (Parser α) → (Parser (List α))
 ;;; One or more occurrences.
 ;;; Detects and breaks infinite loops when parser succeeds without consuming input.
 (define (some p)
@@ -532,7 +542,7 @@
                                          (right (cons (cons val rest-vals) final-state)))
                                    rest-result))))))))
 
-;;; count : Nat × Parser a → Parser (List a)
+;;; count : Nat × (Parser α) → (Parser (List α))
 ;;; Exactly n occurrences.
 (define (count n p)
   (if (= n 0)
@@ -542,17 +552,17 @@
                                           (lambda (xs)
                                                   (parser-pure (cons x xs))))))))
 
-;;; between : Parser open × Parser close × Parser a → Parser a
+;;; between : (Parser α) × (Parser β) × (Parser γ) → (Parser γ)
 ;;; Parse between delimiters.
 (define (between open close p)
   (parser-then open (parser-left p close)))
 
-;;; sepBy : Parser a × Parser sep → Parser (List a)
+;;; sep-by : (Parser α) × (Parser β) → (Parser (List α))
 ;;; Zero or more, separated by separator.
 (define (sep-by p sep)
   (parser-or (sep-by1 p sep) (parser-pure '())))
 
-;;; sepBy1 : Parser a × Parser sep → Parser (List a)
+;;; sep-by1 : (Parser α) × (Parser β) → (Parser (List α))
 ;;; One or more, separated by separator.
 (define (sep-by1 p sep)
   (parser-bind p (lambda (x)
@@ -560,17 +570,17 @@
                                       (lambda (xs)
                                               (parser-pure (cons x xs)))))))
 
-;;; endBy : Parser a × Parser sep → Parser (List a)
+;;; end-by : (Parser α) × (Parser β) → (Parser (List α))
 ;;; Zero or more, each followed by separator.
 (define (end-by p sep)
   (many (parser-left p sep)))
 
-;;; endBy1 : Parser a × Parser sep → Parser (List a)
+;;; end-by1 : (Parser α) × (Parser β) → (Parser (List α))
 ;;; One or more, each followed by separator.
 (define (end-by1 p sep)
   (some (parser-left p sep)))
 
-;;; manyTill : Parser a × Parser end → Parser (List a)
+;;; many-till : (Parser α) × (Parser β) → (Parser (List α))
 ;;; Parse until end parser succeeds.
 ;;; Detects and breaks infinite loops when body parser succeeds without consuming input.
 (define (many-till p end)
@@ -607,7 +617,7 @@
 ;;; Lookahead
 ;;; ============================================================
 
-;;; lookAhead : Parser a → Parser a
+;;; look-ahead : (Parser α) → (Parser α)
 ;;; Try parser without consuming input on success.
 (define (look-ahead p)
   (make-parser
@@ -618,7 +628,7 @@
                     (right (cons (car (from-right result)) state))
                     result)))))
 
-;;; notFollowedBy : Parser a → Parser ()
+;;; not-followed-by : (Parser α) → (Parser Unit)
 ;;; Succeed only if parser fails.
 (define (not-followed-by p)
   (make-parser
@@ -635,7 +645,7 @@
 ;;; Error Handling
 ;;; ============================================================
 
-;;; label : Parser a × String → Parser a
+;;; label : (Parser α) × String → (Parser α)
 ;;; Replace expected in error messages.
 (define (label p description)
   (make-parser
@@ -649,59 +659,60 @@
                                 (error-message err)
                                 (list description)))))))))
 
-;;; <?> : Infix alias for label
+;;; parser-label : (Parser α) × String → (Parser α)
+;;; Infix alias for label.
 (define parser-label label)
 
 ;;; ============================================================
 ;;; Convenience Combinators
 ;;; ============================================================
 
-;;; spaces : Parser String
+;;; spaces : (Parser String)
 ;;; Zero or more whitespace characters.
 (define spaces
   (parser-map list->string (many space)))
 
-;;; spaces1 : Parser String
+;;; spaces1 : (Parser String)
 ;;; One or more whitespace characters.
 (define spaces1
   (parser-map list->string (some space)))
 
-;;; lexeme : Parser a → Parser a
+;;; lexeme : (Parser α) → (Parser α)
 ;;; Parse and consume trailing whitespace.
 (define (lexeme p)
   (parser-left p spaces))
 
-;;; symbol : String → Parser String
+;;; symbol : String → (Parser String)
 ;;; Parse string as lexeme.
 (define (symbol str)
   (lexeme (string-parser str)))
 
-;;; parens : Parser a → Parser a
+;;; parens : (Parser α) → (Parser α)
 ;;; Parse between parentheses.
 (define (parens p)
   (between (symbol "(") (symbol ")") p))
 
-;;; braces : Parser a → Parser a
+;;; braces : (Parser α) → (Parser α)
 ;;; Parse between braces.
 (define (braces p)
   (between (symbol "{") (symbol "}") p))
 
-;;; brackets : Parser a → Parser a
+;;; brackets : (Parser α) → (Parser α)
 ;;; Parse between brackets.
 (define (brackets p)
   (between (symbol "[") (symbol "]") p))
 
-;;; angles : Parser a → Parser a
+;;; angles : (Parser α) → (Parser α)
 ;;; Parse between angle brackets.
 (define (angles p)
   (between (symbol "<") (symbol ">") p))
 
-;;; comma-sep : Parser a → Parser (List a)
+;;; comma-sep : (Parser α) → (Parser (List α))
 ;;; Comma-separated values.
 (define (comma-sep p)
   (sep-by p (symbol ",")))
 
-;;; semi-sep : Parser a → Parser (List a)
+;;; semi-sep : (Parser α) → (Parser (List α))
 ;;; Semicolon-separated values.
 (define (semi-sep p)
   (sep-by p (symbol ";")))
@@ -710,14 +721,14 @@
 ;;; Number Parsers
 ;;; ============================================================
 
-;;; natural : Parser Nat
+;;; natural : (Parser Nat)
 ;;; Parse natural number.
 (define natural
   (parser-bind (some digit)
                (lambda (digits)
                        (parser-pure (string->number (list->string digits))))))
 
-;;; integer : Parser Int
+;;; integer : (Parser Int)
 ;;; Parse integer (with optional sign).
 (define integer
   (parser-bind (optional (one-of "+-") #\+)
@@ -728,7 +739,7 @@
                                                              (- n)
                                                              n)))))))
 
-;;; decimal : Parser Number
+;;; decimal : (Parser Number)
 ;;; Parse decimal number.
 (define decimal
   (parser-bind (optional (one-of "+-") #\+)
@@ -753,7 +764,7 @@
 ;;; Identifier Parser
 ;;; ============================================================
 
-;;; identifier : Parser String
+;;; identifier : (Parser String)
 ;;; Parse identifier (letter followed by alphanumerics).
 (define identifier
   (parser-bind (parser-or letter (char #\_))
@@ -762,7 +773,7 @@
                                     (lambda (rest)
                                             (parser-pure (list->string (cons first rest))))))))
 
-;;; keyword : String → Parser String
+;;; keyword : String → (Parser String)
 ;;; Parse keyword (identifier matching specific string).
 (define (keyword kw)
   (try (parser-bind identifier
@@ -775,7 +786,7 @@
 ;;; Higher-Order Combinators
 ;;; ============================================================
 
-;;; chainl1 : Parser a × Parser (a × a → a) → Parser a
+;;; chainl1 : (Parser α) × (Parser (α × α → α)) → (Parser α)
 ;;; Parse left-associative binary operations.
 ;;; Parses: p (op p)*
 ;;; Associates: ((a op b) op c)
@@ -790,12 +801,12 @@
      (parser-pure acc)))
   (parser-bind p rest))
 
-;;; chainl : Parser a × Parser (a × a → a) × a → Parser a
+;;; chainl : (Parser α) × (Parser (α × α → α)) × α → (Parser α)
 ;;; Like chainl1, but returns default if no matches.
 (define (chainl p op default)
   (parser-or (chainl1 p op) (parser-pure default)))
 
-;;; chainr1 : Parser a × Parser (a × a → a) → Parser a
+;;; chainr1 : (Parser α) × (Parser (α × α → α)) → (Parser α)
 ;;; Parse right-associative binary operations.
 ;;; Parses: p (op p)*
 ;;; Associates: (a op (b op c))
@@ -810,28 +821,28 @@
                                                                   (parser-pure (f x y))))))
                         (parser-pure x)))))
 
-;;; chainr : Parser a × Parser (a × a → a) × a → Parser a
+;;; chainr : (Parser α) × (Parser (α × α → α)) × α → (Parser α)
 ;;; Like chainr1, but returns default if no matches.
 (define (chainr p op default)
   (parser-or (chainr1 p op) (parser-pure default)))
 
-;;; skip-many : Parser a → Parser ()
+;;; skip-many : (Parser α) → (Parser Unit)
 ;;; Apply parser zero or more times, discarding results.
 (define (skip-many p)
   (parser-or (parser-bind p (lambda (_) (skip-many p)))
              (parser-pure '())))
 
-;;; skip-some : Parser a → Parser ()
+;;; skip-some : (Parser α) → (Parser Unit)
 ;;; Apply parser one or more times, discarding results.
 (define (skip-some p)
   (parser-bind p (lambda (_) (skip-many p))))
 
-;;; sep-end-by : Parser a × Parser sep → Parser (List a)
+;;; sep-end-by : (Parser α) × (Parser β) → (Parser (List α))
 ;;; Zero or more, separated and optionally ended by separator.
 (define (sep-end-by p sep)
   (parser-or (sep-end-by1 p sep) (parser-pure '())))
 
-;;; sep-end-by1 : Parser a × Parser sep → Parser (List a)
+;;; sep-end-by1 : (Parser α) × (Parser β) → (Parser (List α))
 ;;; One or more, separated and optionally ended by separator.
 (define (sep-end-by1 p sep)
   (parser-bind p
@@ -844,7 +855,7 @@
                                                                   (parser-pure (cons x xs))))))
                         (parser-pure (list x))))))
 
-;;; many-accum : (a × b → b) × b × Parser a → Parser b
+;;; many-accum : (α × β → β) × β × (Parser α) → (Parser β)
 ;;; Parse zero or more, accumulating with a function.
 (define (many-accum f init p)
   (define (go acc)
@@ -853,12 +864,12 @@
      (parser-pure acc)))
   (go init))
 
-;;; fold-p : (b × a → b) × b × Parser a → Parser b
+;;; fold-p : (β × α → β) × β × (Parser α) → (Parser β)
 ;;; Left fold over parsed values.
 (define (fold-p f init p)
   (many-accum (lambda (x acc) (f acc x)) init p))
 
-;;; scan-p : (b × a → b) × b × Parser a → Parser (List b)
+;;; scan-p : (β × α → β) × β × (Parser α) → (Parser (List β))
 ;;; Like fold-p but collects intermediate results.
 (define (scan-p f init p)
   (parser-map reverse
@@ -867,16 +878,16 @@
                                        (cons new-val acc)))
                           (list init) p)))
 
-;;; until : Parser end × Parser a → Parser (List a)
+;;; until : (Parser α) × (Parser β) → (Parser (List β))
 ;;; Parse until end succeeds, returning parsed values (not including end).
 (define (until end p)
   (many-till p end))
 
-;;; exactly : Nat × Parser a → Parser (List a)
+;;; exactly : Nat × (Parser α) → (Parser (List α))
 ;;; Alias for count.
 (define exactly count)
 
-;;; at-most : Nat × Parser a → Parser (List a)
+;;; at-most : Nat × (Parser α) → (Parser (List α))
 ;;; Parse at most n occurrences.
 (define (at-most n p)
   (if (<= n 0)
@@ -889,7 +900,7 @@
                                                       (parser-pure (cons x xs)))))))
        (parser-pure '()))))
 
-;;; at-least : Nat × Parser a → Parser (List a)
+;;; at-least : Nat × (Parser α) → (Parser (List α))
 ;;; Parse at least n occurrences.
 (define (at-least n p)
   (parser-bind (count n p)
@@ -898,7 +909,7 @@
                                     (lambda (ys)
                                             (parser-pure (append xs ys)))))))
 
-;;; range-of : Nat × Nat × Parser a → Parser (List a)
+;;; range-of : Nat × Nat × (Parser α) → (Parser (List α))
 ;;; Parse between min and max occurrences.
 (define (range-of min max p)
   (parser-bind (count min p)
@@ -911,14 +922,14 @@
 ;;; Position Utilities
 ;;; ============================================================
 
-;;; get-pos : Parser Pos
+;;; get-pos : (Parser Pos)
 ;;; Get current position.
 (define get-pos
   (make-parser
    (lambda (state)
            (right (cons (state-pos state) state)))))
 
-;;; get-input : Parser String
+;;; get-input : (Parser String)
 ;;; Get remaining input (from current position to end).
 ;;; Note: This creates a substring copy - use sparingly in performance-critical code.
 (define get-input
@@ -926,7 +937,7 @@
    (lambda (state)
            (right (cons (state-remaining state) state)))))
 
-;;; with-pos : Parser a → Parser (a × Pos)
+;;; with-pos : (Parser α) → (Parser (Pair α Pos))
 ;;; Attach starting position to result.
 (define (with-pos p)
   (parser-bind get-pos
@@ -935,8 +946,8 @@
                                     (lambda (val)
                                             (parser-pure (cons val pos)))))))
 
-;;; with-span : Parser a → Parser (a × Pos × Pos)
-;;; Attach start and end positions to result.
+;;; with-span : (Parser α) → (Parser (List α))
+;;; Attach start and end positions to result (as list: value, start-pos, end-pos).
 (define (with-span p)
   (parser-bind get-pos
                (lambda (start)
@@ -950,7 +961,7 @@
 ;;; Debugging Utilities
 ;;; ============================================================
 
-;;; trace-parser : String × Parser a → Parser a
+;;; trace-parser : String × (Parser α) → (Parser α)
 ;;; Print debug info when parser is invoked.
 (define (trace-parser label p)
   (make-parser
@@ -997,21 +1008,22 @@
 ;;; SECURITY: By default, memo tables are bounded to prevent memory exhaustion
 ;;; attacks via crafted inputs that create many unique parse states.
 
-;;; Default maximum entries in memo table (prevents DoS via memory exhaustion)
+;;; *default-memo-table-limit* : Nat
+;;; Default maximum entries in memo table (prevents DoS via memory exhaustion).
 (define *default-memo-table-limit* 50000)
 
-;;; memo-table-entry : Result × Nat → Entry
+;;; make-memo-entry : α × Nat → (Pair α Nat)
 ;;; Create a memo table entry with result and access timestamp.
 (define (make-memo-entry result timestamp)
   (cons result timestamp))
 
-;;; memo-entry-result : Entry → Result
+;;; memo-entry-result : (Pair α Nat) → α
 (define (memo-entry-result entry) (car entry))
 
-;;; memo-entry-timestamp : Entry → Nat
+;;; memo-entry-timestamp : (Pair α Nat) → Nat
 (define (memo-entry-timestamp entry) (cdr entry))
 
-;;; make-memo-table : () → MemoTable
+;;; make-memo-table : Unit → MemoTable
 ;;; Create a new bounded memoization table with default limit.
 ;;; This is the safe default that prevents memory exhaustion attacks.
 (define (make-memo-table)
@@ -1026,7 +1038,7 @@
         (box 0)                              ; counter: access timestamp
         (box limit)))                        ; max-entries
 
-;;; make-unbounded-memo-table : () → MemoTable
+;;; make-unbounded-memo-table : Unit → MemoTable
 ;;; Create an unbounded memoization table.
 ;;; WARNING: Only use this for trusted inputs or when you have other
 ;;; safeguards against memory exhaustion attacks.
@@ -1034,32 +1046,32 @@
   (list 'unbounded-memo-table
         (make-hashtable equal-hash equal?)))
 
-;;; bounded-memo-table? : MemoTable → Boolean
+;;; bounded-memo-table? : MemoTable → Bool
 (define (bounded-memo-table? table)
   (and (pair? table) (eq? (car table) 'bounded-memo-table)))
 
-;;; unbounded-memo-table? : MemoTable → Boolean
+;;; unbounded-memo-table? : MemoTable → Bool
 (define (unbounded-memo-table? table)
   (and (pair? table) (eq? (car table) 'unbounded-memo-table)))
 
-;;; memo-table-cache : MemoTable → Hashtable
+;;; memo-table-cache : MemoTable → Hash
 (define (memo-table-cache table)
   (cadr table))
 
-;;; memo-table-counter : BoundedMemoTable → Box Nat
+;;; memo-table-counter : MemoTable → (Ref Nat)
 (define (memo-table-counter table)
   (caddr table))
 
-;;; memo-table-limit : BoundedMemoTable → Box Nat
+;;; memo-table-limit : MemoTable → (Ref Nat)
 (define (memo-table-limit table)
   (cadddr table))
 
-;;; memo-key : Symbol × Nat → MemoKey
+;;; memo-key : Symbol × Nat → (Pair Symbol Nat)
 ;;; Create a memoization key from rule name and position.
 (define (memo-key name offset)
   (cons name offset))
 
-;;; next-timestamp! : BoundedMemoTable → Nat
+;;; next-timestamp! : MemoTable → Nat
 ;;; Get and increment the access timestamp.
 (define (next-timestamp! table)
   (let* ([counter (memo-table-counter table)]
@@ -1067,7 +1079,7 @@
         (set-box! counter (+ ts 1))
         ts))
 
-;;; evict-random! : BoundedMemoTable × Nat → ()
+;;; evict-random! : MemoTable × Nat → Unit
 ;;; Evict random entries to make room for new ones.
 ;;; Uses O(k) random eviction instead of O(N log N) LRU sort.
 ;;; Removes approximately 10% of entries to amortize eviction cost.
@@ -1087,7 +1099,7 @@
                         (vector-set! keys idx (vector-ref keys (- available 1)))
                         (loop (- remaining 1) (- available 1)))))))
 
-;;; memo-lookup : MemoTable × Symbol × Nat → (Maybe Result)
+;;; memo-lookup : MemoTable × Symbol × Nat → (Maybe α)
 ;;; Look up a cached result. Updates access time for bounded tables.
 (define (memo-lookup table name offset)
   (let* ([cache (memo-table-cache table)]
@@ -1104,7 +1116,7 @@
                 ;; Unbounded: just return the result directly
                 (just entry)))))
 
-;;; memo-store! : MemoTable × Symbol × Nat × Result → ()
+;;; memo-store! : MemoTable × Symbol × Nat × α → Unit
 ;;; Store a result in the cache. For bounded tables, evicts old entries if needed.
 (define (memo-store! table name offset result)
   (if (bounded-memo-table? table)
@@ -1122,7 +1134,7 @@
       ;; Unbounded: just store directly
       (hashtable-set! (memo-table-cache table) (memo-key name offset) result)))
 
-;;; memo : Symbol × Parser a → MemoTable → Parser a
+;;; memo : Symbol × (Parser α) → MemoTable → (Parser α)
 ;;; Create a memoizing parser. The memo table is passed at parse time.
 ;;; This allows the same parser definition to be reused with different tables.
 (define (memo name parser)
@@ -1139,12 +1151,12 @@
                                       (memo-store! table name offset result)
                                       result))))))))
 
-;;; memo-ref : (MemoTable → Parser a) × MemoTable → Parser a
+;;; memo-ref : (MemoTable → (Parser α)) × MemoTable → (Parser α)
 ;;; Resolve a memoized parser with its table.
 (define (memo-ref memo-parser table)
   (memo-parser table))
 
-;;; parse-with-memo : (MemoTable → Parser a) × String × MemoTable → Either Error Value
+;;; parse-with-memo : (MemoTable → (Parser α)) × String × MemoTable → (Either Error α)
 ;;; Parse using memoization.
 (define (parse-with-memo memo-parser input table)
   (let* ([parser (memo-ref memo-parser table)]
@@ -1153,7 +1165,7 @@
             (right (car (from-right result)))
             result)))
 
-;;; parse-packrat : (MemoTable → Parser a) × String → Either Error Value
+;;; parse-packrat : (MemoTable → (Parser α)) × String → (Either Error α)
 ;;; Parse with a fresh memo table (convenience function).
 (define (parse-packrat memo-parser input)
   (parse-with-memo memo-parser input (make-memo-table)))
@@ -1164,49 +1176,49 @@
 ;;;
 ;;; These combinators work with memoized parsers.
 
-;;; memo-bind : (MemoTable → Parser a) × (a → MemoTable → Parser b) → MemoTable → Parser b
+;;; memo-bind : (MemoTable → (Parser α)) × (α → MemoTable → (Parser β)) → MemoTable → (Parser β)
 ;;; Monadic bind for memoized parsers.
 (define (memo-bind mp f)
   (lambda (table)
           (parser-bind (memo-ref mp table)
                        (lambda (x) (memo-ref (f x) table)))))
 
-;;; memo-then : (MemoTable → Parser a) × (MemoTable → Parser b) → MemoTable → Parser b
+;;; memo-then : (MemoTable → (Parser α)) × (MemoTable → (Parser β)) → MemoTable → (Parser β)
 ;;; Sequence memoized parsers, discarding first result.
 (define (memo-then mp1 mp2)
   (lambda (table)
           (parser-then (memo-ref mp1 table) (memo-ref mp2 table))))
 
-;;; memo-or : (MemoTable → Parser a) × (MemoTable → Parser a) → MemoTable → Parser a
+;;; memo-or : (MemoTable → (Parser α)) × (MemoTable → (Parser α)) → MemoTable → (Parser α)
 ;;; Try memoized parsers in order.
 (define (memo-or mp1 mp2)
   (lambda (table)
           (parser-or (memo-ref mp1 table) (memo-ref mp2 table))))
 
-;;; memo-pure : a → MemoTable → Parser a
+;;; memo-pure : α → MemoTable → (Parser α)
 ;;; Lift a value into the memoized parser context.
 (define (memo-pure x)
   (lambda (table) (parser-pure x)))
 
-;;; memo-map : (a → b) → (MemoTable → Parser a) → MemoTable → Parser b
+;;; memo-map : (α → β) × (MemoTable → (Parser α)) → MemoTable → (Parser β)
 ;;; Map over a memoized parser.
 (define (memo-map f mp)
   (lambda (table)
           (parser-map f (memo-ref mp table))))
 
-;;; memo-many : (MemoTable → Parser a) → MemoTable → Parser (List a)
+;;; memo-many : (MemoTable → (Parser α)) → MemoTable → (Parser (List α))
 ;;; Zero or more of a memoized parser.
 (define (memo-many mp)
   (lambda (table)
           (many (memo-ref mp table))))
 
-;;; memo-some : (MemoTable → Parser a) → MemoTable → Parser (List a)
+;;; memo-some : (MemoTable → (Parser α)) → MemoTable → (Parser (List α))
 ;;; One or more of a memoized parser.
 (define (memo-some mp)
   (lambda (table)
           (some (memo-ref mp table))))
 
-;;; lift-parser : Parser a → MemoTable → Parser a
+;;; lift-parser : (Parser α) → MemoTable → (Parser α)
 ;;; Lift a regular parser to work with memo combinators.
 (define (lift-parser p)
   (lambda (table) p))
@@ -1215,7 +1227,7 @@
 ;;; Packrat Statistics (for debugging)
 ;;; ============================================================
 
-;;; memo-stats : MemoTable → (entries . limit)
+;;; memo-stats : MemoTable → (Pair Nat (Maybe Nat))
 ;;; Get statistics about memo table usage.
 ;;; Returns (current-entries . max-limit) for bounded tables,
 ;;; or (current-entries . #f) for unbounded tables.
@@ -1231,7 +1243,7 @@
 (define (memo-table-size table)
   (hashtable-size (memo-table-cache table)))
 
-;;; memo-table-set-limit! : BoundedMemoTable × Nat → ()
+;;; memo-table-set-limit! : MemoTable × Nat → Unit
 ;;; Change the limit of a bounded memo table.
 ;;; If new limit is smaller than current size, eviction happens on next store.
 (define (memo-table-set-limit! table new-limit)

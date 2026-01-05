@@ -62,7 +62,7 @@
 ;;; These functions build predicates (Block -> Boolean) from query patterns.
 ;;; Each pattern type has a corresponding predicate builder.
 
-;;; build-tag-predicate : Symbol -> (Block -> Boolean)
+;;; build-tag-predicate : Symbol → (→ Block Bool)
 ;;; Creates a predicate that matches blocks with the given tag.
 ;;;
 ;;; Example:
@@ -71,7 +71,7 @@
   (lambda (block)
           (eq? (block-tag block) tag)))
 
-;;; build-payload-contains-predicate : String -> (Block -> Boolean)
+;;; build-payload-contains-predicate : String → (→ Block Bool)
 ;;; Creates a predicate that matches blocks whose payload contains a substring.
 ;;; Payload is interpreted as UTF-8 string. Binary payloads are skipped gracefully.
 ;;;
@@ -83,7 +83,7 @@
           (let ([payload-str (safe-utf8->string (block-payload block))])
                (query-string-contains? payload-str substring))))
 
-;;; build-payload-matches-predicate : (String -> Boolean) -> (Block -> Boolean)
+;;; build-payload-matches-predicate : (→ String Bool) → (→ Block Bool)
 ;;; Creates a predicate using a custom payload matcher function.
 ;;; The matcher receives the payload as a UTF-8 string.
 ;;; Binary payloads are converted to empty string.
@@ -95,19 +95,19 @@
           (let ([payload-str (safe-utf8->string (block-payload block))])
                (matcher payload-str))))
 
-;;; build-has-refs-predicate : -> (Block -> Boolean)
+;;; build-has-refs-predicate : → (→ Block Bool)
 ;;; Creates a predicate that matches blocks with at least one reference.
 (define (build-has-refs-predicate)
   (lambda (block)
           (> (vector-length (block-refs block)) 0)))
 
-;;; build-refs-count-predicate : Integer -> (Block -> Boolean)
+;;; build-refs-count-predicate : Nat → (→ Block Bool)
 ;;; Creates a predicate that matches blocks with exactly n references.
 (define (build-refs-count-predicate n)
   (lambda (block)
           (= (vector-length (block-refs block)) n)))
 
-;;; build-refs-to-predicate : FSCap Hash -> (Block -> Boolean)
+;;; build-refs-to-predicate : Bytevector → (→ Block Bool)
 ;;; Creates a predicate that matches blocks containing a reference to the given hash.
 (define (build-refs-to-predicate target-hash)
   (lambda (block)
@@ -118,7 +118,7 @@
                      [(bytevector=? (vector-ref refs i) target-hash) #t]
                      [else (check-refs (+ i 1))])))))
 
-;;; build-payload-size-predicate : (Integer Integer -> Boolean) Integer -> (Block -> Boolean)
+;;; build-payload-size-predicate : (→ Nat Nat Bool) × Nat → (→ Block Bool)
 ;;; Creates a predicate that compares payload size using the given comparator.
 ;;;
 ;;; Example:
@@ -142,7 +142,7 @@
 ;;;   (refs-from hash)           -> Handled specially (returns blocks)
 ;;;   (select fields (where q))  -> Projection query
 
-;;; interpret-match : Alist -> (Block -> Boolean)
+;;; interpret-match : (Pair Symbol α) → (→ Block Bool)
 ;;; Interpret a single match pattern and return a predicate.
 ;;;
 ;;; Patterns:
@@ -176,7 +176,7 @@
              [else
               (error 'interpret-match "Unknown match pattern" key)])))
 
-;;; interpret-query : QueryExpr -> (Block -> Boolean)
+;;; interpret-query : Sexp → (→ Block Bool)
 ;;; Main interpreter entry point. Converts a query expression into a predicate.
 ;;;
 ;;; Handles:
@@ -225,7 +225,7 @@
    [else
     (error 'interpret-query "Unknown query expression" expr)]))
 
-;;; and-all : (List (Block -> Boolean)) Block -> Boolean
+;;; and-all : (List (→ Block Bool)) × Block → Bool
 ;;; Return true if ALL predicates match the block.
 (define (and-all predicates block)
   (let loop ([preds predicates])
@@ -233,7 +233,7 @@
            (and ((car preds) block)
                 (loop (cdr preds))))))
 
-;;; or-any : (List (Block -> Boolean)) Block -> Boolean
+;;; or-any : (List (→ Block Bool)) × Block → Bool
 ;;; Return true if ANY predicate matches the block.
 (define (or-any predicates block)
   (let loop ([preds predicates])
@@ -257,7 +257,7 @@
 ;;;   refs-count   - Number of references
 ;;;   hash         - Block hash (requires fs)
 
-;;; extract-field : Block Symbol -> Any
+;;; extract-field : Block × Symbol → α
 ;;; Extract a single field from a block.
 ;;;
 ;;; Fields:
@@ -277,7 +277,7 @@
         [(refs-count) (vector-length (block-refs block))]
         [else (error 'extract-field "Unknown field" field)]))
 
-;;; extract-fields : Block (List Symbol) -> Alist
+;;; extract-fields : Block × (List Symbol) → Alist
 ;;; Extract multiple fields from a block, returning an alist.
 ;;;
 ;;; Example:
@@ -288,7 +288,7 @@
                (cons field (extract-field block field)))
        fields))
 
-;;; project : (List Symbol) (List Block) -> (List Alist)
+;;; project : (List Symbol) × (List Block) → (List Alist)
 ;;; Project specific fields from a list of blocks.
 (define (project fields blocks)
   (map (lambda (block)
@@ -301,13 +301,13 @@
 ;;;
 ;;; Functions for navigating the block reference graph.
 
-;;; refs-to-query : FSCap Hash -> (List Block)
+;;; refs-to-query : FSCap × Bytevector → (List Block)
 ;;; Find all blocks that contain a reference to the given hash.
 ;;; Uses store-find-by-ref from store-api.
 (define (refs-to-query fs target-hash)
   (store-find-by-ref fs target-hash))
 
-;;; refs-from-query : FSCap Hash -> (List Block)
+;;; refs-from-query : FSCap × Bytevector → (List Block)
 ;;; Find all blocks that are referenced BY the block at hash.
 ;;; Returns the blocks pointed to by the given block's refs.
 (define (refs-from-query fs source-hash)
@@ -326,7 +326,7 @@
                                                      result)))))))
            '())))
 
-;;; refs-transitive : FSCap Hash Integer -> (List Block)
+;;; refs-transitive : FSCap × Bytevector × Nat → (List Block)
 ;;; Follow references transitively up to max-depth levels.
 ;;; Returns all reachable blocks within depth limit.
 (define (refs-transitive fs start-hash max-depth)
@@ -360,12 +360,12 @@
 ;;;
 ;;; Aggregate operations on query results.
 
-;;; query-count : FSCap QueryExpr -> Integer
+;;; query-count : FSCap × Sexp → Nat
 ;;; Count blocks matching the query.
 (define (query-count fs expr)
   (length (query fs expr)))
 
-;;; query-group-by : FSCap Symbol QueryExpr -> Alist
+;;; query-group-by : FSCap × Symbol × Sexp → Alist
 ;;; Group matching blocks by a field value.
 ;;; Returns: ((field-value . (list-of-blocks)) ...)
 ;;;
@@ -391,7 +391,7 @@
                           (loop (cdr blocks)
                                 (cons (cons key (list block)) groups))))))))
 
-;;; assoc-generic : Any Alist -> (Maybe Pair)
+;;; assoc-generic : α × Alist → (Maybe (Pair α β))
 ;;; Association lookup using equal? for comparison.
 (define (assoc-generic key alist)
   (let loop ([pairs alist])
@@ -407,7 +407,7 @@
 ;;; The `query` function is the main API entry point.
 ;;; It interprets query expressions and returns matching blocks.
 
-;;; query : FSCap QueryExpr -> (List Block) or (List Alist)
+;;; query : FSCap × Sexp → (+ (List Block) (List Alist))
 ;;; Execute a query and return matching results.
 ;;;
 ;;; Query expression types:
@@ -481,32 +481,32 @@
 ;;;
 ;;; Shorthand functions for common query patterns.
 
-;;; find-entities : FSCap -> (List Block)
+;;; find-entities : FSCap → (List Block)
 ;;; Find all entity blocks.
 (define (find-entities fs)
   (query fs '(tag . entity)))
 
-;;; find-relations : FSCap -> (List Block)
+;;; find-relations : FSCap → (List Block)
 ;;; Find all relation blocks.
 (define (find-relations fs)
   (query fs '(tag . relation)))
 
-;;; find-collections : FSCap -> (List Block)
+;;; find-collections : FSCap → (List Block)
 ;;; Find all collection blocks.
 (define (find-collections fs)
   (query fs '(tag . collection)))
 
-;;; find-by-content : FSCap String -> (List Block)
+;;; find-by-content : FSCap × String → (List Block)
 ;;; Find blocks whose payload contains the given string.
 (define (find-by-content fs substring)
   (query fs `(payload-contains . ,substring)))
 
-;;; find-with-refs : FSCap -> (List Block)
+;;; find-with-refs : FSCap → (List Block)
 ;;; Find all blocks that have at least one reference.
 (define (find-with-refs fs)
   (query fs '(has-refs . #t)))
 
-;;; find-orphans : FSCap -> (List Block)
+;;; find-orphans : FSCap → (List Block)
 ;;; Find blocks that are not referenced by any other block.
 ;;; These are "root" blocks or potentially orphaned data.
 (define (find-orphans fs)
@@ -534,32 +534,32 @@
 ;;;
 ;;; Functions for building complex queries programmatically.
 
-;;; make-tag-query : Symbol -> QueryExpr
+;;; make-tag-query : Symbol → Sexp
 ;;; Create a tag match query expression.
 (define (make-tag-query tag)
   `(tag . ,tag))
 
-;;; make-content-query : String -> QueryExpr
+;;; make-content-query : String → Sexp
 ;;; Create a content search query expression.
 (define (make-content-query substring)
   `(payload-contains . ,substring))
 
-;;; make-and-query : (List QueryExpr) -> QueryExpr
+;;; make-and-query : (List Sexp) → Sexp
 ;;; Combine queries with AND.
 (define (make-and-query queries)
   `(and ,@queries))
 
-;;; make-or-query : (List QueryExpr) -> QueryExpr
+;;; make-or-query : (List Sexp) → Sexp
 ;;; Combine queries with OR.
 (define (make-or-query queries)
   `(or ,@queries))
 
-;;; make-not-query : QueryExpr -> QueryExpr
+;;; make-not-query : Sexp → Sexp
 ;;; Negate a query.
 (define (make-not-query query)
   `(not ,query))
 
-;;; make-select-query : (List Symbol) QueryExpr -> QueryExpr
+;;; make-select-query : (List Symbol) × Sexp → Sexp
 ;;; Create a projection query.
 (define (make-select-query fields where-query)
   `(select ,fields (where ,where-query)))
@@ -568,7 +568,7 @@
 ;;; Section 9: Utility Functions
 ;;; ============================================================
 
-;;; safe-utf8->string : Bytevector -> String
+;;; safe-utf8->string : Bytevector → String
 ;;; Safely convert a bytevector to a UTF-8 string.
 ;;; Returns empty string if the bytevector contains invalid UTF-8.
 ;;; This is necessary because block payloads may contain binary data.
@@ -576,7 +576,7 @@
   (guard (ex [else ""])
          (utf8->string bv)))
 
-;;; query-string-contains? : String String -> Boolean
+;;; query-string-contains? : String × String → Bool
 ;;; Check if haystack contains needle as a substring.
 ;;; Optimized: char-by-char comparison avoids O(N*M) substring allocations.
 (define (query-string-contains? haystack needle)
@@ -604,7 +604,7 @@
                          (outer (+ i 1)))]
                     [else (outer (+ i 1))])))])))
 
-;;; bytevector-hash : Bytevector -> Integer
+;;; bytevector-hash : Bytevector → Nat
 ;;; Hash function for bytevectors (for use in hashtables).
 (define (bytevector-hash bv)
   (let ([len (bytevector-length bv)])
@@ -620,7 +620,7 @@
 ;;;
 ;;; Functions for displaying query results.
 
-;;; print-query-results : (List Block) -> Void
+;;; print-query-results : (List Block) → Void
 ;;; Print a list of blocks in a human-readable format.
 (define (print-query-results blocks)
   (printf "Query returned ~a result(s):\n" (length blocks))
@@ -632,7 +632,7 @@
                    (vector-length (block-refs block))))
    blocks))
 
-;;; print-projection-results : (List Alist) -> Void
+;;; print-projection-results : (List Alist) → Void
 ;;; Print projection results (alists).
 (define (print-projection-results results)
   (printf "Query returned ~a result(s):\n" (length results))

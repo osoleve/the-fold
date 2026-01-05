@@ -27,17 +27,17 @@
 ;;;   (const value)                  - Constant value
 ;;;   (op symbol (node ...))         - Operation with inputs
 
-;;; node-var : Symbol -> Node
+;;; node-var : Symbol → Node
 ;;; Create a variable node.
 (define (node-var name)
   (list 'var name))
 
-;;; node-const : Number -> Node
+;;; node-const : Number → Node
 ;;; Create a constant node.
 (define (node-const value)
   (list 'const value))
 
-;;; node-op : Symbol x (List Node) -> Node
+;;; node-op : Symbol × (List Node) → Node
 ;;; Create an operation node.
 (define (node-op op-name inputs)
   (list 'op op-name inputs))
@@ -46,15 +46,19 @@
 ;;; Node Predicates
 ;;; ============================================================
 
+;;; node-var? : α → Bool
 (define (node-var? n)
   (and (pair? n) (eq? (car n) 'var)))
 
+;;; node-const? : α → Bool
 (define (node-const? n)
   (and (pair? n) (eq? (car n) 'const)))
 
+;;; node-op? : α → Bool
 (define (node-op? n)
   (and (pair? n) (eq? (car n) 'op)))
 
+;;; node? : α → Bool
 (define (node? n)
   (or (node-var? n) (node-const? n) (node-op? n)))
 
@@ -62,23 +66,23 @@
 ;;; Node Accessors
 ;;; ============================================================
 
-;;; node-var-name : VarNode -> Symbol
+;;; node-var-name : Node → Symbol
 (define (node-var-name n)
   (cadr n))
 
-;;; node-const-value : ConstNode -> Number
+;;; node-const-value : Node → Number
 (define (node-const-value n)
   (cadr n))
 
-;;; node-op-name : OpNode -> Symbol
+;;; node-op-name : Node → Symbol
 (define (node-op-name n)
   (cadr n))
 
-;;; node-op-inputs : OpNode -> (List Node)
+;;; node-op-inputs : Node → (List Node)
 (define (node-op-inputs n)
   (caddr n))
 
-;;; node-inputs : Node -> (List Node)
+;;; node-inputs : Node → (List Node)
 ;;; Get all input nodes (empty for var/const).
 (define (node-inputs n)
   (cond
@@ -96,29 +100,29 @@
 ;;;   - output: the output node id (for single-output graphs)
 ;;;   - next-id: counter for generating unique ids
 
-;;; make-comp-graph : -> CompGraph
+;;; make-comp-graph : Unit → CompGraph
 ;;; Create an empty computational graph.
 (define (make-comp-graph)
   (list 'comp-graph '() #f 0))
 
-;;; comp-graph? : Any -> Boolean
+;;; comp-graph? : α → Bool
 (define (comp-graph? g)
   (and (pair? g) (eq? (car g) 'comp-graph)))
 
-;;; comp-graph-nodes : CompGraph -> AList
+;;; comp-graph-nodes : CompGraph → (List (Pair Nat Node))
 (define (comp-graph-nodes g) (cadr g))
 
-;;; comp-graph-output : CompGraph -> NodeId | #f
+;;; comp-graph-output : CompGraph → Nat
 (define (comp-graph-output g) (caddr g))
 
-;;; comp-graph-next-id : CompGraph -> Nat
+;;; comp-graph-next-id : CompGraph → Nat
 (define (comp-graph-next-id g) (cadddr g))
 
 ;;; ============================================================
 ;;; Graph Construction (Functional Update)
 ;;; ============================================================
 
-;;; graph-add-node : CompGraph x Node -> (Values CompGraph NodeId)
+;;; graph-add-node : CompGraph × Node → (Values CompGraph Nat)
 ;;; Add a node to the graph, returning updated graph and node id.
 (define (graph-add-node g node)
   (let* ([id (comp-graph-next-id g)]
@@ -126,7 +130,7 @@
          [new-g (list 'comp-graph nodes (comp-graph-output g) (+ id 1))])
         (values new-g id)))
 
-;;; graph-set-output : CompGraph x NodeId -> CompGraph
+;;; graph-set-output : CompGraph × Nat → CompGraph
 ;;; Set the output node of the graph.
 (define (graph-set-output g output-id)
   (list 'comp-graph
@@ -134,13 +138,13 @@
         output-id
         (comp-graph-next-id g)))
 
-;;; graph-get-node : CompGraph x NodeId -> Node | #f
+;;; graph-get-node : CompGraph × Nat → Node
 ;;; Look up a node by id.
 (define (graph-get-node g id)
   (let ([entry (assv id (comp-graph-nodes g))])
        (if entry (cdr entry) #f)))
 
-;;; graph-node-count : CompGraph -> Nat
+;;; graph-node-count : CompGraph → Nat
 (define (graph-node-count g)
   (length (comp-graph-nodes g)))
 
@@ -148,13 +152,13 @@
 ;;; Graph Traversal
 ;;; ============================================================
 
-;;; graph-topological-order : CompGraph -> (List NodeId)
+;;; graph-topological-order : CompGraph → (List Nat)
 ;;; Return node ids in topological order (inputs before outputs).
 ;;; Since we add nodes in order of construction, reverse gives topo order.
 (define (graph-topological-order g)
   (map car (reverse (comp-graph-nodes g))))
 
-;;; graph-reverse-order : CompGraph -> (List NodeId)
+;;; graph-reverse-order : CompGraph → (List Nat)
 ;;; Return node ids in reverse topological order (outputs before inputs).
 (define (graph-reverse-order g)
   (map car (comp-graph-nodes g)))
@@ -163,32 +167,32 @@
 ;;; Graph Operations
 ;;; ============================================================
 
-;;; graph-map-nodes : (NodeId x Node -> a) x CompGraph -> (List a)
+;;; graph-map-nodes : (Nat × Node → α) × CompGraph → (List α)
 ;;; Apply function to each node.
 (define (graph-map-nodes f g)
   (map (lambda (entry) (f (car entry) (cdr entry)))
        (comp-graph-nodes g)))
 
-;;; graph-fold-nodes : (a x NodeId x Node -> a) x a x CompGraph -> a
+;;; graph-fold-nodes : (α × Nat × Node → α) × α × CompGraph → α
 ;;; Fold over nodes.
 (define (graph-fold-nodes f init g)
   (fold-left (lambda (acc entry) (f acc (car entry) (cdr entry)))
              init
              (comp-graph-nodes g)))
 
-;;; graph-filter-nodes : (Node -> Boolean) x CompGraph -> (List (NodeId . Node))
+;;; graph-filter-nodes : (Node → Bool) × CompGraph → (List (Pair Nat Node))
 ;;; Filter nodes by predicate.
 (define (graph-filter-nodes pred g)
   (filter (lambda (entry) (pred (cdr entry)))
           (comp-graph-nodes g)))
 
-;;; graph-variables : CompGraph -> (List Symbol)
+;;; graph-variables : CompGraph → (List Symbol)
 ;;; Get all variable names in the graph.
 (define (graph-variables g)
   (map (lambda (entry) (node-var-name (cdr entry)))
        (graph-filter-nodes node-var? g)))
 
-;;; graph-operations : CompGraph -> (List Symbol)
+;;; graph-operations : CompGraph → (List Symbol)
 ;;; Get all operation types in the graph (with duplicates).
 (define (graph-operations g)
   (map (lambda (entry) (node-op-name (cdr entry)))
@@ -201,28 +205,28 @@
 ;;; A dual number represents a value and its derivative:
 ;;;   (dual value derivative)
 
-;;; dual : Number x Number -> Dual
+;;; dual : Number × Number → Dual
 (define (dual val deriv)
   (list 'dual val deriv))
 
-;;; dual? : Any -> Boolean
+;;; dual? : α → Bool
 (define (dual? x)
   (and (pair? x) (eq? (car x) 'dual)))
 
-;;; dual-value : Dual -> Number
+;;; dual-value : Dual → Number
 (define (dual-value d)
   (if (dual? d) (cadr d) d))
 
-;;; dual-deriv : Dual -> Number
+;;; dual-deriv : Dual → Number
 (define (dual-deriv d)
   (if (dual? d) (caddr d) 0))
 
-;;; lift : Number -> Dual
+;;; dual-lift : Number → Dual
 ;;; Lift a constant to a dual number (derivative = 0).
 (define (dual-lift x)
   (if (dual? x) x (dual x 0)))
 
-;;; dual-variable : Number -> Dual
+;;; dual-variable : Number → Dual
 ;;; Create a dual for a variable (derivative = 1).
 (define (dual-variable x)
   (dual x 1))
@@ -231,21 +235,21 @@
 ;;; Dual Number Arithmetic
 ;;; ============================================================
 
-;;; dual-add : Dual x Dual -> Dual
+;;; dual-add : Dual × Dual → Dual
 (define (dual-add a b)
   (let ([a (dual-lift a)]
         [b (dual-lift b)])
        (dual (+ (dual-value a) (dual-value b))
              (+ (dual-deriv a) (dual-deriv b)))))
 
-;;; dual-sub : Dual x Dual -> Dual
+;;; dual-sub : Dual × Dual → Dual
 (define (dual-sub a b)
   (let ([a (dual-lift a)]
         [b (dual-lift b)])
        (dual (- (dual-value a) (dual-value b))
              (- (dual-deriv a) (dual-deriv b)))))
 
-;;; dual-mul : Dual x Dual -> Dual
+;;; dual-mul : Dual × Dual → Dual
 ;;; Product rule: d(fg)/dx = f'g + fg'
 (define (dual-mul a b)
   (let ([a (dual-lift a)]
@@ -254,7 +258,7 @@
              (+ (* (dual-deriv a) (dual-value b))
                 (* (dual-value a) (dual-deriv b))))))
 
-;;; dual-div : Dual x Dual -> Dual
+;;; dual-div : Dual × Dual → Dual
 ;;; Quotient rule: d(f/g)/dx = (f'g - fg')/g^2
 (define (dual-div a b)
   (let* ([a (dual-lift a)]
@@ -270,13 +274,13 @@
                   (/ (- (* fd gv) (* fv gd))
                      (* gv gv))))))
 
-;;; dual-neg : Dual -> Dual
+;;; dual-neg : Dual → Dual
 (define (dual-neg a)
   (let ([a (dual-lift a)])
        (dual (- (dual-value a))
              (- (dual-deriv a)))))
 
-;;; dual-recip : Dual -> Dual
+;;; dual-recip : Dual → Dual
 ;;; d(1/x)/dx = -1/x^2
 (define (dual-recip a)
   (let ([a (dual-lift a)])
@@ -284,14 +288,14 @@
              (/ (- (dual-deriv a))
                 (* (dual-value a) (dual-value a))))))
 
-;;; dual-sq : Dual -> Dual
+;;; dual-sq : Dual → Dual
 ;;; d(x^2)/dx = 2x
 (define (dual-sq a)
   (let ([a (dual-lift a)])
        (dual (* (dual-value a) (dual-value a))
              (* 2 (dual-value a) (dual-deriv a)))))
 
-;;; dual-sqrt : Dual -> Dual
+;;; dual-sqrt : Dual → Dual
 ;;; d(sqrt(x))/dx = 1/(2*sqrt(x))
 (define (dual-sqrt a)
   (let* ([a (dual-lift a)]
@@ -299,14 +303,14 @@
          [s (sqrt v)])
         (dual s (/ (dual-deriv a) (* 2 s)))))
 
-;;; dual-exp : Dual -> Dual
+;;; dual-exp : Dual → Dual
 ;;; d(e^x)/dx = e^x
 (define (dual-exp a)
   (let* ([a (dual-lift a)]
          [e (exp (dual-value a))])
         (dual e (* e (dual-deriv a)))))
 
-;;; dual-log : Dual -> Dual
+;;; dual-log : Dual → Dual
 ;;; d(ln x)/dx = 1/x
 (define (dual-log a)
   (let* ([a (dual-lift a)]
@@ -317,21 +321,21 @@
             (dual (log v)
                   (/ (dual-deriv a) v)))))
 
-;;; dual-sin : Dual -> Dual
+;;; dual-sin : Dual → Dual
 ;;; d(sin x)/dx = cos x
 (define (dual-sin a)
   (let ([a (dual-lift a)])
        (dual (sin (dual-value a))
              (* (cos (dual-value a)) (dual-deriv a)))))
 
-;;; dual-cos : Dual -> Dual
+;;; dual-cos : Dual → Dual
 ;;; d(cos x)/dx = -sin x
 (define (dual-cos a)
   (let ([a (dual-lift a)])
        (dual (cos (dual-value a))
              (* (- (sin (dual-value a))) (dual-deriv a)))))
 
-;;; dual-tan : Dual -> Dual
+;;; dual-tan : Dual → Dual
 ;;; d(tan x)/dx = sec^2(x) = 1/cos^2(x)
 (define (dual-tan a)
   (let* ([a (dual-lift a)]
@@ -339,7 +343,7 @@
         (dual (tan (dual-value a))
               (/ (dual-deriv a) (* c c)))))
 
-;;; dual-pow : Dual x Number -> Dual
+;;; dual-pow : Dual × Number → Dual
 ;;; d(x^n)/dx = n*x^(n-1)
 (define (dual-pow base exp)
   (let* ([base (dual-lift base)]
@@ -357,7 +361,7 @@
 ;;; Inverse Trigonometric Functions
 ;;; ============================================================
 
-;;; dual-asin : Dual -> Dual
+;;; dual-asin : Dual → Dual
 ;;; d(asin x)/dx = 1/sqrt(1-x^2)
 (define (dual-asin a)
   (let* ([a (dual-lift a)]
@@ -368,7 +372,7 @@
         (dual (asin v)
               (/ (dual-deriv a) denom))))
 
-;;; dual-acos : Dual -> Dual
+;;; dual-acos : Dual → Dual
 ;;; d(acos x)/dx = -1/sqrt(1-x^2)
 (define (dual-acos a)
   (let* ([a (dual-lift a)]
@@ -379,7 +383,7 @@
         (dual (acos v)
               (/ (- (dual-deriv a)) denom))))
 
-;;; dual-atan : Dual -> Dual
+;;; dual-atan : Dual → Dual
 ;;; d(atan x)/dx = 1/(1+x^2)
 (define (dual-atan a)
   (let* ([a (dual-lift a)]
@@ -391,7 +395,7 @@
 ;;; Hyperbolic Functions
 ;;; ============================================================
 
-;;; dual-sinh : Dual -> Dual
+;;; dual-sinh : Dual → Dual
 ;;; d(sinh x)/dx = cosh x
 (define (dual-sinh a)
   (let* ([a (dual-lift a)]
@@ -402,7 +406,7 @@
         (dual (/ (- ex emx) 2)
               (* (/ (+ ex emx) 2) (dual-deriv a)))))
 
-;;; dual-cosh : Dual -> Dual
+;;; dual-cosh : Dual → Dual
 ;;; d(cosh x)/dx = sinh x
 (define (dual-cosh a)
   (let* ([a (dual-lift a)]
@@ -412,7 +416,7 @@
         (dual (/ (+ ex emx) 2)
               (* (/ (- ex emx) 2) (dual-deriv a)))))
 
-;;; dual-tanh : Dual -> Dual
+;;; dual-tanh : Dual → Dual
 ;;; d(tanh x)/dx = sech^2(x) = 1/cosh^2(x)
 (define (dual-tanh a)
   (let* ([a (dual-lift a)]
@@ -427,12 +431,12 @@
 ;;; Forward Mode Differentiation
 ;;; ============================================================
 
-;;; forward-diff : (Number -> Number) x Number -> Number
+;;; forward-diff : (Number → Number) × Number → Number
 ;;; Compute derivative of f at x using forward mode.
 (define (forward-diff f x)
   (dual-deriv (f (dual-variable x))))
 
-;;; gradient-forward : (List Number -> Number) x (List Number) x Nat -> Number
+;;; gradient-forward : ((List Number) → Number) × (List Number) × Nat → Number
 ;;; Compute partial derivative with respect to variable i.
 (define (gradient-forward f args i)
   (let ([dual-args
@@ -445,7 +449,7 @@
                         (loop (cdr as) (+ j 1)))))])
        (dual-deriv (apply f dual-args))))
 
-;;; gradient-forward-all : (List Number -> Number) x (List Number) -> (List Number)
+;;; gradient-forward-all : ((List Number) → Number) × (List Number) → (List Number)
 ;;; Compute full gradient (all partial derivatives).
 (define (gradient-forward-all f args)
   (let loop ([i 0])
@@ -466,37 +470,43 @@
 ;;;
 ;;; This allows exact computation of mixed second partial derivatives.
 
-;;; hyperdual : Number x Number x Number x Number -> Hyperdual
+;;; hyperdual : Number × Number × Number × Number → Hyperdual
 ;;; Create hyperdual a + b*e1 + c*e2 + d*e1e2
 (define (hyperdual val d1 d2 d12)
   (list 'hyperdual val d1 d2 d12))
 
-;;; hyperdual? : Any -> Boolean
+;;; hyperdual? : α → Bool
 (define (hyperdual? x)
   (and (pair? x) (eq? (car x) 'hyperdual)))
 
-;;; Accessors
+;;; hd-value : Hyperdual → Number
 (define (hd-value h)   (if (hyperdual? h) (cadr h) h))
+
+;;; hd-deriv1 : Hyperdual → Number
 (define (hd-deriv1 h)  (if (hyperdual? h) (caddr h) 0))
+
+;;; hd-deriv2 : Hyperdual → Number
 (define (hd-deriv2 h)  (if (hyperdual? h) (cadddr h) 0))
+
+;;; hd-deriv12 : Hyperdual → Number
 (define (hd-deriv12 h) (if (hyperdual? h) (car (cddddr h)) 0))
 
-;;; hd-lift : Number -> Hyperdual
+;;; hd-lift : Number → Hyperdual
 ;;; Lift a constant (all derivatives = 0).
 (define (hd-lift x)
   (if (hyperdual? x) x (hyperdual x 0 0 0)))
 
-;;; hd-var1 : Number -> Hyperdual
+;;; hd-var1 : Number → Hyperdual
 ;;; Variable with e1 = 1 (for differentiating w.r.t. first variable).
 (define (hd-var1 x)
   (hyperdual x 1 0 0))
 
-;;; hd-var2 : Number -> Hyperdual
+;;; hd-var2 : Number → Hyperdual
 ;;; Variable with e2 = 1 (for differentiating w.r.t. second variable).
 (define (hd-var2 x)
   (hyperdual x 0 1 0))
 
-;;; hd-var12 : Number -> Hyperdual
+;;; hd-var12 : Number → Hyperdual
 ;;; Variable with both e1 = e2 = 1 (for computing diagonal Hessian entry).
 (define (hd-var12 x)
   (hyperdual x 1 1 0))
@@ -505,7 +515,7 @@
 ;;; Hyperdual Arithmetic
 ;;; ============================================================
 
-;;; hd-add : Hyperdual x Hyperdual -> Hyperdual
+;;; hd-add : Hyperdual × Hyperdual → Hyperdual
 (define (hd-add a b)
   (let ([a (hd-lift a)]
         [b (hd-lift b)])
@@ -514,7 +524,7 @@
                   (+ (hd-deriv2 a) (hd-deriv2 b))
                   (+ (hd-deriv12 a) (hd-deriv12 b)))))
 
-;;; hd-sub : Hyperdual x Hyperdual -> Hyperdual
+;;; hd-sub : Hyperdual × Hyperdual → Hyperdual
 (define (hd-sub a b)
   (let ([a (hd-lift a)]
         [b (hd-lift b)])
@@ -523,7 +533,7 @@
                   (- (hd-deriv2 a) (hd-deriv2 b))
                   (- (hd-deriv12 a) (hd-deriv12 b)))))
 
-;;; hd-mul : Hyperdual x Hyperdual -> Hyperdual
+;;; hd-mul : Hyperdual × Hyperdual → Hyperdual
 ;;; (a + b*e1 + c*e2 + d*e1e2) * (a' + b'*e1 + c'*e2 + d'*e1e2)
 ;;; = aa' + (ab'+ba')e1 + (ac'+ca')e2 + (ad'+da'+bc'+cb')e1e2
 (define (hd-mul a b)
@@ -538,7 +548,7 @@
                    (+ (* av b2) (* a2 bv))
                    (+ (* av b12) (* a12 bv) (* a1 b2) (* a2 b1)))))
 
-;;; hd-div : Hyperdual x Hyperdual -> Hyperdual
+;;; hd-div : Hyperdual × Hyperdual → Hyperdual
 ;;; Uses quotient rule and chain rule.
 (define (hd-div a b)
   (let* ([a (hd-lift a)]
@@ -562,7 +572,7 @@
                                       (* a2 b1 bv)))
                                 bv3))))))
 
-;;; hd-neg : Hyperdual -> Hyperdual
+;;; hd-neg : Hyperdual → Hyperdual
 (define (hd-neg a)
   (let ([a (hd-lift a)])
        (hyperdual (- (hd-value a))
@@ -570,11 +580,11 @@
                   (- (hd-deriv2 a))
                   (- (hd-deriv12 a)))))
 
-;;; hd-sq : Hyperdual -> Hyperdual
+;;; hd-sq : Hyperdual → Hyperdual
 (define (hd-sq a)
   (hd-mul a a))
 
-;;; hd-sqrt : Hyperdual -> Hyperdual
+;;; hd-sqrt : Hyperdual → Hyperdual
 ;;; d(sqrt(x))/dx = 1/(2*sqrt(x)), d^2(sqrt(x))/dx^2 = -1/(4x^(3/2))
 (define (hd-sqrt a)
   (let* ([a (hd-lift a)]
@@ -590,7 +600,7 @@
                  (/ (* a1 a2) (* 4 av sv)))])
         (hyperdual sv d1 d2 d12)))
 
-;;; hd-exp : Hyperdual -> Hyperdual
+;;; hd-exp : Hyperdual → Hyperdual
 ;;; d(e^f)/dx = f'e^f, d^2(e^f)/dxdy = (f12 + f1*f2)e^f
 (define (hd-exp a)
   (let* ([a (hd-lift a)]
@@ -604,7 +614,7 @@
                    (* a2 ev)
                    (* (+ a12 (* a1 a2)) ev))))
 
-;;; hd-log : Hyperdual -> Hyperdual
+;;; hd-log : Hyperdual → Hyperdual
 ;;; d(ln f)/dx = f'/f, d^2(ln f)/dxdy = (f12*f - f1*f2)/f^2
 (define (hd-log a)
   (let* ([a (hd-lift a)]
@@ -620,7 +630,7 @@
                        (/ a2 av)
                        (/ (- (* a12 av) (* a1 a2)) (* av av))))))
 
-;;; hd-sin : Hyperdual -> Hyperdual
+;;; hd-sin : Hyperdual → Hyperdual
 ;;; d(sin f)/dx = f'cos f
 ;;; d^2(sin f)/dxdy = f12 cos f - f1*f2 sin f
 (define (hd-sin a)
@@ -636,7 +646,7 @@
                    (* a2 cv)
                    (- (* a12 cv) (* a1 a2 sv)))))
 
-;;; hd-cos : Hyperdual -> Hyperdual
+;;; hd-cos : Hyperdual → Hyperdual
 ;;; d(cos f)/dx = -f'sin f
 ;;; d^2(cos f)/dxdy = -f12 sin f - f1*f2 cos f
 (define (hd-cos a)
@@ -652,7 +662,7 @@
                    (- (* a2 sv))
                    (- (- (* a12 sv)) (* a1 a2 cv)))))
 
-;;; hd-pow : Hyperdual x Number -> Hyperdual
+;;; hd-pow : Hyperdual × Number → Hyperdual
 ;;; d(f^n)/dx = n*f^(n-1)*f'
 ;;; d^2(f^n)/dxdy = n*f^(n-2)*(f12*f + (n-1)*f1*f2)
 (define (hd-pow base exp)
@@ -686,7 +696,7 @@
 ;;; Hyperdual Inverse Trigonometric Functions
 ;;; ============================================================
 
-;;; hd-asin : Hyperdual -> Hyperdual
+;;; hd-asin : Hyperdual → Hyperdual
 ;;; d(asin f)/dx = f'/sqrt(1-f^2)
 ;;; d^2(asin f)/dxdy = (f12*(1-f^2) + f*f1*f2) / (1-f^2)^(3/2)
 (define (hd-asin a)
@@ -705,7 +715,7 @@
                    (/ (+ (* a12 one-v2-safe) (* av a1 a2))
                       (* one-v2-safe sqrt-one-v2)))))
 
-;;; hd-acos : Hyperdual -> Hyperdual
+;;; hd-acos : Hyperdual → Hyperdual
 ;;; d(acos f)/dx = -f'/sqrt(1-f^2)
 ;;; d^2(acos f)/dxdy = -(f12*(1-f^2) + f*f1*f2) / (1-f^2)^(3/2)
 (define (hd-acos a)
@@ -724,7 +734,7 @@
                    (/ (- (+ (* a12 one-v2-safe) (* av a1 a2)))
                       (* one-v2-safe sqrt-one-v2)))))
 
-;;; hd-atan : Hyperdual -> Hyperdual
+;;; hd-atan : Hyperdual → Hyperdual
 ;;; d(atan f)/dx = f'/(1+f^2)
 ;;; d^2(atan f)/dxdy = (f12*(1+f^2) - 2*f*f1*f2) / (1+f^2)^2
 (define (hd-atan a)
@@ -744,7 +754,7 @@
 ;;; Hyperdual Hyperbolic Functions
 ;;; ============================================================
 
-;;; hd-sinh : Hyperdual -> Hyperdual
+;;; hd-sinh : Hyperdual → Hyperdual
 ;;; d(sinh f)/dx = f'*cosh(f)
 ;;; d^2(sinh f)/dxdy = (f12*cosh(f) + f1*f2*sinh(f))
 (define (hd-sinh a)
@@ -762,7 +772,7 @@
                    (* a2 cv)
                    (+ (* a12 cv) (* a1 a2 sv)))))
 
-;;; hd-cosh : Hyperdual -> Hyperdual
+;;; hd-cosh : Hyperdual → Hyperdual
 ;;; d(cosh f)/dx = f'*sinh(f)
 ;;; d^2(cosh f)/dxdy = (f12*sinh(f) + f1*f2*cosh(f))
 (define (hd-cosh a)
@@ -780,7 +790,7 @@
                    (* a2 sv)
                    (+ (* a12 sv) (* a1 a2 cv)))))
 
-;;; hd-tanh : Hyperdual -> Hyperdual
+;;; hd-tanh : Hyperdual → Hyperdual
 ;;; d(tanh f)/dx = f'*sech^2(f) = f'/cosh^2(f)
 ;;; d^2(tanh f)/dxdy = (f12 - 2*tanh(f)*f1*f2) / cosh^2(f)
 (define (hd-tanh a)
@@ -803,7 +813,7 @@
 ;;; Hessian via Hyperdual Numbers
 ;;; ============================================================
 
-;;; hessian-forward : ((List Hyperdual) -> Hyperdual) x (List Number) -> Matrix
+;;; hessian-forward : ((List Hyperdual) → Hyperdual) × (List Number) → Matrix
 ;;; Compute exact Hessian using hyperdual numbers.
 ;;; H[i,j] = d^2f/dx_i*dx_j is the e1e2 coefficient when
 ;;; x_i has e1=1 and x_j has e2=1.
@@ -830,7 +840,7 @@
                       (when (not (= i j))
                             (vector-set! result (+ (* j n) i) h-ij)))))))
 
-;;; second-derivative-forward : (Hyperdual -> Hyperdual) x Number -> Number
+;;; second-derivative-forward : (Hyperdual → Hyperdual) × Number → Number
 ;;; Compute d^2f/dx^2 at a point using hyperdual numbers.
 (define (second-derivative-forward f x)
   (hd-deriv12 (f (hd-var12 x))))
@@ -842,25 +852,25 @@
 ;;; A tape records operations for reverse-mode differentiation.
 ;;; Each entry: (result-id op input-ids local-gradients)
 
-;;; make-tape : -> Tape
+;;; make-tape : Unit → Tape
 (define (make-tape)
   (list 'tape '()))
 
-;;; tape? : Any -> Boolean
+;;; tape? : α → Bool
 (define (tape? t)
   (and (pair? t) (eq? (car t) 'tape)))
 
-;;; tape-entries : Tape -> (List TapeEntry)
+;;; tape-entries : Tape → (List α)
 (define (tape-entries t) (cadr t))
 
-;;; tape-record : Tape x Symbol x (List NodeId) x Number x (List Number) -> Tape
+;;; tape-record : Tape × Nat × Symbol × (List Nat) × (List Number) → Tape
 ;;; Record an operation. local-gradients are dresult/dinput for each input.
 (define (tape-record tape result-id op input-ids local-gradients)
   (list 'tape
         (cons (list result-id op input-ids local-gradients)
               (tape-entries tape))))
 
-;;; tape-reverse-pass : Tape x NodeId x Number -> AList
+;;; tape-reverse-pass : Tape × Nat × Number → (List (Pair Nat Number))
 ;;; Perform reverse pass starting from output-id with grad-seed.
 ;;; Returns association list of (node-id . gradient).
 (define (tape-reverse-pass tape output-id grad-seed)
@@ -890,7 +900,7 @@
 ;;; Graph Printing
 ;;; ============================================================
 
-;;; graph-print : CompGraph -> Void
+;;; graph-print : CompGraph → Unit
 ;;; Print a human-readable representation of the graph.
 (define (graph-print g)
   (printf "Computational Graph (~a nodes):~n" (graph-node-count g))
@@ -914,7 +924,7 @@
 ;;; Graphviz Export
 ;;; ============================================================
 
-;;; graph-to-dot : CompGraph -> String
+;;; graph-to-dot : CompGraph → String
 ;;; Generate DOT format representation for Graphviz visualization.
 ;;; The output can be rendered with: dot -Tsvg graph.dot -o graph.svg
 (define (graph-to-dot g)
@@ -972,7 +982,7 @@
               (map (lambda (l) (string-append l "\n"))
                    (reverse lines)))))
 
-;;; graph-export-dot : CompGraph x String -> Void
+;;; graph-export-dot : CompGraph × String → Unit
 ;;; Export graph to a DOT file for Graphviz.
 (define (graph-export-dot g filename)
   (let ([dot-content (graph-to-dot g)])

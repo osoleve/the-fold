@@ -27,7 +27,7 @@
 ;;; Finding Posts by Tag
 ;;; ============================================================
 
-;;; safe-get-body : Alist -> String
+;;; safe-get-body : Alist → String
 ;;; Safely extract body field from post, returning empty string if missing.
 (define (safe-get-body post)
   (let ([body-pair (assq 'body post)])
@@ -35,7 +35,7 @@
            (cdr body-pair)
            "")))
 
-;;; find-tagged : FS x Symbol x (U String #t) -> (Listof Alist)
+;;; find-tagged : FSCap × Symbol × (+ String Bool) → (List Alist)
 ;;; Find all forum posts that have a specific tag.
 ;;; If value is #t, matches any value for that key.
 ;;;
@@ -53,12 +53,12 @@
                                (equal? (get-tag tags key) value)))))
         all-posts)))
 
-;;; find-tagged-any : FS x Symbol -> (Listof Alist)
+;;; find-tagged-any : FSCap × Symbol → (List Alist)
 ;;; Find all posts that have a tag key, regardless of value.
 (define (find-tagged-any fs key)
   (find-tagged fs key #t))
 
-;;; collect-all-posts : FS -> (Listof Alist)
+;;; collect-all-posts : FSCap → (List Alist)
 ;;; Collect all posts from all channels.
 (define (collect-all-posts fs)
   (let ([channels (list-channels fs)])
@@ -70,7 +70,7 @@
 ;;; Tag Inventory
 ;;; ============================================================
 
-;;; list-all-tags : FS -> (Listof Symbol)
+;;; list-all-tags : FSCap → (List Symbol)
 ;;; Get a list of all unique tag keys used across all posts.
 (define (list-all-tags fs)
   (let* ([all-posts (collect-all-posts fs)]
@@ -82,7 +82,7 @@
          [keys (map car all-tags)])
         (unique keys)))
 
-;;; unique : (Listof a) -> (Listof a)
+;;; unique : (List α) → (List α)
 ;;; Remove duplicates from a list, preserving order (first occurrence wins).
 ;;; Uses hash table for O(N) complexity instead of O(N^2) with member.
 (define (unique lst)
@@ -97,7 +97,7 @@
                           (hashtable-set! seen x #t)
                           (loop (cdr items) (cons x acc)))))))))
 
-;;; tag-histogram : FS -> (Listof (Pair Symbol Nat))
+;;; tag-histogram : FSCap → (List (Pair Symbol Nat))
 ;;; Count occurrences of each tag key.
 ;;; Returns alist sorted by frequency (highest first).
 (define (tag-histogram fs)
@@ -111,7 +111,7 @@
          [counts (count-occurrences keys)])
         (sort-by-count counts)))
 
-;;; count-occurrences : (Listof Symbol) -> (Listof (Pair Symbol Nat))
+;;; count-occurrences : (List Symbol) → (List (Pair Symbol Nat))
 ;;; Count how many times each symbol appears.
 ;;; Uses hash table for O(N) complexity instead of O(N^2) with remove-assq.
 (define (count-occurrences symbols)
@@ -123,12 +123,12 @@
        (let-values ([(keys vals) (hashtable-entries counts)])
                    (map cons (vector->list keys) (vector->list vals)))))
 
-;;; remove-assq : Symbol x Alist -> Alist
+;;; remove-assq : Symbol × Alist → Alist
 ;;; Remove first pair with matching key.
 (define (remove-assq key alist)
   (filter (lambda (pair) (not (eq? (car pair) key))) alist))
 
-;;; sort-by-count : (Listof (Pair Symbol Nat)) -> (Listof (Pair Symbol Nat))
+;;; sort-by-count : (List (Pair Symbol Nat)) → (List (Pair Symbol Nat))
 ;;; Sort by count, highest first.
 (define (sort-by-count pairs)
   (list-sort (lambda (a b) (> (cdr a) (cdr b))) pairs))
@@ -137,7 +137,7 @@
 ;;; Tag Value Analysis
 ;;; ============================================================
 
-;;; tag-values : FS x Symbol -> (Listof String)
+;;; tag-values : FSCap × Symbol → (List String)
 ;;; Get all unique values used with a specific tag key.
 (define (tag-values fs key)
   (let* ([all-posts (collect-all-posts fs)]
@@ -151,7 +151,7 @@
          [string-values (filter string? values)])
         (unique string-values)))
 
-;;; tag-value-histogram : FS x Symbol -> (Listof (Pair String Nat))
+;;; tag-value-histogram : FSCap × Symbol → (List (Pair String Nat))
 ;;; Count occurrences of each value for a tag key.
 (define (tag-value-histogram fs key)
   (let* ([all-posts (collect-all-posts fs)]
@@ -165,7 +165,7 @@
          [counts (count-string-occurrences values)])
         (sort-by-count-strings counts)))
 
-;;; count-string-occurrences : (Listof String) -> (Listof (Pair String Nat))
+;;; count-string-occurrences : (List String) → (List (Pair String Nat))
 ;;; Uses hash table for O(N) complexity instead of O(N^2) with remove-assoc.
 (define (count-string-occurrences strings)
   (let ([counts (make-hashtable equal-hash equal?)])
@@ -176,11 +176,11 @@
        (let-values ([(keys vals) (hashtable-entries counts)])
                    (map cons (vector->list keys) (vector->list vals)))))
 
-;;; remove-assoc : String x Alist -> Alist
+;;; remove-assoc : String × Alist → Alist
 (define (remove-assoc key alist)
   (filter (lambda (pair) (not (equal? (car pair) key))) alist))
 
-;;; sort-by-count-strings : (Listof (Pair String Nat)) -> (Listof (Pair String Nat))
+;;; sort-by-count-strings : (List (Pair String Nat)) → (List (Pair String Nat))
 (define (sort-by-count-strings pairs)
   (list-sort (lambda (a b) (> (cdr a) (cdr b))) pairs))
 
@@ -188,7 +188,7 @@
 ;;; Display Functions
 ;;; ============================================================
 
-;;; print-tagged : FS x Symbol x (U String #t) -> void
+;;; print-tagged : FSCap × Symbol × (+ String Bool) → Void
 ;;; Print all posts with a specific tag.
 (define (print-tagged fs key value)
   (let ([posts (find-tagged fs key value)])
@@ -211,7 +211,7 @@
                      (display "---\n\n"))
              posts)))))
 
-;;; print-tag-histogram : FS -> void
+;;; print-tag-histogram : FSCap → Void
 ;;; Display tag frequency histogram.
 (define (print-tag-histogram fs)
   (let ([hist (tag-histogram fs)])
@@ -224,7 +224,7 @@
             hist))
        (newline)))
 
-;;; print-tags : FS -> void
+;;; print-tags : FSCap → Void
 ;;; Display all unique tags in use.
 (define (print-tags fs)
   (let ([tags (list-all-tags fs)])
@@ -241,19 +241,19 @@
 ;;; Convenience Aliases
 ;;; ============================================================
 
-;;; find : Symbol x String -> (Listof Alist)
+;;; find-by-tag : Symbol × String → (List Alist)
 ;;; Convenience function using default FS.
 ;;; Usage: (find @status 'complete)
 ;;; Note: Requires (fs) to be defined (from shell/repl.ss)
 (define (find-by-tag key value)
   (find-tagged (fs) key value))
 
-;;; tags : -> void
+;;; tags : → Void
 ;;; Show all tags (convenience wrapper).
 (define (tags)
   (print-tags (fs)))
 
-;;; tag-report : -> void
+;;; tag-report : → Void
 ;;; Show tag histogram (convenience wrapper).
 (define (tag-report)
   (print-tag-histogram (fs)))

@@ -181,35 +181,35 @@
 ;;; Expression Predicates
 ;;; ============================================================
 
-;;; num? : Any → Boolean
+;;; num? : α → Bool
 (define (num? e)
   (and (pair? e) (eq? (car e) 'num)))
 
-;;; var? : Any → Boolean
+;;; var? : α → Bool
 (define (var? e)
   (and (pair? e) (eq? (car e) 'var)))
 
-;;; sum? : Any → Boolean
+;;; sum? : α → Bool
 (define (sum? e)
   (and (pair? e) (eq? (car e) '+)))
 
-;;; product? : Any → Boolean
+;;; product? : α → Bool
 (define (product? e)
   (and (pair? e) (eq? (car e) '*)))
 
-;;; difference? : Any → Boolean
+;;; difference? : α → Bool
 (define (difference? e)
   (and (pair? e) (eq? (car e) '-)))
 
-;;; quotient? : Any → Boolean
+;;; quotient? : α → Bool
 (define (quotient? e)
   (and (pair? e) (eq? (car e) '/)))
 
-;;; power? : Any → Boolean
+;;; power? : α → Bool
 (define (power? e)
   (and (pair? e) (eq? (car e) '^)))
 
-;;; app? : Any → Boolean
+;;; app? : α → Bool
 ;;; Is e a function application?
 (define (app? e)
   (and (pair? e)
@@ -275,7 +275,7 @@
 ;;; Expression Equality
 ;;; ============================================================
 
-;;; list-all-equal? : (List Expr) × (List Expr) → Boolean
+;;; list-all-equal? : (List Expr) × (List Expr) → Bool
 ;;; Check if all corresponding elements are equal.
 (define (list-all-equal? l1 l2)
   (cond
@@ -284,7 +284,7 @@
    [(not (expr=? (car l1) (car l2))) #f]
    [else (list-all-equal? (cdr l1) (cdr l2))]))
 
-;;; expr=? : Expr × Expr → Boolean
+;;; expr=? : Expr × Expr → Bool
 ;;; Check structural equality of expressions.
 (define (expr=? e1 e2)
   (cond
@@ -426,7 +426,7 @@
    
    [else #f]))
 
-;;; bindings-consistent? : Bindings × Bindings → Boolean
+;;; bindings-consistent? : Bindings × Bindings → Bool
 ;;; Check if two binding lists are consistent (no conflicting values for same var).
 (define (bindings-consistent? b1 b2)
   (let loop ([bindings b1])
@@ -565,18 +565,34 @@
 ;;; Common Function Constructors
 ;;; ============================================================
 
-;;; Trigonometric functions
+;;; sym-sin : Expr → Expr
+;;; Trigonometric sine function.
 (define (sym-sin e) (make-app 'sin e))
+
+;;; sym-cos : Expr → Expr
+;;; Trigonometric cosine function.
 (define (sym-cos e) (make-app 'cos e))
+
+;;; sym-tan : Expr → Expr
+;;; Trigonometric tangent function.
 (define (sym-tan e) (make-app 'tan e))
 
-;;; Exponential and logarithmic
+;;; sym-exp : Expr → Expr
+;;; Exponential function.
 (define (sym-exp e) (make-app 'exp e))
+
+;;; sym-log : Expr → Expr
+;;; Natural logarithm.
 (define (sym-log e) (make-app 'log e))
 
-;;; Square root
+;;; sym-sqrt : Expr → Expr
+;;; Square root.
 (define (sym-sqrt e) (make-app 'sqrt e))
 
-;;; Common constants
+;;; sym-pi : Expr
+;;; Constant pi.
 (define sym-pi (var 'pi))
+
+;;; sym-e : Expr
+;;; Constant e (Euler's number).
 (define sym-e (var 'e))

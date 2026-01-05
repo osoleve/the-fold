@@ -124,13 +124,16 @@
 ;;; Exception-like Control Flow
 ;;; ============================================================
 
-;;; with-escape : ((a -> Cont r b) -> Cont r a) -> Cont r a
+;;; with-escape : ((α → (Cont r β)) → (Cont r α)) → (Cont r α)
 ;;; Same as callCC but named more descriptively.
 (define with-escape callCC)
 
 ;;; try-catch : Cont r a -> (exn -> Cont r a) -> Cont r a
 ;;; Simulated exception handling using continuations.
 ;;; Note: This uses a protocol where exceptions are (left exn).
+
+;;; make-try-handler : (α → (Cont r β)) × (γ → r) → (γ → r)
+;;; Create a try/catch handler that intercepts exceptions.
 (define (make-try-handler handler normal-cont)
   (lambda (result)
           (if (and (pair? result) (eq? (car result) 'exception))

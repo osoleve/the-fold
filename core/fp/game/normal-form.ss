@@ -36,7 +36,7 @@
 (define-record-type game%
   (fields strategies1 strategies2 payoffs))
 
-;;; make-game : (List Symbol) × (List Symbol) × (List (List (Pair Num Num))) → Game
+;;; make-game : (List Symbol) × (List Symbol) × (List (List (Pair Number Number))) → Game
 ;;; Create a normal form game from lists.
 (define (make-game strats1 strats2 payoff-lists)
   (let ([s1 (list->vector strats1)]
@@ -52,17 +52,17 @@
       (vector-length (game%-strategies1 game))
       (vector-length (game%-strategies2 game))))
 
-;;; game-payoff : Game × Nat × Nat → (Pair Num Num)
+;;; game-payoff : Game × Nat × Nat → (Pair Number Number)
 ;;; Get payoff pair for strategy profile (i, j).
 (define (game-payoff game i j)
   (vector-ref (vector-ref (game%-payoffs game) i) j))
 
-;;; game-payoff-p1 : Game × Nat × Nat → Num
+;;; game-payoff-p1 : Game × Nat × Nat → Number
 ;;; Get Player 1's payoff for strategy profile (i, j).
 (define (game-payoff-p1 game i j)
   (car (game-payoff game i j)))
 
-;;; game-payoff-p2 : Game × Nat × Nat → Num
+;;; game-payoff-p2 : Game × Nat × Nat → Number
 ;;; Get Player 2's payoff for strategy profile (i, j).
 (define (game-payoff-p2 game i j)
   (cdr (game-payoff game i j)))
@@ -313,7 +313,7 @@
 (define (uniform-strategy n)
   (make-vector n (/ 1 n)))
 
-;;; expected-payoff-p1 : Game × (Vector Num) × (Vector Num) → Num
+;;; expected-payoff-p1 : Game × (Vector Number) × (Vector Number) → Number
 ;;; Compute Player 1's expected payoff under mixed strategies.
 (define (expected-payoff-p1 game sigma1 sigma2)
   (let ([n1 (vector-length sigma1)]
@@ -326,7 +326,7 @@
                                            (iota n2))))
                      (iota n1)))))
 
-;;; expected-payoff-p2 : Game × (Vector Num) × (Vector Num) → Num
+;;; expected-payoff-p2 : Game × (Vector Number) × (Vector Number) → Number
 ;;; Compute Player 2's expected payoff under mixed strategies.
 (define (expected-payoff-p2 game sigma1 sigma2)
   (let ([n1 (vector-length sigma1)]
@@ -339,7 +339,7 @@
                                            (iota n2))))
                      (iota n1)))))
 
-;;; strategy-payoff-vs-mixed : Game × Nat × Nat × (Vector Num) → Num
+;;; strategy-payoff-vs-mixed : Game × Nat × Nat × (Vector Number) → Number
 ;;; Compute payoff for player playing pure strategy against opponent's mixed.
 ;;; player: 0 for P1, 1 for P2
 ;;; strategy: the pure strategy index
@@ -366,7 +366,7 @@
 ;;; For 2x2 games, we can compute the mixed strategy Nash equilibrium
 ;;; analytically using the indifference principle.
 
-;;; solve-2x2-nash : Game → (List ((Vector Num) . (Vector Num)))
+;;; solve-2x2-nash : Game → (List (Pair (Vector Number) (Vector Number)))
 ;;; Find all Nash equilibria (pure and mixed) for a 2x2 game.
 ;;; Returns list of (sigma1 . sigma2) pairs.
 (define (solve-2x2-nash game)

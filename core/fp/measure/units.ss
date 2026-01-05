@@ -38,13 +38,32 @@
 (define (make-dim l t m i θ n j)
   (list l t m i θ n j))
 
-;;; Dimension accessors
+;;; dim-length : Dimension → Int
+;;; Extract the length exponent from a dimension.
 (define (dim-length d)      (list-ref d 0))
+
+;;; dim-time : Dimension → Int
+;;; Extract the time exponent from a dimension.
 (define (dim-time d)        (list-ref d 1))
+
+;;; dim-mass : Dimension → Int
+;;; Extract the mass exponent from a dimension.
 (define (dim-mass d)        (list-ref d 2))
+
+;;; dim-current : Dimension → Int
+;;; Extract the current exponent from a dimension.
 (define (dim-current d)     (list-ref d 3))
+
+;;; dim-temperature : Dimension → Int
+;;; Extract the temperature exponent from a dimension.
 (define (dim-temperature d) (list-ref d 4))
+
+;;; dim-amount : Dimension → Int
+;;; Extract the amount exponent from a dimension.
 (define (dim-amount d)      (list-ref d 5))
+
+;;; dim-luminosity : Dimension → Int
+;;; Extract the luminosity exponent from a dimension.
 (define (dim-luminosity d)  (list-ref d 6))
 
 ;;; dim? : Any → Boolean
@@ -393,37 +412,101 @@
 (define yocto 1e-24)
 
 ;;; Convenient prefixed units
+
+;;; kilometer : Number → Quantity
+;;; Create a length quantity in kilometers.
 (define (kilometer x) (meter (* x kilo)))
+
+;;; centimeter : Number → Quantity
+;;; Create a length quantity in centimeters.
 (define (centimeter x) (meter (* x centi)))
+
+;;; millimeter : Number → Quantity
+;;; Create a length quantity in millimeters.
 (define (millimeter x) (meter (* x milli)))
+
+;;; micrometer : Number → Quantity
+;;; Create a length quantity in micrometers.
 (define (micrometer x) (meter (* x micro)))
+
+;;; nanometer : Number → Quantity
+;;; Create a length quantity in nanometers.
 (define (nanometer x) (meter (* x nano)))
 
+;;; millisecond : Number → Quantity
+;;; Create a time quantity in milliseconds.
 (define (millisecond x) (second (* x milli)))
+
+;;; microsecond : Number → Quantity
+;;; Create a time quantity in microseconds.
 (define (microsecond x) (second (* x micro)))
+
+;;; nanosecond : Number → Quantity
+;;; Create a time quantity in nanoseconds.
 (define (nanosecond x) (second (* x nano)))
 
+;;; gram : Number → Quantity
+;;; Create a mass quantity in grams.
 (define (gram x) (kilogram (* x milli)))
+
+;;; milligram : Number → Quantity
+;;; Create a mass quantity in milligrams.
 (define (milligram x) (kilogram (* x micro)))
 
+;;; kilowatt : Number → Quantity
+;;; Create a power quantity in kilowatts.
 (define (kilowatt x) (watt (* x kilo)))
+
+;;; megawatt : Number → Quantity
+;;; Create a power quantity in megawatts.
 (define (megawatt x) (watt (* x mega)))
+
+;;; gigawatt : Number → Quantity
+;;; Create a power quantity in gigawatts.
 (define (gigawatt x) (watt (* x giga)))
 
+;;; kilojoule : Number → Quantity
+;;; Create an energy quantity in kilojoules.
 (define (kilojoule x) (joule (* x kilo)))
+
+;;; megajoule : Number → Quantity
+;;; Create an energy quantity in megajoules.
 (define (megajoule x) (joule (* x mega)))
 
+;;; milliampere : Number → Quantity
+;;; Create a current quantity in milliamperes.
 (define (milliampere x) (ampere (* x milli)))
+
+;;; microampere : Number → Quantity
+;;; Create a current quantity in microamperes.
 (define (microampere x) (ampere (* x micro)))
 
+;;; kilohertz : Number → Quantity
+;;; Create a frequency quantity in kilohertz.
 (define (kilohertz x) (hertz (* x kilo)))
+
+;;; megahertz : Number → Quantity
+;;; Create a frequency quantity in megahertz.
 (define (megahertz x) (hertz (* x mega)))
+
+;;; gigahertz : Number → Quantity
+;;; Create a frequency quantity in gigahertz.
 (define (gigahertz x) (hertz (* x giga)))
 
+;;; kilovolt : Number → Quantity
+;;; Create a voltage quantity in kilovolts.
 (define (kilovolt x) (volt (* x kilo)))
+
+;;; millivolt : Number → Quantity
+;;; Create a voltage quantity in millivolts.
 (define (millivolt x) (volt (* x milli)))
 
+;;; kiloohm : Number → Quantity
+;;; Create a resistance quantity in kiloohms.
 (define (kiloohm x) (ohm (* x kilo)))
+
+;;; megaohm : Number → Quantity
+;;; Create a resistance quantity in megaohms.
 (define (megaohm x) (ohm (* x mega)))
 
 ;;; ============================================================

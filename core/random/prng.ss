@@ -29,17 +29,17 @@
 (define mask-32 (- (expt 2 32) 1))
 (define mask-64 (- (expt 2 64) 1))
 
-;;; u32 : Integer -> Integer
+;;; u32 : Int → Int
 ;;; Truncate to unsigned 32-bit.
 (define (u32 n)
   (bitwise-and n mask-32))
 
-;;; u64 : Integer -> Integer
+;;; u64 : Int → Int
 ;;; Truncate to unsigned 64-bit.
 (define (u64 n)
   (bitwise-and n mask-64))
 
-;;; rotl32 : Integer x Integer -> Integer
+;;; rotl32 : Int × Int → Int
 ;;; 32-bit left rotation.
 (define (rotl32 x k)
   (let ([x (u32 x)]
@@ -47,12 +47,12 @@
        (u32 (bitwise-ior (ash x k)
                          (ash x (- k 32))))))
 
-;;; rotr32 : Integer x Integer -> Integer
+;;; rotr32 : Int × Int → Int
 ;;; 32-bit right rotation.
 (define (rotr32 x k)
   (rotl32 x (- 32 k)))
 
-;;; rotl64 : Integer x Integer -> Integer
+;;; rotl64 : Int × Int → Int
 ;;; 64-bit left rotation.
 (define (rotl64 x k)
   (let ([x (u64 x)]
@@ -60,7 +60,7 @@
        (u64 (bitwise-ior (ash x k)
                          (ash x (- k 64))))))
 
-;;; rotr64 : Integer x Integer -> Integer
+;;; rotr64 : Int × Int → Int
 ;;; 64-bit right rotation.
 (define (rotr64 x k)
   (rotl64 x (- 64 k)))
@@ -74,20 +74,20 @@
 ;;;
 ;;; State: single 64-bit integer
 
-;;; make-splitmix : Integer -> SplitmixState
+;;; make-splitmix : Int → RNG
 ;;; Create a splitmix64 state from a seed.
 (define (make-splitmix seed)
   (list 'splitmix (u64 seed)))
 
-;;; splitmix? : Any -> Boolean
+;;; splitmix? : α → Bool
 (define (splitmix? x)
   (and (pair? x) (eq? (car x) 'splitmix)))
 
-;;; splitmix-state : SplitmixState -> Integer
+;;; splitmix-state : RNG → Int
 (define (splitmix-state sm)
   (cadr sm))
 
-;;; splitmix-next : SplitmixState -> (Integer . SplitmixState)
+;;; splitmix-next : RNG → (Pair Int RNG)
 ;;; Generate next random 64-bit integer.
 (define (splitmix-next sm)
   (let* ([s (u64 (+ (splitmix-state sm) #x9e3779b97f4a7c15))]
@@ -98,7 +98,7 @@
          [z (bitwise-xor z (ash z -31))])
         (cons z (make-splitmix s))))
 
-;;; splitmix : State SplitmixState Integer
+;;; splitmix-random : (State RNG Int)
 ;;; Splitmix as a State monad computation.
 (define splitmix-random
   (make-state splitmix-next))
@@ -112,7 +112,7 @@
 ;;;
 ;;; State: (state . inc) where both are 64-bit
 
-;;; make-pcg : Integer x Integer -> PCGState
+;;; make-pcg : Int × Int → RNG
 ;;; Create PCG state from seed and stream id.
 ;;; Different stream IDs give independent sequences.
 (define (make-pcg seed stream)
@@ -124,17 +124,17 @@
          [state3 (u64 (+ (* state2 #x5851f42d4c957f2d) inc))])
         (list 'pcg state3 inc)))
 
-;;; pcg? : Any -> Boolean
+;;; pcg? : α → Bool
 (define (pcg? x)
   (and (pair? x) (eq? (car x) 'pcg)))
 
-;;; pcg-state : PCGState -> Integer
+;;; pcg-state : RNG → Int
 (define (pcg-state p) (cadr p))
 
-;;; pcg-inc : PCGState -> Integer
+;;; pcg-inc : RNG → Int
 (define (pcg-inc p) (caddr p))
 
-;;; pcg-next : PCGState -> (Integer . PCGState)
+;;; pcg-next : RNG → (Pair Int RNG)
 ;;; Generate next random 32-bit integer.
 (define (pcg-next p)
   (let* ([state (pcg-state p)]
@@ -149,7 +149,7 @@
          [new-state (u64 (+ (* state #x5851f42d4c957f2d) inc))])
         (cons output (list 'pcg new-state inc))))
 
-;;; pcg-random : State PCGState Integer
+;;; pcg-random : (State RNG Int)
 ;;; PCG as a State monad computation.
 (define pcg-random
   (make-state pcg-next))
@@ -161,7 +161,7 @@
 ;;; Fast generator with good statistical properties.
 ;;; State: pair of 64-bit integers (s0, s1)
 
-;;; make-xorshift128 : Integer -> Xorshift128State
+;;; make-xorshift128 : Int → RNG
 ;;; Create xorshift128+ state from a seed.
 ;;; Uses splitmix64 to generate the two state words.
 (define (make-xorshift128 seed)
@@ -176,17 +176,17 @@
               (if (= s0 0) 1 s0)
               (if (= s1 0) 1 s1))))
 
-;;; xorshift128? : Any -> Boolean
+;;; xorshift128? : α → Bool
 (define (xorshift128? x)
   (and (pair? x) (eq? (car x) 'xorshift128)))
 
-;;; xorshift128-s0 : Xorshift128State -> Integer
+;;; xorshift128-s0 : RNG → Int
 (define (xorshift128-s0 xs) (cadr xs))
 
-;;; xorshift128-s1 : Xorshift128State -> Integer
+;;; xorshift128-s1 : RNG → Int
 (define (xorshift128-s1 xs) (caddr xs))
 
-;;; xorshift128-next : Xorshift128State -> (Integer . Xorshift128State)
+;;; xorshift128-next : RNG → (Pair Int RNG)
 ;;; Generate next random 64-bit integer.
 (define (xorshift128-next xs)
   (let* ([s0 (xorshift128-s0 xs)]
@@ -200,7 +200,7 @@
          [new-s1 (rotl64 s1-new 37)])
         (cons result (list 'xorshift128 new-s0 new-s1))))
 
-;;; xorshift128-random : State Xorshift128State Integer
+;;; xorshift128-random : (State RNG Int)
 ;;; Xorshift128+ as a State monad computation.
 (define xorshift128-random
   (make-state xorshift128-next))
@@ -209,7 +209,7 @@
 ;;; Uniform Random Number Generation
 ;;; ============================================================
 
-;;; random-u32 : Generator -> State GenState Integer
+;;; random-u32-from : RNG → (State RNG Int)
 ;;; Generate a random 32-bit unsigned integer.
 ;;; Works with any generator (auto-detects type).
 (define (random-u32-from gen-state)
@@ -221,7 +221,7 @@
     (state-map u32 xorshift128-random)]
    [else (error 'random-u32 "unknown generator type" gen-state)]))
 
-;;; random-u64 : Generator -> State GenState Integer
+;;; random-u64-from : RNG → (State RNG Int)
 ;;; Generate a random 64-bit unsigned integer.
 (define (random-u64-from gen-state)
   (cond
@@ -237,7 +237,7 @@
    [(xorshift128? gen-state) xorshift128-random]
    [else (error 'random-u64 "unknown generator type" gen-state)]))
 
-;;; random-float : State GenState Float
+;;; random-float : (State RNG Real)
 ;;; Generate a random float in [0, 1).
 ;;; Uses full precision from each generator type.
 (define random-float
@@ -267,13 +267,13 @@
                    (cons scaled new-gen))]
             [else (error 'random-float "unknown generator" gen)]))))
 
-;;; random-float-range : Float x Float -> State GenState Float
+;;; random-float-range : Real × Real → (State RNG Real)
 ;;; Generate a random float in [lo, hi).
 (define (random-float-range lo hi)
   (state-map (lambda (u) (+ lo (* u (- hi lo))))
              random-float))
 
-;;; random-int-range : Integer x Integer -> State GenState Integer
+;;; random-int-range : Int × Int → (State RNG Int)
 ;;; Generate a random integer in [lo, hi] (inclusive).
 ;;; Uses rejection sampling to avoid modulo bias.
 (define (random-int-range lo hi)
@@ -301,7 +301,7 @@
                                     (cons (+ lo (modulo bits range)) new-gen)
                                     (loop new-gen)))))))))
 
-;;; random-bool : State GenState Boolean
+;;; random-bool : (State RNG Bool)
 ;;; Generate a random boolean.
 (define random-bool
   (state-map (lambda (n) (odd? n))
@@ -317,7 +317,7 @@
 ;;; Sampling Utilities
 ;;; ============================================================
 
-;;; random-element : List a -> State GenState a
+;;; random-element : (List α) → (State RNG α)
 ;;; Pick a random element from a non-empty list.
 (define (random-element lst)
   (if (null? lst)
@@ -325,7 +325,7 @@
       (state-map (lambda (i) (list-ref lst i))
                  (random-int-range 0 (- (length lst) 1)))))
 
-;;; shuffle : List a -> State GenState (List a)
+;;; shuffle : (List α) → (State RNG (List α))
 ;;; Fisher-Yates shuffle. Returns a random permutation.
 (define (shuffle lst)
   (let ([vec (list->vector lst)]
@@ -343,7 +343,7 @@
                                                       (shuffle-step (+ i 1)))))))])
                (shuffle-step 0))))
 
-;;; sample : Integer x List a -> State GenState (List a)
+;;; sample : Int × (List α) → (State RNG (List α))
 ;;; Sample k elements without replacement.
 ;;; Uses reservoir sampling for efficiency.
 (define (sample k lst)
@@ -373,13 +373,14 @@
                                                              (+ i 1)))))))])
                       (fill-reservoir reservoir rest k)))])))
 
+;;; list-set : (List α) × Int × α → (List α)
 ;;; Helper: list-set (immutable update)
 (define (list-set lst i val)
   (if (= i 0)
       (cons val (cdr lst))
       (cons (car lst) (list-set (cdr lst) (- i 1) val))))
 
-;;; weighted-choice : List (a . Number) -> State GenState a
+;;; weighted-choice : (List (Pair α Real)) → (State RNG α)
 ;;; Pick an element weighted by associated numbers.
 ;;; Input: ((elem1 . weight1) (elem2 . weight2) ...)
 (define (weighted-choice weighted-list)
@@ -401,7 +402,7 @@
 ;;; Generating Multiple Random Values
 ;;; ============================================================
 
-;;; random-list : Integer x State g a -> State g (List a)
+;;; random-list : Int × (State RNG α) → (State RNG (List α))
 ;;; Generate a list of n random values.
 (define (random-list n gen)
   (if (<= n 0)
@@ -412,7 +413,7 @@
                                       (lambda (xs)
                                               (state-pure (cons x xs))))))))
 
-;;; random-vector : Integer x State g a -> State g (Vector a)
+;;; random-vector : Int × (State RNG α) → (State RNG (Vector α))
 ;;; Generate a vector of n random values.
 (define (random-vector n gen)
   (state-map list->vector (random-list n gen)))
@@ -421,12 +422,12 @@
 ;;; Convenience Functions (Run with Default Generator)
 ;;; ============================================================
 
-;;; with-random : Integer x State g a -> a
+;;; with-random : Int × (State RNG α) → α
 ;;; Run a random computation with a PCG generator seeded from given value.
 (define (with-random seed computation)
   (eval-state computation (make-pcg seed 1)))
 
-;;; with-random-stream : Integer x Integer x State g a -> a
+;;; with-random-stream : Int × Int × (State RNG α) → α
 ;;; Run with PCG using specific seed and stream.
 (define (with-random-stream seed stream computation)
   (eval-state computation (make-pcg seed stream)))
@@ -435,7 +436,7 @@
 ;;; Generator Statistics (for Testing)
 ;;; ============================================================
 
-;;; gen-advance : Integer x GenState -> GenState
+;;; gen-advance : Int × RNG → RNG
 ;;; Advance generator n steps (discard n values).
 (define (gen-advance n gen)
   (if (<= n 0)
@@ -451,7 +452,7 @@
 ;;; Generator Splitting (for Parallel Simulations)
 ;;; ============================================================
 
-;;; gen-split : GenState -> (GenState . GenState)
+;;; gen-split : RNG → (Pair RNG RNG)
 ;;; Split a generator into two independent streams.
 ;;; Each child stream is deterministic and independent.
 (define (gen-split gen)
@@ -497,7 +498,7 @@
    
    [else (error 'gen-split "unknown generator type" gen)]))
 
-;;; random-split : State GenState (GenState . GenState)
+;;; random-split : (State RNG (Pair RNG RNG))
 ;;; Split as a State monad computation, returning both children.
 (define random-split
   (make-state
@@ -510,7 +511,7 @@
 ;;; Random Bytes Generation
 ;;; ============================================================
 
-;;; random-bytes : Integer -> State GenState Bytevector
+;;; random-bytes : Int → (State RNG Bytevector)
 ;;; Generate a bytevector of n random bytes.
 (define (random-bytes n)
   (if (<= n 0)
@@ -554,7 +555,7 @@
 ;;; Generator Serialization (for Resumable Sessions)
 ;;; ============================================================
 
-;;; gen-serialize : GenState -> S-expr
+;;; gen-serialize : RNG → Sexp
 ;;; Convert generator state to a serializable S-expression.
 (define (gen-serialize gen)
   (cond
@@ -569,7 +570,7 @@
    
    [else (error 'gen-serialize "unknown generator type" gen)]))
 
-;;; gen-deserialize : S-expr -> GenState
+;;; gen-deserialize : Sexp → RNG
 ;;; Reconstruct generator state from S-expression.
 (define (gen-deserialize sexpr)
   (case (car sexpr)
@@ -584,19 +585,19 @@
         
         [else (error 'gen-deserialize "unknown generator type" (car sexpr))]))
 
-;;; gen->string : GenState -> String
+;;; gen->string : RNG → String
 ;;; Convert generator state to a human-readable string.
 (define (gen->string gen)
   (format "~s" (gen-serialize gen)))
 
-;;; string->gen : String -> GenState
+;;; string->gen : String → RNG
 ;;; Parse generator state from string.
 ;;; NOTE: Uses safe parsing to avoid code execution from malicious input.
 ;;; Only accepts the exact format produced by gen->string.
 (define (string->gen str)
   (gen-deserialize (safe-parse-gen-state str)))
 
-;;; safe-parse-gen-state : String -> S-expr
+;;; safe-parse-gen-state : String → Sexp
 ;;; Safely parse a generator state string without using `read`.
 ;;; Only accepts: (pcg N N), (splitmix N), (xorshift128 N N)
 ;;; where N is a non-negative integer.
@@ -636,7 +637,7 @@
                     [else
                      (error 'safe-parse-gen-state "unknown generator type" tag)])))))
 
-;;; safe-parse-integer : String x String -> Integer
+;;; safe-parse-integer : String × String → Int
 ;;; Parse a string as a non-negative integer, rejecting anything else.
 (define (safe-parse-integer s original-input)
   (let ([len (string-length s)])
@@ -652,7 +653,7 @@
        ;; Convert to integer
        (string->number s)))
 
-;;; split-on-whitespace : String -> (List String)
+;;; split-on-whitespace : String → (List String)
 ;;; Split string on whitespace, returning list of non-empty tokens.
 (define (split-on-whitespace s)
   (let loop ([i 0] [start #f] [tokens '()])
@@ -671,7 +672,7 @@
                           (or start i)
                           tokens))))))
 
-;;; string-trim : String -> String
+;;; string-trim : String → String
 ;;; Remove leading and trailing whitespace.
 (define (string-trim s)
   (let* ([len (string-length s)]
@@ -687,7 +688,7 @@
                        i))])
         (substring s start end)))
 
-;;; char-whitespace? : Char -> Boolean
+;;; char-whitespace? : Char → Bool
 ;;; Check if character is whitespace.
 (define (char-whitespace? c)
   (or (char=? c #\space)

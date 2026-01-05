@@ -178,6 +178,7 @@
   (let ([handler (interpreter-handler interp)])
        (run-dsl-helper handler program)))
 
+;;; run-dsl-helper : (Symbol → α → β) × (DSL Instruction γ) → γ
 (define (run-dsl-helper handler program)
   (cond
    [(pure-free? program)
@@ -267,65 +268,123 @@
 ;;;
 ;;; Helpers for building expression-based DSLs.
 
+;;; expr-lit : α → Expr
 ;;; Literal expression
 (define (expr-lit value)
   (list 'expr-lit value))
 
+;;; expr-var : Symbol → Expr
 ;;; Variable reference
 (define (expr-var name)
   (list 'expr-var name))
 
+;;; expr-binop : Symbol × Expr × Expr → Expr
 ;;; Binary operation
 (define (expr-binop op left right)
   (list 'expr-binop op left right))
 
+;;; expr-unop : Symbol × Expr → Expr
 ;;; Unary operation
 (define (expr-unop op operand)
   (list 'expr-unop op operand))
 
+;;; expr-app : Expr × (List Expr) → Expr
 ;;; Function application
 (define (expr-app fn args)
   (list 'expr-app fn args))
 
+;;; expr-if : Expr × Expr × Expr → Expr
 ;;; Conditional
 (define (expr-if cond then else)
   (list 'expr-if cond then else))
 
+;;; expr-let : Symbol × Expr × Expr → Expr
 ;;; Let binding
 (define (expr-let name value body)
   (list 'expr-let name value body))
 
+;;; expr-lambda : (List Symbol) × Expr → Expr
 ;;; Lambda
 (define (expr-lambda params body)
   (list 'expr-lambda params body))
 
 ;;; Expression predicates
+
+;;; expr-lit? : Expr → Bool
 (define (expr-lit? e) (and (pair? e) (eq? (car e) 'expr-lit)))
+
+;;; expr-var? : Expr → Bool
 (define (expr-var? e) (and (pair? e) (eq? (car e) 'expr-var)))
+
+;;; expr-binop? : Expr → Bool
 (define (expr-binop? e) (and (pair? e) (eq? (car e) 'expr-binop)))
+
+;;; expr-unop? : Expr → Bool
 (define (expr-unop? e) (and (pair? e) (eq? (car e) 'expr-unop)))
+
+;;; expr-app? : Expr → Bool
 (define (expr-app? e) (and (pair? e) (eq? (car e) 'expr-app)))
+
+;;; expr-if? : Expr → Bool
 (define (expr-if? e) (and (pair? e) (eq? (car e) 'expr-if)))
+
+;;; expr-let? : Expr → Bool
 (define (expr-let? e) (and (pair? e) (eq? (car e) 'expr-let)))
+
+;;; expr-lambda? : Expr → Bool
 (define (expr-lambda? e) (and (pair? e) (eq? (car e) 'expr-lambda)))
 
 ;;; Expression accessors
+
+;;; expr-lit-value : Expr → α
 (define (expr-lit-value e) (list-ref e 1))
+
+;;; expr-var-name : Expr → Symbol
 (define (expr-var-name e) (list-ref e 1))
+
+;;; expr-binop-op : Expr → Symbol
 (define (expr-binop-op e) (list-ref e 1))
+
+;;; expr-binop-left : Expr → Expr
 (define (expr-binop-left e) (list-ref e 2))
+
+;;; expr-binop-right : Expr → Expr
 (define (expr-binop-right e) (list-ref e 3))
+
+;;; expr-unop-op : Expr → Symbol
 (define (expr-unop-op e) (list-ref e 1))
+
+;;; expr-unop-operand : Expr → Expr
 (define (expr-unop-operand e) (list-ref e 2))
+
+;;; expr-app-fn : Expr → Expr
 (define (expr-app-fn e) (list-ref e 1))
+
+;;; expr-app-args : Expr → (List Expr)
 (define (expr-app-args e) (list-ref e 2))
+
+;;; expr-if-cond : Expr → Expr
 (define (expr-if-cond e) (list-ref e 1))
+
+;;; expr-if-then : Expr → Expr
 (define (expr-if-then e) (list-ref e 2))
+
+;;; expr-if-else : Expr → Expr
 (define (expr-if-else e) (list-ref e 3))
+
+;;; expr-let-name : Expr → Symbol
 (define (expr-let-name e) (list-ref e 1))
+
+;;; expr-let-value : Expr → Expr
 (define (expr-let-value e) (list-ref e 2))
+
+;;; expr-let-body : Expr → Expr
 (define (expr-let-body e) (list-ref e 3))
+
+;;; expr-lambda-params : Expr → (List Symbol)
 (define (expr-lambda-params e) (list-ref e 1))
+
+;;; expr-lambda-body : Expr → Expr
 (define (expr-lambda-body e) (list-ref e 2))
 
 ;;; ============================================================
@@ -415,42 +474,81 @@
 ;;; For imperative-style DSLs.
 
 ;;; Statement types
+
+;;; stmt-assign : Symbol × Expr → Stmt
 (define (stmt-assign var expr)
   (list 'stmt-assign var expr))
 
+;;; stmt-seq : (List Stmt) → Stmt
 (define (stmt-seq stmts)
   (list 'stmt-seq stmts))
 
+;;; stmt-if : Expr × Stmt × Stmt → Stmt
 (define (stmt-if cond then else)
   (list 'stmt-if cond then else))
 
+;;; stmt-while : Expr × Stmt → Stmt
 (define (stmt-while cond body)
   (list 'stmt-while cond body))
 
+;;; stmt-return : Expr → Stmt
 (define (stmt-return expr)
   (list 'stmt-return expr))
 
+;;; stmt-expr : Expr → Stmt
 (define (stmt-expr expr)
   (list 'stmt-expr expr))
 
 ;;; Statement predicates
+
+;;; stmt-assign? : Stmt → Bool
 (define (stmt-assign? s) (and (pair? s) (eq? (car s) 'stmt-assign)))
+
+;;; stmt-seq? : Stmt → Bool
 (define (stmt-seq? s) (and (pair? s) (eq? (car s) 'stmt-seq)))
+
+;;; stmt-if? : Stmt → Bool
 (define (stmt-if? s) (and (pair? s) (eq? (car s) 'stmt-if)))
+
+;;; stmt-while? : Stmt → Bool
 (define (stmt-while? s) (and (pair? s) (eq? (car s) 'stmt-while)))
+
+;;; stmt-return? : Stmt → Bool
 (define (stmt-return? s) (and (pair? s) (eq? (car s) 'stmt-return)))
+
+;;; stmt-expr? : Stmt → Bool
 (define (stmt-expr? s) (and (pair? s) (eq? (car s) 'stmt-expr)))
 
 ;;; Statement accessors
+
+;;; stmt-assign-var : Stmt → Symbol
 (define (stmt-assign-var s) (list-ref s 1))
+
+;;; stmt-assign-expr : Stmt → Expr
 (define (stmt-assign-expr s) (list-ref s 2))
+
+;;; stmt-seq-stmts : Stmt → (List Stmt)
 (define (stmt-seq-stmts s) (list-ref s 1))
+
+;;; stmt-if-cond : Stmt → Expr
 (define (stmt-if-cond s) (list-ref s 1))
+
+;;; stmt-if-then : Stmt → Stmt
 (define (stmt-if-then s) (list-ref s 2))
+
+;;; stmt-if-else : Stmt → Stmt
 (define (stmt-if-else s) (list-ref s 3))
+
+;;; stmt-while-cond : Stmt → Expr
 (define (stmt-while-cond s) (list-ref s 1))
+
+;;; stmt-while-body : Stmt → Stmt
 (define (stmt-while-body s) (list-ref s 2))
+
+;;; stmt-return-expr : Stmt → Expr
 (define (stmt-return-expr s) (list-ref s 1))
+
+;;; stmt-expr-expr : Stmt → Expr
 (define (stmt-expr-expr s) (list-ref s 1))
 
 ;;; ============================================================
@@ -969,6 +1067,7 @@
 (define (run-dsl-trampolined interp program)
   (run-trampoline (run-dsl-trampoline-helper (interpreter-handler interp) program)))
 
+;;; run-dsl-trampoline-helper : (Symbol → α → β) × (DSL Instruction γ) → (Trampoline γ)
 (define (run-dsl-trampoline-helper handler program)
   (cond
    [(pure-free? program)
@@ -1093,30 +1192,40 @@
 ;;; ============================================================
 
 ;;; Calculator DSL operations
+
+;;; calc-push! : Nat → (DSL Instruction ())
 (define (calc-push! n)
   (dsl-emit 'calc-push n))
 
+;;; calc-add! : () → (DSL Instruction ())
 (define (calc-add!)
   (dsl-emit 'calc-add '()))
 
+;;; calc-sub! : () → (DSL Instruction ())
 (define (calc-sub!)
   (dsl-emit 'calc-sub '()))
 
+;;; calc-mul! : () → (DSL Instruction ())
 (define (calc-mul!)
   (dsl-emit 'calc-mul '()))
 
+;;; calc-div! : () → (DSL Instruction ())
 (define (calc-div!)
   (dsl-emit 'calc-div '()))
 
+;;; calc-dup! : () → (DSL Instruction ())
 (define (calc-dup!)
   (dsl-emit 'calc-dup '()))
 
+;;; calc-swap! : () → (DSL Instruction ())
 (define (calc-swap!)
   (dsl-emit 'calc-swap '()))
 
+;;; calc-pop! : () → (DSL Instruction Nat)
 (define (calc-pop!)
   (dsl-request 'calc-pop '()))
 
+;;; make-calc-interpreter : () → Interpreter
 ;;; Calculator interpreter (stack-based)
 (define (make-calc-interpreter)
   (let ([stack '()])
@@ -1161,7 +1270,7 @@
                       [else
                        (error 'calc-interpreter "Unknown instruction" tag)])))))
 
-;;; run-calc : DSL Instruction a -> a
+;;; run-calc : (DSL Instruction α) → α
 (define (run-calc program)
   (run-dsl (make-calc-interpreter) program))
 
@@ -1170,27 +1279,36 @@
 ;;; ============================================================
 
 ;;; Turtle DSL operations
+
+;;; forward! : Nat → (DSL Instruction ())
 (define (forward! n)
   (dsl-emit 'turtle-forward n))
 
+;;; back! : Nat → (DSL Instruction ())
 (define (back! n)
   (dsl-emit 'turtle-back n))
 
+;;; left! : Nat → (DSL Instruction ())
 (define (left! deg)
   (dsl-emit 'turtle-left deg))
 
+;;; right! : Nat → (DSL Instruction ())
 (define (right! deg)
   (dsl-emit 'turtle-right deg))
 
+;;; penup! : () → (DSL Instruction ())
 (define (penup!)
   (dsl-emit 'turtle-penup '()))
 
+;;; pendown! : () → (DSL Instruction ())
 (define (pendown!)
   (dsl-emit 'turtle-pendown '()))
 
+;;; getpos! : () → (DSL Instruction (Nat × Nat))
 (define (getpos!)
   (dsl-request 'turtle-getpos '()))
 
+;;; make-turtle-interpreter : () → Interpreter
 ;;; Turtle interpreter
 (define (make-turtle-interpreter)
   (let ([x 0]
@@ -1238,10 +1356,11 @@
                       [else
                        (error 'turtle-interpreter "Unknown instruction")])))))
 
-;;; run-turtle : DSL Instruction a -> a
+;;; run-turtle : (DSL Instruction α) → α
 (define (run-turtle program)
   (run-dsl (make-turtle-interpreter) program))
 
+;;; repeat : Nat × (DSL Instruction α) → (DSL Instruction (List α))
 ;;; Helper for turtle graphics
 (define (repeat n action)
   (dsl-replicate n action))
@@ -1424,15 +1543,22 @@
 ;;; Tools for combining multiple DSLs into one.
 
 ;;; Sum type tags for combined instructions
+
+;;; dsl-left-tag : Symbol → Symbol
 (define (dsl-left-tag tag) (list 'dsl-left tag))
+
+;;; dsl-right-tag : Symbol → Symbol
 (define (dsl-right-tag tag) (list 'dsl-right tag))
 
+;;; dsl-left-tag? : α → Bool
 (define (dsl-left-tag? x)
   (and (pair? x) (eq? (car x) 'dsl-left)))
 
+;;; dsl-right-tag? : α → Bool
 (define (dsl-right-tag? x)
   (and (pair? x) (eq? (car x) 'dsl-right)))
 
+;;; dsl-unwrap-tag : Symbol → Symbol
 (define (dsl-unwrap-tag x)
   (cadr x))
 

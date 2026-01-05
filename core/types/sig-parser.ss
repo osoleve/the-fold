@@ -50,7 +50,7 @@
 ;;; Known type constructors
 (define type-constructor-names
   '(List Vector Option Maybe Pair Result Either Values
-    Set Map Ref Block Cap))
+    Set Map Ref Block Cap Stream Delayed Functor Applicative Monad))
 
 ;;; Type variable names (Greek letters and single lowercase)
 (define greek-type-vars

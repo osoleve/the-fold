@@ -386,7 +386,7 @@
 ;;;   - ${env.var} - environment variables
 ;;;   - ${checkpoint.name} - checkpoint values
 
-;;; expand-template : String -> Alist -> String
+;;; expand-template : String × (Alist String String) → String
 ;;; Expand template with bindings (pure helper).
 (define (expand-template template bindings)
   (let loop ([chars (string->list template)]

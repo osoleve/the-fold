@@ -387,7 +387,8 @@
             tag
             (string->symbol (string-titlecase (car parts))))))
 
-;;; Helper: string-split-on
+;;; string-split-on : String × Char → (List String)
+;;; Helper: split string on a character delimiter.
 (define (string-split-on str char)
   (let loop ([chars (string->list str)] [current '()] [result '()])
        (cond
@@ -403,7 +404,8 @@
         [else
          (loop (cdr chars) (cons (car chars) current) result)])))
 
-;;; Helper: string-titlecase
+;;; string-titlecase : String → String
+;;; Helper: convert first character to uppercase.
 (define (string-titlecase str)
   (if (= (string-length str) 0)
       str
@@ -591,11 +593,13 @@
      (state-put . ,(lambda (payload k)
                            (lambda (s) ((k '()) payload)))))))
 
-;;; run-state : s -> Eff State a -> (a . s)
+;;; run-state : s × (Eff State α) → (α . s)
 ;;; Handle state effect with initial state
 (define (run-state init-state eff)
   (run-state-helper init-state eff))
 
+;;; run-state-helper : s × (Eff State α) → (α . s)
+;;; Internal helper for state effect handling.
 (define (run-state-helper state eff)
   (cond
    [(eff-pure? eff)
@@ -687,11 +691,13 @@
 (define (writer-pass eff)
   (perform (make-effect 'writer-pass eff)))
 
-;;; run-writer : Eff Writer a -> (a . (List w))
+;;; run-writer : (Eff Writer α) → (α . (List w))
 ;;; Handle writer effect, collecting output.
 (define (run-writer eff)
   (run-writer-helper '() eff))
 
+;;; run-writer-helper : (List w) × (Eff Writer α) → (α . (List w))
+;;; Internal helper for writer effect handling.
 (define (run-writer-helper log eff)
   (cond
    [(eff-pure? eff)
@@ -921,11 +927,13 @@
 (define (console-print-line msg)
   (console-print (string-append msg "\n")))
 
-;;; run-console-pure : List String -> Eff Console a -> (a . List String)
+;;; run-console-pure : (List String) × (Eff Console α) → (α . (List String))
 ;;; Pure handler: takes input list, returns output list.
 (define (run-console-pure inputs eff)
   (run-console-helper inputs '() eff))
 
+;;; run-console-helper : (List String) × (List String) × (Eff Console α) → (α . (List String))
+;;; Internal helper for console effect handling.
 (define (run-console-helper inputs outputs eff)
   (cond
    [(eff-pure? eff)
@@ -1000,8 +1008,12 @@
                              (lambda (resp)
                                      (run-async-sync (k resp))))]))]))
 
-;;; gensym counter
+;;; *gensym-counter* : Nat
+;;; Mutable counter for generating unique symbols.
 (define *gensym-counter* 0)
+
+;;; eff-gensym : Symbol → (Symbol . Nat)
+;;; Generate a unique symbol with a prefix.
 (define (eff-gensym prefix)
   (set! *gensym-counter* (+ *gensym-counter* 1))
   (cons prefix *gensym-counter*))
@@ -1214,11 +1226,13 @@
 ;;; Combined Effect Handlers
 ;;; ============================================================
 
-;;; run-state-writer : s -> Eff (State + Writer) a -> ((a . s) . (List w))
+;;; run-state-writer : s × (Eff (State + Writer) α) → ((α . s) . (List w))
 ;;; Handle both state and writer effects
 (define (run-state-writer init-state eff)
   (run-writer (run-state-in-writer init-state eff)))
 
+;;; run-state-in-writer : s × (Eff (State + Writer) α) → (Eff Writer (α . s))
+;;; Internal helper: handle State effect, passing Writer through.
 (define (run-state-in-writer state eff)
   (cond
    [(eff-pure? eff)
@@ -1240,11 +1254,13 @@
                              (lambda (resp)
                                      (run-state-in-writer state (k resp))))]))]))
 
-;;; run-reader-writer : r -> Eff (Reader + Writer) a -> (a . (List w))
+;;; run-reader-writer : r × (Eff (Reader + Writer) α) → (α . (List w))
 ;;; Handle both reader and writer effects
 (define (run-reader-writer env eff)
   (run-writer (run-reader-in-writer env eff)))
 
+;;; run-reader-in-writer : r × (Eff (Reader + Writer) α) → (Eff Writer α)
+;;; Internal helper: handle Reader effect, passing Writer through.
 (define (run-reader-in-writer env eff)
   (cond
    [(eff-pure? eff)

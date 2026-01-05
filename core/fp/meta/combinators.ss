@@ -482,7 +482,7 @@
 ;;; Iteration Combinators
 ;;; ============================================================
 
-;;; iterate : (a → a) → a → (List a)  [infinite conceptually, truncated]
+;;; iterate-n : (α → α) × α × Nat → (List α)
 ;;; Generate list by repeated function application.
 ;;; Returns first n elements.
 (define (iterate-n f x n)
@@ -491,7 +491,7 @@
            (reverse acc)
            (loop (+ i 1) (f x) (cons x acc)))))
 
-;;; unfold : (b → Maybe (a × b)) → b → (List a)
+;;; unfold : (β → (Maybe (α × β))) × β → (List α)
 ;;; Build list from seed using generator.
 (define (unfold f seed)
   (let loop ([s seed] [acc '()])
@@ -502,7 +502,7 @@
                       [next (cadr (from-just result))])
                      (loop next (cons val acc)))))))
 
-;;; fix : (a → a) → a  [for fixed-point iteration with tolerance]
+;;; fix-with-tolerance : (α → α) × α × α × Nat → α
 ;;; Find fixed point of function (within tolerance).
 (define (fix-with-tolerance f x tolerance max-iters)
   (let loop ([x x] [i 0])
@@ -516,7 +516,7 @@
 ;;; Memoization
 ;;; ============================================================
 
-;;; memoize : (a → b) → (a → b)
+;;; memoize : (α → β) → (α → β)
 ;;; Memoize a function (using eq? hash).
 (define (memoize f)
   (let ([cache (make-hashtable equal-hash equal?)])
@@ -532,7 +532,7 @@
 ;;; Fixpoint Combinator
 ;;; ============================================================
 
-;;; Y : ((a → b) → (a → b)) → (a → b)
+;;; Y : ((α → β) → (α → β)) → (α → β)
 ;;; Y combinator (for defining recursive anonymous functions).
 (define (Y f)
   ((lambda (x) (f (lambda (v) ((x x) v))))
