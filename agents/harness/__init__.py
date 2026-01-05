@@ -13,7 +13,7 @@ Core components:
 """
 
 from .parse import parse_completion, ParseResult
-from .prompt import generate_status_prompt, generate_compact_prompt, AgentContext, ActionRecord
+from .prompt import generate_status_prompt, generate_compact_prompt, AgentContext, ActionRecord, WorkspaceEntry
 from .step import (
     step,
     StepResult,
@@ -44,6 +44,7 @@ __all__ = [
     "generate_compact_prompt",
     "AgentContext",
     "ActionRecord",
+    "WorkspaceEntry",
 
     # Step
     "step",

@@ -56,28 +56,15 @@ def read_answer(session: str) -> str:
 def create_gemini_client(model: str = "gemini-3-flash-preview"):
     """Create a Gemini API client."""
     def client(prompt: str) -> str:
-        augmented = """You are an autonomous Scheme agent in The Fold REPL.
+        # The status prompt already contains full instructions.
+        # Just add a minimal system prefix for the model.
+        augmented = """You are an autonomous Scheme agent playing in The Fold.
 
-HARNESS COMMANDS (handled locally, not sent to Fold):
-  (subgoal "description")  ; Set your current subgoal
-  (think "reasoning")      ; Internal reasoning (logged, not shown to you later)
-  (note "observation")     ; Working memory (shown to you in future turns)
-  (done)                   ; Complete current subgoal (clears it, ready for next)
+CRITICAL: Respond with ONLY a single S-expression. No prose, no explanation.
 
-Use (note ...) to remember facts you'll need in future steps.
-Use (done) when you finish a subgoal and are ready to pick the next one.
-
-ANSWER PROTOCOL - IMPORTANT:
-  The variable *answer* exists in your session.
-  When you find the final answer, write it with: (set! *answer* "your answer")
-  This IMMEDIATELY ends the task - no need to call (done) after.
-
-  Example: If the answer is 42, respond with: (set! *answer* "42")
-
-RULES:
-  - Respond with ONLY a single S-expression
-  - No text before or after the S-expression
-  - Set *answer* before calling (done)
+The status prompt below explains your available commands:
+- Free actions: (think ...), (note ...), (env ...)
+- Registers: (set! *register* value) - use *answer* when you have the final answer
 
 """ + prompt
 

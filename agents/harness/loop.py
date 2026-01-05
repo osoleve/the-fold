@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Generator, Optional, Set
 
 from .parse import parse_completion
-from .prompt import ActionRecord, AgentContext, generate_status_prompt
+from .prompt import ActionRecord, AgentContext, WorkspaceEntry, generate_status_prompt
 from .step import Evaluator, EvalResult, StepResult, fold_evaluator, step
 
 
@@ -56,7 +56,8 @@ _SUBGOAL_PATTERN = re.compile(r'^\(subgoal\s+"((?:[^"\\]|\\.)*)"\s*\)$')
 _DONE_PATTERN = re.compile(r'^\((done|task-complete)\s*\)$')
 _THINK_PATTERN = re.compile(r'^\(think\s+"((?:[^"\\]|\\.)*)"\s*\)$')
 _NOTE_PATTERN = re.compile(r'^\(note\s+"((?:[^"\\]|\\.)*)"\s*\)$')
-_ANSWER_PATTERN = re.compile(r'^\(set!\s+\*answer\*\s+')  # Prefix match - rest is the value
+_ENV_PATTERN = re.compile(r'^\(env\s+(.+)\)$', re.DOTALL)  # (env sexpr) - capture inner
+_REGISTER_PATTERN = re.compile(r'^\(set!\s+(\*[a-zA-Z_][a-zA-Z0-9_-]*\*)\s+')  # (set! *name* ...)
 
 
 def _unescape_string(s: str) -> str:
@@ -67,8 +68,9 @@ def _unescape_string(s: str) -> str:
 @dataclass
 class MetaCommand:
     """A parsed meta-command."""
-    kind: str  # "subgoal", "done", "think", "note", "answer", "none"
+    kind: str  # "subgoal", "done", "think", "note", "env", "register", "none"
     payload: Optional[str] = None
+    register_name: Optional[str] = None  # For register commands
 
 
 def parse_meta_command(expression: str) -> MetaCommand:
@@ -80,13 +82,25 @@ def parse_meta_command(expression: str) -> MetaCommand:
     - (done) or (task-complete) - Complete current subgoal (clear it)
     - (think "reasoning") - Internal reasoning (logged, not shown to agent)
     - (note "text") - Working memory note (shown to agent in future turns)
-    - (set! *answer* ...) - Set answer AND signal task completion (evaluated in Fold)
+    - (env sexpr) - Explore Fold, results go to workspace (no set!/define allowed)
+    - (set! *register* ...) - Set a register; *answer* ends the task
     """
     expr = expression.strip()
 
-    # Check for answer (set! *answer* ...) - this gets evaluated AND signals completion
-    if _ANSWER_PATTERN.match(expr):
-        return MetaCommand(kind="answer", payload=expr)
+    # Check for env (exploration command)
+    match = _ENV_PATTERN.match(expr)
+    if match:
+        inner = match.group(1).strip()
+        # Reject set!/define inside env
+        if inner.startswith('(set!') or inner.startswith('(define'):
+            return MetaCommand(kind="env_error", payload="set!/define not allowed in (env ...)")
+        return MetaCommand(kind="env", payload=inner)
+
+    # Check for register set (set! *name* ...)
+    match = _REGISTER_PATTERN.match(expr)
+    if match:
+        register_name = match.group(1)
+        return MetaCommand(kind="register", payload=expr, register_name=register_name)
 
     # Check for subgoal
     match = _SUBGOAL_PATTERN.match(expr)
@@ -127,16 +141,50 @@ class MetaEvaluator:
     def __call__(self, session_id: str, expression: str, timeout_ms: int) -> EvalResult:
         meta = parse_meta_command(expression)
 
-        if meta.kind == "answer":
-            # Evaluate in Fold to store the answer, then signal completion
+        if meta.kind == "env":
+            # Exploration command - evaluate in Fold, record in workspace
+            result = self.real_evaluator(session_id, meta.payload, timeout_ms)
+            # Add to workspace
+            entry = WorkspaceEntry(
+                command=meta.payload,
+                result=result.value if result.success else result.output,
+                success=result.success
+            )
+            self.context.workspace.append(entry)
+            # Trim workspace if too long
+            max_entries = self.context.max_workspace_entries
+            if len(self.context.workspace) > max_entries:
+                self.context.workspace = self.context.workspace[-max_entries:]
+            return result
+
+        if meta.kind == "env_error":
+            # Rejected env command (tried to use set!/define)
+            return EvalResult(
+                success=False,
+                value="",
+                output=f"[harness] Error: {meta.payload}",
+                session=session_id
+            )
+
+        if meta.kind == "register":
+            # Set a register - evaluate in Fold, update registers dict
             result = self.real_evaluator(session_id, meta.payload, timeout_ms)
             if result.success:
-                self.task_complete = True
-                # Return new result with harness message (EvalResult is frozen)
+                # Extract the value that was set (from result or re-query)
+                self.context.registers[meta.register_name] = result.value
+                # *answer* ends the task
+                if meta.register_name == "*answer*":
+                    self.task_complete = True
+                    return EvalResult(
+                        success=True,
+                        value=result.value,
+                        output="[harness] Answer set, task complete",
+                        session=session_id
+                    )
                 return EvalResult(
                     success=True,
                     value=result.value,
-                    output="[harness] Answer set, task complete",
+                    output=f"[harness] Register {meta.register_name} set",
                     session=session_id
                 )
             return result
@@ -458,11 +506,18 @@ def _test_loop():
     assert parse_meta_command('(note "Remember this")').kind == "note"
     assert parse_meta_command('(note "Remember this")').payload == "Remember this"
     assert parse_meta_command("(+ 1 2)").kind == "none"
-    # Test answer pattern
-    assert parse_meta_command('(set! *answer* "42")').kind == "answer"
-    assert parse_meta_command('(set! *answer* "42")').payload == '(set! *answer* "42")'
-    assert parse_meta_command('(set! *answer* (+ 1 2))').kind == "answer"
-    assert parse_meta_command('(set! *other* "x")').kind == "none"  # Other vars not special
+    # Test register pattern (any *earmuffed* var)
+    assert parse_meta_command('(set! *answer* "42")').kind == "register"
+    assert parse_meta_command('(set! *answer* "42")').register_name == "*answer*"
+    assert parse_meta_command('(set! *scratch* (+ 1 2))').kind == "register"
+    assert parse_meta_command('(set! *scratch* (+ 1 2))').register_name == "*scratch*"
+    assert parse_meta_command('(set! other "x")').kind == "none"  # Non-earmuffed not special
+    # Test env pattern
+    assert parse_meta_command('(env (help))').kind == "env"
+    assert parse_meta_command('(env (help))').payload == "(help)"
+    assert parse_meta_command('(env (browse \'art 5))').kind == "env"
+    assert parse_meta_command('(env (set! x 1))').kind == "env_error"  # No set! in env
+    assert parse_meta_command('(env (define y 2))').kind == "env_error"  # No define in env
     # Test escaped quotes
     assert parse_meta_command('(subgoal "goal with \\"quotes\\"")').kind == "subgoal"
     assert parse_meta_command('(subgoal "goal with \\"quotes\\"")').payload == 'goal with "quotes"'

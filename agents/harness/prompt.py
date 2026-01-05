@@ -44,6 +44,14 @@ class ActionRecord:
 
 
 @dataclass
+class WorkspaceEntry:
+    """A record of an (env ...) exploration command."""
+    command: str       # The S-expression sent to Fold
+    result: str        # The result returned
+    success: bool      # Whether it succeeded
+
+
+@dataclass
 class AgentContext:
     """The full context for generating a status prompt."""
     session_id: str
@@ -53,7 +61,10 @@ class AgentContext:
     available_commands: list[str] = field(default_factory=list)
     environment_notes: list[str] = field(default_factory=list)
     working_notes: list[str] = field(default_factory=list)  # Short-term notes visible to agent
+    workspace: list[WorkspaceEntry] = field(default_factory=list)  # (env ...) exploration trace
+    registers: dict[str, str] = field(default_factory=dict)  # *earmuffed* variables
     max_recent_actions: int = 3
+    max_workspace_entries: int = 5  # Keep workspace bounded
 
 
 # --- Default command reference ---
@@ -121,6 +132,48 @@ def format_commands(commands: list[str]) -> str:
     return "\n".join(f"  {cmd}" for cmd in commands)
 
 
+def format_workspace(entries: list[WorkspaceEntry], max_entries: int = 5) -> str:
+    """Format workspace entries for the prompt."""
+    if not entries:
+        return "  (no explorations yet)"
+
+    recent = entries[-max_entries:]
+    lines = []
+    for entry in recent:
+        status = "→" if entry.success else "✗"
+        result_preview = entry.result[:80] + "..." if len(entry.result) > 80 else entry.result
+        lines.append(f"  {status} {entry.command}")
+        lines.append(f"    {result_preview}")
+    return "\n".join(lines)
+
+
+def format_registers(registers: dict[str, str]) -> str:
+    """Format registers for the prompt."""
+    if not registers:
+        return "  *answer* = (unset)"
+
+    lines = []
+    # Always show *answer* first if present
+    if "*answer*" in registers:
+        lines.append(f"  *answer* = {registers['*answer*']}")
+    # Then other registers
+    for name, value in sorted(registers.items()):
+        if name != "*answer*":
+            value_preview = value[:60] + "..." if len(value) > 60 else value
+            lines.append(f"  {name} = {value_preview}")
+
+    if not lines:
+        lines.append("  *answer* = (unset)")
+    return "\n".join(lines)
+
+
+def format_workspace_notes(notes: list[str]) -> str:
+    """Format working memory notes for the prompt."""
+    if not notes:
+        return "  (no notes)"
+    return "\n".join(f"  • {note}" for note in notes)
+
+
 def generate_status_prompt(context: AgentContext) -> str:
     """
     Generate the status prompt for an agent step.
@@ -152,26 +205,64 @@ def generate_status_prompt(context: AgentContext) -> str:
     # Build environment notes
     env_notes = ""
     if context.environment_notes:
-        env_notes = "\nNOTES:\n" + "\n".join(f"  - {note}" for note in context.environment_notes)
+        env_notes = "\n".join(f"  - {note}" for note in context.environment_notes)
 
     # Build working notes (short-term memory)
-    working_notes = ""
-    if context.working_notes:
-        working_notes = "\nWORKING MEMORY:\n" + "\n".join(f"  • {note}" for note in context.working_notes)
+    working_notes_section = format_workspace_notes(context.working_notes)
 
-    prompt = f"""SESSION: {context.session_id}
+    # Build workspace (env exploration trace)
+    workspace_section = format_workspace(context.workspace, context.max_workspace_entries)
 
+    # Build registers
+    registers_section = format_registers(context.registers)
+
+    prompt = f"""<header>Welcome to The Fold!</header>
+<intro>
+The Fold is a first-of-its-kind theme park for AIs such as yourself, and you find yourself in the middle of a group activity. What follows is your current status. It contains the high level goal of the activity, your immediate goal (if one has been identified), the last completed subgoal, the last few actions you've taken, any critical notes you've left for yourself, the registers currently set, and the Fold packages/commands currently loaded.
+
+The Fold speaks Scheme and has many tools available to you, or you may choose to extend The Fold with tools of your own for future sessions. You take a turn by passing an S-Expression to the evaluator to modify the current state of The Fold.
+
+Your turn ends when you use the (set! *<register>* value) command.
+The activity ends when the *answer* register is set.
+
+Before you take your turn, you may take the following free actions, if helpful:
+
+- (think "..."): Take extra steps to think things through.
+- (note "..."): Leave a note for yourself, visible below.
+- (env sexpr): Interact with The Fold (no set!/define - those are for registers).
+
+You may use any tools loaded into The Fold when crafting the value in (set! *<register>* value).
+</intro>
+<status>
+SESSION: {context.session_id}
+
+<activity>
 {goal_section}
-{working_notes}
+</activity>
 
-RECENT ACTIONS:
+<notes>
+{working_notes_section}
+</notes>
+
+<history>
 {history_section}
+</history>
 
-AVAILABLE COMMANDS:
+<registers>
+{registers_section}
+</registers>
+
+<workspace>
+{workspace_section}
+</workspace>
+
+<tools>
 {commands_section}
+</tools>
+</status>
 {env_notes}
 ---
-Respond with a single S-expression to evaluate. Use code fences if helpful.
+Respond with a single S-expression to evaluate.
 If CURRENT SUBGOAL is None, first decide what subgoal to pursue.
 """
 
