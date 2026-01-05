@@ -257,7 +257,21 @@
     (Pos . Hash)
     (MemoTable . Hash)
     (MemoKey . Hash)
-    (ParseError . Hash)))
+    (ParseError . Hash)
+    ;; Geometry acceleration structures (treated as kind *)
+    (BVH . Hash)
+    (Mesh . Hash)
+    (Octree . Hash)
+    (RaymarchParams . Hash)
+    (Camera . Hash)
+    ;; Digital filter types (treated as kind *)
+    (Biquad . Hash)
+    (FIR . Hash)
+    (IIR . Hash)
+    ;; Graph types (treated as kind *)
+    (Edge . Hash)
+    (Vertex . Hash)
+    (Graph . Hash)))
 
 ;;; Greek letters used as type variables
 (define greek-type-var-names

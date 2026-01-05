@@ -544,66 +544,84 @@
   (syntax-rules ()
                 [(_ e ...) (or e ...)]))
 
-;;; ¬ : Logical negation (not)
+;;; ¬ : Boolean → Boolean
+;;; Logical negation (not).
 (define ¬ not)
 
 ;;; --- Comparison ---
 
-;;; ≠ : Not equal
+;;; ≠ : α × α → Boolean
+;;; Not equal.
 (define (≠ a b) (not (equal? a b)))
 
-;;; ≤ : Less than or equal
+;;; ≤ : Nat × Nat → Boolean
+;;; Less than or equal.
 (define ≤ <=)
 
-;;; ≥ : Greater than or equal
+;;; ≥ : Nat × Nat → Boolean
+;;; Greater than or equal.
 (define ≥ >=)
 
 ;;; --- Arithmetic ---
 
-;;; × : Multiplication (alternative to *)
+;;; × : Nat* → Nat
+;;; Multiplication (alternative to *).
 (define × *)
 
-;;; ÷ : Division (alternative to /)
+;;; ÷ : Nat × Nat → Nat
+;;; Division (alternative to /).
 (define ÷ /)
 
-;;; ² : Square function
+;;; ² : Nat → Nat
+;;; Square function.
 (define (² x) (* x x))
 
-;;; ³ : Cube function
+;;; ³ : Nat → Nat
+;;; Cube function.
 (define (³ x) (* x x x))
 
-;;; √ : Square root
+;;; √ : Nat → Nat
+;;; Square root.
 (define √ sqrt)
 
 ;;; --- Collections ---
 
-;;; ∈ : Membership test (member, returns boolean)
+;;; ∈ : α × (List α) → Boolean
+;;; Membership test (member, returns boolean).
 (define (∈ x lst) (if (member x lst) #t #f))
 
-;;; ∉ : Non-membership test
+;;; ∉ : α × (List α) → Boolean
+;;; Non-membership test.
 (define (∉ x lst) (not (∈ x lst)))
 
-;;; ∅ : Empty list
+;;; ∅ : (List α)
+;;; Empty list.
 (define ∅ '())
 
 ;;; --- Function Composition ---
 
-;;; ∘ : Function composition (f ∘ g)(x) = f(g(x))
+;;; ∘ : (β → γ) × (α → β) → (α → γ)
+;;; Function composition (f ∘ g)(x) = f(g(x)).
 (define (∘ f g) (λ (x) (f (g x))))
 
 ;;; --- Constants ---
 
-;;; π : Pi (3.14159...)
+;;; π : Nat
+;;; Pi (3.14159...).
 (define π 3.141592653589793)
 
-;;; τ : Tau (2π)
+;;; τ : Nat
+;;; Tau (2π).
 (define τ 6.283185307179586)
 
-;;; 𝑒 : Euler's number
+;;; 𝑒 : Nat
+;;; Euler's number.
 (define 𝑒 2.718281828459045)
 
-;;; ∞ : Infinity (largest flonum)
+;;; ∞ : Nat
+;;; Infinity (largest flonum).
 (define ∞ +inf.0)
 
-;;; -∞ : Negative infinity
+;;; -∞ : Nat
+;;; Negative infinity.
 (define -∞ -inf.0)

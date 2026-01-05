@@ -26,16 +26,21 @@
 
 ;;; Mesh: (mesh triangles bvh)
 ;;; Represents a triangle mesh with precomputed BVH for acceleration
+
+;;; make-mesh : (List Triangle3) → Mesh
 (define (make-mesh triangles)
   (let ([bvh (bvh-build triangles 10)])  ; Max 10 triangles per leaf
        (list 'mesh triangles bvh)))
 
+;;; mesh? : α → Bool
 (define (mesh? m)
   (and (pair? m) (eq? (car m) 'mesh)))
 
+;;; mesh-triangles : Mesh → (List Triangle3)
 (define (mesh-triangles m)
   (cadr m))
 
+;;; mesh-bvh : Mesh → BVH
 (define (mesh-bvh m)
   (caddr m))
 

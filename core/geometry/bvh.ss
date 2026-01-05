@@ -25,31 +25,39 @@
 ;;; - Leaf: (bvh-leaf bbox primitives)
 ;;; - Internal: (bvh-node bbox left right)
 
+;;; bvh-leaf : AABB × (List Triangle3) → BVH
 (define (bvh-leaf bbox primitives)
   (list 'bvh-leaf bbox primitives))
 
+;;; bvh-node : AABB × BVH × BVH → BVH
 (define (bvh-node bbox left right)
   (list 'bvh-node bbox left right))
 
+;;; bvh-leaf? : α → Bool
 (define (bvh-leaf? node)
   (and (pair? node) (eq? (car node) 'bvh-leaf)))
 
+;;; bvh-node? : α → Bool
 (define (bvh-node? node)
   (and (pair? node) (eq? (car node) 'bvh-node)))
 
+;;; bvh-bbox : BVH → AABB
 (define (bvh-bbox node)
   (cadr node))
 
+;;; bvh-primitives : BVH → (List Triangle3)
 (define (bvh-primitives node)
   (if (bvh-leaf? node)
       (caddr node)
       '()))
 
+;;; bvh-left : BVH → BVH | #f
 (define (bvh-left node)
   (if (bvh-node? node)
       (caddr node)
       #f))
 
+;;; bvh-right : BVH → BVH | #f
 (define (bvh-right node)
   (if (bvh-node? node)
       (cadddr node)
@@ -79,7 +87,7 @@
                                 triangles))])
            (aabb-from-points points))))
 
-;;; longest-axis : AABB → Number
+;;; longest-axis : AABB → Nat
 ;;; Returns 0 for X, 1 for Y, 2 for Z
 (define (longest-axis bbox)
   (let* ([extents (aabb-extents bbox)]
@@ -91,7 +99,7 @@
          [(and (>= y x) (>= y z)) 1]
          [else 2])))
 
-;;; get-axis-coord : Point3 × Number → Number
+;;; get-axis-coord : Vec3 × Nat → Real
 (define (get-axis-coord point axis)
   (case axis
         [(0) (vec3-x point)]

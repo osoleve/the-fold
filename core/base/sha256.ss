@@ -28,17 +28,25 @@
 ;;; 32-bit Arithmetic (mod 2^32)
 ;;; ============================================================
 
+;;; u32 : Nat → Nat
+;;; Mask to 32-bit unsigned integer.
 (define (u32 x)
   (bitwise-and x #xFFFFFFFF))
 
+;;; u32+ : Nat* → Nat
+;;; Add multiple values with 32-bit overflow.
 (define (u32+ . args)
   (u32 (apply + args)))
 
+;;; rotr32 : Nat × Nat → Nat
+;;; 32-bit right rotation.
 (define (rotr32 x n)
   (u32 (bitwise-ior
         (bitwise-arithmetic-shift-right x n)
         (bitwise-arithmetic-shift-left x (- 32 n)))))
 
+;;; shr : Nat × Nat → Nat
+;;; Right shift.
 (define (shr x n)
   (bitwise-arithmetic-shift-right x n))
 
@@ -46,30 +54,42 @@
 ;;; SHA-256 Functions
 ;;; ============================================================
 
+;;; Ch : Nat × Nat × Nat → Nat
+;;; SHA-256 Ch function: choose bits from y or z based on x.
 (define (Ch x y z)
   (bitwise-xor (bitwise-and x y)
                (bitwise-and (bitwise-not x) z)))
 
+;;; Maj : Nat × Nat × Nat → Nat
+;;; SHA-256 Maj function: majority of three bits.
 (define (Maj x y z)
   (bitwise-xor (bitwise-and x y)
                (bitwise-xor (bitwise-and x z)
                             (bitwise-and y z))))
 
+;;; Sigma0 : Nat → Nat
+;;; SHA-256 big sigma 0 function.
 (define (Sigma0 x)
   (bitwise-xor (rotr32 x 2)
                (bitwise-xor (rotr32 x 13)
                             (rotr32 x 22))))
 
+;;; Sigma1 : Nat → Nat
+;;; SHA-256 big sigma 1 function.
 (define (Sigma1 x)
   (bitwise-xor (rotr32 x 6)
                (bitwise-xor (rotr32 x 11)
                             (rotr32 x 25))))
 
+;;; sigma0 : Nat → Nat
+;;; SHA-256 small sigma 0 function.
 (define (sigma0 x)
   (bitwise-xor (rotr32 x 7)
                (bitwise-xor (rotr32 x 18)
                             (shr x 3))))
 
+;;; sigma1 : Nat → Nat
+;;; SHA-256 small sigma 1 function.
 (define (sigma1 x)
   (bitwise-xor (rotr32 x 17)
                (bitwise-xor (rotr32 x 19)

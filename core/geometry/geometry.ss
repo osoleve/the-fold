@@ -469,11 +469,11 @@
 ;;; Containment Tests
 ;;; ============================================================
 
-;;; point-in-sphere? : Point3 × Sphere → Boolean
+;;; point-in-sphere? : Point3 × Sphere → Bool
 (define (point-in-sphere? point sphere)
   (<= (distance-point-sphere point sphere) 0))
 
-;;; point-in-aabb? : Point3 × AABB → Boolean
+;;; point-in-aabb? : Point3 × AABB → Bool
 (define (point-in-aabb? point box)
   (let ([p point]
         [bmin (aabb-min box)]
@@ -485,7 +485,7 @@
             (>= (vec3-z p) (vec3-z bmin))
             (<= (vec3-z p) (vec3-z bmax)))))
 
-;;; point-in-triangle? : Point3 × Triangle3 → Boolean
+;;; point-in-triangle? : Point3 × Triangle3 → Bool
 ;;; Point must be coplanar with triangle
 (define (point-in-triangle? point tri)
   (let* ([v0 (triangle3-p1 tri)]

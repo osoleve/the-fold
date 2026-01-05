@@ -26,12 +26,12 @@
 ;;; Window Functions
 ;;; ============================================================
 
-;;; rectangular-window : Integer → Vector[Number]
+;;; rectangular-window : Integer → (Vector Number)
 ;;; All ones (no windowing).
 (define (rectangular-window n)
   (make-vector n 1.0))
 
-;;; hamming-window : Integer → Vector[Number]
+;;; hamming-window : Integer → (Vector Number)
 ;;; Hamming window: 0.54 - 0.46*cos(2*pi*n/(N-1))
 (define (hamming-window n)
   (if (= n 1)
@@ -44,7 +44,7 @@
                             (- 0.54
                                (* 0.46 (cos (/ (* 2 (pi-value) i) denom)))))))))
 
-;;; hann-window : Integer → Vector[Number]
+;;; hann-window : Integer → (Vector Number)
 ;;; Hann window: 0.5 * (1 - cos(2*pi*n/(N-1)))
 (define (hann-window n)
   (if (= n 1)
@@ -56,7 +56,7 @@
                (vector-set! result i
                             (* 0.5 (- 1 (cos (/ (* 2 (pi-value) i) denom)))))))))
 
-;;; blackman-window : Integer → Vector[Number]
+;;; blackman-window : Integer → (Vector Number)
 ;;; Blackman window: 0.42 - 0.5*cos(2*pi*n/(N-1)) + 0.08*cos(4*pi*n/(N-1))
 (define (blackman-window n)
   (if (= n 1)
@@ -70,7 +70,7 @@
                                (- (* 0.5 (cos (/ (* 2 (pi-value) i) denom))))
                                (* 0.08 (cos (/ (* 4 (pi-value) i) denom)))))))))
 
-;;; kaiser-window : Integer × Number → Vector[Number]
+;;; kaiser-window : Integer × Number → (Vector Number)
 ;;; Kaiser window with shape parameter beta.
 ;;; beta = 0: rectangular, beta = 5.0: similar to Hamming, beta = 8.6: similar to Blackman
 (define (kaiser-window n beta)
@@ -128,7 +128,7 @@
       (let ([px (* (pi-value) x)])
            (/ (sin px) px))))
 
-;;; fir-lowpass : Number × Integer × (Integer → Vector) → Vector[Number]
+;;; fir-lowpass : Number × Integer × (Integer → Vector) → (Vector Number)
 ;;; Design FIR lowpass filter using windowing method.
 ;;; cutoff: normalized cutoff frequency (0 to 1, where 1 = Nyquist)
 ;;; order: filter order (length = order + 1)
@@ -147,7 +147,7 @@
                    [w (vector-ref window i)])
                   (vector-set! coeffs i (* h w))))))
 
-;;; fir-highpass : Number × Integer × (Integer → Vector) → Vector[Number]
+;;; fir-highpass : Number × Integer × (Integer → Vector) → (Vector Number)
 ;;; Design FIR highpass filter using spectral inversion.
 ;;; cutoff: normalized cutoff frequency (0 to 1)
 (define (fir-highpass cutoff order window-fn)
@@ -161,7 +161,7 @@
             (let ([val (- (vector-ref lp i))])
                  (vector-set! result i (if (= i half) (+ 1 val) val))))))
 
-;;; fir-bandpass : Number × Number × Integer × (Integer → Vector) → Vector[Number]
+;;; fir-bandpass : Number × Number × Integer × (Integer → Vector) → (Vector Number)
 ;;; Design FIR bandpass filter.
 ;;; low, high: normalized band edges (0 to 1)
 (define (fir-bandpass low high order window-fn)
@@ -175,7 +175,7 @@
             (vector-set! result i
                          (- (vector-ref lp-high i) (vector-ref lp-low i))))))
 
-;;; fir-bandstop : Number × Number × Integer × (Integer → Vector) → Vector[Number]
+;;; fir-bandstop : Number × Number × Integer × (Integer → Vector) → (Vector Number)
 ;;; Design FIR bandstop (notch) filter.
 ;;; low, high: normalized band edges (0 to 1)
 (define (fir-bandstop low high order window-fn)
@@ -193,7 +193,7 @@
 ;;; FIR Filter Application
 ;;; ============================================================
 
-;;; fir-filter : Vector[Number] × Vector[Number] → Vector[Number]
+;;; fir-filter : (Vector Number) × (Vector Number) → (Vector Number)
 ;;; Apply FIR filter to signal using convolution.
 ;;; Returns output with same length as input (valid mode with padding).
 (define (fir-filter signal coeffs)
@@ -209,7 +209,7 @@
 ;;;
 ;;; Transfer function: H(z) = (b0 + b1*z^-1 + ... + bM*z^-M) / (a0 + a1*z^-1 + ... + aN*z^-N)
 
-;;; make-iir-filter : Vector[Number] × Vector[Number] → IIR-Filter
+;;; make-iir-filter : (Vector Number) × (Vector Number) → IIR-Filter
 ;;; Create an IIR filter structure.
 (define (make-iir-filter b a)
   `((type . iir)
@@ -221,11 +221,11 @@
   (and (pair? f)
        (eq? (cdr (assq 'type f)) 'iir)))
 
-;;; iir-filter-b : IIR-Filter → Vector[Number]
+;;; iir-filter-b : IIR-Filter → (Vector Number)
 (define (iir-filter-b f)
   (cdr (assq 'b f)))
 
-;;; iir-filter-a : IIR-Filter → Vector[Number]
+;;; iir-filter-a : IIR-Filter → (Vector Number)
 (define (iir-filter-a f)
   (cdr (assq 'a f)))
 
@@ -233,7 +233,7 @@
 ;;; IIR Filter Application
 ;;; ============================================================
 
-;;; iir-filter-signal : Vector[Number] × Vector[Number] × Vector[Number] → Vector[Number]
+;;; iir-filter-signal : (Vector Number) × (Vector Number) × (Vector Number) → (Vector Number)
 ;;; Apply IIR filter using direct form I.
 ;;; y[n] = (1/a0) * (b0*x[n] + b1*x[n-1] + ... - a1*y[n-1] - a2*y[n-2] - ...)
 (define (iir-filter-signal signal b a)
@@ -290,14 +290,22 @@
 (define (biquad? x)
   (and (pair? x) (eq? (cdr (assq 'type x)) 'biquad)))
 
-;;; biquad-b0, biquad-b1, etc. : Biquad → Number
+;;; biquad-b0 : Biquad → Number
 (define (biquad-b0 bq) (cdr (assq 'b0 bq)))
+
+;;; biquad-b1 : Biquad → Number
 (define (biquad-b1 bq) (cdr (assq 'b1 bq)))
+
+;;; biquad-b2 : Biquad → Number
 (define (biquad-b2 bq) (cdr (assq 'b2 bq)))
+
+;;; biquad-a1 : Biquad → Number
 (define (biquad-a1 bq) (cdr (assq 'a1 bq)))
+
+;;; biquad-a2 : Biquad → Number
 (define (biquad-a2 bq) (cdr (assq 'a2 bq)))
 
-;;; biquad-filter : Vector[Number] × Biquad → Vector[Number]
+;;; biquad-filter : (Vector Number) × Biquad → (Vector Number)
 ;;; Apply biquad filter using transposed direct form II.
 (define (biquad-filter signal bq)
   (let* ([n (vector-length signal)]
@@ -317,7 +325,7 @@
                   (set! z2 (+ (* b2 x) (- (* a2 y))))
                   (vector-set! output i y)))))
 
-;;; cascade-biquads : Vector[Number] × (List Biquad) → Vector[Number]
+;;; cascade-biquads : (Vector Number) × (List Biquad) → (Vector Number)
 ;;; Apply a cascade of biquad sections.
 (define (cascade-biquads signal biquads)
   (if (null? biquads)
@@ -391,7 +399,7 @@
          [a-real (vector-scale-real a 1.0)])
         (make-iir-filter b-normalized a-real)))
 
-;;; vector-scale-real : Vector[Complex|Number] → Vector[Number]
+;;; vector-scale-real : (Vector (Or Complex Number)) × Number → (Vector Number)
 ;;; Scale vector and extract real parts.
 (define (vector-scale-real v scale)
   (let* ([n (vector-length v)]
@@ -402,7 +410,7 @@
                  (vector-set! result i
                               (* scale (if (complex? val) (complex-real val) val)))))))
 
-;;; poly-from-roots : (List Complex) → Vector[Complex]
+;;; poly-from-roots : (List Complex) → (Vector Complex)
 ;;; Build polynomial coefficients from roots.
 ;;; Returns coefficients [c_n, c_{n-1}, ..., c_1, c_0] where
 ;;; p(z) = c_n*z^n + c_{n-1}*z^{n-1} + ... + c_0
@@ -416,7 +424,7 @@
                     (loop (cdr roots)
                           (poly-mul-binomial coeffs root)))))))
 
-;;; poly-mul-binomial : Vector[Complex] × Complex → Vector[Complex]
+;;; poly-mul-binomial : (Vector Complex) × Complex → (Vector Complex)
 ;;; Multiply polynomial by (z - root).
 (define (poly-mul-binomial coeffs root)
   (let* ([n (vector-length coeffs)]
@@ -489,7 +497,7 @@
 ;;; Frequency Response Analysis
 ;;; ============================================================
 
-;;; freqz : IIR-Filter × Integer → (Vector[Number] × Vector[Complex])
+;;; freqz : IIR-Filter × Integer → ((Vector Number) × (Vector Complex))
 ;;; Compute frequency response of IIR filter.
 ;;; Returns (frequencies . H(e^jw)) where frequencies are normalized (0 to pi).
 (define (freqz filter n-points)
@@ -512,7 +520,7 @@
         [den (eval-poly a z)])
        (complex-div num den)))
 
-;;; eval-poly : Vector[Number] × Complex → Complex
+;;; eval-poly : (Vector Number) × Complex → Complex
 ;;; Evaluate polynomial at z using Horner's method.
 ;;; Coefficients are [b0, b1, ...] for b0 + b1*z^-1 + b2*z^-2 + ...
 (define (eval-poly coeffs z)
@@ -529,7 +537,7 @@
                        (complex-add (make-complex (vector-ref coeffs (- i 1)) 0)
                                     (complex-mul result z-inv)))))))
 
-;;; magnitude-response : IIR-Filter × Integer → (Vector[Number] × Vector[Number])
+;;; magnitude-response : IIR-Filter × Integer → ((Vector Number) × (Vector Number))
 ;;; Compute magnitude response in dB.
 (define (magnitude-response filter n-points)
   (let* ([fr (freqz filter n-points)]
@@ -548,7 +556,7 @@
 (define (log10 x)
   (/ (log x) (log 10)))
 
-;;; phase-response : IIR-Filter × Integer → (Vector[Number] × Vector[Number])
+;;; phase-response : IIR-Filter × Integer → ((Vector Number) × (Vector Number))
 ;;; Compute phase response in radians.
 (define (phase-response filter n-points)
   (let* ([fr (freqz filter n-points)]
@@ -653,7 +661,7 @@
   (make-iir-filter (vector (/ (+ 1 (- a 1)) 2) (/ (- (+ 1 (- a 1))) 2))
                    (vector 1.0 (- a 1))))
 
-;;; moving-average : Integer → Vector[Number]
+;;; moving-average : Integer → (Vector Number)
 ;;; FIR moving average filter coefficients.
 (define (moving-average n)
   (let ([coeff (/ 1.0 n)])
@@ -663,7 +671,7 @@
 ;;; Impulse Response
 ;;; ============================================================
 
-;;; impulse-response : IIR-Filter × Integer → Vector[Number]
+;;; impulse-response : IIR-Filter × Integer → (Vector Number)
 ;;; Compute impulse response of filter.
 (define (impulse-response filter n)
   (let ([impulse (make-vector n 0.0)])
@@ -672,7 +680,7 @@
                           (iir-filter-b filter)
                           (iir-filter-a filter))))
 
-;;; step-response : IIR-Filter × Integer → Vector[Number]
+;;; step-response : IIR-Filter × Integer → (Vector Number)
 ;;; Compute step response of filter.
 (define (step-response filter n)
   (let ([step (make-vector n 1.0)])

@@ -25,29 +25,37 @@
 ;;; - Internal: (octree-node center size children)
 ;;; children is a vector of 8 octrees (one per octant)
 
+;;; octree-leaf : Vec3 × Real × (List Triangle3) → Octree
 (define (octree-leaf center size primitives)
   (list 'octree-leaf center size primitives))
 
+;;; octree-node : Vec3 × Real × (Vector Octree) → Octree
 (define (octree-node center size children)
   (list 'octree-node center size children))
 
+;;; octree-leaf? : α → Bool
 (define (octree-leaf? node)
   (and (pair? node) (eq? (car node) 'octree-leaf)))
 
+;;; octree-node? : α → Bool
 (define (octree-node? node)
   (and (pair? node) (eq? (car node) 'octree-node)))
 
+;;; octree-center : Octree → Vec3
 (define (octree-center node)
   (cadr node))
 
+;;; octree-size : Octree → Real
 (define (octree-size node)
   (caddr node))
 
+;;; octree-primitives : Octree → (List Triangle3)
 (define (octree-primitives node)
   (if (octree-leaf? node)
       (cadddr node)
       '()))
 
+;;; octree-children : Octree → (Vector Octree) | #f
 (define (octree-children node)
   (if (octree-node? node)
       (cadddr node)
@@ -88,12 +96,12 @@
   
   (build-recursive triangles center size 0))
 
-;;; all-children-leaves? : (List Octree) → Boolean
+;;; all-children-leaves? : (List Octree) → Bool
 (define (all-children-leaves? children)
   (and (= (length children) 8)
        (andmap octree-leaf? children)))
 
-;;; subdivide-octants : Point3 × Number → (List (Point3 Number))
+;;; subdivide-octants : Vec3 × Real → (List (Vec3 × Real))
 ;;; Return 8 octant centers and sizes
 (define (subdivide-octants center size)
   (let* ([cx (vec3-x center)]
@@ -111,7 +119,7 @@
          (list (vec3 (+ cx hs) (+ cy hs) (- cz hs)) hs)  ; 6: ++-
          (list (vec3 (+ cx hs) (+ cy hs) (+ cz hs)) hs)))) ; 7: +++
 
-;;; triangle-intersects-octant? : Triangle3 × Point3 × Number → Boolean
+;;; triangle-intersects-octant? : Triangle3 × Vec3 × Real → Bool
 ;;; Check if triangle intersects octant (cube centered at point with half-size)
 (define (triangle-intersects-octant? tri center size)
   (let* ([octant-aabb (aabb (vec3 (- (vec3-x center) size)
@@ -128,7 +136,7 @@
             (let ([tri-bbox (aabb-from-points tri-points)])
                  (aabb-overlaps? tri-bbox octant-aabb)))))
 
-;;; aabb-overlaps? : AABB × AABB → Boolean
+;;; aabb-overlaps? : AABB × AABB → Bool
 (define (aabb-overlaps? a b)
   (let ([amin (aabb-min a)]
         [amax (aabb-max a)]
@@ -141,7 +149,7 @@
             (>= (vec3-z amax) (vec3-z bmin))
             (<= (vec3-z amin) (vec3-z bmax)))))
 
-;;; partition-triangles-octants : (List Triangle3) × (List Octant) → (List (List Triangle3))
+;;; partition-triangles-octants : (List Triangle3) × (List (Vec3 × Real)) → (List (List Triangle3))
 ;;; Partition triangles into 8 lists (one per octant)
 (define (partition-triangles-octants triangles octants)
   (map (lambda (octant)
@@ -152,7 +160,7 @@
                             triangles)))
        octants))
 
-;;; any : (a → Boolean) × (List a) → Boolean
+;;; any : (α → Bool) × (List α) → Bool
 (define (any pred lst)
   (and (not (null? lst))
        (or (pred (car lst))
@@ -201,7 +209,7 @@
   
   (traverse octree #f #f))
 
-;;; ray-intersects-octant? : Ray3 × Point3 × Number → Boolean
+;;; ray-intersects-octant? : Ray3 × Vec3 × Real → Bool
 (define (ray-intersects-octant? ray center size)
   (let ([octant-aabb (aabb (vec3 (- (vec3-x center) size)
                                  (- (vec3-y center) size)

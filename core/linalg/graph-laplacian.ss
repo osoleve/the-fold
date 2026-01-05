@@ -35,7 +35,7 @@
 ;;; Unnormalized (Combinatorial) Laplacian
 ;;; ============================================================
 
-;;; laplacian : Matrix|SparseCSR → Matrix
+;;; laplacian : (Matrix Real) → (Matrix Real)
 ;;; L = D - A
 ;;; Compute the unnormalized Laplacian matrix.
 ;;;
@@ -55,7 +55,7 @@
                 adj)])
         (matrix-sub d a)))
 
-;;; laplacian-from-edges : (List Edge) × [Nat] → Matrix
+;;; laplacian-from-edges : (List Edge) × Nat → (Matrix Real)
 ;;; Convenience function to create Laplacian directly from edge list.
 ;;; Assumes undirected graph.
 (define (laplacian-from-edges edges . opts)
@@ -66,7 +66,7 @@
 ;;; Normalized Symmetric Laplacian
 ;;; ============================================================
 
-;;; laplacian-normalized : Matrix|SparseCSR → Matrix
+;;; laplacian-normalized : (Matrix Real) → (Matrix Real)
 ;;; L_sym = I - D^(-1/2) A D^(-1/2)
 ;;;       = D^(-1/2) L D^(-1/2)
 ;;;
@@ -112,7 +112,7 @@
 ;;; Random Walk Laplacian
 ;;; ============================================================
 
-;;; laplacian-random-walk : Matrix|SparseCSR → Matrix
+;;; laplacian-random-walk : (Matrix Real) → (Matrix Real)
 ;;; L_rw = I - D^(-1) A = D^(-1) L
 ;;;
 ;;; The random walk Laplacian is related to Markov chains.
@@ -156,7 +156,7 @@
 ;;; Algebraic Connectivity (Fiedler Value)
 ;;; ============================================================
 
-;;; algebraic-connectivity : Matrix → Num
+;;; algebraic-connectivity : (Matrix Real) → Real
 ;;; Compute the algebraic connectivity (second smallest eigenvalue).
 ;;;
 ;;; The Fiedler value λ_2 measures how well-connected the graph is:
@@ -178,7 +178,7 @@
                      (vector-ref sorted 1)
                      0)))))
 
-;;; fiedler-vector : Matrix → Vec
+;;; fiedler-vector : (Matrix Real) → (Vec Real)
 ;;; Compute the Fiedler vector (eigenvector of second smallest eigenvalue).
 ;;;
 ;;; The Fiedler vector is useful for:
@@ -200,7 +200,7 @@
                    [idx (second-smallest-index eigenvalues)])
                   (matrix-col eigenvectors idx)))))
 
-;;; second-smallest-index : Vec → Nat
+;;; second-smallest-index : (Vec Real) → Nat
 ;;; Find index of second smallest element in vector.
 (define (second-smallest-index v)
   (let ([n (vector-length v)])
@@ -228,7 +228,7 @@
 ;;; Connected Components from Laplacian
 ;;; ============================================================
 
-;;; laplacian-connected-components : Matrix → Nat
+;;; laplacian-connected-components : (Matrix Real) → Nat
 ;;; Count connected components by counting near-zero eigenvalues.
 ;;;
 ;;; The multiplicity of eigenvalue 0 equals the number of
@@ -261,7 +261,7 @@
 ;;; Spectral Partitioning
 ;;; ============================================================
 
-;;; spectral-partition : Matrix → (List Nat) × (List Nat)
+;;; spectral-partition : (Matrix Real) → (List Nat) × (List Nat)
 ;;; Partition graph into two groups using the Fiedler vector.
 ;;;
 ;;; Nodes with positive Fiedler vector components go to one group,
@@ -282,7 +282,7 @@
                              (loop (+ i 1) (cons i part-a) part-b)
                              (loop (+ i 1) part-a (cons i part-b)))))))))
 
-;;; extract-induced-subgraph : Matrix × (List Nat) → Matrix
+;;; extract-induced-subgraph : (Matrix Real) × (List Nat) → (Matrix Real)
 ;;; Extract the induced subgraph containing only the specified nodes.
 ;;; Returns a new adjacency matrix with nodes renumbered 0..n-1.
 (define (extract-induced-subgraph adj nodes)
@@ -306,7 +306,7 @@
        (map (lambda (local-idx) (vector-ref node-vec local-idx))
             local-nodes)))
 
-;;; spectral-partition-k : Matrix × Nat → (List (List Nat))
+;;; spectral-partition-k : (Matrix Real) × Nat → (List (List Nat))
 ;;; Partition graph into k groups using recursive spectral bisection.
 ;;;
 ;;; Uses the Fiedler vector (second smallest eigenvector of Laplacian)
@@ -344,7 +344,7 @@
                                            partitions-b
                                            (append partitions-a partitions-b)))))))))))
 
-;;; subgraph-partition : Matrix × (List Nat) × Nat → (List (List Nat))
+;;; subgraph-partition : (Matrix Real) × (List Nat) × Nat → (List (List Nat))
 ;;; Partition a subgraph induced by given nodes using recursive bisection.
 ;;; Extracts the induced subgraph and recomputes Fiedler vector.
 (define (subgraph-partition adj nodes k)
@@ -375,13 +375,13 @@
                     (append (subgraph-partition adj orig-a k-a)
                             (subgraph-partition adj orig-b k-b)))))]))
 
-;;; take : Nat × (List a) → (List a)
+;;; take : Nat × (List α) → (List α)
 (define (take n lst)
   (if (or (= n 0) (null? lst))
       '()
       (cons (car lst) (take (- n 1) (cdr lst)))))
 
-;;; drop : Nat × (List a) → (List a)
+;;; drop : Nat × (List α) → (List α)
 (define (drop n lst)
   (if (or (= n 0) (null? lst))
       lst
@@ -391,8 +391,8 @@
 ;;; Laplacian Properties
 ;;; ============================================================
 
-;;; laplacian-trace : Matrix → Num
-;;; Compute trace of Laplacian (= 2 × number of edges for undirected).
+;;; laplacian-trace : (Matrix Real) → Real
+;;; Compute trace of Laplacian (= 2 x number of edges for undirected).
 (define (laplacian-trace L)
   (let ([n (matrix-rows L)])
        (let loop ([i 0] [sum 0])
@@ -400,7 +400,7 @@
                 sum
                 (loop (+ i 1) (+ sum (matrix-ref L i i)))))))
 
-;;; laplacian-energy : Matrix → Num
+;;; laplacian-energy : (Matrix Real) → Real
 ;;; Compute Laplacian energy (sum of absolute eigenvalues).
 (define (laplacian-energy adj)
   (let* ([L (laplacian adj)]
@@ -413,13 +413,13 @@
                           sum
                           (loop (+ i 1) (+ sum (abs (vector-ref eigs i))))))))))
 
-;;; spectral-gap : Matrix → Num
-;;; Compute spectral gap (λ_2 - λ_1 = λ_2 for Laplacian since λ_1 = 0).
+;;; spectral-gap : (Matrix Real) → Real
+;;; Compute spectral gap (lambda_2 - lambda_1 = lambda_2 for Laplacian since lambda_1 = 0).
 ;;; This is the same as algebraic connectivity for connected graphs.
 (define (spectral-gap adj)
   (algebraic-connectivity adj))
 
-;;; spectral-radius-laplacian : Matrix → Num
+;;; spectral-radius-laplacian : (Matrix Real) → Real
 ;;; Compute spectral radius (largest eigenvalue) of Laplacian.
 (define (spectral-radius-laplacian adj)
   (let* ([L (laplacian adj)]
@@ -432,9 +432,9 @@
 ;;; Graph Regularity and Bipartiteness from Spectrum
 ;;; ============================================================
 
-;;; laplacian-max-eigenvalue : Matrix → Num
+;;; laplacian-max-eigenvalue : (Matrix Real) → Real
 ;;; Compute largest eigenvalue of Laplacian.
-;;; For d-regular graphs, λ_max ≤ 2d.
+;;; For d-regular graphs, lambda_max <= 2d.
 (define (laplacian-max-eigenvalue adj)
   (let* ([L (laplacian adj)]
          [eigs (eigenvalues L)])
@@ -447,11 +447,11 @@
                           (loop (+ i 1)
                                 (max max-val (vector-ref eigs i)))))))))
 
-;;; is-bipartite-spectral? : Matrix × [Num] → Boolean
+;;; is-bipartite-spectral? : (Matrix Real) × Real → Boolean
 ;;; Test if graph is bipartite using Laplacian spectrum.
 ;;;
-;;; A connected graph is bipartite if and only if λ_max = 2 × d_max
-;;; (for the normalized Laplacian, λ_max = 2 iff bipartite).
+;;; A connected graph is bipartite if and only if lambda_max = 2 x d_max
+;;; (for the normalized Laplacian, lambda_max = 2 iff bipartite).
 (define (is-bipartite-spectral? adj . opts)
   (let* ([tol (if (null? opts) 1e-6 (car opts))]
          [L-norm (laplacian-normalized adj)]
@@ -468,7 +468,7 @@
 ;;; Effective Resistance
 ;;; ============================================================
 
-;;; effective-resistance : Matrix × Nat × Nat → Num
+;;; effective-resistance : (Matrix Real) × Nat × Nat → Real
 ;;; Compute effective resistance between nodes i and j.
 ;;;
 ;;; R_eff(i,j) = (e_i - e_j)^T L^+ (e_i - e_j)
@@ -505,7 +505,7 @@
                                           (loop (+ k 1)
                                                 (+ sum (/ (* diff diff) lambda-k))))))))))))
 
-;;; total-effective-resistance : Matrix → Num
+;;; total-effective-resistance : (Matrix Real) → Real
 ;;; Compute total effective resistance (Kirchhoff index).
 ;;;
 ;;; K = n × sum_k (1/λ_k) for k > 0
@@ -530,7 +530,7 @@
 ;;; Summary Functions
 ;;; ============================================================
 
-;;; laplacian-summary : Matrix → Association List
+;;; laplacian-summary : (Matrix Real) → (List (Symbol × α))
 ;;; Compute summary statistics of the Laplacian spectrum.
 (define (laplacian-summary adj)
   (let* ([L (laplacian adj)]

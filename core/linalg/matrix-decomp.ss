@@ -28,7 +28,7 @@
 ;;; Note: vec-norm and vec-dot are defined in vec.ss
 ;;; This file assumes vec.ss is loaded (via matrix.ss dependency)
 
-;;; matrix-copy : Matrix -> Matrix
+;;; matrix-copy : (Matrix Real) → (Matrix Real)
 (define (matrix-copy m)
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
@@ -38,13 +38,13 @@
             [(= i (* rows cols)) (list 'matrix rows cols new-data)]
             (vector-set! new-data i (vector-ref data i)))))
 
-;;; matrix-set! : Matrix x Nat x Nat x Num -> Void
+;;; matrix-set! : (Matrix Real) × Nat × Nat × Real → Void
 (define (matrix-set! m i j val)
   (let ([cols (matrix-cols m)]
         [data (matrix-data m)])
        (vector-set! data (+ (* i cols) j) val)))
 
-;;; matrix-column : Matrix x Nat -> Vec
+;;; matrix-column : (Matrix Real) × Nat → (Vec Real)
 (define (matrix-column m j)
   (let* ([rows (matrix-rows m)]
          [result (make-vector rows 0)])
@@ -57,7 +57,7 @@
 ;;; LU Decomposition
 ;;; ============================================================
 
-;;; matrix-lu : Matrix -> (Matrix x Matrix x Vec) | Error
+;;; matrix-lu : (Matrix Real) → ((Matrix Real) × (Matrix Real) × (Vec Nat)) | Error
 (define (matrix-lu a)
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)])
@@ -124,7 +124,7 @@
                                              (find-pivot (+ i 1) i val)
                                              (find-pivot (+ i 1) max-row max-val)))))))))))
 
-;;; matrix-lu-solve : (L x U x P) x Vec -> Vec
+;;; matrix-lu-solve : ((Matrix Real) × (Matrix Real) × (Vec Nat)) × (Vec Real) → (Vec Real)
 ;;; Solve Ax = b given LU decomposition with permutation.
 ;;; Algorithm: 1) Apply P to b, 2) Forward substitute Ly = Pb, 3) Back substitute Ux = y
 (define (matrix-lu-solve lu-result b)
@@ -165,7 +165,7 @@
 ;;; QR Decomposition
 ;;; ============================================================
 
-;;; qr-find-orthogonal-basis : Matrix x Nat x Nat -> Vec | #f
+;;; qr-find-orthogonal-basis : (Matrix Real) × Nat × Nat → (Vec Real) | #f
 ;;; Find a unit vector orthogonal to columns 0..j-1 of Q.
 ;;; Tries standard basis vectors e_0, e_1, ... until one works.
 (define (qr-find-orthogonal-basis q j m)
@@ -186,7 +186,7 @@
                      (vec-scale (/ 1.0 v-norm) v)
                      (find-loop (+ k 1)))))))
 
-;;; qr-orthogonalize-remaining! : Matrix x Matrix x Nat x Nat x Nat -> Void
+;;; qr-orthogonalize-remaining! : (Matrix Real) × (Matrix Real) × Nat × Nat × Nat → Void
 ;;; Orthogonalize columns j+1..n-1 against column j.
 (define (qr-orthogonalize-remaining! q r j m n)
   (do ([i (+ j 1) (+ i 1)])
@@ -201,7 +201,7 @@
                              (- (matrix-ref q row i)
                                 (* proj (matrix-ref q row j))))))))
 
-;;; matrix-qr : Matrix -> (Matrix x Matrix) | Error
+;;; matrix-qr : (Matrix Real) → ((Matrix Real) × (Matrix Real)) | Error
 ;;;
 ;;; QR decomposition using Modified Gram-Schmidt algorithm.
 ;;; Handles singular/rank-deficient matrices gracefully by finding
@@ -249,7 +249,7 @@
 ;;; Cholesky Decomposition
 ;;; ============================================================
 
-;;; matrix-cholesky : Matrix -> (List Matrix) | Error
+;;; matrix-cholesky : (Matrix Real) → (List (Matrix Real)) | Error
 ;;; Returns (list L) where A = L x L^T for positive-definite A.
 (define (matrix-cholesky a)
   (let ([n (matrix-rows a)])
