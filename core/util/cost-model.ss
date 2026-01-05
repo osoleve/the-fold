@@ -21,15 +21,7 @@
 ;;; Cost Model Interface
 ;;; ============================================================
 
-;;; make-cost-model : Symbol x (Expr -> Nat) x (Symbol -> Nat) x Nat x (List<Nat> -> Nat) -> CostModel
-;;; Create a cost model with the given parameters.
-;;;
-;;; Parameters:
-;;;   name:        Identifier for this cost model
-;;;   eval-cost:   Function mapping expressions to their evaluation cost
-;;;   prim-cost:   Function mapping primitive symbols to their cost
-;;;   apply-cost:  Fixed cost for function application
-;;;   aggregate:   Function combining a list of costs into a total
+;;; make-cost-model : Symbol × (Expr → Nat) × (Symbol → Nat) × Nat × ((List Nat) → Nat) → CostModel
 (define (make-cost-model name eval-cost prim-cost apply-cost aggregate)
   `(cost-model
     (name . ,name)
@@ -38,8 +30,7 @@
     (apply-cost . ,apply-cost)
     (aggregate . ,aggregate)))
 
-;;; cost-model? : Any -> Bool
-;;; Check if value is a cost model.
+;;; cost-model? : α → Boolean
 (define (cost-model? cm)
   (and (pair? cm) (eq? (car cm) 'cost-model)))
 
@@ -47,34 +38,28 @@
 ;;; Cost Model Accessors
 ;;; ============================================================
 
-;;; cost-model-get : CostModel x Symbol -> Any
-;;; Extract a field from a cost model.
+;;; cost-model-get : CostModel × Symbol → α
 (define (cost-model-get cm key)
   (let ([entry (assq key (cdr cm))])
        (and entry (cdr entry))))
 
-;;; cost-model-name : CostModel -> Symbol
-;;; Get the name of a cost model.
+;;; cost-model-name : CostModel → Symbol
 (define (cost-model-name cm)
   (cost-model-get cm 'name))
 
-;;; cost-model-eval-cost : CostModel -> (Expr -> Nat)
-;;; Get the evaluation cost function.
+;;; cost-model-eval-cost : CostModel → (Expr → Nat)
 (define (cost-model-eval-cost cm)
   (cost-model-get cm 'eval-cost))
 
-;;; cost-model-prim-cost : CostModel -> (Symbol -> Nat)
-;;; Get the primitive cost function.
+;;; cost-model-prim-cost : CostModel → (Symbol → Nat)
 (define (cost-model-prim-cost cm)
   (cost-model-get cm 'prim-cost))
 
-;;; cost-model-apply-cost : CostModel -> Nat
-;;; Get the application cost.
+;;; cost-model-apply-cost : CostModel → Nat
 (define (cost-model-apply-cost cm)
   (cost-model-get cm 'apply-cost))
 
-;;; cost-model-aggregate : CostModel -> (List<Nat> -> Nat)
-;;; Get the cost aggregation function.
+;;; cost-model-aggregate : CostModel → ((List Nat) → Nat)
 (define (cost-model-aggregate cm)
   (cost-model-get cm 'aggregate))
 
@@ -82,18 +67,15 @@
 ;;; Cost Computation Helpers
 ;;; ============================================================
 
-;;; compute-eval-cost : CostModel x Expr -> Nat
-;;; Compute the cost of evaluating an expression.
+;;; compute-eval-cost : CostModel × Expr → Nat
 (define (compute-eval-cost cm expr)
   ((cost-model-eval-cost cm) expr))
 
-;;; compute-prim-cost : CostModel x Symbol -> Nat
-;;; Compute the cost of a primitive operation.
+;;; compute-prim-cost : CostModel × Symbol → Nat
 (define (compute-prim-cost cm prim-name)
   ((cost-model-prim-cost cm) prim-name))
 
-;;; compute-aggregate : CostModel x List<Nat> -> Nat
-;;; Aggregate a list of costs.
+;;; compute-aggregate : CostModel × (List Nat) → Nat
 (define (compute-aggregate cm costs)
   ((cost-model-aggregate cm) costs))
 
@@ -195,36 +177,30 @@
 ;;; A cost tracker accumulates costs during evaluation,
 ;;; categorized by operation type.
 
-;;; make-cost-tracker : CostModel -> CostTracker
-;;; Create a cost tracker using the given cost model.
+;;; make-cost-tracker : CostModel → CostTracker
 (define (make-cost-tracker model)
   `(cost-tracker
     (model . ,model)
     (costs . ())))   ; Alist of (category . accumulated-cost)
 
-;;; cost-tracker? : Any -> Bool
-;;; Check if value is a cost tracker.
+;;; cost-tracker? : α → Boolean
 (define (cost-tracker? ct)
   (and (pair? ct) (eq? (car ct) 'cost-tracker)))
 
-;;; cost-tracker-get : CostTracker x Symbol -> Any
-;;; Extract a field from a cost tracker.
+;;; cost-tracker-get : CostTracker × Symbol → α
 (define (cost-tracker-get ct key)
   (let ([entry (assq key (cdr ct))])
        (and entry (cdr entry))))
 
-;;; cost-tracker-model : CostTracker -> CostModel
-;;; Get the model used by this tracker.
+;;; cost-tracker-model : CostTracker → CostModel
 (define (cost-tracker-model ct)
   (cost-tracker-get ct 'model))
 
-;;; cost-tracker-costs : CostTracker -> Alist
-;;; Get the accumulated costs.
+;;; cost-tracker-costs : CostTracker → Alist
 (define (cost-tracker-costs ct)
   (cost-tracker-get ct 'costs))
 
-;;; cost-tracker-set : CostTracker x Symbol x Any -> CostTracker
-;;; Update a field in a cost tracker (pure).
+;;; cost-tracker-set : CostTracker × Symbol × α → CostTracker
 (define (cost-tracker-set ct key value)
   (cons 'cost-tracker
         (map (lambda (entry)
@@ -233,9 +209,7 @@
                          entry))
              (cdr ct))))
 
-;;; track-cost : CostTracker x Symbol x Nat -> CostTracker
-;;; Add a cost to the tracker under the given category.
-;;; Returns a new tracker with updated costs (pure).
+;;; track-cost : CostTracker × Symbol × Nat → CostTracker
 (define (track-cost ct category cost)
   (let* ([costs (cost-tracker-costs ct)]
          [existing (assq category costs)]
@@ -249,27 +223,23 @@
               (cons (cons category cost) costs))])
         (cost-tracker-set ct 'costs new-costs)))
 
-;;; get-costs : CostTracker -> Alist
-;;; Get all accumulated costs as an alist.
+;;; get-costs : CostTracker → Alist
 (define (get-costs ct)
   (cost-tracker-costs ct))
 
-;;; get-category-cost : CostTracker x Symbol -> Nat
-;;; Get the accumulated cost for a specific category.
+;;; get-category-cost : CostTracker × Symbol → Nat
 (define (get-category-cost ct category)
   (let ([entry (assq category (cost-tracker-costs ct))])
        (if entry (cdr entry) 0)))
 
-;;; get-total-cost : CostTracker -> Nat
-;;; Get the total of all accumulated costs using the model's aggregate.
+;;; get-total-cost : CostTracker → Nat
 (define (get-total-cost ct)
   (let* ([costs (cost-tracker-costs ct)]
          [model (cost-tracker-model ct)]
          [values (map cdr costs)])
         (compute-aggregate model values)))
 
-;;; reset-tracker : CostTracker -> CostTracker
-;;; Create a new tracker with same model but zeroed costs.
+;;; reset-tracker : CostTracker → CostTracker
 (define (reset-tracker ct)
   (make-cost-tracker (cost-tracker-model ct)))
 
@@ -277,8 +247,7 @@
 ;;; Cost Model Composition
 ;;; ============================================================
 
-;;; combine-cost-models : CostModel x CostModel -> CostModel
-;;; Create a new cost model that sums costs from two models.
+;;; combine-cost-models : CostModel × CostModel → CostModel
 (define (combine-cost-models cm1 cm2)
   (make-cost-model
    (string->symbol
@@ -298,8 +267,7 @@
                0
                (fold-left + 0 costs)))))
 
-;;; scale-cost-model : CostModel x Nat -> CostModel
-;;; Scale all costs in a model by a factor.
+;;; scale-cost-model : CostModel × Nat → CostModel
 (define (scale-cost-model cm factor)
   (make-cost-model
    (string->symbol

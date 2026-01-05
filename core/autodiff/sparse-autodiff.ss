@@ -39,26 +39,24 @@
 ;;; - indices: vector of variable indices with non-zero gradients
 ;;; - values: vector of corresponding gradient values
 
-;;; sparse-grad? : Any -> Boolean
+;;; sparse-grad? : α → Boolean
 (define (sparse-grad? g)
   (and (pair? g) (eq? (car g) 'sparse-grad)))
 
-;;; make-sparse-grad : Vec x Vec -> SparseGrad
-;;; Create a sparse gradient from indices and values.
+;;; make-sparse-grad : (Vector Nat) × (Vector Number) → SparseGrad
 (define (make-sparse-grad indices values)
   (list 'sparse-grad (vector-length indices) indices values))
 
-;;; sparse-grad-nnz : SparseGrad -> Nat
+;;; sparse-grad-nnz : SparseGrad → Nat
 (define (sparse-grad-nnz g) (list-ref g 1))
 
-;;; sparse-grad-indices : SparseGrad -> Vec
+;;; sparse-grad-indices : SparseGrad → (Vector Nat)
 (define (sparse-grad-indices g) (list-ref g 2))
 
-;;; sparse-grad-values : SparseGrad -> Vec
+;;; sparse-grad-values : SparseGrad → (Vector Number)
 (define (sparse-grad-values g) (list-ref g 3))
 
-;;; sparse-grad-ref : SparseGrad x Nat -> Num
-;;; Get gradient value for variable at index i. O(nnz) lookup.
+;;; sparse-grad-ref : SparseGrad × Nat → Number
 (define (sparse-grad-ref g i)
   (let ([indices (sparse-grad-indices g)]
         [values (sparse-grad-values g)]
@@ -69,8 +67,7 @@
              [(= (vector-ref indices k) i) (vector-ref values k)]
              [else (loop (+ k 1))]))))
 
-;;; sparse-grad->dense : SparseGrad x Nat -> Vec
-;;; Convert sparse gradient to dense vector of length n.
+;;; sparse-grad->dense : SparseGrad × Nat → (Vector Number)
 (define (sparse-grad->dense g n)
   (let ([result (make-vector n 0)]
         [indices (sparse-grad-indices g)]
@@ -80,8 +77,7 @@
            ((= k nnz) result)
            (vector-set! result (vector-ref indices k) (vector-ref values k)))))
 
-;;; dense->sparse-grad : Vec x [Num] -> SparseGrad
-;;; Convert dense gradient vector to sparse, dropping values below tolerance.
+;;; dense->sparse-grad : (Vector Number) × Number ... → SparseGrad
 (define (dense->sparse-grad v . tol-arg)
   (let* ([tol (if (null? tol-arg) 0 (car tol-arg))]
          [n (vector-length v)]
@@ -107,9 +103,7 @@
                            (loop (+ i 1) (+ k 1)))
                           (loop (+ i 1) k)))))))
 
-;;; sparse-grad-add : SparseGrad x SparseGrad -> SparseGrad
-;;; Add two sparse gradients. Result may have more entries if indices differ.
-;;; Uses hash table to avoid O(max-idx) memory allocation for high indices.
+;;; sparse-grad-add : SparseGrad × SparseGrad → SparseGrad
 (define (sparse-grad-add g1 g2)
   (let* ([n1 (sparse-grad-nnz g1)]
          [n2 (sparse-grad-nnz g2)]
@@ -147,8 +141,7 @@
                               (vector-set! indices k (caar ps))
                               (vector-set! values k (cdar ps)))))))
 
-;;; sparse-grad-scale : Num x SparseGrad -> SparseGrad
-;;; Scale sparse gradient by a constant.
+;;; sparse-grad-scale : Number × SparseGrad → SparseGrad
 (define (sparse-grad-scale k g)
   (make-sparse-grad (vec-copy (sparse-grad-indices g))
                     (vec-map (lambda (v) (* k v)) (sparse-grad-values g))))
@@ -160,33 +153,30 @@
 ;;; A sparsity pattern records which (i,j) entries of a Jacobian are non-zero.
 ;;; Represented as: (sparsity-pattern m n nnz row-indices col-indices)
 
-;;; sparsity-pattern? : Any -> Boolean
+;;; sparsity-pattern? : α → Boolean
 (define (sparsity-pattern? p)
   (and (pair? p) (eq? (car p) 'sparsity-pattern)))
 
-;;; make-sparsity-pattern : Nat x Nat x Vec x Vec -> SparsityPattern
+;;; make-sparsity-pattern : Nat × Nat × (Vector Nat) × (Vector Nat) → SparsityPattern
 (define (make-sparsity-pattern m n row-indices col-indices)
   (list 'sparsity-pattern m n (vector-length row-indices) row-indices col-indices))
 
-;;; pattern-rows : SparsityPattern -> Nat
+;;; pattern-rows : SparsityPattern → Nat
 (define (pattern-rows p) (list-ref p 1))
 
-;;; pattern-cols : SparsityPattern -> Nat
+;;; pattern-cols : SparsityPattern → Nat
 (define (pattern-cols p) (list-ref p 2))
 
-;;; pattern-nnz : SparsityPattern -> Nat
+;;; pattern-nnz : SparsityPattern → Nat
 (define (pattern-nnz p) (list-ref p 3))
 
-;;; pattern-row-indices : SparsityPattern -> Vec
+;;; pattern-row-indices : SparsityPattern → (Vector Nat)
 (define (pattern-row-indices p) (list-ref p 4))
 
-;;; pattern-col-indices : SparsityPattern -> Vec
+;;; pattern-col-indices : SparsityPattern → (Vector Nat)
 (define (pattern-col-indices p) (list-ref p 5))
 
-;;; detect-sparsity : ((Traced ...) -> (List Traced)) x (List Number) x Num -> SparsityPattern
-;;; Detect sparsity pattern of Jacobian using reverse-mode autodiff.
-;;; Returns pattern of (i,j) pairs where |J[i,j]| > tolerance.
-;;; O(m) backward passes, O(nnz) space - never allocates dense M×N matrix.
+;;; detect-sparsity : ((Traced ...) → (List Traced)) × (List Number) × Number → SparsityPattern
 (define (detect-sparsity f args tolerance)
   (let* ([n (length args)]
          [sample-result (apply f (map (lambda (x) (make-traced-var x (make-reverse-tape)))
@@ -234,8 +224,7 @@
                  (vector-set! row-idx k (car entry))
                  (vector-set! col-idx k (cdr entry))))))
 
-;;; pattern-from-explicit : Nat x Nat x (List (Nat x Nat)) -> SparsityPattern
-;;; Create sparsity pattern from explicit list of (row, col) pairs.
+;;; pattern-from-explicit : Nat × Nat × (List (Nat × Nat)) → SparsityPattern
 (define (pattern-from-explicit m n pairs)
   (let* ([nnz (length pairs)]
          [row-idx (make-vector nnz 0)]
@@ -247,17 +236,14 @@
                  (vector-set! row-idx k (car p))
                  (vector-set! col-idx k (cdr p))))))
 
-;;; diagonal-pattern : Nat -> SparsityPattern
-;;; Create diagonal sparsity pattern (n x n, only diagonal non-zero).
+;;; diagonal-pattern : Nat → SparsityPattern
 (define (diagonal-pattern n)
   (let ([indices (make-vector n 0)])
        (do ([i 0 (+ i 1)])
            ((= i n) (make-sparsity-pattern n n indices (vec-copy indices)))
            (vector-set! indices i i))))
 
-;;; banded-pattern : Nat x Nat -> SparsityPattern
-;;; Create banded sparsity pattern with bandwidth b.
-;;; Entry (i,j) is non-zero if |i-j| <= b.
+;;; banded-pattern : Nat × Nat → SparsityPattern
 (define (banded-pattern n bandwidth)
   (let* ([b bandwidth]
          ;; Count non-zeros
@@ -287,9 +273,7 @@
 ;;; Sparse Jacobian Computation
 ;;; ============================================================
 
-;;; sparse-jacobian : ((Traced ...) -> (List Traced)) x (List Number) -> SparseCOO
-;;; Compute Jacobian in sparse COO format.
-;;; Uses reverse mode: one pass per output, but only stores non-zeros.
+;;; sparse-jacobian : ((Traced ...) → (List Traced)) × (List Number) → SparseCOO
 (define (sparse-jacobian f args)
   (let* ([n (length args)]
          [sample-result (apply f (map (lambda (x) (make-traced-var x (make-reverse-tape)))
@@ -325,9 +309,7 @@
                                                                      (cons (list i j grad) acc2)))))))))))])
         (sparse-coo-from-triplets m n triplets)))
 
-;;; sparse-jacobian-with-pattern : ((Traced ...) -> (List Traced)) x (List Number) x SparsityPattern -> SparseCOO
-;;; Compute Jacobian entries only at locations specified by pattern.
-;;; More efficient when pattern is known a priori.
+;;; sparse-jacobian-with-pattern : ((Traced ...) → (List Traced)) × (List Number) × SparsityPattern → SparseCOO
 (define (sparse-jacobian-with-pattern f args pattern)
   (let* ([m (pattern-rows pattern)]
          [n (pattern-cols pattern)]
@@ -365,7 +347,7 @@
          rows-to-compute)
         (make-sparse-coo m n (vec-copy row-idx) (vec-copy col-idx) values)))
 
-;;; Helper: remove duplicates from list
+;;; remove-duplicates : (List α) → (List α)
 (define (remove-duplicates lst)
   (if (null? lst)
       '()
@@ -377,13 +359,11 @@
 ;;; Sparse Jacobian-Vector and Vector-Jacobian Products
 ;;; ============================================================
 
-;;; sparse-jvp : SparseCOO x Vec -> Vec
-;;; Compute Jacobian-vector product J*v using sparse Jacobian.
+;;; sparse-jvp : SparseCOO × (Vector Number) → (Vector Number)
 (define (sparse-jvp J v)
   (sparse-coo-vec-mul J v))
 
-;;; sparse-vjp : SparseCOO x Vec -> Vec
-;;; Compute vector-Jacobian product v^T*J using sparse Jacobian.
+;;; sparse-vjp : SparseCOO × (Vector Number) → (Vector Number)
 (define (sparse-vjp J v)
   (let* ([m (sparse-coo-rows J)]
          [n (sparse-coo-cols J)]
@@ -406,9 +386,7 @@
 ;;; Sparse Hessian Computation
 ;;; ============================================================
 
-;;; sparse-hessian : ((Traced ...) -> Traced) x (List Number) -> SparseCOO
-;;; Compute Hessian in sparse COO format.
-;;; Uses finite differences on gradient to detect/compute second derivatives.
+;;; sparse-hessian : ((Traced ...) → Traced) × (List Number) → SparseCOO
 (define (sparse-hessian f args)
   (let* ([n (length args)]
          [epsilon 1e-6]
@@ -434,10 +412,7 @@
                                   (loop (+ j 1) (append new-entries acc)))))])
         (sparse-coo-from-triplets n n triplets)))
 
-;;; sparse-hessian-exact : ((List Hyperdual) -> Hyperdual) x (List Number) -> SparseCOO
-;;; Compute exact sparse Hessian using hyperdual numbers.
-;;; More accurate than finite difference approach.
-;;; O(n^2) hyperdual evaluations but O(nnz) space - never allocates dense N×N matrix.
+;;; sparse-hessian-exact : ((List Hyperdual) → Hyperdual) × (List Number) → SparseCOO
 (define (sparse-hessian-exact f args)
   (let* ([n (length args)]
          ;; Compute Hessian entries directly using hyperdual numbers
@@ -475,9 +450,7 @@
 ;;; Sparse Hessian-Vector Product
 ;;; ============================================================
 
-;;; sparse-hessian-vector-product : ((Traced ...) -> Traced) x (List Number) x Vec -> Vec
-;;; Compute H*v without forming the full Hessian.
-;;; Uses finite differences on gradient: H*v = (grad(f, x+epsilon*v) - grad(f, x)) / epsilon
+;;; sparse-hessian-vector-product : ((Traced ...) → Traced) × (List Number) × (Vector Number) → (Vector Number)
 (define (sparse-hessian-vector-product f args v)
   (let* ([epsilon 1e-6]
          [n (length args)]
@@ -499,48 +472,44 @@
 ;;; For very large-scale problems, we can track gradients sparsely
 ;;; during the backward pass.
 
-;;; sparse-traced : Number x Nat x SparseTape -> SparseTraced
-;;; A traced value that uses sparse gradient storage.
+;;; sparse-traced : Number × Nat × SparseTape → SparseTraced
 (define (sparse-traced val id sparse-tape)
   (list 'sparse-traced val id sparse-tape))
 
-;;; sparse-traced? : Any -> Boolean
+;;; sparse-traced? : α → Boolean
 (define (sparse-traced? x)
   (and (pair? x) (eq? (car x) 'sparse-traced)))
 
-;;; sparse-traced-value : SparseTraced -> Number
+;;; sparse-traced-value : SparseTraced → Number
 (define (sparse-traced-value t)
   (if (sparse-traced? t) (cadr t) t))
 
-;;; sparse-traced-id : SparseTraced -> Nat
+;;; sparse-traced-id : SparseTraced → (Option Nat)
 (define (sparse-traced-id t)
   (if (sparse-traced? t) (caddr t) #f))
 
-;;; sparse-traced-tape : SparseTraced -> SparseTape
+;;; sparse-traced-tape : SparseTraced → (Option SparseTape)
 (define (sparse-traced-tape t)
   (if (sparse-traced? t) (cadddr t) #f))
 
-;;; make-sparse-reverse-tape : -> SparseTape
-;;; Create a sparse reverse tape that tracks operations with sparse gradients.
+;;; make-sparse-reverse-tape : → SparseTape
 (define (make-sparse-reverse-tape)
   (list 'sparse-reverse-tape (box '())))
 
-;;; sparse-reverse-tape? : Any -> Boolean
+;;; sparse-reverse-tape? : α → Boolean
 (define (sparse-reverse-tape? t)
   (and (pair? t) (eq? (car t) 'sparse-reverse-tape)))
 
-;;; sparse-tape-entries : SparseTape -> (List TapeEntry)
+;;; sparse-tape-entries : SparseTape → (List TapeEntry)
 (define (sparse-tape-entries t)
   (unbox (cadr t)))
 
-;;; sparse-tape-push! : SparseTape x TapeEntry -> Void
+;;; sparse-tape-push! : SparseTape × TapeEntry → Void
 (define (sparse-tape-push! tape entry)
   (set-box! (cadr tape)
             (cons entry (unbox (cadr tape)))))
 
-;;; sparse-backward : SparseTape x Nat x Number x Nat -> SparseGrad
-;;; Perform backward pass returning sparse gradient.
-;;; n is the total number of input variables.
+;;; sparse-backward : SparseTape × Nat × Number × Nat → SparseGrad
 (define (sparse-backward tape output-id seed n)
   (let ([grads (make-hashtable equal-hash equal?)])
        ;; Initialize output gradient
@@ -583,9 +552,7 @@
 ;;; columns simultaneously using graph coloring. If columns i and j
 ;;; don't share any non-zero rows, they can be computed in one pass.
 
-;;; color-columns : SparsityPattern -> Vec
-;;; Assign colors to columns such that columns with the same color
-;;; can be computed together. Returns vector of colors for each column.
+;;; color-columns : SparsityPattern → (Vector Nat)
 (define (color-columns pattern)
   (let* ([n (pattern-cols pattern)]
          [nnz (pattern-nnz pattern)]
@@ -621,13 +588,11 @@
                                    c))])
                   (vector-set! colors j color)))))
 
-;;; rows-overlap? : (List Nat) x (List Nat) -> Boolean
-;;; Check if two lists have any common elements.
+;;; rows-overlap? : (List Nat) × (List Nat) → Boolean
 (define (rows-overlap? rows1 rows2)
   (ormap (lambda (r) (member r rows2)) rows1))
 
-;;; num-colors : Vec -> Nat
-;;; Count number of distinct colors used.
+;;; num-colors : (Vector Nat) → Nat
 (define (num-colors colors)
   (+ 1 (vec-fold max 0 colors)))
 
@@ -635,9 +600,7 @@
 ;;; Compressed Jacobian Computation via Coloring
 ;;; ============================================================
 
-;;; sparse-jacobian-colored : ((Traced ...) -> (List Traced)) x (List Number) x SparsityPattern -> SparseCOO
-;;; Compute sparse Jacobian efficiently using column coloring.
-;;; Groups columns by color and computes multiple columns per forward/reverse pass.
+;;; sparse-jacobian-colored : ((Traced ...) → (List Traced)) × (List Number) × SparsityPattern → SparseCOO
 (define (sparse-jacobian-colored f args pattern)
   (let* ([m (pattern-rows pattern)]
          [n (pattern-cols pattern)]
@@ -681,22 +644,20 @@
 ;;; Conversion Utilities
 ;;; ============================================================
 
-;;; sparse-jacobian->csr : SparseCOO -> SparseCSR
-;;; Convert sparse Jacobian to CSR format for efficient row access.
+;;; sparse-jacobian->csr : SparseCOO → SparseCSR
 (define sparse-jacobian->csr coo->csr)
 
-;;; sparse-jacobian->csc : SparseCOO -> SparseCSC
-;;; Convert sparse Jacobian to CSC format for efficient column access.
+;;; sparse-jacobian->csc : SparseCOO → SparseCSC
 (define sparse-jacobian->csc coo->csc)
 
-;;; sparse-jacobian->dense : SparseCOO -> Matrix
-;;; Convert sparse Jacobian to dense matrix (for debugging/testing).
+;;; sparse-jacobian->dense : SparseCOO → Matrix
 (define sparse-jacobian->dense sparse-coo->dense)
 
 ;;; ============================================================
 ;;; Helper: list-set
 ;;; ============================================================
 
+;;; list-set : (List α) × Nat × α → (List α)
 (define (list-set lst idx val)
   (if (= idx 0)
       (cons val (cdr lst))

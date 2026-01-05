@@ -29,10 +29,12 @@
 ;;; - accepting: List of accepting states
 ;;; - epsilon-transitions: Alist (state -> List state) for ε-moves
 
+;;; make-fsm : (List State) × (List Symbol) × (List Transition) × State × (List State) × (List EpsilonTransition) → FSM
 (define (make-fsm states alphabet transitions start accepting . epsilon)
   (list 'fsm states alphabet transitions start accepting
         (if (null? epsilon) '() (car epsilon))))
 
+;;; fsm? : α → Boolean
 (define (fsm? x)
   (and (list? x) (= (length x) 7) (eq? (car x) 'fsm)))
 
@@ -188,6 +190,7 @@
 (define (symbol<? a b)
   (string<? (symbol->string a) (symbol->string b)))
 
+;;; nfa->dfa : FSM → FSM
 ;;; Convert NFA to DFA using subset construction
 (define (nfa->dfa nfa)
   (let* ([alphabet (fsm-alphabet nfa)]
@@ -366,6 +369,7 @@
 ;;; FSM Minimization (Hopcroft's Algorithm)
 ;;; ============================================================
 
+;;; fsm-minimize : FSM → FSM
 ;;; Minimize a DFA using partition refinement
 (define (fsm-minimize dfa)
   (if (not (fsm-deterministic? dfa))

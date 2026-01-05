@@ -139,6 +139,7 @@
 ;;; ============================================================
 
 ;;; Forward declaration for mutual recursion
+;;; fold-expr : SpannedParser Expr
 (define fold-expr #f)
 
 ;;; fold-atom : SpannedParser Atom

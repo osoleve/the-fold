@@ -45,6 +45,7 @@
 ;;;   (define (norm-sq d-instance x y)
 ;;;     (d+ d-instance (d-sq d-instance x) (d-sq d-instance y)))
 
+;;; TC-Differentiable : TypeClass
 (define TC-Differentiable
   (make-typeclass
    'Differentiable
@@ -72,6 +73,7 @@
 ;;; Real numbers are "differentiable" but always have zero derivative.
 ;;; This allows mixing constants with AD types.
 
+;;; differentiable-real-methods : (AList Symbol Procedure)
 (define differentiable-real-methods
   `((lift    . ,(lambda (x) x))
     (primal  . ,(lambda (x) x))
@@ -88,6 +90,7 @@
     (d-sin   . ,sin)
     (d-cos   . ,cos)))
 
+;;; inst-Differentiable-Real : Instance
 (define inst-Differentiable-Real
   (make-instance 'Differentiable 'Real '() differentiable-real-methods))
 
@@ -98,6 +101,7 @@
 ;;; Dual numbers carry first-order derivative information.
 ;;; Used for forward-mode AD (efficient for few inputs, many outputs).
 
+;;; differentiable-dual-methods : (AList Symbol Procedure)
 (define differentiable-dual-methods
   `((lift    . ,dual-lift)
     (primal  . ,dual-value)
@@ -114,6 +118,7 @@
     (d-sin   . ,dual-sin)
     (d-cos   . ,dual-cos)))
 
+;;; inst-Differentiable-Dual : Instance
 (define inst-Differentiable-Dual
   (make-instance 'Differentiable 'Dual '() differentiable-dual-methods))
 
@@ -124,6 +129,7 @@
 ;;; Traced values record a computation graph for reverse-mode AD.
 ;;; Efficient for many inputs, few outputs (e.g., loss functions).
 
+;;; differentiable-traced-methods : (AList Symbol Procedure)
 (define differentiable-traced-methods
   `((lift    . ,(lambda (x) (make-traced-const x)))
     (primal  . ,traced-value)
@@ -140,6 +146,7 @@
     (d-sin   . ,traced-sin)
     (d-cos   . ,traced-cos)))
 
+;;; inst-Differentiable-Traced : Instance
 (define inst-Differentiable-Traced
   (make-instance 'Differentiable 'Traced '() differentiable-traced-methods))
 
@@ -150,6 +157,7 @@
 ;;; Hyperdual numbers carry first AND second derivative information.
 ;;; Used for exact Hessian computation without finite differences.
 
+;;; differentiable-hyperdual-methods : (AList Symbol Procedure)
 (define differentiable-hyperdual-methods
   `((lift    . ,hd-lift)
     (primal  . ,hd-value)
@@ -166,6 +174,7 @@
     (d-sin   . ,hd-sin)
     (d-cos   . ,hd-cos)))
 
+;;; inst-Differentiable-Hyperdual : Instance
 (define inst-Differentiable-Hyperdual
   (make-instance 'Differentiable 'Hyperdual '() differentiable-hyperdual-methods))
 
@@ -173,6 +182,7 @@
 ;;; Extended Differentiable Database
 ;;; ============================================================
 
+;;; differentiable-instances : (List Instance)
 (define differentiable-instances
   (list inst-Differentiable-Real
         inst-Differentiable-Dual
@@ -180,7 +190,6 @@
         inst-Differentiable-Hyperdual))
 
 ;;; ad-instances : IDB
-;;; Instance database including Differentiable class.
 (define ad-instances
   (idb-add* standard-instances differentiable-instances))
 
@@ -190,8 +199,7 @@
 
 ;;; These functions work with any Differentiable type.
 
-;;; d-pow : Instance x d x Int -> d
-;;; Power function using repeated squaring.
+;;; d-pow : Instance × α × Int → α
 (define (d-pow inst x n)
   (let ([d* (get-method inst 'd*)]
         [d/ (get-method inst 'd/)]
@@ -208,8 +216,7 @@
         [else
          (d* x (d-pow inst x (- n 1)))])))
 
-;;; d-chain : Instance x (d -> d) x (d -> d) -> (d -> d)
-;;; Chain two differentiable functions: (f o g).
+;;; d-chain : Instance × (α → α) × (α → α) → (α → α)
 (define (d-chain inst f g)
   (lambda (x) (f (g x))))
 
@@ -217,13 +224,11 @@
 ;;; Convenience: Resolve Differentiable
 ;;; ============================================================
 
-;;; resolve-differentiable : Type -> (Result Evidence)
-;;; Resolve a Differentiable instance for a type.
+;;; resolve-differentiable : Type → (Result Evidence)
 (define (resolve-differentiable type)
   (resolve `(Differentiable ,type) ad-instances))
 
-;;; get-diff-method : Type x Symbol -> Procedure | #f
-;;; Get a Differentiable method for a specific type.
+;;; get-diff-method : Type × Symbol → (Option Procedure)
 (define (get-diff-method type method-name)
   (let ([result (resolve-differentiable type)])
        (if (eq? (car result) 'ok)
@@ -236,27 +241,21 @@
 
 ;;; These wrap the lower-level AD operations with type class dispatch.
 
-;;; derivative-at : (Differentiable d) => (d -> d) x Real -> Real
-;;; Compute derivative at a point using the appropriate AD type.
-;;; Uses dual numbers for forward-mode differentiation.
+;;; derivative-at : (α → α) × Real → Real
 (define (derivative-at f x)
   (let ([inst (cadr (resolve-differentiable 'Dual))])
        (dual-deriv (f (dual-variable x)))))
 
-;;; gradient-at : (Real* -> Traced) x (List Real) -> (List Real)
-;;; Compute gradient using reverse-mode AD.
-;;; Function must use traced operations (traced-add, traced-mul, etc.)
+;;; gradient-at : (Real* → Traced) × (List Real) → (List Real)
 (define gradient-at gradient)  ; Re-export from reverse-diff.ss
 
-;;; hessian-at : (Real* -> Hyperdual) x (List Real) -> Matrix
-;;; Compute exact Hessian using hyperdual numbers.
-;;; Function must use hd-* operations.
+;;; hessian-at : (Real* → Hyperdual) × (List Real) → Matrix
 (define hessian-at hessian-forward)  ; Re-export from comp-graph.ss
 
 ;;; ============================================================
 ;;; Type Class Registration
 ;;; ============================================================
 
-;;; Add Differentiable to the class database.
+;;; extended-classes : (AList Symbol TypeClass)
 (define extended-classes
   (cons (cons 'Differentiable TC-Differentiable) standard-classes))

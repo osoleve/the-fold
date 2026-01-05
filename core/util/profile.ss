@@ -16,6 +16,7 @@
 ;;; Call Tree Data Structures
 ;;; ============================================================
 
+;;; make-node : Symbol × Nat → Node
 (define (make-node name start-fuel)
   `(node
     (name . ,name)
@@ -99,6 +100,7 @@
 ;;; Profiler State
 ;;; ============================================================
 
+;;; make-profiler : Expr × Env × Nat → Profiler
 (define (make-profiler expr env fuel)
   `(profiler
     (expr . ,expr)
@@ -284,6 +286,7 @@
 ;;; Call Tree Rendering
 ;;; ============================================================
 
+;;; render-tree : Node × Nat → String
 (define (render-tree node depth)
   (let* ([indent (make-string (* depth 2) #\space)]
          [name (node-name node)]
@@ -315,6 +318,7 @@
              0
              path))
 
+;;; render-path : Path → String
 (define (render-path path)
   (let* ([names (map car path)]
          [total (path-fuel path)]
@@ -326,6 +330,7 @@
                                             (loop (cdr ns)))))])
         (format "~a (~a fuel)" arrow-str total)))
 
+;;; find-hot-paths : Node × Nat → (List Path)
 (define (find-hot-paths root n)
   (let* ([all-paths (collect-paths root '())]
          [sorted (list-sort (lambda (a b)
@@ -337,9 +342,11 @@
 ;;; Public API
 ;;; ============================================================
 
+;;; profile : Expr × Nat → Profiler
 (define (profile expr fuel)
   (profile-expr expr fuel))
 
+;;; profile-report : Profiler → Void
 (define (profile-report p)
   (let* ([stats (profile-stats p)]
          [total (cdr (assq 'total-fuel stats))]

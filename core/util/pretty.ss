@@ -176,7 +176,6 @@
 ;;; ============================================================
 
 ;;; <> : Doc × Doc → Doc
-;;; Concatenate two documents.
 (define (<> d1 d2)
   (cond
    [(doc-empty? d1) d2]
@@ -184,42 +183,34 @@
    [else (doc-concat d1 d2)]))
 
 ;;; <+> : Doc × Doc → Doc
-;;; Concatenate with a space.
 (define (<+> d1 d2)
   (<> d1 (<> (text " ") d2)))
 
 ;;; </> : Doc × Doc → Doc
-;;; Concatenate with a line (space or newline).
 (define (</> d1 d2)
   (<> d1 (<> line d2)))
 
 ;;; <//> : Doc × Doc → Doc
-;;; Concatenate with a linebreak (empty or newline).
 (define (<//> d1 d2)
   (<> d1 (<> linebreak d2)))
 
 ;;; nest : Nat × Doc → Doc
-;;; Increase indentation for nested content.
 (define (nest n doc)
   (doc-nest n doc))
 
 ;;; group : Doc → Doc
-;;; Try to fit on one line; if not, use line breaks.
 (define (group doc)
   (doc-group doc))
 
 ;;; align : Doc → Doc
-;;; Align to current column (implemented via nest 0 for simplicity).
 (define (align doc)
   (nest 0 doc))
 
 ;;; hang : Nat × Doc → Doc
-;;; Hang with indentation.
 (define (hang n doc)
   (align (nest n doc)))
 
 ;;; indent : Nat × Doc → Doc
-;;; Indent the document.
 (define (indent n doc)
   (<> (text (make-string n #\space)) (nest n doc)))
 
@@ -228,18 +219,15 @@
 ;;; ============================================================
 
 ;;; concat : (List Doc) → Doc
-;;; Concatenate a list of documents.
 (define (concat docs)
   (if (null? docs)
       empty
       (fold-left <> (car docs) (cdr docs))))
 
 ;;; hcat : (List Doc) → Doc
-;;; Horizontal concatenation (no separators).
 (define hcat concat)
 
 ;;; vcat : (List Doc) → Doc
-;;; Vertical concatenation (hardlines between).
 (define (vcat docs)
   (if (null? docs)
       empty
@@ -248,31 +236,26 @@
                  (cdr docs))))
 
 ;;; hsep : (List Doc) → Doc
-;;; Horizontal with spaces.
 (define (hsep docs)
   (if (null? docs)
       empty
       (fold-left <+> (car docs) (cdr docs))))
 
 ;;; vsep : (List Doc) → Doc
-;;; Vertical with line breaks.
 (define (vsep docs)
   (if (null? docs)
       empty
       (fold-left </> (car docs) (cdr docs))))
 
 ;;; sep : (List Doc) → Doc
-;;; Either all on one line (hsep) or each on own line (vsep).
 (define (sep docs)
   (group (vsep docs)))
 
 ;;; cat : (List Doc) → Doc
-;;; Either all on one line (hcat) or each on own line (vcat).
 (define (cat docs)
   (group (vcat docs)))
 
 ;;; fill-sep : (List Doc) → Doc
-;;; Fill as many on each line as possible.
 (define (fill-sep docs)
   (if (null? docs)
       empty
@@ -281,7 +264,6 @@
                  (cdr docs))))
 
 ;;; punctuate : Doc × (List Doc) → (List Doc)
-;;; Add punctuation between elements.
 (define (punctuate sep docs)
   (if (or (null? docs) (null? (cdr docs)))
       docs
@@ -293,7 +275,6 @@
 ;;; ============================================================
 
 ;;; enclose : Doc × Doc × Doc → Doc
-;;; Wrap document with left and right delimiters.
 (define (enclose left right doc)
   (<> left (<> doc right)))
 
@@ -326,8 +307,6 @@
 ;;; ============================================================
 
 ;;; flatten : Doc → Doc
-;;; Replace line breaks with spaces.
-;;; Uses pre-computed flattened version for doc-group to avoid exponential traversal.
 (define (flatten doc)
   (cond
    [(doc-empty? doc) empty]
@@ -374,13 +353,10 @@
 (define (sdoc-line-rest sd) (vector-ref sd 2))
 
 ;;; best : Nat × Nat × Doc → SDoc
-;;; Layout algorithm. Returns SimpleDoc.
-;;; w = page width, k = current column, doc = document
 (define (best w k doc)
   (be w k (list (cons 0 doc))))
 
-;;; be : Nat × Nat × (List (× Nat Doc)) → SDoc
-;;; Main layout worker. Stack of (indent . doc) pairs.
+;;; be : Nat × Nat × (List (Nat × Doc)) → SDoc
 (define (be w k stack)
   (if (null? stack)
       (sdoc-empty)
@@ -413,8 +389,7 @@
                  (be w k (cons (cons i (doc-union-right doc)) rest)))]
             [else (sdoc-empty)]))))
 
-;;; fits? : Nat × (List (× Nat Doc)) → Bool
-;;; Does document stack fit in remaining width?
+;;; fits? : Nat × (List (Nat × Doc)) → Boolean
 (define (fits? w stack)
   (cond
    [(< w 0) #f]
@@ -441,7 +416,6 @@
           [else #t]))]))
 
 ;;; doc-width : Doc → Nat
-;;; Width of flattened document (for fits? calculation).
 (define (doc-width doc)
   (cond
    [(doc-empty? doc) 0]
@@ -460,7 +434,6 @@
 ;;; ============================================================
 
 ;;; sdoc->string : SDoc → String
-;;; Render SimpleDoc to a string.
 (define (sdoc->string sd)
   (let loop ([sd sd] [acc '()])
        (cond
@@ -476,12 +449,10 @@
         [else (apply string-append (reverse acc))])))
 
 ;;; pretty : Nat × Doc → String
-;;; Render document to string with given page width.
 (define (pretty width doc)
   (sdoc->string (best width 0 doc)))
 
 ;;; pretty-print : Nat × Doc → Void
-;;; Render and display with newline.
 (define (pretty-print width doc)
   (display (pretty width doc))
   (newline))
@@ -493,12 +464,10 @@
 (define *default-width* 80)
 
 ;;; pp : Doc → String
-;;; Pretty print with default width.
 (define (pp doc)
   (pretty *default-width* doc))
 
 ;;; pprint : Doc → Void
-;;; Pretty print and display with default width.
 (define (pprint doc)
   (pretty-print *default-width* doc))
 
@@ -507,7 +476,6 @@
 ;;; ============================================================
 
 ;;; sexp->doc : Sexp → Doc
-;;; Convert S-expression to document.
 (define (sexp->doc sexp)
   (cond
    [(null? sexp) (text "()")]
@@ -521,7 +489,6 @@
    [else (text "?")]))
 
 ;;; pretty-sexp : Nat × Sexp → String
-;;; Pretty print an S-expression.
 (define (pretty-sexp width sexp)
   (pretty width (sexp->doc sexp)))
 

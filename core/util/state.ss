@@ -32,14 +32,12 @@
 ;;; by the eval.ss evaluator. They're defined here as quoted
 ;;; S-expressions for inclusion in the prelude.
 
-;;; state-return : a → State s a
-;;; Wrap a value in a state computation that passes state through.
+;;; state-return-def : Sexp
 (define state-return-def
   '(state-return . (fn (a)
                        (fn (s) (prim 'list a s)))))
 
-;;; state-bind : State s a → (a → State s b) → State s b
-;;; Sequence two state computations, threading state.
+;;; state-bind-def : Sexp
 (define state-bind-def
   '(state-bind . (fn (ma)
                      (fn (f)
@@ -49,25 +47,21 @@
                                         (s1 (prim 'car (prim 'cdr result))))
                                        ((f a) s1))))))))
 
-;;; state-get : State s s
-;;; Read the current state.
+;;; state-get-def : Sexp
 (define state-get-def
   '(state-get . (fn (s) (prim 'list s s))))
 
-;;; state-put : s → State s ()
-;;; Replace the current state.
+;;; state-put-def : Sexp
 (define state-put-def
   '(state-put . (fn (new-s)
                     (fn (old-s) (prim 'list '() new-s)))))
 
-;;; state-modify : (s → s) → State s ()
-;;; Apply a function to the current state.
+;;; state-modify-def : Sexp
 (define state-modify-def
   '(state-modify . (fn (f)
                        (fn (s) (prim 'list '() (f s))))))
 
-;;; state-gets : (s → a) → State s a
-;;; Extract a value from the current state.
+;;; state-gets-def : Sexp
 (define state-gets-def
   '(state-gets . (fn (f)
                      (fn (s) (prim 'list (f s) s)))))
@@ -76,22 +70,19 @@
 ;;; State Runners
 ;;; ============================================================
 
-;;; run-state : State s a → s → (a × s)
-;;; Run a state computation with an initial state.
+;;; run-state-def : Sexp
 (define run-state-def
   '(run-state . (fn (ma)
                     (fn (init-s)
                         (ma init-s)))))
 
-;;; eval-state : State s a → s → a
-;;; Run and return only the final value.
+;;; eval-state-def : Sexp
 (define eval-state-def
   '(eval-state . (fn (ma)
                      (fn (init-s)
                          (prim 'car (ma init-s))))))
 
-;;; exec-state : State s a → s → s
-;;; Run and return only the final state.
+;;; exec-state-def : Sexp
 (define exec-state-def
   '(exec-state . (fn (ma)
                      (fn (init-s)
@@ -101,8 +92,7 @@
 ;;; State Monad Combinators
 ;;; ============================================================
 
-;;; state-map : (a → b) → State s a → State s b
-;;; Apply a function to the result of a state computation.
+;;; state-map-def : Sexp
 (define state-map-def
   '(state-map . (fn (f)
                     (fn (ma)
@@ -112,8 +102,7 @@
                                        (s1 (prim 'car (prim 'cdr result))))
                                       (prim 'list (f a) s1))))))))
 
-;;; state-ap : State s (a → b) → State s a → State s b
-;;; Applicative application for state computations.
+;;; state-ap-def : Sexp
 (define state-ap-def
   '(state-ap . (fn (mf)
                    (fn (ma)
@@ -126,8 +115,7 @@
                                                 (s2 (prim 'car (prim 'cdr ra))))
                                                (prim 'list (f a) s2))))))))))
 
-;;; state-join : State s (State s a) → State s a
-;;; Flatten nested state computations.
+;;; state-join-def : Sexp
 (define state-join-def
   '(state-join . (fn (mma)
                      (fn (s)
@@ -165,8 +153,7 @@
 ;;; Practical Combinators
 ;;; ============================================================
 
-;;; state-sequence : List (State s a) → State s (List a)
-;;; Run a list of state computations in sequence.
+;;; state-sequence-def : Sexp
 (define state-sequence-def
   '(state-sequence . (fix seq (fn (ms)
                                   (if (prim 'null? ms)
@@ -176,8 +163,7 @@
                                            ((state-map (fn (xs) (prim 'cons x xs)))
                                             (seq (prim 'cdr ms))))))))))
 
-;;; state-traverse : (a → State s b) → List a → State s (List b)
-;;; Map a stateful function over a list.
+;;; state-traverse-def : Sexp
 (define state-traverse-def
   '(state-traverse . (fix trav (fn (f xs)
                                    (if (prim 'null? xs)
@@ -187,9 +173,7 @@
                                             ((state-map (fn (ys) (prim 'cons y ys)))
                                              (trav f (prim 'cdr xs))))))))))
 
-;;; state-replicate : Nat → State s a → State s (List a)
-;;; Run a computation n times, collecting results.
-;;; Curried: (state-replicate n) returns a function waiting for ma.
+;;; state-replicate-def : Sexp
 (define state-replicate-def
   '(state-replicate . (fn (n)
                           (fn (ma)
@@ -202,8 +186,7 @@
                                                               (go (prim 'sub remaining 1))))))))))
                                    (go n))))))
 
-;;; state-when : Bool → State s () → State s ()
-;;; Conditionally run a state computation.
+;;; state-when-def : Sexp
 (define state-when-def
   '(state-when . (fn (cond)
                      (fn (action)
@@ -211,8 +194,7 @@
                              action
                              (fn (s) (prim 'list '() s)))))))
 
-;;; state-unless : Bool → State s () → State s ()
-;;; Run a state computation unless condition is true.
+;;; state-unless-def : Sexp
 (define state-unless-def
   '(state-unless . (fn (cond)
                        (fn (action)
@@ -224,14 +206,12 @@
 ;;; Stateful Counter Example
 ;;; ============================================================
 
-;;; inc-counter : State Int Int
-;;; Increment a counter and return the old value.
+;;; inc-counter-def : Sexp
 (define inc-counter-def
   '(inc-counter . (fn (n)
                       (prim 'list n (prim 'add n 1)))))
 
-;;; dec-counter : State Int Int
-;;; Decrement a counter and return the old value.
+;;; dec-counter-def : Sexp
 (define dec-counter-def
   '(dec-counter . (fn (n)
                       (prim 'list n (prim 'sub n 1)))))
@@ -243,7 +223,7 @@
 ;;; A game state might be a position: (x y)
 ;;; These combinators work with such state.
 
-;;; move-right : Int → State (x y) ()
+;;; move-right-def : Sexp
 (define move-right-def
   '(move-right . (fn (dx)
                      (fn (pos)
@@ -251,7 +231,7 @@
                                (y (prim 'car (prim 'cdr pos))))
                               (prim 'list '() (prim 'list (prim 'add x dx) y)))))))
 
-;;; move-up : Int → State (x y) ()
+;;; move-up-def : Sexp
 (define move-up-def
   '(move-up . (fn (dy)
                   (fn (pos)
@@ -259,12 +239,12 @@
                             (y (prim 'car (prim 'cdr pos))))
                            (prim 'list '() (prim 'list x (prim 'add y dy))))))))
 
-;;; get-x : State (x y) Int
+;;; get-x-def : Sexp
 (define get-x-def
   '(get-x . (fn (pos)
                 (prim 'list (prim 'car pos) pos))))
 
-;;; get-y : State (x y) Int
+;;; get-y-def : Sexp
 (define get-y-def
   '(get-y . (fn (pos)
                 (prim 'list (prim 'car (prim 'cdr pos)) pos))))
@@ -273,6 +253,7 @@
 ;;; All State Definitions (for prelude)
 ;;; ============================================================
 
+;;; state-prelude-defs : (List Sexp)
 (define state-prelude-defs
   (list
    state-return-def

@@ -32,6 +32,7 @@
 ;;;   - trace log (list of steps taken)
 ;;;   - history (list of previous states for undo)
 
+;;; make-debugger : Expr × Env × Nat → Debugger
 (define (make-debugger expr . opts)
   (let ([env (if (and (pair? opts) (pair? (car opts)))
                  (car opts)
@@ -133,7 +134,6 @@
                                       (error . ,result)))])))))
 
 ;;; step-n : Debugger × Nat → Debugger
-;;; Execute n reduction steps.
 (define (step-n d n)
   (if (or (zero? n)
           (eq? (debugger-status d) 'complete)
@@ -147,8 +147,7 @@
 ;;; Run to Completion / Breakpoint
 ;;; ============================================================
 
-;;; run-until : Debugger × (Expr → Bool) → Debugger
-;;; Run until predicate matches or completion/error.
+;;; run-until : Debugger × (Expr → Boolean) → Debugger
 (define (run-until d pred)
   (let loop ([d d])
        (let ([status (debugger-status d)]
@@ -163,7 +162,6 @@
               (loop (step d))]))))
 
 ;;; continue : Debugger → Debugger
-;;; Run until completion, error, or breakpoint.
 (define (continue d)
   (let ([breakpoints (debugger-breakpoints d)])
        (if (null? breakpoints)
@@ -173,8 +171,7 @@
            (run-until d (lambda (e)
                                 (ormap (lambda (bp) (bp e)) breakpoints))))))
 
-;;; run-debug : Expr × Fuel → Debugger
-;;; Create and run a debugger session.
+;;; run-debug : Expr × Nat → Debugger
 (define (run-debug expr fuel)
   (continue (make-debugger expr empty-env fuel)))
 
@@ -182,8 +179,7 @@
 ;;; Breakpoints
 ;;; ============================================================
 
-;;; add-breakpoint : Debugger × (Expr → Bool) → Debugger
-;;; Add a breakpoint predicate.
+;;; add-breakpoint : Debugger × (Expr → Boolean) → Debugger
 (define (add-breakpoint d pred)
   (let ([bps (debugger-breakpoints d)])
        (debugger-set d 'breakpoints (cons pred bps))))
@@ -194,19 +190,16 @@
 
 ;;; Common breakpoint predicates:
 
-;;; break-on-form : Symbol → (Expr → Bool)
-;;; Break when expression starts with given form.
+;;; break-on-form : Symbol → (Expr → Boolean)
 (define (break-on-form sym)
   (lambda (e)
           (and (pair? e) (eq? (car e) sym))))
 
-;;; break-on-var : Symbol → (Expr → Bool)
-;;; Break when expression is a variable reference.
+;;; break-on-var : Symbol → (Expr → Boolean)
 (define (break-on-var sym)
   (lambda (e) (eq? e sym)))
 
-;;; break-on-call : Symbol → (Expr → Bool)
-;;; Break when calling a specific function.
+;;; break-on-call : Symbol → (Expr → Boolean)
 (define (break-on-call name)
   (lambda (e)
           (and (pair? e)
@@ -214,8 +207,7 @@
                    (and (eq? (car e) 'call)
                         (eq? (cadr e) name))))))
 
-;;; break-on-value : → (Expr → Bool)
-;;; Break when expression is a value.
+;;; break-on-value : → (Expr → Boolean)
 (define (break-on-value)
   (lambda (e) (value? e)))
 
@@ -224,7 +216,6 @@
 ;;; ============================================================
 
 ;;; undo : Debugger → Debugger
-;;; Undo the last step.
 (define (undo d)
   (let ([history (debugger-history d)])
        (if (null? history)
@@ -238,14 +229,12 @@
                                    (status . ready)))))))
 
 ;;; undo-n : Debugger × Nat → Debugger
-;;; Undo n steps.
 (define (undo-n d n)
   (if (zero? n)
       d
       (undo-n (undo d) (- n 1))))
 
 ;;; reset : Debugger → Debugger
-;;; Reset to initial state (from history).
 (define (reset d)
   (let ([history (debugger-history d)])
        (if (null? history)
@@ -270,7 +259,6 @@
 ;;; ============================================================
 
 ;;; inspect : Debugger → Alist
-;;; Get human-readable state.
 (define (inspect d)
   `((status . ,(debugger-status d))
     (expression . ,(debugger-expr d))
@@ -279,23 +267,19 @@
     (history-depth . ,(length (debugger-history d)))
     (breakpoints . ,(length (debugger-breakpoints d)))))
 
-;;; inspect-env : Debugger → Alist
-;;; Get environment bindings.
+;;; inspect-env : Debugger → Env
 (define (inspect-env d)
   (debugger-env d))
 
-;;; inspect-trace : Debugger → (List Expr)
-;;; Get execution trace (most recent first).
+;;; inspect-trace : Debugger → (List Sexp)
 (define (inspect-trace d)
   (debugger-trace d))
 
-;;; inspect-trace-last : Debugger × Nat → (List Expr)
-;;; Get last n trace entries.
+;;; inspect-trace-last : Debugger × Nat → (List Sexp)
 (define (inspect-trace-last d n)
   (take n (debugger-trace d)))
 
-;;; trace-expr : Expr × Fuel → (List Expr)
-;;; Evaluate and return full trace.
+;;; trace-expr : Expr × Nat → (List Sexp)
 (define (trace-expr expr fuel)
   (let ([d (run-debug expr fuel)])
        (reverse (debugger-trace d))))
@@ -309,8 +293,7 @@
 ;;;   - fuel-budget: Initial fuel budget
 ;;;   - call-stack: Current call stack with fuel annotations
 
-;;; make-fuel-debugger : Expr × Env × Fuel → Debugger
-;;; Create a debugger with fuel tracking extensions.
+;;; make-fuel-debugger : Expr × Env × Nat → Debugger
 (define (make-fuel-debugger expr env fuel)
   `(debugger
     (expr . ,expr)
@@ -334,21 +317,19 @@
   (or (debugger-get d 'fuel-budget)
       (debugger-fuel d)))
 
-;;; debugger-fuel-trace : Debugger → (List α)
+;;; debugger-fuel-trace : Debugger → (List Sexp)
 (define (debugger-fuel-trace d)
   (or (debugger-get d 'fuel-trace) '()))
 
-;;; debugger-call-stack : Debugger → (List α)
+;;; debugger-call-stack : Debugger → (List Sexp)
 (define (debugger-call-stack d)
   (or (debugger-get d 'call-stack) '()))
 
 ;;; debugger-fuel-used : Debugger → Nat
-;;; Calculate total fuel consumed.
 (define (debugger-fuel-used d)
   (- (debugger-fuel-budget d) (debugger-fuel d)))
 
 ;;; debugger-fuel-pct : Debugger → Number
-;;; Calculate percentage of fuel used.
 (define (debugger-fuel-pct d)
   (let ([budget (debugger-fuel-budget d)])
        (if (zero? budget)
@@ -360,7 +341,6 @@
 ;;; ============================================================
 
 ;;; step-with-fuel : Debugger → Debugger
-;;; Execute one step and record fuel consumption details.
 (define (step-with-fuel d)
   (let ([expr (debugger-expr d)]
         [env (debugger-env d)]
@@ -419,7 +399,6 @@
 ;;; ============================================================
 
 ;;; fuel-by-expr-type : Debugger → Alist
-;;; Group fuel consumption by expression type.
 (define (fuel-by-expr-type d)
   (let ([fuel-trace (debugger-fuel-trace d)])
        (let loop ([entries fuel-trace] [acc '()])
@@ -440,7 +419,6 @@
                                 (cons (cons type fuel-used) acc))))))))
 
 ;;; expr-type : Expr → Symbol
-;;; Classify expression for fuel analysis.
 (define (expr-type expr)
   (cond
    [(not (pair? expr)) 'literal]
@@ -458,8 +436,7 @@
           [(eq? head 'quote) 'quote]
           [else 'application]))]))
 
-;;; fuel-hotspots : Debugger × Nat → (List α)
-;;; Get top N fuel-consuming steps.
+;;; fuel-hotspots : Debugger × Nat → (List Sexp)
 (define (fuel-hotspots d n)
   (let* ([fuel-trace (debugger-fuel-trace d)]
          [sorted (list-sort (lambda (a b)
@@ -474,7 +451,6 @@
       (cons (car lst) (take-up-to-debug (- n 1) (cdr lst)))))
 
 ;;; fuel-summary : Debugger → Alist
-;;; Get fuel consumption summary.
 (define (fuel-summary d)
   (let ([budget (debugger-fuel-budget d)]
         [remaining (debugger-fuel d)]
@@ -494,14 +470,11 @@
 ;;; ============================================================
 
 ;;; next : Debugger → Debugger
-;;; Step over: execute until the current expression fully evaluates
-;;; without descending into sub-expressions during display.
 (define (next d)
   (let ([initial-depth (call-depth (debugger-expr d))])
        (step-until-depth d initial-depth)))
 
 ;;; call-depth : Expr → Nat
-;;; Estimate nesting depth of expression.
 (define (call-depth expr)
   (cond
    [(not (pair? expr)) 0]
@@ -510,8 +483,6 @@
     (+ 1 (apply max (cons 0 (map call-depth (cdr expr)))))]))
 
 ;;; step-until-depth : Debugger × Nat → Debugger
-;;; Step until expression depth decreases or completion.
-;;; Guards against stepping when debugger is already in terminal state.
 (define (step-until-depth d target-depth)
   ;; Check terminal states before stepping
   (let ([status (debugger-status d)])
@@ -533,7 +504,6 @@
 ;;; ============================================================
 
 ;;; continue-with-fuel : Debugger → Debugger
-;;; Run to completion/breakpoint with fuel tracking.
 (define (continue-with-fuel d)
   (let ([breakpoints (debugger-breakpoints d)])
        (if (null? breakpoints)
@@ -541,8 +511,7 @@
            (run-until-fuel d (lambda (e)
                                      (ormap (lambda (bp) (bp e)) breakpoints))))))
 
-;;; run-until-fuel : Debugger × (Expr → Bool) → Debugger
-;;; Run with fuel tracking until predicate matches.
+;;; run-until-fuel : Debugger × (Expr → Boolean) → Debugger
 (define (run-until-fuel d pred)
   (let loop ([d d])
        (let ([status (debugger-status d)]

@@ -21,9 +21,7 @@
 ;;; Tape Statistics
 ;;; ============================================================
 
-;;; tape-stats : MutableTape -> Stats
-;;; Compute statistics about a reverse-mode tape.
-;;; Returns: ((size . n) (ops . ((op-name . count) ...)))
+;;; tape-stats : MutableTape → Stats
 (define (tape-stats tape)
   (let* ([entries (reverse-tape-entries tape)]
          [size (length entries)]
@@ -42,13 +40,11 @@
                                           (vector->list keys)
                                           (vector->list vals)))))))
 
-;;; tape-size : MutableTape -> Nat
-;;; Get the number of entries in the tape.
+;;; tape-size : MutableTape → Nat
 (define (tape-size tape)
   (length (reverse-tape-entries tape)))
 
-;;; tape-op-count : MutableTape x Symbol -> Nat
-;;; Count occurrences of a specific operation in the tape.
+;;; tape-op-count : MutableTape × Symbol → Nat
 (define (tape-op-count tape op-name)
   (length (filter (lambda (entry) (eq? (cadr entry) op-name))
                   (reverse-tape-entries tape))))
@@ -57,9 +53,7 @@
 ;;; Computational Graph Statistics
 ;;; ============================================================
 
-;;; graph-stats : CompGraph -> Stats
-;;; Compute statistics about a computational graph.
-;;; Returns: ((nodes . n) (edges . e) (depth . d) (variables . vars) (ops . ops))
+;;; graph-stats : CompGraph → Stats
 (define (graph-stats g)
   (let* ([nodes (comp-graph-nodes g)]
          [node-count (length nodes)]
@@ -73,16 +67,14 @@
               (cons 'variables var-names)
               (cons 'op-distribution (tally-ops op-types)))))
 
-;;; graph-edge-count : CompGraph -> Nat
-;;; Count total edges (input references) in the graph.
+;;; graph-edge-count : CompGraph → Nat
 (define (graph-edge-count g)
   (graph-fold-nodes
    (lambda (acc id node)
            (+ acc (length (node-inputs node))))
    0 g))
 
-;;; graph-depth : CompGraph -> Nat
-;;; Compute the depth (longest path from any variable to output).
+;;; graph-depth : CompGraph → Nat
 (define (graph-depth g)
   (if (null? (comp-graph-nodes g))
       0
@@ -105,9 +97,7 @@
                             (max acc (compute-depth id)))
                     0 g)))))
 
-;;; extract-input-ids : Node x CompGraph -> (List NodeId)
-;;; Extract input node IDs from a node.
-;;; For op nodes, inputs are other nodes (we need to find their IDs).
+;;; extract-input-ids : Node × CompGraph → (List NodeId)
 (define (extract-input-ids node g)
   (if (node-op? node)
       ;; For op nodes, we need to find the IDs of input nodes
@@ -120,15 +110,13 @@
             inputs))
       '()))
 
-;;; find-node-id : Node x CompGraph -> NodeId | #f
-;;; Find the ID of a node in the graph.
+;;; find-node-id : Node × CompGraph → (Option NodeId)
 (define (find-node-id node g)
   (let ([found (find (lambda (entry) (equal? (cdr entry) node))
                      (comp-graph-nodes g))])
        (if found (car found) #f)))
 
-;;; tally-ops : (List Symbol) -> ((Symbol . Nat) ...)
-;;; Count occurrences of each operation type.
+;;; tally-ops : (List Symbol) → (AList Symbol Nat)
 (define (tally-ops ops)
   (let ([counts (make-hashtable symbol-hash eq?)])
        (for-each
@@ -145,24 +133,20 @@
 ;;; Timing Utilities
 ;;; ============================================================
 
-;;; current-microseconds : -> Integer
-;;; Get current time in microseconds (uses Chez's time-utc).
+;;; current-microseconds : → Integer
 (define (current-microseconds)
   (let ([t (current-time 'time-monotonic)])
        (+ (* (time-second t) 1000000)
           (quotient (time-nanosecond t) 1000))))
 
-;;; time-thunk : (-> a) -> (Values a Integer)
-;;; Time execution of a thunk, return value and microseconds.
+;;; time-thunk : (→ α) → (Values α Integer)
 (define (time-thunk thunk)
   (let* ([start (current-microseconds)]
          [result (thunk)]
          [end (current-microseconds)])
         (values result (- end start))))
 
-;;; time-gradient : ((Traced ...) -> Traced) x (List Number) -> TimingResult
-;;; Measure forward pass and backward pass time separately.
-;;; Returns: ((value . v) (grad . g) (forward-us . f) (backward-us . b) (total-us . t))
+;;; time-gradient : ((Traced ...) → Traced) × (List Number) → TimingResult
 (define (time-gradient f args)
   (reset-traced-ids!)
   (let* ([tape (make-reverse-tape)]
@@ -211,9 +195,7 @@
 (define *pair-size* 16)     ; cons cell (car + cdr pointers)
 (define *vector-header* 16) ; vector header
 
-;;; tape-memory-estimate : MutableTape -> Nat
-;;; Estimate memory usage of a tape in bytes.
-;;; Each entry is: (result-id op-name input-ids local-grads)
+;;; tape-memory-estimate : MutableTape → Nat
 (define (tape-memory-estimate tape)
   (let* ([entries (reverse-tape-entries tape)]
          [n (length entries)])
@@ -236,8 +218,7 @@
                             input-list-size
                             grad-list-size)))))))
 
-;;; graph-memory-estimate : CompGraph -> Nat
-;;; Estimate memory usage of a computational graph in bytes.
+;;; graph-memory-estimate : CompGraph → Nat
 (define (graph-memory-estimate g)
   (let* ([nodes (comp-graph-nodes g)]
          [n (length nodes)])
@@ -250,8 +231,7 @@
              (* 4 *pair-size*)
              g))))
 
-;;; node-memory-estimate : Node -> Nat
-;;; Estimate memory for a single node.
+;;; node-memory-estimate : Node → Nat
 (define (node-memory-estimate node)
   (cond
    [(node-var? node)
@@ -268,8 +248,7 @@
              *pair-size*)))]  ; node reference
    [else 0]))
 
-;;; traced-memory-estimate : Traced -> Nat
-;;; Estimate memory for a traced value.
+;;; traced-memory-estimate : Traced → Nat
 (define (traced-memory-estimate t)
   (if (traced? t)
       ;; (traced value id tape-ref): 4 pairs + flonum + fixnum + ptr
@@ -284,8 +263,7 @@
 ;;; Profile Report
 ;;; ============================================================
 
-;;; profile-computation : ((Traced ...) -> Traced) x (List Number) -> Report
-;;; Generate a comprehensive profile report for a gradient computation.
+;;; profile-computation : ((Traced ...) → Traced) × (List Number) → Report
 (define (profile-computation f args)
   (reset-traced-ids!)
   (let* ([tape (make-reverse-tape)]
@@ -331,8 +309,7 @@
              (cons 'memory-bytes 0)
              (cons 'num-inputs (length args))))))
 
-;;; print-profile : Report -> Void
-;;; Pretty-print a profile report.
+;;; print-profile : Report → Void
 (define (print-profile report)
   (let ([val (cdr (assq 'value report))]
         [grad (cdr (assq 'gradient report))]
@@ -360,8 +337,7 @@
 ;;; Benchmark Utilities
 ;;; ============================================================
 
-;;; benchmark-gradient : ((Traced ...) -> Traced) x (List Number) x Nat -> BenchResult
-;;; Run gradient computation n times and collect statistics.
+;;; benchmark-gradient : ((Traced ...) → Traced) × (List Number) × Nat → BenchResult
 (define (benchmark-gradient f args iterations)
   (let* ([times (let loop ([i 0] [acc '()])
                      (if (= i iterations)
@@ -383,8 +359,7 @@
               (cons 'max-us max-t)
               (cons 'median-us median))))
 
-;;; print-benchmark : BenchResult -> Void
-;;; Pretty-print benchmark results.
+;;; print-benchmark : BenchResult → Void
 (define (print-benchmark result)
   (printf "~n=== Benchmark Results ===================~n")
   (printf "Iterations: ~a~n" (cdr (assq 'iterations result)))

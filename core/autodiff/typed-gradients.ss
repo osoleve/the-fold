@@ -56,9 +56,7 @@
 ;;; A DimGradient packages a gradient with its expected dimension.
 ;;; Structure: (dim-gradient dimension values)
 
-;;; dim-gradient : Nat x (List Number) -> DimGradient
-;;; Create a dimension-checked gradient.
-;;; Validates that the gradient has exactly the expected dimension.
+;;; dim-gradient : Nat × (List Number) → DimGradient
 (define (dim-gradient expected-dim values)
   (let ([actual-dim (length values)])
        (if (= expected-dim actual-dim)
@@ -67,26 +65,23 @@
                  (list 'expected expected-dim)
                  (list 'got actual-dim)))))
 
-;;; dim-gradient? : Any -> Boolean
+;;; dim-gradient? : α → Boolean
 (define (dim-gradient? x)
   (and (pair? x) (eq? (car x) 'dim-gradient)))
 
-;;; dim-gradient-dim : DimGradient -> Nat
-;;; Get the dimension of a gradient.
+;;; dim-gradient-dim : DimGradient → Nat
 (define (dim-gradient-dim g)
   (if (dim-gradient? g)
       (cadr g)
       0))
 
-;;; dim-gradient-values : DimGradient -> (List Number)
-;;; Extract gradient values.
+;;; dim-gradient-values : DimGradient → (List Number)
 (define (dim-gradient-values g)
   (if (dim-gradient? g)
       (caddr g)
       '()))
 
-;;; dim-gradient-ref : DimGradient x Nat -> Number | Error
-;;; Get gradient component at index i (0-based).
+;;; dim-gradient-ref : DimGradient × Nat → (Result Number Error)
 (define (dim-gradient-ref g i)
   (if (not (dim-gradient? g))
       (list 'error 'not-a-gradient g)
@@ -98,8 +93,7 @@
                      (list 'dimension dim))
                (list-ref values i)))))
 
-;;; dim-gradient-ok? : Any -> Boolean
-;;; Check if result is a valid gradient (not an error).
+;;; dim-gradient-ok? : α → Boolean
 (define (dim-gradient-ok? x)
   (and (dim-gradient? x)
        (not (and (pair? x) (eq? (car x) 'error)))))
@@ -123,18 +117,23 @@
 ;;;   - input-dim : Nat (dimension of input)
 ;;;   - output-dim : Nat (dimension of output, 1 for scalar functions)
 ;;;   - f-traced : (Traced ... -> Traced) (the traced function)
+;;; make-gradient-spec : Nat × Nat × (Traced ... → Traced) → GradientSpec
 (define (make-gradient-spec input-dim output-dim f-traced)
   (list 'gradient-spec input-dim output-dim f-traced))
 
+;;; gradient-spec? : α → Boolean
 (define (gradient-spec? x)
   (and (pair? x) (eq? (car x) 'gradient-spec)))
 
+;;; gradient-spec-input-dim : GradientSpec → Nat
 (define (gradient-spec-input-dim spec)
   (cadr spec))
 
+;;; gradient-spec-output-dim : GradientSpec → Nat
 (define (gradient-spec-output-dim spec)
   (caddr spec))
 
+;;; gradient-spec-fn : GradientSpec → (Traced ... → Traced)
 (define (gradient-spec-fn spec)
   (cadddr spec))
 
@@ -144,9 +143,7 @@
 
 ;;; These functions wrap the raw autodiff operations with dimension checking.
 
-;;; safe-gradient : GradientSpec x (List Number) -> DimGradient | Error
-;;; Compute gradient with dimension validation.
-;;; Returns error if input dimension doesn't match specification.
+;;; safe-gradient : GradientSpec × (List Number) → (Result DimGradient Error)
 (define (safe-gradient spec args)
   (if (not (gradient-spec? spec))
       (list 'error 'invalid-gradient-spec spec)
@@ -170,8 +167,7 @@
              (let ([raw-gradient (gradient f args)])
                   (dim-gradient expected-input-dim raw-gradient))]))))
 
-;;; safe-gradient-at : GradientSpec x Number ... -> DimGradient | Error
-;;; Variadic version of safe-gradient.
+;;; safe-gradient-at : GradientSpec × Number ... → (Result DimGradient Error)
 (define (safe-gradient-at spec . args)
   (safe-gradient spec args))
 
@@ -181,23 +177,27 @@
 
 ;;; DimJacobian : (dim-jacobian rows cols matrix)
 ;;; A Jacobian matrix with explicit dimensions.
+;;; dim-jacobian : Nat × Nat × Matrix → DimJacobian
 (define (dim-jacobian rows cols matrix)
   (list 'dim-jacobian rows cols matrix))
 
+;;; dim-jacobian? : α → Boolean
 (define (dim-jacobian? x)
   (and (pair? x) (eq? (car x) 'dim-jacobian)))
 
+;;; dim-jacobian-rows : DimJacobian → Nat
 (define (dim-jacobian-rows j)
   (if (dim-jacobian? j) (cadr j) 0))
 
+;;; dim-jacobian-cols : DimJacobian → Nat
 (define (dim-jacobian-cols j)
   (if (dim-jacobian? j) (caddr j) 0))
 
+;;; dim-jacobian-matrix : DimJacobian → (Option Matrix)
 (define (dim-jacobian-matrix j)
   (if (dim-jacobian? j) (cadddr j) #f))
 
-;;; safe-jacobian : GradientSpec x (List Number) -> DimJacobian | Error
-;;; Compute Jacobian with dimension validation.
+;;; safe-jacobian : GradientSpec × (List Number) → (Result DimJacobian Error)
 (define (safe-jacobian spec args)
   (if (not (gradient-spec? spec))
       (list 'error 'invalid-gradient-spec spec)
@@ -227,20 +227,23 @@
 
 ;;; DimHessian : (dim-hessian n matrix)
 ;;; A Hessian matrix (always square) with explicit dimension.
+;;; dim-hessian : Nat × Matrix → DimHessian
 (define (dim-hessian n matrix)
   (list 'dim-hessian n matrix))
 
+;;; dim-hessian? : α → Boolean
 (define (dim-hessian? x)
   (and (pair? x) (eq? (car x) 'dim-hessian)))
 
+;;; dim-hessian-dim : DimHessian → Nat
 (define (dim-hessian-dim h)
   (if (dim-hessian? h) (cadr h) 0))
 
+;;; dim-hessian-matrix : DimHessian → (Option Matrix)
 (define (dim-hessian-matrix h)
   (if (dim-hessian? h) (caddr h) #f))
 
-;;; safe-hessian : GradientSpec x (List Number) -> DimHessian | Error
-;;; Compute Hessian with dimension validation.
+;;; safe-hessian : GradientSpec × (List Number) → (Result DimHessian Error)
 (define (safe-hessian spec args)
   (if (not (gradient-spec? spec))
       (list 'error 'invalid-gradient-spec spec)
@@ -276,13 +279,11 @@
 
 ;;; These macros/functions create properly typed gradient specifications.
 
-;;; scalar-fn : Nat x (Traced ... -> Traced) -> GradientSpec
-;;; Declare a scalar function (R^n -> R) for gradient computation.
+;;; scalar-fn : Nat × (Traced ... → Traced) → GradientSpec
 (define (scalar-fn n f)
   (make-gradient-spec n 1 f))
 
-;;; vector-fn : Nat x Nat x ((List Traced) -> (List Traced)) -> GradientSpec
-;;; Declare a vector function (R^n -> R^m) for Jacobian computation.
+;;; vector-fn : Nat × Nat × ((List Traced) → (List Traced)) → GradientSpec
 (define (vector-fn n m f)
   (make-gradient-spec n m f))
 
@@ -293,33 +294,27 @@
 ;;; These functions generate type annotations for gradient-related types.
 ;;; They integrate with the dependent type system in core/types/dep-types.ss.
 
-;;; t-gradient : Nat -> Type
-;;; Construct the type (Gradient n) = (Vec n Number).
+;;; t-gradient : Nat → Type
 (define (t-gradient n)
   `(Vec ,n Number))
 
-;;; t-gradient-fn : Nat -> Type
-;;; Type of a gradient function: (Vec n Number) -> (Gradient n).
+;;; t-gradient-fn : Nat → Type
 (define (t-gradient-fn n)
   `(-> (Vec ,n Number) (Vec ,n Number)))
 
-;;; t-jacobian : Nat x Nat -> Type
-;;; Type of a Jacobian matrix: (Matrix m n Number).
+;;; t-jacobian : Nat × Nat → Type
 (define (t-jacobian m n)
   `(Matrix ,m ,n Number))
 
-;;; t-jacobian-fn : Nat x Nat -> Type
-;;; Type of a Jacobian function: (Vec n Number) -> (Matrix m n Number).
+;;; t-jacobian-fn : Nat × Nat → Type
 (define (t-jacobian-fn m n)
   `(-> (Vec ,n Number) (Matrix ,m ,n Number)))
 
-;;; t-hessian : Nat -> Type
-;;; Type of a Hessian matrix: (Matrix n n Number).
+;;; t-hessian : Nat → Type
 (define (t-hessian n)
   `(Matrix ,n ,n Number))
 
-;;; t-hessian-fn : Nat -> Type
-;;; Type of a Hessian function: (Vec n Number) -> (Matrix n n Number).
+;;; t-hessian-fn : Nat → Type
 (define (t-hessian-fn n)
   `(-> (Vec ,n Number) (Matrix ,n ,n Number)))
 
@@ -329,9 +324,7 @@
 
 ;;; These utilities help determine dimensions from function signatures.
 
-;;; infer-gradient-dim : ((List Traced) -> Traced) x Nat -> Nat | Error
-;;; Infer gradient dimension by probing the function.
-;;; Note: This evaluates the function at a test point.
+;;; infer-gradient-dim : ((List Traced) → Traced) × Nat → (Result Nat Error)
 (define (infer-gradient-dim f expected-input-dim)
   ;; Create test inputs
   (let* ([test-args (map (lambda (i) (+ i 1.0)) (iota expected-input-dim))]
@@ -340,8 +333,7 @@
             (length test-gradient)
             (list 'error 'gradient-inference-failed test-gradient))))
 
-;;; validate-gradient-spec : GradientSpec x (List Number) -> Boolean | Error
-;;; Validate that a gradient spec is consistent with test evaluation.
+;;; validate-gradient-spec : GradientSpec × (List Number) → Boolean
 (define (validate-gradient-spec spec test-args)
   (if (not (gradient-spec? spec))
       (list 'error 'invalid-spec)
@@ -352,8 +344,7 @@
 ;;; Error Reporting
 ;;; ============================================================
 
-;;; format-gradient-error : Error -> String
-;;; Format a gradient dimension error for display.
+;;; format-gradient-error : Error → String
 (define (format-gradient-error err)
   (if (and (pair? err) (eq? (car err) 'error))
       (let ([kind (cadr err)])
@@ -392,7 +383,7 @@
 ;;;
 ;;; Instance: (DimDifferentiable (GradientSpec n 1) n)
 
-;;; TC-DimDifferentiable : Type class definition
+;;; TC-DimDifferentiable : TypeClass
 (define TC-DimDifferentiable
   `(typeclass DimDifferentiable
     (kind (* Nat) Constraint)
@@ -403,7 +394,7 @@
                             (=> (DimDifferentiable d n)
                                 (-> d (-> (Vec n Number) (DimGradient n))))))))))
 
-;;; Instance: GradientSpec satisfies DimDifferentiable
+;;; dim-differentiable-gradient-spec-methods : (AList Symbol Procedure)
 (define dim-differentiable-gradient-spec-methods
   `((dim . ,gradient-spec-input-dim)
     (gradientOf . ,(lambda (spec) (lambda (args) (safe-gradient spec args))))))
@@ -414,9 +405,7 @@
 
 ;;; These functions compose differentiable functions while checking dimensions.
 
-;;; compose-gradient-fns : GradientSpec x GradientSpec -> GradientSpec | Error
-;;; Compose two scalar functions f and g: h = f o g.
-;;; Dimension check: output-dim(g) must equal input-dim(f).
+;;; compose-gradient-fns : GradientSpec × GradientSpec → (Result GradientSpec Error)
 (define (compose-gradient-fns f-spec g-spec)
   (if (not (and (gradient-spec? f-spec) (gradient-spec? g-spec)))
       (list 'error 'invalid-specs)
@@ -445,8 +434,7 @@
 
 ;;; These operations work on DimGradients with dimension checking.
 
-;;; dim-gradient-add : DimGradient x DimGradient -> DimGradient | Error
-;;; Add two gradients component-wise. Dimensions must match.
+;;; dim-gradient-add : DimGradient × DimGradient → (Result DimGradient Error)
 (define (dim-gradient-add g1 g2)
   (if (not (and (dim-gradient? g1) (dim-gradient? g2)))
       (list 'error 'invalid-gradients)
@@ -459,16 +447,14 @@
                              (map + (dim-gradient-values g1)
                                   (dim-gradient-values g2)))))))
 
-;;; dim-gradient-scale : Number x DimGradient -> DimGradient
-;;; Scale a gradient by a scalar.
+;;; dim-gradient-scale : Number × DimGradient → DimGradient
 (define (dim-gradient-scale c g)
   (if (not (dim-gradient? g))
       (list 'error 'invalid-gradient g)
       (dim-gradient (dim-gradient-dim g)
                     (map (lambda (x) (* c x)) (dim-gradient-values g)))))
 
-;;; dim-gradient-dot : DimGradient x DimGradient -> Number | Error
-;;; Dot product of two gradients. Dimensions must match.
+;;; dim-gradient-dot : DimGradient × DimGradient → (Result Number Error)
 (define (dim-gradient-dot g1 g2)
   (if (not (and (dim-gradient? g1) (dim-gradient? g2)))
       (list 'error 'invalid-gradients)
@@ -480,8 +466,7 @@
                (apply + (map * (dim-gradient-values g1)
                              (dim-gradient-values g2)))))))
 
-;;; dim-gradient-norm : DimGradient -> Number | Error
-;;; L2 norm of a gradient.
+;;; dim-gradient-norm : DimGradient → (Result Number Error)
 (define (dim-gradient-norm g)
   (if (not (dim-gradient? g))
       (list 'error 'invalid-gradient g)
@@ -494,13 +479,13 @@
 ;;; Helper: Matrix Accessors (if not already loaded)
 ;;; ============================================================
 
-;;; matrix-rows : Matrix -> Nat
+;;; matrix-rows : Matrix → Nat
 (define (matrix-rows m)
   (if (and (pair? m) (eq? (car m) 'matrix))
       (cadr m)
       0))
 
-;;; matrix-cols : Matrix -> Nat
+;;; matrix-cols : Matrix → Nat
 (define (matrix-cols m)
   (if (and (pair? m) (eq? (car m) 'matrix))
       (caddr m)

@@ -37,7 +37,7 @@
 ;;;   - If m < n (more inputs than outputs): use reverse mode
 ;;;   - If m > n (more outputs than inputs): use forward mode
 
-;;; jacobian : ((Traced ...) -> (List Traced)) x (List Number) -> Matrix
+;;; jacobian : ((Traced ...) → (List Traced)) × (List Number) → Matrix
 ;;; Compute the Jacobian matrix of a vector-valued function at a point.
 ;;; f takes n traced arguments and returns a list of m traced values.
 ;;; Note: This always uses reverse mode since f uses traced operations.
@@ -53,7 +53,7 @@
         ;; Always use reverse mode for traced functions
         (jacobian-reverse f args n m)))
 
-;;; jacobian-reverse : ((Traced ...) -> (List Traced)) x (List Number) x Nat x Nat -> Matrix
+;;; jacobian-reverse : ((Traced ...) → (List Traced)) × (List Number) × Nat × Nat → Matrix
 ;;; Compute Jacobian using reverse mode (efficient when m <= n).
 ;;; Requires m backward passes.
 (define (jacobian-reverse f args n m)
@@ -79,7 +79,7 @@
                             [grad (hashtable-ref grads arg-id 0)])
                            (vector-set! result (+ (* i n) j) grad)))))))
 
-;;; jacobian-forward : ((Dual ...) -> (List Dual)) x (List Number) x Nat x Nat -> Matrix
+;;; jacobian-forward : ((Dual ...) → (List Dual)) × (List Number) × Nat × Nat → Matrix
 ;;; Compute Jacobian using forward mode (efficient when m > n).
 ;;; Requires n forward passes.
 ;;; Note: f must use dual operations (dual-add, dual-mul, etc.)
@@ -114,13 +114,13 @@
 ;;;
 ;;; We compute it by taking the gradient of the gradient using forward mode.
 
-;;; hessian : ((Traced ...) -> Traced) x (List Number) -> Matrix
+;;; hessian : ((Traced ...) → Traced) × (List Number) → Matrix
 ;;; Compute the Hessian matrix of a scalar function at a point.
 (define (hessian f args)
   (let ([n (length args)])
        (hessian-reverse-forward f args n)))
 
-;;; hessian-reverse-forward : ((Traced ...) -> Traced) x (List Number) x Nat -> Matrix
+;;; hessian-reverse-forward : ((Traced ...) → Traced) × (List Number) × Nat → Matrix
 ;;; Compute Hessian using reverse-over-forward mode.
 ;;; First compute gradient, then differentiate each gradient component.
 (define (hessian-reverse-forward f args n)
@@ -147,7 +147,7 @@
                           (vector-set! result (+ (* i n) j)
                                        (dual-deriv grad-i))))))))
 
-;;; gradient-i : (f x (List Dual) x Nat) -> Dual
+;;; gradient-i : (f × (List Dual) × Nat) → Dual
 ;;; Compute the i-th component of gradient using dual numbers.
 ;;; Each argument is a dual number, result is dual.
 (define (gradient-i f dual-args i)
@@ -174,7 +174,7 @@
                                            (* (dual-deriv darg) dval))
                                    dual-args deriv-vals))))))
 
-;;; hessian-numerical : ((Number ...) -> Number) x (List Number) x Number -> Matrix
+;;; hessian-numerical : ((Number ...) → Number) × (List Number) × Number → Matrix
 ;;; Compute Hessian numerically using finite differences.
 ;;; Useful for checking analytical Hessians.
 (define (hessian-numerical f args epsilon)
@@ -207,7 +207,7 @@
 ;;; vjp computes v^T J where v is a vector and J is the Jacobian.
 ;;; This is efficient for computing many VJPs with the same function.
 
-;;; vjp : ((Traced ...) -> (List Traced)) x (List Number) x (List Number) -> (List Number)
+;;; vjp : ((Traced ...) → (List Traced)) × (List Number) × (List Number) → (List Number)
 ;;; Compute vector-Jacobian product v^T J at point args.
 ;;; v is a vector of length m (number of outputs).
 (define (vjp f args v)
@@ -253,7 +253,7 @@
 ;;; jvp computes Jv where J is the Jacobian and v is a vector.
 ;;; Uses forward mode for efficiency.
 
-;;; jvp : ((Dual ...) -> (List Dual)) x (List Number) x (List Number) -> (List Number)
+;;; jvp : ((Dual ...) → (List Dual)) × (List Number) × (List Number) → (List Number)
 ;;; Compute Jacobian-vector product Jv at point args.
 ;;; v is a vector of length n (number of inputs).
 (define (jvp f args v)
@@ -268,12 +268,12 @@
 ;;; Gradient Utilities
 ;;; ============================================================
 
-;;; grad : ((Traced ...) -> Traced) x (List Number) -> (List Number)
+;;; grad : ((Traced ...) → Traced) × (List Number) → (List Number)
 ;;; Compute gradient of scalar function (wrapper for clarity).
 (define (grad f args)
   (gradient f args))
 
-;;; directional-derivative : ((Traced ...) -> Traced) x (List Number) x (List Number) -> Number
+;;; directional-derivative : ((Traced ...) → Traced) × (List Number) × (List Number) → Number
 ;;; Compute directional derivative nabla(f) . v at point args in direction v.
 (define (directional-derivative f args v)
   (let ([g (gradient f args)])
@@ -283,7 +283,7 @@
 ;;; Convenience: Scalar Second Derivative
 ;;; ============================================================
 
-;;; second-derivative : (Traced -> Traced) x Number -> Number
+;;; second-derivative : (Traced → Traced) × Number → Number
 ;;; Compute d^2f/dx^2 at x for a single-variable function.
 ;;; NOTE: Uses finite differences internally. For exact results, use second-derivative-exact.
 (define (second-derivative f x)
@@ -307,7 +307,7 @@
 ;;; derivative, which introduces O(epsilon) error. These exact versions eliminate
 ;;; that error entirely.
 
-;;; hessian-exact : ((List Hyperdual) -> Hyperdual) x (List Number) -> Matrix
+;;; hessian-exact : ((List Hyperdual) → Hyperdual) × (List Number) → Matrix
 ;;; Compute exact Hessian using hyperdual numbers.
 ;;; The function f should use hd-add, hd-mul, hd-sin, etc. instead of
 ;;; traced-add, traced-mul, traced-sin, etc.
@@ -318,7 +318,7 @@
 (define (hessian-exact f args)
   (hessian-forward f args))
 
-;;; second-derivative-exact : (Hyperdual -> Hyperdual) x Number -> Number
+;;; second-derivative-exact : (Hyperdual → Hyperdual) × Number → Number
 ;;; Compute exact d^2f/dx^2 at x using hyperdual numbers.
 ;;;
 ;;; Example:
@@ -331,7 +331,7 @@
 ;;; Helper Functions
 ;;; ============================================================
 
-;;; list-update : (List a) x Nat x (a -> a) -> (List a)
+;;; list-update : (List α) × Nat × (α → α) → (List α)
 ;;; Update element at index. (Defined in reverse-diff.ss but duplicated for safety)
 (define (hod-list-update lst idx f)
   (if (= idx 0)
@@ -352,28 +352,28 @@
 ;;;
 ;;; To get the k-th derivative at x: k! * (jet-coeff jet k)
 
-;;; jet : (List Number) -> Jet
+;;; jet : (List Number) → Jet
 ;;; Create a jet number from coefficients [c0, c1, c2, ...].
 ;;; c_k represents the k-th Taylor coefficient (derivative/k!)
 (define (jet coeffs)
   (list 'jet (list->vector coeffs)))
 
-;;; jet? : Any -> Boolean
+;;; jet? : α → Boolean
 (define (jet? x)
   (and (pair? x) (eq? (car x) 'jet)))
 
-;;; jet-coeffs : Jet -> Vector
+;;; jet-coeffs : Jet → (Vector Number)
 (define (jet-coeffs j)
   (if (jet? j) (cadr j) (vector j)))
 
-;;; jet-order : Jet -> Nat
+;;; jet-order : Jet → Nat
 ;;; Maximum derivative order this jet can compute.
 (define (jet-order j)
   (if (jet? j)
       (- (vector-length (jet-coeffs j)) 1)
       0))
 
-;;; jet-coeff : Jet x Nat -> Number
+;;; jet-coeff : Jet × Nat → Number
 ;;; Get the k-th Taylor coefficient.
 (define (jet-coeff j k)
   (if (jet? j)
@@ -383,28 +383,28 @@
                0))
       (if (= k 0) j 0)))
 
-;;; jet-deriv : Jet x Nat -> Number|Jet
+;;; jet-deriv : Jet × Nat → (Either Number Jet)
 ;;; Get the k-th derivative at the base point.
 ;;; d^k f/dx^k = k! * c_k
 ;;; Uses rec-mul to handle nested jets (returns Jet when coefficient is a Jet).
 (define (jet-deriv j k)
   (rec-mul (factorial k) (jet-coeff j k)))
 
-;;; factorial : Nat -> Nat
+;;; factorial : Nat → Nat
 (define (factorial n)
   (if (<= n 1) 1 (* n (factorial (- n 1)))))
 
-;;; jet-value : Jet -> Number
+;;; jet-value : Jet → Number
 ;;; Get the function value (0-th derivative).
 (define (jet-value j)
   (jet-coeff j 0))
 
-;;; jet-lift : Number -> Jet
+;;; jet-lift : Number → Jet
 ;;; Lift a constant to a jet (all derivatives = 0).
 (define (jet-lift x)
   (if (jet? x) x (jet (list x))))
 
-;;; jet-variable : Number x Nat -> Jet
+;;; jet-variable : Number × Nat → Jet
 ;;; Create a jet for a variable with order n.
 ;;; d/dx x = 1, all higher derivatives = 0.
 (define (jet-variable x order)
@@ -452,7 +452,7 @@
                                    (vector-set! result i (vector-ref v i))))))])
         (values (pad v1 n) (pad v2 n) n)))
 
-;;; jet-add : Jet x Jet -> Jet
+;;; jet-add : Jet × Jet → Jet
 ;;; (f + g)^(k) = f^(k) + g^(k)
 (define (jet-add a b)
   (let* ([a (jet-lift a)]
@@ -466,7 +466,7 @@
                              (vector-set! result i (rec-add (vector-ref pa i)
                                                             (vector-ref pb i))))))))
 
-;;; jet-sub : Jet x Jet -> Jet
+;;; jet-sub : Jet × Jet → Jet
 (define (jet-sub a b)
   (let* ([a (jet-lift a)]
          [b (jet-lift b)]
@@ -479,7 +479,7 @@
                              (vector-set! result i (rec-sub (vector-ref pa i)
                                                             (vector-ref pb i))))))))
 
-;;; jet-neg : Jet -> Jet
+;;; jet-neg : Jet → Jet
 (define (jet-neg a)
   (let* ([a (jet-lift a)]
          [ca (jet-coeffs a)]
@@ -489,7 +489,7 @@
             ((= i n) (jet (vector->list result)))
             (vector-set! result i (- (vector-ref ca i))))))
 
-;;; jet-mul : Jet x Jet -> Jet
+;;; jet-mul : Jet × Jet → Jet
 ;;; Cauchy product: c_k = sum_{j=0}^{k} a_j * b_{k-j}
 (define (jet-mul a b)
   (let* ([a (jet-lift a)]
@@ -508,11 +508,11 @@
                                                                   (vector-ref pb (- k j))))))
                                   (vector-set! result k sum)))))))
 
-;;; jet-sq : Jet -> Jet
+;;; jet-sq : Jet → Jet
 (define (jet-sq a)
   (jet-mul a a))
 
-;;; jet-div : Jet x Jet -> Jet
+;;; jet-div : Jet × Jet → Jet
 ;;; Compute c = a/b where b_0 * c_k = a_k - sum_{j=1}^{k} b_j * c_{k-j}
 (define (jet-div a b)
   (let* ([a (jet-lift a)]
@@ -532,7 +532,7 @@
                                                                   (vector-ref result (- k j))))))
                                   (vector-set! result k (rec-div sum b0))))))))
 
-;;; jet-recip : Jet -> Jet
+;;; jet-recip : Jet → Jet
 ;;; 1/a
 (define (jet-recip a)
   (jet-div (jet-lift 1) a))
@@ -544,7 +544,7 @@
 ;;; For exp, sin, cos, log, sqrt, we use the recurrence relations
 ;;; derived from the differential equations they satisfy.
 
-;;; jet-exp : Jet -> Jet
+;;; jet-exp : Jet → Jet
 ;;; d(exp(f))/dx = exp(f) * f'
 ;;; Recurrence: c_k = (1/k) * sum_{j=1}^{k} j * a_j * c_{k-j}
 (define (jet-exp a)
@@ -565,7 +565,7 @@
                                                               (vector-ref result (- k j)))))))
                  (vector-set! result k (rec-div sum k))))))
 
-;;; jet-log : Jet -> Jet
+;;; jet-log : Jet → Jet
 ;;; d(log(f))/dx = f'/f
 ;;; Recurrence: c_k = (1/a_0) * (a_k - (1/k) * sum_{j=1}^{k-1} j * c_j * a_{k-j})
 (define (jet-log a)
@@ -587,7 +587,7 @@
                                                               (vector-ref ca (- k j)))))))
                  (vector-set! result k (rec-div (rec-sub (vector-ref ca k) (rec-div sum k)) a0))))))
 
-;;; jet-sqrt : Jet -> Jet
+;;; jet-sqrt : Jet → Jet
 ;;; d(sqrt(f))/dx = f'/(2*sqrt(f))
 ;;; Recurrence: c_k = (1/(2*c_0)) * (a_k - sum_{j=1}^{k-1} c_j * c_{k-j})
 (define (jet-sqrt a)
@@ -609,7 +609,7 @@
                                                      (vector-ref result (- k j))))))
                  (vector-set! result k (rec-div (rec-sub (vector-ref ca k) sum) (rec-mul 2 c0)))))))
 
-;;; jet-sin-cos : Jet -> (Values Jet Jet)
+;;; jet-sin-cos : Jet → (Values Jet Jet)
 ;;; Compute sin and cos simultaneously using coupled recurrence.
 ;;; d(sin(f))/dx = cos(f) * f', d(cos(f))/dx = -sin(f) * f'
 (define (jet-sin-cos a)
@@ -636,21 +636,21 @@
                  (vector-set! sin-result k (rec-div sin-sum k))
                  (vector-set! cos-result k (rec-div (rec-sub 0 cos-sum) k))))))
 
-;;; jet-sin : Jet -> Jet
+;;; jet-sin : Jet → Jet
 (define (jet-sin a)
   (let-values ([(s c) (jet-sin-cos a)]) s))
 
-;;; jet-cos : Jet -> Jet
+;;; jet-cos : Jet → Jet
 (define (jet-cos a)
   (let-values ([(s c) (jet-sin-cos a)]) c))
 
-;;; jet-tan : Jet -> Jet
+;;; jet-tan : Jet → Jet
 ;;; tan(f) = sin(f)/cos(f)
 (define (jet-tan a)
   (let-values ([(s c) (jet-sin-cos a)])
               (jet-div s c)))
 
-;;; jet-pow : Jet x Number -> Jet
+;;; jet-pow : Jet × Number → Jet
 ;;; f^n using exp(n * log(f)) for non-integer, binary exponentiation for integer
 (define (jet-pow base exp)
   (let ([base (jet-lift base)])
@@ -677,7 +677,7 @@
 ;;; Inverse Trigonometric Functions for Jets
 ;;; ============================================================
 
-;;; jet-atan : Jet -> Jet
+;;; jet-atan : Jet → Jet
 ;;; d(atan(f))/dx = f'/(1+f^2)
 ;;; Uses recurrence: a(x) = atan(f(x)), let g = 1 + f^2
 ;;; c_k = (1/g_0) * (f_k - (1/k) * sum_{j=1}^{k-1} j * c_j * g_{k-j})
@@ -705,7 +705,7 @@
                                                               (vector-ref cg (- k j)))))))
                  (vector-set! result k (rec-div (rec-sub (vector-ref ca k) (rec-div sum k)) g0))))))
 
-;;; jet-asin : Jet -> Jet
+;;; jet-asin : Jet → Jet
 ;;; d(asin(f))/dx = f'/sqrt(1-f^2)
 ;;; Uses recurrence: let g = sqrt(1-f^2)
 ;;; Similar to atan but with different denominator
@@ -733,7 +733,7 @@
                                                      (vector-ref cg (- k j))))))
                  (vector-set! result k (rec-div (rec-sub (vector-ref ca k) sum) g0))))))
 
-;;; jet-acos : Jet -> Jet
+;;; jet-acos : Jet → Jet
 ;;; d(acos(f))/dx = -f'/sqrt(1-f^2)
 ;;; Same as asin but negated derivative
 (define (jet-acos a)
@@ -764,7 +764,7 @@
 ;;; Hyperbolic Functions for Jets
 ;;; ============================================================
 
-;;; jet-sinh-cosh : Jet -> (Values Jet Jet)
+;;; jet-sinh-cosh : Jet → (Values Jet Jet)
 ;;; Compute sinh and cosh simultaneously using coupled recurrence.
 ;;; sinh' = cosh, cosh' = sinh
 (define (jet-sinh-cosh a)
@@ -793,15 +793,15 @@
                  (vector-set! sinh-result k (rec-div sinh-sum k))
                  (vector-set! cosh-result k (rec-div cosh-sum k))))))
 
-;;; jet-sinh : Jet -> Jet
+;;; jet-sinh : Jet → Jet
 (define (jet-sinh a)
   (let-values ([(s c) (jet-sinh-cosh a)]) s))
 
-;;; jet-cosh : Jet -> Jet
+;;; jet-cosh : Jet → Jet
 (define (jet-cosh a)
   (let-values ([(s c) (jet-sinh-cosh a)]) c))
 
-;;; jet-tanh : Jet -> Jet
+;;; jet-tanh : Jet → Jet
 ;;; tanh(f) = sinh(f)/cosh(f)
 (define (jet-tanh a)
   (let-values ([(s c) (jet-sinh-cosh a)])
@@ -811,21 +811,21 @@
 ;;; Recursive Helpers for Inverse Trig
 ;;; ============================================================
 
-;;; rec-atan : Number|Jet -> Number|Jet
+;;; rec-atan : (Either Number Jet) → (Either Number Jet)
 (define (rec-atan a)
   (cond
    [(jet? a) (jet-atan a)]
    [(number? a) (atan a)]
    [else (error 'rec-atan "unsupported type" a)]))
 
-;;; rec-asin : Number|Jet -> Number|Jet
+;;; rec-asin : (Either Number Jet) → (Either Number Jet)
 (define (rec-asin a)
   (cond
    [(jet? a) (jet-asin a)]
    [(number? a) (asin a)]
    [else (error 'rec-asin "unsupported type" a)]))
 
-;;; rec-acos : Number|Jet -> Number|Jet
+;;; rec-acos : (Either Number Jet) → (Either Number Jet)
 (define (rec-acos a)
   (cond
    [(jet? a) (jet-acos a)]
@@ -836,7 +836,7 @@
 ;;; Higher-Order Derivative Computation with Jets
 ;;; ============================================================
 
-;;; nth-derivative : (Jet -> Jet) x Number x Nat -> Number
+;;; nth-derivative : (Jet → Jet) × Number × Nat → Number
 ;;; Compute the n-th derivative of f at x.
 ;;; f must use jet-* operations.
 (define (nth-derivative f x n)
@@ -844,7 +844,7 @@
          [result (f j)])
         (jet-deriv result n)))
 
-;;; all-derivatives : (Jet -> Jet) x Number x Nat -> (List Number)
+;;; all-derivatives : (Jet → Jet) × Number × Nat → (List Number)
 ;;; Compute derivatives 0 through n at x.
 ;;; Returns (f(x), f'(x), f''(x), ..., f^(n)(x))
 (define (all-derivatives f x n)
@@ -857,7 +857,7 @@
 ;;; Taylor Series Expansion
 ;;; ============================================================
 
-;;; taylor-coefficients : (Jet -> Jet) x Number x Nat -> (List Number)
+;;; taylor-coefficients : (Jet → Jet) × Number × Nat → (List Number)
 ;;; Compute Taylor series coefficients at x up to order n.
 ;;; Returns (c_0, c_1, ..., c_n) where f(x + h) ~ sum c_k * h^k
 (define (taylor-coefficients f x n)
@@ -866,7 +866,7 @@
         (map (lambda (k) (jet-coeff result k))
              (iota (+ n 1)))))
 
-;;; taylor-series : (Jet -> Jet) x Number x Nat -> (Number -> Number)
+;;; taylor-series : (Jet → Jet) × Number × Nat → (Number → Number)
 ;;; Return a function that evaluates the Taylor series approximation.
 (define (taylor-series f x n)
   (let ([coeffs (taylor-coefficients f x n)])
@@ -878,7 +878,7 @@
                               (* power h)
                               (+ sum (* (car cs) power))))))))
 
-;;; taylor-remainder-bound : (Jet -> Jet) x Number x Number x Nat -> Number
+;;; taylor-remainder-bound : (Jet → Jet) × Number × Number × Nat → Number
 ;;; Lagrange remainder estimate: |R_n(h)| <= M * |h|^(n+1) / (n+1)!
 ;;; where M is the max of |f^(n+1)| on [x, x+h].
 ;;; This computes f^(n+1)(x) as an estimate for M.
@@ -895,7 +895,7 @@
 ;;; treating one variable at a time as "active" (with jet structure)
 ;;; while others are constants.
 
-;;; partial-derivative : ((List Jet) -> Jet) x (List Number) x Nat x Nat -> Number
+;;; partial-derivative : ((List Jet) → Jet) × (List Number) × Nat × Nat → Number
 ;;; Compute d^n f / dx_i^n where i is the specified variable index.
 ;;; For multivariate functions, we make variable i active and others constant.
 (define (partial-derivative f args var-index n)
@@ -909,7 +909,7 @@
          [result (apply f jets)])
         (jet-deriv result n)))
 
-;;; mixed-partial : ((List Jet) -> Jet) x (List Number) x (List Nat) -> Number
+;;; mixed-partial : ((List Jet) → Jet) × (List Number) × (List Nat) → Number
 ;;; Compute mixed partial derivative d^|k| f / (dx1^k1 * dx2^k2 * ...)
 ;;; where k = (k1, k2, ...) specifies the order with respect to each variable.
 ;;;
@@ -946,7 +946,7 @@
 ;;; Gradient, Hessian, and Higher-Order Tensors via Jets
 ;;; ============================================================
 
-;;; gradient-jet : ((List Jet) -> Jet) x (List Number) -> (List Number)
+;;; gradient-jet : ((List Jet) → Jet) × (List Number) → (List Number)
 ;;; Compute gradient using jets (forward mode).
 (define (gradient-jet f args)
   (let ([n (length args)])
@@ -954,7 +954,7 @@
                     (partial-derivative f args i 1))
             (iota n))))
 
-;;; hessian-jet : ((List Jet) -> Jet) x (List Number) -> Matrix
+;;; hessian-jet : ((List Jet) → Jet) × (List Number) → Matrix
 ;;; Compute Hessian using nested differentiation with jets.
 ;;; Uses exact differentiation for all entries including mixed partials.
 ;;;
@@ -1008,7 +1008,7 @@
                       (vector-set! result (+ (* i n) j) h-ij)
                       (vector-set! result (+ (* j n) i) h-ij))))))
 
-;;; third-derivative-tensor : (Jet -> Jet) x Number -> (List (List (List Number)))
+;;; third-derivative-single : (Jet → Jet) × Number → Number
 ;;; Compute the third derivative tensor for a single-variable function.
 ;;; For multivariate, this returns d^3f/dx^3.
 (define (third-derivative-single f x)
@@ -1018,7 +1018,7 @@
 ;;; Repeated Differentiation Operators
 ;;; ============================================================
 
-;;; diff-n : ((Dual -> Dual) -> (Dual -> Dual)) -> Nat -> (Dual -> Dual) -> (Dual -> Dual)
+;;; diff-n : Nat → ((α → α) → (α → α))
 ;;; Apply differentiation n times using dual numbers.
 ;;; diff-operator is a function that differentiates once.
 (define (diff-n n)
@@ -1033,7 +1033,7 @@
                                      ;; Differentiate g at x
                                      (dual-deriv (g (dual-variable x))))))))))
 
-;;; diff-operator : (Number -> Number) x Number x Nat -> Number
+;;; diff-operator-naive : (Number → Number) × Number × Nat → Number
 ;;; Compute n-th derivative of f at x using nested dual numbers.
 ;;; Note: This has exponential complexity for large n.
 ;;; For efficiency, prefer jet-based nth-derivative.
@@ -1046,22 +1046,22 @@
 ;;; Convenience: Common Higher-Order Derivatives
 ;;; ============================================================
 
-;;; second-derivative-jet : (Jet -> Jet) x Number -> Number
+;;; second-derivative-jet : (Jet → Jet) × Number → Number
 ;;; Compute f''(x) using jets.
 (define (second-derivative-jet f x)
   (nth-derivative f x 2))
 
-;;; third-derivative-jet : (Jet -> Jet) x Number -> Number
+;;; third-derivative-jet : (Jet → Jet) × Number → Number
 ;;; Compute f'''(x) using jets.
 (define (third-derivative-jet f x)
   (nth-derivative f x 3))
 
-;;; fourth-derivative-jet : (Jet -> Jet) x Number -> Number
+;;; fourth-derivative-jet : (Jet → Jet) × Number → Number
 ;;; Compute f''''(x) using jets.
 (define (fourth-derivative-jet f x)
   (nth-derivative f x 4))
 
-;;; laplacian : ((List Jet) -> Jet) x (List Number) -> Number
+;;; laplacian : ((List Jet) → Jet) × (List Number) → Number
 ;;; Compute the Laplacian (sum of second partial derivatives).
 (define (laplacian f args)
   (let ([n (length args)])
@@ -1073,13 +1073,13 @@
 ;;; Derivative-Based Function Properties
 ;;; ============================================================
 
-;;; is-critical-point? : ((List Jet) -> Jet) x (List Number) x Number -> Boolean
+;;; is-critical-point? : ((List Jet) → Jet) × (List Number) × Number → Boolean
 ;;; Check if args is a critical point (all partials are zero).
 (define (is-critical-point? f args tolerance)
   (let ([grad (gradient-jet f args)])
        (andmap (lambda (g) (< (abs g) tolerance)) grad)))
 
-;;; classify-critical-point : ((List Jet) -> Jet) x (List Number) -> Symbol
+;;; classify-critical-point : ((List Jet) → Jet) × (List Number) → Symbol
 ;;; Classify a critical point using the Hessian.
 ;;; Returns 'minimum, 'maximum, 'saddle, or 'inconclusive.
 (define (classify-critical-point f args)

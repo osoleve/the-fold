@@ -45,22 +45,19 @@
 ;;; Timing Primitives (Chez Scheme Specific)
 ;;; ============================================================
 
-;;; current-nanoseconds : -> Nat
-;;; High-resolution monotonic time in nanoseconds.
+;;; current-nanoseconds : → Nat
 (define (current-nanoseconds)
   (let ([t (current-time 'time-monotonic)])
        (+ (* (time-second t) 1000000000)
           (time-nanosecond t))))
 
-;;; current-cpu-nanoseconds : -> Nat
-;;; CPU time consumed in nanoseconds.
+;;; current-cpu-nanoseconds : → Nat
 (define (current-cpu-nanoseconds)
   (let ([t (current-time 'time-process)])
        (+ (* (time-second t) 1000000000)
           (time-nanosecond t))))
 
-;;; bytes-currently-allocated : -> Nat
-;;; Get current memory allocation.
+;;; bytes-currently-allocated : → Nat
 (define (bytes-currently-allocated)
   (guard (e [else 0])
          (bytes-allocated)))
@@ -80,6 +77,7 @@
 ;;;     (warmup . nat)              ; Warmup iterations
 ;;;     (tags . list))              ; Classification tags
 
+;;; make-benchmark : Symbol × (→ α) × Alist → Benchmark
 (define (make-benchmark name thunk . opts)
   (let* ([props (parse-benchmark-opts opts)]
          [description (assq-default props 'description "")]
@@ -98,8 +96,7 @@
           (warmup . ,warmup)
           (tags . ,tags))))
 
-;;; parse-benchmark-opts : List -> Alist
-;;; Parse keyword options into alist.
+;;; parse-benchmark-opts : (List α) → Alist
 (define (parse-benchmark-opts opts)
   (let loop ([rest opts] [acc '()])
        (cond
@@ -115,15 +112,16 @@
                                 val)
                           acc)))])))
 
-;;; assq-default : Alist x Symbol x Any -> Any
+;;; assq-default : Alist × Symbol × α → α
 (define (assq-default alist key default)
   (let ([entry (assq key alist)])
        (if entry (cdr entry) default)))
 
-;;; Accessors
+;;; benchmark? : α → Boolean
 (define (benchmark? x)
   (and (pair? x) (eq? (car x) 'benchmark)))
 
+;;; benchmark-get : Benchmark × Symbol → α
 (define (benchmark-get b key)
   (let ([entry (assq key (cdr b))])
        (and entry (cdr entry))))
@@ -148,6 +146,7 @@
 ;;;     (benchmarks . list)
 ;;;     (tags . list))
 
+;;; make-suite : Symbol × (List Benchmark) × Alist → Suite
 (define (make-suite name benchmarks . opts)
   (let* ([props (parse-benchmark-opts opts)]
          [description (assq-default props 'description "")]
@@ -158,9 +157,11 @@
           (benchmarks . ,benchmarks)
           (tags . ,tags))))
 
+;;; suite? : α → Boolean
 (define (suite? x)
   (and (pair? x) (eq? (car x) 'suite)))
 
+;;; suite-get : Suite × Symbol → α
 (define (suite-get s key)
   (let ([entry (assq key (cdr s))])
        (and entry (cdr entry))))
@@ -174,18 +175,17 @@
 ;;; Statistical Functions
 ;;; ============================================================
 
-;;; sum : (List Number) -> Number
+;;; sum : (List Number) → Number
 (define (sum nums)
   (fold-left + 0 nums))
 
-;;; mean : (List Number) -> Number
+;;; mean : (List Number) → Number
 (define (mean nums)
   (if (null? nums)
       0
       (/ (sum nums) (length nums))))
 
-;;; variance : (List Number) x Number -> Number
-;;; Sample variance (n-1 denominator).
+;;; variance : (List Number) × Number → Number
 (define (variance nums mean-val)
   (if (or (null? nums) (null? (cdr nums)))
       0
@@ -195,12 +195,11 @@
                                 nums)])
            (/ (sum squared-diffs) (- (length nums) 1)))))
 
-;;; stddev : (List Number) x Number -> Number
+;;; stddev : (List Number) × Number → Number
 (define (stddev nums mean-val)
   (sqrt (variance nums mean-val)))
 
-;;; percentile : (List Number) x Nat -> Number
-;;; Get nth percentile from sorted list.
+;;; percentile : (List Number) × Nat → Number
 (define (percentile sorted-nums p)
   (if (null? sorted-nums)
       0
@@ -209,26 +208,25 @@
                        (max 0 (inexact->exact (floor (* (/ p 100.0) n)))))])
             (list-ref sorted-nums idx))))
 
-;;; percentiles : (List Number) x (List Nat) -> Alist
-;;; Compute multiple percentiles.
+;;; percentiles : (List Number) × (List Nat) → Alist
 (define (percentiles sorted-nums ps)
   (map (lambda (p)
                (cons p (percentile sorted-nums p)))
        ps))
 
-;;; list-min : (List Number) -> Number
+;;; list-min : (List Number) → Number
 (define (list-min nums)
   (if (null? nums)
       +inf.0
       (apply min nums)))
 
-;;; list-max : (List Number) -> Number
+;;; list-max : (List Number) → Number
 (define (list-max nums)
   (if (null? nums)
       -inf.0
       (apply max nums)))
 
-;;; median : (List Number) -> Number
+;;; median : (List Number) → Number
 (define (median sorted-nums)
   (if (null? sorted-nums)
       0
@@ -239,8 +237,7 @@
                      (list-ref sorted-nums (quotient n 2)))
                   2)))))
 
-;;; iqr : (List Number) -> Number
-;;; Interquartile range.
+;;; iqr : (List Number) → Number
 (define (iqr sorted-nums)
   (if (null? sorted-nums)
       0
@@ -257,12 +254,14 @@
 ;;;     (cpu-ns . nat)
 ;;;     (memory-delta . integer))
 
+;;; make-sample : Nat × Nat × Integer → Sample
 (define (make-sample elapsed-ns cpu-ns memory-delta)
   `(sample
     (elapsed-ns . ,elapsed-ns)
     (cpu-ns . ,cpu-ns)
     (memory-delta . ,memory-delta)))
 
+;;; sample? : α → Boolean
 (define (sample? x)
   (and (pair? x) (eq? (car x) 'sample)))
 
@@ -275,8 +274,7 @@
 (define (sample-memory-delta s)
   (cdr (assq 'memory-delta (cdr s))))
 
-;;; time-thunk : (-> A) -> Sample
-;;; Execute thunk and measure timing.
+;;; time-thunk : (→ α) → (Values α Sample)
 (define (time-thunk thunk)
   (let* ([mem-before (bytes-currently-allocated)]
          [start-wall (current-nanoseconds)]
@@ -291,8 +289,7 @@
                  (- end-cpu start-cpu)
                  (- mem-after mem-before)))))
 
-;;; warmup-benchmark : Benchmark -> void
-;;; Run warmup iterations (discarded).
+;;; warmup-benchmark : Benchmark → Void
 (define (warmup-benchmark bench)
   (let ([thunk (benchmark-thunk bench)]
         [setup (benchmark-setup bench)]
@@ -305,8 +302,7 @@
                   (when teardown (teardown))
                   (loop (+ i 1))))))
 
-;;; collect-samples : Benchmark -> (List Sample)
-;;; Collect timing samples for benchmark.
+;;; collect-samples : Benchmark → (List Sample)
 (define (collect-samples bench)
   (let ([thunk (benchmark-thunk bench)]
         [setup (benchmark-setup bench)]
@@ -334,6 +330,7 @@
 ;;;     (stats . alist)           ; Computed statistics
 ;;;     (timestamp . nat))        ; When benchmark was run
 
+;;; make-benchmark-result : Symbol × Nat × Nat × (List Sample) × Nat → BenchmarkResult
 (define (make-benchmark-result name iterations warmup samples timestamp)
   (let* ([elapsed-times (map sample-elapsed-ns samples)]
          [cpu-times (map sample-cpu-ns samples)]
@@ -371,9 +368,11 @@
                            (max . ,(list-max memory-deltas))))))
           (timestamp . ,timestamp))))
 
+;;; benchmark-result? : α → Boolean
 (define (benchmark-result? x)
   (and (pair? x) (eq? (car x) 'benchmark-result)))
 
+;;; result-get : BenchmarkResult × Symbol → α
 (define (result-get r key)
   (let ([entry (assq key (cdr r))])
        (and entry (cdr entry))))
@@ -385,7 +384,7 @@
 (define (result-stats r) (result-get r 'stats))
 (define (result-timestamp r) (result-get r 'timestamp))
 
-;;; Helper: Get nested stat
+;;; result-stat : BenchmarkResult × Symbol × Symbol → (Option Number)
 (define (result-stat r category key)
   (let ([cat (assq category (result-stats r))])
        (if cat
@@ -397,15 +396,18 @@
 ;;; Suite Results
 ;;; ============================================================
 
+;;; make-suite-result : Symbol × (List BenchmarkResult) × Nat → SuiteResult
 (define (make-suite-result name results timestamp)
   `(suite-result
     (name . ,name)
     (results . ,results)
     (timestamp . ,timestamp)))
 
+;;; suite-result? : α → Boolean
 (define (suite-result? x)
   (and (pair? x) (eq? (car x) 'suite-result)))
 
+;;; suite-result-get : SuiteResult × Symbol → α
 (define (suite-result-get sr key)
   (let ([entry (assq key (cdr sr))])
        (and entry (cdr entry))))
@@ -418,8 +420,7 @@
 ;;; Running Benchmarks
 ;;; ============================================================
 
-;;; run-benchmark : Benchmark -> BenchmarkResult
-;;; Execute a benchmark and return results.
+;;; run-benchmark : Benchmark → BenchmarkResult
 (define (run-benchmark bench)
   ;; Force GC before measurement
   (collect)
@@ -439,8 +440,7 @@
         samples
         (current-nanoseconds))))
 
-;;; run-suite : Suite -> SuiteResult
-;;; Execute all benchmarks in a suite.
+;;; run-suite : Suite → SuiteResult
 (define (run-suite suite)
   (let ([results (map run-benchmark (suite-benchmarks suite))])
        (make-suite-result
@@ -464,6 +464,7 @@
 ;;;     (delta-ns . number)         ; Absolute change in elapsed ns
 ;;;     (delta-pct . number))       ; Percentage change
 
+;;; compare-results : BenchmarkResult × BenchmarkResult → Comparison
 (define (compare-results baseline current)
   (let* ([base-elapsed (result-stat baseline 'elapsed-ns 'mean)]
          [curr-elapsed (result-stat current 'elapsed-ns 'mean)]
@@ -493,9 +494,11 @@
           (delta-ns . ,delta-ns)
           (delta-pct . ,delta-pct))))
 
+;;; comparison? : α → Boolean
 (define (comparison? x)
   (and (pair? x) (eq? (car x) 'comparison)))
 
+;;; comparison-get : Comparison × Symbol → α
 (define (comparison-get c key)
   (let ([entry (assq key (cdr c))])
        (and entry (cdr entry))))
@@ -505,8 +508,7 @@
 (define (comparison-elapsed-ratio c) (comparison-get c 'elapsed-ratio))
 (define (comparison-delta-pct c) (comparison-get c 'delta-pct))
 
-;;; compare-suite-results : SuiteResult x SuiteResult -> (List Comparison)
-;;; Compare matching benchmarks between two suite runs.
+;;; compare-suite-results : SuiteResult × SuiteResult → (List Comparison)
 (define (compare-suite-results baseline-suite current-suite)
   (let ([baseline-results (suite-result-results baseline-suite)]
         [current-results (suite-result-results current-suite)])
@@ -518,7 +520,7 @@
                      (and base (compare-results base curr))))
         current-results)))
 
-;;; filter-map : (A -> B|#f) x (List A) -> (List B)
+;;; filter-map : (α → (Option β)) × (List α) → (List β)
 (define (filter-map f lst)
   (fold-right (lambda (x acc)
                       (let ([result (f x)])
@@ -528,7 +530,7 @@
               '()
               lst))
 
-;;; any-regressions? : (List Comparison) -> Boolean
+;;; any-regressions? : (List Comparison) → Boolean
 (define (any-regressions? comparisons)
   (ormap comparison-regression? comparisons))
 
@@ -543,6 +545,7 @@
 ;;;     (created . timestamp)
 ;;;     (results . suite-result))
 
+;;; make-baseline : Symbol × SuiteResult → Baseline
 (define (make-baseline name suite-result)
   `(baseline
     (version . 1)
@@ -550,9 +553,11 @@
     (created . ,(current-nanoseconds))
     (results . ,suite-result)))
 
+;;; baseline? : α → Boolean
 (define (baseline? x)
   (and (pair? x) (eq? (car x) 'baseline)))
 
+;;; baseline-get : Baseline × Symbol → α
 (define (baseline-get b key)
   (let ([entry (assq key (cdr b))])
        (and entry (cdr entry))))
@@ -565,8 +570,7 @@
 ;;; Serialization (S-expression format)
 ;;; ============================================================
 
-;;; serialize-results : BenchmarkResult|SuiteResult -> Sexp
-;;; Results are already S-expressions, but we strip samples for compactness.
+;;; serialize-results : (BenchmarkResult | SuiteResult) → Sexp
 (define (serialize-results results)
   (cond
    [(benchmark-result? results)
@@ -584,8 +588,7 @@
     results]
    [else results]))
 
-;;; deserialize-results : Sexp -> BenchmarkResult|SuiteResult
-;;; Load results from S-expression (identity for now, extensible).
+;;; deserialize-results : Sexp → (BenchmarkResult | SuiteResult)
 (define (deserialize-results sexp)
   sexp)
 
@@ -593,8 +596,7 @@
 ;;; Formatting Utilities
 ;;; ============================================================
 
-;;; format-ns : Number -> String
-;;; Format nanoseconds in human-readable form.
+;;; format-ns : Number → String
 (define (format-ns ns)
   (cond
    [(>= ns 1000000000) (format "~,2fs" (/ ns 1000000000.0))]
@@ -602,7 +604,7 @@
    [(>= ns 1000) (format "~,2fus" (/ ns 1000.0))]
    [else (format "~ans" (inexact->exact (round ns)))]))
 
-;;; format-bytes : Number -> String
+;;; format-bytes : Number → String
 (define (format-bytes bytes)
   (let ([abs-bytes (abs bytes)]
         [sign (if (< bytes 0) "-" "")])
@@ -615,11 +617,11 @@
          (format "~a~,2fKB" sign (/ abs-bytes 1024.0))]
         [else (format "~a~aB" sign abs-bytes)])))
 
-;;; format-ratio : Number -> String
+;;; format-ratio : Number → String
 (define (format-ratio ratio)
   (format "~,2fx" ratio))
 
-;;; format-pct : Number -> String
+;;; format-pct : Number → String
 (define (format-pct pct)
   (format "~a~,1f%"
           (if (>= pct 0) "+" "")
@@ -629,8 +631,7 @@
 ;;; Reporting
 ;;; ============================================================
 
-;;; benchmark-report : BenchmarkResult -> void
-;;; Print a detailed report for a single benchmark.
+;;; benchmark-report : BenchmarkResult → Void
 (define (benchmark-report result)
   (display "\n")
   (display "------------------------------------------------------------\n")
@@ -682,8 +683,7 @@
   
   (display "\n"))
 
-;;; suite-report : SuiteResult -> void
-;;; Print report for all benchmarks in a suite.
+;;; suite-report : SuiteResult → Void
 (define (suite-report suite-result)
   (display "\n")
   (display "============================================================\n")
@@ -716,8 +716,7 @@
   
   (display "\n"))
 
-;;; comparison-report : (List Comparison) -> void
-;;; Print regression/improvement report.
+;;; comparison-report : (List Comparison) → Void
 (define (comparison-report comparisons)
   (display "\n")
   (display "============================================================\n")
@@ -774,9 +773,7 @@
 ;;; Profiler Integration
 ;;; ============================================================
 
-;;; with-profiler : (-> A) x Nat -> (Values A Profiler)
-;;; Run thunk with profiler and return both result and profiler data.
-;;; Requires profile.ss to be loaded separately.
+;;; benchmark-with-profiler : Benchmark × Nat → BenchmarkResult
 (define (benchmark-with-profiler bench fuel)
   (let* ([thunk (benchmark-thunk bench)]
          ;; Note: Caller must load profile.ss and pass profile-expr
@@ -806,8 +803,7 @@
                  (define name
                    (parse-benchmark-definition 'name 'options))]))
 
-;;; parse-benchmark-definition : Symbol x List -> Benchmark
-;;; Parse DSL options into a benchmark.
+;;; parse-benchmark-definition : Symbol × (List Sexp) → Benchmark
 (define (parse-benchmark-definition name options)
   (let loop ([rest options]
              [thunk #f]
@@ -843,8 +839,7 @@
                                [(#:tags) (loop rest3 thunk iterations warmup setup teardown description val)]
                                [else (error 'define-benchmark "Unknown option" key)])))))))
 
-;;; quick-bench : (-> A) -> BenchmarkResult
-;;; Quickly benchmark a thunk with default settings.
+;;; quick-bench : (→ α) → BenchmarkResult
 (define (quick-bench thunk)
   (run-benchmark (make-benchmark 'quick thunk
                                  'iterations 100
@@ -854,15 +849,12 @@
 ;;; CI/CD Integration Helpers
 ;;; ============================================================
 
-;;; check-no-regressions : SuiteResult x SuiteResult -> Boolean
-;;; Returns #t if no regressions, #f if any regressions found.
-;;; Useful for CI exit codes.
+;;; check-no-regressions : SuiteResult × SuiteResult → Boolean
 (define (check-no-regressions baseline-suite current-suite)
   (let ([comparisons (compare-suite-results baseline-suite current-suite)])
        (not (any-regressions? comparisons))))
 
-;;; generate-ci-report : SuiteResult x SuiteResult -> Sexp
-;;; Generate a machine-readable report for CI systems.
+;;; generate-ci-report : SuiteResult × SuiteResult → Sexp
 (define (generate-ci-report baseline-suite current-suite)
   (let* ([comparisons (compare-suite-results baseline-suite current-suite)]
          [has-regressions (any-regressions? comparisons)])

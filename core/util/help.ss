@@ -538,7 +538,7 @@
 ;;; Main Help Functions
 ;;; ============================================================
 
-;;; help : [Symbol] → void
+;;; help : (Option Symbol) → Void
 ;;; Show help for all primitives or a specific primitive.
 (define (help . args)
   (if (null? args)
@@ -625,7 +625,7 @@
                                                   (car autodoc-matches))))))
               (display "\n")]))))
 
-;;; apropos : String → void
+;;; apropos : String → Void
 ;;; Search for primitives whose names contain the given pattern.
 (define (apropos pattern)
   (let* ([pattern-str (string-downcase pattern)]
@@ -662,7 +662,7 @@
         (display "
 ")))
 
-;;; help-categories : → void
+;;; help-categories : → Void
 ;;; List all available categories.
 (define (help-categories)
   (display "
@@ -685,7 +685,7 @@
   (display "
 "))
 
-;;; help-by-category : Symbol → void
+;;; help-by-category : Symbol → Void
 ;;; List all primitives in a specific category.
 (define (help-by-category cat)
   (let ([prims (get-primitives-by-category cat)]
@@ -721,7 +721,7 @@
                 (eq? (cdr (assq 'name doc)) name))
         *primitive-docs*))
 
-;;; display-primitive-help : Alist → void
+;;; display-primitive-help : Alist → Void
 (define (display-primitive-help doc)
   (let ([name (cdr (assq 'name doc))]
         [sig (cdr (assq 'signature doc))]
@@ -772,7 +772,7 @@
        (display "
 ")))
 
-;;; display-primitive-summary : Alist → void
+;;; display-primitive-summary : Alist → Void
 (define (display-primitive-summary doc)
   (let ([name (cdr (assq 'name doc))]
         [sig (cdr (assq 'signature doc))]
@@ -800,7 +800,7 @@
 ;;; NOTE: string-downcase and string-contains? are provided by prelude.ss
 ;;; (loaded transitively via prim.ss)
 
-;;; find : Procedure × (List Any) → Any | #f
+;;; find : (α → Boolean) × (List α) → (Option α)
 (define (find pred lst)
   (cond
    [(null? lst) #f]
