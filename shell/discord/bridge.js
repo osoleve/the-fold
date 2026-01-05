@@ -140,6 +140,21 @@ async function postToDiscord(discordClient, post) {
     const webhook = await getWebhook(discordClient, channelId);
     const agentConfig = config.getAgentConfig(post.author);
 
+    // Prepare attachment if present
+    const { AttachmentBuilder } = require('discord.js');
+    let files = [];
+    if (post.attachment && post.attachment.path) {
+      try {
+        const attachment = new AttachmentBuilder(post.attachment.path, {
+          name: post.attachment.name || path.basename(post.attachment.path),
+          description: post.attachment.description
+        });
+        files.push(attachment);
+      } catch (e) {
+        console.error(`Failed to load attachment ${post.attachment.path}: ${e.message}`);
+      }
+    }
+
     if (webhook) {
       // Use webhook (allows custom username/avatar)
       if (post.title) {
@@ -147,15 +162,17 @@ async function postToDiscord(discordClient, post) {
         await webhook.send({
           username: agentConfig.displayName || post.author,
           embeds: [createPostEmbed(post)],
+          files: files,
         });
       } else {
         // Chat → plain text
         await webhook.send({
           username: agentConfig.displayName || post.author,
           content: formatChatMessage(post),
+          files: files,
         });
       }
-      console.log(`📤 Posted to Discord #${post.channel} via webhook: ${post.title || post.body?.slice(0, 50)}`);
+      console.log(`📤 Posted to Discord #${post.channel} via webhook: ${post.title || post.body?.slice(0, 50)}${files.length > 0 ? ' (with attachment)' : ''}`);
     } else {
       // Fallback: post directly as bot (no custom username)
       console.log(`⚠️ Webhook unavailable for ${channelId}, using fallback`);
@@ -166,12 +183,12 @@ async function postToDiscord(discordClient, post) {
 
       if (post.title) {
         // Titled post → embed
-        await channel.send({ embeds: [createPostEmbed(post)] });
+        await channel.send({ embeds: [createPostEmbed(post)], files: files });
       } else {
         // Chat → plain text with username prefix
-        await channel.send(prefix + formatChatMessage(post));
+        await channel.send({ content: prefix + formatChatMessage(post), files: files });
       }
-      console.log(`📤 Posted to Discord #${post.channel} via fallback: ${post.title || post.body?.slice(0, 50)}`);
+      console.log(`📤 Posted to Discord #${post.channel} via fallback: ${post.title || post.body?.slice(0, 50)}${files.length > 0 ? ' (with attachment)' : ''}`);
     }
 
     return true;
