@@ -60,7 +60,11 @@ def create_gemini_client(model: str = "gemini-3-flash-preview"):
 
 HARNESS COMMANDS (handled locally, not sent to Fold):
   (subgoal "description")  ; Set your current subgoal
+  (think "reasoning")      ; Internal reasoning (logged, not shown to you later)
+  (note "observation")     ; Working memory (shown to you in future turns)
   (done)                   ; Signal task completion
+
+Use (note ...) to remember facts you'll need in future steps.
 
 ANSWER PROTOCOL - IMPORTANT:
   The variable *answer* exists in your session.

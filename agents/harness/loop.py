@@ -55,6 +55,7 @@ class LoopResult:
 _SUBGOAL_PATTERN = re.compile(r'^\(subgoal\s+"((?:[^"\\]|\\.)*)"\s*\)$')
 _DONE_PATTERN = re.compile(r'^\((done|task-complete)\s*\)$')
 _THINK_PATTERN = re.compile(r'^\(think\s+"((?:[^"\\]|\\.)*)"\s*\)$')
+_NOTE_PATTERN = re.compile(r'^\(note\s+"((?:[^"\\]|\\.)*)"\s*\)$')
 
 
 def _unescape_string(s: str) -> str:
@@ -65,7 +66,7 @@ def _unescape_string(s: str) -> str:
 @dataclass
 class MetaCommand:
     """A parsed meta-command."""
-    kind: str  # "subgoal", "done", "think", "none"
+    kind: str  # "subgoal", "done", "think", "note", "none"
     payload: Optional[str] = None
 
 
@@ -76,7 +77,8 @@ def parse_meta_command(expression: str) -> MetaCommand:
     Meta-commands:
     - (subgoal "description") - Update current subgoal
     - (done) or (task-complete) - Signal task completion
-    - (think "reasoning") - Internal reasoning (logged but not executed)
+    - (think "reasoning") - Internal reasoning (logged, not shown to agent)
+    - (note "text") - Working memory note (shown to agent in future turns)
     """
     expr = expression.strip()
 
@@ -93,6 +95,11 @@ def parse_meta_command(expression: str) -> MetaCommand:
     match = _THINK_PATTERN.match(expr)
     if match:
         return MetaCommand(kind="think", payload=_unescape_string(match.group(1)))
+
+    # Check for note
+    match = _NOTE_PATTERN.match(expr)
+    if match:
+        return MetaCommand(kind="note", payload=_unescape_string(match.group(1)))
 
     return MetaCommand(kind="none")
 
@@ -138,6 +145,15 @@ class MetaEvaluator:
                 success=True,
                 value=f"Thought recorded: {meta.payload}",
                 output="[harness] Internal reasoning logged",
+                session=session_id
+            )
+
+        if meta.kind == "note":
+            self.context.working_notes.append(meta.payload)
+            return EvalResult(
+                success=True,
+                value=f"Note saved: {meta.payload}",
+                output="[harness] Working note added",
                 session=session_id
             )
 
@@ -416,11 +432,14 @@ def _test_loop():
     assert parse_meta_command("(done)").kind == "done"
     assert parse_meta_command("(task-complete)").kind == "done"
     assert parse_meta_command('(think "I should try X")').kind == "think"
+    assert parse_meta_command('(note "Remember this")').kind == "note"
+    assert parse_meta_command('(note "Remember this")').payload == "Remember this"
     assert parse_meta_command("(+ 1 2)").kind == "none"
     # Test escaped quotes
     assert parse_meta_command('(subgoal "goal with \\"quotes\\"")').kind == "subgoal"
     assert parse_meta_command('(subgoal "goal with \\"quotes\\"")').payload == 'goal with "quotes"'
     assert parse_meta_command('(think "I said \\"hello\\"")').payload == 'I said "hello"'
+    assert parse_meta_command('(note "Value is \\"42\\"")').payload == 'Value is "42"'
     print("    PASS")
 
     # Test 4: Max steps limit

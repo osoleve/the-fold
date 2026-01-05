@@ -7,7 +7,26 @@ The prompt includes:
 - Main goal
 - Current subgoal (or None - cue to decompose)
 - Recent action history
+- Working memory (notes from previous turns)
 - Available tools with examples
+
+THREE-TIER MEMORY MODEL:
+
+1. THINKING - (think "reasoning")
+   Internal reasoning logged to transcript but NOT shown to agent in future turns.
+   Use for step-by-step reasoning that doesn't need to persist.
+
+2. WORKING MEMORY - (note "observation")
+   Short-term notes shown to agent in every future prompt (via working_notes).
+   Use for facts needed across multiple steps of current task.
+   Stored in AgentContext.working_notes, rendered as WORKING MEMORY section.
+
+3. KNOWLEDGE - Fold substrate
+   Long-term persistence via (define ...) or (set! ...) in Fold session.
+   Agent can store: (define *my-findings* '("fact1" "fact2"))
+   Agent can retrieve: *my-findings*
+   Persists in session state; available until session reset.
+   Use for knowledge that might be useful but doesn't need to clutter prompt.
 """
 
 from dataclasses import dataclass, field
@@ -33,6 +52,7 @@ class AgentContext:
     recent_actions: list[ActionRecord] = field(default_factory=list)
     available_commands: list[str] = field(default_factory=list)
     environment_notes: list[str] = field(default_factory=list)
+    working_notes: list[str] = field(default_factory=list)  # Short-term notes visible to agent
     max_recent_actions: int = 3
 
 
@@ -134,9 +154,15 @@ def generate_status_prompt(context: AgentContext) -> str:
     if context.environment_notes:
         env_notes = "\nNOTES:\n" + "\n".join(f"  - {note}" for note in context.environment_notes)
 
+    # Build working notes (short-term memory)
+    working_notes = ""
+    if context.working_notes:
+        working_notes = "\nWORKING MEMORY:\n" + "\n".join(f"  • {note}" for note in context.working_notes)
+
     prompt = f"""SESSION: {context.session_id}
 
 {goal_section}
+{working_notes}
 
 RECENT ACTIONS:
 {history_section}
