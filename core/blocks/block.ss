@@ -34,13 +34,21 @@
 ;;; ============================================================
 
 ;;; A Block is represented as an immutable record.
-;;;
-;;; Type: Block
-;;; Constructor: make-block : Symbol × Bytevector × (Vector Bytevector) → Block
-;;; Accessors:
-;;;   block-tag : Block → Symbol
-;;;   block-payload : Block → Bytevector
-;;;   block-refs : Block → (Vector Bytevector)
+
+;;; make-block : Symbol × Bytevector × (Vector Bytevector) → Block
+;;; Construct a new block with tag, payload, and refs.
+
+;;; block? : α → Boolean
+;;; Predicate to test if a value is a block.
+
+;;; block-tag : Block → Symbol
+;;; Extract the tag from a block.
+
+;;; block-payload : Block → Bytevector
+;;; Extract the payload from a block.
+
+;;; block-refs : Block → (Vector Bytevector)
+;;; Extract the refs vector from a block.
 (define-record-type block
   (fields tag payload refs))
 
@@ -57,12 +65,15 @@
 ;;; ============================================================
 
 ;;; hash-size : Nat
+;;; The size of a hash in bytes (SHA-256 = 32 bytes).
 (define hash-size 32)
 
 ;;; address-version : Nat
+;;; The version byte for addresses (currently 0).
 (define address-version 0)
 
 ;;; address-size : Nat
+;;; The size of an address in bytes (version byte + hash).
 (define address-size (+ 1 hash-size))
 
 ;;; u32->bytes-le : Nat → Bytevector

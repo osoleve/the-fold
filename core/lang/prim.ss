@@ -32,8 +32,8 @@
 ;;; Primitive Dispatcher
 ;;; ============================================================
 
-;;; prim : Symbol × Args... → Value
-;;; Dispatch to a pure primitive operation.
+;;; prim : Symbol × (List Value) → Value
+;;; Dispatch to a pure primitive operation (variadic via rest args).
 (define (prim op . args)
   (case op
         ;; --------------------------------------------------------
@@ -403,8 +403,8 @@
         ;; --------------------------------------------------------
         [else #f]))
 
-;;; prim-arity : Symbol → Nat | 'variadic | #f
-;;; Return the expected arity of a primitive.
+;;; prim-arity : Symbol → (Option Nat)
+;;; Return the expected arity of a primitive (returns #f for variadic or unknown).
 (define (prim-arity op)
   (case op
         ;; Unary
@@ -448,7 +448,7 @@
 (define (prim-pure? op)
   (if (prim-arity op) #t #f))
 
-;;; list-primitives : → (List Symbol)
+;;; list-primitives : Unit → (List Symbol)
 ;;; List all known primitives.
 (define (list-primitives)
   '(;; Arithmetic
