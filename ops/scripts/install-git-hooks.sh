@@ -5,6 +5,7 @@
 # - bd sync (beads integration)
 # - scmindent (Scheme indentation, auto-fixing)
 # - kind-check (kind system validation)
+# - type-annotation-check (type signature validation)
 # - cargo fmt --check (Rust formatting)
 # - cargo clippy (Rust linting)
 
@@ -100,6 +101,25 @@ if [ -n "$STAGED_TYPES" ]; then
     fi
 fi
 
+# Run type annotation validation if core files changed
+STAGED_CORE=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^core/.*\.ss$' || true)
+
+if [ -n "$STAGED_CORE" ]; then
+    if command -v scheme >/dev/null 2>&1; then
+        echo "Running type annotation validation..."
+        if scheme --script core/types/type-annotation-check.ss $STAGED_CORE; then
+            echo "✓ Type annotation check passed"
+        else
+            echo "" >&2
+            echo "❌ Type annotation check failed!" >&2
+            echo "Run: scheme --script core/types/type-annotation-check.ss --verbose" >&2
+            exit 1
+        fi
+    else
+        echo "Warning: scheme not found, skipping type annotation check" >&2
+    fi
+fi
+
 # Run Rust checks on fold-rs if it exists and has Cargo.toml
 if [ -f "fold-rs/Cargo.toml" ]; then
     cd fold-rs || exit 1
@@ -149,8 +169,9 @@ echo "The pre-commit hook will now:"
 echo "  1. Sync beads (bd) changes"
 echo "  2. Check/fix Scheme indentation (scmindent)"
 echo "  3. Validate kind system (kind-check.ss) for core/types changes"
-echo "  4. Check Rust formatting (cargo fmt --check)"
-echo "  5. Run Rust linting (cargo clippy)"
+echo "  4. Validate type annotations (type-annotation-check.ss) for core changes"
+echo "  5. Check Rust formatting (cargo fmt --check)"
+echo "  6. Run Rust linting (cargo clippy)"
 echo ""
 echo "Note: Install additional tools if needed:"
 echo "  scmindent: sudo npm install -g scmindent"
