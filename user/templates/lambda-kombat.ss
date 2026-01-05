@@ -182,10 +182,7 @@
 ;;; ============================================================
 
 (define (display-lk-header)
-  (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════════╗\n")
-  (display "║                    λ LAMBDA KOMBAT λ                             ║\n")
-  (display "╠══════════════════════════════════════════════════════════════════╣\n"))
+  (display "\n=== λ LAMBDA KOMBAT ===\n"))
 
 (define (display-lk-stats state)
   (let ([level (cdr (assq 'level state))]
@@ -193,19 +190,15 @@
         [streak (cdr (assq 'streak state))]
         [rounds (cdr (assq 'rounds state))]
         [correct (cdr (assq 'correct state))])
-       (display (format "║  Level: ~a  │  Score: ~a  │  Streak: ~a  │  ~a/~a correct    ║\n"
-                        level score streak correct rounds))
-       (display "╚══════════════════════════════════════════════════════════════════╝\n\n")))
+       (display (format "Level: ~a | Score: ~a | Streak: ~a | ~a/~a correct\n\n"
+                        level score streak correct rounds))))
 
 (define (display-puzzle pattern options)
-  (display "  Match this pattern:\n\n")
-  (display (format "    ~s\n\n" pattern))
-  (display "  Options:\n")
+  (display (format "Pattern: ~s\n\n" pattern))
   (let loop ([opts options] [n 1])
        (unless (null? opts)
-               (display (format "    ~a) ~s\n" n (car opts)))
-               (loop (cdr opts) (+ n 1))))
-  (display "\n  Your answer (1-4): "))
+               (display (format "~a) ~s\n" n (car opts)))
+               (loop (cdr opts) (+ n 1)))))
 
 ;;; ============================================================
 ;;; Game Logic
@@ -327,18 +320,9 @@
 ;;; lambda-kombat : → void
 ;;; Start a new game of Lambda Kombat.
 (define (lambda-kombat)
-  (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════════╗\n")
-  (display "║                    λ LAMBDA KOMBAT λ                             ║\n")
-  (display "║                                                                  ║\n")
-  (display "║  Match S-expression patterns to score points!                    ║\n")
-  (display "║                                                                  ║\n")
-  (display "║  • Match patterns to expressions                                 ║\n")
-  (display "║  • Build streaks for bonus points                                ║\n")
-  (display "║  • Level up as you progress                                      ║\n")
-  (display "║                                                                  ║\n")
-  (display "║  Use (lk-answer N) to answer, (lk-quit) to end.                  ║\n")
-  (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n=== λ LAMBDA KOMBAT ===\n")
+  (display "Match S-expression patterns to score points.\n")
+  (display "Commands: (lk-answer N), (lk-next), (lk-quit), (lk-help)\n\n")
   
   (set! *lk-state* (make-game-state))
   (lk-next))
@@ -349,24 +333,12 @@
         [rounds (cdr (assq 'rounds state))]
         [correct (cdr (assq 'correct state))]
         [best-streak (cdr (assq 'best-streak state))])
-       
-       (display "\n")
-       (display "╔══════════════════════════════════════════════════════════════════╗\n")
-       (display "║                      GAME OVER                                   ║\n")
-       (display "╠══════════════════════════════════════════════════════════════════╣\n")
-       (display (format "║  Final Score: ~a~a║\n"
-                        score
-                        (make-string (max 0 (- 52 (string-length (number->string score)))) #\space)))
-       (display (format "║  Accuracy: ~a/~a (~a%)~a║\n"
-                        correct rounds
+       (display "\n=== GAME OVER ===\n")
+       (display (format "Score: ~a | Accuracy: ~a/~a (~a%) | Best Streak: ~a\n"
+                        score correct rounds
                         (if (> rounds 0) (quotient (* 100 correct) rounds) 0)
-                        (make-string (max 0 (- 43 (string-length (format "~a/~a" correct rounds)))) #\space)))
-       (display (format "║  Best Streak: ~a~a║\n"
-                        best-streak
-                        (make-string (max 0 (- 49 (string-length (number->string best-streak)))) #\space)))
-       (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
-       
-       (display "  Use (lk-submit) to submit your score to the leaderboard.\n")))
+                        best-streak))
+       (display "Use (lk-submit) to post to leaderboard.\n")))
 
 ;;; ============================================================
 ;;; Leaderboard
@@ -449,13 +421,10 @@
                      (list-head sorted 10)
                      sorted)])
         
-        (display "\n")
-        (display "╔══════════════════════════════════════════════════════════════════╗\n")
-        (display "║              λ LAMBDA KOMBAT LEADERBOARD                         ║\n")
-        (display "╠══════════════════════════════════════════════════════════════════╣\n")
+        (display "\n=== λ LEADERBOARD ===\n")
         
         (if (null? top-10)
-            (display "║  No scores yet! Be the first to play!                           ║\n")
+            (display "No scores yet.\n")
             (let loop ([scores top-10] [rank 1])
                  (unless (null? scores)
                          (let* ([s (car scores)]
@@ -466,15 +435,9 @@
                                 [score (if (and score-pair (number? (cdr score-pair))) (cdr score-pair) 0)]
                                 [accuracy (if (and accuracy-pair (number? (cdr accuracy-pair))) (cdr accuracy-pair) 0)]
                                 [author-str (if (symbol? author) (symbol->string author) (format "~a" author))])
-                               (display (format "║  ~a. ~a - ~a pts (~a%)~a║\n"
-                                                rank author-str score accuracy
-                                                (make-string (max 0 (- 40
-                                                                       (string-length author-str)
-                                                                       (string-length (number->string score))
-                                                                       (string-length (number->string accuracy)))) #\space))))
-                         (loop (cdr scores) (+ rank 1)))))
-        
-        (display "╚══════════════════════════════════════════════════════════════════╝\n")))
+                               (display (format "~a. ~a: ~a pts (~a%)\n"
+                                                rank author-str score accuracy)))
+                         (loop (cdr scores) (+ rank 1)))))))
 
 ;;; ============================================================
 ;;; Practice Mode (non-interactive, for testing)
@@ -498,46 +461,22 @@
 
 (define (lk-help)
   (display "
-  ╔══════════════════════════════════════════════════════════════════╗
-  ║                    λ LAMBDA KOMBAT HELP                          ║
-  ╚══════════════════════════════════════════════════════════════════╝
+=== λ LAMBDA KOMBAT HELP ===
 
-  COMMANDS:
-    (lambda-kombat)         Start a new game
-    (lk-next)               Get next puzzle
-    (lk-answer N)           Answer with option N (1-4)
-    (lk-quit)               End game and see results
-    (lk-submit)             Submit score to leaderboard
-    (lk-leaderboard)        View high scores
-    (lk-help)               Show this help
+COMMANDS:
+  (lambda-kombat)   Start game
+  (lk-next)         Next puzzle
+  (lk-answer N)     Answer 1-4
+  (lk-quit)         End game
+  (lk-submit)       Post score
+  (lk-leaderboard)  High scores
 
-  PATTERN SYNTAX:
-    _                       Wildcard - matches anything
-    ?x, ?y, ?name           Named capture - binds to value
-    (pattern ...)           List - matches element-by-element
-    atom                    Literal - must equal exactly
+PATTERNS:
+  _        Wildcard (matches anything)
+  ?x       Named capture (must match consistently)
+  (...)    List (element-by-element)
+  atom     Literal (exact match)
 
-  EXAMPLES:
-    (lambda (?x) ?x)        Matches (lambda (a) a) - binds x to 'a'
-    (+ _ _)                 Matches (+ 1 2), (+ x y), etc.
-    (if _ _ _)              Matches any 3-branch if expression
-    (lambda (?x) (+ ?x 1))  Matches (lambda (y) (+ y 1)) - ?x binds to 'y'
-
-  SCORING:
-    • 10 × level × (streak + 1) points per correct answer
-    • Level up every 5 correct answers
-    • Max level: 3
-
-  TIPS:
-    • _ matches ANYTHING without binding
-    • Named captures (?x) must match the same value each time
-    • Build streaks for massive point multipliers!
-
-  GAMEPLAY:
-    1. (lambda-kombat)      ; Start game, get first puzzle
-    2. (lk-answer 2)        ; Answer with option 2
-    3. (lk-next)            ; Get next puzzle
-    4. (lk-answer 1)        ; Keep playing...
-    5. (lk-quit)            ; End game
-    6. (lk-submit)          ; Submit to leaderboard
+SCORING: 10 * level * (streak + 1) per correct answer
+Level up every 5 correct. Max level 3.
 "))

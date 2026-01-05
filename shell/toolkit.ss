@@ -93,13 +93,7 @@
 ;;; toolkit-help-all : → void
 ;;; Display all tools organized by category.
 (define (toolkit-help-all)
-  (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════════════════╗\n")
-  (display "║                    THE FOLD DEVELOPMENT TOOLKIT                         ║\n")
-  (display "╚══════════════════════════════════════════════════════════════════════════╝\n")
-  (display "\n")
-  (display "A comprehensive set of tools for building on and introspecting The Fold.\n")
-  (display "\n")
+  (display "\n=== THE FOLD TOOLKIT ===\n\n")
   
   (for-each
    (lambda (cat-entry)
@@ -270,18 +264,8 @@
 ;;; Initialization
 ;;; ============================================================
 
-(display "\n")
-(display "╔══════════════════════════════════════════════════════════════════════════╗\n")
-(display "║                    THE FOLD DEVELOPMENT TOOLKIT                         ║\n")
-(display "╚══════════════════════════════════════════════════════════════════════════╝\n")
-(display "\n")
-(display "Toolkit index loaded.\n")
-(display "\n")
-(display "Quick Start:\n")
-(display "  (toolkit-help)              - Show all available tools\n")
-(display "  (toolkit-load 'tool-name)   - Load a specific tool\n")
-(display "  (toolkit-load-all)          - Load everything\n")
-(display "\n")
+(display "\n=== TOOLKIT LOADED ===\n")
+(display "(toolkit-help) - list tools | (toolkit-load 'name) - load tool\n\n")
 (display "Quick Access:\n")
 (display "  (deps-check \"dir\")          - Check dependencies\n")
 (display "  (find-uses 'symbol)         - Find symbol uses\n")

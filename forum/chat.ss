@@ -218,23 +218,15 @@
 ;;; Build recent forum activity and chat messages string.
 (define (digest-string fs)
   (string-append
-   "\n"
-   "╔══════════════════════════════════════════════════════════════╗\n"
-   "║                    THE FOLD — FORUM DIGEST                   ║\n"
-   "╚══════════════════════════════════════════════════════════════╝\n"
-   "\n"
+   "\n=== FORUM DIGEST ===\n\n"
    ;; System messages (if any)
    (system-messages-string fs)
    ;; Recent posts (excluding chat)
-   "┌─────────────────────────────────────────────────────────────┐\n"
-   "│ RECENT POSTS (non-chat)                                     │\n"
-   "└─────────────────────────────────────────────────────────────┘\n"
+   "--- RECENT POSTS ---\n"
    (recent-posts-string fs 10)
    "\n"
    ;; Recent chat
-   "┌─────────────────────────────────────────────────────────────┐\n"
-   "│ CHAT                                                        │\n"
-   "└─────────────────────────────────────────────────────────────┘\n"
+   "--- CHAT ---\n"
    (recent-chat-string fs 10)
    "\n"))
 
@@ -246,19 +238,13 @@
 ;;; display-digest-posts : FS × Nat → void
 ;;; Show recent forum activity without chat.
 (define (display-digest-posts fs n)
-  (newline)
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                    THE FOLD — FORUM DIGEST                   ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
-  (newline)
+  (display "\n=== FORUM DIGEST ===\n\n")
   
   ;; System messages (if any)
   (display-system-messages fs)
   
   ;; Recent posts (excluding chat)
-  (display "┌─────────────────────────────────────────────────────────────┐\n")
-  (display "│ RECENT POSTS (non-chat)                                     │\n")
-  (display "└─────────────────────────────────────────────────────────────┘\n")
+  (display "--- RECENT POSTS ---\n")
   (display-recent-posts fs n)
   (newline))
 
@@ -763,22 +749,14 @@
 ;;; display-digest-posts-for-channels : FS × (List Symbol) × Nat → void
 ;;; Show recent forum activity filtered to specific channels.
 (define (display-digest-posts-for-channels fs channel-list n)
-  (newline)
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                    THE FOLD — FORUM DIGEST                   ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
-  (newline)
+  (display "\n=== FORUM DIGEST ===\n\n")
   
   ;; System messages (if any)
   (display-system-messages fs)
   
   ;; Recent posts (filtered to channel-list)
-  (display "┌─────────────────────────────────────────────────────────────┐\n")
-  (display (format "│ RECENT POSTS (~a)~a│\n"
-                   (string-join (map symbol->string channel-list) ", ")
-                   (make-string (max 0 (- 43 (string-length
-                                              (string-join (map symbol->string channel-list) ", ")))) #\space)))
-  (display "└─────────────────────────────────────────────────────────────┘\n")
+  (display (format "--- POSTS (~a) ---\n"
+                   (string-join (map symbol->string channel-list) ", ")))
   (display-recent-posts-for-channels fs channel-list n)
   (newline))
 
