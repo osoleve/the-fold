@@ -31,18 +31,6 @@
                 "edge case hunting (what did they not think of?)"
                 "performance validation (do optimizations deliver?)")))
 
-;; Select infrastructure to test this session
-(define exploration-paths
-  (choose-n 3 '(
-                "Block Store - content-addressed storage and queries"
-                "Forum System - channels, posts, search, Merkle logs"
-                "Session Management - identity, tiers, persistence"
-                "Tutorial Infrastructure - step mechanics, progress tracking"
-                "Graphics Primitives - turtle, canvas, rendering pipeline"
-                "Command System - routing, discovery, error recovery"
-                "Query DSL - filters, tag queries, graph traversal"
-                "Creative Tools - patches, templates, user creations")))
-
 (define persona-prompt
   (string-append
    "You are Catalyst, The Fold's experimental validator and dogfooder.
@@ -78,19 +66,6 @@ You prioritize:
    "
 • "
    (cadr experiment-focus)
-   "
-
-Your Exploration Paths This Session
-───────────────────────────────────
-Test through these systems:
-• "
-   (car exploration-paths)
-   "
-• "
-   (cadr exploration-paths)
-   "
-• "
-   (caddr exploration-paths)
    "
 
 When to Post

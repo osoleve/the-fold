@@ -109,9 +109,9 @@
 ;;; Reverse sequential.
 (define <-- stage-<<<)
 
-;;; pipe> : a -> (a -> Stage) -> Stage
+;;; |>  : a -> (a -> Stage) -> Stage
 ;;; Pipe value into stage constructor.
-(define (pipe> value stage-fn)
+(define (|> value stage-fn)
   (stage-fn value))
 
 ;;; ============================================================
@@ -216,7 +216,7 @@
                                                           (if (stage-err? result)
                                                               (stage-err-message result)
                                                               "unknown error")))]
-                                         [else result])]))))))
+                                         [else result])])))))))
 
 ;;; gate : (a -> Boolean) -> Stage -> Stage
 ;;; Only proceed if condition met.
@@ -321,35 +321,33 @@
 (define (fsm-pipeline states initial-state accepting-states)
   (make-stage 'fsm
               (lambda (ctx input)
-                      (let ([max-fuel (ctx-fuel ctx)])
-                           (let loop ([current-state initial-state]
-                                      [data input]
-                                      [fuel max-fuel])
-                                (if (= fuel 0)
-                                    (stage-err 'fsm-exhausted "FSM exceeded fuel limit" current-state)
-                                    (let ([state-spec (assq current-state states)])
-                                         (if (not state-spec)
-                                             (stage-err 'fsm-invalid-state
-                                                        (format "Unknown state: ~a" current-state)
-                                                        current-state)
-                                             (let* ([stage (cadr state-spec)]
-                                                    [transitions (cddr state-spec)]
-                                                    [result (run-stage stage ctx data)])
-                                                   (cond
-                                                    [(stage-ok? result)
-                                                     ;; Check accepting AFTER running stage
-                                                     (if (memq current-state accepting-states)
-                                                         result  ; Return result from accepting state
-                                                         (let ([next (find-transition 'ok transitions)])
-                                                              (if next
-                                                                  (loop next (stage-result-value result) (- fuel 1))
-                                                                  (stage-ok (stage-result-value result)))))]
-                                                    [(stage-err? result)
-                                                     (let ([next (find-transition (stage-err-code result) transitions)])
-                                                          (if next
-                                                              (loop next data (- fuel 1))
-                                                              result))]
-                                                    [else result]))))))))))
+                      (let loop ([current-state initial-state]
+                                 [data input]
+                                 [fuel 1000])
+                           (if (= fuel 0)
+                               (stage-err 'fsm-exhausted "FSM exceeded fuel limit" current-state)
+                               (if (memq current-state accepting-states)
+                                   (stage-ok data)
+                                   (let ([state-spec (assq current-state states)])
+                                        (if (not state-spec)
+                                            (stage-err 'fsm-invalid-state
+                                                       (format "Unknown state: ~a" current-state)
+                                                       current-state)
+                                            (let* ([stage (cadr state-spec)]
+                                                   [transitions (cddr state-spec)]
+                                                   [result (run-stage stage ctx data)])
+                                                  (cond
+                                                   [(stage-ok? result)
+                                                    (let ([next (find-transition 'ok transitions)])
+                                                         (if next
+                                                             (loop next (stage-result-value result) (- fuel 1))
+                                                             (stage-ok (stage-result-value result))))]
+                                                   [(stage-err? result)
+                                                    (let ([next (find-transition (stage-err-code result) transitions)])
+                                                         (if next
+                                                             (loop next data (- fuel 1))
+                                                             result))]
+                                                   [else result]))))))))))
 
 ;;; find-transition : Symbol -> Alist -> Maybe Symbol
 (define (find-transition result-type transitions)
@@ -494,7 +492,7 @@
 ;;;   with-model, with-fuel, with-persona, with-env
 ;;;
 ;;; Operators:
-;;;   -->, <--, pipe>
+;;;   -->, <--, |>
 ;;;
 ;;; Patterns:
 ;;;   parse-json, to-json, split-lines, join-lines

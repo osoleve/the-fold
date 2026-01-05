@@ -189,15 +189,13 @@
                        (state-cache st)))
 
 ;;; state-cache-put : PipelineState -> Any -> Any -> PipelineState
-;;; Add to cache (key-value), replacing any existing entry for key.
+;;; Add to cache (key-value).
 (define (state-cache-put st key value)
   (make-pipeline-state (state-log st)
                        (state-artifacts st)
                        (state-checkpoints st)
                        (state-metrics st)
-                       (cons (cons key value)
-                             (filter (lambda (p) (not (equal? (car p) key)))
-                                     (state-cache st)))))
+                       (cons (cons key value) (state-cache st))))
 
 ;;; state-cache-get : PipelineState -> Any -> Any
 (define (state-cache-get st key)

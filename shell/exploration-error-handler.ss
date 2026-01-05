@@ -12,11 +12,9 @@
 ;;;   Instead of: (guard (e (else (display (condition-message e))))
 ;;;
 ;;; NOTE: string-contains? provided by core/prelude.ss.
-;;;       This module now delegates to shell/condition-formatter.ss
-;;;       for the actual formatting logic.
+;;;       string-replace-all and string-find-pattern are unique to this module.
 
 (load "core/base/prelude.ss")
-(load "shell/condition-formatter.ss")
 
 ;;; ============================================================
 ;;; Error Message Formatting
@@ -24,9 +22,15 @@
 
 ;;; format-exploration-error : Condition → String
 ;;; Format a Chez Scheme condition for display in exploration scripts.
-;;; Now delegates to the centralized condition formatter.
+;;; This fixes the ~s placeholder bug by extracting and formatting
+;;; the actual error details.
 (define (format-exploration-error condition)
-  (format-condition condition))
+  (let* ([msg (condition-message condition)]
+         [who (if (who-condition? condition) (condition-who condition) #f)]
+         [irritants (if (irritants-condition? condition)
+                        (condition-irritants condition)
+                        '())])
+        (format-condition-message msg who irritants)))
 
 ;;; format-condition-message : String × Symbol × List → String
 ;;; Format the condition message, handling ~s placeholders properly.

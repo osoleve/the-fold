@@ -86,21 +86,13 @@
 
 ;;; apply-subst : Subst × Type → Type
 ;;; Apply a substitution to a type.
-;;; Includes cycle detection to prevent infinite recursion on malformed substitutions.
 (define (apply-subst s type)
-  (apply-subst-with-visited s type '()))
-
-;;; apply-subst-with-visited : Subst × Type × (List Symbol) → Type
-;;; Helper that tracks visited type variables to detect cycles.
-(define (apply-subst-with-visited s type visited)
   (cond
    [(type-var? type)
-    (if (memq type visited)
-        type  ; Cycle detected, return type variable as-is
-        (let ([replacement (subst-lookup s type)])
-             (if replacement
-                 (apply-subst-with-visited s replacement (cons type visited))  ; Chase chains with cycle detection
-                 type)))]
+    (let ([replacement (subst-lookup s type)])
+         (if replacement
+             (apply-subst s replacement)  ; Chase chains
+             type))]
    [(or (base-type? type) (hole? type)) type]
    [(not (pair? type)) type]
    ;; Don't substitute bound variables
@@ -115,15 +107,15 @@
                              bound-raw)]
            ;; Remove bound vars from substitution
            [s* (filter (lambda (p) (not (memq (car p) bound-names))) s)])
-          `(∀ ,bound-raw ,(apply-subst-with-visited s* body visited)))]
+          `(∀ ,bound-raw ,(apply-subst s* body)))]
    [(eq? (car type) 'μ)
     (let ([var (cadr type)]
           [body (caddr type)])
          (let ([s* (filter (lambda (p) (not (eq? (car p) var))) s)])
-              `(μ ,var ,(apply-subst-with-visited s* body visited))))]
+              `(μ ,var ,(apply-subst s* body))))]
    [else
     (cons (car type)
-          (map (lambda (t) (apply-subst-with-visited s t visited)) (cdr type)))]))
+          (map (lambda (t) (apply-subst s t)) (cdr type)))]))
 
 ;;; compose-subst : Subst × Subst → Subst
 ;;; Compose two substitutions: (compose s1 s2) applies s2 then s1.
@@ -170,29 +162,6 @@
         ;; the programmer knows what they're doing with partial type annotations.
         [(hole? t1) `(ok ,s)]
         [(hole? t2) `(ok ,s)]
-        
-        ;; Recursive types: (μ var1 body1) ~ (μ var2 body2)
-        ;; Handle alpha-equivalence: rename var2 to var1 in body2, then unify bodies
-        ;; CRITICAL: Remove bound variable from resulting substitution!
-        [(and (pair? t1) (pair? t2) (eq? (car t1) 'μ) (eq? (car t2) 'μ))
-         (let ([var1 (cadr t1)]
-               [body1 (caddr t1)]
-               [var2 (cadr t2)]
-               [body2 (caddr t2)])
-              ;; Rename var2 to var1 in body2 for alpha-equivalence
-              (let* ([rename-subst (if (eq? var1 var2)
-                                       '()
-                                       (list (cons var2 var1)))]
-                     [body2-renamed (apply-subst rename-subst body2)]
-                     [result (unify-with s body1 body2-renamed)])
-                    (if (eq? (car result) 'ok)
-                        ;; Remove bound variables from substitution
-                        (let ([unified-subst (cadr result)])
-                             `(ok ,(filter (lambda (p)
-                                                   (not (or (eq? (car p) var1)
-                                                            (eq? (car p) var2))))
-                                           unified-subst)))
-                        result)))]
         
         ;; Both are compound types with same constructor
         [(and (pair? t1) (pair? t2) (eq? (car t1) (car t2)))
@@ -309,13 +278,12 @@
 (define (infer expr env)
   (cond
    ;; Literals
-   ;; Numeric literals:
-   ;; - Exact integers infer as Int (Nat requires explicit annotation)
-   ;; - Inexact numbers (floats like 2.0) infer as Real for autodiff
-   [(number? expr)
-    (if (and (integer? expr) (exact? expr))
-        `(ok Int ,empty-subst)
-        `(ok Real ,empty-subst))]
+   ;; All numeric literals infer as Int for practical reasons:
+   ;; - Nat exists but requires explicit annotation (: 42 Nat)
+   ;; - Without subtyping (Nat ⊆ Int), Nat literals wouldn't work with
+   ;;   arithmetic primitives which expect Int
+   ;; - Floats also become Int (no Real type yet — future work)
+   [(number? expr) `(ok Int ,empty-subst)]
    [(boolean? expr) `(ok Bool ,empty-subst)]
    [(string? expr) `(ok String ,empty-subst)]
    [(and (pair? expr) (eq? (car expr) 'quote))
@@ -738,129 +706,17 @@
     (vector? . (∀ (a) (-> a Bool)))
     (list? . (∀ (a) (-> a Bool)))
     (boolean? . (∀ (a) (-> a Bool)))
-    (procedure? . (∀ (a) (-> a Bool)))
-    
-    ;; Real number arithmetic (for autodiff)
-    (real+ . (-> Real Real Real))
-    (real- . (-> Real Real Real))
-    (real* . (-> Real Real Real))
-    (real/ . (-> Real Real Real))
-    (real-neg . (-> Real Real))
-    (real-abs . (-> Real Real))
-    (sqrt . (-> Real Real))
-    (exp . (-> Real Real))
-    (log . (-> Real Real))
-    (sin . (-> Real Real))
-    (cos . (-> Real Real))
-    (tan . (-> Real Real))
-    (asin . (-> Real Real))
-    (acos . (-> Real Real))
-    (atan . (-> Real Real))
-    (atan2 . (-> Real Real Real))
-    (pow . (-> Real Real Real))
-    (floor . (-> Real Int))
-    (ceiling . (-> Real Int))
-    (round . (-> Real Int))
-    (truncate . (-> Real Int))
-    (int->real . (-> Int Real))
-    (real->int . (-> Real Int))
-    
-    ;; Autodiff primitives
-    ;; lift : T → (Diff T) — Lift constant to differentiable (zero gradient)
-    (lift . (∀ (a) (-> a (Diff a))))
-    ;; primal : (Diff T) → T — Extract primal (forward) value
-    (primal . (∀ (a) (-> (Diff a) a)))
-    ;; gradient : (Diff T) → (Grad T) — Extract gradient
-    (gradient . (∀ (a) (-> (Diff a) (Grad a))))
-    ;; grad : ((Diff T) → (Diff T)) → T → T — Compute gradient at a point
-    (grad . (∀ (a) (-> (-> (Diff a) (Diff a)) a a)))
-    ;; grad-at : ((Diff T) → (Diff T)) → T → (Grad T) — Compute gradient (explicit return type)
-    (grad-at . (∀ (a) (-> (-> (Diff a) (Diff a)) a (Grad a))))
-    ;; grad-value : (Grad T) → T — Unwrap gradient to raw value
-    (grad-value . (∀ (a) (-> (Grad a) a)))
-    
-    ;; Differentiable arithmetic
-    ;; These operate on Diff values and propagate gradients
-    (d+ . (∀ (a) (-> (Diff a) (Diff a) (Diff a))))
-    (d- . (∀ (a) (-> (Diff a) (Diff a) (Diff a))))
-    (d* . (∀ (a) (-> (Diff a) (Diff a) (Diff a))))
-    (d/ . (∀ (a) (-> (Diff a) (Diff a) (Diff a))))
-    (d-neg . (∀ (a) (-> (Diff a) (Diff a))))
-    (d-sqrt . (-> (Diff Real) (Diff Real)))
-    (d-exp . (-> (Diff Real) (Diff Real)))
-    (d-log . (-> (Diff Real) (Diff Real)))
-    (d-sin . (-> (Diff Real) (Diff Real)))
-    (d-cos . (-> (Diff Real) (Diff Real)))
-    (d-pow . (-> (Diff Real) (Diff Real) (Diff Real)))
-    
-    ;; Inverse trigonometry (differentiable)
-    (d-tan . (-> (Diff Real) (Diff Real)))
-    (d-asin . (-> (Diff Real) (Diff Real)))
-    (d-acos . (-> (Diff Real) (Diff Real)))
-    (d-atan . (-> (Diff Real) (Diff Real)))
-    (d-atan2 . (-> (Diff Real) (Diff Real) (Diff Real)))
-    
-    ;; Linear algebra (differentiable)
-    ;; d-dot : inner product of two vectors
-    (d-dot . (∀ (n) (-> (Diff (Vec n Real)) (Diff (Vec n Real)) (Diff Real))))
-    ;; d-matmul : matrix multiplication
-    (d-matmul . (∀ (m n p) (-> (Diff (Matrix m n Real)) (Diff (Matrix n p Real)) (Diff (Matrix m p Real)))))
-    ;; d-transpose : matrix transpose
-    (d-transpose . (∀ (m n) (-> (Diff (Matrix m n Real)) (Diff (Matrix n m Real)))))))
+    (procedure? . (∀ (a) (-> a Bool)))))
 
 (define (lookup-prim-type op)
   (let ([entry (assq op prim-types)])
        (if entry (cdr entry) #f)))
 
-;;; ============================================================
-;;; Numeric Constraint Validation for Autodiff
-;;; ============================================================
-
-;;; Autodiff primitives with polymorphic types that require numeric inner types.
-;;; These are the primitives where the type variable 'a' in (Diff a) must be numeric.
-(define numeric-constrained-prims
-  '(lift primal gradient grad grad-at d+ d- d* d/ d-neg))
-
-;;; contains-invalid-diff? : Type → Type | #f
-;;; Returns the first non-numeric inner type found in a Diff, or #f if all valid.
-(define (contains-invalid-diff? type)
-  (cond
-   [(not (pair? type)) #f]
-   [(eq? (car type) 'Diff)
-    (let ([inner (cadr type)])
-         ;; Type variables are allowed (constraint deferred to instantiation site)
-         (if (or (type-var? inner) (numeric-type? inner))
-             ;; Check recursively in case of nested types
-             (contains-invalid-diff? inner)
-             inner))]
-   [(eq? (car type) 'Grad)
-    (let ([inner (cadr type)])
-         (if (or (type-var? inner) (numeric-type? inner))
-             (contains-invalid-diff? inner)
-             inner))]
-   [else
-    ;; Check all subexpressions
-    (let loop ([parts (cdr type)])
-         (if (null? parts)
-             #f
-             (or (contains-invalid-diff? (car parts))
-                 (loop (cdr parts)))))]))
-
 (define (infer-prim op args env)
   (let ([prim-type (lookup-prim-type op)])
        (if prim-type
            (let ([inst-type (instantiate prim-type)])
-                (let ([result (infer-app-args inst-type args empty-subst env)])
-                     (if (eq? (car result) 'ok)
-                         ;; Validate numeric constraint for autodiff prims
-                         (if (memq op numeric-constrained-prims)
-                             (let* ([ret-type (cadr result)]
-                                    [invalid-type (contains-invalid-diff? ret-type)])
-                                   (if invalid-type
-                                       `(error non-numeric-diff-type ,invalid-type ,op)
-                                       result))
-                             result)
-                         result)))
+                (infer-app-args inst-type args empty-subst env))
            `(error unknown-primitive ,op))))
 
 ;;; ============================================================
@@ -936,10 +792,6 @@
          (format "Unknown primitive: ~a" (caddr err))]
         [(no-instance-found)
          (format "No type class instance found for constraint: ~a" (caddr err))]
-        [(non-numeric-diff-type)
-         (format "Diff type requires numeric inner type, got ~a in primitive ~a"
-                 (type->string (caddr err))
-                 (cadddr err))]
         [else (format "~s" err)]))
 
 ;;; ============================================================

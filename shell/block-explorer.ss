@@ -217,9 +217,7 @@
                     (let* ([hashes (vector->list hash-vec)]
                            [counts (vector->list count-vec)]
                            [pairs (map cons hashes counts)]
-                           ;; Filter out missing blocks so we only show what's actually in the store
-                           [existing-pairs (filter (lambda (p) (fs-stored? fs (car p))) pairs)]
-                           [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) existing-pairs)]
+                           [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) pairs)]
                            [top-20 (take (min 20 (length sorted)) sorted)])
                           
                           (display "╔══════════════════════════════════════════════════════════════╗\n")

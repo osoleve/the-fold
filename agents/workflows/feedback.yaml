@@ -1,84 +1,57 @@
 # Feedback/Dogfooding Agent Workflow Template
 #
-# Tests infrastructure and tools through varied exploratory paths.
-# Focus on underlying systems, not specific user creations.
-#
-# Exploration Paths (infrastructure-focused):
-#   - Block Store: Content-addressed storage, queries, graph ops
-#   - Forum System: Channels, posts, Merkle logs, search
-#   - Session Management: Identity, tiers, persistence
-#   - Tutorial Infrastructure: Step mechanics, progress tracking
-#   - Graphics Primitives: Turtle, canvas, rendering
-#   - Command System: Routing, discovery, error recovery
-#   - Query DSL: Filters, tag queries, graph traversal
-#   - Creative Tools: Patches, templates, loading mechanisms
+# Tests features and gathers feedback on The Fold.
 
 name: feedback
-description: Varied exploratory dogfooding with real interactions
+description: Test features and report findings
 
 steps:
   - name: login
     type: fold
-    expr: "(hi '${tier} '${agent_name} \"Starting dogfood exploration session\")"
+    expr: "(hi '${tier} '${agent_name})"
 
-  - name: load-explorer
-    type: fold
-    expr: "(load \"agents/pipelines/dogfood-explorer.ss\")"
-
-  - name: choose-depth
+  - name: plan-tests
     type: llm
     system: |
       You are ${agent_name}, a dogfooding agent for The Fold.
-      Your job is to test features through real exploration.
+      Your job is to test features as a real user would and report issues.
 
-      Choose an exploration depth based on these factors:
-      - Time of day: late night/early morning = quick, daytime = deep
-      - Day of week: weekends = deep exploration
-      - Random factor: 30% chance of opposite choice
+      Test suites available: ${test_suites}
     prompt: |
-      Current time: ${timestamp}
+      Plan your testing session. Pick 1-3 things to test from your available suites.
 
-      Choose exploration depth.
       Respond with JSON:
       ```json
       {
-        "depth": "deep" or "quick",
-        "reasoning": "why this depth"
+        "tests": [
+          {"suite": "suite-name", "action": "what to test", "expected": "what should happen"}
+        ],
+        "reasoning": "why these tests"
       }
       ```
     output_format: json
 
-  - name: run-exploration
+  - name: run-tests
     type: fold
-    expr: "(dogfood-session '${steps.choose-depth.output.depth})"
-
-  - name: get-report
-    type: fold
-    expr: "(dogfood-report)"
+    # TODO: Implement actual test runner that consumes steps.plan-tests.output
+    expr: "(help)"  # Placeholder: Simple smoke test for now
 
   - name: evaluate
     type: llm
-    system: |
-      You are evaluating dogfood exploration results.
-      Focus on:
-      - Real issues that affect usability
-      - Patterns across multiple areas
-      - Suggestions for improvement
+    system: You are evaluating test results.
     prompt: |
-      Exploration depth: ${steps.choose-depth.output.depth}
-      Session report: ${steps.get-report.output}
+      Test plan: ${steps.plan-tests.output}
+      Test output: ${steps.run-tests.output}
 
-      Analyze the dogfood results. What's noteworthy?
+      Evaluate the results. Did things work as expected?
 
       Respond with JSON:
       ```json
       {
-        "summary": "1-2 sentence overview",
-        "critical_issues": ["only real problems"],
-        "patterns": ["cross-cutting observations"],
-        "suggestions": ["actionable improvements"],
-        "report_worthy": true/false,
-        "severity": "info" | "warning" | "critical"
+        "passed": true/false,
+        "issues": ["issue1", "issue2"],
+        "suggestions": ["suggestion1"],
+        "report_worthy": true/false
       }
       ```
     output_format: json
@@ -86,14 +59,7 @@ steps:
   - name: report
     type: fold
     when: "${steps.evaluate.output.report_worthy} == true"
-    expr: |
-      (msg 'engineering
-           "Dogfood Report: ${steps.evaluate.output.severity}"
-           "${steps.evaluate.output.summary}\n\nIssues: ${steps.evaluate.output.critical_issues}\n\nSuggestions: ${steps.evaluate.output.suggestions}")
-
-  - name: chat-summary
-    type: fold
-    expr: "(chat \"Dogfood session complete. Explored ${steps.choose-depth.output.depth}. ${steps.evaluate.output.summary}\")"
+    expr: "(msg '${report_channel} \"Dogfooding Report\" \"Issues: ${steps.evaluate.output.issues}\")"
 
   - name: logout
     type: fold

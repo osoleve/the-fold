@@ -94,20 +94,13 @@
       (cons (cons (car xs) (car ys))
             (zip (cdr xs) (cdr ys)))))
 
-;;; iota : Nat [Nat] [Nat] → (List Nat)
-;;; Generate list of n numbers starting from start with step.
-;;; (iota 5)       → (0 1 2 3 4)
-;;; (iota 5 1)     → (1 2 3 4 5)
-;;; (iota 5 0 2)   → (0 2 4 6 8)
-(define iota
-  (case-lambda
-   [(n) (iota n 0 1)]
-   [(n start) (iota n start 1)]
-   [(n start step)
-    (let loop ([i 0] [val start] [acc '()])
-         (if (= i n)
-             (reverse acc)
-             (loop (+ i 1) (+ val step) (cons val acc))))]))
+;;; iota : Nat → (List Nat)
+;;; Generate list [0, 1, ..., n-1].
+(define (iota n)
+  (let loop ([i 0] [acc '()])
+       (if (= i n)
+           (reverse acc)
+           (loop (+ i 1) (cons i acc)))))
 
 ;;; take : Nat × (List α) → (List α)
 ;;; Take first n elements.

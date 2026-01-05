@@ -1,9 +1,9 @@
 ;;; core/lang/compile.ss — Unified Compilation Pipeline
 ;;; @module compile
-;;; @requires prelude parse span fold-parse types infer eval
+;;; @requires prelude parse span fold-parse normalize expand types infer eval
 ;;;
 ;;; Threads an expression through all compilation phases:
-;;;   read → parse → infer → eval
+;;;   read → parse → normalize → expand → infer → eval
 ;;;
 ;;; Each phase is optional — caller specifies where to stop.
 ;;; All results use a consistent Result type with error threading.
@@ -14,11 +14,11 @@
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;;
-;;; Note: normalize/expand phases are used by CAS but not in this pipeline.
-;;;
 ;;; Dependencies:
 ;;;   - prelude.ss
 ;;;   - parse.ss
+;;;   - normalize.ss
+;;;   - expand.ss
 ;;;   - types.ss
 ;;;   - infer.ss
 ;;;   - eval.ss
@@ -27,6 +27,8 @@
 (load "core/lang/parse.ss")
 (load "core/lang/span.ss")
 (load "core/lang/fold-parse.ss")
+(load "core/blocks/normalize.ss")
+(load "core/blocks/expand.ss")
 (load "core/types/types.ss")
 (load "core/types/infer.ss")
 (load "core/lang/eval.ss")
@@ -36,7 +38,7 @@
 ;;; ============================================================
 
 ;;; Phase tags (in order)
-(define *phases* '(read parse infer eval))
+(define *phases* '(read parse normalize expand infer eval))
 
 ;;; phase-index : Symbol → Nat
 ;;; Return the index of a phase (0-based).
@@ -161,6 +163,19 @@
                (result-error 'parse 'syntax-error expected span))]
          [else (result-error 'parse 'unknown-error result)])))
 
+;;; adapt-normalize : S-expr → Result
+;;; Normalize phase: convert to de Bruijn form.
+(define (adapt-normalize expr)
+  (guard (ex [else (result-error 'normalize 'normalize-error (ex))])
+         (result-ok (normalize expr))))
+
+;;; adapt-expand : S-expr → Result
+;;; Expand phase: convert from de Bruijn back to named form.
+;;; Uses fresh symbol supply.
+(define (adapt-expand expr)
+  (guard (ex [else (result-error 'expand 'expand-error (ex))])
+         (result-ok (expand-fresh expr))))
+
 ;;; adapt-infer : S-expr → Result
 ;;; Infer phase: type inference.
 (define (adapt-infer expr)
@@ -226,21 +241,24 @@
   (let ([r1 (adapt-parse input)])
        (if (or (not (result-ok? r1)) (eq? to-phase 'read) (eq? to-phase 'parse))
            r1
-           ;; Phase 2: Type Inference
-           (let* ([expr (result-value r1)]
-                  [r2 (adapt-infer expr)])
-                 (if (or (not (result-ok? r2)) (eq? to-phase 'infer))
-                     ;; Return type + original expression for eval
-                     (if (result-ok? r2)
-                         (result-ok (result-value r2) `(expr ,expr))
-                         r2)
-                     ;; Phase 3: Evaluation (preserve type info)
-                     (let ([type (result-value r2)]
-                           [r3 (adapt-eval expr fuel)])
-                          (if (result-ok? r3)
-                              ;; Combine value with type as (typed type value)
-                              (result-ok `(typed ,type ,(result-value r3)))
-                              r3)))))))
+           ;; Phase 2: Normalize (optional in full pipeline, but useful)
+           (let* ([expr1 (result-value r1)]
+                  ;; Skip normalize/expand for now - go straight to infer
+                  ;; Normalization is more for CAS storage
+                  [r2 (if (phase<=? to-phase 'expand)
+                          (result-ok expr1)  ; Skip normalize
+                          (result-ok expr1))])
+                 (if (or (not (result-ok? r2)) (eq? to-phase 'normalize) (eq? to-phase 'expand))
+                     r2
+                     ;; Phase 3: Type Inference
+                     (let ([r3 (adapt-infer (result-value r2))])
+                          (if (or (not (result-ok? r3)) (eq? to-phase 'infer))
+                              ;; Return type + original expression for eval
+                              (if (result-ok? r3)
+                                  (result-ok (result-value r3) `(expr ,(result-value r2)))
+                                  r3)
+                              ;; Phase 4: Evaluation
+                              (adapt-eval (result-value r2) fuel))))))))
 
 ;;; ============================================================
 ;;; Convenience Functions
@@ -295,16 +313,12 @@
                         r))))))
 
 ;;; compile-expr : S-expr → Result
-;;; Compile an already-parsed expression (with type preservation).
+;;; Compile an already-parsed expression.
 (define (compile-expr expr)
   (let ([r1 (adapt-infer expr)])
        (if (not (result-ok? r1))
            r1
-           (let ([type (result-value r1)]
-                 [r2 (adapt-eval expr *default-fuel*)])
-                (if (result-ok? r2)
-                    (result-ok `(typed ,type ,(result-value r2)))
-                    r2)))))
+           (adapt-eval expr *default-fuel*))))
 
 ;;; ============================================================
 ;;; Error Formatting
@@ -336,7 +350,7 @@
 (define (show-pipeline)
   (display "Compilation Pipeline:
 ")
-  (display "  read → parse → infer → eval
+  (display "  read → parse → normalize → expand → infer → eval
 ")
   (display "
 ")

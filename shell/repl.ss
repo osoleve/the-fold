@@ -46,8 +46,6 @@
 (load "forum/reader.ss")
 (load "shell/user-tracker.ss")  ; Must be after forum/reader.ss, before forum/chat.ss
 (load "forum/chat.ss")
-(load "forum/coordination.ss")   ; Work claims, notifications, reactions
-(load "forum/chat-commands.ss")  ; Chat command dispatcher
 
 ;; Survey utility
 (load "shell/survey.ss")
@@ -464,21 +462,6 @@
   (unless *core-loaded*
           (error ':ann "Core not loaded. Run (load-core) first."))
   (show-annotated expr))
-
-;;; ============================================================
-;;; Error Handling Setup
-;;; ============================================================
-
-;;; Track whether enhanced error handler is installed
-(define *enhanced-error-handler-installed* #f)
-
-;;; install-enhanced-error-handler : → void
-;;; Replace the default exception handler with one that uses format-error.
-;;; TEMPORARILY DISABLED - current-exception-handler not available at load time
-(define (install-enhanced-error-handler)
-  (void))  ;; Disabled for now
-
-;;(install-enhanced-error-handler)
 
 ;;; ============================================================
 ;;; REPL Initialization
