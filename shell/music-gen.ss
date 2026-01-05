@@ -86,12 +86,6 @@
                                    (if (zero? (bitwise-and rule (expt 2 pattern))) 0 1)))
                      (iota n))))
          
-         (define (iota n)
-           (let loop ((i 0) (acc '()))
-                (if (>= i n)
-                    (reverse acc)
-                    (loop (+ i 1) (cons i acc)))))
-         
          (define (cellular-rhythm rule length steps)
            "Generate rhythm using cellular automaton"
            (let ((initial (map (lambda (i) (if (= i (quotient length 2)) 1 0))
