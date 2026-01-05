@@ -71,7 +71,7 @@
     ;; Domain-specific data types (treated as kind *)
     (Matrix . Hash)
     (Vec . Hash)
-    (Vector . Hash)
+    ;; Note: Vector is in builtin-kinds with kind * → *, not mapped here
     (Queue . Hash)
     (Stack . Hash)
     (Dict . Hash)
@@ -171,7 +171,14 @@
     (S-expr . Hash)
     (Options . Hash)
     (Phase . Hash)
-    (Path . Hash)))
+    (Path . Hash)
+    ;; Numeric types (treated as kind *)
+    (Complex . Hash)
+    ;; Error system types (treated as kind *)
+    (Code . Hash)
+    (Details . Hash)
+    (Span . Hash)
+    (Any . Hash)))
 
 ;;; Greek letters used as type variables
 (define greek-type-var-names

@@ -81,7 +81,7 @@
 (define (error-context err)
   (and (error? err) (cadddr err)))
 
-;;; error-details : Error → List
+;;; error-details : Error → (List α)
 (define (error-details err)
   (and (error? err) (cddddr err)))
 
