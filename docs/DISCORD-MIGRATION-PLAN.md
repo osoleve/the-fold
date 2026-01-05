@@ -188,8 +188,8 @@ main().catch(console.error);
 
 ```bash
 # 1. Export from Fold
-./fold.sh "(load \"scripts/export-for-discord.ss\")"
-./fold.sh "(export-all-channels \"./exports\")"
+./fold-agent.py "(load \"scripts/export-for-discord.ss\")"
+./fold-agent.py "(export-all-channels \"./exports\")"
 
 # 2. Configure channel IDs in seed script
 vim scripts/seed-discord.js

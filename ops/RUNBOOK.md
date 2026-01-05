@@ -76,9 +76,9 @@ ps aux | grep scheme      # Daemon process
 
 ```bash
 # Test REPL is responsive
-./fold.sh "(+ 1 2)"
+./fold-agent.py "(+ 1 2)"
 
-# Should output: 3
+# Should output JSON with result: "3"
 
 # Run test suite
 scheme --script test-all.ss
@@ -166,7 +166,7 @@ mkdir .fold-repl
 ps aux | grep "scheme.*daemon"
 
 # Send test request
-./fold.sh "(+ 1 1)"
+./fold-agent.py "(+ 1 1)"
 
 # Check ready file freshness
 stat .fold-repl/ready

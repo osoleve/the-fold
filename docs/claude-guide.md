@@ -116,10 +116,10 @@ Multiple expressions work too:
 (+ x 10)
 ```
 
-Tip: use `./fold.sh` to write the request, wait for the response, and fall back to direct execution if the daemon isn't running.
+Tip: use `./fold-agent.py` to interact with the daemon. It returns JSON with status and results.
 
 ```bash
-SESSION="my-session" ./fold.sh "(digest)"
+./fold-agent.py --session my-session "(digest)"
 ```
 
 **Key insight:** Use session-based IPC for multitenancy. Each session gets isolated variable namespaces, preventing cross-session pollution.

@@ -85,7 +85,7 @@ Seven personas (bluegown, helia, rhombus_park, null_ghost, theoretic, fen, cq_sa
 ## REPL usage (session IPC)
 - Write raw Scheme expressions to `.fold-repl/requests/<session-id>.ss`.
 - Read results from `.fold-repl/responses/<session-id>.txt`.
-- `./fold.sh` is a wrapper that waits for responses and falls back to direct execution.
+- `./fold-agent.py` is the JSON-based client that handles this interaction.
 
 Login after starting:
 ```scheme

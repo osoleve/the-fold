@@ -37,7 +37,7 @@ dispatcher.js   Parses @mentions, enforces anti-loop policies
     ↓
 queue.js        In-memory task queue with disk spillover
     ↓
-worker.js       Polls queue, invokes agent pipelines via fold.sh
+worker.js       Polls queue, invokes agent pipelines via fold-agent.py
     ↓
 bridge.js       Fold→Discord sync via outbox watcher + webhooks
 ```
@@ -48,7 +48,7 @@ bridge.js       Fold→Discord sync via outbox watcher + webhooks
 1. User posts message with `@opus`, `@pedagogue`, or `@archivist`
 2. `dispatcher.js` parses mention, checks anti-loop limits
 3. Task queued with message context
-4. `worker.js` invokes agent via `fold.sh` with trigger file
+4. `worker.js` invokes agent via `fold-agent.py` with trigger file
 5. Agent response posted back via webhook
 
 **Fold → Discord:**

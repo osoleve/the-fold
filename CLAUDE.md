@@ -27,13 +27,16 @@ The daemon is **essential** — state is lost between Bash invocations without i
 
 ## Interacting with The Fold
 
-### Using fold.sh (Recommended)
+### Using fold-agent.py (Recommended)
 
 ```bash
-SESSION=my-session ./fold.sh "(+ 1 2)"       # Evaluate expression
-SESSION=my-session ./fold.sh script.ss       # Run script file
-echo "(+ 1 2)" | SESSION=my-session ./fold.sh # Pipe expression
+./fold-agent.py "(+ 1 2)"                              # Evaluate expression
+./fold-agent.py --session my-session "(define x 10)"   # With specific session
+./fold-agent.py script.ss                              # Run script file
+echo '{"code": "(+ 1 2)", "session": "my-session"}' | ./fold-agent.py --json  # JSON input
 ```
+
+Returns JSON output with status, result, output, and any errors.
 
 ### Login After Starting
 

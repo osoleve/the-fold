@@ -351,7 +351,7 @@ See [RUNBOOK.md](RUNBOOK.md) for detailed troubleshooting procedures.
 systemctl --user is-active the-fold-daemon.service
 
 # Can it respond?
-/home/oso/the-fold/fold.sh "(+ 1 1)"
+/home/oso/the-fold/fold-agent.py "(+ 1 1)"
 
 # Any errors in logs?
 journalctl --user -u the-fold-daemon.service -p err
