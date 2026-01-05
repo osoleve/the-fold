@@ -44,8 +44,10 @@
 ;;; Fuel is a natural number. Each eval call costs 1 fuel.
 ;;; Primitives consume 0 fuel. Suspension happens only at eval boundaries.
 
+;;; fuel? : α → Bool
 (define (fuel? n) (and (integer? n) (>= n 0)))
 
+;;; out-of-fuel? : Nat → Bool
 (define (out-of-fuel? n) (zero? n))
 
 ;;; ============================================================
@@ -54,6 +56,7 @@
 
 ;;; A value is something that doesn't reduce further.
 
+;;; value? : α → Bool
 (define (value? v)
   (or (number? v)
       (string? v)
@@ -63,13 +66,18 @@
       (closure? v)
       (block? v)))
 
+;;; closure? : α → Bool
 (define (closure? v)
   (and (pair? v) (eq? (car v) 'closure)))
 
+;;; closure-params : Closure → (List Symbol)
 (define (closure-params c) (cadr c))
+;;; closure-body : Closure → Expr
 (define (closure-body c) (caddr c))
+;;; closure-env : Closure → Env
 (define (closure-env c) (cadddr c))
 
+;;; make-closure : (List Symbol) × Expr × Env → Closure
 (define (make-closure params body env)
   `(closure ,params ,body ,env))
 
@@ -79,17 +87,21 @@
 
 ;;; An environment is an alist mapping symbols to values.
 
+;;; empty-env : Env
 (define empty-env '())
 
+;;; env-lookup : Env × Symbol → (Result Value Error)
 (define (env-lookup env name)
   (let ([entry (assq name env)])
        (if entry
            `(ok ,(cdr entry))
            `(error unbound-variable ,name))))
 
+;;; env-extend : Env × Symbol × Value → Env
 (define (env-extend env name value)
   (cons (cons name value) env))
 
+;;; env-extend* : Env × (List Symbol) × (List Value) → Env
 (define (env-extend* env names values)
   (if (null? names)
       env
@@ -97,6 +109,7 @@
                    (cdr names)
                    (cdr values))))
 
+;;; env-extend-alist : Env × (List (Pair Symbol Value)) → Env
 (define (env-extend-alist env alist)
   (append alist env))
 
@@ -210,7 +223,7 @@
 ;;;
 ;;; ============================================================
 
-;;; eval-par : Expr × Expr × Env × Fuel → Result
+;;; eval-par : Expr × Expr × Env × Fuel → (Result Value Error)
 ;;; Parallel evaluation hint: (par a b)
 ;;; Evaluate both a and b, return b.
 ;;; Currently evaluates sequentially, but provides a hint for
@@ -227,7 +240,7 @@
              [(suspended) a-result]  ; Forward suspension
              [(error) a-result])))   ; Forward error
 
-;;; eval-pseq : Expr × Expr × Env × Fuel → Result
+;;; eval-pseq : Expr × Expr × Env × Fuel → (Result Value Error)
 ;;; Sequential evaluation: (pseq a b)
 ;;; Force evaluation of a, then evaluate b, return b.
 ;;; Ensures a is strictly evaluated before b.
@@ -486,7 +499,7 @@
                   (loop (cadr result) (- retries 1))]
                  [else result])))))
 
-;;; eval-with-env : Expr × Env × Fuel → Result
+;;; eval-with-env : Expr × Env × Fuel → (Result Value Error)
 ;;; Evaluate with a given environment.
 (define (eval-with-env expr env fuel)
   (eval-expr expr env fuel))
@@ -938,7 +951,7 @@
                            (caddr result))
                      env)))))
 
-;;; run-prelude : Expr × Fuel → Result
+;;; run-prelude : Expr × Fuel → (Result Value Error)
 ;;; Evaluate with the standard prelude.
 (define (run-prelude expr fuel)
   (let ([prelude-env (build-prelude-env 1000)])
@@ -963,7 +976,7 @@
 ;;;   (suspended expr env fuel tape) — ran out of fuel
 ;;;   (error tag info)                — evaluation error
 
-;;; eval-expr-traced : Expr × Env × Fuel × Tape → Result
+;;; eval-expr-traced : Expr × Env × Fuel × Tape → (Result TracedValue Error)
 ;;; Evaluate with automatic differentiation enabled.
 (define (eval-expr-traced expr env fuel tape)
   (cond
@@ -1204,7 +1217,7 @@
                ,(caddr result) ,(cadddr result) ,(car (cddddr result)))]
             [else result]))))
 
-;;; apply-prim-traced : Symbol × Values × Fuel × Tape → Result
+;;; apply-prim-traced : Symbol × Values × Fuel × Tape → (Result TracedValue Error)
 ;;; Apply a primitive with traced operations for differentiable ops.
 (define (apply-prim-traced op args fuel tape)
   (case op
