@@ -5,8 +5,13 @@ agents/harness/run.py — Run an agent with full observability
 Usage:
     python -m agents.harness.run "Your goal here"
     python -m agents.harness.run --steps 5 "Simple goal"
-    python -m agents.harness.run --model gemini-3-pro-preview "Complex goal"
+    python -m agents.harness.run -p gemini -m gemini-3-pro-preview "Complex goal"
+    python -m agents.harness.run -p groq -m llama-3.3-70b-versatile "Goal"
     python -m agents.harness.run --verify "34" "How many posts in #art?"
+
+Providers:
+    gemini  - Google Gemini (via gemini CLI)
+    groq    - Groq API (requires GROQ_API_KEY env var)
 """
 
 import argparse
@@ -14,6 +19,8 @@ import json
 import subprocess
 import sys
 import os
+import urllib.request
+import urllib.error
 
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -84,11 +91,66 @@ The status prompt below explains your available commands:
     return client
 
 
+def create_groq_client(model: str = "llama-3.3-70b-versatile"):
+    """Create a Groq API client using raw HTTP."""
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY environment variable not set")
+
+    def client(prompt: str) -> str:
+        system_msg = """You are an autonomous Scheme agent playing in The Fold.
+
+CRITICAL: Respond with ONLY a single S-expression. No prose, no explanation, no markdown.
+
+The status prompt below explains your available commands:
+- Free actions: (think ...), (note ...), (env ...)
+- Registers: (set! *register* value) - use *answer* when you have the final answer"""
+
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.3,
+            "max_tokens": 1024,
+        }
+
+        req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST"
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+                return result["choices"][0]["message"]["content"].strip()
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8") if e.fp else ""
+            raise Exception(f"Groq API error {e.code}: {error_body}")
+
+    return client
+
+
+# Available providers and their default models
+PROVIDERS = {
+    "gemini": ("gemini-3-flash-preview", create_gemini_client),
+    "groq": ("llama-3.3-70b-versatile", create_groq_client),
+}
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run an agent with observability")
     parser.add_argument("goal", help="The goal for the agent")
     parser.add_argument("--steps", type=int, default=15, help="Maximum steps (default: 15)")
-    parser.add_argument("--model", default="gemini-3-flash-preview", help="Gemini model to use")
+    parser.add_argument("--provider", "-p", choices=list(PROVIDERS.keys()), default="gemini",
+                        help="LLM provider (default: gemini)")
+    parser.add_argument("--model", "-m", default=None, help="Model name (provider-specific default if not set)")
     parser.add_argument("--session", default="observed-run", help="Session ID")
     parser.add_argument("--no-transcript", action="store_true", help="Don't save transcript")
     parser.add_argument("--quiet", action="store_true", help="Minimal output")
@@ -122,7 +184,12 @@ def main():
     )
 
     # Create API client
-    api_client = create_gemini_client(args.model)
+    default_model, client_factory = PROVIDERS[args.provider]
+    model = args.model or default_model
+    api_client = client_factory(model)
+
+    if not args.quiet:
+        print(f"Using {args.provider} with model {model}")
 
     # Run with observability
     loop_result, observer = run_observed(
