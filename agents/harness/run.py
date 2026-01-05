@@ -62,18 +62,17 @@ HARNESS COMMANDS (handled locally, not sent to Fold):
   (subgoal "description")  ; Set your current subgoal
   (think "reasoning")      ; Internal reasoning (logged, not shown to you later)
   (note "observation")     ; Working memory (shown to you in future turns)
-  (done)                   ; Signal task completion
+  (done)                   ; Complete current subgoal (clears it, ready for next)
 
 Use (note ...) to remember facts you'll need in future steps.
+Use (done) when you finish a subgoal and are ready to pick the next one.
 
 ANSWER PROTOCOL - IMPORTANT:
   The variable *answer* exists in your session.
-  When you find the answer, you MUST:
-    1. First: (set! *answer* "your answer")
-    2. Then: (done)
+  When you find the final answer, write it with: (set! *answer* "your answer")
+  This IMMEDIATELY ends the task - no need to call (done) after.
 
   Example: If the answer is 42, respond with: (set! *answer* "42")
-  Then in the next step: (done)
 
 RULES:
   - Respond with ONLY a single S-expression

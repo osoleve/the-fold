@@ -56,6 +56,7 @@ _SUBGOAL_PATTERN = re.compile(r'^\(subgoal\s+"((?:[^"\\]|\\.)*)"\s*\)$')
 _DONE_PATTERN = re.compile(r'^\((done|task-complete)\s*\)$')
 _THINK_PATTERN = re.compile(r'^\(think\s+"((?:[^"\\]|\\.)*)"\s*\)$')
 _NOTE_PATTERN = re.compile(r'^\(note\s+"((?:[^"\\]|\\.)*)"\s*\)$')
+_ANSWER_PATTERN = re.compile(r'^\(set!\s+\*answer\*\s+')  # Prefix match - rest is the value
 
 
 def _unescape_string(s: str) -> str:
@@ -66,28 +67,33 @@ def _unescape_string(s: str) -> str:
 @dataclass
 class MetaCommand:
     """A parsed meta-command."""
-    kind: str  # "subgoal", "done", "think", "note", "none"
+    kind: str  # "subgoal", "done", "think", "note", "answer", "none"
     payload: Optional[str] = None
 
 
 def parse_meta_command(expression: str) -> MetaCommand:
     """
-    Check if expression is a meta-command (handled by harness, not Fold).
+    Check if expression is a meta-command (handled specially by harness).
 
     Meta-commands:
     - (subgoal "description") - Update current subgoal
-    - (done) or (task-complete) - Signal task completion
+    - (done) or (task-complete) - Complete current subgoal (clear it)
     - (think "reasoning") - Internal reasoning (logged, not shown to agent)
     - (note "text") - Working memory note (shown to agent in future turns)
+    - (set! *answer* ...) - Set answer AND signal task completion (evaluated in Fold)
     """
     expr = expression.strip()
+
+    # Check for answer (set! *answer* ...) - this gets evaluated AND signals completion
+    if _ANSWER_PATTERN.match(expr):
+        return MetaCommand(kind="answer", payload=expr)
 
     # Check for subgoal
     match = _SUBGOAL_PATTERN.match(expr)
     if match:
         return MetaCommand(kind="subgoal", payload=_unescape_string(match.group(1)))
 
-    # Check for done
+    # Check for done (completes subgoal, not task)
     if _DONE_PATTERN.match(expr):
         return MetaCommand(kind="done")
 
@@ -121,6 +127,20 @@ class MetaEvaluator:
     def __call__(self, session_id: str, expression: str, timeout_ms: int) -> EvalResult:
         meta = parse_meta_command(expression)
 
+        if meta.kind == "answer":
+            # Evaluate in Fold to store the answer, then signal completion
+            result = self.real_evaluator(session_id, meta.payload, timeout_ms)
+            if result.success:
+                self.task_complete = True
+                # Return new result with harness message (EvalResult is frozen)
+                return EvalResult(
+                    success=True,
+                    value=result.value,
+                    output="[harness] Answer set, task complete",
+                    session=session_id
+                )
+            return result
+
         if meta.kind == "subgoal":
             self.context.current_subgoal = meta.payload
             return EvalResult(
@@ -131,11 +151,13 @@ class MetaEvaluator:
             )
 
         if meta.kind == "done":
-            self.task_complete = True
+            # (done) completes the current subgoal, not the task
+            completed_subgoal = self.context.current_subgoal
+            self.context.current_subgoal = None
             return EvalResult(
                 success=True,
-                value="Task complete",
-                output="[harness] Agent signaled completion",
+                value=f"Subgoal complete: {completed_subgoal}",
+                output="[harness] Subgoal completed, ready for next",
                 session=session_id
             )
 
@@ -369,8 +391,8 @@ def _test_loop():
 
     print("Testing loop module...")
 
-    # Test 1: Basic loop with mock
-    print("  Test 1: Basic loop with done signal")
+    # Test 1: Basic loop with answer signal
+    print("  Test 1: Basic loop with answer signal")
     ctx = AgentContext(
         session_id="test-loop-1",
         main_goal="Count to 2",
@@ -381,13 +403,14 @@ def _test_loop():
         '(subgoal "Start counting")',
         "(+ 1 0)",
         "(+ 1 1)",
-        "(done)"
+        '(set! *answer* "2")'  # Answer triggers completion
     ]
     api = mock_api_client(api_responses)
 
     eval_map = {
         "(+ 1 0)": EvalResult(True, "1", "", "s"),
         "(+ 1 1)": EvalResult(True, "2", "", "s"),
+        '(set! *answer* "2")': EvalResult(True, "#<void>", "", "s"),
     }
     base_eval = mock_evaluator(eval_map)
 
@@ -435,6 +458,11 @@ def _test_loop():
     assert parse_meta_command('(note "Remember this")').kind == "note"
     assert parse_meta_command('(note "Remember this")').payload == "Remember this"
     assert parse_meta_command("(+ 1 2)").kind == "none"
+    # Test answer pattern
+    assert parse_meta_command('(set! *answer* "42")').kind == "answer"
+    assert parse_meta_command('(set! *answer* "42")').payload == '(set! *answer* "42")'
+    assert parse_meta_command('(set! *answer* (+ 1 2))').kind == "answer"
+    assert parse_meta_command('(set! *other* "x")').kind == "none"  # Other vars not special
     # Test escaped quotes
     assert parse_meta_command('(subgoal "goal with \\"quotes\\"")').kind == "subgoal"
     assert parse_meta_command('(subgoal "goal with \\"quotes\\"")').payload == 'goal with "quotes"'
