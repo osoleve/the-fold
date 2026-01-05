@@ -224,7 +224,7 @@
 ;;; Convenience: Resolve Differentiable
 ;;; ============================================================
 
-;;; resolve-differentiable : Type → (Result Evidence)
+;;; resolve-differentiable : Type → (Result Evidence Error)
 (define (resolve-differentiable type)
   (resolve `(Differentiable ,type) ad-instances))
 

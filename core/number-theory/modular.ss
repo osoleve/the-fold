@@ -60,7 +60,7 @@
 ;;; Extended Euclidean Algorithm
 ;;; ============================================================
 
-;;; extended-gcd : Int × Int → (List Int Int Int)
+;;; extended-gcd : Int × Int → (List Int)
 ;;; Extended Euclidean algorithm.
 ;;; Returns (gcd a b, x, y) where gcd = ax + by.
 ;;; Bézout's identity.
@@ -154,7 +154,7 @@
             (- u m)
             u)))
 
-;;; montgomery-setup : Int → (List Int Int)
+;;; montgomery-setup : Int → (List Int)
 ;;; Setup for Montgomery multiplication.
 ;;; Given modulus m, finds R (smallest power of 2 > m) and R' (R^-1 mod m).
 ;;; Returns (R, m') where m' = -m^-1 mod R.

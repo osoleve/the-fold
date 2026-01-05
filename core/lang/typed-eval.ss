@@ -398,7 +398,7 @@
 
 ;;; Build paired type/value environments for use with typecheck-eval-env
 
-;;; make-typed-env : (List (List Symbol Type Value)) → (Values TypeEnv Env)
+;;; make-typed-env : (List (Symbol × Type × Value)) → (Values TypeEnv Env)
 (define (make-typed-env bindings)
   (let loop ([bindings bindings] [tenv '()] [venv '()])
        (if (null? bindings)

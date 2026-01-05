@@ -75,11 +75,11 @@
 ;;; vec2-y : Vec2 → Number
 (define (vec2-y v) (caddr v))
 
-;;; vec2->list : Vec2 → (List Number Number)
+;;; vec2->list : Vec2 → (List Number)
 (define (vec2->list v)
   (list (vec2-x v) (vec2-y v)))
 
-;;; list->vec2 : (List Number Number) → Vec2
+;;; list->vec2 : (List Number) → Vec2
 (define (list->vec2 lst)
   (vec2 (car lst) (cadr lst)))
 

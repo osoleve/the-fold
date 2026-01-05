@@ -211,11 +211,11 @@
 (define (quat-vector q)
   (vec3 (quat-x q) (quat-y q) (quat-z q)))
 
-;;; quat->list : Quaternion → (List w x y z)
+;;; quat->list : Quaternion → (List Number)
 (define (quat->list q)
   (list (quat-w q) (quat-x q) (quat-y q) (quat-z q)))
 
-;;; list->quat : (List w x y z) → Quaternion
+;;; list->quat : (List Number) → Quaternion
 (define (list->quat lst)
   (quat (car lst) (cadr lst) (caddr lst) (cadddr lst)))
 

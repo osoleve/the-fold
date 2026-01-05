@@ -364,7 +364,61 @@
     (TypeEnv . Hash)
     (TypeClass . Hash)
     (Natural . Nat)
-    (Acc . Hash)))
+    (Acc . Hash)
+    ;; Sparse matrix types (treated as kind *)
+    (SparseCSC . Hash)
+    ;; Parser result types (treated as kind *)
+    (SpannedResult . Hash)
+    (ParseResult . Hash)
+    ;; Module types (treated as kind *)
+    (ModuleEntry . Hash)
+    ;; Sparse matrix types (treated as kind *)
+    (Sparse . Hash)
+    ;; Geometry additional types (treated as kind *)
+    (Matrix3 . Hash)
+    (SDF-Function . Hash)
+    ;; Pipeline additional types (treated as kind *)
+    (PipelineContext . Hash)
+    (PipelineState . Hash)
+    (Schedule . Hash)
+    (RetryPolicy . Hash)
+    ;; Data structure additional types (treated as kind *)
+    (Hashtable . Hash)
+    (Segment . Hash)
+    (HandlerStack . Hash)
+    (ExprDict . Hash)
+    ;; DSL/Narrative types (treated as kind *)
+    (Choice . Hash)
+    (Scene . Hash)
+    (Predicate . Hash)
+    (Text . Hash)
+    (Chronicle . Hash)
+    (Run . Hash)
+    ;; Autodiff dimension-aware types (treated as kind *)
+    (DimGradient . Hash)
+    (GradientSpec . Hash)
+    (DimJacobian . Hash)
+    (DimHessian . Hash)
+    (SparsityPattern . Hash)
+    ;; Rotation representation (field names used as types - probably false positives)
+    (roll . Hash)
+    (pitch . Hash)
+    (yaw . Hash)
+    ;; Autodiff tape/sparse types (treated as kind *)
+    (SparseTape . Hash)
+    (SparseTraced . Hash)
+    (TapeEntry . Hash)
+    (MutableTape . Hash)
+    (NodeId . Hash)
+    (Stats . Hash)
+    (Report . Hash)
+    ;; Benchmark types (treated as kind *)
+    (Sample . Hash)
+    (BenchmarkResult . Hash)
+    (SuiteResult . Hash)
+    ;; Additional performance types (treated as kind *)
+    (Baseline . Hash)
+    (CostTracker . Hash)))
 
 ;;; Greek letters used as type variables
 (define greek-type-var-names
@@ -388,11 +442,20 @@
   '(List Vector Option Either Result Pair Maybe Ref Set Stream Delayed
     Functor Applicative Monad))
 
+;;; Type constructors that need implicit type parameters when used bare
+(define bare-type-constructors
+  '(List Vector Option Set Ref Stream Delayed))
+
 ;;; Convert parsed type to kind-checker format
+;;; Bare type constructors like `List` are converted to `(@ List α)` for kind checking
 (define (sig-type->kind-type parsed)
   (cond
    [(symbol? parsed)
-    (normalize-type-name parsed)]
+    (let ([normalized (normalize-type-name parsed)])
+         ;; If it's a bare type constructor, add implicit type parameter
+         (if (memq normalized bare-type-constructors)
+             `(@ ,normalized α)  ; Implicit type variable
+             normalized))]
    [(not (pair? parsed)) parsed]
    ;; Function type: (-> A B) stays the same
    [(eq? (car parsed) '->)

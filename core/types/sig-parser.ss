@@ -400,12 +400,20 @@
                                         (string-contains? type-part "'")
                                         (string-contains? type-part "*")
                                         (string-contains? type-part "∘")
-                                        ;; Skip if name looks like a keyword
+                                        ;; Skip if name looks like a keyword/label (not a function name)
                                         (memq (string->symbol name-part)
                                               '(Dependencies Note Returns Example Complexity
                                                 where skip n mode initial params cutoff order
                                                 window-fn observable coupling1 coupling2
-                                                make-sys param-steps samples)))
+                                                make-sys param-steps samples
+                                                ;; Common comment prefixes
+                                                Helper Convenience dt Purpose Usage
+                                                Summary Description See Also Input Output
+                                                Param Params Parameter Parameters
+                                                Arg Args Argument Arguments
+                                                Pre Post Precondition Postcondition
+                                                Invariant Warning Caution Todo TODO FIXME
+                                                Details Rationale Context Background)))
                                     '(skip)
                                     ;; Try to parse the type
                                     (let ([tokens-result (tokenize-sig type-part)])

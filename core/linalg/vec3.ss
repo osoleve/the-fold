@@ -95,11 +95,11 @@
 ;;; vec3-z : Vec3 → Number
 (define (vec3-z v) (list-ref v 3))
 
-;;; vec3->list : Vec3 → (List Number Number Number)
+;;; vec3->list : Vec3 → (List Number)
 (define (vec3->list v)
   (list (vec3-x v) (vec3-y v) (vec3-z v)))
 
-;;; list->vec3 : (List Number Number Number) → Vec3
+;;; list->vec3 : (List Number) → Vec3
 (define (list->vec3 lst)
   (vec3 (car lst) (cadr lst) (caddr lst)))
 
