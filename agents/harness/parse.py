@@ -5,10 +5,10 @@ Extracts S-expressions from LLM completions, handling:
 - Code fences (```scheme ... ```)
 - Single backticks (`...`)
 - Bare expressions (+ 1 2) → ((+ 1 2))
+- Scheme comments (; ...) - stripped before parsing
 
 Note: This parser is designed for LLM outputs, not arbitrary Scheme code.
 It does NOT handle:
-- Comments (; ...)
 - Character literals (#\\x)
 These are rarely/never produced by LLMs in our use case.
 """
@@ -69,6 +69,58 @@ def strip_code_fences(text: str) -> tuple[str, bool]:
 
     # No fences found - return stripped version
     return (cleaned, cleaned != text)
+
+
+def strip_scheme_comments(text: str) -> tuple[str, bool]:
+    """
+    Strip Scheme comments (; to end of line) from code.
+
+    Respects string literals - doesn't strip ; inside "...".
+
+    Returns (cleaned_text, was_transformed).
+    """
+    if ';' not in text:
+        return (text, False)
+
+    result = []
+    in_string = False
+    escape_next = False
+    i = 0
+    modified = False
+
+    while i < len(text):
+        char = text[i]
+
+        if escape_next:
+            result.append(char)
+            escape_next = False
+            i += 1
+            continue
+
+        if char == '\\' and in_string:
+            result.append(char)
+            escape_next = True
+            i += 1
+            continue
+
+        if char == '"':
+            in_string = not in_string
+            result.append(char)
+            i += 1
+            continue
+
+        if char == ';' and not in_string:
+            # Skip to end of line
+            modified = True
+            while i < len(text) and text[i] != '\n':
+                i += 1
+            continue
+
+        result.append(char)
+        i += 1
+
+    cleaned = ''.join(result)
+    return (cleaned, modified)
 
 
 def ensure_parenthesized(text: str) -> tuple[str, bool]:
@@ -224,6 +276,11 @@ def parse_completion(raw_completion: str) -> ParseResult:
     if did_strip:
         transformations.append("strip_fences")
 
+    # Step 1.5: Strip Scheme comments
+    current, did_strip_comments = strip_scheme_comments(current)
+    if did_strip_comments:
+        transformations.append("strip_comments")
+
     # Step 2: Extract first S-expression
     extracted, remainder_or_error = extract_first_sexp(current)
     if extracted is None:
@@ -327,6 +384,15 @@ def _test_parse():
 
         # DoS protection - huge input
         ("x" * 200_000, False, "Input too large"),
+
+        # Scheme comments (should be stripped)
+        ("(+ 1 2) ; this is a comment", True, "(+ 1 2)"),
+        ("; comment at start\n(help)", True, "(help)"),
+        ("(define x 42) ; set x to 42\n(+ x 1)", True, "(define x 42)"),
+        # Comment containing parens should not confuse parser
+        ("; (this is not code)\n(real-code)", True, "(real-code)"),
+        # Semicolon inside string should NOT be treated as comment
+        ('(display "hello; world")', True, '(display "hello; world")'),
     ]
 
     passed = 0

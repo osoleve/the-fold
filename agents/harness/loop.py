@@ -17,7 +17,7 @@ Design (from Gemini Pro review):
 import hashlib
 import re
 from dataclasses import dataclass, field
-from typing import Callable, Generator, Optional, Set
+from typing import Callable, Generator, Optional
 
 from .parse import parse_completion
 from .prompt import ActionRecord, AgentContext, WorkspaceEntry, generate_status_prompt
@@ -34,6 +34,7 @@ class LoopConfig:
     stop_on_failure: bool = False # Stop on first eval/api failure
     detect_loops: bool = True     # Stop if state repeats
     loop_window: int = 3          # Number of recent actions to include in state hash
+    loop_tolerance: int = 1       # Allow this many repeats before detecting loop (for polling)
     retry_budget: int = 3         # Retries for API/Parsing per step
     eval_timeout_ms: int = 30000  # Timeout per evaluation
 
@@ -52,10 +53,11 @@ class LoopResult:
 
 # Patterns for meta-commands (harness-level, not sent to Fold)
 # Use (?:[^"\\]|\\.)* to handle escaped quotes like \"
-_SUBGOAL_PATTERN = re.compile(r'^\(subgoal\s+"((?:[^"\\]|\\.)*)"\s*\)$')
+# Use re.DOTALL so . matches newlines in multiline strings
+_SUBGOAL_PATTERN = re.compile(r'^\(subgoal\s+"((?:[^"\\]|\\.)*)"\s*\)$', re.DOTALL)
 _DONE_PATTERN = re.compile(r'^\((done|task-complete)\s*\)$')
-_THINK_PATTERN = re.compile(r'^\(think\s+"((?:[^"\\]|\\.)*)"\s*\)$')
-_NOTE_PATTERN = re.compile(r'^\(note\s+"((?:[^"\\]|\\.)*)"\s*\)$')
+_THINK_PATTERN = re.compile(r'^\(think\s+"((?:[^"\\]|\\.)*)"\s*\)$', re.DOTALL)
+_NOTE_PATTERN = re.compile(r'^\(note\s+"((?:[^"\\]|\\.)*)"\s*\)$', re.DOTALL)
 _ENV_PATTERN = re.compile(r'^\(env\s+(.+)\)$', re.DOTALL)  # (env sexpr) - capture inner
 _REGISTER_PATTERN = re.compile(r'^\(set!\s+(\*[a-zA-Z_][a-zA-Z0-9_-]*\*)\s+')  # (set! *name* ...)
 
@@ -328,7 +330,7 @@ def run_loop(
         # final = gen.value  (only after iteration complete)
     """
     config = config or LoopConfig()
-    state_hashes: Set[str] = set()
+    state_hash_counts: dict[str, int] = {}  # Track how many times we've seen each state
     total_duration_ms = 0
     steps_completed = 0
     last_eval: Optional[EvalResult] = None
@@ -341,10 +343,11 @@ def run_loop(
         # --- Loop detection ---
         if config.detect_loops:
             state_hash = compute_state_hash(context, config.loop_window)
-            if state_hash in state_hashes:
+            count = state_hash_counts.get(state_hash, 0)
+            if count >= config.loop_tolerance:
                 finish_reason = "loop_detected"
                 break
-            state_hashes.add(state_hash)
+            state_hash_counts[state_hash] = count + 1
 
         # --- Generate prompt ---
         prompt = generate_status_prompt(context)
@@ -556,6 +559,12 @@ def _test_loop():
     assert parse_meta_command('(subgoal "goal with \\"quotes\\"")').payload == 'goal with "quotes"'
     assert parse_meta_command('(think "I said \\"hello\\"")').payload == 'I said "hello"'
     assert parse_meta_command('(note "Value is \\"42\\"")').payload == 'Value is "42"'
+    # Test multiline strings (re.DOTALL fix)
+    multiline_think = '(think "Line 1\nLine 2\nLine 3")'
+    assert parse_meta_command(multiline_think).kind == "think"
+    assert "Line 2" in parse_meta_command(multiline_think).payload
+    multiline_note = '(note "Step 1: Do X\nStep 2: Do Y")'
+    assert parse_meta_command(multiline_note).kind == "note"
     print("    PASS")
 
     # Test 4: Max steps limit

@@ -30,34 +30,18 @@ from agents.harness import (
     LoopConfig,
     run_observed,
 )
-
-
-def fold_eval(session: str, code: str) -> str:
-    """Evaluate code in a Fold session, return result."""
-    input_json = json.dumps({"code": code})
-    result = subprocess.run(
-        ["./fold-agent.py", "--json", "--session", session],
-        input=input_json,
-        capture_output=True,
-        text=True,
-        timeout=30,
-        cwd="/home/oso/the-fold"
-    )
-    try:
-        response = json.loads(result.stdout)
-        return response.get("result", "")
-    except:
-        return ""
+from agents.harness.step import fold_evaluator
 
 
 def init_answer_slot(session: str):
     """Initialize the *answer* variable in the session."""
-    fold_eval(session, '(define *answer* #f)')
+    fold_evaluator(session, '(define *answer* #f)', timeout_ms=10000)
 
 
 def read_answer(session: str) -> str:
     """Read the *answer* variable from the session."""
-    return fold_eval(session, '*answer*')
+    result = fold_evaluator(session, '*answer*', timeout_ms=10000)
+    return result.value if result.success else ""
 
 
 def create_gemini_client(model: str = "gemini-3-flash-preview"):
@@ -75,8 +59,10 @@ The status prompt below explains your available commands:
 
 """ + prompt
 
+        # Pass prompt via stdin to avoid ARG_MAX limits on large contexts
         result = subprocess.run(
-            ["gemini", "-m", model, augmented],
+            ["gemini", "-m", model],
+            input=augmented,
             capture_output=True,
             text=True,
             timeout=90,

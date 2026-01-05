@@ -62,6 +62,7 @@ class EvalResult:
     value: str                 # The result value (or error message)
     output: str                # Any output produced (prints, debug)
     session: str               # Session ID used
+    is_infrastructure_error: bool = False  # True if error is infrastructure (timeout, crash), not runtime
 
 
 @dataclass(frozen=True)
@@ -149,7 +150,8 @@ def fold_evaluator(
                 success=False,
                 value=f"Invalid JSON response: {result.stdout[:200]}",
                 output=result.stderr,
-                session=session_id
+                session=session_id,
+                is_infrastructure_error=True
             )
 
         return EvalResult(
@@ -164,21 +166,24 @@ def fold_evaluator(
             success=False,
             value=f"Evaluation timed out after {timeout_ms}ms",
             output="",
-            session=session_id
+            session=session_id,
+            is_infrastructure_error=True
         )
     except FileNotFoundError:
         return EvalResult(
             success=False,
             value=f"Evaluator not found: {agent_path}",
             output="",
-            session=session_id
+            session=session_id,
+            is_infrastructure_error=True
         )
     except Exception as e:
         return EvalResult(
             success=False,
             value=f"Evaluation failed: {e}",
             output="",
-            session=session_id
+            session=session_id,
+            is_infrastructure_error=True
         )
 
 
@@ -214,7 +219,9 @@ def step(
     api_client: Callable[[str], str],
     evaluator: Evaluator = fold_evaluator,
     retry_budget: int = 3,
-    eval_timeout_ms: int = 30000
+    eval_timeout_ms: int = 30000,
+    api_retry_budget: int = 2,
+    api_retry_base_delay: float = 1.0
 ) -> StepResult:
     """
     Execute one agent step: prompt → completion → parse → eval.
@@ -226,6 +233,8 @@ def step(
         evaluator: A callable that evaluates expressions (injectable for testing)
         retry_budget: Number of parse retries before giving up
         eval_timeout_ms: Timeout for Fold evaluation
+        api_retry_budget: Number of API retries for transient failures (default: 2)
+        api_retry_base_delay: Base delay between API retries in seconds (default: 1.0)
 
     Returns:
         StepResult with full causal chain for debugging/training
@@ -236,11 +245,23 @@ def step(
     eval_duration = 0
     retry_count = 0
 
-    # --- Phase 1: Get completion from API ---
+    # --- Phase 1: Get completion from API (with retries for transient failures) ---
     api_start = time.monotonic()
-    try:
-        raw_completion = api_client(status_prompt)
-    except Exception as e:
+    raw_completion = None
+    last_api_error = None
+
+    for api_attempt in range(api_retry_budget + 1):
+        try:
+            raw_completion = api_client(status_prompt)
+            break  # Success
+        except Exception as e:
+            last_api_error = e
+            if api_attempt < api_retry_budget:
+                # Exponential backoff: 1s, 2s, 4s, ...
+                delay = api_retry_base_delay * (2 ** api_attempt)
+                time.sleep(delay)
+
+    if raw_completion is None:
         api_duration = int((time.monotonic() - api_start) * 1000)
         return StepResult(
             status="api_failure",
@@ -257,7 +278,7 @@ def step(
                 total_duration_ms=api_duration,
                 retry_count=0
             ),
-            error=f"API error: {e}"
+            error=f"API error after {api_retry_budget + 1} attempts: {last_api_error}"
         )
     api_duration = int((time.monotonic() - api_start) * 1000)
 
@@ -309,22 +330,8 @@ def step(
 
     # Check for infrastructure failures (timeout, crash) vs runtime errors
     # Runtime errors (division by zero, etc.) are still "success" - valid observation
-    #
-    # IMPORTANT: Use prefix matching, not substring matching!
-    # A Scheme program could print "Request timed out" as valid output.
-    # Only the harness generates messages with these exact prefixes.
-    infra_prefixes = (
-        "Evaluation timed out",      # From fold_evaluator timeout
-        "Evaluator not found:",      # From fold_evaluator FileNotFoundError
-        "Evaluation failed:",        # From fold_evaluator Exception
-        "Invalid JSON response:",    # From fold_evaluator JSON parse error
-    )
-    is_infra_failure = (
-        not eval_result.success and
-        any(eval_result.value.startswith(prefix) for prefix in infra_prefixes)
-    )
-
-    if is_infra_failure:
+    # The evaluator explicitly marks infrastructure errors via is_infrastructure_error flag.
+    if eval_result.is_infrastructure_error:
         return StepResult(
             status="eval_failure",
             prompt_snapshot=status_prompt,
@@ -424,7 +431,8 @@ def _test_step():
         session_id="test-step-3",
         status_prompt="Test prompt 3",
         api_client=failing_client,
-        evaluator=mock_eval
+        evaluator=mock_eval,
+        api_retry_budget=0  # Disable retries for fast test
     )
     assert result3.status == "api_failure"
     assert "Network error" in result3.error
@@ -458,7 +466,7 @@ def _test_step():
 
     # Test 6: Infrastructure failure (timeout)
     mock_eval6 = mock_evaluator({
-        "*": EvalResult(success=False, value="Evaluation timed out after 5000ms", output="", session="test")
+        "*": EvalResult(success=False, value="Evaluation timed out after 5000ms", output="", session="test", is_infrastructure_error=True)
     })
     mock_api6 = mock_api_client(["(infinite-loop)"])
     result6 = step(
