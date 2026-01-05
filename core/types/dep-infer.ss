@@ -487,7 +487,7 @@
                     '(ok)
                     `(error expected-type-got ,type-of-type))))))
 
-;;; dep-check-args : (List Expr) × (List Type) × Context × Thunk → Result
+;;; dep-check-args : (List Expr) × (List Type) × Context × Thunk → (Result α Error)
 (define (dep-check-args args expected-types ctx cont)
   (if (null? args)
       (cont)

@@ -148,7 +148,30 @@
     (Example . Hash)
     ;; Misc types
     (Procedure . Hash)
-    (void . Unit)))
+    (void . Unit)
+    ;; Dependent type system types
+    (SExpr . Hash)
+    (Binding . Hash)
+    (Context . Hash)
+    (Thunk . Hash)
+    (NbEEnv . Hash)
+    (InstanceDB . Hash)
+    (Match . Hash)
+    (ParsedType . Hash)
+    (InternalType . Hash)
+    ;; NbE types (treated as kind *)
+    (Neutral . Hash)
+    (KindValue . Hash)
+    (KindClosure . Hash)
+    (KindNeutral . Hash)
+    (Level . Hash)
+    (KindExpr . Hash)
+    (KindEnv . Hash)
+    ;; Compiler types (treated as kind *)
+    (S-expr . Hash)
+    (Options . Hash)
+    (Phase . Hash)
+    (Path . Hash)))
 
 ;;; Greek letters used as type variables
 (define greek-type-var-names

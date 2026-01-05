@@ -108,7 +108,7 @@
 ;;; Result Threading
 ;;; ============================================================
 
-;;; result-bind : Result × (Value → Result) → Result
+;;; result-bind : (Result α Error) × (α → (Result β Error)) → (Result β Error)
 ;;; Monadic bind: continue with f if ok, propagate error otherwise.
 (define (result-bind r f)
   (cond
@@ -117,7 +117,7 @@
    [(result-suspended? r) r]
    [else (result-error 'bind 'invalid-result r)]))
 
-;;; result-map : Result × (Value → Value) → Result
+;;; result-map : (Result α Error) × (α → β) → (Result β Error)
 ;;; Functor map: apply f to value if ok, propagate error otherwise.
 (define (result-map r f)
   (cond
@@ -126,7 +126,7 @@
    [(result-suspended? r) r]
    [else (result-error 'map 'invalid-result r)]))
 
-;;; >>= : Result × (Value → Result) → Result
+;;; >>= : (Result α Error) × (α → (Result β Error)) → (Result β Error)
 ;;; Alias for result-bind
 (define >>= result-bind)
 
@@ -136,7 +136,7 @@
 
 ;;; Each adapter converts phase-specific results to unified Results.
 
-;;; adapt-read : String → Result
+;;; adapt-read : String → (Result S-expr Error)
 ;;; Read phase: convert string to S-expression.
 (define (adapt-read input)
   (guard (ex [else (result-error 'read 'read-error (ex))])
@@ -163,20 +163,20 @@
                (result-error 'parse 'syntax-error expected span))]
          [else (result-error 'parse 'unknown-error result)])))
 
-;;; adapt-normalize : S-expr → Result
+;;; adapt-normalize : S-expr → (Result S-expr Error)
 ;;; Normalize phase: convert to de Bruijn form.
 (define (adapt-normalize expr)
   (guard (ex [else (result-error 'normalize 'normalize-error (ex))])
          (result-ok (normalize expr))))
 
-;;; adapt-expand : S-expr → Result
+;;; adapt-expand : S-expr → (Result S-expr Error)
 ;;; Expand phase: convert from de Bruijn back to named form.
 ;;; Uses fresh symbol supply.
 (define (adapt-expand expr)
   (guard (ex [else (result-error 'expand 'expand-error (ex))])
          (result-ok (expand-fresh expr))))
 
-;;; adapt-infer : S-expr → Result
+;;; adapt-infer : S-expr → (Result Type Error)
 ;;; Infer phase: type inference.
 (define (adapt-infer expr)
   (reset-fresh!)  ; Reset type variable counter
@@ -188,7 +188,7 @@
          (apply result-error 'infer (cdr result))]
         [else (result-error 'infer 'unexpected-result result)])))
 
-;;; adapt-eval : S-expr × Nat → Result
+;;; adapt-eval : S-expr × Nat → (Result Value Error)
 ;;; Eval phase: evaluation with fuel.
 ;;; Note: run returns (ok value) or (suspended expr) or (error tag info)
 (define (adapt-eval expr fuel)
@@ -234,7 +234,7 @@
         [(eq? (car opts) key) (cadr opts)]
         [else (loop (cddr opts))])))
 
-;;; compile-pipeline : String × Phase × Fuel → Result
+;;; compile-pipeline : String × Phase × Fuel → (Result α Error)
 ;;; Internal pipeline runner.
 (define (compile-pipeline input to-phase fuel)
   ;; Phase 1: Read/Parse
@@ -264,7 +264,7 @@
 ;;; Convenience Functions
 ;;; ============================================================
 
-;;; compile-to : String × Phase → Result
+;;; compile-to : String × Phase → (Result α Error)
 ;;; Compile to a specific phase.
 (define (compile-to input phase)
   (compile input 'to phase))
@@ -286,7 +286,7 @@
             (result-value r)
             r)))
 
-;;; compile-file : Path → Result
+;;; compile-file : Path → (Result Value Error)
 ;;; Compile a file (reads entire file, evaluates as sequence).
 (define (compile-file path)
   (guard (ex [else (result-error 'read 'file-error path)])
@@ -299,7 +299,7 @@
                                                                      (loop (cons e exprs)))))))])
               (compile-exprs contents))))
 
-;;; compile-exprs : (List S-expr) → Result
+;;; compile-exprs : (List S-expr) → (Result Value Error)
 ;;; Compile a list of expressions, returning last result.
 (define (compile-exprs exprs)
   (if (null? exprs)
@@ -312,7 +312,7 @@
                         (loop (cdr es) r)
                         r))))))
 
-;;; compile-expr : S-expr → Result
+;;; compile-expr : S-expr → (Result Value Error)
 ;;; Compile an already-parsed expression.
 (define (compile-expr expr)
   (let ([r1 (adapt-infer expr)])
@@ -324,7 +324,7 @@
 ;;; Error Formatting
 ;;; ============================================================
 
-;;; format-result : Result → String
+;;; format-result : (Result α Error) → String
 ;;; Format a result for display.
 (define (format-result r)
   (cond

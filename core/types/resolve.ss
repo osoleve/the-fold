@@ -142,7 +142,7 @@
 ;;; Resolution Algorithm
 ;;; ============================================================
 
-;;; resolve : Constraint × IDB → (Result Evidence)
+;;; resolve : Constraint × IDB → (Result Evidence Error)
 ;;;
 ;;; Evidence is:
 ;;;   (evidence class type methods context-evidence)
@@ -170,7 +170,7 @@
         [type (constraint-type constraint)])
        (format "Add instance ~a for ~a" class type)))
 
-;;; resolve-match : Match × IDB → (Result Evidence)
+;;; resolve-match : Match × IDB → (Result Evidence Error)
 (define (resolve-match match db)
   (let ([subst (cadr match)]
         [inst (caddr match)])
@@ -184,7 +184,7 @@
                       ,(cadr context-result)))
                 context-result))))
 
-;;; resolve-context : (List Constraint) × Subst × IDB → (Result (List Evidence))
+;;; resolve-context : (List Constraint) × Subst × IDB → (Result (List Evidence) Error)
 (define (resolve-context constraints subst db)
   (if (null? constraints)
       `(ok ())
@@ -463,7 +463,7 @@
 ;;; Convenience API
 ;;; ============================================================
 
-;;; resolve-std : Constraint → (Result Evidence)
+;;; resolve-std : Constraint → (Result Evidence Error)
 ;;; Resolve using standard instances.
 (define (resolve-std constraint)
   (resolve constraint standard-instances))
