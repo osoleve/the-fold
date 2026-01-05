@@ -75,7 +75,7 @@
     (Queue . Hash)
     (Stack . Hash)
     (Dict . Hash)
-    (Set . Hash)
+    ;; Set is now a proper type constructor in builtin-kinds
     (Alist . Hash)
     (FSCap . Hash)
     (Bytevector . Hash)
@@ -130,6 +130,10 @@
   (let ([entry (assq sym type-name-mapping)])
        (if entry (cdr entry) sym)))
 
+;;; Type constructors that use @ application syntax
+(define type-constructors-with-application
+  '(List Vector Option Either Result Pair Maybe Ref Set))
+
 ;;; Convert parsed type to kind-checker format
 (define (sig-type->kind-type parsed)
   (cond
@@ -155,10 +159,22 @@
    ;; Values (multiple returns) - treat as product
    [(eq? (car parsed) 'Values)
     `(× ,@(map sig-type->kind-type (cdr parsed)))]
-   ;; Type application: (List α) etc.
+   ;; Type application with known constructors: use @ syntax
+   [(memq (car parsed) type-constructors-with-application)
+    (let* ([constructor (normalize-type-name (car parsed))]
+           [args (map sig-type->kind-type (cdr parsed))])
+          (if (null? args)
+              constructor
+              `(@ ,constructor ,@args)))]
+   ;; Other type applications - try @ syntax if head looks like a constructor
    [else
-    (cons (normalize-type-name (car parsed))
-          (map sig-type->kind-type (cdr parsed)))]))
+    (let ([head (normalize-type-name (car parsed))])
+         (if (and (symbol? head)
+                  (or (lookup-kind head)  ; Known in builtin-kinds
+                      (memq head type-constructors-with-application)))
+             `(@ ,head ,@(map sig-type->kind-type (cdr parsed)))
+             ;; Fallback: simple cons (for domain types that aren't in builtin-kinds)
+             (cons head (map sig-type->kind-type (cdr parsed)))))]))
 
 ;;; collect-type-vars : Type → (List Symbol)
 ;;; Collect all type variables from a type expression.

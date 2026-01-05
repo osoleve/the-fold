@@ -143,11 +143,11 @@
 ;;; Note: This is a simple implementation. For large sets,
 ;;; consider balanced trees or hash-based structures.
 
-;;; set-empty : Set
+;;; set-empty : (Set α)
 ;;; The empty set.
 (define set-empty '())
 
-;;; set-empty? : Set → Boolean
+;;; set-empty? : (Set α) → Boolean
 ;;; Check if set is empty.
 (define (set-empty? set)
   (null? set))
@@ -221,17 +221,17 @@
          (loop (cdr remaining))]
         [else #f])))
 
-;;; set-size : Set → Nat
+;;; set-size : (Set α) → Nat
 ;;; Get number of elements in set.
 (define (set-size set)
   (length set))
 
-;;; set->list : Set → (List α)
+;;; set->list : (Set α) → (List α)
 ;;; Convert set to list (arbitrary order).
 (define (set->list set)
   set)
 
-;;; list->set : (List α) → Set
+;;; list->set : (List α) → (Set α)
 ;;; Convert list to set (removes duplicates).
 (define (list->set lst)
   (let loop ([remaining lst]

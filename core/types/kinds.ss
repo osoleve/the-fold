@@ -263,6 +263,7 @@
   `((List    . ,(K=> K* K*))
     (Vector  . ,(K=> K* K*))
     (Option  . ,(K=> K* K*))
+    (Set     . ,(K=> K* K*))
     (Ref     . ,(K=> K* K*))
     (->      . ,(K=>* K* K* K*))      ; Binary for now
     (×       . ,(K=>* K* K* K*))      ; Binary for now
