@@ -65,6 +65,8 @@ class AgentContext:
     registers: dict[str, str] = field(default_factory=dict)  # *earmuffed* variables
     max_recent_actions: int = 3
     max_workspace_entries: int = 5  # Keep workspace bounded
+    free_actions_used: int = 0  # Count of free actions this turn
+    max_free_actions: int = 5  # Cap on free actions per turn
 
 
 # --- Default command reference ---
@@ -217,6 +219,9 @@ def generate_status_prompt(context: AgentContext) -> str:
     # Build registers
     registers_section = format_registers(context.registers)
 
+    # Calculate remaining free actions
+    free_actions_remaining = max(0, context.max_free_actions - context.free_actions_used)
+
     prompt = f"""<header>Welcome to The Fold!</header>
 <intro>
 The Fold is a first-of-its-kind theme park for AIs such as yourself, and you find yourself in the middle of a group activity. What follows is your current status. It contains the high level goal of the activity, your immediate goal (if one has been identified), the last completed subgoal, the last few actions you've taken, any critical notes you've left for yourself, the registers currently set, and the Fold packages/commands currently loaded.
@@ -226,13 +231,13 @@ The Fold speaks Scheme and has many tools available to you, or you may choose to
 Your turn ends when you use the (set! *<register>* value) command.
 The activity ends when the *answer* register is set.
 
-Before you take your turn, you may take the following free actions, if helpful:
+Before you take your turn, you may take free actions ({free_actions_remaining} remaining):
 
-- (think "..."): Take extra steps to think things through.
-- (note "..."): Leave a note for yourself, visible below.
-- (env sexpr): Interact with The Fold (no set!/define - those are for registers).
+- (think "..."): Think things through
+- (note "..."): Leave a note for yourself
+- (env sexpr): Query The Fold
 
-You may use any tools loaded into The Fold when crafting the value in (set! *<register>* value).
+Then commit with (set! *<register>* value). Use *answer* when done.
 </intro>
 <status>
 SESSION: {context.session_id}

@@ -142,6 +142,16 @@ class MetaEvaluator:
         meta = parse_meta_command(expression)
 
         if meta.kind == "env":
+            # Check free action limit
+            if self.context.free_actions_used >= self.context.max_free_actions:
+                return EvalResult(
+                    success=False,
+                    value="",
+                    output=f"[harness] Free action limit reached ({self.context.max_free_actions}). Must set a register.",
+                    session=session_id
+                )
+            self.context.free_actions_used += 1
+
             # Exploration command - evaluate in Fold, record in workspace
             result = self.real_evaluator(session_id, meta.payload, timeout_ms)
             # Add to workspace - use output if value is empty (display-only commands)
@@ -175,6 +185,8 @@ class MetaEvaluator:
             if result.success:
                 # Extract the value that was set (from result or re-query)
                 self.context.registers[meta.register_name] = result.value
+                # Reset free actions (turn ends when register is set)
+                self.context.free_actions_used = 0
                 # *answer* ends the task
                 if meta.register_name == "*answer*":
                     self.task_complete = True
@@ -187,7 +199,7 @@ class MetaEvaluator:
                 return EvalResult(
                     success=True,
                     value=result.value,
-                    output=f"[harness] Register {meta.register_name} set",
+                    output=f"[harness] Register {meta.register_name} set, turn complete",
                     session=session_id
                 )
             return result
@@ -213,20 +225,38 @@ class MetaEvaluator:
             )
 
         if meta.kind == "think":
+            # Check free action limit
+            if self.context.free_actions_used >= self.context.max_free_actions:
+                return EvalResult(
+                    success=False,
+                    value="",
+                    output=f"[harness] Free action limit reached. Must set a register.",
+                    session=session_id
+                )
+            self.context.free_actions_used += 1
             self.thoughts.append(meta.payload)
             return EvalResult(
                 success=True,
                 value=f"Thought recorded: {meta.payload}",
-                output="[harness] Internal reasoning logged",
+                output=f"[harness] Thought logged ({self.context.max_free_actions - self.context.free_actions_used} free actions left)",
                 session=session_id
             )
 
         if meta.kind == "note":
+            # Check free action limit
+            if self.context.free_actions_used >= self.context.max_free_actions:
+                return EvalResult(
+                    success=False,
+                    value="",
+                    output=f"[harness] Free action limit reached. Must set a register.",
+                    session=session_id
+                )
+            self.context.free_actions_used += 1
             self.context.working_notes.append(meta.payload)
             return EvalResult(
                 success=True,
                 value=f"Note saved: {meta.payload}",
-                output="[harness] Working note added",
+                output=f"[harness] Note added ({self.context.max_free_actions - self.context.free_actions_used} free actions left)",
                 session=session_id
             )
 
@@ -546,7 +576,39 @@ def _test_loop():
     assert len(results4) == 5, f"Expected 5 steps, got {len(results4)}"
     print("    PASS")
 
-    print("\nloop.py: 4 tests passed")
+    # Test 5: Free action limit
+    print("  Test 5: Free action limit")
+    ctx5 = AgentContext(
+        session_id="test-loop-5",
+        main_goal="Test free actions",
+        max_free_actions=2  # Only 2 free actions allowed
+    )
+
+    # Should hit limit after 2 thinks
+    api5 = mock_api_client([
+        '(think "first")',
+        '(think "second")',
+        '(think "third")',  # Should fail - limit reached
+        '(set! *scratch* "ok")',  # Register resets count
+        '(think "fourth")',  # Should work again
+        '(set! *answer* "done")'
+    ])
+    eval5 = mock_evaluator({
+        '(set! *scratch* "ok")': EvalResult(True, "ok", "", "s"),
+        '(set! *answer* "done")': EvalResult(True, "done", "", "s")
+    })
+
+    gen5 = run_loop(ctx5, api5, eval5, LoopConfig(max_steps=10, detect_loops=False))
+    results5 = list(gen5)
+
+    # After step 3, the third think should fail (limit reached)
+    assert len(results5) >= 4, f"Expected at least 4 steps, got {len(results5)}"
+    # Check that step 3 failed (free action limit)
+    assert not results5[2].eval_success, "Third think should have failed"
+    assert "limit" in results5[2].eval.output.lower(), "Should mention limit"
+    print("    PASS")
+
+    print("\nloop.py: 5 tests passed")
     return True
 
 
