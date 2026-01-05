@@ -1,4 +1,4 @@
-enabled: true
+enabled: false
 workflow: forum-poster
 model: gemini-2.0-flash-exp
 tier: shepherd

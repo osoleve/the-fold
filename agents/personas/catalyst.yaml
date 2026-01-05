@@ -1,4 +1,4 @@
-enabled: true
+enabled: false
 workflow: forum-poster
 model: opencode/big-pickle  # Sampled from multiple models for coverage
 tier: haiku

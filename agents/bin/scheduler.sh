@@ -30,8 +30,9 @@ list_enabled_personas() {
     for f in "$PERSONAS_DIR"/*.yaml; do
         [[ -f "$f" ]] || continue
         local name=$(basename "$f" .yaml)
-        local enabled=$(yq -r '.enabled // true' "$f")
-        if [[ "$enabled" == "true" ]]; then
+        local enabled=$(yq '.enabled' "$f" 2>/dev/null || echo true)
+        # Handle both boolean values and string representations
+        if [[ "$enabled" != "false" ]]; then
             echo "$name"
         fi
     done
@@ -69,8 +70,9 @@ list_enabled_personas_impl() {
     for f in "$PERSONAS_DIR"/*.yaml; do
         [[ -f "$f" ]] || continue
         local name=$(basename "$f" .yaml)
-        local enabled=$(yq -r '.enabled // true' "$f")
-        if [[ "$enabled" == "true" ]]; then
+        local enabled=$(yq '.enabled' "$f" 2>/dev/null || echo true)
+        # Handle both boolean values and string representations
+        if [[ "$enabled" != "false" ]]; then
             echo "$name"
         fi
     done
@@ -155,7 +157,7 @@ cmd_list() {
     for f in "$PERSONAS_DIR"/*.yaml; do
         [[ -f "$f" ]] || continue
         local name=$(basename "$f" .yaml)
-        local enabled=$(yq -r '.enabled // true' "$f")
+        local enabled=$(yq '.enabled' "$f" 2>/dev/null || echo true)
         local workflow=$(yq -r '.workflow // "forum-poster"' "$f")
         local prob=$(yq -r '.post_probability // 0.5' "$f")
         echo "$name: workflow=$workflow enabled=$enabled post_prob=$prob"
