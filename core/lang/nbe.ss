@@ -47,11 +47,15 @@
 (define (V-lam param body env)
   `(V-lam ,param ,body ,env))
 
+;;; V-lam? : α → Boolean
 (define (V-lam? v)
   (and (pair? v) (eq? (car v) 'V-lam)))
 
+;;; V-lam-param : Value → Symbol
 (define (V-lam-param v) (cadr v))
+;;; V-lam-body : Value → Expr
 (define (V-lam-body v) (caddr v))
+;;; V-lam-env : Value → Env
 (define (V-lam-env v) (cadddr v))
 
 ;;; V-pi : Value × Closure → Value
@@ -60,10 +64,13 @@
 (define (V-pi domain codomain-closure)
   `(V-pi ,domain ,codomain-closure))
 
+;;; V-pi? : α → Boolean
 (define (V-pi? v)
   (and (pair? v) (eq? (car v) 'V-pi)))
 
+;;; V-pi-domain : Value → Value
 (define (V-pi-domain v) (cadr v))
+;;; V-pi-codomain-closure : Value → Closure
 (define (V-pi-codomain-closure v) (caddr v))
 
 ;;; V-sigma : Value × Closure → Value
@@ -71,10 +78,13 @@
 (define (V-sigma fst-type snd-type-closure)
   `(V-sigma ,fst-type ,snd-type-closure))
 
+;;; V-sigma? : α → Boolean
 (define (V-sigma? v)
   (and (pair? v) (eq? (car v) 'V-sigma)))
 
+;;; V-sigma-fst-type : Value → Value
 (define (V-sigma-fst-type v) (cadr v))
+;;; V-sigma-snd-type-closure : Value → Closure
 (define (V-sigma-snd-type-closure v) (caddr v))
 
 ;;; V-type : Nat → Value
@@ -82,9 +92,11 @@
 (define (V-type level)
   `(V-type ,level))
 
+;;; V-type? : α → Boolean
 (define (V-type? v)
   (and (pair? v) (eq? (car v) 'V-type)))
 
+;;; V-type-level : Value → Nat
 (define (V-type-level v)
   (if (V-type? v) (cadr v) 0))
 
@@ -93,10 +105,13 @@
 (define (V-pair fst snd)
   `(V-pair ,fst ,snd))
 
+;;; V-pair? : α → Boolean
 (define (V-pair? v)
   (and (pair? v) (eq? (car v) 'V-pair)))
 
-;;; V-pair-fst v) (cadr v))
+;;; V-pair-fst : Value → Value
+(define (V-pair-fst v) (cadr v))
+;;; V-pair-snd : Value → Value
 (define (V-pair-snd v) (caddr v))
 
 ;;; V-vec : Value × Value → Value
@@ -104,10 +119,13 @@
 (define (V-vec n A)
   `(V-vec ,n ,A))
 
+;;; V-vec? : α → Boolean
 (define (V-vec? v)
   (and (pair? v) (eq? (car v) 'V-vec)))
 
+;;; V-vec-n : Value → Value
 (define (V-vec-n v) (cadr v))
+;;; V-vec-A : Value → Value
 (define (V-vec-A v) (caddr v))
 
 ;;; V-matrix : Value × Value × Value → Value
@@ -115,11 +133,15 @@
 (define (V-matrix m n A)
   `(V-matrix ,m ,n ,A))
 
+;;; V-matrix? : α → Boolean
 (define (V-matrix? v)
   (and (pair? v) (eq? (car v) 'V-matrix)))
 
+;;; V-matrix-m : Value → Value
 (define (V-matrix-m v) (cadr v))
+;;; V-matrix-n : Value → Value
 (define (V-matrix-n v) (caddr v))
+;;; V-matrix-A : Value → Value
 (define (V-matrix-A v) (cadddr v))
 
 ;;; V-neutral : Neutral → Value
@@ -127,9 +149,11 @@
 (define (V-neutral neutral)
   `(V-neutral ,neutral))
 
+;;; V-neutral? : α → Boolean
 (define (V-neutral? v)
   (and (pair? v) (eq? (car v) 'V-neutral)))
 
+;;; V-neutral-term : Value → Neutral
 (define (V-neutral-term v) (cadr v))
 
 ;;; V-base : Any → Value
@@ -137,9 +161,11 @@
 (define (V-base val)
   `(V-base ,val))
 
+;;; V-base? : α → Boolean
 (define (V-base? v)
   (and (pair? v) (eq? (car v) 'V-base)))
 
+;;; V-base-val : Value → α
 (define (V-base-val v) (cadr v))
 
 ;;; ============================================================
@@ -158,29 +184,38 @@
 ;;;         | (N-snd neutral)
 ;;;         | (N-case neutral arms)
 
+;;; N-var : Nat → Neutral
 (define (N-var level)
   `(N-var ,level))
 
+;;; N-var? : α → Boolean
 (define (N-var? n)
   (and (pair? n) (eq? (car n) 'N-var)))
 
+;;; N-var-level : Neutral → Nat
 (define (N-var-level n) (cadr n))
 
+;;; N-app : Neutral × Value → Neutral
 (define (N-app func arg)
   `(N-app ,func ,arg))
 
+;;; N-app? : α → Boolean
 (define (N-app? n)
   (and (pair? n) (eq? (car n) 'N-app)))
 
+;;; N-fst : Neutral → Neutral
 (define (N-fst neutral)
   `(N-fst ,neutral))
 
+;;; N-fst? : α → Boolean
 (define (N-fst? n)
   (and (pair? n) (eq? (car n) 'N-fst)))
 
+;;; N-snd : Neutral → Neutral
 (define (N-snd neutral)
   `(N-snd ,neutral))
 
+;;; N-snd? : α → Boolean
 (define (N-snd? n)
   (and (pair? n) (eq? (car n) 'N-snd)))
 
@@ -191,14 +226,19 @@
 ;;; A closure packages an expression with its environment.
 ;;; When applied to a value, it substitutes and continues evaluation.
 
+;;; make-closure : Symbol × Expr × Env → Closure
 (define (make-closure param body env)
   `(closure ,param ,body ,env))
 
+;;; closure? : α → Boolean
 (define (closure? c)
   (and (pair? c) (eq? (car c) 'closure)))
 
+;;; closure-param : Closure → Symbol
 (define (closure-param c) (cadr c))
+;;; closure-body : Closure → Expr
 (define (closure-body c) (caddr c))
+;;; closure-env : Closure → Env
 (define (closure-env c) (cadddr c))
 
 ;;; apply-closure : Closure × Value → Value

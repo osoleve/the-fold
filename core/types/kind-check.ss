@@ -32,6 +32,7 @@
 (define *check-count* 0)
 (define *pass-count* 0)
 
+;;; check : String × Boolean → Boolean
 (define (check name condition)
   (set! *check-count* (+ *check-count* 1))
   (if condition
@@ -42,6 +43,7 @@
        (set! *check-failures* (cons name *check-failures*))
        #f)))
 
+;;; report-results : → Unit
 (define (report-results)
   (display (format "~nKind Check Results: ~a/~a passed~n" *pass-count* *check-count*))
   (if (null? *check-failures*)
@@ -76,6 +78,7 @@
 ;; All built-in type constructor kinds are well-formed
 ;; Note: Block and Cap use 'Symbol as a domain (tag-kinded types),
 ;; which is a special design choice. We skip them in strict kind checking.
+;;; check-builtin-kind : (× Symbol Kind) → Unit
 (define (check-builtin-kind entry)
   (let ([name (car entry)]
         [k (cdr entry)])
@@ -92,6 +95,7 @@
 (display "\nChecking kind inference on types...\n")
 
 ;; Base types infer to *
+;;; check-base-type-kind : Symbol × Kind → Unit
 (define (check-base-type-kind name expected-kind)
   (let ([result (infer-kind name '())])
        (check (format "~a has kind ~a" name (kind->string expected-kind))
@@ -153,10 +157,12 @@
 
 (display "\nChecking kind unification...\n")
 
+;;; check-unifies : Kind × Kind × String → Unit
 (define (check-unifies k1 k2 desc)
   (let ([result (unify-kinds k1 k2)])
        (check (format "unify ~a" desc) (eq? (car result) 'ok))))
 
+;;; check-no-unify : Kind × Kind × String → Unit
 (define (check-no-unify k1 k2 desc)
   (let ([result (unify-kinds k1 k2)])
        (check (format "no-unify ~a" desc) (eq? (car result) 'error))))
@@ -185,6 +191,7 @@
 
 (display "\nChecking kind normalization...\n")
 
+;;; check-normalizes : Kind × Kind × String → Unit
 (define (check-normalizes kind expected desc)
   (let ([result (kind-nf kind)])
        ;; Use equal? for structural comparison since kind=? doesn't handle
@@ -208,9 +215,11 @@
 
 (display "\nChecking kind equivalence...\n")
 
+;;; check-equiv : Kind × Kind × String → Unit
 (define (check-equiv k1 k2 desc)
   (check (format "equiv ~a" desc) (kinds-equal? k1 k2)))
 
+;;; check-not-equiv : Kind × Kind × String → Unit
 (define (check-not-equiv k1 k2 desc)
   (check (format "not-equiv ~a" desc) (not (kinds-equal? k1 k2))))
 

@@ -37,10 +37,11 @@
 ;;; Compilation Phases
 ;;; ============================================================
 
+;;; *phases* : (List Phase)
 ;;; Phase tags (in order)
 (define *phases* '(read parse normalize expand infer eval))
 
-;;; phase-index : Symbol → Nat
+;;; phase-index : Phase → Nat
 ;;; Return the index of a phase (0-based).
 (define (phase-index phase)
   (let loop ([phases *phases*] [i 0])
@@ -49,7 +50,7 @@
         [(eq? (car phases) phase) i]
         [else (loop (cdr phases) (+ i 1))])))
 
-;;; phase<=? : Symbol × Symbol → Boolean
+;;; phase<=? : Phase × Phase → Boolean
 ;;; True if phase1 comes before or equals phase2.
 (define (phase<=? p1 p2)
   (<= (phase-index p1) (phase-index p2)))
@@ -58,47 +59,58 @@
 ;;; Unified Result Type
 ;;; ============================================================
 
+;;; result-ok : α × Context... → (Result α Error)
 ;;; Result constructors
 (define (result-ok value . context)
   `(ok ,value ,@context))
 
+;;; result-error : Phase × Symbol × Details... → (Result α Error)
 (define (result-error phase error-type . details)
   `(error ,phase ,error-type ,@details))
 
+;;; result-suspended : Expr × Env → Suspended
 (define (result-suspended expr env)
   `(suspended ,expr ,env))
 
+;;; result-ok? : α → Boolean
 ;;; Result predicates
 (define (result-ok? r)
   (and (pair? r) (eq? (car r) 'ok)))
 
+;;; result-error? : α → Boolean
 (define (result-error? r)
   (and (pair? r) (eq? (car r) 'error)))
 
+;;; result-suspended? : α → Boolean
 (define (result-suspended? r)
   (and (pair? r) (eq? (car r) 'suspended)))
 
+;;; result-value : (Result α Error) → α
 ;;; Result accessors
 (define (result-value r)
   (if (result-ok? r)
       (cadr r)
       (error 'result-value "Not an ok result" r)))
 
+;;; result-context : (Result α Error) → Context
 (define (result-context r)
   (if (result-ok? r)
       (cddr r)
       (error 'result-context "Not an ok result" r)))
 
+;;; result-phase : (Result α Error) → Phase
 (define (result-phase r)
   (if (result-error? r)
       (cadr r)
       (error 'result-phase "Not an error result" r)))
 
+;;; result-error-type : (Result α Error) → Symbol
 (define (result-error-type r)
   (if (result-error? r)
       (caddr r)
       (error 'result-error-type "Not an error result" r)))
 
+;;; result-error-details : (Result α Error) → (List Details)
 (define (result-error-details r)
   (if (result-error? r)
       (cdddr r)
@@ -208,10 +220,11 @@
 ;;; Compilation Pipeline
 ;;; ============================================================
 
+;;; *default-fuel* : Nat
 ;;; Default fuel for evaluation
 (define *default-fuel* 10000)
 
-;;; compile : String [#:to Phase] [#:fuel Nat] → Result
+;;; compile : String × Options... → (Result α Error)
 ;;; Compile an input string through the pipeline.
 ;;;
 ;;; Options:
@@ -224,7 +237,7 @@
          [fuel (option-get options 'fuel *default-fuel*)])
         (compile-pipeline input to-phase fuel)))
 
-;;; option-get : Options × Symbol × Any → Any
+;;; option-get : (List α) × Symbol × α → α
 ;;; Get option value or default.
 (define (option-get options key default)
   (let loop ([opts options])
@@ -277,7 +290,7 @@
            (result-value r)
            r)))
 
-;;; eval-string : String [Fuel] → Value | Error
+;;; eval-string : String × Fuel... → Value | Error
 ;;; Evaluate a string expression.
 (define (eval-string input . args)
   (let* ([fuel (if (null? args) *default-fuel* (car args))]
@@ -286,7 +299,7 @@
             (result-value r)
             r)))
 
-;;; compile-file : Path → (Result Value Error)
+;;; compile-file : String → (Result Value Error)
 ;;; Compile a file (reads entire file, evaluates as sequence).
 (define (compile-file path)
   (guard (ex [else (result-error 'read 'file-error path)])

@@ -31,9 +31,11 @@
 
 (define empty-idb '())
 
+;;; idb-add : IDB × Instance → IDB
 (define (idb-add db instance)
   (cons instance db))
 
+;;; idb-add* : IDB × (List Instance) → IDB
 (define (idb-add* db instances)
   (append instances db))
 
@@ -47,9 +49,13 @@
 ;;;   (Monad (@ Either String))
 ;;;   (Ord a)
 
+;;; constraint-class : Constraint → Symbol
 (define (constraint-class c) (car c))
+
+;;; constraint-type : Constraint → Type
 (define (constraint-type c) (cadr c))
 
+;;; constraint? : α → Boolean
 (define (constraint? c)
   (and (pair? c)
        (= (length c) 2)
@@ -76,6 +82,7 @@
 (define (find-matching-instances constraint db)
   (filter-map (lambda (inst) (match-instance inst constraint)) db))
 
+;;; filter-map : (α → (Option β)) × (List α) → (List β)
 (define (filter-map f lst)
   (if (null? lst)
       '()
@@ -99,6 +106,7 @@
 ;;;   - Type constructors add partial specificity
 ;;;   - Type variables add nothing
 
+;;; type-specificity : Type → Nat
 (define (type-specificity type)
   (cond
    [(symbol? type)
@@ -114,8 +122,7 @@
     (apply + (map type-specificity (cdr type)))]
    [else 0]))
 
-;;; compare-specificity : Match × Match → -1 | 0 | 1
-;;; Returns -1 if m1 is more specific, 1 if m2 is more specific, 0 if equal
+;;; compare-specificity : Match × Match → Int
 (define (compare-specificity m1 m2)
   (let* ([inst1 (caddr m1)]
          [inst2 (caddr m2)]
@@ -127,7 +134,6 @@
          [else 0])))
 
 ;;; select-most-specific : (List Match) → Match
-;;; Select the most specific matching instance.
 (define (select-most-specific matches)
   (if (null? (cdr matches))
       (car matches)
@@ -164,7 +170,6 @@
          (resolve-match (car matches) db)])))
 
 ;;; suggest-instance : Constraint → String
-;;; Suggest how to add the missing instance.
 (define (suggest-instance constraint)
   (let ([class (constraint-class constraint)]
         [type (constraint-type constraint)])
@@ -206,6 +211,7 @@
 ;;; Given evidence for Monad f, we can derive evidence for
 ;;; Applicative f and Functor f.
 
+;;; resolve-superclasses : Evidence × ClassDB → Evidence
 (define (resolve-superclasses evidence class-db)
   (let* ([class-name (cadr evidence)]  ; evidence structure: (evidence class type methods ctx)
          [class-def (lookup-class class-name class-db)])
@@ -220,7 +226,7 @@
 ;;; Class Database
 ;;; ============================================================
 
-;;; Lookup a type class definition by name.
+;;; lookup-class : Symbol × ClassDB → (Option TypeClass)
 (define (lookup-class name class-db)
   (let ([entry (assq name class-db)])
        (if entry (cdr entry) #f)))

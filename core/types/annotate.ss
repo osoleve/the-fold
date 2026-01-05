@@ -41,15 +41,19 @@
 ;;;   (ann Int 42)
 ;;;   (ann (-> Int Int) (fn (x) (ann Int (prim 'add (ann Int x) (ann Int 1)))))
 
+;;; ann : Type × Expr → AnnotatedExpr
 (define (ann type expr)
   `(ann ,type ,expr))
 
+;;; ann? : α → Boolean
 (define (ann? e)
   (and (pair? e) (eq? (car e) 'ann)))
 
+;;; ann-type : AnnotatedExpr → Type
 (define (ann-type e)
   (if (ann? e) (cadr e) '?))
 
+;;; ann-expr : AnnotatedExpr → Expr
 (define (ann-expr e)
   (if (ann? e) (caddr e) e))
 
@@ -74,6 +78,7 @@
 (define (annotate expr env)
   (annotate-with expr env empty-subst))
 
+;;; annotate-with : Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-with expr env subst)
   (cond
    ;; Literals
@@ -150,6 +155,7 @@
 ;;; Lambda Annotation
 ;;; ============================================================
 
+;;; annotate-fn : (List Symbol) × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-fn params body env subst)
   (let* ([param-types (map (lambda (_) (fresh-tvar)) params)]
          [new-env (tenv-extend* env (map cons params param-types))]
@@ -171,9 +177,11 @@
 ;;; Let Annotation
 ;;; ============================================================
 
+;;; annotate-let : (List (× Symbol Expr)) × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-let bindings body env subst)
   (annotate-let-bindings bindings body env '() subst))
 
+;;; annotate-let-bindings : (List (× Symbol Expr)) × Expr × TEnv × (List (× Symbol AnnotatedExpr)) × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-let-bindings bindings body env ann-bindings subst)
   (if (null? bindings)
       ;; All bindings processed, annotate body
@@ -216,6 +224,7 @@
 ;;; Fix Annotation
 ;;; ============================================================
 
+;;; annotate-fix : Symbol × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-fix name fn-expr env subst)
   (let* ([fix-type (fresh-tvar)]
          [new-env (tenv-extend env name fix-type)]
@@ -236,6 +245,7 @@
 ;;; If Annotation
 ;;; ============================================================
 
+;;; annotate-if : Expr × Expr × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-if test then-expr else-expr env subst)
   (let ([test-result (annotate-with test env subst)])
        (if (not (eq? (car test-result) 'ok))
@@ -276,6 +286,7 @@
 ;;; (case scrutinee ((Tag vars...) body) ...)
 ;;; Pattern variables are bound to Hash type (block refs)
 
+;;; annotate-case : Expr × (List Clause) × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-case scrutinee clauses env subst)
   (let ([scrut-result (annotate-with scrutinee env subst)])
        (if (not (eq? (car scrut-result) 'ok))
@@ -331,6 +342,7 @@
 ;;; Prim Annotation
 ;;; ============================================================
 
+;;; annotate-prim : (+ Symbol (List α)) × (List Expr) × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-prim op args env subst)
   (let ([op-sym (if (and (pair? op) (eq? (car op) 'quote))
                     (cadr op)
@@ -342,6 +354,7 @@
                      ;; Pass op-sym (the bare symbol) to avoid double-quoting
                      (annotate-prim-args op-sym inst-type args env '() subst))))))
 
+;;; annotate-prim-args : Symbol × Type × (List Expr) × TEnv × (List AnnotatedExpr) × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-prim-args op fn-type remaining env ann-args subst)
   (if (null? remaining)
       ;; All args processed
@@ -383,6 +396,7 @@
 ;;; Application Annotation
 ;;; ============================================================
 
+;;; annotate-app : Expr × (List Expr) × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-app fn args env subst)
   (let ([fn-result (annotate-with fn env subst)])
        (if (not (eq? (car fn-result) 'ok))
@@ -392,6 +406,7 @@
                   [fn-type (apply-subst s1 (ann-type ann-fn))])
                  (annotate-app-args ann-fn fn-type args env '() s1)))))
 
+;;; annotate-app-args : AnnotatedExpr × Type × (List Expr) × TEnv × (List AnnotatedExpr) × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-app-args ann-fn fn-type remaining env ann-args subst)
   (if (null? remaining)
       ;; All args processed
@@ -448,6 +463,7 @@
 ;;; Check-Mode Annotation
 ;;; ============================================================
 
+;;; annotate-check : Expr × Type × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-check expr expected env subst)
   (cond
    ;; Lambda against function type
@@ -505,6 +521,7 @@
          (finalize-ann-inner (ann-expr ann-e) subst))]
    [else ann-e]))
 
+;;; finalize-ann-inner : α × Subst → α
 (define (finalize-ann-inner e subst)
   (cond
    [(ann? e) (finalize-ann e subst)]
@@ -520,6 +537,7 @@
 (define (pp-ann ann-e)
   (pp-ann-indent ann-e 0))
 
+;;; pp-ann-indent : AnnotatedExpr × Nat → String
 (define (pp-ann-indent ann-e indent)
   (let ([ind (make-string indent #\space)])
        (if (ann? ann-e)
@@ -636,6 +654,7 @@
 ;;; Display Annotated Expression
 ;;; ============================================================
 
+;;; show-annotated : Expr → Unit
 (define (show-annotated expr)
   (let ([result (annotate-expr expr)])
        (if (and (pair? result) (eq? (car result) 'error))

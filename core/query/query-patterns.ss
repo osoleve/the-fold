@@ -36,7 +36,7 @@
 ;;; Variable Recognition
 ;;; ============================================================
 
-;;; variable? : Any -> Boolean
+;;; variable? : α → Boolean
 ;;; Check if a symbol represents a variable (starts with ?).
 (define (variable? x)
   (and (symbol? x)
@@ -44,7 +44,7 @@
             (and (> (string-length str) 0)
                  (char=? (string-ref str 0) #\?)))))
 
-;;; variable-name : Symbol -> String
+;;; variable-name : Symbol → String
 ;;; Extract the name of a variable (without the ?).
 (define (variable-name var)
   (let ([str (symbol->string var)])
@@ -57,26 +57,27 @@
 ;;; An environment is an association list: ((var . value) ...)
 ;;; Variables map to block hashes or extracted values.
 
-;;; empty-env : Env
+;;; empty-env : (List (Pair Symbol α))
+;;; The empty binding environment.
 (define empty-env '())
 
-;;; extend-env : Env Symbol Value -> Env
+;;; extend-env : Env × Symbol × α → Env
 ;;; Add a new binding to the environment.
 (define (extend-env env var value)
   (cons (cons var value) env))
 
-;;; lookup-env : Env Symbol -> (Maybe Value)
+;;; lookup-env : Env × Symbol → (Option α)
 ;;; Look up a variable's value in the environment.
 (define (lookup-env env var)
   (let ([binding (assq var env)])
        (if binding (cdr binding) #f)))
 
-;;; env-bound? : Env Symbol -> Boolean
+;;; env-bound? : Env × Symbol → Boolean
 ;;; Check if a variable is bound in the environment.
 (define (env-bound? env var)
   (if (assq var env) #t #f))
 
-;;; merge-envs : Env Env -> (Maybe Env)
+;;; merge-envs : Env × Env → (Option Env)
 ;;; Merge two environments, return #f if incompatible.
 (define (merge-envs env1 env2)
   (let loop ([pairs env2]
@@ -103,7 +104,7 @@
 ;;;   - Payload contains relation-type
 ;;;   - Second ref binds to ?var2
 
-;;; match-pattern : FSCap Pattern Env -> (List Env)
+;;; match-pattern : FSCap × Pattern × Env → (List Env)
 ;;; Match a pattern against all blocks, return list of extended environments.
 ;;;
 ;;; Pattern forms:
@@ -120,7 +121,7 @@
    [else
     (error 'match-pattern "Unknown pattern type" pattern)]))
 
-;;; match-binary-relation : FSCap Pattern Env -> (List Env)
+;;; match-binary-relation : FSCap × Pattern × Env → (List Env)
 ;;; Match a binary relation pattern (?subject rel-type ?object).
 (define (match-binary-relation fs pattern env)
   (let ([subject-var (car pattern)]
@@ -155,7 +156,7 @@
                                
                                (loop (cdr blocks) results))))))))
 
-;;; try-bind-relation : Env Symbol Hash Symbol Hash -> (Maybe Env)
+;;; try-bind-relation : Env × Symbol × Bytevector × Symbol × Bytevector → (Option Env)
 ;;; Try to bind subject and object variables to hashes.
 ;;; Returns extended environment or #f if binding conflicts.
 (define (try-bind-relation env subject-var subject-hash object-var object-hash)
@@ -164,7 +165,7 @@
            (try-bind-var env1 object-var object-hash)
            #f)))
 
-;;; try-bind-var : Env Symbol Hash -> (Maybe Env)
+;;; try-bind-var : Env × Symbol × Bytevector → (Option Env)
 ;;; Try to bind a variable to a hash value.
 ;;; If variable, check for conflicts and extend.
 ;;; If constant (hash), check for equality.
@@ -192,7 +193,7 @@
 ;;; Multi-Pattern Join
 ;;; ============================================================
 
-;;; join-patterns : FSCap (List Pattern) -> (List Env)
+;;; join-patterns : FSCap × (List Pattern) → (List Env)
 ;;; Execute multiple patterns and join results based on shared variables.
 ;;;
 ;;; Example:
@@ -209,7 +210,7 @@
       (list empty-env)
       (join-pattern-list fs patterns (list empty-env))))
 
-;;; join-pattern-list : FSCap (List Pattern) (List Env) -> (List Env)
+;;; join-pattern-list : FSCap × (List Pattern) × (List Env) → (List Env)
 ;;; Recursively join patterns, accumulating environments.
 (define (join-pattern-list fs patterns envs)
   (if (null? patterns)
@@ -231,7 +232,7 @@
 ;;; Constraint Evaluation
 ;;; ============================================================
 
-;;; extract-numeric-value : Any -> Number | #f
+;;; extract-numeric-value : α → (Option Number)
 ;;; Extract a numeric value from various representations.
 ;;; Handles: numbers, bytevectors containing numeric S-expressions, strings.
 ;;;
@@ -253,7 +254,7 @@
                 (if parsed parsed #f)))]
    [else #f]))
 
-;;; eval-constraint : Constraint Env -> Boolean
+;;; eval-constraint : Constraint × Env → Boolean
 ;;; Evaluate a constraint against an environment.
 ;;;
 ;;; Constraints:
@@ -305,7 +306,7 @@
 ;;; Main Pattern Query API
 ;;; ============================================================
 
-;;; pattern-query : FSCap (List Pattern) [(List Constraint)] -> (List Env)
+;;; pattern-query : FSCap × (List Pattern) × (Option (List Constraint)) → (List Env)
 ;;; Execute a multi-pattern query with optional constraints.
 ;;;
 ;;; Example:
@@ -333,7 +334,7 @@
 ;;; Result Projection
 ;;; ============================================================
 
-;;; project-vars : (List Env) (List Symbol) -> (List Alist)
+;;; project-vars : (List Env) × (List Symbol) → (List Alist)
 ;;; Project specific variables from environments.
 ;;;
 ;;; Example:
@@ -351,7 +352,7 @@
 ;;; Convenience Functions
 ;;; ============================================================
 
-;;; find-pattern : FSCap Pattern -> (List Hash)
+;;; find-pattern : FSCap × Pattern → (List Bytevector)
 ;;; Find all blocks matching a single pattern, return bound values.
 (define (find-pattern fs pattern)
   (let ([envs (match-pattern fs pattern empty-env)])
@@ -359,7 +360,7 @@
                     (map cdr env))
             envs)))
 
-;;; count-pattern : FSCap (List Pattern) -> Integer
+;;; count-pattern : FSCap × (List Pattern) → Nat
 ;;; Count results matching pattern query.
 (define (count-pattern fs patterns)
   (length (pattern-query fs patterns)))
@@ -368,7 +369,7 @@
 ;;; Utility Functions
 ;;; ============================================================
 
-;;; query-string-contains? : String String -> Boolean
+;;; query-string-contains? : String × String → Boolean
 ;;; Helper for string containment check.
 ;;; Optimized: char-by-char comparison avoids O(N*M) substring allocations.
 (define (query-string-contains? haystack needle)

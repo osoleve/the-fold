@@ -98,10 +98,14 @@
 ;;; - Wrapping store operations in a mutex
 ;;; - Using a thread-safe concurrent data structure
 ;;; - Ensuring all access goes through a single-threaded coordinator
+
+;;; *store* : (Hashtable Bytevector Block)
 (define *store* (make-hashtable equal-hash equal?))
 
 ;;; Pinned hashes are preserved during garbage collection.
 ;;; (Not implemented yet — all stored blocks are retained.)
+
+;;; *pinned* : (Hashtable Bytevector Boolean)
 (define *pinned* (make-hashtable equal-hash equal?))
 
 ;;; store! : Block → Bytevector

@@ -41,15 +41,19 @@
 ;;; A typed value pairs a value with its type.
 ;;; (typed Type Value)
 
+;;; typed : Type × Value → TypedValue
 (define (typed type value)
   `(typed ,type ,value))
 
+;;; typed? : α → Boolean
 (define (typed? v)
   (and (pair? v) (eq? (car v) 'typed)))
 
+;;; typed-type : TypedValue → Type
 (define (typed-type tv)
   (if (typed? tv) (cadr tv) '?))
 
+;;; typed-value : TypedValue → Value
 (define (typed-value tv)
   (if (typed? tv)
       (typed-value (caddr tv))  ; Recursively unwrap nested typed values
@@ -114,6 +118,7 @@
 ;;; Evaluate an already-annotated expression.
 ;;; The types are already computed; we just evaluate and preserve them.
 
+;;; eval-annotated : AnnotatedExpr × Env × Fuel → (Result TypedValue Error)
 (define (eval-annotated e env fuel)
   (if (out-of-fuel? fuel)
       `(suspended ,e ,env)
@@ -130,6 +135,7 @@
           ;; Not annotated — fall back to regular evaluation
           (eval-expr e env fuel))))
 
+;;; eval-annotated-inner : Expr × Env × Fuel → (Result Value Error)
 (define (eval-annotated-inner expr env fuel)
   (cond
    ;; Literals
@@ -193,6 +199,7 @@
 ;;; (case scrutinee ((Tag vars...) body) ...)
 ;;; Pattern matching on block tags with type preservation
 
+;;; eval-annotated-case : Expr × (List Clause) × Env × Fuel → (Result Value Error)
 (define (eval-annotated-case scrutinee clauses env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (case ,scrutinee ,@clauses) ,env)
@@ -209,6 +216,7 @@
                ,(caddr scrut-result))]
             [else scrut-result]))))
 
+;;; match-annotated-clauses : Block × (List Clause) × Env × Fuel → (Result Value Error)
 (define (match-annotated-clauses block clauses env fuel)
   (if (null? clauses)
       `(error no-matching-clause ,(block-tag block))
@@ -232,11 +240,13 @@
 ;;; Annotated Let Evaluation
 ;;; ============================================================
 
+;;; eval-annotated-let : (List Binding) × Expr × Env × Fuel → (Result Value Error)
 (define (eval-annotated-let bindings body env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (let ,bindings ,body) ,env)
       (eval-annotated-let-bindings bindings body env '() fuel)))
 
+;;; eval-annotated-let-bindings : (List Binding) × Expr × Env × (List (Pair Symbol Value)) × Fuel → (Result Value Error)
 (define (eval-annotated-let-bindings bindings body env acc fuel)
   (if (null? bindings)
       (eval-annotated body (env-extend* env (map car acc) (map cdr acc)) fuel)
@@ -256,6 +266,7 @@
 ;;; Annotated Fix Evaluation
 ;;; ============================================================
 
+;;; eval-annotated-fix : Symbol × Expr × Env × Fuel → (Result Closure Error)
 (define (eval-annotated-fix name fn-expr env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (fix ,name ,fn-expr) ,env)
@@ -279,6 +290,7 @@
 ;;; Annotated If Evaluation
 ;;; ============================================================
 
+;;; eval-annotated-if : Expr × Expr × Expr × Env × Fuel → (Result Value Error)
 (define (eval-annotated-if test then-expr else-expr env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (if ,test ,then-expr ,else-expr) ,env)
@@ -296,11 +308,13 @@
 ;;; Annotated Prim Evaluation
 ;;; ============================================================
 
+;;; eval-annotated-prim : Symbol × (List Expr) × Env × Fuel → (Result Value Error)
 (define (eval-annotated-prim op args env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (prim ,op ,@args) ,env)
       (eval-annotated-prim-args op args env '() (- fuel 1))))
 
+;;; eval-annotated-prim-args : Symbol × (List Expr) × Env × (List Value) × Fuel → (Result Value Error)
 (define (eval-annotated-prim-args op remaining env acc fuel)
   (if (null? remaining)
       (let ([op-sym (if (and (pair? op) (eq? (car op) 'quote))
@@ -320,6 +334,7 @@
 ;;; Annotated Application Evaluation
 ;;; ============================================================
 
+;;; eval-annotated-app : Expr × (List Expr) × Env × Fuel → (Result Value Error)
 (define (eval-annotated-app fn args env fuel)
   (if (out-of-fuel? fuel)
       `(suspended (,fn ,@args) ,env)
@@ -333,6 +348,7 @@
                       `(error not-a-function ,fn-val)))]
             [else fn-result]))))
 
+;;; eval-annotated-call-args : Closure × (List Expr) × Env × (List Value) × Fuel → (Result Value Error)
 (define (eval-annotated-call-args closure remaining env acc fuel)
   (if (null? remaining)
       (let* ([params (closure-params closure)]
@@ -387,6 +403,7 @@
 
 ;;; Build paired type/value environments for use with typecheck-eval-env
 
+;;; make-typed-env : (List (Symbol × Type × Value)) → (Values TypeEnv ValueEnv)
 (define (make-typed-env bindings)
   (let loop ([bindings bindings] [tenv '()] [venv '()])
        (if (null? bindings)
@@ -433,7 +450,8 @@
     (square  (-> Int Int)
             (fn (x) (prim 'mul x x)))))
 
-;;; Build typed prelude environments
+;;; build-typed-prelude : Fuel → (Values TypeEnv ValueEnv)
+;;; Build typed prelude environments.
 (define (build-typed-prelude fuel)
   (let loop ([defs typed-prelude-defs]
              [tenv empty-tenv]

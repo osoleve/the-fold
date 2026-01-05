@@ -58,7 +58,7 @@
   (s-bind (s-many (s-alt s-space fold-comment)) (lambda (_)
                                                         (s-pure '()))))
 
-;;; fold-token : SpannedParser a → SpannedParser a
+;;; fold-token : (SpannedParser α) → (SpannedParser α)
 ;;; Parse a token and skip trailing whitespace.
 (define (fold-token parser)
   (s-seq-left parser fold-whitespace))

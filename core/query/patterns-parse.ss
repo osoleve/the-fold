@@ -232,6 +232,7 @@
 (define (filter-tags-by-key tags pred)
   (filter (lambda (pair) (pred (car pair))) tags))
 
+;;; filter : (α → Boolean) × (List α) → (List α)
 ;;; Helper: filter
 (define (filter pred lst)
   (cond

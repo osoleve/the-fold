@@ -36,10 +36,14 @@
 ;;; ============================================================
 
 ;;; Token types: symbol, arrow, times, lparen, rparen, pipe, forall, dot
+;;; make-token : Symbol × String → Token
 (define (make-token type value)
   (cons type value))
 
+;;; token-type : Token → Symbol
 (define (token-type tok) (car tok))
+
+;;; token-value : Token → String
 (define (token-value tok) (cdr tok))
 
 ;;; Known base types
@@ -70,6 +74,7 @@
   (let ([len (string-length str)])
        (tokenize-from str 0 len '())))
 
+;;; tokenize-from : String × Nat × Nat × (List Token) → (Result (List Token) Error)
 (define (tokenize-from str pos len tokens)
   (if (>= pos len)
       `(ok ,(reverse tokens))
@@ -208,13 +213,11 @@
 ;;; Parser state: list of remaining tokens
 ;;; Result: (ok ast remaining-tokens) | (error msg)
 
-;;; parse-type : (List Token) → (ok Type Remaining) | (error ...)
-;;; Parse a complete type expression.
+;;; parse-type : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-type tokens)
   (parse-arrow tokens))
 
-;;; parse-arrow : (List Token) → (ok Type Remaining) | (error ...)
-;;; Parse arrow types (right-associative): A → B → C = A → (B → C)
+;;; parse-arrow : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-arrow tokens)
   (let ([result (parse-product tokens)])
        (if (not (eq? (car result) 'ok))
@@ -233,8 +236,7 @@
                     ;; No arrow, return left
                     `(ok ,left ,rest))))))
 
-;;; parse-product : (List Token) → (ok Type Remaining) | (error ...)
-;;; Parse product types: A × B × C
+;;; parse-product : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-product tokens)
   (let ([result (parse-union tokens)])
        (if (not (eq? (car result) 'ok))
@@ -243,6 +245,7 @@
                  [rest (caddr result)])
                 (parse-product-rest (list first) rest)))))
 
+;;; parse-product-rest : (List Type) × (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-product-rest acc tokens)
   (if (and (pair? tokens)
            (eq? (token-type (car tokens)) 'times))
@@ -257,8 +260,7 @@
           `(ok ,(car acc) ,tokens)
           `(ok (× ,@(reverse acc)) ,tokens))))
 
-;;; parse-union : (List Token) → (ok Type Remaining) | (error ...)
-;;; Parse union types: A | B | C (for things like "α | #f")
+;;; parse-union : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-union tokens)
   (let ([result (parse-atom tokens)])
        (if (not (eq? (car result) 'ok))
@@ -267,6 +269,7 @@
                  [rest (caddr result)])
                 (parse-union-rest (list first) rest)))))
 
+;;; parse-union-rest : (List Type) × (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-union-rest acc tokens)
   (if (and (pair? tokens)
            (eq? (token-type (car tokens)) 'pipe))
@@ -282,8 +285,7 @@
           ;; Convert A | B to (+ A B)
           `(ok (+ ,@(reverse acc)) ,tokens))))
 
-;;; parse-atom : (List Token) → (ok Type Remaining) | (error ...)
-;;; Parse atomic types: symbols, parenthesized expressions, forall
+;;; parse-atom : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-atom tokens)
   (if (null? tokens)
       `(error unexpected-end-of-input)
@@ -301,8 +303,7 @@
                  [else
                   `(error unexpected-token ,(token-type tok))]))))
 
-;;; parse-forall : (List Token) → (ok Type Remaining) | (error ...)
-;;; Parse: ∀ α β ... . Type
+;;; parse-forall : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-forall tokens)
   (let-values ([(vars rest) (parse-forall-vars tokens '())])
               (if (and (pair? rest)
@@ -315,6 +316,7 @@
                                 `(ok (∀ ,vars ,body) ,rest2))))
                   `(error expected-dot-in-forall))))
 
+;;; parse-forall-vars : (List Token) × (List Symbol) → (Values (List Symbol) (List Token))
 (define (parse-forall-vars tokens acc)
   (if (or (null? tokens)
           (eq? (token-type (car tokens)) 'dot))
@@ -323,8 +325,7 @@
           (parse-forall-vars (cdr tokens) (cons (token-value (car tokens)) acc))
           (values (reverse acc) tokens))))
 
-;;; parse-paren : (List Token) → (ok Type Remaining) | (error ...)
-;;; Parse parenthesized type: (List α) or (Pair α β) or grouping (α → β)
+;;; parse-paren : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-paren tokens)
   (if (null? tokens)
       `(error unmatched-lparen)
@@ -345,11 +346,11 @@
                             `(ok ,inner ,(cdr rest))
                             `(error expected-rparen))))))))
 
-;;; parse-type-app : Symbol × (List Token) → (ok Type Remaining) | (error ...)
-;;; Parse type application: List α β ... until )
+;;; parse-type-app : Symbol × (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-type-app con tokens)
   (parse-type-args con '() tokens))
 
+;;; parse-type-args : Symbol × (List Type) × (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-type-args con acc tokens)
   (if (null? tokens)
       `(error unmatched-lparen)

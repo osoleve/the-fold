@@ -35,7 +35,7 @@
            (cdr body-pair)
            "")))
 
-;;; find-tagged : FSCap × Symbol × (+ String Bool) → (List Alist)
+;;; find-tagged : FSCap × Symbol × (Union String Boolean) → (List Alist)
 ;;; Find all forum posts that have a specific tag.
 ;;; If value is #t, matches any value for that key.
 ;;;
@@ -188,7 +188,7 @@
 ;;; Display Functions
 ;;; ============================================================
 
-;;; print-tagged : FSCap × Symbol × (+ String Bool) → Void
+;;; print-tagged : FSCap × Symbol × (Union String Boolean) → Void
 ;;; Print all posts with a specific tag.
 (define (print-tagged fs key value)
   (let ([posts (find-tagged fs key value)])

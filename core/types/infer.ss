@@ -38,13 +38,16 @@
 
 (define empty-tenv '())
 
+;;; tenv-lookup : TEnv × Symbol → (Option Type)
 (define (tenv-lookup env var)
   (let ([entry (assq var env)])
        (if entry (cdr entry) #f)))
 
+;;; tenv-extend : TEnv × Symbol × Type → TEnv
 (define (tenv-extend env var type)
   (cons (cons var type) env))
 
+;;; tenv-extend* : TEnv × (List (× Symbol Type)) → TEnv
 (define (tenv-extend* env bindings)
   (append bindings env))
 
@@ -57,13 +60,16 @@
 
 (define *fresh-counter* 0)
 
+;;; reset-fresh! : → Unit
 (define (reset-fresh!)
   (set! *fresh-counter* 0))
 
+;;; fresh-tvar : → Symbol
 (define (fresh-tvar)
   (set! *fresh-counter* (+ *fresh-counter* 1))
   (string->symbol (string-append "τ" (number->string *fresh-counter*))))
 
+;;; fresh-tvar-named : String → Symbol
 (define (fresh-tvar-named prefix)
   (set! *fresh-counter* (+ *fresh-counter* 1))
   (string->symbol (string-append prefix (number->string *fresh-counter*))))
@@ -77,10 +83,12 @@
 
 (define empty-subst '())
 
+;;; subst-lookup : Subst × Symbol → (Option Type)
 (define (subst-lookup s var)
   (let ([entry (assq var s)])
        (if entry (cdr entry) #f)))
 
+;;; subst-extend : Subst × Symbol × Type → Subst
 (define (subst-extend s var type)
   (cons (cons var type) s))
 
@@ -118,7 +126,6 @@
           (map (lambda (t) (apply-subst s t)) (cdr type)))]))
 
 ;;; compose-subst : Subst × Subst → Subst
-;;; Compose two substitutions: (compose s1 s2) applies s2 then s1.
 (define (compose-subst s1 s2)
   (append
    (map (lambda (p) (cons (car p) (apply-subst s1 (cdr p)))) s2)
@@ -131,9 +138,11 @@
 ;;; Unification finds a substitution that makes two types equal.
 ;;; Returns (ok subst) or (error message).
 
+;;; unify : Type × Type → (Result Subst Error)
 (define (unify t1 t2)
   (unify-with empty-subst t1 t2))
 
+;;; unify-with : Subst × Type × Type → (Result Subst Error)
 (define (unify-with s t1 t2)
   (let ([t1 (apply-subst s t1)]
         [t2 (apply-subst s t2)])
@@ -212,7 +221,6 @@
              result))]))
 
 ;;; occurs? : Symbol × Type → Boolean
-;;; Does the type variable occur in the type? (For occurs check)
 (define (occurs? var type)
   (cond
    [(type-var? type) (eq? var type)]
@@ -243,6 +251,7 @@
 ;;; Instantiate a polymorphic type with fresh type variables.
 ;;; (∀ (a b) (-> a b a)) → (-> τ1 τ2 τ1) with fresh τ1, τ2
 
+;;; instantiate : Type → Type
 (define (instantiate type)
   (if (and (pair? type) (eq? (car type) '∀))
       (let* ([vars (cadr type)]
@@ -259,6 +268,7 @@
 ;;; Generalize a type by quantifying over free type variables
 ;;; not in the environment.
 
+;;; generalize : TEnv × Type → Type
 (define (generalize env type)
   (let* ([env-vars (apply append (map (lambda (p) (free-tvars (cdr p))) env))]
          [type-vars (free-tvars type)]
@@ -372,6 +382,7 @@
 ;;; Let Inference (Multiple Bindings)
 ;;; ============================================================
 
+;;; infer-let : (List (× Symbol Expr)) × Expr × TEnv × Subst → (Result (× Type Subst) Error)
 (define (infer-let bindings body env subst)
   (if (null? bindings)
       ;; All bindings processed, infer body
@@ -403,6 +414,7 @@
 ;;; If Inference
 ;;; ============================================================
 
+;;; infer-if : Expr × Expr × Expr × TEnv → (Result (× Type Subst) Error)
 (define (infer-if test then-expr else-expr env)
   (let ([test-result (infer test env)])
        (if (not (eq? (car test-result) 'ok))
@@ -442,6 +454,7 @@
 ;;; Each clause binds refs to variables and evaluates the body.
 ;;; All bodies must have the same type.
 
+;;; infer-case : Expr × (List Clause) × TEnv → (Result (× Type Subst) Error)
 (define (infer-case scrutinee clauses env)
   (let ([scrut-result (infer scrutinee env)])
        (if (not (eq? (car scrut-result) 'ok))
@@ -490,6 +503,7 @@
 ;;; Application Inference
 ;;; ============================================================
 
+;;; infer-app : Expr × (List Expr) × TEnv → (Result (× Type Subst) Error)
 (define (infer-app fn args env)
   (let ([fn-result (infer fn env)])
        (if (eq? (car fn-result) 'ok)
@@ -498,6 +512,7 @@
                  (infer-app-args fn-type args s1 env))
            fn-result)))
 
+;;; infer-app-args : Type × (List Expr) × Subst × TEnv → (Result (× Type Subst) Error)
 (define (infer-app-args fn-type args s env)
   (if (null? args)
       `(ok ,(apply-subst s fn-type) ,s)
@@ -532,6 +547,7 @@
                        unify-result))]
             [else `(error not-a-function ,fn-type)]))))
 
+;;; check-args : (List Expr) × (List Type) × Subst × TEnv → (Result Subst Error)
 (define (check-args args types s env)
   (if (null? args)
       `(ok ,s)
@@ -708,10 +724,12 @@
     (boolean? . (∀ (a) (-> a Bool)))
     (procedure? . (∀ (a) (-> a Bool)))))
 
+;;; lookup-prim-type : Symbol → (Option Type)
 (define (lookup-prim-type op)
   (let ([entry (assq op prim-types)])
        (if entry (cdr entry) #f)))
 
+;;; infer-prim : Symbol × (List Expr) × TEnv → (Result (× Type Subst) Error)
 (define (infer-prim op args env)
   (let ([prim-type (lookup-prim-type op)])
        (if prim-type
@@ -723,6 +741,7 @@
 ;;; Quoted Literals
 ;;; ============================================================
 
+;;; infer-quoted : α → (Result (× Type Subst) Error)
 (define (infer-quoted datum)
   (cond
    [(symbol? datum) `(ok Symbol ,empty-subst)]
@@ -741,6 +760,7 @@
 ;;; Special Forms
 ;;; ============================================================
 
+;;; special-form? : α → Boolean
 (define (special-form? s)
   (and (symbol? s)
        (memq s '(fn let fix if case prim quote :))))
@@ -773,6 +793,7 @@
 ;;; Pretty Error Messages
 ;;; ============================================================
 
+;;; format-type-error : Error → String
 (define (format-type-error err)
   (case (cadr err)
         [(unbound-variable)
@@ -807,8 +828,7 @@
 ;;;   3. Resolve constraints using the instance database
 ;;;   4. Return evidence dictionaries for runtime dispatch
 
-;;; instantiate-constrained : Type → (Type × (List Constraint))
-;;; Instantiate a polymorphic type and extract any type class constraints.
+;;; instantiate-constrained : Type → (× Type (List Constraint))
 (define (instantiate-constrained type)
   (if (and (pair? type) (eq? (car type) '∀))
       (let* ([vars (cadr type)]
@@ -849,8 +869,6 @@
 ;;; ============================================================
 
 ;;; solve-constraints : (List Constraint) × IDB → (Result (List Evidence) Error)
-;;; Resolve all type class constraints using the instance database.
-;;; Returns a list of evidence dictionaries on success.
 (define (solve-constraints constraints idb)
   (if (null? constraints)
       '(ok ())
@@ -867,10 +885,6 @@
 ;;; ============================================================
 
 ;;; infer-with-constraints : Expr × TEnv → (Result (× Type Subst (List Constraint)) Error)
-;;; Extended inference that tracks accumulated constraints.
-;;; Note: For a full implementation, we'd thread constraints through all
-;;; inference functions. This is a simplified version that handles the
-;;; common case of using class-constrained functions.
 (define (infer-with-constraints expr env)
   (let ([result (infer expr env)])
        (if (eq? (car result) 'ok)
@@ -879,13 +893,7 @@
            `(ok ,(cadr result) ,(caddr result) ())
            result)))
 
-;;; typeof-constrained : Expr × IDB → Type | Error
-;;; Infer the type of an expression and solve any type class constraints.
-;;; This is the main entry point for type checking with type classes.
-;;;
-;;; Example:
-;;;   (typeof-constrained '(fmap f xs) standard-instances)
-;;;   → Checks that the Functor constraint can be satisfied
+;;; typeof-constrained : Expr × IDB → (Result (× Type (List Evidence)) Error)
 (define (typeof-constrained expr idb)
   (reset-fresh!)
   (let ([result (infer-with-constraints expr empty-tenv)])
@@ -911,7 +919,6 @@
 ;;; correctly when fmap is in scope.
 
 ;;; make-class-env : ClassDB → TEnv
-;;; Generate a type environment containing all class method signatures.
 (define (make-class-env class-db)
   (apply append
          (map (lambda (class-entry)
@@ -923,9 +930,6 @@
                                  methods)))
               class-db)))
 
-;;; get-standard-class-tenv : () → TEnv
-;;; Returns environment with standard type class methods.
-;;; Note: Requires resolve.ss to be loaded (for standard-classes).
-;;; This is a function to avoid load-order issues.
+;;; get-standard-class-tenv : → TEnv
 (define (get-standard-class-tenv)
   (make-class-env standard-classes))

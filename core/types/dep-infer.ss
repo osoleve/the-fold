@@ -36,12 +36,14 @@
 
 (define empty-dep-ctx '())
 
+;;; dep-ctx-lookup : Context × Symbol → (Option Type)
 (define (dep-ctx-lookup ctx name)
   (let ([entry (assq name ctx)])
        (if entry
            (cadr entry)  ; The type
            #f)))
 
+;;; dep-ctx-lookup-value : Context × Symbol → (Option α)
 (define (dep-ctx-lookup-value ctx name)
   (let ([entry (assq name ctx)])
        (if entry
@@ -50,9 +52,11 @@
                #f)
            #f)))
 
+;;; dep-ctx-extend : Context × Symbol × Type → Context
 (define (dep-ctx-extend ctx name type)
   (cons (list name type) ctx))
 
+;;; dep-ctx-extend-def : Context × Symbol × Type × α → Context
 (define (dep-ctx-extend-def ctx name type value)
   (cons (list name type value) ctx))
 
@@ -163,6 +167,7 @@
 
 ;;; (Π ((x : A)) B) : Type_{max(l₁, l₂)}
 ;;; where A : Type_{l₁} and B : Type_{l₂} under x:A
+;;; dep-synth-pi : Expr × Context → (Result Type Error)
 (define (dep-synth-pi expr ctx)
   (let* ([binding (car (cadr expr))]
          [var (car binding)]
@@ -190,6 +195,7 @@
 ;;; Sigma Type Synthesis
 ;;; ============================================================
 
+;;; dep-synth-sigma : Expr × Context → (Result Type Error)
 (define (dep-synth-sigma expr ctx)
   (let* ([binding (car (cadr expr))]
          [var (car binding)]
@@ -215,6 +221,7 @@
 ;;; ============================================================
 
 ;;; (fn ((x : A)) body) : (Π ((x : A)) B) where body : B
+;;; dep-synth-lambda : Expr × Context → (Result Type Error)
 (define (dep-synth-lambda expr ctx)
   (let* ([params (cadr expr)]
          [body (caddr expr)]
@@ -239,6 +246,7 @@
 
 ;;; (pair e1 e2) : (Σ ((x : A)) B) where e1 : A and e2 : B[e1/x]
 ;;; Note: without annotation, we can't determine the dependency
+;;; dep-synth-pair : Expr × Context → (Result Type Error)
 (define (dep-synth-pair expr ctx)
   (let* ([fst-expr (cadr expr)]
          [snd-expr (caddr expr)]
@@ -258,6 +266,7 @@
 ;;; ============================================================
 
 ;;; (fst p) : A where p : (Σ ((x : A)) B)
+;;; dep-synth-fst : Expr × Context → (Result Type Error)
 (define (dep-synth-fst expr ctx)
   (let* ([p-expr (cadr expr)]
          [p-synth (dep-synth p-expr ctx)])
@@ -269,6 +278,7 @@
                      `(ok ,(sigma-fst-type p-type)))))))
 
 ;;; (snd p) : B[fst p/x] where p : (Σ ((x : A)) B)
+;;; dep-synth-snd : Expr × Context → (Result Type Error)
 (define (dep-synth-snd expr ctx)
   (let* ([p-expr (cadr expr)]
          [p-synth (dep-synth p-expr ctx)])
@@ -288,6 +298,7 @@
 ;;; Arrow and Product Synthesis
 ;;; ============================================================
 
+;;; dep-synth-arrow : Expr × Context → (Result Type Error)
 (define (dep-synth-arrow expr ctx)
   (let ([types (cdr expr)])
        (let loop ([ts types])
@@ -300,6 +311,7 @@
                              `(error expected-type-got ,(cadr t-synth))
                              (loop (cdr ts)))))))))
 
+;;; dep-synth-product : Expr × Context → (Result Type Error)
 (define (dep-synth-product expr ctx)
   (let ([types (cdr expr)])
        (let loop ([ts types])
@@ -316,6 +328,7 @@
 ;;; Vec and Matrix Type Synthesis
 ;;; ============================================================
 
+;;; dep-synth-vec : Expr × Context → (Result Type Error)
 (define (dep-synth-vec expr ctx)
   (if (not (= (length expr) 3))
       `(error malformed-vec-type ,expr)
@@ -329,6 +342,7 @@
                          A-check
                          `(ok Type)))))))
 
+;;; dep-synth-matrix : Expr × Context → (Result Type Error)
 (define (dep-synth-matrix expr ctx)
   (if (not (= (length expr) 4))
       `(error malformed-matrix-type ,expr)
@@ -351,6 +365,7 @@
 ;;; ============================================================
 
 ;;; (f x) : B[x/y] where f : (Π ((y : A)) B) and x : A
+;;; dep-synth-app : Expr × Context → (Result Type Error)
 (define (dep-synth-app expr ctx)
   (let* ([func-expr (car expr)]
          [args (cdr expr)]
@@ -360,6 +375,7 @@
             (let ([func-type (cadr func-synth)])
                  (dep-synth-app-args func-type args ctx)))))
 
+;;; dep-synth-app-args : Type × (List Expr) × Context → (Result Type Error)
 (define (dep-synth-app-args func-type args ctx)
   (if (null? args)
       `(ok ,func-type)
@@ -510,7 +526,6 @@
         (convert? v1 v2 0)))
 
 ;;; ctx->nbe-env : Context → NbEEnv
-;;; Convert type context to NbE environment.
 (define (ctx->nbe-env ctx)
   (fold-left
    (lambda (env entry)
@@ -525,6 +540,7 @@
 ;;; Quoted Literals
 ;;; ============================================================
 
+;;; dep-synth-quoted : α → (Result Type Error)
 (define (dep-synth-quoted datum)
   (cond
    [(symbol? datum) `(ok Symbol)]

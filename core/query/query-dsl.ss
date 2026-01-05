@@ -391,7 +391,7 @@
                           (loop (cdr blocks)
                                 (cons (cons key (list block)) groups))))))))
 
-;;; assoc-generic : α × Alist → (Maybe (Pair α β))
+;;; assoc-generic : α × Alist → (Option (Pair α β))
 ;;; Association lookup using equal? for comparison.
 (define (assoc-generic key alist)
   (let loop ([pairs alist])
@@ -407,7 +407,7 @@
 ;;; The `query` function is the main API entry point.
 ;;; It interprets query expressions and returns matching blocks.
 
-;;; query : FSCap × Sexp → (+ (List Block) (List Alist))
+;;; query : FSCap × Sexp → (Union (List Block) (List Alist))
 ;;; Execute a query and return matching results.
 ;;;
 ;;; Query expression types:

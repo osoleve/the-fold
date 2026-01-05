@@ -56,8 +56,13 @@
 ;;; Address size is 33 bytes (version byte + hash bytes).
 ;;; ============================================================
 
+;;; hash-size : Nat
 (define hash-size 32)
+
+;;; address-version : Nat
 (define address-version 0)
+
+;;; address-size : Nat
 (define address-size (+ 1 hash-size))
 
 ;;; u32->bytes-le : Nat → Bytevector
