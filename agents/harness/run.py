@@ -122,6 +122,7 @@ The status prompt below explains your available commands:
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
+                "User-Agent": "fold-agent/1.0",
             },
             method="POST"
         )
