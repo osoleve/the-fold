@@ -179,6 +179,71 @@
   (if (read-identity-head username) #t #f))
 
 ;;; ============================================================
+;;; Validation
+;;; ============================================================
+
+;;; valid-role? : Symbol → Bool
+;;; Check if role is a valid tier.
+(define (valid-role? role)
+  (if (memq role '(shepherd builder player)) #t #f))
+
+;;; validate-username! : Any → Void
+;;; Validate username is a symbol. Throws error if not.
+(define (validate-username! username)
+  (unless (symbol? username)
+          (error 'validate-username "username must be a symbol" username)))
+
+;;; validate-role! : Any → Void
+;;; Validate role is a valid tier. Throws error if not.
+(define (validate-role! role)
+  (unless (valid-role? role)
+          (error 'validate-role "role must be shepherd, builder, or player" role)))
+
+;;; ============================================================
+;;; Public API (Task fold-n5z)
+;;; ============================================================
+
+;;; identity-get : Symbol → Alist | #f
+;;; Get identity record for a username.
+;;; Returns identity data alist or #f if not found.
+(define (identity-get username)
+  (validate-username! username)
+  (get-identity-data username))
+
+;;; identity-create! : Symbol → Symbol → Alist
+;;; Create a new identity with validation.
+;;; Returns the identity data alist.
+;;; Throws error if username already taken or validation fails.
+(define (identity-create! username role)
+  (validate-username! username)
+  (validate-role! role)
+  (when (identity-exists? username)
+        (error 'identity-create! "username already taken" username))
+  (let ([block (register-identity! username role)])
+       (decode-identity-payload (block-payload block))))
+
+;;; identity-update! : Symbol → Alist → Alist
+;;; Update an identity record with new values.
+;;; The updates alist contains key-value pairs to update.
+;;; Returns the updated identity data alist.
+(define (identity-update! username updates)
+  (validate-username! username)
+  (unless (list? updates)
+          (error 'identity-update! "updates must be an alist" updates))
+  (let ([block (update-identity! username
+                                 (lambda (data)
+                                         ;; Apply each update to the data
+                                         (fold-left (lambda (acc update)
+                                                            (if (pair? update)
+                                                                (update-identity-data acc
+                                                                                      (car update)
+                                                                                      (cdr update))
+                                                                acc))
+                                                    data
+                                                    updates)))])
+       (decode-identity-payload (block-payload block))))
+
+;;; ============================================================
 ;;; Identity Mutations (Create/Update)
 ;;; ============================================================
 
