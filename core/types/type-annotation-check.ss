@@ -133,7 +133,22 @@
     (KindSubst . Hash)
     (Instance . Hash)
     (Ordering . Hash)
-    (Block . Hash)))
+    (Block . Hash)
+    ;; Pretty printer types (treated as kind *)
+    (Doc . Hash)
+    (SDoc . Hash)
+    (Sexp . Hash)
+    ;; Debug/profiling types (treated as kind *)
+    (Debugger . Hash)
+    (Profiler . Hash)
+    (CostModel . Hash)
+    ;; Documentation types (treated as kind *)
+    (Doc-Entry . Hash)
+    (Entry . Hash)
+    (Example . Hash)
+    ;; Misc types
+    (Procedure . Hash)
+    (void . Unit)))
 
 ;;; Greek letters used as type variables
 (define greek-type-var-names

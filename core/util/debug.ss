@@ -284,17 +284,17 @@
 (define (inspect-env d)
   (debugger-env d))
 
-;;; inspect-trace : Debugger → List
+;;; inspect-trace : Debugger → (List Expr)
 ;;; Get execution trace (most recent first).
 (define (inspect-trace d)
   (debugger-trace d))
 
-;;; inspect-trace-last : Debugger × Nat → List
+;;; inspect-trace-last : Debugger × Nat → (List Expr)
 ;;; Get last n trace entries.
 (define (inspect-trace-last d n)
   (take n (debugger-trace d)))
 
-;;; trace-expr : Expr × Fuel → List
+;;; trace-expr : Expr × Fuel → (List Expr)
 ;;; Evaluate and return full trace.
 (define (trace-expr expr fuel)
   (let ([d (run-debug expr fuel)])
@@ -334,11 +334,11 @@
   (or (debugger-get d 'fuel-budget)
       (debugger-fuel d)))
 
-;;; debugger-fuel-trace : Debugger → List
+;;; debugger-fuel-trace : Debugger → (List α)
 (define (debugger-fuel-trace d)
   (or (debugger-get d 'fuel-trace) '()))
 
-;;; debugger-call-stack : Debugger → List
+;;; debugger-call-stack : Debugger → (List α)
 (define (debugger-call-stack d)
   (or (debugger-get d 'call-stack) '()))
 
@@ -458,7 +458,7 @@
           [(eq? head 'quote) 'quote]
           [else 'application]))]))
 
-;;; fuel-hotspots : Debugger × Nat → List
+;;; fuel-hotspots : Debugger × Nat → (List α)
 ;;; Get top N fuel-consuming steps.
 (define (fuel-hotspots d n)
   (let* ([fuel-trace (debugger-fuel-trace d)]
@@ -467,7 +467,7 @@
                             fuel-trace)])
         (take-up-to-debug n sorted)))
 
-;;; take-up-to-debug : Nat × List → List
+;;; take-up-to-debug : Nat × (List α) → (List α)
 (define (take-up-to-debug n lst)
   (if (or (zero? n) (null? lst))
       '()
