@@ -199,7 +199,7 @@
         
         [else `(error type-mismatch ,t1 ,t2)])))
 
-;;; unify-lists : Subst × (List Type) × (List Type) → Result
+;;; unify-lists : Subst × (List Type) × (List Type) → (Result Subst Error)
 (define (unify-lists s ts1 ts2)
   (cond
    [(and (null? ts1) (null? ts2)) `(ok ,s)]
@@ -452,7 +452,7 @@
                  ;; For now, we allow any type and check at runtime
                  (infer-case-clauses clauses s1 env #f)))))
 
-;;; infer-case-clauses : (List Clause) × Subst × Env × Type|#f → Result
+;;; infer-case-clauses : (List Clause) × Subst × Env × (Option Type) → (Result (× Type Subst) Error)
 ;;; Process each clause, accumulating substitution and result type.
 (define (infer-case-clauses clauses subst env result-type)
   (if (null? clauses)
@@ -544,7 +544,7 @@
 ;;; Type Checking (Downward)
 ;;; ============================================================
 
-;;; check : Expr × Type × TEnv → (Result Subst)
+;;; check : Expr × Type × TEnv → (Result Subst Error)
 ;;; Check that an expression has the expected type.
 (define (check expr expected env)
   (cond
@@ -848,7 +848,7 @@
 ;;; Constraint Solving
 ;;; ============================================================
 
-;;; solve-constraints : (List Constraint) × IDB → (Result (List Evidence))
+;;; solve-constraints : (List Constraint) × IDB → (Result (List Evidence) Error)
 ;;; Resolve all type class constraints using the instance database.
 ;;; Returns a list of evidence dictionaries on success.
 (define (solve-constraints constraints idb)
@@ -866,7 +866,7 @@
 ;;; Type Inference with Constraint Solving
 ;;; ============================================================
 
-;;; infer-with-constraints : Expr × TEnv → (Result Type Subst (List Constraint))
+;;; infer-with-constraints : Expr × TEnv → (Result (× Type Subst (List Constraint)) Error)
 ;;; Extended inference that tracks accumulated constraints.
 ;;; Note: For a full implementation, we'd thread constraints through all
 ;;; inference functions. This is a simplified version that handles the

@@ -284,7 +284,7 @@
                   [s1 (caddr scrut-result)])
                  (annotate-case-clauses ann-scrut clauses s1 env '() #f)))))
 
-;;; annotate-case-clauses : AnnScrutinee × (List Clause) × Subst × Env × AnnClauses × Type|#f → Result
+;;; annotate-case-clauses : AnnScrutinee × (List Clause) × Subst × Env × AnnClauses × (Option Type) → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-case-clauses ann-scrut clauses subst env ann-clauses result-type)
   (if (null? clauses)
       (if result-type

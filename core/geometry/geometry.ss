@@ -29,31 +29,37 @@
 ;;; point3 : Number × Number × Number → Point3
 (define point3 vec3)
 
-;;; Line3: (line3 origin direction)
+;;; line3 : Vec3 × Vec3 → Line3
 ;;; Infinite line through origin in direction
 (define (line3 origin direction)
   (list 'line3 origin direction))
 
+;;; line3? : α → Bool
 (define (line3? l)
   (and (pair? l) (eq? (car l) 'line3)))
 
+;;; line3-origin : Line3 → Vec3
 (define (line3-origin l)
   (cadr l))
 
+;;; line3-direction : Line3 → Vec3
 (define (line3-direction l)
   (caddr l))
 
-;;; Ray3: (ray3 origin direction)
+;;; ray3 : Vec3 × Vec3 → Ray3
 ;;; Half-infinite ray starting at origin going in direction
 (define (ray3 origin direction)
   (list 'ray3 origin direction))
 
+;;; ray3? : α → Bool
 (define (ray3? r)
   (and (pair? r) (eq? (car r) 'ray3)))
 
+;;; ray3-origin : Ray3 → Vec3
 (define (ray3-origin r)
   (cadr r))
 
+;;; ray3-direction : Ray3 → Vec3
 (define (ray3-direction r)
   (caddr r))
 
@@ -63,17 +69,20 @@
   (vec3-add (ray3-origin ray)
             (vec3-scale (ray3-direction ray) t)))
 
-;;; Plane3: (plane3 normal d)
+;;; plane3 : Vec3 × Number → Plane3
 ;;; Plane defined by normal·p + d = 0
 (define (plane3 normal d)
   (list 'plane3 normal d))
 
+;;; plane3? : α → Bool
 (define (plane3? p)
   (and (pair? p) (eq? (car p) 'plane3)))
 
+;;; plane3-normal : Plane3 → Vec3
 (define (plane3-normal p)
   (cadr p))
 
+;;; plane3-d : Plane3 → Number
 (define (plane3-d p)
   (caddr p))
 
@@ -96,45 +105,59 @@
             (let ([normal (vec3-scale-inv cp mag)])
                  (plane3-from-point-normal p1 normal)))))
 
-;;; Triangle3: (triangle3 p1 p2 p3)
+;;; triangle3 : Vec3 × Vec3 × Vec3 → Triangle3
 (define (triangle3 p1 p2 p3)
   (list 'triangle3 p1 p2 p3))
 
+;;; triangle3? : α → Bool
 (define (triangle3? t)
   (and (pair? t) (eq? (car t) 'triangle3)))
 
+;;; triangle3-p1 : Triangle3 → Vec3
 (define (triangle3-p1 t) (cadr t))
+;;; triangle3-p2 : Triangle3 → Vec3
 (define (triangle3-p2 t) (caddr t))
+;;; triangle3-p3 : Triangle3 → Vec3
 (define (triangle3-p3 t) (cadddr t))
 
-;;; Circle: (circle center radius)
+;;; circle : Vec2 × Number → Circle
 (define (circle center radius)
   (list 'circle center radius))
 
+;;; circle? : α → Bool
 (define (circle? c)
   (and (pair? c) (eq? (car c) 'circle)))
 
+;;; circle-center : Circle → Vec2
 (define (circle-center c) (cadr c))
+;;; circle-radius : Circle → Number
 (define (circle-radius c) (caddr c))
 
-;;; Sphere: (sphere center radius)
+;;; sphere : Vec3 × Number → Sphere
 (define (sphere center radius)
   (list 'sphere center radius))
 
+;;; sphere? : α → Bool
 (define (sphere? s)
   (and (pair? s) (eq? (car s) 'sphere)))
 
+;;; sphere-center : Sphere → Vec3
 (define (sphere-center s) (cadr s))
+;;; sphere-radius : Sphere → Number
 (define (sphere-radius s) (caddr s))
 
-;;; AABB (Axis-Aligned Bounding Box): (aabb min max)
+;;; aabb : Vec3 × Vec3 → AABB
+;;; Axis-Aligned Bounding Box from min/max corners
 (define (aabb min-point max-point)
   (list 'aabb min-point max-point))
 
+;;; aabb? : α → Bool
 (define (aabb? b)
   (and (pair? b) (eq? (car b) 'aabb)))
 
+;;; aabb-min : AABB → Vec3
 (define (aabb-min b) (cadr b))
+;;; aabb-max : AABB → Vec3
 (define (aabb-max b) (caddr b))
 
 ;;; aabb-center : AABB → Point3
@@ -146,17 +169,22 @@
 (define (aabb-extents box)
   (vec3-scale (vec3-sub (aabb-max box) (aabb-min box)) 0.5))
 
-;;; OBB (Oriented Bounding Box): (obb center axes extents)
+;;; obb : Vec3 × (List Vec3) × Vec3 → OBB
+;;; Oriented Bounding Box from center, axes, and extents
 ;;; axes is list of 3 orthonormal vectors
 ;;; extents is vec3 of half-sizes along each axis
 (define (obb center axes extents)
   (list 'obb center axes extents))
 
+;;; obb? : α → Bool
 (define (obb? b)
   (and (pair? b) (eq? (car b) 'obb)))
 
+;;; obb-center : OBB → Vec3
 (define (obb-center b) (cadr b))
+;;; obb-axes : OBB → (List Vec3)
 (define (obb-axes b) (caddr b))
+;;; obb-extents : OBB → Vec3
 (define (obb-extents b) (cadddr b))
 
 ;;; ============================================================

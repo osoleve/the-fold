@@ -175,7 +175,7 @@
 (define (flatten lst-of-lists)
   (fold-right append '() lst-of-lists))
 
-;;; partition : (α → Bool) × (List α) → (List (List α) (List α))
+;;; partition : (α → Bool) × (List α) → (× (List α) (List α))
 ;;; Partition list into two lists: those satisfying predicate, and those that don't.
 (define (partition pred lst)
   (let loop ([lst lst] [yes '()] [no '()])
@@ -234,7 +234,7 @@
 (define (error? result)
   (and (pair? result) (eq? (car result) 'error)))
 
-;;; unwrap-ok : Result → Value
+;;; unwrap-ok : (Result α ε) → α
 ;;; Extract value from (ok value). Assumes result is ok.
 (define (unwrap-ok result)
   (cadr result))
