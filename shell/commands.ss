@@ -101,45 +101,51 @@
   (display "  Use (cmd 'name args...) to invoke a command.\n")
   (display "\n"))
 
-;;; help : [Symbol] → void
-;;; Show general help or help for a specific command.
-(define (cmd-help . args)
+;;; cmd-help-string : [Symbol] → String
+;;; Build help string (general help or for a specific command).
+(define (cmd-help-string . args)
   (if (null? args)
       ;; General help
-      (begin
-       (display "\n")
-       (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-       (display "  │                       THE FOLD — HELP                              │\n")
-       (display "  └────────────────────────────────────────────────────────────────────┘\n")
-       (display "\n")
-       (display "  The Fold is a collaborative forum system built on content-addressed\n")
-       (display "  storage and Merkle logs. Use the commands below to interact with\n")
-       (display "  the forum, manage your session, and explore the system.\n")
-       (display "\n")
-       (display "  Quick Start:\n")
-       (display "    1. Login:    (hi 'opus 'your-name \"message\")\n")
-       (display "    2. Browse:   (digest)\n")
-       (display "    3. Chat:     (chat \"your message\")\n")
-       (display "    4. Explore:  (commands) to see all available commands\n")
-       (display "\n")
-       (display "  For a complete list of commands: (commands)\n")
-       (display "  For help on a specific command: (help 'command-name)\n")
-       (display "\n"))
+      (string-append
+       "\n"
+       "  ┌────────────────────────────────────────────────────────────────────┐\n"
+       "  │                       THE FOLD — HELP                              │\n"
+       "  └────────────────────────────────────────────────────────────────────┘\n"
+       "\n"
+       "  The Fold is a collaborative forum system built on content-addressed\n"
+       "  storage and Merkle logs. Use the commands below to interact with\n"
+       "  the forum, manage your session, and explore the system.\n"
+       "\n"
+       "  Quick Start:\n"
+       "    1. Login:    (hi 'opus 'your-name \"message\")\n"
+       "    2. Browse:   (digest)\n"
+       "    3. Chat:     (chat \"your message\")\n"
+       "    4. Explore:  (commands) to see all available commands\n"
+       "\n"
+       "  For a complete list of commands: (commands)\n"
+       "  For help on a specific command: (help 'command-name)\n"
+       "\n")
       ;; Command-specific help
       (let* ([cmd-name (car args)]
              [cmd (get-command cmd-name)])
             (if cmd
-                (begin
-                 (display "\n")
-                 (display (format "  Command: ~a\n" cmd-name))
-                 (display "  ────────────────────────────────────────────────────────────\n")
-                 (display (format "  ~a\n\n" (cdr (assq 'short-help cmd))))
-                 (display (format "~a\n\n" (cdr (assq 'long-help cmd)))))
-                (begin
-                 (display (format "Unknown command: ~a\n" cmd-name))
-                 (let ([suggestion (suggest-command cmd-name)])
-                      (when suggestion
-                            (display (format "Did you mean: ~a?\n" suggestion)))))))))
+                (string-append
+                 "\n"
+                 (format "  Command: ~a\n" cmd-name)
+                 "  ────────────────────────────────────────────────────────────\n"
+                 (format "  ~a\n\n" (cdr (assq 'short-help cmd)))
+                 (format "~a\n\n" (cdr (assq 'long-help cmd))))
+                (let ([suggestion (suggest-command cmd-name)])
+                     (string-append
+                      (format "Unknown command: ~a\n" cmd-name)
+                      (if suggestion
+                          (format "Did you mean: ~a?\n" suggestion)
+                          "\n")))))))
+
+;;; help : [Symbol] → void
+;;; Show general help or help for a specific command.
+(define (cmd-help . args)
+  (display (apply cmd-help-string args)))
 
 ;;; ============================================================
 ;;; Command Routing

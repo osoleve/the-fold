@@ -214,31 +214,34 @@
 ;;; Digest Display
 ;;; ============================================================
 
+;;; digest-string : FS → String
+;;; Build recent forum activity and chat messages string.
+(define (digest-string fs)
+  (string-append
+   "\n"
+   "╔══════════════════════════════════════════════════════════════╗\n"
+   "║                    THE FOLD — FORUM DIGEST                   ║\n"
+   "╚══════════════════════════════════════════════════════════════╝\n"
+   "\n"
+   ;; System messages (if any)
+   (system-messages-string fs)
+   ;; Recent posts (excluding chat)
+   "┌─────────────────────────────────────────────────────────────┐\n"
+   "│ RECENT POSTS (non-chat)                                     │\n"
+   "└─────────────────────────────────────────────────────────────┘\n"
+   (recent-posts-string fs 10)
+   "\n"
+   ;; Recent chat
+   "┌─────────────────────────────────────────────────────────────┐\n"
+   "│ CHAT                                                        │\n"
+   "└─────────────────────────────────────────────────────────────┘\n"
+   (recent-chat-string fs 10)
+   "\n"))
+
 ;;; display-digest : FS → void
 ;;; Show recent forum activity and chat messages.
 (define (display-digest fs)
-  (newline)
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                    THE FOLD — FORUM DIGEST                   ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
-  (newline)
-  
-  ;; System messages (if any)
-  (display-system-messages fs)
-  
-  ;; Recent posts (excluding chat)
-  (display "┌─────────────────────────────────────────────────────────────┐\n")
-  (display "│ RECENT POSTS (non-chat)                                     │\n")
-  (display "└─────────────────────────────────────────────────────────────┘\n")
-  (display-recent-posts fs 10)
-  (newline)
-  
-  ;; Recent chat
-  (display "┌─────────────────────────────────────────────────────────────┐\n")
-  (display "│ CHAT                                                        │\n")
-  (display "└─────────────────────────────────────────────────────────────┘\n")
-  (display-recent-chat fs 10)
-  (newline))
+  (display (digest-string fs)))
 
 ;;; display-digest-posts : FS × Nat → void
 ;;; Show recent forum activity without chat.
@@ -259,24 +262,31 @@
   (display-recent-posts fs n)
   (newline))
 
+;;; system-messages-string : FS → String
+;;; Build system messages string.
+(define (system-messages-string fs)
+  (let ([sys-posts (collect-channel fs 'system)])
+       (if (null? sys-posts)
+           ""
+           (string-append
+            "┌─────────────────────────────────────────────────────────────┐\n"
+            "│ ⚠ SYSTEM MESSAGES                                           │\n"
+            "└─────────────────────────────────────────────────────────────┘\n"
+            (apply string-append
+                   (map (lambda (post)
+                                (format "  [~a] ~a\n"
+                                        (cdr (assq 'timestamp post))
+                                        (cdr (assq 'body post))))
+                        (take 5 sys-posts)))
+            "\n"))))
+
 ;;; display-system-messages : FS → void
 (define (display-system-messages fs)
-  (let ([sys-posts (collect-channel fs 'system)])
-       (unless (null? sys-posts)
-               (display "┌─────────────────────────────────────────────────────────────┐\n")
-               (display "│ ⚠ SYSTEM MESSAGES                                           │\n")
-               (display "└─────────────────────────────────────────────────────────────┘\n")
-               (for-each
-                (lambda (post)
-                        (display (format "  [~a] ~a\n"
-                                         (cdr (assq 'timestamp post))
-                                         (cdr (assq 'body post)))))
-                (take 5 sys-posts))
-               (newline))))
+  (display (system-messages-string fs)))
 
-;;; display-recent-posts : FS × Nat → void
-;;; Show recent posts from all channels except chat and system.
-(define (display-recent-posts fs n)
+;;; recent-posts-string : FS × Nat → String
+;;; Build recent posts string from all channels except chat and system.
+(define (recent-posts-string fs n)
   (let* ([channels (list-channels fs)]
          [non-chat (filter (lambda (c)
                                    (not (memq c '(chat system))))
@@ -298,37 +308,42 @@
                   all-posts)]
          [recent (take (min n (length sorted)) sorted)])
         (if (null? recent)
-            (display "  (no posts yet)\n")
-            (for-each
-             (lambda (hash-post)
-                     (let* ([hash (car hash-post)]
-                            [post (cdr hash-post)]
-                            [channel (cdr (assq 'channel-name post))]
-                            [author (cdr (assq 'author post))]
-                            [body (cdr (assq 'body post))]
-                            [title (assq 'title post)]
-                            [hash-prefix (substring (hash->hex hash) 0 6)]
-                            [parent-hash (assq 'parent-hash post)]
-                            [is-reply? (and parent-hash (cdr parent-hash))]
-                            [indent (if is-reply? "    ↳ " "  ")])
-                           (display (format "~a#~a | ~a [~a]: ~a~a\n"
-                                            indent
-                                            channel
-                                            author
-                                            hash-prefix
-                                            (truncate-string
-                                             (if title
-                                                 (format "[~a] ~a" (cdr title) body)
-                                                 body)
-                                             50)
-                                            (if is-reply?
-                                                (format " (→ ~a)" (substring (cdr parent-hash) 0 6))
-                                                "")))))
-             recent))))
+            "  (no posts yet)\n"
+            (apply string-append
+                   (map (lambda (hash-post)
+                                (let* ([hash (car hash-post)]
+                                       [post (cdr hash-post)]
+                                       [channel (cdr (assq 'channel-name post))]
+                                       [author (cdr (assq 'author post))]
+                                       [body (cdr (assq 'body post))]
+                                       [title (assq 'title post)]
+                                       [hash-prefix (substring (hash->hex hash) 0 6)]
+                                       [parent-hash (assq 'parent-hash post)]
+                                       [is-reply? (and parent-hash (cdr parent-hash))]
+                                       [indent (if is-reply? "    ↳ " "  ")])
+                                      (format "~a#~a | ~a [~a]: ~a~a\n"
+                                              indent
+                                              channel
+                                              author
+                                              hash-prefix
+                                              (truncate-string
+                                               (if title
+                                                   (format "[~a] ~a" (cdr title) body)
+                                                   body)
+                                               50)
+                                              (if is-reply?
+                                                  (format " (→ ~a)" (substring (cdr parent-hash) 0 6))
+                                                  ""))))
+                        recent)))))
 
-;;; display-recent-chat : FS × Nat → void
-;;; Show recent chat messages with deduplication.
-(define (display-recent-chat fs n)
+;;; display-recent-posts : FS × Nat → void
+;;; Show recent posts from all channels except chat and system.
+(define (display-recent-posts fs n)
+  (display (recent-posts-string fs n)))
+
+;;; recent-chat-string : FS × Nat → String
+;;; Build recent chat messages string with deduplication.
+(define (recent-chat-string fs n)
   (let* ([posts-with-hash (collect-channel-with-hash fs 'chat)]
          ;; Deduplicate posts by (author, timestamp, body)
          [deduped (let loop ([ps posts-with-hash] [seen '()] [result '()])
@@ -344,23 +359,28 @@
                                      (loop (cdr ps) (cons key seen) (cons hash-post result))))))]
          [recent (take (min n (length deduped)) deduped)])
         (if (null? recent)
-            (display "  (no chat messages yet)\n")
-            (for-each
-             (lambda (hash-post)
-                     (let* ([hash (car hash-post)]
-                            [post (cdr hash-post)]
-                            [author (cdr (assq 'author post))]
-                            [tier (cdr (assq 'tier post))]
-                            [body (cdr (assq 'body post))]
-                            [timestamp (cdr (assq 'timestamp post))]
-                            [hash-prefix (substring (hash->hex hash) 0 6)])
-                           (display (format "  [~a] ~a (~a) [~a]: ~a\n"
-                                            (format-timestamp timestamp)
-                                            author
-                                            (tier-badge tier)
-                                            hash-prefix
-                                            body))))
-             recent))))
+            "  (no chat messages yet)\n"
+            (apply string-append
+                   (map (lambda (hash-post)
+                                (let* ([hash (car hash-post)]
+                                       [post (cdr hash-post)]
+                                       [author (cdr (assq 'author post))]
+                                       [tier (cdr (assq 'tier post))]
+                                       [body (cdr (assq 'body post))]
+                                       [timestamp (cdr (assq 'timestamp post))]
+                                       [hash-prefix (substring (hash->hex hash) 0 6)])
+                                      (format "  [~a] ~a (~a) [~a]: ~a\n"
+                                              (format-timestamp timestamp)
+                                              author
+                                              (tier-badge tier)
+                                              hash-prefix
+                                              body)))
+                        recent)))))
+
+;;; display-recent-chat : FS × Nat → void
+;;; Show recent chat messages with deduplication.
+(define (display-recent-chat fs n)
+  (display (recent-chat-string fs n)))
 
 ;;; tier-badge : Symbol → String
 (define (tier-badge tier)
@@ -839,6 +859,15 @@
 ;;; Convenience: Browse Functions
 ;;; ============================================================
 
+;;; browse-string : Symbol [× Nat] → String
+;;; Build string of recent posts in a channel (default 5 posts).
+(define browse-string
+  (case-lambda
+   [(channel)
+    (browse-string channel 5)]
+   [(channel n)
+    (print-latest-string (mint-fs-capability ".store") channel n)]))
+
 ;;; browse : Symbol [× Nat] → void
 ;;; Browse recent posts in a channel (default 5 posts).
 ;;; Example: (browse 'engineering)
@@ -848,9 +877,14 @@
    [(channel)
     (browse channel 5)]
    [(channel n)
-    (print-latest (mint-fs-capability ".store") channel n)]))
+    (display (browse-string channel n))]))
+
+;;; channels-string : → String
+;;; Build channels list string.
+(define (channels-string)
+  (forum-summary-string (mint-fs-capability ".store")))
 
 ;;; channels : → void
 ;;; List all available channels with post counts.
 (define (channels)
-  (forum-summary (mint-fs-capability ".store")))
+  (display (channels-string)))

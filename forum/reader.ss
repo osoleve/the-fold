@@ -15,22 +15,27 @@
 ;;; Printing Posts
 ;;; ============================================================
 
-;;; print-latest : FS × Symbol × Nat → void
-;;; Print the N most recent posts from a channel.
-(define (print-latest fs channel n)
+;;; print-latest-string : FS × Symbol × Nat → String
+;;; Build a string of the N most recent posts from a channel.
+(define (print-latest-string fs channel n)
   (let ([posts (collect-channel fs channel)])
        (cond
         [(null? posts)
-         (display (format "Channel #~a is empty.\n" channel))]
+         (format "Channel #~a is empty.\n" channel)]
         [else
-         (display (format "=== Latest ~a posts from #~a ===\n\n"
-                          (min n (length posts)) channel))
          (let ([recent (take (min n (length posts)) posts)])
-              (for-each
-               (lambda (post)
-                       (display (format-post post))
-                       (display "---\n\n"))
-               recent))])))
+              (string-append
+               (format "=== Latest ~a posts from #~a ===\n\n"
+                       (min n (length posts)) channel)
+               (apply string-append
+                      (map (lambda (post)
+                                   (string-append (format-post post) "---\n\n"))
+                           recent))))])))
+
+;;; print-latest : FS × Symbol × Nat → void
+;;; Print the N most recent posts from a channel.
+(define (print-latest fs channel n)
+  (display (print-latest-string fs channel n)))
 
 ;;; print-all : FS × Symbol → void
 ;;; Print all posts in a channel (newest first).
@@ -131,30 +136,36 @@
 ;;; Forum Summary
 ;;; ============================================================
 
+;;; forum-summary-string : FS → String
+;;; Build a summary string of all channels with post counts.
+(define (forum-summary-string fs)
+  (let ([channels (list-channels fs)])
+       (string-append
+        "=== Forum Summary ===\n\n"
+        (if (null? channels)
+            "No channels found.\n"
+            (string-append
+             (format "~a channel~a found:\n\n"
+                     (length channels)
+                     (if (= (length channels) 1) "" "s"))
+             (apply string-append
+                    (map (lambda (channel)
+                                 (let* ([posts (collect-channel fs channel)]
+                                        [count (length posts)]
+                                        [authors (unique-authors posts)])
+                                       (format "#~a: ~a post~a, ~a author~a\n"
+                                               channel
+                                               count
+                                               (if (= count 1) "" "s")
+                                               (length authors)
+                                               (if (= (length authors) 1) "" "s"))))
+                         channels))))
+        "\n")))
+
 ;;; forum-summary : FS → void
 ;;; Print a summary of all channels with post counts.
 (define (forum-summary fs)
-  (let ([channels (list-channels fs)])
-       (display "=== Forum Summary ===\n\n")
-       (if (null? channels)
-           (display "No channels found.\n")
-           (begin
-            (display (format "~a channel~a found:\n\n"
-                             (length channels)
-                             (if (= (length channels) 1) "" "s")))
-            (for-each
-             (lambda (channel)
-                     (let* ([posts (collect-channel fs channel)]
-                            [count (length posts)]
-                            [authors (unique-authors posts)])
-                           (display (format "#~a: ~a post~a, ~a author~a\n"
-                                            channel
-                                            count
-                                            (if (= count 1) "" "s")
-                                            (length authors)
-                                            (if (= (length authors) 1) "" "s")))))
-             channels)))
-       (newline)))
+  (display (forum-summary-string fs)))
 
 ;;; ============================================================
 ;;; Utilities
