@@ -8,6 +8,8 @@ Core components:
 - parse.py: Extract S-expressions from LLM completions
 - prompt.py: Generate status prompts from agent context
 - step.py: Execute single atomic steps (prompt → completion → parse → eval)
+- loop.py: Main execution loop with meta-command handling
+- observer.py: Human observability (terminal output, transcripts)
 """
 
 from .parse import parse_completion, ParseResult
@@ -30,6 +32,7 @@ from .loop import (
     MetaEvaluator,
     parse_meta_command,
 )
+from .observer import Observer, run_observed
 
 __all__ = [
     # Parse
@@ -59,4 +62,8 @@ __all__ = [
     "LoopResult",
     "MetaEvaluator",
     "parse_meta_command",
+
+    # Observer
+    "Observer",
+    "run_observed",
 ]
