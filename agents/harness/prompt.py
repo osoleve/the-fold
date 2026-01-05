@@ -141,7 +141,8 @@ def format_workspace(entries: list[WorkspaceEntry], max_entries: int = 5) -> str
     lines = []
     for entry in recent:
         status = "→" if entry.success else "✗"
-        result_preview = entry.result[:80] + "..." if len(entry.result) > 80 else entry.result
+        # Show more of the result (400 chars) so agent can extract info
+        result_preview = entry.result[:400] + "..." if len(entry.result) > 400 else entry.result
         lines.append(f"  {status} {entry.command}")
         lines.append(f"    {result_preview}")
     return "\n".join(lines)
@@ -262,8 +263,9 @@ SESSION: {context.session_id}
 </status>
 {env_notes}
 ---
-Respond with a single S-expression to evaluate.
-If CURRENT SUBGOAL is None, first decide what subgoal to pursue.
+Respond with ONE S-expression.
+If <workspace> contains the answer you need, use (set! *answer* "VALUE") now.
+Do NOT repeat (env ...) calls - check workspace first.
 """
 
     return prompt.strip()

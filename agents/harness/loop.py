@@ -144,10 +144,13 @@ class MetaEvaluator:
         if meta.kind == "env":
             # Exploration command - evaluate in Fold, record in workspace
             result = self.real_evaluator(session_id, meta.payload, timeout_ms)
-            # Add to workspace
+            # Add to workspace - use output if value is empty (display-only commands)
+            workspace_result = result.value if result.value else result.output
+            if not result.success:
+                workspace_result = result.output
             entry = WorkspaceEntry(
                 command=meta.payload,
-                result=result.value if result.success else result.output,
+                result=workspace_result,
                 success=result.success
             )
             self.context.workspace.append(entry)

@@ -98,19 +98,34 @@ def create_groq_client(model: str = "llama-3.3-70b-versatile"):
         raise ValueError("GROQ_API_KEY environment variable not set")
 
     def client(prompt: str) -> str:
-        system_msg = """Respond with ONE S-expression. No text, no markdown.
+        system_msg = """Respond with ONE S-expression only. No prose.
 
-To compute: (env (+ 2 2))
-To answer: (set! *answer* "4")
+Commands:
+- (env EXPR) - evaluate EXPR, see result
+- (set! *answer* VALUE) - submit final answer, ends task
 
-Do NOT nest these. Pick one per response."""
+Examples:
+Q: What is 3+4? -> (env (+ 3 4)) -> 7 -> (set! *answer* "7")
+Q: Posts in #art? -> (env (channels)) -> "#art: 34 posts" -> (set! *answer* "34")
+
+After seeing a result, use it to set *answer*. Don't repeat (env ...) endlessly."""
+
+        # Few-shot examples as actual turns
+        messages = [
+            {"role": "system", "content": system_msg},
+            # Example 1: extraction from output
+            {"role": "user", "content": "GOAL: Count posts in #bugs\n<workspace>\n→ (channels)\n  #bugs: 5 posts\n</workspace>"},
+            {"role": "assistant", "content": '(set! *answer* "5")'},
+            # Example 2: compute then answer
+            {"role": "user", "content": "GOAL: What is 6*7?\n<workspace>\n→ (env (* 6 7))\n  42\n</workspace>"},
+            {"role": "assistant", "content": '(set! *answer* "42")'},
+            # Actual prompt
+            {"role": "user", "content": prompt}
+        ]
 
         payload = {
             "model": model,
-            "messages": [
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": prompt}
-            ],
+            "messages": messages,
             "temperature": 0,
             "max_tokens": 1024,
         }
@@ -190,6 +205,16 @@ def main():
 
     if not args.quiet:
         print(f"Using {args.provider} with model {model}")
+
+    # Debug: log prompts
+    if os.environ.get("DEBUG_PROMPTS"):
+        original_client = api_client
+        def debug_client(prompt):
+            print("=== PROMPT TO MODEL ===")
+            print(prompt[-1000:])  # Last 1000 chars
+            print("=== END PROMPT ===")
+            return original_client(prompt)
+        api_client = debug_client
 
     # Run with observability
     loop_result, observer = run_observed(
