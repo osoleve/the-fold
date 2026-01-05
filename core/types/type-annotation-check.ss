@@ -350,7 +350,21 @@
     (Binding . Hash)
     (DepGraph . Hash)
     (Index . Hash)
-    (IndexEntry . Hash)))
+    (IndexEntry . Hash)
+    ;; Digital filter types (treated as kind *)
+    (IIR-Filter . Hash)
+    (Filter-State . Hash)
+    (FIR-Filter . Hash)
+    ;; Algebra additional types (treated as kind *)
+    (Permutation . Hash)
+    (Cycle . Hash)
+    ;; Type system additional types (treated as kind *)
+    (TypedValue . Hash)
+    (Token . Hash)
+    (TypeEnv . Hash)
+    (TypeClass . Hash)
+    (Natural . Nat)
+    (Acc . Hash)))
 
 ;;; Greek letters used as type variables
 (define greek-type-var-names
