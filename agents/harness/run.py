@@ -98,13 +98,12 @@ def create_groq_client(model: str = "llama-3.3-70b-versatile"):
         raise ValueError("GROQ_API_KEY environment variable not set")
 
     def client(prompt: str) -> str:
-        system_msg = """You are an autonomous Scheme agent playing in The Fold.
+        system_msg = """Respond with ONE S-expression. No text, no markdown.
 
-CRITICAL: Respond with ONLY a single S-expression. No prose, no explanation, no markdown.
+To compute: (env (+ 2 2))
+To answer: (set! *answer* "4")
 
-The status prompt below explains your available commands:
-- Free actions: (think ...), (note ...), (env ...)
-- Registers: (set! *register* value) - use *answer* when you have the final answer"""
+Do NOT nest these. Pick one per response."""
 
         payload = {
             "model": model,
@@ -112,7 +111,7 @@ The status prompt below explains your available commands:
                 {"role": "system", "content": system_msg},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.3,
+            "temperature": 0,
             "max_tokens": 1024,
         }
 
