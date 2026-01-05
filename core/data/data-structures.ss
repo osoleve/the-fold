@@ -49,12 +49,12 @@
 (define (stack-size stack)
   (length stack))
 
-;;; stack->list : Stack → (List α)
+;;; stack->list : (Stack α) → (List α)
 ;;; Convert stack to list (top to bottom).
 (define (stack->list stack)
   stack)
 
-;;; list->stack : (List α) → Stack
+;;; list->stack : (List α) → (Stack α)
 ;;; Convert list to stack (first element becomes top).
 (define (list->stack lst)
   lst)
@@ -121,12 +121,12 @@
   (+ (length (car queue))
      (length (cdr queue))))
 
-;;; queue->list : Queue → (List α)
+;;; queue->list : (Queue α) → (List α)
 ;;; Convert queue to list (front to back order).
 (define (queue->list queue)
   (append (car queue) (reverse (cdr queue))))
 
-;;; list->queue : (List α) → Queue
+;;; list->queue : (List α) → (Queue α)
 ;;; Convert list to queue (first element at front).
 (define (list->queue lst)
   (cons lst '()))
@@ -342,12 +342,12 @@
 (define (dict-size dict)
   (length dict))
 
-;;; dict->alist : Dict → (List (Pair κ ν))
+;;; dict->alist : (Dict κ ν) → (List (Pair κ ν))
 ;;; Convert dictionary to association list (identity).
 (define (dict->alist dict)
   dict)
 
-;;; alist->dict : (List (Pair κ ν)) → Dict
+;;; alist->dict : (List (Pair κ ν)) → (Dict κ ν)
 ;;; Convert association list to dictionary (identity).
 (define (alist->dict alist)
   alist)

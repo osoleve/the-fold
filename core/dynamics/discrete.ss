@@ -43,21 +43,24 @@
        (boolean? (cadddr sys))))
 
 ;;; Accessors
+;;; dds-transition : DDS → (α → α)
 (define (dds-transition sys) (cadr sys))
+;;; dds-dimension : DDS → Nat
 (define (dds-dimension sys) (caddr sys))
+;;; dds-stochastic? : DDS → Boolean
 (define (dds-stochastic? sys) (cadddr sys))
 
-;;; make-dds : (a -> a) x Nat x Boolean -> DDS
+;;; make-dds : (α → α) × Nat × Boolean → DDS
 ;;; Create a discrete dynamical system.
 (define (make-dds transition-fn dimension stochastic?)
   (list 'dds transition-fn dimension stochastic?))
 
-;;; make-deterministic-dds : (a -> a) x Nat -> DDS
+;;; make-deterministic-dds : (α → α) × Nat → DDS
 ;;; Create a deterministic discrete dynamical system.
 (define (make-deterministic-dds transition-fn dimension)
   (make-dds transition-fn dimension #f))
 
-;;; make-stochastic-dds : (a x RNG -> (a . RNG)) x Nat -> DDS
+;;; make-stochastic-dds : (α × RNG → (α × RNG)) × Nat → DDS
 ;;; Create a stochastic discrete dynamical system.
 (define (make-stochastic-dds transition-fn dimension)
   (make-dds transition-fn dimension #t))
@@ -66,7 +69,7 @@
 ;;; Common Discrete Dynamical Systems
 ;;; ============================================================
 
-;;; logistic-map : Num -> DDS
+;;; logistic-map : Number → DDS
 ;;; The logistic map: x_{n+1} = r * x_n * (1 - x_n)
 ;;; Classic example of chaos for r in [3.57, 4].
 (define (logistic-map r)
@@ -74,14 +77,14 @@
    (lambda (x) (* r x (- 1 x)))
    0))
 
-;;; tent-map : Num -> DDS
+;;; tent-map : Number → DDS
 ;;; The tent map: f(x) = mu * min(x, 1-x)
 (define (tent-map mu)
   (make-deterministic-dds
    (lambda (x) (* mu (min x (- 1 x))))
    0))
 
-;;; henon-map : Num x Num -> DDS
+;;; henon-map : Number × Number → DDS
 ;;; The Henon map: x_{n+1} = 1 - a*x_n^2 + y_n
 ;;;                y_{n+1} = b*x_n
 ;;; Classic 2D chaotic map.
@@ -94,8 +97,8 @@
                         (* b x))))
    2))
 
-;;; baker-map : DDS
 ;;; The baker's map (simplified version on [0,1]^2).
+;;; baker-map : DDS
 (define baker-map
   (make-deterministic-dds
    (lambda (state)
@@ -106,9 +109,9 @@
                     (vector (- (* 2 x) 1) (+ (/ y 2) 0.5)))))
    2))
 
-;;; shift-map : DDS
 ;;; The doubling map (mod 1): x_{n+1} = 2*x_n mod 1
 ;;; Also known as the Bernoulli shift.
+;;; shift-map : DDS
 (define shift-map
   (make-deterministic-dds
    (lambda (x)
@@ -116,7 +119,7 @@
                 (- doubled (floor doubled))))
    0))
 
-;;; circle-rotation : Num -> DDS
+;;; circle-rotation : Number → DDS
 ;;; Rotation on the circle by angle alpha (mod 1).
 ;;; Quasiperiodic for irrational alpha.
 (define (circle-rotation alpha)
@@ -126,7 +129,7 @@
                 (- rotated (floor rotated))))
    0))
 
-;;; linear-congruence : Nat x Nat x Nat -> DDS
+;;; linear-congruence : Nat × Nat × Nat → DDS
 ;;; Linear congruential generator as a DDS: x_{n+1} = (a*x_n + c) mod m
 (define (linear-congruence a c m)
   (make-deterministic-dds
@@ -137,7 +140,7 @@
 ;;; Orbit Computation
 ;;; ============================================================
 
-;;; orbit : DDS x a x Nat -> (List a)
+;;; orbit : DDS × α × Nat → (List α)
 ;;; Compute the orbit of initial state for n iterations.
 ;;; Returns list of states: (x_0, x_1, ..., x_n)
 (define (orbit sys initial-state n)
@@ -148,7 +151,7 @@
                 (let ([next-state (f state)])
                      (loop next-state (+ k 1) (cons next-state acc)))))))
 
-;;; orbit-stochastic : DDS x a x Nat x RNG -> ((List a) . RNG)
+;;; orbit-stochastic : DDS × α × Nat × RNG → ((List α) × RNG)
 ;;; Compute stochastic orbit for n iterations.
 ;;; Returns (orbit . final-rng).
 (define (orbit-stochastic sys initial-state n rng)
@@ -161,7 +164,7 @@
                        [next-gen (cdr result)])
                       (loop next-state (+ k 1) (cons next-state acc) next-gen))))))
 
-;;; iterate : DDS x a x Nat -> a
+;;; iterate : DDS × α × Nat → α
 ;;; Compute the n-th iterate of the transition function.
 ;;; Returns f^n(x) where f^n = f composed with itself n times.
 (define (iterate sys initial-state n)
@@ -171,7 +174,7 @@
                 state
                 (loop (f state) (+ k 1))))))
 
-;;; iterate-until : DDS x a x (a -> Boolean) x Nat -> (a . Nat)
+;;; iterate-until : DDS × α × (α → Boolean) × Nat → (α × Nat)
 ;;; Iterate until predicate is satisfied or fuel exhausted.
 ;;; Returns (final-state . iterations-taken).
 (define (iterate-until sys initial-state pred fuel)
@@ -186,7 +189,7 @@
 ;;; Fixed Point Detection
 ;;; ============================================================
 
-;;; fixed-point? : DDS x a x Num -> Boolean
+;;; fixed-point? : DDS × α × Number → Boolean
 ;;; Check if state is a fixed point within tolerance.
 (define (fixed-point? sys state tolerance)
   (let* ([f (dds-transition sys)]
@@ -198,7 +201,7 @@
             ;; Vector case
             (vec-approx-equal? next state tolerance))))
 
-;;; find-fixed-point : DDS x a x Nat x Num -> (Maybe a)
+;;; find-fixed-point : DDS × α × Nat × Number → (Option α)
 ;;; Attempt to find a fixed point by iteration.
 ;;; Returns (ok fixed-point) or (error not-found).
 (define (find-fixed-point sys initial-state max-iter tolerance)
@@ -214,12 +217,12 @@
                          `(ok ,next)
                          (loop next (+ k 1))))))))
 
-;;; stability-jacobian-1d : (Num -> Num) x Num x Num -> Num
+;;; stability-jacobian-1d : (Number → Number) × Number × Number → Number
 ;;; Compute numerical derivative (Jacobian in 1D) at a point.
 (define (stability-jacobian-1d f x h)
   (/ (- (f (+ x h)) (f (- x h))) (* 2 h)))
 
-;;; classify-fixed-point-1d : DDS x Num x Num -> Symbol
+;;; classify-fixed-point-1d : DDS × Number × Number → Symbol
 ;;; Classify a 1D fixed point by its derivative magnitude.
 ;;; Returns: stable, unstable, or neutral.
 (define (classify-fixed-point-1d sys fixed-point h)
@@ -234,7 +237,7 @@
 ;;; Periodic Orbit Detection
 ;;; ============================================================
 
-;;; period : DDS x a x Nat x Num -> (Nat | #f)
+;;; period : DDS × α × Nat × Number → (Option Nat)
 ;;; Detect the period of an orbit starting from a state.
 ;;; Returns period or #f if no period found within max-period.
 ;;; Uses Floyd's cycle detection (tortoise and hare).
@@ -261,7 +264,7 @@
                               (f (f hare))
                               (+ steps 1))])))))
 
-;;; periodic-orbit : DDS x a x Nat x Num -> (List a) | #f
+;;; periodic-orbit : DDS × α × Nat × Number → (Option (List α))
 ;;; Extract the periodic orbit starting near initial-state.
 ;;; Returns the orbit as a list or #f if not periodic.
 (define (periodic-orbit sys initial-state max-period tolerance)
@@ -281,7 +284,7 @@
 ;;; Lyapunov Exponent (1D)
 ;;; ============================================================
 
-;;; lyapunov-exponent-1d : DDS x Num x Nat x Nat -> Num
+;;; lyapunov-exponent-1d : DDS × Number × Nat × Nat → Number
 ;;; Estimate the Lyapunov exponent for a 1D map.
 ;;; Computes: lim (1/n) * sum(log|f'(x_i)|)
 ;;; skip: number of transient iterations to skip
@@ -311,7 +314,7 @@
 ;;;   (x_1, x_1) -> (x_1, f(x_1))  [vertical to curve]
 ;;;   ... and so on
 
-;;; cobweb-points : DDS x Num x Nat -> (List (Pair Num Num))
+;;; cobweb-points : DDS × Number × Nat → (List (Number × Number))
 ;;; Generate cobweb diagram points for a 1D map.
 ;;; Returns list of (x, y) coordinates for plotting.
 (define (cobweb-points sys initial-state n)
@@ -327,7 +330,7 @@
                            (cons (cons fx fx)
                                  (cons (cons x fx) acc))))))))
 
-;;; cobweb-segments : DDS x Num x Nat -> (List (List (Pair Num Num)))
+;;; cobweb-segments : DDS × Number × Nat → (List (List (Number × Number)))
 ;;; Generate cobweb diagram as line segments for visualization.
 ;;; Each segment is ((x1, y1) (x2, y2)).
 (define (cobweb-segments sys initial-state n)
@@ -347,8 +350,7 @@
 ;;; Bifurcation Diagram Data
 ;;; ============================================================
 
-;;; bifurcation-data : (Num -> DDS) x Num x Num x Nat x Nat x Nat x Num
-;;;                    -> (List (Pair Num Num))
+;;; bifurcation-data : (Number → DDS) × Number × Number × Nat × Nat × Nat × Number → (List (Number × Number))
 ;;; Generate data for a bifurcation diagram.
 ;;; make-sys: function from parameter to DDS
 ;;; param-min, param-max: parameter range
@@ -375,7 +377,7 @@
 ;;; Attractor Analysis
 ;;; ============================================================
 
-;;; attractor-bounds : DDS x a x Nat x Nat -> (List (Pair Num Num))
+;;; attractor-bounds : DDS × α × Nat × Nat → (List (Number × Number))
 ;;; Estimate the bounding box of the attractor.
 ;;; Returns list of (min, max) pairs for each dimension.
 (define (attractor-bounds sys initial-state skip samples)
@@ -402,7 +404,7 @@
 ;;; Stochastic System Utilities
 ;;; ============================================================
 
-;;; add-noise : DDS x (a x RNG -> (a . RNG)) -> DDS
+;;; add-noise : DDS × (α × RNG → (α × RNG)) → DDS
 ;;; Convert a deterministic system to a stochastic one by adding noise.
 (define (add-noise det-sys noise-fn)
   (let ([f (dds-transition det-sys)]
@@ -414,7 +416,7 @@
                       result))
         dim)))
 
-;;; gaussian-noise-1d : Num -> (Num x RNG -> (Num . RNG))
+;;; gaussian-noise-1d : Number → (Number × RNG → (Number × RNG))
 ;;; Create a 1D Gaussian noise function with given standard deviation.
 ;;; Uses Box-Muller transform.
 (define (gaussian-noise-1d sigma)
@@ -429,7 +431,7 @@
                  [z (* sigma (sqrt (* -2 (log u1))) (cos (* 2 π u2)))])
                 (cons (+ x z) rng2))))
 
-;;; stochastic-logistic : Num x Num -> DDS
+;;; stochastic-logistic : Number × Number → DDS
 ;;; Logistic map with additive Gaussian noise.
 (define (stochastic-logistic r sigma)
   (add-noise (logistic-map r) (gaussian-noise-1d sigma)))
@@ -438,7 +440,7 @@
 ;;; Time Series Analysis
 ;;; ============================================================
 
-;;; time-average : DDS x a x Nat x Nat x (a -> Num) -> Num
+;;; time-average : DDS × α × Nat × Nat × (α → Number) → Number
 ;;; Compute time average of an observable.
 ;;; skip: transient iterations
 ;;; n: number of samples
@@ -450,7 +452,7 @@
             0
             (/ (fold-left + 0 values) (length values)))))
 
-;;; autocorrelation : DDS x a x Nat x Nat x Nat x (a -> Num) -> (List Num)
+;;; autocorrelation : DDS × α × Nat × Nat × Nat × (α → Number) → (List Number)
 ;;; Compute autocorrelation function for lags 0 to max-lag.
 (define (autocorrelation sys initial-state skip n max-lag observable)
   (let* ([orb (orbit sys (iterate sys initial-state skip) (+ n max-lag))]
@@ -474,7 +476,7 @@
 ;;; Recurrence Analysis
 ;;; ============================================================
 
-;;; recurrence-matrix : DDS x a x Nat x Nat x Num -> (List (List Boolean))
+;;; recurrence-matrix : DDS × α × Nat × Nat × Number → (List (List Boolean))
 ;;; Compute the recurrence matrix for an orbit.
 ;;; R[i,j] = 1 if ||x_i - x_j|| < epsilon
 (define (recurrence-matrix sys initial-state skip n epsilon)
@@ -489,7 +491,7 @@
                           (iota n)))
              (iota n))))
 
-;;; recurrence-rate : DDS x a x Nat x Nat x Num -> Num
+;;; recurrence-rate : DDS × α × Nat × Nat × Number → Number
 ;;; Compute the recurrence rate (fraction of recurrence matrix that is 1).
 (define (recurrence-rate sys initial-state skip n epsilon)
   (let ([rm (recurrence-matrix sys initial-state skip n epsilon)])
@@ -504,7 +506,7 @@
 ;;; System Composition
 ;;; ============================================================
 
-;;; compose-dds : DDS x DDS -> DDS
+;;; compose-dds : DDS × DDS → DDS
 ;;; Compose two systems: (f o g)(x) = f(g(x))
 ;;; Both systems must be deterministic and have compatible dimensions.
 (define (compose-dds sys1 sys2)
@@ -515,7 +517,7 @@
         (lambda (x) (f (g x)))
         dim)))
 
-;;; iterate-system : DDS x Nat -> DDS
+;;; iterate-system : DDS × Nat → DDS
 ;;; Create a new system that is the n-th iterate of the original.
 ;;; f^n(x) as a single step.
 (define (iterate-system sys n)
@@ -525,7 +527,7 @@
         (lambda (x) (iterate sys x n))
         dim)))
 
-;;; coupled-system : DDS x DDS x (a x b -> a) x (a x b -> b) -> DDS
+;;; coupled-system : DDS × DDS × (α × β → α) × (α × β → β) → DDS
 ;;; Create a coupled system from two subsystems.
 ;;; coupling1: how sys2's state affects sys1
 ;;; coupling2: how sys1's state affects sys2
@@ -552,7 +554,7 @@
 ;;; Display and Debugging
 ;;; ============================================================
 
-;;; dds->string : DDS -> String
+;;; dds->string : DDS → String
 ;;; String representation of a discrete dynamical system.
 (define (dds->string sys)
   (string-append

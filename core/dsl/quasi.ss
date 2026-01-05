@@ -30,21 +30,21 @@
 ;;; Quasiquote Detection
 ;;; ============================================================
 
-;;; quasiquote? : Any -> Boolean
+;;; quasiquote? : α → Boolean
 (define (quasiquote? x)
   (and (pair? x)
        (eq? (car x) 'quasiquote)
        (pair? (cdr x))
        (null? (cddr x))))
 
-;;; unquote? : Any -> Boolean
+;;; unquote? : α → Boolean
 (define (unquote? x)
   (and (pair? x)
        (eq? (car x) 'unquote)
        (pair? (cdr x))
        (null? (cddr x))))
 
-;;; unquote-splicing? : Any -> Boolean
+;;; unquote-splicing? : α → Boolean
 (define (unquote-splicing? x)
   (and (pair? x)
        (eq? (car x) 'unquote-splicing)
@@ -63,14 +63,14 @@
 ;;;   depth = 2: we're inside ``, unquotes are data
 ;;;   etc.
 
-;;; qq-expand : Expr -> Expr
+;;; qq-expand : Sexp → Sexp
 ;;; Expand a (quasiquote expr) form.
 (define (qq-expand expr)
   (if (quasiquote? expr)
       (qq-expand-depth (cadr expr) 1)
       (error 'qq-expand "expected quasiquote form" expr)))
 
-;;; qq-expand-depth : Expr x Int -> Expr
+;;; qq-expand-depth : Sexp × Int → Sexp
 ;;; Expand expression at given quasiquote depth.
 (define (qq-expand-depth expr depth)
   (cond
@@ -106,7 +106,7 @@
    [else
     `(quote ,expr)]))
 
-;;; qq-expand-pair : Pair x Int -> Expr
+;;; qq-expand-pair : (Pair α β) × Int → Sexp
 ;;; Expand a pair, handling unquote-splicing in list context.
 (define (qq-expand-pair expr depth)
   (let ([head (car expr)]
@@ -140,7 +140,7 @@
         [else
          `(cons ,(qq-expand-depth head depth) ,(qq-expand-depth tail depth))])))
 
-;;; qq-expand-list : List x Int -> Expr
+;;; qq-expand-list : (List α) × Int → Sexp
 ;;; Expand a proper list, optimizing for common cases.
 (define (qq-expand-list lst depth)
   ;; Collect segments: either (list ...) or splice expressions
@@ -184,7 +184,7 @@
                           segments)])
               `(append ,@args))])))
 
-;;; qq-collect-segments : List x Int -> (List Segment)
+;;; qq-collect-segments : (List α) × Int → (List Segment)
 ;;; Collect list into segments for efficient construction.
 ;;; A segment is either (list elem ...) or (splice expr).
 (define (qq-collect-segments lst depth)
@@ -223,7 +223,7 @@
 ;;; Convenience: expand-quasiquote
 ;;; ============================================================
 
-;;; expand-quasiquote : Expr -> Expr
+;;; expand-quasiquote : Sexp → Sexp
 ;;; Top-level entry point. If not a quasiquote, returns as-is.
 (define (expand-quasiquote expr)
   (if (quasiquote? expr)
@@ -237,43 +237,43 @@
 ;;; A syntax object wraps a datum with source location information.
 ;;; This enables error messages that point to the original DSL code.
 
-;;; make-syntax : Datum x SourceLoc -> Syntax
+;;; make-syntax : α × SourceLoc → Syntax
 (define (make-syntax datum source-loc)
   (list 'syntax datum source-loc))
 
-;;; syntax? : Any -> Boolean
+;;; syntax? : α → Boolean
 (define (syntax? x)
   (and (pair? x)
        (eq? (car x) 'syntax)
        (= (length x) 3)))
 
-;;; syntax-datum : Syntax -> Datum
+;;; syntax-datum : Syntax → α
 (define (syntax-datum stx)
   (cadr stx))
 
-;;; syntax-source : Syntax -> SourceLoc
+;;; syntax-source : Syntax → SourceLoc
 (define (syntax-source stx)
   (caddr stx))
 
-;;; make-source-loc : String x Int x Int -> SourceLoc
+;;; make-source-loc : String × Int × Int → SourceLoc
 (define (make-source-loc file line column)
   (list 'source-loc file line column))
 
-;;; source-loc? : Any -> Boolean
+;;; source-loc? : α → Boolean
 (define (source-loc? x)
   (and (pair? x)
        (eq? (car x) 'source-loc)
        (= (length x) 4)))
 
-;;; source-loc-file : SourceLoc -> String
+;;; source-loc-file : SourceLoc → String
 (define (source-loc-file loc)
   (cadr loc))
 
-;;; source-loc-line : SourceLoc -> Int
+;;; source-loc-line : SourceLoc → Int
 (define (source-loc-line loc)
   (caddr loc))
 
-;;; source-loc-column : SourceLoc -> Int
+;;; source-loc-column : SourceLoc → Int
 (define (source-loc-column loc)
   (cadddr loc))
 
@@ -282,12 +282,12 @@
 (define no-source
   (make-source-loc "<unknown>" 0 0))
 
-;;; datum->syntax : Datum x Syntax -> Syntax
+;;; datum->syntax : α × Syntax → Syntax
 ;;; Wrap a datum with the source location from another syntax object.
 (define (datum->syntax datum stx)
   (make-syntax datum (if (syntax? stx) (syntax-source stx) no-source)))
 
-;;; syntax->datum : Syntax -> Datum
+;;; syntax->datum : Syntax → α
 ;;; Strip syntax wrapper, recursively.
 (define (syntax->datum stx)
   (cond
@@ -303,7 +303,7 @@
 ;;;
 ;;; qq-expand-syntax: like qq-expand but preserves source locations.
 
-;;; qq-expand-syntax : Syntax -> Expr
+;;; qq-expand-syntax : Syntax → Sexp
 ;;; Expand a quasiquoted syntax object, preserving locations.
 (define (qq-expand-syntax stx)
   (let ([datum (if (syntax? stx) (syntax-datum stx) stx)]
@@ -312,7 +312,7 @@
            (qq-expand-syntax-depth (cadr datum) 1 loc)
            (error 'qq-expand-syntax "expected quasiquote form" datum))))
 
-;;; qq-expand-syntax-depth : Expr x Int x SourceLoc -> Expr
+;;; qq-expand-syntax-depth : Sexp × Int × SourceLoc → Sexp
 (define (qq-expand-syntax-depth expr depth loc)
   ;; For now, delegate to qq-expand-depth
   ;; Full implementation would track locations through expansion
@@ -329,13 +329,13 @@
 ;;;   - (pattern ...) : match zero or more
 ;;;   - _ : wildcard
 
-;;; syntax-match : Syntax x Pattern -> (Maybe Bindings)
+;;; syntax-match : Syntax × Pattern → (Option Bindings)
 ;;; Match syntax against pattern, returning bindings or nothing.
 (define (syntax-match stx pattern)
   (let ([datum (if (syntax? stx) (syntax-datum stx) stx)])
        (pattern-match datum pattern '())))
 
-;;; pattern-match : Datum x Pattern x Bindings -> (Maybe Bindings)
+;;; pattern-match : α × Pattern × Bindings → (Option Bindings)
 (define (pattern-match datum pattern bindings)
   (cond
    ;; Wildcard matches anything
@@ -372,7 +372,7 @@
    
    [else nothing]))
 
-;;; literal-pattern? : Any -> Boolean
+;;; literal-pattern? : α → Boolean
 ;;; Check if pattern should be matched literally.
 (define (literal-pattern? x)
   (or (number? x)
@@ -381,7 +381,7 @@
       (null? x)
       (memq x '(quote quasiquote unquote unquote-splicing))))
 
-;;; pattern-match-ellipsis : Datum x Pattern x Pattern x Bindings -> (Maybe Bindings)
+;;; pattern-match-ellipsis : α × Pattern × Pattern × Bindings → (Option Bindings)
 ;;; Match pattern with ... (zero or more).
 (define (pattern-match-ellipsis datum elem-pattern rest-pattern bindings)
   ;; Try to match as many elements as possible with elem-pattern,
@@ -403,7 +403,7 @@
         ;; Can't match at all
         [else nothing])))
 
-;;; merge-ellipsis-bindings : Pattern x (List Datum) x Bindings -> Bindings
+;;; merge-ellipsis-bindings : Pattern × (List α) × Bindings → Bindings
 ;;; Add ellipsis-matched items to bindings (as lists).
 (define (merge-ellipsis-bindings pattern matches bindings)
   (if (symbol? pattern)
@@ -411,7 +411,7 @@
       ;; For complex patterns, would need to extract and merge
       bindings))
 
-;;; maybe-bind : (Maybe a) x (a -> Maybe b) -> (Maybe b)
+;;; maybe-bind : (Option α) × (α → (Option β)) → (Option β)
 (define (maybe-bind m f)
   (if (just? m)
       (f (from-just m))
@@ -421,7 +421,7 @@
 ;;; Utility: Template Instantiation
 ;;; ============================================================
 
-;;; instantiate-template : Template x Bindings -> Expr
+;;; instantiate-template : Sexp × Bindings → Sexp
 ;;; Fill in a template with bindings from pattern match.
 (define (instantiate-template template bindings)
   (cond

@@ -21,28 +21,33 @@
 ;;; probability distribution. The average code length approaches
 ;;; the entropy H(X) as closely as possible with integer bit lengths.
 
-;;; huffman-node : (Symbol | (Node × Node)) × Number → Node
+;;; make-huffman-leaf : Symbol × Real → Node
 ;;; A Huffman tree node is either a leaf (symbol, prob) or
 ;;; an internal node ((left . right), prob).
 (define (make-huffman-leaf symbol prob)
   (list 'leaf symbol prob))
 
+;;; make-huffman-internal : Node × Node → Node
 (define (make-huffman-internal left right)
   (list 'internal (cons left right) (+ (huffman-prob left) (huffman-prob right))))
 
+;;; huffman-leaf? : Node → Boolean
 (define (huffman-leaf? node)
   (eq? (car node) 'leaf))
 
+;;; huffman-symbol : Node → Symbol
 (define (huffman-symbol node)
   (cadr node))
 
+;;; huffman-children : Node → Node × Node
 (define (huffman-children node)
   (cadr node))
 
+;;; huffman-prob : Node → Real
 (define (huffman-prob node)
   (caddr node))
 
-;;; build-huffman-tree : (List (Symbol × Number)) → Node
+;;; build-huffman-tree : (List (Symbol × Real)) → Node
 ;;; Build Huffman tree from symbol-probability pairs.
 ;;; Input: ((sym1 . prob1) (sym2 . prob2) ...)
 (define (build-huffman-tree symbol-probs)
@@ -74,13 +79,14 @@
 (define (sort-by-prob nodes)
   (list-sort (lambda (a b) (< (huffman-prob a) (huffman-prob b))) nodes))
 
-;;; list-sort : (a a → Boolean) (List a) → (List a)
+;;; list-sort : (α × α → Boolean) × (List α) → (List α)
 ;;; Simple insertion sort (sufficient for small alphabets).
 (define (list-sort less? lst)
   (if (null? lst)
       '()
       (insert-sorted less? (car lst) (list-sort less? (cdr lst)))))
 
+;;; insert-sorted : (α × α → Boolean) × α × (List α) → (List α)
 (define (insert-sorted less? x sorted)
   (if (null? sorted)
       (list x)
@@ -94,6 +100,7 @@
 (define (huffman-codes tree)
   (huffman-codes-helper tree ""))
 
+;;; huffman-codes-helper : Node × String → (List (Symbol × String))
 (define (huffman-codes-helper node prefix)
   (if (huffman-leaf? node)
       (list (cons (huffman-symbol node) prefix))
@@ -119,6 +126,7 @@
 (define (huffman-decode bitstring tree)
   (huffman-decode-helper bitstring tree tree '()))
 
+;;; huffman-decode-helper : String × Node × Node × (List Symbol) → (List Symbol)
 (define (huffman-decode-helper bits root current acc)
   (cond
    [(and (string=? bits "") (huffman-leaf? current))
@@ -136,7 +144,7 @@
            [next (if (char=? bit #\0) (car children) (cdr children))])
           (huffman-decode-helper rest root next acc))]))
 
-;;; huffman-average-length : (List (Symbol × String)) × (List (Symbol × Number)) → Number
+;;; huffman-average-length : (List (Symbol × String)) × (List (Symbol × Real)) → Real
 ;;; Compute average code length given codes and probabilities.
 (define (huffman-average-length code-table symbol-probs)
   (fold-left + 0
@@ -147,7 +155,7 @@
                                 (* prob (string-length code))))
                   symbol-probs)))
 
-;;; huffman-efficiency : (List (Symbol × String)) × (List (Symbol × Number)) → Number
+;;; huffman-efficiency : (List (Symbol × String)) × (List (Symbol × Real)) → Real
 ;;; Ratio of entropy to average code length (should be close to 1).
 (define (huffman-efficiency code-table symbol-probs)
   (let* ([probs (map cdr symbol-probs)]
@@ -164,13 +172,14 @@
 ;;; Arithmetic coding represents a message as a subinterval of [0,1).
 ;;; It achieves optimal compression (approaches entropy exactly).
 
-;;; arithmetic-encode : (List Symbol) × (List (Symbol × Number)) → (Number × Number)
+;;; arithmetic-encode : (List Symbol) × (List (Symbol × Real)) → Real × Real
 ;;; Encode message to an interval [low, high).
 ;;; Returns the interval as (low . high).
 (define (arithmetic-encode message symbol-probs)
   (let ([cumulative (build-cumulative-probs symbol-probs)])
        (arithmetic-encode-helper message cumulative 0.0 1.0)))
 
+;;; arithmetic-encode-helper : (List Symbol) × (List (Symbol × Real × Real)) × Real × Real → Real × Real
 (define (arithmetic-encode-helper message cumulative low high)
   (if (null? message)
       (cons low high)
@@ -183,7 +192,7 @@
              [new-high (+ low (* range sym-high))])
             (arithmetic-encode-helper (cdr message) cumulative new-low new-high))))
 
-;;; build-cumulative-probs : (List (Symbol × Number)) → (List (Symbol × Number × Number))
+;;; build-cumulative-probs : (List (Symbol × Real)) → (List (Symbol × Real × Real))
 ;;; Build cumulative probability table: ((sym low high) ...)
 (define (build-cumulative-probs symbol-probs)
   (let loop ([remaining symbol-probs] [cumsum 0.0] [acc '()])
@@ -196,13 +205,14 @@
                        new-cumsum
                        (cons (list sym cumsum new-cumsum) acc))))))
 
-;;; arithmetic-decode : (Number × Number) × (List (Symbol × Number)) × Int → (List Symbol)
+;;; arithmetic-decode : (Real × Real) × (List (Symbol × Real)) × Nat → (List Symbol)
 ;;; Decode interval back to message of given length.
 (define (arithmetic-decode interval symbol-probs length)
   (let ([cumulative (build-cumulative-probs symbol-probs)]
         [code (/ (+ (car interval) (cdr interval)) 2)])  ; Use midpoint
        (arithmetic-decode-helper code cumulative length '())))
 
+;;; arithmetic-decode-helper : Real × (List (Symbol × Real × Real)) × Nat × (List Symbol) → (List Symbol)
 (define (arithmetic-decode-helper code cumulative length acc)
   (if (= length 0)
       (reverse acc)
@@ -213,6 +223,7 @@
              [new-code (/ (- code sym-low) (- sym-high sym-low))])
             (arithmetic-decode-helper new-code cumulative (- length 1) (cons sym acc)))))
 
+;;; find-symbol-for-code : Real × (List (Symbol × Real × Real)) → (Symbol × Real × Real)
 (define (find-symbol-for-code code cumulative)
   (let loop ([remaining cumulative])
        (if (null? remaining)
@@ -224,7 +235,7 @@
                      entry
                      (loop (cdr remaining)))))))
 
-;;; arithmetic-code-length : (Number × Number) → Number
+;;; arithmetic-code-length : (Real × Real) → Real
 ;;; Bits needed to represent an interval (theoretical).
 (define (arithmetic-code-length interval)
   (let ([width (- (cdr interval) (car interval))])
@@ -239,12 +250,13 @@
 ;;; LZ78 builds a dictionary of seen phrases during encoding.
 ;;; Each output is (dictionary-index, next-symbol).
 
-;;; lz78-encode : (List Symbol) → (List (Int × Symbol))
+;;; lz78-encode : (List Symbol) → (List (Nat × Symbol))
 ;;; Encode using LZ78 algorithm.
 ;;; Returns list of (index, symbol) pairs.
 (define (lz78-encode message)
   (lz78-encode-helper message '() 0 '()))
 
+;;; lz78-encode-helper : (List Symbol) × (List (Nat × (List Symbol))) × Nat × (List (Nat × Symbol)) → (List (Nat × Symbol))
 (define (lz78-encode-helper remaining dict next-index acc)
   (if (null? remaining)
       (reverse acc)
@@ -263,7 +275,7 @@
                                 (+ next-index 1)
                                 (cons (cons match-idx next-sym) acc)))))
 
-;;; lz78-find-longest-match : (List Symbol) × Dict → (Int × Int)
+;;; lz78-find-longest-match : (List Symbol) × (List (Nat × (List Symbol))) → (Nat × Nat)
 ;;; Find longest dictionary match. Returns (index, length).
 (define (lz78-find-longest-match message dict)
   (let loop ([entries dict] [best-idx 0] [best-len 0])
@@ -277,7 +289,7 @@
                      (loop (cdr entries) (+ idx 1) match-len)  ; idx+1 because 0 is empty match
                      (loop (cdr entries) best-idx best-len))))))
 
-;;; prefix-match-length : (List a) × (List a) → Int
+;;; prefix-match-length : (List α) × (List α) → Nat
 ;;; Length of common prefix between two lists.
 (define (prefix-match-length a b)
   (let loop ([a a] [b b] [len 0])
@@ -287,11 +299,12 @@
                (loop (cdr a) (cdr b) (+ len 1))
                len))))
 
-;;; lz78-decode : (List (Int × Symbol)) → (List Symbol)
+;;; lz78-decode : (List (Nat × Symbol)) → (List Symbol)
 ;;; Decode LZ78 compressed data.
 (define (lz78-decode encoded)
   (lz78-decode-helper encoded '() '()))
 
+;;; lz78-decode-helper : (List (Nat × Symbol)) × (List (Nat × (List Symbol))) × (List Symbol) → (List Symbol)
 (define (lz78-decode-helper remaining dict acc)
   (if (null? remaining)
       (reverse acc)
@@ -307,12 +320,13 @@
              [new-dict (append dict (list (cons (length dict) phrase)))])
             (lz78-decode-helper (cdr remaining) new-dict (append (reverse phrase) acc)))))
 
-;;; take-n / drop-n : Int × (List a) → (List a)
+;;; take-n : Nat × (List α) → (List α)
 (define (take-n n lst)
   (if (or (<= n 0) (null? lst))
       '()
       (cons (car lst) (take-n (- n 1) (cdr lst)))))
 
+;;; drop-n : Nat × (List α) → (List α)
 (define (drop-n n lst)
   (if (or (<= n 0) (null? lst))
       lst
@@ -322,13 +336,14 @@
 ;;; Run-Length Encoding
 ;;; ============================================================
 
-;;; rle-encode : (List Symbol) → (List (Symbol × Int))
+;;; rle-encode : (List α) → (List (α × Nat))
 ;;; Run-length encode a sequence.
 (define (rle-encode message)
   (if (null? message)
       '()
       (rle-encode-helper (cdr message) (car message) 1 '())))
 
+;;; rle-encode-helper : (List α) × α × Nat × (List (α × Nat)) → (List (α × Nat))
 (define (rle-encode-helper remaining current count acc)
   (cond
    [(null? remaining)
@@ -341,7 +356,7 @@
                        1
                        (cons (cons current count) acc))]))
 
-;;; rle-decode : (List (Symbol × Int)) → (List Symbol)
+;;; rle-decode : (List (α × Nat)) → (List α)
 ;;; Decode run-length encoded data.
 (define (rle-decode encoded)
   (apply append
@@ -349,7 +364,7 @@
                       (replicate (cdr pair) (car pair)))
               encoded)))
 
-;;; replicate : Int × a → (List a)
+;;; replicate : Nat × α → (List α)
 (define (replicate n x)
   (if (<= n 0)
       '()
@@ -359,25 +374,25 @@
 ;;; Channel Coding: Error Detection
 ;;; ============================================================
 
-;;; parity-encode : (List Bit) → (List Bit)
+;;; parity-encode : (List Nat) → (List Nat)
 ;;; Add even parity bit to end of message.
 (define (parity-encode bits)
   (let ([parity (fold-left (lambda (acc b) (bitwise-xor acc b)) 0 bits)])
        (append bits (list parity))))
 
-;;; parity-check : (List Bit) → Boolean
+;;; parity-check : (List Nat) → Boolean
 ;;; Check if message has valid even parity.
 (define (parity-check bits)
   (= (fold-left (lambda (acc b) (bitwise-xor acc b)) 0 bits) 0))
 
-;;; parity-decode : (List Bit) → (List Bit)
+;;; parity-decode : (List Nat) → (List Nat)
 ;;; Remove parity bit (returns message without checking).
 (define (parity-decode bits)
   (if (null? bits)
       '()
       (take-n (- (length bits) 1) bits)))
 
-;;; bitwise-xor : Int × Int → Int
+;;; bitwise-xor : Nat × Nat → Nat
 ;;; XOR for single bits (0 or 1).
 (define (bitwise-xor a b)
   (if (= a b) 0 1))
@@ -386,12 +401,12 @@
 ;;; Channel Coding: Repetition Code
 ;;; ============================================================
 
-;;; repetition-encode : (List Bit) × Int → (List Bit)
+;;; repetition-encode : (List Nat) × Nat → (List Nat)
 ;;; Encode by repeating each bit n times.
 (define (repetition-encode bits n)
   (apply append (map (lambda (b) (replicate n b)) bits)))
 
-;;; repetition-decode : (List Bit) × Int → (List Bit)
+;;; repetition-decode : (List Nat) × Nat → (List Nat)
 ;;; Decode by majority vote on each n-bit group.
 (define (repetition-decode bits n)
   (if (null? bits)
@@ -399,7 +414,7 @@
       (cons (majority-vote (take-n n bits))
             (repetition-decode (drop-n n bits) n))))
 
-;;; majority-vote : (List Bit) → Bit
+;;; majority-vote : (List Nat) → Nat
 ;;; Return the majority bit (0 or 1).
 (define (majority-vote bits)
   (let ([ones (length (filter (lambda (b) (= b 1)) bits))])
@@ -412,7 +427,7 @@
 ;;; Hamming(7,4) encodes 4 data bits into 7 bits, correcting 1 error.
 ;;; Positions 1,2,4 are parity bits; positions 3,5,6,7 are data.
 
-;;; hamming74-encode : (List Bit) → (List Bit)
+;;; hamming74-encode : (List Nat) → (List Nat)
 ;;; Encode 4 data bits into 7-bit Hamming codeword.
 (define (hamming74-encode data)
   (if (not (= (length data) 4))
@@ -428,7 +443,7 @@
             ;; Output: p1 p2 d1 p4 d2 d3 d4 (positions 1-7)
             (list p1 p2 d1 p4 d2 d3 d4))))
 
-;;; hamming74-decode : (List Bit) → (List Bit)
+;;; hamming74-decode : (List Nat) → (List Nat)
 ;;; Decode 7-bit Hamming codeword, correcting single bit error.
 ;;; Returns 4 data bits.
 (define (hamming74-decode codeword)
@@ -456,7 +471,7 @@
                   (list-ref corrected 5)
                   (list-ref corrected 6)))))
 
-;;; flip-bit-at : (List Bit) × Int → (List Bit)
+;;; flip-bit-at : (List Nat) × Nat → (List Nat)
 ;;; Flip the bit at given index.
 (define (flip-bit-at bits idx)
   (let loop ([remaining bits] [i 0] [acc '()])
@@ -466,7 +481,7 @@
                (loop (cdr remaining) (+ i 1) (cons (bitwise-xor (car remaining) 1) acc))
                (loop (cdr remaining) (+ i 1) (cons (car remaining) acc))))))
 
-;;; hamming74-syndrome : (List Bit) → Int
+;;; hamming74-syndrome : (List Nat) → Nat
 ;;; Calculate syndrome (0 means no error).
 (define (hamming74-syndrome codeword)
   (let* ([p1 (list-ref codeword 0)]
@@ -485,7 +500,7 @@
 ;;; Code Properties
 ;;; ============================================================
 
-;;; hamming-distance : (List Bit) × (List Bit) → Int
+;;; hamming-distance : (List Nat) × (List Nat) → Nat
 ;;; Number of positions where two codewords differ.
 (define (hamming-distance a b)
   (if (or (null? a) (null? b))
@@ -493,7 +508,7 @@
       (+ (if (= (car a) (car b)) 0 1)
          (hamming-distance (cdr a) (cdr b)))))
 
-;;; minimum-distance : (List (List Bit)) → Int
+;;; minimum-distance : (List (List Nat)) → Nat
 ;;; Minimum Hamming distance among all codeword pairs.
 (define (minimum-distance codewords)
   (if (or (null? codewords) (null? (cdr codewords)))
@@ -503,19 +518,19 @@
            (min (apply min (map (lambda (c) (hamming-distance first c)) rest))
                 (minimum-distance rest)))))
 
-;;; code-rate : Int × Int → Number
+;;; code-rate : Nat × Nat → Real
 ;;; Code rate = k/n (information bits / total bits).
 (define (code-rate k n)
   (if (<= n 0)
       0
       (/ k n)))
 
-;;; error-correcting-capability : Int → Int
+;;; error-correcting-capability : Nat → Nat
 ;;; Number of errors correctable = floor((d-1)/2).
 (define (error-correcting-capability min-distance)
   (quotient (- min-distance 1) 2))
 
-;;; error-detecting-capability : Int → Int
+;;; error-detecting-capability : Nat → Nat
 ;;; Number of errors detectable = d-1.
 (define (error-detecting-capability min-distance)
   (- min-distance 1))
@@ -524,14 +539,14 @@
 ;;; Compression Metrics
 ;;; ============================================================
 
-;;; compression-ratio : Int × Int → Number
+;;; compression-ratio : Nat × Nat → Real
 ;;; Original size / Compressed size.
 (define (compression-ratio original-size compressed-size)
   (if (<= compressed-size 0)
       +inf.0
       (/ original-size compressed-size)))
 
-;;; space-savings : Int × Int → Number
+;;; space-savings : Nat × Nat → Real
 ;;; 1 - (compressed / original), as percentage-like value.
 (define (space-savings original-size compressed-size)
   (if (<= original-size 0)

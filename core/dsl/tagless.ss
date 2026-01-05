@@ -58,18 +58,18 @@
 ;;; Generic Dictionary Operations
 ;;; ============================================================
 
-;;; make-dict : Symbol -> List (Symbol . Procedure) -> Dict
+;;; make-dict : Symbol × (List (Symbol . Procedure)) → Dict
 ;;; Create a dictionary with named operations.
 (define (make-dict tag ops)
   (cons tag ops))
 
-;;; dict-tag : Dict -> Symbol
+;;; dict-tag : Dict → Symbol
 (define (dict-tag d) (car d))
 
-;;; dict-ops : Dict -> Alist
+;;; dict-ops : Dict → (List (Symbol . Procedure))
 (define (dict-ops d) (cdr d))
 
-;;; dict-ref : Dict -> Symbol -> Procedure
+;;; dict-ref : Dict × Symbol → Procedure
 ;;; Get an operation from a dictionary.
 (define (dict-ref d name)
   (let ([pair (assq name (dict-ops d))])
@@ -77,17 +77,17 @@
            (cdr pair)
            (error 'dict-ref "Operation not found" name (dict-tag d)))))
 
-;;; dict-has? : Dict -> Symbol -> Boolean
+;;; dict-has? : Dict × Symbol → Boolean
 (define (dict-has? d name)
   (and (assq name (dict-ops d)) #t))
 
-;;; dict-extend : Dict -> List (Symbol . Procedure) -> Dict
+;;; dict-extend : Dict × (List (Symbol . Procedure)) → Dict
 ;;; Extend a dictionary with additional operations.
 (define (dict-extend d new-ops)
   (make-dict (dict-tag d)
              (append new-ops (dict-ops d))))
 
-;;; dict-merge : Dict -> Dict -> Dict
+;;; dict-merge : Dict × Dict → Dict
 ;;; Merge two dictionaries (second overrides first).
 (define (dict-merge d1 d2)
   (make-dict (list (dict-tag d1) (dict-tag d2))
@@ -104,16 +104,18 @@
 ;;;   add : repr Int -> repr Int -> repr Int
 ;;;   neg : repr Int -> repr Int
 
-;;; make-expr-dict : (Int -> a) -> (a -> a -> a) -> (a -> a) -> ExprDict
+;;; make-expr-dict : (Int → α) × (α × α → α) × (α → α) → Dict
 (define (make-expr-dict lit add neg)
   (make-dict 'expr
              `((lit . ,lit)
                (add . ,add)
                (neg . ,neg))))
 
-;;; Accessors for expression algebra
+;;; expr-lit : Dict × Int → α
 (define (expr-lit d n) ((dict-ref d 'lit) n))
+;;; expr-add : Dict × α × α → α
 (define (expr-add d x y) ((dict-ref d 'add) x y))
+;;; expr-neg : Dict × α → α
 (define (expr-neg d x) ((dict-ref d 'neg) x))
 
 ;;; ============================================================
@@ -187,12 +189,12 @@
 ;;; The key advantage of tagless final: we can add new operations
 ;;; without modifying the original algebra definition.
 
-;;; make-mul-dict : (a -> a -> a) -> MulDict
+;;; make-mul-dict : (α × α → α) → Dict
 ;;; Extension for multiplication.
 (define (make-mul-dict mul)
   (make-dict 'mul `((mul . ,mul))))
 
-;;; expr-mul : Dict -> a -> a -> a
+;;; expr-mul : Dict × α × α → α
 (define (expr-mul d x y) ((dict-ref d 'mul) x y))
 
 ;;; Extended interpreters
@@ -205,7 +207,7 @@
               (make-mul-dict (lambda (x y)
                                      (string-append "(" x " * " y ")")))))
 
-;;; example-mul : Dict -> a
+;;; example-mul : Dict → α
 ;;; Represents: (2 * 3) + 4 = 10
 (define (example-mul d)
   (expr-add d
@@ -216,6 +218,7 @@
 ;;; Boolean Algebra
 ;;; ============================================================
 
+;;; make-bool-dict : (Boolean → α) × (α × α → α) × (α × α → α) × (α → α) → Dict
 (define (make-bool-dict bool-lit and-op or-op not-op)
   (make-dict 'bool
              `((bool-lit . ,bool-lit)
@@ -223,9 +226,13 @@
                (or . ,or-op)
                (not . ,not-op))))
 
+;;; bool-lit : Dict × Boolean → α
 (define (bool-lit d b) ((dict-ref d 'bool-lit) b))
+;;; bool-and : Dict × α × α → α
 (define (bool-and d x y) ((dict-ref d 'and) x y))
+;;; bool-or : Dict × α × α → α
 (define (bool-or d x y) ((dict-ref d 'or) x y))
+;;; bool-not : Dict × α → α
 (define (bool-not d x) ((dict-ref d 'not) x))
 
 ;;; Boolean evaluator
@@ -248,14 +255,18 @@
 ;;; Comparison Extension (Combines Expr and Bool)
 ;;; ============================================================
 
+;;; make-cmp-dict : (α × α → β) × (α × α → β) × (α × α → β) → Dict
 (define (make-cmp-dict eq-op lt-op gt-op)
   (make-dict 'cmp
              `((eq . ,eq-op)
                (lt . ,lt-op)
                (gt . ,gt-op))))
 
+;;; cmp-eq : Dict × α × α → β
 (define (cmp-eq d x y) ((dict-ref d 'eq) x y))
+;;; cmp-lt : Dict × α × α → β
 (define (cmp-lt d x y) ((dict-ref d 'lt) x y))
+;;; cmp-gt : Dict × α × α → β
 (define (cmp-gt d x y) ((dict-ref d 'gt) x y))
 
 ;;; Full language dict combines expr + bool + cmp
@@ -275,15 +286,16 @@
 ;;; eval-cond-dict. The thunked version prevents eager evaluation of
 ;;; both branches.
 
+;;; make-cond-dict : (Boolean × (() → α) × (() → α) → α) → Dict
 (define (make-cond-dict if-op)
   (make-dict 'cond `((if . ,if-op))))
 
-;;; cond-if-lazy : Dict -> Bool -> (() -> a) -> (() -> a) -> a
+;;; cond-if-lazy : Dict × Boolean × (() → α) × (() → α) → α
 ;;; Correct conditional that takes thunks to prevent eager evaluation.
 (define (cond-if-lazy d c t-thunk e-thunk)
   ((dict-ref d 'if) c t-thunk e-thunk))
 
-;;; cond-if : Dict -> Bool -> a -> a -> a
+;;; cond-if : Dict × Boolean × α × α → α
 ;;; DEPRECATED: Both branches are eagerly evaluated before the condition
 ;;; is checked. Use cond-if-lazy instead for correct short-circuit behavior.
 (define (cond-if d c t e) ((dict-ref d 'if) c (lambda () t) (lambda () e)))
@@ -305,9 +317,11 @@
 ;;;
 ;;; For proper short-circuit evaluation, we need thunks.
 
+;;; make-lazy-cond-dict : (Boolean × (() → α) × (() → α) → α) → Dict
 (define (make-lazy-cond-dict if-op)
   (make-dict 'lazy-cond `((if-lazy . ,if-op))))
 
+;;; lazy-if : Dict × Boolean × (() → α) × (() → α) → α
 (define (lazy-if d c t-thunk e-thunk)
   ((dict-ref d 'if-lazy) c t-thunk e-thunk))
 
@@ -320,21 +334,24 @@
 ;;; Variable Binding Extension
 ;;; ============================================================
 
+;;; make-let-dict : (Symbol × α × (α → β) → β) × (Symbol → α) → Dict
 (define (make-let-dict let-op var-op)
   (make-dict 'let
              `((let . ,let-op)
                (var . ,var-op))))
 
+;;; tl-let : Dict × Symbol × α × (α → β) → β
 (define (tl-let d name val body)
   ((dict-ref d 'let) name val body))
 
+;;; tl-var : Dict × Symbol → α
 (define (tl-var d name)
   ((dict-ref d 'var) name))
 
 ;;; For the evaluator, we thread an environment
 ;;; This shows how tagless final handles state.
 
-;;; make-env-expr-dict : Env -> ExprDict
+;;; make-env-expr-dict : Unit → Dict
 ;;; Creates an expression dictionary that uses an environment.
 (define (make-env-expr-dict)
   (make-dict 'env-expr
@@ -351,18 +368,24 @@
                                             (if pair (cdr pair)
                                                 (error 'var "Unbound variable" name)))))))))
 
-;;; Accessors for env-based expr
+;;; env-lit : Dict × Int → (Env → α)
 (define (env-lit d n) ((dict-ref d 'lit) n))
+;;; env-add : Dict × (Env → α) × (Env → α) → (Env → α)
 (define (env-add d x y) ((dict-ref d 'add) x y))
+;;; env-neg : Dict × (Env → α) → (Env → α)
 (define (env-neg d x) ((dict-ref d 'neg) x))
+;;; env-let : Dict × Symbol × (Env → α) × (Env → β) → (Env → β)
 (define (env-let d name val body) ((dict-ref d 'let) name val body))
+;;; env-var : Dict × Symbol → (Env → α)
 (define (env-var d name) ((dict-ref d 'var) name))
 
+;;; run-env-expr : Dict × (Dict → (Env → α)) → α
 ;;; Run with empty initial environment
 ;;; program is a function (dict -> (env -> result)), so apply dict first, then env
 (define (run-env-expr d program)
   ((program d) '()))
 
+;;; example-let : Dict → (Env → α)
 ;;; Example: let x = 5 in let y = 3 in x + y
 (define (example-let d)
   (env-let d 'x (env-lit d 5)
@@ -377,6 +400,7 @@
 
 ;;; StatefulDict operations return (State s a) = s -> (a, s)
 
+;;; make-stateful-dict : (() → (σ → (σ . σ))) × (σ → (σ → (Unit . σ))) × (α → (σ → (α . σ))) × ((σ → (α . σ)) × (α → (σ → (β . σ))) → (σ → (β . σ))) → Dict
 (define (make-stateful-dict get-op put-op pure-op bind-op)
   (make-dict 'state
              `((get . ,get-op)
@@ -384,9 +408,13 @@
                (pure . ,pure-op)
                (bind . ,bind-op))))
 
+;;; state-get : Dict → (σ → (σ . σ))
 (define (state-get d) ((dict-ref d 'get)))
+;;; state-put : Dict × σ → (σ → (Unit . σ))
 (define (state-put d s) ((dict-ref d 'put) s))
+;;; state-pure : Dict × α → (σ → (α . σ))
 (define (state-pure d a) ((dict-ref d 'pure) a))
+;;; state-bind : Dict × (σ → (α . σ)) × (α → (σ → (β . σ))) → (σ → (β . σ))
 (define (state-bind d ma f) ((dict-ref d 'bind) ma f))
 
 ;;; State monad implementation
@@ -406,7 +434,7 @@
                           [s2 (cdr result)])
                          ((f a) s2))))))
 
-;;; run-state : State s a -> s -> (a . s)
+;;; run-state : (σ → (α . σ)) × σ → (α . σ)
 (define (run-state computation initial-state)
   (computation initial-state))
 
@@ -416,6 +444,7 @@
 ;;;
 ;;; Narrative engine operations as a tagless final algebra.
 
+;;; make-chronicle-dict : (Symbol × String × (List Choice) → Scene) × (String × Symbol → Choice) × (Predicate → Guard) × (Effect → Effect) × (String → Text) × (Chronicle → Run) × (Run × Int → Run) × (Run → Sexp) → Dict
 (define (make-chronicle-dict
          scene-op choice-op guard-op effect-op
          text-op start-op choose-op render-op)
@@ -429,28 +458,35 @@
                (choose . ,choose-op)
                (render . ,render-op))))
 
-;;; Chronicle operations
+;;; ch-scene : Dict × Symbol × String × (List Choice) → Scene
 (define (ch-scene d id text . choices)
   (apply (dict-ref d 'scene) id text choices))
 
+;;; ch-choice : Dict × String × Symbol → Choice
 (define (ch-choice d label target . opts)
   (apply (dict-ref d 'choice) label target opts))
 
+;;; ch-guard : Dict × Predicate → Guard
 (define (ch-guard d pred)
   ((dict-ref d 'guard) pred))
 
+;;; ch-effect : Dict × Effect → Effect
 (define (ch-effect d eff)
   ((dict-ref d 'effect) eff))
 
+;;; ch-text : Dict × String → Text
 (define (ch-text d template)
   ((dict-ref d 'text) template))
 
+;;; ch-start : Dict × Chronicle → Run
 (define (ch-start d chronicle)
   ((dict-ref d 'start) chronicle))
 
+;;; ch-choose : Dict × Run × Int → Run
 (define (ch-choose d run choice-idx)
   ((dict-ref d 'choose) run choice-idx))
 
+;;; ch-render : Dict × Run → Sexp
 (define (ch-render d run)
   ((dict-ref d 'render) run))
 
@@ -504,7 +540,7 @@
 ;;;
 ;;; Functions that transform dictionaries to add cross-cutting concerns.
 
-;;; with-logging : (Symbol -> Any -> ()) -> Dict -> Dict
+;;; with-logging : (Symbol × α → Unit) × Dict → Dict
 ;;; Wrap all operations to log calls.
 (define (with-logging log-fn d)
   (make-dict (list 'logged (dict-tag d))
@@ -515,7 +551,7 @@
                                         (apply (cdr op) args))))
                   (dict-ops d))))
 
-;;; with-tracing : Dict -> Dict
+;;; with-tracing : Dict → Dict
 ;;; Wrap all operations to print traces.
 (define (with-tracing d)
   (with-logging
@@ -523,7 +559,7 @@
            (display (format "[TRACE] ~a: ~s\n" name args)))
    d))
 
-;;; with-memoization : Dict -> Dict
+;;; with-memoization : Dict → Dict
 ;;; Memoize pure operations (requires operations to be referentially transparent).
 (define (with-memoization d)
   (let ([cache (make-hashtable equal-hash equal?)])
@@ -544,7 +580,7 @@
 ;;; Composition Utilities
 ;;; ============================================================
 
-;;; run-both : (Dict -> a) -> Dict -> Dict -> (a . b)
+;;; run-both : (Dict → α) × Dict × Dict → (α . β)
 ;;; Run a program with two dictionaries, returning pair of results.
 ;;; This is the correct way to get multiple interpretations.
 (define (run-both program d1 d2)
@@ -564,7 +600,7 @@
 ;;;
 ;;; Programs can be composed and transformed.
 
-;;; twice : (Dict -> a -> a) -> Dict -> a -> a
+;;; twice : (Dict × α → α) × Dict × α → α
 ;;; Apply an operation twice.
 (define (twice op d x)
   (op d (op d x)))
@@ -572,7 +608,7 @@
 ;;; Example: double negation
 ;;; (twice expr-neg eval-expr-dict 5) => 5
 
-;;; fold-expr : Dict -> (a -> b) -> (b -> b -> b) -> (b -> b) -> a -> b
+;;; fold-expr : Dict × (α → β) × (β × β → β) × (β → β) → Dict
 ;;; Generic fold over expression structure.
 (define (fold-expr d on-lit on-add on-neg)
   (make-expr-dict on-lit on-add on-neg))
@@ -583,7 +619,7 @@
 ;;;
 ;;; Convert between the two representations.
 
-;;; tagless-to-free : ExprDict -> (Expr -> Free Expr a)
+;;; tagless-to-free : (Dict → α) → Sexp
 ;;; Convert a tagless program to Free monad representation.
 ;;; This enables inspection at the cost of building intermediate structure.
 (define (tagless-to-free program)
@@ -595,7 +631,7 @@
           (lambda (x) (list 'neg x)))])
        (program free-dict)))
 
-;;; free-to-tagless : Free Expr a -> (ExprDict -> a)
+;;; free-to-tagless : Sexp → (Dict → α)
 ;;; Convert Free monad term back to tagless.
 (define (free-to-tagless term)
   (lambda (d)
@@ -615,6 +651,7 @@
 ;;; ============================================================
 
 ;;; Double negation elimination
+;;; optimize-neg-neg : Dict → Dict
 (define (optimize-neg-neg base-dict)
   (make-dict 'optimized
              `((lit . ,(dict-ref base-dict 'lit))
@@ -629,6 +666,7 @@
 ;;; First interpret to an AST (using tagless-to-free),
 ;;; then optimize, then interpret the result.
 
+;;; optimize-expr : Sexp → Sexp
 (define (optimize-expr term)
   (cond
    ;; Double negation: (neg (neg x)) -> x
@@ -650,7 +688,7 @@
     term]
    [else term]))
 
-;;; run-optimized : (ExprDict -> a) -> ExprDict -> a
+;;; run-optimized : (Dict → α) × Dict → α
 ;;; Run program with optimization.
 (define (run-optimized program eval-dict)
   (let* ([ast (tagless-to-free program)]
@@ -667,6 +705,7 @@
 ;;;   (static n)   - known at specialization time
 ;;;   (dynamic f)  - unknown, f is a function to compute it
 
+;;; make-pe-dict : Unit → Dict
 (define (make-pe-dict)
   (make-dict 'partial-eval
              `((lit . ,(lambda (n) (list 'static n)))
@@ -698,6 +737,7 @@
 ;;;
 ;;; In Scheme, we simulate with runtime tags.
 
+;;; make-typed-expr-dict : (Int → Typed) × (Typed × Typed → Typed) × (Typed → Typed) × (Typed × Typed → Typed) × (Typed × (() → α) × (() → α) → α) → Dict
 (define (make-typed-expr-dict lit add neg eq-op if-op)
   (make-dict 'typed-expr
              `((lit . ,lit)
@@ -706,10 +746,13 @@
                (eq . ,eq-op)
                (if . ,if-op))))
 
-;;; Typed values carry their type
+;;; typed-int : Int → Typed
 (define (typed-int n) (list 'int n))
+;;; typed-bool : Boolean → Typed
 (define (typed-bool b) (list 'bool b))
+;;; typed-value : Typed → α
 (define (typed-value v) (cadr v))
+;;; typed-type : Typed → Symbol
 (define (typed-type v) (car v))
 
 (define eval-typed-dict

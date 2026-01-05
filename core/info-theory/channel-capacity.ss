@@ -27,7 +27,7 @@
 ;;;
 ;;; Capacity: C = 1 - H(p) where H is binary entropy
 
-;;; bsc-capacity : Number -> Number
+;;; bsc-capacity : Real → Real
 ;;; Channel capacity of BSC with crossover probability p.
 ;;; Returns capacity in bits per channel use.
 (define (bsc-capacity p)
@@ -37,13 +37,13 @@
    [(= p 0.5) 0.0] ; Random output: no information
    [else (- 1 (binary-entropy p))]))
 
-;;; bsc-transition-matrix : Number -> (List (List Number))
+;;; bsc-transition-matrix : Real → (List (List Real))
 ;;; Transition probability matrix P(Y|X) for BSC.
 (define (bsc-transition-matrix p)
   (list (list (- 1 p) p)
         (list p (- 1 p))))
 
-;;; bsc-mutual-information : Number -> Number -> Number
+;;; bsc-mutual-information : Real × Real → Real
 ;;; Mutual information I(X;Y) for BSC with input probability p-x (P(X=1)).
 (define (bsc-mutual-information p-crossover p-x)
   (let* ([p-y0 (+ (* (- 1 p-x) (- 1 p-crossover))
@@ -63,7 +63,7 @@
 ;;;
 ;;; Capacity: C = 1 - epsilon
 
-;;; bec-capacity : Number -> Number
+;;; bec-capacity : Real → Real
 ;;; Channel capacity of BEC with erasure probability epsilon.
 ;;; Returns capacity in bits per channel use.
 (define (bec-capacity epsilon)
@@ -83,7 +83,7 @@
 ;;; Capacity: C = log2(1 + (1-p) * p^(p/(1-p)))  for p > 0
 ;;;           C = 1 for p = 0
 
-;;; z-channel-capacity : Number -> Number
+;;; z-channel-capacity : Real → Real
 ;;; Channel capacity of Z-channel with crossover probability p (1->0 only).
 (define (z-channel-capacity p)
   (cond
@@ -94,7 +94,7 @@
            [term (expt p exponent)])
           (log2 (+ 1 (* (- 1 p) term))))]))
 
-;;; z-channel-transition-matrix : Number -> (List (List Number))
+;;; z-channel-transition-matrix : Real → (List (List Real))
 ;;; Transition probability matrix P(Y|X) for Z-channel.
 (define (z-channel-transition-matrix p)
   (list (list 1 0)
@@ -113,7 +113,7 @@
 ;;; For bandwidth W: C = W * log2(1 + P/(N0*W))
 ;;; where N0 is noise spectral density
 
-;;; awgn-capacity : Number -> Number
+;;; awgn-capacity : Real → Real
 ;;; Channel capacity of AWGN channel with signal-to-noise ratio (linear).
 ;;; Returns capacity in bits per channel use.
 (define (awgn-capacity snr)
@@ -121,12 +121,12 @@
    [(<= snr 0) 0.0]  ; No signal power
    [else (* 0.5 (log2 (+ 1 snr)))]))
 
-;;; awgn-capacity-db : Number -> Number
+;;; awgn-capacity-db : Real → Real
 ;;; Channel capacity of AWGN channel with SNR in decibels.
 (define (awgn-capacity-db snr-db)
   (awgn-capacity (db-to-linear snr-db)))
 
-;;; awgn-capacity-bandwidth : Number -> Number -> Number -> Number
+;;; awgn-capacity-bandwidth : Real × Real × Real → Real
 ;;; Shannon-Hartley theorem: C = W * log2(1 + P/(N0*W))
 ;;; Parameters:
 ;;;   bandwidth: channel bandwidth in Hz
@@ -138,7 +138,7 @@
            +inf.0  ; Noiseless channel
            (* bandwidth (log2 (+ 1 (/ signal-power noise-power)))))))
 
-;;; snr-for-capacity : Number -> Number
+;;; snr-for-capacity : Real → Real
 ;;; Required SNR (linear) to achieve target capacity in bits/use.
 ;;; Inverse of awgn-capacity: SNR = 2^(2C) - 1
 (define (snr-for-capacity target-capacity)
@@ -154,7 +154,7 @@
 ;;; For symmetric channels, uniform input is optimal.
 ;;; For general DMC, use Blahut-Arimoto algorithm.
 
-;;; dmc-mutual-information : (List (List Number)) -> (List Number) -> Number
+;;; dmc-mutual-information : (List (List Real)) × (List Real) → Real
 ;;; Compute I(X;Y) for DMC with transition matrix and input distribution.
 ;;; transition: P(Y|X) matrix where entry (i,j) = P(Y=j|X=i)
 ;;; input-dist: P(X) distribution
@@ -163,7 +163,7 @@
          [joint (dmc-joint-distribution transition input-dist)])
         (mutual-information-from-joint joint)))
 
-;;; dmc-output-distribution : (List (List Number)) -> (List Number) -> (List Number)
+;;; dmc-output-distribution : (List (List Real)) × (List Real) → (List Real)
 ;;; Compute P(Y) = sum_x P(Y|X=x) * P(X=x)
 (define (dmc-output-distribution transition input-dist)
   (let* ([n-outputs (if (null? transition) 0 (length (car transition)))]
@@ -176,7 +176,7 @@
                                      (iota n-inputs))))
              (iota n-outputs))))
 
-;;; dmc-joint-distribution : (List (List Number)) -> (List Number) -> (List (List Number))
+;;; dmc-joint-distribution : (List (List Real)) × (List Real) → (List (List Real))
 ;;; Compute joint distribution P(X,Y) = P(Y|X) * P(X)
 (define (dmc-joint-distribution transition input-dist)
   (map (lambda (i)
@@ -185,7 +185,7 @@
                     (map (lambda (p-y-given-x) (* p-x p-y-given-x)) row)))
        (iota (length transition))))
 
-;;; dmc-capacity-symmetric : (List (List Number)) -> Number
+;;; dmc-capacity-symmetric : (List (List Real)) → Real
 ;;; Capacity of symmetric DMC (uniform input is optimal).
 ;;; A channel is symmetric if all rows are permutations of each other
 ;;; and all columns are permutations of each other.
@@ -194,7 +194,7 @@
          [uniform (make-uniform-dist n-inputs)])
         (dmc-mutual-information transition uniform)))
 
-;;; make-uniform-dist : Int -> (List Number)
+;;; make-uniform-dist : Nat → (List Real)
 ;;; Create uniform distribution over n outcomes.
 (define (make-uniform-dist n)
   (if (<= n 0)
@@ -209,7 +209,7 @@
 ;;; Iterative algorithm to compute capacity of general DMC.
 ;;; Converges to C = max I(X;Y) from any initial distribution.
 
-;;; blahut-arimoto : (List (List Number)) -> Int -> Number -> (List Number) × Number
+;;; blahut-arimoto : (List (List Real)) × Nat × Real → (List Real) × Real
 ;;; Compute channel capacity using Blahut-Arimoto algorithm.
 ;;; Returns: (optimal-input-dist . capacity)
 ;;; Parameters:
@@ -221,7 +221,7 @@
          [init-dist (make-uniform-dist n-inputs)])
         (ba-iterate transition init-dist max-iter tolerance 0 0.0)))
 
-;;; ba-iterate : Matrix -> Dist -> Int -> Number -> Int -> Number -> (Dist . Number)
+;;; ba-iterate : (List (List Real)) × (List Real) × Nat × Real × Nat × Real → (List Real) × Real
 ;;; Internal iteration for Blahut-Arimoto.
 (define (ba-iterate transition dist max-iter tolerance iter prev-capacity)
   (let* ([output-dist (dmc-output-distribution transition dist)]
@@ -234,7 +234,7 @@
             (ba-iterate transition new-dist max-iter tolerance
                         (+ iter 1) capacity))))
 
-;;; ba-compute-phi : Matrix -> Dist -> Dist -> (List Number)
+;;; ba-compute-phi : (List (List Real)) × (List Real) × (List Real) → (List Real)
 ;;; Compute phi_i = exp(sum_j p(y_j|x_i) * log(p(y_j|x_i)/p(y_j)))
 (define (ba-compute-phi transition input-dist output-dist)
   (map (lambda (row)
@@ -246,7 +246,7 @@
                     (expt 2 (fold-left + 0 terms))))
        transition))
 
-;;; ba-update-dist : (List Number) -> (List Number)
+;;; ba-update-dist : (List Real) → (List Real)
 ;;; Update input distribution: p'(x) proportional to p(x) * phi(x)
 (define (ba-update-dist phi)
   (let ([total (fold-left + 0 phi)])
@@ -258,14 +258,14 @@
 ;;; Capacity Bounds
 ;;; ============================================================
 
-;;; dmc-capacity-upper-bound : (List (List Number)) -> Number
+;;; dmc-capacity-upper-bound : (List (List Real)) → Real
 ;;; Upper bound on capacity: log2(number of outputs)
 (define (dmc-capacity-upper-bound transition)
   (if (null? transition)
       0
       (log2 (length (car transition)))))
 
-;;; dmc-capacity-lower-bound : (List (List Number)) -> Number
+;;; dmc-capacity-lower-bound : (List (List Real)) → Real
 ;;; Lower bound: capacity with uniform input.
 (define (dmc-capacity-lower-bound transition)
   (dmc-capacity-symmetric transition))
@@ -274,7 +274,7 @@
 ;;; Special Channel Models
 ;;; ============================================================
 
-;;; qary-symmetric-capacity : Int -> Number -> Number
+;;; qary-symmetric-capacity : Nat × Real → Real
 ;;; Capacity of q-ary symmetric channel.
 ;;; Each symbol is replaced by a uniformly random different symbol with prob p.
 (define (qary-symmetric-capacity q p)
@@ -287,13 +287,13 @@
        (+ (binary-entropy p)
           (* p (log2 (- q 1)))))]))
 
-;;; parallel-channel-capacity : (List Number) -> Number
+;;; parallel-channel-capacity : (List Real) → Real
 ;;; Capacity of parallel channels with individual capacities.
 ;;; Total capacity is sum of individual capacities.
 (define (parallel-channel-capacity capacities)
   (fold-left + 0 capacities))
 
-;;; cascaded-channel-capacity-bound : Number -> Number -> Number
+;;; cascaded-channel-capacity-bound : Real × Real → Real
 ;;; Upper bound on capacity of cascaded (serial) channels.
 ;;; C_total <= min(C1, C2) by data processing inequality.
 (define (cascaded-channel-capacity-bound c1 c2)
@@ -303,18 +303,18 @@
 ;;; Rate-Capacity Relationships
 ;;; ============================================================
 
-;;; achievable-rate? : Number -> Number -> Boolean
+;;; achievable-rate? : Real × Real → Boolean
 ;;; Check if rate R is achievable for channel with capacity C.
 ;;; By Shannon's theorem: R <= C is achievable with vanishing error.
 (define (achievable-rate? rate capacity)
   (<= rate capacity))
 
-;;; max-reliable-rate : Number -> Number
+;;; max-reliable-rate : Real → Real
 ;;; Maximum rate for reliable communication = capacity.
 (define (max-reliable-rate capacity)
   capacity)
 
-;;; spectral-efficiency : Number -> Number -> Number
+;;; spectral-efficiency : Real × Real → Real
 ;;; Spectral efficiency = Rate / Bandwidth (bits/s/Hz)
 (define (spectral-efficiency rate bandwidth)
   (if (<= bandwidth 0)
@@ -328,7 +328,7 @@
 ;;; For rates R < C, error probability decays as exp(-n * E(R))
 ;;; where E(R) is the error exponent and n is block length.
 
-;;; bsc-random-coding-exponent : Number -> Number -> Number
+;;; bsc-random-coding-exponent : Real × Real → Real
 ;;; Random coding exponent for BSC at rate R.
 ;;; E_r(R) = max_p [I(X;Y) - R] for uniform distribution.
 (define (bsc-random-coding-exponent p-crossover rate)
@@ -337,7 +337,7 @@
            0.0  ; No positive exponent above capacity
            (- capacity rate))))
 
-;;; awgn-sphere-packing-exponent : Number -> Number -> Number
+;;; awgn-sphere-packing-exponent : Real × Real → Real
 ;;; Sphere-packing (upper) bound exponent for AWGN.
 ;;; E_sp(R) for rates below capacity.
 (define (awgn-sphere-packing-exponent snr rate)
@@ -351,19 +351,19 @@
 ;;; Utility Functions
 ;;; ============================================================
 
-;;; db-to-linear : Number -> Number
+;;; db-to-linear : Real → Real
 ;;; Convert decibels to linear scale: 10^(dB/10)
 (define (db-to-linear db)
   (expt 10 (/ db 10)))
 
-;;; linear-to-db : Number -> Number
+;;; linear-to-db : Real → Real
 ;;; Convert linear to decibels: 10 * log10(x)
 (define (linear-to-db x)
   (if (<= x 0)
       -inf.0
       (* 10 (log10 x))))
 
-;;; log10 : Number -> Number
+;;; log10 : Real → Real
 ;;; Logarithm base 10 (derived from log2).
 (define (log10 x)
   (/ (log2 x) (log2 10)))
@@ -372,7 +372,7 @@
 ;;; Channel Capacity Summary
 ;;; ============================================================
 
-;;; channel-summary : Symbol -> Number -> String
+;;; channel-summary : Symbol × Real → String
 ;;; Generate human-readable capacity summary for common channels.
 (define (channel-summary channel-type param)
   (case channel-type

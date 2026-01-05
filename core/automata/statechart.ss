@@ -39,77 +39,95 @@
 ;;; A state is represented as:
 ;;;   (state <id> <type> <entry-action> <exit-action> <substates> <transitions> <parent> <data>)
 
+;;; make-state : Symbol × Symbol × (Option Action) × (Option Action) × (List State) × (List Transition) × (Option Symbol) × (List α) → State
 (define (make-state id type entry-action exit-action substates transitions parent data)
   (list 'state id type entry-action exit-action substates transitions parent data))
 
+;;; state? : α → Boolean
 (define (state? x)
   (and (list? x)
        (>= (length x) 9)
        (eq? (car x) 'state)))
 
+;;; state-id : State → Symbol
 (define (state-id s) (list-ref s 1))
+;;; state-type : State → Symbol
 (define (state-type s) (list-ref s 2))
+;;; state-entry-action : State → (Option Action)
 (define (state-entry-action s) (list-ref s 3))
+;;; state-exit-action : State → (Option Action)
 (define (state-exit-action s) (list-ref s 4))
+;;; state-substates : State → (List State)
 (define (state-substates s) (list-ref s 5))
+;;; state-transitions : State → (List Transition)
 (define (state-transitions s) (list-ref s 6))
+;;; state-parent : State → (Option Symbol)
 (define (state-parent s) (list-ref s 7))
+;;; state-data : State → (List α)
 (define (state-data s) (list-ref s 8))
 
 ;;; State type predicates
+;;; atomic-state? : α → Boolean
 (define (atomic-state? s)
   (and (state? s) (eq? (state-type s) 'atomic)))
 
+;;; composite-state? : α → Boolean
 (define (composite-state? s)
   (and (state? s) (eq? (state-type s) 'composite)))
 
+;;; parallel-state? : α → Boolean
 (define (parallel-state? s)
   (and (state? s) (eq? (state-type s) 'parallel)))
 
+;;; history-state? : α → Boolean
 (define (history-state? s)
   (and (state? s)
        (or (eq? (state-type s) 'history-shallow)
            (eq? (state-type s) 'history-deep))))
 
+;;; shallow-history-state? : α → Boolean
 (define (shallow-history-state? s)
   (and (state? s) (eq? (state-type s) 'history-shallow)))
 
+;;; deep-history-state? : α → Boolean
 (define (deep-history-state? s)
   (and (state? s) (eq? (state-type s) 'history-deep)))
 
+;;; initial-state? : α → Boolean
 (define (initial-state? s)
   (and (state? s) (eq? (state-type s) 'initial)))
 
+;;; final-state? : α → Boolean
 (define (final-state? s)
   (and (state? s) (eq? (state-type s) 'final)))
 
 ;;; --- Simple State Constructors ---
 
-;;; atomic : Symbol -> State
+;;; atomic : Symbol → State
 ;;; Create an atomic (simple) state.
 (define (atomic id)
   (make-state id 'atomic #f #f '() '() #f '()))
 
-;;; atomic-with : Symbol Entry Exit -> State
+;;; atomic-with : Symbol × Action × Action → State
 ;;; Create an atomic state with entry/exit actions.
 (define (atomic-with id entry exit)
   (make-state id 'atomic entry exit '() '() #f '()))
 
-;;; composite : Symbol (List State) -> State
+;;; composite : Symbol × (List State) → State
 ;;; Create a composite state containing substates.
 (define (composite id substates)
   (let* ([substates-with-parent
           (map (lambda (s) (set-state-parent s id)) substates)])
         (make-state id 'composite #f #f substates-with-parent '() #f '())))
 
-;;; composite-with : Symbol (List State) Entry Exit -> State
+;;; composite-with : Symbol × (List State) × Action × Action → State
 ;;; Create a composite state with entry/exit actions.
 (define (composite-with id substates entry exit)
   (let* ([substates-with-parent
           (map (lambda (s) (set-state-parent s id)) substates)])
         (make-state id 'composite entry exit substates-with-parent '() #f '())))
 
-;;; parallel : Symbol (List Region) -> State
+;;; parallel : Symbol × (List State) → State
 ;;; Create a parallel state with orthogonal regions.
 ;;; Each region is itself a composite state.
 (define (parallel id regions)
@@ -117,14 +135,14 @@
           (map (lambda (r) (set-state-parent r id)) regions)])
         (make-state id 'parallel #f #f regions-with-parent '() #f '())))
 
-;;; parallel-with : Symbol (List Region) Entry Exit -> State
+;;; parallel-with : Symbol × (List State) × Action × Action → State
 ;;; Create a parallel state with entry/exit actions.
 (define (parallel-with id regions entry exit)
   (let* ([regions-with-parent
           (map (lambda (r) (set-state-parent r id)) regions)])
         (make-state id 'parallel entry exit regions-with-parent '() #f '())))
 
-;;; region : Symbol (List State) -> State
+;;; region : Symbol × (List State) → State
 ;;; Create a region (used within parallel states).
 (define (region id substates)
   (composite id substates))
@@ -132,7 +150,7 @@
 ;;; Counter for generating unique initial state IDs
 (define *initial-counter* 0)
 
-;;; initial : Symbol -> State
+;;; initial : Symbol → State
 ;;; Create an initial pseudo-state.
 (define (initial target-id)
   (set! *initial-counter* (+ *initial-counter* 1))
@@ -144,31 +162,31 @@
                    #f
                    (list (cons 'target target-id)))))
 
-;;; final : Symbol -> State
+;;; final : Symbol → State
 ;;; Create a final pseudo-state.
 (define (final id)
   (make-state id 'final #f #f '() '() #f '()))
 
-;;; history-shallow : Symbol -> State
+;;; history-shallow : Symbol → State
 ;;; Create a shallow history pseudo-state.
 (define (history-shallow id)
   (make-state id 'history-shallow #f #f '() '() #f '()))
 
-;;; history-deep : Symbol -> State
+;;; history-deep : Symbol → State
 ;;; Create a deep history pseudo-state.
 (define (history-deep id)
   (make-state id 'history-deep #f #f '() '() #f '()))
 
 ;;; --- State Modifiers ---
 
-;;; set-state-parent : State Symbol -> State
+;;; set-state-parent : State × Symbol → State
 (define (set-state-parent s parent-id)
   (make-state (state-id s) (state-type s)
               (state-entry-action s) (state-exit-action s)
               (state-substates s) (state-transitions s)
               parent-id (state-data s)))
 
-;;; add-transition : State Transition -> State
+;;; add-transition : State × Transition → State
 (define (add-transition s trans)
   (make-state (state-id s) (state-type s)
               (state-entry-action s) (state-exit-action s)
@@ -176,14 +194,14 @@
               (cons trans (state-transitions s))
               (state-parent s) (state-data s)))
 
-;;; set-entry-action : State Action -> State
+;;; set-entry-action : State × Action → State
 (define (set-entry-action s action)
   (make-state (state-id s) (state-type s)
               action (state-exit-action s)
               (state-substates s) (state-transitions s)
               (state-parent s) (state-data s)))
 
-;;; set-exit-action : State Action -> State
+;;; set-exit-action : State × Action → State
 (define (set-exit-action s action)
   (make-state (state-id s) (state-type s)
               (state-entry-action s) action
@@ -202,70 +220,80 @@
 ;;; - guard: (Context -> Boolean) or #f
 ;;; - action: (Context Event -> Context) or #f
 
+;;; make-transition : (Option Symbol) × (Option Symbol) × (Option Guard) × (Option Action) → Transition
 (define (make-transition event target guard action)
   (list 'transition event target guard action))
 
+;;; transition? : α → Boolean
 (define (transition? x)
   (and (list? x)
        (= (length x) 5)
        (eq? (car x) 'transition)))
 
+;;; transition-event : Transition → (Option Symbol)
 (define (transition-event t) (list-ref t 1))
+;;; transition-target : Transition → (Option Symbol)
 (define (transition-target t) (list-ref t 2))
+;;; transition-guard : Transition → (Option Guard)
 (define (transition-guard t) (list-ref t 3))
+;;; transition-action : Transition → (Option Action)
 (define (transition-action t) (list-ref t 4))
 
 ;;; Transition predicates
+;;; internal-transition? : α → Boolean
 (define (internal-transition? t)
   (and (transition? t) (not (transition-target t))))
 
+;;; external-transition? : α → Boolean
 (define (external-transition? t)
   (and (transition? t) (transition-target t)))
 
+;;; eventless-transition? : α → Boolean
 (define (eventless-transition? t)
   (and (transition? t) (not (transition-event t))))
 
+;;; guarded-transition? : α → Boolean
 (define (guarded-transition? t)
   (and (transition? t) (transition-guard t)))
 
 ;;; --- Transition Constructors ---
 
-;;; on : Symbol Symbol -> Transition
+;;; on : Symbol × Symbol → Transition
 ;;; Simple transition: on event, go to target.
 (define (on event target)
   (make-transition event target #f #f))
 
-;;; on-do : Symbol Symbol Action -> Transition
+;;; on-do : Symbol × Symbol × Action → Transition
 ;;; Transition with action.
 (define (on-do event target action)
   (make-transition event target #f action))
 
-;;; on-guard : Symbol Symbol Guard -> Transition
+;;; on-guard : Symbol × Symbol × Guard → Transition
 ;;; Guarded transition.
 (define (on-guard event target guard)
   (make-transition event target guard #f))
 
-;;; on-guard-do : Symbol Symbol Guard Action -> Transition
+;;; on-guard-do : Symbol × Symbol × Guard × Action → Transition
 ;;; Fully specified transition.
 (define (on-guard-do event target guard action)
   (make-transition event target guard action))
 
-;;; always : Symbol -> Transition
+;;; always : Symbol → Transition
 ;;; Eventless (automatic) transition.
 (define (always target)
   (make-transition #f target #f #f))
 
-;;; always-guard : Symbol Guard -> Transition
+;;; always-guard : Symbol × Guard → Transition
 ;;; Guarded eventless transition.
 (define (always-guard target guard)
   (make-transition #f target guard #f))
 
-;;; internal : Symbol Action -> Transition
+;;; internal : Symbol × Action → Transition
 ;;; Internal transition (no state change).
 (define (internal event action)
   (make-transition event #f #f action))
 
-;;; internal-guard : Symbol Guard Action -> Transition
+;;; internal-guard : Symbol × Guard × Action → Transition
 ;;; Guarded internal transition.
 (define (internal-guard event guard action)
   (make-transition event #f guard action))
@@ -276,23 +304,27 @@
 ;;;
 ;;; An event is: (event <type> <payload>)
 
+;;; make-event : Symbol × α → Event
 (define (make-event type payload)
   (list 'event type payload))
 
+;;; event? : α → Boolean
 (define (event? x)
   (and (list? x)
        (= (length x) 3)
        (eq? (car x) 'event)))
 
+;;; event-type : Event → Symbol
 (define (event-type e) (list-ref e 1))
+;;; event-payload : Event → α
 (define (event-payload e) (list-ref e 2))
 
-;;; evt : Symbol -> Event
+;;; evt : Symbol → Event
 ;;; Create a simple event with no payload.
 (define (evt type)
   (make-event type '()))
 
-;;; evt-data : Symbol Any -> Event
+;;; evt-data : Symbol × α → Event
 ;;; Create an event with payload data.
 (define (evt-data type data)
   (make-event type data))
@@ -308,35 +340,46 @@
 ;;; - context: user-defined context data
 ;;; - history: map of state-id -> previously active substates
 
+;;; make-statechart : Symbol × State × α → Statechart
 (define (make-statechart id root-state context)
   (list 'statechart id root-state context (make-history)))
 
+;;; statechart? : α → Boolean
 (define (statechart? x)
   (and (list? x)
        (= (length x) 5)
        (eq? (car x) 'statechart)))
 
+;;; statechart-id : Statechart → Symbol
 (define (statechart-id sc) (list-ref sc 1))
+;;; statechart-root : Statechart → State
 (define (statechart-root sc) (list-ref sc 2))
+;;; statechart-context : Statechart → α
 (define (statechart-context sc) (list-ref sc 3))
+;;; statechart-history : Statechart → History
 (define (statechart-history sc) (list-ref sc 4))
 
 ;;; Update statechart components
+;;; set-statechart-context : Statechart × α → Statechart
 (define (set-statechart-context sc ctx)
   (list 'statechart (statechart-id sc) (statechart-root sc) ctx (statechart-history sc)))
 
+;;; set-statechart-history : Statechart × History → Statechart
 (define (set-statechart-history sc hist)
   (list 'statechart (statechart-id sc) (statechart-root sc) (statechart-context sc) hist))
 
 ;;; --- History Management ---
 
+;;; make-history : → History
 (define (make-history)
   '())
 
+;;; history-get : History × Symbol → (Option (List Symbol))
 (define (history-get hist state-id)
   (let ([entry (assoc state-id hist)])
        (if entry (cdr entry) #f)))
 
+;;; history-set : History × Symbol × (List Symbol) → History
 (define (history-set hist state-id active-substates)
   (cons (cons state-id active-substates)
         (filter (lambda (e) (not (eq? (car e) state-id))) hist)))
@@ -360,12 +403,12 @@
 ;;;     ('green 'timer -> 'yellow)
 ;;;     ('yellow 'timer -> 'red)))
 
-;;; statechart : Symbol State -> Statechart
+;;; statechart : Symbol × State → Statechart
 ;;; Create a statechart with default context.
 (define (statechart id root-state)
   (make-statechart id (resolve-initial-states root-state) '()))
 
-;;; statechart-ctx : Symbol State Context -> Statechart
+;;; statechart-ctx : Symbol × State × α → Statechart
 ;;; Create a statechart with initial context.
 (define (statechart-ctx id root-state context)
   (make-statechart id (resolve-initial-states root-state) context))
@@ -373,7 +416,7 @@
 ;;; define-statechart macro simulation
 ;;; Since we're in pure Scheme, we use a function-based builder.
 
-;;; with-transitions : State (List (Source Event Target)) -> State
+;;; with-transitions : State × (List (List Symbol)) → State
 ;;; Add transitions to a state based on source/event/target triples.
 (define (with-transitions s trans-specs)
   (let loop ([state s] [specs trans-specs])
@@ -389,7 +432,7 @@
                  (loop (add-transition-to-substate state source trans)
                        (cdr specs))))))
 
-;;; add-transition-to-substate : State Symbol Transition -> State
+;;; add-transition-to-substate : State × Symbol × Transition → State
 ;;; Add a transition to a substate identified by id.
 (define (add-transition-to-substate state source-id trans)
   (cond
@@ -405,7 +448,7 @@
                 (state-parent state) (state-data state))]
    [else state]))
 
-;;; resolve-initial-states : State -> State
+;;; resolve-initial-states : State → State
 ;;; Ensure initial pseudo-states are properly linked.
 (define (resolve-initial-states state)
   (cond
@@ -430,7 +473,7 @@
 ;;; State Lookup and Navigation
 ;;; ============================================================
 
-;;; find-state : State Symbol -> Maybe State
+;;; find-state : State × Symbol → (Option State)
 ;;; Find a state by id within a state hierarchy.
 (define (find-state root id)
   (cond
@@ -439,6 +482,7 @@
     (find-state-in-list (state-substates root) id)]
    [else nothing]))
 
+;;; find-state-in-list : (List State) × Symbol → (Option State)
 (define (find-state-in-list states id)
   (if (null? states)
       nothing
@@ -447,7 +491,7 @@
                found
                (find-state-in-list (cdr states) id)))))
 
-;;; get-initial-substate : State -> Maybe State
+;;; get-initial-substate : State → (Option State)
 ;;; Get the initial substate of a composite state.
 (define (get-initial-substate state)
   (if (or (composite-state? state) (parallel-state? state))
@@ -463,7 +507,7 @@
                     (if first-real (just first-real) nothing))))
       nothing))
 
-;;; get-ancestors : State State -> (List State)
+;;; get-ancestors : State × Symbol → (List State)
 ;;; Get all ancestor states from child to root.
 (define (get-ancestors root child-id)
   (define (find-path state target acc)
@@ -481,7 +525,7 @@
                  (find-path-in-substates (cdr substates) target acc)))))
   (from-just-or (find-path root child-id '()) '()))
 
-;;; lca : State Symbol Symbol -> Maybe State
+;;; lca : State × Symbol × Symbol → (Option State)
 ;;; Find the Lowest Common Ancestor of two states.
 (define (lca root id1 id2)
   (let ([ancestors1 (map state-id (get-ancestors root id1))]
@@ -493,7 +537,7 @@
                     (find-state root (car a1))
                     (loop (cdr a1)))))))
 
-;;; is-descendant? : State Symbol Symbol -> Boolean
+;;; is-descendant? : State × Symbol × Symbol → Boolean
 ;;; Check if child-id is a descendant of parent-id.
 (define (is-descendant? root parent-id child-id)
   (member parent-id (map state-id (get-ancestors root child-id))))
@@ -507,34 +551,42 @@
 ;;; For hierarchical: active state plus all ancestors.
 ;;; For parallel: multiple active states per region.
 
+;;; make-configuration : (List Symbol) → Configuration
 (define (make-configuration active-states)
   (list 'configuration active-states))
 
+;;; configuration? : α → Boolean
 (define (configuration? x)
   (and (list? x)
        (= (length x) 2)
        (eq? (car x) 'configuration)))
 
+;;; configuration-states : Configuration → (List Symbol)
 (define (configuration-states cfg)
   (list-ref cfg 1))
 
+;;; configuration-add : Configuration × Symbol → Configuration
 (define (configuration-add cfg state-id)
   (make-configuration
    (if (member state-id (configuration-states cfg))
        (configuration-states cfg)
        (cons state-id (configuration-states cfg)))))
 
+;;; configuration-remove : Configuration × Symbol → Configuration
 (define (configuration-remove cfg state-id)
   (make-configuration
    (filter (lambda (id) (not (eq? id state-id)))
            (configuration-states cfg))))
 
+;;; configuration-contains? : Configuration × Symbol → Boolean
 (define (configuration-contains? cfg state-id)
   (if (member state-id (configuration-states cfg)) #t #f))
 
+;;; configuration-empty : → Configuration
 (define (configuration-empty)
   (make-configuration '()))
 
+;;; enter-initial : State × Symbol → Configuration
 ;;; Enter a state and all required substates for initial configuration.
 (define (enter-initial root sid)
   (let ([maybe-state (find-state root sid)])
@@ -580,6 +632,7 @@
 ;;;   - History tracking
 ;;;   - Event processing
 
+;;; make-interpreter : Statechart → Interpreter
 (define (make-interpreter statechart)
   (let* ([root (statechart-root statechart)]
          [init-cfg (get-initial-configuration root)])
@@ -589,16 +642,22 @@
               (statechart-context statechart)
               (make-history))))
 
+;;; interpreter? : α → Boolean
 (define (interpreter? x)
   (and (list? x)
        (= (length x) 5)
        (eq? (car x) 'interpreter)))
 
+;;; interpreter-statechart : Interpreter → Statechart
 (define (interpreter-statechart interp) (list-ref interp 1))
+;;; interpreter-configuration : Interpreter → Configuration
 (define (interpreter-configuration interp) (list-ref interp 2))
+;;; interpreter-context : Interpreter → α
 (define (interpreter-context interp) (list-ref interp 3))
+;;; interpreter-history : Interpreter → History
 (define (interpreter-history interp) (list-ref interp 4))
 
+;;; set-interpreter-configuration : Interpreter × Configuration → Interpreter
 (define (set-interpreter-configuration interp cfg)
   (list 'interpreter
         (interpreter-statechart interp)
@@ -606,6 +665,7 @@
         (interpreter-context interp)
         (interpreter-history interp)))
 
+;;; set-interpreter-context : Interpreter × α → Interpreter
 (define (set-interpreter-context interp ctx)
   (list 'interpreter
         (interpreter-statechart interp)
@@ -613,6 +673,7 @@
         ctx
         (interpreter-history interp)))
 
+;;; set-interpreter-history : Interpreter × History → Interpreter
 (define (set-interpreter-history interp hist)
   (list 'interpreter
         (interpreter-statechart interp)
@@ -620,7 +681,7 @@
         (interpreter-context interp)
         hist))
 
-;;; get-initial-configuration : State -> Configuration
+;;; get-initial-configuration : State → Configuration
 ;;; Compute the initial configuration for a statechart.
 (define (get-initial-configuration root)
   (cond
@@ -653,7 +714,7 @@
 ;;; Transition Selection and Execution
 ;;; ============================================================
 
-;;; find-enabled-transition : Interpreter State Event -> Maybe Transition
+;;; find-enabled-transition : Interpreter × State × (Option Event) → (Option Transition)
 ;;; Find a transition enabled by the given event in the given state.
 (define (find-enabled-transition interp state event)
   (let ([ctx (interpreter-context interp)]
@@ -663,7 +724,7 @@
                              (transition-guard-passes? t ctx event)))
                 transitions)))
 
-;;; transition-matches-event? : Transition Event -> Boolean
+;;; transition-matches-event? : Transition × (Option Event) → Boolean
 (define (transition-matches-event? trans event)
   (cond
    ;; Eventless transition only matches when event is #f
@@ -674,13 +735,13 @@
    ;; Normal matching: transition event matches event type
    [else (eq? (transition-event trans) (event-type event))]))
 
-;;; transition-guard-passes? : Transition Context Event -> Boolean
+;;; transition-guard-passes? : Transition × α × (Option Event) → Boolean
 (define (transition-guard-passes? trans ctx event)
   (let ([guard (transition-guard trans)])
        (or (not guard)
            (guard ctx event))))
 
-;;; select-transitions : Interpreter Event -> (List (State . Transition))
+;;; select-transitions : Interpreter × (Option Event) → (List (State × Transition))
 ;;; Select all enabled transitions for the current configuration.
 (define (select-transitions interp event)
   (let* ([root (statechart-root (interpreter-statechart interp))]
@@ -704,7 +765,7 @@
                                                 (cons (cons state trans) selected)))
                                      (loop (cdr ids) selected)))))))))
 
-;;; execute-transition : Interpreter State Transition Event -> Interpreter
+;;; execute-transition : Interpreter × State × Transition × (Option Event) → Interpreter
 ;;; Execute a single transition.
 (define (execute-transition interp source-state trans event)
   (let* ([root (statechart-root (interpreter-statechart interp))]
@@ -741,7 +802,7 @@
                                                                (interpreter-history interp3))])
                           (set-interpreter-configuration interp3 new-cfg))))])))
 
-;;; execute-exit-actions : Interpreter Symbol Symbol -> Interpreter
+;;; execute-exit-actions : Interpreter × Symbol × Symbol → Interpreter
 ;;; Execute exit actions from source up to (but not including) LCA.
 (define (execute-exit-actions interp source-id target-id)
   (let* ([root (statechart-root (interpreter-statechart interp))]
@@ -772,7 +833,7 @@
                                                (set-interpreter-context interp new-ctx)
                                                new-history))))))))))
 
-;;; execute-entry-actions : Interpreter Symbol Symbol -> Interpreter
+;;; execute-entry-actions : Interpreter × Symbol × Symbol → Interpreter
 ;;; Execute entry actions from LCA down to target.
 (define (execute-entry-actions interp source-id target-id)
   (let* ([root (statechart-root (interpreter-statechart interp))]
@@ -796,7 +857,7 @@
                                      (interpreter-context interp))])
                        (loop (cdr states) (set-interpreter-context interp new-ctx)))))))
 
-;;; save-history : History State Configuration -> History
+;;; save-history : History × State × Configuration → History
 (define (save-history hist state cfg)
   (let* ([sid (state-id state)]
          [substates (state-substates state)]
@@ -807,7 +868,7 @@
             hist
             (history-set hist sid (map state-id active-subs)))))
 
-;;; compute-new-configuration : State Configuration Symbol Symbol History -> Configuration
+;;; compute-new-configuration : State × Configuration × Symbol × Symbol × History → Configuration
 ;;; Compute the new configuration after a transition.
 (define (compute-new-configuration root old-cfg source-id target-id history)
   (let* ([lca-maybe (lca root source-id target-id)]
@@ -856,7 +917,7 @@
                            (configuration-states target-cfg))])
               final-cfg)))
 
-;;; takewhile : (a -> Boolean) (List a) -> (List a)
+;;; takewhile : (α → Boolean) × (List α) → (List α)
 ;;; Take elements from the list while predicate is true.
 (define (takewhile pred lst)
   (cond
@@ -864,7 +925,7 @@
    [(pred (car lst)) (cons (car lst) (takewhile pred (cdr lst)))]
    [else '()]))
 
-;;; dropwhile : (a -> Boolean) (List a) -> (List a)
+;;; dropwhile : (α → Boolean) × (List α) → (List α)
 ;;; Drop elements from the list while predicate is true.
 (define (dropwhile pred lst)
   (cond
@@ -872,7 +933,7 @@
    [(pred (car lst)) (dropwhile pred (cdr lst))]
    [else lst]))
 
-;;; get-descendant-ids : State Symbol -> (List Symbol)
+;;; get-descendant-ids : State × Symbol → (List Symbol)
 ;;; Get all descendant state IDs of a given state.
 (define (get-descendant-ids root parent-id)
   (let ([maybe-state (find-state root parent-id)])
@@ -888,7 +949,7 @@
                                      substates)))
                     '())))))
 
-;;; resolve-history-target : State Symbol History -> Symbol
+;;; resolve-history-target : State × Symbol × History → Symbol
 ;;; If target is a history state, resolve to actual target.
 (define (resolve-history-target root target-id history)
   (let ([maybe-state (find-state root target-id)])
@@ -925,7 +986,7 @@
 ;;; Event Processing
 ;;; ============================================================
 
-;;; step : Interpreter Event -> Interpreter
+;;; step : Interpreter × (Option Event) → Interpreter
 ;;; Process a single event and return the new interpreter state.
 (define (step interp event)
   (let* ([transitions (select-transitions interp event)]
@@ -937,7 +998,7 @@
         ;; Process eventless transitions
         (process-eventless-transitions new-interp 100)))
 
-;;; process-eventless-transitions : Interpreter Fuel -> Interpreter
+;;; process-eventless-transitions : Interpreter × Nat → Interpreter
 ;;; Process any enabled eventless (always) transitions.
 (define (process-eventless-transitions interp fuel)
   (if (<= fuel 0)
@@ -951,21 +1012,21 @@
                                             transitions)])
                     (process-eventless-transitions new-interp (- fuel 1)))))))
 
-;;; send : Interpreter Event -> Interpreter
+;;; send : Interpreter × (Option Event) → Interpreter
 ;;; Alias for step - send an event to the statechart.
 (define send step)
 
-;;; send-event : Interpreter Symbol -> Interpreter
+;;; send-event : Interpreter × Symbol → Interpreter
 ;;; Send a simple event (no payload).
 (define (send-event interp event-type)
   (step interp (evt event-type)))
 
-;;; send-event-data : Interpreter Symbol Any -> Interpreter
+;;; send-event-data : Interpreter × Symbol × α → Interpreter
 ;;; Send an event with payload.
 (define (send-event-data interp event-type data)
   (step interp (evt-data event-type data)))
 
-;;; run-events : Interpreter (List Event) -> Interpreter
+;;; run-events : Interpreter × (List Event) → Interpreter
 ;;; Process a sequence of events.
 (define (run-events interp events)
   (fold-left step interp events))
@@ -974,17 +1035,17 @@
 ;;; State Queries
 ;;; ============================================================
 
-;;; in-state? : Interpreter Symbol -> Boolean
+;;; in-state? : Interpreter × Symbol → Boolean
 ;;; Check if a state is currently active.
 (define (in-state? interp state-id)
   (configuration-contains? (interpreter-configuration interp) state-id))
 
-;;; active-states : Interpreter -> (List Symbol)
+;;; active-states : Interpreter → (List Symbol)
 ;;; Get all currently active state ids.
 (define (active-states interp)
   (configuration-states (interpreter-configuration interp)))
 
-;;; is-final? : Interpreter -> Boolean
+;;; is-final? : Interpreter → Boolean
 ;;; Check if the statechart has reached a final state.
 (define (is-final? interp)
   (let* ([root (statechart-root (interpreter-statechart interp))]
@@ -994,7 +1055,7 @@
                              (and (just? s) (final-state? (from-just s)))))
                 active)))
 
-;;; current-context : Interpreter -> Context
+;;; current-context : Interpreter → α
 ;;; Get the current context.
 (define (current-context interp)
   (interpreter-context interp))
@@ -1003,7 +1064,7 @@
 ;;; Validation and Analysis
 ;;; ============================================================
 
-;;; validate-statechart : Statechart -> (List Error)
+;;; validate-statechart : Statechart → (List (List Symbol))
 ;;; Validate a statechart for structural correctness.
 (define (validate-statechart sc)
   (let* ([root (statechart-root sc)]
@@ -1013,6 +1074,7 @@
          (validate-transitions root root)
          (validate-initial-states root))))
 
+;;; validate-state : State × State → (List (List Symbol))
 (define (validate-state root state)
   (let ([errors '()])
        (cond
@@ -1032,6 +1094,7 @@
                                  (state-substates state)))))]
         [else errors])))
 
+;;; validate-transitions : State × State → (List (List Symbol))
 (define (validate-transitions root state)
   (let ([errors '()])
        (append
@@ -1050,6 +1113,7 @@
                         (state-substates state)))
             '()))))
 
+;;; validate-initial-states : State → (List (List Symbol))
 (define (validate-initial-states root)
   (let ([errors '()])
        (cond
@@ -1073,7 +1137,7 @@
                      (state-substates root)))]
         [else '()])))
 
-;;; reachable-states : Statechart -> (List Symbol)
+;;; reachable-states : Statechart → (List Symbol)
 ;;; Find all reachable states from the initial configuration.
 (define (reachable-states sc)
   (let* ([root (statechart-root sc)]
@@ -1081,6 +1145,7 @@
          [initial-active (active-states interp)])
         (collect-reachable root initial-active '() 1000)))
 
+;;; collect-reachable : State × (List Symbol) × (List Symbol) × Nat → (List Symbol)
 (define (collect-reachable root frontier visited fuel)
   (if (or (<= fuel 0) (null? frontier))
       visited
@@ -1102,7 +1167,7 @@
                                 [new-frontier (append substate-ids target-ids (cdr frontier))])
                                (collect-reachable root new-frontier new-visited (- fuel 1)))))))))
 
-;;; unreachable-states : Statechart -> (List Symbol)
+;;; unreachable-states : Statechart → (List Symbol)
 ;;; Find states that cannot be reached.
 (define (unreachable-states sc)
   (let* ([root (statechart-root sc)]
@@ -1110,6 +1175,7 @@
          [reachable (reachable-states sc)])
         (filter (lambda (id) (not (member id reachable))) all-states)))
 
+;;; collect-all-state-ids : State → (List Symbol)
 (define (collect-all-state-ids state)
   (cons (state-id state)
         (if (or (composite-state? state) (parallel-state? state))
@@ -1120,7 +1186,7 @@
 ;;; Visualization
 ;;; ============================================================
 
-;;; statechart->dot : Statechart -> String
+;;; statechart->dot : Statechart → String
 ;;; Generate a DOT (Graphviz) representation.
 (define (statechart->dot sc)
   (let ([root (statechart-root sc)])
@@ -1131,6 +1197,7 @@
         (state->dot root "  ")
         "}\n")))
 
+;;; state->dot : State × String → String
 (define (state->dot state indent)
   (cond
    [(atomic-state? state)
@@ -1168,6 +1235,7 @@
                    indent "}\n")]
    [else ""]))
 
+;;; transitions->dot : State × String → String
 (define (transitions->dot state indent)
   (apply string-append
          (map (lambda (t)
@@ -1187,20 +1255,20 @@
 ;;; Helper Functions
 ;;; ============================================================
 
-;;; find-if : (a -> Boolean) (List a) -> a or #f
+;;; find-if : (α → Boolean) × (List α) → (Option α)
 (define (find-if pred lst)
   (cond
    [(null? lst) #f]
    [(pred (car lst)) (car lst)]
    [else (find-if pred (cdr lst))]))
 
-;;; exists : (a -> Boolean) (List a) -> Boolean
+;;; exists : (α → Boolean) × (List α) → Boolean
 (define (exists pred lst)
   (and (not (null? lst))
        (or (pred (car lst))
            (exists pred (cdr lst)))))
 
-;;; from-just-or : Maybe a -> a -> a
+;;; from-just-or : (Option α) × α → α
 (define (from-just-or maybe default)
   (if (just? maybe)
       (from-just maybe)

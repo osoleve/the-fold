@@ -354,19 +354,19 @@
 ;;; A handler stack is an ordered list of handlers.
 ;;; Effects are handled from top to bottom.
 
-;;; make-handler-stack : (List Handler) -> HandlerStack
+;;; make-handler-stack : (List Handler) → HandlerStack
 (define (make-handler-stack handlers)
   (list 'handler-stack handlers))
 
-;;; handler-stack? : Any -> Boolean
+;;; handler-stack? : α → Boolean
 (define (handler-stack? x)
   (and (pair? x) (eq? (car x) 'handler-stack)))
 
-;;; handler-stack-handlers : HandlerStack -> (List Handler)
+;;; handler-stack-handlers : HandlerStack → (List Handler)
 (define (handler-stack-handlers stack)
   (cadr stack))
 
-;;; run-with-stack : HandlerStack -> Eff e a -> b | (init-values... -> b)
+;;; run-with-stack : HandlerStack × (Eff ε α) → β
 ;;; Run computation with a stack of handlers (iterative approach).
 ;;; If the final result is a procedure (from function-returning handlers
 ;;; like state+writer-handler), pass optional init-values to it.
@@ -384,7 +384,7 @@
            (loop (cdr handlers)
                  (handle (car handlers) computation)))))
 
-;;; run-with-composed-stack : HandlerStack -> Eff e a -> b
+;;; run-with-composed-stack : HandlerStack × (Eff ε α) → β
 ;;; Run computation with composed handlers (single-pass, more efficient)
 ;;; Composes all handlers into one before running.
 (define (run-with-composed-stack stack eff)
@@ -396,11 +396,11 @@
            (let ([composed (combine-effect-handlers handlers)])
                 (handle composed eff)))))
 
-;;; push-handler : Handler -> HandlerStack -> HandlerStack
+;;; push-handler : Handler × HandlerStack → HandlerStack
 (define (push-handler handler stack)
   (make-handler-stack (cons handler (handler-stack-handlers stack))))
 
-;;; pop-handler : HandlerStack -> HandlerStack
+;;; pop-handler : HandlerStack → HandlerStack
 (define (pop-handler stack)
   (make-handler-stack (cdr (handler-stack-handlers stack))))
 
@@ -411,15 +411,15 @@
 ;;; The key insight: when we handle an effect, we remove it from
 ;;; the effect row. This enables modular reasoning about effects.
 
-;;; effect-row-handled : EffectRow -> Symbol -> EffectRow
+;;; effect-row-handled : EffectRow × Symbol → EffectRow
 ;;; Remove an effect from the row (it's been handled)
 (define effect-row-handled row-remove)
 
-;;; effect-row-requires : EffectRow -> Symbol -> Boolean
+;;; effect-row-requires : EffectRow × Symbol → Boolean
 ;;; Check if computation requires this effect
 (define effect-row-requires row-contains?)
 
-;;; effect-row-satisfies : EffectRow -> EffectRow -> Boolean
+;;; effect-row-satisfies : EffectRow × EffectRow → Boolean
 ;;; Check if handlers satisfy required effects
 (define (effect-row-satisfies provided required)
   (let loop ([effects (effect-row-effects required)])
@@ -434,13 +434,13 @@
 ;;; When composing effects, we need to lift computations from
 ;;; smaller effect rows to larger ones.
 
-;;; eff-lift-row : Eff e1 a -> Eff (e1 + e2) a
+;;; eff-lift-row : (Eff ε₁ α) → (Eff (ε₁ + ε₂) α)
 ;;; Lift a computation to a larger effect row.
 ;;; (This is identity since our representation is the same)
 (define (eff-lift-row eff)
   eff)
 
-;;; eff-restrict : (List Symbol) -> Eff e a -> Eff e' a
+;;; eff-restrict : (List Symbol) × (Eff ε α) → (Eff ε' α)
 ;;; Restrict to a subset of effects (runtime check)
 (define (eff-restrict allowed-effects eff)
   (cond
@@ -458,12 +458,12 @@
 ;;; Modular Handler Definition
 ;;; ------------------------------------------------------------
 
-;;; define-effect-handler : Symbol -> (a -> b) -> (List (Symbol . Handler)) -> Handler
+;;; define-effect-handler : Symbol × (α → β) × (List (Symbol . Handler)) → Handler
 ;;; Define a handler for a single effect
 (define (define-effect-handler effect-name return-case operations)
   (deep-handler return-case operations))
 
-;;; combine-effect-handlers : (List Handler) -> Handler
+;;; combine-effect-handlers : (List Handler) → Handler
 ;;; Combine multiple independent effect handlers
 (define (combine-effect-handlers handlers)
   (if (null? handlers)
@@ -476,7 +476,7 @@
 ;;; Common Combined Handlers
 ;;; ------------------------------------------------------------
 
-;;; state+reader-handler : s -> r -> Handler
+;;; state+reader-handler : σ × ρ → Handler
 ;;; Handle both State and Reader effects
 (define (state+reader-handler init-state env)
   (deep-handler
@@ -491,7 +491,7 @@
                               ;; payload is the modify function
                               (lambda (s) ((k '()) s)))))))
 
-;;; state+writer-handler : s -> Handler
+;;; state+writer-handler : σ → Handler
 ;;; Handle both State and Writer effects.
 ;;; Returns a function (s, log) -> (value, state, log).
 ;;; Call result with (init-state '()) to run.
@@ -506,7 +506,7 @@
      (writer-tell . ,(lambda (payload k)
                              (lambda (s log) ((k '()) s (cons payload log))))))))
 
-;;; state+exception-handler : s -> Handler
+;;; state+exception-handler : σ → Handler
 ;;; Handle both State and Exception effects
 (define (state+exception-handler init-state)
   (deep-handler
@@ -556,22 +556,22 @@
 ;;; A program may require certain operations. We represent this
 ;;; as a constraint that dictionaries must satisfy.
 
-;;; make-interface : Symbol -> (List Symbol) -> Interface
+;;; make-interface : Symbol × (List Symbol) → Interface
 ;;; Define an interface as a named set of required operations
 (define (make-interface name operations)
   (list 'interface name operations))
 
-;;; interface? : Any -> Boolean
+;;; interface? : α → Boolean
 (define (interface? x)
   (and (pair? x) (eq? (car x) 'interface)))
 
-;;; interface-name : Interface -> Symbol
+;;; interface-name : Interface → Symbol
 (define (interface-name iface) (cadr iface))
 
-;;; interface-operations : Interface -> (List Symbol)
+;;; interface-operations : Interface → (List Symbol)
 (define (interface-operations iface) (caddr iface))
 
-;;; dict-satisfies? : Dict -> Interface -> Boolean
+;;; dict-satisfies? : Dict × Interface → Boolean
 ;;; Check if a dictionary implements an interface
 (define (dict-satisfies? d iface)
   (let loop ([ops (interface-operations iface)])
@@ -579,7 +579,7 @@
            (and (dict-has? d (car ops))
                 (loop (cdr ops))))))
 
-;;; assert-interface : Dict -> Interface -> Dict
+;;; assert-interface : Dict × Interface → Dict
 ;;; Assert that dict satisfies interface, error otherwise
 (define (assert-interface d iface)
   (if (dict-satisfies? d iface)
@@ -610,7 +610,7 @@
 (define iface-state
   (make-interface 'State '(get put pure bind)))
 
-;;; interface-union : Interface -> Interface -> Interface
+;;; interface-union : Interface × Interface → Interface
 ;;; Combine two interfaces
 (define (interface-union i1 i2)
   (make-interface
@@ -627,21 +627,21 @@
 ;;; An interpreter factory creates a dictionary for a specific
 ;;; representation type. This enables modular interpreter definition.
 
-;;; make-interpreter : Symbol -> (Unit -> Dict) -> Interpreter
+;;; make-interpreter : Symbol × (Unit → Dict) → Interpreter
 (define (make-interpreter name make-dict-fn)
   (list 'interpreter name make-dict-fn))
 
-;;; interpreter? : Any -> Boolean
+;;; interpreter? : α → Boolean
 (define (interpreter? x)
   (and (pair? x) (eq? (car x) 'interpreter)))
 
-;;; interpreter-name : Interpreter -> Symbol
+;;; interpreter-name : Interpreter → Symbol
 (define (interpreter-name interp) (cadr interp))
 
-;;; interpreter-make : Interpreter -> Dict
+;;; interpreter-make : Interpreter → Dict
 (define (interpreter-make interp) ((caddr interp)))
 
-;;; combine-interpreters : (List Interpreter) -> Dict
+;;; combine-interpreters : (List Interpreter) → Dict
 ;;; Combine multiple interpreters into one dictionary
 (define (combine-interpreters interps)
   (dict-concat (map interpreter-make interps)))
@@ -653,21 +653,21 @@
 ;;; An algebra transformer wraps a base algebra to add behavior.
 ;;; Examples: logging, caching, validation, profiling.
 
-;;; make-transformer : Symbol -> (Dict -> Dict) -> Transformer
+;;; make-transformer : Symbol × (Dict → Dict) → Transformer
 (define (make-transformer name transform-fn)
   (list 'transformer name transform-fn))
 
-;;; transformer? : Any -> Boolean
+;;; transformer? : α → Boolean
 (define (transformer? x)
   (and (pair? x) (eq? (car x) 'transformer)))
 
-;;; transformer-name : Transformer -> Symbol
+;;; transformer-name : Transformer → Symbol
 (define (transformer-name t) (cadr t))
 
-;;; transformer-apply : Transformer -> Dict -> Dict
+;;; transformer-apply : Transformer × Dict → Dict
 (define (transformer-apply t d) ((caddr t) d))
 
-;;; chain-transformers : (List Transformer) -> Dict -> Dict
+;;; chain-transformers : (List Transformer) × Dict → Dict
 ;;; Apply multiple transformers in sequence
 (define (chain-transformers transformers d)
   (fold-left (lambda (dict trans)
@@ -677,6 +677,7 @@
 
 ;;; Standard transformers
 
+;;; with-logging-default : Dict → Dict
 (define (with-logging-default d)
   (with-logging
    (lambda (name args)
@@ -696,14 +697,14 @@
 ;;; Pattern 1: Extension
 ;;; Add new operations to an existing DSL
 
-;;; extend-dsl : Dict -> (List (Symbol . Procedure)) -> Dict
+;;; extend-dsl : Dict × (List (Symbol . Procedure)) → Dict
 (define (extend-dsl base-dict new-ops)
   (dict-extend base-dict new-ops))
 
 ;;; Pattern 2: Restriction
 ;;; Hide some operations from a DSL
 
-;;; restrict-dsl : Dict -> (List Symbol) -> Dict
+;;; restrict-dsl : Dict × (List Symbol) → Dict
 ;;; Keep only the specified operations
 (define (restrict-dsl d allowed-ops)
   (make-dict (dict-tag d)
@@ -714,7 +715,7 @@
 ;;; Pattern 3: Renaming
 ;;; Rename operations in a DSL
 
-;;; rename-dsl : Dict -> (List (Symbol . Symbol)) -> Dict
+;;; rename-dsl : Dict × (List (Symbol . Symbol)) → Dict
 ;;; Rename operations according to mapping
 (define (rename-dsl d renamings)
   (make-dict (dict-tag d)
@@ -728,7 +729,7 @@
 ;;; Pattern 4: Override
 ;;; Replace specific operations
 
-;;; override-dsl : Dict -> (List (Symbol . Procedure)) -> Dict
+;;; override-dsl : Dict × (List (Symbol . Procedure)) → Dict
 (define (override-dsl d overrides)
   (make-dict (dict-tag d)
              (map (lambda (pair)
@@ -749,14 +750,14 @@
 ;;; Generic Tagless -> Free Conversion
 ;;; ------------------------------------------------------------
 
-;;; tagless->free : (Dict -> a) -> Dict -> a
+;;; tagless->free : (Dict → α) × Dict → α
 ;;; Convert a tagless program to Free representation using a provided
 ;;; AST-building dictionary. The dict-factory should return a dictionary
 ;;; whose operations build AST nodes instead of computing values.
 (define (tagless->free program ast-dict)
   (program ast-dict))
 
-;;; make-ast-dict : (List (Symbol . (args -> AST))) -> Dict
+;;; make-ast-dict : Symbol × (List (Symbol . (α → Sexp))) → Dict
 ;;; Create an AST-building dictionary from operation specs.
 ;;; Each spec maps an operation name to a function that builds an AST node.
 (define (make-ast-dict tag specs)
@@ -773,7 +774,7 @@
                    (add . ,(lambda (x y) (list 'add x y)))
                    (neg . ,(lambda (x) (list 'neg x))))))
 
-;;; tagless-program->free : (Dict -> a) -> Free F a
+;;; tagless-program->free : (Dict → α) → (Free F α)
 ;;; Convert an expression program to Free representation.
 ;;; Convenience wrapper using the standard expr AST dict.
 (define (tagless-program->free program)
@@ -783,18 +784,19 @@
 ;;; Generic Free -> Tagless Conversion
 ;;; ------------------------------------------------------------
 
-;;; free->tagless : (Term -> Dict -> a) -> Term -> (Dict -> a)
+;;; free->tagless : (Sexp × Dict → α) × Sexp → (Dict → α)
 ;;; Convert a Free term to a tagless program using a provided interpreter.
 (define (free->tagless interpret-fn term)
   (lambda (d)
           (interpret-fn term d)))
 
-;;; make-term-interpreter : (List (Symbol . (Dict -> Args -> Result))) -> (Term -> Dict -> Result)
+;;; make-term-interpreter : (List (Symbol . (Dict × α → β))) → (Sexp × Dict → β)
 ;;; Create an interpreter from operation handlers.
 (define (make-term-interpreter handlers)
   (lambda (term d)
           (term-interpret-with-handlers handlers term d)))
 
+;;; term-interpret-with-handlers : (List (Symbol . Handler)) × Sexp × Dict → α
 (define (term-interpret-with-handlers handlers term d)
   (cond
    [(pure-free? term)
@@ -833,7 +835,7 @@
     (neg . ,(lambda (d term recurse)
                     (expr-neg d (recurse (cadr term)))))))
 
-;;; free-term->tagless : Free F a -> (Dict -> a)
+;;; free-term->tagless : (Free F α) → (Dict → α)
 ;;; Convert an expression term to a tagless program.
 ;;; Convenience wrapper using standard expr interpreter.
 (define (free-term->tagless term)
@@ -841,7 +843,7 @@
    (make-term-interpreter expr-interpret-handlers)
    term))
 
-;;; interpret-arith-term : Term -> Dict -> Result
+;;; interpret-arith-term : Sexp × Dict → α
 ;;; Direct interpreter for arithmetic terms (legacy compatibility)
 (define (interpret-arith-term term d)
   ((make-term-interpreter expr-interpret-handlers) term d))
@@ -852,12 +854,12 @@
 ;;;
 ;;; Run tagless programs with effect handlers.
 
-;;; run-tagless-with-effects : Dict -> (Dict -> Eff e a) -> Eff e a
+;;; run-tagless-with-effects : Dict × (Dict → (Eff ε α)) → (Eff ε α)
 ;;; Run a tagless program that produces effects
 (define (run-tagless-with-effects dict program)
   (program dict))
 
-;;; make-effectful-dict : Dict -> (Op -> Eff e Result) -> Dict
+;;; make-effectful-dict : Dict × (Symbol × α → (Eff ε β)) → Dict
 ;;; Wrap a dictionary to produce effects
 (define (make-effectful-dict base-dict wrap-op)
   (make-dict (list 'effectful (dict-tag base-dict))
@@ -868,7 +870,7 @@
                                                  (apply (cdr pair) args)))))
                   (dict-ops base-dict))))
 
-;;; with-logging-effects : Dict -> Dict
+;;; with-logging-effects : Dict → Dict
 ;;; Wrap dictionary operations to log via Writer effect
 (define (with-logging-effects d)
   (make-effectful-dict d
@@ -880,7 +882,7 @@
 ;;; Composition Verification
 ;;; ============================================================
 
-;;; verify-composition : Dict -> (List Interface) -> Boolean
+;;; verify-composition : Dict × (List Interface) → Boolean
 ;;; Verify that a composed dictionary satisfies all interfaces
 (define (verify-composition d interfaces)
   (let loop ([ifaces interfaces])
@@ -888,7 +890,7 @@
            (and (dict-satisfies? d (car ifaces))
                 (loop (cdr ifaces))))))
 
-;;; composition-report : Dict -> (List Interface) -> String
+;;; composition-report : Dict × (List Interface) → String
 ;;; Generate a report of which interfaces are satisfied
 (define (composition-report d interfaces)
   (let ([results (map (lambda (iface)
@@ -926,6 +928,7 @@
                              (lambda (x) (string-append "(-" x ")"))))))
 
 ;;; Combine for a full language
+;;; make-full-language-dict : Symbol → Dict
 (define (make-full-language-dict mode)
   (case mode
         [(eval) (combine-interpreters (list arith-eval-interp))]

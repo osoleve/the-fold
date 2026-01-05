@@ -33,20 +33,20 @@
 ;;; These functions are already implemented in entropy.ss and are
 ;;; re-exported here for convenience.
 
-;;; kl-divergence : (List Number) -> (List Number) -> Number
+;;; kl-divergence : (List Real) × (List Real) → Real
 ;;; Kullback-Leibler divergence D_KL(P||Q) = sum(p_i * log2(p_i/q_i))
 ;;; (Already defined in entropy.ss)
 
-;;; jensen-shannon-divergence : (List Number) -> (List Number) -> Number
+;;; jensen-shannon-divergence : (List Real) × (List Real) → Real
 ;;; Jensen-Shannon divergence: JSD(P||Q) = (D_KL(P||M) + D_KL(Q||M)) / 2
 ;;; where M = (P + Q) / 2.
 ;;; (Already defined in entropy.ss)
 
-;;; cross-entropy : (List Number) -> (List Number) -> Number
+;;; cross-entropy : (List Real) × (List Real) → Real
 ;;; Cross entropy H(P,Q) = -sum(p_i * log2(q_i))
 ;;; (Already defined in entropy.ss)
 
-;;; mutual-information : (List (List Number)) -> (List Number) -> (List Number) -> Number
+;;; mutual-information : (List (List Real)) × (List Real) × (List Real) → Real
 ;;; Mutual information I(X;Y) = H(X) + H(Y) - H(X,Y)
 ;;; (Already defined in entropy.ss)
 
@@ -54,7 +54,7 @@
 ;;; Bhattacharyya Distance and Coefficient
 ;;; ============================================================
 
-;;; bhattacharyya-coefficient : (List Number) -> (List Number) -> Number
+;;; bhattacharyya-coefficient : (List Real) × (List Real) → Real
 ;;; Bhattacharyya coefficient BC(P,Q) = sum(sqrt(p_i * q_i))
 ;;; Measures overlap between two distributions, range [0, 1].
 ;;; BC = 1 when distributions are identical, BC = 0 when disjoint.
@@ -68,7 +68,7 @@
                                   (sqrt (* pi qi))))
                       p q))))
 
-;;; bhattacharyya-distance : (List Number) -> (List Number) -> Number
+;;; bhattacharyya-distance : (List Real) × (List Real) → Real
 ;;; Bhattacharyya distance D_B(P,Q) = -ln(BC(P,Q))
 ;;; Measures divergence, range [0, +inf).
 ;;; D_B = 0 when distributions are identical.
@@ -82,7 +82,7 @@
 ;;; Hellinger Distance
 ;;; ============================================================
 
-;;; hellinger-distance : (List Number) -> (List Number) -> Number
+;;; hellinger-distance : (List Real) × (List Real) → Real
 ;;; Hellinger distance H(P,Q) = sqrt(1/2 * sum((sqrt(p_i) - sqrt(q_i))^2))
 ;;; Symmetric measure of distribution similarity, range [0, 1].
 ;;; H = 0 when distributions are identical, H = 1 when disjoint.
@@ -98,7 +98,7 @@
                                     p q))])
            (sqrt (* 0.5 sum-sq)))))
 
-;;; hellinger-distance-from-bc : Number -> Number
+;;; hellinger-distance-from-bc : Real → Real
 ;;; Compute Hellinger distance from Bhattacharyya coefficient.
 ;;; H = sqrt(1 - BC)
 (define (hellinger-distance-from-bc bc)
@@ -108,7 +108,7 @@
 ;;; Total Variation Distance
 ;;; ============================================================
 
-;;; total-variation-distance : (List Number) -> (List Number) -> Number
+;;; total-variation-distance : (List Real) × (List Real) → Real
 ;;; Total variation distance TV(P,Q) = 1/2 * sum(|p_i - q_i|)
 ;;; L1 distance between distributions, range [0, 1].
 ;;; TV = 0 when distributions are identical, TV = 1 when disjoint.
@@ -124,7 +124,7 @@
 ;;; Chi-Squared Divergence
 ;;; ============================================================
 
-;;; chi-squared-divergence : (List Number) -> (List Number) -> Number
+;;; chi-squared-divergence : (List Real) × (List Real) → Real
 ;;; Chi-squared divergence χ²(P||Q) = sum((p_i - q_i)^2 / q_i)
 ;;; Measures divergence, range [0, +inf).
 ;;; Returns +inf.0 if Q has zero probability where P is non-zero.
@@ -142,7 +142,7 @@
                                      (/ (* diff diff) qi))]))
                       p q))))
 
-;;; symmetric-chi-squared : (List Number) -> (List Number) -> Number
+;;; symmetric-chi-squared : (List Real) × (List Real) → Real
 ;;; Symmetric chi-squared divergence: (χ²(P||Q) + χ²(Q||P)) / 2
 (define (symmetric-chi-squared p q)
   (let ([pq (chi-squared-divergence p q)]
@@ -155,7 +155,7 @@
 ;;; Jeffreys Divergence (Symmetric KL)
 ;;; ============================================================
 
-;;; jeffreys-divergence : (List Number) -> (List Number) -> Number
+;;; jeffreys-divergence : (List Real) × (List Real) → Real
 ;;; Jeffreys divergence J(P,Q) = D_KL(P||Q) + D_KL(Q||P)
 ;;; Symmetric version of KL divergence.
 ;;; Range: [0, +inf), J = 0 when P = Q.
@@ -169,7 +169,7 @@
 ;;; Alpha-Divergence (Generalized Divergence Family)
 ;;; ============================================================
 
-;;; alpha-divergence : Number -> (List Number) -> (List Number) -> Number
+;;; alpha-divergence : Real × (List Real) × (List Real) → Real
 ;;; Alpha-divergence (Rényi divergence): D_α(P||Q) = 1/(α(α-1)) * log(sum(p_i^α * q_i^(1-α)))
 ;;; Generalizes several divergences:
 ;;;   α → 0: D_0 = -log(sum q_i * I[p_i > 0])
@@ -211,7 +211,7 @@
 ;;; Squared Hellinger Distance (via alpha-divergence)
 ;;; ============================================================
 
-;;; squared-hellinger-distance : (List Number) -> (List Number) -> Number
+;;; squared-hellinger-distance : (List Real) × (List Real) → Real
 ;;; Squared Hellinger distance via alpha-divergence with α = 0.5.
 ;;; H²(P,Q) = 1 - sum(sqrt(p_i * q_i)) = 1 - BC(P,Q)
 (define (squared-hellinger-distance p q)
@@ -222,7 +222,7 @@
 ;;; Triangular Discrimination
 ;;; ============================================================
 
-;;; triangular-discrimination : (List Number) -> (List Number) -> Number
+;;; triangular-discrimination : (List Real) × (List Real) → Real
 ;;; Triangular discrimination Δ(P,Q) = sum((p_i - q_i)^2 / (p_i + q_i))
 ;;; Symmetric divergence measure, range [0, 1].
 ;;; Also known as triangular distance.
@@ -242,12 +242,12 @@
 ;;; Pearson Chi-Squared Divergence
 ;;; ============================================================
 
-;;; pearson-divergence : (List Number) -> (List Number) -> Number
+;;; pearson-divergence : (List Real) × (List Real) → Real
 ;;; Pearson chi-squared divergence: sum((p_i - q_i)^2 / q_i)
 ;;; This is identical to chi-squared-divergence above, included for naming clarity.
 (define pearson-divergence chi-squared-divergence)
 
-;;; neyman-divergence : (List Number) -> (List Number) -> Number
+;;; neyman-divergence : (List Real) × (List Real) → Real
 ;;; Neyman chi-squared divergence (reverse Pearson): sum((p_i - q_i)^2 / p_i)
 ;;; Asymmetric, reverses the role of P and Q compared to Pearson.
 (define (neyman-divergence p q)
@@ -257,7 +257,7 @@
 ;;; K-Divergence (Harmonic Mean Based)
 ;;; ============================================================
 
-;;; k-divergence : (List Number) -> (List Number) -> Number
+;;; k-divergence : (List Real) × (List Real) → Real
 ;;; K-divergence: sum(p_i * log(2*p_i / (p_i + q_i)))
 ;;; Symmetric measure based on harmonic mean.
 (define (k-divergence p q)
@@ -277,7 +277,7 @@
 ;;; Squared-Loss Divergence
 ;;; ============================================================
 
-;;; squared-loss : (List Number) -> (List Number) -> Number
+;;; squared-loss : (List Real) × (List Real) → Real
 ;;; Squared loss (squared L2 distance): sum((p_i - q_i)^2)
 ;;; Simple quadratic divergence, range [0, 2].
 (define (squared-loss p q)
@@ -289,7 +289,7 @@
                                    (* diff diff)))
                       p q))))
 
-;;; euclidean-distance : (List Number) -> (List Number) -> Number
+;;; euclidean-distance : (List Real) × (List Real) → Real
 ;;; Euclidean distance (L2 norm): sqrt(sum((p_i - q_i)^2))
 (define (euclidean-distance p q)
   (sqrt (squared-loss p q)))
@@ -298,7 +298,7 @@
 ;;; Matusita Distance
 ;;; ============================================================
 
-;;; matusita-distance : (List Number) -> (List Number) -> Number
+;;; matusita-distance : (List Real) × (List Real) → Real
 ;;; Matusita distance: sqrt(sum((sqrt(p_i) - sqrt(q_i))^2))
 ;;; Related to Hellinger distance: Matusita = sqrt(2) * Hellinger
 (define (matusita-distance p q)
@@ -316,7 +316,7 @@
 ;;; Fidelity (Quantum Fidelity for Classical Distributions)
 ;;; ============================================================
 
-;;; fidelity : (List Number) -> (List Number) -> Number
+;;; fidelity : (List Real) × (List Real) → Real
 ;;; Fidelity F(P,Q) = sum(sqrt(p_i * q_i))
 ;;; This is identical to Bhattacharyya coefficient, included for quantum analogy.
 ;;; Range: [0, 1], F = 1 for identical distributions.
@@ -326,7 +326,7 @@
 ;;; Summary Statistics for Comparison
 ;;; ============================================================
 
-;;; all-divergences : (List Number) -> (List Number) -> (List (Symbol . Number))
+;;; all-divergences : (List Real) × (List Real) → (List (Symbol × Real))
 ;;; Compute multiple divergence measures for comparison.
 ;;; Returns association list of (measure-name . value).
 (define (all-divergences p q)
@@ -349,7 +349,7 @@
 ;;; Utility: Validate Probability Distribution
 ;;; ============================================================
 
-;;; valid-distribution? : (List Number) -> Boolean
+;;; valid-distribution? : (List Real) → Boolean
 ;;; Check if list is a valid probability distribution:
 ;;;   - All elements non-negative
 ;;;   - Sum approximately equals 1 (within epsilon)
@@ -359,7 +359,7 @@
        (let ([sum (fold-left + 0 p)])
             (< (abs (- sum 1.0)) 1e-6))))
 
-;;; normalize-distribution : (List Number) -> (List Number)
+;;; normalize-distribution : (List Real) → (List Real)
 ;;; Normalize non-negative weights to sum to 1.
 ;;; Returns uniform distribution if all weights are zero.
 (define (normalize-distribution weights)
@@ -369,7 +369,7 @@
                 (map (lambda (_) (/ 1.0 n)) weights))
            (map (lambda (w) (/ w total)) weights))))
 
-;;; andmap : (a -> Boolean) -> (List a) -> Boolean
+;;; andmap : (α → Boolean) × (List α) → Boolean
 ;;; Check if predicate holds for all elements.
 (define (andmap pred lst)
   (or (null? lst)

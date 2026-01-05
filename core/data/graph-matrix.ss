@@ -69,7 +69,7 @@
 ;;; Beyond this threshold, use edges->sparse-adjacency instead.
 (define *dense-adjacency-max-nodes* 10000)
 
-;;; edges->adjacency-matrix : (List Edge) × [Nat] × [Boolean] → Matrix
+;;; edges->adjacency-matrix : (List Edge) × (Option Nat) × (Option Boolean) → Matrix
 ;;; Convert edge list to dense adjacency matrix.
 ;;; Optional node-count overrides inferred count.
 ;;; If undirected is #t, adds both (i,j) and (j,i) for each edge.
@@ -98,7 +98,7 @@
          edges)
         (list 'matrix n n data)))
 
-;;; adjacency-matrix->edges : Matrix × [Boolean] → (List Edge)
+;;; adjacency-matrix->edges : Matrix × (Option Boolean) → (List Edge)
 ;;; Convert adjacency matrix back to edge list.
 ;;; If weighted is #t, includes weights; otherwise just (from to).
 (define (adjacency-matrix->edges m . opts)
@@ -124,7 +124,7 @@
 (define (make-adjacency-matrix n)
   (make-matrix n n 0))
 
-;;; adjacency-matrix-add-edge! : Matrix × Nat × Nat × [Num] → Void
+;;; adjacency-matrix-add-edge! : Matrix × Nat × Nat × (Option Num) → Void
 ;;; Add edge to adjacency matrix (mutates).
 (define (adjacency-matrix-add-edge! m i j . weight-opt)
   (let ([w (if (null? weight-opt) 1 (car weight-opt))]
@@ -151,7 +151,7 @@
 ;;; Sparse Adjacency Matrix
 ;;; ============================================================
 
-;;; edges->sparse-adjacency : (List Edge) × [Nat] × [Boolean] → SparseCSR
+;;; edges->sparse-adjacency : (List Edge) × (Option Nat) × (Option Boolean) → SparseCSR
 ;;; Convert edge list to sparse adjacency matrix (CSR format).
 ;;; Efficient for large, sparse graphs.
 (define (edges->sparse-adjacency edges . opts)
@@ -180,7 +180,7 @@
          [coo (sparse-coo-from-triplets n n triplets)])
         (coo->csr coo)))
 
-;;; sparse-adjacency->edges : SparseCSR × [Boolean] → (List Edge)
+;;; sparse-adjacency->edges : SparseCSR × (Option Boolean) → (List Edge)
 ;;; Convert sparse adjacency matrix to edge list.
 (define (sparse-adjacency->edges m . opts)
   (let* ([weighted (if (null? opts) #t (car opts))]
