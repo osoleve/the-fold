@@ -853,6 +853,339 @@
                   changes))))
 
 ;;; ============================================================
+;;; Signature Extraction and Arity-Aware Rename
+;;; ============================================================
+
+;;; extract-function-signature : Symbol -> (params . file) | #f
+;;; Extract the parameter list from a function definition.
+(define (extract-function-signature func-name)
+  (let ([defs (find-all-definitions func-name)])
+       (if (null? defs)
+           #f
+           (let* ([file (caar defs)]
+                  [start-line (cdar defs)])
+                 (guard (e [else #f])
+                        (let* ([content (read-file-content file)]
+                               [lines (string-split-lines-simple content)])
+                              ;; Read multiple lines starting from definition
+                              ;; to get a complete S-expression
+                              (let ([params (extract-params-from-lines lines (- start-line 1) func-name)])
+                                   (if params
+                                       (cons params file)
+                                       #f))))))))
+
+;;; extract-params-from-lines : (List String) × Nat × Symbol -> (List Symbol) | #f
+;;; Extract params by reading lines until we get a valid definition.
+(define (extract-params-from-lines lines start-idx func-name)
+  (guard (e [else #f])
+         (let loop ([idx start-idx] [accumulated ""])
+              (if (>= idx (length lines))
+                  #f
+                  (let* ([new-acc (string-append accumulated
+                                                 (if (string=? accumulated "") "" "\n")
+                                                 (list-ref lines idx))]
+                         ;; Try to parse as definition
+                         [result (try-parse-define new-acc func-name)])
+                        (if result
+                            result
+                            ;; Try reading more lines (up to 20 for large definitions)
+                            (if (< (- idx start-idx) 20)
+                                (loop (+ idx 1) new-acc)
+                                #f)))))))
+
+;;; try-parse-define : String × Symbol -> (List Symbol) | #f
+;;; Try to extract params from a define pattern.
+;;; Uses regex-like matching since the define may not be complete.
+(define (try-parse-define str func-name)
+  (let ([func-str (symbol->string func-name)])
+       ;; Look for (define (name pattern at the start
+       (cond
+        ;; Pattern: (define (name arg1 arg2 ...)
+        [(and (string-starts-with? str "(define (")
+              (string-contains-at? str func-str 9))
+         ;; Extract params after the function name
+         (let* ([start (+ 9 (string-length func-str))]
+                [param-str (extract-param-string str start)])
+               (if param-str
+                   (parse-param-list param-str)
+                   #f))]
+        ;; Pattern: (define name (lambda (args...)
+        [(and (string-starts-with? str "(define ")
+              (string-contains-at? str func-str 8))
+         ;; Look for lambda after the name
+         (let* ([lambda-pos (string-find-substring str "(lambda (")]
+                [param-start (and lambda-pos (+ lambda-pos 9))])
+               (if param-start
+                   (let ([param-str (extract-param-string str param-start)])
+                        (if param-str
+                            (parse-param-list param-str)
+                            #f))
+                   #f))]
+        [else #f])))
+
+;;; string-contains-at? : String × String × Nat -> Bool
+(define (string-contains-at? str sub pos)
+  (and (>= (string-length str) (+ pos (string-length sub)))
+       (string=? sub (substring str pos (+ pos (string-length sub))))))
+
+;;; extract-param-string : String × Nat -> String | #f
+;;; Extract the parameter portion from position until we hit ).
+(define (extract-param-string str start)
+  (let ([len (string-length str)])
+       (let loop ([i start] [depth 0] [acc '()])
+            (cond
+             [(>= i len) #f]
+             [(char=? (string-ref str i) #\()
+              (loop (+ i 1) (+ depth 1) (cons #\( acc))]
+             [(char=? (string-ref str i) #\))
+              (if (= depth 0)
+                  (list->string (reverse acc))
+                  (loop (+ i 1) (- depth 1) (cons #\) acc)))]
+             [else
+              (loop (+ i 1) depth (cons (string-ref str i) acc))]))))
+
+;;; parse-param-list : String -> (List Symbol)
+;;; Parse a parameter list string like "a b c" or "a b . rest".
+(define (parse-param-list str)
+  (guard (e [else '()])
+         (let* ([trimmed (string-trim-simple str)]
+                [port (open-input-string (string-append "(" trimmed ")"))]
+                [lst (read port)])
+               (close-input-port port)
+               (if (list? lst)
+                   lst
+                   (flatten-params lst)))))
+
+;;; flatten-params : Params -> (List Symbol)
+;;; Handle both proper lists and improper lists (rest args).
+(define (flatten-params params)
+  (cond
+   [(null? params) '()]
+   [(symbol? params) (list params)]  ; Rest arg only
+   [(pair? params)
+    (cons (car params) (flatten-params (cdr params)))]
+   [else '()]))
+
+;;; parse-define-params : String × Symbol -> (List Symbol) | #f
+;;; Parse parameters from a define line.
+;;; Handles: (define (name a b c) ...) and (define name (lambda (a b c) ...))
+(define (parse-define-params line func-name)
+  (let ([func-str (symbol->string func-name)])
+       (guard (e [else #f])
+              ;; Try to read the first S-expression
+              (let* ([port (open-input-string line)]
+                     [expr (read port)])
+                    (close-input-port port)
+                    (cond
+                     ;; (define (name params...) ...)
+                     [(and (pair? expr)
+                           (eq? (car expr) 'define)
+                           (pair? (cdr expr))
+                           (pair? (cadr expr))
+                           (eq? (caadr expr) func-name))
+                      (let ([params (cdadr expr)])
+                           (if (list? params)
+                               params
+                               ;; Handle rest args: (a b . rest)
+                               (let loop ([p params] [acc '()])
+                                    (cond
+                                     [(null? p) (reverse acc)]
+                                     [(pair? p) (loop (cdr p) (cons (car p) acc))]
+                                     [(symbol? p) (reverse (cons p acc))]
+                                     [else (reverse acc)]))))]
+                     ;; (define name (lambda (params...) ...))
+                     [(and (pair? expr)
+                           (eq? (car expr) 'define)
+                           (pair? (cdr expr))
+                           (symbol? (cadr expr))
+                           (eq? (cadr expr) func-name)
+                           (pair? (cddr expr))
+                           (pair? (caddr expr))
+                           (eq? (caaddr expr) 'lambda))
+                      (let ([lam-params (cadr (caddr expr))])
+                           (if (list? lam-params)
+                               lam-params
+                               #f))]
+                     [else #f])))))
+
+;;; function-arity : Symbol -> Nat | #f
+;;; Get the arity of a function.
+(define (function-arity func-name)
+  (let ([sig (extract-function-signature func-name)])
+       (if sig (length (car sig)) #f)))
+
+;;; compare-signatures : Symbol × Symbol -> (old-params new-params) | 'same | #f
+;;; Compare signatures of two functions.
+(define (compare-signatures old-name new-name)
+  (let ([old-sig (extract-function-signature old-name)]
+        [new-sig (extract-function-signature new-name)])
+       (cond
+        [(not old-sig) #f]
+        [(not new-sig) #f]
+        [(equal? (car old-sig) (car new-sig)) 'same]
+        [else (list (car old-sig) (car new-sig))])))
+
+;;; refactor-rename-mapped : Symbol × Symbol × (List Nat) -> void
+;;; Rename with argument reordering.
+;;; arg-map is a list where (list-ref arg-map i) is the old arg position for new arg i.
+;;; Example: '(1 0) means swap first two args: (f old-a old-b) -> (g old-b old-a)
+(define (refactor-rename-mapped old-name new-name arg-map)
+  (display "\n")
+  (printf "  Mapped Rename: '~a' -> '~a'\n" old-name new-name)
+  (printf "  Argument mapping: ~a\n" arg-map)
+  (display "  ────────────────────────────────\n\n")
+  
+  ;; Validate arg-map
+  (let ([old-arity (function-arity old-name)])
+       (cond
+        [(not old-arity)
+         (printf "  Cannot find signature for '~a'\n\n" old-name)]
+        
+        [(not (= (length arg-map) old-arity))
+         (printf "  Error: Mapping length (~a) doesn't match arity (~a)\n\n"
+                 (length arg-map) old-arity)]
+        
+        [else
+         ;; Find all call sites
+         (let* ([old-str (symbol->string old-name)]
+                [new-str (symbol->string new-name)]
+                [changes '()])
+               
+               ;; Scan for call sites semantically
+               (for-each
+                (lambda (dir)
+                        (for-each
+                         (lambda (file)
+                                 (let ([file-changes (find-calls-in-file file old-name new-name arg-map)])
+                                      (set! changes (append changes file-changes))))
+                         (find-scheme-files-simple dir)))
+                '("core" "shell" "user"))
+               
+               (set! *pending-changes* changes)
+               (printf "\n  Found ~a call sites to transform.\n" (length changes))
+               (display "  Preview:\n")
+               (for-each
+                (lambda (c)
+                        (printf "    ~a:~a\n      ~a\n      -> ~a\n"
+                                (ref-change-file c)
+                                (ref-change-line-start c)
+                                (ref-change-old c)
+                                (ref-change-new c)))
+                (take-up-to changes 10))
+               (when (> (length changes) 10)
+                     (printf "    ... and ~a more\n" (- (length changes) 10)))
+               (display "\n  Use (refactor-apply!) to apply changes.\n\n"))])))
+
+;;; find-calls-in-file : String × Symbol × Symbol × (List Nat) -> (List Change)
+;;; Find and transform calls in a file using argument mapping.
+(define (find-calls-in-file file old-name new-name arg-map)
+  (guard (e [else '()])
+         (let* ([content (read-file-content file)]
+                [regions (scan-token-regions content)]
+                [changes '()])
+               
+               ;; Parse the file and find calls
+               (guard (e [else changes])
+                      (let* ([port (open-input-string content)]
+                             [exprs (let loop ([acc '()])
+                                         (let ([expr (guard (e [else #f]) (read port))])
+                                              (if (or (eof-object? expr) (not expr))
+                                                  (reverse acc)
+                                                  (loop (cons expr acc)))))])
+                            (close-input-port port)
+                            
+                            ;; Find calls in each expression
+                            (for-each
+                             (lambda (expr)
+                                     (let ([found-calls (find-calls-in-expr expr old-name)])
+                                          (for-each
+                                           (lambda (call-expr)
+                                                   ;; Transform the call
+                                                   (let* ([old-call-str (format "~s" call-expr)]
+                                                          [new-call-str (transform-call call-expr new-name arg-map)])
+                                                         (when new-call-str
+                                                               ;; Find line number (approximate)
+                                                               (let ([pos (string-find-substring content old-call-str)])
+                                                                    (when (and pos (position-in-code? regions pos))
+                                                                          (set! changes
+                                                                                (cons (make-ref-change 'mapped-rename
+                                                                                                       file
+                                                                                                       old-call-str
+                                                                                                       new-call-str
+                                                                                                       (count-newlines-before content pos)
+                                                                                                       (count-newlines-before content pos)
+                                                                                                       'call-transform)
+                                                                                      changes)))))))
+                                           found-calls)))
+                             exprs)
+                            changes)))))
+
+;;; find-calls-in-expr : S-expr × Symbol -> (List S-expr)
+;;; Find all calls to func-name in an expression.
+(define (find-calls-in-expr expr func-name)
+  (cond
+   [(not (pair? expr)) '()]
+   [(eq? (car expr) func-name)
+    ;; Found a call - include it and recurse into args
+    (cons expr
+          (apply append (map (lambda (e) (find-calls-in-expr e func-name))
+                             (cdr expr))))]
+   [(eq? (car expr) 'quote) '()]  ; Don't look in quoted data
+   [else
+    (apply append (map (lambda (e) (find-calls-in-expr e func-name)) expr))]))
+
+;;; transform-call : S-expr × Symbol × (List Nat) -> String | #f
+;;; Transform a call using argument mapping.
+(define (transform-call call-expr new-name arg-map)
+  (guard (e [else #f])
+         (let* ([args (cdr call-expr)]
+                [new-args (map (lambda (i) (list-ref args i)) arg-map)])
+               (format "~s" (cons new-name new-args)))))
+
+;;; count-newlines-before : String × Nat -> Nat
+(define (count-newlines-before str pos)
+  (let loop ([i 0] [count 1])
+       (cond
+        [(>= i pos) count]
+        [(char=? (string-ref str i) #\newline) (loop (+ i 1) (+ count 1))]
+        [else (loop (+ i 1) count)])))
+
+;;; refactor-check-arity : Symbol × Symbol -> void
+;;; Check if two functions have compatible signatures.
+(define (refactor-check-arity old-name new-name)
+  (display "\n")
+  (printf "  Signature Comparison: '~a' vs '~a'\n" old-name new-name)
+  (display "  ────────────────────────────────\n\n")
+  
+  (let ([old-sig (extract-function-signature old-name)]
+        [new-sig (extract-function-signature new-name)])
+       
+       (cond
+        [(not old-sig)
+         (printf "  Could not find signature for '~a'\n" old-name)]
+        [(not new-sig)
+         (printf "  Could not find signature for '~a'\n" new-name)]
+        [else
+         (let ([old-params (car old-sig)]
+               [new-params (car new-sig)])
+              (printf "  '~a' params: ~a (arity ~a)\n" old-name old-params (length old-params))
+              (printf "  '~a' params: ~a (arity ~a)\n" new-name new-params (length new-params))
+              (display "\n")
+              
+              (cond
+               [(= (length old-params) (length new-params))
+                (if (equal? old-params new-params)
+                    (display "  ✓ Signatures are identical - simple rename OK.\n")
+                    (begin
+                     (display "  ⚠ Same arity but different param names.\n")
+                     (display "    Use (refactor-rename-mapped old new '(0 1 ...)) to specify order.\n")))]
+               [else
+                (printf "  ⚠ Different arity: ~a vs ~a\n"
+                        (length old-params) (length new-params))
+                (display "    Manual adjustment of call sites may be needed.\n")]))])
+       (display "\n")))
+
+;;; ============================================================
 ;;; Convenience Commands
 ;;; ============================================================
 
@@ -908,6 +1241,11 @@
   (display "  Rename Operations:\n")
   (display "    (refactor-rename! 'old 'new)           Preview + prompt to apply\n")
   (display "    (refactor-rename-preview 'old 'new)    Preview only\n")
+  (display "\n")
+  (display "  Arity-Aware Rename:\n")
+  (display "    (refactor-check-arity 'old 'new)       Compare function signatures\n")
+  (display "    (refactor-rename-mapped 'old 'new '(1 0))   Rename + swap args\n")
+  (display "    (function-arity 'name)                 Get function arity\n")
   (display "\n")
   (display "  Argument Reordering:\n")
   (display "    (refactor-reorder-args-preview 'fn '(2 0 1))   Preview reorder\n")
