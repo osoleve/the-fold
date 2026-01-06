@@ -37,6 +37,7 @@
           matrix-rotate
           matrix-scale
           matrix-multiply
+          matrix-invert
           canvas-transform
           
           ;; Clipping and masking
@@ -120,6 +121,29 @@
                  (+ (* c1 b2) (* d1 d2))
                  (+ (* a1 tx2) (* b1 ty2) tx1)
                  (+ (* c1 tx2) (* d1 ty2) ty1))))
+         
+         ;;; matrix-invert : Matrix → Matrix
+         ;;; Invert an affine transformation matrix.
+         ;;; Returns identity matrix if determinant is zero (singular matrix).
+         (define (matrix-invert matrix)
+           (let ([a (transform-matrix%-a matrix)]
+                 [b (transform-matrix%-b matrix)]
+                 [c (transform-matrix%-c matrix)]
+                 [d (transform-matrix%-d matrix)]
+                 [tx (transform-matrix%-tx matrix)]
+                 [ty (transform-matrix%-ty matrix)])
+                (let ([det (- (* a d) (* b c))])
+                     (if (< (abs det) 1e-10)
+                         ;; Singular matrix, return identity
+                         identity-matrix
+                         (let ([inv-det (/ 1.0 det)])
+                              (make-transform-matrix
+                               (* inv-det d)
+                               (* inv-det (- b))
+                               (* inv-det (- c))
+                               (* inv-det a)
+                               (* inv-det (- (* d tx) (* b ty)))
+                               (* inv-det (- (* c tx) (* a ty)))))))))
          
          ;;; transform-point : Matrix × Nat × Nat → (Nat . Nat)
          ;;; Apply transform matrix to a point.
@@ -257,20 +281,23 @@
          ;;; canvas-transform : Canvas × Matrix × Nat × Nat → Canvas
          ;;; Apply arbitrary affine transform to canvas.
          ;;; Creates new canvas of size width×height.
+         ;;; Uses inverse matrix: for each dest pixel, find which source pixel to sample.
+         ;;; This ensures transforms move content in the expected direction.
          (define (canvas-transform src matrix width height)
-           (let ([dest (make-canvas width height)])
-                (let loop-y ([y 0] [c dest])
+           (let ([dest (make-canvas width height)]
+                 [inv-matrix (matrix-invert matrix)])
+                (let loop-y ([y 0])
                      (if (>= y height)
-                         c
-                         (let loop-x ([x 0] [c c])
+                         dest
+                         (let loop-x ([x 0])
                               (if (>= x width)
-                                  (loop-y (+ y 1) c)
-                                  (let* ([src-pt (transform-point matrix x y)]
+                                  (loop-y (+ y 1))
+                                  (let* ([src-pt (transform-point inv-matrix x y)]
                                          [sx (car src-pt)]
                                          [sy (cdr src-pt)]
                                          [ch (canvas-ref src sx sy)])
-                                        (loop-x (+ x 1)
-                                                (canvas-set c x y ch)))))))))
+                                        (canvas-set! dest x y ch)
+                                        (loop-x (+ x 1)))))))))
          
          ;;; ============================================================
          ;;; Clipping
@@ -284,15 +311,15 @@
                   [w (rect-width rect)]
                   [h (rect-height rect)]
                   [result (make-canvas w h)])
-                 (let loop-y ([y 0] [c result])
+                 (let loop-y ([y 0])
                       (if (>= y h)
-                          c
-                          (let loop-x ([x 0] [c c])
+                          result
+                          (let loop-x ([x 0])
                                (if (>= x w)
-                                   (loop-y (+ y 1) c)
+                                   (loop-y (+ y 1))
                                    (let ([ch (canvas-ref canvas (+ ox x) (+ oy y))])
-                                        (loop-x (+ x 1)
-                                                (canvas-set c x y ch)))))))))
+                                        (canvas-set! result x y ch)
+                                        (loop-x (+ x 1)))))))))
          
          ;;; Helper: Since rect functions might not be defined
          (define (rect-origin rect) (vector-ref rect 1))
@@ -309,19 +336,17 @@
          (define (canvas-mask canvas mask mask-char)
            (let ([w (canvas-width canvas)]
                  [h (canvas-height canvas)])
-                (let loop-y ([y 0] [c canvas])
+                (let loop-y ([y 0])
                      (if (>= y h)
-                         c
-                         (let loop-x ([x 0] [c c])
+                         canvas
+                         (let loop-x ([x 0])
                               (if (>= x w)
-                                  (loop-y (+ y 1) c)
+                                  (loop-y (+ y 1))
                                   (let ([mask-ch (canvas-ref mask x y)])
-                                       (if (char=? mask-ch mask-char)
-                                           ;; Masked out - replace with space
-                                           (loop-x (+ x 1)
-                                                   (canvas-set c x y #\space))
-                                           ;; Not masked - keep original
-                                           (loop-x (+ x 1) c)))))))))
+                                       (when (char=? mask-ch mask-char)
+                                             ;; Masked out - replace with space
+                                             (canvas-set! canvas x y #\space))
+                                       (loop-x (+ x 1)))))))))
          
          ;;; ============================================================
          ;;; Transform Groups

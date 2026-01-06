@@ -198,18 +198,19 @@
                  (if (or (<= w 0) (<= h 0))
                      (make-canvas 1 1)
                      (let ([result (make-canvas w h)])
-                          (let loop-y ([y 0] [c result])
+                          (let loop-y ([y 0])
                                (if (>= y h)
-                                   c
-                                   (let loop-x ([x 0] [c c])
+                                   result
+                                   (let loop-x ([x 0])
                                         (if (>= x w)
-                                            (loop-y (+ y 1) c)
-                                            (loop-x (+ x 1)
-                                                    (canvas-set c x y
-                                                                (canvas-ref canvas
-                                                                            (+ x1 x)
-                                                                            (+ y1 y))))))))))))
-         
+                                            (loop-y (+ y 1))
+                                            (begin
+                                             (canvas-set! result x y
+                                                          (canvas-ref canvas
+                                                                      (+ x1 x)
+                                                                      (+ y1 y)))
+                                             (loop-x (+ x 1))))))))))))
+
          ;;; ============================================================
          ;;; Basic Spatial Combinators
          ;;; ============================================================
@@ -221,22 +222,21 @@
                  [oy (point-y pt)]
                  [sw (canvas-width src)]
                  [sh (canvas-height src)])
-                (let loop-y ([y 0] [canvas dest])
+                (let loop-y ([y 0])
                      (if (>= y sh)
-                         canvas
-                         (let loop-x ([x 0] [canvas canvas])
+                         dest
+                         (let loop-x ([x 0])
                               (if (>= x sw)
-                                  (loop-y (+ y 1) canvas)
+                                  (loop-y (+ y 1))
                                   (let ([ch (canvas-ref src x y)])
                                        ;; Skip spaces to preserve transparency
-                                       (if (char=? ch #\space)
-                                           (loop-x (+ x 1) canvas)
-                                           (loop-x (+ x 1)
-                                                   (canvas-set canvas
-                                                               (+ ox x)
-                                                               (+ oy y)
-                                                               ch))))))))))
-         
+                                       (unless (char=? ch #\space)
+                                               (canvas-set! dest
+                                                            (+ ox x)
+                                                            (+ oy y)
+                                                            ch))
+                                       (loop-x (+ x 1)))))))))
+
          ;;; beside : Canvas × Canvas × [Nat] → Canvas
          ;;; Place two canvases side-by-side (left | right) with optional spacing.
          (define beside
@@ -254,7 +254,7 @@
                     [result (composite-at result left (point 0 0))]
                     [result (composite-at result right (point (+ lw spacing) 0))])
                    result)]))
-         
+
          ;;; above : Canvas × Canvas × [Nat] → Canvas
          ;;; Stack two canvases vertically (top / bottom) with optional spacing.
          (define above
@@ -272,7 +272,7 @@
                     [result (composite-at result top (point 0 0))]
                     [result (composite-at result bottom (point 0 (+ th spacing)))])
                    result)]))
-         
+
          ;;; atop : Canvas × Canvas → Canvas
          ;;; Overlay top canvas on bottom canvas (z-order: bottom, then top).
          ;;; Result size is bounding box of both.
@@ -287,7 +287,7 @@
                   [result (composite-at result bottom (point 0 0))]
                   [result (composite-at result top (point 0 0))])
                  result))
-         
+
          ;;; ============================================================
          ;;; Multi-Element Combinators
          ;;; ============================================================
@@ -305,7 +305,7 @@
                                     (beside acc canvas spacing))
                             (car canvases)
                             (cdr canvases)))]))
-         
+
          ;;; vcat : (List Canvas) × [Nat] → Canvas
          ;;; Vertical concatenation (above multiple canvases).
          (define vcat
@@ -319,7 +319,7 @@
                                     (above acc canvas spacing))
                             (car canvases)
                             (cdr canvases)))]))
-         
+
          ;;; ============================================================
          ;;; Distribution (Even Spacing)
          ;;; ============================================================
@@ -340,7 +340,7 @@
                                    (quotient total-gap (- n 1)))]
                       [h (apply max (map canvas-height canvases))])
                      (hcat canvases spacing))))
-         
+
          ;;; distribute-vertical : (List Canvas) × Nat → Canvas
          ;;; Distribute canvases vertically with even spacing.
          (define (distribute-vertical canvases total-height)
@@ -357,7 +357,7 @@
                                    (quotient total-gap (- n 1)))]
                       [w (apply max (map canvas-width canvases))])
                      (vcat canvases spacing))))
-         
+
          ;;; ============================================================
          ;;; Alignment
          ;;; ============================================================
@@ -371,7 +371,7 @@
                     canvas
                     (let ([result (make-canvas target-width h)])
                          (composite-at result canvas (point 0 0))))))
-         
+
          ;;; align-right : Canvas × Nat → Canvas
          ;;; Align canvas to right within target width.
          (define (align-right canvas target-width)
@@ -382,7 +382,7 @@
                     (let* ([offset (- target-width w)]
                            [result (make-canvas target-width h)])
                           (composite-at result canvas (point offset 0))))))
-         
+
          ;;; align-top : Canvas × Nat → Canvas
          ;;; Align canvas to top within target height.
          (define (align-top canvas target-height)
@@ -392,7 +392,7 @@
                     canvas
                     (let ([result (make-canvas w target-height)])
                          (composite-at result canvas (point 0 0))))))
-         
+
          ;;; align-bottom : Canvas × Nat → Canvas
          ;;; Align canvas to bottom within target height.
          (define (align-bottom canvas target-height)
@@ -403,7 +403,7 @@
                     (let* ([offset (- target-height h)]
                            [result (make-canvas w target-height)])
                           (composite-at result canvas (point 0 offset))))))
-         
+
          ;;; align-center-h : Canvas × Nat → Canvas
          ;;; Center canvas horizontally within target width.
          (define (align-center-h canvas target-width)
@@ -414,7 +414,7 @@
                     (let* ([offset (quotient (- target-width w) 2)]
                            [result (make-canvas target-width h)])
                           (composite-at result canvas (point offset 0))))))
-         
+
          ;;; align-center-v : Canvas × Nat → Canvas
          ;;; Center canvas vertically within target height.
          (define (align-center-v canvas target-height)
@@ -425,7 +425,7 @@
                     (let* ([offset (quotient (- target-height h) 2)]
                            [result (make-canvas w target-height)])
                           (composite-at result canvas (point 0 offset))))))
-         
+
          ;;; align-center : Canvas × Nat × Nat → Canvas
          ;;; Center canvas both horizontally and vertically.
          (define (align-center canvas target-width target-height)
@@ -437,7 +437,7 @@
                        [result-h (max h target-height)]
                        [result (make-canvas result-w result-h)])
                       (composite-at result canvas (point x-offset y-offset)))))
-         
+
          ;;; ============================================================
          ;;; Centering (Convenience Wrappers)
          ;;; ============================================================
@@ -445,15 +445,15 @@
          ;;; center-h : Canvas × Nat → Canvas
          ;;; Alias for align-center-h
          (define center-h align-center-h)
-         
+
          ;;; center-v : Canvas × Nat → Canvas
          ;;; Alias for align-center-v
          (define center-v align-center-v)
-         
+
          ;;; center-canvas : Canvas × Nat × Nat → Canvas
          ;;; Alias for align-center
          (define center-canvas align-center)
-         
+
          ;;; ============================================================
          ;;; Padding
          ;;; ============================================================
@@ -467,7 +467,7 @@
                   [new-h (+ h (* 2 amount))]
                   [result (make-canvas new-w new-h)])
                  (composite-at result canvas (point amount amount))))
-         
+
          ;;; pad-h : Canvas × Nat → Canvas
          ;;; Add horizontal padding (left and right).
          (define (pad-h canvas amount)
@@ -476,7 +476,7 @@
                   [new-w (+ w (* 2 amount))]
                   [result (make-canvas new-w h)])
                  (composite-at result canvas (point amount 0))))
-         
+
          ;;; pad-v : Canvas × Nat → Canvas
          ;;; Add vertical padding (top and bottom).
          (define (pad-v canvas amount)
@@ -485,5 +485,5 @@
                   [new-h (+ h (* 2 amount))]
                   [result (make-canvas w new-h)])
                  (composite-at result canvas (point 0 amount))))
-         
+
          ) ; end library

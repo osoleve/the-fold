@@ -105,17 +105,17 @@
                        [sx (if (< x0 x1) 1 -1)]
                        [sy (if (< y0 y1) 1 -1)]
                        [err (- dx dy)])
-                      (let loop ([x x0] [y y0] [err err] [c canvas])
-                           (let ([c (canvas-set c x y ch)])
-                                (if (and (= x x1) (= y y1))
-                                    c
-                                    (let* ([e2 (* 2 err)]
-                                           [new-err (if (> e2 (- dy)) (- err dy) err)]
-                                           [new-x (if (> e2 (- dy)) (+ x sx) x)]
-                                           [new-err (if (< e2 dx) (+ new-err dx) new-err)]
-                                           [new-y (if (< e2 dx) (+ y sy) y)])
-                                          (loop new-x new-y new-err c))))))))
-         
+                      (let loop ([x x0] [y y0] [err err])
+                           (canvas-set! canvas x y ch)
+                           (if (and (= x x1) (= y y1))
+                               canvas
+                               (let* ([e2 (* 2 err)]
+                                      [new-err (if (> e2 (- dy)) (- err dy) err)]
+                                      [new-x (if (> e2 (- dy)) (+ x sx) x)]
+                                      [new-err (if (< e2 dx) (+ new-err dx) new-err)]
+                                      [new-y (if (< e2 dx) (+ y sy) y)])
+                                     (loop new-x new-y new-err))))))))
+
          ;;; draw-line-gradient : Canvas × Point × Point × List Char → Canvas
          ;;; Draw a line with a gradient effect using a character palette.
          ;;; The palette is applied from start to end.
@@ -130,22 +130,22 @@
                        [sy (if (< y0 y1) 1 -1)]
                        [err (- dx dy)]
                        [total-length (sqrt (+ (* dx dx) (* dy dy)))])
-                      (let loop ([x x0] [y y0] [err err] [c canvas] [dist 0])
+                      (let loop ([x x0] [y y0] [err err] [dist 0])
                            (let* ([t (if (> total-length 0)
                                          (/ dist total-length)
                                          0)]
-                                  [ch (get-intensity-char palette t)]
-                                  [c (canvas-set c x y ch)])
+                                  [ch (get-intensity-char palette t)])
+                                 (canvas-set! canvas x y ch)
                                  (if (and (= x x1) (= y y1))
-                                     c
+                                     canvas
                                      (let* ([e2 (* 2 err)]
                                             [new-err (if (> e2 (- dy)) (- err dy) err)]
                                             [new-x (if (> e2 (- dy)) (+ x sx) x)]
                                             [new-err (if (< e2 dx) (+ new-err dx) new-err)]
                                             [new-y (if (< e2 dx) (+ y sy) y)]
                                             [new-dist (+ dist 1)])
-                                           (loop new-x new-y new-err c new-dist))))))))
-         
+                                           (loop new-x new-y new-err new-dist))))))))
+
          ;;; ============================================================
          ;;; Rounded Box Drawing
          ;;; ============================================================
@@ -187,28 +187,25 @@
                                       [(heavy) #\┃]
                                       [(double) #\║]
                                       [else #\|])])
-                           (let* ([canvas canvas]
-                                  ;; Draw corners
-                                  [canvas (canvas-set canvas ox oy tl)]
-                                  [canvas (canvas-set canvas right oy tr)]
-                                  [canvas (canvas-set canvas ox bottom bl)]
-                                  [canvas (canvas-set canvas right bottom br)]
-                                  ;; Draw horizontal edges
-                                  [canvas (let loop ([x (+ ox 1)] [c canvas])
-                                               (if (>= x right)
-                                                   c
-                                                   (loop (+ x 1)
-                                                         (canvas-set (canvas-set c x oy hz)
-                                                                     x bottom hz))))]
-                                  ;; Draw vertical edges
-                                  [canvas (let loop ([y (+ oy 1)] [c canvas])
-                                               (if (>= y bottom)
-                                                   c
-                                                   (loop (+ y 1)
-                                                         (canvas-set (canvas-set c ox y vt)
-                                                                     right y vt))))])
-                                 canvas)))))
-         
+                           ;; Draw corners
+                           (canvas-set! canvas ox oy tl)
+                           (canvas-set! canvas right oy tr)
+                           (canvas-set! canvas ox bottom bl)
+                           (canvas-set! canvas right bottom br)
+                           ;; Draw horizontal edges
+                           (let loop ([x (+ ox 1)])
+                                (when (< x right)
+                                      (canvas-set! canvas x oy hz)
+                                      (canvas-set! canvas x bottom hz)
+                                      (loop (+ x 1))))
+                           ;; Draw vertical edges
+                           (let loop ([y (+ oy 1)])
+                                (when (< y bottom)
+                                      (canvas-set! canvas ox y vt)
+                                      (canvas-set! canvas right y vt)
+                                      (loop (+ y 1))))
+                           canvas)))))
+
          ;;; ============================================================
          ;;; Circle Drawing
          ;;; ============================================================
@@ -222,40 +219,39 @@
                  [cy (point-y center)])
                 (let loop ([x 0]
                            [y radius]
-                           [d (- 3 (* 2 radius))]
-                           [c canvas])
+                           [d (- 3 (* 2 radius))])
                      (if (> x y)
-                         c
-                         (let* ([c (canvas-set c (+ cx x) (+ cy y) ch)]
-                                [c (canvas-set c (- cx x) (+ cy y) ch)]
-                                [c (canvas-set c (+ cx x) (- cy y) ch)]
-                                [c (canvas-set c (- cx x) (- cy y) ch)]
-                                [c (canvas-set c (+ cx y) (+ cy x) ch)]
-                                [c (canvas-set c (- cx y) (+ cy x) ch)]
-                                [c (canvas-set c (+ cx y) (- cy x) ch)]
-                                [c (canvas-set c (- cx y) (- cy x) ch)])
-                               (if (< d 0)
-                                   (loop (+ x 1) y (+ d (* 4 x) 6) c)
-                                   (loop (+ x 1) (- y 1) (+ d (* 4 (- x y)) 10) c)))))))
-         
+                         canvas
+                         (begin
+                          (canvas-set! canvas (+ cx x) (+ cy y) ch)
+                          (canvas-set! canvas (- cx x) (+ cy y) ch)
+                          (canvas-set! canvas (+ cx x) (- cy y) ch)
+                          (canvas-set! canvas (- cx x) (- cy y) ch)
+                          (canvas-set! canvas (+ cx y) (+ cy x) ch)
+                          (canvas-set! canvas (- cx y) (+ cy x) ch)
+                          (canvas-set! canvas (+ cx y) (- cy x) ch)
+                          (canvas-set! canvas (- cx y) (- cy x) ch)
+                          (if (< d 0)
+                              (loop (+ x 1) y (+ d (* 4 x) 6))
+                              (loop (+ x 1) (- y 1) (+ d (* 4 (- x y)) 10)))))))))
+
          ;;; draw-filled-circle : Canvas × Point × Nat × Char → Canvas
          ;;; Draw a filled circle.
          (define (draw-filled-circle canvas center radius ch)
            (let ([cx (point-x center)]
                  [cy (point-y center)]
                  [r2 (* radius radius)])
-                (let loop-y ([y (- radius)] [c canvas])
+                (let loop-y ([y (- radius)])
                      (if (> y radius)
-                         c
-                         (let loop-x ([x (- radius)] [c c])
+                         canvas
+                         (let loop-x ([x (- radius)])
                               (if (> x radius)
-                                  (loop-y (+ y 1) c)
+                                  (loop-y (+ y 1))
                                   (let ([dist2 (+ (* x x) (* y y))])
-                                       (if (<= dist2 r2)
-                                           (loop-x (+ x 1)
-                                                   (canvas-set c (+ cx x) (+ cy y) ch))
-                                           (loop-x (+ x 1) c)))))))))
-         
+                                       (when (<= dist2 r2)
+                                             (canvas-set! canvas (+ cx x) (+ cy y) ch))
+                                       (loop-x (+ x 1)))))))))
+
          ;;; ============================================================
          ;;; Gradient Fills
          ;;; ============================================================
@@ -280,7 +276,7 @@
                    [else canvas])]
             [(canvas rect ease-fn palette direction)
              (gradient-fill canvas rect 0.0 1.0 ease-fn palette direction)]))
-         
+
          ;;; gradient-fill-horizontal : Canvas × Rect × Real × Real × (Real → Real) × List Char → Canvas
          ;;; Fill rectangle with horizontal gradient (left to right).
          (define (gradient-fill-horizontal canvas rect start-intensity end-intensity ease-fn palette)
@@ -290,21 +286,21 @@
                  [h (rect-height rect)])
                 (if (or (<= w 0) (<= h 0))
                     canvas
-                    (let loop-y ([y oy] [c canvas])
+                    (let loop-y ([y oy])
                          (if (>= y (+ oy h))
-                             c
-                             (let loop-x ([x ox] [c c])
+                             canvas
+                             (let loop-x ([x ox])
                                   (if (>= x (+ ox w))
-                                      (loop-y (+ y 1) c)
+                                      (loop-y (+ y 1))
                                       (let* ([t (if (> w 1)
                                                     (/ (- x ox) (- w 1))
                                                     0.5)]
                                              [eased-t (ease-fn t)]
                                              [intensity (interpolate start-intensity end-intensity eased-t ease-linear)]
                                              [ch (get-intensity-char palette intensity)])
-                                            (loop-x (+ x 1)
-                                                    (canvas-set c x y ch))))))))))
-         
+                                            (canvas-set! canvas x y ch)
+                                            (loop-x (+ x 1))))))))))
+
          ;;; gradient-fill-vertical : Canvas × Rect × Real × Real × (Real → Real) × List Char → Canvas
          ;;; Fill rectangle with vertical gradient (top to bottom).
          (define (gradient-fill-vertical canvas rect start-intensity end-intensity ease-fn palette)
@@ -314,21 +310,21 @@
                  [h (rect-height rect)])
                 (if (or (<= w 0) (<= h 0))
                     canvas
-                    (let loop-y ([y oy] [c canvas])
+                    (let loop-y ([y oy])
                          (if (>= y (+ oy h))
-                             c
+                             canvas
                              (let* ([t (if (> h 1)
                                            (/ (- y oy) (- h 1))
                                            0.5)]
                                     [eased-t (ease-fn t)]
                                     [intensity (interpolate start-intensity end-intensity eased-t ease-linear)])
-                                   (let loop-x ([x ox] [c c])
+                                   (let loop-x ([x ox])
                                         (if (>= x (+ ox w))
-                                            (loop-y (+ y 1) c)
+                                            (loop-y (+ y 1))
                                             (let ([ch (get-intensity-char palette intensity)])
-                                                 (loop-x (+ x 1)
-                                                         (canvas-set c x y ch)))))))))))
-         
+                                                 (canvas-set! canvas x y ch)
+                                                 (loop-x (+ x 1)))))))))))
+
          ;;; gradient-fill-radial : Canvas × Point × Nat × List Char × (Real → Real) → Canvas
          ;;; Fill area with radial gradient from center point.
          ;;; Intensity decreases from center (1.0) to radius (0.0).
@@ -337,12 +333,12 @@
                  [cy (point-y center)]
                  [w (canvas-width canvas)]
                  [h (canvas-height canvas)])
-                (let loop-y ([y 0] [c canvas])
+                (let loop-y ([y 0])
                      (if (>= y h)
-                         c
-                         (let loop-x ([x 0] [c c])
+                         canvas
+                         (let loop-x ([x 0])
                               (if (>= x w)
-                                  (loop-y (+ y 1) c)
+                                  (loop-y (+ y 1))
                                   (let* ([dx (- x cx)]
                                          [dy (- y cy)]
                                          [dist (sqrt (+ (* dx dx) (* dy dy)))]
@@ -353,9 +349,9 @@
                                          ;; Invert so center is brightest
                                          [intensity (- 1.0 eased-t)]
                                          [ch (get-intensity-char palette intensity)])
-                                        (loop-x (+ x 1)
-                                                (canvas-set c x y ch)))))))))
-         
+                                        (canvas-set! canvas x y ch)
+                                        (loop-x (+ x 1)))))))))
+
          ;;; ============================================================
          ;;; Styling System
          ;;; ============================================================
@@ -363,15 +359,15 @@
          ;;; Style record for stroke/fill/opacity configuration
          (define-record-type style%
            (fields fill stroke opacity))
-         
+
          ;;; make-style : Char × Char × Real → Style
          ;;; Create a style with fill character, stroke character, and opacity [0,1].
          (define make-style make-style%)
-         
+
          (define style-fill style%-fill)
          (define style-stroke style%-stroke)
          (define style-opacity style%-opacity)
-         
+
          ;;; apply-opacity : Char × Real → Char
          ;;; Apply opacity to a character (simplified ASCII version).
          ;;; For opacity < 0.5, use space; otherwise use the character.
@@ -380,7 +376,7 @@
            (if (< opacity 0.5)
                #\space
                ch))
-         
+
          ;;; ============================================================
          ;;; Polyline Drawing
          ;;; ============================================================
@@ -396,7 +392,7 @@
                         c
                         (loop (cdr pts)
                               (draw-line c (car pts) (cadr pts) ch))))))
-         
+
          ;;; ============================================================
          ;;; Polygon Drawing
          ;;; ============================================================
@@ -410,7 +406,7 @@
                (let* ([c (draw-polyline canvas points ch)])
                      ;; Close the polygon by connecting last point to first
                      (draw-line c (car (reverse points)) (car points) ch))))
-         
+
          ;;; point< : Point × Point → Boolean
          ;;; Compare points for scanline sorting (by y, then x).
          (define (point< p1 p2)
@@ -420,7 +416,7 @@
                  [x2 (point-x p2)])
                 (or (< y1 y2)
                     (and (= y1 y2) (< x1 x2)))))
-         
+
          ;;; draw-filled-polygon : Canvas × (List Point) × Char → Canvas
          ;;; Draw a filled polygon using scanline fill algorithm.
          ;;; Points must be ordered (clockwise or counterclockwise).
@@ -446,7 +442,7 @@
                                        (let ([sorted (sort intersections <)])
                                             (loop-y (+ y 1)
                                                     (fill-scanline c y sorted ch))))))))))
-         
+
          ;;; find-intersections : (List Point) × Nat → (List Nat)
          ;;; Find x-coordinates where horizontal line at y intersects polygon edges.
          (define (find-intersections points y)
@@ -467,7 +463,7 @@
                                 (if intersect
                                     (cons intersect result)
                                     result))))))
-         
+
          ;;; edge-intersection : Point × Point × Nat → Nat | #f
          ;;; Find x-coordinate where edge (p1->p2) intersects horizontal line at y.
          ;;; Returns #f if no intersection.
@@ -488,22 +484,23 @@
                         (let* ([t (/ (- y y1) (- y2 y1))]
                                [x (+ x1 (* t (- x2 x1)))])
                               (inexact->exact (round x)))))))
-         
+
          ;;; fill-scanline : Canvas × Nat × (List Nat) × Char → Canvas
          ;;; Fill horizontal scanline between pairs of x-coordinates.
          (define (fill-scanline canvas y xs ch)
-           (let loop ([coords xs] [c canvas])
+           (let loop ([coords xs])
                 (if (or (null? coords) (null? (cdr coords)))
-                    c
+                    canvas
                     (let ([x1 (car coords)]
                           [x2 (cadr coords)])
                          ;; Fill from x1 to x2
-                         (let fill-x ([x x1] [c c])
+                         (let fill-x ([x x1])
                               (if (> x x2)
-                                  (loop (cddr coords) c)
-                                  (fill-x (+ x 1)
-                                          (canvas-set c x y ch))))))))
-         
+                                  (loop (cddr coords))
+                                  (begin
+                                   (canvas-set! canvas x y ch)
+                                   (fill-x (+ x 1)))))))))
+
          ;;; ============================================================
          ;;; Path Drawing
          ;;; ============================================================
@@ -564,7 +561,7 @@
                                    
                                    [else
                                     (loop (cdr cmds) c current-pos path-start)]))))))
-         
+
          ;;; ============================================================
          ;;; Styled Drawing
          ;;; ============================================================
@@ -619,5 +616,5 @@
                                 (draw-polyline canvas points stroke-ch)))]
                       
                       [else canvas])))
-         
+
          ) ; end library
