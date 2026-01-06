@@ -351,6 +351,12 @@
    ;; sqrt(0) = 0, sqrt(1) = 1
    [(and (eq? fn 'sqrt) (num? arg) (= (num-val arg) 0)) (num 0)]
    [(and (eq? fn 'sqrt) (num? arg) (= (num-val arg) 1)) (num 1)]
+   ;; sinh(0) = 0, cosh(0) = 1, tanh(0) = 0
+   [(and (eq? fn 'sinh) (num? arg) (= (num-val arg) 0)) (num 0)]
+   [(and (eq? fn 'cosh) (num? arg) (= (num-val arg) 0)) (num 1)]
+   [(and (eq? fn 'tanh) (num? arg) (= (num-val arg) 0)) (num 0)]
+   ;; atan(0) = 0
+   [(and (eq? fn 'atan) (num? arg) (= (num-val arg) 0)) (num 0)]
    [else (make-app fn arg)]))
 
 ;;; ============================================================

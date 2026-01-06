@@ -149,7 +149,31 @@
               ;; cos(0) = 1
               (let ([result (simplify (sym-cos (num 0)))])
                    (assert-true (num? result))
-                   (assert-equal 1 (num-val result)))))
+                   (assert-equal 1 (num-val result))))
+            
+            (define-test simplify-sinh-zero
+              ;; sinh(0) = 0
+              (let ([result (simplify (sym-sinh (num 0)))])
+                   (assert-true (num? result))
+                   (assert-equal 0 (num-val result))))
+            
+            (define-test simplify-cosh-zero
+              ;; cosh(0) = 1
+              (let ([result (simplify (sym-cosh (num 0)))])
+                   (assert-true (num? result))
+                   (assert-equal 1 (num-val result))))
+            
+            (define-test simplify-tanh-zero
+              ;; tanh(0) = 0
+              (let ([result (simplify (sym-tanh (num 0)))])
+                   (assert-true (num? result))
+                   (assert-equal 0 (num-val result))))
+            
+            (define-test simplify-atan-zero
+              ;; atan(0) = 0
+              (let ([result (simplify (sym-atan (num 0)))])
+                   (assert-true (num? result))
+                   (assert-equal 0 (num-val result)))))
 
 ;;; ============================================================
 ;;; expr-to-traced tests

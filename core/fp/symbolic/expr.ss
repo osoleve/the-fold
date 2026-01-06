@@ -589,6 +589,30 @@
 ;;; Square root.
 (define (sym-sqrt e) (make-app 'sqrt e))
 
+;;; sym-sinh : Expr → Expr
+;;; Hyperbolic sine.
+(define (sym-sinh e) (make-app 'sinh e))
+
+;;; sym-cosh : Expr → Expr
+;;; Hyperbolic cosine.
+(define (sym-cosh e) (make-app 'cosh e))
+
+;;; sym-tanh : Expr → Expr
+;;; Hyperbolic tangent.
+(define (sym-tanh e) (make-app 'tanh e))
+
+;;; sym-atan : Expr → Expr
+;;; Arctangent.
+(define (sym-atan e) (make-app 'atan e))
+
+;;; sym-asin : Expr → Expr
+;;; Arcsine.
+(define (sym-asin e) (make-app 'asin e))
+
+;;; sym-acos : Expr → Expr
+;;; Arccosine.
+(define (sym-acos e) (make-app 'acos e))
+
 ;;; sym-pi : Expr
 ;;; Constant pi.
 (define sym-pi (var 'pi))

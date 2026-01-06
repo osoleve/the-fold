@@ -7,7 +7,7 @@
 ;;;
 ;;; An ODE system is: dx/dt = f(t, x) where
 ;;;   x ∈ ℝⁿ is the state vector
-;;;   f : ℝ × ℝⁿ → ℝⁿ is the vector field
+;;;   f : Number × Numberⁿ → Numberⁿ is the vector field
 ;;;   For autonomous systems: dx/dt = f(x) (time-independent)
 ;;;
 ;;; This is Core code: pure, total, assumes reasonable input.
@@ -29,8 +29,8 @@
 ;;;   (ode-system vector-field dimension autonomous?)
 ;;;
 ;;; where:
-;;;   vector-field : (Number × Vec) → Vec  (non-autonomous)
-;;;              or  Vec → Vec             (autonomous)
+;;;   vector-field : (Number × Any) → Any  (non-autonomous)
+;;;              or  Vec → Any             (autonomous)
 ;;;   dimension : Nat (dimension of state space)
 ;;;   autonomous? : Boolean (time-independent?)
 
@@ -45,21 +45,21 @@
        (boolean? (cadddr sys))))
 
 ;;; Accessors
-;;; ode-vector-field : ODE → (ℝ × Vec → Vec)
+;;; ode-vector-field : Any → Any
 (define (ode-vector-field sys) (cadr sys))
 
-;;; ode-dimension : ODE → Nat
+;;; ode-dimension : Any → Nat
 (define (ode-dimension sys) (caddr sys))
 
-;;; ode-autonomous? : ODE → Bool
+;;; ode-autonomous? : Any → Bool
 (define (ode-autonomous? sys) (cadddr sys))
 
-;;; make-ode-system : (ℝ × Vec → Vec) × Nat × Bool → ODE
+;;; make-ode-system : (Number × Any → Any) × Nat × Bool → Any
 ;;; Create an ODE system with explicit autonomy flag.
 (define (make-ode-system vector-field dimension autonomous?)
   (list 'ode-system vector-field dimension autonomous?))
 
-;;; make-autonomous-ode : (Vec → Vec) × Nat → ODE
+;;; make-autonomous-ode : (Any → Any) × Nat → Any
 ;;; Create an autonomous ODE system: dx/dt = f(x).
 ;;; Wraps the vector field to accept (but ignore) time parameter.
 (define (make-autonomous-ode vector-field dimension)
@@ -68,7 +68,7 @@
    dimension
    #t))
 
-;;; make-nonautonomous-ode : (ℝ × Vec → Vec) × Nat → ODE
+;;; make-nonautonomous-ode : (Number × Any → Any) × Nat → Any
 ;;; Create a non-autonomous ODE system: dx/dt = f(t, x).
 (define (make-nonautonomous-ode vector-field dimension)
   (make-ode-system
@@ -80,13 +80,13 @@
 ;;; Vector Field Evaluation
 ;;; ============================================================
 
-;;; eval-vector-field : ODE × Number × Vec → Vec
+;;; eval-vector-field : Any × Number × Any → Any
 ;;; Evaluate the vector field at a given time and state.
 ;;; Returns the derivative dx/dt at the point (t, x).
 (define (eval-vector-field sys t state)
   ((ode-vector-field sys) t state))
 
-;;; eval-vector-field-batch : ODE × Number × (List Vec) → (List Vec)
+;;; eval-vector-field-batch : Any × Number × (List Any) → (List Any)
 ;;; Evaluate the vector field at multiple states at the same time.
 ;;; Useful for phase portrait computation.
 (define (eval-vector-field-batch sys t states)
@@ -96,7 +96,7 @@
 ;;; Flow and Trajectory
 ;;; ============================================================
 
-;;; make-flow-function : ODE → (ℝ × ℝ × Vec → Vec)
+;;; make-flow-function : Any → (Number × Number × Any → Any)
 ;;; Create a flow function φ(t, t0, x0) that represents the solution
 ;;; at time t starting from state x0 at time t0.
 ;;; Note: This is a symbolic/lazy representation - actual computation
@@ -107,7 +107,7 @@
           ;; The integrator should be provided separately
           `(flow ,sys ,t ,t0 ,x0)))
 
-;;; vector-field-norm : ODE × Number × Vec → Number
+;;; vector-field-norm : Any × Number × Any → Number
 ;;; Compute the magnitude of the vector field at a point.
 ;;; Useful for identifying equilibrium points (where ||f(x)|| ≈ 0).
 (define (vector-field-norm sys t state)
@@ -120,7 +120,7 @@
 ;;; Phase Space Utilities
 ;;; ============================================================
 
-;;; make-phase-space-grid : Number × Number × Nat × Number × Number × Nat → (List Vec)
+;;; make-phase-space-grid : Number × Number × Nat × Number × Number × Nat → (List Any)
 ;;; Create a rectangular grid of points in 2D phase space.
 ;;; For higher dimensions, use make-phase-space-grid-nd.
 ;;;
@@ -144,7 +144,7 @@
                                            (loop-x (+ i 1)
                                                    (cons (vector x y) row-result)))))))))))
 
-;;; compute-vector-field-grid : ODE × Number × (List Vec) → (List Vec)
+;;; compute-vector-field-grid : Any × Number × (List Any) → (List Any)
 ;;; Compute vector field values at a grid of points.
 ;;; Returns list of derivative vectors at each grid point.
 (define (compute-vector-field-grid sys t grid-points)
@@ -154,7 +154,7 @@
 ;;; Standard ODE Systems (Examples)
 ;;; ============================================================
 
-;;; exponential-growth : Number → ODE
+;;; exponential-growth : Number → Any
 ;;; Simple exponential growth: dx/dt = r*x
 ;;; Solution: x(t) = x₀ * exp(r*t)
 (define (exponential-growth r)
@@ -165,7 +165,7 @@
                (* r state)))
    1))
 
-;;; harmonic-oscillator : Number → ODE
+;;; harmonic-oscillator : Number → Any
 ;;; Simple harmonic oscillator: d²x/dt² = -ω²x
 ;;; As first-order system: dx/dt = v, dv/dt = -ω²x
 ;;; State: [position, velocity]
@@ -177,7 +177,7 @@
                 (vector v (- (* omega omega x)))))
    2))
 
-;;; damped-oscillator : Number × Number → ODE
+;;; damped-oscillator : Number × Number → Any
 ;;; Damped harmonic oscillator: d²x/dt² = -2ζω dx/dt - ω²x
 ;;; State: [position, velocity]
 (define (damped-oscillator omega zeta)
@@ -190,7 +190,7 @@
                            (* omega omega x)))))
    2))
 
-;;; lotka-volterra : Number × Number × Number × Number → ODE
+;;; lotka-volterra : Number × Number × Number × Number → Any
 ;;; Lotka-Volterra predator-prey model:
 ;;;   dx/dt = αx - βxy  (prey)
 ;;;   dy/dt = δxy - γy  (predator)
@@ -204,7 +204,7 @@
                         (- (* delta x y) (* gamma y)))))
    2))
 
-;;; lorenz-system : Number × Number × Number → ODE
+;;; lorenz-system : Number × Number × Number → Any
 ;;; Lorenz system (chaotic attractor):
 ;;;   dx/dt = σ(y - x)
 ;;;   dy/dt = x(ρ - z) - y
@@ -221,7 +221,7 @@
                         (- (* x y) (* beta z)))))
    3))
 
-;;; van-der-pol : Number → ODE
+;;; van-der-pol : Number → Any
 ;;; Van der Pol oscillator (limit cycle):
 ;;;   d²x/dt² = μ(1 - x²)dx/dt - x
 ;;; State: [position, velocity]
@@ -234,7 +234,7 @@
                         (- (* mu (- 1 (* x x)) v) x))))
    2))
 
-;;; pendulum : Number → ODE
+;;; pendulum : Number → Any
 ;;; Simple pendulum (nonlinear): d²θ/dt² = -g/L sin(θ)
 ;;; State: [angle, angular velocity]
 ;;; Normalized with g/L = 1
@@ -247,7 +247,7 @@
                         (- (* g-over-l (sin theta))))))
    2))
 
-;;; forced-oscillator : Number × Number × Number → ODE
+;;; forced-oscillator : Number × Number × Number → Any
 ;;; Forced oscillator: d²x/dt² = -ω₀²x + A·cos(ωt)
 ;;; Non-autonomous system (time-dependent forcing)
 ;;; State: [position, velocity]
@@ -261,7 +261,7 @@
                            (* amplitude (cos (* omega-drive t)))))))
    2))
 
-;;; linear-ode : Matrix → ODE
+;;; linear-ode : Any → Any
 ;;; Linear ODE system: dx/dt = Ax
 ;;; where A is an n×n matrix
 (define (linear-ode A)
@@ -275,14 +275,14 @@
 ;;; Equilibrium Points
 ;;; ============================================================
 
-;;; is-equilibrium? : ODE × Vec × Number → Bool
+;;; is-equilibrium? : Any × Any × Number → Bool
 ;;; Check if a point is an equilibrium (fixed point) within tolerance.
 ;;; An equilibrium satisfies f(x) = 0.
 (define (is-equilibrium? sys state tolerance)
   (let ([field-norm (vector-field-norm sys 0 state)])
        (< field-norm tolerance)))
 
-;;; find-equilibria-grid : ODE × (List Vec) × Number → (List Vec)
+;;; find-equilibria-grid : Any × (List Any) × Number → (List Any)
 ;;; Find approximate equilibrium points from a grid search.
 ;;; Returns points where ||f(x)|| < tolerance.
 (define (find-equilibria-grid sys grid-points tolerance)
@@ -293,7 +293,7 @@
 ;;; System Composition
 ;;; ============================================================
 
-;;; couple-ode-systems : ODE × ODE → ODE
+;;; couple-ode-systems : Any × Any → Any
 ;;; Couple two ODE systems into a single higher-dimensional system.
 ;;; The state vector is the concatenation [x1, x2].
 (define (couple-ode-systems sys1 sys2)
@@ -318,7 +318,7 @@
 ;;; Time Reversal
 ;;; ============================================================
 
-;;; reverse-time-ode : ODE → ODE
+;;; reverse-time-ode : Any → Any
 ;;; Create the time-reversed ODE system: dx/dt = -f(t, x)
 ;;; Useful for backward integration and analyzing reversibility.
 (define (reverse-time-ode sys)
@@ -338,7 +338,7 @@
 ;;; Coordinate Transformations
 ;;; ============================================================
 
-;;; transform-ode-system : ODE × (Vec → Vec) × (Vec → Vec) → ODE
+;;; transform-ode-system : Any × (Any → Any) × (Any → Any) → Any
 ;;; Transform an ODE system via a coordinate change.
 ;;; If y = T(x), then dy/dt = (DT)(x) · f(x)
 ;;; This is a simplified version - full implementation needs Jacobian.
