@@ -22,6 +22,14 @@
           draw-line
           draw-line-gradient
           
+          ;; Polyline and polygon
+          draw-polyline
+          draw-polygon
+          draw-filled-polygon
+          
+          ;; Path primitives
+          draw-path
+          
           ;; Enhanced box drawing
           draw-rounded-box
           
@@ -39,7 +47,14 @@
           intensity-palette-simple
           intensity-palette-blocks
           intensity-palette-dots
-          get-intensity-char)
+          get-intensity-char
+          
+          ;; Styling system
+          make-style
+          style-fill
+          style-stroke
+          style-opacity
+          draw-with-style)
          
          (import (chezscheme)
                  (shell layout)
@@ -340,5 +355,269 @@
                                          [ch (get-intensity-char palette intensity)])
                                         (loop-x (+ x 1)
                                                 (canvas-set c x y ch)))))))))
+         
+         ;;; ============================================================
+         ;;; Styling System
+         ;;; ============================================================
+         
+         ;;; Style record for stroke/fill/opacity configuration
+         (define-record-type style%
+           (fields fill stroke opacity))
+         
+         ;;; make-style : Char × Char × Real → Style
+         ;;; Create a style with fill character, stroke character, and opacity [0,1].
+         (define make-style make-style%)
+         
+         (define style-fill style%-fill)
+         (define style-stroke style%-stroke)
+         (define style-opacity style%-opacity)
+         
+         ;;; apply-opacity : Char × Real → Char
+         ;;; Apply opacity to a character (simplified ASCII version).
+         ;;; For opacity < 0.5, use space; otherwise use the character.
+         ;;; In a full implementation, this would blend with background.
+         (define (apply-opacity ch opacity)
+           (if (< opacity 0.5)
+               #\space
+               ch))
+         
+         ;;; ============================================================
+         ;;; Polyline Drawing
+         ;;; ============================================================
+         
+         ;;; draw-polyline : Canvas × (List Point) × Char → Canvas
+         ;;; Draw a series of connected line segments.
+         ;;; Points list must have at least 2 points.
+         (define (draw-polyline canvas points ch)
+           (if (or (null? points) (null? (cdr points)))
+               canvas
+               (let loop ([pts points] [c canvas])
+                    (if (null? (cdr pts))
+                        c
+                        (loop (cdr pts)
+                              (draw-line c (car pts) (cadr pts) ch))))))
+         
+         ;;; ============================================================
+         ;;; Polygon Drawing
+         ;;; ============================================================
+         
+         ;;; draw-polygon : Canvas × (List Point) × Char → Canvas
+         ;;; Draw a closed polygon (polyline with final edge back to start).
+         ;;; Points list must have at least 3 points.
+         (define (draw-polygon canvas points ch)
+           (if (or (null? points) (null? (cdr points)) (null? (cddr points)))
+               canvas
+               (let* ([c (draw-polyline canvas points ch)])
+                     ;; Close the polygon by connecting last point to first
+                     (draw-line c (car (reverse points)) (car points) ch))))
+         
+         ;;; point< : Point × Point → Boolean
+         ;;; Compare points for scanline sorting (by y, then x).
+         (define (point< p1 p2)
+           (let ([y1 (point-y p1)]
+                 [y2 (point-y p2)]
+                 [x1 (point-x p1)]
+                 [x2 (point-x p2)])
+                (or (< y1 y2)
+                    (and (= y1 y2) (< x1 x2)))))
+         
+         ;;; draw-filled-polygon : Canvas × (List Point) × Char → Canvas
+         ;;; Draw a filled polygon using scanline fill algorithm.
+         ;;; Points must be ordered (clockwise or counterclockwise).
+         (define (draw-filled-polygon canvas points ch)
+           (if (< (length points) 3)
+               canvas
+               (let* ([;; First draw the outline
+                       c (draw-polygon canvas points ch)]
+                      [;; Get bounding box
+                       xs (map point-x points)]
+                      [ys (map point-y points)]
+                      [min-y (apply min ys)]
+                      [max-y (apply max ys)])
+                     ;; Scanline fill
+                     (let loop-y ([y min-y] [c c])
+                          (if (> y max-y)
+                              c
+                              ;; Find intersections with polygon edges at this y
+                              (let ([intersections (find-intersections points y)])
+                                   (if (< (length intersections) 2)
+                                       (loop-y (+ y 1) c)
+                                       ;; Fill between pairs of intersections
+                                       (let ([sorted (sort intersections <)])
+                                            (loop-y (+ y 1)
+                                                    (fill-scanline c y sorted ch))))))))))
+         
+         ;;; find-intersections : (List Point) × Nat → (List Nat)
+         ;;; Find x-coordinates where horizontal line at y intersects polygon edges.
+         (define (find-intersections points y)
+           (let loop ([pts points]
+                      [first-pt (car points)]
+                      [result '()])
+                (if (null? (cdr pts))
+                    ;; Handle wrap-around edge from last to first point
+                    (let ([intersect (edge-intersection (car pts) first-pt y)])
+                         (if intersect
+                             (cons intersect result)
+                             result))
+                    (let* ([p1 (car pts)]
+                           [p2 (cadr pts)]
+                           [intersect (edge-intersection p1 p2 y)])
+                          (loop (cdr pts)
+                                first-pt
+                                (if intersect
+                                    (cons intersect result)
+                                    result))))))
+         
+         ;;; edge-intersection : Point × Point × Nat → Nat | #f
+         ;;; Find x-coordinate where edge (p1->p2) intersects horizontal line at y.
+         ;;; Returns #f if no intersection.
+         (define (edge-intersection p1 p2 y)
+           (let ([y1 (point-y p1)]
+                 [y2 (point-y p2)]
+                 [x1 (point-x p1)]
+                 [x2 (point-x p2)])
+                ;; Check if y is within edge's y range
+                (if (or (and (< y y1) (< y y2))
+                        (and (> y y1) (> y y2)))
+                    #f
+                    ;; Compute intersection x-coordinate
+                    (if (= y1 y2)
+                        ;; Horizontal edge - return start x
+                        x1
+                        ;; Interpolate x based on y
+                        (let* ([t (/ (- y y1) (- y2 y1))]
+                               [x (+ x1 (* t (- x2 x1)))])
+                              (inexact->exact (round x)))))))
+         
+         ;;; fill-scanline : Canvas × Nat × (List Nat) × Char → Canvas
+         ;;; Fill horizontal scanline between pairs of x-coordinates.
+         (define (fill-scanline canvas y xs ch)
+           (let loop ([coords xs] [c canvas])
+                (if (or (null? coords) (null? (cdr coords)))
+                    c
+                    (let ([x1 (car coords)]
+                          [x2 (cadr coords)])
+                         ;; Fill from x1 to x2
+                         (let fill-x ([x x1] [c c])
+                              (if (> x x2)
+                                  (loop (cddr coords) c)
+                                  (fill-x (+ x 1)
+                                          (canvas-set c x y ch))))))))
+         
+         ;;; ============================================================
+         ;;; Path Drawing
+         ;;; ============================================================
+         
+         ;;; A Path is a list of path commands:
+         ;;;   (move-to point)           - Move to point without drawing
+         ;;;   (line-to point)           - Draw line to point
+         ;;;   (quad-to control point)   - Quadratic bezier curve
+         ;;;   (close)                   - Close path back to start
+         
+         ;;; draw-path : Canvas × (List PathCommand) × Char → Canvas
+         ;;; Draw a path from a list of commands.
+         (define (draw-path canvas commands ch)
+           (if (null? commands)
+               canvas
+               (let loop ([cmds commands]
+                          [c canvas]
+                          [current-pos #f]
+                          [path-start #f])
+                    (if (null? cmds)
+                        c
+                        (let ([cmd (car cmds)])
+                             (case (car cmd)
+                                   [(move-to)
+                                    (let ([pt (cadr cmd)])
+                                         (loop (cdr cmds) c pt
+                                               (or path-start pt)))]
+                                   
+                                   [(line-to)
+                                    (if (not current-pos)
+                                        (loop (cdr cmds) c #f path-start)
+                                        (let* ([pt (cadr cmd)]
+                                               [c (draw-line c current-pos pt ch)])
+                                              (loop (cdr cmds) c pt path-start)))]
+                                   
+                                   [(quad-to)
+                                    ;; Simplified quadratic bezier: draw as two line segments
+                                    (if (not current-pos)
+                                        (loop (cdr cmds) c #f path-start)
+                                        (let* ([ctrl (cadr cmd)]
+                                               [end (caddr cmd)]
+                                               [mid (point
+                                                     (quotient (+ (point-x current-pos)
+                                                                  (point-x ctrl)) 2)
+                                                     (quotient (+ (point-y current-pos)
+                                                                  (point-y ctrl)) 2))]
+                                               [c (draw-line c current-pos mid ch)]
+                                               [c (draw-line c mid end ch)])
+                                              (loop (cdr cmds) c end path-start)))]
+                                   
+                                   [(close)
+                                    (if (and current-pos path-start)
+                                        (loop (cdr cmds)
+                                              (draw-line c current-pos path-start ch)
+                                              path-start
+                                              path-start)
+                                        (loop (cdr cmds) c current-pos path-start))]
+                                   
+                                   [else
+                                    (loop (cdr cmds) c current-pos path-start)]))))))
+         
+         ;;; ============================================================
+         ;;; Styled Drawing
+         ;;; ============================================================
+         
+         ;;; draw-with-style : Canvas × Shape × Style → Canvas
+         ;;; Draw a shape with the given style.
+         ;;; Shape is one of:
+         ;;;   (circle center radius)
+         ;;;   (rect origin width height)
+         ;;;   (polygon points)
+         ;;;   (polyline points)
+         ;;; Style controls fill, stroke, and opacity.
+         (define (draw-with-style canvas shape style)
+           (let ([fill-ch (apply-opacity (style-fill style) (style-opacity style))]
+                 [stroke-ch (apply-opacity (style-stroke style) (style-opacity style))])
+                (case (car shape)
+                      [(circle)
+                       (let ([center (cadr shape)]
+                             [radius (caddr shape)])
+                            (let ([c (if (char=? fill-ch #\space)
+                                         canvas
+                                         (draw-filled-circle canvas center radius fill-ch))])
+                                 (if (char=? stroke-ch #\space)
+                                     c
+                                     (draw-circle c center radius stroke-ch))))]
+                      
+                      [(rect)
+                       (let* ([origin (cadr shape)]
+                              [width (caddr shape)]
+                              [height (cadddr shape)]
+                              [rect (make-rect origin width height)])
+                             (let ([c (if (char=? fill-ch #\space)
+                                          canvas
+                                          (fill-rect canvas rect fill-ch))])
+                                  (if (char=? stroke-ch #\space)
+                                      c
+                                      (draw-box c rect 'ascii))))]
+                      
+                      [(polygon)
+                       (let ([points (cadr shape)])
+                            (let ([c (if (char=? fill-ch #\space)
+                                         canvas
+                                         (draw-filled-polygon canvas points fill-ch))])
+                                 (if (char=? stroke-ch #\space)
+                                     c
+                                     (draw-polygon c points stroke-ch))))]
+                      
+                      [(polyline)
+                       (let ([points (cadr shape)])
+                            (if (char=? stroke-ch #\space)
+                                canvas
+                                (draw-polyline canvas points stroke-ch)))]
+                      
+                      [else canvas])))
          
          ) ; end library
