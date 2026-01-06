@@ -54,7 +54,10 @@
           style-fill
           style-stroke
           style-opacity
-          draw-with-style)
+          draw-with-style
+          
+          ;; Alpha blending
+          apply-opacity-block)
          
          (import (chezscheme)
                  (shell layout)
@@ -369,13 +372,31 @@
          (define style-opacity style%-opacity)
 
          ;;; apply-opacity : Char × Real → Char
-         ;;; Apply opacity to a character (simplified ASCII version).
-         ;;; For opacity < 0.5, use space; otherwise use the character.
-         ;;; In a full implementation, this would blend with background.
+         ;;; Apply opacity to a character using smooth alpha blending.
+         ;;; Maps opacity [0,1] to intensity-palette-blocks for gradual fade.
+         ;;;
+         ;;; For special characters (ASCII art), high opacity (>0.75) preserves
+         ;;; the original character. Lower opacities use block shading.
          (define (apply-opacity ch opacity)
-           (if (< opacity 0.5)
-               #\space
-               ch))
+           (let ([clamped (max 0.0 (min 1.0 opacity))])
+                (cond
+                 ;; Fully transparent
+                 [(< clamped 0.1) #\space]
+                 ;; High opacity: preserve original character
+                 [(> clamped 0.75) ch]
+                 ;; Medium-high: use dark shade or original for blocks
+                 [(> clamped 0.5)
+                  (if (char=? ch #\█) #\▓ ch)]
+                 ;; Medium-low: use medium shade
+                 [(> clamped 0.25) #\▒]
+                 ;; Low: use light shade
+                 [else #\░])))
+
+         ;;; apply-opacity-block : Real → Char
+         ;;; Get a block character based on opacity alone.
+         ;;; Useful for creating opacity-based gradients and effects.
+         (define (apply-opacity-block opacity)
+           (get-intensity-char intensity-palette-blocks opacity))
 
          ;;; ============================================================
          ;;; Polyline Drawing

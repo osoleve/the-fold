@@ -372,6 +372,92 @@
         "]")))
 
 ;;; ============================================================
+;;; Alpha Compositing
+;;; ============================================================
+
+;;; Block shading palette for alpha blending.
+;;; Characters ordered from transparent to opaque.
+(define alpha-palette '(#\space #\░ #\▒ #\▓ #\█))
+
+;;; blend-chars : Char × Char × Real → Char
+;;; Blend two characters based on alpha value [0,1].
+;;; Alpha 0 = fully dest, Alpha 1 = fully src.
+;;;
+;;; For ASCII art, blending uses a threshold approach:
+;;;   - Low alpha (<0.25): use destination char
+;;;   - Medium-low (0.25-0.5): use light shade
+;;;   - Medium-high (0.5-0.75): use dark shade or source
+;;;   - High (>0.75): use source char
+(define (blend-chars dest-ch src-ch alpha)
+  (let ([clamped (max 0.0 (min 1.0 alpha))])
+       (cond
+        ;; Fully transparent - use dest
+        [(< clamped 0.1) dest-ch]
+        ;; Low alpha - light hint of source
+        [(< clamped 0.25)
+         (if (char=? dest-ch #\space) #\░ dest-ch)]
+        ;; Medium-low - visible blend
+        [(< clamped 0.5) #\▒]
+        ;; Medium-high - mostly source
+        [(< clamped 0.75) #\▓]
+        ;; High alpha - use source
+        [else src-ch])))
+
+;;; composite-with-alpha : Canvas × Canvas × Point × Real → Canvas
+;;; Overlay source canvas onto destination at given position with alpha.
+;;; Alpha value [0,1] controls blending of source onto destination.
+;;;
+;;; Unlike composite-transparent (which skips transparent cells),
+;;; this function blends all cells based on the alpha value.
+(define (composite-with-alpha dest src pt alpha)
+  (let ([ox (point-x pt)]
+        [oy (point-y pt)]
+        [sw (canvas-width src)]
+        [sh (canvas-height src)])
+       (let loop-y ([y 0] [canvas dest])
+            (if (>= y sh)
+                canvas
+                (let loop-x ([x 0] [canvas canvas])
+                     (if (>= x sw)
+                         (loop-y (+ y 1) canvas)
+                         (let* ([src-ch (canvas-ref src x y)]
+                                [dx (+ ox x)]
+                                [dy (+ oy y)]
+                                [dest-ch (canvas-ref canvas dx dy)]
+                                [blended (blend-chars dest-ch src-ch alpha)])
+                               (loop-x (+ x 1)
+                                       (canvas-set canvas dx dy blended)))))))))
+
+;;; Extended Layer with Opacity
+;;; The standard layer has depth but no opacity. For layers with opacity,
+;;; use these functions that work with opacity stored in layer properties.
+
+;;; layer-with-opacity : Layer × Real → (Layer . Real)
+;;; Create a layer with associated opacity for alpha compositing.
+(define (layer-with-opacity layer opacity)
+  (cons layer (max 0.0 (min 1.0 opacity))))
+
+;;; flatten-layers-with-alpha : List (Layer . Real) × Nat × Nat → Canvas
+;;; Composite layers with individual opacity values.
+;;; Input is a list of (layer . opacity) pairs, sorted by depth.
+(define (flatten-layers-with-alpha layer-pairs width height)
+  (let ([initial-canvas (make-canvas width height)])
+       (let loop ([pairs layer-pairs]
+                  [canvas initial-canvas])
+            (if (null? pairs)
+                canvas
+                (let* ([pair (car pairs)]
+                       [layer (car pair)]
+                       [alpha (cdr pair)])
+                      (if (layer-visible layer)
+                          (loop (cdr pairs)
+                                (composite-with-alpha canvas
+                                                      (layer-canvas layer)
+                                                      (layer-offset layer)
+                                                      alpha))
+                          (loop (cdr pairs) canvas)))))))
+
+;;; ============================================================
 ;;; Export Summary
 ;;; ============================================================
 ;;;
@@ -389,6 +475,8 @@
 ;;;
 ;;; Composition:
 ;;;   composite-transparent, flatten-layers
+;;;   composite-with-alpha, blend-chars, flatten-layers-with-alpha
+;;;   layer-with-opacity, alpha-palette
 ;;;
 ;;; Helpers:
 ;;;   make-background-layer, make-sprite-layer, make-ui-layer
@@ -397,3 +485,6 @@
 ;;;
 ;;; Debug:
 ;;;   layer->string, stack->string
+;;;
+;;; Alpha Compositing:
+;;;   composite-with-alpha, blend-chars, layer-set-opacity
