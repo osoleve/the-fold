@@ -79,7 +79,8 @@
     (perf-monitor analysis "Real-time performance monitoring dashboard" "perf-monitor.ss")
     (benchmark analysis "Benchmarking harness with statistics" "tools/benchmark.ss")
     (coverage analysis "Code coverage analyzer" "tools/coverage.ss")
-    (dead-code analysis "Dead code and unused binding detection" "tools/dead-code.ss")))
+    (dead-code analysis "Dead code and unused binding detection" "tools/dead-code.ss")
+    (type-search analysis "Type-driven search and suggestions" "tools/type-search.ss")))
 
 ;;; ============================================================
 ;;; Help System
