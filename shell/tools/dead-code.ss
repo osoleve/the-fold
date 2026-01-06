@@ -35,11 +35,18 @@
 ;;; All defined symbols found
 (define *all-definitions* '())
 
-;;; All referenced symbols found
+;;; All referenced symbols found - now stores (count . source-files)
 (define *all-references* (make-eq-hashtable))
 
 ;;; Unused symbols detected
 (define *unused-symbols* '())
+
+;;; Confidence levels for dead code:
+;;;   - definitely-dead: Zero references anywhere
+;;;   - probably-dead: Only self-references or only in test files
+;;;   - possibly-dead: Only 1-2 callers (candidates for inlining)
+;;;   - low-usage: Referenced but in limited contexts
+(define *dead-code-by-confidence* '())
 
 ;;; Built-in/standard symbols to ignore
 (define *ignore-symbols*
@@ -96,6 +103,7 @@
 
 ;;; collect-references : String -> void
 ;;; Collect all symbol references from a file into *all-references*.
+;;; Now tracks count and source files for each symbol.
 (define (collect-references file)
   (guard (e [else (void)])
          (call-with-input-file file
@@ -106,19 +114,131 @@
                                                   [(eof-object? expr) (void)]
                                                   [(not expr) (void)]
                                                   [else
-                                                   (walk-for-refs expr)
+                                                   (walk-for-refs expr file)
                                                    (loop)])))))))
 
-;;; walk-for-refs : S-expr -> void
-;;; Walk expression tree and record all symbol references.
-(define (walk-for-refs expr)
+;;; walk-for-refs : S-expr × String -> void
+;;; Walk expression tree and record all symbol references with source file.
+(define (walk-for-refs expr file)
   (cond
    [(symbol? expr)
-    (hashtable-set! *all-references* expr #t)]
+    (let ([existing (hashtable-ref *all-references* expr #f)])
+         (if existing
+             ;; Update count and add file if not already there
+             (let ([count (car existing)]
+                   [files (cdr existing)])
+                  (hashtable-set! *all-references* expr
+                                  (cons (+ count 1)
+                                        (if (member file files) files (cons file files)))))
+             ;; New entry
+             (hashtable-set! *all-references* expr (cons 1 (list file)))))]
    [(pair? expr)
-    (walk-for-refs (car expr))
-    (walk-for-refs (cdr expr))]
+    (walk-for-refs (car expr) file)
+    (walk-for-refs (cdr expr) file)]
    [else (void)]))
+
+;;; get-ref-count : Symbol -> Nat
+;;; Get reference count for a symbol.
+(define (get-ref-count sym)
+  (let ([entry (hashtable-ref *all-references* sym #f)])
+       (if entry (car entry) 0)))
+
+;;; get-ref-files : Symbol -> (List String)
+;;; Get files that reference a symbol.
+(define (get-ref-files sym)
+  (let ([entry (hashtable-ref *all-references* sym #f)])
+       (if entry (cdr entry) '())))
+
+;;; ============================================================
+;;; Confidence Level Classification
+;;; ============================================================
+
+;;; classify-definition : (sym file line) -> (sym file line confidence reason)
+;;; Classify a definition by how likely it is to be dead code.
+(define (classify-definition def)
+  (let* ([sym (car def)]
+         [def-file (cadr def)]
+         [line (caddr def)]
+         [ref-count (get-ref-count sym)]
+         [ref-files (get-ref-files sym)])
+        (cond
+         ;; Skip built-ins and test-related
+         [(or (memq sym *ignore-symbols*)
+              (test-related? sym)
+              (exported? sym def-file))
+          #f]
+         
+         ;; Definitely dead: zero references anywhere
+         [(= ref-count 0)
+          (list sym def-file line 'definitely-dead "no references")]
+         
+         ;; Probably dead: only referenced from test files (not from main code)
+         [(all-test-files? ref-files)
+          (list sym def-file line 'probably-dead
+                (format "only ~a refs in test files" ref-count))]
+         
+         ;; Internal helpers: only self-references from same file
+         ;; This is NORMAL for internal/private helpers - low priority
+         [(and (= (length ref-files) 1)
+               (string=? (car ref-files) def-file))
+          ;; Only flag if very few references (might be dead code within the module)
+          (if (<= ref-count 2)
+              (list sym def-file line 'low-usage
+                    (format "internal helper with ~a refs" ref-count))
+              #f)]  ; Internal helper with many refs is fine
+         
+         ;; Possibly dead: very few callers from OTHER files (candidates for inlining)
+         [(and (<= ref-count 2) (<= (length ref-files) 2))
+          (list sym def-file line 'possibly-dead
+                (format "only ~a refs in ~a files" ref-count (length ref-files)))]
+         
+         ;; Low usage: few callers but not dead
+         [(<= ref-count 5)
+          (list sym def-file line 'low-usage
+                (format "~a refs in ~a files" ref-count (length ref-files)))]
+         
+         ;; Well-used
+         [else #f])))
+
+;;; all-test-files? : (List String) -> Boolean
+;;; Check if all files are test files.
+(define (all-test-files? files)
+  (and (not (null? files))
+       (andmap test-file? files)))
+
+;;; test-file? : String -> Boolean
+(define (test-file? file)
+  (or (string-contains? file "test-")
+      (string-contains? file "-test")
+      (string-contains? file "/tests/")
+      (string-contains? file "/test/")))
+
+;;; string-contains? : String × String -> Boolean
+(define (string-contains? str sub)
+  (let ([slen (string-length str)]
+        [sublen (string-length sub)])
+       (let loop ([i 0])
+            (cond
+             [(> (+ i sublen) slen) #f]
+             [(string-prefix-at? str sub i) #t]
+             [else (loop (+ i 1))]))))
+
+;;; string-prefix-at? : String × String × Nat -> Boolean
+(define (string-prefix-at? str prefix start)
+  (let ([plen (string-length prefix)]
+        [slen (string-length str)])
+       (and (<= (+ start plen) slen)
+            (let loop ([i 0])
+                 (or (>= i plen)
+                     (and (char=? (string-ref str (+ start i))
+                                  (string-ref prefix i))
+                          (loop (+ i 1))))))))
+
+;;; andmap : (A -> Bool) × (List A) -> Bool
+(define (andmap pred lst)
+  (or (null? lst)
+      (and (pred (car lst))
+           (andmap pred (cdr lst)))))
 
 ;;; ============================================================
 ;;; Dead Code Detection
@@ -161,8 +281,8 @@
                         [else
                          (loop rest results)]))))))
 
-;;; dead-code-scan : [String] -> (List (symbol file line))
-;;; Scan for unused definitions.
+;;; dead-code-scan : [String] -> (List classified-def)
+;;; Scan for unused/low-usage definitions with confidence levels.
 (define (dead-code-scan . args)
   (let ([dir (if (null? args) "." (car args))])
        
@@ -174,6 +294,7 @@
        (set! *all-definitions* '())
        (hashtable-clear! *all-references*)
        (set! *unused-symbols* '())
+       (set! *dead-code-by-confidence* '())
        
        ;; Find all files
        (let ([files (find-scheme-files dir)])
@@ -195,48 +316,100 @@
             (printf "    Found ~a unique references\n"
                     (hashtable-size *all-references*))
             
-            ;; Phase 3: Find unreferenced definitions
-            (display "  Phase 3: Finding unused definitions...\n")
-            (let ([unused '()])
-                 (for-each
-                  (lambda (def)
-                          (let ([sym (car def)]
-                                [file (cadr def)]
-                                [line (caddr def)])
-                               (unless (or (hashtable-ref *all-references* sym #f)
-                                           (memq sym *ignore-symbols*)
-                                           (test-related? sym)
-                                           (exported? sym file))
-                                       (set! unused (cons def unused)))))
-                  *all-definitions*)
+            ;; Phase 3: Classify all definitions
+            (display "  Phase 3: Classifying definitions...\n")
+            (let ([classified (filter identity
+                                      (map classify-definition *all-definitions*))])
                  
-                 (set! *unused-symbols* unused)
-                 
-                 ;; Report results
-                 (display "\n")
-                 (display "  ════════════════════════════════════════\n")
-                 (printf "  UNUSED DEFINITIONS: ~a\n" (length unused))
-                 (display "  ════════════════════════════════════════\n\n")
-                 
-                 (if (null? unused)
-                     (display "    No unused definitions found.\n")
-                     (begin
-                      ;; Group by file
-                      (let ([by-file (group-by-file unused)])
-                           (for-each
-                            (lambda (group)
-                                    (printf "  ~a:\n" (car group))
-                                    (for-each
-                                     (lambda (def)
-                                             (printf "    Line ~a: ~a\n"
-                                                     (caddr def)
-                                                     (car def)))
-                                     (cdr group))
-                                    (display "\n"))
-                            by-file))))
-                 
-                 (display "\n")
-                 unused))))
+                 ;; Group by confidence level
+                 (let ([definitely-dead (filter (lambda (c) (eq? (list-ref c 3) 'definitely-dead)) classified)]
+                       [probably-dead (filter (lambda (c) (eq? (list-ref c 3) 'probably-dead)) classified)]
+                       [possibly-dead (filter (lambda (c) (eq? (list-ref c 3) 'possibly-dead)) classified)]
+                       [low-usage (filter (lambda (c) (eq? (list-ref c 3) 'low-usage)) classified)])
+                      
+                      (set! *dead-code-by-confidence*
+                            (list (cons 'definitely-dead definitely-dead)
+                                  (cons 'probably-dead probably-dead)
+                                  (cons 'possibly-dead possibly-dead)
+                                  (cons 'low-usage low-usage)))
+                      
+                      ;; Also set *unused-symbols* for backwards compatibility
+                      (set! *unused-symbols* definitely-dead)
+                      
+                      ;; Report results
+                      (display "\n")
+                      (display "  ════════════════════════════════════════════════════════════\n")
+                      (display "                     DEAD CODE ANALYSIS RESULTS               \n")
+                      (display "  ════════════════════════════════════════════════════════════\n\n")
+                      
+                      ;; Report definitely dead
+                      (report-confidence-level 'definitely-dead "DEFINITELY DEAD" "🔴"
+                                               "Zero references - safe to delete"
+                                               definitely-dead)
+                      
+                      ;; Report probably dead
+                      (report-confidence-level 'probably-dead "PROBABLY DEAD" "🟠"
+                                               "Only self-refs or only in test files"
+                                               probably-dead)
+                      
+                      ;; Report possibly dead
+                      (report-confidence-level 'possibly-dead "POSSIBLY DEAD" "🟡"
+                                               "Very few callers - inline candidates"
+                                               possibly-dead)
+                      
+                      ;; Report low usage (optionally)
+                      (when (> (length low-usage) 0)
+                            (printf "\n  Low Usage (~a): Use (dead-code-show 'low-usage) to see.\n"
+                                    (length low-usage)))
+                      
+                      ;; Summary
+                      (display "\n")
+                      (display "  ────────────────────────────────────────────────────────────\n")
+                      (printf "  Summary: ~a definitely, ~a probably, ~a possibly dead\n"
+                              (length definitely-dead)
+                              (length probably-dead)
+                              (length possibly-dead))
+                      (display "  Use (dead-code-show 'level) to see details for a level.\n\n")
+                      
+                      classified)))))
+
+;;; report-confidence-level : Symbol × String × String × String × List -> void
+(define (report-confidence-level level label icon desc items)
+  (printf "\n  ~a ~a (~a)\n" icon label (length items))
+  (printf "  ~a\n" desc)
+  (display "  ────────────────────────────────\n")
+  (if (null? items)
+      (display "    (none)\n")
+      (for-each
+       (lambda (item)
+               (let ([sym (car item)]
+                     [file (cadr item)]
+                     [line (caddr item)]
+                     [reason (list-ref item 4)])
+                    (printf "    ~a (~a:~a)\n      ~a\n"
+                            sym file line reason)))
+       (take-up-to items 15)))
+  (when (> (length items) 15)
+        (printf "    ... and ~a more\n" (- (length items) 15))))
+
+;;; dead-code-show : Symbol -> void
+;;; Show details for a confidence level.
+(define (dead-code-show level)
+  (let ([group (assq level *dead-code-by-confidence*)])
+       (if (not group)
+           (begin
+            (display "\n  Unknown level. Valid levels:\n")
+            (display "    'definitely-dead, 'probably-dead, 'possibly-dead, 'low-usage\n\n"))
+           (let ([items (cdr group)])
+                (printf "\n  ~a (~a items):\n" level (length items))
+                (display "  ────────────────────────────────\n")
+                (for-each
+                 (lambda (item)
+                         (printf "    ~a (~a:~a)\n      ~a\n"
+                                 (car item) (cadr item) (caddr item)
+                                 (list-ref item 4)))
+                 items)
+                (display "\n")))))
 
 ;;; group-by-file : (List (sym file line)) -> (List (file . defs))
 (define (group-by-file defs)
@@ -271,11 +444,23 @@
 
 ;;; exported? : Symbol × String -> Boolean
 ;;; Check if symbol might be exported from the module.
-;;; This is a heuristic - checks if the file has (export ...).
+;;; More conservative: only considers explicitly exported if file has export form.
 (define (exported? sym file)
-  ;; For now, assume public if starts with no underscore
   (let ([name (symbol->string sym)])
-       (not (string-starts-with? name "_"))))
+       (or
+        ;; Private by convention (underscore prefix)
+        ;; These are NEVER exported, so return #f to include them in analysis
+        ;; (Actually we want to include them, so this should be negated below)
+        
+        ;; Check if it's a public API by name pattern
+        ;; Entry points typically start with the module name or are common API patterns
+        (and (or (string-starts-with? name "dead-code-")
+                 (string-starts-with? name "refactor-")
+                 (string-starts-with? name "type-search-")
+                 (string-starts-with? name "lens-")
+                 (string-starts-with? name "index-"))
+             ;; But only if it doesn't start with underscore
+             (not (string-starts-with? name "_"))))))
 
 ;;; ============================================================
 ;;; Unused Local Bindings
@@ -488,6 +673,12 @@
   (display "    (dead-code-scan)              Scan entire codebase\n")
   (display "    (dead-code-scan \"dir\")        Scan specific directory\n")
   (display "    (dead-code-stats)             Show analysis statistics\n")
+  (display "\n")
+  (display "  Confidence Levels:\n")
+  (display "    (dead-code-show 'definitely-dead)  Zero references\n")
+  (display "    (dead-code-show 'probably-dead)    Only self/test refs\n")
+  (display "    (dead-code-show 'possibly-dead)    1-2 callers only\n")
+  (display "    (dead-code-show 'low-usage)        Few callers (<6)\n")
   (display "\n")
   (display "  File Analysis:\n")
   (display "    (dead-code-file \"file.ss\")    Find unused locals in file\n")
