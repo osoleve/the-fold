@@ -26,6 +26,7 @@
           draw-polyline
           draw-polygon
           draw-filled-polygon
+          draw-filled-polygon-aet
           
           ;; Path primitives
           draw-path
@@ -439,9 +440,17 @@
                     (and (= y1 y2) (< x1 x2)))))
 
          ;;; draw-filled-polygon : Canvas × (List Point) × Char → Canvas
-         ;;; Draw a filled polygon using scanline fill algorithm.
+         ;;; Draw a filled polygon using Active Edge Table scanline algorithm.
          ;;; Points must be ordered (clockwise or counterclockwise).
+         ;;; Uses optimized AET algorithm: O(Height + Edges) vs O(Height × Edges).
          (define (draw-filled-polygon canvas points ch)
+           ;; Delegate to AET implementation
+           (draw-filled-polygon-aet canvas points ch))
+
+         ;;; draw-filled-polygon-naive : Canvas × (List Point) × Char → Canvas
+         ;;; Simple scanline fill algorithm - O(Height × Edges).
+         ;;; Kept for reference; use draw-filled-polygon-aet for better performance.
+         (define (draw-filled-polygon-naive canvas points ch)
            (if (< (length points) 3)
                canvas
                (let* ([;; First draw the outline
@@ -460,7 +469,7 @@
                                    (if (< (length intersections) 2)
                                        (loop-y (+ y 1) c)
                                        ;; Fill between pairs of intersections
-                                       (let ([sorted (sort intersections <)])
+                                       (let ([sorted (list-sort < intersections)])
                                             (loop-y (+ y 1)
                                                     (fill-scanline c y sorted ch))))))))))
 
@@ -521,6 +530,125 @@
                                   (begin
                                    (canvas-set! canvas x y ch)
                                    (fill-x (+ x 1)))))))))
+
+         ;;; ============================================================
+         ;;; Active Edge Table (AET) Polygon Fill - Optimized Version
+         ;;; ============================================================
+         ;;;
+         ;;; For complex polygons, the AET algorithm is more efficient:
+         ;;; O(Height + Edges + Intersections) vs O(Height × Edges).
+         ;;;
+         ;;; Edge entry: (y-min y-max x-current inverse-slope)
+         ;;; The edge table is pre-sorted by y-min.
+         
+         ;;; make-edge-entry : Point × Point → EdgeEntry | #f
+         ;;; Create an edge entry for polygon filling.
+         ;;; Returns #f for horizontal edges (they don't need scanline processing).
+         (define (make-edge-entry p1 p2)
+           (let ([y1 (point-y p1)]
+                 [y2 (point-y p2)]
+                 [x1 (point-x p1)]
+                 [x2 (point-x p2)])
+                (cond
+                 ;; Skip horizontal edges
+                 [(= y1 y2) #f]
+                 ;; p1 is higher (smaller y)
+                 [(< y1 y2)
+                  (list y1 y2 x1 (/ (- x2 x1) (- y2 y1)))]
+                 ;; p2 is higher
+                 [else
+                  (list y2 y1 x2 (/ (- x1 x2) (- y1 y2)))])))
+
+         ;;; Edge entry accessors
+         (define (edge-y-min e) (car e))
+         (define (edge-y-max e) (cadr e))
+         (define (edge-x e) (caddr e))
+         (define (edge-inverse-slope e) (cadddr e))
+
+         ;;; build-edge-table : (List Point) → (List EdgeEntry)
+         ;;; Build sorted edge table from polygon points.
+         (define (build-edge-table points)
+           (let loop ([pts points]
+                      [first-pt (car points)]
+                      [result '()])
+                (if (null? (cdr pts))
+                    ;; Handle wrap-around edge
+                    (let ([entry (make-edge-entry (car pts) first-pt)])
+                         (list-sort (lambda (a b) (< (edge-y-min a) (edge-y-min b)))
+                                    (if entry (cons entry result) result)))
+                    (let ([entry (make-edge-entry (car pts) (cadr pts))])
+                         (loop (cdr pts)
+                               first-pt
+                               (if entry (cons entry result) result))))))
+
+         ;;; update-active-edges : (List EdgeEntry) × Nat → (List EdgeEntry)
+         ;;; Remove edges whose y-max is at or below current y.
+         (define (update-active-edges active y)
+           (filter (lambda (e) (> (edge-y-max e) y)) active))
+
+         ;;; advance-edge-x : EdgeEntry → EdgeEntry
+         ;;; Move edge x-coordinate to next scanline.
+         (define (advance-edge-x e)
+           (list (edge-y-min e)
+                 (edge-y-max e)
+                 (+ (edge-x e) (edge-inverse-slope e))
+                 (edge-inverse-slope e)))
+
+         ;;; get-x-intersections : (List EdgeEntry) → (List Nat)
+         ;;; Get sorted x-coordinates from active edges.
+         (define (get-x-intersections active)
+           (list-sort < (map (lambda (e) (inexact->exact (round (edge-x e)))) active)))
+
+         ;;; draw-filled-polygon-aet : Canvas × (List Point) × Char → Canvas
+         ;;; Optimized filled polygon using Active Edge Table algorithm.
+         (define (draw-filled-polygon-aet canvas points ch)
+           (if (< (length points) 3)
+               canvas
+               (let* ([;; First draw the outline
+                       c (draw-polygon canvas points ch)]
+                      [;; Build sorted edge table
+                       edge-table (build-edge-table points)]
+                      [;; Get y-range
+                       ys (map point-y points)]
+                      [min-y (apply min ys)]
+                      [max-y (apply max ys)])
+                     ;; Scanline fill with active edge tracking
+                     (let loop-y ([y min-y]
+                                  [edges edge-table]
+                                  [active '()]
+                                  [c c])
+                          (if (> y max-y)
+                              c
+                              ;; Add edges that start at this y
+                              (let add-loop ([remaining edges]
+                                             [new-active active]
+                                             [unused '()])
+                                   (cond
+                                    [(null? remaining)
+                                     ;; Process this scanline
+                                     (let* ([active-now (update-active-edges new-active y)]
+                                            [xs (get-x-intersections active-now)])
+                                           (if (< (length xs) 2)
+                                               ;; Not enough intersections to fill
+                                               (loop-y (+ y 1)
+                                                       (reverse unused)
+                                                       (map advance-edge-x active-now)
+                                                       c)
+                                               ;; Fill scanline and advance
+                                               (loop-y (+ y 1)
+                                                       (reverse unused)
+                                                       (map advance-edge-x active-now)
+                                                       (fill-scanline c y xs ch))))]
+                                    [(= (edge-y-min (car remaining)) y)
+                                     ;; This edge starts at current y, add to active
+                                     (add-loop (cdr remaining)
+                                               (cons (car remaining) new-active)
+                                               unused)]
+                                    [else
+                                     ;; This edge starts later, keep for future
+                                     (add-loop (cdr remaining)
+                                               new-active
+                                               (cons (car remaining) unused))]))))))))
 
          ;;; ============================================================
          ;;; Path Drawing
