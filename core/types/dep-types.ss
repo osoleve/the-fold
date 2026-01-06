@@ -57,6 +57,23 @@
 ;;;   (data (Vec (n : Nat) A)
 ;;;     [nil  : (Vec 0 A)]
 ;;;     [cons : (Π ((x : A)) (Π ((m : Nat)) (Π ((xs : (Vec m A))) (Vec (succ m) A))))])
+;;;
+;;; Module Signatures (dependent types integration):
+;;;
+;;;   (sig Name
+;;;     [type T : Kind]           ; Abstract type declaration
+;;;     [type T = Type]           ; Type alias (transparent)
+;;;     [val name : Type]         ; Value export
+;;;     [data DataDecl]           ; Inductive type export
+;;;     [include SigName])        ; Signature inclusion
+;;;
+;;; Example:
+;;;   (sig Stack
+;;;     [type T : Type]                              ; Element type (abstract)
+;;;     [type Stack : (-> Type Type)]                ; Stack type constructor
+;;;     [val empty : (Π ((A : Type)) (Stack A))]     ; Polymorphic empty
+;;;     [val push : (Π ((A : Type)) (Π ((x : A)) (Π ((s : (Stack A))) (Stack A))))]
+;;;     [val pop : (Π ((A : Type)) (Π ((s : (Stack A))) (Stack A)))])
 
 ;;; ============================================================
 ;;; Dependent Type Predicates
@@ -104,7 +121,7 @@
 (define (dep-type? t)
   (or (pi-type? t) (sigma-type? t) (universe-type? t)
       (vec-type? t) (matrix-type? t) (equality-type? t)
-      (refinement-type? t) (data-type? t)))
+      (refinement-type? t) (data-type? t) (sig-type? t)))
 
 ;;; ============================================================
 ;;; Pi Type Operations
@@ -447,6 +464,222 @@
            [(eq? t name) #t]
            [(and (pair? t) (eq? (car t) name)) #t]
            [else #f])))
+
+;;; ============================================================
+;;; Module Signature Types
+;;; ============================================================
+;;;
+;;; Module signatures describe the interface of a module with
+;;; support for dependent types.
+;;;
+;;; Syntax: (sig Name decl ...)
+;;;
+;;; Declaration forms:
+;;;   [type T : Kind]     ; Abstract type with kind
+;;;   [type T = Type]     ; Type alias (transparent)
+;;;   [val name : Type]   ; Value declaration
+;;;   [data DataDecl]     ; Inductive type export
+;;;   [include SigName]   ; Include another signature
+;;;
+;;; Structure:
+;;;   car = 'sig
+;;;   cadr = signature name (symbol)
+;;;   cddr = list of declarations
+
+;;; sig-type? : SExpr → Boolean
+;;; Check if this is a module signature.
+(define (sig-type? t)
+  (and (pair? t) (eq? (car t) 'sig)))
+
+;;; sig-well-formed? : SExpr → Boolean
+;;; Check if a signature is well-formed.
+(define (sig-well-formed? t)
+  (and (pair? t)
+       (eq? (car t) 'sig)
+       (>= (length t) 2)
+       (symbol? (cadr t))
+       (andmap sig-decl? (cddr t))))
+
+;;; sig-decl? : SExpr → Boolean
+;;; Check if this is a valid signature declaration.
+(define (sig-decl? d)
+  (and (list? d)
+       (>= (length d) 2)
+       (memq (car d) '(type val data include))))
+
+;;; sig-name : Signature → Symbol
+;;; Get the name of a signature.
+(define (sig-name sig)
+  (if (sig-type? sig)
+      (cadr sig)
+      #f))
+
+;;; sig-decls : Signature → (List Decl)
+;;; Get the declarations of a signature.
+(define (sig-decls sig)
+  (if (sig-type? sig)
+      (cddr sig)
+      '()))
+
+;;; ============================================================
+;;; Signature Declaration Types
+;;; ============================================================
+
+;;; sig-type-decl? : Decl → Boolean
+;;; Check if this is a type declaration: [type T : Kind] or [type T = Type]
+(define (sig-type-decl? d)
+  (and (pair? d) (eq? (car d) 'type)))
+
+;;; sig-val-decl? : Decl → Boolean
+;;; Check if this is a value declaration: [val name : Type]
+(define (sig-val-decl? d)
+  (and (pair? d) (eq? (car d) 'val)))
+
+;;; sig-data-decl? : Decl → Boolean
+;;; Check if this is an inductive type export: [data DataDecl]
+(define (sig-data-decl? d)
+  (and (pair? d) (eq? (car d) 'data)))
+
+;;; sig-include-decl? : Decl → Boolean
+;;; Check if this is an include: [include SigName]
+(define (sig-include-decl? d)
+  (and (pair? d) (eq? (car d) 'include)))
+
+;;; ============================================================
+;;; Signature Declaration Operations
+;;; ============================================================
+
+;;; sig-type-decl-name : Decl → Symbol
+;;; Get the name from a type declaration.
+(define (sig-type-decl-name d)
+  (if (sig-type-decl? d) (cadr d) #f))
+
+;;; sig-type-decl-abstract? : Decl → Boolean
+;;; Check if this is an abstract type declaration [type T : Kind]
+(define (sig-type-decl-abstract? d)
+  (and (sig-type-decl? d)
+       (= (length d) 4)
+       (eq? (caddr d) ':)))
+
+;;; sig-type-decl-alias? : Decl → Boolean
+;;; Check if this is a type alias [type T = Type]
+(define (sig-type-decl-alias? d)
+  (and (sig-type-decl? d)
+       (= (length d) 4)
+       (eq? (caddr d) '=)))
+
+;;; sig-type-decl-kind : Decl → Kind | #f
+;;; Get the kind from an abstract type declaration.
+(define (sig-type-decl-kind d)
+  (if (sig-type-decl-abstract? d)
+      (cadddr d)
+      #f))
+
+;;; sig-type-decl-def : Decl → Type | #f
+;;; Get the definition from a type alias.
+(define (sig-type-decl-def d)
+  (if (sig-type-decl-alias? d)
+      (cadddr d)
+      #f))
+
+;;; sig-val-decl-name : Decl → Symbol
+;;; Get the name from a value declaration.
+(define (sig-val-decl-name d)
+  (if (sig-val-decl? d) (cadr d) #f))
+
+;;; sig-val-decl-type : Decl → Type
+;;; Get the type from a value declaration.
+(define (sig-val-decl-type d)
+  (if (and (sig-val-decl? d) (= (length d) 4) (eq? (caddr d) ':))
+      (cadddr d)
+      #f))
+
+;;; sig-data-decl-data : Decl → DataDecl
+;;; Get the data declaration from a data export.
+(define (sig-data-decl-data d)
+  (if (sig-data-decl? d) (cadr d) #f))
+
+;;; sig-include-decl-name : Decl → Symbol
+;;; Get the signature name from an include.
+(define (sig-include-decl-name d)
+  (if (sig-include-decl? d) (cadr d) #f))
+
+;;; ============================================================
+;;; Signature Construction
+;;; ============================================================
+
+;;; t-sig : Symbol × (List Decl) → Signature
+;;; Construct a module signature.
+(define (t-sig name decls)
+  `(sig ,name ,@decls))
+
+;;; t-sig-type-abstract : Symbol × Kind → Decl
+;;; Construct an abstract type declaration.
+(define (t-sig-type-abstract name kind)
+  `(type ,name : ,kind))
+
+;;; t-sig-type-alias : Symbol × Type → Decl
+;;; Construct a type alias.
+(define (t-sig-type-alias name type)
+  `(type ,name = ,type))
+
+;;; t-sig-val : Symbol × Type → Decl
+;;; Construct a value declaration.
+(define (t-sig-val name type)
+  `(val ,name : ,type))
+
+;;; t-sig-data : DataDecl → Decl
+;;; Construct an inductive type export.
+(define (t-sig-data data-decl)
+  `(data ,data-decl))
+
+;;; t-sig-include : Symbol → Decl
+;;; Construct a signature inclusion.
+(define (t-sig-include sig-name)
+  `(include ,sig-name))
+
+;;; ============================================================
+;;; Signature Extraction
+;;; ============================================================
+
+;;; sig-type-names : Signature → (List Symbol)
+;;; Get all type names declared in a signature.
+(define (sig-type-names sig)
+  (filter symbol?
+          (map sig-type-decl-name
+               (filter sig-type-decl? (sig-decls sig)))))
+
+;;; sig-val-names : Signature → (List Symbol)
+;;; Get all value names declared in a signature.
+(define (sig-val-names sig)
+  (filter symbol?
+          (map sig-val-decl-name
+               (filter sig-val-decl? (sig-decls sig)))))
+
+;;; sig-data-names : Signature → (List Symbol)
+;;; Get all inductive type names declared in a signature.
+(define (sig-data-names sig)
+  (filter symbol?
+          (map (lambda (d)
+                       (let ([data (sig-data-decl-data d)])
+                            (if (data-type? data)
+                                (data-name data)
+                                #f)))
+               (filter sig-data-decl? (sig-decls sig)))))
+
+;;; sig-includes : Signature → (List Symbol)
+;;; Get all included signature names.
+(define (sig-includes sig)
+  (filter symbol?
+          (map sig-include-decl-name
+               (filter sig-include-decl? (sig-decls sig)))))
+
+;;; sig-exports : Signature → (List Symbol)
+;;; Get all exported names (types, values, data constructors).
+(define (sig-exports sig)
+  (append (sig-type-names sig)
+          (sig-val-names sig)
+          (sig-data-names sig)))
 
 ;;; ============================================================
 ;;; Universe Operations
@@ -1080,6 +1313,33 @@
                                            ctors))
                         " }"))]
    
+   ;; Module signature (sig Name decl ...)
+   [(sig-type? t)
+    (let ([name (sig-name t)]
+          [decls (sig-decls t)])
+         (string-append "sig "
+                        (symbol->string name)
+                        " { "
+                        (join-strings "; "
+                                      (map (lambda (d)
+                                                   (cond
+                                                    [(sig-type-decl-abstract? d)
+                                                     (string-append "type " (symbol->string (sig-type-decl-name d))
+                                                                    " : " (dep-type->string (sig-type-decl-kind d)))]
+                                                    [(sig-type-decl-alias? d)
+                                                     (string-append "type " (symbol->string (sig-type-decl-name d))
+                                                                    " = " (dep-type->string (sig-type-decl-def d)))]
+                                                    [(sig-val-decl? d)
+                                                     (string-append "val " (symbol->string (sig-val-decl-name d))
+                                                                    " : " (dep-type->string (sig-val-decl-type d)))]
+                                                    [(sig-data-decl? d)
+                                                     (string-append "data " (dep-type->string (sig-data-decl-data d)))]
+                                                    [(sig-include-decl? d)
+                                                     (string-append "include " (symbol->string (sig-include-decl-name d)))]
+                                                    [else (format "~s" d)]))
+                                           decls))
+                        " }"))]
+   
    ;; Arrow type
    [(and (pair? t) (eq? (car t) '->))
     (string-append "("
@@ -1123,6 +1383,7 @@
    [(eq? (car t) '=) (equality-type-well-formed? t)]
    [(eq? (car t) 'refine) (refinement-type-well-formed? t)]
    [(eq? (car t) 'data) (data-type-well-formed? t)]
+   [(eq? (car t) 'sig) (sig-well-formed? t)]
    
    ;; Delegate to base type? for other forms
    [else (type? t)]))

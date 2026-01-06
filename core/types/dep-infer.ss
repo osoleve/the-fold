@@ -206,6 +206,10 @@
          (string-prefix? "elim-" (symbol->string (car expr))))
     (dep-synth-eliminator expr ctx)]
    
+   ;; Module signature: (sig Name decl ...)
+   [(eq? (car expr) 'sig)
+    (dep-synth-sig expr ctx)]
+   
    ;; Application
    [else
     (dep-synth-app expr ctx)]))
@@ -1239,6 +1243,126 @@
                      ;; Result: (P xs)
                      ;; Simplified: we just return the application without full checking
                      `(ok (,P-expr ,xs-expr)))))))
+
+;;; ============================================================
+;;; Module Signature Synthesis
+;;; ============================================================
+;;;
+;;; Module signatures are first-class types that describe module interfaces.
+;;;
+;;; A signature (sig Name decl ...) synthesizes to Type (it's a specification).
+;;; We check that all declarations within are well-formed.
+
+;;; dep-synth-sig : Expr × Context → (Result Type Error)
+;;; Synthesize type for a module signature.
+;;; (sig Name decl ...) : Type
+(define (dep-synth-sig expr ctx)
+  (if (not (sig-well-formed? expr))
+      `(error malformed-signature ,expr)
+      (let* ([name (sig-name expr)]
+             [decls (sig-decls expr)])
+            ;; Check each declaration is well-formed
+            (let ([decl-check (dep-synth-sig-decls decls ctx)])
+                 (if (not (eq? (car decl-check) 'ok))
+                     decl-check
+                     ;; Signature is a type
+                     `(ok Type))))))
+
+;;; dep-synth-sig-decls : (List Decl) × Context → (Result () Error)
+;;; Check that all signature declarations are well-formed.
+(define (dep-synth-sig-decls decls ctx)
+  (if (null? decls)
+      '(ok)
+      (let* ([decl (car decls)]
+             [check (dep-synth-sig-decl decl ctx)])
+            (if (not (eq? (car check) 'ok))
+                check
+                ;; Extend context with this declaration for subsequent checks
+                (let ([new-ctx (dep-extend-ctx-with-sig-decl ctx decl)])
+                     (dep-synth-sig-decls (cdr decls) new-ctx))))))
+
+;;; dep-synth-sig-decl : Decl × Context → (Result () Error)
+;;; Check that a single signature declaration is well-formed.
+(define (dep-synth-sig-decl decl ctx)
+  (cond
+   ;; Abstract type: [type T : Kind]
+   [(sig-type-decl-abstract? decl)
+    (let ([kind (sig-type-decl-kind decl)])
+         ;; Check kind is well-formed (simplified: accept Type, (-> Type Type), etc.)
+         (if (or (eq? kind 'Type)
+                 (and (pair? kind) (eq? (car kind) '->)))
+             '(ok)
+             `(error invalid-kind ,kind)))]
+   
+   ;; Type alias: [type T = Type]
+   [(sig-type-decl-alias? decl)
+    (let ([type-def (sig-type-decl-def decl)])
+         (dep-check-type type-def ctx))]
+   
+   ;; Value declaration: [val name : Type]
+   [(sig-val-decl? decl)
+    (let ([val-type (sig-val-decl-type decl)])
+         (if val-type
+             (dep-check-type val-type ctx)
+             `(error malformed-val-decl ,decl)))]
+   
+   ;; Data export: [data DataDecl]
+   [(sig-data-decl? decl)
+    (let ([data (sig-data-decl-data decl)])
+         (if (and data (data-type? data))
+             (dep-synth-data data ctx)
+             `(error malformed-data-decl ,decl)))]
+   
+   ;; Include: [include SigName]
+   [(sig-include-decl? decl)
+    ;; For now, just accept includes - full checking would require sig registry
+    '(ok)]
+   
+   [else `(error unknown-sig-decl ,decl)]))
+
+;;; dep-extend-ctx-with-sig-decl : Context × Decl → Context
+;;; Extend context with bindings introduced by a signature declaration.
+(define (dep-extend-ctx-with-sig-decl ctx decl)
+  (cond
+   ;; Abstract type: add T : Kind to context
+   [(sig-type-decl-abstract? decl)
+    (let ([name (sig-type-decl-name decl)]
+          [kind (sig-type-decl-kind decl)])
+         (dep-ctx-extend ctx name kind))]
+   
+   ;; Type alias: add T : Type to context (T is a type, aliased to type-def)
+   ;; Note: For full alias expansion, we'd need a separate alias registry
+   [(sig-type-decl-alias? decl)
+    (let ([name (sig-type-decl-name decl)])
+         ;; T has type Type (it's a type name)
+         (dep-ctx-extend ctx name 'Type))]
+   
+   ;; Value: add name : Type to context
+   [(sig-val-decl? decl)
+    (let ([name (sig-val-decl-name decl)]
+          [val-type (sig-val-decl-type decl)])
+         (if (and name val-type)
+             (dep-ctx-extend ctx name val-type)
+             ctx))]
+   
+   ;; Data: add type name and constructors to context
+   [(sig-data-decl? decl)
+    (let ([data (sig-data-decl-data decl)])
+         (if (and data (data-type? data))
+             (let* ([type-name (data-name data)]
+                    [ctors (data-constructors data)]
+                    [ctx-with-type (dep-ctx-extend ctx type-name 'Type)])
+                   ;; Add constructors
+                   (fold-left (lambda (c ctor)
+                                      (dep-ctx-extend c (car ctor) (cdr ctor)))
+                              ctx-with-type
+                              ctors))
+             ctx))]
+   
+   ;; Include: would require sig registry lookup
+   [(sig-include-decl? decl) ctx]
+   
+   [else ctx]))
 
 ;;; ============================================================
 ;;; Convenience Functions
