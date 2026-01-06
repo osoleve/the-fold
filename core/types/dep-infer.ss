@@ -157,6 +157,34 @@
    [(eq? (car expr) 'Matrix)
     (dep-synth-matrix expr ctx)]
    
+   ;; Equality type: (= A x y)
+   [(eq? (car expr) '=)
+    (dep-synth-equality expr ctx)]
+   
+   ;; refl: (refl A x) - proof of (= A x x)
+   [(eq? (car expr) 'refl)
+    (dep-synth-refl expr ctx)]
+   
+   ;; J eliminator: (J A P d x y p)
+   [(eq? (car expr) 'J)
+    (dep-synth-J expr ctx)]
+   
+   ;; sym: (sym p) - proof of symmetry
+   [(eq? (car expr) 'sym)
+    (dep-synth-sym expr ctx)]
+   
+   ;; trans: (trans p q) - proof of transitivity
+   [(eq? (car expr) 'trans)
+    (dep-synth-trans expr ctx)]
+   
+   ;; cong: (cong f p) - congruence
+   [(eq? (car expr) 'cong)
+    (dep-synth-cong expr ctx)]
+   
+   ;; subst: (subst P p x) - substitution
+   [(eq? (car expr) 'subst)
+    (dep-synth-subst expr ctx)]
+   
    ;; Application
    [else
     (dep-synth-app expr ctx)]))
@@ -359,6 +387,299 @@
                      (if (not (eq? (car A-check) 'ok))
                          A-check
                          `(ok Type)))))))
+
+;;; ============================================================
+;;; Equality Type Synthesis
+;;; ============================================================
+;;;
+;;; Propositional equality implements Martin-Löf's identity type.
+;;;
+;;; Type Formation:
+;;;   (= A x y) : Type  when A : Type, x : A, y : A
+;;;
+;;; Introduction:
+;;;   (refl A x) : (= A x x)  when x : A
+;;;
+;;; Elimination (J):
+;;;   (J A P d x y p) : (P x y p)
+;;;   where:
+;;;     A : Type
+;;;     P : (Π ((a : A)) (Π ((b : A)) (Π ((_ : (= A a b))) Type)))
+;;;     d : (Π ((z : A)) (P z z (refl A z)))
+;;;     x : A
+;;;     y : A
+;;;     p : (= A x y)
+;;;
+;;; Computation:
+;;;   (J A P d x x (refl A x)) ≡ (d x)
+
+;;; dep-synth-equality : Expr × Context → (Result Type Error)
+;;; (= A x y) : Type when A : Type, x : A, y : A
+(define (dep-synth-equality expr ctx)
+  (if (not (= (length expr) 4))
+      `(error malformed-equality-type ,expr)
+      (let* ([A-expr (cadr expr)]
+             [x-expr (caddr expr)]
+             [y-expr (cadddr expr)]
+             [A-synth (dep-synth A-expr ctx)])
+            (if (not (eq? (car A-synth) 'ok))
+                A-synth
+                (let ([A-type (cadr A-synth)])
+                     (if (not (universe-type? A-type))
+                         `(error expected-type-got ,A-type)
+                         ;; Check x : A and y : A
+                         (let ([x-check (dep-check x-expr A-expr ctx)])
+                              (if (not (eq? (car x-check) 'ok))
+                                  x-check
+                                  (let ([y-check (dep-check y-expr A-expr ctx)])
+                                       (if (not (eq? (car y-check) 'ok))
+                                           y-check
+                                           ;; Result is Type at same level as A
+                                           `(ok ,A-type)))))))))))
+
+;;; dep-synth-refl : Expr × Context → (Result Type Error)
+;;; (refl A x) : (= A x x) when x : A
+(define (dep-synth-refl expr ctx)
+  (cond
+   ;; Bare 'refl without annotation - needs type info from context
+   [(= (length expr) 1)
+    `(error refl-needs-annotation refl)]
+   ;; (refl A x) - annotated form
+   [(= (length expr) 3)
+    (let* ([A-expr (cadr expr)]
+           [x-expr (caddr expr)]
+           [A-synth (dep-synth A-expr ctx)])
+          (if (not (eq? (car A-synth) 'ok))
+              A-synth
+              (let ([A-type (cadr A-synth)])
+                   (if (not (universe-type? A-type))
+                       `(error expected-type-got ,A-type)
+                       ;; Check x : A
+                       (let ([x-check (dep-check x-expr A-expr ctx)])
+                            (if (not (eq? (car x-check) 'ok))
+                                x-check
+                                `(ok (= ,A-expr ,x-expr ,x-expr))))))))]
+   [else `(error malformed-refl ,expr)]))
+
+;;; dep-synth-J : Expr × Context → (Result Type Error)
+;;; (J A P d x y p) : (P x y p)
+;;; J is the eliminator for equality types (also called "transport" or "subst").
+(define (dep-synth-J expr ctx)
+  (if (not (= (length expr) 7))
+      `(error malformed-J-eliminator ,expr)
+      (let* ([A-expr (cadr expr)]
+             [P-expr (caddr expr)]
+             [d-expr (cadddr expr)]
+             [x-expr (car (cddddr expr))]
+             [y-expr (cadr (cddddr expr))]
+             [p-expr (caddr (cddddr expr))]
+             ;; Check A is a type
+             [A-check (dep-check-type A-expr ctx)])
+            (if (not (eq? (car A-check) 'ok))
+                A-check
+                ;; Build the expected type for P:
+                ;; P : (Π ((a : A)) (Π ((b : A)) (Π ((_ : (= A a b))) Type)))
+                (let* ([eq-type-ab `(= ,A-expr a b)]
+                       [P-expected (t-pi 'a A-expr
+                                         (t-pi 'b A-expr
+                                               (t-pi '_ eq-type-ab 'Type)))]
+                       [P-check (dep-check P-expr P-expected ctx)])
+                      (if (not (eq? (car P-check) 'ok))
+                          P-check
+                          ;; Check d : (Π ((z : A)) (P z z (refl A z)))
+                          (let* ([d-expected (t-pi 'z A-expr
+                                                   `(,P-expr z z (refl ,A-expr z)))]
+                                 [d-check (dep-check d-expr d-expected ctx)])
+                                (if (not (eq? (car d-check) 'ok))
+                                    d-check
+                                    ;; Check x : A
+                                    (let ([x-check (dep-check x-expr A-expr ctx)])
+                                         (if (not (eq? (car x-check) 'ok))
+                                             x-check
+                                             ;; Check y : A
+                                             (let ([y-check (dep-check y-expr A-expr ctx)])
+                                                  (if (not (eq? (car y-check) 'ok))
+                                                      y-check
+                                                      ;; Check p : (= A x y)
+                                                      (let* ([eq-type `(= ,A-expr ,x-expr ,y-expr)]
+                                                             [p-check (dep-check p-expr eq-type ctx)])
+                                                            (if (not (eq? (car p-check) 'ok))
+                                                                p-check
+                                                                ;; Result type: (P x y p)
+                                                                `(ok (,P-expr ,x-expr ,y-expr ,p-expr))))))))))))))))
+
+;;; ============================================================
+;;; Derived Equality Operations
+;;; ============================================================
+;;;
+;;; These can all be derived from J, but we provide direct synthesis
+;;; for better error messages and efficiency.
+
+;;; dep-synth-sym : Expr × Context → (Result Type Error)
+;;; (sym p) : (= A y x) when p : (= A x y)
+;;; Symmetry: if x = y then y = x
+(define (dep-synth-sym expr ctx)
+  (if (not (= (length expr) 2))
+      `(error malformed-sym ,expr)
+      (let* ([p-expr (cadr expr)]
+             [p-synth (dep-synth p-expr ctx)])
+            (if (not (eq? (car p-synth) 'ok))
+                p-synth
+                (let ([p-type (cadr p-synth)])
+                     (if (not (equality-type? p-type))
+                         `(error expected-equality-got ,p-type)
+                         (let* ([A (equality-carrier p-type)]
+                                [x (equality-lhs p-type)]
+                                [y (equality-rhs p-type)])
+                               ;; Result: (= A y x)
+                               `(ok (= ,A ,y ,x)))))))))
+
+;;; dep-synth-trans : Expr × Context → (Result Type Error)
+;;; (trans p q) : (= A x z) when p : (= A x y), q : (= A y z)
+;;; Transitivity: if x = y and y = z then x = z
+(define (dep-synth-trans expr ctx)
+  (if (not (= (length expr) 3))
+      `(error malformed-trans ,expr)
+      (let* ([p-expr (cadr expr)]
+             [q-expr (caddr expr)]
+             [p-synth (dep-synth p-expr ctx)])
+            (if (not (eq? (car p-synth) 'ok))
+                p-synth
+                (let ([p-type (cadr p-synth)])
+                     (if (not (equality-type? p-type))
+                         `(error expected-equality-got ,p-type)
+                         (let* ([A (equality-carrier p-type)]
+                                [x (equality-lhs p-type)]
+                                [y (equality-rhs p-type)]
+                                ;; Check q : (= A y z)
+                                [q-synth (dep-synth q-expr ctx)])
+                               (if (not (eq? (car q-synth) 'ok))
+                                   q-synth
+                                   (let ([q-type (cadr q-synth)])
+                                        (if (not (equality-type? q-type))
+                                            `(error expected-equality-got ,q-type)
+                                            (let ([q-A (equality-carrier q-type)]
+                                                  [q-y (equality-lhs q-type)]
+                                                  [z (equality-rhs q-type)])
+                                                 ;; Check carrier types match
+                                                 (if (not (dep-types-equal? A q-A ctx))
+                                                     `(error type-mismatch (expected ,A) (got ,q-A))
+                                                     ;; Check y matches
+                                                     (if (not (dep-types-equal? y q-y ctx))
+                                                         `(error equality-endpoint-mismatch (expected ,y) (got ,q-y))
+                                                         ;; Result: (= A x z)
+                                                         `(ok (= ,A ,x ,z)))))))))))))))
+
+;;; dep-synth-cong : Expr × Context → (Result Type Error)
+;;; (cong f p) : (= B (f x) (f y)) when f : (-> A B), p : (= A x y)
+;;; Congruence: if x = y then f(x) = f(y)
+(define (dep-synth-cong expr ctx)
+  (if (not (= (length expr) 3))
+      `(error malformed-cong ,expr)
+      (let* ([f-expr (cadr expr)]
+             [p-expr (caddr expr)]
+             [f-synth (dep-synth f-expr ctx)])
+            (if (not (eq? (car f-synth) 'ok))
+                f-synth
+                (let ([f-type (cadr f-synth)])
+                     ;; f can be either arrow type or Pi type
+                     (cond
+                      [(function-type? f-type)
+                       (let* ([param-types (function-param-types f-type)]
+                              [return-type (function-return-type f-type)])
+                             (if (not (= (length param-types) 1))
+                                 `(error cong-needs-unary-function ,f-type)
+                                 (let* ([A (car param-types)]
+                                        [B return-type]
+                                        [p-synth (dep-synth p-expr ctx)])
+                                       (if (not (eq? (car p-synth) 'ok))
+                                           p-synth
+                                           (let ([p-type (cadr p-synth)])
+                                                (if (not (equality-type? p-type))
+                                                    `(error expected-equality-got ,p-type)
+                                                    (let ([p-A (equality-carrier p-type)]
+                                                          [x (equality-lhs p-type)]
+                                                          [y (equality-rhs p-type)])
+                                                         (if (not (dep-types-equal? A p-A ctx))
+                                                             `(error type-mismatch (expected ,A) (got ,p-A))
+                                                             ;; Result: (= B (f x) (f y))
+                                                             `(ok (= ,B (,f-expr ,x) (,f-expr ,y)))))))))))]
+                      [(pi-type? f-type)
+                       (let* ([A (pi-domain f-type)]
+                              [B (pi-codomain f-type)]
+                              [var (pi-var f-type)]
+                              [p-synth (dep-synth p-expr ctx)])
+                             (if (not (eq? (car p-synth) 'ok))
+                                 p-synth
+                                 (let ([p-type (cadr p-synth)])
+                                      (if (not (equality-type? p-type))
+                                          `(error expected-equality-got ,p-type)
+                                          (let* ([p-A (equality-carrier p-type)]
+                                                 [x (equality-lhs p-type)]
+                                                 [y (equality-rhs p-type)])
+                                                (if (not (dep-types-equal? A p-A ctx))
+                                                    `(error type-mismatch (expected ,A) (got ,p-A))
+                                                    ;; Result: (= B[x/var] (f x) (f y))
+                                                    ;; For dependent functions, we'd need heterogeneous equality
+                                                    ;; For now, use B[x/var]
+                                                    (let ([B-x (dep-subst-type B var x)])
+                                                         `(ok (= ,B-x (,f-expr ,x) (,f-expr ,y))))))))))]
+                      [else `(error not-a-function ,f-type)]))))))
+
+;;; dep-synth-subst : Expr × Context → (Result Type Error)
+;;; (subst P p x) : (P y) when P : (-> A Type), p : (= A x y), x : (P x)
+;;; Substitution: transport a proof along an equality
+(define (dep-synth-subst expr ctx)
+  (if (not (= (length expr) 4))
+      `(error malformed-subst ,expr)
+      (dep-synth-subst-impl (cadr expr) (caddr expr) (cadddr expr) ctx)))
+
+;;; dep-synth-subst-impl : Expr × Expr × Expr × Context → (Result Type Error)
+(define (dep-synth-subst-impl P-expr p-expr prf-expr ctx)
+  (let ([P-synth (dep-synth P-expr ctx)])
+       (if (not (eq? (car P-synth) 'ok))
+           P-synth
+           (let ([P-type (cadr P-synth)])
+                (dep-synth-subst-with-type P-expr p-expr prf-expr P-type ctx)))))
+
+;;; dep-synth-subst-with-type : Expr × Expr × Expr × Type × Context → (Result Type Error)
+(define (dep-synth-subst-with-type P-expr p-expr prf-expr P-type ctx)
+  (cond
+   [(function-type? P-type)
+    (let* ([param-types (function-param-types P-type)]
+           [return-type (function-return-type P-type)])
+          (if (or (not (= (length param-types) 1))
+                  (not (universe-type? return-type)))
+              `(error subst-needs-predicate ,P-type)
+              (dep-synth-subst-check P-expr p-expr prf-expr (car param-types) ctx)))]
+   [(pi-type? P-type)
+    (let ([A (pi-domain P-type)]
+          [codomain (pi-codomain P-type)])
+         (if (not (universe-type? codomain))
+             `(error subst-needs-predicate ,P-type)
+             (dep-synth-subst-check P-expr p-expr prf-expr A ctx)))]
+   [else `(error subst-needs-predicate ,P-type)]))
+
+;;; dep-synth-subst-check : Expr × Expr × Expr × Type × Context → (Result Type Error)
+(define (dep-synth-subst-check P-expr p-expr prf-expr A ctx)
+  (let ([p-synth (dep-synth p-expr ctx)])
+       (if (not (eq? (car p-synth) 'ok))
+           p-synth
+           (let ([p-type (cadr p-synth)])
+                (if (not (equality-type? p-type))
+                    `(error expected-equality-got ,p-type)
+                    (let ([p-A (equality-carrier p-type)]
+                          [x (equality-lhs p-type)]
+                          [y (equality-rhs p-type)])
+                         (if (not (dep-types-equal? A p-A ctx))
+                             `(error type-mismatch (expected ,A) (got ,p-A))
+                             ;; Check prf : (P x)
+                             (let ([Px-type `(,P-expr ,x)])
+                                  (let ([prf-check (dep-check prf-expr Px-type ctx)])
+                                       (if (not (eq? (car prf-check) 'ok))
+                                           prf-check
+                                           ;; Result: (P y)
+                                           `(ok (,P-expr ,y))))))))))))
 
 ;;; ============================================================
 ;;; Application Synthesis

@@ -58,10 +58,15 @@
   (or (eq? t 'Type)
       (and (pair? t) (eq? (car t) 'Type))))
 
+;;; equality-type? : Type → Boolean
+;;; Check if this is a propositional equality type: (= A x y)
+(define (equality-type? t)
+  (and (pair? t) (eq? (car t) '=)))
+
 ;;; dep-type? : Type → Boolean
-;;; Is this a dependent type construct (Pi, Sigma, Universe, Vec, or Matrix)?
+;;; Is this a dependent type construct (Pi, Sigma, Universe, Vec, Matrix, or Equality)?
 (define (dep-type? t)
-  (or (pi-type? t) (sigma-type? t) (universe-type? t) (vec-type? t) (matrix-type? t)))
+  (or (pi-type? t) (sigma-type? t) (universe-type? t) (vec-type? t) (matrix-type? t) (equality-type? t)))
 
 ;;; ============================================================
 ;;; Pi Type Operations
@@ -143,6 +148,59 @@
       'Void))
 
 ;;; ============================================================
+;;; Equality Type Operations
+;;; ============================================================
+;;;
+;;; Propositional equality: (= A x y)
+;;;   - A is the type at which equality is asserted
+;;;   - x and y are terms of type A being compared
+;;;
+;;; Introduction:
+;;;   refl : (Π ((A : Type)) (Π ((x : A)) (= A x x)))
+;;;
+;;; Elimination (J, "eliminator" or "transport"):
+;;;   J : (Π ((A : Type))
+;;;        (Π ((P : (Π ((x : A)) (Π ((y : A)) (Π ((_ : (= A x y))) Type)))))
+;;;         (Π ((d : (Π ((x : A)) (P x x refl))))
+;;;          (Π ((x : A))
+;;;           (Π ((y : A))
+;;;            (Π ((p : (= A x y)))
+;;;             (P x y p)))))))
+;;;
+;;; Computation rule:
+;;;   J A P d x x refl ≡ d x
+;;;
+;;; This implements propositional equality as found in Martin-Löf Type Theory.
+
+;;; equality-type-well-formed? : SExpr → Boolean
+;;; Check if an equality type expression is well-formed: (= A x y)
+(define (equality-type-well-formed? t)
+  (and (pair? t)
+       (eq? (car t) '=)
+       (= (length t) 4)))
+
+;;; equality-carrier : Type → Type
+;;; Get the carrier type A from (= A x y)
+(define (equality-carrier t)
+  (if (equality-type? t)
+      (cadr t)
+      'Void))
+
+;;; equality-lhs : Type → Expr
+;;; Get the left-hand side x from (= A x y)
+(define (equality-lhs t)
+  (if (equality-type? t)
+      (caddr t)
+      #f))
+
+;;; equality-rhs : Type → Expr
+;;; Get the right-hand side y from (= A x y)
+(define (equality-rhs t)
+  (if (equality-type? t)
+      (cadddr t)
+      #f))
+
+;;; ============================================================
 ;;; Universe Operations
 ;;; ============================================================
 
@@ -219,6 +277,48 @@
       (if (= (car args) 0)
           'Type
           `(Type ,(car args)))))
+
+;;; t-eq : Type × Expr × Expr → Type
+;;; Construct an equality type (propositional equality).
+;;; (t-eq 'Nat 'x 'y) → (= Nat x y)
+(define (t-eq carrier lhs rhs)
+  `(= ,carrier ,lhs ,rhs))
+
+;;; ============================================================
+;;; Equality Proof Term Predicates
+;;; ============================================================
+;;;
+;;; refl is the canonical proof of (= A x x)
+;;; J is the eliminator for equality proofs
+
+;;; refl-term? : Expr → Boolean
+;;; Check if this is a refl proof term: (refl A x) or just 'refl
+(define (refl-term? e)
+  (or (eq? e 'refl)
+      (and (pair? e) (eq? (car e) 'refl))))
+
+;;; refl-type : Expr → Type | #f
+;;; Get the type annotation from (refl A x), returns #f for bare 'refl
+(define (refl-carrier e)
+  (cond
+   [(eq? e 'refl) #f]
+   [(and (pair? e) (eq? (car e) 'refl) (>= (length e) 2))
+    (cadr e)]
+   [else #f]))
+
+;;; refl-witness : Expr → Expr | #f
+;;; Get the witnessed term from (refl A x), returns #f for bare 'refl
+(define (refl-witness e)
+  (cond
+   [(eq? e 'refl) #f]
+   [(and (pair? e) (eq? (car e) 'refl) (= (length e) 3))
+    (caddr e)]
+   [else #f]))
+
+;;; j-term? : Expr → Boolean
+;;; Check if this is a J eliminator application: (J A P d x y p)
+(define (j-term? e)
+  (and (pair? e) (eq? (car e) 'J)))
 
 ;;; ============================================================
 ;;; Free Variables with Dependent Types
@@ -539,6 +639,14 @@
    [(matrix-type? t)
     (string-append "Matrix(" (format "~a" (cadr t)) "x" (format "~a" (caddr t)) ", " (dep-type->string (cadddr t)) ")")]
    
+   ;; Equality type (= A x y)
+   [(equality-type? t)
+    (string-append (format "~a" (equality-lhs t))
+                   " ≡ "
+                   (format "~a" (equality-rhs t))
+                   " : "
+                   (dep-type->string (equality-carrier t)))]
+   
    ;; Arrow type
    [(and (pair? t) (eq? (car t) '->))
     (string-append "("
@@ -579,6 +687,7 @@
    [(eq? (car t) 'Vec) (and (= (length t) 3) (well-formed-dep-type? (caddr t)))]
    [(eq? (car t) 'Matrix) (and (= (length t) 4) (well-formed-dep-type? (cadddr t)))]
    [(eq? (car t) 'Type) (and (= (length t) 2) (integer? (cadr t)) (>= (cadr t) 0))]
+   [(eq? (car t) '=) (equality-type-well-formed? t)]
    
    ;; Delegate to base type? for other forms
    [else (type? t)]))
