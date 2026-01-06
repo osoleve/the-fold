@@ -48,6 +48,7 @@
     (scaffold building "Code scaffolding and templating system" "tools/scaffold.ss")
     (format building "Code formatter and pretty-printer" "tools/format.ss")
     (init-project building "Project initialization wizard" "tools/init-project.ss")
+    (refactor-integrated building "Integrated refactoring with symbol graph" "tools/refactor-integrated.ss")
     
     ;; Workflow Tools
     (test-runner workflow "Comprehensive test automation and discovery" "test-runner.ss")
@@ -77,7 +78,8 @@
     (concept-map analysis "Generate concept maps" "concept-map.ss")
     (perf-monitor analysis "Real-time performance monitoring dashboard" "perf-monitor.ss")
     (benchmark analysis "Benchmarking harness with statistics" "tools/benchmark.ss")
-    (coverage analysis "Code coverage analyzer" "tools/coverage.ss")))
+    (coverage analysis "Code coverage analyzer" "tools/coverage.ss")
+    (dead-code analysis "Dead code and unused binding detection" "tools/dead-code.ss")))
 
 ;;; ============================================================
 ;;; Help System
