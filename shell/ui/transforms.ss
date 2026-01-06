@@ -51,8 +51,7 @@
           transform-group-canvas
           transform-group-offset)
          
-         (import (chezscheme)
-                 (shell layout))
+         (import (chezscheme))
          
          ;;; ============================================================
          ;;; Transform Matrix (2x3 Affine)
@@ -157,17 +156,53 @@
                  [ty (transform-matrix%-ty matrix)]
                  [fx (exact->inexact x)]
                  [fy (exact->inexact y)])
-                (let ([x' (+ (* a fx) (* b fy) tx)]
-                      [y' (+ (* c fx) (* d fy) ty)])
-                     (cons (inexact->exact (round x'))
-                           (inexact->exact (round y'))))))
+                (let ([xp (+ (* a fx) (* b fy) tx)]
+                      [yp (+ (* c fx) (* d fy) ty)])
+                     (cons (inexact->exact (round xp))
+                           (inexact->exact (round yp)))))))
+
+         ;;; ============================================================
+         ;;; Canvas Primitives (standalone definitions for library use)
+         ;;; ============================================================
          
-         ;;; Canvas primitives imported from (shell layout):
-         ;;;   - make-canvas, canvas-width, canvas-height, canvas-cells
-         ;;;   - canvas-ref, canvas-set, canvas-set!
-         ;;;   - point, point-x, point-y
-         ;;;   - make-rect, rect-origin, rect-width, rect-height
+         ;;; These definitions enable the library to work standalone.
+         ;;; They mirror shell/ui/layout.ss but are necessary because
+         ;;; Scheme libraries can only import other libraries.
          
+         (define (make-canvas% w h cells)
+           (vector 'canvas w h cells))
+
+         (define (canvas-width canvas)
+           (vector-ref canvas 1))
+
+         (define (canvas-height canvas)
+           (vector-ref canvas 2))
+
+         (define (canvas-cells canvas)
+           (vector-ref canvas 3))
+
+         (define (canvas-ref canvas x y)
+           (let ([w (canvas-width canvas)]
+                 [h (canvas-height canvas)]
+                 [cells (canvas-cells canvas)])
+                (if (or (< x 0) (>= x w) (< y 0) (>= y h))
+                    #\space
+                    (vector-ref cells (+ (* y w) x)))))
+
+         (define (canvas-set! canvas x y ch)
+           (let ([w (canvas-width canvas)]
+                 [h (canvas-height canvas)]
+                 [cells (canvas-cells canvas)])
+                (unless (or (< x 0) (>= x w) (< y 0) (>= y h))
+                        (vector-set! cells (+ (* y w) x) ch))))
+
+         (define (make-canvas w h)
+           (make-canvas% w h (make-vector (* w h) #\space)))
+
+         (define (point x y) (cons x y))
+         (define (point-x pt) (car pt))
+         (define (point-y pt) (cdr pt))
+
          ;;; ============================================================
          ;;; Basic Transform Operations
          ;;; ============================================================
@@ -178,7 +213,7 @@
            (let ([w (canvas-width canvas)]
                  [h (canvas-height canvas)])
                 (canvas-transform canvas (matrix-translate dx dy) w h)))
-         
+
          ;;; canvas-rotate : Canvas × Real × Point → Canvas
          ;;; Rotate canvas around center point by angle (radians).
          (define (canvas-rotate canvas angle center)
@@ -192,7 +227,7 @@
                   [m3 (matrix-translate cx cy)]
                   [combined (matrix-multiply (matrix-multiply m3 m2) m1)])
                  (canvas-transform canvas combined w h)))
-         
+
          ;;; canvas-scale : Canvas × Real × Real × Point → Canvas
          ;;; Scale canvas by sx, sy around center point.
          (define (canvas-scale canvas sx sy center)
@@ -206,7 +241,7 @@
                   [m3 (matrix-translate cx cy)]
                   [combined (matrix-multiply (matrix-multiply m3 m2) m1)])
                  (canvas-transform canvas combined w h)))
-         
+
          ;;; canvas-flip-horizontal : Canvas → Canvas
          ;;; Flip canvas horizontally (mirror across vertical axis).
          (define (canvas-flip-horizontal canvas)
@@ -217,7 +252,7 @@
                                    (matrix-translate w 0)
                                    (matrix-scale -1.0 1.0))
                                   w h)))
-         
+
          ;;; canvas-flip-vertical : Canvas → Canvas
          ;;; Flip canvas vertically (mirror across horizontal axis).
          (define (canvas-flip-vertical canvas)
@@ -228,7 +263,7 @@
                                    (matrix-translate 0 h)
                                    (matrix-scale 1.0 -1.0))
                                   w h)))
-         
+
          ;;; ============================================================
          ;;; General Transform Application
          ;;; ============================================================
@@ -253,7 +288,7 @@
                                          [ch (canvas-ref src sx sy)])
                                         (canvas-set! dest x y ch)
                                         (loop-x (+ x 1)))))))))
-         
+
          ;;; ============================================================
          ;;; Clipping
          ;;; ============================================================
@@ -275,12 +310,12 @@
                                    (let ([ch (canvas-ref canvas (+ ox x) (+ oy y))])
                                         (canvas-set! result x y ch)
                                         (loop-x (+ x 1)))))))))
-         
+
          ;;; Helper: Since rect functions might not be defined
          (define (rect-origin rect) (vector-ref rect 1))
          (define (rect-width rect) (vector-ref rect 2))
          (define (rect-height rect) (vector-ref rect 3))
-         
+
          ;;; ============================================================
          ;;; Masking
          ;;; ============================================================
@@ -302,7 +337,7 @@
                                              ;; Masked out - replace with space
                                              (canvas-set! canvas x y #\space))
                                        (loop-x (+ x 1)))))))))
-         
+
          ;;; ============================================================
          ;;; Transform Groups
          ;;; ============================================================
@@ -312,18 +347,18 @@
          
          (define-record-type transform-group%
            (fields canvas transforms offset))
-         
+
          ;;; make-transform-group : Canvas → TransformGroup
          (define (make-transform-group canvas)
            (make-transform-group% canvas '() (point 0 0)))
-         
+
          ;;; group-add-transform : TransformGroup × Matrix → TransformGroup
          (define (group-add-transform group matrix)
            (make-transform-group%
             (transform-group%-canvas group)
             (cons matrix (transform-group%-transforms group))
             (transform-group%-offset group)))
-         
+
          ;;; group-apply : TransformGroup × Nat × Nat → Canvas
          ;;; Apply all transforms in the group and return final canvas.
          (define (group-apply group width height)
@@ -334,8 +369,8 @@
                                            identity-matrix
                                            transforms)])
                      (canvas-transform canvas combined width height))))
-         
+
          (define transform-group-canvas transform-group%-canvas)
          (define transform-group-offset transform-group%-offset)
-         
+
          ) ; end library

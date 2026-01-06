@@ -67,13 +67,49 @@
           diagram-height
           diagram-set-size)
          
-         (import (chezscheme)
-                 (shell layout))
+         (import (chezscheme))
          
-         ;;; Canvas primitives imported from (shell layout):
-         ;;;   - make-canvas, canvas-width, canvas-height, canvas-cells
-         ;;;   - canvas-ref, canvas-set, canvas-set!
-         ;;;   - point, point-x, point-y
+         ;;; ============================================================
+         ;;; Canvas Primitives (standalone definitions for library use)
+         ;;; ============================================================
+         
+         ;;; These definitions enable the library to work standalone.
+         ;;; They mirror shell/ui/layout.ss but are necessary because
+         ;;; Scheme libraries can only import other libraries.
+         
+         (define (make-canvas% w h cells)
+           (vector 'canvas w h cells))
+         
+         (define (canvas-width canvas)
+           (vector-ref canvas 1))
+         
+         (define (canvas-height canvas)
+           (vector-ref canvas 2))
+         
+         (define (canvas-cells canvas)
+           (vector-ref canvas 3))
+         
+         (define (canvas-ref canvas x y)
+           (let ([w (canvas-width canvas)]
+                 [h (canvas-height canvas)]
+                 [cells (canvas-cells canvas)])
+                (if (or (< x 0) (>= x w) (< y 0) (>= y h))
+                    #\space
+                    (vector-ref cells (+ (* y w) x)))))
+         
+         (define (canvas-set! canvas x y ch)
+           (let ([w (canvas-width canvas)]
+                 [h (canvas-height canvas)]
+                 [cells (canvas-cells canvas)])
+                (unless (or (< x 0) (>= x w) (< y 0) (>= y h))
+                        (vector-set! cells (+ (* y w) x) ch))))
+         
+         (define (make-canvas w h)
+           (make-canvas% w h (make-vector (* w h) #\space)))
+         
+         (define (point x y) (cons x y))
+         (define (point-x pt) (car pt))
+         (define (point-y pt) (cdr pt))
          
          ;;; ============================================================
          ;;; Diagram (Canvas with Size Metadata)
