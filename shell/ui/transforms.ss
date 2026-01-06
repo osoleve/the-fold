@@ -51,7 +51,8 @@
           transform-group-canvas
           transform-group-offset)
          
-         (import (chezscheme))
+         (import (chezscheme)
+                 (shell layout))
          
          ;;; ============================================================
          ;;; Transform Matrix (2x3 Affine)
@@ -161,57 +162,11 @@
                      (cons (inexact->exact (round x'))
                            (inexact->exact (round y'))))))
          
-         ;;; ============================================================
-         ;;; Canvas Import (assume layout.ss loaded)
-         ;;; ============================================================
-         
-         ;;; Note: These are assumed to be available from shell/layout.ss:
-         ;;;   - make-canvas, canvas-width, canvas-height
-         ;;;   - canvas-ref, canvas-set
+         ;;; Canvas primitives imported from (shell layout):
+         ;;;   - make-canvas, canvas-width, canvas-height, canvas-cells
+         ;;;   - canvas-ref, canvas-set, canvas-set!
          ;;;   - point, point-x, point-y
          ;;;   - make-rect, rect-origin, rect-width, rect-height
-         
-         ;;; For the library version, we need to import from layout
-         ;;; But layout.ss isn't a library yet, so these will be undefined
-         ;;; until layout is converted to a library or this is loaded via load.
-         
-         ;;; Fallback definitions for when running standalone:
-         (define (make-canvas% w h cells)
-           (vector 'canvas w h cells))
-         
-         (define (canvas-width canvas)
-           (vector-ref canvas 1))
-         
-         (define (canvas-height canvas)
-           (vector-ref canvas 2))
-         
-         (define (canvas-cells canvas)
-           (vector-ref canvas 3))
-         
-         (define (canvas-ref canvas x y)
-           (let ([w (canvas-width canvas)]
-                 [h (canvas-height canvas)]
-                 [cells (canvas-cells canvas)])
-                (if (or (< x 0) (>= x w) (< y 0) (>= y h))
-                    #\space
-                    (vector-ref cells (+ (* y w) x)))))
-         
-         (define (canvas-set canvas x y ch)
-           (let ([w (canvas-width canvas)]
-                 [h (canvas-height canvas)]
-                 [cells (canvas-cells canvas)])
-                (if (or (< x 0) (>= x w) (< y 0) (>= y h))
-                    canvas
-                    (let ([new-cells (vector-copy cells)])
-                         (vector-set! new-cells (+ (* y w) x) ch)
-                         (make-canvas% w h new-cells)))))
-         
-         (define (make-canvas w h)
-           (make-canvas% w h (make-vector (* w h) #\space)))
-         
-         (define (point x y) (cons x y))
-         (define (point-x pt) (car pt))
-         (define (point-y pt) (cdr pt))
          
          ;;; ============================================================
          ;;; Basic Transform Operations

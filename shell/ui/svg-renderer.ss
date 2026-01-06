@@ -67,7 +67,8 @@
           ;; Utilities
           save-svg)
          
-         (import (chezscheme))
+         (import (chezscheme)
+                 (shell layout))
          
          ;;; ============================================================
          ;;; SVG Document Structure (from turtle-svg.ss)
@@ -225,16 +226,7 @@
                    [(#\') "&apos;"]
                    [else (string ch)]))
            
-           ;;; Fallback canvas accessors
-           (define (canvas-width canvas) (vector-ref canvas 1))
-           (define (canvas-height canvas) (vector-ref canvas 2))
-           (define (canvas-ref canvas x y)
-             (let ([w (canvas-width canvas)]
-                   [h (canvas-height canvas)]
-                   [cells (vector-ref canvas 3)])
-                  (if (or (< x 0) (>= x w) (< y 0) (>= y h))
-                      #\space
-                      (vector-ref cells (+ (* y w) x)))))
+           ;;; Canvas accessors imported from (shell layout)
            
            ;;; ============================================================
            ;;; Shape Rendering
