@@ -212,24 +212,22 @@
 ;;; Transparent cells in source don't overwrite destination.
 ;;;
 ;;; This is the key function that makes layering work.
+;;; Uses mutable canvas-set! for O(N) performance.
 (define (composite-transparent dest src pt)
   (let ([ox (point-x pt)]
         [oy (point-y pt)]
         [sw (canvas-width src)]
         [sh (canvas-height src)])
-       (let loop-y ([y 0] [canvas dest])
-            (if (>= y sh)
-                canvas
-                (let loop-x ([x 0] [canvas canvas])
-                     (if (>= x sw)
-                         (loop-y (+ y 1) canvas)
-                         (let ([ch (canvas-ref src x y)])
-                              (if (transparent? ch)
-                                  ;; Skip transparent cells
-                                  (loop-x (+ x 1) canvas)
-                                  ;; Draw opaque cells
-                                  (loop-x (+ x 1)
-                                          (canvas-set canvas (+ ox x) (+ oy y) ch))))))))))
+       (let loop-y ([y 0])
+            (when (< y sh)
+                  (let loop-x ([x 0])
+                       (when (< x sw)
+                             (let ([ch (canvas-ref src x y)])
+                                  (unless (transparent? ch)
+                                          (canvas-set! dest (+ ox x) (+ oy y) ch)))
+                             (loop-x (+ x 1))))
+                  (loop-y (+ y 1))))
+       dest))
 
 ;;; ============================================================
 ;;; Layer Flattening
@@ -409,24 +407,25 @@
 ;;;
 ;;; Unlike composite-transparent (which skips transparent cells),
 ;;; this function blends all cells based on the alpha value.
+;;; Uses mutable canvas-set! for O(N) performance.
 (define (composite-with-alpha dest src pt alpha)
   (let ([ox (point-x pt)]
         [oy (point-y pt)]
         [sw (canvas-width src)]
         [sh (canvas-height src)])
-       (let loop-y ([y 0] [canvas dest])
-            (if (>= y sh)
-                canvas
-                (let loop-x ([x 0] [canvas canvas])
-                     (if (>= x sw)
-                         (loop-y (+ y 1) canvas)
-                         (let* ([src-ch (canvas-ref src x y)]
-                                [dx (+ ox x)]
-                                [dy (+ oy y)]
-                                [dest-ch (canvas-ref canvas dx dy)]
-                                [blended (blend-chars dest-ch src-ch alpha)])
-                               (loop-x (+ x 1)
-                                       (canvas-set canvas dx dy blended)))))))))
+       (let loop-y ([y 0])
+            (when (< y sh)
+                  (let loop-x ([x 0])
+                       (when (< x sw)
+                             (let* ([src-ch (canvas-ref src x y)]
+                                    [dx (+ ox x)]
+                                    [dy (+ oy y)]
+                                    [dest-ch (canvas-ref dest dx dy)]
+                                    [blended (blend-chars dest-ch src-ch alpha)])
+                                   (canvas-set! dest dx dy blended))
+                             (loop-x (+ x 1))))
+                  (loop-y (+ y 1))))
+       dest))
 
 ;;; Extended Layer with Opacity
 ;;; The standard layer has depth but no opacity. For layers with opacity,
