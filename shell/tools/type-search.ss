@@ -32,6 +32,42 @@
 (load "core/base/prelude.ss")
 
 ;;; ============================================================
+;;; Typed Index (Pre-parsed Signatures)
+;;; ============================================================
+
+;;; *typed-index* : Hashtable Symbol -> ParsedType
+;;; Pre-parsed type signatures for fast searching.
+(define *typed-index* (make-eq-hashtable))
+
+;;; build-typed-index! : -> Void
+;;; Parse all signatures in the symbol index at once.
+;;; Call this after index-refresh! for faster type searches.
+(define (build-typed-index!)
+  (hashtable-clear! *typed-index*)
+  (let ([count 0])
+       (vector-for-each
+        (lambda (sym)
+                (let* ([entry (hashtable-ref *symbol-index* sym #f)]
+                       [sig-str (and entry (cdr (assq 'signature entry)))])
+                      (when sig-str
+                            (let ([parsed (parse-signature sig-str)])
+                                 (when parsed
+                                       (hashtable-set! *typed-index* sym parsed)
+                                       (set! count (+ count 1)))))))
+        (hashtable-keys *symbol-index*))
+       count))
+
+;;; typed-index-get : Symbol -> ParsedType | #f
+;;; Get pre-parsed type for a symbol.
+(define (typed-index-get sym)
+  (hashtable-ref *typed-index* sym #f))
+
+;;; typed-index-size : -> Nat
+;;; Number of symbols with parsed types.
+(define (typed-index-size)
+  (hashtable-size *typed-index*))
+
+;;; ============================================================
 ;;; Type Pattern Representation
 ;;; ============================================================
 
@@ -151,11 +187,100 @@
 
 ;;; parse-signature : String -> Type | #f
 ;;; Parse a type signature string into a type expression.
+;;; Handles both S-expr format (-> a b) and infix format (a -> b).
 (define (parse-signature sig-str)
   (guard (e [else #f])
+         ;; First try direct S-expr parse
          (let ([port (open-input-string sig-str)])
               (let ([type (read port)])
-                   (if (eof-object? type) #f type)))))
+                   (cond
+                    [(eof-object? type) #f]
+                    ;; If we got a valid S-expr type, use it
+                    [(and (pair? type) (eq? (car type) '->)) type]
+                    [(and (pair? type) (eq? (car type) '∀)) type]
+                    [(and (pair? type) (eq? (car type) 'List)) type]
+                    [(and (pair? type) (eq? (car type) 'Vector)) type]
+                    [(and (pair? type) (eq? (car type) '×)) type]
+                    ;; Simple type (symbol)
+                    [(symbol? type) type]
+                    ;; Otherwise, try converting infix format
+                    [else (parse-infix-signature sig-str)])))))
+
+;;; parse-infix-signature : String -> Type | #f
+;;; Convert infix signature format (A -> B -> C) to S-expr (-> A B C).
+(define (parse-infix-signature sig-str)
+  (guard (e [else #f])
+         ;; Replace Unicode arrow with ASCII
+         (let* ([normalized (string-replace-arrow sig-str)]
+                ;; Split on ->
+                [parts (string-split-arrow normalized)])
+               (if (< (length parts) 2)
+                   #f  ; Not a function type
+                   ;; Parse each part as a type
+                   (let ([parsed-parts (map parse-type-component parts)])
+                        (if (any not parsed-parts)
+                            #f
+                            (cons '-> parsed-parts)))))))
+
+;;; string-replace-arrow : String -> String
+;;; Replace Unicode arrows with ASCII.
+(define (string-replace-arrow str)
+  (let ([result (make-string (string-length str))]
+        [len (string-length str)])
+       (let loop ([i 0] [j 0])
+            (cond
+             [(>= i len) (substring result 0 j)]
+             ;; Check for Unicode arrow (→ is 3 bytes in UTF-8)
+             [(and (< (+ i 2) len)
+                   (char=? (string-ref str i) #\→))
+              (string-set! result j #\-)
+              (string-set! result (+ j 1) #\>)
+              (loop (+ i 1) (+ j 2))]
+             [else
+              (string-set! result j (string-ref str i))
+              (loop (+ i 1) (+ j 1))]))))
+
+;;; string-split-arrow : String -> (List String)
+;;; Split string on " -> " delimiter.
+(define (string-split-arrow str)
+  (let loop ([remaining str] [parts '()])
+       (let ([pos (string-find-substring remaining " -> ")])
+            (if pos
+                (loop (substring remaining (+ pos 4) (string-length remaining))
+                      (cons (string-trim (substring remaining 0 pos)) parts))
+                (reverse (cons (string-trim remaining) parts))))))
+
+;;; string-find-substring : String × String -> Nat | #f
+(define (string-find-substring haystack needle)
+  (let ([h-len (string-length haystack)]
+        [n-len (string-length needle)])
+       (let loop ([i 0])
+            (cond
+             [(> (+ i n-len) h-len) #f]
+             [(string-prefix-at? haystack needle i) i]
+             [else (loop (+ i 1))]))))
+
+;;; string-prefix-at? : String × String × Nat -> Bool
+(define (string-prefix-at? str prefix pos)
+  (let ([p-len (string-length prefix)])
+       (let loop ([i 0])
+            (cond
+             [(>= i p-len) #t]
+             [(>= (+ pos i) (string-length str)) #f]
+             [(char=? (string-ref str (+ pos i)) (string-ref prefix i))
+              (loop (+ i 1))]
+             [else #f]))))
+
+;;; parse-type-component : String -> Type | #f
+;;; Parse a single type component (may be compound like (List a) or simple like Nat).
+(define (parse-type-component str)
+  (let ([trimmed (string-trim str)])
+       (guard (e [else (string->symbol trimmed)])
+              (let ([port (open-input-string trimmed)])
+                   (let ([type (read port)])
+                        (if (eof-object? type)
+                            (string->symbol trimmed)
+                            type))))))
 
 ;;; normalize-signature : String -> Type | #f
 ;;; Parse and normalize a signature for matching.
@@ -181,61 +306,94 @@
 
 ;;; search-by-type : Pattern -> (List Entry)
 ;;; Search the symbol index for matching types.
+;;; Uses pre-parsed typed index for speed when available.
 (define (search-by-type pattern)
   (let ([results '()])
-       ;; Get all indexed symbols
        (guard (e [else '()])
-              (vector-for-each
-               (lambda (sym)
-                       (let* ([entry (hashtable-ref *symbol-index* sym #f)]
-                              [sig-str (and entry (cdr (assq 'signature entry)))])
-                             (when sig-str
-                                   (let ([sig (parse-signature sig-str)])
-                                        (when (and sig (type-match? pattern sig '()))
-                                              (set! results (cons entry results)))))))
-               (hashtable-keys *symbol-index*)))
+              (if (> (typed-index-size) 0)
+                  ;; Use pre-parsed typed index (fast path)
+                  (vector-for-each
+                   (lambda (sym)
+                           (let ([sig (typed-index-get sym)])
+                                (when (and sig (type-match? pattern sig '()))
+                                      (let ([entry (hashtable-ref *symbol-index* sym #f)])
+                                           (when entry
+                                                 (set! results (cons entry results)))))))
+                   (hashtable-keys *typed-index*))
+                  ;; Fall back to parsing on demand (slow path)
+                  (vector-for-each
+                   (lambda (sym)
+                           (let* ([entry (hashtable-ref *symbol-index* sym #f)]
+                                  [sig-str (and entry (cdr (assq 'signature entry)))])
+                                 (when sig-str
+                                       (let ([sig (parse-signature sig-str)])
+                                            (when (and sig (type-match? pattern sig '()))
+                                                  (set! results (cons entry results)))))))
+                   (hashtable-keys *symbol-index*))))
        results))
 
 ;;; search-by-return : Type -> (List Entry)
 ;;; Find functions returning a specific type.
+;;; Uses pre-parsed typed index for speed when available.
 (define (search-by-return return-type)
   (let ([results '()])
        (guard (e [else '()])
-              (vector-for-each
-               (lambda (sym)
-                       (let* ([entry (hashtable-ref *symbol-index* sym #f)]
-                              [sig-str (and entry (cdr (assq 'signature entry)))])
-                             (when sig-str
-                                   (let ([sig (parse-signature sig-str)])
-                                        (when (and sig
-                                                   (pair? sig)
-                                                   (eq? (car sig) '->))
-                                              (let ([ret (last (cdr sig))])
-                                                   (when (type-match? return-type ret '())
-                                                         (set! results (cons entry results)))))))))
-               (hashtable-keys *symbol-index*)))
+              (if (> (typed-index-size) 0)
+                  ;; Use pre-parsed typed index (fast path)
+                  (vector-for-each
+                   (lambda (sym)
+                           (let ([sig (typed-index-get sym)])
+                                (when (and sig (pair? sig) (eq? (car sig) '->))
+                                      (let ([ret (last (cdr sig))])
+                                           (when (type-match? return-type ret '())
+                                                 (let ([entry (hashtable-ref *symbol-index* sym #f)])
+                                                      (when entry
+                                                            (set! results (cons entry results)))))))))
+                   (hashtable-keys *typed-index*))
+                  ;; Fall back to parsing on demand (slow path)
+                  (vector-for-each
+                   (lambda (sym)
+                           (let* ([entry (hashtable-ref *symbol-index* sym #f)]
+                                  [sig-str (and entry (cdr (assq 'signature entry)))])
+                                 (when sig-str
+                                       (let ([sig (parse-signature sig-str)])
+                                            (when (and sig (pair? sig) (eq? (car sig) '->))
+                                                  (let ([ret (last (cdr sig))])
+                                                       (when (type-match? return-type ret '())
+                                                             (set! results (cons entry results)))))))))
+                   (hashtable-keys *symbol-index*))))
        results))
 
 ;;; search-by-arg : Type -> (List Entry)
 ;;; Find functions taking a specific argument type.
+;;; Uses pre-parsed typed index for speed when available.
 (define (search-by-arg arg-type)
   (let ([results '()])
        (guard (e [else '()])
-              (vector-for-each
-               (lambda (sym)
-                       (let* ([entry (hashtable-ref *symbol-index* sym #f)]
-                              [sig-str (and entry (cdr (assq 'signature entry)))])
-                             (when sig-str
-                                   (let ([sig (parse-signature sig-str)])
-                                        (when (and sig
-                                                   (pair? sig)
-                                                   (eq? (car sig) '->))
-                                              (let ([args (butlast (cdr sig))])
-                                                   (when (any (lambda (arg)
-                                                                      (type-match? arg-type arg '()))
-                                                              args)
-                                                         (set! results (cons entry results)))))))))
-               (hashtable-keys *symbol-index*)))
+              (if (> (typed-index-size) 0)
+                  ;; Use pre-parsed typed index (fast path)
+                  (vector-for-each
+                   (lambda (sym)
+                           (let ([sig (typed-index-get sym)])
+                                (when (and sig (pair? sig) (eq? (car sig) '->))
+                                      (let ([args (butlast (cdr sig))])
+                                           (when (any (lambda (arg) (type-match? arg-type arg '())) args)
+                                                 (let ([entry (hashtable-ref *symbol-index* sym #f)])
+                                                      (when entry
+                                                            (set! results (cons entry results)))))))))
+                   (hashtable-keys *typed-index*))
+                  ;; Fall back to parsing on demand (slow path)
+                  (vector-for-each
+                   (lambda (sym)
+                           (let* ([entry (hashtable-ref *symbol-index* sym #f)]
+                                  [sig-str (and entry (cdr (assq 'signature entry)))])
+                                 (when sig-str
+                                       (let ([sig (parse-signature sig-str)])
+                                            (when (and sig (pair? sig) (eq? (car sig) '->))
+                                                  (let ([args (butlast (cdr sig))])
+                                                       (when (any (lambda (arg) (type-match? arg-type arg '())) args)
+                                                             (set! results (cons entry results)))))))))
+                   (hashtable-keys *symbol-index*))))
        results))
 
 ;;; last : (List a) -> a
@@ -465,8 +623,12 @@
   (display "    _                    Wildcard (matches anything)\n")
   (display "    Nat, Bool, String    Base types\n")
   (display "\n")
+  (display "  Performance:\n")
+  (display "    (build-typed-index!)           Pre-parse types for faster search\n")
+  (display "    (type-search-stats)            Show index statistics\n")
+  (display "\n")
   (display "  Help:\n")
-  (display "    (type-search-help)                   Show this help\n")
+  (display "    (type-search-help)             Show this help\n")
   (display "\n"))
 
 ;;; ============================================================
@@ -495,7 +657,11 @@
                with-sig
                (if (> total 0)
                    (quotient (* with-sig 100) total)
-                   0)))
+                   0))
+       (let ([typed-count (typed-index-size)])
+            (printf "  Pre-parsed types: ~a~a\n"
+                    typed-count
+                    (if (> typed-count 0) " (fast path enabled)" " (run build-typed-index!)"))))
   (display "\n"))
 
 ;;; ============================================================
