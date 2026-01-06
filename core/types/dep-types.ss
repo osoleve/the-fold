@@ -63,10 +63,18 @@
 (define (equality-type? t)
   (and (pair? t) (eq? (car t) '=)))
 
+;;; refinement-type? : Type → Boolean
+;;; Check if this is a refinement type: {x : T | P}
+;;; Syntax: (refine ((x : T)) P)
+(define (refinement-type? t)
+  (and (pair? t) (eq? (car t) 'refine)))
+
 ;;; dep-type? : Type → Boolean
-;;; Is this a dependent type construct (Pi, Sigma, Universe, Vec, Matrix, or Equality)?
+;;; Is this a dependent type construct?
 (define (dep-type? t)
-  (or (pi-type? t) (sigma-type? t) (universe-type? t) (vec-type? t) (matrix-type? t) (equality-type? t)))
+  (or (pi-type? t) (sigma-type? t) (universe-type? t)
+      (vec-type? t) (matrix-type? t) (equality-type? t)
+      (refinement-type? t)))
 
 ;;; ============================================================
 ;;; Pi Type Operations
@@ -201,6 +209,68 @@
       #f))
 
 ;;; ============================================================
+;;; Refinement Type Operations
+;;; ============================================================
+;;;
+;;; Refinement types are types annotated with predicates.
+;;; Syntax: (refine ((x : T)) P)
+;;;   - x is the bound variable
+;;;   - T is the base type
+;;;   - P is a predicate that must hold for values of this type
+;;;
+;;; Example:
+;;;   (refine ((n : Nat)) (> n 0))  ; Positive natural numbers
+;;;   (refine ((v : (Vec n Int))) (sorted v))  ; Sorted vectors
+;;;
+;;; Mathematical notation: {x : T | P}
+;;;
+;;; Subtyping:
+;;;   {x:T | P} <: {x:T | Q}  when  ∀x:T. P(x) ⟹ Q(x)
+;;;   {x:T | P} <: T          always (forgetting the refinement)
+;;;
+;;; Introduction:
+;;;   To construct a value of type {x:T | P}, provide a value v:T
+;;;   and a proof that P[v/x] holds.
+;;;
+;;; Elimination:
+;;;   From a value of type {x:T | P}, you can:
+;;;   1. Extract the underlying value of type T
+;;;   2. Use P as an assumption
+
+;;; refinement-type-well-formed? : SExpr → Boolean
+;;; Check if a refinement type is well-formed: (refine ((x : T)) P)
+(define (refinement-type-well-formed? t)
+  (and (pair? t)
+       (eq? (car t) 'refine)
+       (= (length t) 3)
+       (let ([binding (cadr t)]
+             [predicate (caddr t)])
+            (and (list? binding)
+                 (= (length binding) 1)
+                 (typed-binding? (car binding))))))
+
+;;; refinement-var : Type → Symbol
+;;; Get the bound variable from a refinement type.
+(define (refinement-var t)
+  (if (refinement-type? t)
+      (caar (cadr t))
+      #f))
+
+;;; refinement-base-type : Type → Type
+;;; Get the base type T from (refine ((x : T)) P).
+(define (refinement-base-type t)
+  (if (refinement-type? t)
+      (caddar (cadr t))  ; Third element of first binding
+      'Void))
+
+;;; refinement-predicate : Type → Expr
+;;; Get the predicate P from (refine ((x : T)) P).
+(define (refinement-predicate t)
+  (if (refinement-type? t)
+      (caddr t)
+      #f))
+
+;;; ============================================================
 ;;; Universe Operations
 ;;; ============================================================
 
@@ -283,6 +353,12 @@
 ;;; (t-eq 'Nat 'x 'y) → (= Nat x y)
 (define (t-eq carrier lhs rhs)
   `(= ,carrier ,lhs ,rhs))
+
+;;; t-refine : Symbol × Type × Expr → Type
+;;; Construct a refinement type.
+;;; (t-refine 'n 'Nat '(> n 0)) → (refine ((n : Nat)) (> n 0))
+(define (t-refine var base-type predicate)
+  `(refine ((,var : ,base-type)) ,predicate))
 
 ;;; ============================================================
 ;;; Equality Proof Term Predicates
@@ -647,6 +723,19 @@
                    " : "
                    (dep-type->string (equality-carrier t)))]
    
+   ;; Refinement type (refine ((x : T)) P)
+   [(refinement-type? t)
+    (let ([var (refinement-var t)]
+          [base (refinement-base-type t)]
+          [pred (refinement-predicate t)])
+         (string-append "{"
+                        (symbol->string var)
+                        " : "
+                        (dep-type->string base)
+                        " | "
+                        (format "~a" pred)
+                        "}"))]
+   
    ;; Arrow type
    [(and (pair? t) (eq? (car t) '->))
     (string-append "("
@@ -688,6 +777,7 @@
    [(eq? (car t) 'Matrix) (and (= (length t) 4) (well-formed-dep-type? (cadddr t)))]
    [(eq? (car t) 'Type) (and (= (length t) 2) (integer? (cadr t)) (>= (cadr t) 0))]
    [(eq? (car t) '=) (equality-type-well-formed? t)]
+   [(eq? (car t) 'refine) (refinement-type-well-formed? t)]
    
    ;; Delegate to base type? for other forms
    [else (type? t)]))

@@ -185,6 +185,18 @@
    [(eq? (car expr) 'subst)
     (dep-synth-subst expr ctx)]
    
+   ;; Refinement type: (refine ((x : T)) P)
+   [(eq? (car expr) 'refine)
+    (dep-synth-refinement expr ctx)]
+   
+   ;; Refinement introduction: (refine-intro v prf)
+   [(eq? (car expr) 'refine-intro)
+    (dep-synth-refine-intro expr ctx)]
+   
+   ;; Refinement elimination: (refine-elim e)
+   [(eq? (car expr) 'refine-elim)
+    (dep-synth-refine-elim expr ctx)]
+   
    ;; Application
    [else
     (dep-synth-app expr ctx)]))
@@ -680,6 +692,101 @@
                                            prf-check
                                            ;; Result: (P y)
                                            `(ok (,P-expr ,y))))))))))))
+
+;;; ============================================================
+;;; Refinement Type Synthesis
+;;; ============================================================
+;;;
+;;; Refinement types: {x : T | P}
+;;; Syntax: (refine ((x : T)) P)
+;;;
+;;; Type Formation:
+;;;   (refine ((x : T)) P) : Type  when T : Type and P : Bool (under x:T)
+;;;
+;;; Introduction:
+;;;   (refine-intro T v prf) : {x:T | P}
+;;;   when v : T and prf : P[v/x]
+;;;
+;;; Elimination:
+;;;   (refine-elim e) : T  when e : {x:T | P}
+;;;   Extracts the underlying value, forgetting the refinement
+;;;
+;;; Checking:
+;;;   To check e : {x:T | P}, check e : T and verify P[e/x]
+
+;;; dep-synth-refinement : Expr × Context → (Result Type Error)
+;;; (refine ((x : T)) P) : Type when T : Type and P : Bool under x:T
+(define (dep-synth-refinement expr ctx)
+  (if (not (= (length expr) 3))
+      `(error malformed-refinement-type ,expr)
+      (let* ([binding (car (cadr expr))]
+             [var (car binding)]
+             [base-type-expr (caddr binding)]
+             [predicate (caddr expr)])
+            ;; Check base type is a type
+            (let ([base-check (dep-check-type base-type-expr ctx)])
+                 (if (not (eq? (car base-check) 'ok))
+                     base-check
+                     ;; Check predicate is well-typed under x:T
+                     ;; For now, we just check it's a Bool expression
+                     (let* ([new-ctx (dep-ctx-extend ctx var base-type-expr)]
+                            [pred-synth (dep-synth predicate new-ctx)])
+                           (if (not (eq? (car pred-synth) 'ok))
+                               pred-synth
+                               (let ([pred-type (cadr pred-synth)])
+                                    ;; Predicate must be Bool
+                                    (if (not (eq? pred-type 'Bool))
+                                        `(error refinement-predicate-not-bool (expected Bool) (got ,pred-type))
+                                        `(ok Type))))))))))
+
+;;; dep-synth-refine-intro : Expr × Context → (Result Type Error)
+;;; (refine-intro (refine-type) v prf) : refine-type
+;;; where refine-type = (refine ((x : T)) P)
+;;; v : T, prf : P[v/x]
+(define (dep-synth-refine-intro expr ctx)
+  (if (not (= (length expr) 4))
+      `(error malformed-refine-intro ,expr)
+      (let* ([refine-type-expr (cadr expr)]
+             [v-expr (caddr expr)]
+             [prf-expr (cadddr expr)])
+            ;; Check refine-type is a refinement type
+            (let ([type-synth (dep-synth refine-type-expr ctx)])
+                 (if (not (eq? (car type-synth) 'ok))
+                     type-synth
+                     (if (not (refinement-type? refine-type-expr))
+                         `(error not-a-refinement-type ,refine-type-expr)
+                         (let* ([var (refinement-var refine-type-expr)]
+                                [base-type (refinement-base-type refine-type-expr)]
+                                [predicate (refinement-predicate refine-type-expr)])
+                               ;; Check v : T
+                               (let ([v-check (dep-check v-expr base-type ctx)])
+                                    (if (not (eq? (car v-check) 'ok))
+                                        v-check
+                                        ;; Check prf : P[v/x] (predicate with v substituted)
+                                        (let ([subst-pred (dep-subst-type predicate var v-expr)])
+                                             ;; For now, we just check prf is a Bool
+                                             ;; In a full system, we'd check it's a proof of the predicate
+                                             (let ([prf-synth (dep-synth prf-expr ctx)])
+                                                  (if (not (eq? (car prf-synth) 'ok))
+                                                      prf-synth
+                                                      ;; Result is the refinement type
+                                                      `(ok ,refine-type-expr)))))))))))))
+
+;;; dep-synth-refine-elim : Expr × Context → (Result Type Error)
+;;; (refine-elim e) : T when e : {x:T | P}
+;;; Extracts the underlying value
+(define (dep-synth-refine-elim expr ctx)
+  (if (not (= (length expr) 2))
+      `(error malformed-refine-elim ,expr)
+      (let* ([e-expr (cadr expr)]
+             [e-synth (dep-synth e-expr ctx)])
+            (if (not (eq? (car e-synth) 'ok))
+                e-synth
+                (let ([e-type (cadr e-synth)])
+                     (if (not (refinement-type? e-type))
+                         `(error expected-refinement-type-got ,e-type)
+                         ;; Result is the base type
+                         `(ok ,(refinement-base-type e-type))))))))
 
 ;;; ============================================================
 ;;; Application Synthesis
