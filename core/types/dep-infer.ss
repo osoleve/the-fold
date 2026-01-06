@@ -197,6 +197,15 @@
    [(eq? (car expr) 'refine-elim)
     (dep-synth-refine-elim expr ctx)]
    
+   ;; Inductive type declaration: (data (Name params...) [ctor : type] ...)
+   [(eq? (car expr) 'data)
+    (dep-synth-data expr ctx)]
+   
+   ;; Eliminator application: (elim-TypeName P method... target)
+   [(and (symbol? (car expr))
+         (string-prefix? "elim-" (symbol->string (car expr))))
+    (dep-synth-eliminator expr ctx)]
+   
    ;; Application
    [else
     (dep-synth-app expr ctx)]))
@@ -981,6 +990,255 @@
              `(ok (List ,(cadr elem-result)))
              `(ok (List ?))))]
    [else `(ok ?)]))
+
+;;; ============================================================
+;;; Inductive Type Synthesis
+;;; ============================================================
+;;;
+;;; Inductive types introduce:
+;;;   1. A type former: the data declaration itself
+;;;   2. Constructors: functions to build values
+;;;   3. Eliminator: structural recursion principle
+;;;
+;;; Type Formation:
+;;;   (data (D params...) [c₁ : T₁] ... [cₙ : Tₙ]) : Type
+;;;   when each Tᵢ returns D with the same parameters
+;;;
+;;; Constructor Types:
+;;;   Each constructor cᵢ has type Tᵢ (as declared)
+;;;
+;;; Eliminator Type:
+;;;   elim-D : (P : D → Type) → ... → (x : D) → (P x)
+
+;;; string-prefix? : String × String → Boolean
+;;; Check if str starts with prefix.
+(define (string-prefix? prefix str)
+  (and (>= (string-length str) (string-length prefix))
+       (string=? prefix (substring str 0 (string-length prefix)))))
+
+;;; dep-synth-data : Expr × Context → (Result Type Error)
+;;; Synthesize type for a data declaration.
+;;; (data (Name params...) [ctor : type] ...) : Type
+(define (dep-synth-data expr ctx)
+  (if (not (data-type-well-formed? expr))
+      `(error malformed-data-declaration ,expr)
+      (let* ([name (data-name expr)]
+             [params (data-params expr)]
+             [ctors (data-constructors expr)]
+             [param-bindings (data-param-bindings expr)])
+            ;; Check all parameters are well-typed
+            (let ([param-check (dep-synth-data-params param-bindings ctx)])
+                 (if (not (eq? (car param-check) 'ok))
+                     param-check
+                     ;; Build context with:
+                     ;; 1. Type parameters (e.g., A : Type)
+                     ;; 2. Type constructor (e.g., List : Type -> Type)
+                     (let* ([ctx-with-params (dep-extend-ctx-with-params ctx param-bindings)]
+                            ;; Add the type constructor to context
+                            [type-ctor-type (make-type-constructor-type param-bindings)]
+                            [extended-ctx (dep-ctx-extend ctx-with-params name type-ctor-type)]
+                            [ctor-check (dep-synth-data-constructors ctors name extended-ctx)])
+                           (if (not (eq? (car ctor-check) 'ok))
+                               ctor-check
+                               ;; Data declaration is a type
+                               `(ok Type))))))))
+
+;;; make-type-constructor-type : (List (Symbol . Type)) → Type
+;;; Build the type of a type constructor from its parameters.
+;;; E.g., for (List A), returns (-> Type Type)
+;;; For no params, returns Type.
+(define (make-type-constructor-type params)
+  (if (null? params)
+      'Type
+      (let ([param-types (map cdr params)])
+           (fold-right (lambda (pt acc) `(-> ,pt ,acc))
+                       'Type
+                       param-types))))
+
+;;; dep-synth-data-params : (List (Symbol . Type)) × Context → (Result () Error)
+;;; Check that all parameter types are valid types.
+(define (dep-synth-data-params params ctx)
+  (if (null? params)
+      '(ok)
+      (let* ([param (car params)]
+             [ptype (cdr param)]
+             [type-check (dep-check-type ptype ctx)])
+            (if (not (eq? (car type-check) 'ok))
+                type-check
+                (let ([new-ctx (dep-ctx-extend ctx (car param) ptype)])
+                     (dep-synth-data-params (cdr params) new-ctx))))))
+
+;;; dep-extend-ctx-with-params : Context × (List (Symbol . Type)) → Context
+;;; Extend context with all parameter bindings.
+(define (dep-extend-ctx-with-params ctx params)
+  (fold-left (lambda (ctx p)
+                     (dep-ctx-extend ctx (car p) (cdr p)))
+             ctx
+             params))
+
+;;; dep-synth-data-constructors : (List (Symbol . Type)) × Symbol × Context → (Result () Error)
+;;; Check that all constructor types are well-formed and return the inductive type.
+(define (dep-synth-data-constructors ctors type-name ctx)
+  (if (null? ctors)
+      '(ok)
+      (let* ([ctor (car ctors)]
+             [ctor-name (car ctor)]
+             [ctor-type (cdr ctor)])
+            ;; Check constructor type is well-formed
+            (let ([type-check (dep-check-type ctor-type ctx)])
+                 (if (not (eq? (car type-check) 'ok))
+                     `(error ctor-type-error (constructor ,ctor-name) ,(cadr type-check))
+                     ;; Check constructor returns the inductive type
+                     (let ([return-type (get-constructor-return-type ctor-type)])
+                          (if (not (constructor-returns-type? return-type type-name))
+                              `(error constructor-wrong-return-type
+                                (constructor ,ctor-name)
+                                (expected ,type-name)
+                                (got ,return-type))
+                              (dep-synth-data-constructors (cdr ctors) type-name ctx))))))))
+
+;;; get-constructor-return-type : Type → Type
+;;; Get the return type of a constructor (unwrap nested Pi types).
+(define (get-constructor-return-type type)
+  (cond
+   [(pi-type? type)
+    (get-constructor-return-type (pi-codomain type))]
+   [(function-type? type)
+    (function-return-type type)]
+   [else type]))
+
+;;; constructor-returns-type? : Type × Symbol → Boolean
+;;; Check if a return type matches the inductive type name.
+(define (constructor-returns-type? return-type type-name)
+  (cond
+   [(eq? return-type type-name) #t]
+   [(and (pair? return-type) (eq? (car return-type) type-name)) #t]
+   [else #f]))
+
+;;; ============================================================
+;;; Eliminator Synthesis
+;;; ============================================================
+;;;
+;;; Eliminators are synthesized when we see (elim-D ...) where D
+;;; is a known inductive type.
+;;;
+;;; For now, we require the data declaration to be in the context
+;;; or we check against known built-in types.
+
+;;; dep-synth-eliminator : Expr × Context → (Result Type Error)
+;;; Synthesize type for eliminator application.
+;;; (elim-TypeName P method... target) : (P target)
+(define (dep-synth-eliminator expr ctx)
+  (let* ([elim-sym (car expr)]
+         [elim-str (symbol->string elim-sym)]
+         [type-name (string->symbol (substring elim-str 5 (string-length elim-str)))]
+         [args (cdr expr)])
+        ;; Look up the data type declaration in context
+        ;; For now, handle known types (Nat, Bool, List)
+        (cond
+         [(eq? type-name 'Nat)
+          (dep-synth-elim-nat args ctx)]
+         [(eq? type-name 'Bool)
+          (dep-synth-elim-bool args ctx)]
+         [(eq? type-name 'List)
+          (dep-synth-elim-list args ctx)]
+         [else
+          `(error unknown-inductive-type ,type-name)])))
+
+;;; dep-synth-elim-nat : (List Expr) × Context → (Result Type Error)
+;;; elim-Nat P z s n : (P n)
+;;; where P : Nat → Type
+;;;       z : (P zero)
+;;;       s : Π(m : Nat). (P m) → (P (succ m))
+;;;       n : Nat
+(define (dep-synth-elim-nat args ctx)
+  (if (not (= (length args) 4))
+      `(error elim-nat-wrong-arity (expected 4) (got ,(length args)))
+      (let* ([P-expr (car args)]
+             [z-expr (cadr args)]
+             [s-expr (caddr args)]
+             [n-expr (cadddr args)]
+             ;; Check P : Nat → Type
+             [P-expected (t-pi 'm 'Nat 'Type)]
+             [P-check (dep-check P-expr P-expected ctx)])
+            (if (not (eq? (car P-check) 'ok))
+                `(error elim-nat-motive-error ,(cdr P-check))
+                ;; Check z : (P zero)
+                (let ([z-expected `(,P-expr zero)])
+                     (let ([z-check (dep-check z-expr z-expected ctx)])
+                          (if (not (eq? (car z-check) 'ok))
+                              `(error elim-nat-zero-case-error ,(cdr z-check))
+                              ;; Check s : Π(m : Nat). (P m) → (P (succ m))
+                              (let ([s-expected (t-pi 'm 'Nat
+                                                      (t-pi 'ih `(,P-expr m)
+                                                            `(,P-expr (succ m))))])
+                                   (let ([s-check (dep-check s-expr s-expected ctx)])
+                                        (if (not (eq? (car s-check) 'ok))
+                                            `(error elim-nat-succ-case-error ,(cdr s-check))
+                                            ;; Check n : Nat
+                                            (let ([n-check (dep-check n-expr 'Nat ctx)])
+                                                 (if (not (eq? (car n-check) 'ok))
+                                                     n-check
+                                                     ;; Result: (P n)
+                                                     `(ok (,P-expr ,n-expr))))))))))))))
+
+;;; dep-synth-elim-bool : (List Expr) × Context → (Result Type Error)
+;;; elim-Bool P t f b : (P b)
+;;; where P : Bool → Type
+;;;       t : (P true)
+;;;       f : (P false)
+;;;       b : Bool
+(define (dep-synth-elim-bool args ctx)
+  (if (not (= (length args) 4))
+      `(error elim-bool-wrong-arity (expected 4) (got ,(length args)))
+      (let* ([P-expr (car args)]
+             [t-expr (cadr args)]
+             [f-expr (caddr args)]
+             [b-expr (cadddr args)]
+             ;; Check P : Bool → Type
+             [P-expected (t-pi 'b 'Bool 'Type)]
+             [P-check (dep-check P-expr P-expected ctx)])
+            (if (not (eq? (car P-check) 'ok))
+                `(error elim-bool-motive-error ,(cdr P-check))
+                ;; Check t : (P true)
+                (let ([t-expected `(,P-expr true)])
+                     (let ([t-check (dep-check t-expr t-expected ctx)])
+                          (if (not (eq? (car t-check) 'ok))
+                              `(error elim-bool-true-case-error ,(cdr t-check))
+                              ;; Check f : (P false)
+                              (let ([f-expected `(,P-expr false)])
+                                   (let ([f-check (dep-check f-expr f-expected ctx)])
+                                        (if (not (eq? (car f-check) 'ok))
+                                            `(error elim-bool-false-case-error ,(cdr f-check))
+                                            ;; Check b : Bool
+                                            (let ([b-check (dep-check b-expr 'Bool ctx)])
+                                                 (if (not (eq? (car b-check) 'ok))
+                                                     b-check
+                                                     ;; Result: (P b)
+                                                     `(ok (,P-expr ,b-expr))))))))))))))
+
+;;; dep-synth-elim-list : (List Expr) × Context → (Result Type Error)
+;;; elim-List P n c xs : (P xs)
+;;; where P : (List A) → Type
+;;;       n : (P nil)
+;;;       c : Π(x : A). Π(xs : List A). (P xs) → (P (cons x xs))
+;;;       xs : (List A)
+;;; Note: This is simplified - full version would track element type A
+(define (dep-synth-elim-list args ctx)
+  (if (not (= (length args) 4))
+      `(error elim-list-wrong-arity (expected 4) (got ,(length args)))
+      (let* ([P-expr (car args)]
+             [n-expr (cadr args)]
+             [c-expr (caddr args)]
+             [xs-expr (cadddr args)]
+             ;; Synthesize xs to get the list type
+             [xs-synth (dep-synth xs-expr ctx)])
+            (if (not (eq? (car xs-synth) 'ok))
+                xs-synth
+                (let ([xs-type (cadr xs-synth)])
+                     ;; Result: (P xs)
+                     ;; Simplified: we just return the application without full checking
+                     `(ok (,P-expr ,xs-expr)))))))
 
 ;;; ============================================================
 ;;; Convenience Functions

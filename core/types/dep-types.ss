@@ -29,9 +29,34 @@
 ;;;          | (Σ ((x : Type)) Type)    ; Sigma type (dependent pair)
 ;;;          | Type                      ; Universe (synonym for Type₀)
 ;;;          | (Type n)                  ; Universe at level n
+;;;          | (data (Name params...) [ctor : type] ...)  ; Inductive type
 ;;;
 ;;; The arrow (-> A B) is sugar for (Π ((_ : A)) B) when _ is unused.
 ;;; The product (× A B) is sugar for (Σ ((_ : A)) B) when _ is unused.
+;;;
+;;; Inductive Types:
+;;;
+;;;   (data (Name params...) [ctor : type] ...)
+;;;
+;;; Where:
+;;;   - Name is the type name (symbol)
+;;;   - params are type parameters: bare symbols (implicit Type) or (x : T)
+;;;   - ctor is a constructor name
+;;;   - type is the constructor's type (must return the inductive type)
+;;;
+;;; Example:
+;;;   (data (Vec A)
+;;;     [nil  : (Vec A)]
+;;;     [cons : (Π ((x : A)) (Π ((xs : (Vec A))) (Vec A)))])
+;;;
+;;;   (data (Nat)
+;;;     [zero : Nat]
+;;;     [succ : (Π ((n : Nat)) Nat)])
+;;;
+;;; Indexed Families:
+;;;   (data (Vec (n : Nat) A)
+;;;     [nil  : (Vec 0 A)]
+;;;     [cons : (Π ((x : A)) (Π ((m : Nat)) (Π ((xs : (Vec m A))) (Vec (succ m) A))))])
 
 ;;; ============================================================
 ;;; Dependent Type Predicates
@@ -69,12 +94,17 @@
 (define (refinement-type? t)
   (and (pair? t) (eq? (car t) 'refine)))
 
+;;; data-type? : SExpr → Boolean
+;;; Check if this is an inductive type definition: (data (Name ...) [ctor : type] ...)
+(define (data-type? t)
+  (and (pair? t) (eq? (car t) 'data)))
+
 ;;; dep-type? : Type → Boolean
 ;;; Is this a dependent type construct?
 (define (dep-type? t)
   (or (pi-type? t) (sigma-type? t) (universe-type? t)
       (vec-type? t) (matrix-type? t) (equality-type? t)
-      (refinement-type? t)))
+      (refinement-type? t) (data-type? t)))
 
 ;;; ============================================================
 ;;; Pi Type Operations
@@ -271,6 +301,154 @@
       #f))
 
 ;;; ============================================================
+;;; Inductive Type Operations
+;;; ============================================================
+;;;
+;;; Inductive types (data declarations) define new types with constructors.
+;;;
+;;; Syntax: (data (Name params...) [ctor : type] ...)
+;;;
+;;; Structure:
+;;;   car = 'data
+;;;   cadr = (Name params...) - type header with name and parameters
+;;;   cddr = ([ctor : type] ...) - list of constructors
+;;;
+;;; Parameters can be:
+;;;   - Bare symbols: implicit Type parameter (e.g., A means A : Type)
+;;;   - Typed bindings: (x : T) for explicit parameter types
+;;;
+;;; Constructors are:
+;;;   - [ctor-name : ctor-type]
+;;;   - ctor-type must return the inductive type (possibly with different indices)
+;;;
+;;; Examples:
+;;;   (data (Bool)
+;;;     [true : Bool]
+;;;     [false : Bool])
+;;;
+;;;   (data (Nat)
+;;;     [zero : Nat]
+;;;     [succ : (Π ((n : Nat)) Nat)])
+;;;
+;;;   (data (List A)
+;;;     [nil : (List A)]
+;;;     [cons : (Π ((x : A)) (Π ((xs : (List A))) (List A)))])
+
+;;; data-type-well-formed? : SExpr → Boolean
+;;; Check if a data type definition is well-formed.
+(define (data-type-well-formed? t)
+  (and (pair? t)
+       (eq? (car t) 'data)
+       (>= (length t) 2)
+       (pair? (cadr t))              ; Header must be a list
+       (symbol? (caadr t))           ; First element is the type name
+       (not (constructor-decl? (cadr t)))  ; Header is not a constructor decl
+       (andmap constructor-decl? (cddr t))))  ; Rest are constructor declarations
+
+;;; constructor-decl? : SExpr → Boolean
+;;; Check if this is a valid constructor declaration: [name : type]
+(define (constructor-decl? d)
+  (and (list? d)
+       (= (length d) 3)
+       (symbol? (car d))
+       (eq? (cadr d) ':)))
+
+;;; data-name : DataType → Symbol
+;;; Get the name of an inductive type.
+(define (data-name t)
+  (if (data-type? t)
+      (caadr t)
+      #f))
+
+;;; data-header : DataType → (List SExpr)
+;;; Get the full header (name and parameters) of a data type.
+(define (data-header t)
+  (if (data-type? t)
+      (cadr t)
+      '()))
+
+;;; data-params : DataType → (List (Symbol | Binding))
+;;; Get the parameters of an inductive type (everything after the name).
+(define (data-params t)
+  (if (data-type? t)
+      (cdadr t)
+      '()))
+
+;;; data-constructors : DataType → (List (name . type))
+;;; Get the constructors of an inductive type as an alist.
+(define (data-constructors t)
+  (if (data-type? t)
+      (map (lambda (c) (cons (car c) (caddr c)))
+           (cddr t))
+      '()))
+
+;;; data-constructor-decls : DataType → (List [name : type])
+;;; Get the raw constructor declarations.
+(define (data-constructor-decls t)
+  (if (data-type? t)
+      (cddr t)
+      '()))
+
+;;; data-constructor-names : DataType → (List Symbol)
+;;; Get just the constructor names.
+(define (data-constructor-names t)
+  (map car (data-constructors t)))
+
+;;; data-constructor-type : DataType × Symbol → Type | #f
+;;; Get the type of a specific constructor by name.
+(define (data-constructor-type t ctor-name)
+  (let ([ctors (data-constructors t)])
+       (let ([entry (assq ctor-name ctors)])
+            (if entry (cdr entry) #f))))
+
+;;; param-binding : Param → (Symbol . Type)
+;;; Convert a parameter to a binding pair.
+;;; Bare symbols get implicit Type binding.
+(define (param-binding p)
+  (if (typed-binding? p)
+      (cons (binding-var p) (binding-type p))
+      (cons p 'Type)))  ; Implicit Type for bare symbols
+
+;;; data-param-bindings : DataType → (List (Symbol . Type))
+;;; Get parameters as an alist of bindings.
+(define (data-param-bindings t)
+  (map param-binding (data-params t)))
+
+;;; data-applied-type : DataType → Type
+;;; Get the type that constructors return (type name applied to parameters).
+;;; E.g., for (data (List A) ...) returns (List A)
+(define (data-applied-type t)
+  (let ([name (data-name t)]
+        [params (data-params t)])
+       (if (null? params)
+           name
+           (cons name (map (lambda (p)
+                                   (if (typed-binding? p)
+                                       (binding-var p)
+                                       p))
+                           params)))))
+
+;;; ============================================================
+;;; Inductive Type Instance Predicate
+;;; ============================================================
+;;;
+;;; An inductive type instance is an application of a data type name
+;;; to arguments: (TypeName args...)
+;;;
+;;; This is used to check if a type is an instance of a declared
+;;; inductive type (after the data declaration has been processed).
+
+;;; make-data-type-predicate : Symbol → (Type → Boolean)
+;;; Create a predicate that checks if a type is an instance of
+;;; the given inductive type name.
+(define (make-data-type-predicate name)
+  (lambda (t)
+          (cond
+           [(eq? t name) #t]
+           [(and (pair? t) (eq? (car t) name)) #t]
+           [else #f])))
+
+;;; ============================================================
 ;;; Universe Operations
 ;;; ============================================================
 
@@ -359,6 +537,144 @@
 ;;; (t-refine 'n 'Nat '(> n 0)) → (refine ((n : Nat)) (> n 0))
 (define (t-refine var base-type predicate)
   `(refine ((,var : ,base-type)) ,predicate))
+
+;;; t-data : Symbol × (List Param) × (List (Symbol . Type)) → DataType
+;;; Construct an inductive type declaration.
+;;; (t-data 'Nat '() '((zero . Nat) (succ . (Π ((n : Nat)) Nat))))
+;;; → (data (Nat) [zero : Nat] [succ : (Π ((n : Nat)) Nat)])
+(define (t-data name params constructors)
+  (let ([header (cons name params)]
+        [ctor-decls (map (lambda (c) `(,(car c) : ,(cdr c)))
+                         constructors)])
+       `(data ,header ,@ctor-decls)))
+
+;;; t-constructor : Symbol × Type → Constructor-Declaration
+;;; Construct a constructor declaration.
+;;; (t-constructor 'zero 'Nat) → [zero : Nat]
+(define (t-constructor name type)
+  `(,name : ,type))
+
+;;; t-data-simple : Symbol × (List (Symbol . Type)) → DataType
+;;; Construct a simple inductive type with no parameters.
+;;; (t-data-simple 'Bool '((true . Bool) (false . Bool)))
+;;; → (data (Bool) [true : Bool] [false : Bool])
+(define (t-data-simple name constructors)
+  (t-data name '() constructors))
+
+;;; ============================================================
+;;; Eliminator Generation
+;;; ============================================================
+;;;
+;;; For each inductive type, we generate an eliminator (recursor).
+;;;
+;;; For a type D with constructors c₁, c₂, ..., cₙ:
+;;;   elim-D : (P : D → Type) →
+;;;            (method₁ : ...) →
+;;;            (method₂ : ...) →
+;;;            ...
+;;;            (x : D) →
+;;;            (P x)
+;;;
+;;; Each method corresponds to a constructor and handles that case.
+;;;
+;;; Example for Nat:
+;;;   elim-Nat : (P : Nat → Type) →
+;;;              (z : (P zero)) →                     ; zero case
+;;;              (s : (Π ((n : Nat)) (Π ((_ : (P n))) (P (succ n))))) →  ; succ case
+;;;              (n : Nat) →
+;;;              (P n)
+;;;
+;;; Computation rules:
+;;;   (elim-Nat P z s zero) = z
+;;;   (elim-Nat P z s (succ n)) = (s n (elim-Nat P z s n))
+
+;;; generate-eliminator-type : DataType → Type
+;;; Generate the type of the eliminator for an inductive type.
+(define (generate-eliminator-type data-decl)
+  (let* ([name (data-name data-decl)]
+         [params (data-param-bindings data-decl)]
+         [applied-type (data-applied-type data-decl)]
+         [ctors (data-constructors data-decl)]
+         ;; Motive: P : D → Type
+         [motive-type (t-pi 'x applied-type 'Type)]
+         ;; Build method types for each constructor
+         [method-types (map (lambda (c)
+                                    (generate-method-type c applied-type 'P))
+                            ctors)]
+         ;; Target: x : D
+         ;; Result: (P x)
+         [result-type `(P x)])
+        ;; Combine: Π(P : D → Type). Π(m₁). ... Π(mₙ). Π(x : D). (P x)
+        (let ([inner (t-pi 'x applied-type result-type)])
+             (fold-right (lambda (method-type body)
+                                 (t-pi (car method-type) (cdr method-type) body))
+                         inner
+                         (cons (cons 'P motive-type) method-types)))))
+
+;;; generate-method-type : (Symbol . Type) × Type × Symbol → (Symbol . Type)
+;;; Generate the method type for a constructor in the eliminator.
+;;; For a constructor c : A₁ → A₂ → ... → D, the method type is:
+;;;   (Π ((a₁ : A₁)) (Π ((a₂ : A₂)) ... (Π ((ih : P aᵢ)) ...) (P (c a₁ a₂ ...))))
+;;; where ih bindings are added for recursive occurrences.
+(define (generate-method-type ctor applied-type motive)
+  (let* ([ctor-name (car ctor)]
+         [ctor-type (cdr ctor)]
+         [method-name (string->symbol (string-append "m-" (symbol->string ctor-name)))])
+        ;; For now, generate a simplified method type
+        ;; Full implementation would analyze recursive positions
+        (cons method-name (generate-method-type-body ctor-type applied-type motive '()))))
+
+;;; generate-method-type-body : Type × Type × Symbol × (List Symbol) → Type
+;;; Recursively build the method body type.
+(define (generate-method-type-body ctor-type applied-type motive args)
+  (cond
+   ;; If we've reached the return type (applied inductive type)
+   [(types-match-head? ctor-type applied-type)
+    ;; Result: (P (ctor args...))
+    `(,motive ,(if (null? args)
+                   ctor-type
+                   (cons (get-type-head applied-type) (reverse args))))]
+   ;; If it's a Pi type, add the parameter
+   [(pi-type? ctor-type)
+    (let* ([var (pi-var ctor-type)]
+           [domain (pi-domain ctor-type)]
+           [codomain (pi-codomain ctor-type)]
+           [is-recursive (types-match-head? domain applied-type)])
+          (if is-recursive
+              ;; Add induction hypothesis for recursive argument
+              (t-pi var domain
+                    (t-pi (fresh-ih-var var) `(,motive ,var)
+                          (generate-method-type-body codomain applied-type motive
+                                                     (cons var args))))
+              ;; Non-recursive argument
+              (t-pi var domain
+                    (generate-method-type-body codomain applied-type motive
+                                               (cons var args)))))]
+   ;; Base case - shouldn't normally reach here
+   [else `(,motive ctor-type)]))
+
+;;; types-match-head? : Type × Type → Boolean
+;;; Check if two types have the same head (type name).
+(define (types-match-head? t1 t2)
+  (equal? (get-type-head t1) (get-type-head t2)))
+
+;;; get-type-head : Type → Symbol | #f
+;;; Get the head symbol of a type application.
+(define (get-type-head t)
+  (cond
+   [(symbol? t) t]
+   [(and (pair? t) (symbol? (car t))) (car t)]
+   [else #f]))
+
+;;; fresh-ih-var : Symbol → Symbol
+;;; Generate a fresh variable name for an induction hypothesis.
+(define (fresh-ih-var base)
+  (string->symbol (string-append "ih-" (symbol->string base))))
+
+;;; eliminator-name : Symbol → Symbol
+;;; Generate the eliminator name for a data type.
+(define (eliminator-name data-name)
+  (string->symbol (string-append "elim-" (symbol->string data-name))))
 
 ;;; ============================================================
 ;;; Equality Proof Term Predicates
@@ -736,6 +1052,34 @@
                         (format "~a" pred)
                         "}"))]
    
+   ;; Inductive type (data (Name params...) [ctor : type] ...)
+   [(data-type? t)
+    (let ([name (data-name t)]
+          [params (data-params t)]
+          [ctors (data-constructors t)])
+         (string-append "data "
+                        (symbol->string name)
+                        (if (null? params)
+                            ""
+                            (string-append "("
+                                           (join-strings ", "
+                                                         (map (lambda (p)
+                                                                      (if (typed-binding? p)
+                                                                          (string-append (symbol->string (binding-var p))
+                                                                                         " : "
+                                                                                         (dep-type->string (binding-type p)))
+                                                                          (symbol->string p)))
+                                                              params))
+                                           ")"))
+                        " { "
+                        (join-strings " | "
+                                      (map (lambda (c)
+                                                   (string-append (symbol->string (car c))
+                                                                  " : "
+                                                                  (dep-type->string (cdr c))))
+                                           ctors))
+                        " }"))]
+   
    ;; Arrow type
    [(and (pair? t) (eq? (car t) '->))
     (string-append "("
@@ -778,6 +1122,7 @@
    [(eq? (car t) 'Type) (and (= (length t) 2) (integer? (cadr t)) (>= (cadr t) 0))]
    [(eq? (car t) '=) (equality-type-well-formed? t)]
    [(eq? (car t) 'refine) (refinement-type-well-formed? t)]
+   [(eq? (car t) 'data) (data-type-well-formed? t)]
    
    ;; Delegate to base type? for other forms
    [else (type? t)]))
