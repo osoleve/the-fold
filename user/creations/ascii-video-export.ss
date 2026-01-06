@@ -1,0 +1,472 @@
+;;; user/creations/ascii-video-export.ss --- ASCII Video to GIF/MP4 Export
+;;;
+;;; Converts ASCII animations to actual video files using FFmpeg.
+;;; Because why shouldn't your terminal art be shareable?
+;;;
+;;; Usage:
+;;;   (load "user/creations/ascii-video-export.ss")
+;;;   (video->gif video "output.gif" 100)   ; 100ms per frame
+;;;   (video->mp4 video "output.mp4" 15)    ; 15fps
+;;;
+;;; The pipeline: ASCII frames -> PPM images -> FFmpeg -> GIF/MP4
+
+(load "user/creations/ascii-video.ss")
+
+;;; ============================================================
+;;; Configuration
+;;; ============================================================
+
+;;; Font metrics (each ASCII char becomes this many pixels)
+(define *char-width* 8)
+(define *char-height* 14)
+
+;;; Colors (RGB 0-255)
+(define *bg-color* '(24 24 32))      ; Dark blue-ish background
+(define *fg-color* '(220 220 200))   ; Warm white foreground
+
+;;; Character brightness mapping for shading (optional grayscale mode)
+(define *char-brightness*
+  '((#\space . 0.0)
+    (#\. . 0.15)
+    (#\, . 0.20)
+    (#\: . 0.30)
+    (#\; . 0.35)
+    (#\- . 0.40)
+    (#\~ . 0.45)
+    (#\= . 0.50)
+    (#\+ . 0.55)
+    (#\* . 0.65)
+    (#\# . 0.80)
+    (#\% . 0.85)
+    (#\@ . 0.95)))
+
+(define (char->brightness c)
+  (let ([entry (assv c *char-brightness*)])
+       (if entry (cdr entry) 0.7)))  ; Default for unlisted chars
+
+;;; ============================================================
+;;; Bitmap Font (Minimal 8x14 ASCII)
+;;; ============================================================
+
+;;; Each glyph is 14 rows of 8-bit patterns
+;;; 1 = foreground, 0 = background
+;;; This is a minimal subset - just enough for ASCII art
+
+;;; Use char->integer as hash function for characters
+(define (char-hash c) (char->integer c))
+(define *font-glyphs* (make-hashtable char-hash char=?))
+
+;;; Helper to define glyph from binary strings
+(define (define-glyph! char . rows)
+  (hashtable-set! *font-glyphs* char
+                  (map (lambda (row)
+                               (if (string? row)
+                                   (string->number row 2)
+                                   row))
+                       rows)))
+
+;;; Space
+(define-glyph! #\space
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00000000" "00000000"
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Period
+(define-glyph! #\.
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00000000" "00000000"
+  "00000000" "00000000" "00000000" "00011000" "00011000" "00000000" "00000000")
+
+;;; Comma
+(define-glyph! #\,
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00000000" "00000000"
+  "00000000" "00000000" "00000000" "00011000" "00011000" "00010000" "00100000")
+
+;;; Colon
+(define-glyph! #\:
+  "00000000" "00000000" "00000000" "00000000" "00011000" "00011000" "00000000"
+  "00000000" "00000000" "00011000" "00011000" "00000000" "00000000" "00000000")
+
+;;; Semicolon
+(define-glyph! #\;
+  "00000000" "00000000" "00000000" "00000000" "00011000" "00011000" "00000000"
+  "00000000" "00000000" "00011000" "00011000" "00010000" "00100000" "00000000")
+
+;;; Hyphen/minus
+(define-glyph! #\-
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00000000" "01111110"
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Tilde
+(define-glyph! #\~
+  "00000000" "00000000" "00000000" "00000000" "00000000" "01110010" "10001100"
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Equals
+(define-glyph! #\=
+  "00000000" "00000000" "00000000" "00000000" "00000000" "01111110" "00000000"
+  "01111110" "00000000" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Plus
+(define-glyph! #\+
+  "00000000" "00000000" "00000000" "00000000" "00011000" "00011000" "01111110"
+  "00011000" "00011000" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Asterisk
+(define-glyph! #\*
+  "00000000" "00000000" "00000000" "00011000" "01011010" "00111100" "00011000"
+  "00111100" "01011010" "00011000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Hash
+(define-glyph! #\#
+  "00000000" "00000000" "00100100" "00100100" "01111110" "00100100" "00100100"
+  "01111110" "00100100" "00100100" "00000000" "00000000" "00000000" "00000000")
+
+;;; Percent
+(define-glyph! #\%
+  "00000000" "00000000" "01100010" "01100100" "00001000" "00010000" "00100000"
+  "01001100" "10001100" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; At sign
+(define-glyph! #\@
+  "00000000" "00000000" "00111100" "01000010" "01011010" "01011010" "01011110"
+  "01000000" "00111110" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Apostrophe/quote
+(define-glyph! #\'
+  "00000000" "00011000" "00011000" "00010000" "00100000" "00000000" "00000000"
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Caret
+(define-glyph! #\^
+  "00000000" "00011000" "00100100" "01000010" "00000000" "00000000" "00000000"
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Pipe
+(define-glyph! #\|
+  "00000000" "00011000" "00011000" "00011000" "00011000" "00011000" "00011000"
+  "00011000" "00011000" "00011000" "00011000" "00011000" "00000000" "00000000")
+
+;;; Slash
+(define-glyph! #\/
+  "00000000" "00000010" "00000100" "00001000" "00010000" "00100000" "00100000"
+  "01000000" "10000000" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Backslash
+(define-glyph! #\\
+  "00000000" "10000000" "01000000" "00100000" "00010000" "00001000" "00001000"
+  "00000100" "00000010" "00000000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Underscore
+(define-glyph! #\_
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00000000" "00000000"
+  "00000000" "00000000" "00000000" "00000000" "00000000" "11111111" "00000000")
+
+;;; Left paren
+(define-glyph! #\(
+  "00000000" "00000100" "00001000" "00010000" "00010000" "00010000" "00010000"
+  "00010000" "00010000" "00001000" "00000100" "00000000" "00000000" "00000000")
+
+;;; Right paren
+(define-glyph! #\)
+  "00000000" "00100000" "00010000" "00001000" "00001000" "00001000" "00001000"
+  "00001000" "00001000" "00010000" "00100000" "00000000" "00000000" "00000000")
+
+;;; Left bracket
+(define-glyph! #\[
+  "00000000" "00011110" "00010000" "00010000" "00010000" "00010000" "00010000"
+  "00010000" "00010000" "00010000" "00011110" "00000000" "00000000" "00000000")
+
+;;; Right bracket
+(define-glyph! #\]
+  "00000000" "01111000" "00001000" "00001000" "00001000" "00001000" "00001000"
+  "00001000" "00001000" "00001000" "01111000" "00000000" "00000000" "00000000")
+
+;;; Left brace
+(define-glyph! #\{
+  "00000000" "00001100" "00010000" "00010000" "00010000" "00100000" "00010000"
+  "00010000" "00010000" "00010000" "00001100" "00000000" "00000000" "00000000")
+
+;;; Right brace
+(define-glyph! #\}
+  "00000000" "00110000" "00001000" "00001000" "00001000" "00000100" "00001000"
+  "00001000" "00001000" "00001000" "00110000" "00000000" "00000000" "00000000")
+
+;;; Letter O (for the ball and similar)
+(define-glyph! #\O
+  "00000000" "00000000" "00111100" "01000010" "01000010" "01000010" "01000010"
+  "01000010" "01000010" "00111100" "00000000" "00000000" "00000000" "00000000")
+
+;;; Letter o (lowercase)
+(define-glyph! #\o
+  "00000000" "00000000" "00000000" "00000000" "00000000" "00111100" "01000010"
+  "01000010" "01000010" "00111100" "00000000" "00000000" "00000000" "00000000")
+
+;;; Number 0
+(define-glyph! #\0
+  "00000000" "00000000" "00111100" "01000110" "01001010" "01010010" "01100010"
+  "01000010" "01000010" "00111100" "00000000" "00000000" "00000000" "00000000")
+
+;;; Numbers 1-9
+(define-glyph! #\1
+  "00000000" "00000000" "00011000" "00111000" "00011000" "00011000" "00011000"
+  "00011000" "00011000" "00111100" "00000000" "00000000" "00000000" "00000000")
+
+(define-glyph! #\2
+  "00000000" "00000000" "00111100" "01000010" "00000010" "00001100" "00110000"
+  "01000000" "01000000" "01111110" "00000000" "00000000" "00000000" "00000000")
+
+(define-glyph! #\3
+  "00000000" "00000000" "00111100" "01000010" "00000010" "00011100" "00000010"
+  "00000010" "01000010" "00111100" "00000000" "00000000" "00000000" "00000000")
+
+(define-glyph! #\4
+  "00000000" "00000000" "00001100" "00010100" "00100100" "01000100" "01111110"
+  "00000100" "00000100" "00000100" "00000000" "00000000" "00000000" "00000000")
+
+(define-glyph! #\5
+  "00000000" "00000000" "01111110" "01000000" "01000000" "01111100" "00000010"
+  "00000010" "01000010" "00111100" "00000000" "00000000" "00000000" "00000000")
+
+(define-glyph! #\6
+  "00000000" "00000000" "00011100" "00100000" "01000000" "01111100" "01000010"
+  "01000010" "01000010" "00111100" "00000000" "00000000" "00000000" "00000000")
+
+(define-glyph! #\7
+  "00000000" "00000000" "01111110" "00000010" "00000100" "00001000" "00010000"
+  "00100000" "00100000" "00100000" "00000000" "00000000" "00000000" "00000000")
+
+(define-glyph! #\8
+  "00000000" "00000000" "00111100" "01000010" "01000010" "00111100" "01000010"
+  "01000010" "01000010" "00111100" "00000000" "00000000" "00000000" "00000000")
+
+(define-glyph! #\9
+  "00000000" "00000000" "00111100" "01000010" "01000010" "00111110" "00000010"
+  "00000010" "00000100" "00111000" "00000000" "00000000" "00000000" "00000000")
+
+;;; Fallback glyph (filled box for unknown chars)
+(define *fallback-glyph*
+  (map (lambda (s) (string->number s 2))
+       '("00000000" "00000000" "01111110" "01111110" "01111110" "01111110" "01111110"
+         "01111110" "01111110" "01111110" "00000000" "00000000" "00000000" "00000000")))
+
+(define (get-glyph char)
+  (or (hashtable-ref *font-glyphs* char #f)
+      *fallback-glyph*))
+
+;;; ============================================================
+;;; PPM Image Generation
+;;; ============================================================
+
+;;; PPM P6 format: binary RGB, super simple
+;;; Header: "P6\nWIDTH HEIGHT\n255\n" then WIDTH*HEIGHT*3 bytes
+
+(define (frame->ppm-bytes frame)
+  "Convert ASCII frame to PPM binary data"
+  (let* ([char-w *char-width*]
+         [char-h *char-height*]
+         [frame-w (frame-width frame)]
+         [frame-h (frame-height frame)]
+         [img-w (* frame-w char-w)]
+         [img-h (* frame-h char-h)]
+         [header (string-append "P6\n"
+                                (number->string img-w) " "
+                                (number->string img-h) "\n255\n")]
+         [pixels (make-bytevector (* img-w img-h 3))]
+         [bg-r (car *bg-color*)]
+         [bg-g (cadr *bg-color*)]
+         [bg-b (caddr *bg-color*)]
+         [fg-r (car *fg-color*)]
+         [fg-g (cadr *fg-color*)]
+         [fg-b (caddr *fg-color*)])
+        
+        ;; Fill with background
+        (do ([i 0 (+ i 3)])
+            ((>= i (* img-w img-h 3)))
+            (bytevector-u8-set! pixels i bg-r)
+            (bytevector-u8-set! pixels (+ i 1) bg-g)
+            (bytevector-u8-set! pixels (+ i 2) bg-b))
+        
+        ;; Render each character
+        (do ([cy 0 (+ cy 1)])
+            ((>= cy frame-h))
+            (do ([cx 0 (+ cx 1)])
+                ((>= cx frame-w))
+                (let* ([char (frame-ref frame cx cy)]
+                       [glyph (get-glyph char)]
+                       [px-base-x (* cx char-w)]
+                       [px-base-y (* cy char-h)])
+                      ;; Render glyph pixels
+                      (do ([gy 0 (+ gy 1)])
+                          ((>= gy char-h))
+                          (let ([row-bits (list-ref glyph gy)])
+                               (do ([gx 0 (+ gx 1)])
+                                   ((>= gx char-w))
+                                   (when (> (bitwise-and row-bits
+                                                         (bitwise-arithmetic-shift-left 1 (- 7 gx)))
+                                            0)
+                                         (let* ([px (+ px-base-x gx)]
+                                                [py (+ px-base-y gy)]
+                                                [offset (* 3 (+ px (* py img-w)))])
+                                               (bytevector-u8-set! pixels offset fg-r)
+                                               (bytevector-u8-set! pixels (+ offset 1) fg-g)
+                                               (bytevector-u8-set! pixels (+ offset 2) fg-b)))))))))
+        
+        ;; Combine header and pixel data
+        (let* ([header-bytes (string->utf8 header)]
+               [result (make-bytevector (+ (bytevector-length header-bytes)
+                                           (bytevector-length pixels)))])
+              (bytevector-copy! header-bytes 0 result 0 (bytevector-length header-bytes))
+              (bytevector-copy! pixels 0 result (bytevector-length header-bytes) (bytevector-length pixels))
+              result)))
+
+;;; ============================================================
+;;; File I/O
+;;; ============================================================
+
+(define (write-bytevector-to-file bv filename)
+  (let ([port (open-file-output-port filename (file-options no-fail))])
+       (put-bytevector port bv)
+       (close-port port)))
+
+(define (ensure-directory path)
+  (system (string-append "mkdir -p " path)))
+
+;;; ============================================================
+;;; Video Export
+;;; ============================================================
+
+;;; Zero-pad a number to specified width
+(define (zero-pad n width)
+  (let* ([s (number->string n)]
+         [len (string-length s)]
+         [padding (- width len)])
+        (if (<= padding 0)
+            s
+            (string-append (make-string padding #\0) s))))
+
+(define (video->frames-dir video dir-path)
+  "Export video frames as PPM files in a directory"
+  (ensure-directory dir-path)
+  (let ([count (video-frame-count video)])
+       (do ([i 0 (+ i 1)])
+           ((>= i count))
+           (let* ([frame (video-get-frame video i)]
+                  [ppm-data (frame->ppm-bytes frame)]
+                  [filename (string-append dir-path "/frame_"
+                                           (zero-pad i 5) ".ppm")])
+                 (write-bytevector-to-file ppm-data filename)))
+       count))
+
+(define (video->gif video output-path frame-delay-ms)
+  "Export video as GIF animation"
+  (let* ([tmp-dir (string-append "/tmp/ascii-video-" (number->string (random 1000000)))]
+         [frame-count (video->frames-dir video tmp-dir)]
+         [fps (/ 1000.0 frame-delay-ms)]
+         ;; Use palettegen for optimal GIF colors
+         [cmd (string-append
+               "ffmpeg -y -framerate " (number->string fps)
+               " -i " tmp-dir "/frame_%05d.ppm"
+               " -vf \"split[s0][s1];[s0]palettegen=max_colors=32[p];[s1][p]paletteuse=dither=bayer\""
+               " -loop 0 " output-path " 2>/dev/null")])
+        (display "Rendering ")
+        (display frame-count)
+        (display " frames to GIF...\n")
+        (let ([result (system cmd)])
+             (system (string-append "rm -rf " tmp-dir))
+             (if (= result 0)
+                 (begin
+                  (display "Saved: ")
+                  (display output-path)
+                  (newline)
+                  output-path)
+                 (begin
+                  (display "FFmpeg failed!\n")
+                  #f)))))
+
+(define (video->mp4 video output-path fps)
+  "Export video as MP4 (H.264)"
+  (let* ([tmp-dir (string-append "/tmp/ascii-video-" (number->string (random 1000000)))]
+         [frame-count (video->frames-dir video tmp-dir)]
+         [cmd (string-append
+               "ffmpeg -y -framerate " (number->string fps)
+               " -i " tmp-dir "/frame_%05d.ppm"
+               " -c:v libx264 -preset slow -crf 18"
+               " -pix_fmt yuv420p"
+               " " output-path " 2>/dev/null")])
+        (display "Rendering ")
+        (display frame-count)
+        (display " frames to MP4...\n")
+        (let ([result (system cmd)])
+             (system (string-append "rm -rf " tmp-dir))
+             (if (= result 0)
+                 (begin
+                  (display "Saved: ")
+                  (display output-path)
+                  (newline)
+                  output-path)
+                 (begin
+                  (display "FFmpeg failed!\n")
+                  #f)))))
+
+(define (video->webm video output-path fps)
+  "Export video as WebM (VP9, near-lossless)"
+  (let* ([tmp-dir (string-append "/tmp/ascii-video-" (number->string (random 1000000)))]
+         [frame-count (video->frames-dir video tmp-dir)]
+         [cmd (string-append
+               "ffmpeg -y -framerate " (number->string fps)
+               " -i " tmp-dir "/frame_%05d.ppm"
+               " -c:v libvpx-vp9 -lossless 1"
+               " " output-path " 2>/dev/null")])
+        (display "Rendering ")
+        (display frame-count)
+        (display " frames to WebM (lossless)...\n")
+        (let ([result (system cmd)])
+             (system (string-append "rm -rf " tmp-dir))
+             (if (= result 0)
+                 (begin
+                  (display "Saved: ")
+                  (display output-path)
+                  (newline)
+                  output-path)
+                 (begin
+                  (display "FFmpeg failed!\n")
+                  #f)))))
+
+;;; ============================================================
+;;; Quick Export Functions
+;;; ============================================================
+
+(define (quick-gif video name)
+  "Quick GIF export with sensible defaults"
+  (video->gif video (string-append "user/creations/" name ".gif") 100))
+
+(define (quick-mp4 video name)
+  "Quick MP4 export with sensible defaults"
+  (video->mp4 video (string-append "user/creations/" name ".mp4") 15))
+
+;;; ============================================================
+;;; Demo
+;;; ============================================================
+
+(define (export-demo)
+  (display "\n")
+  (display "============================================================\n")
+  (display "  ASCII VIDEO EXPORT TOOLKIT\n")
+  (display "============================================================\n")
+  (display "  Because your terminal art deserves to be a real video\n")
+  (display "============================================================\n\n")
+  
+  (display "Available functions:\n")
+  (display "  (video->gif video \"output.gif\" 100)  ; 100ms per frame\n")
+  (display "  (video->mp4 video \"output.mp4\" 15)   ; 15 fps\n")
+  (display "  (video->webm video \"output.webm\" 15) ; VP9 lossless\n")
+  (display "\n")
+  (display "Quick exports:\n")
+  (display "  (quick-gif video \"name\")  ; -> user/creations/name.gif\n")
+  (display "  (quick-mp4 video \"name\")  ; -> user/creations/name.mp4\n")
+  (display "\n")
+  (display "Font: 8x14 bitmap, ")
+  (display (hashtable-size *font-glyphs*))
+  (display " glyphs defined\n")
+  (display "============================================================\n"))
+
+(export-demo)
