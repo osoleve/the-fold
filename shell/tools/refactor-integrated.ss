@@ -216,17 +216,10 @@
                                                        (string-append current "/" name)))
                                            entries))])
                                    (loop (append full-paths rest) results)))]
-                        [(string-suffix? ".ss" current)
+                        [(string-ends-with? current ".ss")
                          (loop rest (cons current results))]
                         [else
                          (loop rest results)]))))))
-
-;;; string-suffix? : String × String -> Boolean
-(define (string-suffix? suffix str)
-  (let ([slen (string-length suffix)]
-        [len (string-length str)])
-       (and (>= len slen)
-            (string=? suffix (substring str (- len slen) len)))))
 
 ;;; scan-file-for-symbol : String × String × String -> (List Change)
 (define (scan-file-for-symbol file old-str new-str)

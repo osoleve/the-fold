@@ -280,11 +280,11 @@
                        (list (list from 'converts-to to)))
                   '()))]
         ;; something? predicates
-        [(string-suffix? "?" str)
+        [(string-ends-with? str "?")
          (let ([concept (string->symbol (substring str 0 (- (string-length str) 1)))])
               (list (list concept 'has-predicate name)))]
         ;; make-something constructors
-        [(string-prefix? "make-" str)
+        [(string-starts-with? str "make-")
          (let ([concept (string->symbol (substring str 5 (string-length str)))])
               (list (list concept 'has-constructor name)))]
         ;; something-something accessors
@@ -313,18 +313,8 @@
                     (substring str (+ i delim-len) str-len))]
              [else (loop (+ i 1))]))))
 
-;;; NOTE: string-split, string-prefix? (string-starts-with?), string-suffix? (string-ends-with?)
+;;; NOTE: string-split, string-starts-with?, string-ends-with?
 ;;;       provided by core/prelude.ss
-
-;;; string-prefix? : String × String → Boolean
-;;; Alias for string-starts-with? from prelude
-(define (string-prefix? prefix str)
-  (string-starts-with? str prefix))
-
-;;; string-suffix? : String × String → Boolean
-;;; Alias for string-ends-with? from prelude
-(define (string-suffix? suffix str)
-  (string-ends-with? str suffix))
 
 ;;; ============================================================
 ;;; Concept Graph Building
@@ -515,7 +505,7 @@
             (lambda (entry)
                     (let ([full-path (string-append dir "/" entry)])
                          (if (and (not (file-directory? full-path))
-                                  (string-suffix? ".ss" entry))
+                                  (string-ends-with? entry ".ss"))
                              full-path
                              #f)))
             entries))))

@@ -41,7 +41,7 @@
            (filter-map
             (lambda (f)
                     (let ([name (string->symbol (path-strip-extension f))])
-                         (if (string-suffix? ".ss" f)
+                         (if (string-ends-with? f ".ss")
                              name
                              #f)))
             files))
@@ -55,11 +55,6 @@
                 (string=? ".ss" (substring filename (- len 3) len)))
            (substring filename 0 (- len 3))
            filename)))
-
-;;; string-suffix? : String String -> Bool
-;;; Alias for string-ends-with? from prelude.ss (swapped argument order)
-(define (string-suffix? suffix str)
-  (string-ends-with? str suffix))
 
 ;;; filter-map : (A -> B | #f) (List A) -> (List B)
 (define (filter-map f lst)

@@ -156,17 +156,10 @@
                                                        (string-append current "/" name)))
                                            entries))])
                                    (loop (append full-paths rest) results)))]
-                        [(string-suffix? ".ss" current)
+                        [(string-ends-with? current ".ss")
                          (loop rest (cons current results))]
                         [else
                          (loop rest results)]))))))
-
-;;; string-suffix? : String × String -> Boolean
-(define (string-suffix? suffix str)
-  (let ([slen (string-length suffix)]
-        [len (string-length str)])
-       (and (>= len slen)
-            (string=? suffix (substring str (- len slen) len)))))
 
 ;;; dead-code-scan : [String] -> (List (symbol file line))
 ;;; Scan for unused definitions.
@@ -270,18 +263,11 @@
 ;;; Check if symbol is likely test-related (should not be flagged).
 (define (test-related? sym)
   (let ([name (symbol->string sym)])
-       (or (string-prefix? "test-" name)
-           (string-suffix? "-test" name)
-           (string-prefix? "check-" name)
-           (string-prefix? "assert-" name)
-           (string-prefix? "expect-" name))))
-
-;;; string-prefix? : String × String -> Boolean
-(define (string-prefix? prefix str)
-  (let ([plen (string-length prefix)]
-        [slen (string-length str)])
-       (and (<= plen slen)
-            (string=? prefix (substring str 0 plen)))))
+       (or (string-starts-with? name "test-")
+           (string-ends-with? name "-test")
+           (string-starts-with? name "check-")
+           (string-starts-with? name "assert-")
+           (string-starts-with? name "expect-"))))
 
 ;;; exported? : Symbol × String -> Boolean
 ;;; Check if symbol might be exported from the module.
@@ -289,7 +275,7 @@
 (define (exported? sym file)
   ;; For now, assume public if starts with no underscore
   (let ([name (symbol->string sym)])
-       (not (string-prefix? "_" name))))
+       (not (string-starts-with? name "_"))))
 
 ;;; ============================================================
 ;;; Unused Local Bindings
