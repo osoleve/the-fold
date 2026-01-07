@@ -657,3 +657,19 @@
                   [new-shape (transform-shape old-shape offset)])
                  (make-entity (entity-id e) new-body new-shape
                               (entity-material e) (entity-user-data e))))))
+
+;;; ============================================================
+;;; Convenience Wrappers
+;;; ============================================================
+
+;;; world-resolve-collisions! : World × (List Collision) → Void
+;;; Resolve collisions with both velocity impulses and position correction.
+(define (world-resolve-collisions! world collisions)
+  (world-resolve-collision-velocities! world collisions)
+  (world-correct-collision-positions! world collisions))
+
+;;; world-raycast : World × Vec2 × Vec2 × Number → (List Entity)
+;;; Cast a ray and return list of entities hit, sorted by distance.
+(define (world-raycast world origin direction max-dist)
+  (let ([ray (make-ray2 origin direction max-dist)])
+       (map car (world-raycast-all world ray))))
