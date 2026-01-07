@@ -76,10 +76,11 @@
       (safe-set! frame x (- HEIGHT 1) #\-)))
 
 (define (draw-title! frame title y-pos)
-  (let ([start-x (- (/ WIDTH 2) (/ (string-length title) 2))])
+  ;; Use floor to ensure start-x is always an integer (avoid banker's rounding issues)
+  (let ([start-x (inexact->exact (floor (- (/ WIDTH 2) (/ (string-length title) 2))))])
        (do ([i 0 (+ i 1)])
            ((>= i (string-length title)))
-           (safe-set! frame (+ start-x i) y-pos (string-ref title i)))))
+           (frame-set! frame (+ start-x i) y-pos (string-ref title i)))))
 
 ;;; ============================================================
 ;;; Trajectory Simulation (Plain Numbers)
