@@ -222,28 +222,6 @@
                         [else
                          (loop rest results)]))))))
 
-;;; scan-file-for-symbol : String × String × String -> (List Change)
-(define (scan-file-for-symbol file old-str new-str)
-  (guard (e [else '()])
-         (let* ([content (call-with-input-file file
-                                               (lambda (port)
-                                                       (get-string-all port)))]
-                [lines (string-split-lines-simple content)]
-                [changes '()])
-               (let loop ([lines lines] [line-num 1])
-                    (if (null? lines)
-                        (reverse changes)
-                        (let ([line (car lines)])
-                             (when (and (string-contains-word? line old-str)
-                                        (not (in-comment? line old-str)))
-                                   (set! changes
-                                         (cons (make-ref-change 'rename-occurrence
-                                                                file old-str new-str
-                                                                line-num line-num
-                                                                (string-trim-simple line))
-                                               changes)))
-                             (loop (cdr lines) (+ line-num 1))))))))
-
 ;;; string-split-lines-simple : String -> (List String)
 (define (string-split-lines-simple str)
   (let ([len (string-length str)])
@@ -296,13 +274,6 @@
   (or (char-alphabetic? c)
       (char-numeric? c)
       (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\:))))
-
-;;; in-comment? : String × String -> Boolean
-;;; DEPRECATED: Use semantic scanner instead.
-(define (in-comment? line word)
-  (let ([semicolon-pos (string-find-char-simple line #\;)]
-        [word-pos (string-find-substring line word)])
-       (and semicolon-pos word-pos (< semicolon-pos word-pos))))
 
 ;;; ============================================================
 ;;; Semantic Scanner (Parse-Aware)
@@ -1139,7 +1110,11 @@
 (define (transform-call call-expr new-name arg-map)
   (guard (e [else #f])
          (let* ([args (cdr call-expr)]
-                [new-args (map (lambda (i) (list-ref args i)) arg-map)])
+                [mapped-args (map (lambda (i) (list-ref args i)) arg-map)]
+                [extra-args (if (> (length args) (length arg-map))
+                                (list-tail args (length arg-map))
+                                '())]
+                [new-args (append mapped-args extra-args)])
                (format "~s" (cons new-name new-args)))))
 
 ;;; count-newlines-before : String × Nat -> Nat

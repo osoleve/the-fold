@@ -1,4 +1,4 @@
-;;; thimble/tdd.ss — Test-Driven Development Workflow for The Fold
+;;; shell/tdd.ss — Test-Driven Development Workflow for The Fold
 ;;;
 ;;; Provides comprehensive TDD capabilities:
 ;;;   • Watch mode with auto-test on file changes
@@ -15,9 +15,9 @@
 ;;;   - test-framework.ss (test execution)
 ;;;   - test-runner.ss (test discovery and reporting)
 
-(load "./thimble/watch.ss")
-(load "./fabric/stitches/test-framework.ss")
-(load "./thimble/tests/test-runner.ss")
+(load "shell/watch.ss")
+(load "core/test-framework.ss")
+(load "shell/tests/test-runner.ss")
 
 ;;; ============================================================
 ;;; Configuration

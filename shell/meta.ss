@@ -1,4 +1,4 @@
-;;; thimble/meta.ss --- Inline Metadata Tag Parser
+;;; shell/meta.ss --- Inline Metadata Tag Parser
 ;;;
 ;;; Tags are inline markers that travel with text:
 ;;;   @tag           - Simple boolean tag (e.g., @draft, @reviewed)
@@ -14,9 +14,9 @@
 ;;;   - Tags are alphanumeric with hyphens/underscores allowed
 ;;;   - Values in key:value can include paths, IDs, etc.
 ;;;
-;;; Dependencies: ../core/prelude.ss
+;;; Dependencies: core/base/prelude.ss
 
-(load "../fabric/stitches/prelude.ss")
+(load "core/base/prelude.ss")
 
 ;;; ============================================================
 ;;; Character Classification for Tags

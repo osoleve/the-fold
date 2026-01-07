@@ -1,11 +1,11 @@
-;;; thimble/test-refactor.ss -- Tests for Refactoring Toolkit
+;;; shell/tests/test-refactor.ss -- Tests for Refactoring Toolkit
 
-;;; NOTE: Run from fabric/stitches directory:
-;;;   scheme --script ../../thimble/test-refactor.ss
+;;; NOTE: Run from project root:
+;;;   scheme --script shell/tests/test-refactor.ss
 
-(load "prelude.ss")
-(load "test-framework.ss")
-(load "../../thimble/refactor.ss")
+(load "core/base/prelude.ss")
+(load "core/test-framework.ss")
+(load "shell/tools/refactor.ss")
 
 (display "
 ")

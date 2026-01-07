@@ -1,6 +1,6 @@
-;;; thimble/tests/test-tdd.ss — Test the TDD system itself
+;;; shell/tests/test-tdd.ss — Test the TDD system itself
 
-(load "./fabric/stitches/test-framework.ss")
+(load "core/test-framework.ss")
 
 ;;; Test basic TDD functionality
 (define-test "tdd-system-loads"
