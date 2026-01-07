@@ -130,10 +130,10 @@
         
         (do ([i 0 (+ i 1)])
             ((>= i num-frames))
-            ;; Step physics
+            ;; Step physics (must use returned world for time accumulator)
             (do ([s 0 (+ s 1)])
                 ((>= s steps-per-frame))
-                (world-step! world dt))
+                (set! world (world-step! world dt)))
             ;; Render
             (render-demo-frame! frame world i)
             (video-add-frame! video frame)
