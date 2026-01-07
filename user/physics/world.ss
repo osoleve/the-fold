@@ -20,6 +20,7 @@
 (load "user/physics/integrators.ss")
 (load "user/physics/collision-detection.ss")
 (load "user/physics/collision-response.ss")
+(load "user/physics/raycasting.ss")
 
 ;;; ============================================================
 ;;; Physics Entity
@@ -474,53 +475,43 @@
                       [else #f])))
         entities)))
 
-;;; world-raycast : World × Vec2 × Vec2 × Number → (List (Entity × Number × Vec2))
-;;; Cast a ray from origin in direction, return hits with distance and normal.
-;;; (Simplified: checks against AABBs only)
-(define (world-raycast world origin direction max-dist)
-  (let* ([dir-norm (vec2-normalize direction)]
-         [entities (world-entity-list world)]
+;;; world-raycast-closest : World × Ray2 → (Entity . HitInfo) | #f
+;;; Cast ray through world, returning closest hit with full shape testing.
+(define (world-raycast-closest world ray)
+  (let* ([entities (world-entity-list world)]
+         [best-hit #f]
+         [best-entity #f]
+         [best-dist (ray2-max-dist ray)])
+        (for-each
+         (lambda (e)
+                 (let* ([shape (entity-shape e)]
+                        [hit (ray2-shape ray shape)])
+                       (when (and hit (< (hit-info-distance hit) best-dist))
+                             (set! best-hit hit)
+                             (set! best-entity e)
+                             (set! best-dist (hit-info-distance hit)))))
+         entities)
+        (if best-hit
+            (cons best-entity best-hit)
+            #f)))
+
+;;; world-raycast-all : World × Ray2 → (List (Entity . HitInfo))
+;;; Cast ray through world, returning all hits sorted by distance.
+(define (world-raycast-all world ray)
+  (let* ([entities (world-entity-list world)]
          [hits '()])
         (for-each
          (lambda (e)
                  (let* ([shape (entity-shape e)]
-                        [aabb (shape-aabb shape)]
-                        [hit (ray-aabb-intersection origin dir-norm aabb max-dist)])
+                        [hit (ray2-shape ray shape)])
                        (when hit
-                             (set! hits (cons (list e (car hit) (cadr hit)) hits)))))
+                             (set! hits (cons (cons e hit) hits)))))
          entities)
-        ;; Sort by distance (Chez uses list-sort with comparator first)
-        (list-sort (lambda (a b) (< (cadr a) (cadr b))) hits)))
-
-;;; ray-aabb-intersection : Vec2 × Vec2 × AABB × Number → (Distance × Normal) | #f
-;;; Ray-AABB intersection using slab method.
-(define (ray-aabb-intersection origin dir aabb max-dist)
-  (let* ([min-p (aabb-min aabb)]
-         [max-p (aabb-max aabb)]
-         [inv-dir-x (if (< (abs (vec2-x dir)) 0.0001) 999999 (/ 1 (vec2-x dir)))]
-         [inv-dir-y (if (< (abs (vec2-y dir)) 0.0001) 999999 (/ 1 (vec2-y dir)))]
-         [t1x (* (- (vec2-x min-p) (vec2-x origin)) inv-dir-x)]
-         [t2x (* (- (vec2-x max-p) (vec2-x origin)) inv-dir-x)]
-         [t1y (* (- (vec2-y min-p) (vec2-y origin)) inv-dir-y)]
-         [t2y (* (- (vec2-y max-p) (vec2-y origin)) inv-dir-y)]
-         [tmin-x (min t1x t2x)]
-         [tmax-x (max t1x t2x)]
-         [tmin-y (min t1y t2y)]
-         [tmax-y (max t1y t2y)]
-         [tmin (max tmin-x tmin-y)]
-         [tmax (min tmax-x tmax-y)])
-        (if (or (> tmin tmax) (> tmin max-dist) (< tmax 0))
-            #f
-            ;; Calculate normal
-            (let ([t (if (< tmin 0) tmax tmin)]
-                  [normal (cond
-                           [(= tmin tmin-x)
-                            (vec2 (if (< (vec2-x dir) 0) 1 -1) 0)]
-                           [else
-                            (vec2 0 (if (< (vec2-y dir) 0) 1 -1))])])
-                 (if (> t 0)
-                     (list t normal)
-                     #f)))))
+        ;; Sort by distance
+        (list-sort (lambda (a b)
+                           (< (hit-info-distance (cdr a))
+                              (hit-info-distance (cdr b))))
+                   hits)))
 
 ;;; ============================================================
 ;;; Entity Manipulation
