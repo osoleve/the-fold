@@ -21,6 +21,8 @@
 (load "user/physics/collision-detection.ss")
 (load "user/physics/collision-response.ss")
 (load "user/physics/raycasting.ss")
+(load "user/physics/constraints.ss")
+(load "user/physics/constraint-solver.ss")
 
 ;;; ============================================================
 ;;; Physics Entity
@@ -139,7 +141,8 @@
              (make-spatial-hash (config-cell-size config))
              config
              (make-time-acc (config-fixed-dt config)
-                            (config-max-substeps config)))))
+                            (config-max-substeps config))
+             (make-hashtable equal-hash equal?))))  ; constraints
 
 ;;; world? : Any → Boolean
 (define (world? w)
@@ -160,6 +163,9 @@
 ;;; world-time-acc : World → TimeAcc
 (define (world-time-acc w) (list-ref w 5))
 
+;;; world-constraints : World → Hashtable
+(define (world-constraints w) (list-ref w 6))
+
 ;;; world-with-time-acc : World × TimeAcc → World
 (define (world-with-time-acc w new-acc)
   (list 'world
@@ -167,7 +173,8 @@
         (world-gravity w)
         (world-spatial-hash w)
         (world-config w)
-        new-acc))
+        new-acc
+        (world-constraints w)))
 
 ;;; ============================================================
 ;;; Entity Management
@@ -202,6 +209,39 @@
   (let ([entity (world-get-entity world id)])
        (when entity
              (hashtable-set! (world-entities world) id (f entity)))))
+
+;;; ============================================================
+;;; Constraint Management
+;;; ============================================================
+
+;;; world-add-constraint! : World × Constraint → Void
+;;; Add a constraint to the world.
+(define (world-add-constraint! world constraint)
+  (let ([id (constraint-id constraint)])
+       (hashtable-set! (world-constraints world) id constraint)))
+
+;;; world-remove-constraint! : World × Any → Void
+;;; Remove a constraint by id.
+(define (world-remove-constraint! world id)
+  (hashtable-delete! (world-constraints world) id))
+
+;;; world-get-constraint : World × Any → Constraint | #f
+;;; Get a constraint by id.
+(define (world-get-constraint world id)
+  (hashtable-ref (world-constraints world) id #f))
+
+;;; world-constraint-list : World → (List Constraint)
+;;; Get all constraints as a list.
+(define (world-constraint-list world)
+  (let-values ([(keys vals) (hashtable-entries (world-constraints world))])
+              (vector->list vals)))
+
+;;; world-update-constraint! : World × Any × (Constraint → Constraint) → Void
+;;; Update a constraint by applying a function.
+(define (world-update-constraint! world id f)
+  (let ([constraint (world-get-constraint world id)])
+       (when constraint
+             (hashtable-set! (world-constraints world) id (f constraint)))))
 
 ;;; ============================================================
 ;;; Force Accumulation
@@ -256,11 +296,98 @@
   ;; 1. Apply forces and integrate velocities
   (world-integrate-velocities! world dt)
   ;; 2. Detect collisions
-  (let ([collisions (world-detect-collisions world)])
-       ;; 3. Resolve collisions
-       (world-resolve-collisions! world collisions)
+  (let ([collisions (world-detect-collisions world)]
+        [constraints (world-constraint-list world)]
+        [iterations (config-solver-iterations (world-config world))])
+       ;; 3. Solve velocity constraints (interleaved)
+       (let iter-loop ([i 0])
+            (when (< i iterations)
+                  ;; Solve collision velocity constraints
+                  (world-resolve-collision-velocities! world collisions)
+                  ;; Solve joint velocity constraints
+                  (world-solve-constraint-velocities! world constraints dt)
+                  (iter-loop (+ i 1))))
        ;; 4. Integrate positions
-       (world-integrate-positions! world dt)))
+       (world-integrate-positions! world dt)
+       ;; 5. Position correction
+       (let iter-loop ([i 0])
+            (when (< i (quotient iterations 2))
+                  (world-correct-collision-positions! world collisions)
+                  (world-correct-constraint-positions! world constraints)
+                  (iter-loop (+ i 1))))))
+
+;;; world-resolve-collision-velocities! : World × (List Collision) → Void
+;;; Resolve collision velocity constraints (impulses only, no position correction).
+(define (world-resolve-collision-velocities! world collisions)
+  (for-each
+   (lambda (collision)
+           (let* ([ent-a (car collision)]
+                  [ent-b (cadr collision)]
+                  [manifold-data (caddr collision)]
+                  [normal (car manifold-data)]
+                  [penetration (cadr manifold-data)]
+                  [contact (caddr manifold-data)])
+                 (let* ([current-a (world-get-entity world (entity-id ent-a))]
+                        [current-b (world-get-entity world (entity-id ent-b))])
+                       (when (and current-a current-b)
+                             (let* ([body-a (entity-body current-a)]
+                                    [body-b (entity-body current-b)]
+                                    [mat-a (entity-material current-a)]
+                                    [mat-b (entity-material current-b)]
+                                    [manifold (make-manifold body-a body-b normal penetration contact)]
+                                    [result (resolve-collision manifold mat-a mat-b)]
+                                    [new-body-a (car result)]
+                                    [new-body-b (cadr result)])
+                                   (world-update-entity! world (entity-id ent-a)
+                                                         (lambda (e) (entity-with-body e new-body-a)))
+                                   (world-update-entity! world (entity-id ent-b)
+                                                         (lambda (e) (entity-with-body e new-body-b))))))))
+   collisions))
+
+;;; world-correct-collision-positions! : World × (List Collision) → Void
+;;; Apply position correction for collisions.
+(define (world-correct-collision-positions! world collisions)
+  (for-each
+   (lambda (collision)
+           (let* ([ent-a (car collision)]
+                  [ent-b (cadr collision)]
+                  [manifold-data (caddr collision)]
+                  [normal (car manifold-data)]
+                  [penetration (cadr manifold-data)]
+                  [contact (caddr manifold-data)])
+                 (let* ([current-a (world-get-entity world (entity-id ent-a))]
+                        [current-b (world-get-entity world (entity-id ent-b))])
+                       (when (and current-a current-b)
+                             (let* ([body-a (entity-body current-a)]
+                                    [body-b (entity-body current-b)]
+                                    [manifold (make-manifold body-a body-b normal penetration contact)]
+                                    [result (correct-positions manifold)]
+                                    [new-body-a (car result)]
+                                    [new-body-b (cadr result)])
+                                   (world-update-entity! world (entity-id ent-a)
+                                                         (lambda (e) (entity-with-body e new-body-a)))
+                                   (world-update-entity! world (entity-id ent-b)
+                                                         (lambda (e) (entity-with-body e new-body-b))))))))
+   collisions))
+
+;;; world-solve-constraint-velocities! : World × (List Constraint) × Number → Void
+;;; Solve velocity constraints for all joints.
+;;; Dispatches to constraint-specific solvers.
+(define (world-solve-constraint-velocities! world constraints dt)
+  (for-each
+   (lambda (c)
+           (when (constraint-solver-velocity c)
+                 ((constraint-solver-velocity c) world c dt)))
+   constraints))
+
+;;; world-correct-constraint-positions! : World × (List Constraint) → Void
+;;; Apply position correction for all joints.
+(define (world-correct-constraint-positions! world constraints)
+  (for-each
+   (lambda (c)
+           (when (constraint-solver-position c)
+                 ((constraint-solver-position c) world c)))
+   constraints))
 
 ;;; world-integrate-velocities! : World × Number → Void
 ;;; Apply forces and update velocities (first half of integration).
@@ -351,49 +478,6 @@
       (cons a b)
       (cons b a)))
 
-;;; ============================================================
-;;; Collision Resolution
-;;; ============================================================
-
-;;; world-resolve-collisions! : World × (List Collision) → Void
-;;; Resolve all detected collisions.
-(define (world-resolve-collisions! world collisions)
-  (let ([iterations (config-solver-iterations (world-config world))])
-       ;; Multiple iterations for stability
-       (let iter-loop ([i 0])
-            (when (< i iterations)
-                  (for-each
-                   (lambda (collision)
-                           (let* ([ent-a (car collision)]
-                                  [ent-b (cadr collision)]
-                                  [manifold-data (caddr collision)]
-                                  [normal (car manifold-data)]
-                                  [penetration (cadr manifold-data)]
-                                  [contact (caddr manifold-data)])
-                                 ;; Get current bodies (may have changed)
-                                 (let* ([current-a (world-get-entity world (entity-id ent-a))]
-                                        [current-b (world-get-entity world (entity-id ent-b))])
-                                       (when (and current-a current-b)
-                                             (let* ([body-a (entity-body current-a)]
-                                                    [body-b (entity-body current-b)]
-                                                    [mat-a (entity-material current-a)]
-                                                    [mat-b (entity-material current-b)]
-                                                    ;; Create manifold with current bodies
-                                                    [manifold (make-manifold body-a body-b
-                                                                             normal penetration contact)]
-                                                    ;; Resolve
-                                                    [result (resolve-with-correction manifold mat-a mat-b)]
-                                                    [new-body-a (car result)]
-                                                    [new-body-b (cadr result)])
-                                                   ;; Update entities
-                                                   (world-update-entity!
-                                                    world (entity-id ent-a)
-                                                    (lambda (e) (entity-with-body e new-body-a)))
-                                                   (world-update-entity!
-                                                    world (entity-id ent-b)
-                                                    (lambda (e) (entity-with-body e new-body-b))))))))
-                   collisions)
-                  (iter-loop (+ i 1))))))
 
 ;;; ============================================================
 ;;; Convenience Constructors

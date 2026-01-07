@@ -346,3 +346,109 @@
 (define (body-total-energy body g y-ref)
   (+ (body-kinetic-energy body)
      (body-potential-energy body g y-ref)))
+
+;;; ============================================================
+;;; Rigid Body Integration (with Rotation)
+;;; ============================================================
+
+;;; Load rigid body module
+(load "user/physics/rigid-body.ss")
+
+;;; integrate-rigid-body-symplectic : RigidBody2D x Vec2 x Number x Number -> RigidBody2D
+;;; Integrate a rigid body using symplectic Euler.
+;;; linear-accel: linear acceleration (force/mass)
+;;; angular-accel: angular acceleration (torque/inertia)
+(define (integrate-rigid-body-symplectic body linear-accel angular-accel dt)
+  (if (rigid-body-static? body)
+      body
+      (let* (;; Update velocities first (symplectic)
+             [new-vel (vec2-add (rigid-body-vel body)
+                                (vec2-scale linear-accel dt))]
+             [new-omega (+ (rigid-body-angular-vel body)
+                           (* angular-accel dt))]
+             ;; Then update positions using new velocities
+             [new-pos (vec2-add (rigid-body-pos body)
+                                (vec2-scale new-vel dt))]
+             [new-angle (+ (rigid-body-angle body)
+                           (* new-omega dt))])
+            (rigid-body-with-state body new-pos new-vel new-angle new-omega))))
+
+;;; integrate-rigid-body-euler : RigidBody2D x Vec2 x Number x Number -> RigidBody2D
+;;; Integrate a rigid body using forward Euler.
+(define (integrate-rigid-body-euler body linear-accel angular-accel dt)
+  (if (rigid-body-static? body)
+      body
+      (let* ([vel (rigid-body-vel body)]
+             [omega (rigid-body-angular-vel body)]
+             ;; Update positions using current velocities
+             [new-pos (vec2-add (rigid-body-pos body)
+                                (vec2-scale vel dt))]
+             [new-angle (+ (rigid-body-angle body)
+                           (* omega dt))]
+             ;; Then update velocities
+             [new-vel (vec2-add vel (vec2-scale linear-accel dt))]
+             [new-omega (+ omega (* angular-accel dt))])
+            (rigid-body-with-state body new-pos new-vel new-angle new-omega))))
+
+;;; integrate-rigid-body-verlet : RigidBody2D x (RigidBody2D -> Vec2) x (RigidBody2D -> Number) x Number -> RigidBody2D
+;;; Integrate a rigid body using velocity Verlet.
+;;; force-fn: body -> force vector
+;;; torque-fn: body -> torque scalar
+(define (integrate-rigid-body-verlet body force-fn torque-fn dt)
+  (if (rigid-body-static? body)
+      body
+      (let* ([pos (rigid-body-pos body)]
+             [vel (rigid-body-vel body)]
+             [angle (rigid-body-angle body)]
+             [omega (rigid-body-angular-vel body)]
+             [inv-m (rigid-body-inv-mass body)]
+             [inv-i (rigid-body-inv-inertia body)]
+             ;; Current accelerations
+             [accel (vec2-scale (force-fn body) inv-m)]
+             [alpha (* (torque-fn body) inv-i)]
+             [half-dt (/ dt 2)]
+             ;; Position updates: x + v*dt + 0.5*a*dt^2
+             [new-pos (vec2-add (vec2-add pos (vec2-scale vel dt))
+                                (vec2-scale accel (* 0.5 dt dt)))]
+             [new-angle (+ angle (* omega dt) (* 0.5 alpha dt dt))]
+             ;; Temporary body at new position for force evaluation
+             [temp-body (rigid-body-with-state body new-pos vel new-angle omega)]
+             ;; New accelerations
+             [accel-new (vec2-scale (force-fn temp-body) inv-m)]
+             [alpha-new (* (torque-fn temp-body) inv-i)]
+             ;; Velocity updates: v + 0.5*(a + a_new)*dt
+             [new-vel (vec2-add vel
+                                (vec2-scale (vec2-add accel accel-new) half-dt))]
+             [new-omega (+ omega (* 0.5 (+ alpha alpha-new) dt))])
+            (rigid-body-with-state body new-pos new-vel new-angle new-omega))))
+
+;;; rigid-body-gravity-force : Vec2 -> (RigidBody2D -> Vec2)
+;;; Create gravity force function for rigid bodies.
+(define (rigid-body-gravity-force gravity)
+  (lambda (body)
+          (vec2-scale gravity (rigid-body-mass body))))
+
+;;; rigid-body-damping-force : Number x Number -> (RigidBody2D -> Vec2) x (RigidBody2D -> Number)
+;;; Create linear and angular damping functions.
+;;; Returns (values linear-damping-fn angular-damping-fn)
+(define (rigid-body-damping linear-coeff angular-coeff)
+  (values
+   (lambda (body)
+           (vec2-scale (rigid-body-vel body) (- linear-coeff)))
+   (lambda (body)
+           (* (- angular-coeff) (rigid-body-angular-vel body)))))
+
+;;; rigid-body-lerp : RigidBody2D x RigidBody2D x Number -> RigidBody2D
+;;; Interpolate between two rigid body states.
+(define (rigid-body-lerp body-prev body-curr alpha)
+  (let* ([pos (vec2-lerp (rigid-body-pos body-prev)
+                         (rigid-body-pos body-curr)
+                         alpha)]
+         [vel (vec2-lerp (rigid-body-vel body-prev)
+                         (rigid-body-vel body-curr)
+                         alpha)]
+         [angle (+ (* (- 1 alpha) (rigid-body-angle body-prev))
+                   (* alpha (rigid-body-angle body-curr)))]
+         [omega (+ (* (- 1 alpha) (rigid-body-angular-vel body-prev))
+                   (* alpha (rigid-body-angular-vel body-curr)))])
+        (rigid-body-with-state body-curr pos vel angle omega)))
