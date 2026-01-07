@@ -101,16 +101,33 @@
              (sqrt (* df-a df-b))))) ; Geometric mean for dynamic friction
 
 ;;; ============================================================
-;;; Relative Velocity Calculation
+;;; Relative Velocity Calculation (with angular support)
 ;;; ============================================================
 
-;;; relative-velocity : Body2D × Body2D → Vec2
-;;; Calculate relative velocity of body B with respect to body A.
+;;; velocity-at-point : Body × Vec2 → Vec2
+;;; Get velocity at a world point, including angular contribution for rigid bodies.
+(define (velocity-at-point body point)
+  (if (rigid-body? body)
+      (rigid-body-velocity-at body point)
+      (body-vel body)))
+
+;;; relative-velocity-at : Body × Body × Vec2 → Vec2
+;;; Calculate relative velocity at contact point (B relative to A).
+(define (relative-velocity-at body-a body-b contact)
+  (vec2-sub (velocity-at-point body-b contact)
+            (velocity-at-point body-a contact)))
+
+;;; Legacy: simple relative velocity for backwards compatibility
 (define (relative-velocity body-a body-b)
   (vec2-sub (body-vel body-b) (body-vel body-a)))
 
+;;; normal-velocity-at : Body × Body × Vec2 × Vec2 → Number
+;;; Velocity along the collision normal at contact point (positive = approaching).
+(define (normal-velocity-at body-a body-b contact normal)
+  (vec2-dot (relative-velocity-at body-a body-b contact) normal))
+
 ;;; normal-velocity : Body2D × Body2D × Vec2 → Number
-;;; Velocity along the collision normal (positive = approaching).
+;;; Legacy: Velocity along normal (no angular).
 (define (normal-velocity body-a body-b normal)
   (vec2-dot (relative-velocity body-a body-b) normal))
 
@@ -122,12 +139,59 @@
         (vec2-sub rel-vel normal-component)))
 
 ;;; ============================================================
-;;; Impulse Calculation
+;;; Impulse Calculation (with angular support)
 ;;; ============================================================
 
-;;; calculate-impulse : Body2D × Body2D × Vec2 × Number → Number
-;;; Calculate the normal impulse magnitude for collision response.
-;;; restitution: coefficient of restitution (0-1)
+;;; get-inv-mass : Body → Number
+;;; Get inverse mass from either Body2D or RigidBody2D.
+(define (get-inv-mass body)
+  (if (rigid-body? body)
+      (rigid-body-inv-mass body)
+      (body-inv-mass body)))
+
+;;; get-inv-inertia : Body → Number
+;;; Get inverse inertia (0 for non-rigid bodies).
+(define (get-inv-inertia body)
+  (if (rigid-body? body)
+      (rigid-body-inv-inertia body)
+      0))
+
+;;; get-body-pos : Body → Vec2
+;;; Get position from either Body2D or RigidBody2D.
+(define (get-body-pos body)
+  (if (rigid-body? body)
+      (rigid-body-pos body)
+      (body-pos body)))
+
+;;; calculate-impulse-with-rotation : Body × Body × Vec2 × Vec2 × Number → Number
+;;; Calculate normal impulse magnitude including rotational effects.
+;;; contact: world space contact point
+(define (calculate-impulse-with-rotation body-a body-b contact normal restitution)
+  (let* ([vel-along-normal (normal-velocity-at body-a body-b contact normal)]
+         [inv-mass-a (get-inv-mass body-a)]
+         [inv-mass-b (get-inv-mass body-b)]
+         [inv-i-a (get-inv-inertia body-a)]
+         [inv-i-b (get-inv-inertia body-b)]
+         ;; Lever arms from body centers to contact
+         [r-a (vec2-sub contact (get-body-pos body-a))]
+         [r-b (vec2-sub contact (get-body-pos body-b))]
+         ;; r × n (2D cross product gives scalar)
+         [rn-a (vec2-cross r-a normal)]
+         [rn-b (vec2-cross r-b normal)]
+         ;; Effective mass: 1/m_a + 1/m_b + (r_a × n)²/I_a + (r_b × n)²/I_b
+         [effective-mass (+ inv-mass-a inv-mass-b
+                            (* rn-a rn-a inv-i-a)
+                            (* rn-b rn-b inv-i-b))])
+        ;; Don't resolve if separating
+        (if (> vel-along-normal 0)
+            0
+            ;; Impulse magnitude
+            (if (< effective-mass 0.0001)
+                0
+                (/ (* (- (+ 1 restitution)) vel-along-normal)
+                   effective-mass)))))
+
+;;; Legacy: calculate-impulse without rotation
 (define (calculate-impulse body-a body-b normal restitution)
   (let* ([vel-along-normal (normal-velocity body-a body-b normal)]
          [inv-mass-a (body-inv-mass body-a)]
@@ -164,11 +228,40 @@
                      (* (- j-normal) dynamic-friction (if (< j-tangent 0) -1 1)))))))
 
 ;;; ============================================================
-;;; Impulse Application
+;;; Impulse Application (with angular support)
 ;;; ============================================================
 
-;;; apply-impulse : Body2D × Vec2 → Body2D
-;;; Apply an impulse to a body, changing its velocity.
+;;; body-is-static? : Body → Boolean
+;;; Check if body is static (works for both Body2D and RigidBody2D).
+(define (body-is-static? body)
+  (if (rigid-body? body)
+      (< (rigid-body-inv-mass body) 0.0001)
+      (body-static? body)))
+
+;;; apply-impulse-at : Body × Vec2 × Vec2 → Body
+;;; Apply an impulse at a contact point, updating both linear and angular velocity.
+(define (apply-impulse-at body impulse contact)
+  (if (body-is-static? body)
+      body
+      (if (rigid-body? body)
+          ;; RigidBody2D: apply linear + angular impulse
+          (let* ([inv-mass (rigid-body-inv-mass body)]
+                 [inv-i (rigid-body-inv-inertia body)]
+                 [r (vec2-sub contact (rigid-body-pos body))]
+                 [torque (vec2-cross r impulse)]
+                 [new-vel (vec2-add (rigid-body-vel body)
+                                    (vec2-scale impulse inv-mass))]
+                 [new-omega (+ (rigid-body-angular-vel body)
+                               (* torque inv-i))])
+                (rigid-body-with-angular-vel
+                 (rigid-body-with-vel body new-vel)
+                 new-omega))
+          ;; Body2D: just linear impulse
+          (let ([new-vel (vec2-add (body-vel body)
+                                   (vec2-scale impulse (body-inv-mass body)))])
+               (body-with-vel body new-vel)))))
+
+;;; Legacy: apply-impulse without rotation
 (define (apply-impulse body impulse)
   (if (body-static? body)
       body
@@ -214,6 +307,63 @@
                    [body-b-2 (apply-impulse body-b-1 (vec2-neg friction-impulse))])
                   (list body-a-2 body-b-2)))))
 
+;;; resolve-collision-with-rotation : Manifold × Material × Material → (Body × Body)
+;;; Resolve collision with full angular impulse support for rigid bodies.
+(define (resolve-collision-with-rotation manifold mat-a mat-b)
+  (let* ([body-a (manifold-body-a manifold)]
+         [body-b (manifold-body-b manifold)]
+         [normal (manifold-normal manifold)]
+         [contact (manifold-contact manifold)]
+         ;; Combine materials
+         [combined (combine-materials mat-a mat-b)]
+         [restitution (car combined)]
+         [static-friction (cadr combined)]
+         [dynamic-friction (caddr combined)]
+         ;; Calculate normal impulse with rotation
+         [j-normal (calculate-impulse-with-rotation body-a body-b contact normal restitution)])
+        (if (= j-normal 0)
+            ;; No collision (separating)
+            (list body-a body-b)
+            ;; Apply normal impulse at contact point
+            (let* ([normal-impulse (vec2-scale normal j-normal)]
+                   [body-a-1 (apply-impulse-at body-a (vec2-neg normal-impulse) contact)]
+                   [body-b-1 (apply-impulse-at body-b normal-impulse contact)]
+                   ;; Calculate friction impulse (using updated velocities)
+                   [rel-vel (relative-velocity-at body-a-1 body-b-1 contact)]
+                   [normal-comp (vec2-scale normal (vec2-dot rel-vel normal))]
+                   [tangent-vel (vec2-sub rel-vel normal-comp)]
+                   [tangent-speed (vec2-magnitude tangent-vel)])
+                  (if (< tangent-speed 0.0001)
+                      ;; No friction needed
+                      (list body-a-1 body-b-1)
+                      ;; Apply friction
+                      (let* ([tangent (vec2-normalize tangent-vel)]
+                             ;; Compute friction impulse magnitude with rotation
+                             [inv-mass-a (get-inv-mass body-a-1)]
+                             [inv-mass-b (get-inv-mass body-b-1)]
+                             [inv-i-a (get-inv-inertia body-a-1)]
+                             [inv-i-b (get-inv-inertia body-b-1)]
+                             [r-a (vec2-sub contact (get-body-pos body-a-1))]
+                             [r-b (vec2-sub contact (get-body-pos body-b-1))]
+                             [rt-a (vec2-cross r-a tangent)]
+                             [rt-b (vec2-cross r-b tangent)]
+                             [effective-mass-t (+ inv-mass-a inv-mass-b
+                                                  (* rt-a rt-a inv-i-a)
+                                                  (* rt-b rt-b inv-i-b))]
+                             [j-tangent (if (< effective-mass-t 0.0001)
+                                            0
+                                            (/ (- tangent-speed) effective-mass-t))]
+                             ;; Coulomb friction clamping
+                             [j-friction (if (< (abs j-tangent) (* j-normal static-friction))
+                                             j-tangent
+                                             (* (- j-normal) dynamic-friction
+                                                (if (< j-tangent 0) -1 1)))]
+                             [friction-impulse (vec2-scale tangent j-friction)]
+                             ;; Apply friction impulse at contact
+                             [body-a-2 (apply-impulse-at body-a-1 friction-impulse contact)]
+                             [body-b-2 (apply-impulse-at body-b-1 (vec2-neg friction-impulse) contact)])
+                            (list body-a-2 body-b-2)))))))
+
 ;;; ============================================================
 ;;; Position Correction
 ;;; ============================================================
@@ -222,17 +372,24 @@
 (define *position-slop* 0.01)      ; Allow slight penetration
 (define *position-percent* 0.8)    ; Correction percentage
 
-;;; correct-positions : Manifold → (Body2D × Body2D)
-;;; Apply position correction to prevent sinking.
+;;; body-with-position : Body × Vec2 → Body
+;;; Set position for either Body2D or RigidBody2D.
+(define (body-with-position body new-pos)
+  (if (rigid-body? body)
+      (rigid-body-with-pos body new-pos)
+      (body-with-pos body new-pos)))
+
+;;; correct-positions : Manifold → (Body × Body)
+;;; Apply position correction to prevent sinking. Works with both Body2D and RigidBody2D.
 (define (correct-positions manifold)
   (let* ([body-a (manifold-body-a manifold)]
          [body-b (manifold-body-b manifold)]
          [normal (manifold-normal manifold)]
          [penetration (manifold-penetration manifold)]
-         [inv-mass-a (body-inv-mass body-a)]
-         [inv-mass-b (body-inv-mass body-b)]
+         [inv-mass-a (get-inv-mass body-a)]
+         [inv-mass-b (get-inv-mass body-b)]
          [total-inv-mass (+ inv-mass-a inv-mass-b)])
-        (if (or (< penetration *position-slop*) (= total-inv-mass 0))
+        (if (or (< penetration *position-slop*) (< total-inv-mass 0.0001))
             ;; No correction needed or both static
             (list body-a body-b)
             ;; Calculate correction
@@ -240,12 +397,12 @@
                                       (/ (max 0 (- penetration *position-slop*))
                                          total-inv-mass))]
                    [correction (vec2-scale normal correction-mag)]
-                   [new-pos-a (vec2-sub (body-pos body-a)
-                                        (vec2-scale correction inv-mass-a))]
-                   [new-pos-b (vec2-add (body-pos body-b)
-                                        (vec2-scale correction inv-mass-b))])
-                  (list (body-with-pos body-a new-pos-a)
-                        (body-with-pos body-b new-pos-b))))))
+                   [pos-a (get-body-pos body-a)]
+                   [pos-b (get-body-pos body-b)]
+                   [new-pos-a (vec2-sub pos-a (vec2-scale correction inv-mass-a))]
+                   [new-pos-b (vec2-add pos-b (vec2-scale correction inv-mass-b))])
+                  (list (body-with-position body-a new-pos-a)
+                        (body-with-position body-b new-pos-b))))))
 
 ;;; ============================================================
 ;;; Full Collision Resolution
@@ -255,6 +412,21 @@
 ;;; Full collision resolution with impulse and position correction.
 (define (resolve-with-correction manifold mat-a mat-b)
   (let* ([result (resolve-collision manifold mat-a mat-b)]
+         [body-a (car result)]
+         [body-b (cadr result)]
+         ;; Update manifold with new bodies
+         [corrected-manifold (make-manifold body-a body-b
+                                            (manifold-normal manifold)
+                                            (manifold-penetration manifold)
+                                            (manifold-contact manifold))]
+         [corrected (correct-positions corrected-manifold)])
+        corrected))
+
+;;; resolve-with-rotation-and-correction : Manifold × Material × Material → (Body × Body)
+;;; Full collision resolution with angular impulse and position correction.
+;;; Supports both Body2D and RigidBody2D.
+(define (resolve-with-rotation-and-correction manifold mat-a mat-b)
+  (let* ([result (resolve-collision-with-rotation manifold mat-a mat-b)]
          [body-a (car result)]
          [body-b (cadr result)]
          ;; Update manifold with new bodies
