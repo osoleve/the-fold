@@ -111,7 +111,7 @@
 ;;; Test Module Analysis
 ;;; ============================================================
 
-(display "\nTest 5: Analyze actual module (fabric/stitches/prelude.ss)\n")
+(display "\nTest 5: Analyze actual module (core/prelude.ss)\n")
 (let ([mod (analyze-module "core/base/prelude.ss")])
      (test-true "module analyzed" (and mod #t))
      (test "module name" "prelude" (cdr (assq 'name mod)))
@@ -120,7 +120,7 @@
      ;; prelude.ss defines many functions
      (test-true "prelude has defines" (> (length (cdr (assq 'defines mod))) 5)))
 
-(display "\nTest 6: Analyze module with loads (fabric/stitches/block.ss)\n")
+(display "\nTest 6: Analyze module with loads (core/block.ss)\n")
 (let ([mod (analyze-module "core/blocks/block.ss")])
      (test-true "module analyzed" (and mod #t))
      (test "module name" "block" (cdr (assq 'name mod)))
@@ -131,7 +131,7 @@
 ;;; Test Directory Analysis
 ;;; ============================================================
 
-(display "\nTest 7: Analyze directory (fabric/stitches/)\n")
+(display "\nTest 7: Analyze directory (core/)\n")
 (let ([modules (analyze-directory "core")])
      (test-true "found modules" (> (length modules) 5))
      (test-true "found prelude" (ormap (lambda (m) (string=? "prelude" (cdr (assq 'name m)))) modules))
@@ -219,6 +219,6 @@
 (test-summary)
 
 ;;; Show sample output
-(display "\n\nSAMPLE OUTPUT: fabric/stitches/ directory analysis\n")
+(display "\n\nSAMPLE OUTPUT: core/ directory analysis\n")
 (display "============================================================\n\n")
 (archextract "core")

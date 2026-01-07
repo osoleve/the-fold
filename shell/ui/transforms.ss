@@ -1,4 +1,4 @@
-;;; thimble/transforms.ss — 2D Transformations for Graphics
+;;; shell/transforms.ss — 2D Transformations for Graphics
 ;;;
 ;;; Provides affine transformations for canvas-based graphics:
 ;;; translate, rotate, scale, and general matrix transforms.

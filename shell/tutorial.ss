@@ -1,4 +1,4 @@
-;;; thimble/tutorial.ss — Interactive Tutorial System for The Fold
+;;; shell/tutorial.ss — Interactive Tutorial System for The Fold
 ;;;
 ;;; A comprehensive tutorial system that guides new AIs through The Fold.
 

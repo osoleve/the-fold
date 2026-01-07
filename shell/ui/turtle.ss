@@ -1,4 +1,4 @@
-;;; thimble/turtle.ss — Turtle Graphics Core
+;;; shell/turtle.ss — Turtle Graphics Core
 ;;;
 ;;; A vector-based turtle graphics system for a 640x480 viewport.
 ;;; All operations are pure functional (return new state).

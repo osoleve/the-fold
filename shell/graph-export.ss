@@ -1,4 +1,4 @@
-;;; thimble/graph-export.ss — Graph Visualization Export Tool
+;;; shell/graph-export.ss — Graph Visualization Export Tool
 ;;;
 ;;; Exports the block store graph to various visualization formats:
 ;;;   - DOT (Graphviz) for static graph rendering
@@ -8,10 +8,10 @@
 ;;; This is Shell code: uses filesystem operations, formatting.
 ;;;
 ;;; Dependencies:
-;;;   fabric/stitches/block.ss
-;;;   fabric/stitches/sha256.ss
-;;;   thimble/fs.ss
-;;;   thimble/store-api.ss
+;;;   core/block.ss
+;;;   core/sha256.ss
+;;;   shell/fs.ss
+;;;   shell/store-api.ss
 ;;;
 ;;; NOTE: Standard string utilities provided by core/prelude.ss.
 ;;;       string-trim-newlines is unique to this module.

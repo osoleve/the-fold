@@ -300,6 +300,12 @@
    [else
     (cons (car t) (map normalize-type (cdr t)))]))
 
+;;; ensure-typed-index! : -> Void
+(define (ensure-typed-index!)
+  (when (and (= (typed-index-size) 0)
+             (> (hashtable-size *symbol-index*) 0))
+        (build-typed-index!)))
+
 ;;; ============================================================
 ;;; Search Engine
 ;;; ============================================================
@@ -310,6 +316,7 @@
 (define (search-by-type pattern)
   (let ([results '()])
        (guard (e [else '()])
+              (ensure-typed-index!)
               (if (> (typed-index-size) 0)
                   ;; Use pre-parsed typed index (fast path)
                   (vector-for-each
@@ -338,6 +345,7 @@
 (define (search-by-return return-type)
   (let ([results '()])
        (guard (e [else '()])
+              (ensure-typed-index!)
               (if (> (typed-index-size) 0)
                   ;; Use pre-parsed typed index (fast path)
                   (vector-for-each
@@ -370,6 +378,7 @@
 (define (search-by-arg arg-type)
   (let ([results '()])
        (guard (e [else '()])
+              (ensure-typed-index!)
               (if (> (typed-index-size) 0)
                   ;; Use pre-parsed typed index (fast path)
                   (vector-for-each

@@ -1,4 +1,4 @@
-;;; thimble/commands-example.ss — Examples of Custom Commands
+;;; shell/commands-example.ss — Examples of Custom Commands
 ;;;
 ;;; This file shows how to extend the command system with custom commands.
 ;;; Load this file after repl.ss to add example commands.

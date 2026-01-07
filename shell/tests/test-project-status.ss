@@ -1,4 +1,4 @@
-;;; thimble/test-project-status.ss --- Tests for Project Status Module
+;;; shell/test-project-status.ss --- Tests for Project Status Module
 ;;;
 ;;; Run from ccverse root: scheme --script shell/test-project-status.ss
 ;;;

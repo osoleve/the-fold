@@ -1,4 +1,4 @@
-;;; thimble/watch-example.ss — Examples of using the watch system
+;;; shell/watch-example.ss — Examples of using the watch system
 ;;;
 ;;; Load this in the REPL to see the watch system in action.
 ;;;

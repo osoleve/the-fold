@@ -1,4 +1,4 @@
-;;; thimble/init-project.ss — Project Initialization Wizard
+;;; shell/init-project.ss — Project Initialization Wizard
 ;;;
 ;;; Interactive wizard to set up new Fold projects with best practices.
 ;;; Creates directory structure, boilerplate files, and configuration.

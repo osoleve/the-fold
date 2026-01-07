@@ -1,4 +1,4 @@
-;;; thimble/test-color.ss — Test vectors for Color System
+;;; shell/test-color.ss — Test vectors for Color System
 ;;;
 ;;; Run with: scheme --script shell/test-color.ss
 

@@ -1,4 +1,4 @@
-;;; thimble/duckie-loop.ss — DUCKIE Heartbeat (The Main Loop)
+;;; shell/duckie-loop.ss — DUCKIE Heartbeat (The Main Loop)
 ;;;
 ;;; The eternal cycle that gives DUCKIE life:
 ;;;   INPUT → PARSE → UPDATE → RENDER → DISPLAY → WAIT → REPEAT
@@ -37,7 +37,7 @@
 ;;; From core/parse.ss — The ears
 (load "core/lang/parse.ss")
 
-;;; From thimble/duckie-persist.ss — The memory
+;;; From shell/duckie-persist.ss — The memory
 (load "shell/duckie-persist.ss")
 
 ;;; From core/prelude.ss — The string utilities

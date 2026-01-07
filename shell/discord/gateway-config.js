@@ -1,5 +1,5 @@
 /**
- * thimble/discord/gateway-config.js — Gateway Configuration
+ * shell/discord/gateway-config.js — Gateway Configuration
  *
  * Centralized configuration for the Gateway-driven Discord integration.
  * Loads from environment variables or config/discord-agents.json.

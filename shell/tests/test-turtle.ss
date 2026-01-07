@@ -1,4 +1,4 @@
-;;; thimble/test-turtle.ss — Turtle Graphics Test Suite
+;;; shell/test-turtle.ss — Turtle Graphics Test Suite
 ;;;
 ;;; Comprehensive tests for the turtle graphics system.
 ;;;

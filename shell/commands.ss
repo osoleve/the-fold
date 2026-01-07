@@ -1,4 +1,4 @@
-;;; thimble/commands.ss — Structured REPL Command Subsystem
+;;; shell/commands.ss — Structured REPL Command Subsystem
 ;;;
 ;;; Provides a command registry with discovery, routing, and error recovery.
 ;;; Commands are registered with name, help text, and handler functions.

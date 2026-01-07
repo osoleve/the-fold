@@ -1,7 +1,7 @@
 THIMBLE TEST SUITE INDEX
 ═══════════════════════════════════════════════════════
 
-All test files for the thimble/ (Shell) layer.
+All test files for the shell/ (Shell) layer.
 
 Tests are organized by subsystem:
 
@@ -61,10 +61,10 @@ USAGE
 ─────
 
 Run all tests:
-  scheme --script thimble/tests/test-runner.ss
+  scheme --script shell/tests/test-runner.ss
 
 Run individual test:
-  scheme --script thimble/tests/test-color.ss
+  scheme --script shell/tests/test-color.ss
 
 ═══════════════════════════════════════════════════════
 

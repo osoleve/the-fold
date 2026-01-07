@@ -1,4 +1,4 @@
-;;; thimble/refactor.ss — Refactoring Toolkit
+;;; shell/refactor.ss — Refactoring Toolkit
 ;;;
 ;;; Safe automated refactorings for Scheme code:
 ;;;   - Rename symbol (across files)
@@ -19,7 +19,7 @@
 ;;;   - prelude.ss
 
 ;; Load prelude - path depends on working directory
-;; When run from fabric/stitches: (load "prelude.ss")
+;; When run from core: (load "prelude.ss")
 ;; This file is typically loaded after prelude is already loaded
 
 ;;; ============================================================

@@ -1,4 +1,4 @@
-;;; thimble/tutorial-commands.ss — Tutorial System Command Registration
+;;; shell/tutorial-commands.ss — Tutorial System Command Registration
 ;;;
 ;;; This file registers tutorial system commands with the main command registry.
 ;;; Must be loaded after both commands.ss and tutorial.ss

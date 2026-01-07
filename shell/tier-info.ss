@@ -1,4 +1,4 @@
-;;; thimble/tier-info.ss — Tier Information and Documentation
+;;; shell/tier-info.ss — Tier Information and Documentation
 ;;;
 ;;; Provides commands to view tier capabilities and authority model.
 ;;; Helps users understand what they can do based on their tier.

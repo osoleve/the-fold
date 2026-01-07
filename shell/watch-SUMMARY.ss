@@ -1,4 +1,4 @@
-;;; thimble/watch-SUMMARY.ss — File Watching System Implementation Summary
+;;; shell/watch-SUMMARY.ss — File Watching System Implementation Summary
 ;;;
 ;;; This file summarizes the complete file watching and auto-reload system
 ;;; implementation for The Fold.

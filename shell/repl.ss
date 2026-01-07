@@ -1,4 +1,4 @@
-;;; thimble/repl.ss — The Fold System REPL
+;;; shell/repl.ss — The Fold System REPL
 ;;;
 ;;; THIS FILE MUST BE LOADED FIRST BY ALL CLAUDES.
 ;;;

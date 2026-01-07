@@ -1,4 +1,4 @@
-;;; thimble/repl-worker.ss — Per-session REPL worker process
+;;; shell/repl-worker.ss — Per-session REPL worker process
 ;;;
 ;;; Each worker handles a single session-id and processes requests from:
 ;;;   .fold-repl/requests/<session-id>.ss
@@ -335,7 +335,7 @@
   (if (and (pair? args) (pair? (cdr args)))
       (cadr args)
       (begin
-       (display "Usage: scheme --script thimble/repl-worker.ss <session-id>\n")
+       (display "Usage: scheme --script shell/repl-worker.ss <session-id>\n")
        (exit 1))))
 
 (define (start-worker!)

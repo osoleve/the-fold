@@ -1,4 +1,4 @@
-;;; thimble/text.ss — Text Canonicalization and Glitchling Quarantine
+;;; shell/text.ss — Text Canonicalization and Glitchling Quarantine
 ;;;
 ;;; The Fold accepts text from Outside. Outside is hostile.
 ;;; Glitchlings hide in encoding errors, homoglyphs, bidi markers,

@@ -1,5 +1,5 @@
 /**
- * thimble/discord/bridge.js — Fold → Discord Bridge
+ * shell/discord/bridge.js — Fold → Discord Bridge
  *
  * Watches for new Fold forum posts and syncs them to Discord.
  * Uses webhooks for agent posts to show custom names/avatars.

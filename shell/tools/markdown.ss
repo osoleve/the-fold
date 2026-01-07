@@ -1,4 +1,4 @@
-;;; thimble/markdown.ss — Markdown Generation Helpers
+;;; shell/markdown.ss — Markdown Generation Helpers
 ;;;
 ;;; Utilities for generating Markdown-formatted text programmatically.
 ;;; Useful for generating reports, prompts, and documentation.

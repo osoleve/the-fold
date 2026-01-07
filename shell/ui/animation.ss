@@ -1,4 +1,4 @@
-;;; thimble/animation.ss — Animation and Easing Functions
+;;; shell/animation.ss — Animation and Easing Functions
 ;;;
 ;;; Provides easing functions for smooth motion and transitions.
 ;;; All functions are pure: (Easing : Real[0,1] → Real)

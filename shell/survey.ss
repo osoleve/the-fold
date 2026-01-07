@@ -1,4 +1,4 @@
-;;; thimble/survey.ss — Survey Utility for The Fold
+;;; shell/survey.ss — Survey Utility for The Fold
 ;;;
 ;;; Collects structured data from users as they work in the REPL.
 ;;; Focuses on AI Experience and UX Feedback.

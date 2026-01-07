@@ -1,4 +1,4 @@
-;;; thimble/interactive-tutorial.ss — Interactive Step-by-Step Tutorial
+;;; shell/interactive-tutorial.ss — Interactive Step-by-Step Tutorial
 ;;;
 ;;; A comprehensive tutorial system with interactive guidance and progress tracking
 

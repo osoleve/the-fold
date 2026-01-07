@@ -1,4 +1,4 @@
-;;; thimble/svg-renderer.ss — SVG Renderer for Graphics Primitives
+;;; shell/svg-renderer.ss — SVG Renderer for Graphics Primitives
 ;;;
 ;;; Renders graphics primitives, canvases, and layout to SVG format.
 ;;; Integrates with graphics-primitives, transforms, and layout-combinators.

@@ -1,4 +1,4 @@
-;;; thimble/user-tracker.ss — User Login and Activity Tracking
+;;; shell/user-tracker.ss — User Login and Activity Tracking
 ;;;
 ;;; Tracks user login timestamps to determine when to show activity summaries.
 ;;; Stores data in .fold-users/ directory, persisting across daemon restarts.

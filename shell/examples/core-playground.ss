@@ -1,4 +1,4 @@
-;;; thimble/core-playground.ss — Interactive Core Experimentation Tools
+;;; shell/core-playground.ss — Interactive Core Experimentation Tools
 ;;;
 ;;; Created by Sauna (sonnet) during Deep Heat session
 ;;;

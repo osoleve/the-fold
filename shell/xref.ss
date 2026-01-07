@@ -1,4 +1,4 @@
-;;; thimble/xref.ss — Code Cross-Reference Tool
+;;; shell/xref.ss — Code Cross-Reference Tool
 ;;;
 ;;; Find all references to definitions across the codebase.
 ;;; Helps understand where functions, variables, and other definitions are used.

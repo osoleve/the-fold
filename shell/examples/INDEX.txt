@@ -1,7 +1,7 @@
 THIMBLE EXAMPLES & DEMONSTRATIONS
 ═══════════════════════════════════════════════════════
 
-Interactive examples and demonstrations of thimble/ features.
+Interactive examples and demonstrations of shell/ features.
 
 COMMAND SYSTEM
 ──────────────
@@ -51,11 +51,11 @@ USAGE
 ─────
 
 Load and run examples in the REPL:
-  (load "thimble/examples/demo-turtle.ss")
-  (load "thimble/examples/graphics-primitives-demo.ss")
+  (load "shell/examples/demo-turtle.ss")
+  (load "shell/examples/graphics-primitives-demo.ss")
 
 Or execute directly:
-  scheme --script thimble/examples/string-utils-example.ss
+  scheme --script shell/examples/string-utils-example.ss
 
 ═══════════════════════════════════════════════════════
 

@@ -1,6 +1,6 @@
-;;; thimble/test-string-utils.ss — Tests for String Utilities
+;;; shell/test-string-utils.ss — Tests for String Utilities
 ;;;
-;;; Comprehensive test suite for thimble/string-utils.ss
+;;; Comprehensive test suite for shell/string-utils.ss
 ;;; Validates all string operations with edge cases and Unicode handling.
 
 (load "shell/tools/string-utils.ss")

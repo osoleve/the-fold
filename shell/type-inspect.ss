@@ -1,4 +1,4 @@
-;;; thimble/type-inspect.ss — Type Inspector and Visualizer
+;;; shell/type-inspect.ss — Type Inspector and Visualizer
 ;;;
 ;;; Examine and display type information for expressions.
 ;;; Helps understand what types are inferred and why.

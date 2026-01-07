@@ -1,4 +1,4 @@
-;;; thimble/layout-combinators.ss — Diagrams-Style Layout Combinators
+;;; shell/layout-combinators.ss — Diagrams-Style Layout Combinators
 ;;;
 ;;; Composable layout primitives inspired by Haskell's Diagrams library.
 ;;; Enables declarative composition of graphics elements with automatic sizing.

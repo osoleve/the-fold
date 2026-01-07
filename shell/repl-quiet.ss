@@ -1,4 +1,4 @@
-;;; thimble/repl-quiet.ss — Quiet REPL loader
+;;; shell/repl-quiet.ss — Quiet REPL loader
 ;;;
 ;;; Loads the REPL without the startup banner.
 ;;; Usage: (load "shell/repl-quiet.ss")

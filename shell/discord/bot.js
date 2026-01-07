@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * thimble/discord/bot.js — The Fold Discord Bot
+ * shell/discord/bot.js — The Fold Discord Bot
  *
  * Bridges Discord and The Fold forum system.
  * - Logs Discord messages to Fold's S-expression store

@@ -1,8 +1,8 @@
-;;; thimble/test-docgen.ss -- Tests for API Documentation Generator
+;;; shell/test-docgen.ss -- Tests for API Documentation Generator
 ;;;
 ;;; Tests the docgen module's parsing and documentation generation.
 ;;;
-;;; Run with: scheme --script thimble/test-docgen.ss
+;;; Run with: scheme --script shell/test-docgen.ss
 
 ;;; Set up paths
 (source-directories (cons "core" (source-directories)))

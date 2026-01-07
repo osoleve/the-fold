@@ -1,4 +1,4 @@
-;;; thimble/test-duckie-loop.ss — Tests for DUCKIE Main Loop
+;;; shell/test-duckie-loop.ss — Tests for DUCKIE Main Loop
 ;;;
 ;;; Validates command parsing and state transitions.
 

@@ -1,6 +1,6 @@
-;;; thimble/cleanup-workers.ss — One-shot cleanup of stale worker processes
+;;; shell/cleanup-workers.ss — One-shot cleanup of stale worker processes
 ;;;
-;;; Usage: scheme --script thimble/cleanup-workers.ss
+;;; Usage: scheme --script shell/cleanup-workers.ss
 
 (load "shell/repl-daemon-mcp.ss")
 

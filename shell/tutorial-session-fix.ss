@@ -1,4 +1,4 @@
-;;; thimble/tutorial-session-fix.ss — Fixed Tutorial System with Robust Session Handling
+;;; shell/tutorial-session-fix.ss — Fixed Tutorial System with Robust Session Handling
 ;;;
 ;;; This version properly handles session persistence and ensures
 ;;; tutorial functions work correctly with the existing session system

@@ -1,4 +1,4 @@
-;;; thimble/test-fuel-analysis.ss — Tests for Primitive-Level Fuel Analysis
+;;; shell/test-fuel-analysis.ss — Tests for Primitive-Level Fuel Analysis
 ;;;
 ;;; Test the fuel analysis tools to ensure they correctly track
 ;;; primitive operations and estimate complexity.

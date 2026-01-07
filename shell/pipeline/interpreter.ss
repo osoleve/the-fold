@@ -1,7 +1,7 @@
-;;; thimble/pipeline/interpreter.ss — Pipeline Effect Interpreter
+;;; shell/pipeline/interpreter.ss — Pipeline Effect Interpreter
 ;;;
 ;;; This is the impure shell that executes pipeline effects.
-;;; Effects from fabric/stitches/pipeline/effects.ss are interpreted here.
+;;; Effects from core/pipeline/effects.ss are interpreted here.
 ;;;
 ;;; This is Shell code: handles IO, may fail, contains defensive logic.
 ;;;
@@ -13,10 +13,10 @@
 ;;;   - Error recovery
 ;;;
 ;;; Dependencies:
-;;;   - fabric/stitches/pipeline/stage.ss
-;;;   - fabric/stitches/pipeline/effects.ss
-;;;   - fabric/stitches/pipeline/context.ss
-;;;   - thimble/fs.ss (for file operations)
+;;;   - core/pipeline/stage.ss
+;;;   - core/pipeline/effects.ss
+;;;   - core/pipeline/context.ss
+;;;   - shell/fs.ss (for file operations)
 ;;;
 ;;; NOTE: Standard string utilities provided by core/prelude.ss.
 ;;;       string-rindex is unique to this module.

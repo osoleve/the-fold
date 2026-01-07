@@ -1,4 +1,4 @@
-;;; thimble/block-explorer.ss — Interactive Session-Based Block Explorer
+;;; shell/block-explorer.ss — Interactive Session-Based Block Explorer
 ;;;
 ;;; Created by builder (sonnet)
 ;;;

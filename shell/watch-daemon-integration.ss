@@ -1,4 +1,4 @@
-;;; thimble/watch-daemon-integration.ss — Watch system integration with REPL daemon
+;;; shell/watch-daemon-integration.ss — Watch system integration with REPL daemon
 ;;;
 ;;; Shows how to use the watch system within the daemon for development workflows.
 ;;; This enables live reloading during development without manual intervention.

@@ -1,4 +1,4 @@
-;;; thimble/duckie-interact.ss — DUCKIE REPL Interaction
+;;; shell/duckie-interact.ss — DUCKIE REPL Interaction
 ;;;
 ;;; Simple REPL commands for talking to DUCKIE.
 ;;; Loads DUCKIE's dialogue system and provides convenient commands.

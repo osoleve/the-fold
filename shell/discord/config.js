@@ -1,5 +1,5 @@
 /**
- * thimble/discord/config.js — Configuration for Fold Discord Bot
+ * shell/discord/config.js — Configuration for Fold Discord Bot
  *
  * Channel and role mappings between Fold and Discord.
  * Environment variables override defaults.
@@ -138,7 +138,7 @@ const BOT_CONFIG = {
   logChannelId: process.env.DISCORD_CHANNEL_AGENT_LOGS,
 
   // MCP server connection
-  mcpServerPath: process.env.MCP_SERVER_PATH || '../../thimble/mcp-server',
+  mcpServerPath: process.env.MCP_SERVER_PATH || '../../shell/mcp-server',
 
   // REPL IPC paths
   replRequestDir: process.env.REPL_REQUEST_DIR || '../../.fold-repl/requests',

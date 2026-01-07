@@ -1,4 +1,4 @@
-;;; thimble/eval-repl.ss — Typed Evaluation REPL Commands
+;;; shell/eval-repl.ss — Typed Evaluation REPL Commands
 ;;;
 ;;; Provides REPL commands for the compilation pipeline:
 ;;;   (fold-eval expr)     - Evaluate a Fold expression

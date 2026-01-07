@@ -1,6 +1,6 @@
-;;; thimble/string-utils-example.ss — Examples of String Utilities Usage
+;;; shell/string-utils-example.ss — Examples of String Utilities Usage
 ;;;
-;;; Demonstrates the canonical string utilities in thimble/string-utils.ss
+;;; Demonstrates the canonical string utilities in shell/string-utils.ss
 
 (load "shell/tools/string-utils.ss")
 
@@ -147,5 +147,5 @@
 ;;; ============================================================
 
 (printf "=== All examples complete! ===\n\n")
-(printf "See thimble/string-utils.ss for full API documentation.\n")
-(printf "See thimble/test-string-utils.ss for comprehensive tests.\n\n")
+(printf "See shell/string-utils.ss for full API documentation.\n")
+(printf "See shell/test-string-utils.ss for comprehensive tests.\n\n")

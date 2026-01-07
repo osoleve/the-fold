@@ -1,4 +1,4 @@
-;;; thimble/repl-daemon-mcp.ss — Session Broker Daemon
+;;; shell/repl-daemon-mcp.ss — Session Broker Daemon
 ;;;
 ;;; Broker daemon that spawns one REPL worker process per session-id.
 ;;; The broker does not eval user code; it only watches request files

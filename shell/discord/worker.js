@@ -1,5 +1,5 @@
 /**
- * thimble/discord/worker.js — Queue Consumer & Pipeline Invocation
+ * shell/discord/worker.js — Queue Consumer & Pipeline Invocation
  *
  * Polls the task queue and invokes agent pipelines via fold.sh or
  * direct Node.js invokers. Posts replies via Discord webhooks.

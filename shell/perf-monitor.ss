@@ -1,4 +1,4 @@
-;;; thimble/perf-monitor.ss — Real-Time Performance Monitoring Dashboard
+;;; shell/perf-monitor.ss — Real-Time Performance Monitoring Dashboard
 ;;;
 ;;; Live monitoring of system health: memory, store, sessions, operations.
 ;;; This is Shell code: impure, tracks state, provides observability.

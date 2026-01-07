@@ -1,4 +1,4 @@
-;;; thimble/validate.ss — Validation utilities for blocks and hashes
+;;; shell/validate.ss — Validation utilities for blocks and hashes
 ;;;
 ;;; Defensive validation functions that check structural invariants:
 ;;;   - Block structure (tag, payload, refs are correct types)

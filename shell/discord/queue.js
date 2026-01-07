@@ -1,5 +1,5 @@
 /**
- * thimble/discord/queue.js — In-Memory Task Queue with Disk Spillover
+ * shell/discord/queue.js — In-Memory Task Queue with Disk Spillover
  *
  * Simple FIFO queue for agent tasks. Spills to disk when memory
  * threshold is exceeded for resilience during high load.

@@ -1,4 +1,4 @@
-;;; thimble/fs.ss — Filesystem Capability Layer
+;;; shell/fs.ss — Filesystem Capability Layer
 ;;;
 ;;; Optional filesystem persistence for the in-memory CAS.
 ;;; Core CAS is in-memory only; Shell adds persistence when needed.

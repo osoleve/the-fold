@@ -1,4 +1,4 @@
-;;; thimble/fuel-profile.ss — Fuel Consumption Profiler
+;;; shell/fuel-profile.ss — Fuel Consumption Profiler
 ;;;
 ;;; Track and analyze fuel consumption during evaluation.
 ;;; Helps identify performance bottlenecks and infinite loops.

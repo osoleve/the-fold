@@ -1,4 +1,4 @@
-;;; thimble/test-animation.ss — Tests for Animation and Easing
+;;; shell/test-animation.ss — Tests for Animation and Easing
 ;;;
 ;;; Validates easing functions and animation utilities.
 

@@ -1,4 +1,4 @@
-;;; thimble/block-query.ss — Query language for content-addressed blocks
+;;; shell/block-query.ss — Query language for content-addressed blocks
 ;;; Created by sonnet-secretive
 ;;;
 ;;; A simple DSL for searching blocks by patterns:

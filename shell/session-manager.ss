@@ -1,4 +1,4 @@
-;;; thimble/session-manager.ss — Multi-Session Management
+;;; shell/session-manager.ss — Multi-Session Management
 ;;;
 ;;; Manages multiple concurrent sessions for The Fold REPL.
 ;;; Each session has its own tier and name, stored in session data.

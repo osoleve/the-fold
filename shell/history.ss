@@ -1,4 +1,4 @@
-;;; thimble/history.ss — REPL History Persistence
+;;; shell/history.ss — REPL History Persistence
 ;;;
 ;;; Persistent command history across REPL sessions.
 ;;; This is Shell code: manages state, persists to disk.

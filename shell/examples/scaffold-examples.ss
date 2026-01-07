@@ -1,4 +1,4 @@
-;;; thimble/scaffold-examples.ss — Example Usage of Scaffolding System
+;;; shell/scaffold-examples.ss — Example Usage of Scaffolding System
 ;;;
 ;;; This file demonstrates how to use the scaffolding system effectively.
 ;;; Run these examples in the REPL after loading scaffold.ss.
@@ -261,7 +261,7 @@ TODO: Add examples
          (display "2. [ ] Ensure totality (use fuel for recursion)\n")
          (display "3. [ ] Add tests in core/test-<name>.ss\n")
          (display "4. [ ] Run tests: scheme --script core/test-<name>.ss\n")
-         (display "5. [ ] Update fabric/stitches/MODULES.md dependency graph\n")
+         (display "5. [ ] Update core/MODULES.md dependency graph\n")
          (display "6. [ ] Commit changes\n")]
         
         [(tool)

@@ -1,4 +1,4 @@
-;;; thimble/coverage.ss — Code Coverage Analyzer
+;;; shell/coverage.ss — Code Coverage Analyzer
 ;;;
 ;;; Track which code is executed during tests and generate coverage reports.
 ;;; Integrates with test-runner.ss for comprehensive test analysis.

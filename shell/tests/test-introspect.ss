@@ -1,4 +1,4 @@
-;;; thimble/introspect/test-introspect.ss — Tests for Introspection Tools
+;;; shell/introspect/test-introspect.ss — Tests for Introspection Tools
 ;;;
 ;;; Tests timing, memory, and complexity analysis modules.
 

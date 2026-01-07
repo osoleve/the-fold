@@ -1,5 +1,5 @@
 /**
- * thimble/discord/dispatcher.js — Mention Routing & Anti-Loop Enforcement
+ * shell/discord/dispatcher.js — Mention Routing & Anti-Loop Enforcement
  *
  * Parses @mentions to resolve agent identity and enforces anti-loop policies
  * to prevent runaway agent conversations.

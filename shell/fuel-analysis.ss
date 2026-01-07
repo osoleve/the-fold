@@ -1,4 +1,4 @@
-;;; thimble/fuel-analysis.ss — Primitive-Level Fuel Cost Analysis
+;;; shell/fuel-analysis.ss — Primitive-Level Fuel Cost Analysis
 ;;;
 ;;; Analyze fuel costs by tracking primitive operations during evaluation.
 ;;; This provides fine-grained cost analysis at the primitive level,
@@ -36,8 +36,8 @@
 ;;; See fuel-analysis-demo.ss for practical demonstrations.
 ;;;
 ;;; Dependencies:
-;;;   - Inlines minimal code from fabric/stitches/prelude.ss
-;;;   - Inlines prim-fuel-cost from fabric/stitches/prim.ss
+;;;   - Inlines minimal code from core/prelude.ss
+;;;   - Inlines prim-fuel-cost from core/prim.ss
 
 ;;; We need minimal prelude utilities
 ;;; Inline them to avoid path issues
@@ -62,7 +62,7 @@
       (cons (cons (car xs) (car ys))
             (zip (cdr xs) (cdr ys)))))
 
-;;; Inline prim-fuel-cost from fabric/stitches/prim.ss
+;;; Inline prim-fuel-cost from core/prim.ss
 ;;; This avoids loading the entire core module
 (define (prim-fuel-cost op)
   (case op
@@ -145,7 +145,7 @@
         
         [else #f]))
 
-;;; Inline prim from fabric/stitches/prim.ss
+;;; Inline prim from core/prim.ss
 ;;; Expanded version with commonly used operations
 (define (prim op . args)
   (case op

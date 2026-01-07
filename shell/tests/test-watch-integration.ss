@@ -1,4 +1,4 @@
-;;; thimble/test-watch-integration.ss — Integration test for watch system
+;;; shell/test-watch-integration.ss — Integration test for watch system
 ;;;
 ;;; This test verifies the complete watch system works end-to-end.
 ;;; Run this to validate the implementation.

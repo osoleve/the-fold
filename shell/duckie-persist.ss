@@ -1,4 +1,4 @@
-;;; thimble/duckie-persist.ss — DUCKIE State Persistence to CAS
+;;; shell/duckie-persist.ss — DUCKIE State Persistence to CAS
 ;;;
 ;;; Manages DUCKIE's soul in the content-addressed store:
 ;;;   - Create new DUCKIE and persist initial state

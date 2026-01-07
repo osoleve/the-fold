@@ -1,4 +1,4 @@
-;;; thimble/exploration-error-handler.ss — Enhanced Error Handler for Exploration Scripts
+;;; shell/exploration-error-handler.ss — Enhanced Error Handler for Exploration Scripts
 ;;;
 ;;; Fixes the ~s placeholder bug in exploration scripts by providing
 ;;; proper error message formatting for Chez Scheme conditions.

@@ -1,4 +1,4 @@
-;;; thimble/block-index.ss — Block Indexing for Analytics and Navigation
+;;; shell/block-index.ss — Block Indexing for Analytics and Navigation
 ;;;
 ;;; Mutable indexing structures for efficient block queries.
 ;;; Supports analytics and navigation tools in shell/.

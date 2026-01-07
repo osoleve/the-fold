@@ -1,4 +1,4 @@
-;;; thimble/watch-README.ss — File Watching System Documentation
+;;; shell/watch-README.ss — File Watching System Documentation
 ;;;
 ;;; This file documents the file watching and auto-reload system.
 ;;; It exists as a .ss file (not .md) to comply with The Fold's

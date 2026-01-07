@@ -1,4 +1,4 @@
-;;; thimble/test-duckie-persist.ss — Tests for DUCKIE CAS Persistence
+;;; shell/test-duckie-persist.ss — Tests for DUCKIE CAS Persistence
 ;;;
 ;;; Tests save/load, state updates, and memory operations.
 

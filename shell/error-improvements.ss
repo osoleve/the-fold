@@ -1,4 +1,4 @@
-;;; thimble/error-improvements.ss — Comprehensive Error Message Improvements
+;;; shell/error-improvements.ss — Comprehensive Error Message Improvements
 ;;;
 ;;; Enhanced error messages with context, suggestions, and actionable fixes.
 ;;; Integrates and improves upon existing error systems.

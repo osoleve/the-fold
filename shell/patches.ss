@@ -1,4 +1,4 @@
-;;; thimble/patches.ss — The Fold Patch System
+;;; shell/patches.ss — The Fold Patch System
 ;;;
 ;;; Patches are loadable packages of functionality that extend The Fold.
 ;;; Like fabric patches sewn onto cloth, software patches, or synth patches.

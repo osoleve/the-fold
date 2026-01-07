@@ -1,4 +1,4 @@
-;;; thimble/test-git.ss — Tests for Git Operations
+;;; shell/test-git.ss — Tests for Git Operations
 ;;;
 ;;; Validates git utility functions and tier enforcement logic.
 

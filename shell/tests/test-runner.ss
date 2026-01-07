@@ -1,4 +1,4 @@
-;;; thimble/test-runner.ss — Comprehensive Test Runner for The Fold
+;;; shell/test-runner.ss — Comprehensive Test Runner for The Fold
 ;;;
 ;;; ============================================================
 ;;; OVERVIEW
@@ -23,13 +23,13 @@
 ;;; ============================================================
 ;;;
 ;;; Command Line:
-;;;   scheme --script thimble/tests/test-runner.ss              Run all tests
-;;;   scheme --script thimble/tests/test-runner.ss core         Run core/ tests only
-;;;   scheme --script thimble/tests/test-runner.ss shell        Run shell/ tests only
-;;;   scheme --script thimble/tests/test-runner.ss --pattern <text>
+;;;   scheme --script shell/tests/test-runner.ss              Run all tests
+;;;   scheme --script shell/tests/test-runner.ss core         Run core/ tests only
+;;;   scheme --script shell/tests/test-runner.ss shell        Run shell/ tests only
+;;;   scheme --script shell/tests/test-runner.ss --pattern <text>
 ;;;                                                     Filter tests by pattern
-;;;   scheme --script thimble/tests/test-runner.ss --list       List available tests
-;;;   scheme --script thimble/tests/test-runner.ss --help       Show help message
+;;;   scheme --script shell/tests/test-runner.ss --list       List available tests
+;;;   scheme --script shell/tests/test-runner.ss --help       Show help message
 ;;;
 ;;; From REPL (interactive):
 ;;;   (load "shell/test-runner.ss")
@@ -637,7 +637,7 @@
   (display (bold "THE FOLD — TEST RUNNER\n"))
   (display "\n")
   (display "Usage:\n")
-  (display "  scheme --script thimble/tests/test-runner.ss [OPTIONS]\n")
+  (display "  scheme --script shell/tests/test-runner.ss [OPTIONS]\n")
   (display "\n")
   (display "Options:\n")
   (display "  (no args)           Run all tests\n")

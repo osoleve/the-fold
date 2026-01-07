@@ -1,4 +1,4 @@
-;;; thimble/archextract.ss --- ArchExtract: Seeing Structure in Code
+;;; shell/archextract.ss --- ArchExtract: Seeing Structure in Code
 ;;;
 ;;; A tool for analyzing code structure and generating architecture visualizations.
 ;;; Reads Scheme source files, extracts dependencies, and builds a dependency graph.

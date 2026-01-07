@@ -1,4 +1,4 @@
-;;; thimble/project-status.ss --- Project Health Dashboard
+;;; shell/project-status.ss --- Project Health Dashboard
 ;;;
 ;;; A unified view of project health: tests, code, git status.
 ;;; Fulfills the wishlist item: forum/wishlist/0006-projectstatus-tool.sexp

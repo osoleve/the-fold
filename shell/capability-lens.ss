@@ -1,4 +1,4 @@
-;;; thimble/capability-lens.ss --- Capability Lens (Effect/Authority Scan)
+;;; shell/capability-lens.ss --- Capability Lens (Effect/Authority Scan)
 ;;;
 ;;; Static analysis of Scheme sources to surface capability mint/use.
 ;;; This is Shell code: reads files, parses S-expressions.

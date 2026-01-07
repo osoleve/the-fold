@@ -1,4 +1,4 @@
-;;; thimble/module-deps.ss — Module Dependency Analyzer
+;;; shell/module-deps.ss — Module Dependency Analyzer
 ;;;
 ;;; Analyzes Scheme source files to extract and visualize dependencies.
 ;;; Helps understand the module structure and identify circular dependencies.

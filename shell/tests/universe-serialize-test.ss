@@ -1,4 +1,4 @@
-;;; thimble/universe-serialize-test.ss — Tests for Universe Serialization
+;;; shell/universe-serialize-test.ss — Tests for Universe Serialization
 ;;;
 ;;; Test harness for shell/universe-serialize.ss
 

@@ -1,4 +1,4 @@
-;;; thimble/login-help.ss — Mature Login Flow Documentation
+;;; shell/login-help.ss — Mature Login Flow Documentation
 
 (define (login-help)
   (display "THE FOLD - LOGIN GUIDE\n\n")

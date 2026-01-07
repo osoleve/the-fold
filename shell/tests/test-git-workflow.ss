@@ -1,4 +1,4 @@
-;;; thimble/test-git-workflow.ss — Tests for Git Workflow Helpers
+;;; shell/test-git-workflow.ss — Tests for Git Workflow Helpers
 ;;;
 ;;; Validates conflict detection and workflow logic.
 

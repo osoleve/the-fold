@@ -1,4 +1,4 @@
-;;; thimble/introspect/timing.ss — Time Measurement for Benchmarks
+;;; shell/introspect/timing.ss — Time Measurement for Benchmarks
 ;;;
 ;;; Measures elapsed wall-clock and CPU time for operations.
 ;;; This is Shell code: impure, uses system time primitives.

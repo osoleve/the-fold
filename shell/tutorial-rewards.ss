@@ -1,4 +1,4 @@
-;;; thimble/tutorial-rewards.ss — Tutorial Completion Badges and Rewards
+;;; shell/tutorial-rewards.ss — Tutorial Completion Badges and Rewards
 ;;;
 ;;; Tracks tutorial completion and awards badges to users
 

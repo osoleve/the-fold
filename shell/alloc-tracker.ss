@@ -1,4 +1,4 @@
-;;; thimble/alloc-tracker.ss --- Allocation Tracking Shim
+;;; shell/alloc-tracker.ss --- Allocation Tracking Shim
 ;;;
 ;;; Wraps Chez Scheme's statistics for allocation tracking.
 ;;; Track memory allocations during thunk execution, format sizes,

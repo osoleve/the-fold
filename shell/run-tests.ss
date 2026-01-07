@@ -1,4 +1,4 @@
-;;; thimble/run-tests.ss — Test Runner for Shell Modules
+;;; shell/run-tests.ss — Test Runner for Shell Modules
 ;;;
 ;;; Runs all shell/ tests.
 ;;; Must be invoked from ccverse root directory.

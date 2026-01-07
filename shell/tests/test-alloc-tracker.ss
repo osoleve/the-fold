@@ -1,4 +1,4 @@
-;;; thimble/tests/test-alloc-tracker.ss --- Tests for Allocation Tracker
+;;; shell/tests/test-alloc-tracker.ss --- Tests for Allocation Tracker
 ;;;
 ;;; Comprehensive tests for shell/alloc-tracker.ss.
 ;;; Validates byte formatting, allocation tracking, and tracker accumulation.

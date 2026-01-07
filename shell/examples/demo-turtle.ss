@@ -1,4 +1,4 @@
-;;; thimble/demo-turtle.ss — Turtle Graphics Demonstrations
+;;; shell/demo-turtle.ss — Turtle Graphics Demonstrations
 ;;;
 ;;; Example drawings showcasing the turtle graphics system.
 ;;;

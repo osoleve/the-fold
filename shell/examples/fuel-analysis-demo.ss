@@ -1,4 +1,4 @@
-;;; thimble/fuel-analysis-demo.ss — Demonstration of Fuel Analysis Tools
+;;; shell/fuel-analysis-demo.ss — Demonstration of Fuel Analysis Tools
 ;;;
 ;;; This demonstrates how to use the fuel analysis tools to:
 ;;;   1. Analyze fuel costs of individual operations

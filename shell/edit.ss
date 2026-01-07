@@ -1,4 +1,4 @@
-;;; thimble/edit.ss — Text File Editing Utilities
+;;; shell/edit.ss — Text File Editing Utilities
 ;;;
 ;;; Enables source code maintenance from within the REPL.
 ;;; All operations are capability-gated through FS.

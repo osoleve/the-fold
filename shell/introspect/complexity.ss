@@ -1,4 +1,4 @@
-;;; thimble/introspect/complexity.ss — Codebase Complexity and Coverage Analysis
+;;; shell/introspect/complexity.ss — Codebase Complexity and Coverage Analysis
 ;;;
 ;;; Analyzes Scheme source files for complexity metrics and test coverage.
 ;;; This is Shell code: reads filesystem, performs static analysis.
