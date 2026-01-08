@@ -61,12 +61,12 @@ scheme --script test-all.ss
 scheme --script core/run-tests.ss
 
 # Single test file (pattern: test-<module>.ss adjacent to module)
-scheme --script core/test-block.ss
+scheme --script core/blocks/test-block.ss
 scheme --script core/info-theory/test-entropy.ss
 scheme --script shell/tests/test-string-utils.ss
 ```
 
-Test framework: `core/test-framework.ss` provides unified API across all tests.
+Test framework: `core/testing/test-framework.ss` provides unified API across all tests.
 
 ---
 
@@ -104,35 +104,66 @@ Core is organized into domain-driven subdirectories:
 | `blocks/` | Block system & CAS | block.ss, cas.ss, normalize.ss |
 | `types/` | Type system | types.ss, dep-types.ss, infer.ss, kinds.ss |
 | `lang/` | Evaluation & compilation | eval.ss, compile.ss, module.ss, nbe.ss |
-| `linalg/` | Linear algebra (331 tests) | vec.ss, matrix.ss, matrix-decomp.ss, matrix-solvers.ss |
-| `numeric/` | Numerical computing | complex.ss (56 tests), dft.ss (46 tests) |
+| `linalg/` | Linear algebra | vec.ss, matrix.ss, matrix-decomp.ss, matrix-solvers.ss |
+| `numeric/` | Numerical computing | complex.ss, dft.ss |
 | `autodiff/` | Automatic differentiation | comp-graph.ss, reverse-diff.ss |
 | `data/` | Data structures | data-structures.ss, graph-algorithms.ss |
 | `query/` | Query DSL & patterns | query.ss, query-dsl.ss, aho-corasick.ss |
-| `util/` | General utilities | debug.ss (time-travel debugger), pretty.ss, help.ss |
-| `info-theory/` | Information theory (57 tests) | entropy.ss |
+| `util/` | General utilities | debug.ss, pretty.ss, help.ss, profile.ss |
+| `info-theory/` | Information theory | entropy.ss |
 | `random/` | Probability | prng.ss, distributions.ss |
 | `pipeline/` | Agent workflows | stage.ss, effects.ss, council.ss |
+| `algebra/` | Abstract algebra | groups, rings, fields |
+| `automata/` | Finite automata | state machines, DFA/NFA |
+| `geometry/` | Computational geometry | shapes, transforms |
+| `dynamics/` | Dynamic systems | simulation, physics |
+| `diff-physics/` | Differentiable physics | 2D physics simulation |
+| `diff-physics-3d/` | 3D differentiable physics | 3D physics simulation |
+| `dsl/` | DSL utilities | domain-specific language tools |
+| `number-theory/` | Number theory | primes, modular arithmetic |
+| `sim/` | Simulation | discrete event simulation |
+| `lsp/` | Language server protocol | LSP implementation |
+| `testing/` | Test infrastructure | test-framework.ss, run-tests.ss |
+| `benchmarks/` | Performance benchmarks | bench-core.ss, bench-prim.ss |
 
 **FP Toolkit (`core/fp/`):**
 - `control/` — Monads, effects, continuations, free monads
-- `numeric/` — Transcendental functions (59 tests)
+- `numeric/` — Transcendental functions
 - `parsing/` — Parser combinators with memoization
 - `meta/` — DSL utilities, logic programming
 - `data/` — Lazy streams, persistent structures
-- `game/` — Game theory, Nash equilibrium (26 tests)
-- `symbolic/` — Symbolic expressions (55 tests)
-- `measure/` — Units of measure (47 tests)
-- `control-systems/` — Control theory, state space models (21 tests)
+- `game/` — Game theory, Nash equilibrium
+- `symbolic/` — Symbolic expressions
+- `measure/` — Units of measure
+- `control-systems/` — Control theory, state space models
+- `analysis/` — Numerical analysis
+- `rewrite/` — Term rewriting systems
 
 ### Shell Subsystems
 
-- `repl-daemon.ss` — Multi-session REPL daemon
-- `commands.ss` — Extensible command system
-- `debug-repl.ss` — Time-travel debugger REPL (step, undo, redo, watch, explain)
-- `string-utils.ss` — String utilities (86 tests)
-- `validate.ss` — Input validation
-- `git.ss` — Git operations
+Shell is organized into functional subdirectories (with backwards-compatible stubs at root):
+
+| Directory | Purpose | Key Modules |
+|-----------|---------|-------------|
+| `repl/` | REPL & session management | repl-daemon.ss, session-manager.ss |
+| `blocks/` | Block system tools | block-explorer.ss, block-navigator.ss |
+| `debug/` | Developer inspection | debug-repl.ss (time-travel debugger) |
+| `diagnostics/` | Profiling & analysis | fuel-viz.ss, profile-viewer.ss |
+| `storage/` | Persistence & identity | store-manager.ss, cas-persist.ss |
+| `io/` | Low-level IO utilities | fs.ss, json.ss |
+| `git/` | Git operations | git.ss, git-workflow.ss |
+| `assistants/` | AI agents | duckie-*.ss |
+| `media/` | Creative tools | music-gen.ss, create-art.ss |
+| `ui/` | Graphics & display | graphics.ss, color.ss, layers.ss |
+| `discord/` | Discord bot integration | bot.js, bridge.js |
+| `mcp-server/` | MCP server integration | External tool access |
+| `lens/` | Optics & lenses | capability-lens.ss |
+| `introspect/` | System introspection | type-inspect.ss, xref.ss |
+| `pipeline/` | Agent pipelines | workflow integration |
+| `tools/` | Utility tools | Various shell utilities |
+| `tests/` | Shell test suite | test-*.ss files |
+
+Root-level files like `commands.ss` and `validate.ss` remain for shared infrastructure.
 
 ---
 
@@ -262,9 +293,13 @@ git push                # Push to remote
 | `.fold-repl/requests/<session>.ss` | Session requests |
 | `.fold-repl/responses/<session>.txt` | Session responses |
 | `.fold-repl/daemon.log` | Daemon log |
+| `.fold-repl/discord-outbox/` | Discord message outbox |
+| `.fold-sessions/` | Persistent session state |
+| `.fold-users/` | User profile data |
 | `.store/` | Content-addressed store |
 | `.beads/` | Issue tracking database |
 | `archives/` | Historical exports (e.g., forum archive) |
+| `TAXONOMY.sexp` | Machine-readable project taxonomy |
 
 ---
 

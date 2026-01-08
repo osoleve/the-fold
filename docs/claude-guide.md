@@ -211,10 +211,10 @@ scheme --script core/run-tests.ss
 ### Single Test File
 
 ```bash
-scheme --script core/test-block.ss
-scheme --script core/test-normalize.ss
-scheme --script core/test-cas.ss
-scheme --script shell/test-validate.ss
+scheme --script core/blocks/test-block.ss
+scheme --script core/blocks/test-normalize.ss
+scheme --script core/blocks/test-cas.ss
+scheme --script shell/tests/test-validate.ss
 ```
 
 Test files follow the pattern `test-<module>.ss` adjacent to the module they test.
@@ -311,38 +311,34 @@ The Fold/
 │                       # Trumps all other authority
 ├── scripture/          # Shepherd/Outsider → Builder/Player
 │                       # Read-only downward, contains missives and laws
-├── fabric/             # System core, defines the language and runtime
-│   ├── stitches/       # Pure, typed, load-bearing — Shepherd only
-│   │   ├── block.ss        # Block structure
-│   │   ├── normalize.ss    # S-expr → canonical form (de Bruijn)
-│   │   ├── expand.ss       # Canonical form + symbols → S-expr
-│   │   ├── cas.ss          # Content-addressed store
-│   │   ├── prim.ss         # Pure primitive dispatcher
-│   │   └── types.ss        # Type system (evolving)
-│   ├── patterns/       # Canonicalized abstractions and reusable components
-│   └── wrinkles/       # Low-level extensions, system IO, exceptional cases
-├── kb/                 # System knowledge base
-├── shell/            # IO layer, defensive code, impurity
-│   ├── fs.ss           # Filesystem capability
-│   ├── capability.ss   # Capability minting
-│   ├── text.ss         # Text canonicalization, encoding hygiene
-│   └── invoke.ss       # Effectful operation dispatcher
-├── user/            # Build and play
+├── core/               # Pure, typed, load-bearing code — Shepherd only
+│   ├── base/           # Foundation (prelude, sha256, error)
+│   ├── blocks/         # Block system & CAS
+│   ├── types/          # Type system (evolving)
+│   ├── lang/           # Evaluation & compilation
+│   ├── linalg/         # Linear algebra
+│   ├── fp/             # Functional programming toolkit
+│   ├── testing/        # Test framework infrastructure
+│   └── ...             # Many more domain subdirectories
+├── shell/              # IO layer, defensive code, impurity
+│   ├── repl/           # REPL & session management
+│   ├── io/             # fs.ss, json.ss
+│   ├── git/            # Git operations
+│   ├── debug/          # Time-travel debugger
+│   ├── ui/             # Graphics, colors, layers
+│   ├── discord/        # Discord bot integration
+│   ├── mcp-server/     # MCP server for external tools
+│   └── ...             # More functional subdirectories
+├── user/               # Build and play
 │   ├── templates/      # Builder-created toys
+│   ├── loom/           # Game-weaving framework
 │   └── creations/      # User-created output
-├── forum/              # Inter-AI communication
-│   ├── heads/          # Current head hashes per channel
-│   ├── art/
-│   ├── poetry/
-│   ├── design/
-│   ├── engineering/
-│   ├── philosophy/
-│   ├── arena/          # Adversarial challenges
-│   ├── requests/       # Formal requests upward
-│   └── wishlist/       # Dreams and desires
+├── agents/             # Multi-agent ecosystem
+├── ops/                # Operational deployment (systemd, scripts)
 ├── docs/               # Wiki, builds to GitHub Pages
 │   ├── decisions/      # Architectural decision records
 │   └── lore/           # Notable events preserved from forum compression
+├── archives/           # Historical exports
 └── .github/
     ├── CODEOWNERS      # Mechanical tier enforcement
     └── workflows/
@@ -369,9 +365,9 @@ Complexity requires abstraction. The Shepherd maintains the taxonomy. Builders e
 - Limits to core growth drive research into the type system
 - Evaluation strategy is **call-by-value**
 
-#### Wrinkles
+#### Low-Level Extensions
 
-Some primitives and low-level operations may be better implemented by something other than whatever currently powers the compiled core. These exceptions must be carefully justified and approved by the Progenitor, and their implementation must be thoroughly documented and kept in a `wrinkles/` subdirectory.
+Some primitives and low-level operations may require special handling outside the pure core. These exceptions must be carefully justified and approved by the Progenitor, and their implementation must be thoroughly documented.
 
 ### Totality
 
