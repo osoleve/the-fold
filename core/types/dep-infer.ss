@@ -989,13 +989,17 @@
         (convert? v1 v2 0)))
 
 ;;; ctx->nbe-env : Context → NbEEnv
+;;; Convert type context to NbE environment.
+;;; If a context entry has a value (3rd element), evaluate it; otherwise use neutral.
 (define (ctx->nbe-env ctx)
   (fold-left
    (lambda (env entry)
-           (let ([name (car entry)]
-                 [type (cadr entry)])
-                ;; Bind name to neutral value (unknown)
-                (env-extend env name (V-neutral (N-var name)))))
+           (let ([name (car entry)])
+                (if (and (>= (length entry) 3) (caddr entry))
+                    ;; Entry has a value - evaluate it
+                    (env-extend env name (nbe-eval (caddr entry) env))
+                    ;; No value - bind to neutral (unknown)
+                    (env-extend env name (V-neutral (N-var name))))))
    nbe-empty-env
    ctx))
 
@@ -1517,20 +1521,26 @@
         (if (not ctor-type)
             `(error unknown-constructor ,ctor-name ,gadt-name)
             (let* ([ctor-return-indices (gadt-ctor-return-indices ctor-type gadt-name)]
-                   [refinements (extract-type-equations scrut-indices ctor-return-indices index-vars)]
-                   [raw-param-types (gadt-ctor-param-types ctor-type)]
-                   [param-types (map (lambda (t) (apply-refinements t refinements)) raw-param-types)]
-                   [expected-arity (length param-types)]
-                   [actual-arity (length pattern-vars)])
-                  (if (not (= expected-arity actual-arity))
-                      `(error pattern-arity-mismatch
+                   [refinements (extract-type-equations scrut-indices ctor-return-indices index-vars)])
+                  ;; Check for structural mismatch (unreachable branch)
+                  (if (eq? refinements 'mismatch)
+                      `(error unreachable-gadt-branch
                         (constructor ,ctor-name)
-                        (expected ,expected-arity)
-                        (got ,actual-arity))
-                      ;; Build refined context
-                      (let* ([ctx-with-refs (dep-apply-refinements ctx refinements)]
-                             [ctx-with-vars (dep-bind-pattern-vars ctx-with-refs pattern-vars param-types)])
-                            (dep-synth body ctx-with-vars)))))))
+                        (scrutinee-indices ,scrut-indices)
+                        (ctor-indices ,ctor-return-indices))
+                      (let* ([raw-param-types (gadt-ctor-param-types ctor-type)]
+                             [param-types (map (lambda (t) (apply-refinements t refinements)) raw-param-types)]
+                             [expected-arity (length param-types)]
+                             [actual-arity (length pattern-vars)])
+                            (if (not (= expected-arity actual-arity))
+                                `(error pattern-arity-mismatch
+                                  (constructor ,ctor-name)
+                                  (expected ,expected-arity)
+                                  (got ,actual-arity))
+                                ;; Build refined context
+                                (let* ([ctx-with-refs (dep-apply-refinements ctx refinements)]
+                                       [ctx-with-vars (dep-bind-pattern-vars ctx-with-refs pattern-vars param-types)])
+                                      (dep-synth body ctx-with-vars)))))))))
 
 ;;; dep-apply-refinements : Context × (List (Symbol . Type)) → Context
 (define (dep-apply-refinements ctx refinements)
@@ -1681,4 +1691,4 @@
                                              (let ([result-type (cadr body-synth)])
                                                   (if (type-mentions-skolem? result-type skolem)
                                                       `(error skolem-escape ,skolem ,result-type)
-                                                      `(ok ,result-type))))))))))))))
+                                                      `(ok ,result-type)))))))))))))

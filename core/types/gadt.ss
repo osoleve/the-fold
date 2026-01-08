@@ -231,7 +231,7 @@
 ;;; If we're matching a value of type (Expr a) against constructor Lit
 ;;; which returns (Expr Int), we learn that a = Int.
 
-;;; extract-type-equations : Type × Type × (List Symbol) → (List (Symbol . Type))
+;;; extract-type-equations : Type × Type × (List Symbol) → (List (Symbol . Type)) | 'mismatch
 ;;; Given the scrutinee's indices and constructor's return indices,
 ;;; compute the type variable assignments that would unify them.
 ;;;
@@ -240,7 +240,8 @@
 ;;;   constructor returns: (Expr Int) → indices: (Int)
 ;;;   result: ((a . Int))
 ;;;
-;;; The 'index-vars' parameter lists which symbols are refineable.
+;;; Type variables are lowercase symbols; type constructors are uppercase.
+;;; Returns 'mismatch if concrete types don't match (unreachable branch).
 (define (extract-type-equations scrutinee-indices ctor-indices index-vars)
   (let loop ([scrut scrutinee-indices]
              [ctor ctor-indices]
@@ -252,15 +253,21 @@
          (let ([s (car scrut)]
                [c (car ctor)])
               (cond
-               ;; If scrutinee index is a refineable variable, record equation
-               [(and (symbol? s) (memq s index-vars))
+               ;; If scrutinee index is a type variable (lowercase symbol), refine it
+               [(and (symbol? s) (type-variable? s))
                 (loop (cdr scrut) (cdr ctor) (cons (cons s c) eqns))]
                ;; If they're structurally equal, no equation needed
                [(equal? s c)
                 (loop (cdr scrut) (cdr ctor) eqns)]
-               ;; Otherwise, no equation (might be a type error elsewhere)
-               [else
-                (loop (cdr scrut) (cdr ctor) eqns)]))])))
+               ;; Structural mismatch - this branch is unreachable
+               [else 'mismatch]))])))
+
+;;; type-variable? : Symbol → Boolean
+;;; Type variables are lowercase; type constructors are uppercase.
+(define (type-variable? sym)
+  (let ([s (symbol->string sym)])
+       (and (> (string-length s) 0)
+            (char-lower-case? (string-ref s 0)))))
 
 ;;; apply-refinements : Type × (List (Symbol . Type)) → Type
 ;;; Apply type refinements to a type via substitution.
