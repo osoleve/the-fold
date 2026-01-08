@@ -256,6 +256,234 @@
      (test "lines-offset 1" 4 (lines-offset lines 1))   ; "abc" + \n
      (test "lines-offset 2" 10 (lines-offset lines 2))) ; "abc\n" + "defgh\n"
 
+;;; ============================================================
+;;; Hover Tests
+;;; ============================================================
+
+(display "\nHover:\n")
+
+;; Set up test document
+(doc-open! "file:///hover-test.ss" 1 "(define my-func 42)\n(+ my-func 1)")
+
+;; Test primitive-type lookup
+(test "primitive-type +" "(Int -> Int -> Int)" (primitive-type "+"))
+(test "primitive-type car" "((Pair a b) -> a)" (primitive-type "car"))
+(test "primitive-type cons" "(a -> b -> (Pair a b))" (primitive-type "cons"))
+(test "primitive-type unknown" #f (primitive-type "unknown-prim"))
+
+;; Test format-hover-text with type info
+(let ([hover (format-hover-text "+" #f "(Int -> Int -> Int)")])
+     (test "format-hover-text with type" #t (string? hover))
+     (test "format-hover-text contains type" #t (string-contains? hover "Int")))
+
+;; Test format-hover-text with no info
+(let ([hover (format-hover-text "unknown-symbol" #f #f)])
+     (test "format-hover-text unknown" #f hover))
+
+;; Test compute-hover with primitive
+(let* ([doc (doc-get "file:///hover-test.ss")]
+       [pos (make-position 1 1)]  ; Position of +
+       [result (compute-hover doc pos)])
+      ;; Result should be a hover object or null
+      (test "compute-hover returns value" #t (or (json-object? result) (eq? result 'null))))
+
+;; Clean up
+(doc-close! "file:///hover-test.ss")
+
+;;; ============================================================
+;;; Completion Tests
+;;; ============================================================
+
+(display "\nCompletion:\n")
+
+;; Set up test document
+(doc-open! "file:///completion-test.ss" 1 "(def")
+
+;; Test keyword-completions
+(let ([completions (keyword-completions "def")])
+     (test "keyword-completions not empty" #t (> (length completions) 0))
+     ;; Should include "define"
+     (let ([labels (map (lambda (c) (json-get c "label")) completions)])
+          (test "keyword-completions has define" #t (member "define" labels))))
+
+(let ([completions (keyword-completions "")])
+     (test "keyword-completions empty prefix" #t (> (length completions) 10)))
+
+;; Test primitive-completions
+(let ([completions (primitive-completions "ca")])
+     (test "primitive-completions not empty" #t (> (length completions) 0))
+     (let ([labels (map (lambda (c) (json-get c "label")) completions)])
+          (test "primitive-completions has car" #t (member "car" labels))))
+
+;; Test completion-prefix-at-offset
+(let ([prefix (completion-prefix-at-offset (doc-get "file:///completion-test.ss") 4)])
+     (test "completion-prefix-at-offset" "def" prefix))
+
+;; Test find-completion-start
+(test "find-completion-start at symbol end" 1 (find-completion-start "(abc" 4))
+(test "find-completion-start at paren" 0 (find-completion-start "(abc" 0))
+(test "find-completion-start mid-symbol" 0 (find-completion-start "foo" 2))
+
+;; Test compute-completions
+(let* ([doc (doc-get "file:///completion-test.ss")]
+       [pos (make-position 0 4)]
+       [result (compute-completions doc pos)])
+      (test "compute-completions returns object" #t (json-object? result))
+      (test "compute-completions has items" #t (if (json-get result "items") #t #f)))
+
+;; Clean up
+(doc-close! "file:///completion-test.ss")
+
+;;; ============================================================
+;;; Go-to-Definition Tests
+;;; ============================================================
+
+(display "\nGo-to-Definition:\n")
+
+;; Set up test document
+(doc-open! "file:///goto-test.ss" 1 "(define my-var 42)\n(+ my-var 1)")
+
+;; Test compute-definition (will return null if index not available)
+(let* ([doc (doc-get "file:///goto-test.ss")]
+       [pos (make-position 1 3)])  ; Position of "my-var" reference
+      ;; compute-definition returns null or location
+      (let ([result (compute-definition doc pos)])
+           (test "compute-definition returns value" #t
+                 (or (eq? result 'null) (json-object? result)))))
+
+;; Test lookup-symbol-info (depends on index availability)
+(let ([info (lookup-symbol-info "unknown-symbol")])
+     (test "lookup-symbol-info unknown" #f info))
+
+;; Clean up
+(doc-close! "file:///goto-test.ss")
+
+;;; ============================================================
+;;; Document Symbols Tests
+;;; ============================================================
+
+(display "\nDocument Symbols:\n")
+
+;; Set up test document with multiple definitions
+(doc-open! "file:///symbols-test.ss" 1
+           "(define foo 1)\n(define (bar x) (+ x 1))\n(define-syntax my-macro\n  (syntax-rules () [(_ x) x]))")
+
+;; Test extract-definitions
+(let ([defs (extract-definitions "(define foo 1)\n(define bar 2)\n(define-syntax baz)")])
+     (test "extract-definitions count" 3 (length defs))
+     (test "extract-definitions first name" "foo" (car (car defs)))
+     (test "extract-definitions second name" "bar" (car (cadr defs)))
+     (test "extract-definitions third name" "baz" (car (caddr defs))))
+
+;; Test definition-line?
+(test "definition-line? define" #t (definition-line? "(define foo 1)"))
+(test "definition-line? define-syntax" #t (definition-line? "(define-syntax bar)"))
+(test "definition-line? other" #f (definition-line? "(+ 1 2)"))
+(test "definition-line? indented" #t (definition-line? "  (define foo 1)"))
+
+;; Test extract-definition-name
+(test "extract-definition-name var" "foo" (extract-definition-name "(define foo 1)"))
+(test "extract-definition-name fn" "bar" (extract-definition-name "(define (bar x) x)"))
+(test "extract-definition-name syntax" "baz" (extract-definition-name "(define-syntax baz)"))
+
+;; Test compute-document-symbols
+(let* ([doc (doc-get "file:///symbols-test.ss")]
+       [symbols (compute-document-symbols doc)])
+      (test "compute-document-symbols is array" #t (json-array? symbols))
+      (test "compute-document-symbols count" 3 (length (cdr symbols))))
+
+;; Test definition->document-symbol
+(let* ([doc (doc-get "file:///symbols-test.ss")]
+       [def '("test-name" define 5)]
+       [sym (definition->document-symbol doc def)])
+      (test "definition->document-symbol name" "test-name" (json-get sym "name"))
+      (test "definition->document-symbol kind" 12 (json-get sym "kind")))
+
+;; Clean up
+(doc-close! "file:///symbols-test.ss")
+
+;;; ============================================================
+;;; Signature Help Tests
+;;; ============================================================
+
+(display "\nSignature Help:\n")
+
+;; Test lookup-signature
+(let ([sig (lookup-signature "map")])
+     (test "lookup-signature map found" #t (if sig #t #f))
+     (test "lookup-signature map label" "(map f lst)" (cadr sig)))
+
+(let ([sig (lookup-signature "unknown-function")])
+     (test "lookup-signature unknown" #f sig))
+
+;; Test find-enclosing-call
+(doc-open! "file:///sig-test.ss" 1 "(map foo bar)")
+(let* ([doc (doc-get "file:///sig-test.ss")]
+       [call-info (find-enclosing-call doc 5)])  ; Position inside "map"
+      (if call-info
+          (begin
+           (test "find-enclosing-call fn name" "map" (car call-info))
+           (test "find-enclosing-call param idx" 0 (cdr call-info)))
+          (test "find-enclosing-call found" #t #f)))
+
+;; Test extract-symbol-at
+(test "extract-symbol-at basic" "foo" (extract-symbol-at "  foo bar" 2))
+(test "extract-symbol-at whitespace" "bar" (extract-symbol-at "  bar" 0))
+
+;; Clean up
+(doc-close! "file:///sig-test.ss")
+
+;;; ============================================================
+;;; String Utility Tests
+;;; ============================================================
+
+(display "\nString Utilities:\n")
+
+;; Test string-prefix?
+(test "string-prefix? true" #t (string-prefix? "define" "def"))
+(test "string-prefix? false" #f (string-prefix? "define" "xyz"))
+(test "string-prefix? exact" #t (string-prefix? "foo" "foo"))
+(test "string-prefix? empty" #t (string-prefix? "anything" ""))
+
+;; Test string-suffix?
+(test "string-suffix? true" #t (string-suffix? "hello?" "?"))
+(test "string-suffix? false" #f (string-suffix? "hello" "?"))
+(test "string-suffix? exact" #t (string-suffix? "foo" "foo"))
+
+;; Test symbol-char?
+(test "symbol-char? letter" #t (symbol-char? #\a))
+(test "symbol-char? digit" #t (symbol-char? #\5))
+(test "symbol-char? hyphen" #t (symbol-char? #\-))
+(test "symbol-char? question" #t (symbol-char? #\?))
+(test "symbol-char? bang" #t (symbol-char? #\!))
+(test "symbol-char? paren" #f (symbol-char? #\())
+(test "symbol-char? space" #f (symbol-char? #\ ))
+
+;; Test string-trim-left
+(test "string-trim-left basic" "hello" (string-trim-left "  hello"))
+(test "string-trim-left no trim" "hello" (string-trim-left "hello"))
+(test "string-trim-left all spaces" "" (string-trim-left "   "))
+
+;;; ============================================================
+;;; Tokenizer Helpers Tests
+;;; ============================================================
+
+(display "\nTokenizer Helpers:\n")
+
+;; Test find-line-end
+(test "find-line-end basic" 5 (find-line-end "hello\nworld" 0))
+(test "find-line-end no newline" 5 (find-line-end "hello" 0))
+
+;; Test find-string-end
+(test "find-string-end basic" 6 (find-string-end "hello\"rest" 0))
+(test "find-string-end with escape" 8 (find-string-end "he\\\"lo\"rest" 0))
+(test "find-string-end unclosed" #f (find-string-end "hello" 0))
+
+;; Test find-number-end
+(test "find-number-end int" 3 (find-number-end "123abc" 0))
+(test "find-number-end float" 5 (find-number-end "12.34abc" 0))
+(test "find-number-end negative" 4 (find-number-end "-123abc" 0))
+
 ;;; Summary
 (display "\n=======================\n")
 (printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)

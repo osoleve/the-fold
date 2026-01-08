@@ -28,11 +28,48 @@
        (assert-equal (mesh-triangle-count mesh) 12)
        (assert-true (> (mesh-bvh-depth mesh) 0))))
 
-(define-test "Icosphere mesh creation"
+(define-test "Icosphere mesh creation - subdivision 0"
   (let ([mesh (make-mesh-sphere-ico 1.0 0)])
        (assert-true (mesh? mesh))
        (assert-equal (mesh-triangle-count mesh) 20)
        (assert-true (> (mesh-bvh-depth mesh) 0))))
+
+(define-test "Icosphere mesh creation - subdivision 1"
+  (let ([mesh (make-mesh-sphere-ico 1.0 1)])
+       (assert-true (mesh? mesh))
+       (assert-equal (mesh-triangle-count mesh) 80)
+       (assert-true (> (mesh-bvh-depth mesh) 0))))
+
+(define-test "Icosphere mesh creation - subdivision 2"
+  (let ([mesh (make-mesh-sphere-ico 1.0 2)])
+       (assert-true (mesh? mesh))
+       (assert-equal (mesh-triangle-count mesh) 320)
+       (assert-true (> (mesh-bvh-depth mesh) 0))))
+
+(define-test "Icosphere mesh creation - subdivision 3"
+  (let ([mesh (make-mesh-sphere-ico 1.0 3)])
+       (assert-true (mesh? mesh))
+       (assert-equal (mesh-triangle-count mesh) 1280)
+       (assert-true (> (mesh-bvh-depth mesh) 0))))
+
+(define-test "Icosphere vertices lie on sphere surface"
+  ;; All vertices should be at the specified radius
+  (let* ([radius 2.5]
+         [mesh (make-mesh-sphere-ico radius 2)]
+         [triangles (mesh-triangles mesh)]
+         [eps 0.01]
+         ;; Check first triangle
+         [tri (car triangles)]
+         [p1 (triangle3-p1 tri)]
+         [p2 (triangle3-p2 tri)]
+         [p3 (triangle3-p3 tri)]
+         [mag1 (vec3-length p1)]
+         [mag2 (vec3-length p2)]
+         [mag3 (vec3-length p3)])
+        ;; All vertices should be at radius distance from origin
+        (assert-true (< (abs (- mag1 radius)) eps))
+        (assert-true (< (abs (- mag2 radius)) eps))
+        (assert-true (< (abs (- mag3 radius)) eps))))
 
 ;;; ============================================================
 ;;; Mesh SDF Tests
