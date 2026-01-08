@@ -310,18 +310,61 @@
                  [(#\u) (parse-unicode-escape (pstate-advance s))]
                  [else (string-append "Invalid escape character: " (string c))]))))
 
+;;; Unicode replacement character for invalid surrogates
+(define *replacement-char* (integer->char #xFFFD))
+
 ;;; parse-unicode-escape : State → (Char . State) | ErrorString
-;;; Parse \uXXXX escape sequence.
+;;; Parse \uXXXX escape sequence, with surrogate pair support.
+;;; JSON encodes non-BMP characters (U+10000+) as surrogate pairs:
+;;;   \uD800-\uDBFF (high surrogate) followed by \uDC00-\uDFFF (low surrogate)
 (define (parse-unicode-escape s)
   (if (< (pstate-remaining s) 4)
       "Incomplete unicode escape"
       (let* ([str (pstate-str s)]
              [idx (pstate-index s)]
-             [hex (substring str idx (+ idx 4))])
-            (let ([n (string->number hex 16)])
-                 (if n
-                     (cons (integer->char n) (pstate-advance-n s 4))
-                     (string-append "Invalid unicode escape: " hex))))))
+             [hex (substring str idx (+ idx 4))]
+             [n (string->number hex 16)])
+            (if (not n)
+                (string-append "Invalid unicode escape: " hex)
+                (let ([s2 (pstate-advance-n s 4)])
+                     (cond
+                      ;; High surrogate (U+D800 to U+DBFF) - look for pair
+                      [(and (>= n #xD800) (<= n #xDBFF))
+                       (parse-surrogate-pair n s2)]
+                      ;; Lone low surrogate (U+DC00 to U+DFFF) - invalid, use replacement
+                      [(and (>= n #xDC00) (<= n #xDFFF))
+                       (cons *replacement-char* s2)]
+                      ;; Regular character
+                      [else
+                       (cons (integer->char n) s2)]))))))
+
+;;; parse-surrogate-pair : Int × State → (Char . State) | ErrorString
+;;; Given a high surrogate, try to parse the following low surrogate.
+;;; If found, combine them into a single non-BMP character.
+;;; If not found, use the Unicode replacement character (U+FFFD) since
+;;; lone surrogates are not valid Unicode scalar values.
+(define (parse-surrogate-pair high s)
+  (let ([str (pstate-str s)]
+        [idx (pstate-index s)])
+       ;; Check for \uXXXX sequence (need 6 more chars: \u + 4 hex)
+       (if (and (>= (pstate-remaining s) 6)
+                (char=? (string-ref str idx) #\\)
+                (char=? (string-ref str (+ idx 1)) #\u))
+           ;; Parse the potential low surrogate
+           (let* ([hex2 (substring str (+ idx 2) (+ idx 6))]
+                  [low (string->number hex2 16)])
+                 (if (and low (>= low #xDC00) (<= low #xDFFF))
+                     ;; Valid surrogate pair - combine them
+                     ;; Formula: 0x10000 + ((high - 0xD800) << 10) + (low - 0xDC00)
+                     (let ([codepoint (+ #x10000
+                                         (bitwise-arithmetic-shift-left (- high #xD800) 10)
+                                         (- low #xDC00))])
+                          (cons (integer->char codepoint)
+                                (pstate-advance-n s 6)))  ; Skip \uXXXX
+                     ;; Not a valid low surrogate - use replacement char
+                     (cons *replacement-char* s)))
+           ;; No following escape - use replacement char
+           (cons *replacement-char* s))))
 
 ;;; parse-number : State → (Number . State) | ErrorString
 (define (parse-number s)

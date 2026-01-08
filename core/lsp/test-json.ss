@@ -40,6 +40,33 @@
 (test "parse unicode escape" '(ok "A") (json-read "\"\\u0041\""))
 (test "parse escaped quotes" '(ok "say \"hello\"") (json-read "\"say \\\"hello\\\"\""))
 
+;;; Surrogate pairs (non-BMP characters)
+(display "\nSurrogate Pairs:\n")
+;; U+1F600 (😀) = \uD83D\uDE00
+(test "parse surrogate pair emoji"
+      `(ok ,(string (integer->char #x1F600)))
+      (json-read "\"\\uD83D\\uDE00\""))
+;; U+1D11E (𝄞 - musical G clef) = \uD834\uDD1E
+(test "parse surrogate pair music symbol"
+      `(ok ,(string (integer->char #x1D11E)))
+      (json-read "\"\\uD834\\uDD1E\""))
+;; Mixed: BMP + surrogate pair + BMP
+(test "parse mixed BMP and surrogate"
+      `(ok ,(string-append "a" (string (integer->char #x1F600)) "b"))
+      (json-read "\"a\\uD83D\\uDE00b\""))
+;; Lone high surrogate (invalid - replaced with U+FFFD)
+(test "parse lone high surrogate"
+      `(ok ,(string (integer->char #xFFFD)))  ; Replacement char
+      (json-read "\"\\uD83D\""))
+;; High surrogate followed by non-surrogate escape (not a valid pair)
+(test "parse high surrogate + regular escape"
+      `(ok ,(string-append (string (integer->char #xFFFD)) "A"))
+      (json-read "\"\\uD83D\\u0041\""))
+;; Lone low surrogate (invalid - replaced with U+FFFD)
+(test "parse lone low surrogate"
+      `(ok ,(string (integer->char #xFFFD)))
+      (json-read "\"\\uDC00\""))
+
 ;;; Arrays
 (display "\nArrays:\n")
 (test "parse empty array" '(ok (json-array)) (json-read "[]"))

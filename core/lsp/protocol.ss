@@ -23,15 +23,20 @@
 ;;; A notification has: method, params (no id)
 
 ;;; lsp-request? : JsonObject → Boolean
+;;; Note: Use assoc to check key presence, not json-get.
+;;; json-get returns #f for both "key missing" and "value is #f",
+;;; which would incorrectly reject id:0 or id:false (though id:false
+;;; is invalid JSON-RPC, robustness is preferred).
 (define (lsp-request? msg)
   (and (json-object? msg)
-       (json-get msg "id")
+       (assoc "id" (cdr msg))       ; Key exists (any value including 0, null)
        (json-get msg "method")))
 
 ;;; lsp-notification? : JsonObject → Boolean
+;;; Note: Use assoc to check key absence.
 (define (lsp-notification? msg)
   (and (json-object? msg)
-       (not (json-get msg "id"))
+       (not (assoc "id" (cdr msg))) ; Key must NOT exist
        (json-get msg "method")))
 
 ;;; lsp-response? : JsonObject → Boolean
