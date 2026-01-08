@@ -249,23 +249,33 @@
            (hessian-fn x)
            (error 'diff-hessian "Cannot compute Hessian" diff-fn))))
 
-;;; diff-compose : Type × Type × Type × DiffFn × DiffFn → DiffFn
-;;; Π A B C. Diff B C → Diff A B → Diff A C
-;;; Compose two differentiable functions.
+;;; diff-compose : compose two differentiable functions
+;;; Type: Π A B C. Diff B C → Diff A B → Diff A C
+;;; Chain rule: ∇(g∘f)(x) = ∇g(f(x)) · ∇f(x)
 (define (diff-compose A B C diff-g diff-f)
   ;; Composition result is also differentiable (chain rule)
-  `((primal . ,(lambda (x) ((cdr (assq 'primal diff-g))
-                            ((cdr (assq 'primal diff-f)) x))))
-    (gradient . ,(lambda (x)
-                         ;; Chain rule: ∇(g∘f)(x) = (∇f(x))ᵀ · ∇g(f(x))
-                         (let ([fx ((cdr (assq 'primal diff-f)) x)]
-                               [grad-f (cdr (assq 'gradient diff-f))]
-                               [grad-g (cdr (assq 'gradient diff-g))])
-                              ;; Simplified: assumes scalar output
-                              (grad-f x))))))
+  (let ([primal-f (cdr (assq 'primal diff-f))]
+        [primal-g (cdr (assq 'primal diff-g))]
+        [grad-f (cdr (assq 'gradient diff-f))]
+        [grad-g (cdr (assq 'gradient diff-g))])
+       `((primal . ,(lambda (x) (primal-g (primal-f x))))
+         (gradient . ,(lambda (x)
+                              ;; Chain rule: ∇(g∘f)(x) = ∇g(f(x)) · ∇f(x)
+                              ;; For scalars: multiply the derivatives
+                              ;; For vectors: matrix multiplication (Jacobian chain)
+                              (let ([fx (primal-f x)]
+                                    [df-at-x (grad-f x)]
+                                    [dg-at-fx (grad-g fx)])
+                                   ;; Scalar case: multiply
+                                   (if (number? df-at-x)
+                                       (* dg-at-fx df-at-x)
+                                       ;; Vector/matrix case: needs proper composition
+                                       ;; For now, signal that full implementation needed
+                                       (error 'diff-compose
+                                              "Non-scalar chain rule not yet implemented"))))))))
 
-;;; diff-lift : Type × Type × (A → B) → DiffFn
-;;; Π A B. (A → B) → Diff A B
+;;; diff-lift : lift a pure function to differentiable
+;;; Type: Π A B. (A → B) → Diff A B
 ;;; Lift a numeric function to a differentiable one.
 (define (diff-lift A B f)
   ;; Creates a differentiable wrapper
@@ -274,14 +284,14 @@
     (gradient . ,(lambda (x)
                          (error 'diff-lift "Gradient not available for lifted function")))))
 
-;;; diff-primal : Type × Type × DiffFn → (A → B)
-;;; Π A B. Diff A B → (A → B)
-;;; Extract the underlying function.
+;;; diff-primal : extract the underlying function
+;;; Type: Π A B. Diff A B → (A → B)
+;;; Extract the underlying function from a differentiable wrapper.
 (define (diff-primal A B diff-fn)
   (cdr (assq 'primal diff-fn)))
 
-;;; diff-scalar : DiffFn × Float → Float
-;;; Differentiate a scalar function at a point.
+;;; diff-scalar : differentiate a scalar function at a point
+;;; Type: (Diff Int Int) → Int → Int
 (define (diff-scalar diff-fn x)
   (let ([grad-fn (cdr (assq 'gradient diff-fn))])
        (if grad-fn
