@@ -913,3 +913,53 @@
                acc
                (loop (cdr ds)
                      (<> acc (<> hardline (<> hardline (car ds)))))))))
+
+;;; ============================================================
+;;; Rename Implementation
+;;; ============================================================
+
+;;; compute-rename : Document × JsonObject × String → JsonObject | null
+;;; Rename all occurrences of symbol at position to new-name.
+;;; Returns a WorkspaceEdit with changes grouped by document.
+(define (compute-rename doc position new-name)
+  (let ([symbol (symbol-at-position doc position)])
+       (if (not symbol)
+           'null
+           (let ([edits-by-uri (compute-rename-edits symbol new-name)])
+                (if (null? edits-by-uri)
+                    'null
+                    (json-obj "changes" (make-changes-object edits-by-uri)))))))
+
+;;; compute-rename-edits : String × String → (Alist String (List TextEdit))
+;;; Compute all text edits needed for renaming, grouped by URI.
+(define (compute-rename-edits old-name new-name)
+  (let ([uris (doc-list)])
+       (filter (lambda (pair) (pair? (cdr pair)))
+               (map (lambda (uri)
+                            (cons uri (compute-rename-edits-in-doc uri old-name new-name)))
+                    uris))))
+
+;;; compute-rename-edits-in-doc : String × String × String → (List TextEdit)
+;;; Compute text edits for renaming in a single document.
+(define (compute-rename-edits-in-doc uri old-name new-name)
+  (let ([doc (doc-get uri)])
+       (if (not doc)
+           '()
+           (let* ([content (document-content doc)]
+                  [positions (find-symbol-positions content old-name)]
+                  [old-len (string-length old-name)])
+                 (map (lambda (pos)
+                              (let* ([start-pos (offset->lsp-position doc pos)]
+                                     [end-pos (offset->lsp-position doc (+ pos old-len))])
+                                    (make-text-edit (make-range start-pos end-pos)
+                                                    new-name)))
+                      positions)))))
+
+;;; make-changes-object : (Alist String (List TextEdit)) → JsonObject
+;;; Convert edits-by-uri to a JSON object for WorkspaceEdit.changes.
+(define (make-changes-object edits-by-uri)
+  (apply json-obj
+         (apply append
+                (map (lambda (pair)
+                             (list (car pair) (apply json-arr (cdr pair))))
+                     edits-by-uri))))

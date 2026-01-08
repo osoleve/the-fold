@@ -131,6 +131,7 @@
 (define *method-references* "textDocument/references")
 (define *method-document-symbol* "textDocument/documentSymbol")
 (define *method-workspace-symbol* "workspace/symbol")
+(define *method-rename* "textDocument/rename")
 (define *method-formatting* "textDocument/formatting")
 (define *method-diagnostic* "textDocument/diagnostic")
 
@@ -208,7 +209,9 @@
    ;; Workspace symbol search
    "workspaceSymbolProvider" #t
    ;; Document formatting
-   "documentFormattingProvider" #t))
+   "documentFormattingProvider" #t
+   ;; Rename support
+   "renameProvider" #t))
 
 ;;; fold-server-info : → JsonObject
 ;;; Returns server info for the initialize response.

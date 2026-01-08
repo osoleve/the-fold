@@ -114,6 +114,40 @@
     (begin
      (display "  (skipping - pretty printer not available)\n")))
 
+;;; ============================================================
+;;; Rename Tests
+;;; ============================================================
+
+(display "\nRename:\n")
+
+;; Set up test documents for rename
+(doc-open! "file:///rename1.ss" 1 "(define foo 42)\n(+ foo 1)")
+(doc-open! "file:///rename2.ss" 1 "(display foo)")
+
+;; Test compute-rename-edits-in-doc
+(let ([edits (compute-rename-edits-in-doc "file:///rename1.ss" "foo" "bar")])
+     (test "rename-edits-in-doc count" 2 (length edits))
+     (test "rename-edits-in-doc is text-edit" #t
+           (if (and (json-object? (car edits))
+                    (json-get (car edits) "newText"))
+               #t #f))
+     (test "rename-edits-in-doc newText" "bar" (json-get (car edits) "newText")))
+
+;; Test compute-rename-edits across documents
+(let ([edits-by-uri (compute-rename-edits "foo" "bar")])
+     (test "rename-edits uri count" 2 (length edits-by-uri)))
+
+;; Test full compute-rename
+(let* ([doc (doc-get "file:///rename1.ss")]
+       [pos (make-position 0 8)]  ; Position of "foo" in define
+       [result (compute-rename doc pos "bar")])
+      (test "compute-rename returns object" #t (json-object? result))
+      (test "compute-rename has changes" #t (if (json-get result "changes") #t #f)))
+
+;; Clean up
+(doc-close! "file:///rename1.ss")
+(doc-close! "file:///rename2.ss")
+
 ;;; Summary
 (display "\n=======================\n")
 (printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)

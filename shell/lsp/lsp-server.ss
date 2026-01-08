@@ -189,6 +189,18 @@
             (compute-formatting doc options)
             (json-arr))))
 
+;;; handle-rename : JsonObject → JsonObject | null
+;;; Rename a symbol across all open documents.
+(define (handle-rename params)
+  (let* ([text-doc (json-get params "textDocument")]
+         [uri (json-get text-doc "uri")]
+         [position (json-get params "position")]
+         [new-name (json-get params "newName")]
+         [doc (doc-get uri)])
+        (if (and doc new-name)
+            (compute-rename doc position new-name)
+            'null)))
+
 ;;; ============================================================
 ;;; Diagnostics
 ;;; ============================================================
@@ -233,6 +245,8 @@
            (handle-workspace-symbol params)]
           [(string=? method *method-formatting*)
            (handle-formatting params)]
+          [(string=? method *method-rename*)
+           (handle-rename params)]
           [else
            (lsp-log "Unknown method: ~a" method)
            (make-error-response id *error-method-not-found*
