@@ -42,13 +42,17 @@
 
 ;;; effect-join : Effect × Effect → Effect
 ;;; Combine two effects (lattice join).
+;;; Unknown is treated as "could be pure" - we return the worst KNOWN effect.
 (define (effect-join e1 e2)
   (cond
    [(eq? e1 e2) e1]
    [(eq? e1 'pure) e2]
    [(eq? e2 'pure) e1]
-   [(or (eq? e1 'unknown) (eq? e2 'unknown)) 'unknown]
-   [else 'unknown]))  ; Multiple effects → unknown
+   ;; If one is unknown, use the known effect (optimistic for local analysis)
+   [(eq? e1 'unknown) e2]
+   [(eq? e2 'unknown) e1]
+   ;; Multiple different known effects - be conservative
+   [else 'unknown]))
 
 ;;; effects-join : (List Effect) → Effect
 (define (effects-join effects)
@@ -135,9 +139,10 @@
    [(or (number? expr) (boolean? expr) (string? expr) (char? expr))
     'pure]
    
-   ;; Symbols: look up in database
+   ;; Symbols: variable references are pure (not function calls)
+   ;; Only function applications have effects
    [(symbol? expr)
-    (lookup-effect expr)]
+    'pure]
    
    ;; Not an expression
    [(not (pair? expr))
@@ -215,12 +220,32 @@
 
 ;;; analyze-module-effects : String → ModuleEffects
 ;;; Analyze all definitions in a module for their effects.
+;;; Uses multi-pass analysis to handle local function calls.
 (define (analyze-module-effects path)
   (guard (e [else `((error . ,(format "Cannot read ~a" path)))])
          (let* ([content (call-with-input-file path get-string-all)]
                 [port (open-input-string content)]
-                [definitions (read-all-definitions port)])
-               (map analyze-definition-effect definitions))))
+                [definitions (read-all-definitions port)]
+                [names (map definition-name definitions)])
+               ;; Pass 1: Register all local functions as 'pure' initially
+               ;; (optimistic assumption - most local helpers are pure)
+               (for-each (lambda (name) (annotate-effect! name 'pure)) names)
+               ;; Pass 2: Analyze with local context available
+               (let ([results (map analyze-definition-effect definitions)])
+                    ;; Pass 3: Update database with actual effects
+                    (for-each (lambda (r) (annotate-effect! (car r) (cdr r))) results)
+                    ;; Pass 4: Re-analyze to propagate effects through call chains
+                    (let ([final-results (map analyze-definition-effect definitions)])
+                         ;; Clean up: remove local annotations to not pollute global db
+                         (for-each (lambda (name) (hashtable-delete! *effect-database* name)) names)
+                         final-results)))))
+
+;;; definition-name : Expr → Symbol
+;;; Extract the name from a definition.
+(define (definition-name def)
+  (if (pair? (cadr def))
+      (caadr def)
+      (cadr def)))
 
 ;;; read-all-definitions : Port → (List Expr)
 (define (read-all-definitions port)

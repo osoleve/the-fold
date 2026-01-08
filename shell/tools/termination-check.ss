@@ -255,6 +255,7 @@
 ;;; Analyze a single definition, return #t if it passes.
 (define (analyze-definition def)
   (cond
+   ;; (define (name params...) body)
    [(and (pair? def) (eq? (car def) 'define) (pair? (cadr def)))
     (let* ([name (caadr def)]
            [params (cdadr def)]
@@ -267,10 +268,22 @@
               (begin
                (printf "  ✗ ~a (cannot prove termination)\n" name)
                #f)))]
+   ;; (define name (fn (params...) body)) or (define name value)
    [(and (pair? def) (eq? (car def) 'define) (symbol? (cadr def)))
-    (let ([name (cadr def)])
-         (printf "  - ~a (not a function)\n" name)
-         #t)]
+    (let ([name (cadr def)]
+          [value (caddr def)])
+         (if (and (pair? value) (memq (car value) '(fn λ lambda)))
+             ;; Lambda-style: (define name (fn (params...) body))
+             (let* ([params (cadr value)]
+                    [body (caddr value)]
+                    [result (check-termination body params)])
+                   (if (eq? (car result) 'ok)
+                       (begin (printf "  ✓ ~a\n" name) #t)
+                       (begin (printf "  ✗ ~a (cannot prove termination)\n" name) #f)))
+             ;; Not a function
+             (begin
+              (printf "  - ~a (not a function)\n" name)
+              #t)))]
    [else
     (display "  - (unrecognized form)\n")
     #t]))
