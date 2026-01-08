@@ -291,199 +291,199 @@
                  (if (and matches? detect-matches?)
                      ;; This context matches, but continue to find more specific ones
                      (loop (cdr contexts) ctx)
-                     (loop (cdr contexts) best-match)))))
-  
-  ;;; ============================================================
-  ;;; Smart Suggestion Generation
-  ;;; ============================================================
-  
-  (define (generate-suggestions error-msg context)
-    "Generate context-aware suggestions"
-    (let* ([ctx-name (car context)]
-           [ctx-data (cdr context)]
-           [suggestion-templates (let ([s (assq 'suggestions ctx-data)])
-                                      (if s (cdr s) '()))]
-           [related-funcs (let ([rf (assq 'related-functions ctx-data)])
-                               (if rf (cdr rf) '()))])
-          
-          ;; Process suggestion templates
-          (append
-           (filter string?  ; Static suggestions
-                   (filter (lambda (s) (string? s)) suggestion-templates))
-           
-           (map (lambda (template)  ; Dynamic suggestions
-                        (if (procedure? template) (template error-msg) template))
-                (filter procedure? suggestion-templates))
-           
-           (if (not (null? related-funcs))
-               (list (format-related-functions related-funcs))
-               '()))))
-  
-  (define (format-related-functions funcs)
-    "Format related function suggestions"
-    (string-append
-     "Related functions you might find useful:
+                     (loop (cdr contexts) best-match))))))
+
+;;; ============================================================
+;;; Smart Suggestion Generation
+;;; ============================================================
+
+(define (generate-suggestions error-msg context)
+  "Generate context-aware suggestions"
+  (let* ([ctx-name (car context)]
+         [ctx-data (cdr context)]
+         [suggestion-templates (let ([s (assq 'suggestions ctx-data)])
+                                    (if s (cdr s) '()))]
+         [related-funcs (let ([rf (assq 'related-functions ctx-data)])
+                             (if rf (cdr rf) '()))])
+        
+        ;; Process suggestion templates
+        (append
+         (filter string?  ; Static suggestions
+                 (filter (lambda (s) (string? s)) suggestion-templates))
+         
+         (map (lambda (template)  ; Dynamic suggestions
+                      (if (procedure? template) (template error-msg) template))
+              (filter procedure? suggestion-templates))
+         
+         (if (not (null? related-funcs))
+             (list (format-related-functions related-funcs))
+             '()))))
+
+(define (format-related-functions funcs)
+  "Format related function suggestions"
+  (string-append
+   "Related functions you might find useful:
 "
-     (string-join
-      (map (lambda (f) (string-append "  (help '" (symbol->string f) ")"))
-           funcs)
-      "
+   (string-join
+    (map (lambda (f) (string-append "  (help '" (symbol->string f) ")"))
+         funcs)
+    "
 ")))
-  
-  ;;; ============================================================
-  ;;; Tutorial and Documentation Links
-  ;;; ============================================================
-  
-  (define (get-documentation-links context)
-    "Get relevant documentation links for context"
-    (let ([ctx-name (car context)]
-          [ctx-data (cdr context)]
-          [tutorial (let ([t (assq 'tutorial ctx-data)])
-                         (if t (cadr t) #f))])
-         (append
-          (if tutorial
-              (list (string-append "📚 Tutorial: (load \"user/boardcraft/examples/" tutorial "\")"))
-              '())
-          (case ctx-name
-                [(boardcraft-unbound)
-                 '("📖 BoardCraft docs: Browse playpen/boardcraft/ directory"
-                   "💡 Examples: (examples 'hex-boards)"
-                   "🔍 Discovery: (discover 'boardcraft)")]
-                [(loom-unbound)
-                 '("📖 Loom docs: Browse playpen/loom/ directory"
-                   "💡 Examples: (examples 'roguelikes)"
-                   "🔍 Discovery: (discover 'loom)")]
-                [(repl-functions)
-                 '("📖 Help system: (help-categories)"
-                   "🔍 Search: (apropos \"pattern\")"
-                   "💡 All functions: (help)"))
-                [else '()]))))
-  
-  ;;; ============================================================
-  ;;; Main Error Formatting Function
-  ;;; ============================================================
-  
-  (define (format-enhanced-error condition)
-    "Format error with enhanced context and suggestions"
-    (let* ([msg (condition-message condition)]
-           [who (if (who-condition? condition) (condition-who condition) #f)]
-           [irritants (if (irritants-condition? condition)
-                          (condition-irritants condition)
-                          '())]
-           [stack-trace '()]  ; Would get from Scheme debug facilities
-           [enhanced-msg (fix-error-placeholders msg irritants)]
-           [context (detect-error-context-enhanced enhanced-msg stack-trace)]
-           [suggestions (generate-suggestions enhanced-msg context)]
-           [doc-links (get-documentation-links context)]
-           [base-error (if who
-                           (string-append (symbol->string who) ": " enhanced-msg)
-                           enhanced-msg)])
-          
-          (string-append
-           "❌ ERROR
+
+;;; ============================================================
+;;; Tutorial and Documentation Links
+;;; ============================================================
+
+(define (get-documentation-links context)
+  "Get relevant documentation links for context"
+  (let ([ctx-name (car context)]
+        [ctx-data (cdr context)]
+        [tutorial (let ([t (assq 'tutorial ctx-data)])
+                       (if t (cadr t) #f))])
+       (append
+        (if tutorial
+            (list (string-append "📚 Tutorial: (load \"user/boardcraft/examples/" tutorial "\")"))
+            '())
+        (case ctx-name
+              [(boardcraft-unbound)
+               '("📖 BoardCraft docs: Browse playpen/boardcraft/ directory"
+                 "💡 Examples: (examples 'hex-boards)"
+                 "🔍 Discovery: (discover 'boardcraft)")]
+              [(loom-unbound)
+               '("📖 Loom docs: Browse playpen/loom/ directory"
+                 "💡 Examples: (examples 'roguelikes)"
+                 "🔍 Discovery: (discover 'loom)")]
+              [(repl-functions)
+               '("📖 Help system: (help-categories)"
+                 "🔍 Search: (apropos \"pattern\")"
+                 "💡 All functions: (help)")]
+              [else '()]))))
+
+;;; ============================================================
+;;; Main Error Formatting Function
+;;; ============================================================
+
+(define (format-enhanced-error condition)
+  "Format error with enhanced context and suggestions"
+  (let* ([msg (condition-message condition)]
+         [who (if (who-condition? condition) (condition-who condition) #f)]
+         [irritants (if (irritants-condition? condition)
+                        (condition-irritants condition)
+                        '())]
+         [stack-trace '()]  ; Would get from Scheme debug facilities
+         [enhanced-msg (fix-error-placeholders msg irritants)]
+         [context (detect-error-context-enhanced enhanced-msg stack-trace)]
+         [suggestions (generate-suggestions enhanced-msg context)]
+         [doc-links (get-documentation-links context)]
+         [base-error (if who
+                         (string-append (symbol->string who) ": " enhanced-msg)
+                         enhanced-msg)])
+        
+        (string-append
+         "❌ ERROR
 "
-           "═══════════════════════════════════════════════════════════════
+         "═══════════════════════════════════════════════════════════════
 "
-           base-error "
+         base-error "
 "
-           "
+         "
 "
-           (format-context-section context)
-           (format-suggestions-section suggestions)
-           (format-documentation-section doc-links)
-           "
+         (format-context-section context)
+         (format-suggestions-section suggestions)
+         (format-documentation-section doc-links)
+         "
 ")))
-  
-  (define (fix-error-placeholders msg irritants)
-    "Fix ~s and other placeholder bugs in error messages"
-    (if (null? irritants)
-        ;; No irritants - fix unfilled placeholders
-        (let ([fixed msg])
-             (set! fixed (string-replace-all fixed "~s" "<value>"))
-             (set! fixed (string-replace-all fixed "~a" "<value>"))
-             (set! fixed (string-replace-all fixed "~d" "<number>"))
-             (set! fixed (string-replace-all fixed "~x" "<hex>"))
-             fixed)
-        ;; Has irritants - try to fill them
-        (guard (e [else (fix-error-placeholders msg '())])  ; Fallback
-               (apply format (cons msg irritants)))))
-  
-  (define (format-context-section context)
-    "Format the context section of error message"
-    (if (eq? (car context) 'general)
-        ""
-        (let ([ctx-name (symbol->string (car context))]
-              [ctx-data (cdr context)]
-              [ctx-desc (let ([d (assq 'context ctx-data)])
-                             (if d (cadr d) ctx-name))])
-             (string-append
-              "🎯 Context: " ctx-desc "
+
+(define (fix-error-placeholders msg irritants)
+  "Fix ~s and other placeholder bugs in error messages"
+  (if (null? irritants)
+      ;; No irritants - fix unfilled placeholders
+      (let ([fixed msg])
+           (set! fixed (string-replace-all fixed "~s" "<value>"))
+           (set! fixed (string-replace-all fixed "~a" "<value>"))
+           (set! fixed (string-replace-all fixed "~d" "<number>"))
+           (set! fixed (string-replace-all fixed "~x" "<hex>"))
+           fixed)
+      ;; Has irritants - try to fill them
+      (guard (e [else (fix-error-placeholders msg '())])  ; Fallback
+             (apply format (cons msg irritants)))))
+
+(define (format-context-section context)
+  "Format the context section of error message"
+  (if (eq? (car context) 'general)
+      ""
+      (let ([ctx-name (symbol->string (car context))]
+            [ctx-data (cdr context)]
+            [ctx-desc (let ([d (assq 'context ctx-data)])
+                           (if d (cadr d) ctx-name))])
+           (string-append
+            "🎯 Context: " ctx-desc "
 "
-              "   The Fold detected this is a " ctx-name " error
+            "   The Fold detected this is a " ctx-name " error
 "
-              "
+            "
 "))))
-  
-  (define (format-suggestions-section suggestions)
-    "Format the suggestions section"
-    (if (null? suggestions)
-        ""
-        (string-append
-         "💡 Suggestions:
+
+(define (format-suggestions-section suggestions)
+  "Format the suggestions section"
+  (if (null? suggestions)
+      ""
+      (string-append
+       "💡 Suggestions:
 "
-         (string-join (map (lambda (s) (string-append "   • " s)) suggestions) "
+       (string-join (map (lambda (s) (string-append "   • " s)) suggestions) "
 ")
-         "
+       "
 
 ")))
-  
-  (define (format-documentation-section doc-links)
-    "Format the documentation section"
-    (if (null? doc-links)
-        ""
-        (string-append
-         "📚 Learn more:
+
+(define (format-documentation-section doc-links)
+  "Format the documentation section"
+  (if (null? doc-links)
+      ""
+      (string-append
+       "📚 Learn more:
 "
-         (string-join (map (lambda (link) (string-append "   " link)) doc-links) "
+       (string-join (map (lambda (link) (string-append "   " link)) doc-links) "
 ")
-         "
+       "
 
 ")))
-  
-  ;;; ============================================================
-  ;;; String Utilities
-  ;;; ============================================================
-  
-  (define (string-replace-all str pattern replacement)
-    "Replace all occurrences of pattern with replacement"
-    (let loop ([s str]
-               [result ""])
-         (let ([idx (string-find-pattern s pattern)])
-              (if idx
-                  (loop (substring s (+ idx (string-length pattern)) (string-length s))
-                        (string-append result
-                                       (substring s 0 idx)
-                                       replacement))
-                  (string-append result s)))))
-  
-  (define (string-find-pattern str pattern)
-    "Find first occurrence of pattern in string"
-    (let ([plen (string-length pattern)]
-          [slen (string-length str)])
-         (let loop ([i 0])
-              (cond
-               [(> (+ i plen) slen) #f]
-               [(string=? pattern (substring str i (+ i plen))) i]
-               [else (loop (+ i 1))]))))
-  
-  (define (string-index-of str char)
-    "Find first occurrence of char in string"
-    (let ([len (string-length str)])
-         (let loop ([i 0])
-              (cond
-               [(>= i len) #f]
-               [(char=? (string-ref str i) char) i]
-               [else (loop (+ i 1))])))))
+
+;;; ============================================================
+;;; String Utilities
+;;; ============================================================
+
+(define (string-replace-all str pattern replacement)
+  "Replace all occurrences of pattern with replacement"
+  (let loop ([s str]
+             [result ""])
+       (let ([idx (string-find-pattern s pattern)])
+            (if idx
+                (loop (substring s (+ idx (string-length pattern)) (string-length s))
+                      (string-append result
+                                     (substring s 0 idx)
+                                     replacement))
+                (string-append result s)))))
+
+(define (string-find-pattern str pattern)
+  "Find first occurrence of pattern in string"
+  (let ([plen (string-length pattern)]
+        [slen (string-length str)])
+       (let loop ([i 0])
+            (cond
+             [(> (+ i plen) slen) #f]
+             [(string=? pattern (substring str i (+ i plen))) i]
+             [else (loop (+ i 1))]))))
+
+(define (string-index-of str char)
+  "Find first occurrence of char in string"
+  (let ([len (string-length str)])
+       (let loop ([i 0])
+            (cond
+             [(>= i len) #f]
+             [(char=? (string-ref str i) char) i]
+             [else (loop (+ i 1))]))))
 
 ;;; NOTE: string-trim, string-split, string-contains? provided by core/prelude.ss
 
