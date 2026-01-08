@@ -23,6 +23,8 @@
 (load "core/types/dep-types.ss")
 (load "core/lang/nbe.ss")
 (load "core/types/infer.ss")
+(load "core/types/gadt.ss")
+(load "core/types/existential.ss")
 
 ;;; ============================================================
 ;;; Extended Type Context
@@ -209,6 +211,26 @@
    ;; Module signature: (sig Name decl ...)
    [(eq? (car expr) 'sig)
     (dep-synth-sig expr ctx)]
+   
+   ;; GADT declaration: (gadt (Name indices...) [ctor : type] ...)
+   [(eq? (car expr) 'gadt)
+    (dep-synth-gadt expr ctx)]
+   
+   ;; GADT case: (gadt-case scrutinee ((Tag vars...) body) ...)
+   [(gadt-case-expr? expr)
+    (dep-synth-gadt-case expr ctx)]
+   
+   ;; Existential type: (∃ ((a : K)) T)
+   [(eq? (car expr) '∃)
+    (dep-synth-existential expr ctx)]
+   
+   ;; Pack: (pack WitnessType Value : ExistentialType)
+   [(pack-expr? expr)
+    (dep-synth-pack expr ctx)]
+   
+   ;; Unpack: (unpack ((a val) packed-expr) body)
+   [(unpack-expr? expr)
+    (dep-synth-unpack expr ctx)]
    
    ;; Application
    [else
@@ -1381,3 +1403,282 @@
 (define (dep-typecheck expr type)
   (let ([result (dep-check expr type empty-dep-ctx)])
        (eq? (car result) 'ok)))
+
+;;; ============================================================
+;;; GADT Support
+;;; ============================================================
+;;;
+;;; GADTs extend inductive types with type indices that can be refined
+;;; by pattern matching. The key innovation is that each constructor can
+;;; specify a more precise return type, and matching on that constructor
+;;; brings the type refinement into scope.
+
+;;; GADT Registry (Global State)
+(define *gadt-registry* '())
+
+;;; reset-gadt-registry! : → Unit
+(define (reset-gadt-registry!)
+  (set! *gadt-registry* '()))
+
+;;; register-gadt! : GADTDecl → Unit
+(define (register-gadt! decl)
+  (set! *gadt-registry* (gadt-registry-add *gadt-registry* decl)))
+
+;;; lookup-gadt : Symbol → GADTDecl | #f
+(define (lookup-gadt name)
+  (gadt-registry-lookup *gadt-registry* name))
+
+;;; dep-synth-gadt : GADTDecl × Context → (Result Type Error)
+;;; Type-check a GADT declaration and register it.
+(define (dep-synth-gadt decl ctx)
+  (if (not (gadt-well-formed? decl))
+      `(error malformed-gadt-declaration ,decl)
+      (let* ([name (gadt-name decl)]
+             [index-kinds (gadt-index-kinds decl)]
+             [ctors (gadt-constructors decl)])
+            ;; Check all constructor types
+            (let ([ctor-checks (dep-check-gadt-ctors name index-kinds ctors ctx)])
+                 (if (not (eq? (car ctor-checks) 'ok))
+                     ctor-checks
+                     (begin
+                      (register-gadt! decl)
+                      `(ok (gadt-type ,name))))))))
+
+;;; dep-check-gadt-ctors : Symbol × (List (Symbol . Kind)) × (List (Symbol . Type)) × Context
+;;;                        → (ok) | (error ...)
+(define (dep-check-gadt-ctors gadt-name index-kinds ctors ctx)
+  (if (null? ctors)
+      '(ok)
+      (let* ([ctor (car ctors)]
+             [ctor-name (car ctor)]
+             [ctor-type (cdr ctor)]
+             [type-check (dep-check-type ctor-type ctx)])
+            (if (not (eq? (car type-check) 'ok))
+                `(error ctor-type-invalid ,ctor-name ,type-check)
+                (if (not (gadt-ctor-returns-gadt? ctor-type gadt-name))
+                    `(error ctor-wrong-return-type ,ctor-name ,ctor-type ,gadt-name)
+                    (dep-check-gadt-ctors gadt-name index-kinds (cdr ctors) ctx))))))
+
+;;; dep-synth-gadt-case : Expr × Context → (Result Type Error)
+;;; Type-check a gadt-case expression with type refinement.
+(define (dep-synth-gadt-case expr ctx)
+  (let* ([scrutinee (gadt-case-scrutinee expr)]
+         [clauses (gadt-case-clauses expr)]
+         [scrut-synth (dep-synth scrutinee ctx)])
+        (if (not (eq? (car scrut-synth) 'ok))
+            scrut-synth
+            (let ([scrut-type (cadr scrut-synth)])
+                 (let ([gadt-info (dep-decompose-gadt-type scrut-type)])
+                      (if (not gadt-info)
+                          `(error scrutinee-not-gadt-type ,scrut-type)
+                          (let* ([gadt-name (car gadt-info)]
+                                 [scrut-indices (cdr gadt-info)]
+                                 [gadt-decl (lookup-gadt gadt-name)])
+                                (if (not gadt-decl)
+                                    `(error unknown-gadt ,gadt-name)
+                                    (dep-synth-gadt-clauses gadt-decl scrut-indices clauses ctx)))))))))
+
+;;; dep-decompose-gadt-type : Type → (Symbol . (List Type)) | #f
+(define (dep-decompose-gadt-type t)
+  (cond
+   [(symbol? t)
+    (if (lookup-gadt t)
+        (cons t '())
+        #f)]
+   [(and (pair? t) (symbol? (car t)))
+    (if (lookup-gadt (car t))
+        (cons (car t) (cdr t))
+        #f)]
+   [else #f]))
+
+;;; dep-synth-gadt-clauses : GADTDecl × (List Type) × (List Clause) × Context
+;;;                          → (Result Type Error)
+(define (dep-synth-gadt-clauses gadt-decl scrut-indices clauses ctx)
+  (if (null? clauses)
+      `(error empty-gadt-case)
+      (let loop ([clauses clauses] [types '()])
+           (if (null? clauses)
+               ;; All clauses checked, unify return types
+               (dep-unify-gadt-return-types (reverse types) ctx)
+               (let ([result (dep-synth-gadt-clause gadt-decl scrut-indices (car clauses) ctx)])
+                    (if (not (eq? (car result) 'ok))
+                        result
+                        (loop (cdr clauses) (cons (cadr result) types))))))))
+
+;;; dep-synth-gadt-clause : GADTDecl × (List Type) × Clause × Context → (Result Type Error)
+(define (dep-synth-gadt-clause gadt-decl scrut-indices clause ctx)
+  (let* ([pattern (gadt-clause-pattern clause)]
+         [body (gadt-clause-body clause)]
+         [ctor-name (gadt-pattern-ctor pattern)]
+         [pattern-vars (gadt-pattern-vars pattern)]
+         [gadt-name (gadt-name gadt-decl)]
+         [index-vars (gadt-index-vars gadt-decl)]
+         [ctor-type (gadt-ctor-type gadt-decl ctor-name)])
+        (if (not ctor-type)
+            `(error unknown-constructor ,ctor-name ,gadt-name)
+            (let* ([ctor-return-indices (gadt-ctor-return-indices ctor-type gadt-name)]
+                   [refinements (extract-type-equations scrut-indices ctor-return-indices index-vars)]
+                   [raw-param-types (gadt-ctor-param-types ctor-type)]
+                   [param-types (map (lambda (t) (apply-refinements t refinements)) raw-param-types)]
+                   [expected-arity (length param-types)]
+                   [actual-arity (length pattern-vars)])
+                  (if (not (= expected-arity actual-arity))
+                      `(error pattern-arity-mismatch
+                        (constructor ,ctor-name)
+                        (expected ,expected-arity)
+                        (got ,actual-arity))
+                      ;; Build refined context
+                      (let* ([ctx-with-refs (dep-apply-refinements ctx refinements)]
+                             [ctx-with-vars (dep-bind-pattern-vars ctx-with-refs pattern-vars param-types)])
+                            (dep-synth body ctx-with-vars)))))))
+
+;;; dep-apply-refinements : Context × (List (Symbol . Type)) → Context
+(define (dep-apply-refinements ctx refinements)
+  (fold-left (lambda (c ref)
+                     (dep-ctx-extend-def c (car ref) 'Type (cdr ref)))
+             ctx
+             refinements))
+
+;;; dep-bind-pattern-vars : Context × (List Symbol) × (List Type) → Context
+(define (dep-bind-pattern-vars ctx vars types)
+  (fold-left (lambda (c pair)
+                     (dep-ctx-extend c (car pair) (cdr pair)))
+             ctx
+             (map cons vars types)))
+
+;;; dep-unify-gadt-return-types : (List Type) × Context → (Result Type Error)
+(define (dep-unify-gadt-return-types types ctx)
+  (if (null? types)
+      `(error empty-gadt-case)
+      (let ([first-type (car types)])
+           (let loop ([remaining (cdr types)])
+                (if (null? remaining)
+                    `(ok ,first-type)
+                    (if (dep-types-equal? first-type (car remaining) ctx)
+                        (loop (cdr remaining))
+                        `(error gadt-case-branch-type-mismatch
+                          (first ,first-type)
+                          (other ,(car remaining)))))))))
+
+;;; gadt-define-test-gadts! : → Unit
+;;; Helper to set up test GADTs.
+(define (gadt-define-test-gadts!)
+  (reset-gadt-registry!)
+  (register-gadt!
+   '(gadt (Expr a)
+     [Lit  : (-> Int (Expr Int))]
+     [Add  : (-> (Expr Int) (Expr Int) (Expr Int))]
+     [Eq   : (-> (Expr Int) (Expr Int) (Expr Bool))]
+     [If   : (∀ (b) (-> (Expr Bool) (Expr b) (Expr b) (Expr b)))]))
+  (register-gadt!
+   '(gadt (Vec (n : Nat) a)
+     [VNil  : (Vec 0 a)]
+     [VCons : (∀ (m) (-> a (Vec m a) (Vec (succ m) a)))])))
+
+;;; ============================================================
+;;; Existential Type Support
+;;; ============================================================
+;;;
+;;; Existential types allow hiding type information behind an interface.
+;;; The key operations are:
+;;;   - Pack: hide a concrete type inside an existential
+;;;   - Unpack: use an existential with the type held abstract (skolemized)
+
+;;; dep-synth-existential : Expr × Context → (Result Type Error)
+;;; (∃ ((a : K)) T) : Type when K is valid and T : Type under a:K
+(define (dep-synth-existential expr ctx)
+  (if (not (existential-well-formed? expr))
+      `(error malformed-existential-type ,expr)
+      (let* ([var-bindings (cadr expr)]
+             [body (caddr expr)])
+            ;; Check each binding has a valid kind
+            (let loop ([bindings var-bindings] [ctx ctx])
+                 (if (null? bindings)
+                     ;; All bindings valid, check body is a type
+                     (let ([body-check (dep-check-type body ctx)])
+                          (if (eq? (car body-check) 'ok)
+                              '(ok Type)
+                              body-check))
+                     (let* ([b (car bindings)]
+                            [var (binding-var b)]
+                            [kind (binding-type b)])
+                           ;; Kind should be Type or a valid kind expression
+                           (if (or (eq? kind 'Type) (eq? kind '*))
+                               (loop (cdr bindings)
+                                     (dep-ctx-extend ctx var kind))
+                               ;; Check kind is valid
+                               (let ([kind-check (dep-check-type kind ctx)])
+                                    (if (not (eq? (car kind-check) 'ok))
+                                        `(error invalid-existential-kind ,kind)
+                                        (loop (cdr bindings)
+                                              (dep-ctx-extend ctx var kind)))))))))))
+
+;;; dep-synth-pack : Expr × Context → (Result Type Error)
+;;; (pack WitnessType Value : ExistentialType) : ExistentialType
+;;; Check that Value : Body[WitnessType/a]
+(define (dep-synth-pack expr ctx)
+  (if (not (pack-well-formed? expr))
+      `(error malformed-pack ,expr)
+      (let* ([witness-type (pack-witness-type expr)]
+             [value-expr (pack-value expr)]
+             [exist-type (pack-existential-type expr)])
+            (if (not (existential-type? exist-type))
+                `(error pack-not-existential ,exist-type)
+                (let* ([vars (existential-vars exist-type)]
+                       [body (existential-body exist-type)])
+                      ;; For now, support single variable (common case)
+                      (if (not (= (length vars) 1))
+                          `(error pack-multi-var-not-yet-supported ,vars)
+                          (let* ([var (car vars)]
+                                 ;; Substitute witness for hidden var in body
+                                 [expected-value-type (subst-type body var witness-type)]
+                                 ;; Check witness type is a valid type
+                                 [witness-check (dep-check-type witness-type ctx)])
+                                (if (not (eq? (car witness-check) 'ok))
+                                    witness-check
+                                    ;; Check value has expected type
+                                    (let ([value-check (dep-check value-expr expected-value-type ctx)])
+                                         (if (eq? (car value-check) 'ok)
+                                             `(ok ,exist-type)
+                                             value-check))))))))))
+
+;;; dep-synth-unpack : Expr × Context → (Result Type Error)
+;;; (unpack ((a val) packed-expr) body) : T
+;;; where packed-expr : ∃a.S, val:S[skolem/a] in body, and T doesn't mention skolem
+(define (dep-synth-unpack expr ctx)
+  (if (not (unpack-well-formed? expr))
+      `(error malformed-unpack ,expr)
+      (let* ([type-var (unpack-type-var expr)]
+             [val-var (unpack-val-var expr)]
+             [packed-expr (unpack-packed-expr expr)]
+             [body (unpack-body expr)]
+             ;; Synthesize packed expression
+             [packed-synth (dep-synth packed-expr ctx)])
+            (if (not (eq? (car packed-synth) 'ok))
+                packed-synth
+                (let ([packed-type (cadr packed-synth)])
+                     (if (not (existential-type? packed-type))
+                         `(error unpack-not-existential ,packed-type)
+                         (let* ([exist-vars (existential-vars packed-type)]
+                                [exist-body (existential-body packed-type)])
+                               ;; For now, support single variable
+                               (if (not (= (length exist-vars) 1))
+                                   `(error unpack-multi-var-not-yet-supported ,exist-vars)
+                                   (let* ([exist-var (car exist-vars)]
+                                          ;; Generate fresh skolem
+                                          [skolem (fresh-skolem exist-var)]
+                                          ;; Substitute skolem for existential var in body type
+                                          [skolemized-body (subst-type exist-body exist-var skolem)]
+                                          ;; Extend context with type var bound to skolem
+                                          [ctx-with-skolem (dep-ctx-extend-def ctx type-var 'Type skolem)]
+                                          ;; Extend context with value var bound to skolemized type
+                                          [ctx-with-val (dep-ctx-extend ctx-with-skolem val-var skolemized-body)]
+                                          ;; Synthesize body
+                                          [body-synth (dep-synth body ctx-with-val)])
+                                         (if (not (eq? (car body-synth) 'ok))
+                                             body-synth
+                                             ;; Check result type doesn't mention skolem
+                                             (let ([result-type (cadr body-synth)])
+                                                  (if (type-mentions-skolem? result-type skolem)
+                                                      `(error skolem-escape ,skolem ,result-type)
+                                                      `(ok ,result-type))))))))))))))

@@ -178,6 +178,30 @@
                  [(eq? head 'case)
                   (eval-case (cadr expr) (cddr expr) env remaining)]
                  
+                 ;; GADT Case — same as case at runtime (types erased)
+                 [(eq? head 'gadt-case)
+                  (eval-case (cadr expr) (cddr expr) env remaining)]
+                 
+                 ;; Pack — at runtime, just evaluate the value (type erased)
+                 ;; (pack WitnessType Value : ExistentialType) → Value
+                 [(eq? head 'pack)
+                  (eval-expr (caddr expr) env remaining)]
+                 
+                 ;; Unpack — bind value and evaluate body
+                 ;; (unpack ((type-var val-var) packed-expr) body)
+                 [(eq? head 'unpack)
+                  (let* ([bindings (caadr expr)]
+                         [packed-expr (cadadr expr)]
+                         [body (caddr expr)]
+                         [val-var (cadr bindings)])
+                        (let ([packed-result (eval-expr packed-expr env remaining)])
+                             (cond
+                              [(eq? (car packed-result) 'ok)
+                               (let ([packed-val (cadr packed-result)]
+                                     [fuel-left (caddr packed-result)])
+                                    (eval-expr body (env-extend env val-var packed-val) fuel-left))]
+                              [else packed-result])))]
+                 
                  ;; Prim — pure primitive
                  [(eq? head 'prim)
                   (eval-prim (cadr expr) (cddr expr) env remaining)]
@@ -1044,6 +1068,29 @@
                  ;; Case — pattern match on block tag
                  [(eq? head 'case)
                   (eval-case-traced (cadr expr) (cddr expr) env remaining tape)]
+                 
+                 ;; GADT Case — same as case at runtime (types erased)
+                 [(eq? head 'gadt-case)
+                  (eval-case-traced (cadr expr) (cddr expr) env remaining tape)]
+                 
+                 ;; Pack — at runtime, just evaluate the value (type erased)
+                 [(eq? head 'pack)
+                  (eval-traced (caddr expr) env remaining tape)]
+                 
+                 ;; Unpack — bind value and evaluate body
+                 [(eq? head 'unpack)
+                  (let* ([bindings (caadr expr)]
+                         [packed-expr (cadadr expr)]
+                         [body (caddr expr)]
+                         [val-var (cadr bindings)])
+                        (let ([packed-result (eval-traced packed-expr env remaining tape)])
+                             (cond
+                              [(eq? (car packed-result) 'ok)
+                               (let ([packed-val (cadr packed-result)]
+                                     [fuel-left (caddr packed-result)]
+                                     [new-tape (cadddr packed-result)])
+                                    (eval-traced body (env-extend env val-var packed-val) fuel-left new-tape))]
+                              [else packed-result])))]
                  
                  ;; Prim — pure primitive (use traced operations for diff primitives)
                  [(eq? head 'prim)
