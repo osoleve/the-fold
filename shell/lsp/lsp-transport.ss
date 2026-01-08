@@ -15,6 +15,7 @@
 ;;; This is Shell code: performs I/O.
 
 (load "core/base/prelude.ss")
+(load "shell/tools/string-utils.ss")
 (load "core/lsp/json.ss")
 
 ;;; ============================================================
@@ -73,33 +74,8 @@
              [else
               (loop (cons b bytes))]))))
 
-;;; string-index : String × Char → Nat | #f
-;;; Find first occurrence of character in string.
-(define (string-index str ch)
-  (let ([len (string-length str)])
-       (let loop ([i 0])
-            (cond
-             [(>= i len) #f]
-             [(char=? (string-ref str i) ch) i]
-             [else (loop (+ i 1))]))))
-
-;;; string-trim : String → String
-;;; Trim leading and trailing whitespace.
-(define (string-trim str)
-  (let* ([len (string-length str)]
-         [start (let loop ([i 0])
-                     (if (or (>= i len)
-                             (not (char-whitespace? (string-ref str i))))
-                         i
-                         (loop (+ i 1))))]
-         [end (let loop ([i len])
-                   (if (or (<= i start)
-                           (not (char-whitespace? (string-ref str (- i 1)))))
-                       i
-                       (loop (- i 1))))])
-        (if (>= start end)
-            ""
-            (substring str start end))))
+;;; NOTE: string-index provided by shell/tools/string-utils.ss
+;;; NOTE: string-trim provided by core/base/prelude.ss
 
 ;;; ============================================================
 ;;; Message Reading

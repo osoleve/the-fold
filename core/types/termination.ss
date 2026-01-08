@@ -41,7 +41,7 @@
 ;;;   '?  — unknown/unrelated
 
 (define (size-relation? r)
-  (if (memq r '(< <= ?)) #t(Option SExpr)))
+  (if (memq r '(< <= ?)) #t #f))
 
 ;;; size-rel-compose : Symbol × Symbol → Symbol
 ;;; Compose two size relations (for transitivity).
@@ -108,7 +108,7 @@
 (define (structural-subterm? expr var ctx)
   (cond
    ;; Direct variable reference is not strictly smaller
-   [(eq? expr var)(Option SExpr)]
+   [(eq? expr var) #f]
    
    ;; Destructor applications: (fst x), (snd x), (car x), (cdr x)
    [(and (pair? expr) (memq (car expr) '(fst snd car cdr hd tl)))
@@ -133,9 +133,9 @@
          (or (eq? vec var)
              (structural-subterm? vec var ctx)))]
    
-   [else(Option SExpr)]))
+   [else #f]))
 
-;;; ctx-lookup-subterm : Context × Symbol → (Parent . Relation) |(Option SExpr)
+;;; ctx-lookup-subterm : Context × Symbol → (Parent . Relation) | #f
 ;;; Look up subterm information from context.
 (define (ctx-lookup-subterm ctx var)
   (let ([entry (assq var ctx)])
@@ -157,7 +157,7 @@
            (let* ([arg (car args)]
                   [param (if (< idx (length rec-params))
                              (list-ref rec-params idx)
-                             (Option SExpr))]
+                             #f)]
                   [rel (if param
                            (compute-size-relation arg param ctx)
                            '?)])
@@ -447,12 +447,12 @@
                 (loop (append new-scgs current)
                       (append new-scgs seen))))))
 
-;;; scg-compose-safe : (Option SExpr)× (Option SExpr)→ (Option SExpr)|(Option SExpr)
+;;; scg-compose-safe : SCG × SCG → SCG | #f
 ;;; Compose if target of g1 matches source of g2.
 (define (scg-compose-safe g1 g2)
   (if (equal? (scg-target-params g1) (scg-source-params g2))
       (scg-compose g1 g2)
-      (Option SExpr)))
+      #f))
 
 ;;; scg-member? : (Option SExpr)× (List SExpr) → Boolean
 (define (scg-member? g lst)
@@ -469,15 +469,15 @@
 (define (scg-idempotent? g)
   (equal? (scg-source-params g) (scg-target-params g)))
 
-;;; scg-has-decrease? : (Option SExpr)→ Boolean
-;;; Check if the (Option SExpr)has at least one strictly decreasing diagonal element.
-;;; This ensures infinite sequences through this (Option SExpr)will decrease.
+;;; scg-has-decrease? : SCG → Boolean
+;;; Check if the SCG has at least one strictly decreasing diagonal element.
+;;; This ensures infinite sequences through this SCG will decrease.
 (define (scg-has-decrease? g)
   (let* ([edges (scg-edges g)]
          [n (length edges)])
         (let loop ([i 0])
              (if (>= i n)
-                 (Option SExpr)
+                 #f
                  (let ([diag (edge-lookup edges i i)])
                       (if (eq? diag '<)
                           #t
@@ -566,7 +566,7 @@
       (if (pair? (cadr def))
           (caadr def)
           (cadr def))
-      (Option SExpr)))
+      #f))
 
 ;;; func-def-params : FunctionDef → (List Symbol)
 (define (func-def-params def)
@@ -582,12 +582,12 @@
       (caddr def)
       def))
 
-;;; find-inductive-param : (List Symbol) × DataType → Nat |(Option SExpr)
+;;; find-inductive-param : (List Symbol) × DataType → Nat | #f
 ;;; Find the index of the parameter that has the inductive type.
 (define (find-inductive-param params data-type)
   ;; In a real implementation, this would use type information
   ;; For now, we assume the first parameter is the inductive argument
-  (if (null? params)(Option SExpr) 0))
+  (if (null? params) #f 0))
 
 ;;; check-structural-recursion : Symbol × Symbol × Expr → (Result () Error)
 ;;; Check that all recursive calls are on structural subterms of the parameter.
@@ -609,7 +609,7 @@
    ;; Recursive call
    [(and (pair? expr) (eq? (car expr) func-name))
     (let* ([args (cdr expr)]
-           [rec-arg (if (pair? args) (car args)(Option SExpr))])
+           [rec-arg (if (pair? args) (car args) #f)])
           ;; The recursive argument must be STRICTLY smaller (structural subterm)
           ;; Using the same argument (eq? rec-arg rec-param) is NOT OK for termination
           (if (structural-subterm? rec-arg rec-param ctx)
@@ -677,7 +677,7 @@
 ;;; Use with caution - may cause type checking to diverge!
 (define (without-termination-check thunk)
   (let ([prev termination-check-enabled?])
-       (set! termination-check-enabled?(Option SExpr))
+       (set! termination-check-enabled? #f)
        (let ([result (thunk)])
             (set! termination-check-enabled? prev)
             result)))
@@ -712,11 +712,11 @@
   (cond
    [(null? lst) #t]
    [(pred (car lst)) (all pred (cdr lst))]
-   [else(Option SExpr)]))
+   [else #f]))
 
 ;;; ormap : (α → Boolean) × (List α) → Boolean
 (define (ormap pred lst)
   (cond
-   [(null? lst)(Option SExpr)]
+   [(null? lst) #f]
    [(pred (car lst)) #t]
    [else (ormap pred (cdr lst))]))

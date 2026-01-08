@@ -515,6 +515,11 @@
            ;;; ============================================================
            
            ;;; string-join : (List String) × String → String
+           ;;; NOTE: This duplicates core/base/prelude.ss string-join.
+           ;;;       Kept here because this is a library using (import (chezscheme))
+           ;;;       and cannot load prelude.ss directly.
+           ;;; TODO: Consider converting svg-renderer to use load-based imports
+           ;;;       to eliminate duplication.
            (define (string-join lst sep)
              (if (null? lst)
                  ""

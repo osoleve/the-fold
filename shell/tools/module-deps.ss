@@ -92,6 +92,8 @@
 
 ;;; string-split-path : String → (List String)
 ;;; Split path by "/" into components.
+;;; NOTE: This differs from (string-split path #\/) because it filters out
+;;;       empty components (handling consecutive slashes correctly).
 (define (string-split-path path)
   (let loop ([chars (string->list path)]
              [current '()]
@@ -126,15 +128,9 @@
 
 ;;; string-join-path : (List String) → String
 ;;; Join path components with "/".
+;;; NOTE: Uses string-join from core/base/prelude.ss
 (define (string-join-path parts)
-  (if (null? parts)
-      ""
-      (let loop ([remaining (cdr parts)]
-                 [result (car parts)])
-           (if (null? remaining)
-               result
-               (loop (cdr remaining)
-                     (string-append result "/" (car remaining)))))))
+  (string-join parts "/"))
 
 ;;; analyze-file-deps : FS × String → (List String)
 ;;; Analyze a single file and return normalized dependency paths.

@@ -24,6 +24,14 @@
 (load "core/pipeline/effects.ss")
 (load "core/pipeline/context.ss")
 
+;;; Helper: range from start to start+count-1
+;;; range-from : Nat × Nat → (List Nat)
+(define (range-from start count)
+  (let loop ([i 0] [acc '()])
+       (if (= i count)
+           (reverse acc)
+           (loop (+ i 1) (cons (+ start i) acc)))))
+
 ;;; ============================================================
 ;;; Council Configuration
 ;;; ============================================================
@@ -132,7 +140,7 @@
                         [(= r 1) "Share your initial position on: ${topic}"]
                         [(= r 2) "Respond to the other positions. Do you agree or disagree? Why?"]
                         [else "Seek synthesis or clarify remaining disagreements."]))
-               (iota rounds 1))])
+               (range-from 1 rounds))])
        (council-sequential-with-prompts models rounds moderator default-prompts)))
 
 ;;; council-sequential-with-prompts : (List Symbol) × Nat × Symbol × (List String) → (Stage ctx String CouncilResult)
@@ -209,7 +217,7 @@
                                           (apply string-append
                                                  (map (lambda (i opt)
                                                               (string-append "  " (number->string i) ". " opt "\n"))
-                                                      (iota (length options) 1)
+                                                      (range-from 1 (length options))
                                                       options))))
                                    #f
                                    #f

@@ -274,7 +274,7 @@
 (define (gammainc-lower-series a x max-iter eps)
   (let loop ((n 0) (term 1.0) (sum 1.0))
        (if (or (>= n max-iter) (< (abs term) (* eps (abs sum))))
-           (* (exp (- (* a (log x)) x (lgamma a))) sum)
+           (* (exp (- (* a (log x)) x)) (/ sum a))
            (let ((new-term (* term (/ x (+ a n 1)))))
                 (loop (+ n 1) new-term (+ sum new-term))))))
 

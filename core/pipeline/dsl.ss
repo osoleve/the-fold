@@ -109,9 +109,10 @@
 ;;; Reverse sequential.
 (define <-- stage-<<<)
 
-;;; |>  : a -> (a -> Stage) -> Stage
+;;; pipe-into : a -> (a -> Stage) -> Stage
 ;;; Pipe value into stage constructor.
-(define (|> value stage-fn)
+;;; Note: Cannot use |> as | is a special character in Scheme.
+(define (pipe-into value stage-fn)
   (stage-fn value))
 
 ;;; ============================================================
@@ -216,7 +217,7 @@
                                                           (if (stage-err? result)
                                                               (stage-err-message result)
                                                               "unknown error")))]
-                                         [else result])])))))))
+                                         [else result])]))))))
 
 ;;; gate : (a -> Boolean) -> Stage -> Stage
 ;;; Only proceed if condition met.

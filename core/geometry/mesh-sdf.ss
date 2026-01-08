@@ -119,16 +119,58 @@
            (triangle3 v000 v101 v100))])
         (make-mesh triangles)))
 
+;;; subdivide-icosphere-triangle : Triangle3 × Number → (List Triangle3)
+;;; Subdivide a single triangle on the sphere surface into 4 triangles.
+;;; Each edge midpoint is normalized to the sphere radius.
+(define (subdivide-icosphere-triangle tri radius)
+  (let* ([v0 (triangle3-p1 tri)]
+         [v1 (triangle3-p2 tri)]
+         [v2 (triangle3-p3 tri)]
+         ;; Compute edge midpoints
+         [m01 (vec3-scale (vec3-add v0 v1) 0.5)]
+         [m12 (vec3-scale (vec3-add v1 v2) 0.5)]
+         [m20 (vec3-scale (vec3-add v2 v0) 0.5)]
+         ;; Project midpoints onto sphere surface (normalize to radius)
+         [m01-norm (vec3-scale (vec3-normalize m01) radius)]
+         [m12-norm (vec3-scale (vec3-normalize m12) radius)]
+         [m20-norm (vec3-scale (vec3-normalize m20) radius)])
+        ;; Create 4 new triangles:
+        ;;       v0
+        ;;      /  \
+        ;;    m01--m20
+        ;;    / \  / \
+        ;;  v1--m12--v2
+        (list
+         (triangle3 v0 m01-norm m20-norm)       ; Top triangle
+         (triangle3 m01-norm v1 m12-norm)       ; Bottom-left triangle
+         (triangle3 m20-norm m12-norm v2)       ; Bottom-right triangle
+         (triangle3 m01-norm m12-norm m20-norm)))) ; Center triangle
+
+;;; subdivide-icosphere-triangles : (List Triangle3) × Number × Number → (List Triangle3)
+;;; Apply n levels of subdivision to a list of triangles.
+(define (subdivide-icosphere-triangles triangles radius levels)
+  (if (<= levels 0)
+      triangles
+      (let ([subdivided (apply append
+                               (map (lambda (tri)
+                                            (subdivide-icosphere-triangle tri radius))
+                                    triangles))])
+           (subdivide-icosphere-triangles subdivided radius (- levels 1)))))
+
 ;;; make-mesh-sphere-ico : Number × Number → Mesh
 ;;; Create a sphere mesh using icosphere subdivision
 ;;; radius: sphere radius
 ;;; subdivisions: number of subdivision levels (0-3 recommended)
+;;;   - subdivision=0: 20 triangles (base icosahedron)
+;;;   - subdivision=1: 80 triangles
+;;;   - subdivision=2: 320 triangles
+;;;   - subdivision=3: 1280 triangles
 (define (make-mesh-sphere-ico radius subdivisions)
   ;; Start with icosahedron
   (let* ([phi (* 0.5 (+ 1 (sqrt 5)))]  ; Golden ratio
          [a (/ 1.0 (sqrt (+ 1 (* phi phi))))]
          [b (* a phi)]
-         ;; 12 vertices of icosahedron
+         ;; 12 vertices of icosahedron (normalized to radius)
          [vertices
           (list
            (vec3 0 (* a radius) (* b radius))
@@ -149,13 +191,14 @@
             (1 0 4) (1 4 10) (1 10 5) (1 5 3) (1 3 11)
             (2 3 7) (2 7 9) (2 9 8) (2 8 5) (2 5 3)
             (3 5 10) (3 10 11) (3 11 7) (4 6 10) (5 8 4))]
-         [triangles
+         [base-triangles
           (map (lambda (idx)
                        (triangle3 (list-ref vertices (car idx))
                                   (list-ref vertices (cadr idx))
                                   (list-ref vertices (caddr idx))))
-               indices)])
-        ;; TODO: Implement subdivision if subdivisions > 0
+               indices)]
+         ;; Apply subdivision
+         [triangles (subdivide-icosphere-triangles base-triangles radius subdivisions)])
         (make-mesh triangles)))
 
 ;;; ============================================================

@@ -139,7 +139,7 @@
            (loop (cdr vals)
                  (+ i 1)
                  (if (< (car vals) 0)
-                     (bitwise-ior index (arithmetic-shift 1 i))
+                     (bitwise-ior index (bitwise-arithmetic-shift-left 1 i))
                      index)))))
 
 ;;; compute-edge-intersections : (List Point3) × (List Number) × Number → (List Point3)
@@ -154,7 +154,7 @@
                 (let* ([edge (car edges)]
                        [v0-idx (car edge)]
                        [v1-idx (cadr edge)])
-                      (if (not (= 0 (bitwise-and edge-mask (arithmetic-shift 1 edge-idx))))
+                      (if (not (= 0 (bitwise-and edge-mask (bitwise-arithmetic-shift-left 1 edge-idx))))
                           ;; This edge is intersected
                           (let* ([p0 (list-ref corners v0-idx)]
                                  [p1 (list-ref corners v1-idx)]
