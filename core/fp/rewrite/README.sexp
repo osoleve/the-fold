@@ -12,6 +12,7 @@
 
  (files
   . ((rule.ss . "Rewrite rule data structures with metavariable patterns")
+     (goals.ss . "Goal types and management for proof sketcher")
      (trace.ss . "Transformation trace structures for step-by-step display")
      (engine.ss . "Pattern matching, rule application, and strategy combinators")
      (laws.ss . "Standard FP law library (monoid, functor, monad, etc.)")
@@ -30,6 +31,7 @@
  (key-concepts
   . ((metavariables . "Pattern variables using (?name) syntax that match any subexpression")
      (rules . "LHS → RHS transformations with named pattern variables")
+     (goals . "Proof objectives: eq-goal, assoc-goal, id-goal, inv-goal with decomposition")
      (strategies . "Composable rewrite tactics: seq, choice, try, repeat, topdown, bottomup")
      (traces . "Step-by-step records of rule applications")
      (verification . "Checking that rewrites preserve semantic equivalence")))
