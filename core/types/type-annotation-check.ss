@@ -475,7 +475,18 @@
     (Term . Hash)
     (Idx . Hash)
     (Parent . Hash)
-    (Relation . Hash)))
+    (Relation . Hash)
+    ;; Rewrite system types (treated as kind *)
+    (Rule . Hash)
+    (Trace . Hash)
+    (Step . Hash)
+    (Template . Hash)
+    (Strategy . Hash)
+    (Law . Hash)
+    (EquivResult . Hash)
+    (Certificate . Hash)
+    (Position . Hash)
+    (Opts . Hash)))
 
 ;;; Greek letters used as type variables
 (define greek-type-var-names
