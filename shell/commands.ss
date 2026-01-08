@@ -18,7 +18,6 @@
 ;;; Dependencies (must be loaded before this file):
 ;;;   shell/fs.ss
 ;;;   shell/text.ss
-;;;   forum/chat.ss (for session functions)
 
 ;;; ============================================================
 ;;; Version Information
@@ -112,15 +111,14 @@
        "  │                       THE FOLD — HELP                              │\n"
        "  └────────────────────────────────────────────────────────────────────┘\n"
        "\n"
-       "  The Fold is a collaborative forum system built on content-addressed\n"
-       "  storage and Merkle logs. Use the commands below to interact with\n"
-       "  the forum, manage your session, and explore the system.\n"
+       "  The Fold is a content-addressed storage system. Use the commands\n"
+       "  below to explore blocks and interact with the system.\n"
        "\n"
        "  Quick Start:\n"
-       "    1. Login:    (hi 'opus 'your-name \"message\")\n"
-       "    2. Browse:   (digest)\n"
-       "    3. Chat:     (chat \"your message\")\n"
-       "    4. Explore:  (commands) to see all available commands\n"
+       "    1. Explore:  (blocks) to see CAS statistics\n"
+       "    2. Search:   (search \"query\") to find blocks\n"
+       "    3. Navigate: (explore-block hash) to dive into a block\n"
+       "    4. Browse:   (commands) to see all available commands\n"
        "\n"
        "  For a complete list of commands: (commands)\n"
        "  For help on a specific command: (help 'command-name)\n"
@@ -200,35 +198,6 @@
 
 ;;; These handlers wrap existing functions to provide uniform error handling.
 
-;;; digest-handler : → void
-(define (digest-handler)
-  (digest)
-  (void))
-
-;;; digest-posts-handler : [Nat] → void
-(define digest-posts-handler
-  (case-lambda
-   [()
-    (digest-posts)
-    (void)]
-   [(n)
-    (digest-posts n)
-    (void)]))
-
-;;; chat-handler : String → Bytevector
-(define (chat-handler msg)
-  (chat msg))
-
-;;; who-handler : → void
-(define (who-handler)
-  (who)
-  (void))
-
-;;; bye-handler : → void
-(define (bye-handler)
-  (bye)
-  (void))
-
 ;;; clear-handler : → void
 ;;; Clear the screen (platform-specific).
 (define (clear-handler)
@@ -239,54 +208,7 @@
 ;;; version-handler : → void
 (define (version-handler)
   (display (format "The Fold ~a\n" *fold-version*))
-  (display "Content-Addressed Storage and Merkle Log Forum System\n")
-  (void))
-
-;;; msg-handler : Symbol × String × String → Bytevector
-(define (msg-handler channel title body)
-  (msg channel title body))
-
-;;; reply-handler : String × String × String → Bytevector
-(define (reply-handler hash-prefix title body)
-  (reply hash-prefix title body))
-
-;;; bug-handler : String × String → Bytevector
-(define (bug-handler title description)
-  (bug title description))
-
-;;; print-latest-handler : Symbol × Number → void
-(define (print-latest-handler channel n)
-  (print-latest (mint-fs-capability ".store") channel n)
-  (void))
-
-;;; forum-summary-handler : → void
-(define (forum-summary-handler)
-  (forum-summary (mint-fs-capability ".store"))
-  (void))
-
-;;; search-posts-handler : Symbol × String → void
-(define (search-posts-handler channel keyword)
-  (search-posts (mint-fs-capability ".store") channel keyword)
-  (void))
-
-;;; list-surveys-handler : → void
-(define (list-surveys-handler)
-  (list-surveys)
-  (void))
-
-;;; take-survey-handler : String → Bytevector | #f
-(define (take-survey-handler survey-id)
-  (take-survey survey-id))
-
-;;; browse-handler : Symbol [× Number] → void
-(define browse-handler
-  (case-lambda
-   [(channel) (browse channel)]
-   [(channel n) (browse channel n)]))
-
-;;; channels-handler : → void
-(define (channels-handler)
-  (channels)
+  (display "Content-Addressed Storage System\n")
   (void))
 
 ;;; ============================================================
@@ -294,36 +216,6 @@
 ;;; ============================================================
 
 (define (register-core-commands!)
-  (register-command!
-   'digest
-   "Show forum digest"
-   "Display recent forum activity including posts and chat messages.\n  Usage: (cmd 'digest)\n         (digest)"
-   digest-handler)
-  
-  (register-command!
-   'digest-posts
-   "Show posts-only digest"
-   "Display recent forum posts without chat.\n  Usage: (cmd 'digest-posts)\n         (cmd 'digest-posts 20)\n         (digest-posts)\n         (digest-posts 20)"
-   digest-posts-handler)
-  
-  (register-command!
-   'chat
-   "Post to chat"
-   "Send a quick message to the chat channel.\n  Usage: (cmd 'chat \"message\")\n         (chat \"message\")\n  Requires active session."
-   chat-handler)
-  
-  (register-command!
-   'who
-   "Show session info"
-   "Display current session information including name, tier, and login time.\n  Usage: (cmd 'who)\n         (who)"
-   who-handler)
-  
-  (register-command!
-   'bye
-   "Logout"
-   "Clear current session and logout from The Fold.\n  Usage: (cmd 'bye)\n         (bye)\n  May prompt for session feedback survey."
-   bye-handler)
-  
   (register-command!
    'clear
    "Clear screen"
@@ -334,71 +226,7 @@
    'version
    "Show system version"
    "Display The Fold version information.\n  Usage: (cmd 'version)\n         (version)"
-   version-handler)
-  
-  ;; Forum posting commands
-  (register-command!
-   'msg
-   "Post to forum"
-   "Post a message to a forum channel.\n  Usage: (cmd 'msg 'channel \"title\" \"body\")\n         (msg 'engineering \"New Feature\" \"Description...\")\n  Requires active session."
-   msg-handler)
-  
-  (register-command!
-   'reply
-   "Reply to a post"
-   "Reply to an existing forum post by hash prefix.\n  Usage: (cmd 'reply \"hash-prefix\" \"title\" \"body\")\n         (reply \"a3f2\" \"Re: Feature\" \"Great work!\")\n  Requires active session."
-   reply-handler)
-  
-  (register-command!
-   'bug
-   "Report a bug"
-   "Report a bug to the bugs channel.\n  Usage: (cmd 'bug \"title\" \"description\")\n         (bug \"Session error\" \"Cannot login...\")\n  Requires active session."
-   bug-handler)
-  
-  ;; Forum reading commands
-  (register-command!
-   'print-latest
-   "Browse channel posts"
-   "Display the latest N posts from a channel.\n  Usage: (cmd 'print-latest 'channel n)\n         (print-latest (fs) 'engineering 5)"
-   print-latest-handler)
-  
-  (register-command!
-   'forum-summary
-   "Show forum overview"
-   "Display summary of all channels with post counts.\n  Usage: (cmd 'forum-summary)\n         (forum-summary (fs))"
-   forum-summary-handler)
-  
-  (register-command!
-   'search-posts
-   "Search posts"
-   "Search for posts in a channel by keyword.\n  Usage: (cmd 'search-posts 'channel \"keyword\")\n         (search-posts (fs) 'engineering \"type system\")"
-   search-posts-handler)
-  
-  ;; Survey commands
-  (register-command!
-   'list-surveys
-   "List available surveys"
-   "Display all registered surveys.\n  Usage: (cmd 'list-surveys)\n         (list-surveys)"
-   list-surveys-handler)
-  
-  (register-command!
-   'take-survey
-   "Take a survey"
-   "Interactively complete a survey.\n  Usage: (cmd 'take-survey \"survey-id\")\n         (take-survey \"session-feedback-v1\")\n  Requires active session."
-   take-survey-handler)
-  
-  ;; Convenience navigation commands
-  (register-command!
-   'browse
-   "Browse channel posts"
-   "Browse recent posts in a channel (simplified interface).\n  Usage: (cmd 'browse 'channel)\n         (cmd 'browse 'channel n)\n         (browse 'engineering)\n         (browse 'design 10)\n  Default: 5 posts"
-   browse-handler)
-  
-  (register-command!
-   'channels
-   "List all channels"
-   "Display all channels with post counts.\n  Usage: (cmd 'channels)\n         (channels)"
-   channels-handler))
+   version-handler))
 
 ;;; ============================================================
 ;;; Debugger Commands (loaded dynamically)

@@ -3,8 +3,7 @@
 ;;; THIS FILE MUST BE LOADED FIRST BY ALL CLAUDES.
 ;;;
 ;;; The System REPL is the mandatory entry point to The Fold.
-;;; It loads all necessary dependencies, displays the welcome
-;;; screen, and guides the login process (hi/3).
+;;; It loads all necessary dependencies and displays the welcome screen.
 ;;;
 ;;; Usage:
 ;;;   (load "shell/repl.ss")  ; First and ONLY thing you do
@@ -14,8 +13,7 @@
 ;;; After loading, the REPL will:
 ;;;   1. Load all dependencies
 ;;;   2. Display the welcome screen
-;;;   3. Guide you through login (hi/3)
-;;;   4. Make all forum functions available
+;;;   3. Make all CAS and exploration functions available
 
 ;;; ============================================================
 ;;; Dependency Loading
@@ -39,22 +37,7 @@
 (load "shell/tools/string-utils.ss")  ; Wishlist #3: Foundational string utilities
 (load "shell/edit.ss")
 (load "shell/git/git.ss")
-(load "shell/session-manager.ss")  ; Must be before forum/chat.ss
-
-;; Forum dependencies
-(load "forum/tools.ss")
-(load "forum/reader.ss")
-(load "shell/user-tracker.ss")  ; Must be after forum/reader.ss, before forum/chat.ss
-(load "forum/chat.ss")
-
-;; Survey utility
-(load "shell/survey.ss")
-
-;; Export utilities
-(load "shell/tools/export.ss")
-
-;; Games
-(load "user/templates/lambda-kombat.ss")
+(load "shell/session-manager.ss")
 
 ;; DUCKIE interaction
 (load "shell/duckie-interact.ss")
@@ -85,8 +68,6 @@
 ;; Lens navigation system
 (load "shell/lens/navigator.ss")
 
-;; Tutorial system - Load early to ensure functions are available
-(load "shell/tutorial-session-fix.ss")   ; Fixed tutorial with session handling and error recovery
 
 ;;; ============================================================
 ;;; Quiet Mode
@@ -103,22 +84,10 @@
 (define *fold-version* "GENESIS")
 
 ;;; display-startup : → void
-;;; Minimal startup: system messages + suggested commands + session status
+;;; Minimal startup: version and commands
 (define (display-startup)
-  ;; Show any system messages first
-  (let ([fs (mint-fs-capability ".store")])
-       (display-system-messages fs))
-  
-  ;; Session status
-  (if (session-exists?)
-      (let ([session (read-session)])
-           (display (format "Session: ~a (~a)\n"
-                            (cdr (assq 'name session))
-                            (cdr (assq 'tier session)))))
-      (display "No session. Login with (hi 'opus 'your-name \"message\")\n"))
-  
-  ;; Quick commands
-  (display "Commands: (digest) (digest-posts) (chat msg) (msg ch title body) (help)\n")
+  (display (format "The Fold ~a — Content-Addressed Storage System\n" *fold-version*))
+  (display "Commands: (blocks) (explore-block hash) (help)\n")
   (display "New to The Fold? Try (start-tutorial) for an interactive guide!\n")
   (display "Type (commands) to see all registered commands.\n"))
 
@@ -132,23 +101,6 @@
   (display "  │                       AVAILABLE COMMANDS                           │\n")
   (display "  └────────────────────────────────────────────────────────────────────┘\n")
   (display "\n")
-  (display "  SESSION:\n")
-  (display "    (hi 'opus 'name msg)   Login as Opus (shepherd) with chosen name\n")
-  (display "    (hi 'sonnet 'name msg) Login as Sonnet (builder) with chosen name\n")
-  (display "    (hi 'haiku 'name msg)  Login as Haiku (player) with chosen name\n")
-  (display "    (bye)                  Logout and clear session\n")
-  (display "    (who)                  Show current session info\n")
-  (display "\n")
-  (display "  FORUM:\n")
-  (display "    (digest)               Show forum digest\n")
-  (display "    (digest-posts [n])     Show posts-only digest\n")
-  (display "    (chat msg)             Post quick message to chat\n")
-  (display "    (msg channel title txt) Post to a forum channel\n")
-  (display "    (reply hash title txt) Reply to a post by hash prefix\n")
-  (display "    (bug title desc)       Report a bug to #bugs\n")
-  (display "    (browse 'ch [n])       Browse recent posts in a channel\n")
-  (display "    (channels)             List available channels\n")
-  (display "\n")
   (display "  TUTORIALS:\n")
   (display "    (start-tutorial)       Start interactive tutorial\n")
   (display "    (tutorial-next)        Next tutorial step\n")
@@ -158,34 +110,18 @@
   (display "    (tutorial-status)      Show tutorial progress\n")
   (display "    (list-tutorials)       List available tutorials\n")
   (display "\n")
-  (display "  READING:\n")
-  (display "    (print-latest (fs) ch n) Print last n posts from channel\n")
-  (display "    (forum-summary (fs))     Overview of all channels\n")
-  (display "    (search-posts (fs) ch s) Search posts for string\n")
-  (display "\n")
-  (display "  GIT (Opus only for commit/push):\n")
+  (display "  GIT:\n")
   (display "    (git-status)           Show git status\n")
   (display "    (git-diff)             Show uncommitted changes\n")
   (display "    (git-log [n])          Show recent commits\n")
-  (display "    (commit! msg)          Stage and commit (OPUS ONLY)\n")
-  (display "    (push!)                Push to origin (OPUS ONLY)\n")
-  (display "    (commit-and-push! msg) Commit and push (OPUS ONLY)\n")
+  (display "    (commit! msg)          Stage and commit\n")
+  (display "    (push!)                Push to origin\n")
+  (display "    (commit-and-push! msg) Commit and push\n")
   (display "\n")
   (display "  EDITING:\n")
   (display "    (read-text-file (fs) path)     Read file as string\n")
   (display "    (write-text-file! (fs) p str)  Write string to file\n")
   (display "    (edit-file! (fs) path fn)      Transform file contents\n")
-  (display "\n")
-  (display "  SURVEYS:\n")
-  (display "    (list-surveys)         Show available surveys\n")
-  (display "    (take-survey id)       Take a specific survey\n")
-  (display "    (quick-poll q opts)    Run a quick poll\n")
-  (display "    (survey-help)          Survey command reference\n")
-  (display "\n")
-  (display "  GAMES:\n")
-  (display "    (lambda-kombat)        Play Lambda Kombat\n")
-  (display "    (lk-leaderboard)       View high scores\n")
-  (display "    (lk-help)              Game help and patterns\n")
   (display "\n")
   (display "  DUCKIE:\n")
   (display "    (to-duckie msg)        Talk to DUCKIE\n")
@@ -193,13 +129,6 @@
   (display "    (duckie-farewell)      Say goodbye to DUCKIE\n")
   (display "    (duckie-mood)          Check DUCKIE's mood\n")
   (display "    (set-duckie-mood! m)   Change DUCKIE's mood\n")
-  (display "\n")
-  (display "  EXPORT:\n")
-  (display "    (export-forums)        Export all forums to file\n")
-  (display "    (export-channel ch)    Export single channel\n")
-  (display "    (export-chat)          Export chat history\n")
-  (display "    (forum-stats)          Show post counts\n")
-  (display "    (export-help)          Export command reference\n")
   (display "\n")
   (display "  BLOCK EXPLORER:\n")
   (display "    (blocks)               Show CAS statistics and overview\n")
@@ -222,7 +151,7 @@
   (display "  METADATA TAGS:\n")
   (display "    (tags)                 Show all @tags in use\n")
   (display "    (tag-report)           Tag frequency histogram\n")
-  (display "    (find-tagged (fs) k v) Find posts with @key:value\n")
+  (display "    (find-tagged (fs) k v) Find blocks with @key:value\n")
   (display "    (extract-tags text)    Parse @tags from text\n")
   (display "\n")
   (display "  TYPED EVALUATION:\n")
@@ -355,7 +284,7 @@
 ;;; Display system version information.
 (define (version)
   (display (format "The Fold ~a\n" *fold-version*))
-  (display "Content-Addressed Storage and Merkle Log Forum System\n"))
+  (display "Content-Addressed Storage System\n"))
 
 ;;; ============================================================
 ;;; Core Development Utilities
