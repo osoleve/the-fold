@@ -3,6 +3,7 @@
 ;;; This is Core code: pure, total, assumes perfect input.
 
 (load "core/fp/rewrite/proof-tactics.ss")
+(load "core/fp/rewrite/fusion-rules.ss")  ; Registers fusion laws for auto-laws
 (load "core/test-framework.ss")
 
 (display "\n=== Testing proof-tactics.ss ===\n\n")
@@ -134,6 +135,88 @@
             
             (define-test tactic-auto-mul-zero
               (let* ([g (make-proof-goal '(* 0 x) 0 '())]
+                     [result (tactic-auto g)])
+                    (assert-true (tactic-success? result)))))
+
+;;; ============================================================
+;;; Auto-Laws Configuration Tests
+;;; ============================================================
+
+(test-group auto-laws-configuration
+            ;; Test that auto-laws includes base laws
+            (define-test auto-laws-includes-base
+              (let ([laws (auto-laws)])
+                   (assert-true (and (memq 'monoid-left-id laws) #t))
+                   (assert-true (and (memq 'arith-add-left-id laws) #t))
+                   (assert-true (and (memq 'functor-id laws) #t))))
+            
+            ;; Test that auto-laws includes fusion laws (from fusion category)
+            (define-test auto-laws-includes-fusion
+              (let ([laws (auto-laws)])
+                   (assert-true (and (memq 'map-map-fuse laws) #t))
+                   (assert-true (and (memq 'filter-map-fuse laws) #t))
+                   (assert-true (and (memq 'fold-map-fuse laws) #t))
+                   (assert-true (and (memq 'compose-id-left laws) #t))))
+            
+            ;; Test that fusion category is in auto-law-categories
+            (define-test fusion-category-registered
+              (assert-true (and (memq 'fusion *auto-law-categories*) #t)))
+            
+            ;; Test auto-laws-by-category returns fusion laws
+            (define-test auto-laws-by-category-fusion
+              (let ([fusion-laws (auto-laws-by-category 'fusion)])
+                   (assert-true (> (length fusion-laws) 10))  ; Should have 18 fusion laws
+                   (assert-true (and (memq 'map-map-fuse fusion-laws) #t))))
+            
+            ;; Test register-auto-law! adds to extra laws
+            (define-test register-auto-law-works
+              (let ([before (length *auto-laws-extra*)])
+                   (register-auto-law! 'test-extra-law)
+                   (assert-true (and (memq 'test-extra-law *auto-laws-extra*) #t))
+                   ;; Clean up
+                   (set! *auto-laws-extra*
+                         (filter (lambda (x) (not (eq? x 'test-extra-law)))
+                                 *auto-laws-extra*))))
+            
+            ;; Test that auto-laws removes duplicates
+            (define-test auto-laws-no-duplicates
+              (let ([laws (auto-laws)])
+                   (let loop ([lst laws] [seen '()])
+                        (cond
+                         [(null? lst) (assert-true #t)]  ; No duplicates found
+                         [(memq (car lst) seen)
+                          (assert-true #f)]  ; Duplicate found - fail
+                         [else (loop (cdr lst) (cons (car lst) seen))])))))
+
+;;; ============================================================
+;;; Tactic-Auto with Fusion Tests
+;;; ============================================================
+
+(test-group tactic-auto-fusion
+            ;; Test that tactic-auto can apply map-map fusion
+            (define-test tactic-auto-map-map-fuse
+              (let* ([g (make-proof-goal
+                         '(map f (map g xs))
+                         '(map (compose f g) xs)
+                         '())]
+                     [result (tactic-auto g)])
+                    (assert-true (tactic-success? result))))
+            
+            ;; Test that tactic-auto can apply compose-id-left
+            (define-test tactic-auto-compose-id
+              (let* ([g (make-proof-goal
+                         '(compose id f)
+                         'f
+                         '())]
+                     [result (tactic-auto g)])
+                    (assert-true (tactic-success? result))))
+            
+            ;; Test that tactic-auto can apply length-map-elim
+            (define-test tactic-auto-length-map
+              (let* ([g (make-proof-goal
+                         '(length (map f xs))
+                         '(length xs)
+                         '())]
                      [result (tactic-auto g)])
                     (assert-true (tactic-success? result)))))
 

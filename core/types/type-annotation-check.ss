@@ -486,7 +486,15 @@
     (EquivResult . Hash)
     (Certificate . Hash)
     (Position . Hash)
-    (Opts . Hash)))
+    (Opts . Hash)
+    ;; Proof sketch types (treated as kind *)
+    (Sketch . Hash)
+    (Registry . Hash)
+    (Tactic . Hash)
+    ;; Analysis opportunity types (treated as kind *)
+    (FusionOpportunity . Hash)
+    (ParallelOpportunity . Hash)
+    (DependencyGraph . Hash)))
 
 ;;; Greek letters used as type variables
 (define greek-type-var-names

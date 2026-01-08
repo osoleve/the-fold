@@ -448,13 +448,131 @@
                              #f))))))
 
 ;;; tactic-split : Tactic
-;;; Split current goal into subgoals (for compound expressions).
-;;; This is a placeholder for more sophisticated goal splitting.
+;;; Split current goal into subgoals for compound expressions.
+;;; Handles:
+;;;   - Pairs: (pair a b) = (pair c d) -> [a = c, b = d]
+;;;   - And:   (and P Q) as target -> [P, Q]
+;;;   - Cons:  (cons a b) = (cons c d) -> [a = c, b = d]
+;;;   - List constructors with same shape
 (define tactic-split
   (lambda (sk)
-          ;; For now, split is identity (no-op)
-          ;; Future: break (a, b) = (c, d) into a=c and b=d
-          #f))
+          (let ([goal (sketch-current-goal sk)])
+               (if (not goal)
+                   #f  ; No current goal
+                   (let ([from (goal-from goal)]
+                         [to (goal-to goal)])
+                        (cond
+                         ;; Case 1: Both are pair/cons expressions with same constructor
+                         [(and (compound-expr? from)
+                               (compound-expr? to)
+                               (eq? (compound-tag from) (compound-tag to))
+                               (= (compound-arity from) (compound-arity to)))
+                          (split-compound-goal sk goal from to)]
+                         
+                         ;; Case 2: Goal target is (and P Q) - split into P and Q
+                         [(and-expr? to)
+                          (split-and-goal sk goal from to)]
+                         
+                         ;; Case 3: Goal from is (and P Q) - both must hold
+                         [(and-expr? from)
+                          (split-and-from-goal sk goal from to)]
+                         
+                         ;; No split applicable
+                         [else #f]))))))
+
+;;; ============================================================
+;;; Compound Expression Helpers
+;;; ============================================================
+
+;;; compound-expr? : Expr -> Boolean
+;;; Check if expression is a compound (pair, cons, tuple, etc.)
+(define (compound-expr? expr)
+  (and (pair? expr)
+       (memq (car expr) '(pair cons tuple vec list))))
+
+;;; compound-tag : Expr -> Symbol
+;;; Get the constructor tag of a compound expression.
+(define (compound-tag expr)
+  (if (pair? expr) (car expr) #f))
+
+;;; compound-arity : Expr -> Nat
+;;; Get the number of components in a compound expression.
+(define (compound-arity expr)
+  (if (pair? expr) (length (cdr expr)) 0))
+
+;;; compound-components : Expr -> (List Expr)
+;;; Get the components of a compound expression.
+(define (compound-components expr)
+  (if (pair? expr) (cdr expr) '()))
+
+;;; and-expr? : Expr -> Boolean
+;;; Check if expression is an (and ...) conjunction.
+(define (and-expr? expr)
+  (and (pair? expr) (eq? (car expr) 'and)))
+
+;;; and-conjuncts : Expr -> (List Expr)
+;;; Get conjuncts from an (and ...) expression.
+(define (and-conjuncts expr)
+  (if (and-expr? expr) (cdr expr) '()))
+
+;;; ============================================================
+;;; Split Implementation Helpers
+;;; ============================================================
+
+;;; split-compound-goal : Sketch x Goal x Expr x Expr -> Sketch | #f
+;;; Split a compound equality into component equalities.
+;;; (pair a b) = (pair c d) becomes [a = c, b = d]
+(define (split-compound-goal sk goal from to)
+  (let* ([from-parts (compound-components from)]
+         [to-parts (compound-components to)]
+         [new-goals (map (lambda (f t) (make-goal f t))
+                         from-parts to-parts)]
+         [sk-with-history (sketch-push-history sk)]
+         ;; Replace current goal with the new subgoals
+         [all-goals (sketch-replace-goal-with-many
+                     (sketch-goals sk-with-history)
+                     (sketch-focused sk-with-history)
+                     new-goals)])
+        (sketch-set-goals sk-with-history all-goals)))
+
+;;; split-and-goal : Sketch x Goal x Expr x Expr -> Sketch | #f
+;;; When target is (and P Q), split into goals for P and Q.
+(define (split-and-goal sk goal from to)
+  (let* ([conjuncts (and-conjuncts to)]
+         ;; Each conjunct becomes a separate goal from the same 'from'
+         [new-goals (map (lambda (conj) (make-goal from conj))
+                         conjuncts)]
+         [sk-with-history (sketch-push-history sk)]
+         [all-goals (sketch-replace-goal-with-many
+                     (sketch-goals sk-with-history)
+                     (sketch-focused sk-with-history)
+                     new-goals)])
+        (sketch-set-goals sk-with-history all-goals)))
+
+;;; split-and-from-goal : Sketch x Goal x Expr x Expr -> Sketch | #f
+;;; When from is (and P Q), both P and Q must lead to target.
+(define (split-and-from-goal sk goal from to)
+  (let* ([conjuncts (and-conjuncts from)]
+         ;; Each conjunct is a separate path to the target
+         [new-goals (map (lambda (conj) (make-goal conj to))
+                         conjuncts)]
+         [sk-with-history (sketch-push-history sk)]
+         [all-goals (sketch-replace-goal-with-many
+                     (sketch-goals sk-with-history)
+                     (sketch-focused sk-with-history)
+                     new-goals)])
+        (sketch-set-goals sk-with-history all-goals)))
+
+;;; sketch-replace-goal-with-many : (List Goal) x Nat x (List Goal) -> (List Goal)
+;;; Replace goal at index with multiple new goals.
+(define (sketch-replace-goal-with-many goals idx new-goals)
+  (let loop ([gs goals] [i 0] [acc '()])
+       (if (null? gs)
+           (reverse acc)
+           (if (= i idx)
+               ;; Replace this goal with new-goals
+               (loop (cdr gs) (+ i 1) (append (reverse new-goals) acc))
+               (loop (cdr gs) (+ i 1) (cons (car gs) acc))))))
 
 ;;; ============================================================
 ;;; Helper: Update Goal in List

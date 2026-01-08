@@ -468,13 +468,17 @@
             (append here children))))
 
 ;;; *detect-fuel* : Nat
-;;; Maximum recursion depth for detection.
+;;; Default recursion depth for detection.
+;;; Can be overridden by passing an optional fuel parameter to detect-parallel-regions.
 (define *detect-fuel* 100)
 
-;;; detect-parallel-regions : Expr -> (List ParallelOpportunity)
+;;; detect-parallel-regions : Expr [x Nat] -> (List ParallelOpportunity)
 ;;; Main entry point: detect all parallelization opportunities in an expression.
-(define (detect-parallel-regions expr)
-  (detect-at-depth expr '() *detect-fuel*))
+;;; Optional fuel parameter allows handling larger ASTs (default: 100).
+(define detect-parallel-regions
+  (case-lambda
+   [(expr) (detect-at-depth expr '() *detect-fuel*)]
+   [(expr fuel) (detect-at-depth expr '() fuel)]))
 
 ;;; ============================================================
 ;;; Convenience Functions

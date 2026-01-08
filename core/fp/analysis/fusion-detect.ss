@@ -393,13 +393,17 @@
             (append here children))))
 
 ;;; *fusion-detect-fuel* : Nat
-;;; Maximum recursion depth for fusion detection.
+;;; Default recursion depth for fusion detection.
+;;; Can be overridden by passing an optional fuel parameter to detect-fusion-static.
 (define *fusion-detect-fuel* 100)
 
-;;; detect-fusion-static : Expr -> (List FusionOpportunity)
+;;; detect-fusion-static : Expr [x Nat] -> (List FusionOpportunity)
 ;;; Main entry point: detect all fusion opportunities in an expression.
-(define (detect-fusion-static expr)
-  (fusion-detect-at-depth expr '() *fusion-detect-fuel*))
+;;; Optional fuel parameter allows handling larger ASTs (default: 100).
+(define detect-fusion-static
+  (case-lambda
+   [(expr) (fusion-detect-at-depth expr '() *fusion-detect-fuel*)]
+   [(expr fuel) (fusion-detect-at-depth expr '() fuel)]))
 
 ;;; ============================================================
 ;;; Convenience Functions

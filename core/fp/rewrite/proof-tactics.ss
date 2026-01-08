@@ -424,7 +424,91 @@
 ;;; Automation Tactics
 ;;; ============================================================
 
-;;; Common simplification laws to try automatically
+;;; ============================================================
+;;; Auto-Law Configuration
+;;; ============================================================
+;;;
+;;; The auto-law system determines which laws tactic-auto will try.
+;;; It consists of:
+;;;   - A base set of manually curated laws (*auto-laws-base*)
+;;;   - A set of categories to auto-include (*auto-law-categories*)
+;;;   - Ad-hoc additions via register-auto-law!
+;;;
+;;; The (auto-laws) function dynamically computes the full set.
+
+;;; *auto-laws-base* : (List Symbol)
+;;; Core simplification laws always included in auto-laws.
+(define *auto-laws-base*
+  '(monoid-left-id
+    monoid-right-id
+    arith-add-left-id
+    arith-add-right-id
+    arith-mul-left-id
+    arith-mul-right-id
+    arith-mul-zero-left
+    arith-mul-zero-right
+    functor-id
+    applicative-id
+    monad-left-id
+    monad-right-id))
+
+;;; *auto-law-categories* : (List Symbol)
+;;; Categories whose laws are auto-included.
+;;; Fusion rules eliminate intermediate structures - always beneficial.
+(define *auto-law-categories*
+  '(fusion))
+
+;;; *auto-laws-extra* : (List Symbol)
+;;; Additional laws added via register-auto-law!
+(define *auto-laws-extra* '())
+
+;;; register-auto-law! : Symbol -> void
+;;; Add a law to the auto-law set by name.
+(define (register-auto-law! law-name)
+  (unless (memq law-name *auto-laws-extra*)
+          (set! *auto-laws-extra* (cons law-name *auto-laws-extra*))))
+
+;;; register-auto-category! : Symbol -> void
+;;; Add a category to auto-include in auto-laws.
+(define (register-auto-category! category)
+  (unless (memq category *auto-law-categories*)
+          (set! *auto-law-categories* (cons category *auto-law-categories*))))
+
+;;; unregister-auto-category! : Symbol -> void
+;;; Remove a category from auto-inclusion.
+(define (unregister-auto-category! category)
+  (set! *auto-law-categories*
+        (filter (lambda (c) (not (eq? c category))) *auto-law-categories*)))
+
+;;; auto-laws : -> (List Symbol)
+;;; Compute the complete set of auto-laws dynamically.
+;;; Combines: base laws + laws from auto-categories + extra laws.
+;;; Removes duplicates while preserving order (base laws tried first).
+(define (auto-laws)
+  (let* ([base *auto-laws-base*]
+         [category-laws (apply append
+                               (map (lambda (cat)
+                                            (map rule-name (laws-by-category cat)))
+                                    *auto-law-categories*))]
+         [extra *auto-laws-extra*]
+         [all (append base category-laws extra)])
+        ;; Remove duplicates, keeping first occurrence
+        (let loop ([lst all] [seen '()] [acc '()])
+             (cond
+              [(null? lst) (reverse acc)]
+              [(memq (car lst) seen) (loop (cdr lst) seen acc)]
+              [else (loop (cdr lst)
+                          (cons (car lst) seen)
+                          (cons (car lst) acc))]))))
+
+;;; auto-laws-by-category : Symbol -> (List Symbol)
+;;; Get auto-law names from a specific category.
+(define (auto-laws-by-category category)
+  (map rule-name (laws-by-category category)))
+
+;;; *auto-laws* : (List Symbol)
+;;; Backward compatibility: static snapshot of auto-laws.
+;;; Note: Use (auto-laws) for dynamic computation.
 (define *auto-laws*
   '(monoid-left-id
     monoid-right-id
@@ -442,7 +526,7 @@
 ;;; tactic-auto : Goal -> TacticResult
 ;;; Try common tactics automatically:
 ;;; 1. Reflexivity
-;;; 2. Common simplification laws
+;;; 2. All laws from (auto-laws) - includes base laws, fusion rules, etc.
 (define (tactic-auto goal)
   (if (not (proof-goal? goal))
       (tactic-failure '(not-a-goal))
@@ -450,8 +534,8 @@
       (let ([refl-result (tactic-refl goal)])
            (if (tactic-success? refl-result)
                refl-result
-               ;; Try each simplification law
-               (let try-laws ([laws *auto-laws*])
+               ;; Try each auto-law (dynamically computed)
+               (let try-laws ([laws (auto-laws)])
                     (if (null? laws)
                         (tactic-failure '(auto-exhausted))
                         (let ([result ((tactic-rewrite (car laws)) goal)])

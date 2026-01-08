@@ -7,7 +7,7 @@
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;;
 ;;; API:
-;;;   estimate-work : Expr -> Nat
+;;;   estimate-work : Expr [x Nat] -> Nat
 ;;;   parallel-beneficial? : Expr x Expr -> Bool
 ;;;   min-parallel-threshold : -> Nat
 ;;;   set-parallel-threshold! : Nat -> Void
@@ -196,12 +196,20 @@
 ;;; Work Estimation Engine
 ;;; ============================================================
 
-;;; estimate-work : Expr -> Nat
+;;; *estimate-work-fuel* : Nat
+;;; Default recursion depth for work estimation.
+;;; Can be overridden by passing an optional fuel parameter to estimate-work.
+(define *estimate-work-fuel* 1000)
+
+;;; estimate-work : Expr [x Nat] -> Nat
 ;;; Estimate the computational cost of an expression.
 ;;; Walks the expression tree and sums operation costs.
 ;;; Uses fuel to bound recursion depth.
-(define (estimate-work expr)
-  (estimate-work-with-fuel expr 1000))
+;;; Optional fuel parameter allows handling larger ASTs (default: 1000).
+(define estimate-work
+  (case-lambda
+   [(expr) (estimate-work-with-fuel expr *estimate-work-fuel*)]
+   [(expr fuel) (estimate-work-with-fuel expr fuel)]))
 
 ;;; estimate-work-with-fuel : Expr x Nat -> Nat
 ;;; Core work estimator with fuel for termination guarantee.

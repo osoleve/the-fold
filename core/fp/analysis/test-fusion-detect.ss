@@ -290,7 +290,37 @@
               ;; map with wrong arity
               (assert-equal 0 (length (detect-fusion-static '(map f))))
               (assert-equal 0 (length (detect-fusion-static '(map))))
-              (assert-equal 0 (length (detect-fusion-static '(map f g h i))))))
+              (assert-equal 0 (length (detect-fusion-static '(map f g h i)))))
+            
+            ;;; ============================================================
+            ;;; Optional Fuel Parameter Tests
+            ;;; ============================================================
+            
+            (define-test optional-fuel-parameter-default
+              ;; Calling with one argument should use default fuel
+              (let* ([expr '(map f (map g xs))]
+                     [opps (detect-fusion-static expr)])
+                    (assert-true (> (length opps) 0))))
+            
+            (define-test optional-fuel-parameter-explicit
+              ;; Calling with explicit fuel should work
+              (let* ([expr '(map f (map g xs))]
+                     [opps (detect-fusion-static expr 200)])
+                    (assert-true (> (length opps) 0))))
+            
+            (define-test optional-fuel-parameter-low
+              ;; Very low fuel should limit detection depth
+              (let* ([expr '(let ([x (map f (map g xs))]) x)]
+                     [opps-high (detect-fusion-static expr 100)]
+                     [opps-low (detect-fusion-static expr 1)])
+                    ;; Low fuel may find fewer opportunities due to depth limit
+                    (assert-true (>= (length opps-high) (length opps-low)))))
+            
+            (define-test optional-fuel-zero-returns-empty
+              ;; Zero fuel should return empty list (no processing)
+              (let* ([expr '(map f (map g xs))]
+                     [opps (detect-fusion-static expr 0)])
+                    (assert-equal 0 (length opps)))))
 
 (print-summary)
 (when (> *tests-failed* 0) (exit 1))

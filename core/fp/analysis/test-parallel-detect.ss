@@ -310,7 +310,39 @@
                                   [g (lambda (y) (* y 2))])
                              (compose f g))]
                      [opps (detect-parallel-regions expr)])
-                    (assert-true (list? opps)))))
+                    (assert-true (list? opps))))
+            
+            ;;; ============================================================
+            ;;; Optional Fuel Parameter Tests
+            ;;; ============================================================
+            
+            (define-test optional-fuel-parameter-default
+              ;; Calling with one argument should use default fuel
+              (let* ([expr '(let ([a (f x)] [b (g y)]) (+ a b))]
+                     [opps (detect-parallel-regions expr)])
+                    (assert-true (list? opps))))
+            
+            (define-test optional-fuel-parameter-explicit
+              ;; Calling with explicit fuel should work
+              (let* ([expr '(let ([a (f x)] [b (g y)]) (+ a b))]
+                     [opps (detect-parallel-regions expr 200)])
+                    (assert-true (list? opps))))
+            
+            (define-test optional-fuel-parameter-low
+              ;; Very low fuel should limit detection depth
+              (let* ([expr '(let ([outer 1])
+                             (let ([a (f x)] [b (g y)])
+                                  (+ a b)))]
+                     [opps-high (detect-parallel-regions expr 100)]
+                     [opps-low (detect-parallel-regions expr 1)])
+                    ;; Low fuel may find fewer opportunities due to depth limit
+                    (assert-true (>= (length opps-high) (length opps-low)))))
+            
+            (define-test optional-fuel-zero-returns-empty
+              ;; Zero fuel should return empty list (no processing)
+              (let* ([expr '(let ([a (f x)] [b (g y)]) (+ a b))]
+                     [opps (detect-parallel-regions expr 0)])
+                    (assert-equal 0 (length opps)))))
 
 (print-summary)
 (when (> *tests-failed* 0) (exit 1))

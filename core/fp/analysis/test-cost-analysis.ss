@@ -322,7 +322,34 @@
             (define-test work-analysis-empty-expression
               (let ([wa (work-analysis '())])
                    (assert-true (work-analysis? wa))
-                   (assert-true (number? (analysis-total-cost wa))))))
+                   (assert-true (number? (analysis-total-cost wa)))))
+            
+            ;;; ============================================================
+            ;;; Optional Fuel Parameter Tests
+            ;;; ============================================================
+            
+            (define-test estimate-work-optional-fuel-default
+              ;; Calling with one argument should use default fuel
+              (let ([cost (estimate-work '(+ 1 2))])
+                   (assert-true (> cost 0))))
+            
+            (define-test estimate-work-optional-fuel-explicit
+              ;; Calling with explicit fuel should work
+              (let ([cost (estimate-work '(+ 1 2) 2000)])
+                   (assert-true (> cost 0))))
+            
+            (define-test estimate-work-optional-fuel-low
+              ;; Very low fuel should return conservative estimate
+              (let* ([expr '(+ (+ (+ 1 2) 3) 4)]
+                     [cost-high (estimate-work expr 1000)]
+                     [cost-low (estimate-work expr 1)])
+                    ;; Low fuel returns 0 (conservative) for deep expressions
+                    (assert-true (>= cost-high cost-low))))
+            
+            (define-test estimate-work-optional-fuel-zero
+              ;; Zero fuel should return 0 (conservative estimate)
+              (let ([cost (estimate-work '(sqrt (+ 1 2)) 0)])
+                   (assert-equal 0 cost))))
 
 (print-summary)
 (when (> *tests-failed* 0) (exit 1))
