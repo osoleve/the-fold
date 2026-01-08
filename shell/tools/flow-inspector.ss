@@ -231,7 +231,7 @@
   (if (= depth 0)
       ""
       (string-append
-       (apply string-append (make-list (- depth 1) "│   "))
+       (apply string-append (make-list* (- depth 1) "│   "))
        (if is-last "└─> " "├─> "))))
 
 ;;; show-effects : Symbol → Void
