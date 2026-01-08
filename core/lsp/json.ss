@@ -121,25 +121,30 @@
 
 ;;; json-escape-string : String → String
 ;;; Escape a string for JSON output (includes quotes).
+;;; Optimized to use output port instead of list cons + reverse.
 (define (json-escape-string str)
-  (let loop ([chars (string->list str)] [acc (list #\")])
-       (if (null? chars)
-           (list->string (reverse (cons #\" acc)))
-           (let ([c (car chars)])
-                (case c
-                      [(#\") (loop (cdr chars) (cons #\" (cons #\\ acc)))]
-                      [(#\\) (loop (cdr chars) (cons #\\ (cons #\\ acc)))]
-                      [(#\backspace) (loop (cdr chars) (cons #\b (cons #\\ acc)))]
-                      [(#\page) (loop (cdr chars) (cons #\f (cons #\\ acc)))]
-                      [(#\newline) (loop (cdr chars) (cons #\n (cons #\\ acc)))]
-                      [(#\return) (loop (cdr chars) (cons #\r (cons #\\ acc)))]
-                      [(#\tab) (loop (cdr chars) (cons #\t (cons #\\ acc)))]
-                      [else
-                       ;; Control characters need \uXXXX encoding
-                       (if (< (char->integer c) 32)
-                           (let ([hex (json-encode-unicode c)])
-                                (loop (cdr chars) (append (reverse (string->list hex)) acc)))
-                           (loop (cdr chars) (cons c acc)))])))))
+  (call-with-string-output-port
+   (lambda (out)
+           (put-char out #\")
+           (let ([len (string-length str)])
+                (let loop ([i 0])
+                     (when (< i len)
+                           (let ([c (string-ref str i)])
+                                (case c
+                                      [(#\") (put-string out "\\\"")]
+                                      [(#\\) (put-string out "\\\\")]
+                                      [(#\backspace) (put-string out "\\b")]
+                                      [(#\page) (put-string out "\\f")]
+                                      [(#\newline) (put-string out "\\n")]
+                                      [(#\return) (put-string out "\\r")]
+                                      [(#\tab) (put-string out "\\t")]
+                                      [else
+                                       ;; Control characters need \uXXXX encoding
+                                       (if (< (char->integer c) 32)
+                                           (put-string out (json-encode-unicode c))
+                                           (put-char out c))])
+                                (loop (+ i 1))))))
+           (put-char out #\"))))
 
 ;;; json-encode-unicode : Char → String
 ;;; Encode a character as \uXXXX.
@@ -273,25 +278,46 @@
            "Expected 'false'")))
 
 ;;; parse-string : State → (String . State) | ErrorString
+;;; Optimized to use output port instead of list cons + reverse.
 (define (parse-string s)
   (if (not (char=? (pstate-peek s) #\"))
       "Expected '\"'"
       (let ([s (pstate-advance s)])  ; skip opening quote
-           (let loop ([s s] [chars '()])
-                (if (pstate-empty? s)
-                    "Unterminated string"
-                    (let ([c (pstate-peek s)])
-                         (cond
-                          [(char=? c #\")
-                           (cons (list->string (reverse chars))
-                                 (pstate-advance s))]
-                          [(char=? c #\\)
-                           (let ([esc-result (parse-escape (pstate-advance s))])
-                                (if (pair? esc-result)
-                                    (loop (cdr esc-result) (cons (car esc-result) chars))
-                                    esc-result))]
-                          [else
-                           (loop (pstate-advance s) (cons c chars))])))))))
+           (parse-string-body s))))
+
+;;; parse-string-body : State → (String . State) | ErrorString
+;;; Parse the body of a string using output port for efficiency.
+(define (parse-string-body start-state)
+  (let* ([result-str #f]
+         [end-state #f]
+         [error-msg #f])
+        ;; Use call-with-string-output-port to build string efficiently
+        (set! result-str
+              (call-with-string-output-port
+               (lambda (out)
+                       (let loop ([s start-state])
+                            (cond
+                             [(pstate-empty? s)
+                              (set! error-msg "Unterminated string")]
+                             [else
+                              (let ([c (pstate-peek s)])
+                                   (cond
+                                    [(char=? c #\")
+                                     (set! end-state (pstate-advance s))]
+                                    [(char=? c #\\)
+                                     (let ([esc-result (parse-escape (pstate-advance s))])
+                                          (if (pair? esc-result)
+                                              (begin
+                                               (put-char out (car esc-result))
+                                               (loop (cdr esc-result)))
+                                              (set! error-msg esc-result)))]
+                                    [else
+                                     (put-char out c)
+                                     (loop (pstate-advance s))]))])))))
+        (cond
+         [error-msg error-msg]
+         [end-state (cons result-str end-state)]
+         [else "Unterminated string"])))
 
 ;;; parse-escape : State → (Char . State) | ErrorString
 (define (parse-escape s)

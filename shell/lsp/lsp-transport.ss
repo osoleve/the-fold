@@ -227,6 +227,90 @@
   *lsp-running*)
 
 ;;; ============================================================
+;;; Progress Reporting
+;;; ============================================================
+
+;;; Progress tokens are simple incrementing integers
+(define *progress-token-counter* 0)
+
+;;; next-progress-token : → Int
+;;; Generate a unique progress token.
+(define (next-progress-token)
+  (set! *progress-token-counter* (+ *progress-token-counter* 1))
+  *progress-token-counter*)
+
+;;; progress-begin : String × String [× Int] → Int
+;;; Start a progress operation. Returns the token for later updates.
+;;; title: The title of the operation
+;;; message: Optional initial message
+;;; percentage: Optional initial percentage (0-100)
+(define (progress-begin title . opts)
+  (let* ([token (next-progress-token)]
+         [message (if (pair? opts) (car opts) #f)]
+         [percentage (if (and (pair? opts) (pair? (cdr opts))) (cadr opts) #f)]
+         [params (json-obj "kind" "begin"
+                           "title" title
+                           "cancellable" #f)])
+        ;; Add optional fields
+        (when message
+              (set! params (json-obj-set params "message" message)))
+        (when percentage
+              (set! params (json-obj-set params "percentage" percentage)))
+        ;; Send the notification
+        (write-lsp-notification "$/progress"
+                                (json-obj "token" token
+                                          "value" params))
+        token))
+
+;;; progress-report : Int × String [× Int] → Void
+;;; Report progress on an operation.
+;;; token: The token from progress-begin
+;;; message: Status message
+;;; percentage: Optional percentage (0-100)
+(define (progress-report token message . opts)
+  (let* ([percentage (if (pair? opts) (car opts) #f)]
+         [params (json-obj "kind" "report"
+                           "message" message)])
+        (when percentage
+              (set! params (json-obj-set params "percentage" percentage)))
+        (write-lsp-notification "$/progress"
+                                (json-obj "token" token
+                                          "value" params))))
+
+;;; progress-end : Int [× String] → Void
+;;; End a progress operation.
+;;; token: The token from progress-begin
+;;; message: Optional final message
+(define (progress-end token . opts)
+  (let* ([message (if (pair? opts) (car opts) #f)]
+         [params (json-obj "kind" "end")])
+        (when message
+              (set! params (json-obj-set params "message" message)))
+        (write-lsp-notification "$/progress"
+                                (json-obj "token" token
+                                          "value" params))))
+
+;;; json-obj-set : JsonObject × String × Any → JsonObject
+;;; Add or update a key in a JSON object.
+(define (json-obj-set obj key value)
+  (let ([pairs (cdr obj)])
+       (cons 'json-object
+             (cons (cons key value)
+                   (filter (lambda (p) (not (string=? (car p) key))) pairs)))))
+
+;;; with-progress : String × (→ α) → α
+;;; Execute a thunk with progress reporting.
+;;; Shows "Working..." while running, then completes.
+(define (with-progress title thunk)
+  (let ([token (progress-begin title "Working...")])
+       (guard (e [else
+                  (progress-end token "Failed")
+                  (raise e)])
+              (let ([result (thunk)])
+                   (progress-end token "Done")
+                   result))))
+
+;;; ============================================================
 ;;; Main Read Loop Helper
 ;;; ============================================================
 
