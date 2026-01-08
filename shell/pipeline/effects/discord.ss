@@ -7,6 +7,7 @@
 (load "core/pipeline/stage.ss")
 (load "core/pipeline/effects.ss")
 (load "core/pipeline/context.ss")
+(load "shell/json.ss")
 
 ;;; ============================================================
 ;;; Discord Configuration
@@ -174,63 +175,16 @@
 
 ;;; write-outbox-json : String -> Alist -> ()
 ;;; Write alist as JSON to outbox file.
+;;; Uses shared json->string from shell/json.ss for proper escaping.
 (define (write-outbox-json path data)
   ;; Ensure outbox directory exists
   (let ([dir (path-directory path)])
        (unless (file-exists? dir)
                (make-directories dir)))
-  ;; Write JSON
+  ;; Write JSON using shared serializer (handles escaping properly)
   (with-output-to-file path
                        (lambda ()
-                               (display (alist->json data)))))
-
-;;; ============================================================
-;;; JSON Serialization
-;;; ============================================================
-
-;;; alist->json : Alist -> String
-;;; Convert alist to JSON string (simple implementation).
-(define (alist->json alist)
-  (string-append
-   "{\n"
-   (apply string-append
-          (intersperse
-           ",\n"
-           (map (lambda (pair)
-                        (format "  ~s: ~a"
-                                (symbol->string (car pair))
-                                (json-value (cdr pair))))
-                alist)))
-   "\n}"))
-
-;;; json-value : Any -> String
-;;; Convert value to JSON representation.
-(define (json-value v)
-  (cond
-   [(string? v) (format "~s" v)]
-   [(number? v) (format "~a" v)]
-   [(boolean? v) (if v "true" "false")]
-   [(null? v) "null"]
-   [(symbol? v) (format "~s" (symbol->string v))]
-   [(pair? v)
-    (if (and (pair? (car v)) (symbol? (caar v)))
-        ;; Nested alist
-        (alist->json v)
-        ;; List/array
-        (string-append
-         "["
-         (apply string-append
-                (intersperse ", " (map json-value v)))
-         "]"))]
-   [else (format "~s" (format "~a" v))]))
-
-;;; intersperse : String -> List String -> List String
-(define (intersperse sep lst)
-  (cond
-   [(null? lst) '()]
-   [(null? (cdr lst)) lst]
-   [else (cons (car lst)
-               (cons sep (intersperse sep (cdr lst))))]))
+                               (display (json->string data)))))
 
 ;;; ============================================================
 ;;; Context Accessors

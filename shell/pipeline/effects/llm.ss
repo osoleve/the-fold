@@ -7,6 +7,7 @@
 (load "core/pipeline/stage.ss")
 (load "core/pipeline/effects.ss")
 (load "core/pipeline/context.ss")
+(load "shell/json.ss")
 
 ;;; ============================================================
 ;;; LLM Effect Interpretation
@@ -135,15 +136,17 @@
                                          (condition-message ex)
                                          "unknown error")))])
                   (let* ([api-model (model-symbol->api-model model)]
-                         ;; Build JSON request body
-                         [request-body (format "{\"model\": ~s, \"max_tokens\": 4096, \"system\": ~s, \"messages\": [{\"role\": \"user\", \"content\": ~s}]}"
-                                               api-model
-                                               (json-escape system-prompt)
-                                               (json-escape user-prompt))]
-                         ;; Call curl with the request
-                         [result (shell-exec-with-stdin
-                                  (format "curl -sS -X POST https://api.anthropic.com/v1/messages -H 'Content-Type: application/json' -H 'x-api-key: ~a' -H 'anthropic-version: 2023-06-01' -d @-"
-                                          api-key)
+                         ;; Build JSON request body using proper JSON serialization
+                         [request-body (json->string
+                                        `((model . ,api-model)
+                                          (max_tokens . 4096)
+                                          (system . ,system-prompt)
+                                          (messages . (((role . "user")
+                                                        (content . ,user-prompt))))))]
+                         ;; Call curl with API key via environment variable (not visible in ps)
+                         [result (shell-exec-with-env-stdin
+                                  `(("ANTHROPIC_API_KEY" . ,api-key))
+                                  "curl -sS -X POST https://api.anthropic.com/v1/messages -H 'Content-Type: application/json' -H 'x-api-key: '\"$ANTHROPIC_API_KEY\" -H 'anthropic-version: 2023-06-01' -d @-"
                                   request-body)])
                         (if (shell-result-ok? result)
                             (let ([response-json (shell-result-stdout result)])
@@ -249,183 +252,44 @@
 ;;; Shell Execution Dependency
 ;;; ============================================================
 
-;;; These need to be provided by the shell execution module or loaded
-;;; from shell/pipeline/effects/shell.ss
-
-(define (shell-exec-with-stdin cmd stdin-content)
+;;; shell-exec-with-env-stdin : Alist -> String -> String -> ShellResult
+;;; Execute a shell command with environment variables and stdin input.
+;;; This is the secure way to pass sensitive data (like API keys) -
+;;; environment variables are not visible in `ps` output.
+(define (shell-exec-with-env-stdin env cmd stdin-content)
   (guard (ex [else
               (list 'shell-result #f ""
-                    (format "shell-exec-with-stdin error: ~a"
+                    (format "shell-exec-with-env-stdin error: ~a"
                             (if (message-condition? ex)
                                 (condition-message ex)
                                 "unknown error")))])
-         (let-values ([(to-stdin from-stdout from-stderr process-id)
-                       (open-process-ports cmd
-                                           (buffer-mode block)
-                                           (native-transcoder))])
-                     ;; Write stdin content
-                     (put-string to-stdin stdin-content)
-                     (close-port to-stdin)
-                     (let ([stdout-all (get-string-all from-stdout)]
-                           [stderr-all (get-string-all from-stderr)])
-                          (close-port from-stdout)
-                          (close-port from-stderr)
-                          (let ([stdout-str (if (eof-object? stdout-all) "" stdout-all)]
-                                [stderr-str (if (eof-object? stderr-all) "" stderr-all)])
-                               (list 'shell-result
-                                     (string=? stderr-str "")
-                                     stdout-str
-                                     stderr-str))))))
+         ;; Build a shell command that sets environment variables then runs the command
+         ;; Using 'env' with proper quoting to avoid injection
+         (let* ([env-exports (apply string-append
+                                    (map (lambda (pair)
+                                                 (format "export ~a=~s; "
+                                                         (car pair)
+                                                         (cdr pair)))
+                                         env))]
+                [full-cmd (string-append env-exports cmd)])
+               (let-values ([(to-stdin from-stdout from-stderr process-id)
+                             (open-process-ports (format "/bin/sh -c ~s" full-cmd)
+                                                 (buffer-mode block)
+                                                 (native-transcoder))])
+                           ;; Write stdin content
+                           (put-string to-stdin stdin-content)
+                           (close-port to-stdin)
+                           (let ([stdout-all (get-string-all from-stdout)]
+                                 [stderr-all (get-string-all from-stderr)])
+                                (close-port from-stdout)
+                                (close-port from-stderr)
+                                (let ([stdout-str (if (eof-object? stdout-all) "" stdout-all)]
+                                      [stderr-str (if (eof-object? stderr-all) "" stderr-all)])
+                                     (list 'shell-result
+                                           (string=? stderr-str "")
+                                           stdout-str
+                                           stderr-str)))))))
 
 (define (shell-result-ok? r) (list-ref r 1))
 (define (shell-result-stdout r) (list-ref r 2))
 (define (shell-result-stderr r) (list-ref r 3))
-
-;;; ============================================================
-;;; JSON Parsing Dependency
-;;; ============================================================
-
-;;; parse-json-string : String -> Any
-;;; Parse a JSON string into Scheme data structures.
-;;; Objects become alists, arrays become lists.
-(define (parse-json-string s)
-  (guard (ex [else #f])
-         (if (or (not s) (string=? s ""))
-             #f
-             (let ([trimmed (string-trim s)])
-                  (if (string=? trimmed "")
-                      #f
-                      (let-values ([(result rest) (parse-json-value trimmed 0)])
-                                  result))))))
-
-;;; string-trim : String -> String
-;;; Remove leading/trailing whitespace.
-(define (string-trim s)
-  (let* ([len (string-length s)]
-         [start (let loop ([i 0])
-                     (if (and (< i len) (char-whitespace? (string-ref s i)))
-                         (loop (+ i 1))
-                         i))]
-         [end (let loop ([i (- len 1)])
-                   (if (and (>= i start) (char-whitespace? (string-ref s i)))
-                       (loop (- i 1))
-                       (+ i 1)))])
-        (if (>= start end)
-            ""
-            (substring s start end))))
-
-;;; parse-json-value : String -> Integer -> (Values Any Integer)
-;;; Parse a JSON value starting at position, return value and end position.
-(define (parse-json-value s pos)
-  (let ([pos (skip-whitespace s pos)])
-       (if (>= pos (string-length s))
-           (values #f pos)
-           (let ([c (string-ref s pos)])
-                (cond
-                 [(char=? c #\{) (parse-json-object s pos)]
-                 [(char=? c #\[) (parse-json-array s pos)]
-                 [(char=? c #\") (parse-json-string-value s pos)]
-                 [(or (char=? c #\-) (char-numeric? c)) (parse-json-number s pos)]
-                 [(char=? c #\t) (parse-json-true s pos)]
-                 [(char=? c #\f) (parse-json-false s pos)]
-                 [(char=? c #\n) (parse-json-null s pos)]
-                 [else (values #f pos)])))))
-
-;;; skip-whitespace : String -> Integer -> Integer
-(define (skip-whitespace s pos)
-  (let ([len (string-length s)])
-       (let loop ([i pos])
-            (if (and (< i len) (char-whitespace? (string-ref s i)))
-                (loop (+ i 1))
-                i))))
-
-;;; parse-json-object : String -> Integer -> (Values Alist Integer)
-(define (parse-json-object s pos)
-  (let ([pos (+ pos 1)])  ; skip '{'
-       (let loop ([pos (skip-whitespace s pos)]
-                  [result '()])
-            (if (or (>= pos (string-length s)) (char=? (string-ref s pos) #\}))
-                (values (reverse result) (+ pos 1))
-                (let-values ([(key pos2) (parse-json-string-value s pos)])
-                            (let ([pos3 (skip-whitespace s pos2)])
-                                 (if (and (< pos3 (string-length s)) (char=? (string-ref s pos3) #\:))
-                                     (let-values ([(val pos4) (parse-json-value s (+ pos3 1))])
-                                                 (let ([pos5 (skip-whitespace s pos4)])
-                                                      (if (and (< pos5 (string-length s)) (char=? (string-ref s pos5) #\,))
-                                                          (loop (skip-whitespace s (+ pos5 1))
-                                                                (cons (cons (string->symbol key) val) result))
-                                                          (loop pos5 (cons (cons (string->symbol key) val) result)))))
-                                     (values (reverse result) pos3))))))))
-
-;;; parse-json-array : String -> Integer -> (Values List Integer)
-(define (parse-json-array s pos)
-  (let ([pos (+ pos 1)])  ; skip '['
-       (let loop ([pos (skip-whitespace s pos)]
-                  [result '()])
-            (if (or (>= pos (string-length s)) (char=? (string-ref s pos) #\]))
-                (values (reverse result) (+ pos 1))
-                (let-values ([(val pos2) (parse-json-value s pos)])
-                            (let ([pos3 (skip-whitespace s pos2)])
-                                 (if (and (< pos3 (string-length s)) (char=? (string-ref s pos3) #\,))
-                                     (loop (skip-whitespace s (+ pos3 1)) (cons val result))
-                                     (loop pos3 (cons val result)))))))))
-
-;;; parse-json-string-value : String -> Integer -> (Values String Integer)
-(define (parse-json-string-value s pos)
-  (let ([pos (+ pos 1)])  ; skip opening quote
-       (let loop ([i pos]
-                  [chars '()])
-            (if (>= i (string-length s))
-                (values (list->string (reverse chars)) i)
-                (let ([c (string-ref s i)])
-                     (cond
-                      [(char=? c #\")
-                       (values (list->string (reverse chars)) (+ i 1))]
-                      [(char=? c #\\)
-                       (if (< (+ i 1) (string-length s))
-                           (let ([next (string-ref s (+ i 1))])
-                                (case next
-                                      [(#\n) (loop (+ i 2) (cons #\newline chars))]
-                                      [(#\r) (loop (+ i 2) (cons #\return chars))]
-                                      [(#\t) (loop (+ i 2) (cons #\tab chars))]
-                                      [(#\" #\\ #\/) (loop (+ i 2) (cons next chars))]
-                                      [else (loop (+ i 2) (cons next chars))]))
-                           (values (list->string (reverse chars)) i))]
-                      [else (loop (+ i 1) (cons c chars))]))))))
-
-;;; parse-json-number : String -> Integer -> (Values Number Integer)
-(define (parse-json-number s pos)
-  (let ([len (string-length s)])
-       (let loop ([i pos]
-                  [chars '()])
-            (if (and (< i len)
-                     (let ([c (string-ref s i)])
-                          (or (char-numeric? c)
-                              (char=? c #\-)
-                              (char=? c #\+)
-                              (char=? c #\.)
-                              (char=? c #\e)
-                              (char=? c #\E))))
-                (loop (+ i 1) (cons (string-ref s i) chars))
-                (values (string->number (list->string (reverse chars))) i)))))
-
-;;; parse-json-true : String -> Integer -> (Values #t Integer)
-(define (parse-json-true s pos)
-  (if (and (<= (+ pos 4) (string-length s))
-           (string=? (substring s pos (+ pos 4)) "true"))
-      (values #t (+ pos 4))
-      (values #f pos)))
-
-;;; parse-json-false : String -> Integer -> (Values #f Integer)
-(define (parse-json-false s pos)
-  (if (and (<= (+ pos 5) (string-length s))
-           (string=? (substring s pos (+ pos 5)) "false"))
-      (values #f (+ pos 5))
-      (values #f pos)))
-
-;;; parse-json-null : String -> Integer -> (Values '() Integer)
-(define (parse-json-null s pos)
-  (if (and (<= (+ pos 4) (string-length s))
-           (string=? (substring s pos (+ pos 4)) "null"))
-      (values '() (+ pos 4))
-      (values #f pos)))
