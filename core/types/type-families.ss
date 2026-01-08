@@ -269,6 +269,7 @@
 
 ;;; reduce-tf-fuel : Type × Any × Nat → Type
 ;;; Reduce with fuel to ensure termination.
+;;; Uses "reduce arguments first" strategy for stuck type families.
 (define (reduce-tf-fuel type registry fuel)
   (if (<= fuel 0)
       type  ; Out of fuel, return as-is
@@ -282,7 +283,7 @@
         (let* ([family-name (car type)]
                [args (cdr type)]
                [applied-arg (if (= (length args) 1) (car args) args)])
-              ;; Look up instance
+              ;; First try to look up instance with current args
               (let ([instance (tf-registry-lookup-instance registry family-name applied-arg)])
                    (if instance
                        ;; Found instance, substitute and reduce again
@@ -294,16 +295,44 @@
                                   (apply-type-subst subst rhs)
                                   registry
                                   (- fuel 1))
-                                 ;; Pattern didn't match, keep as-is
-                                 type))
-                       ;; No instance found, keep as-is
-                       type)))]
+                                 ;; Pattern didn't match, try reducing args
+                                 (reduce-tf-args-and-retry type registry fuel)))
+                       ;; No instance found - reduce arguments and retry
+                       (reduce-tf-args-and-retry type registry fuel))))]
        
        ;; Recursively reduce in compound types
        [else
         (cons (car type)
               (map (lambda (t) (reduce-tf-fuel t registry (- fuel 1)))
                    (cdr type)))])))
+
+;;; reduce-tf-args-and-retry : Type × Any × Nat → Type
+;;; Reduce arguments of a stuck type family application and retry.
+(define (reduce-tf-args-and-retry type registry fuel)
+  (let* ([family-name (car type)]
+         [args (cdr type)]
+         [reduced-args (map (lambda (t) (reduce-tf-fuel t registry (- fuel 1))) args)]
+         [reduced-type (cons family-name reduced-args)])
+        ;; If arguments changed, try again with reduced type
+        (if (equal? args reduced-args)
+            reduced-type  ; No change, return as-is
+            (let* ([applied-arg (if (= (length reduced-args) 1)
+                                    (car reduced-args)
+                                    reduced-args)]
+                   [instance (tf-registry-lookup-instance registry family-name applied-arg)])
+                  (if instance
+                      ;; Found instance after reduction, apply it
+                      (let* ([pattern (type-family-instance-pattern instance)]
+                             [rhs (type-family-instance-rhs instance)]
+                             [subst (match-type-pattern pattern applied-arg)])
+                            (if subst
+                                (reduce-tf-fuel
+                                 (apply-type-subst subst rhs)
+                                 registry
+                                 (- fuel 2))
+                                reduced-type))
+                      ;; Still no instance, return with reduced args
+                      reduced-type)))))
 
 ;;; match-type-pattern : Type × Type → Subst | #f
 ;;; Match a type against a pattern, returning substitution.

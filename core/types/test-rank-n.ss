@@ -224,6 +224,33 @@
      (test "Church pair constructor is rank 1" 1 (type-rank pair-type)))
 
 ;;; ============================================================
+;;; Capture-Avoiding Substitution Tests
+;;; ============================================================
+(test-section "Capture-Avoiding Substitution")
+
+;; Test that [b/a] in (∀b. a → b) renames b to avoid capture
+;; Without capture-avoidance: (∀b. b → b) - WRONG (a was captured)
+;; With capture-avoidance: (∀b$N. b → b$N) - correct
+(let* ([subst (list (cons 'a 'b))]
+       [type '(∀ (b) (-> a b))]
+       [result (apply-subst-rankn subst type)])
+      ;; The result should NOT be (∀ (b) (-> b b))
+      ;; It should rename b to avoid capture
+      (test "capture-avoiding: b renamed" #f (equal? result '(∀ (b) (-> b b))))
+      ;; The body should have the substitution applied
+      (test "capture-avoiding: a becomes b" #t
+            (let ([body (caddr result)])
+                 ;; First arg position should be b (from subst)
+                 (eq? (cadr body) 'b))))
+
+;; Test that no renaming happens when not needed
+(let* ([subst (list (cons 'a 'c))]
+       [type '(∀ (b) (-> a b))]
+       [result (apply-subst-rankn subst type)])
+      (test "no capture: b unchanged" '(b) (cadr result))
+      (test "no capture: a becomes c" '(-> c b) (caddr result)))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 (newline)
