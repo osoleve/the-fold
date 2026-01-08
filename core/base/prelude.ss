@@ -359,6 +359,10 @@
        (and (<= pre-len str-len)
             (string=? (substring str 0 pre-len) prefix))))
 
+;;; string-prefix? : String × String → Boolean
+;;; Alias for string-starts-with? (common naming convention).
+(define string-prefix? string-starts-with?)
+
 ;;; string-ends-with? : String × String → Boolean
 ;;; Check if string ends with suffix.
 (define (string-ends-with? str suffix)

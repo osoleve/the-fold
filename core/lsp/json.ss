@@ -461,30 +461,6 @@
                                                                 [else "Expected ',' or '}' in object"])))))))))))))))
 
 ;;; ============================================================
-;;; Utilities
-;;; ============================================================
-
-;;; string-contains? : String × String → Boolean
-(define (string-contains? str substr)
-  (let ([slen (string-length str)]
-        [sublen (string-length substr)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i sublen) slen) #f]
-             [(string-prefix? (substring str i slen) substr) #t]
-             [else (loop (+ i 1))]))))
-
-;;; string-prefix? : String × String → Boolean
-(define (string-prefix? str prefix)
-  (let ([slen (string-length str)]
-        [plen (string-length prefix)])
-       (and (>= slen plen)
-            (let loop ([i 0])
-                 (or (= i plen)
-                     (and (char=? (string-ref str i) (string-ref prefix i))
-                          (loop (+ i 1))))))))
-
-;;; ============================================================
 ;;; Tests (run with test-framework)
 ;;; ============================================================
 

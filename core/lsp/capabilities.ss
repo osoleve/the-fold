@@ -114,36 +114,58 @@
    ;; Nothing found
    [else #f]))
 
+;;; ============================================================
+;;; Primitive Type Database (shared between hover and completion)
+;;; ============================================================
+
+;;; *primitives* : (Alist String String)
+;;; Mapping from primitive names to their type signatures.
+;;; This is the single source of truth for primitive types.
+(define *primitives*
+  '(;; Arithmetic
+    ("+" . "(Int → Int → Int)")
+    ("-" . "(Int → Int → Int)")
+    ("*" . "(Int → Int → Int)")
+    ("/" . "(Int → Int → Int)")
+    ;; Comparison
+    ("=" . "(α → α → Bool)")
+    ("<" . "(Int → Int → Bool)")
+    (">" . "(Int → Int → Bool)")
+    ("<=" . "(Int → Int → Bool)")
+    (">=" . "(Int → Int → Bool)")
+    ("equal?" . "(α → α → Bool)")
+    ("eq?" . "(α → α → Bool)")
+    ("eqv?" . "(α → α → Bool)")
+    ;; Pairs
+    ("car" . "((Pair α β) → α)")
+    ("cdr" . "((Pair α β) → β)")
+    ("cons" . "(α → β → (Pair α β))")
+    ("pair?" . "(α → Bool)")
+    ;; Lists
+    ("list" . "(α ... → (List α))")
+    ("null?" . "(α → Bool)")
+    ("length" . "((List α) → Int)")
+    ("append" . "((List α) → (List α) → (List α))")
+    ("reverse" . "((List α) → (List α))")
+    ("map" . "((α → β) → (List α) → (List β))")
+    ("filter" . "((α → Bool) → (List α) → (List α))")
+    ("fold" . "((β → α → β) → β → (List α) → β)")
+    ;; Strings
+    ("string-append" . "(String ... → String)")
+    ("string-length" . "(String → Int)")
+    ("number->string" . "(Number → String)")
+    ("string->number" . "(String → Number | #f)")
+    ;; I/O
+    ("display" . "(α → Unit)")
+    ("newline" . "(→ Unit)")
+    ("read" . "(→ α)")
+    ("write" . "(α → Unit)")))
+
 ;;; primitive-type : String → String | #f
 ;;; Get the type of a primitive operation.
 (define (primitive-type name)
-  (let ([primitives
-         '(("+" . "(Int → Int → Int)")
-           ("-" . "(Int → Int → Int)")
-           ("*" . "(Int → Int → Int)")
-           ("/" . "(Int → Int → Int)")
-           ("=" . "(α → α → Bool)")
-           ("<" . "(Int → Int → Bool)")
-           (">" . "(Int → Int → Bool)")
-           ("<=" . "(Int → Int → Bool)")
-           (">=" . "(Int → Int → Bool)")
-           ("car" . "((Pair α β) → α)")
-           ("cdr" . "((Pair α β) → β)")
-           ("cons" . "(α → β → (Pair α β))")
-           ("null?" . "(α → Bool)")
-           ("pair?" . "(α → Bool)")
-           ("list" . "(α ... → (List α))")
-           ("length" . "((List α) → Int)")
-           ("append" . "((List α) → (List α) → (List α))")
-           ("map" . "((α → β) → (List α) → (List β))")
-           ("filter" . "((α → Bool) → (List α) → (List α))")
-           ("fold" . "((β → α → β) → β → (List α) → β)")
-           ("string-append" . "(String → String → String)")
-           ("string-length" . "(String → Int)")
-           ("display" . "(α → Unit)")
-           ("newline" . "(Unit → Unit)"))])
-       (let ([entry (assoc name primitives)])
-            (and entry (cdr entry)))))
+  (let ([entry (assoc name *primitives*)])
+       (and entry (cdr entry))))
 
 ;;; ============================================================
 ;;; Go-to-Definition Implementation
@@ -231,41 +253,15 @@
                    keywords)))
 
 ;;; primitive-completions : String → (List JsonObject)
+;;; Uses shared *primitives* list for type information.
 (define (primitive-completions prefix)
-  (let ([primitives '(("+" . "(Int → Int → Int)")
-                      ("-" . "(Int → Int → Int)")
-                      ("*" . "(Int → Int → Int)")
-                      ("/" . "(Int → Int → Int)")
-                      ("car" . "((Pair α β) → α)")
-                      ("cdr" . "((Pair α β) → β)")
-                      ("cons" . "(α → β → (Pair α β))")
-                      ("list" . "(α ... → (List α))")
-                      ("null?" . "(α → Bool)")
-                      ("pair?" . "(α → Bool)")
-                      ("map" . "((α → β) → (List α) → (List β))")
-                      ("filter" . "((α → Bool) → (List α) → (List α))")
-                      ("fold" . "((β → α → β) → β → (List α) → β)")
-                      ("append" . "((List α) → (List α) → (List α))")
-                      ("length" . "((List α) → Int)")
-                      ("reverse" . "((List α) → (List α))")
-                      ("string-append" . "(String ... → String)")
-                      ("string-length" . "(String → Int)")
-                      ("number->string" . "(Number → String)")
-                      ("string->number" . "(String → Number | #f)")
-                      ("display" . "(α → Unit)")
-                      ("newline" . "(→ Unit)")
-                      ("read" . "(→ α)")
-                      ("write" . "(α → Unit)")
-                      ("equal?" . "(α → α → Bool)")
-                      ("eq?" . "(α → α → Bool)")
-                      ("eqv?" . "(α → α → Bool)"))])
-       (filter-map (lambda (prim)
-                           (if (or (string=? prefix "")
-                                   (string-prefix? (car prim) prefix))
-                               (make-completion-item (car prim) *completion-function*
-                                                     (cdr prim))
-                               #f))
-                   primitives)))
+  (filter-map (lambda (prim)
+                      (if (or (string=? prefix "")
+                              (string-prefix? (car prim) prefix))
+                          (make-completion-item (car prim) *completion-function*
+                                                (cdr prim))
+                          #f))
+              *primitives*))
 
 ;;; index-completions : String → (List JsonObject)
 (define (index-completions prefix)

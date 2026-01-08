@@ -40,9 +40,10 @@
        (json-get msg "method")))
 
 ;;; lsp-response? : JsonObject → Boolean
+;;; Note: Use assoc for id check (consistent with lsp-request?).
 (define (lsp-response? msg)
   (and (json-object? msg)
-       (json-get msg "id")
+       (assoc "id" (cdr msg))          ; Key exists (handles id:0)
        (or (assoc "result" (cdr msg))  ; Use assoc to detect explicit null
            (json-get msg "error"))))
 
@@ -292,10 +293,3 @@
   (if (string-prefix? uri "file://")
       (substring uri 7 (string-length uri))
       uri))
-
-;;; string-prefix? : String × String → Boolean
-(define (string-prefix? str prefix)
-  (let ([slen (string-length str)]
-        [plen (string-length prefix)])
-       (and (>= slen plen)
-            (string=? (substring str 0 plen) prefix))))

@@ -244,16 +244,32 @@
 
 ;;; symbol-at-offset : Document × Int → String | #f
 ;;; Extract the symbol (identifier) at a given offset.
+;;; If offset is at the end of a symbol (cursor after last char),
+;;; looks back one position to find the symbol.
 (define (symbol-at-offset doc offset)
   (let* ([content (document-content doc)]
          [len (string-length content)])
-        (if (or (< offset 0) (>= offset len))
-            #f
-            (let* ([start (find-symbol-start content offset)]
-                   [end (find-symbol-end content offset)])
-                  (if (and start end (< start end))
-                      (substring content start end)
-                      #f)))))
+        (cond
+         ;; Out of bounds
+         [(or (< offset 0) (> offset len)) #f]
+         ;; At end of document - check previous char
+         [(= offset len)
+          (if (and (> len 0) (symbol-char? (string-ref content (- len 1))))
+              (symbol-at-offset doc (- offset 1))
+              #f)]
+         ;; Current char is a symbol char - find bounds
+         [(symbol-char? (string-ref content offset))
+          (let* ([start (find-symbol-start content offset)]
+                 [end (find-symbol-end content offset)])
+                (if (< start end)
+                    (substring content start end)
+                    #f))]
+         ;; Current char is NOT a symbol char - check previous position
+         ;; This handles cursor-at-end-of-symbol (e.g., "define|")
+         [(and (> offset 0) (symbol-char? (string-ref content (- offset 1))))
+          (symbol-at-offset doc (- offset 1))]
+         ;; No symbol at or before this position
+         [else #f])))
 
 ;;; symbol-at-position : Document × JsonObject → String | #f
 ;;; Extract the symbol at an LSP position.
