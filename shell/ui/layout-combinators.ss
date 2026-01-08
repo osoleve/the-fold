@@ -65,7 +65,13 @@
           diagram-canvas
           diagram-width
           diagram-height
-          diagram-set-size)
+          diagram-set-size
+          
+          ;; Connection combinators
+          connect
+          arrow
+          edge
+          connect-arrow)
          
          (import (chezscheme))
          
@@ -483,5 +489,127 @@
                   [new-h (+ h (* 2 amount))]
                   [result (make-canvas w new-h)])
                  (composite-at result canvas (point 0 amount))))
+
+         ;;; ============================================================
+         ;;; Connection Combinators (for diagrams)
+         ;;; ============================================================
+         
+         ;;; connect : Canvas × Point × Point × Char → Canvas
+         ;;; Draw a line connecting two points using Bresenham's algorithm.
+         (define (connect canvas start end ch)
+           (let ([x0 (point-x start)]
+                 [y0 (point-y start)]
+                 [x1 (point-x end)]
+                 [y1 (point-y end)])
+                (let* ([dx (abs (- x1 x0))]
+                       [dy (abs (- y1 y0))]
+                       [sx (if (< x0 x1) 1 -1)]
+                       [sy (if (< y0 y1) 1 -1)]
+                       [err (- dx dy)])
+                      (let loop ([x x0] [y y0] [err err])
+                           (canvas-set! canvas x y ch)
+                           (if (and (= x x1) (= y y1))
+                               canvas
+                               (let* ([e2 (* 2 err)]
+                                      [new-err (if (> e2 (- dy)) (- err dy) err)]
+                                      [new-x (if (> e2 (- dy)) (+ x sx) x)]
+                                      [new-err2 (if (< e2 dx) (+ new-err dx) new-err)]
+                                      [new-y (if (< e2 dx) (+ y sy) y)])
+                                     (loop new-x new-y new-err2)))))))
+
+         ;;; arrow : Canvas × Point × Point × Char × Symbol → Canvas
+         ;;; Draw an arrow from start to end.
+         ;;; Direction determines arrowhead style: 'right, 'left, 'up, 'down, 'auto
+         (define arrow
+           (case-lambda
+            [(canvas start end line-char)
+             (arrow canvas start end line-char 'auto)]
+            [(canvas start end line-char direction)
+             (let* ([c (connect canvas start end line-char)]
+                    [x1 (point-x end)]
+                    [y1 (point-y end)]
+                    [x0 (point-x start)]
+                    [y0 (point-y start)]
+                    [dx (- x1 x0)]
+                    [dy (- y1 y0)]
+                    ;; Determine arrowhead character
+                    [arrow-ch
+                     (case direction
+                           [(right) #\>]
+                           [(left) #\<]
+                           [(up) #\^]
+                           [(down) #\v]
+                           [(auto)
+                            (cond
+                             [(and (> (abs dx) (abs dy)) (> dx 0)) #\>]
+                             [(and (> (abs dx) (abs dy)) (< dx 0)) #\<]
+                             [(and (<= (abs dx) (abs dy)) (> dy 0)) #\v]
+                             [(and (<= (abs dx) (abs dy)) (< dy 0)) #\^]
+                             [else #\>])]
+                           [else #\>])])
+                   (canvas-set! c x1 y1 arrow-ch)
+                   c)]))
+
+         ;;; edge : Canvas × Point × Point × Symbol → Canvas
+         ;;; Draw a smart edge between two points with automatic routing.
+         ;;; Style: 'straight, 'horizontal-first, 'vertical-first, 'orthogonal
+         (define edge
+           (case-lambda
+            [(canvas start end)
+             (edge canvas start end 'straight)]
+            [(canvas start end style)
+             (let ([x0 (point-x start)]
+                   [y0 (point-y start)]
+                   [x1 (point-x end)]
+                   [y1 (point-y end)])
+                  (case style
+                        [(straight)
+                         ;; Direct line
+                         (connect canvas start end #\·)]
+                        [(horizontal-first)
+                         ;; Go horizontal then vertical (L-shaped)
+                         (let* ([mid (point x1 y0)]
+                                [c (connect canvas start mid #\─)])
+                               (connect c mid end #\│))]
+                        [(vertical-first)
+                         ;; Go vertical then horizontal (L-shaped)
+                         (let* ([mid (point x0 y1)]
+                                [c (connect canvas start mid #\│)])
+                               (connect c mid end #\─))]
+                        [(orthogonal)
+                         ;; Go halfway horizontal, then vertical, then horizontal
+                         (let* ([mid-x (quotient (+ x0 x1) 2)]
+                                [p1 (point mid-x y0)]
+                                [p2 (point mid-x y1)]
+                                [c (connect canvas start p1 #\─)]
+                                [c (connect c p1 p2 #\│)])
+                               (connect c p2 end #\─))]
+                        [else
+                         (connect canvas start end #\·)]))]))
+
+         ;;; connect-arrow : Canvas × Point × Point × Symbol → Canvas
+         ;;; Draw an edge with an arrowhead at the end.
+         (define connect-arrow
+           (case-lambda
+            [(canvas start end)
+             (connect-arrow canvas start end 'straight)]
+            [(canvas start end style)
+             (let ([c (edge canvas start end style)])
+                  ;; Add arrowhead
+                  (let* ([x1 (point-x end)]
+                         [y1 (point-y end)]
+                         [x0 (point-x start)]
+                         [y0 (point-y start)]
+                         [dx (- x1 x0)]
+                         [dy (- y1 y0)]
+                         [arrow-ch
+                          (cond
+                           [(and (> (abs dx) (abs dy)) (> dx 0)) #\>]
+                           [(and (> (abs dx) (abs dy)) (< dx 0)) #\<]
+                           [(and (<= (abs dx) (abs dy)) (> dy 0)) #\v]
+                           [(and (<= (abs dx) (abs dy)) (< dy 0)) #\^]
+                           [else #\>])])
+                        (canvas-set! c x1 y1 arrow-ch)
+                        c))]))
 
          ) ; end library

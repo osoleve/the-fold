@@ -28,6 +28,7 @@
           canvas-translate
           canvas-rotate
           canvas-scale
+          canvas-skew
           canvas-flip-horizontal
           canvas-flip-vertical
           
@@ -36,6 +37,9 @@
           matrix-translate
           matrix-rotate
           matrix-scale
+          matrix-skew
+          matrix-skew-x
+          matrix-skew-y
           matrix-multiply
           matrix-invert
           canvas-transform
@@ -98,6 +102,28 @@
            (make-transform-matrix (exact->inexact sx) 0.0
                                   0.0 (exact->inexact sy)
                                   0.0 0.0))
+         
+         ;;; matrix-skew-x : Real → Matrix
+         ;;; Create horizontal skew matrix (angle in radians).
+         ;;; Skews along x-axis: x' = x + y*tan(angle), y' = y
+         (define (matrix-skew-x angle)
+           (make-transform-matrix 1.0 (tan angle)
+                                  0.0 1.0
+                                  0.0 0.0))
+         
+         ;;; matrix-skew-y : Real → Matrix
+         ;;; Create vertical skew matrix (angle in radians).
+         ;;; Skews along y-axis: x' = x, y' = y + x*tan(angle)
+         (define (matrix-skew-y angle)
+           (make-transform-matrix 1.0 0.0
+                                  (tan angle) 1.0
+                                  0.0 0.0))
+         
+         ;;; matrix-skew : Real × Real → Matrix
+         ;;; Create combined skew matrix (angles in radians).
+         (define (matrix-skew angle-x angle-y)
+           (matrix-multiply (matrix-skew-x angle-x)
+                            (matrix-skew-y angle-y)))
          
          ;;; matrix-multiply : Matrix × Matrix → Matrix
          ;;; Multiply two transformation matrices (compose transforms).
@@ -263,6 +289,20 @@
                                    (matrix-translate 0 h)
                                    (matrix-scale 1.0 -1.0))
                                   w h)))
+
+         ;;; canvas-skew : Canvas × Real × Real × Point → Canvas
+         ;;; Skew canvas by angle-x and angle-y (radians) around center point.
+         (define (canvas-skew canvas angle-x angle-y center)
+           (let* ([cx (point-x center)]
+                  [cy (point-y center)]
+                  [w (canvas-width canvas)]
+                  [h (canvas-height canvas)]
+                  ;; Skew around center: translate to origin, skew, translate back
+                  [m1 (matrix-translate (- cx) (- cy))]
+                  [m2 (matrix-skew angle-x angle-y)]
+                  [m3 (matrix-translate cx cy)]
+                  [combined (matrix-multiply (matrix-multiply m3 m2) m1)])
+                 (canvas-transform canvas combined w h)))
 
          ;;; ============================================================
          ;;; General Transform Application
