@@ -175,14 +175,22 @@
 ;;; span->lsp-range : Document × Span → JsonObject
 ;;; Convert a source span to an LSP range.
 ;;; Span is 1-indexed; LSP is 0-indexed.
+;;; Validates boundaries to handle stale spans gracefully.
 (define (span->lsp-range doc span)
-  (let* ([start-line (- (span-line span) 1)]
-         [start-col (- (span-column span) 1)]
-         [end-line (- (span-end-line span) 1)]
-         [end-col (- (span-end-column span) 1)]
-         ;; Convert columns to UTF-16
+  (let* ([num-lines (line-count doc)]
+         [max-line (max 0 (- num-lines 1))]
+         ;; Clamp lines to valid range
+         [start-line (max 0 (min max-line (- (span-line span) 1)))]
+         [end-line (max 0 (min max-line (- (span-end-line span) 1)))]
+         ;; Get line content (now guaranteed valid)
          [start-content (get-line-content doc start-line)]
          [end-content (get-line-content doc end-line)]
+         ;; Clamp columns to line length
+         [start-col (max 0 (min (string-length start-content)
+                                (- (span-column span) 1)))]
+         [end-col (max 0 (min (string-length end-content)
+                              (- (span-end-column span) 1)))]
+         ;; Convert columns to UTF-16
          [start-utf16 (char-offset->utf16-offset start-content start-col)]
          [end-utf16 (char-offset->utf16-offset end-content end-col)])
         (make-range (make-position start-line start-utf16)

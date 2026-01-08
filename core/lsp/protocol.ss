@@ -126,6 +126,7 @@
 ;;; Language Features
 (define *method-hover* "textDocument/hover")
 (define *method-completion* "textDocument/completion")
+(define *method-signature-help* "textDocument/signatureHelp")
 (define *method-definition* "textDocument/definition")
 (define *method-references* "textDocument/references")
 (define *method-document-symbol* "textDocument/documentSymbol")
@@ -193,6 +194,10 @@
    "completionProvider" (json-obj
                          "triggerCharacters" (json-arr "(" "'" ":")
                          "resolveProvider" #f)
+   ;; Signature help (function parameter hints)
+   "signatureHelpProvider" (json-obj
+                            "triggerCharacters" (json-arr "(" " ")
+                            "retriggerCharacters" (json-arr " "))
    ;; Go to definition
    "definitionProvider" #t
    ;; Document symbols (outline)
@@ -251,6 +256,38 @@
        (if (and (pair? range) (car range))
            (cons 'json-object (cons (cons "range" (car range)) (cdr base)))
            base)))
+
+;;; ============================================================
+;;; Signature Help
+;;; ============================================================
+
+;;; make-signature-help : (List SignatureInfo) × Int × Int → JsonObject
+;;; Create an LSP SignatureHelp response.
+;;; signatures: list of signature infos
+;;; activeSignature: index of active signature (0-indexed)
+;;; activeParameter: index of active parameter (0-indexed)
+(define (make-signature-help signatures active-sig active-param)
+  (json-obj "signatures" (apply json-arr signatures)
+            "activeSignature" active-sig
+            "activeParameter" active-param))
+
+;;; make-signature-info : String × String × (List ParameterInfo) → JsonObject
+;;; Create a SignatureInformation object.
+;;; label: full signature text (e.g., "(map f lst)")
+;;; doc: markdown documentation
+;;; params: list of parameter infos
+(define (make-signature-info label doc params)
+  (json-obj "label" label
+            "documentation" (json-obj "kind" "markdown" "value" doc)
+            "parameters" (apply json-arr params)))
+
+;;; make-parameter-info : String × String → JsonObject
+;;; Create a ParameterInformation object.
+;;; label: parameter label (substring of signature or [start, end] offsets)
+;;; doc: parameter documentation
+(define (make-parameter-info label doc)
+  (json-obj "label" label
+            "documentation" doc))
 
 ;;; ============================================================
 ;;; Completion Items

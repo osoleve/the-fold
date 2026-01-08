@@ -168,6 +168,169 @@
        (and entry (cdr entry))))
 
 ;;; ============================================================
+;;; Signature Help Database
+;;; ============================================================
+
+;;; *signatures* : (Alist String SignatureData)
+;;; Mapping from function names to their signature information.
+;;; Each entry is: (name label doc ((param-name . param-doc) ...))
+(define *signatures*
+  '(;; Higher-order functions
+    ("map" "(map f lst)" "Apply function to each element of list."
+     (("f" "Function to apply: (α → β)")
+      ("lst" "List to map over: (List α)")))
+    ("filter" "(filter pred lst)" "Keep elements satisfying predicate."
+     (("pred" "Predicate function: (α → Bool)")
+      ("lst" "List to filter: (List α)")))
+    ("fold" "(fold f init lst)" "Left fold over list."
+     (("f" "Combining function: (β → α → β)")
+      ("init" "Initial accumulator value: β")
+      ("lst" "List to fold: (List α)")))
+    ("for-each" "(for-each f lst)" "Apply function to each element for side effects."
+     (("f" "Function to apply: (α → Unit)")
+      ("lst" "List to iterate: (List α)")))
+    ;; List operations
+    ("append" "(append lst1 lst2)" "Concatenate two lists."
+     (("lst1" "First list: (List α)")
+      ("lst2" "Second list: (List α)")))
+    ("cons" "(cons head tail)" "Construct a pair."
+     (("head" "First element: α")
+      ("tail" "Second element (or list): β")))
+    ("list-ref" "(list-ref lst idx)" "Get element at index."
+     (("lst" "List to index: (List α)")
+      ("idx" "Zero-based index: Int")))
+    ;; Control flow
+    ("if" "(if test then else)" "Conditional expression."
+     (("test" "Condition: Bool")
+      ("then" "Value if true: α")
+      ("else" "Value if false: α")))
+    ("cond" "(cond [test expr] ... [else expr])" "Multi-way conditional."
+     (("clause" "Test-expression pair: [Bool α]")))
+    ("let" "(let ([var val] ...) body)" "Local bindings."
+     (("bindings" "Variable bindings: ([Symbol α] ...)")
+      ("body" "Body expression: β")))
+    ("lambda" "(lambda (params ...) body)" "Anonymous function."
+     (("params" "Parameter list: (Symbol ...)")
+      ("body" "Function body: α")))
+    ("define" "(define name value)" "Define a binding."
+     (("name" "Variable name: Symbol")
+      ("value" "Value to bind: α")))
+    ;; String operations
+    ("string-append" "(string-append str ...)" "Concatenate strings."
+     (("str" "Strings to concatenate: String ...")))
+    ("substring" "(substring str start end)" "Extract substring."
+     (("str" "Source string: String")
+      ("start" "Start index: Int")
+      ("end" "End index: Int")))
+    ("string-ref" "(string-ref str idx)" "Get character at index."
+     (("str" "Source string: String")
+      ("idx" "Zero-based index: Int")))
+    ;; I/O
+    ("display" "(display obj)" "Write object to output."
+     (("obj" "Object to display: α")))
+    ("format" "(format fmt args ...)" "Format string with arguments."
+     (("fmt" "Format string: String")
+      ("args" "Format arguments: α ...")))))
+
+;;; lookup-signature : String → SignatureData | #f
+(define (lookup-signature name)
+  (assoc name *signatures*))
+
+;;; ============================================================
+;;; Signature Help Implementation
+;;; ============================================================
+
+;;; compute-signature-help : Document × JsonObject → JsonObject | null
+;;; Compute signature help at a position.
+(define (compute-signature-help doc position)
+  (let* ([offset (lsp-position->offset doc position)]
+         [call-info (find-enclosing-call doc offset)])
+        (if (not call-info)
+            'null
+            (let* ([func-name (car call-info)]
+                   [param-idx (cdr call-info)]
+                   [sig-data (lookup-signature func-name)])
+                  (if (not sig-data)
+                      'null
+                      (let* ([label (cadr sig-data)]
+                             [doc (caddr sig-data)]
+                             [params (cadddr sig-data)]
+                             [param-infos (map (lambda (p)
+                                                       (make-parameter-info (car p) (cdr p)))
+                                               params)]
+                             [sig-info (make-signature-info label doc param-infos)])
+                            (make-signature-help (list sig-info) 0 param-idx)))))))
+
+;;; find-enclosing-call : Document × Int → (String . Int) | #f
+;;; Find the enclosing function call and which parameter we're in.
+;;; Returns (function-name . parameter-index) or #f.
+(define (find-enclosing-call doc offset)
+  (let* ([content (document-content doc)]
+         [len (string-length content)])
+        (if (>= offset len)
+            #f
+            (find-call-backwards content offset))))
+
+;;; find-call-backwards : String × Int → (String . Int) | #f
+;;; Scan backwards to find opening paren and extract function name.
+(define (find-call-backwards content offset)
+  (let loop ([i (- offset 1)]
+             [depth 0]
+             [param-count 0])
+       (cond
+        ;; Beginning of string
+        [(< i 0) #f]
+        ;; Found opening paren at depth 0
+        [(and (char=? (string-ref content i) #\()
+              (= depth 0))
+         ;; Extract function name after the paren
+         (let ([name (extract-symbol-at content (+ i 1))])
+              (if name
+                  (cons name param-count)
+                  #f))]
+        ;; Nested closing paren
+        [(char=? (string-ref content i) #\))
+         (loop (- i 1) (+ depth 1) param-count)]
+        ;; Nested opening paren
+        [(char=? (string-ref content i) #\()
+         (loop (- i 1) (- depth 1) param-count)]
+        ;; Space at depth 0 counts as parameter separator
+        [(and (= depth 0)
+              (char-whitespace? (string-ref content i))
+              (> i 0)
+              (not (char-whitespace? (string-ref content (- i 1)))))
+         (loop (- i 1) depth (+ param-count 1))]
+        ;; Keep scanning
+        [else
+         (loop (- i 1) depth param-count)])))
+
+;;; extract-symbol-at : String × Int → String | #f
+;;; Extract a symbol starting at the given position.
+(define (extract-symbol-at content start)
+  (let ([len (string-length content)])
+       (if (>= start len)
+           #f
+           ;; Skip whitespace
+           (let skip-ws ([i start])
+                (cond
+                 [(>= i len) #f]
+                 [(char-whitespace? (string-ref content i))
+                  (skip-ws (+ i 1))]
+                 [(symbol-start-char? (string-ref content i))
+                  ;; Found start of symbol
+                  (let find-end ([j (+ i 1)])
+                       (if (or (>= j len)
+                               (not (symbol-char? (string-ref content j))))
+                           (substring content i j)
+                           (find-end (+ j 1))))]
+                 [else #f])))))
+
+;;; symbol-start-char? : Char → Boolean
+(define (symbol-start-char? c)
+  (or (char-alphabetic? c)
+      (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\:))))
+
+;;; ============================================================
 ;;; Go-to-Definition Implementation
 ;;; ============================================================
 

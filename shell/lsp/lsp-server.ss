@@ -138,6 +138,16 @@
             (json-obj "isIncomplete" #f
                       "items" (json-arr)))))
 
+;;; handle-signature-help : JsonObject → JsonObject | null
+(define (handle-signature-help params)
+  (let* ([text-doc (json-get params "textDocument")]
+         [uri (json-get text-doc "uri")]
+         [position (json-get params "position")]
+         [doc (doc-get uri)])
+        (if doc
+            (compute-signature-help doc position)
+            'null)))
+
 ;;; handle-document-symbol : JsonObject → JsonArray
 (define (handle-document-symbol params)
   (let* ([text-doc (json-get params "textDocument")]
@@ -181,6 +191,8 @@
            (handle-definition params)]
           [(string=? method *method-completion*)
            (handle-completion params)]
+          [(string=? method *method-signature-help*)
+           (handle-signature-help params)]
           [(string=? method *method-document-symbol*)
            (handle-document-symbol params)]
           [else

@@ -103,52 +103,18 @@
                       base-msg)]))))
 
 ;;; lookup-error-message* : Symbol × Symbol → String
-;;; Look up the base error message.
+;;; Look up the base error message from error.ss tables.
 (define (lookup-error-message* phase code)
   (let* ([table (case phase
-                      [(parse) *parse-error-messages*]
-                      [(infer) *infer-error-messages*]
-                      [(eval)  *eval-error-messages*]
-                      [(block) *block-error-messages*]
+                      [(parse) *parse-errors*]   ; From error.ss
+                      [(infer) *infer-errors*]   ; From error.ss
+                      [(eval)  *eval-errors*]    ; From error.ss
+                      [(block) *block-errors*]   ; From error.ss
                       [else '()])]
          [entry (assq code table)])
         (if entry
             (cdr entry)
             (symbol->string code))))
-
-;;; Error message tables (duplicated from error.ss for independence)
-(define *parse-error-messages*
-  '((unexpected-eof    . "Unexpected end of input")
-    (unexpected-char   . "Unexpected character")
-    (unclosed-string   . "Unclosed string literal")
-    (unclosed-list     . "Unclosed list - missing )")
-    (invalid-number    . "Invalid number format")
-    (invalid-escape    . "Invalid escape sequence")))
-
-(define *infer-error-messages*
-  '((unbound-variable  . "Variable is not defined")
-    (type-mismatch     . "Types do not match")
-    (arity-mismatch    . "Wrong number of arguments")
-    (not-a-function    . "Attempting to call a non-function")
-    (occurs-check      . "Infinite type detected")
-    (unknown-primitive . "Unknown primitive operation")
-    (if-test-not-bool  . "If condition must be boolean")))
-
-(define *eval-error-messages*
-  '((unbound-variable   . "Variable is not defined")
-    (invalid-expression . "Cannot evaluate this expression")
-    (not-a-closure      . "Attempting to call a non-function")
-    (invalid-arguments  . "Invalid arguments to function")
-    (division-by-zero   . "Division by zero")
-    (out-of-bounds      . "Index out of bounds")
-    (type-error         . "Runtime type error")))
-
-(define *block-error-messages*
-  '((invalid-tag       . "Invalid block tag")
-    (invalid-payload   . "Invalid block payload")
-    (invalid-refs      . "Invalid block references")
-    (hash-mismatch     . "Content hash does not match")
-    (not-found         . "Block not found in store")))
 
 ;;; ============================================================
 ;;; Document Analysis
