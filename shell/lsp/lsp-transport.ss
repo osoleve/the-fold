@@ -22,8 +22,11 @@
 ;;; ============================================================
 
 ;;; The LSP server state
-(define *lsp-stdin* (current-input-port))
-(define *lsp-stdout* (current-output-port))
+;;; CRITICAL: Capture binary ports at load time!
+;;; standard-input-port and standard-output-port can only be called once
+;;; reliably - subsequent calls may return EOF ports.
+(define *lsp-stdin* (standard-input-port))
+(define *lsp-stdout* (standard-output-port))
 (define *lsp-stderr* (current-error-port))
 (define *lsp-running* #f)
 
@@ -50,22 +53,25 @@
 
 ;;; read-line-crlf : InputPort → String | eof
 ;;; Read a line terminated by \r\n (or just \n for compatibility).
+;;; Works with binary ports - headers are ASCII.
 (define (read-line-crlf port)
-  (let loop ([chars '()])
-       (let ([c (read-char port)])
+  (let loop ([bytes '()])
+       (let ([b (get-u8 port)])
             (cond
-             [(eof-object? c)
-              (if (null? chars) c (list->string (reverse chars)))]
-             [(char=? c #\newline)
-              (list->string (reverse chars))]
-             [(char=? c #\return)
+             [(eof-object? b)
+              (if (null? bytes)
+                  b
+                  (utf8->string (u8-list->bytevector (reverse bytes))))]
+             [(= b 10)  ; \n
+              (utf8->string (u8-list->bytevector (reverse bytes)))]
+             [(= b 13)  ; \r
               ;; Skip \r, expect \n next
-              (let ([next (peek-char port)])
-                   (when (and (not (eof-object? next)) (char=? next #\newline))
-                         (read-char port))
-                   (list->string (reverse chars)))]
+              (let ([next (lookahead-u8 port)])
+                   (when (and (not (eof-object? next)) (= next 10))
+                         (get-u8 port))
+                   (utf8->string (u8-list->bytevector (reverse bytes))))]
              [else
-              (loop (cons c chars))]))))
+              (loop (cons b bytes))]))))
 
 ;;; string-index : String × Char → Nat | #f
 ;;; Find first occurrence of character in string.
@@ -99,8 +105,13 @@
 ;;; Message Reading
 ;;; ============================================================
 
+;;; Maximum message size (10 MB) to prevent DoS attacks
+(define *max-message-size* (* 10 1024 1024))
+
 ;;; read-lsp-message : InputPort → JsonValue | eof | (error String)
 ;;; Read a complete LSP message with Content-Length framing.
+;;; CRITICAL: Content-Length is in BYTES, not characters.
+;;; We must read bytes and decode as UTF-8.
 (define (read-lsp-message port)
   (let ([headers (read-headers port)])
        (if (or (eof-object? headers) (null? headers))
@@ -109,25 +120,32 @@
                 (if (not content-length)
                     '(error "Missing Content-Length header")
                     (let ([len (string->number (cdr content-length))])
-                         (if (not len)
-                             '(error "Invalid Content-Length value")
-                             (let ([body (read-n-chars port len)])
-                                  (if (< (string-length body) len)
-                                      '(error "Incomplete message body")
-                                      (json-read body))))))))))
+                         (cond
+                          [(not len)
+                           '(error "Invalid Content-Length value")]
+                          [(> len *max-message-size*)
+                           `(error ,(string-append "Message too large: "
+                                                   (number->string len)
+                                                   " bytes"))]
+                          [else
+                           (let ([body (read-n-bytes-as-string port len)])
+                                (if (not body)
+                                    '(error "Incomplete message body")
+                                    (json-read body)))])))))))
 
-;;; read-n-chars : InputPort × Nat → String
-;;; Read exactly n characters from port.
-(define (read-n-chars port n)
-  (let ([buf (make-string n)])
+;;; read-n-bytes-as-string : InputPort × Nat → String | #f
+;;; Read exactly n BYTES from port and decode as UTF-8.
+;;; Returns #f if fewer bytes available.
+(define (read-n-bytes-as-string port n)
+  (let ([bv (make-bytevector n)])
        (let loop ([i 0])
             (if (>= i n)
-                buf
-                (let ([c (read-char port)])
-                     (if (eof-object? c)
-                         (substring buf 0 i)
+                (utf8->string bv)
+                (let ([b (get-u8 port)])
+                     (if (eof-object? b)
+                         #f  ; Incomplete
                          (begin
-                          (string-set! buf i c)
+                          (bytevector-u8-set! bv i b)
                           (loop (+ i 1)))))))))
 
 ;;; ============================================================
@@ -136,13 +154,19 @@
 
 ;;; write-lsp-message : OutputPort × JsonValue → Void
 ;;; Write a complete LSP message with Content-Length framing.
+;;; CRITICAL: Content-Length must be in BYTES (UTF-8 encoded length).
+;;; Uses binary output for proper byte handling.
 (define (write-lsp-message port msg)
   (let* ([body (json-write msg)]
-         [len (string-length body)])
-        (display "Content-Length: " port)
-        (display len port)
-        (display "\r\n\r\n" port)
-        (display body port)
+         [body-bytes (string->utf8 body)]
+         [len (bytevector-length body-bytes)]
+         [header (string-append "Content-Length: "
+                                (number->string len)
+                                "\r\n\r\n")]
+         [header-bytes (string->utf8 header)])
+        ;; Write header and body as bytes
+        (put-bytevector port header-bytes)
+        (put-bytevector port body-bytes)
         (flush-output-port port)))
 
 ;;; write-lsp-response : Id × JsonValue → Void
@@ -186,14 +210,11 @@
 
 ;;; init-transport! : → Void
 ;;; Initialize the transport layer.
+;;; Binary ports are already captured at load time.
 (define (init-transport!)
-  (set! *lsp-stdin* (current-input-port))
-  (set! *lsp-stdout* (current-output-port))
-  (set! *lsp-stderr* (current-error-port))
+  ;; Ports already set at load time - just set running flag
   (set! *lsp-running* #t)
-  ;; Ensure binary mode for proper Content-Length handling
-  ;; (Chez Scheme ports are already binary-safe)
-  (lsp-log "Transport initialized"))
+  (lsp-log "Transport initialized (binary mode)"))
 
 ;;; shutdown-transport! : → Void
 ;;; Clean up the transport layer.

@@ -270,7 +270,5 @@
 ;;; Entry Point
 ;;; ============================================================
 
-;;; Start server when run as script
-(when (null? (command-line-arguments))
-      ;; No arguments = run as server
-      (run-server!))
+;;; Note: Server is started explicitly from start-lsp.ss
+;;; Do not auto-start here to avoid double-initialization.

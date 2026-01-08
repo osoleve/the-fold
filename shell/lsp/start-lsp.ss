@@ -6,6 +6,12 @@
 ;;;
 ;;; The server communicates over stdio using the LSP protocol.
 
+;;; CRITICAL: Capture binary ports FIRST, before any loads.
+;;; Chez Scheme's standard-input-port/standard-output-port can only be
+;;; called reliably once - subsequent calls may return EOF ports.
+(define *captured-stdin* (standard-input-port))
+(define *captured-stdout* (standard-output-port))
+
 ;;; Change to project root if needed
 (let ([cwd (current-directory)])
      (unless (file-exists? "core/base/prelude.ss")
@@ -15,4 +21,9 @@
 
 ;;; Load and run the server
 (load "shell/lsp/lsp-server.ss")
+
+;;; Transfer captured ports to transport layer
+(set! *lsp-stdin* *captured-stdin*)
+(set! *lsp-stdout* *captured-stdout*)
+
 (run-server!)
