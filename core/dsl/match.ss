@@ -250,6 +250,27 @@
    
    [else '()]))
 
+;;; collect-bindings-from-pattern : Pattern × Expr → Bindings
+;;; Collect top-level bindings from a pattern (non-recursive).
+;;; Used during column processing to collect variable bindings.
+(define (collect-bindings-from-pattern pattern access-expr)
+  (cond
+   ;; Variable pattern: bind the variable
+   [(var-pattern? pattern)
+    (list (cons (var-pattern-name pattern) access-expr))]
+   
+   ;; As-pattern: bind the name (inner pattern handled separately)
+   [(as-pattern? pattern)
+    (list (cons (as-pattern-name pattern) access-expr))]
+   
+   ;; View pattern: pass through to inner (view transforms the value)
+   [(view-pattern? pattern)
+    (collect-bindings-from-pattern (view-pattern-inner pattern)
+                                   `(,(view-pattern-fn pattern) ,access-expr))]
+   
+   ;; All others: no direct binding
+   [else '()]))
+
 ;;; ============================================================
 ;;; Decision Tree Compilation
 ;;; ============================================================
@@ -264,13 +285,16 @@
       (compile-clauses (list scrutinee)
                        (map (lambda (cl)
                                     ;; Wrap pattern in list for uniform handling
+                                    ;; Row format: (patterns guard body bindings)
                                     (list (list (clause-pattern cl))
                                           (clause-guard cl)
-                                          (clause-body cl)))
+                                          (clause-body cl)
+                                          '()))  ; Initial empty bindings
                             clauses))))
 
-;;; compile-clauses : (List Expr) × (List (Pattern × Guard × Body)) → DecisionTree
+;;; compile-clauses : (List Expr) × (List Row) → DecisionTree
 ;;; Core compilation algorithm.
+;;; Row format: (patterns guard body bindings)
 (define (compile-clauses access-exprs rows)
   (cond
    ;; No rows: failure
@@ -281,12 +305,13 @@
    [(null? access-exprs)
     (let* ([first-row (car rows)]
            [guard (cadr first-row)]
-           [body (caddr first-row)])
+           [body (caddr first-row)]
+           [bindings (if (>= (length first-row) 4) (cadddr first-row) '())])
           (if guard
               (make-dt-guard guard
-                             (make-leaf body '())
+                             (make-leaf body bindings)
                              (compile-clauses access-exprs (cdr rows)))
-              (make-leaf body '())))]
+              (make-leaf body bindings)))]
    
    ;; Non-empty: select column and compile
    [else
@@ -352,16 +377,17 @@
          [matching-rows (filter-rows-for-tag rows col-idx tag)]
          [new-access (generate-field-accesses access-expr arity)]
          [new-access-exprs (splice-at access-exprs col-idx new-access)]
-         [new-rows (expand-rows-for-tag matching-rows col-idx arity)]
+         [new-rows (expand-rows-for-tag matching-rows col-idx arity access-expr)]
          [subtree (compile-clauses new-access-exprs new-rows)])
         (make-branch tag arity subtree)))
 
 ;;; compile-default : (List Expr) × Nat × (List Row) → DecisionTree
 ;;; Compile the default case (wildcards).
 (define (compile-default access-exprs col-idx rows)
-  (let* ([wildcard-rows (filter-wildcard-rows rows col-idx)]
+  (let* ([access-expr (list-ref access-exprs col-idx)]
+         [wildcard-rows (filter-wildcard-rows rows col-idx)]
          [new-access-exprs (remove-at access-exprs col-idx)]
-         [new-rows (remove-col-from-rows wildcard-rows col-idx)])
+         [new-rows (remove-col-from-rows wildcard-rows col-idx access-expr)])
         (compile-clauses new-access-exprs new-rows)))
 
 ;;; ============================================================
@@ -369,48 +395,68 @@
 ;;; ============================================================
 
 ;;; filter-rows-for-tag : (List Row) × Nat × Symbol → (List Row)
+;;; Keep rows where pattern at col-idx matches the given constructor tag.
+;;; Wildcards and variables match any constructor.
 (define (filter-rows-for-tag rows col-idx tag)
   (filter
    (lambda (row)
            (let* ([patterns (car row)]
                   [pat (list-ref patterns col-idx)])
                  (or (wildcard? pat)
+                     (wildcard-pattern? pat)
+                     (var-pattern? pat)
                      (and (ctor-pattern? pat)
                           (eq? (ctor-pattern-tag pat) tag)))))
    rows))
 
 ;;; filter-wildcard-rows : (List Row) × Nat → (List Row)
+;;; Keep rows where pattern at col-idx is wildcard or variable (matches anything).
 (define (filter-wildcard-rows rows col-idx)
   (filter
    (lambda (row)
            (let* ([patterns (car row)]
                   [pat (list-ref patterns col-idx)])
-                 (wildcard? pat)))
+                 ;; Wildcards and variables both match anything
+                 (or (wildcard? pat)
+                     (wildcard-pattern? pat)
+                     (var-pattern? pat))))
    rows))
 
-;;; expand-rows-for-tag : (List Row) × Nat × Nat → (List Row)
-(define (expand-rows-for-tag rows col-idx arity)
+;;; expand-rows-for-tag : (List Row) × Nat × Nat × Expr → (List Row)
+;;; Expand rows by replacing constructor pattern with subpatterns.
+;;; Also collects bindings from variable patterns.
+(define (expand-rows-for-tag rows col-idx arity access-expr)
   (map
    (lambda (row)
            (let* ([patterns (car row)]
                   [pat (list-ref patterns col-idx)]
                   [guard (cadr row)]
                   [body (caddr row)]
+                  [old-bindings (if (>= (length row) 4) (cadddr row) '())]
+                  ;; Collect bindings from variable/as patterns at this position
+                  [new-bindings (collect-bindings-from-pattern pat access-expr)]
+                  [all-bindings (append new-bindings old-bindings)]
                   [subpats (if (ctor-pattern? pat)
                                (ctor-pattern-subpats pat)
                                (make-list arity (make-wildcard-pattern)))]
                   [new-patterns (splice-at patterns col-idx subpats)])
-                 (list new-patterns guard body)))
+                 (list new-patterns guard body all-bindings)))
    rows))
 
-;;; remove-col-from-rows : (List Row) × Nat → (List Row)
-(define (remove-col-from-rows rows col-idx)
+;;; remove-col-from-rows : (List Row) × Nat × Expr → (List Row)
+;;; Remove column from rows and collect any variable bindings.
+(define (remove-col-from-rows rows col-idx access-expr)
   (map
    (lambda (row)
            (let* ([patterns (car row)]
+                  [pat (list-ref patterns col-idx)]
                   [guard (cadr row)]
-                  [body (caddr row)])
-                 (list (remove-at patterns col-idx) guard body)))
+                  [body (caddr row)]
+                  [old-bindings (if (>= (length row) 4) (cadddr row) '())]
+                  ;; Collect bindings from variable/as patterns at this position
+                  [new-bindings (collect-bindings-from-pattern pat access-expr)]
+                  [all-bindings (append new-bindings old-bindings)])
+                 (list (remove-at patterns col-idx) guard body all-bindings)))
    rows))
 
 ;;; ============================================================

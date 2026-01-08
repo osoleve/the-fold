@@ -366,7 +366,39 @@
               (let* ([clause (make-clause (make-var-pattern 'n) '(> n 0) 'positive)]
                      [dt (compile-match 'x (list clause))])
                     ;; Should include a guard check
-                    (assert-true (or (dt-guard? dt) (leaf? dt))))))
+                    (assert-true (or (dt-guard? dt) (leaf? dt)))))
+            
+            (define-test compile-var-pattern-captures-binding
+              ;; Test that variable patterns collect bindings
+              (let* ([clause (make-clause (make-var-pattern 'v) #f '(use v))]
+                     [dt (compile-match 'scrutinee (list clause))])
+                    (assert-true (leaf? dt))
+                    (assert-equal (leaf-action dt) '(use v))
+                    ;; Bindings should contain (v . scrutinee)
+                    (let ([bindings (leaf-bindings dt)])
+                         (assert-true (not (null? bindings)))
+                         (assert-equal (caar bindings) 'v)
+                         (assert-equal (cdar bindings) 'scrutinee))))
+            
+            (define-test compile-ctor-with-var-subpatterns
+              ;; Test constructor with variable subpatterns
+              ;; cons arity is 2, so we use just (arity 1) for simplicity
+              (let* ([subpats (list (make-var-pattern 'inner))]
+                     [pattern (make-ctor-pattern 'just subpats)]
+                     [clause (make-clause pattern #f '(use inner))]
+                     [dt (compile-match 'opt (list clause))])
+                    (assert-true (switch? dt))
+                    ;; Find the just branch
+                    (let ([branches (switch-branches dt)])
+                         (assert-true (pair? branches))
+                         (let* ([just-branch (car branches)]
+                                [subtree (branch-subtree just-branch)])
+                               ;; Subtree should be a leaf with bindings for inner
+                               (assert-true (leaf? subtree))
+                               (let ([bindings (leaf-bindings subtree)])
+                                    ;; Should have binding for inner
+                                    (assert-true (pair? bindings))
+                                    (assert-equal (caar bindings) 'inner)))))))
 
 ;;; ============================================================
 ;;; Run All Tests

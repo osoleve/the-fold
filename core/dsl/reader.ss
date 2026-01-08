@@ -325,14 +325,19 @@
 
 ;;; hash-reader-macro : ReaderMacro
 ;;; #h{a 1 b 2} → (hash 'a 1 'b 2)
+;;; Odd-length input is an error (keys must have values).
 (define hash-reader-macro
   (make-reader-macro 'hash
                      (lambda (contents source-loc)
+                             ;; Validate even-length (key-value pairs)
+                             (when (odd? (length contents))
+                                   (error 'hash-reader-macro
+                                          "hash literal requires key-value pairs (even count)"
+                                          contents))
                              ;; Convert pairs: a 1 b 2 → 'a 1 'b 2
                              (let convert ([items contents] [result '()])
                                   (cond
                                    [(null? items) `(hash ,@(reverse result))]
-                                   [(null? (cdr items)) `(hash ,@(reverse (cons (car items) result)))]
                                    [else
                                     (let ([key (car items)]
                                           [val (cadr items)])
@@ -476,6 +481,8 @@
                                 [(#\r) #\return]
                                 [(#\\) #\\]
                                 [(#\/) #\/]
+                                [(#\") #\"]   ; Escaped double-quote
+                                [(#\') #\']   ; Escaped single-quote
                                 [else next])
                           result)))]
         [else (loop (cdr chars) (cons (car chars) result))])))

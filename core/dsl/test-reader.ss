@@ -166,7 +166,13 @@
             (define-test hash-handles-empty
               (let* ([transform (reader-macro-transform hash-reader-macro)]
                      [result (transform '() no-reader-source)])
-                    (assert-equal result '(hash)))))
+                    (assert-equal result '(hash))))
+            
+            (define-test hash-rejects-odd-length
+              ;; Odd-length input (missing value for last key) should error
+              (let ([transform (reader-macro-transform hash-reader-macro)])
+                   (assert-error (lambda ()
+                                         (transform '(a 1 b) no-reader-source))))))
 
 ;;; ============================================================
 ;;; Default Readtable Tests
@@ -313,7 +319,13 @@
               (assert-equal (unescape-string "abc") "abc"))
             
             (define-test unescape-handles-escaped-slash
-              (assert-equal (unescape-string "a\\/b") "a/b")))
+              (assert-equal (unescape-string "a\\/b") "a/b"))
+            
+            (define-test unescape-handles-escaped-double-quote
+              (assert-equal (unescape-string "a\\\"b") "a\"b"))
+            
+            (define-test unescape-handles-escaped-single-quote
+              (assert-equal (unescape-string "a\\'b") "a'b")))
 
 ;;; ============================================================
 ;;; Composition Tests
