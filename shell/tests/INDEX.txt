@@ -9,14 +9,14 @@ BLOCK SYSTEM TESTS
 ──────────────────
   test-block-index.ss          - Block indexing and querying
   test-block-navigator.ss      - Block navigation UI
-  block-query-test.ss          - Basic block queries
-  block-query-advanced-test.ss - Advanced query features
+  test-block-query.ss          - Basic block queries
+  test-block-query-advanced.ss - Advanced query features
 
 PERSISTENCE & STORAGE
 ─────────────────────
   test-store-api.ss            - Store API functionality
   test-duckie-persist.ss       - DUCKIE persistence
-  universe-serialize-test.ss   - Universe serialization
+  test-universe-serialize.ss   - Universe serialization
 
 FILE SYSTEM & VALIDATION
 ─────────────────────────
@@ -36,8 +36,8 @@ GRAPHICS & VISUAL
   test-color.ss                - Color system
   test-layout.ss               - Layout system
   test-turtle.ss               - Turtle graphics
-  graphics-primitives-test.ss  - Graphics primitives
-  easing-test.ss               - Animation easing
+  test-graphics-primitives.ss  - Graphics primitives
+  test-easing.ss               - Animation easing
 
 TOOLS & UTILITIES
 ─────────────────
@@ -68,7 +68,6 @@ Run individual test:
 
 ═══════════════════════════════════════════════════════
 
-NOTE: Naming convention is mixed (test-*.ss and *-test.ss).
-Consider standardizing to test-*.ss in future refactoring.
+All test files now use test-*.ss naming convention.
 
-Last updated: December 28, 2025
+Last updated: January 8, 2026

@@ -9,7 +9,7 @@ The Fold has a fuel-based evaluation engine (`eval.ss`) and reverse-mode automat
 **Related work:**
 - Issue: the-fold-cit (Integrate autodiff with evaluation engine)
 - Dependency: the-fold-jqk (Implement reverse mode differentiation) ✅ COMPLETED
-- Related: DESIGN-DIFF-TYPES.md (type-level differentiation - future work)
+- Related: core/types/DESIGN-DIFF-TYPES.md (type-level differentiation - future work)
 
 ## Design Goals
 
@@ -395,7 +395,7 @@ Compare eval-traced results with existing reverse-diff tests:
 3. **Checkpointing**: Should we support gradient checkpointing for memory efficiency?
    - **Decision**: Defer to Phase 4 (the-fold-acv: gradient storage).
 
-4. **Type integration**: How does this relate to DESIGN-DIFF-TYPES.md?
+4. **Type integration**: How does this relate to core/types/DESIGN-DIFF-TYPES.md?
    - **Decision**: This is runtime AD. Type-level AD (the-fold-018) will add compile-time checking later.
 
 ## Performance Considerations
@@ -437,7 +437,7 @@ For large computations, consider:
 - `core/reverse-diff.ss` - Reverse-mode AD implementation
 - `core/prim.ss` - Pure primitive operations
 - `core/comp-graph.ss` - Computational graph (forward mode)
-- `core/DESIGN-DIFF-TYPES.md` - Type-level differentiation (future)
+- `core/core/types/DESIGN-DIFF-TYPES.md` - Type-level differentiation (future)
 - `core/test-reverse-diff.ss` - Existing AD tests
 
 ## Notes

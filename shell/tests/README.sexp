@@ -9,12 +9,12 @@
   ((block-system
     "test-block-index.ss           - Block indexing and querying
      test-block-navigator.ss       - Block navigation UI
-     block-query-test.ss           - Basic block queries
-     block-query-advanced-test.ss  - Advanced query features")
+     test-block-query.ss           - Basic block queries
+     test-block-query-advanced.ss  - Advanced query features")
    (persistence-storage
     "test-store-api.ss             - Store API functionality
      test-duckie-persist.ss        - DUCKIE persistence
-     universe-serialize-test.ss    - Universe serialization")
+     test-universe-serialize.ss    - Universe serialization")
    (filesystem-validation
     "test-fs.ss                    - Filesystem operations
      test-validate.ss              - Input validation
@@ -36,8 +36,7 @@
      test-animation.ss             - Animation timeline and keyframes
      test-particles.ss             - Particle systems
      test-svg-renderer.ss          - SVG output generation
-     easing-test.ss                - Animation easing functions
-     graphics-primitives-test.ss   - Graphics primitives showcase")
+     test-easing.ss                - Animation easing functions")
    (developer-tools
     "test-archextract.ss           - Architecture extraction
      test-benchmark.ss             - Benchmarking harness
@@ -93,8 +92,7 @@
    - Automatic pass/fail counting and reporting")
  (conventions
   "Test file naming:
-   - Most use test-*.ss prefix
-   - Some use *-test.ss suffix (legacy)
+   - All tests use test-*.ss prefix (standardized 2026-01-08)
    - Tests live adjacent to code they test when possible
    - shell/tests/ holds shell-specific integration tests
 
@@ -115,8 +113,7 @@
    7. Run full suite to check for regressions")
  (dependencies (core/test-framework))
  (notes
-  "Naming convention is mixed (test-*.ss and *-test.ss).
-   Consider standardizing to test-*.ss in future refactoring.
+  "All test files now use test-*.ss naming convention (2026-01-08).
 
    Some tests have restrictive permissions (marked with -------).
    These may require special environment setup or credentials.")
