@@ -229,7 +229,7 @@
            [rest (substring error-msg (+ pos (string-length "wrong number of arguments to")) (string-length error-msg))]
            [trimmed (string-trim rest)])
           (if (not (string=? trimmed ""))
-              (car (string-split trimmed))
+              (car (string-split trimmed #\space))
               #f))]
    [else #f]))
 
@@ -280,7 +280,7 @@
        (if (null? contexts)
            best-match
            (let* ([ctx (car contexts)]
-                  [pattern (cadr (assq 'pattern ctx))]
+                  [pattern (cadr (assq 'pattern (cdr ctx)))]
                   [detect-fn (let ([df (assq 'detect-fn (cdr ctx))])
                                   (if df (cadr df) #f))]
                   [matches? (cond
@@ -336,28 +336,28 @@
 
 (define (get-documentation-links context)
   "Get relevant documentation links for context"
-  (let ([ctx-name (car context)]
-        [ctx-data (cdr context)]
-        [tutorial (let ([t (assq 'tutorial ctx-data)])
-                       (if t (cadr t) #f))])
-       (append
-        (if tutorial
-            (list (string-append "📚 Tutorial: (load \"user/boardcraft/examples/" tutorial "\")"))
-            '())
-        (case ctx-name
-              [(boardcraft-unbound)
-               '("📖 BoardCraft docs: Browse playpen/boardcraft/ directory"
-                 "💡 Examples: (examples 'hex-boards)"
-                 "🔍 Discovery: (discover 'boardcraft)")]
-              [(loom-unbound)
-               '("📖 Loom docs: Browse playpen/loom/ directory"
-                 "💡 Examples: (examples 'roguelikes)"
-                 "🔍 Discovery: (discover 'loom)")]
-              [(repl-functions)
-               '("📖 Help system: (help-categories)"
-                 "🔍 Search: (apropos \"pattern\")"
-                 "💡 All functions: (help)")]
-              [else '()]))))
+  (let* ([ctx-name (car context)]
+         [ctx-data (cdr context)]
+         [tutorial (let ([t (assq 'tutorial ctx-data)])
+                        (if t (cadr t) #f))])
+        (append
+         (if (and tutorial (not (eq? tutorial 'nil)))
+             (list (string-append "📚 Tutorial: (load \"user/boardcraft/examples/" tutorial "\")"))
+             '())
+         (case ctx-name
+               [(boardcraft-unbound)
+                '("📖 BoardCraft docs: Browse playpen/boardcraft/ directory"
+                  "💡 Examples: (examples 'hex-boards)"
+                  "🔍 Discovery: (discover 'boardcraft)")]
+               [(loom-unbound)
+                '("📖 Loom docs: Browse playpen/loom/ directory"
+                  "💡 Examples: (examples 'roguelikes)"
+                  "🔍 Discovery: (discover 'loom)")]
+               [(repl-functions)
+                '("📖 Help system: (help-categories)"
+                  "🔍 Search: (apropos \"pattern\")"
+                  "💡 All functions: (help)")]
+               [else '()]))))
 
 ;;; ============================================================
 ;;; Main Error Formatting Function
@@ -412,16 +412,16 @@
   "Format the context section of error message"
   (if (eq? (car context) 'general)
       ""
-      (let ([ctx-name (symbol->string (car context))]
-            [ctx-data (cdr context)]
-            [ctx-desc (let ([d (assq 'context ctx-data)])
-                           (if d (cadr d) ctx-name))])
-           (string-append
-            "🎯 Context: " ctx-desc "
+      (let* ([ctx-name (symbol->string (car context))]
+             [ctx-data (cdr context)]
+             [ctx-desc (let ([d (assq 'context ctx-data)])
+                            (if d (cadr d) ctx-name))])
+            (string-append
+             "🎯 Context: " ctx-desc "
 "
-            "   The Fold detected this is a " ctx-name " error
+             "   The Fold detected this is a " ctx-name " error
 "
-            "
+             "
 "))))
 
 (define (format-suggestions-section suggestions)
@@ -476,16 +476,7 @@
              [(string=? pattern (substring str i (+ i plen))) i]
              [else (loop (+ i 1))]))))
 
-(define (string-index-of str char)
-  "Find first occurrence of char in string"
-  (let ([len (string-length str)])
-       (let loop ([i 0])
-            (cond
-             [(>= i len) #f]
-             [(char=? (string-ref str i) char) i]
-             [else (loop (+ i 1))]))))
-
-;;; NOTE: string-trim, string-split, string-contains? provided by core/prelude.ss
+;;; NOTE: string-trim, string-split, string-contains?, string-index-of provided by core/prelude.ss
 
 ;;; ============================================================
 ;;; Enhanced Guard Macro
