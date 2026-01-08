@@ -462,6 +462,12 @@
    cmd-undo)
   
   (register-command!
+   'dbg-redo
+   "Redo step (time travel forward)"
+   "Redo a previously undone step.\n  Usage: (dbg-redo)\n         (dbg-redo 3)  ; redo 3 steps"
+   cmd-redo)
+  
+  (register-command!
    'dbg-reset
    "Reset to initial state"
    "Reset debugger to initial state.\n  Usage: (dbg-reset)"
@@ -471,7 +477,46 @@
    'dbg-quit
    "Quit debug session"
    "End the current debug session.\n  Usage: (dbg-quit)"
-   cmd-quit-debug))
+   cmd-quit-debug)
+  
+  ;; Watch commands
+  (register-command!
+   'watch
+   "Watch a variable"
+   "Add a variable to the watch list. Changes will be reported during stepping.\n  Usage: (watch 'x)"
+   cmd-watch)
+  
+  (register-command!
+   'unwatch
+   "Stop watching a variable"
+   "Remove a variable from the watch list.\n  Usage: (unwatch 'x)"
+   cmd-unwatch)
+  
+  (register-command!
+   'watches
+   "List watched variables"
+   "Display all watched variables with their current values and recent events.\n  Usage: (watches)"
+   cmd-watches)
+  
+  ;; Explain commands
+  (register-command!
+   'explain
+   "Explain evaluation result"
+   "Show why the current expression evaluated to its result.\n  Usage: (explain)       ; explain current result\n         (explain 'x)   ; explain how variable x got its value"
+   cmd-explain)
+  
+  (register-command!
+   'why
+   "Explain (shorthand)"
+   "Shorthand for (explain). Shows causal trace of evaluation.\n  Usage: (why)"
+   cmd-why)
+  
+  ;; Export commands
+  (register-command!
+   'export-trace
+   "Export structured trace"
+   "Export the debug trace as a structured S-expression.\n  Usage: (export-trace)            ; display to console\n         (export-trace \"file.ss\")  ; save to file"
+   cmd-export-trace))
 
 ;;; ============================================================
 ;;; Profiler Commands (loaded dynamically)

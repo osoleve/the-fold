@@ -47,6 +47,7 @@
          (breakpoints . ())
          (trace . ())
          (history . ())
+         (future . ())
          (status . ready))))
 
 (define (debugger? d)
@@ -62,6 +63,7 @@
 (define (debugger-breakpoints d) (debugger-get d 'breakpoints))
 (define (debugger-trace d) (debugger-get d 'trace))
 (define (debugger-history d) (debugger-get d 'history))
+(define (debugger-future d) (or (debugger-get d 'future) '()))
 (define (debugger-status d) (debugger-get d 'status))
 
 (define (debugger-set d key value)
@@ -212,20 +214,27 @@
   (lambda (e) (value? e)))
 
 ;;; ============================================================
-;;; History and Undo
+;;; History, Undo, and Redo (Time-Travel)
 ;;; ============================================================
 
 ;;; undo : Debugger → Debugger
+;;; Go back one step, pushing current state to future for redo.
 (define (undo d)
-  (let ([history (debugger-history d)])
+  (let ([history (debugger-history d)]
+        [future (debugger-future d)]
+        [expr (debugger-expr d)]
+        [env (debugger-env d)]
+        [fuel (debugger-fuel d)])
        (if (null? history)
            d
-           (let ([prev (car history)])
+           (let ([prev (car history)]
+                 [current-state (list expr env fuel)])
                 (debugger-update d
                                  `((expr . ,(car prev))
                                    (env . ,(cadr prev))
                                    (fuel . ,(caddr prev))
                                    (history . ,(cdr history))
+                                   (future . ,(cons current-state future))
                                    (status . ready)))))))
 
 ;;; undo-n : Debugger × Nat → Debugger
@@ -234,7 +243,42 @@
       d
       (undo-n (undo d) (- n 1))))
 
+;;; redo : Debugger → Debugger
+;;; Go forward one step in the future stack.
+(define (redo d)
+  (let ([future (debugger-future d)]
+        [history (debugger-history d)]
+        [expr (debugger-expr d)]
+        [env (debugger-env d)]
+        [fuel (debugger-fuel d)])
+       (if (null? future)
+           d
+           (let ([next-state (car future)]
+                 [current-state (list expr env fuel)])
+                (debugger-update d
+                                 `((expr . ,(car next-state))
+                                   (env . ,(cadr next-state))
+                                   (fuel . ,(caddr next-state))
+                                   (history . ,(cons current-state history))
+                                   (future . ,(cdr future))
+                                   (status . ready)))))))
+
+;;; redo-n : Debugger × Nat → Debugger
+(define (redo-n d n)
+  (if (zero? n)
+      d
+      (redo-n (redo d) (- n 1))))
+
+;;; can-undo? : Debugger → Boolean
+(define (can-undo? d)
+  (not (null? (debugger-history d))))
+
+;;; can-redo? : Debugger → Boolean
+(define (can-redo? d)
+  (not (null? (debugger-future d))))
+
 ;;; reset : Debugger → Debugger
+;;; Reset to initial state, clearing history and future.
 (define (reset d)
   (let ([history (debugger-history d)])
        (if (null? history)
@@ -245,6 +289,7 @@
                                    (env . ,(cadr initial))
                                    (fuel . ,(caddr initial))
                                    (history . ())
+                                   (future . ())
                                    (trace . ())
                                    (status . ready)))))))
 
@@ -265,7 +310,9 @@
     (fuel-remaining . ,(debugger-fuel d))
     (steps-taken . ,(length (debugger-trace d)))
     (history-depth . ,(length (debugger-history d)))
-    (breakpoints . ,(length (debugger-breakpoints d)))))
+    (future-depth . ,(length (debugger-future d)))
+    (breakpoints . ,(length (debugger-breakpoints d)))
+    (watches . ,(length (debugger-watches d)))))
 
 ;;; inspect-env : Debugger → Env
 (define (inspect-env d)
@@ -285,6 +332,71 @@
        (reverse (debugger-trace d))))
 
 ;;; ============================================================
+;;; Watch Expressions
+;;; ============================================================
+
+;;; add-watch : Debugger × Symbol → Debugger
+;;; Add a variable to the watch list.
+(define (add-watch d var)
+  (let ([watches (debugger-watches d)])
+       (if (memq var watches)
+           d  ;; Already watching
+           (debugger-set d 'watches (cons var watches)))))
+
+;;; remove-watch : Debugger × Symbol → Debugger
+;;; Remove a variable from the watch list.
+(define (remove-watch d var)
+  (let ([watches (debugger-watches d)])
+       (debugger-set d 'watches (filter (lambda (w) (not (eq? w var))) watches))))
+
+;;; clear-watches : Debugger → Debugger
+;;; Remove all watches.
+(define (clear-watches d)
+  (debugger-set d 'watches '()))
+
+;;; env-lookup-safe : Env × Symbol → Value | 'unbound
+;;; Safely look up a variable in the environment.
+(define (env-lookup-safe env var)
+  (let loop ([e env])
+       (cond
+        [(null? e) 'unbound]
+        [(eq? (caar e) var) (cdar e)]
+        [else (loop (cdr e))])))
+
+;;; check-watches : (List Symbol) × Env × Env × Nat × (List WatchEvent) → (List WatchEvent)
+;;; Check watched variables for changes and return updated event log.
+(define (check-watches watches old-env new-env step-num events)
+  (let loop ([ws watches] [evs events])
+       (if (null? ws)
+           evs
+           (let* ([var (car ws)]
+                  [old-val (env-lookup-safe old-env var)]
+                  [new-val (env-lookup-safe new-env var)])
+                 (if (equal? old-val new-val)
+                     (loop (cdr ws) evs)
+                     (loop (cdr ws)
+                           (cons `(watch-event
+                                   (step-number . ,step-num)
+                                   (variable . ,var)
+                                   (old-value . ,old-val)
+                                   (new-value . ,new-val))
+                                 evs)))))))
+
+;;; get-recent-watch-events : Debugger × Nat → (List WatchEvent)
+;;; Get the N most recent watch events.
+(define (get-recent-watch-events d n)
+  (take-up-to-debug n (debugger-watch-events d)))
+
+;;; filter : (α → Boolean) × (List α) → (List α)
+;;; Keep elements satisfying predicate.
+(define (filter pred lst)
+  (let loop ([l lst] [acc '()])
+       (cond
+        [(null? l) (reverse acc)]
+        [(pred (car l)) (loop (cdr l) (cons (car l) acc))]
+        [else (loop (cdr l) acc)])))
+
+;;; ============================================================
 ;;; Fuel-Tracking Debugger Extension
 ;;; ============================================================
 ;;;
@@ -294,6 +406,7 @@
 ;;;   - call-stack: Current call stack with fuel annotations
 
 ;;; make-fuel-debugger : Expr × Env × Nat → Debugger
+;;; Extended debugger with fuel tracking, redo capability, and watch expressions.
 (define (make-fuel-debugger expr env fuel)
   `(debugger
     (expr . ,expr)
@@ -302,6 +415,9 @@
     (breakpoints . ())
     (trace . ())
     (history . ())
+    (future . ())           ;; For redo (forward time-travel)
+    (watches . ())          ;; Watch expressions
+    (watch-events . ())     ;; Watch event log
     (status . ready)
     (fuel-budget . ,fuel)
     (fuel-trace . ())
@@ -325,6 +441,16 @@
 (define (debugger-call-stack d)
   (or (debugger-get d 'call-stack) '()))
 
+;;; debugger-watches : Debugger → (List Symbol)
+;;; Get watched variables.
+(define (debugger-watches d)
+  (or (debugger-get d 'watches) '()))
+
+;;; debugger-watch-events : Debugger → (List WatchEvent)
+;;; Get watch event log.
+(define (debugger-watch-events d)
+  (or (debugger-get d 'watch-events) '()))
+
 ;;; debugger-fuel-used : Debugger → Nat
 (define (debugger-fuel-used d)
   (- (debugger-fuel-budget d) (debugger-fuel d)))
@@ -341,6 +467,7 @@
 ;;; ============================================================
 
 ;;; step-with-fuel : Debugger → Debugger
+;;; Execute one step with fuel tracking, watch events, and timeline branching.
 (define (step-with-fuel d)
   (let ([expr (debugger-expr d)]
         [env (debugger-env d)]
@@ -348,7 +475,10 @@
         [fuel-trace (debugger-fuel-trace d)]
         [trace (debugger-trace d)]
         [history (debugger-history d)]
-        [call-stack (debugger-call-stack d)])
+        [call-stack (debugger-call-stack d)]
+        [watches (debugger-watches d)]
+        [watch-events (debugger-watch-events d)]
+        [step-num (+ 1 (length (debugger-trace d)))])
        
        (if (zero? fuel)
            (debugger-set d 'status 'out-of-fuel)
@@ -363,13 +493,17 @@
                           [remaining (caddr result)]
                           [used (- step-budget remaining)]
                           [fuel-after (- fuel used)]
-                          [fuel-entry `(,expr ,fuel-before ,fuel-after ,used)])
+                          [fuel-entry `(,expr ,fuel-before ,fuel-after ,used)]
+                          ;; Check watched variables (env unchanged in ok case)
+                          [new-watch-events (check-watches watches env env step-num watch-events)])
                          (debugger-update d
                                           `((expr . ,value)
                                             (fuel . ,fuel-after)
                                             (trace . ,(cons `(step ,expr -> ,value (fuel ,used)) trace))
                                             (fuel-trace . ,(cons fuel-entry fuel-trace))
                                             (history . ,(cons (list expr env fuel) history))
+                                            (future . ())  ;; Clear future on new step (timeline branch)
+                                            (watch-events . ,new-watch-events)
                                             (status . ,(if (value? value) 'complete 'ready)))))]
                   
                   ;; Suspended
@@ -377,7 +511,9 @@
                    (let* ([new-expr (cadr result)]
                           [new-env (caddr result)]
                           [fuel-after (- fuel step-budget)]
-                          [fuel-entry `(,expr ,fuel-before ,fuel-after ,step-budget)])
+                          [fuel-entry `(,expr ,fuel-before ,fuel-after ,step-budget)]
+                          ;; Check watched variables for changes
+                          [new-watch-events (check-watches watches env new-env step-num watch-events)])
                          (debugger-update d
                                           `((expr . ,new-expr)
                                             (env . ,new-env)
@@ -385,12 +521,15 @@
                                             (trace . ,(cons `(step ,expr -> suspended (fuel ,step-budget)) trace))
                                             (fuel-trace . ,(cons fuel-entry fuel-trace))
                                             (history . ,(cons (list expr env fuel) history))
+                                            (future . ())  ;; Clear future on new step (timeline branch)
+                                            (watch-events . ,new-watch-events)
                                             (status . ready))))]
                   
                   ;; Error
                   [else
                    (debugger-update d
                                     `((trace . ,(cons `(error ,(cadr result) ,(caddr result)) trace))
+                                      (future . ())  ;; Clear future on error too
                                       (status . error)
                                       (error . ,result)))])))))
 
@@ -524,3 +663,173 @@
               (debugger-set d 'status 'breakpoint)]
              [else
               (loop (step-with-fuel d))]))))
+
+;;; ============================================================
+;;; Explain-Why Traces
+;;; ============================================================
+;;;
+;;; Build causal explanations for evaluation results.
+;;; Explains WHY an expression evaluated to a particular value
+;;; by tracing through the evaluation history.
+
+;;; explain-reason : Expr → Symbol
+;;; Determine the reason type for an expression's evaluation.
+(define (explain-reason expr)
+  (cond
+   [(not (pair? expr))
+    (if (symbol? expr) 'lookup 'literal)]
+   [else
+    (let ([head (car expr)])
+         (cond
+          [(eq? head 'quote) 'literal]
+          [(eq? head 'fn) 'literal]
+          [(eq? head 'if) 'conditional]
+          [(eq? head 'case) 'conditional]
+          [(eq? head 'let) 'let-binding]
+          [(eq? head 'prim) 'primitive]
+          [(eq? head 'call) 'application]
+          [else 'application]))]))
+
+;;; make-explanation : Expr × Value × Symbol × (List Explanation) → Explanation
+(define (make-explanation expr result reason children)
+  `(explanation
+    (expression . ,expr)
+    (result . ,result)
+    (reason . ,reason)
+    (children . ,children)))
+
+;;; explain-current : Debugger → Explanation
+;;; Explain the current expression and result.
+(define (explain-current d)
+  (let* ([expr (debugger-expr d)]
+         [status (debugger-status d)]
+         [trace (debugger-trace d)]
+         [reason (explain-reason expr)])
+        (make-explanation
+         expr
+         (if (eq? status 'complete) expr 'incomplete)
+         reason
+         '())))
+
+;;; explain-step-entry : TraceEntry → Explanation
+;;; Convert a single trace entry to an explanation.
+(define (explain-step-entry entry)
+  (if (and (pair? entry) (eq? (car entry) 'step))
+      (let* ([from-expr (cadr entry)]
+             [to-expr (cadddr entry)]  ;; Skip the '->' symbol
+             [reason (explain-reason from-expr)])
+            (make-explanation from-expr to-expr reason '()))
+      #f))
+
+;;; explain-trace : Debugger → (List Explanation)
+;;; Build explanations from the execution trace.
+(define (explain-trace d)
+  (let ([trace (reverse (debugger-trace d))])
+       (filter-map-explain explain-step-entry trace)))
+
+;;; filter-map-explain : (α → β | #f) × (List α) → (List β)
+(define (filter-map-explain f lst)
+  (let loop ([l lst] [acc '()])
+       (if (null? l)
+           (reverse acc)
+           (let ([result (f (car l))])
+                (if result
+                    (loop (cdr l) (cons result acc))
+                    (loop (cdr l) acc))))))
+
+;;; explain-result : Debugger → Explanation
+;;; Build a complete explanation tree for how we got to the current result.
+(define (explain-result d)
+  (let* ([expr (debugger-expr d)]
+         [status (debugger-status d)]
+         [trace (reverse (debugger-trace d))]
+         [children (filter-map-explain explain-step-entry trace)])
+        (if (null? children)
+            (make-explanation expr expr (explain-reason expr) '())
+            (let ([first-step (car children)])
+                 (make-explanation
+                  (cdr (assq 'expression (cdr first-step)))  ;; Skip 'explanation tag
+                  expr
+                  'evaluation-sequence
+                  children)))))
+
+;;; explain-binding : Debugger × Symbol → Explanation | #f
+;;; Explain how a binding got its value by searching the trace.
+(define (explain-binding d var)
+  (let ([env (debugger-env d)]
+        [trace (debugger-trace d)])
+       (let ([val (env-lookup-safe env var)])
+            (if (eq? val 'unbound)
+                #f
+                ;; Search trace for let-bindings that introduced this variable
+                (let loop ([entries trace])
+                     (if (null? entries)
+                         (make-explanation var val 'initial-binding '())
+                         (let ([entry (car entries)])
+                              (if (and (pair? entry)
+                                       (eq? (car entry) 'step)
+                                       (let ([from-expr (cadr entry)])
+                                            (and (pair? from-expr)
+                                                 (eq? (car from-expr) 'let))))
+                                  (make-explanation var val 'let-binding
+                                                    (list (explain-step-entry entry)))
+                                  (loop (cdr entries))))))))))
+
+;;; ============================================================
+;;; Structured Trace Export
+;;; ============================================================
+;;;
+;;; Export trace data in machine-readable S-expression format.
+
+;;; export-trace : Debugger → TraceExport
+;;; Export the full trace as a structured S-expression.
+(define (export-trace d)
+  (let* ([trace (reverse (debugger-trace d))]
+         [history (debugger-history d)]
+         [initial-expr (if (null? history)
+                           (debugger-expr d)
+                           (car (last history)))]
+         [final-result (if (eq? (debugger-status d) 'complete)
+                           (debugger-expr d)
+                           'incomplete)]
+         [steps (build-trace-steps trace 1)])
+        `(trace-export
+          (initial-expression . ,initial-expr)
+          (final-result . ,final-result)
+          (fuel-budget . ,(debugger-fuel-budget d))
+          (fuel-used . ,(debugger-fuel-used d))
+          (status . ,(debugger-status d))
+          (step-count . ,(length steps))
+          (steps . ,steps)
+          (watch-events . ,(debugger-watch-events d)))))
+
+;;; build-trace-steps : (List TraceEntry) × Nat → (List TraceStep)
+(define (build-trace-steps entries num)
+  (if (null? entries)
+      '()
+      (let ([entry (car entries)])
+           (if (and (pair? entry) (eq? (car entry) 'step))
+               (cons (build-trace-step entry num)
+                     (build-trace-steps (cdr entries) (+ num 1)))
+               (build-trace-steps (cdr entries) num)))))
+
+;;; build-trace-step : TraceEntry × Nat → TraceStep
+(define (build-trace-step entry num)
+  (let* ([from-expr (cadr entry)]
+         [to-expr (cadddr entry)]
+         [fuel-info (if (> (length entry) 4) (cddddr entry) '())]
+         [fuel-consumed (if (and (pair? fuel-info)
+                                 (pair? (car fuel-info))
+                                 (eq? (caar fuel-info) 'fuel))
+                            (cadar fuel-info)
+                            0)])
+        `(trace-step
+          (number . ,num)
+          (from . ,from-expr)
+          (to . ,to-expr)
+          (fuel-consumed . ,fuel-consumed)
+          (reason . ,(explain-reason from-expr)))))
+
+;;; trace->sexp : Debugger → Sexp
+;;; Alias for export-trace.
+(define trace->sexp export-trace)
