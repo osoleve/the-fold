@@ -119,7 +119,7 @@ Core is organized into domain-driven subdirectories:
 | `autodiff/` | Automatic differentiation | comp-graph.ss, reverse-diff.ss |
 | `data/` | Data structures | data-structures.ss, graph-algorithms.ss |
 | `query/` | Query DSL & patterns | query.ss, query-dsl.ss, aho-corasick.ss |
-| `util/` | General utilities | debug.ss, pretty.ss, help.ss |
+| `util/` | General utilities | debug.ss (time-travel debugger), pretty.ss, help.ss |
 | `info-theory/` | Information theory (57 tests) | entropy.ss |
 | `random/` | Probability | prng.ss, distributions.ss |
 | `pipeline/` | Agent workflows | stage.ss, effects.ss, council.ss |
@@ -139,6 +139,7 @@ Core is organized into domain-driven subdirectories:
 
 - `repl-daemon.ss` — Multi-session REPL daemon
 - `commands.ss` — Extensible command system
+- `debug-repl.ss` — Time-travel debugger REPL (step, undo, redo, watch, explain)
 - `string-utils.ss` — String utilities (86 tests)
 - `validate.ss` — Input validation
 - `git.ss` — Git operations
