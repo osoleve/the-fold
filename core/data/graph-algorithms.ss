@@ -159,6 +159,7 @@
 
 ;;; unique-hashes : (List Hash) → (List Hash)
 ;;; Remove duplicate hashes from a list.
+;;; Uses bytevector=? for hash comparison (not equal?), so cannot use prelude's unique.
 (define (unique-hashes hashes)
   (let loop ([remaining hashes]
              [seen '()]
@@ -468,7 +469,8 @@
 
 ;;; unique-cycles : (List (List Hash)) → (List (List Hash))
 ;;; Remove duplicate cycles from list.
-;;; Two cycles are duplicates if they contain the same nodes.
+;;; Two cycles are duplicates if they contain the same nodes (set equality).
+;;; Uses specialized cycle-in-list? for comparison.
 (define (unique-cycles cycles)
   (let loop ([remaining cycles]
              [result '()])

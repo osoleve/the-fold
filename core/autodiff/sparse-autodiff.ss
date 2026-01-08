@@ -347,13 +347,7 @@
          rows-to-compute)
         (make-sparse-coo m n (vec-copy row-idx) (vec-copy col-idx) values)))
 
-;;; remove-duplicates : (List α) → (List α)
-(define (remove-duplicates lst)
-  (if (null? lst)
-      '()
-      (let ([first (car lst)])
-           (cons first
-                 (remove-duplicates (filter (lambda (x) (not (equal? x first))) (cdr lst)))))))
+;;; NOTE: remove-duplicates is provided by core/base/prelude.ss
 
 ;;; ============================================================
 ;;; Sparse Jacobian-Vector and Vector-Jacobian Products

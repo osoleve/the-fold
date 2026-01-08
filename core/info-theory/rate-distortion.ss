@@ -343,14 +343,8 @@
         (cons rate distortion)))
 
 ;;; unique-values : (List α) → (List α)
-;;; Return unique values in list.
-(define (unique-values lst)
-  (let loop ([remaining lst] [seen '()])
-       (if (null? remaining)
-           seen
-           (if (member (car remaining) seen)
-               (loop (cdr remaining) seen)
-               (loop (cdr remaining) (cons (car remaining) seen))))))
+;;; Alias for unique from prelude (provided for semantic clarity in this context).
+(define unique-values unique)
 
 ;;; rd-gap : Real × Real × Real → Real
 ;;; Gap between operational point and rate-distortion bound.

@@ -24,12 +24,7 @@
 (define (string-prefix? prefix str) (string-starts-with? str prefix))
 (define (string-suffix? suffix str) (string-ends-with? str suffix))
 
-(define (unique lst)
-  (let loop ([xs lst] [seen '()] [acc '()])
-       (cond
-        [(null? xs) (reverse acc)]
-        [(member (car xs) seen) (loop (cdr xs) seen acc)]
-        [else (loop (cdr xs) (cons (car xs) seen) (cons (car xs) acc))])))
+;;; NOTE: unique is provided by core/base/prelude.ss
 
 (define (set-diff xs ys)
   (filter (lambda (x) (not (member x ys))) xs))

@@ -19,6 +19,7 @@
 ;;; ============================================================
 
 ;;; Assumes these are already loaded:
+;;;   - core/base/prelude.ss (unique, filter, etc.)
 ;;;   - core/query/patterns-parse.ss (extract-tags, has-tag?, get-tag)
 ;;;   - forum/tools.ss (collect-channel, list-channels)
 ;;;   - shell/fs.ss (fs-fetch, etc.)
@@ -82,20 +83,7 @@
          [keys (map car all-tags)])
         (unique keys)))
 
-;;; unique : (List α) → (List α)
-;;; Remove duplicates from a list, preserving order (first occurrence wins).
-;;; Uses hash table for O(N) complexity instead of O(N^2) with member.
-(define (unique lst)
-  (let ([seen (make-hashtable equal-hash equal?)])
-       (let loop ([items lst] [acc '()])
-            (if (null? items)
-                (reverse acc)
-                (let ([x (car items)])
-                     (if (hashtable-contains? seen x)
-                         (loop (cdr items) acc)
-                         (begin
-                          (hashtable-set! seen x #t)
-                          (loop (cdr items) (cons x acc)))))))))
+;;; NOTE: unique is provided by core/base/prelude.ss (O(n) hashtable-based)
 
 ;;; tag-histogram : FSCap → (List (Pair Symbol Nat))
 ;;; Count occurrences of each tag key.

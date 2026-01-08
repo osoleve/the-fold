@@ -401,18 +401,7 @@
 ;;; ============================================================
 
 ;;; NOTE: string-trim provided by core/prelude.ss
-
-;;; remove-duplicates : (List α) → (List α)
-;;; Remove duplicate elements from a list.
-(define (remove-duplicates lst)
-  (let loop ([remaining lst]
-             [seen '()])
-       (cond
-        [(null? remaining) (reverse seen)]
-        [(member (car remaining) seen)
-         (loop (cdr remaining) seen)]
-        [else
-         (loop (cdr remaining) (cons (car remaining) seen))])))
+;;; NOTE: remove-duplicates provided by core/base/prelude.ss
 
 (display "Cross-reference tool loaded.\n")
 (display "Usage:\n")

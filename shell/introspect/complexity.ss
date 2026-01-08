@@ -202,14 +202,7 @@
             (extract-references (cdr sexp)))]
    [else '()]))
 
-;;; unique : (List A) → (List A)
-;;; Remove duplicates from a list.
-(define (unique lst)
-  (let loop ([lst lst] [seen '()] [acc '()])
-       (cond
-        [(null? lst) (reverse acc)]
-        [(member (car lst) seen) (loop (cdr lst) seen acc)]
-        [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
+;;; NOTE: unique is provided by core/base/prelude.ss
 
 ;;; ============================================================
 ;;; Definition Extraction

@@ -76,15 +76,8 @@
          [callees (vector->list (hashtable-keys reverse-idx))])
         (remove-duplicates (append callers callees))))
 
-;;; Helper to remove duplicates from a list
-(define (remove-duplicates lst)
-  (let loop ([lst lst] [seen '()] [acc '()])
-       (cond
-        [(null? lst) (reverse acc)]
-        [(memq (car lst) seen) (loop (cdr lst) seen acc)]
-        [else (loop (cdr lst)
-                    (cons (car lst) seen)
-                    (cons (car lst) acc))])))
+;;; NOTE: remove-duplicates is provided by core/base/prelude.ss
+;;; For symbol-only lists, unique-simple uses memq for faster eq? comparison.
 
 ;;; ============================================================
 ;;; Build Call Graph from Profiler

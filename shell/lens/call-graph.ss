@@ -121,10 +121,12 @@
                     (walk (car expr))
                     (walk (cdr expr))]))])
         (walk expr)
-        (remove-duplicates calls))))
+        (remove-duplicates-eq calls))))
 
-;;; remove-duplicates : (List α) -> (List α)
-(define (remove-duplicates lst)
+;;; remove-duplicates-eq : (List Symbol) -> (List Symbol)
+;;; Uses eq-hashtable for O(n) symbol deduplication.
+;;; Faster than prelude's remove-duplicates for symbol-only lists.
+(define (remove-duplicates-eq lst)
   (let ([seen (make-eq-hashtable)])
        (filter
         (lambda (x)

@@ -303,7 +303,7 @@
 (define (ring-hom-image h)
   (let ([phi (ring-hom-phi h)]
         [r (ring-hom-source h)])
-       (remove-duplicates
+       (unique-with-equal
         (map phi (ring-elements r))
         (ring-equal-fn (ring-hom-target h)))))
 
@@ -357,7 +357,7 @@
 ;;; make-principal-ideal : Ring × Element → Ideal
 ;;; Generate the principal ideal <a> = {r×a | r ∈ R}
 (define (make-principal-ideal r a)
-  (let ([elems (remove-duplicates
+  (let ([elems (unique-with-equal
                 (map (lambda (r-elem) (ring-mul r r-elem a))
                      (ring-elements r))
                 (ring-equal-fn r))])
@@ -367,7 +367,7 @@
 ;;; I + J = {i + j | i ∈ I, j ∈ J}
 (define (ideal-sum i1 i2)
   (let* ([r (ideal-ring i1)]
-         [elems (remove-duplicates
+         [elems (unique-with-equal
                  (apply append
                         (map (lambda (a)
                                      (map (lambda (b)
@@ -389,7 +389,7 @@
                                                             (ring-mul r a b))
                                                     (ideal-elements i2)))
                                        (ideal-elements i1)))]
-         [seeds (remove-duplicates initial-products eq-fn)])
+         [seeds (unique-with-equal initial-products eq-fn)])
         (let loop ([elems seeds])
              (let* ([new-sums (apply append
                                      (map (lambda (a)
@@ -397,7 +397,7 @@
                                                                (ring-add r a b))
                                                        elems))
                                           elems))]
-                    [next-elems (remove-duplicates (append elems new-sums) eq-fn)])
+                    [next-elems (unique-with-equal (append elems new-sums) eq-fn)])
                    (if (= (length next-elems) (length elems))
                        (make-ideal r next-elems)
                        (loop next-elems))))))
@@ -463,8 +463,12 @@
       '()
       (cons start (range (+ start 1) end))))
 
-;;; Helper: remove-duplicates
-(define (remove-duplicates lst equal-fn)
+;;; unique-with-equal : (List α) × (α × α → Bool) → (List α)
+;;; Remove duplicates using custom equality predicate.
+;;; Unlike prelude's unique (which uses equal?), this allows domain-specific
+;;; equality for ring elements.
+;;; NOTE: O(n^2) - acceptable for small algebraic structures.
+(define (unique-with-equal lst equal-fn)
   (let loop ([items lst] [seen '()])
        (if (null? items)
            seen

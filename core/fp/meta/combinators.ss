@@ -453,9 +453,10 @@
 (define (sort-by key xs)
   (list-sort (lambda (a b) (< (key a) (key b))) xs))
 
-;;; unique : (List a) → (List a)
-;;; Remove consecutive duplicates.
-(define (unique xs)
+;;; dedup-consecutive : (List a) → (List a)
+;;; Remove consecutive duplicates (like Unix uniq).
+;;; For general duplicate removal, use prelude's unique.
+(define (dedup-consecutive xs)
   (if (null? xs)
       '()
       (let loop ([xs (cdr xs)] [prev (car xs)] [result (list (car xs))])
@@ -465,9 +466,10 @@
                    (loop (cdr xs) prev result)
                    (loop (cdr xs) (car xs) (cons (car xs) result)))))))
 
-;;; unique-by : (a → b) → (List a) → (List a)
+;;; dedup-consecutive-by : (a → b) → (List a) → (List a)
 ;;; Remove consecutive elements with same key.
-(define (unique-by key xs)
+;;; For general key-based deduplication, use prelude's distinct-by.
+(define (dedup-consecutive-by key xs)
   (if (null? xs)
       '()
       (let loop ([xs (cdr xs)] [prev-key (key (car xs))] [result (list (car xs))])

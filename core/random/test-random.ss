@@ -222,12 +222,7 @@
                     ;; 'a should appear much more often (100/102 ≈ 98%)
                     (assert-true (> a-count 900)))))
 
-;;; Helper for sampling tests
-(define (remove-duplicates lst)
-  (cond
-   [(null? lst) '()]
-   [(member (car lst) (cdr lst)) (remove-duplicates (cdr lst))]
-   [else (cons (car lst) (remove-duplicates (cdr lst)))]))
+;;; NOTE: remove-duplicates is provided by core/base/prelude.ss (loaded via test-framework.ss)
 
 ;;; ============================================================
 ;;; Bernoulli Distribution Tests
@@ -459,92 +454,92 @@
 ;;; ============================================================
 
 (test-group pdf-tests
-  (define-test normal-pdf-at-mean
-    ;; PDF is highest at mean
-    (let ([pdf-at-mean (normal-pdf 0 0 1)])
-      (assert-true (within-tolerance 0.3989 pdf-at-mean 0.001))))
-
-  (define-test exponential-pdf-at-zero
-    ;; PDF(0) = rate for exponential
-    (let ([pdf (exponential-pdf 0 2.0)])
-      (assert-true (within-tolerance 2.0 pdf 0.001))))
-
-  (define-test uniform-pdf-in-range
-    (let ([pdf (uniform-pdf 0.5 0 1)])
-      (assert-true (within-tolerance 1.0 pdf 0.001))))
-
-  (define-test uniform-pdf-outside-range
-    (let ([pdf (uniform-pdf 2 0 1)])
-      (assert-equal pdf 0)))
-
-  (define-test poisson-pmf-test
-    ;; P(X=2) for Poisson(3) ≈ 0.224
-    (let ([pmf (poisson-pmf 2 3.0)])
-      (assert-true (within-tolerance 0.224 pmf 0.01))))
-
-  (define-test binomial-pmf-test
-    ;; P(X=5) for Binomial(10, 0.5) = C(10,5) * 0.5^10 ≈ 0.246
-    (let ([pmf (binomial-pmf 5 10 0.5)])
-      (assert-true (within-tolerance 0.246 pmf 0.01)))))
+            (define-test normal-pdf-at-mean
+              ;; PDF is highest at mean
+              (let ([pdf-at-mean (normal-pdf 0 0 1)])
+                   (assert-true (within-tolerance 0.3989 pdf-at-mean 0.001))))
+            
+            (define-test exponential-pdf-at-zero
+              ;; PDF(0) = rate for exponential
+              (let ([pdf (exponential-pdf 0 2.0)])
+                   (assert-true (within-tolerance 2.0 pdf 0.001))))
+            
+            (define-test uniform-pdf-in-range
+              (let ([pdf (uniform-pdf 0.5 0 1)])
+                   (assert-true (within-tolerance 1.0 pdf 0.001))))
+            
+            (define-test uniform-pdf-outside-range
+              (let ([pdf (uniform-pdf 2 0 1)])
+                   (assert-equal pdf 0)))
+            
+            (define-test poisson-pmf-test
+              ;; P(X=2) for Poisson(3) ≈ 0.224
+              (let ([pmf (poisson-pmf 2 3.0)])
+                   (assert-true (within-tolerance 0.224 pmf 0.01))))
+            
+            (define-test binomial-pmf-test
+              ;; P(X=5) for Binomial(10, 0.5) = C(10,5) * 0.5^10 ≈ 0.246
+              (let ([pmf (binomial-pmf 5 10 0.5)])
+                   (assert-true (within-tolerance 0.246 pmf 0.01)))))
 
 ;;; ============================================================
 ;;; CDF Tests
 ;;; ============================================================
 
 (test-group cdf-tests
-  (define-test exponential-cdf-test
-    ;; CDF at median should be 0.5
-    ;; Median = ln(2)/rate = 0.693 for rate=1
-    (let ([cdf (exponential-cdf 0.693 1.0)])
-      (assert-true (within-tolerance 0.5 cdf 0.01))))
-
-  (define-test uniform-cdf-test
-    (assert-true (within-tolerance 0.5 (uniform-cdf 0.5 0 1) 0.001))
-    (assert-equal (uniform-cdf -1 0 1) 0)
-    (assert-equal (uniform-cdf 2 0 1) 1))
-
-  (define-test standard-normal-cdf-test
-    ;; CDF(0) = 0.5 for standard normal
-    (assert-true (within-tolerance 0.5 (standard-normal-cdf 0) 0.001))
-    ;; CDF(1.96) ≈ 0.975
-    (assert-true (within-tolerance 0.975 (standard-normal-cdf 1.96) 0.01))
-    ;; CDF(-1.96) ≈ 0.025
-    (assert-true (within-tolerance 0.025 (standard-normal-cdf -1.96) 0.01)))
-
-  (define-test geometric-cdf-test
-    ;; P(X <= 3) for Geometric(0.5)
-    ;; = 1 - (1-0.5)^3 = 0.875
-    (let ([cdf (geometric-cdf 3 0.5)])
-      (assert-true (within-tolerance 0.875 cdf 0.001)))))
+            (define-test exponential-cdf-test
+              ;; CDF at median should be 0.5
+              ;; Median = ln(2)/rate = 0.693 for rate=1
+              (let ([cdf (exponential-cdf 0.693 1.0)])
+                   (assert-true (within-tolerance 0.5 cdf 0.01))))
+            
+            (define-test uniform-cdf-test
+              (assert-true (within-tolerance 0.5 (uniform-cdf 0.5 0 1) 0.001))
+              (assert-equal (uniform-cdf -1 0 1) 0)
+              (assert-equal (uniform-cdf 2 0 1) 1))
+            
+            (define-test standard-normal-cdf-test
+              ;; CDF(0) = 0.5 for standard normal
+              (assert-true (within-tolerance 0.5 (standard-normal-cdf 0) 0.001))
+              ;; CDF(1.96) ≈ 0.975
+              (assert-true (within-tolerance 0.975 (standard-normal-cdf 1.96) 0.01))
+              ;; CDF(-1.96) ≈ 0.025
+              (assert-true (within-tolerance 0.025 (standard-normal-cdf -1.96) 0.01)))
+            
+            (define-test geometric-cdf-test
+              ;; P(X <= 3) for Geometric(0.5)
+              ;; = 1 - (1-0.5)^3 = 0.875
+              (let ([cdf (geometric-cdf 3 0.5)])
+                   (assert-true (within-tolerance 0.875 cdf 0.001)))))
 
 ;;; ============================================================
 ;;; Quantile Tests
 ;;; ============================================================
 
 (test-group quantile-tests
-  (define-test exponential-quantile-test
-    ;; Quantile(0.5) = ln(2)/rate for exponential
-    (let ([q (exponential-quantile 0.5 1.0)])
-      (assert-true (within-tolerance 0.693 q 0.01))))
-
-  (define-test uniform-quantile-test
-    (assert-true (within-tolerance 0.5 (uniform-quantile 0.5 0 1) 0.001))
-    (assert-true (within-tolerance 0.25 (uniform-quantile 0.25 0 1) 0.001)))
-
-  (define-test standard-normal-quantile-test
-    ;; Q(0.5) = 0 for standard normal
-    (assert-true (within-tolerance 0 (standard-normal-quantile 0.5) 0.01))
-    ;; Q(0.975) ≈ 1.96
-    (assert-true (within-tolerance 1.96 (standard-normal-quantile 0.975) 0.05))
-    ;; Q(0.025) ≈ -1.96
-    (assert-true (within-tolerance -1.96 (standard-normal-quantile 0.025) 0.05)))
-
-  (define-test quantile-cdf-inverse
-    ;; CDF(Quantile(p)) ≈ p
-    (let* ([p 0.7]
-           [q (exponential-quantile p 2.0)]
-           [back (exponential-cdf q 2.0)])
-      (assert-true (within-tolerance p back 0.001)))))
+            (define-test exponential-quantile-test
+              ;; Quantile(0.5) = ln(2)/rate for exponential
+              (let ([q (exponential-quantile 0.5 1.0)])
+                   (assert-true (within-tolerance 0.693 q 0.01))))
+            
+            (define-test uniform-quantile-test
+              (assert-true (within-tolerance 0.5 (uniform-quantile 0.5 0 1) 0.001))
+              (assert-true (within-tolerance 0.25 (uniform-quantile 0.25 0 1) 0.001)))
+            
+            (define-test standard-normal-quantile-test
+              ;; Q(0.5) = 0 for standard normal
+              (assert-true (within-tolerance 0 (standard-normal-quantile 0.5) 0.01))
+              ;; Q(0.975) ≈ 1.96
+              (assert-true (within-tolerance 1.96 (standard-normal-quantile 0.975) 0.05))
+              ;; Q(0.025) ≈ -1.96
+              (assert-true (within-tolerance -1.96 (standard-normal-quantile 0.025) 0.05)))
+            
+            (define-test quantile-cdf-inverse
+              ;; CDF(Quantile(p)) ≈ p
+              (let* ([p 0.7]
+                     [q (exponential-quantile p 2.0)]
+                     [back (exponential-cdf q 2.0)])
+                    (assert-true (within-tolerance p back 0.001)))))
 
 ;; Print summary
 (display "\n")

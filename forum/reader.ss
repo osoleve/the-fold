@@ -123,6 +123,7 @@
 
 ;;; unique-authors : (List Alist) → (List Symbol)
 ;;; Extract unique author names from posts.
+;;; Uses memq for symbol comparison (faster than unique-fast for small symbol lists).
 (define (unique-authors posts)
   (let loop ([posts posts] [seen '()])
        (if (null? posts)
