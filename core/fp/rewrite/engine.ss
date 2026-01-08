@@ -33,6 +33,7 @@
 
 ;;; check-constraint : Symbol × Expr → Boolean
 ;;; Check if expression satisfies a type constraint.
+;;; Errors on unknown constraints to catch typos.
 (define (check-constraint constraint expr)
   (case constraint
         [(number) (number? expr)]
@@ -41,7 +42,8 @@
         [(pair) (pair? expr)]
         [(atom) (not (pair? expr))]
         [(any) #t]
-        [else #t]))  ; Unknown constraints pass
+        [else (error 'check-constraint
+                     (format "Unknown constraint: ~a" constraint))]))
 
 ;;; ============================================================
 ;;; Pattern Matching
@@ -259,15 +261,25 @@
   (lambda (expr)
           (or (s expr) expr)))
 
-;;; repeat : Strategy → Strategy
-;;; Repeat: apply strategy until it fails or produces no change.
-(define (repeat s)
-  (lambda (expr)
-          (let loop ([current expr])
-               (let ([result (s current)])
-                    (if (and result (not (equal? result current)))
-                        (loop result)
-                        current)))))
+;;; *max-rewrite-fuel* : Nat
+;;; Default fuel limit for repeat to prevent infinite loops.
+(define *max-rewrite-fuel* 1000)
+
+;;; repeat : Strategy [× Nat] → Strategy
+;;; Repeat: apply strategy until it fails, produces no change, or runs out of fuel.
+;;; Uses *max-rewrite-fuel* as default limit to prevent infinite loops.
+(define repeat
+  (case-lambda
+   [(s) (repeat s *max-rewrite-fuel*)]
+   [(s fuel)
+    (lambda (expr)
+            (let loop ([current expr] [remaining fuel])
+                 (if (<= remaining 0)
+                     current  ; Out of fuel, return current result
+                     (let ([result (s current)])
+                          (if (and result (not (equal? result current)))
+                              (loop result (- remaining 1))
+                              current)))))]))
 
 ;;; repeat-n : Strategy × Nat → Strategy
 ;;; Repeat at most n times.

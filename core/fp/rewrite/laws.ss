@@ -70,19 +70,21 @@
 ;;; ============================================================
 
 ;;; Associativity: (x <> y) <> z = x <> (y <> z)
+;;; Right-associative is canonical form for simplification
 (define semigroup-assoc
   (make-rule 'semigroup-assoc
              '(mappend (mappend (?x) (?y)) (?z))
              '(mappend (?x) (mappend (?y) (?z)))
              'category 'semigroup
-             'direction 'bidirectional))
+             'direction 'forward))
 
 ;;; Associativity (reverse): x <> (y <> z) = (x <> y) <> z
+;;; Use 'expansion category to avoid oscillation with semigroup-assoc
 (define semigroup-assoc-rev
   (make-rule 'semigroup-assoc-rev
              '(mappend (?x) (mappend (?y) (?z)))
              '(mappend (mappend (?x) (?y)) (?z))
-             'category 'semigroup
+             'category 'expansion
              'direction 'forward))
 
 ;;; ============================================================
@@ -124,15 +126,16 @@
              'category 'functor))
 
 ;;; Composition: fmap (f . g) = fmap f . fmap g
-;;; fmap (compose f g) fa = fmap f (fmap g fa)
+;;; Expands composed fmap - use 'expansion to avoid oscillation
 (define functor-comp
   (make-rule 'functor-comp
              '(fmap (compose (?f) (?g)) (?fa))
              '(fmap (?f) (fmap (?g) (?fa)))
-             'category 'functor
-             'direction 'bidirectional))
+             'category 'expansion
+             'direction 'forward))
 
-;;; Composition fusion (reverse): fmap f (fmap g fa) = fmap (compose f g) fa
+;;; Composition fusion: fmap f (fmap g fa) = fmap (compose f g) fa
+;;; Contracts nested fmaps - this is the simplifying direction
 (define functor-fuse
   (make-rule 'functor-fuse
              '(fmap (?f) (fmap (?g) (?fa)))
@@ -184,14 +187,16 @@
              'category 'monad))
 
 ;;; Associativity: (m >>= f) >>= g = m >>= (\x -> f x >>= g)
+;;; Expands nested binds - use 'expansion to avoid oscillation
 (define monad-assoc
   (make-rule 'monad-assoc
              '(bind (bind (?m) (?f)) (?g))
              '(bind (?m) (fn ((?x)) (bind ((?f) (?x)) (?g))))
-             'category 'monad
-             'direction 'bidirectional))
+             'category 'expansion
+             'direction 'forward))
 
 ;;; Associativity (reverse for flattening)
+;;; Contracts to nested binds - this is the simplifying direction
 (define monad-assoc-rev
   (make-rule 'monad-assoc-rev
              '(bind (?m) (fn ((?x)) (bind ((?f) (?x)) (?g))))
