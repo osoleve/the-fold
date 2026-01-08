@@ -85,8 +85,8 @@
               (assert-true (andmap (lambda (entry) (and (pair? entry) (symbol? (car entry))))
                                    dep-linalg-types)))
             
-            (define-test "has 6 type entries"
-              (assert-equal 6 (length dep-linalg-types)))
+            (define-test "has 15 type entries (6 linalg + 9 diff)"
+              (assert-equal 15 (length dep-linalg-types)))
             
             (define-test "vec-append-typed has Pi type structure"
               (let ([type (cdr (assq 'vec-append-typed dep-linalg-types))])

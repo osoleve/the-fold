@@ -313,6 +313,190 @@
   (test "heq-left-type on non-HEq" 'Void (heq-left-type '(= A a b)))
   (test "heq-lhs on non-HEq" #f (heq-lhs '(= A a b)))
   
+  (display "
+--- Differentiable Type Tests ---
+")
+  
+  ;; Diff type predicates
+  (test-true "diff-type? on (Diff Float Float)"
+             (diff-type? '(Diff Float Float)))
+  (test-true "diff-type? on (Diff (Vec n Float) Float)"
+             (diff-type? '(Diff (Vec n Float) Float)))
+  (test-true "diff-type? on (Diff (Vec n Float) (Vec m Float))"
+             (diff-type? '(Diff (Vec n Float) (Vec m Float))))
+  (test-false "diff-type? on arrow type"
+              (diff-type? '(-> Float Float)))
+  (test-false "diff-type? on symbol"
+              (diff-type? 'Float))
+  
+  ;; Diff type well-formedness
+  (test-true "diff-type-well-formed? valid"
+             (diff-type-well-formed? '(Diff Float Float)))
+  (test-true "diff-type-well-formed? with Vec"
+             (diff-type-well-formed? '(Diff (Vec 3 Float) Float)))
+  (test-false "diff-type-well-formed? wrong arity"
+              (diff-type-well-formed? '(Diff Float)))
+  (test-false "diff-type-well-formed? extra arg"
+              (diff-type-well-formed? '(Diff Float Float Float)))
+  
+  ;; Diff type extractors
+  (test "diff-domain extracts domain"
+        'Float
+        (diff-domain '(Diff Float Int)))
+  (test "diff-domain with Vec"
+        '(Vec n Float)
+        (diff-domain '(Diff (Vec n Float) Float)))
+  (test "diff-codomain extracts codomain"
+        '(Vec m Float)
+        (diff-codomain '(Diff Float (Vec m Float))))
+  (test "diff-domain on non-Diff"
+        'Void
+        (diff-domain '(-> Float Float)))
+  
+  ;; make-diff-type constructor
+  (test "make-diff-type constructs Diff"
+        '(Diff Float Float)
+        (make-diff-type 'Float 'Float))
+  (test "make-diff-type with Vec"
+        '(Diff (Vec n Float) (Vec m Float))
+        (make-diff-type '(Vec n Float) '(Vec m Float)))
+  
+  ;; Grad type predicates
+  (test-true "grad-type? on (Grad Float)"
+             (grad-type? '(Grad Float)))
+  (test-true "grad-type? on (Grad (Vec n Float))"
+             (grad-type? '(Grad (Vec n Float))))
+  (test-false "grad-type? on Diff"
+              (grad-type? '(Diff Float Float)))
+  (test-false "grad-type? on symbol"
+              (grad-type? 'Float))
+  
+  ;; Grad type well-formedness
+  (test-true "grad-type-well-formed? valid"
+             (grad-type-well-formed? '(Grad Float)))
+  (test-false "grad-type-well-formed? wrong arity"
+              (grad-type-well-formed? '(Grad)))
+  (test-false "grad-type-well-formed? extra arg"
+              (grad-type-well-formed? '(Grad Float Float)))
+  
+  ;; Grad type extractors
+  (test "grad-inner-type extracts inner"
+        'Float
+        (grad-inner-type '(Grad Float)))
+  (test "grad-inner-type with Vec"
+        '(Vec n Float)
+        (grad-inner-type '(Grad (Vec n Float))))
+  (test "grad-inner-type on non-Grad"
+        'Void
+        (grad-inner-type '(Diff Float Float)))
+  
+  ;; make-grad-type constructor
+  (test "make-grad-type constructs Grad"
+        '(Grad Float)
+        (make-grad-type 'Float))
+  (test "make-grad-type with Vec"
+        '(Grad (Vec n Float))
+        (make-grad-type '(Vec n Float)))
+  
+  ;; numeric-type? predicate
+  (test-true "numeric-type? on Float" (numeric-type? 'Float))
+  (test-true "numeric-type? on Int" (numeric-type? 'Int))
+  (test-true "numeric-type? on Nat" (numeric-type? 'Nat))
+  (test-true "numeric-type? on Real" (numeric-type? 'Real))
+  (test-true "numeric-type? on (Vec n Float)"
+             (numeric-type? '(Vec n Float)))
+  (test-true "numeric-type? on (Matrix m n Float)"
+             (numeric-type? '(Matrix m n Float)))
+  (test-false "numeric-type? on Bool" (numeric-type? 'Bool))
+  (test-false "numeric-type? on String" (numeric-type? 'String))
+  (test-false "numeric-type? on (Vec n Bool)"
+              (numeric-type? '(Vec n Bool)))
+  
+  ;; scalar-type? predicate
+  (test-true "scalar-type? on Float" (scalar-type? 'Float))
+  (test-true "scalar-type? on Int" (scalar-type? 'Int))
+  (test-false "scalar-type? on Vec" (scalar-type? '(Vec n Float)))
+  (test-false "scalar-type? on Matrix" (scalar-type? '(Matrix m n Float)))
+  
+  ;; Dimension extraction
+  (test "diff-input-dim scalar"
+        'scalar
+        (diff-input-dim '(Diff Float Float)))
+  (test "diff-input-dim Vec"
+        'n
+        (diff-input-dim '(Diff (Vec n Float) Float)))
+  (test "diff-input-dim numeric n"
+        3
+        (diff-input-dim '(Diff (Vec 3 Float) Float)))
+  (test "diff-output-dim scalar"
+        'scalar
+        (diff-output-dim '(Diff Float Float)))
+  (test "diff-output-dim Vec"
+        'm
+        (diff-output-dim '(Diff Float (Vec m Float))))
+  
+  ;; Gradient type computation
+  (test "diff-grad-type scalar"
+        '(Grad Float)
+        (diff-grad-type '(Diff Float Float)))
+  (test "diff-grad-type Vec input"
+        '(Grad (Vec n Float))
+        (diff-grad-type '(Diff (Vec n Float) Float)))
+  
+  ;; Jacobian type computation
+  (test "diff-jacobian-type scalar->scalar"
+        'Float
+        (diff-jacobian-type '(Diff Float Float)))
+  (test "diff-jacobian-type Vec->scalar"
+        '(Vec n Float)
+        (diff-jacobian-type '(Diff (Vec n Float) Float)))
+  (test "diff-jacobian-type Vec->Vec"
+        '(Matrix m n Float)
+        (diff-jacobian-type '(Diff (Vec n Float) (Vec m Float))))
+  
+  ;; Hessian type computation
+  (test "diff-hessian-type scalar->scalar"
+        'Float
+        (diff-hessian-type '(Diff Float Float)))
+  (test "diff-hessian-type Vec->scalar"
+        '(Matrix n n Float)
+        (diff-hessian-type '(Diff (Vec n Float) Float)))
+  
+  ;; Composition check
+  (test-true "diff-composable? matching types"
+             (diff-composable? '(Diff Float Float) '(Diff Float Float)))
+  (test-true "diff-composable? Vec chain"
+             (diff-composable? '(Diff (Vec m Float) (Vec p Float))
+                               '(Diff (Vec n Float) (Vec m Float))))
+  (test-false "diff-composable? mismatched types"
+              (diff-composable? '(Diff Float Float) '(Diff Float (Vec n Float))))
+  (test-false "diff-composable? non-Diff first arg"
+              (diff-composable? '(-> Float Float) '(Diff Float Float)))
+  
+  ;; dep-type? includes Diff and Grad
+  (test-true "dep-type? on Diff" (dep-type? '(Diff Float Float)))
+  (test-true "dep-type? on Grad" (dep-type? '(Grad Float)))
+  
+  ;; well-formed-dep-type? includes Diff and Grad
+  (test-true "well-formed-dep-type? on Diff"
+             (well-formed-dep-type? '(Diff Float Float)))
+  (test-true "well-formed-dep-type? on Grad"
+             (well-formed-dep-type? '(Grad (Vec n Float))))
+  
+  ;; dep-type->string for Diff and Grad
+  (test "dep-type->string Diff"
+        "Diff(Float → Float)"
+        (dep-type->string '(Diff Float Float)))
+  (test "dep-type->string Diff with Vec"
+        "Diff(Vec(n, Float) → Float)"
+        (dep-type->string '(Diff (Vec n Float) Float)))
+  (test "dep-type->string Grad"
+        "∇(Float)"
+        (dep-type->string '(Grad Float)))
+  (test "dep-type->string Grad with Vec"
+        "∇(Vec(n, Float))"
+        (dep-type->string '(Grad (Vec n Float))))
+  
   ;; Free variables helper
   (test "dep-free-vars basic"
         '(x)
