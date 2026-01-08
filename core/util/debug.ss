@@ -90,6 +90,7 @@
 
 ;;; step : Debugger → Debugger
 ;;; Execute one reduction phase with per-step fuel budget.
+;;; Saves full state (including trace) to history for proper time-travel.
 (define (step d)
   (let ([expr (debugger-expr d)]
         [env (debugger-env d)]
@@ -102,7 +103,9 @@
            
            ;; Execute with step-fuel budget (min of available and step budget)
            (let* ([step-budget (min fuel *step-fuel*)]
-                  [result (eval-expr expr env step-budget)])
+                  [result (eval-expr expr env step-budget)]
+                  ;; Save full state for proper undo/redo
+                  [saved-state (list expr env fuel trace)])
                  (cond
                   ;; Completed
                   [(eq? (car result) 'ok)
@@ -113,7 +116,8 @@
                                           `((expr . ,value)
                                             (fuel . ,(- fuel used))
                                             (trace . ,(cons `(step ,expr -> ,value) trace))
-                                            (history . ,(cons (list expr env fuel) history))
+                                            (history . ,(cons saved-state history))
+                                            (future . ())  ;; Clear future on new step
                                             (status . ,(if (value? value) 'complete 'ready)))))]
                   
                   ;; Suspended (expr reduced but not to value - ran out of step budget)
@@ -125,13 +129,15 @@
                                            (env . ,new-env)
                                            (fuel . ,(- fuel step-budget))
                                            (trace . ,(cons `(step ,expr -> suspended) trace))
-                                           (history . ,(cons (list expr env fuel) history))
+                                           (history . ,(cons saved-state history))
+                                           (future . ())  ;; Clear future on new step
                                            (status . ready))))]
                   
                   ;; Error
                   [else
                    (debugger-update d
                                     `((trace . ,(cons `(error ,(cadr result) ,(caddr result)) trace))
+                                      (future . ())
                                       (status . error)
                                       (error . ,result)))])))))
 
@@ -219,23 +225,39 @@
 
 ;;; undo : Debugger → Debugger
 ;;; Go back one step, pushing current state to future for redo.
+;;; Restores full state including trace, fuel-trace, watch-events for proper time-travel.
 (define (undo d)
   (let ([history (debugger-history d)]
         [future (debugger-future d)]
         [expr (debugger-expr d)]
         [env (debugger-env d)]
-        [fuel (debugger-fuel d)])
+        [fuel (debugger-fuel d)]
+        [trace (debugger-trace d)]
+        [fuel-trace (debugger-fuel-trace d)]
+        [watch-events (debugger-watch-events d)])
        (if (null? history)
            d
-           (let ([prev (car history)]
-                 [current-state (list expr env fuel)])
-                (debugger-update d
-                                 `((expr . ,(car prev))
-                                   (env . ,(cadr prev))
-                                   (fuel . ,(caddr prev))
-                                   (history . ,(cdr history))
-                                   (future . ,(cons current-state future))
-                                   (status . ready)))))))
+           (let* ([prev (car history)]
+                  [prev-len (length prev)]
+                  ;; Save current state for redo (6-element format for fuel debugger)
+                  [current-state (list expr env fuel trace fuel-trace watch-events)]
+                  ;; Handle different history formats:
+                  ;; 3-element (legacy): (expr env fuel)
+                  ;; 4-element (basic step): (expr env fuel trace)
+                  ;; 6-element (fuel debugger): (expr env fuel trace fuel-trace watch-events)
+                  [prev-trace (if (> prev-len 3) (list-ref prev 3) '())]
+                  [prev-fuel-trace (if (> prev-len 4) (list-ref prev 4) '())]
+                  [prev-watch-events (if (> prev-len 5) (list-ref prev 5) '())])
+                 (debugger-update d
+                                  `((expr . ,(car prev))
+                                    (env . ,(cadr prev))
+                                    (fuel . ,(caddr prev))
+                                    (trace . ,prev-trace)
+                                    (fuel-trace . ,prev-fuel-trace)
+                                    (watch-events . ,prev-watch-events)
+                                    (history . ,(cdr history))
+                                    (future . ,(cons current-state future))
+                                    (status . ready)))))))
 
 ;;; undo-n : Debugger × Nat → Debugger
 (define (undo-n d n)
@@ -245,23 +267,39 @@
 
 ;;; redo : Debugger → Debugger
 ;;; Go forward one step in the future stack.
+;;; Restores full state including trace, fuel-trace, watch-events for proper time-travel.
 (define (redo d)
   (let ([future (debugger-future d)]
         [history (debugger-history d)]
         [expr (debugger-expr d)]
         [env (debugger-env d)]
-        [fuel (debugger-fuel d)])
+        [fuel (debugger-fuel d)]
+        [trace (debugger-trace d)]
+        [fuel-trace (debugger-fuel-trace d)]
+        [watch-events (debugger-watch-events d)])
        (if (null? future)
            d
-           (let ([next-state (car future)]
-                 [current-state (list expr env fuel)])
-                (debugger-update d
-                                 `((expr . ,(car next-state))
-                                   (env . ,(cadr next-state))
-                                   (fuel . ,(caddr next-state))
-                                   (history . ,(cons current-state history))
-                                   (future . ,(cdr future))
-                                   (status . ready)))))))
+           (let* ([next-state (car future)]
+                  [next-len (length next-state)]
+                  ;; Save current state for undo (6-element format for fuel debugger)
+                  [current-state (list expr env fuel trace fuel-trace watch-events)]
+                  ;; Handle different future formats:
+                  ;; 3-element (legacy): (expr env fuel)
+                  ;; 4-element (basic step): (expr env fuel trace)
+                  ;; 6-element (fuel debugger): (expr env fuel trace fuel-trace watch-events)
+                  [next-trace (if (> next-len 3) (list-ref next-state 3) '())]
+                  [next-fuel-trace (if (> next-len 4) (list-ref next-state 4) '())]
+                  [next-watch-events (if (> next-len 5) (list-ref next-state 5) '())])
+                 (debugger-update d
+                                  `((expr . ,(car next-state))
+                                    (env . ,(cadr next-state))
+                                    (fuel . ,(caddr next-state))
+                                    (trace . ,next-trace)
+                                    (fuel-trace . ,next-fuel-trace)
+                                    (watch-events . ,next-watch-events)
+                                    (history . ,(cons current-state history))
+                                    (future . ,(cdr future))
+                                    (status . ready)))))))
 
 ;;; redo-n : Debugger × Nat → Debugger
 (define (redo-n d n)
@@ -278,7 +316,7 @@
   (not (null? (debugger-future d))))
 
 ;;; reset : Debugger → Debugger
-;;; Reset to initial state, clearing history and future.
+;;; Reset to initial state, clearing history, future, and all trace data.
 (define (reset d)
   (let ([history (debugger-history d)])
        (if (null? history)
@@ -291,6 +329,8 @@
                                    (history . ())
                                    (future . ())
                                    (trace . ())
+                                   (fuel-trace . ())
+                                   (watch-events . ())
                                    (status . ready)))))))
 
 ;;; Helper: get last element
@@ -468,6 +508,7 @@
 
 ;;; step-with-fuel : Debugger → Debugger
 ;;; Execute one step with fuel tracking, watch events, and timeline branching.
+;;; Saves full state (including trace, fuel-trace, watch-events) for proper time-travel.
 (define (step-with-fuel d)
   (let ([expr (debugger-expr d)]
         [env (debugger-env d)]
@@ -483,7 +524,9 @@
        (if (zero? fuel)
            (debugger-set d 'status 'out-of-fuel)
            
-           (let* ([step-budget (min fuel *step-fuel*)]
+           ;; Save full state BEFORE stepping for proper undo/redo
+           (let* ([saved-state (list expr env fuel trace fuel-trace watch-events)]
+                  [step-budget (min fuel *step-fuel*)]
                   [fuel-before fuel]
                   [result (eval-expr expr env step-budget)])
                  (cond
@@ -501,7 +544,7 @@
                                             (fuel . ,fuel-after)
                                             (trace . ,(cons `(step ,expr -> ,value (fuel ,used)) trace))
                                             (fuel-trace . ,(cons fuel-entry fuel-trace))
-                                            (history . ,(cons (list expr env fuel) history))
+                                            (history . ,(cons saved-state history))
                                             (future . ())  ;; Clear future on new step (timeline branch)
                                             (watch-events . ,new-watch-events)
                                             (status . ,(if (value? value) 'complete 'ready)))))]
@@ -520,7 +563,7 @@
                                             (fuel . ,fuel-after)
                                             (trace . ,(cons `(step ,expr -> suspended (fuel ,step-budget)) trace))
                                             (fuel-trace . ,(cons fuel-entry fuel-trace))
-                                            (history . ,(cons (list expr env fuel) history))
+                                            (history . ,(cons saved-state history))
                                             (future . ())  ;; Clear future on new step (timeline branch)
                                             (watch-events . ,new-watch-events)
                                             (status . ready))))]
