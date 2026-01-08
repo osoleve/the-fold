@@ -267,6 +267,52 @@
         (dep-subst-type '(Π ((A : Type) (x : A)) (Vec A x)) 'T 'Nat)
         '(Π ((A : Type) (x : A)) (Vec A x)))  ; T not in type, no change
   
+  ;; Heterogeneous Equality Types
+  (display "
+--- Heterogeneous Equality Types ---
+")
+  ;; HEq type predicates
+  (test-true "heq-type? on HEq" (heq-type? '(HEq A B a b)))
+  (test-false "heq-type? on homogeneous =" (heq-type? '(= A a b)))
+  (test-false "heq-type? on non-equality" (heq-type? '(-> A B)))
+  
+  ;; HEq wellformedness
+  (test-true "heq-type-well-formed?" (heq-type-well-formed? '(HEq A B a b)))
+  (test-false "heq-type-well-formed? wrong arity" (heq-type-well-formed? '(HEq A B a)))
+  (test-false "heq-type-well-formed? not HEq" (heq-type-well-formed? '(= A a b)))
+  
+  ;; HEq extractors
+  (test "heq-left-type extracts A" 'A (heq-left-type '(HEq A B a b)))
+  (test "heq-right-type extracts B" 'B (heq-right-type '(HEq A B a b)))
+  (test "heq-lhs extracts a" 'a (heq-lhs '(HEq A B a b)))
+  (test "heq-rhs extracts b" 'b (heq-rhs '(HEq A B a b)))
+  
+  ;; Complex HEq types
+  (test "heq-left-type with complex type"
+        '(Vec n Int)
+        (heq-left-type '(HEq (Vec n Int) (Vec m Int) xs ys)))
+  (test "heq-right-type with complex type"
+        '(Vec m Int)
+        (heq-right-type '(HEq (Vec n Int) (Vec m Int) xs ys)))
+  
+  ;; make-heq-type constructor
+  (test "make-heq-type with different types"
+        '(HEq A B a b)
+        (make-heq-type 'A 'B 'a 'b))
+  (test "make-heq-type degenerates to = when types equal"
+        '(= A a b)
+        (make-heq-type 'A 'A 'a 'b))
+  (test "make-heq-type with complex equal types"
+        '(= (Vec 3 Int) xs ys)
+        (make-heq-type '(Vec 3 Int) '(Vec 3 Int) 'xs 'ys))
+  (test "make-heq-type with complex different types"
+        '(HEq (Vec n Int) (Vec m Int) xs ys)
+        (make-heq-type '(Vec n Int) '(Vec m Int) 'xs 'ys))
+  
+  ;; HEq extractors on non-HEq return sensible defaults
+  (test "heq-left-type on non-HEq" 'Void (heq-left-type '(= A a b)))
+  (test "heq-lhs on non-HEq" #f (heq-lhs '(= A a b)))
+  
   ;; Free variables helper
   (test "dep-free-vars basic"
         '(x)

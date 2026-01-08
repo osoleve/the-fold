@@ -120,7 +120,7 @@
 ;;; Is this a dependent type construct?
 (define (dep-type? t)
   (or (pi-type? t) (sigma-type? t) (universe-type? t)
-      (vec-type? t) (matrix-type? t) (equality-type? t)
+      (vec-type? t) (matrix-type? t) (equality-type? t) (heq-type? t)
       (refinement-type? t) (data-type? t) (sig-type? t)))
 
 ;;; ============================================================
@@ -254,6 +254,73 @@
   (if (equality-type? t)
       (cadddr t)
       #f))
+
+;;; ============================================================
+;;; Heterogeneous Equality Operations
+;;; ============================================================
+;;;
+;;; Heterogeneous equality (HEq) relates terms of potentially different types.
+;;; Syntax: (HEq A B a b)
+;;;   - A is the type of a
+;;;   - B is the type of b
+;;;   - a is the left term
+;;;   - b is the right term
+;;;
+;;; When A ≡ B, we have (HEq A B a b) ≡ (= A a b).
+;;;
+;;; This is needed for dependent congruence:
+;;;   For f : Π(x:A).B(x) and p : x ≡ y : A,
+;;;   (cong f p) : HEq B(x) B(y) (f x) (f y)
+;;;
+;;; In HoTT, this corresponds to PathOver or dependent paths.
+
+;;; heq-type? : Type → Boolean
+;;; Check if this is a heterogeneous equality type: (HEq A B a b)
+(define (heq-type? t)
+  (and (pair? t) (eq? (car t) 'HEq)))
+
+;;; heq-type-well-formed? : SExpr → Boolean
+;;; Check if a heterogeneous equality type expression is well-formed
+(define (heq-type-well-formed? t)
+  (and (pair? t)
+       (eq? (car t) 'HEq)
+       (= (length t) 5)))
+
+;;; heq-left-type : Type → Type
+;;; Get the left type A from (HEq A B a b)
+(define (heq-left-type t)
+  (if (heq-type? t)
+      (cadr t)
+      'Void))
+
+;;; heq-right-type : Type → Type
+;;; Get the right type B from (HEq A B a b)
+(define (heq-right-type t)
+  (if (heq-type? t)
+      (caddr t)
+      'Void))
+
+;;; heq-lhs : Type → Expr
+;;; Get the left term a from (HEq A B a b)
+(define (heq-lhs t)
+  (if (heq-type? t)
+      (cadddr t)
+      #f))
+
+;;; heq-rhs : Type → Expr
+;;; Get the right term b from (HEq A B a b)
+(define (heq-rhs t)
+  (if (heq-type? t)
+      (car (cddddr t))
+      #f))
+
+;;; make-heq-type : Type × Type × Expr × Expr → Type
+;;; Construct a heterogeneous equality type (HEq A B a b)
+;;; If A and B are definitionally equal, returns homogeneous equality instead.
+(define (make-heq-type A B a b)
+  (if (equal? A B)
+      `(= ,A ,a ,b)  ; Reduce to homogeneous when types match
+      `(HEq ,A ,B ,a ,b)))
 
 ;;; ============================================================
 ;;; Refinement Type Operations

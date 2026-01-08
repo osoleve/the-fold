@@ -666,11 +666,15 @@
                                                  [y (equality-rhs p-type)])
                                                 (if (not (dep-types-equal? A p-A ctx))
                                                     `(error type-mismatch (expected ,A) (got ,p-A))
-                                                    ;; Result: (= B[x/var] (f x) (f y))
-                                                    ;; For dependent functions, we'd need heterogeneous equality
-                                                    ;; For now, use B[x/var]
-                                                    (let ([B-x (dep-subst-type B var x)])
-                                                         `(ok (= ,B-x (,f-expr ,x) (,f-expr ,y))))))))))]
+                                                    ;; For dependent functions: use heterogeneous equality
+                                                    ;; Result: HEq B[x/var] B[y/var] (f x) (f y)
+                                                    ;; This degenerates to (= B (f x) (f y)) when B is non-dependent
+                                                    (let* ([B-x (dep-subst-type B var x)]
+                                                           [B-y (dep-subst-type B var y)]
+                                                           [result-type (make-heq-type B-x B-y
+                                                                                       `(,f-expr ,x)
+                                                                                       `(,f-expr ,y))])
+                                                          `(ok ,result-type))))))))]
                       [else `(error not-a-function ,f-type)]))))))
 
 ;;; dep-synth-subst : Expr × Context → (Result Type Error)
