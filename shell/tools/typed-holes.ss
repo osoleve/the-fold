@@ -58,6 +58,22 @@
     (list (cons (reverse path) expr))]
    [(not (pair? expr))
     '()]
+   ;; Special handling for let to properly traverse bindings
+   [(eq? (car expr) 'let)
+    (let* ([bindings (cadr expr)]
+           [body (caddr expr)]
+           ;; Find holes in bindings (path index 1 for bindings list)
+           [binding-holes
+            (let bloop ([bs bindings] [bidx 0] [bresults '()])  ;; 0-based index
+                 (if (null? bs)
+                     bresults
+                     (let* ([binding (car bs)]
+                            ;; Each binding is (var init), hole would be in init at index 1
+                            [init-holes (find-holes-aux (cadr binding) (cons 1 (cons bidx (cons 1 path))))])
+                           (bloop (cdr bs) (+ bidx 1) (append bresults init-holes)))))]
+           ;; Find holes in body (path index 2)
+           [body-holes (find-holes-aux body (cons 2 path))])
+          (append binding-holes body-holes))]
    [else
     (let loop ([items (cdr expr)] [idx 1] [results '()])
          (if (null? items)
@@ -83,25 +99,59 @@
    [(not (pair? expr)) env]
    [(eq? (car expr) 'let)
     ;; (let ((x e1) ...) body)
+    ;; Path structure:
+    ;;   (1 binding-idx sub-idx ...) -> in bindings list, specific binding
+    ;;   (2 ...) -> in body
     (let* ([bindings (cadr expr)]
            [body (caddr expr)]
            [idx (car path)]
-           [new-env (fold-left
-                     (lambda (e b)
-                             (let ([var (car b)]
-                                   [init (cadr b)]
-                                   [result (infer init e)])
-                                  (if (eq? (car result) 'ok)
-                                      (tenv-extend e var (cadr result))
-                                      e)))
-                     env
-                     bindings)])
-          (if (= idx 2)
-              ;; In body
-              (expr-context-aux body (cdr path) new-env)
-              ;; In binding
-              (expr-context-aux (list-ref (list-ref bindings (- idx 1)) 1)
-                                (cdr path) env)))]
+           [rest-path (cdr path)])
+          (cond
+           ;; idx=2 means we're in the body
+           [(= idx 2)
+            ;; Build env with all bindings for body context
+            (let ([new-env (fold-left
+                            (lambda (e b)
+                                    (let* ([bvar (car b)]
+                                           [bexpr (cadr b)]
+                                           [result (infer bexpr e)])
+                                          (if (eq? (car result) 'ok)
+                                              (tenv-extend e bvar (cadr result))
+                                              e)))
+                            env
+                            bindings)])
+                 (expr-context-aux body rest-path new-env))]
+           ;; idx=1 means we're in the bindings list
+           [(= idx 1)
+            (if (null? rest-path)
+                env  ;; At bindings list itself
+                ;; Next path element tells us which binding (0-indexed)
+                (let* ([binding-idx (car rest-path)]
+                       [binding-rest (cdr rest-path)]
+                       ;; Only include bindings BEFORE this one in env
+                       [prior-bindings (if (> binding-idx 0)
+                                           (take-n bindings binding-idx)
+                                           '())]
+                       [partial-env (fold-left
+                                     (lambda (e b)
+                                             (let* ([bvar (car b)]
+                                                    [bexpr (cadr b)]
+                                                    [result (infer bexpr e)])
+                                                   (if (eq? (car result) 'ok)
+                                                       (tenv-extend e bvar (cadr result))
+                                                       e)))
+                                     env
+                                     prior-bindings)])
+                      (if (or (null? binding-rest) (>= binding-idx (length bindings)))
+                          partial-env
+                          ;; Recurse into the binding's init expression
+                          (let* ([binding (list-ref bindings binding-idx)]
+                                 [sub-idx (car binding-rest)])
+                                ;; sub-idx 1 = init expression (index 0 is var name)
+                                (if (= sub-idx 1)
+                                    (expr-context-aux (cadr binding) (cdr binding-rest) partial-env)
+                                    partial-env)))))]
+           [else env]))]
    [(eq? (car expr) 'fn)
     ;; (fn (x y) body)
     (let* ([params (cadr expr)]
@@ -390,6 +440,13 @@
   (if (or (null? lst) (<= n 0))
       '()
       (cons (car lst) (take-upto (- n 1) (cdr lst)))))
+
+;;; take-n : (List a) × Nat → (List a)
+;;; Take first n elements from list.
+(define (take-n lst n)
+  (if (or (null? lst) (<= n 0))
+      '()
+      (cons (car lst) (take-n (cdr lst) (- n 1)))))
 
 ;;; iota : Nat → (List Nat)
 (define (iota n)
