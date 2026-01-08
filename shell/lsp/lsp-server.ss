@@ -70,15 +70,14 @@
          [uri (json-get text-doc "uri")]
          [version (json-get text-doc "version")]
          [changes (json-get params "contentChanges")])
-        ;; Full sync: take the complete new text from first change
+        ;; Handle both incremental and full sync
         (when (and (json-array? changes) (pair? (cdr changes)))
-              (let ([change (cadr changes)])  ; First element after json-array tag
-                   (let ([new-text (json-get change "text")])
-                        (when new-text
-                              (lsp-log "Document changed: ~a (v~a)" uri version)
-                              (doc-update! uri version new-text)
-                              ;; Trigger diagnostics
-                              (publish-diagnostics uri)))))))
+              (let ([change-list (cdr changes)])  ; Get list of changes
+                   (lsp-log "Document changed: ~a (v~a, ~a changes)" uri version (length change-list))
+                   ;; Apply changes incrementally
+                   (doc-apply-changes! uri version change-list)
+                   ;; Trigger diagnostics
+                   (publish-diagnostics uri)))))
 
 ;;; handle-did-close : JsonObject → Void
 (define (handle-did-close params)
@@ -201,6 +200,28 @@
             (compute-rename doc position new-name)
             'null)))
 
+;;; handle-code-action : JsonObject → JsonArray
+;;; Get code actions for a range in a document.
+(define (handle-code-action params)
+  (let* ([text-doc (json-get params "textDocument")]
+         [uri (json-get text-doc "uri")]
+         [range (json-get params "range")]
+         [context (json-get params "context")]
+         [doc (doc-get uri)])
+        (if doc
+            (compute-code-actions doc uri range context)
+            (json-arr))))
+
+;;; handle-semantic-tokens : JsonObject → JsonObject
+;;; Get semantic tokens for a document.
+(define (handle-semantic-tokens params)
+  (let* ([text-doc (json-get params "textDocument")]
+         [uri (json-get text-doc "uri")]
+         [doc (doc-get uri)])
+        (if doc
+            (compute-semantic-tokens doc)
+            (json-obj "data" (json-arr)))))
+
 ;;; ============================================================
 ;;; Diagnostics
 ;;; ============================================================
@@ -247,6 +268,10 @@
            (handle-formatting params)]
           [(string=? method *method-rename*)
            (handle-rename params)]
+          [(string=? method *method-code-action*)
+           (handle-code-action params)]
+          [(string=? method *method-semantic-tokens*)
+           (handle-semantic-tokens params)]
           [else
            (lsp-log "Unknown method: ~a" method)
            (make-error-response id *error-method-not-found*

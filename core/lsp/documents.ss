@@ -227,9 +227,83 @@
        doc))
 
 ;;; doc-update! : String × Int × String → Document
-;;; Update a document's content.
+;;; Update a document's content (full replacement).
 (define (doc-update! uri version content)
   (doc-open! uri version content))
+
+;;; doc-apply-changes! : String × Int × (List Change) → Document | #f
+;;; Apply incremental changes to a document.
+;;; Each change has optional range (if missing, it's a full replacement).
+(define (doc-apply-changes! uri version changes)
+  (let ([doc (doc-get uri)])
+       (if (not doc)
+           #f
+           (let ([new-content (apply-changes (document-content doc) changes)])
+                (doc-open! uri version new-content)))))
+
+;;; apply-changes : String × (List Change) → String
+;;; Apply a list of changes to content.
+;;; Changes are applied in order from the list.
+(define (apply-changes content changes)
+  (if (null? changes)
+      content
+      (apply-changes (apply-single-change content (car changes))
+                     (cdr changes))))
+
+;;; apply-single-change : String × Change → String
+;;; Apply a single change to content.
+;;; Change is a JSON object with optional "range" and "text" fields.
+(define (apply-single-change content change)
+  (let ([range (json-get change "range")]
+        [text (json-get change "text")])
+       (if (not range)
+           ;; No range = full document replacement
+           (or text content)
+           ;; Range-based change
+           (let* ([start (json-get range "start")]
+                  [end (json-get range "end")]
+                  [start-offset (lsp-position->offset-in-string content start)]
+                  [end-offset (lsp-position->offset-in-string content end)])
+                 (if (and start-offset end-offset)
+                     (string-append (substring content 0 start-offset)
+                                    (or text "")
+                                    (substring content end-offset (string-length content)))
+                     content)))))
+
+;;; lsp-position->offset-in-string : String × Position → Int | #f
+;;; Convert an LSP position to an offset in a string.
+;;; This is like lsp-position->offset but works on raw content string.
+(define (lsp-position->offset-in-string content pos)
+  (let* ([line (json-get pos "line")]
+         [char (json-get pos "character")]
+         [lines (string-split-newlines content)])
+        (if (< line (length lines))
+            (let* ([line-offset (lines-offset lines line)]
+                   [line-content (list-ref lines line)]
+                   [char-offset (utf16-offset->char-offset line-content char)])
+                  (+ line-offset char-offset))
+            (string-length content))))
+
+;;; string-split-newlines : String → (List String)
+;;; Split a string into lines.
+(define (string-split-newlines str)
+  (let ([len (string-length str)])
+       (let loop ([i 0] [start 0] [acc '()])
+            (cond
+             [(>= i len)
+              (reverse (cons (substring str start len) acc))]
+             [(char=? (string-ref str i) #\newline)
+              (loop (+ i 1) (+ i 1) (cons (substring str start i) acc))]
+             [else
+              (loop (+ i 1) start acc)]))))
+
+;;; lines-offset : (List String) × Int → Int
+;;; Get the offset of the start of line N.
+(define (lines-offset lines n)
+  (let loop ([ls lines] [i 0] [offset 0])
+       (if (or (null? ls) (= i n))
+           offset
+           (loop (cdr ls) (+ i 1) (+ offset (string-length (car ls)) 1)))))
 
 ;;; doc-close! : String → Void
 ;;; Close a document (remove from store).

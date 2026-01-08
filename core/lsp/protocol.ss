@@ -133,6 +133,8 @@
 (define *method-workspace-symbol* "workspace/symbol")
 (define *method-rename* "textDocument/rename")
 (define *method-formatting* "textDocument/formatting")
+(define *method-code-action* "textDocument/codeAction")
+(define *method-semantic-tokens* "textDocument/semanticTokens/full")
 (define *method-diagnostic* "textDocument/diagnostic")
 
 ;;; Server → Client notifications
@@ -185,10 +187,10 @@
 ;;; Returns the server capabilities for the initialize response.
 (define (fold-server-capabilities)
   (json-obj
-   ;; Document sync: full sync for now
+   ;; Document sync: incremental sync for better performance
    "textDocumentSync" (json-obj
                        "openClose" #t
-                       "change" *sync-full*
+                       "change" *sync-incremental*
                        "save" (json-obj "includeText" #t))
    ;; Hover support
    "hoverProvider" #t
@@ -211,7 +213,29 @@
    ;; Document formatting
    "documentFormattingProvider" #t
    ;; Rename support
-   "renameProvider" #t))
+   "renameProvider" #t
+   ;; Code actions (quick fixes)
+   "codeActionProvider" (json-obj
+                         "codeActionKinds" (json-arr "quickfix" "refactor"))
+   ;; Semantic tokens for rich syntax highlighting
+   "semanticTokensProvider" (json-obj
+                             "legend" (json-obj
+                                       "tokenTypes" (json-arr
+                                                     "keyword"       ; 0
+                                                     "function"      ; 1
+                                                     "variable"      ; 2
+                                                     "string"        ; 3
+                                                     "number"        ; 4
+                                                     "comment"       ; 5
+                                                     "operator"      ; 6
+                                                     "macro"         ; 7
+                                                     "parameter"     ; 8
+                                                     "type")         ; 9
+                                       "tokenModifiers" (json-arr
+                                                         "definition"
+                                                         "declaration"
+                                                         "readonly"))
+                             "full" #t)))
 
 ;;; fold-server-info : → JsonObject
 ;;; Returns server info for the initialize response.

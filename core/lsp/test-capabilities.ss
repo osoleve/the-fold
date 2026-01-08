@@ -148,6 +148,114 @@
 (doc-close! "file:///rename1.ss")
 (doc-close! "file:///rename2.ss")
 
+;;; ============================================================
+;;; Snippet Completions Tests
+;;; ============================================================
+
+(display "\nSnippet Completions:\n")
+
+(let ([snippets (snippet-completions "def")])
+     (test "snippet-completions finds matches" #t (> (length snippets) 0))
+     (let ([item (car snippets)])
+          (test "snippet has insertTextFormat" 2 (json-get item "insertTextFormat"))
+          (test "snippet has insertText" #t (if (json-get item "insertText") #t #f))))
+
+(let ([snippets (snippet-completions "")])
+     (test "empty prefix returns all snippets" #t (>= (length snippets) 10)))
+
+;;; ============================================================
+;;; Code Action Tests
+;;; ============================================================
+
+(display "\nCode Actions:\n")
+
+;; Test string-contains?
+(test "string-contains? true" #t (string-contains? "hello world" "world"))
+(test "string-contains? false" #f (string-contains? "hello world" "xyz"))
+
+;; Test extract-undefined-name
+(test "extract-undefined-name" "foo" (extract-undefined-name "undefined variable: foo"))
+(test "extract-undefined-name none" #f (extract-undefined-name "some other error"))
+
+;; Test code action generation for diagnostics
+(doc-open! "file:///action-test.ss" 1 "(define x 1)")
+(let* ([doc (doc-get "file:///action-test.ss")]
+       [diag (json-obj "message" "undefined variable: bar"
+                       "range" (make-range (make-position 0 0) (make-position 0 5)))]
+       [context (json-obj "diagnostics" (json-arr diag))]
+       [actions (compute-code-actions doc "file:///action-test.ss"
+                                      (make-range (make-position 0 0) (make-position 0 5))
+                                      context)])
+      (test "code-actions returns array" #t (json-array? actions))
+      (test "code-actions for undefined var" #t (> (length (cdr actions)) 0)))
+
+(doc-close! "file:///action-test.ss")
+
+;;; ============================================================
+;;; Semantic Tokens Tests
+;;; ============================================================
+
+(display "\nSemantic Tokens:\n")
+
+;; Test classify-symbol
+(test "classify-symbol keyword" *token-keyword* (car (classify-symbol "define")))
+(test "classify-symbol operator" *token-operator* (car (classify-symbol "+")))
+(test "classify-symbol operator null?" *token-operator* (car (classify-symbol "null?")))  ; In operators list
+(test "classify-symbol keyword set!" *token-keyword* (car (classify-symbol "set!")))      ; In keywords list
+(test "classify-symbol predicate" *token-function* (car (classify-symbol "my-pred?")))    ; Ends with ?
+(test "classify-symbol mutator" *token-function* (car (classify-symbol "mutate!")))       ; Ends with !
+(test "classify-symbol constant" *mod-readonly* (cdr (classify-symbol "*foo*")))
+
+;; Test tokenize-scheme
+(let* ([tokens (tokenize-scheme "(define x 42) ; comment")]
+       [count (length tokens)])
+      (test "tokenize-scheme count" #t (> count 3))
+      ;; Check that we have keyword, variable, number, comment
+      (test "tokenize-scheme has tokens" #t (> count 0)))
+
+;; Test encode-tokens
+(let* ([tokens '((0 0 6 0 0) (0 7 1 2 0) (0 9 2 4 0))]  ; keyword, var, number
+       [encoded (encode-tokens tokens)])
+      (test "encode-tokens length" 15 (length encoded))  ; 3 tokens * 5 ints
+      (test "encode-tokens first deltaLine" 0 (car encoded)))
+
+;; Test full semantic tokens
+(doc-open! "file:///semantic-test.ss" 1 "(define foo 42)")
+(let* ([doc (doc-get "file:///semantic-test.ss")]
+       [result (compute-semantic-tokens doc)])
+      (test "semantic-tokens has data" #t (if (json-get result "data") #t #f)))
+(doc-close! "file:///semantic-test.ss")
+
+;;; ============================================================
+;;; Incremental Document Sync Tests
+;;; ============================================================
+
+(display "\nIncremental Sync:\n")
+
+;; Test apply-single-change with full replacement
+(let ([result (apply-single-change "hello world" (json-obj "text" "goodbye"))])
+     (test "full replacement" "goodbye" result))
+
+;; Test apply-single-change with range
+(let ([change (json-obj "range" (json-obj "start" (json-obj "line" 0 "character" 0)
+                                          "end" (json-obj "line" 0 "character" 5))
+                        "text" "hi")]
+      [result (apply-single-change "hello world" (json-obj "range" (json-obj "start" (json-obj "line" 0 "character" 0)
+                                                                             "end" (json-obj "line" 0 "character" 5))
+                                                           "text" "hi"))])
+     (test "range replacement" "hi world" result))
+
+;; Test string-split-newlines
+(let ([lines (string-split-newlines "a\nb\nc")])
+     (test "string-split-newlines count" 3 (length lines))
+     (test "string-split-newlines first" "a" (car lines)))
+
+;; Test lines-offset
+(let ([lines '("abc" "defgh" "ij")])
+     (test "lines-offset 0" 0 (lines-offset lines 0))
+     (test "lines-offset 1" 4 (lines-offset lines 1))   ; "abc" + \n
+     (test "lines-offset 2" 10 (lines-offset lines 2))) ; "abc\n" + "defgh\n"
+
 ;;; Summary
 (display "\n=======================\n")
 (printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)
