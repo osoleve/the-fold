@@ -432,6 +432,307 @@
     (snd . (∀ (a b) (-> (× a b) b)))))
 
 ;;; ============================================================
+;;; Suggestion Engine (fold-moe)
+;;; ============================================================
+
+;;; Scoring weights (higher = better)
+(define SCORE-LOCAL-EXACT 100)
+(define SCORE-LOCAL-PARTIAL 80)
+(define SCORE-STANDARD-EXACT 70)
+(define SCORE-STANDARD-PARTIAL 60)
+(define SCORE-INDEX-EXACT 50)
+(define SCORE-INDEX-PARTIAL 40)
+(define SCORE-SYNTHESIS 30)
+(define SCORE-LAMBDA-TEMPLATE 20)
+
+;;; make-suggestion : Symbol × Expr × Type × Symbol × Nat × String → Suggestion
+(define (make-suggestion kind expr type source score explanation)
+  `((kind . ,kind)
+    (expr . ,expr)
+    (type . ,type)
+    (source . ,source)
+    (score . ,score)
+    (explanation . ,explanation)))
+
+;;; Suggestion accessors
+(define (suggestion-kind s) (cdr (assq 'kind s)))
+(define (suggestion-expr s) (cdr (assq 'expr s)))
+(define (suggestion-type s) (cdr (assq 'type s)))
+(define (suggestion-source s) (cdr (assq 'source s)))
+(define (suggestion-score s) (cdr (assq 'score s)))
+(define (suggestion-explanation s) (cdr (assq 'explanation s)))
+
+;;; ============================================================
+;;; Type Fit Checking
+;;; ============================================================
+
+;;; check-fit : Type × Type → FitResult | #f
+;;; Determine how a candidate type fits the target type.
+;;; Returns:
+;;;   (direct . subst)             - Exact match after instantiation
+;;;   ((partial-app . n) . subst)  - Needs n more arguments
+;;;   #f                           - Does not fit
+(define (check-fit target candidate)
+  (let ([inst-candidate (instantiate candidate)])
+       (cond
+        ;; Try direct unification first
+        [(let ([result (unify target inst-candidate)])
+              (and (eq? (car result) 'ok)
+                   (cons 'direct (cadr result))))]
+        ;; Try partial application (if candidate returns target)
+        [(and (function-type? inst-candidate)
+              (let* ([ret-type (function-return-type inst-candidate)]
+                     [result (unify target ret-type)])
+                    (and (eq? (car result) 'ok)
+                         (let ([params (function-param-types inst-candidate)])
+                              (cons (cons 'partial-app (length params))
+                                    (cadr result))))))]
+        [else #f])))
+
+;;; ============================================================
+;;; Suggestion Finders
+;;; ============================================================
+
+;;; find-local-suggestions : Type × TEnv → (List Suggestion)
+(define (find-local-suggestions target-type ctx)
+  (filter-map
+   (lambda (binding)
+           (let* ([name (car binding)]
+                  [binding-type (cdr binding)]
+                  [fit-result (check-fit target-type binding-type)])
+                 (and fit-result
+                      (make-suggestion-from-fit 'local name binding-type fit-result target-type))))
+   ctx))
+
+;;; find-standard-suggestions : Type → (List Suggestion)
+(define (find-standard-suggestions target-type)
+  (filter-map
+   (lambda (binding)
+           (let* ([name (car binding)]
+                  [binding-type (cdr binding)]
+                  [fit-result (check-fit target-type binding-type)])
+                 (and fit-result
+                      (make-suggestion-from-fit 'standard name binding-type fit-result target-type))))
+   standard-env))
+
+;;; make-suggestion-from-fit : Symbol × Symbol × Type × FitResult × Type → Suggestion
+(define (make-suggestion-from-fit source name candidate-type fit-result target-type)
+  (let* ([fit-kind (car fit-result)]
+         [is-partial? (and (pair? fit-kind) (eq? (car fit-kind) 'partial-app))]
+         [score (calculate-score source fit-kind)]
+         [explanation (explain-fit name candidate-type target-type fit-result)])
+        (if is-partial?
+            ;; For partial application, suggest with holes for remaining args
+            (let* ([n-args (cdr fit-kind)]
+                   [arg-holes (make-list n-args '?)]
+                   [expr (cons name arg-holes)])
+                  (make-suggestion 'partial-app expr target-type source score explanation))
+            ;; Direct fit
+            (make-suggestion 'direct name candidate-type source score explanation))))
+
+;;; calculate-score : Symbol × FitKind → Nat
+(define (calculate-score source fit-kind)
+  (let ([base (case source
+                    [(local) SCORE-LOCAL-EXACT]
+                    [(standard) SCORE-STANDARD-EXACT]
+                    [(index) SCORE-INDEX-EXACT]
+                    [(synthesis) SCORE-SYNTHESIS]
+                    [(template) SCORE-LAMBDA-TEMPLATE]
+                    [else 0])])
+       (if (and (pair? fit-kind) (eq? (car fit-kind) 'partial-app))
+           (- base (* 5 (cdr fit-kind)))  ; Penalty per missing arg
+           base)))
+
+;;; explain-fit : Symbol × Type × Type × FitResult → String
+(define (explain-fit name candidate-type target-type fit-result)
+  (let ([fit-kind (car fit-result)])
+       (cond
+        [(eq? fit-kind 'direct)
+         (if (polymorphic-type? candidate-type)
+             (format "~a : ~a (instantiates to match)"
+                     name (type->string candidate-type))
+             (format "~a : ~a (exact match)"
+                     name (type->string candidate-type)))]
+        [(and (pair? fit-kind) (eq? (car fit-kind) 'partial-app))
+         (format "~a needs ~a arg~a to produce ~a"
+                 name (cdr fit-kind)
+                 (if (= (cdr fit-kind) 1) "" "s")
+                 (type->string target-type))]
+        [else (format "~a : ~a" name (type->string candidate-type))])))
+
+;;; polymorphic-type? : Type → Boolean
+(define (polymorphic-type? t)
+  (and (pair? t) (eq? (car t) '∀)))
+
+;;; ============================================================
+;;; Synthesis Recipes
+;;; ============================================================
+
+;;; find-synthesis-suggestions : Type × TEnv → (List Suggestion)
+(define (find-synthesis-suggestions target-type ctx)
+  (append
+   (suggest-map-patterns target-type ctx)
+   (suggest-filter-patterns target-type ctx)
+   (suggest-lambda-templates target-type)))
+
+;;; suggest-map-patterns : Type × TEnv → (List Suggestion)
+;;; Suggest (map ? xs) when target is (List b) and xs : (List a) in scope.
+(define (suggest-map-patterns target-type ctx)
+  (if (and (pair? target-type) (eq? (car target-type) 'List))
+      (let ([target-elem (cadr target-type)])
+           (filter-map
+            (lambda (binding)
+                    (let ([name (car binding)]
+                          [type (cdr binding)])
+                         (let ([inst-type (instantiate type)])
+                              (and (pair? inst-type)
+                                   (eq? (car inst-type) 'List)
+                                   (let ([src-elem (cadr inst-type)])
+                                        (make-suggestion
+                                         'synthesis
+                                         `(map ? ,name)
+                                         target-type
+                                         'synthesis
+                                         SCORE-SYNTHESIS
+                                         (format "map over ~a, need (-> ~a ~a)"
+                                                 name
+                                                 (type->string src-elem)
+                                                 (type->string target-elem))))))))
+            ctx))
+      '()))
+
+;;; suggest-filter-patterns : Type × TEnv → (List Suggestion)
+;;; Suggest (filter ? xs) when target is (List a) and xs : (List a) in scope.
+(define (suggest-filter-patterns target-type ctx)
+  (if (and (pair? target-type) (eq? (car target-type) 'List))
+      (let ([target-elem (cadr target-type)])
+           (filter-map
+            (lambda (binding)
+                    (let ([name (car binding)]
+                          [type (cdr binding)])
+                         (let ([inst-type (instantiate type)])
+                              (and (pair? inst-type)
+                                   (eq? (car inst-type) 'List)
+                                   (let* ([src-elem (cadr inst-type)]
+                                          [result (unify target-elem src-elem)])
+                                         (and (eq? (car result) 'ok)
+                                              (make-suggestion
+                                               'synthesis
+                                               `(filter ? ,name)
+                                               target-type
+                                               'synthesis
+                                               (- SCORE-SYNTHESIS 5)
+                                               (format "filter ~a, need (-> ~a Bool)"
+                                                       name
+                                                       (type->string src-elem)))))))))
+            ctx))
+      '()))
+
+;;; suggest-lambda-templates : Type → (List Suggestion)
+;;; Suggest lambda templates when target is a function type.
+(define (suggest-lambda-templates target-type)
+  (if (function-type? target-type)
+      (let* ([params (function-param-types target-type)]
+             [ret-type (function-return-type target-type)]
+             [param-names (generate-param-names (length params))])
+            (list
+             (make-suggestion
+              'lambda-template
+              `(fn ,param-names ?)
+              target-type
+              'template
+              SCORE-LAMBDA-TEMPLATE
+              (format "lambda: ~a -> ~a"
+                      (join-strings ", " (map type->string params))
+                      (type->string ret-type)))))
+      '()))
+
+;;; generate-param-names : Nat → (List Symbol)
+(define (generate-param-names n)
+  (let loop ([i 0] [acc '()])
+       (if (>= i n)
+           (reverse acc)
+           (loop (+ i 1)
+                 (cons (string->symbol (string-append "x" (number->string i))) acc)))))
+
+;;; make-list : Nat × a → (List a)
+(define (make-list n val)
+  (let loop ([i 0] [acc '()])
+       (if (>= i n)
+           acc
+           (loop (+ i 1) (cons val acc)))))
+
+;;; ============================================================
+;;; Main Suggestion Engine
+;;; ============================================================
+
+;;; suggest-for-hole : Expr → (List HoleSuggestions)
+(define (suggest-for-hole expr)
+  (reset-fresh!)
+  (let ([holes (find-holes expr)])
+       (map (lambda (hole-info)
+                    (let* ([path (car hole-info)]
+                           [hole (cdr hole-info)]
+                           [ctx (expr-context expr path)]
+                           [target-type (infer-hole-type expr path)])
+                          (make-hole-suggestions hole target-type ctx)))
+            holes)))
+
+;;; make-hole-suggestions : Hole × Type × TEnv → HoleSuggestions
+(define (make-hole-suggestions hole target-type ctx)
+  (let* ([local-suggestions (find-local-suggestions target-type ctx)]
+         [standard-suggestions (find-standard-suggestions target-type)]
+         [synthesis-suggestions (find-synthesis-suggestions target-type ctx)]
+         [all-suggestions (append local-suggestions
+                                  standard-suggestions
+                                  synthesis-suggestions)])
+        `((hole . ,hole)
+          (type . ,target-type)
+          (suggestions . ,(sort-suggestions all-suggestions)))))
+
+;;; sort-suggestions : (List Suggestion) → (List Suggestion)
+(define (sort-suggestions suggestions)
+  (list-sort
+   (lambda (a b)
+           (> (suggestion-score a) (suggestion-score b)))
+   suggestions))
+
+;;; ============================================================
+;;; REPL Command: hole-suggest
+;;; ============================================================
+
+;;; hole-suggest : Expr → Void
+(define (hole-suggest expr)
+  (display "\n")
+  (let ([results (suggest-for-hole expr)])
+       (if (null? results)
+           (display "  No holes found in expression.\n")
+           (for-each display-hole-suggestions results)))
+  (display "\n"))
+
+;;; display-hole-suggestions : HoleSuggestions → Void
+(define (display-hole-suggestions hs)
+  (let ([hole (cdr (assq 'hole hs))]
+        [type (cdr (assq 'type hs))]
+        [suggestions (cdr (assq 'suggestions hs))])
+       (printf "  Hole ~a : ~a\n"
+               (or (hole-name hole) "?")
+               (type->string type))
+       (display "  ────────────────────────────────────────────\n")
+       (if (null? suggestions)
+           (display "    No suggestions found.\n")
+           (for-each display-suggestion (take-upto 10 suggestions)))
+       (display "\n")))
+
+;;; display-suggestion : Suggestion → Void
+(define (display-suggestion sug)
+  (let ([score (suggestion-score sug)]
+        [expr (suggestion-expr sug)]
+        [explanation (suggestion-explanation sug)])
+       (printf "    [~a] ~s\n" score expr)
+       (printf "         ~a\n" explanation)))
+
+;;; ============================================================
 ;;; Helper Functions
 ;;; ============================================================
 
@@ -483,6 +784,7 @@
   (display "  ────────────────────────────────────────────\n")
   (display "  (hole-type expr)        - Show types for holes in expr\n")
   (display "  (hole-fits expr)        - Show available fits for holes\n")
+  (display "  (hole-suggest expr)     - Ranked suggestions with synthesis\n")
   (display "  (hole-refine expr type) - Check expr against expected type\n")
   (display "  (case-split type var)   - Generate case patterns for type\n")
   (display "\n")
@@ -491,8 +793,8 @@
   (display "    (? name)    - Named hole\n")
   (display "\n")
   (display "  Example:\n")
-  (display "    (hole-fits '(let ((xs '(1 2 3))) (map ? xs)))\n")
-  (display "    ;; Shows functions of type (-> Int a)\n")
+  (display "    (hole-suggest '(let ((xs '(1 2 3))) (map ? xs)))\n")
+  (display "    ;; Shows ranked suggestions: direct fits, partial apps, synthesis\n")
   (display "\n"))
 
 (display "Typed holes loaded. Use (hole-help) for usage.\n")
