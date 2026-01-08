@@ -157,6 +157,38 @@
             (compute-document-symbols doc)
             (json-arr))))
 
+;;; handle-references : JsonObject → JsonArray
+;;; Find all references to a symbol.
+(define (handle-references params)
+  (let* ([text-doc (json-get params "textDocument")]
+         [uri (json-get text-doc "uri")]
+         [position (json-get params "position")]
+         [context (json-get params "context")]
+         [include-decl (if context
+                           (json-get context "includeDeclaration")
+                           #t)]
+         [doc (doc-get uri)])
+        (if doc
+            (compute-references doc position include-decl)
+            (json-arr))))
+
+;;; handle-workspace-symbol : JsonObject → JsonArray
+;;; Search for symbols across the workspace.
+(define (handle-workspace-symbol params)
+  (let ([query (or (json-get params "query") "")])
+       (compute-workspace-symbols query)))
+
+;;; handle-formatting : JsonObject → JsonArray
+;;; Format a document.
+(define (handle-formatting params)
+  (let* ([text-doc (json-get params "textDocument")]
+         [uri (json-get text-doc "uri")]
+         [options (json-get params "options")]
+         [doc (doc-get uri)])
+        (if doc
+            (compute-formatting doc options)
+            (json-arr))))
+
 ;;; ============================================================
 ;;; Diagnostics
 ;;; ============================================================
@@ -195,6 +227,12 @@
            (handle-signature-help params)]
           [(string=? method *method-document-symbol*)
            (handle-document-symbol params)]
+          [(string=? method *method-references*)
+           (handle-references params)]
+          [(string=? method *method-workspace-symbol*)
+           (handle-workspace-symbol params)]
+          [(string=? method *method-formatting*)
+           (handle-formatting params)]
           [else
            (lsp-log "Unknown method: ~a" method)
            (make-error-response id *error-method-not-found*

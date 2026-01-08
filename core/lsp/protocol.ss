@@ -130,6 +130,7 @@
 (define *method-definition* "textDocument/definition")
 (define *method-references* "textDocument/references")
 (define *method-document-symbol* "textDocument/documentSymbol")
+(define *method-workspace-symbol* "workspace/symbol")
 (define *method-formatting* "textDocument/formatting")
 (define *method-diagnostic* "textDocument/diagnostic")
 
@@ -200,8 +201,14 @@
                             "retriggerCharacters" (json-arr " "))
    ;; Go to definition
    "definitionProvider" #t
+   ;; Find all references
+   "referencesProvider" #t
    ;; Document symbols (outline)
-   "documentSymbolProvider" #t))
+   "documentSymbolProvider" #t
+   ;; Workspace symbol search
+   "workspaceSymbolProvider" #t
+   ;; Document formatting
+   "documentFormattingProvider" #t))
 
 ;;; fold-server-info : → JsonObject
 ;;; Returns server info for the initialize response.

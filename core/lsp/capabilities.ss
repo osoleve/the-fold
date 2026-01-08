@@ -20,6 +20,12 @@
 (load "core/lsp/protocol.ss")
 (load "core/lsp/documents.ss")
 
+;;; Try to load pretty printer for formatting support
+(define *pretty-available* #f)
+(guard (e [else (set! *pretty-available* #f)])
+       (load "core/util/pretty.ss")
+       (set! *pretty-available* #t))
+
 ;;; ============================================================
 ;;; Symbol Index Integration
 ;;; ============================================================
@@ -579,3 +585,331 @@
                 (if result
                     (loop (cdr l) (cons result acc))
                     (loop (cdr l) acc))))))
+
+;;; ============================================================
+;;; Find References Implementation
+;;; ============================================================
+
+;;; compute-references : Document × JsonObject × Boolean → JsonArray
+;;; Find all references to the symbol at position.
+;;; include-declaration: if true, include the definition itself
+(define (compute-references doc position include-declaration)
+  (let ([symbol (symbol-at-position doc position)])
+       (if (not symbol)
+           (json-arr)
+           (let ([refs (find-all-references symbol)])
+                (apply json-arr refs)))))
+
+;;; find-all-references : String → (List JsonObject)
+;;; Find all occurrences of symbol across all open documents.
+(define (find-all-references symbol)
+  (let ([uris (doc-list)])
+       (apply append
+              (map (lambda (uri)
+                           (find-references-in-document uri symbol))
+                   uris))))
+
+;;; find-references-in-document : String × String → (List JsonObject)
+;;; Find all occurrences of symbol in a document.
+(define (find-references-in-document uri symbol)
+  (let ([doc (doc-get uri)])
+       (if (not doc)
+           '()
+           (let* ([content (document-content doc)]
+                  [positions (find-symbol-positions content symbol)])
+                 (map (lambda (pos)
+                              (let ([lsp-pos (offset->lsp-position doc pos)])
+                                   (make-location uri
+                                                  (make-range lsp-pos
+                                                              (offset->lsp-position doc
+                                                                                    (+ pos (string-length symbol)))))))
+                      positions)))))
+
+;;; find-symbol-positions : String × String → (List Int)
+;;; Find all positions where symbol appears as a complete identifier.
+(define (find-symbol-positions content symbol)
+  (let ([sym-len (string-length symbol)]
+        [content-len (string-length content)])
+       (let loop ([i 0] [acc '()])
+            (if (> (+ i sym-len) content-len)
+                (reverse acc)
+                (let* ([found (find-next-match content symbol i)]
+                       [pos (if found found content-len)])
+                      (if (>= pos content-len)
+                          (reverse acc)
+                          ;; Check if it's a complete symbol (not part of larger word)
+                          (if (complete-symbol-match? content pos sym-len)
+                              (loop (+ pos sym-len) (cons pos acc))
+                              (loop (+ pos 1) acc))))))))
+
+;;; find-next-match : String × String × Int → Int | #f
+;;; Find next occurrence of pattern starting from index.
+(define (find-next-match content pattern start)
+  (let ([pattern-len (string-length pattern)]
+        [content-len (string-length content)])
+       (let loop ([i start])
+            (cond
+             [(> (+ i pattern-len) content-len) #f]
+             [(string-match-at? content pattern i) i]
+             [else (loop (+ i 1))]))))
+
+;;; string-match-at? : String × String × Int → Boolean
+;;; Check if pattern matches content at position.
+(define (string-match-at? content pattern pos)
+  (let ([pattern-len (string-length pattern)])
+       (let loop ([i 0])
+            (cond
+             [(>= i pattern-len) #t]
+             [(char=? (string-ref content (+ pos i))
+                      (string-ref pattern i))
+              (loop (+ i 1))]
+             [else #f]))))
+
+;;; complete-symbol-match? : String × Int × Int → Boolean
+;;; Check if match at position is a complete symbol (not part of larger word).
+(define (complete-symbol-match? content pos sym-len)
+  (let ([content-len (string-length content)]
+        [end-pos (+ pos sym-len)])
+       (and ;; Check char before isn't a symbol char (or at start)
+            (or (= pos 0)
+                (not (symbol-char? (string-ref content (- pos 1)))))
+            ;; Check char after isn't a symbol char (or at end)
+            (or (>= end-pos content-len)
+                (not (symbol-char? (string-ref content end-pos)))))))
+
+;;; ============================================================
+;;; Workspace Symbol Implementation
+;;; ============================================================
+
+;;; compute-workspace-symbols : String → JsonArray
+;;; Search for symbols across all open documents matching query.
+(define (compute-workspace-symbols query)
+  (let* ([uris (doc-list)]
+         [all-symbols (apply append
+                             (map (lambda (uri)
+                                          (document-symbols-for-workspace uri query))
+                                  uris))])
+        ;; Limit results
+        (apply json-arr (if (> (length all-symbols) 100)
+                            (take all-symbols 100)
+                            all-symbols))))
+
+;;; document-symbols-for-workspace : String × String → (List JsonObject)
+;;; Extract symbols from document that match query.
+(define (document-symbols-for-workspace uri query)
+  (let ([doc (doc-get uri)])
+       (if (not doc)
+           '()
+           (let* ([content (document-content doc)]
+                  [symbols (extract-definitions content)]
+                  [query-lower (string-downcase query)])
+                 (filter-map (lambda (sym)
+                                     (let ([name (car sym)]
+                                           [kind (cadr sym)]
+                                           [line (caddr sym)])
+                                          (if (or (string=? query "")
+                                                  (string-contains-ci? name query-lower))
+                                              (make-symbol-information name
+                                                                       (symbol-kind->lsp-kind kind)
+                                                                       uri
+                                                                       line)
+                                              #f)))
+                             symbols)))))
+
+;;; make-symbol-information : String × Int × String × Int → JsonObject
+;;; Create a SymbolInformation for workspace/symbol response.
+(define (make-symbol-information name kind uri line)
+  (json-obj "name" name
+            "kind" kind
+            "location" (make-location uri
+                                      (make-range (make-position (- line 1) 0)
+                                                  (make-position (- line 1) 1)))))
+
+;;; symbol-kind->lsp-kind : Symbol → Int
+;;; Convert internal symbol kind to LSP SymbolKind.
+(define (symbol-kind->lsp-kind kind)
+  (case kind
+        [(define) 12]      ; Function
+        [(syntax) 14]      ; Constructor (for macros)
+        [(variable) 13]    ; Variable
+        [else 12]))        ; Default to Function
+
+;;; string-contains-ci? : String × String → Boolean
+;;; Case-insensitive substring search.
+(define (string-contains-ci? str pattern)
+  (let* ([str-lower (string-downcase str)]
+         [str-len (string-length str-lower)]
+         [pat-len (string-length pattern)])
+        (let loop ([i 0])
+             (cond
+              [(> (+ i pat-len) str-len) #f]
+              [(string-match-at? str-lower pattern i) #t]
+              [else (loop (+ i 1))]))))
+
+;;; string-downcase : String → String
+;;; Convert string to lowercase.
+(define (string-downcase str)
+  (let* ([len (string-length str)]
+         [chars (let loop ([i 0] [acc '()])
+                     (if (>= i len)
+                         (reverse acc)
+                         (loop (+ i 1)
+                               (cons (char-downcase (string-ref str i)) acc))))])
+        (list->string chars)))
+
+;;; ============================================================
+;;; Document Formatting Implementation
+;;; ============================================================
+
+;;; compute-formatting : Document × JsonObject → JsonArray
+;;; Format the document according to options.
+;;; Returns an array of TextEdit objects.
+(define (compute-formatting doc options)
+  (if (not *pretty-available*)
+      (json-arr)  ; No formatting available
+      (let* ([content (document-content doc)]
+             [tab-size (or (and options (json-get options "tabSize")) 2)]
+             [formatted (format-scheme-code content tab-size)])
+            (if formatted
+                (json-arr (make-text-edit
+                           (make-range (make-position 0 0)
+                                       (end-of-document doc))
+                           formatted))
+                (json-arr)))))
+
+;;; end-of-document : Document → Position
+;;; Get the position at the end of the document.
+(define (end-of-document doc)
+  (let* ([lines (line-count doc)]
+         [last-line (- lines 1)]
+         [last-content (get-line-content doc last-line)])
+        (make-position last-line (string-length last-content))))
+
+;;; make-text-edit : Range × String → JsonObject
+;;; Create a TextEdit object.
+(define (make-text-edit range new-text)
+  (json-obj "range" range
+            "newText" new-text))
+
+;;; format-scheme-code : String × Int → String | #f
+;;; Format Scheme code. Returns formatted string or #f on error.
+(define (format-scheme-code content tab-size)
+  (guard (e [else #f])
+         (let* ([exprs (read-all-sexps content)]
+                [docs (map (lambda (expr)
+                                   (scheme-expr->doc expr tab-size))
+                           exprs)]
+                ;; Join with double newlines between top-level forms
+                [combined (join-docs-with-blanks docs)])
+               (pretty 80 combined))))
+
+;;; read-all-sexps : String → (List Sexp)
+;;; Read all S-expressions from a string.
+(define (read-all-sexps str)
+  (let ([port (open-input-string str)])
+       (let loop ([acc '()])
+            (let ([expr (read port)])
+                 (if (eof-object? expr)
+                     (reverse acc)
+                     (loop (cons expr acc)))))))
+
+;;; scheme-expr->doc : Sexp × Int → Doc
+;;; Convert a Scheme expression to a pretty-printer document.
+(define (scheme-expr->doc expr indent-size)
+  (cond
+   [(null? expr) (text "()")]
+   [(pair? expr)
+    (let ([head (car expr)])
+         (cond
+          ;; Special forms with body indentation
+          [(and (symbol? head) (memq head '(define define-syntax lambda let let* letrec
+                                            if cond case when unless guard)))
+           (format-special-form expr indent-size)]
+          ;; Regular application
+          [else
+           (parens (group (nest indent-size
+                                (sep (map (lambda (e) (scheme-expr->doc e indent-size))
+                                          expr)))))]))]
+   [(symbol? expr) (text (symbol->string expr))]
+   [(number? expr) (text (number->string expr))]
+   [(string? expr) (text (format "~s" expr))]
+   [(boolean? expr) (text (if expr "#t" "#f"))]
+   [(char? expr) (text (format "~s" expr))]
+   [(vector? expr)
+    (<> (text "#")
+        (parens (group (sep (map (lambda (e) (scheme-expr->doc e indent-size))
+                                 (vector->list expr))))))]
+   [else (text (format "~a" expr))]))
+
+;;; format-special-form : Sexp × Int → Doc
+;;; Format special forms like define, let, lambda.
+(define (format-special-form expr indent-size)
+  (let ([head (car expr)]
+        [rest (cdr expr)])
+       (cond
+        ;; (define (name args...) body...)
+        [(and (eq? head 'define)
+              (pair? rest)
+              (pair? (car rest)))
+         (parens (<> (text "define ")
+                     (<> (parens (sep (map (lambda (e) (scheme-expr->doc e indent-size))
+                                           (car rest))))
+                         (nest indent-size
+                               (<> line
+                                   (vsep (map (lambda (e) (scheme-expr->doc e indent-size))
+                                              (cdr rest))))))))]
+        ;; (define name value)
+        [(eq? head 'define)
+         (parens (group (<> (text "define ")
+                            (sep (map (lambda (e) (scheme-expr->doc e indent-size))
+                                      rest)))))]
+        ;; (lambda (args...) body...)
+        [(eq? head 'lambda)
+         (if (and (pair? rest) (pair? (car rest)))
+             (parens (<> (text "lambda ")
+                         (<> (parens (sep (map (lambda (e) (scheme-expr->doc e indent-size))
+                                               (car rest))))
+                             (nest indent-size
+                                   (<> line
+                                       (vsep (map (lambda (e) (scheme-expr->doc e indent-size))
+                                                  (cdr rest))))))))
+             (parens (sep (cons (text "lambda")
+                                (map (lambda (e) (scheme-expr->doc e indent-size))
+                                     rest)))))]
+        ;; (let ([bindings...]) body...)
+        [(memq head '(let let* letrec))
+         (if (and (pair? rest)
+                  (pair? (car rest)))
+             (parens (<> (text (symbol->string head))
+                         (<> (text " ")
+                             (<> (parens (group
+                                          (nest 1 (vsep (map (lambda (b)
+                                                                     (parens (sep (map (lambda (e)
+                                                                                               (scheme-expr->doc e indent-size))
+                                                                                       b))))
+                                                             (car rest))))))
+                                 (nest indent-size
+                                       (<> line
+                                           (vsep (map (lambda (e) (scheme-expr->doc e indent-size))
+                                                      (cdr rest)))))))))
+             (parens (sep (cons (text (symbol->string head))
+                                (map (lambda (e) (scheme-expr->doc e indent-size))
+                                     rest)))))]
+        ;; Other special forms - standard nesting
+        [else
+         (parens (group (<> (text (symbol->string head))
+                            (nest indent-size
+                                  (<> line
+                                      (vsep (map (lambda (e) (scheme-expr->doc e indent-size))
+                                                 rest)))))))])))
+
+;;; join-docs-with-blanks : (List Doc) → Doc
+;;; Join documents with blank lines between them.
+(define (join-docs-with-blanks docs)
+  (if (null? docs)
+      empty
+      (let loop ([ds (cdr docs)] [acc (car docs)])
+           (if (null? ds)
+               acc
+               (loop (cdr ds)
+                     (<> acc (<> hardline (<> hardline (car ds)))))))))
