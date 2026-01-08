@@ -54,7 +54,7 @@ fi
 # Check dependencies
 echo ""
 echo "📦 Checking npm dependencies..."
-cd thimble/discord
+cd shell/discord
 if [ ! -d node_modules ]; then
   echo "Installing dependencies..."
   npm install
