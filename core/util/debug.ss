@@ -443,7 +443,6 @@
 ;;; Extended debugger state with detailed fuel tracking:
 ;;;   - fuel-trace: List of (expr fuel-before fuel-after fuel-consumed)
 ;;;   - fuel-budget: Initial fuel budget
-;;;   - call-stack: Current call stack with fuel annotations
 
 ;;; make-fuel-debugger : Expr × Env × Nat → Debugger
 ;;; Extended debugger with fuel tracking, redo capability, and watch expressions.
@@ -460,8 +459,7 @@
     (watch-events . ())     ;; Watch event log
     (status . ready)
     (fuel-budget . ,fuel)
-    (fuel-trace . ())
-    (call-stack . ())))
+    (fuel-trace . ())))
 
 ;;; fuel-debugger? : Debugger → Boolean
 (define (fuel-debugger? d)
@@ -476,10 +474,6 @@
 ;;; debugger-fuel-trace : Debugger → (List Sexp)
 (define (debugger-fuel-trace d)
   (or (debugger-get d 'fuel-trace) '()))
-
-;;; debugger-call-stack : Debugger → (List Sexp)
-(define (debugger-call-stack d)
-  (or (debugger-get d 'call-stack) '()))
 
 ;;; debugger-watches : Debugger → (List Symbol)
 ;;; Get watched variables.
@@ -516,7 +510,6 @@
         [fuel-trace (debugger-fuel-trace d)]
         [trace (debugger-trace d)]
         [history (debugger-history d)]
-        [call-stack (debugger-call-stack d)]
         [watches (debugger-watches d)]
         [watch-events (debugger-watch-events d)]
         [step-num (+ 1 (length (debugger-trace d)))])
@@ -796,15 +789,30 @@
                   'evaluation-sequence
                   children)))))
 
+;;; let-binds-var? : Expr × Symbol → Boolean
+;;; Check if a let expression binds a specific variable.
+;;; let syntax: (let ((var1 val1) (var2 val2) ...) body)
+(define (let-binds-var? let-expr var)
+  (and (pair? let-expr)
+       (eq? (car let-expr) 'let)
+       (pair? (cdr let-expr))
+       (let ([bindings (cadr let-expr)])
+            (and (list? bindings)
+                 (ormap (lambda (binding)
+                                (and (pair? binding)
+                                     (eq? (car binding) var)))
+                        bindings)))))
+
 ;;; explain-binding : Debugger × Symbol → Explanation | #f
 ;;; Explain how a binding got its value by searching the trace.
+;;; Now properly verifies the variable is actually bound by the let expression.
 (define (explain-binding d var)
   (let ([env (debugger-env d)]
         [trace (debugger-trace d)])
        (let ([val (env-lookup-safe env var)])
             (if (eq? val 'unbound)
                 #f
-                ;; Search trace for let-bindings that introduced this variable
+                ;; Search trace for let-bindings that introduced THIS variable
                 (let loop ([entries trace])
                      (if (null? entries)
                          (make-explanation var val 'initial-binding '())
@@ -812,8 +820,7 @@
                               (if (and (pair? entry)
                                        (eq? (car entry) 'step)
                                        (let ([from-expr (cadr entry)])
-                                            (and (pair? from-expr)
-                                                 (eq? (car from-expr) 'let))))
+                                            (let-binds-var? from-expr var)))
                                   (make-explanation var val 'let-binding
                                                     (list (explain-step-entry entry)))
                                   (loop (cdr entries))))))))))
