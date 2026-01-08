@@ -251,17 +251,6 @@ bd sync                 # Commit new beads
 git push                # Push to remote
 ```
 
-### Using bv for Triage
-
-**Use ONLY `--robot-*` flags — bare `bv` launches interactive TUI.**
-
-```bash
-bv --robot-triage        # Main entry point: recommendations, quick wins
-bv --robot-next          # Single top pick
-bv --robot-plan          # Parallel execution tracks
-bv --robot-insights      # Full graph metrics
-```
-
 ---
 
 ## File Locations
