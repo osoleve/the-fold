@@ -494,20 +494,24 @@
 ;;; floyd-warshall : Matrix → Matrix
 ;;; All-pairs shortest paths using Floyd-Warshall algorithm.
 ;;; Input: weighted adjacency matrix (0 means no edge, except diagonal).
+;;;        For negative edge weights, use a separate "has-edge" matrix or
+;;;        ensure the adjacency matrix uses *infinity* for non-edges.
 ;;; Output: distance matrix where D[i,j] = shortest path length i→j.
 ;;; Uses *infinity* for unreachable pairs.
 ;;; Complexity: O(n³)
+;;; Note: Detects negative cycles (diagonal becomes negative after algorithm).
 (define (floyd-warshall adj)
   (let* ([n (matrix-rows adj)]
          [data (make-vector (* n n) *infinity*)])
         ;; Initialize distance matrix
+        ;; For diagonal: use min(0, adj[i,i]) to detect negative self-loops
         (do ([i 0 (+ i 1)])
             ((= i n))
             (do ([j 0 (+ j 1)])
                 ((= j n))
                 (let ([idx (+ (* i n) j)]
                       [val (matrix-ref adj i j)])
-                     (cond [(= i j) (vector-set! data idx 0)]
+                     (cond [(= i j) (vector-set! data idx (min 0 val))]
                            [(> val 0) (vector-set! data idx val)]))))
         ;; Floyd-Warshall dynamic programming
         (do ([k 0 (+ k 1)])
@@ -539,53 +543,50 @@
 
 ;;; distance-matrix-unweighted : Matrix → Matrix
 ;;; Compute all-pairs shortest paths for unweighted graph.
-;;; Uses BFS-style iteration via matrix powers.
+;;; Uses BFS from each node. Complexity: O(n²) for sparse, O(n³) for dense.
 ;;; Returns distance matrix with *infinity* for unreachable pairs.
 (define (distance-matrix-unweighted adj)
   (let* ([n (matrix-rows adj)]
-         [dist (make-vector (* n n) *infinity*)]
-         [reach (vector-copy (matrix-data adj))])
-        ;; Initialize: distance 0 to self, 1 for direct edges
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (vector-set! dist (+ (* i n) i) 0)
-            (do ([j 0 (+ j 1)])
-                ((= j n))
-                (when (and (not (= i j))
-                           (> (vector-ref reach (+ (* i n) j)) 0))
-                      (vector-set! dist (+ (* i n) j) 1))))
-        ;; Iterate: compute A^2, A^3, ... A^(n-1)
-        (let ([power (matrix-data adj)])
-             (do ([d 2 (+ d 1)])
-                 ((= d n))
-                 ;; Compute next power
-                 (let ([next-power (matrix-data (matrix-mul (list 'matrix n n power)
-                                                            adj))])
-                      (do ([i 0 (+ i 1)])
-                          ((= i n))
-                          (do ([j 0 (+ j 1)])
-                              ((= j n))
-                              (let ([idx (+ (* i n) j)])
-                                   (when (and (= (vector-ref dist idx) *infinity*)
-                                              (> (vector-ref next-power idx) 0))
-                                         (vector-set! dist idx d)))))
-                      (set! power next-power))))
+         [adj-data (matrix-data adj)]
+         [dist (make-vector (* n n) *infinity*)])
+        ;; BFS from each source node
+        (do ([src 0 (+ src 1)])
+            ((= src n))
+            ;; Initialize BFS for this source
+            (vector-set! dist (+ (* src n) src) 0)
+            (let ([queue (list src)]
+                  [visited (make-vector n #f)])
+                 (vector-set! visited src #t)
+                 ;; BFS loop
+                 (let bfs ([q queue])
+                      (when (not (null? q))
+                            (let* ([u (car q)]
+                                   [d-u (vector-ref dist (+ (* src n) u))]
+                                   [next-q (cdr q)])
+                                  ;; Visit all neighbors of u
+                                  (do ([v 0 (+ v 1)])
+                                      ((= v n))
+                                      (when (and (not (vector-ref visited v))
+                                                 (> (vector-ref adj-data (+ (* u n) v)) 0))
+                                            (vector-set! visited v #t)
+                                            (vector-set! dist (+ (* src n) v) (+ d-u 1))
+                                            (set! next-q (append next-q (list v)))))
+                                  (bfs next-q))))))
         (list 'matrix n n dist)))
 
 ;;; graph-eccentricity : Matrix × Nat → Nat|Infinity
 ;;; Eccentricity of node i: max distance to any reachable node.
-;;; Returns *infinity* if node is isolated.
+;;; Returns *infinity* if node is isolated (no reachable neighbors).
 (define (graph-eccentricity dist i)
   (let ([n (matrix-rows dist)])
-       (let loop ([j 0] [max-d 0])
+       (let loop ([j 0] [max-d 0] [found-any #f])
             (if (= j n)
-                max-d
+                (if found-any max-d *infinity*)
                 (let ([d (matrix-ref dist i j)])
-                     (loop (+ j 1)
-                           (if (and (not (= i j))
-                                    (< d *infinity*))
-                               (max max-d d)
-                               max-d)))))))
+                     (if (and (not (= i j))
+                              (< d *infinity*))
+                         (loop (+ j 1) (max max-d d) #t)
+                         (loop (+ j 1) max-d found-any)))))))
 
 ;;; graph-diameter : Matrix → Nat|Infinity
 ;;; Diameter: maximum eccentricity (longest shortest path).

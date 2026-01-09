@@ -14,7 +14,8 @@
     hash tables, and collection utilities.")
 
   (keywords (data-structure graph heap tree hash-table queue stack
-             bfs dfs shortest-path pagerank collection))
+             bfs dfs shortest-path pagerank collection adjacency-matrix
+             floyd-warshall transitive-closure graph-distance))
   (aliases (ds structures collections))
 
   (exports
@@ -25,4 +26,4 @@
    (graph-algorithms "graph-algorithms.ss" "BFS, DFS, shortest paths, spanning trees")
    (collection-utils "collection-utils.ss" "Higher-order collection operations")
    (pagerank "pagerank.ss" "PageRank and graph centrality measures")
-   (graph-matrix "graph-matrix.ss" "Adjacency and Laplacian matrices")))
+   (graph-matrix "graph-matrix.ss" "Adjacency matrices, distance algorithms, graph metrics")))
