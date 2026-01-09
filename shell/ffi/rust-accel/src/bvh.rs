@@ -156,12 +156,12 @@ fn parse_node(
         let first_tri = u32::from_ne_bytes(node_data[56..60].try_into().unwrap()) as usize;
         let tri_count = u32::from_ne_bytes(node_data[60..64].try_into().unwrap()) as usize;
 
-        let leaf_tris: Vec<Triangle> = triangles
-            .iter()
-            .skip(first_tri)
-            .take(tri_count)
-            .copied()
-            .collect();
+        // Bounds check: ensure triangle indices are valid
+        if first_tri > triangles.len() || first_tri + tri_count > triangles.len() {
+            return None; // Invalid triangle indices
+        }
+
+        let leaf_tris: Vec<Triangle> = triangles[first_tri..first_tri + tri_count].to_vec();
 
         Some(BVHNode::Leaf {
             bbox,
@@ -171,6 +171,12 @@ fn parse_node(
         // Internal
         let left_idx = u32::from_ne_bytes(node_data[56..60].try_into().unwrap()) as usize;
         let right_idx = u32::from_ne_bytes(node_data[60..64].try_into().unwrap()) as usize;
+
+        // Bounds check: prevent cycles and out-of-bounds indices
+        // Note: We don't know total node count here, but we can detect obvious issues
+        if left_idx == index || right_idx == index {
+            return None; // Self-referential node (would cause infinite recursion)
+        }
 
         let left = parse_node(data, nodes_start, node_size, triangles, left_idx)?;
         let right = parse_node(data, nodes_start, node_size, triangles, right_idx)?;
@@ -340,8 +346,22 @@ pub fn bvh_intersect_ray(
                 true
             }
             BVHNode::Internal { left, right, .. } => {
-                traverse(left, origin, dir, inv_dir, best, fuel)
-                    && traverse(right, origin, dir, inv_dir, best, fuel)
+                // Visit closer child first for better early termination
+                let left_t = left.bbox().intersect_ray(origin, dir).map(|(t, _)| t);
+                let right_t = right.bbox().intersect_ray(origin, dir).map(|(t, _)| t);
+
+                match (left_t, right_t) {
+                    (Some(lt), Some(rt)) if rt < lt => {
+                        // Right is closer, visit it first
+                        traverse(right, origin, dir, inv_dir, best, fuel)
+                            && traverse(left, origin, dir, inv_dir, best, fuel)
+                    }
+                    _ => {
+                        // Left is closer or equal, visit it first
+                        traverse(left, origin, dir, inv_dir, best, fuel)
+                            && traverse(right, origin, dir, inv_dir, best, fuel)
+                    }
+                }
             }
         }
     }

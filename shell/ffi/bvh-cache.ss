@@ -60,17 +60,20 @@
 
 ;;; get-rust-handle : BVH → RustBVHHandle
 ;;; Get Rust handle for BVH, building and caching if needed
+;;; Optimized to serialize only once (fixes double serialization on cache miss)
 (define (get-rust-handle scheme-bvh)
   (unless (accel-available?)
           (error 'get-rust-handle "Acceleration library not loaded"))
   
-  (let* ([hash (bvh-content-hash scheme-bvh)]
+  ;; Serialize once, use for both hash and building
+  (let* ([bv (bvh->bytes scheme-bvh)]
+         [hash (sha256 bv)]
          [cached (get-cached-rust-handle hash)])
         (if cached
             ;; Cache hit
             cached
-            ;; Cache miss - build and cache
-            (let ([handle (scheme-bvh->rust-handle scheme-bvh)])
+            ;; Cache miss - build from already-serialized bytevector
+            (let ([handle (build-rust-bvh bv)])
                  (if handle
                      (begin
                       (cache-rust-handle! hash handle)
