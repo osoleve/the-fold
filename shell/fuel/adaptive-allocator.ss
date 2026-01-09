@@ -51,6 +51,7 @@
                                 measurement-noise)
         confidence
         '()                                   ; observations history
+        0                                     ; history-len (track explicitly for O(1) check)
         0                                     ; total-allocated
         0                                     ; total-consumed
         *default-max-history*))               ; max-history
@@ -60,9 +61,10 @@
 (define (allocator-estimator a) (cadr a))
 (define (allocator-confidence a) (caddr a))
 (define (allocator-observations a) (cadddr a))
-(define (allocator-total-allocated a) (car (cddddr a)))
-(define (allocator-total-consumed a) (cadr (cddddr a)))
-(define (allocator-max-history a) (caddr (cddddr a)))
+(define (allocator-history-len a) (car (cddddr a)))      ; O(1) length tracking
+(define (allocator-total-allocated a) (cadr (cddddr a)))
+(define (allocator-total-consumed a) (caddr (cddddr a)))
+(define (allocator-max-history a) (cadddr (cddddr a)))
 
 ;;; Mutators (functional - return new allocator)
 
@@ -71,28 +73,35 @@
         est
         (allocator-confidence a)
         (allocator-observations a)
+        (allocator-history-len a)
         (allocator-total-allocated a)
         (allocator-total-consumed a)
         (allocator-max-history a)))
 
 (define (allocator-push-observation a obs)
-  (let ([history (allocator-observations a)]
-        [max-h (allocator-max-history a)])
-       (list 'adaptive-allocator
-             (allocator-estimator a)
-             (allocator-confidence a)
-             (if (>= (length history) max-h)
-                 (cons obs (take history (- max-h 1)))
-                 (cons obs history))
-             (allocator-total-allocated a)
-             (allocator-total-consumed a)
-             max-h)))
+  (let* ([history (allocator-observations a)]
+         [len (allocator-history-len a)]
+         [max-h (allocator-max-history a)]
+         ;; O(1) cons, only truncate when at limit (amortized)
+         [new-history (if (>= len max-h)
+                          (cons obs (take history (- max-h 1)))
+                          (cons obs history))]
+         [new-len (if (>= len max-h) max-h (+ len 1))])
+        (list 'adaptive-allocator
+              (allocator-estimator a)
+              (allocator-confidence a)
+              new-history
+              new-len
+              (allocator-total-allocated a)
+              (allocator-total-consumed a)
+              max-h)))
 
 (define (allocator-add-allocated a amount)
   (list 'adaptive-allocator
         (allocator-estimator a)
         (allocator-confidence a)
         (allocator-observations a)
+        (allocator-history-len a)
         (+ (allocator-total-allocated a) amount)
         (allocator-total-consumed a)
         (allocator-max-history a)))
@@ -102,6 +111,7 @@
         (allocator-estimator a)
         (allocator-confidence a)
         (allocator-observations a)
+        (allocator-history-len a)
         (allocator-total-allocated a)
         (+ (allocator-total-consumed a) amount)
         (allocator-max-history a)))
@@ -161,13 +171,13 @@
           (efficiency . ,(allocator-efficiency alloc))
           (total-allocated . ,(allocator-total-allocated alloc))
           (total-consumed . ,(allocator-total-consumed alloc))
-          (observations . ,(length (allocator-observations alloc))))))
+          (observations . ,(allocator-history-len alloc)))))
 
 ;;; allocator-recent-costs : Allocator × Nat → List[Num]
 ;;; Get the N most recent observed costs.
 (define (allocator-recent-costs alloc n)
   (take (allocator-observations alloc)
-        (min n (length (allocator-observations alloc)))))
+        (min n (allocator-history-len alloc))))
 
 ;;; ============================================================
 ;;; Convenience: Default Allocator
