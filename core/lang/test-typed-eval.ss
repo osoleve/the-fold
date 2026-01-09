@@ -265,7 +265,7 @@
       (show-typed (typed 'Int 42)))
 
 (test "show-typed function"
-      "<closure> : (-> Int Int)"
+      "<closure> : (Int → Int)"
       (show-typed (typed '(-> Int Int) '<closure>)))
 
 ;;; ============================================================

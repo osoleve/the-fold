@@ -24,7 +24,7 @@
 
 (define (test-error name thunk)
   (guard (ex
-          [(error? ex)
+          [(serious-condition? ex)  ; Use serious-condition? since error? is shadowed by result monad
            (set! tests-passed (+ tests-passed 1))
            (display "  ✓ ") (display name) (display " (error raised)") (newline)]
           [else
