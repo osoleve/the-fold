@@ -555,17 +555,26 @@
         [(>) (apply > args)]
         [(<=) (apply <= args)]
         [(>=) (apply >= args)]
-        [(eq?) (eq? (car args) (cadr args))]
-        [(null?) (null? (car args))]
-        [(car) (if (and (pair? (car args)) (eq? (caar args) 'quote))
-                   `',(cadar args)
-                   `(car ,@args))]
-        [(cdr) (if (and (pair? (car args)) (eq? (caar args) 'quote))
-                   `',(cddar args)
-                   `(cdr ,@args))]
+        ;; Comparisons - need to unquote args for proper comparison
+        [(eq?) (eq? (pe-unquote (car args)) (pe-unquote (cadr args)))]
+        [(null?) (null? (pe-unquote (car args)))]
+        ;; List operations - extract from quoted list
+        [(car) (let ([lst (pe-unquote (car args))])
+                    (if (pair? lst)
+                        (let ([result (car lst)])
+                             (if (or (symbol? result) (pair? result))
+                                 `',result
+                                 result))
+                        `(car ,@args)))]
+        [(cdr) (let ([lst (pe-unquote (car args))])
+                    (if (pair? lst)
+                        `',(cdr lst)
+                        `(cdr ,@args)))]
         [(cons) `',(cons (pe-unquote (car args)) (pe-unquote (cadr args)))]
         [(list) `',(map pe-unquote args)]
-        [(not) (not (car args))]
+        ;; Boolean operations - need to unquote
+        [(not) (not (pe-unquote (car args)))]
+        ;; Numeric predicates - args should already be numbers
         [(zero?) (zero? (car args))]
         [(positive?) (positive? (car args))]
         [(negative?) (negative? (car args))]

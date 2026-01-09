@@ -236,6 +236,48 @@
                    (assert-true (pair? result)))))
 
 ;;; ============================================================
+;;; List Primitive Tests (QA findings from Gemini)
+;;; ============================================================
+
+(test-group list-primitives
+            
+            (define-test car-static-list
+              (assert-equal 1 (partial-eval '(car '(1 2 3)) '())))
+            
+            (define-test car-static-symbol-list
+              (assert-equal ''a (partial-eval '(car '(a b c)) '())))
+            
+            (define-test cdr-static-list
+              (assert-equal ''(2 3) (partial-eval '(cdr '(1 2 3)) '())))
+            
+            (define-test cons-static
+              (assert-equal ''(1 . 2) (partial-eval '(cons 1 2) '())))
+            
+            (define-test cons-static-list
+              (assert-equal ''(1 2 3) (partial-eval '(cons 1 '(2 3)) '())))
+            
+            (define-test null-static-empty
+              (assert-equal #t (partial-eval '(null? '()) '())))
+            
+            (define-test null-static-nonempty
+              (assert-equal #f (partial-eval '(null? '(1 2)) '())))
+            
+            (define-test eq-static-symbols
+              (assert-equal #t (partial-eval '(eq? 'a 'a) '())))
+            
+            (define-test eq-static-different
+              (assert-equal #f (partial-eval '(eq? 'a 'b) '())))
+            
+            (define-test list-static
+              (assert-equal ''(1 2 3) (partial-eval '(list 1 2 3) '())))
+            
+            (define-test not-static-true
+              (assert-equal #f (partial-eval '(not #t) '())))
+            
+            (define-test not-static-false
+              (assert-equal #t (partial-eval '(not #f) '()))))
+
+;;; ============================================================
 ;;; Specialization Tests
 ;;; ============================================================
 

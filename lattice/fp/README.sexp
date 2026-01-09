@@ -108,7 +108,8 @@ Design Philosophy:
     (modules . (
       "combinators.ss - Standard combinators (id, const, compose, flip, etc.)"
       "strategies.ss  - Rewriting strategies and term rewriting"
-      "prelude.ss     - FP prelude with common utilities")))))
+      "prelude.ss     - FP prelude with common utilities"
+      "templates.ss   - FP code templates: monoids, foldables, functors, applicatives, lenses, prisms")))))
  (usage-examples . (
    ((title . "Type Classes: Monoid Example")
     (code . "
@@ -166,6 +167,25 @@ Design Philosophy:
 
 ; Run with an interpreter
 (run-dsl turtle-interpreter square)
+"))
+   ((title . "FP Templates: Monoids and Lenses")
+    (code . "
+; Use pre-defined monoids
+(mconcat monoid-sum '(1 2 3 4 5))        ; => 15
+(mconcat monoid-product '(1 2 3 4 5))    ; => 120
+(mconcat monoid-list '((a b) (c d)))     ; => (a b c d)
+
+; Verify monoid laws
+(verify-monoid-laws monoid-sum '(1 2 3)) ; => #t
+
+; Use lenses for nested data access
+(view lens-fst '(1 . 2))                 ; => 1
+(set-lens lens-fst 10 '(1 . 2))          ; => (10 . 2)
+(over lens-fst (lambda (x) (* x 2)) '(5 . 3)) ; => (10 . 3)
+
+; Compose lenses for deep access
+(define deep-lens (lens-compose lens-fst lens-fst))
+(view deep-lens '((a . b) . c))          ; => a
 "))))
  (design-patterns . (
    ((pattern . "Dictionary-Passing Style")
