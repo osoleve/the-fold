@@ -230,6 +230,15 @@ Key design principles:
    ;; Transformations
    ss-series ss-parallel ss-feedback
    ss-transform
+   ;; kalman.ss
+   make-kalman-filter kalman? kalman-mean kalman-variance kalman-Q kalman-R
+   kalman-predict kalman-update kalman-estimate kalman-gain kalman-batch
+   kalman-residual kalman-mahalanobis kalman-summary
+   kalman-with-Q kalman-boost-Q
+   ;; Log-space Kalman
+   make-log-kalman-filter log-kalman-update log-kalman-estimate
+   log-kalman-mean log-kalman-predict-cost log-kalman-confidence-interval
+   log-kalman-summary
 
    ;; analysis/ — Cost Analysis
    ;; cost-analysis.ss
@@ -333,7 +342,8 @@ Key design principles:
    ((subdir . "control-systems")
     (description . "Control theory and dynamical systems")
     (files . (
-      "state-space.ss"))) ; LTI state space models, controllability
+      "state-space.ss"   ; LTI state space models, controllability
+      "kalman.ss")))     ; Kalman filter for state estimation
 
    ((subdir . "analysis")
     (description . "Cost analysis and parallelization heuristics")
