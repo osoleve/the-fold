@@ -151,6 +151,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `dsl/` | Tagless final, chronicle, staging |
 | `info/` | Entropy, coding, information theory |
 | `number-theory/` | Primes, modular arithmetic |
+| `meta/` | Lattice navigation, search, introspection |
 
 **Tier 2+ — Advanced:**
 | Directory | Purpose |
@@ -177,39 +178,69 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 - `analysis/` — Numerical analysis
 - `rewrite/` — Term rewriting systems
 
-Each lattice skill has a `manifest.sexp` declaring version, purity, fuel-bound, and dependencies.
+Each lattice skill has a `manifest.sexp` declaring metadata:
+
+```scheme
+(skill <name>
+  (version "x.y.z")
+  (tier 0-2)                       ; 0=foundational, 1=intermediate, 2+=advanced
+  (path "lattice/<name>")
+  (purity total|partial)           ; total=pure, partial=may have effects
+  (stability stable|experimental)
+  (fuel-bound "O(...)")            ; Complexity bound
+  (deps (<skill> ...))             ; Skill-level dependencies
+  (description "...")
+  (keywords (<keyword> ...))       ; For search
+  (aliases (<alias> ...))          ; Alternative names
+  (exports (<module> <symbol> ...) ...)
+  (modules (<name> "<file>" "<desc>") ...))
+```
 
 **Meta-Tooling (`lattice/meta/`):**
 
-Navigation and introspection tools for the skill lattice:
+Agent-facing navigation and introspection for the skill lattice. Builds a CAS-backed knowledge graph from manifests with BM25 search ranking.
 
 ```scheme
-;; Load all tooling
+;; Initialize (required once per session)
 (load "lattice/meta/meta.ss")
-(lattice-init!)                    ; Build knowledge graph and indices
+(lattice-init!)                    ; Build KG + search indices (~1400 exports)
 
-;; Search
-(lf "matrix decomposition")        ; BM25 full-text search
+;; Search — BM25 ranked results
+(lf "matrix decomposition")        ; Full-text search
 (lfe 'vec3)                        ; Exact symbol lookup
-(lattice-complete "mat")           ; Autocomplete
+(lattice-complete "mat")           ; Autocomplete suggestions
 
-;; Dependencies
-(ld 'physics/diff)                 ; What does this depend on?
-(lu 'linalg)                       ; What uses this?
-(lattice-path 'physics/diff 'linalg) ; Find path
+;; DAG Navigation
+(ld 'physics/diff)                 ; What does this skill depend on?
+(lu 'linalg)                       ; What skills use this?
+(lattice-path 'physics/diff 'linalg) ; Find dependency path
+(lattice-roots)                    ; Tier 0 skills (no deps)
+(lattice-leaves)                   ; Skills with no dependents
+(lattice-hubs)                     ; Most-depended-on skills
 
 ;; Inspection
 (li 'linalg)                       ; Full skill description
-(le 'linalg)                       ; List exports
+(le 'linalg)                       ; List all exports
+(lm 'linalg)                       ; List modules with descriptions
 (lattice-summary)                  ; One-line summary of all skills
+(lattice-info 'linalg)             ; Structured data for programmatic use
 
 ;; Analytics
 (ls)                               ; Lattice statistics
-(lh)                               ; Health check
-(lattice-hubs)                     ; Most-depended-on skills
+(lh)                               ; Health check (missing deps, cycles)
+(lattice-coverage-pretty)          ; Metadata coverage report
+(lattice-graph)                    ; Print full DAG structure
 ```
 
-Modules: `kg.ss` (knowledge graph), `bm25.ss` (search), `dag.ss` (navigation), `analytics.ss`, `inspect.ss`.
+| Module | Purpose |
+|--------|---------|
+| `kg.ss` | Knowledge graph builder from manifests |
+| `bm25.ss` | BM25 search engine with TF-IDF ranking |
+| `search.ss` | Unified search API, autocomplete |
+| `dag.ss` | DAG traversal, paths, tiers, hubs |
+| `analytics.ss` | Stats, health, coverage, purity |
+| `inspect.ss` | Skill descriptions, exports, sources |
+| `meta.ss` | Unified entry point + `lattice-help` |
 
 ### Shell Subsystems
 

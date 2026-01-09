@@ -60,7 +60,9 @@
 ;;; Extract a field from a manifest s-expression
 (define (manifest-field manifest field-name)
   (if (and (pair? manifest)
-           (eq? (car manifest) 'skill))
+           (eq? (car manifest) 'skill)
+           (pair? (cdr manifest))      ; Has at least skill name
+           (pair? (cddr manifest)))    ; Has at least one field
       (let loop ([fields (cddr manifest)])
            (cond
             [(null? fields) #f]

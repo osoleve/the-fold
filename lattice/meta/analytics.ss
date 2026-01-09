@@ -25,7 +25,7 @@
 (define (lattice-stats)
   (let* ([skills (kg-skills)]
          [num-skills (length skills)]
-         [num-modules (length (apply append (map kg-modules skills)))]
+         [num-modules (fold-left (lambda (acc s) (+ acc (length (kg-modules s)))) 0 skills)]
          [num-exports (length (kg-exports))]
          [num-deps (length *kg-deps*)]
          [roots (lattice-roots)]

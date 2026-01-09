@@ -26,6 +26,7 @@
 (define *skill-index* (bm25-create))
 (define *module-index* (bm25-create))
 (define *export-index* (bm25-create))
+(define *module-cache* '())  ; Pre-computed list of all modules for O(1) lookup
 (define *search-ready* #f)
 
 ;;; ============================================================
@@ -41,6 +42,7 @@
   (set! *skill-index* (bm25-create))
   (set! *module-index* (bm25-create))
   (set! *export-index* (bm25-create))
+  (set! *module-cache* '())
   
   ;; Index all skills
   (for-each
@@ -52,7 +54,7 @@
                                  (bm25-add-doc *skill-index* skill-name terms manifest-data))))))
    (kg-skills))
   
-  ;; Index all modules
+  ;; Index all modules and build module cache
   (for-each
    (lambda (skill-name)
            (let ([modules (kg-modules skill-name)])
@@ -61,6 +63,8 @@
                          (let* ([mod-key (car mod-entry)]
                                 [mod-data `((name . ,mod-key)
                                             (skill . ,skill-name))])
+                               ;; Add to module cache for fast lookup
+                               (set! *module-cache* (cons mod-entry *module-cache*))
                                ;; Extract module name from key (e.g., 'linalg/vec -> 'vec)
                                (let* ([key-str (symbol->string mod-key)]
                                       [terms (tokenize key-str)])
@@ -159,13 +163,14 @@
    [else #f]))
 
 ;;; find-module-by-name : Symbol -> (Key . Block) | #f
+;;; Uses pre-computed *module-cache* for O(N) lookup instead of O(S×M)
 (define (find-module-by-name name)
   (let ([name-str (symbol->string name)])
        (find (lambda (entry)
                      (let ([key-str (symbol->string (car entry))])
                           (or (string=? key-str name-str)
                               (string-ends-with? key-str (string-append "/" name-str)))))
-             (apply append (map kg-modules (kg-skills))))))
+             *module-cache*)))
 
 ;;; string-ends-with? : String String -> Bool
 (define (string-ends-with? str suffix)
