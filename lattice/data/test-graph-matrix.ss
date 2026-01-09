@@ -260,6 +260,94 @@
       (test-approx "density: 2 edges in 3 nodes" (/ 2 6) (adjacency-density m) 0.001))
 
 ;;; ============================================================
+;;; Matrix-Based Distance Algorithm Tests
+;;; ============================================================
+
+(printf "~n--- Matrix-Based Distance Algorithms ---~n")
+
+;; Binary exponentiation: verify matrix-power-fast matches adjacency-power
+(let* ([edges '((0 1) (1 2) (2 0))]
+       [m (edges->adjacency-matrix edges)]
+       [slow (adjacency-power m 8)]
+       [fast (matrix-power-fast m 8)])
+      (test "power-fast: A^8 matches naive" #t (matrix-equal? slow fast))
+      (test "power-fast: A^0 is identity" #t
+            (matrix-equal? (matrix-power-fast m 0) (identity 3)))
+      (test "power-fast: A^1 is A" #t (matrix-equal? (matrix-power-fast m 1) m)))
+
+;; Transitive closure
+(let* ([edges '((0 1) (1 2))]  ; Path: 0 -> 1 -> 2
+       [m (edges->adjacency-matrix edges 3)]
+       [tc (transitive-closure m)])
+      (test "transitive: 0->0 self" 1 (matrix-ref tc 0 0))
+      (test "transitive: 0->1 direct" 1 (matrix-ref tc 0 1))
+      (test "transitive: 0->2 indirect" 1 (matrix-ref tc 0 2))
+      (test "transitive: 2->0 no path" 0 (matrix-ref tc 2 0))
+      (test "transitive: 1->0 no path" 0 (matrix-ref tc 1 0)))
+
+;; Transitive closure with cycle
+(let* ([edges '((0 1) (1 2) (2 0))]  ; Cycle
+       [m (edges->adjacency-matrix edges)]
+       [tc (transitive-closure m)])
+      (test "transitive-cycle: all reachable" 1 (matrix-ref tc 0 2))
+      (test "transitive-cycle: back edge" 1 (matrix-ref tc 2 0)))
+
+;; Floyd-Warshall on weighted graph
+(let* ([adj (matrix-from-lists '((0 1 0 0)    ; 0->1 weight 1
+                                 (0 0 2 0)    ; 1->2 weight 2
+                                 (0 0 0 1)    ; 2->3 weight 1
+                                 (0 0 0 0)))] ; 3 sink
+       [dist (floyd-warshall adj)])
+      (test "floyd: 0->0 is 0" 0 (matrix-ref dist 0 0))
+      (test "floyd: 0->1 is 1" 1 (matrix-ref dist 0 1))
+      (test "floyd: 0->2 is 3" 3 (matrix-ref dist 0 2))  ; 1+2
+      (test "floyd: 0->3 is 4" 4 (matrix-ref dist 0 3))  ; 1+2+1
+      (test "floyd: 3->0 unreachable" #t (>= (matrix-ref dist 3 0) *infinity*)))
+
+;; Floyd-Warshall with shortcut
+(let* ([adj (matrix-from-lists '((0 10 3 0)   ; Direct 0->1=10, 0->2=3
+                                 (0 0 0 0)
+                                 (0 1 0 0)    ; Shortcut 2->1=1
+                                 (0 0 0 0)))]
+       [dist (floyd-warshall adj)])
+      (test "floyd-shortcut: 0->1 via 2" 4 (matrix-ref dist 0 1)))  ; 3+1 < 10
+
+;; Negative cycle detection (no negative cycle)
+(let* ([adj (matrix-from-lists '((0 1 0) (0 0 2) (0 0 0)))]
+       [dist (floyd-warshall adj)])
+      (test "no-negative-cycle" #f (has-negative-cycle? dist)))
+
+;; Distance matrix for unweighted graph
+(let* ([edges '((0 1) (1 2) (2 3))]  ; Path of length 3
+       [m (edges->adjacency-matrix edges 4)]
+       [dist (distance-matrix-unweighted m)])
+      (test "dist-unweighted: 0->0" 0 (matrix-ref dist 0 0))
+      (test "dist-unweighted: 0->1" 1 (matrix-ref dist 0 1))
+      (test "dist-unweighted: 0->2" 2 (matrix-ref dist 0 2))
+      (test "dist-unweighted: 0->3" 3 (matrix-ref dist 0 3))
+      (test "dist-unweighted: 3->0 unreachable" #t
+            (>= (matrix-ref dist 3 0) *infinity*)))
+
+;; Graph metrics: eccentricity, diameter, radius, center
+(let* ([edges '((0 1) (1 2) (2 3) (3 0))]  ; Cycle of 4
+       [m (edges->adjacency-matrix edges 4 #t)]  ; Undirected
+       [dist (distance-matrix-unweighted m)])
+      (test "eccentricity: node 0" 2 (graph-eccentricity dist 0))
+      (test "diameter: cycle-4" 2 (graph-diameter dist))
+      (test "radius: cycle-4" 2 (inexact->exact (graph-radius dist)))
+      (test "center: all nodes" '(0 1 2 3) (graph-center dist)))
+
+;; Path graph metrics
+(let* ([edges '((0 1) (1 2) (2 3))]  ; Path 0-1-2-3
+       [m (edges->adjacency-matrix edges 4 #t)]  ; Undirected
+       [dist (distance-matrix-unweighted m)])
+      (test "path-eccentricity: node 0" 3 (graph-eccentricity dist 0))
+      (test "path-eccentricity: node 1" 2 (graph-eccentricity dist 1))
+      (test "path-diameter" 3 (graph-diameter dist))
+      (test "path-radius" 2 (inexact->exact (graph-radius dist)))
+      (test "path-center" '(1 2) (graph-center dist)))
+
+;;; ============================================================
 ;;; Edge Cases
 ;;; ============================================================
 

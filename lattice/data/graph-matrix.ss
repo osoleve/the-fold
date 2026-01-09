@@ -446,6 +446,191 @@
                       (matrix-mul power m))))))
 
 ;;; ============================================================
+;;; Matrix-Based Graph Distance Algorithms
+;;; ============================================================
+
+;;; matrix-power-fast : Matrix × Nat → Matrix
+;;; Compute A^k using repeated squaring (binary exponentiation).
+;;; Complexity: O(log k) matrix multiplications instead of O(k).
+(define (matrix-power-fast m k)
+  (cond [(= k 0) (identity (matrix-rows m))]
+        [(= k 1) m]
+        [(even? k)
+         (let ([half (matrix-power-fast m (quotient k 2))])
+              (matrix-mul half half))]
+        [else
+         (matrix-mul m (matrix-power-fast m (- k 1)))]))
+
+;;; *infinity* : Num
+;;; Representation of infinity for distance matrices.
+(define *infinity* 1e308)
+
+;;; transitive-closure : Matrix → Matrix
+;;; Compute transitive closure using Warshall's algorithm.
+;;; Entry (i,j) = 1 iff j is reachable from i (any path length).
+;;; Complexity: O(n³)
+(define (transitive-closure adj)
+  (let* ([n (matrix-rows adj)]
+         [data (vector-copy (matrix-data adj))])
+        ;; Set diagonal to 1 (self-reachable)
+        (do ([i 0 (+ i 1)])
+            ((= i n))
+            (vector-set! data (+ (* i n) i) 1))
+        ;; Warshall's algorithm
+        (do ([k 0 (+ k 1)])
+            ((= k n))
+            (do ([i 0 (+ i 1)])
+                ((= i n))
+                (do ([j 0 (+ j 1)])
+                    ((= j n))
+                    (let ([ij (+ (* i n) j)]
+                          [ik (+ (* i n) k)]
+                          [kj (+ (* k n) j)])
+                         (when (and (> (vector-ref data ik) 0)
+                                    (> (vector-ref data kj) 0))
+                               (vector-set! data ij 1))))))
+        (list 'matrix n n data)))
+
+;;; floyd-warshall : Matrix → Matrix
+;;; All-pairs shortest paths using Floyd-Warshall algorithm.
+;;; Input: weighted adjacency matrix (0 means no edge, except diagonal).
+;;; Output: distance matrix where D[i,j] = shortest path length i→j.
+;;; Uses *infinity* for unreachable pairs.
+;;; Complexity: O(n³)
+(define (floyd-warshall adj)
+  (let* ([n (matrix-rows adj)]
+         [data (make-vector (* n n) *infinity*)])
+        ;; Initialize distance matrix
+        (do ([i 0 (+ i 1)])
+            ((= i n))
+            (do ([j 0 (+ j 1)])
+                ((= j n))
+                (let ([idx (+ (* i n) j)]
+                      [val (matrix-ref adj i j)])
+                     (cond [(= i j) (vector-set! data idx 0)]
+                           [(> val 0) (vector-set! data idx val)]))))
+        ;; Floyd-Warshall dynamic programming
+        (do ([k 0 (+ k 1)])
+            ((= k n))
+            (do ([i 0 (+ i 1)])
+                ((= i n))
+                (do ([j 0 (+ j 1)])
+                    ((= j n))
+                    (let* ([ij (+ (* i n) j)]
+                           [ik (+ (* i n) k)]
+                           [kj (+ (* k n) j)]
+                           [d-ij (vector-ref data ij)]
+                           [d-ik (vector-ref data ik)]
+                           [d-kj (vector-ref data kj)]
+                           [via-k (+ d-ik d-kj)])
+                          (when (< via-k d-ij)
+                                (vector-set! data ij via-k))))))
+        (list 'matrix n n data)))
+
+;;; has-negative-cycle? : Matrix → Boolean
+;;; Check if graph has a negative cycle.
+;;; Run floyd-warshall first, then check if any diagonal < 0.
+(define (has-negative-cycle? dist)
+  (let ([n (matrix-rows dist)])
+       (let loop ([i 0])
+            (cond [(= i n) #f]
+                  [(< (matrix-ref dist i i) 0) #t]
+                  [else (loop (+ i 1))]))))
+
+;;; distance-matrix-unweighted : Matrix → Matrix
+;;; Compute all-pairs shortest paths for unweighted graph.
+;;; Uses BFS-style iteration via matrix powers.
+;;; Returns distance matrix with *infinity* for unreachable pairs.
+(define (distance-matrix-unweighted adj)
+  (let* ([n (matrix-rows adj)]
+         [dist (make-vector (* n n) *infinity*)]
+         [reach (vector-copy (matrix-data adj))])
+        ;; Initialize: distance 0 to self, 1 for direct edges
+        (do ([i 0 (+ i 1)])
+            ((= i n))
+            (vector-set! dist (+ (* i n) i) 0)
+            (do ([j 0 (+ j 1)])
+                ((= j n))
+                (when (and (not (= i j))
+                           (> (vector-ref reach (+ (* i n) j)) 0))
+                      (vector-set! dist (+ (* i n) j) 1))))
+        ;; Iterate: compute A^2, A^3, ... A^(n-1)
+        (let ([power (matrix-data adj)])
+             (do ([d 2 (+ d 1)])
+                 ((= d n))
+                 ;; Compute next power
+                 (let ([next-power (matrix-data (matrix-mul (list 'matrix n n power)
+                                                            adj))])
+                      (do ([i 0 (+ i 1)])
+                          ((= i n))
+                          (do ([j 0 (+ j 1)])
+                              ((= j n))
+                              (let ([idx (+ (* i n) j)])
+                                   (when (and (= (vector-ref dist idx) *infinity*)
+                                              (> (vector-ref next-power idx) 0))
+                                         (vector-set! dist idx d)))))
+                      (set! power next-power))))
+        (list 'matrix n n dist)))
+
+;;; graph-eccentricity : Matrix × Nat → Nat|Infinity
+;;; Eccentricity of node i: max distance to any reachable node.
+;;; Returns *infinity* if node is isolated.
+(define (graph-eccentricity dist i)
+  (let ([n (matrix-rows dist)])
+       (let loop ([j 0] [max-d 0])
+            (if (= j n)
+                max-d
+                (let ([d (matrix-ref dist i j)])
+                     (loop (+ j 1)
+                           (if (and (not (= i j))
+                                    (< d *infinity*))
+                               (max max-d d)
+                               max-d)))))))
+
+;;; graph-diameter : Matrix → Nat|Infinity
+;;; Diameter: maximum eccentricity (longest shortest path).
+;;; Input should be a distance matrix.
+(define (graph-diameter dist)
+  (let ([n (matrix-rows dist)])
+       (let loop ([i 0] [diam 0])
+            (if (= i n)
+                diam
+                (let ([ecc (graph-eccentricity dist i)])
+                     (loop (+ i 1)
+                           (if (< ecc *infinity*)
+                               (max diam ecc)
+                               diam)))))))
+
+;;; graph-radius : Matrix → Nat|Infinity
+;;; Radius: minimum eccentricity.
+;;; Input should be a distance matrix.
+(define (graph-radius dist)
+  (let ([n (matrix-rows dist)])
+       (let loop ([i 0] [rad *infinity*])
+            (if (= i n)
+                rad
+                (let ([ecc (graph-eccentricity dist i)])
+                     (loop (+ i 1)
+                           (if (and (< ecc *infinity*) (> ecc 0))
+                               (min rad ecc)
+                               rad)))))))
+
+;;; graph-center : Matrix → (List Nat)
+;;; Center: nodes with eccentricity equal to radius.
+;;; Input should be a distance matrix.
+(define (graph-center dist)
+  (let* ([n (matrix-rows dist)]
+         [rad (graph-radius dist)])
+        (let loop ([i 0] [center '()])
+             (if (= i n)
+                 (reverse center)
+                 (let ([ecc (graph-eccentricity dist i)])
+                      (loop (+ i 1)
+                            (if (= ecc rad)
+                                (cons i center)
+                                center)))))))
+
+;;; ============================================================
 ;;; Dense/Sparse Conversion
 ;;; ============================================================
 
