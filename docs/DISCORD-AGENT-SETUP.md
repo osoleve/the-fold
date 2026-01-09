@@ -217,9 +217,10 @@ cd /home/oso/the-fold
 
 **Note:** Only run ONE polling daemon. It checks for both `*-discord-trigger.ss` and `*-fold-trigger.ss` files. Running multiple daemons causes duplicate responses.
 
-**Alternative:** The Discord bot will also auto-start when you run `./start.sh` if:
-- `.env.discord` exists and is configured
-- No Discord bot is already running
+**Note:** Start the Discord bot separately if needed:
+```bash
+cd shell/discord && source ../../.env.discord && node bot.js
+```
 
 ### 4. Test
 
