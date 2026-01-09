@@ -3,13 +3,19 @@
 (skill linalg
   (version "0.1.0")
   (tier 0)
+  (path "lattice/linalg")
   (purity total)
+  (stability stable)
   (fuel-bound "O(n³) for matrix operations, O(n) for vectors")
   (deps ())  ; Tier 0 - no lattice dependencies
 
   (description
    "Pure functional linear algebra library with vectors, matrices,
     decompositions, solvers, and quaternions.")
+
+  (keywords (linear-algebra matrix vector quaternion decomposition
+             lu qr cholesky eigenvalue svd sparse solver numerical))
+  (aliases (la lin-alg linear matrix-math))
 
   (exports
    (vec vec2 vec3 quaternion matrix)

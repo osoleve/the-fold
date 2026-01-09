@@ -64,6 +64,7 @@ scheme --script core/run-tests.ss
 scheme --script lattice/linalg/test-vec.ss
 scheme --script lattice/info/test-entropy.ss
 scheme --script lattice/physics/diff/test-rollout.ss
+scheme --script lattice/meta/test-meta.ss
 
 # Shell tests
 scheme --script shell/tests/test-string-utils.ss
@@ -177,6 +178,38 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 - `rewrite/` — Term rewriting systems
 
 Each lattice skill has a `manifest.sexp` declaring version, purity, fuel-bound, and dependencies.
+
+**Meta-Tooling (`lattice/meta/`):**
+
+Navigation and introspection tools for the skill lattice:
+
+```scheme
+;; Load all tooling
+(load "lattice/meta/meta.ss")
+(lattice-init!)                    ; Build knowledge graph and indices
+
+;; Search
+(lf "matrix decomposition")        ; BM25 full-text search
+(lfe 'vec3)                        ; Exact symbol lookup
+(lattice-complete "mat")           ; Autocomplete
+
+;; Dependencies
+(ld 'physics/diff)                 ; What does this depend on?
+(lu 'linalg)                       ; What uses this?
+(lattice-path 'physics/diff 'linalg) ; Find path
+
+;; Inspection
+(li 'linalg)                       ; Full skill description
+(le 'linalg)                       ; List exports
+(lattice-summary)                  ; One-line summary of all skills
+
+;; Analytics
+(ls)                               ; Lattice statistics
+(lh)                               ; Health check
+(lattice-hubs)                     ; Most-depended-on skills
+```
+
+Modules: `kg.ss` (knowledge graph), `bm25.ss` (search), `dag.ss` (navigation), `analytics.ss`, `inspect.ss`.
 
 ### Shell Subsystems
 

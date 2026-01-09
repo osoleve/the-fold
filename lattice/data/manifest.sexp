@@ -3,13 +3,19 @@
 (skill data
   (version "0.1.0")
   (tier 0)
+  (path "lattice/data")
   (purity total)
+  (stability stable)
   (fuel-bound "O(log n) for balanced structures, O(n) for linear")
   (deps ())  ; Tier 0 - no lattice dependencies
 
   (description
    "Fundamental data structures: heaps, balanced trees, graphs,
     hash tables, and collection utilities.")
+
+  (keywords (data-structure graph heap tree hash-table queue stack
+             bfs dfs shortest-path pagerank collection))
+  (aliases (ds structures collections))
 
   (exports
    (data-structures graph-algorithms collection-utils pagerank graph-matrix))

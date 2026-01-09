@@ -3,7 +3,9 @@
 (skill optimization
   (version "0.1.0")
   (tier 1)
+  (path "lattice/optimization")
   (purity total)
+  (stability stable)
   (fuel-bound "O(iterations × n) for first-order, O(iterations × n²) for second-order")
   (deps (autodiff linalg))
 
@@ -11,6 +13,10 @@
    "Numerical optimization algorithms powered by automatic differentiation.
     Includes gradient descent variants, Newton's method, L-BFGS, and
     constrained optimization with line search and convergence criteria.")
+
+  (keywords (optimization gradient-descent sgd adam newton lbfgs
+             minimize convergence line-search numerical))
+  (aliases (optim opt minimize))
 
   (exports
    (line-search armijo-backtrack wolfe-line-search)

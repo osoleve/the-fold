@@ -3,7 +3,9 @@
 (skill physics/diff
   (version "0.1.0")
   (tier 2)
+  (path "lattice/physics/diff")
   (purity partial)  ; Simulation may require fuel bounds
+  (stability experimental)
   (fuel-bound "O(n² × steps) for n bodies")
   (deps (linalg autodiff geometry))
 
@@ -11,6 +13,10 @@
    "Differentiable 2D rigid body physics simulation. Supports automatic
     differentiation through physics rollouts for gradient-based optimization
     of trajectories, control policies, and physical parameters.")
+
+  (keywords (physics simulation rigid-body differentiable 2d collision
+             autodiff trajectory optimization control))
+  (aliases (diff-physics diff-sim))
 
   (exports
    (traced-body traced-vec2 traced-integrators)
