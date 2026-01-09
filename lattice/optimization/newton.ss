@@ -247,7 +247,8 @@
                                    d  ; Return current direction
                                    #f)])
                            (if (and _ (<= php 0))
-                               d
+                               ;; On first iteration, d is zero - use steepest descent
+                               (if (= iter 0) neg-grad d)
                                (let* ([alpha (/ rr php)]
                                       [d-new (vec-add-scaled d p alpha)]
                                       [r-new (vec-add-scaled r hp (- alpha))]
