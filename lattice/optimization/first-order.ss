@@ -305,13 +305,13 @@
                   (if reason
                       (make-opt-result x (cs-f-val state) (gradient f x)
                                        (cs-iter state) reason)
-                      ;; Look ahead: compute gradient at x - beta*v
-                      (let* ([x-lookahead (map (lambda (xi vi) (- xi (* beta vi))) x v)]
+                      ;; Look ahead: compute gradient at x - lr*beta*v (lookahead position)
+                      (let* ([x-lookahead (map (lambda (xi vi) (- xi (* lr beta vi))) x v)]
                              [grad (gradient f x-lookahead)]
-                             ;; Update velocity: v = beta*v + lr*grad
-                             [v-new (map (lambda (vi gi) (+ (* beta vi) (* lr gi))) v grad)]
-                             ;; Update position: x = x - v_new
-                             [x-new (map - x v-new)]
+                             ;; Update velocity: v = beta*v + grad (same as momentum)
+                             [v-new (map (lambda (vi gi) (+ (* beta vi) gi)) v grad)]
+                             ;; Update position: x = x - lr*v (same as momentum)
+                             [x-new (map (lambda (xi vi) (- xi (* lr vi))) x v-new)]
                              [f-new (apply f x-new)]
                              [grad-new (gradient f x-new)]
                              [new-state (update-convergence-state state f-new grad-new x x-new)])

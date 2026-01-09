@@ -227,18 +227,29 @@
 ;;; Uses projected gradient and modified Cauchy point.
 
 ;;; lbfgs-b : ((List TracedValue) → TracedValue) × (List Number) × (List Number) × (List Number) × ConvergenceCriteria → OptResult
-;;; L-BFGS with box constraints.
+;;; L-BFGS with box constraints (default history size 10).
 ;;;   f: objective function
 ;;;   x0: initial point
 ;;;   lower: lower bounds (use -inf.0 for unbounded)
 ;;;   upper: upper bounds (use +inf.0 for unbounded)
 ;;;   criteria: convergence criteria
 (define (lbfgs-b f x0 lower upper criteria)
+  (lbfgs-b-full f x0 lower upper 10 criteria))
+
+;;; lbfgs-b-full : ((List TracedValue) → TracedValue) × (List Number) × (List Number) × (List Number) × Nat × ConvergenceCriteria → OptResult
+;;; L-BFGS with box constraints and configurable history size.
+;;;   f: objective function
+;;;   x0: initial point
+;;;   lower: lower bounds (use -inf.0 for unbounded)
+;;;   upper: upper bounds (use +inf.0 for unbounded)
+;;;   m: history size (typically 3-20, default 10)
+;;;   criteria: convergence criteria
+(define (lbfgs-b-full f x0 lower upper m criteria)
   (let* ([init-x (project-box x0 lower upper)]
          [init-grad (gradient f init-x)]
          [init-f (apply f init-x)]
          [init-state (initial-convergence-state init-f init-grad)]
-         [init-history (make-lbfgs-history 10)])
+         [init-history (make-lbfgs-history m)])
         (let loop ([x init-x]
                    [grad init-grad]
                    [history init-history]

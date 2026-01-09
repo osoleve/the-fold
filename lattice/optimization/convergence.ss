@@ -105,8 +105,20 @@
 
 ;;; vec-norm : (List Number) → Number
 ;;; Compute L2 norm of a list-vector.
+;;; Uses scaling by max element to avoid overflow for large values.
 (define (vec-norm v)
-  (sqrt (fold-left + 0 (map (lambda (x) (* x x)) v))))
+  (if (null? v)
+      0
+      (let ([max-abs (fold-left max 0 (map abs v))])
+           (if (< max-abs 1e-300)
+               0  ; All zeros or underflow
+               ;; Scale by max to prevent overflow: ||v|| = max * ||v/max||
+               (let ([scaled-sq-sum (fold-left + 0
+                                               (map (lambda (x)
+                                                            (let ([s (/ x max-abs)])
+                                                                 (* s s)))
+                                                    v))])
+                    (* max-abs (sqrt scaled-sq-sum)))))))
 
 ;;; vec-diff-norm : (List Number) × (List Number) → Number
 ;;; Compute ||v1 - v2||.

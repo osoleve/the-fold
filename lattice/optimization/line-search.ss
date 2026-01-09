@@ -26,6 +26,7 @@
 (define *backtrack-rho* 0.5)   ; Step size reduction factor
 (define *max-ls-iters* 50)     ; Maximum line search iterations
 (define *initial-step* 1.0)    ; Initial step size
+(define *default-alpha-max* 10.0)  ; Default maximum step size
 
 ;;; ============================================================
 ;;; Helper Functions
@@ -125,54 +126,50 @@
 ;;;   direction: search direction
 ;;; Returns: (new-x step-size)
 (define (wolfe-line-search f x grad direction)
-  (wolfe-line-search-full f x grad direction *initial-step* *armijo-c1* *wolfe-c2* *max-ls-iters*))
+  (wolfe-line-search-full f x grad direction *initial-step* *armijo-c1* *wolfe-c2* *default-alpha-max* *max-ls-iters*))
 
-;;; wolfe-line-search-full : ((List TracedValue) → TracedValue) × (List Number) × (List Number) × (List Number) × Number × Number × Number × Nat → (List Number × Number)
+;;; wolfe-line-search-full : ((List TracedValue) → TracedValue) × (List Number) × (List Number) × (List Number) × Number × Number × Number × Number × Nat → (List Number × Number)
 ;;; Full Wolfe line search with all parameters.
-(define (wolfe-line-search-full f x grad direction alpha-init c1 c2 max-iters)
-  (let* ([f-old (apply f (map (lambda (v) v) x))]  ; f at current point
+;;;   alpha-init: initial step size
+;;;   c1: Armijo constant
+;;;   c2: Wolfe curvature constant
+;;;   alpha-max: maximum step size (configurable, default 10.0)
+;;;   max-iters: maximum line search iterations
+(define (wolfe-line-search-full f x grad direction alpha-init c1 c2 alpha-max max-iters)
+  (let* ([f-old (apply f (map (lambda (v) v) x))]
          [grad-dot-d (dot-product grad direction)])
-        ;; If not a descent direction, return 0 step
         (if (>= grad-dot-d 0)
             (list x 0)
-            ;; Bracketing phase: find interval [alpha-lo, alpha-hi]
-            (wolfe-bracket f x grad direction f-old grad-dot-d alpha-init c1 c2 max-iters))))
+            (wolfe-bracket f x grad direction f-old grad-dot-d alpha-init c1 c2 alpha-max max-iters))))
 
-;;; wolfe-bracket : ((List TracedValue) → TracedValue) × ... → (List Number × Number)
+;;; wolfe-bracket : ((List TracedValue) → TracedValue) × (List Number) × (List Number) × (List Number) × Number × Number × Number × Number × Number × Number × Nat → (List Number × Number)
 ;;; Bracketing phase of Wolfe line search.
-(define (wolfe-bracket f x grad direction f-old grad-dot-d alpha-init c1 c2 max-iters)
-  (let* ([alpha-max 10.0])  ; Maximum step size
-        (let loop ([alpha-prev 0]
-                   [f-prev f-old]
-                   [alpha alpha-init]
-                   [iter 0])
-             (if (>= iter max-iters)
-                 ;; Return best found
-                 (list (vec-add-scaled x direction alpha) alpha)
-                 (let* ([x-new (vec-add-scaled x direction alpha)]
-                        [f-new (apply f x-new)])
-                       (cond
-                        ;; Armijo violated or function increased
-                        [(or (> f-new (+ f-old (* c1 alpha grad-dot-d)))
-                             (and (> iter 0) (>= f-new f-prev)))
-                         ;; Zoom between alpha-prev and alpha
-                         (wolfe-zoom f x grad direction f-old grad-dot-d
-                                     alpha-prev alpha c1 c2 (- max-iters iter))]
-                        ;; Check curvature condition
-                        [else
-                         (let* ([grad-new (gradient f x-new)]
-                                [grad-new-dot-d (dot-product grad-new direction)])
-                               (cond
-                                ;; Strong Wolfe satisfied
-                                [(strong-curvature-condition? grad-new-dot-d grad-dot-d c2)
-                                 (list x-new alpha)]
-                                ;; Positive slope means we've passed the minimum
-                                [(>= grad-new-dot-d 0)
-                                 (wolfe-zoom f x grad direction f-old grad-dot-d
-                                             alpha alpha-prev c1 c2 (- max-iters iter))]
-                                ;; Keep expanding
-                                [else
-                                 (loop alpha f-new (min (* 2 alpha) alpha-max) (+ iter 1))]))]))))))
+;;; alpha-max is now a configurable parameter.
+(define (wolfe-bracket f x grad direction f-old grad-dot-d alpha-init c1 c2 alpha-max max-iters)
+  (let loop ([alpha-prev 0]
+             [f-prev f-old]
+             [alpha alpha-init]
+             [iter 0])
+       (if (>= iter max-iters)
+           (list (vec-add-scaled x direction alpha) alpha)
+           (let* ([x-new (vec-add-scaled x direction alpha)]
+                  [f-new (apply f x-new)])
+                 (cond
+                  [(or (> f-new (+ f-old (* c1 alpha grad-dot-d)))
+                       (and (> iter 0) (>= f-new f-prev)))
+                   (wolfe-zoom f x grad direction f-old grad-dot-d
+                               alpha-prev alpha c1 c2 (- max-iters iter))]
+                  [else
+                   (let* ([grad-new (gradient f x-new)]
+                          [grad-new-dot-d (dot-product grad-new direction)])
+                         (cond
+                          [(strong-curvature-condition? grad-new-dot-d grad-dot-d c2)
+                           (list x-new alpha)]
+                          [(>= grad-new-dot-d 0)
+                           (wolfe-zoom f x grad direction f-old grad-dot-d
+                                       alpha alpha-prev c1 c2 (- max-iters iter))]
+                          [else
+                           (loop alpha f-new (min (* 2 alpha) alpha-max) (+ iter 1))]))])))))
 
 ;;; wolfe-zoom : ((List TracedValue) → TracedValue) × ... → (List Number × Number)
 ;;; Zoom phase: bisection search in bracket [alpha-lo, alpha-hi].
@@ -182,29 +179,23 @@
              [iter 0])
        (if (or (>= iter max-iters)
                (< (abs (- hi lo)) 1e-10))
-           ;; Return midpoint
            (let* ([alpha (/ (+ lo hi) 2)]
                   [x-new (vec-add-scaled x direction alpha)])
                  (list x-new alpha))
-           ;; Bisect
            (let* ([alpha (/ (+ lo hi) 2)]
                   [x-new (vec-add-scaled x direction alpha)]
                   [f-new (apply f x-new)]
                   [f-lo (apply f (vec-add-scaled x direction lo))])
                  (cond
-                  ;; Armijo violated or f >= f(lo)
                   [(or (> f-new (+ f-old (* c1 alpha grad-dot-d)))
                        (>= f-new f-lo))
                    (loop lo alpha (+ iter 1))]
-                  ;; Check curvature
                   [else
                    (let* ([grad-new (gradient f x-new)]
                           [grad-new-dot-d (dot-product grad-new direction)])
                          (cond
-                          ;; Strong Wolfe satisfied
                           [(strong-curvature-condition? grad-new-dot-d grad-dot-d c2)
                            (list x-new alpha)]
-                          ;; Adjust bracket
                           [(>= (* grad-new-dot-d (- hi lo)) 0)
                            (loop alpha lo (+ iter 1))]
                           [else
@@ -229,7 +220,6 @@
   (let* ([grad-dot-d (dot-product grad direction)]
          [d-vec (list->vector direction)]
          [n (length direction)]
-         ;; Compute direction^T * H * direction
          [hd (let loop ([i 0] [result '()])
                   (if (= i n)
                       (reverse result)
@@ -241,9 +231,8 @@
                                                                (vector-ref d-vec j))))))])
                            (loop (+ i 1) (cons row-sum result)))))]
          [d-hessian-d (dot-product direction hd)])
-        ;; Avoid division by zero
         (if (< (abs d-hessian-d) 1e-15)
-            1.0  ; Default step size
+            1.0
             (/ (- grad-dot-d) d-hessian-d))))
 
 ;;; ============================================================
