@@ -398,7 +398,19 @@ pub extern "C" fn fold_bvh_closest_point(
     fuel_in: u64,
     out: *mut ClosestPointResult,
 ) {
-    if handle.is_null() || out.is_null() {
+    // Safety: Initialize output on null pointer to avoid reading uninitialized memory
+    if out.is_null() {
+        return;
+    }
+    if handle.is_null() {
+        unsafe {
+            (*out).status = 0; // miss
+            (*out).px = 0.0;
+            (*out).py = 0.0;
+            (*out).pz = 0.0;
+            (*out).distance = 0.0;
+            (*out).fuel_out = 0;
+        }
         return;
     }
 
@@ -441,7 +453,19 @@ pub extern "C" fn fold_bvh_intersect_ray(
     fuel_in: u64,
     out: *mut RayIntersectResult,
 ) {
-    if handle.is_null() || out.is_null() {
+    // Safety: Initialize output on null pointer to avoid reading uninitialized memory
+    if out.is_null() {
+        return;
+    }
+    if handle.is_null() {
+        unsafe {
+            (*out).status = 0; // miss
+            (*out).t = 0.0;
+            (*out).nx = 0.0;
+            (*out).ny = 0.0;
+            (*out).nz = 0.0;
+            (*out).fuel_out = 0;
+        }
         return;
     }
 
