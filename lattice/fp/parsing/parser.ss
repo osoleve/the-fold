@@ -990,6 +990,184 @@
                      result)))))
 
 ;;; ============================================================
+;;; Indentation-Sensitive Parsing
+;;; ============================================================
+;;;
+;;; Combinators for Python/Haskell-style indentation-sensitive parsing.
+;;; These work with the existing State structure using pos-col.
+
+;;; get-column : Parser Nat
+;;; Get the current column number (1-based).
+(define get-column
+  (make-parser
+   (lambda (state)
+           (right (cons (pos-col (state-pos state)) state)))))
+
+;;; get-line : Parser Nat
+;;; Get the current line number (1-based).
+(define get-line
+  (make-parser
+   (lambda (state)
+           (right (cons (pos-line (state-pos state)) state)))))
+
+;;; at-column : Nat × (Parser α) → (Parser α)
+;;; Run parser only if at exactly column n.
+(define (at-column n p)
+  (parser-bind get-column
+               (lambda (col)
+                       (if (= col n)
+                           p
+                           (parser-fail
+                            (string-append "expected column "
+                                           (number->string n)
+                                           ", at column "
+                                           (number->string col)))))))
+
+;;; column-gt : Nat × (Parser α) → (Parser α)
+;;; Run parser only if current column > reference.
+(define (column-gt ref p)
+  (parser-bind get-column
+               (lambda (col)
+                       (if (> col ref)
+                           p
+                           (parser-fail
+                            (string-append "expected column > "
+                                           (number->string ref)
+                                           ", at column "
+                                           (number->string col)))))))
+
+;;; column-ge : Nat × (Parser α) → (Parser α)
+;;; Run parser only if current column >= reference.
+(define (column-ge ref p)
+  (parser-bind get-column
+               (lambda (col)
+                       (if (>= col ref)
+                           p
+                           (parser-fail
+                            (string-append "expected column >= "
+                                           (number->string ref)
+                                           ", at column "
+                                           (number->string col)))))))
+
+;;; column-eq : Nat × (Parser α) → (Parser α)
+;;; Run parser only if current column = reference.
+(define (column-eq ref p)
+  (at-column ref p))
+
+;;; same-line : (Parser α) → (Parser α)
+;;; Run parser, failing if it crosses a newline.
+(define (same-line p)
+  (make-parser
+   (lambda (state)
+           (let* ([start-line (pos-line (state-pos state))]
+                  [result (run-parser p state)])
+                 (if (right? result)
+                     (let* ([pair (from-right result)]
+                            [end-line (pos-line (state-pos (cdr pair)))])
+                           (if (= start-line end-line)
+                               result
+                               (left (make-parse-error
+                                      (state-pos state)
+                                      "unexpected newline in same-line parser"
+                                      '()))))
+                     result)))))
+
+;;; newline-parser : Parser Unit
+;;; Parse a newline character.
+(define newline-parser
+  (parser-map (lambda (_) '())
+              (char #\newline)))
+
+;;; indent-spaces : Parser Nat
+;;; Parse zero or more spaces/tabs at start of content, return column after.
+;;; Use this after a newline to get the indentation level.
+(define indent-spaces
+  (parser-then (many (one-of " \t"))
+               get-column))
+
+;;; newline-indent : Parser Nat
+;;; Parse newline followed by indentation, return the new column.
+(define newline-indent
+  (parser-then newline-parser indent-spaces))
+
+;;; blank-line : Parser Unit
+;;; Parse a blank line (optional whitespace followed by newline).
+(define blank-line
+  (parser-map (lambda (_) '())
+              (parser-then (many (one-of " \t"))
+                           newline-parser)))
+
+;;; skip-blank-lines : Parser Unit
+;;; Skip zero or more blank lines.
+(define skip-blank-lines
+  (parser-map (lambda (_) '())
+              (many blank-line)))
+
+;;; indented : (Parser α) → (Parser α)
+;;; Run parser at current position; the parsed content must start at
+;;; a column greater than 0 (i.e., be indented from column 1).
+(define (indented p)
+  (column-gt 1 p))
+
+;;; indented-from : Nat × (Parser α) → (Parser α)
+;;; Run parser requiring column > ref.
+(define (indented-from ref p)
+  (column-gt ref p))
+
+;;; aligned : Nat × (Parser α) → (Parser α)
+;;; Run parser requiring column = ref.
+(define (aligned ref p)
+  (at-column ref p))
+
+;;; indented-block : (Parser α) → (Parser (List α))
+;;; Parse an indented block: one or more items at same or greater indentation.
+;;; The first item establishes the reference column. Subsequent items must be
+;;; at the same column or greater (for continuation lines).
+(define (indented-block item-parser)
+  (parser-bind get-column
+               (lambda (ref-col)
+                       (parser-bind item-parser
+                                    (lambda (first)
+                                            (parser-bind
+                                             (many (parser-bind newline-indent
+                                                                (lambda (col)
+                                                                        (if (>= col ref-col)
+                                                                            item-parser
+                                                                            (parser-fail "dedent")))))
+                                             (lambda (rest)
+                                                     (parser-pure (cons first rest)))))))))
+
+;;; indented-block-strict : (Parser α) → (Parser (List α))
+;;; Parse a block where items must be at exactly the same column.
+;;; More strict than indented-block.
+(define (indented-block-strict item-parser)
+  (parser-bind get-column
+               (lambda (ref-col)
+                       (parser-bind item-parser
+                                    (lambda (first)
+                                            (parser-bind
+                                             (many (parser-bind newline-indent
+                                                                (lambda (col)
+                                                                        (if (= col ref-col)
+                                                                            item-parser
+                                                                            (parser-fail "column mismatch")))))
+                                             (lambda (rest)
+                                                     (parser-pure (cons first rest)))))))))
+
+;;; next-line : (Parser α) → (Parser α)
+;;; Expect newline, skip blank lines, then parse at next non-blank line.
+(define (next-line p)
+  (parser-then newline-parser
+               (parser-then skip-blank-lines
+                            (parser-then indent-spaces p))))
+
+;;; offside : Nat × (Parser α) → (Parser α)
+;;; Run parser, but fail if it ever reaches a column <= ref (offside rule).
+;;; This is a simplified version - just checks starting column.
+(define (offside ref p)
+  (column-gt ref p))
+
+;;; ============================================================
 ;;; Packrat Parsing (Memoization)
 ;;; ============================================================
 ;;;

@@ -481,6 +481,166 @@
                          (assert-true (just? lookup-0))))))
 
 ;;; ============================================================
+;;; Indentation-Sensitive Parsing Tests
+;;; ============================================================
+
+(test-group indentation-tests
+            ;; Test get-column
+            (define-test get-column-at-start-test
+              (let ([result (parse get-column "hello")])
+                   (assert-true (right? result))
+                   (assert-equal 1 (from-right result))))
+            
+            ;; Test get-line
+            (define-test get-line-at-start-test
+              (let ([result (parse get-line "hello")])
+                   (assert-true (right? result))
+                   (assert-equal 1 (from-right result))))
+            
+            ;; Test at-column - success
+            (define-test at-column-success-test
+              (let ([p (at-column 1 (char (integer->char 97)))])
+                   (assert-parses p "a" (integer->char 97))))
+            
+            ;; Test at-column - failure (wrong column)
+            (define-test at-column-failure-test
+              (let* ([p1 (parser-then (many (char (integer->char 32)))
+                                      (at-column 1 (char (integer->char 97))))]
+                     [result (parse p1 "  a")])  ; 'a' at column 3, not 1
+                    (assert-true (left? result))))
+            
+            ;; Test column-gt - success
+            (define-test column-gt-success-test
+              (let* ([p (parser-then (many (char (integer->char 32)))
+                                     (column-gt 2 (char (integer->char 97))))]
+                     [result (parse p "   a")])  ; 'a' at column 4 > 2
+                    (assert-true (right? result))))
+            
+            ;; Test column-gt - failure
+            (define-test column-gt-failure-test
+              (let* ([p (column-gt 2 (char (integer->char 97)))]
+                     [result (parse p "a")])  ; 'a' at column 1, not > 2
+                    (assert-true (left? result))))
+            
+            ;; Test column-ge - success at exact column
+            (define-test column-ge-exact-test
+              (let* ([p (parser-then (char (integer->char 32))
+                                     (column-ge 2 (char (integer->char 97))))]
+                     [result (parse p " a")])  ; 'a' at column 2 = 2
+                    (assert-true (right? result))))
+            
+            ;; Test same-line - success
+            (define-test same-line-success-test
+              (let ([p (same-line (string-parser "hello"))])
+                   (assert-parses p "hello" "hello")))
+            
+            ;; Test same-line - failure when crossing newline
+            (define-test same-line-failure-test
+              (let* ([p (same-line (parser-then (string-parser "hel")
+                                                (parser-then (char (integer->char 10))
+                                                             (string-parser "lo"))))]
+                     [result (parse p "hel\nlo")])
+                    (assert-true (left? result))))
+            
+            ;; Test newline-parser
+            (define-test newline-parser-test
+              (let ([result (parse newline-parser "\n")])
+                   (assert-true (right? result))))
+            
+            ;; Test indent-spaces returns correct column
+            (define-test indent-spaces-test
+              (let ([result (parse indent-spaces "  hello")])
+                   (assert-true (right? result))
+                   (assert-equal 3 (from-right result))))  ; After 2 spaces, at col 3
+            
+            ;; Test newline-indent
+            (define-test newline-indent-test
+              (let* ([p (parser-then (string-parser "x") newline-indent)]
+                     [result (parse p "x\n  y")])  ; After newline and 2 spaces
+                    (assert-true (right? result))
+                    (assert-equal 3 (from-right result))))
+            
+            ;; Test blank-line
+            (define-test blank-line-test
+              (let ([result (parse blank-line "   \n")])
+                   (assert-true (right? result))))
+            
+            ;; Test blank-line fails on non-blank
+            (define-test blank-line-non-blank-test
+              (let ([result (parse blank-line "   x\n")])
+                   (assert-true (left? result))))
+            
+            ;; Test indented (column > 1)
+            (define-test indented-test
+              (let* ([p (parser-then (char (integer->char 32))
+                                     (indented (char (integer->char 97))))]
+                     [result (parse p " a")])  ; 'a' at column 2 > 1
+                    (assert-true (right? result))))
+            
+            ;; Test indented fails at column 1
+            (define-test indented-fail-test
+              (let ([result (parse (indented (char (integer->char 97))) "a")])
+                   (assert-true (left? result))))
+            
+            ;; Test aligned (exact column match)
+            (define-test aligned-test
+              (let* ([p (parser-then (many (char (integer->char 32)))
+                                     (aligned 3 (char (integer->char 97))))]
+                     [result (parse p "  a")])  ; 'a' at column 3
+                    (assert-true (right? result))))
+            
+            ;; Test indented-block parses multiple items
+            (define-test indented-block-basic-test
+              (let* ([line-p (some letter)]  ; One or more letters
+                     [block-p (indented-block line-p)]
+                     ;; Parse starting at column 3, with items at column 3
+                     [wrapped (parser-then (string-parser "  ")
+                                           block-p)]
+                     [result (parse wrapped "  foo\n  bar\n  baz")])
+                    (assert-true (right? result))
+                    (let ([items (from-right result)])
+                         (assert-equal 3 (length items)))))
+            
+            ;; Test indented-block stops on dedent
+            (define-test indented-block-dedent-test
+              (let* ([line-p (some letter)]
+                     [block-p (indented-block line-p)]
+                     [wrapped (parser-then (string-parser "  ")
+                                           block-p)]
+                     [result (parse wrapped "  foo\n  bar\nx")])  ; 'x' dedented
+                    (assert-true (right? result))
+                    (let ([items (from-right result)])
+                         (assert-equal 2 (length items)))))  ; Only foo, bar
+            
+            ;; Test indented-block-strict fails on different indentation
+            (define-test indented-block-strict-test
+              (let* ([line-p (some letter)]
+                     [block-p (indented-block-strict line-p)]
+                     [wrapped (parser-then (string-parser "  ")
+                                           block-p)]
+                     ;; foo at col 3, bar at col 4 (different)
+                     [result (parse wrapped "  foo\n   bar")])
+                    ;; Should only parse foo since bar is at different column
+                    (assert-true (right? result))
+                    (let ([items (from-right result)])
+                         (assert-equal 1 (length items)))))
+            
+            ;; Test next-line
+            (define-test next-line-test
+              (let* ([p (parser-then (string-parser "first")
+                                     (next-line (string-parser "second")))]
+                     [result (parse p "first\n  second")])
+                    (assert-true (right? result))
+                    (assert-equal "second" (from-right result))))
+            
+            ;; Test offside (alias for column-gt)
+            (define-test offside-test
+              (let* ([p (parser-then (many (char (integer->char 32)))
+                                     (offside 1 (char (integer->char 97))))]
+                     [result (parse p "  a")])  ; col 3 > 1
+                    (assert-true (right? result)))))
+
+;;; ============================================================
 ;;; Summary
 ;;; ============================================================
 
