@@ -103,24 +103,37 @@
                                   0.0 (exact->inexact sy)
                                   0.0 0.0))
          
+         ;;; clamp-skew-angle : Real → Real
+         ;;; Clamp skew angle to avoid tan() singularities at ±90°.
+         ;;; Angles within 0.01 radians of ±π/2 are clamped.
+         (define (clamp-skew-angle angle)
+           (let* ([pi/2 1.5707963267948966]
+                  [max-angle (- pi/2 0.01)]
+                  [min-angle (- 0 max-angle)])
+                 (max min-angle (min max-angle angle))))
+         
          ;;; matrix-skew-x : Real → Matrix
          ;;; Create horizontal skew matrix (angle in radians).
          ;;; Skews along x-axis: x' = x + y*tan(angle), y' = y
+         ;;; Note: Angles near ±90° are clamped to avoid singularities.
          (define (matrix-skew-x angle)
-           (make-transform-matrix 1.0 (tan angle)
+           (make-transform-matrix 1.0 (tan (clamp-skew-angle angle))
                                   0.0 1.0
                                   0.0 0.0))
          
          ;;; matrix-skew-y : Real → Matrix
          ;;; Create vertical skew matrix (angle in radians).
          ;;; Skews along y-axis: x' = x, y' = y + x*tan(angle)
+         ;;; Note: Angles near ±90° are clamped to avoid singularities.
          (define (matrix-skew-y angle)
            (make-transform-matrix 1.0 0.0
-                                  (tan angle) 1.0
+                                  (tan (clamp-skew-angle angle)) 1.0
                                   0.0 0.0))
          
          ;;; matrix-skew : Real × Real → Matrix
          ;;; Create combined skew matrix (angles in radians).
+         ;;; Composition order: Y-skew applied first, then X-skew.
+         ;;; This produces an area-preserving (det=1) transform.
          (define (matrix-skew angle-x angle-y)
            (matrix-multiply (matrix-skew-x angle-x)
                             (matrix-skew-y angle-y)))

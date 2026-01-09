@@ -550,14 +550,17 @@
                    (canvas-set! c x1 y1 arrow-ch)
                    c)]))
 
-         ;;; edge : Canvas × Point × Point × Symbol → Canvas
+         ;;; edge : Canvas × Point × Point × Symbol × [Char] × [Char] → Canvas
          ;;; Draw a smart edge between two points with automatic routing.
          ;;; Style: 'straight, 'horizontal-first, 'vertical-first, 'orthogonal
+         ;;; Optional h-char and v-char specify horizontal and vertical line chars.
          (define edge
            (case-lambda
             [(canvas start end)
-             (edge canvas start end 'straight)]
+             (edge canvas start end 'straight #\─ #\│)]
             [(canvas start end style)
+             (edge canvas start end style #\─ #\│)]
+            [(canvas start end style h-char v-char)
              (let ([x0 (point-x start)]
                    [y0 (point-y start)]
                    [x1 (point-x end)]
@@ -569,47 +572,62 @@
                         [(horizontal-first)
                          ;; Go horizontal then vertical (L-shaped)
                          (let* ([mid (point x1 y0)]
-                                [c (connect canvas start mid #\─)])
-                               (connect c mid end #\│))]
+                                [c (connect canvas start mid h-char)])
+                               (connect c mid end v-char))]
                         [(vertical-first)
                          ;; Go vertical then horizontal (L-shaped)
                          (let* ([mid (point x0 y1)]
-                                [c (connect canvas start mid #\│)])
-                               (connect c mid end #\─))]
+                                [c (connect canvas start mid v-char)])
+                               (connect c mid end h-char))]
                         [(orthogonal)
                          ;; Go halfway horizontal, then vertical, then horizontal
                          (let* ([mid-x (quotient (+ x0 x1) 2)]
                                 [p1 (point mid-x y0)]
                                 [p2 (point mid-x y1)]
-                                [c (connect canvas start p1 #\─)]
-                                [c (connect c p1 p2 #\│)])
-                               (connect c p2 end #\─))]
+                                [c (connect canvas start p1 h-char)]
+                                [c (connect c p1 p2 v-char)])
+                               (connect c p2 end h-char))]
                         [else
                          (connect canvas start end #\·)]))]))
 
+         ;;; get-arrow-char-for-direction : Symbol × Nat × Nat × Nat × Nat → Char
+         ;;; Determine arrow character based on edge style and direction.
+         ;;; For rectilinear edges, use the direction of the LAST segment.
+         (define (get-arrow-char-for-direction style x0 y0 x1 y1)
+           (let ([dx (- x1 x0)]
+                 [dy (- y1 y0)])
+                (case style
+                      [(straight)
+                       ;; Use global direction
+                       (cond
+                        [(and (> (abs dx) (abs dy)) (> dx 0)) #\>]
+                        [(and (> (abs dx) (abs dy)) (< dx 0)) #\<]
+                        [(and (<= (abs dx) (abs dy)) (> dy 0)) #\v]
+                        [(and (<= (abs dx) (abs dy)) (< dy 0)) #\^]
+                        [else #\>])]
+                      [(horizontal-first)
+                       ;; Last segment is vertical
+                       (if (> dy 0) #\v #\^)]
+                      [(vertical-first orthogonal)
+                       ;; Last segment is horizontal
+                       (if (> dx 0) #\> #\<)]
+                      [else #\>])))
+
          ;;; connect-arrow : Canvas × Point × Point × Symbol → Canvas
          ;;; Draw an edge with an arrowhead at the end.
+         ;;; Arrow direction is based on the LAST segment of the edge.
          (define connect-arrow
            (case-lambda
             [(canvas start end)
              (connect-arrow canvas start end 'straight)]
             [(canvas start end style)
-             (let ([c (edge canvas start end style)])
-                  ;; Add arrowhead
-                  (let* ([x1 (point-x end)]
-                         [y1 (point-y end)]
-                         [x0 (point-x start)]
-                         [y0 (point-y start)]
-                         [dx (- x1 x0)]
-                         [dy (- y1 y0)]
-                         [arrow-ch
-                          (cond
-                           [(and (> (abs dx) (abs dy)) (> dx 0)) #\>]
-                           [(and (> (abs dx) (abs dy)) (< dx 0)) #\<]
-                           [(and (<= (abs dx) (abs dy)) (> dy 0)) #\v]
-                           [(and (<= (abs dx) (abs dy)) (< dy 0)) #\^]
-                           [else #\>])])
-                        (canvas-set! c x1 y1 arrow-ch)
-                        c))]))
+             (let* ([c (edge canvas start end style)]
+                    [x1 (point-x end)]
+                    [y1 (point-y end)]
+                    [x0 (point-x start)]
+                    [y0 (point-y start)]
+                    [arrow-ch (get-arrow-char-for-direction style x0 y0 x1 y1)])
+                   (canvas-set! c x1 y1 arrow-ch)
+                   c)]))
 
          ) ; end library

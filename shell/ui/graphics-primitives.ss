@@ -398,11 +398,14 @@
 
          ;;; pattern-ref : Pattern × Nat × Nat → Char
          ;;; Get character at (x, y) in pattern, with wrapping.
+         ;;; Returns space for empty patterns.
          (define (pattern-ref pattern x y)
            (let* ([h (pattern-height pattern)]
-                  [w (pattern-width pattern)]
-                  [row (list-ref pattern (modulo y h))])
-                 (list-ref row (modulo x w))))
+                  [w (pattern-width pattern)])
+                 (if (or (<= h 0) (<= w 0))
+                     #\space
+                     (let ([row (list-ref pattern (modulo y h))])
+                          (list-ref row (modulo x w))))))
 
          ;;; pattern-fill : Canvas × Rect × Pattern → Canvas
          ;;; Fill a rectangular region with a tiled pattern.
@@ -424,6 +427,8 @@
 
          ;;; pattern-fill-circle : Canvas × Point × Nat × Pattern → Canvas
          ;;; Fill a circular region with a tiled pattern.
+         ;;; Pattern coordinates are local to the circle's bounding box for
+         ;;; consistent alignment with pattern-fill.
          (define (pattern-fill-circle canvas center radius pattern)
            (let ([cx (point-x center)]
                  [cy (point-y center)]
@@ -436,7 +441,8 @@
                                   (loop-y (+ y 1))
                                   (let ([dist2 (+ (* x x) (* y y))])
                                        (when (<= dist2 r2)
-                                             (let ([ch (pattern-ref pattern (+ cx x) (+ cy y))])
+                                             ;; Use local coords (offset from top-left of bounding box)
+                                             (let ([ch (pattern-ref pattern (+ x radius) (+ y radius))])
                                                   (unless (char=? ch #\space)
                                                           (canvas-set! canvas (+ cx x) (+ cy y) ch))))
                                        (loop-x (+ x 1)))))))))
