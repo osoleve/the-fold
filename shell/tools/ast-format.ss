@@ -8,9 +8,15 @@
 ;;; Features:
 ;;;   - AST-aware (not line-by-line)
 ;;;   - Style profiles (compact, verbose, diff-friendly)
-;;;   - Comment preservation
-;;;   - Refactor-safe reflow
+;;;   - Quote shorthand preservation ('x, `x, ,x, ,@x)
+;;;   - Dotted pair support (a . b)
 ;;;   - Configurable via style records
+;;;
+;;; Limitations:
+;;;   - Comment preservation is LIMITED: only file header comments are
+;;;     preserved. Inline comments and comments between forms are lost
+;;;     because Scheme's `read` discards them. Full comment preservation
+;;;     would require a CST parser.
 ;;;
 ;;; Operations:
 ;;;   (ast-format-file path [profile]) — Format file
@@ -147,20 +153,60 @@
        (sep (map (lambda (x) (sexp->doc* x profile))
                  (vector->list vec))))))
 
+;;; Check if lst is a proper list (not dotted)
+(define (proper-list? lst)
+  (or (null? lst)
+      (and (pair? lst)
+           (proper-list? (cdr lst)))))
+
+;;; Quote shorthands
+(define *quote-shorthands*
+  '((quote . "'")
+    (quasiquote . "`")
+    (unquote . ",")
+    (unquote-splicing . ",@")))
+
 ;;; Convert list to Doc (normal mode)
 (define (list->doc lst profile)
-  (if (null? lst)
-      (text "()")
-      (let* ([head (car lst)]
-             [tail (cdr lst)]
-             [is-special? (and (symbol? head)
-                               (assq head *special-form-rules*))]
-             [rule (if is-special?
-                       (cdr (assq head *special-form-rules*))
-                       '(1 auto))]
-             [body-start (car rule)]
-             [break-style (cadr rule)])
-            (format-form head tail body-start break-style profile))))
+  (cond
+   [(null? lst) (text "()")]
+   ;; Handle dotted pairs: (a . b)
+   [(not (proper-list? lst))
+    (dotted-pair->doc lst profile)]
+   ;; Handle quote shorthands: 'x -> (quote x)
+   [(and (pair? lst)
+         (= (length lst) 2)
+         (symbol? (car lst))
+         (assq (car lst) *quote-shorthands*))
+    (let ([shorthand (cdr (assq (car lst) *quote-shorthands*))])
+         (<> (text shorthand) (sexp->doc* (cadr lst) profile)))]
+   ;; Normal list handling
+   [else
+    (let* ([head (car lst)]
+           [tail (cdr lst)]
+           [is-special? (and (symbol? head)
+                             (assq head *special-form-rules*))]
+           [rule (if is-special?
+                     (cdr (assq head *special-form-rules*))
+                     '(1 auto))]
+           [body-start (car rule)]
+           [break-style (cadr rule)])
+          (format-form head tail body-start break-style profile))]))
+
+;;; Convert dotted pair to Doc: (a b . c) -> "(a b . c)"
+(define (dotted-pair->doc lst profile)
+  (let loop ([lst lst] [acc '()])
+       (cond
+        [(null? lst)
+         ;; Proper list - shouldn't happen but handle gracefully
+         (parens (hsep (reverse acc)))]
+        [(not (pair? lst))
+         ;; Reached the dotted tail
+         (parens
+          (hsep (append (reverse acc)
+                        (list (text ".") (sexp->doc* lst profile)))))]
+        [else
+         (loop (cdr lst) (cons (sexp->doc* (car lst) profile) acc))])))
 
 ;;; Format a form with its rule
 (define (format-form head tail body-start break-style profile)
@@ -206,17 +252,29 @@
 
 ;;; Convert list to Doc (diff-friendly mode - one per line)
 (define (list->doc-diff-friendly lst profile)
-  (if (null? lst)
-      (text "()")
-      (let* ([docs (map (lambda (x) (sexp->doc* x profile)) lst)]
-             [indent-amt (style-indent profile)])
-            ;; Simple forms on one line, complex on multiple
-            (if (and (style-collapse-simple profile)
-                     (simple-form? lst))
-                (parens (hsep docs))
-                (parens
-                 (nest indent-amt
-                       (vcat docs)))))))
+  (cond
+   [(null? lst) (text "()")]
+   ;; Handle dotted pairs
+   [(not (proper-list? lst))
+    (dotted-pair->doc lst profile)]
+   ;; Handle quote shorthands
+   [(and (pair? lst)
+         (= (length lst) 2)
+         (symbol? (car lst))
+         (assq (car lst) *quote-shorthands*))
+    (let ([shorthand (cdr (assq (car lst) *quote-shorthands*))])
+         (<> (text shorthand) (sexp->doc* (cadr lst) profile)))]
+   ;; Normal list handling
+   [else
+    (let* ([docs (map (lambda (x) (sexp->doc* x profile)) lst)]
+           [indent-amt (style-indent profile)])
+          ;; Simple forms on one line, complex on multiple
+          (if (and (style-collapse-simple profile)
+                   (simple-form? lst))
+              (parens (hsep docs))
+              (parens
+               (nest indent-amt
+                     (vcat docs)))))]))
 
 ;;; Check if form is simple enough for one line
 (define (simple-form? sexp)

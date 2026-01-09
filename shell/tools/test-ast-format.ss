@@ -121,7 +121,55 @@
               (assert-true (simple-form? '()))
               (assert-true (simple-form? 'x))
               ;; Complex forms (too many elements)
-              (assert-false (simple-form? '(a b c d e f g h i j)))))
+              (assert-false (simple-form? '(a b c d e f g h i j))))
+            
+            ;; Edge case tests (from Gemini QA review)
+            (define-test dotted-pair-simple
+              ;; (a . b) should format without crashing
+              (let ([result (ast-format-expr '(a . b))])
+                   (assert-true (string? result))
+                   (assert-true (string-contains? result "."))))
+            
+            (define-test dotted-pair-multiple
+              ;; (a b . c) should format correctly
+              (let ([result (ast-format-expr '(a b . c))])
+                   (assert-true (string? result))
+                   (assert-true (string-contains? result "."))))
+            
+            (define-test quote-shorthand
+              ;; 'x should remain 'x, not (quote x)
+              (let ([result (ast-format-expr ''x)])
+                   (assert-equal "'x" result)))
+            
+            (define-test quasiquote-shorthand
+              ;; `x should remain `x
+              (let ([result (ast-format-expr '`x)])
+                   (assert-equal "`x" result)))
+            
+            (define-test unquote-shorthand
+              ;; ,x should remain ,x
+              (let ([result (ast-format-expr ',x)])
+                   (assert-equal ",x" result)))
+            
+            (define-test unquote-splicing-shorthand
+              ;; ,@x should remain ,@x
+              (let ([result (ast-format-expr ',@x)])
+                   (assert-equal ",@x" result)))
+            
+            (define-test nested-quote
+              ;; '(a b c) should use shorthand
+              (let ([result (ast-format-expr ''(a b c))])
+                   (assert-true (string? result))
+                   (assert-true (> (string-length result) 0))
+                   ;; Should start with '
+                   (assert-equal #\' (string-ref result 0))))
+            
+            (define-test proper-list-check
+              (assert-true (proper-list? '()))
+              (assert-true (proper-list? '(a)))
+              (assert-true (proper-list? '(a b c)))
+              (assert-false (proper-list? '(a . b)))
+              (assert-false (proper-list? '(a b . c)))))
 
 (display "\n=== AST Format Tests Complete ===\n")
 (display (format "Passed: ~a  Failed: ~a  Total: ~a\n"
