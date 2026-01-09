@@ -40,9 +40,9 @@
    (run "scheme --script examples/scientific-computing/curve-fitting.ss")))
 
  (autodiff-modules-used
-  ("core/autodiff/reverse-diff.ss" . "Reverse-mode (backprop) gradients")
-  ("core/autodiff/higher-order-diff.ss" . "Hessians, jets, higher derivatives")
-  ("core/autodiff/comp-graph.ss" . "Dual numbers, forward mode"))
+  ("lattice/autodiff/reverse-diff.ss" . "Reverse-mode (backprop) gradients")
+  ("lattice/autodiff/higher-order-diff.ss" . "Hessians, jets, higher derivatives")
+  ("lattice/autodiff/comp-graph.ss" . "Dual numbers, forward mode"))
 
  (key-concepts
   ((gradient "Vector of partial derivatives, points uphill")
@@ -52,4 +52,4 @@
    (forward-mode "Efficient for few inputs, many outputs")))
 
  (see-also
-  ("core/autodiff/test-*.ss" . "Test files for more usage examples")))
+  ("lattice/autodiff/test-*.ss" . "Test files for more usage examples")))

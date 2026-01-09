@@ -14,7 +14,7 @@
 ;;;
 ;;; Run with: scheme --script examples/scientific-computing/gradient-descent.ss
 
-(load "core/autodiff/reverse-diff.ss")
+(load "lattice/autodiff/reverse-diff.ss")
 
 ;;; ============================================================
 ;;; The Rosenbrock Function

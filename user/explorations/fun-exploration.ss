@@ -1,7 +1,7 @@
 ;;; fun-exploration.ss - Let's have some fun with the new tools!
 
 (load "shell/repl.ss")
-(load "core/data/graph-algorithms.ss")
+(load "lattice/data/graph-algorithms.ss")
 (load "shell/graph-export.ss")
 
 (printf "\n")

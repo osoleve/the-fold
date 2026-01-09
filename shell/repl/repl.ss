@@ -48,13 +48,13 @@
 
 ;; Metadata tagging system
 (load "core/lang/parse.ss")
-(load "core/query/patterns-parse.ss")  ; Tag extraction (extract-tags, has-tag?, get-tag)
-(load "core/query/query.ss")
+(load "lattice/query/patterns-parse.ss")  ; Tag extraction (extract-tags, has-tag?, get-tag)
+(load "lattice/query/query.ss")
 
 ;; Standard library: Store API and Collection Utilities
 (load "shell/store-api.ss")
-(load "core/data/collection-utils.ss")
-(load "core/query/query-dsl.ss")  ; Query DSL (depends on store-api)
+(load "lattice/data/collection-utils.ss")
+(load "lattice/query/query-dsl.ss")  ; Query DSL (depends on store-api)
 
 ;; Command system
 (load "shell/commands.ss")

@@ -8,11 +8,11 @@
 ;;; This is Shell code: performs I/O, manages lifecycle.
 
 (load "core/base/prelude.ss")
-(load "core/lsp/json.ss")
-(load "core/lsp/protocol.ss")
-(load "core/lsp/documents.ss")
-(load "core/lsp/diagnostics.ss")
-(load "core/lsp/capabilities.ss")
+(load "shell/lsp/json.ss")
+(load "shell/lsp/protocol.ss")
+(load "shell/lsp/documents.ss")
+(load "shell/lsp/diagnostics.ss")
+(load "shell/lsp/capabilities.ss")
 (load "shell/lsp/lsp-transport.ss")
 
 ;;; ============================================================

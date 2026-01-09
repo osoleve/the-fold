@@ -6,7 +6,7 @@
 ;;; Each stage auto-advances on success.
 ;;; Uses FSM pattern for complex state transitions.
 
-(load "core/pipeline/dsl.ss")
+(load "lattice/pipeline/dsl.ss")
 
 ;;; ============================================================
 ;;; Pipeline Configuration

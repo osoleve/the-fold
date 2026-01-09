@@ -19,9 +19,9 @@
 ;;;   - shell/pipeline/effects/*.ss (effect handlers)
 ;;;   - shell/pipeline/checkpoint.ss
 
-(load "core/pipeline/stage.ss")
-(load "core/pipeline/effects.ss")
-(load "core/pipeline/context.ss")
+(load "lattice/pipeline/stage.ss")
+(load "lattice/pipeline/effects.ss")
+(load "lattice/pipeline/context.ss")
 
 ;;; Load effect handlers
 (load "shell/pipeline/effects/llm.ss")

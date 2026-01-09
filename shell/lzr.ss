@@ -30,15 +30,15 @@
 ;;; Note: fusion-detect.ss and parallel-detect.ss both define `detect-at-depth`
 ;;; so we capture the fusion detection function before loading parallel-detect.
 
-(load "core/fp/analysis/fusion-detect.ss")
+(load "lattice/fp/analysis/fusion-detect.ss")
 
 ;;; Save fusion detection function before it gets shadowed by parallel-detect
 (define *lzr-fusion-detect* detect-fusion-static)
 
-(load "core/fp/analysis/parallel-detect.ss")
-(load "core/fp/analysis/cost-analysis.ss")
-(load "core/fp/rewrite/fusion-rules.ss")
-(load "core/fp/rewrite/verify.ss")
+(load "lattice/fp/analysis/parallel-detect.ss")
+(load "lattice/fp/analysis/cost-analysis.ss")
+(load "lattice/fp/rewrite/fusion-rules.ss")
+(load "lattice/fp/rewrite/verify.ss")
 
 ;;; ============================================================
 ;;; Fusion Analysis Interface

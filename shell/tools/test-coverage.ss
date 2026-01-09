@@ -89,7 +89,7 @@
               (path-basename "shell/tools/test.ss")
               "test.ss")
 (assert-equal "deep path"
-              (path-basename "core/fp/symbolic/laws.ss")
+              (path-basename "lattice/fp/symbolic/laws.ss")
               "laws.ss")
 
 ;;; ============================================================

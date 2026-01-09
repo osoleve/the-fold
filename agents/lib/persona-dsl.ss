@@ -23,7 +23,7 @@
 ;;;
 ;;;   (run-persona my-persona)  ; => "You are MyAgent.\nYour voice is warm.\n..."
 
-(load "core/fp/meta/dsl.ss")
+(load "lattice/fp/meta/dsl.ss")
 (load "shell/tools/string-utils.ss")
 
 ;;; ============================================================

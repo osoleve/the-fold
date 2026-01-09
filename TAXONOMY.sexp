@@ -6,9 +6,17 @@
 ;;;
 ;;; Machine-readable for tooling (linters, navigation, documentation).
 
-((version . "1.0")
- (date . "2026-01-08")
+((version . "2.0")
+ (date . "2026-01-09")
  (status . canonical)
+
+ ;;; ================================================================
+ ;;; THREE-LAYER ARCHITECTURE
+ ;;; ================================================================
+ ;;;
+ ;;; core/    — Language kernel (minimal, axiomatic)
+ ;;; lattice/ — Skill DAG (stdlib = tier 0, grows organically)
+ ;;; shell/   — Impure boundary (IO, validation, capabilities)
 
  ;;; ================================================================
  ;;; DOMAIN HIERARCHY
@@ -168,7 +176,7 @@
 
   (function-naming
    ;; Reference the detailed FP conventions
-   (reference . "core/fp/NAMING-CONVENTIONS.sexp")
+   (reference . "lattice/fp/NAMING-CONVENTIONS.sexp")
 
    ;; Summary of key patterns
    (patterns . (
@@ -246,45 +254,52 @@
  ;;; ================================================================
 
  (structure
+  ;; CORE — Language Kernel (minimal, axiomatic)
   (core
    (base "Foundation: prelude, sha256, error")
    (blocks "Block system and CAS")
-   (types "Type system (51 files)")
-   (lang "Language core (22 files)")
-   (fp "FP toolkit (11 subdirectories)")
-   (linalg "Linear algebra (31 files)")
-   (autodiff "Automatic differentiation (18 files)")
-   (diff-physics "2D physics (16 files)")
-   (diff-physics-3d "3D physics (17 files)")
-   (geometry "Computational geometry (16 files)")
-   (dynamics "ODE systems (6 files)")
-   (numeric "Numerical computing (13 files)")
-   (algebra "Abstract algebra")
-   (number-theory "Number theory")
-   (random "Probability")
-   (info-theory "Information theory (12 files)")
-   (data "Data structures (10 files)")
-   (query "Query DSL (10 files)")
-   (dsl "DSL infrastructure")
-   (automata "State machines")
-   (sim "Simulation")
-   (util "Utilities (17 files)")
-   (pipeline "Agent workflows")
-   (lsp "Language server protocol")
+   (types "Type system")
+   (lang "Language core: eval, compile, module, nbe")
+   (util "Core utilities: debug, pretty, cost-model")
    (testing "Test framework and runners")
    (benchmarks "Performance benchmarks"))
 
+  ;; LATTICE — Skill DAG (stdlib = tier 0)
+  (lattice
+   ;; Tier 0 — Foundational (no lattice deps)
+   (linalg "Linear algebra: vec, matrix, decomp, solvers")
+   (data "Data structures: graphs, collections")
+   (algebra "Abstract algebra: groups, rings, fields")
+   (random "PRNG, distributions, monte-carlo")
+   ;; Tier 1 — Intermediate
+   (numeric "Complex, DFT, signal processing")
+   (geometry "Shapes, transforms, SDF, raymarching")
+   (autodiff "Automatic differentiation")
+   (fp "FP toolkit (11 subdirectories)")
+   (query "Query DSL, SQL parser, patterns")
+   (dsl "Tagless final, chronicle, staging")
+   (info "Information theory")
+   (number-theory "Primes, modular arithmetic")
+   ;; Tier 2+ — Advanced
+   (physics/diff "Differentiable 2D physics")
+   (physics/diff3d "Differentiable 3D physics")
+   (physics/classical "Classical 2D physics")
+   (physics/classical3d "Classical 3D physics")
+   (tiles "Board game SDK (hex, square, triangle)")
+   (sim "Simulation, dynamics")
+   (automata "State machines, DFA/NFA")
+   (pipeline "Agent workflows"))
+
   (shell
-   (tests "Test suite (96 files)")
-   (tools "Developer tools (25 files)")
-   (ui "Graphics and visualization (21 files)")
-   (lens "Code navigation (6 files)")
-   (git "Version control (3 files)")
+   (tests "Test suite")
+   (tools "Developer tools")
+   (ui "Graphics and visualization")
+   (lens "Code navigation")
+   (git "Version control")
    (pipeline "Effect interpretation")
-   (lsp "LSP transport")
+   (lsp "Language server protocol")
    (discord "Discord integration")
    (mcp-server "MCP integration")
-   (examples "Example code (9 files)")
    (benchmarks "Shell benchmarks")
    (introspect "Code analysis")
    ;; Future directories (shell reorg)
@@ -297,7 +312,7 @@
    ))
 
  (see-also . (
-   "core/fp/NAMING-CONVENTIONS.sexp"
+   "lattice/fp/NAMING-CONVENTIONS.sexp"
    "core/README.sexp"
    "shell/README.sexp"
    "CLAUDE.md")))

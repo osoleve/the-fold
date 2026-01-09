@@ -21,9 +21,9 @@
 ;;; NOTE: Standard string utilities provided by core/prelude.ss.
 ;;;       string-rindex is unique to this module.
 
-(load "core/pipeline/stage.ss")
-(load "core/pipeline/effects.ss")
-(load "core/pipeline/context.ss")
+(load "lattice/pipeline/stage.ss")
+(load "lattice/pipeline/effects.ss")
+(load "lattice/pipeline/context.ss")
 
 ;;; ============================================================
 ;;; Interpreter State

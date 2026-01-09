@@ -16,7 +16,7 @@
 
 (load "core/base/prelude.ss")
 (load "shell/tools/string-utils.ss")
-(load "core/lsp/json.ss")
+(load "shell/lsp/json.ss")
 
 ;;; ============================================================
 ;;; Transport State

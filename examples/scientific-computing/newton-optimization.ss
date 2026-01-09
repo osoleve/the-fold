@@ -14,7 +14,7 @@
 ;;;
 ;;; Run with: scheme --script examples/scientific-computing/newton-optimization.ss
 
-(load "core/autodiff/higher-order-diff.ss")
+(load "lattice/autodiff/higher-order-diff.ss")
 
 ;;; ============================================================
 ;;; Test Functions

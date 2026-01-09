@@ -652,10 +652,10 @@
     "core/types/kinds.ss"
     "core/types/infer.ss"
     "core/types/annotate.ss"
-    "core/data/data-structures.ss"
-    "core/data/graph-algorithms.ss"
-    "core/linalg/vec.ss"
-    "core/linalg/matrix.ss"))
+    "lattice/data/data-structures.ss"
+    "lattice/data/graph-algorithms.ss"
+    "lattice/linalg/vec.ss"
+    "lattice/linalg/matrix.ss"))
 
 ;;; ============================================================
 ;;; Reporting

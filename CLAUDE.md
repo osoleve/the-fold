@@ -60,13 +60,17 @@ scheme --script test-all.ss
 # Core tests only
 scheme --script core/run-tests.ss
 
-# Single test file (pattern: test-<module>.ss adjacent to module)
-scheme --script core/blocks/test-block.ss
-scheme --script core/info-theory/test-entropy.ss
+# Lattice tests
+scheme --script lattice/linalg/test-vec.ss
+scheme --script lattice/info/test-entropy.ss
+scheme --script lattice/physics/diff/test-rollout.ss
+
+# Shell tests
 scheme --script shell/tests/test-string-utils.ss
 ```
 
 Test framework: `core/testing/test-framework.ss` provides unified API across all tests.
+Tests are co-located with their modules (e.g., `test-vec.ss` next to `vec.ss`).
 
 ---
 
@@ -86,17 +90,32 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 
 | Directory | Purpose |
 |-----------|---------|
-| `core/` | Pure, typed, load-bearing code |
-| `shell/` | IO layer, defensive code, impurity |
-| `user/` | Build and play area |
+| `core/` | Language kernel — pure, minimal, axiomatic |
+| `lattice/` | Skill lattice — verified library DAG (includes "stdlib") |
+| `shell/` | Impure boundary — IO, validation, capabilities |
+| `user/` | Playground — experiments and demos |
 | `agents/` | Multi-agent ecosystem |
 | `ops/` | Operational deployment (systemd, scripts) |
 | `docs/` | Documentation and policy |
 | `archives/` | Historical exports |
 
-### Core Subsystems
+### Three-Layer Architecture
 
-Core is organized into domain-driven subdirectories:
+```
+┌─────────────────────────────────────┐
+│              user/                  │  Applications, experiments
+├─────────────────────────────────────┤
+│              shell/                 │  ALL impure code lives here
+├─────────────────────────────────────┤
+│              lattice/               │  Verified skill DAG (pure)
+├─────────────────────────────────────┤
+│              core/                  │  Language kernel (pure)
+└─────────────────────────────────────┘
+```
+
+### Core (Language Kernel)
+
+Core defines what The Fold IS — minimal, axiomatic, changes are breaking:
 
 | Directory | Purpose | Key Modules |
 |-----------|---------|-------------|
@@ -104,29 +123,47 @@ Core is organized into domain-driven subdirectories:
 | `blocks/` | Block system & CAS | block.ss, cas.ss, normalize.ss |
 | `types/` | Type system | types.ss, dep-types.ss, infer.ss, kinds.ss |
 | `lang/` | Evaluation & compilation | eval.ss, compile.ss, module.ss, nbe.ss |
-| `linalg/` | Linear algebra | vec.ss, matrix.ss, matrix-decomp.ss, matrix-solvers.ss |
-| `numeric/` | Numerical computing | complex.ss, dft.ss |
-| `autodiff/` | Automatic differentiation | comp-graph.ss, reverse-diff.ss |
-| `data/` | Data structures | data-structures.ss, graph-algorithms.ss |
-| `query/` | Query DSL & patterns | query.ss, query-dsl.ss, aho-corasick.ss |
-| `util/` | General utilities | debug.ss, pretty.ss, help.ss, profile.ss |
-| `info-theory/` | Information theory | entropy.ss |
-| `random/` | Probability | prng.ss, distributions.ss |
-| `pipeline/` | Agent workflows | stage.ss, effects.ss, council.ss |
-| `algebra/` | Abstract algebra | groups, rings, fields |
-| `automata/` | Finite automata | state machines, DFA/NFA |
-| `geometry/` | Computational geometry | shapes, transforms |
-| `dynamics/` | Dynamic systems | simulation, physics |
-| `diff-physics/` | Differentiable physics | 2D physics simulation |
-| `diff-physics-3d/` | 3D differentiable physics | 3D physics simulation |
-| `dsl/` | DSL utilities | domain-specific language tools |
-| `number-theory/` | Number theory | primes, modular arithmetic |
-| `sim/` | Simulation | discrete event simulation |
-| `lsp/` | Language server protocol | LSP implementation |
-| `testing/` | Test infrastructure | test-framework.ss, run-tests.ss |
+| `util/` | Core utilities | debug.ss, pretty.ss, cost-model.ss |
+| `testing/` | Test infrastructure | test-framework.ss |
 | `benchmarks/` | Performance benchmarks | bench-core.ss, bench-prim.ss |
 
-**FP Toolkit (`core/fp/`):**
+### Lattice (Skill DAG)
+
+The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
+
+**Tier 0 — Foundational (no lattice deps):**
+| Directory | Purpose |
+|-----------|---------|
+| `linalg/` | Vectors, matrices, decomposition, solvers |
+| `data/` | Data structures, graphs, collections |
+| `algebra/` | Groups, rings, fields |
+| `random/` | PRNG, distributions |
+
+**Tier 1 — Intermediate:**
+| Directory | Purpose |
+|-----------|---------|
+| `numeric/` | Complex numbers, DFT, signal processing |
+| `geometry/` | Shapes, transforms, raymarching, SDFs |
+| `autodiff/` | Reverse-mode AD, computational graphs |
+| `fp/` | Monads, parsers, streams, rewriting |
+| `query/` | Query DSL, SQL parser, patterns |
+| `dsl/` | Tagless final, chronicle, staging |
+| `info/` | Entropy, coding, information theory |
+| `number-theory/` | Primes, modular arithmetic |
+
+**Tier 2+ — Advanced:**
+| Directory | Purpose |
+|-----------|---------|
+| `physics/diff/` | Differentiable 2D physics |
+| `physics/diff3d/` | Differentiable 3D physics |
+| `physics/classical/` | Classical 2D physics |
+| `physics/classical3d/` | Classical 3D physics |
+| `tiles/` | Board game SDK (hex, square, triangle) |
+| `sim/` | Simulation, dynamics |
+| `automata/` | State machines, DFA/NFA |
+| `pipeline/` | Agent workflows, council |
+
+**FP Toolkit (`lattice/fp/`):**
 - `control/` — Monads, effects, continuations, free monads
 - `numeric/` — Transcendental functions
 - `parsing/` — Parser combinators with memoization
@@ -138,6 +175,8 @@ Core is organized into domain-driven subdirectories:
 - `control-systems/` — Control theory, state space models
 - `analysis/` — Numerical analysis
 - `rewrite/` — Term rewriting systems
+
+Each lattice skill has a `manifest.sexp` declaring version, purity, fuel-bound, and dependencies.
 
 ### Shell Subsystems
 
@@ -161,6 +200,7 @@ Shell is organized into functional subdirectories (with backwards-compatible stu
 | `introspect/` | System introspection | type-inspect.ss, xref.ss |
 | `pipeline/` | Agent pipelines | workflow integration |
 | `tools/` | Utility tools | Various shell utilities |
+| `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
 | `tests/` | Shell test suite | test-*.ss files |
 
 Root-level files like `commands.ss` and `validate.ss` remain for shared infrastructure.

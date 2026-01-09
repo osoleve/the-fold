@@ -4,9 +4,9 @@
 ;;;
 ;;; This is Shell code: handles IO, may fail, contains defensive logic.
 
-(load "core/pipeline/stage.ss")
-(load "core/pipeline/effects.ss")
-(load "core/pipeline/context.ss")
+(load "lattice/pipeline/stage.ss")
+(load "lattice/pipeline/effects.ss")
+(load "lattice/pipeline/context.ss")
 (load "shell/pipeline/effects/shell.ss")
 
 ;;; ============================================================

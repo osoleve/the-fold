@@ -5,7 +5,7 @@
 ;;;
 ;;; Schedule: Weekly on Sunday at midnight UTC
 
-(load "core/pipeline/dsl.ss")
+(load "lattice/pipeline/dsl.ss")
 
 ;;; ============================================================
 ;;; Pipeline Configuration

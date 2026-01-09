@@ -25,11 +25,11 @@
 
 ;;; Test path utilities
 (display "derive-category:\n")
-(test "linalg path" 'linalg (derive-category "core/linalg/vec.ss"))
+(test "linalg path" 'linalg (derive-category "lattice/linalg/vec.ss"))
 (test "types path" 'types (derive-category "core/types/infer.ss"))
 (test "shell path" 'shell (derive-category "shell/commands.ss"))
 (test "base path" 'base (derive-category "core/base/prelude.ss"))
-(test "fp-control path" 'fp-control (derive-category "core/fp/control/monad.ss"))
+(test "fp-control path" 'fp-control (derive-category "lattice/fp/control/monad.ss"))
 (test "other path" 'other (derive-category "unknown/path.ss"))
 
 (display "\nderive-visibility:\n")

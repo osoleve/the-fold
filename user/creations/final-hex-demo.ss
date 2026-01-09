@@ -1,6 +1,6 @@
 ;;; playpen/creations/final-hex-demo.ss — Final Hexagonal Board Demo
 
-(load "user/boardcraft/boardcraft.ss")
+(load "lattice/tiles/boardcraft.ss")
 
 (define (final-hex-demo)
   (display "═══════════════════════════════════════════════════════════════\n")

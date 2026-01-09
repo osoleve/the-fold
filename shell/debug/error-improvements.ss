@@ -38,7 +38,7 @@
                          (or (string-contains? msg "make-hex-board")
                              (string-contains? msg "hex-")
                              (string-contains? msg "axial-"))))
-     (suggestions "Load BoardCraft: (load \"user/boardcraft/boardcraft.ss\")"
+     (suggestions "Load BoardCraft: (load \"lattice/tiles/boardcraft.ss\")"
                   ,(lambda (msg)
                            (string-append "Check function name with (help '"
                                           (extract-function-name msg) ")"))
@@ -342,7 +342,7 @@
                         (if t (cadr t) #f))])
         (append
          (if (and tutorial (not (eq? tutorial 'nil)))
-             (list (string-append "📚 Tutorial: (load \"user/boardcraft/examples/" tutorial "\")"))
+             (list (string-append "📚 Tutorial: (load \"lattice/tiles/examples/" tutorial "\")"))
              '())
          (case ctx-name
                [(boardcraft-unbound)

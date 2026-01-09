@@ -156,7 +156,7 @@ Create `/home/oso/the-fold/TAXONOMY.sexp` as the authoritative source for module
 
   (function-naming
    ;; Imported from core/fp/NAMING-CONVENTIONS.sexp
-   (reference . "core/fp/NAMING-CONVENTIONS.sexp")))
+   (reference . "lattice/fp/NAMING-CONVENTIONS.sexp")))
 
  (classification-rules
   ;; Rules for determining where new code belongs

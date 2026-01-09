@@ -35,7 +35,7 @@
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")
 (load "core/lang/prim.ss")
-(load "core/autodiff/reverse-diff.ss")
+(load "lattice/autodiff/reverse-diff.ss")
 
 ;;; ============================================================
 ;;; Fuel
