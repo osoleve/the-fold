@@ -9,12 +9,12 @@
 - [x] Task: Implement Basic Block-to-Rust Serializer cddbbb3
     - [x] Write Tests (Scheme-side verification of emitted strings)
     - [x] Implement Serializer
-- [ ] Task: Implement Function/Lambda Codegen
-    - [ ] Write Tests
-    - [ ] Implement
-- [ ] Task: Implement Layer 1 Arithmetic and Logic Codegen
-    - [ ] Write Tests
-    - [ ] Implement
+- [x] Task: Implement Function/Lambda Codegen cddbbb3
+    - [x] Write Tests
+    - [x] Implement
+- [x] Task: Implement Layer 1 Arithmetic and Logic Codegen cddbbb3
+    - [x] Write Tests
+    - [x] Implement
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Core Codegen Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Integration and Verification
