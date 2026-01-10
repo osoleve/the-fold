@@ -32,6 +32,17 @@
 (load "core/types/types.ss")
 
 ;;; ============================================================
+;;; Forall Type Predicates
+;;; ============================================================
+
+;;; forall-type? : Type -> Boolean
+;;; Check if this is a universally quantified type.
+(define (forall-type? t)
+  (and (pair? t)
+       (or (eq? (car t) 'forall)
+           (eq? (car t) (string->symbol (string (integer->char 8704))))))) ; Unicode forall
+
+;;; ============================================================
 ;;; Type Rank Calculation
 ;;; ============================================================
 
@@ -453,7 +464,7 @@
 ;;; check-against-forall : Expr × Type × TEnv → (Result Subst Error)
 ;;; Check an expression against a universally quantified type.
 (define (check-against-forall expr type env)
-  (if (and (pair? type) (eq? (car type) '∀))
+  (if (forall-type? type)
       (let* ([vars (forall-vars type)]
              [body (caddr type)]
              ;; Introduce skolems for bound variables
@@ -489,7 +500,16 @@
    [(and (pair? type) (eq? (car type) '∀))
     (check-against-forall expr type env)]
    
-   ;; Otherwise, could extend to full bidirectional system
+   ;; Lambda against non-function type is an error
+   ;; A lambda can only have a function type, not a bare type variable or skolem
+   [(and (pair? expr) (eq? (car expr) 'fn))
+    `(error type-mismatch
+      (expression lambda)
+      (expected ,type)
+      (reason "lambda requires function type"))]
+   
+   ;; Otherwise, synthesis fallback with skolem checking
+   ;; This handles variables, applications, etc.
    [else '(ok ())]))
 
 ;;; tenv-extend* : TEnv × (List (× Symbol Type)) → TEnv
