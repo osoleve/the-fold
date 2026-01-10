@@ -1,0 +1,431 @@
+;;; lattice/statistics/timeseries/ma.ss — Moving Average Models
+;;;
+;;; MA(q) model fitting and forecasting.
+;;;
+;;; This is Lattice code: pure, total, assumes reasonable input.
+;;;
+;;; Provides:
+;;;   - ma-fit: Fit MA(q) model via innovations algorithm
+;;;   - ma-predict: One-step ahead prediction
+;;;   - ma-forecast: Multi-step forecasting
+;;;   - moving-average: Simple moving average smoother
+;;;
+;;; Dependencies:
+;;;   - prelude.ss
+;;;   - statistics/core/result-types.ss
+;;;   - statistics/core/summary-stats.ss
+;;;   - statistics/timeseries/acf-pacf.ss
+
+(load "core/base/prelude.ss")
+(load "lattice/statistics/core/result-types.ss")
+(load "lattice/statistics/core/summary-stats.ss")
+(load "lattice/statistics/timeseries/acf-pacf.ss")
+
+;;; ============================================================
+;;; Simple Moving Average (Smoother)
+;;; ============================================================
+
+;;; moving-average : Vec × Nat → Vec
+;;; Simple moving average smoother.
+;;; Returns smoothed series of length n - window + 1.
+(define (moving-average xs window)
+  (let* ([n (vector-length xs)]
+         [m (- n window -1)]
+         [result (make-vector m)])
+        (if (< n window)
+            result
+            (begin
+             ;; Compute first window
+             (let ([first-sum (let loop ([i 0] [s 0])
+                                   (if (= i window)
+                                       s
+                                       (loop (+ i 1) (+ s (vector-ref xs i)))))])
+                  (vector-set! result 0 (/ first-sum window))
+                  ;; Rolling update for efficiency
+                  (do ([i 1 (+ i 1)]
+                       [sum first-sum (- (+ sum (vector-ref xs (+ i window -1)))
+                                         (vector-ref xs (- i 1)))])
+                      [(= i m) result]
+                      (vector-set! result i (/ sum window))))))))
+
+;;; weighted-moving-average : Vec × Vec → Vec
+;;; Weighted moving average using custom weights.
+;;; Weight vector determines the window size.
+(define (weighted-moving-average xs weights)
+  (let* ([n (vector-length xs)]
+         [k (vector-length weights)]
+         [m (- n k -1)]
+         [result (make-vector m)]
+         ;; Normalize weights
+         [weight-sum (let loop ([i 0] [s 0])
+                          (if (= i k)
+                              s
+                              (loop (+ i 1) (+ s (vector-ref weights i)))))]
+         [norm-weights (let ([v (make-vector k)])
+                            (do ([i 0 (+ i 1)])
+                                [(= i k) v]
+                                (vector-set! v i
+                                             (/ (vector-ref weights i)
+                                                (max weight-sum 1e-10)))))])
+        (do ([t 0 (+ t 1)])
+            [(= t m) result]
+            (let ([val (let loop ([j 0] [s 0])
+                            (if (= j k)
+                                s
+                                (loop (+ j 1)
+                                      (+ s (* (vector-ref norm-weights j)
+                                              (vector-ref xs (+ t j)))))))])
+                 (vector-set! result t val)))))
+
+;;; exponential-moving-average : Vec × Num → Vec
+;;; Exponential moving average (same length as input).
+;;; Alpha in (0, 1): higher = more weight on recent.
+(define (exponential-moving-average xs alpha)
+  (let* ([n (vector-length xs)]
+         [result (make-vector n)])
+        (vector-set! result 0 (vector-ref xs 0))
+        (do ([i 1 (+ i 1)])
+            [(= i n) result]
+            (vector-set! result i
+                         (+ (* alpha (vector-ref xs i))
+                            (* (- 1 alpha) (vector-ref result (- i 1))))))))
+
+;;; ============================================================
+;;; MA(q) Model Fitting
+;;; ============================================================
+
+;;; MA(q) model: X_t = mu + epsilon_t + theta_1*epsilon_{t-1} + ... + theta_q*epsilon_{t-q}
+;;; For centered series: X_t = epsilon_t + theta_1*epsilon_{t-1} + ... + theta_q*epsilon_{t-q}
+
+;;; ma-fit : Vec × Nat → MAResult | Error
+;;; Fit MA(q) model using the innovations algorithm.
+;;; The innovations algorithm recursively estimates MA coefficients from ACF.
+(define (ma-fit xs q)
+  (let* ([n (vector-length xs)]
+         [mean (vec-mean xs)])
+        (if (< n (+ q 3))
+            (list 'error 'insufficient-data n q)
+            (let* (;; Center the series
+                   [centered (center-series-ma xs mean)]
+                   ;; Compute ACF
+                   [acf-vals (acf centered q)]
+                   ;; Compute autocovariances (gamma)
+                   [gamma0 (autocovariance-ma centered 0)]
+                   [gammas (make-vector (+ q 1))]
+                   [_ (do ([k 0 (+ k 1)])
+                          [(> k q)]
+                          (vector-set! gammas k (autocovariance-ma centered k)))]
+                   ;; Run innovations algorithm
+                   [result (innovations-algorithm gammas q)])
+                  (if (and (pair? result) (eq? (car result) 'error))
+                      result
+                      (let* ([theta result]
+                             ;; Compute residuals
+                             [residuals (ma-compute-residuals centered theta q)]
+                             ;; Compute residual variance
+                             [sigma (ma-residual-sigma residuals q n)])
+                            (make-ma-result theta mean residuals sigma q)))))))
+
+;;; center-series-ma : Vec × Num → Vec
+(define (center-series-ma xs mean)
+  (let* ([n (vector-length xs)]
+         [centered (make-vector n)])
+        (do ([i 0 (+ i 1)])
+            [(= i n) centered]
+            (vector-set! centered i (- (vector-ref xs i) mean)))))
+
+;;; autocovariance-ma : Vec × Nat → Num
+(define (autocovariance-ma xs k)
+  (let* ([n (vector-length xs)]
+         [mean (/ (let loop ([i 0] [s 0])
+                       (if (= i n)
+                           s
+                           (loop (+ i 1) (+ s (vector-ref xs i)))))
+                  n)]
+         [sum (let loop ([i 0] [s 0])
+                   (if (>= i (- n k))
+                       s
+                       (loop (+ i 1)
+                             (+ s (* (- (vector-ref xs i) mean)
+                                     (- (vector-ref xs (+ i k)) mean))))))])
+        (/ sum n)))
+
+;;; innovations-algorithm : Vec × Nat → Vec | Error
+;;; Innovations algorithm for MA parameter estimation.
+;;; Given autocovariances gamma_0, ..., gamma_q, estimate theta_1, ..., theta_q.
+(define (innovations-algorithm gammas q)
+  (let* ([theta (make-vector q 0)]
+         [v (make-vector (+ q 1) 0)])
+        ;; v_0 = gamma_0
+        (vector-set! v 0 (vector-ref gammas 0))
+        ;; Iterate
+        (do ([n 1 (+ n 1)])
+            [(> n q)]
+            ;; Compute theta_{n,j} for j = 1, ..., n
+            (let ([theta-n (make-vector n 0)])
+                 ;; theta_{n,n-1} first (j = n-1, corresponds to lag n)
+                 ;; For MA(q): theta_{n,n-j} = (gamma_j - sum_{k=0}^{j-1} theta_{j,j-k} theta_{n,n-k} v_k) / v_j
+                 (do ([j 0 (+ j 1)])
+                     [(= j n)]
+                     (let* ([k-max j]
+                            [sum (let loop ([k 0] [s 0])
+                                      (if (= k k-max)
+                                          s
+                                          (let* ([theta-j-k (if (= j 0) 0
+                                                                (if (< (- j k 1) 0) 0
+                                                                    (vector-ref theta-n (- j k 1))))]
+                                                 [theta-n-k (if (< (- n k 1) 0) 0
+                                                                (vector-ref theta-n (- n k 1)))]
+                                                 [vk (vector-ref v k)])
+                                                (loop (+ k 1)
+                                                      (+ s (* theta-j-k theta-n-k vk))))))]
+                            [gamma-nj (if (< (- n j) (vector-length gammas))
+                                          (vector-ref gammas (- n j))
+                                          0)]
+                            [vj (vector-ref v j)]
+                            [theta-val (if (< (abs vj) 1e-10)
+                                           0
+                                           (/ (- gamma-nj sum) vj))])
+                           (when (< (- n j 1) n)
+                                 (vector-set! theta-n (- n j 1) theta-val))))
+                 ;; Update v_n
+                 (let* ([sum (let loop ([j 0] [s 0])
+                                  (if (= j n)
+                                      s
+                                      (let ([theta-nj (vector-ref theta-n j)]
+                                            [vj (vector-ref v j)])
+                                           (loop (+ j 1)
+                                                 (+ s (* theta-nj theta-nj vj))))))]
+                        [vn (- (vector-ref gammas 0) sum)])
+                       (vector-set! v n (max vn 1e-10)))
+                 ;; Store final theta values
+                 (when (= n q)
+                       (do ([j 0 (+ j 1)])
+                           [(= j q)]
+                           (vector-set! theta j (vector-ref theta-n j))))))
+        theta))
+
+;;; ma-compute-residuals : Vec × Vec × Nat → Vec
+;;; Compute residuals from fitted MA model.
+(define (ma-compute-residuals centered theta q)
+  (let* ([n (vector-length centered)]
+         [residuals (make-vector n 0)])
+        ;; Use recursive formula: epsilon_t = x_t - sum_{j=1}^{min(t,q)} theta_j * epsilon_{t-j}
+        (do ([t 0 (+ t 1)])
+            [(= t n) residuals]
+            (let* ([xt (vector-ref centered t)]
+                   [sum (let loop ([j 1] [s 0])
+                             (if (or (> j q) (> j t))
+                                 s
+                                 (loop (+ j 1)
+                                       (+ s (* (vector-ref theta (- j 1))
+                                               (vector-ref residuals (- t j)))))))]
+                   [et (- xt sum)])
+                  (vector-set! residuals t et)))))
+
+;;; ma-residual-sigma : Vec × Nat × Nat → Num
+(define (ma-residual-sigma residuals q n)
+  (let* ([sse (let loop ([t q] [s 0])
+                   (if (= t n)
+                       s
+                       (loop (+ t 1)
+                             (+ s (expt (vector-ref residuals t) 2)))))])
+        (sqrt (/ sse (max (- n q) 1)))))
+
+;;; make-ma-result : Vec × Num × Vec × Num × Nat → MAResult
+(define (make-ma-result theta mean residuals sigma q)
+  (list 'ma-result theta mean residuals sigma q))
+
+;;; Accessors
+(define (ma-coefficients model) (cadr model))
+(define (ma-intercept model) (caddr model))
+(define (ma-residuals model) (cadddr model))
+(define (ma-sigma model) (list-ref model 4))
+(define (ma-order model) (list-ref model 5))
+
+;;; ============================================================
+;;; MA Forecasting
+;;; ============================================================
+
+;;; ma-forecast : MAResult × Vec × Nat → ForecastResult
+;;; Multi-step ahead forecasting for MA(q).
+;;; Note: MA(q) forecasts revert to mean after q steps.
+(define (ma-forecast model xs h)
+  (let* ([theta (ma-coefficients model)]
+         [mean (ma-intercept model)]
+         [sigma (ma-sigma model)]
+         [q (ma-order model)]
+         [n (vector-length xs)]
+         ;; Get recent residuals
+         [centered (center-series-ma xs mean)]
+         [residuals (ma-compute-residuals centered theta q)]
+         ;; Generate forecasts
+         [forecasts (make-vector h)]
+         ;; Extend residuals for forecasting (future residuals = 0)
+         [extended-res (make-vector (+ n h) 0)]
+         [_ (do ([i 0 (+ i 1)])
+                [(= i n)]
+                (vector-set! extended-res i (vector-ref residuals i)))])
+        ;; Compute forecasts
+        (do ([t 0 (+ t 1)])
+            [(= t h)]
+            (let* ([sum (let loop ([j 1] [s 0])
+                             (if (or (> j q) (> j (+ n t)))
+                                 s
+                                 (let ([res-idx (- (+ n t) j)])
+                                      (if (< res-idx 0)
+                                          s
+                                          (loop (+ j 1)
+                                                (+ s (* (vector-ref theta (- j 1))
+                                                        (vector-ref extended-res res-idx))))))))]
+                   [fc (+ mean sum)])
+                  (vector-set! forecasts t fc)))
+        ;; Compute forecast standard errors
+        (let* ([forecast-se (ma-forecast-se theta sigma q h)]
+               [z (standard-normal-quantile-ma 0.975)]
+               [lower (make-vector h)]
+               [upper (make-vector h)])
+              (do ([t 0 (+ t 1)])
+                  [(= t h)]
+                  (let ([fc (vector-ref forecasts t)]
+                        [se (vector-ref forecast-se t)])
+                       (vector-set! lower t (- fc (* z se)))
+                       (vector-set! upper t (+ fc (* z se)))))
+              (make-forecast-result forecasts lower upper 0.95))))
+
+;;; ma-forecast-se : Vec × Num × Nat × Nat → Vec
+;;; Compute forecast standard errors for MA(q).
+(define (ma-forecast-se theta sigma q h)
+  (let* ([se (make-vector h)])
+        (do ([t 0 (+ t 1)])
+            [(= t h) se]
+            ;; For MA(q), forecast error variance at horizon h:
+            ;; Var(e_{n+h}) = sigma^2 * (1 + theta_1^2 + ... + theta_{min(h-1,q)}^2)
+            ;; But beyond q steps, it's just sigma^2 * (1 + sum of all theta^2)
+            (let* ([max-j (min t q)]
+                   [sum (let loop ([j 0] [s 0])
+                             (if (>= j max-j)
+                                 s
+                                 (loop (+ j 1)
+                                       (+ s (expt (vector-ref theta j) 2)))))])
+                  (vector-set! se t (* sigma (sqrt (+ 1 sum))))))))
+
+;;; make-forecast-result : Vec × Vec × Vec × Num → ForecastResult
+(define (make-forecast-result forecasts lower upper confidence)
+  (list 'forecast-result forecasts lower upper confidence))
+
+;;; standard-normal-quantile-ma : Num → Num
+(define (standard-normal-quantile-ma p)
+  (if (or (<= p 0) (>= p 1))
+      (if (<= p 0) -1000 1000)
+      (let* ([a0 2.515517]
+             [a1 0.802853]
+             [a2 0.010328]
+             [b1 1.432788]
+             [b2 0.189269]
+             [b3 0.001308]
+             [sign (if (< p 0.5) -1 1)]
+             [p* (if (< p 0.5) p (- 1 p))]
+             [t (sqrt (* -2 (log p*)))]
+             [num (+ a0 (* a1 t) (* a2 t t))]
+             [den (+ 1 (* b1 t) (* b2 t t) (* b3 t t t))])
+            (* sign (- t (/ num den))))))
+
+;;; ============================================================
+;;; ARMA (Combined AR and MA)
+;;; ============================================================
+
+;;; Note: Full ARMA requires iterative estimation.
+;;; This is a simplified implementation using conditional least squares.
+
+;;; arma-fit-simple : Vec × Nat × Nat → ARMAResult | Error
+;;; Fit ARMA(p,q) using a two-stage approach:
+;;; 1. Fit AR(p+q) to get preliminary residuals
+;;; 2. Estimate MA(q) parameters from residuals
+(define (arma-fit-simple xs p q)
+  (let* ([n (vector-length xs)])
+        (if (< n (+ p q 5))
+            (list 'error 'insufficient-data n p q)
+            (let* ([mean (vec-mean xs)]
+                   [centered (center-series-ma xs mean)]
+                   ;; Get ACF for AR estimation
+                   [acf-vals (acf centered (+ p q))]
+                   ;; Build Toeplitz matrix for AR(p)
+                   [R (make-toeplitz-ar acf-vals p)]
+                   [r (make-r-vector acf-vals p)]
+                   ;; Solve for AR coefficients
+                   [phi (solve-toeplitz R r p)])
+                  (if (and (pair? phi) (eq? (car phi) 'error))
+                      phi
+                      (let* (;; Compute AR residuals
+                             [ar-residuals (compute-ar-residuals centered phi p)]
+                             ;; Fit MA to residuals
+                             [ma-model (ma-fit ar-residuals q)])
+                            (if (and (pair? ma-model) (eq? (car ma-model) 'error))
+                                ma-model
+                                (let* ([theta (ma-coefficients ma-model)]
+                                       [sigma (ma-sigma ma-model)])
+                                      (list 'arma-result phi theta mean sigma p q)))))))))
+
+;;; Helper functions for ARMA
+(define (make-toeplitz-ar acf-vals p)
+  (let ([data (make-vector (* p p))])
+       (do ([i 0 (+ i 1)])
+           [(= i p)]
+           (do ([j 0 (+ j 1)])
+               [(= j p)]
+               (vector-set! data (+ (* i p) j)
+                            (vector-ref acf-vals (abs (- i j))))))
+       (list 'matrix p p data)))
+
+(define (make-r-vector acf-vals p)
+  (let ([r (make-vector p)])
+       (do ([k 0 (+ k 1)])
+           [(= k p) r]
+           (vector-set! r k (vector-ref acf-vals (+ k 1))))))
+
+(define (solve-toeplitz R r p)
+  ;; Simple Gaussian elimination for small systems
+  (let* ([A (cadddr R)]
+         [b (let ([v (make-vector p)])
+                 (do ([i 0 (+ i 1)])
+                     [(= i p) v]
+                     (vector-set! v i (vector-ref r i))))]
+         [x (make-vector p 0)])
+        ;; Forward elimination (simplified, not production-grade)
+        ;; For now, use iterative refinement for small systems
+        (do ([iter 0 (+ iter 1)])
+            [(= iter 100) x]
+            (do ([i 0 (+ i 1)])
+                [(= i p)]
+                (let* ([sum (let loop ([j 0] [s 0])
+                                 (if (= j p)
+                                     s
+                                     (if (= i j)
+                                         (loop (+ j 1) s)
+                                         (loop (+ j 1)
+                                               (+ s (* (vector-ref A (+ (* i p) j))
+                                                       (vector-ref x j)))))))]
+                       [aii (vector-ref A (+ (* i p) i))]
+                       [bi (vector-ref b i)]
+                       [xi-new (if (< (abs aii) 1e-10)
+                                   0
+                                   (/ (- bi sum) aii))])
+                      (vector-set! x i xi-new))))))
+
+(define (compute-ar-residuals centered phi p)
+  (let* ([n (vector-length centered)]
+         [residuals (make-vector n 0)])
+        (do ([t 0 (+ t 1)])
+            [(= t n) residuals]
+            (if (< t p)
+                (vector-set! residuals t (vector-ref centered t))
+                (let* ([sum (let loop ([k 0] [s 0])
+                                 (if (= k p)
+                                     s
+                                     (loop (+ k 1)
+                                           (+ s (* (vector-ref phi k)
+                                                   (vector-ref centered (- t k 1)))))))]
+                       [et (- (vector-ref centered t) sum)])
+                      (vector-set! residuals t et))))))
+
