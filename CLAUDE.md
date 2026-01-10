@@ -17,8 +17,8 @@ Repository: `git@github.com:osoleve/the-fold`
 **Before doing ANYTHING else:**
 
 ```bash
-./daemon.sh start    # Start persistent REPL
 ./daemon.sh status   # Verify running
+./daemon.sh start    # Start persistent REPL if needed
 ```
 
 The daemon is **essential** — state is lost between Bash invocations without it.
@@ -362,7 +362,7 @@ This project uses **bd** (beads) for dependency-aware issue tracking.
 ### Finding Work
 
 ```bash
-bd ready                          # Show unblocked work (no blockers)
+bd ready --limit 0                # Show unblocked work (no blockers)
 bd list --status=open             # All open issues
 bd list --status=in_progress      # Your active work
 bd show <id>                      # View issue details with dependencies
@@ -479,3 +479,4 @@ rm -rf .fold-repl/   # Nuclear option
 1. **Always use the daemon** — State doesn't persist between Bash calls otherwise
 2. **Load from project root** — All `(load ...)` paths are relative to `/home/oso/the-fold`
 3. **Push before ending** — Work is not complete until `git push` succeeds
+4. **Maintain The Fold**

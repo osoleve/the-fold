@@ -24,6 +24,12 @@ The `par` form hints that two expressions can be evaluated in parallel.
 **Error Handling:**
 *   If `a` fails (errors), the error is propagated, even if `b` succeeds. This ensures that "background" tasks are not silently ignored if they crash.
 *   If `b` fails, its error is propagated as normal.
+*   If `a` suspends (out of fuel), a `par-suspended` error is raised rather than a suspension, since the main thread cannot meaningfully resume a suspended background thread.
+
+**Timeout:**
+*   Background evaluation has a 30-second timeout (configurable via `*par-timeout-ms*`).
+*   If `a` exceeds this timeout, a `par-timeout` error is raised.
+*   This prevents runaway background computations from blocking indefinitely.
 
 **Usage Example:**
 ```scheme
@@ -62,8 +68,27 @@ The `pseq` form enforces strict sequential evaluation.
 | **Fuel** | Fuel is duplicated (if parallel) | Fuel is shared and consumed sequentially |
 | **Returns** | Result of `b` | Result of `b` |
 
-### Note on Side Effects
-While `par` returns the value of `b`, it executes `a` for its potential side effects or simply to warm up caches/promises. However, be cautious with shared state in `par`, as execution order between the threads is non-deterministic. Use `pseq` when order matters.
+### Thread Safety and Best Practices
+
+**Environment Access:**
+*   Both branches share the same lexical environment for reads.
+*   Environment bindings are immutable, so concurrent reads are safe.
+*   Shadowed bindings (via `let`) are isolated per branch.
+
+**Avoiding Pitfalls:**
+*   **Don't nest deeply**: Each `par` spawns a thread; deeply nested `par` can exhaust the thread pool and cause timeouts.
+*   **Prefer linear chains**: `(par a (par b (par c d)))` is safer than balanced trees.
+*   **Watch for timeouts**: Long-running background tasks should be broken into smaller units.
+
+**When to Use `par`:**
+*   Independent computations that can genuinely run in parallel
+*   Speculative evaluation where result may or may not be needed
+*   Warming caches or forcing thunks in the background
+
+**When to Use `pseq`:**
+*   Side effects that must happen in order
+*   Dependencies between computations
+*   When deterministic behavior is required
 
 ## Type System
 
