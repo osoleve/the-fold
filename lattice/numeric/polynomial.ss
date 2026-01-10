@@ -250,6 +250,27 @@
            p
            (poly-scale p (/ 1 lead)))))
 
+;;; poly-derivative : Poly → Poly
+;;; Compute formal derivative of polynomial.
+;;; For p(x) = a_n*x^n + ... + a_1*x + a_0,
+;;; p'(x) = n*a_n*x^{n-1} + ... + a_1
+(define (poly-derivative p)
+  (let* ([coeffs (poly-coeffs p)]
+         [n (vector-length coeffs)])
+        (if (<= n 1)
+            (poly-zero)  ; Constant → 0
+            (let* ([new-len (- n 1)]
+                   [result (make-vector new-len 0)])
+                  ;; Derivative: coefficient a_k at x^k becomes k*a_k at x^{k-1}
+                  ;; In descending order: coeff at index i is for x^{n-1-i}
+                  ;; After derivative: coeff at index i for x^{n-2-i} = (n-1-i)*original[i]
+                  (do ([i 0 (+ i 1)])
+                      ((= i new-len))
+                      (let ([power (- n 1 i)]  ; Original power at this index
+                            [coeff (vector-ref coeffs i)])
+                           (vector-set! result i (* power coeff))))
+                  (make-poly result)))))
+
 ;;; ============================================================
 ;;; Polynomial Root Finding
 ;;; ============================================================
