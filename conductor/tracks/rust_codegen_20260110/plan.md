@@ -1,7 +1,7 @@
 # Plan: Rust Codegen for Primitives and Layer 1
 
 ## Phase 1: Design and Mapping
-- [ ] Task: Define Type Mapping (Scheme to Rust)
+- [x] Task: Define Type Mapping (Scheme to Rust) d24ef66
 - [ ] Task: Design Codegen Architecture (AST Transformation)
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Design and Mapping' (Protocol in workflow.md)
 
