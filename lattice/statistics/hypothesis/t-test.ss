@@ -153,6 +153,12 @@
                                     (test-ci result)
                                     (test-effect-size result))))))
 
+;;; t-test-paired-list : List × List × Num → TestResult
+;;; List wrapper for t-test-paired.
+(define (t-test-paired-list xs ys . opts)
+  (let ([confidence (if (>= (length opts) 1) (car opts) 0.95)])
+       (t-test-paired (list->vector xs) (list->vector ys) confidence)))
+
 ;;; ============================================================
 ;;; One-Sided Tests
 ;;; ============================================================

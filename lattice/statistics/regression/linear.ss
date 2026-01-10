@@ -214,8 +214,26 @@
                        (make-vector p 0)
                        (compute-t-values beta se))]
          [p-values (compute-p-values t-values df-residual)]
-         ;; Weighted R² (more complex, use unweighted for simplicity)
-         [r-squared (compute-r-squared y fitted)]
+         ;; Weighted R²: R²_w = 1 - SSE_w / SST_w
+         ;; where SST_w = sum(w * (y - y_bar_w)²) and y_bar_w = weighted mean
+         [y-bar-w (/ (let loop ([i 0] [s 0])
+                          (if (= i n)
+                              s
+                              (loop (+ i 1)
+                                    (+ s (* (vector-ref weights i)
+                                            (vector-ref y i))))))
+                     (let loop ([i 0] [s 0])
+                          (if (= i n)
+                              s
+                              (loop (+ i 1)
+                                    (+ s (vector-ref weights i))))))]
+         [sst-w (let loop ([i 0] [s 0])
+                     (if (= i n)
+                         s
+                         (loop (+ i 1)
+                               (+ s (* (vector-ref weights i)
+                                       (expt (- (vector-ref y i) y-bar-w) 2))))))]
+         [r-squared (if (< sst-w 1e-10) 0 (- 1 (/ sse sst-w)))]
          [adj-r-squared (compute-adj-r-squared r-squared n p)])
         (make-linear-model-result
          beta se t-values p-values
@@ -260,23 +278,93 @@
 (define (linear-model-predict model X-new)
   (matrix-vec-mul X-new (linear-model-coefficients model)))
 
-;;; linear-model-predict-interval : LinearModelResult × Matrix × Num → (Values Vec Vec Vec)
-;;; Predict with confidence intervals.
-;;; Returns (point-predictions, lower-bounds, upper-bounds).
+;;; linear-model-predict-interval : LinearModelResult × Matrix × Num → (List Vec Vec Vec)
+;;; Predict with prediction intervals.
+;;; Returns list of (point-predictions lower-bounds upper-bounds).
+;;; Uses prediction interval formula: y_hat +/- t * sigma * sqrt(1 + x'(X'X)^-1 x)
+;;; Approximation: uses average leverage when (X'X)^-1 is unavailable.
 (define (linear-model-predict-interval model X-new confidence)
-  (let* ([n (matrix-rows X-new)]
+  (let* ([n-new (matrix-rows X-new)]
+         [p (matrix-cols X-new)]
          [beta (linear-model-coefficients model)]
          [mse (linear-model-mse model)]
-         [df (linear-model-df-residual model)]
-         [t-crit (t-quantile (+ 0.5 (/ confidence 2)) df)]
-         [X-orig (model-design-matrix model)]  ; Would need to store this
+         [sigma (sqrt mse)]
+         [n-orig (linear-model-n model)]
+         [df (- n-orig p)]
+         [t-crit (t-quantile (+ 0.5 (/ confidence 2)) (max df 1))]
          [predictions (matrix-vec-mul X-new beta)]
-         [lower (make-vector n)]
-         [upper (make-vector n)])
-        ;; For each prediction, compute SE of prediction
-        ;; SE_pred = sigma * sqrt(1 + x'(X'X)^(-1)x)
-        ;; For now, just return point predictions
-        (values predictions lower upper)))
+         [lower (make-vector n-new)]
+         [upper (make-vector n-new)]
+         ;; Compute X'X from new data for leverage approximation
+         [XtX-inv (compute-XtX-inverse X-new)])
+        (if (and (pair? XtX-inv) (eq? (car XtX-inv) 'error))
+            ;; Fallback: use constant SE based on average leverage
+            (let* ([avg-leverage (/ p n-orig)]
+                   [se-pred (* sigma (sqrt (+ 1 avg-leverage)))]
+                   [margin (* t-crit se-pred)])
+                  (do ([i 0 (+ i 1)])
+                      [(= i n-new)]
+                      (let ([pred (vector-ref predictions i)])
+                           (vector-set! lower i (- pred margin))
+                           (vector-set! upper i (+ pred margin))))
+                  (list predictions lower upper))
+            ;; Full calculation with leverage
+            (begin
+             (do ([i 0 (+ i 1)])
+                 [(= i n-new)]
+                 (let* ([xi (extract-row X-new i)]
+                        [leverage (compute-leverage-single xi XtX-inv p)]
+                        [se-pred (* sigma (sqrt (+ 1 leverage)))]
+                        [margin (* t-crit se-pred)]
+                        [pred (vector-ref predictions i)])
+                       (vector-set! lower i (- pred margin))
+                       (vector-set! upper i (+ pred margin))))
+             (list predictions lower upper)))))
+
+;;; compute-XtX-inverse : Matrix → Matrix | Error
+;;; Compute (X'X)^-1 for prediction intervals.
+(define (compute-XtX-inverse X)
+  (let* ([n (matrix-rows X)]
+         [p (matrix-cols X)]
+         [XtX-data (make-vector (* p p) 0)])
+        ;; XtX[j,k] = sum_i X[i,j] * X[i,k]
+        (do ([j 0 (+ j 1)])
+            [(= j p)]
+            (do ([k 0 (+ k 1)])
+                [(= k p)]
+                (let ([sum (let loop ([i 0] [s 0])
+                                (if (= i n)
+                                    s
+                                    (loop (+ i 1)
+                                          (+ s (* (matrix-ref X i j)
+                                                  (matrix-ref X i k))))))])
+                     (vector-set! XtX-data (+ (* j p) k) sum))))
+        (matrix-inverse (list 'matrix p p XtX-data))))
+
+;;; extract-row : Matrix × Nat → Vec
+;;; Extract row i from matrix as a vector.
+(define (extract-row M i)
+  (let* ([p (matrix-cols M)]
+         [row (make-vector p)])
+        (do ([j 0 (+ j 1)])
+            [(= j p) row]
+            (vector-set! row j (matrix-ref M i j)))))
+
+;;; compute-leverage-single : Vec × Matrix × Nat → Num
+;;; Compute leverage h_ii = x' (X'X)^-1 x for a single observation.
+(define (compute-leverage-single x XtX-inv p)
+  ;; h = x' * XtX-inv * x
+  (let loop-i ([i 0] [sum 0])
+       (if (= i p)
+           sum
+           (let ([inner (let loop-j ([j 0] [s 0])
+                             (if (= j p)
+                                 s
+                                 (loop-j (+ j 1)
+                                         (+ s (* (matrix-ref XtX-inv i j)
+                                                 (vector-ref x j))))))])
+                (loop-i (+ i 1)
+                        (+ sum (* (vector-ref x i) inner)))))))
 
 ;;; ============================================================
 ;;; Model Summary

@@ -280,6 +280,7 @@
    (dsl "Tagless final, chronicle, staging")
    (info "Information theory")
    (number-theory "Primes, modular arithmetic")
+   (statistics "Statistical modeling: regression, GLM, time series, hypothesis tests")
    ;; Tier 2+ — Advanced
    (physics/diff "Differentiable 2D physics")
    (physics/diff3d "Differentiable 3D physics")
