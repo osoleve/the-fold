@@ -6,6 +6,7 @@ Modules in lower layers must not depend on modules in higher layers.
 ## Layer 0: Base (`core/base/`)
 Foundation utilities with minimal dependencies.
 - **prelude.ss**: Basic combinators, list ops (pure Scheme).
+- **span.ss**: Source location data structures.
 - **error.ss**: Error handling types and formatters.
 - **sha256.ss**: Hashing primitives.
 
@@ -24,7 +25,7 @@ Foundational automatic differentiation structures required by the evaluator.
 ## Layer 2: Language Core (`core/lang/`)
 The evaluation and execution engine.
 - **prim.ss**: Pure primitive implementations.
-- **span.ss**: Source location tracking.
+- **span.ss**: Parser combinators with source location tracking.
 - **parse.ss**: Parser combinators.
 - **fold-parse.ss**: The Fold language parser (depends on `span.ss`, `parse.ss`).
 - **eval.ss**: The Evaluator.

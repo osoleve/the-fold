@@ -17,7 +17,7 @@
 ;;;   - span.ss (for source location tracking)
 
 (load "core/base/prelude.ss")
-(load "core/lang/span.ss")  ; Imports make-span, span?, span-file, span-line, etc.
+(load "core/base/span.ss")  ; Imports make-span, span?, span-file, span-line, etc.
 
 ;;; ============================================================
 ;;; Error Codes by Phase
