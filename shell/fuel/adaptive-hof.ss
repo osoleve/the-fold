@@ -20,6 +20,42 @@
 ;;; Options Parsing
 ;;; ============================================================
 
+;;; normalize-opts : (Alist | Plist) → Alist
+;;; Normalize options to alist format.
+;;; Accepts:
+;;;   - Alist: '((key . value) ...)  → returned as-is
+;;;   - Plist: '(key value ...)      → converted to alist
+;;;
+;;; Distinguishes by checking if first element is a pair with
+;;; a symbol car (alist) or just a symbol (plist).
+(define (normalize-opts opts)
+  (cond
+   [(null? opts) '()]
+   ;; Check if it's an alist: first element is (symbol . value)
+   [(and (pair? (car opts))
+         (symbol? (caar opts)))
+    opts]  ; Already an alist
+   ;; Otherwise treat as plist: (key value key value ...)
+   [(symbol? (car opts))
+    (plist->alist opts)]
+   [else
+    (error 'normalize-opts "invalid options format" opts)]))
+
+;;; plist->alist : Plist → Alist
+;;; Convert property list to association list.
+;;; '(key1 val1 key2 val2) → '((key1 . val1) (key2 . val2))
+(define (plist->alist plist)
+  (let loop ([remaining plist] [acc '()])
+       (cond
+        [(null? remaining) (reverse acc)]
+        [(null? (cdr remaining))
+         (error 'plist->alist "odd-length property list")]
+        [else
+         (let ([key (car remaining)]
+               [val (cadr remaining)])
+              (loop (cddr remaining)
+                    (cons (cons key val) acc)))])))
+
 ;;; get-opt : Alist × Symbol × Any → Any
 ;;; Get option value or default.
 (define (get-opt opts key default)
@@ -65,32 +101,47 @@
 ;;; Adaptive Map
 ;;; ============================================================
 
-;;; adaptive-map : (α → β) × List[α] × Alist → (Values List[β] Alist)
+;;; adaptive-map : Expr × List[α] × Options → (Values List[β] Alist)
 ;;; Map with adaptive fuel allocation.
 ;;;
-;;; Options:
+;;; The function f should be a Core DSL expression:
+;;;   - Lambda: (fn (x) body)
+;;;   - Variable name bound in env: my-func
+;;;
+;;; Options (as alist or plist):
 ;;;   initial-estimate - starting cost estimate (default: 100)
 ;;;   confidence - sigmas for safety margin (default: 2.0)
 ;;;   process-noise - Q parameter (default: 0.1)
 ;;;   measurement-noise - R parameter (default: 0.5)
 ;;;   max-retries - per-element retry limit (default: 10)
+;;;   env - environment for variable lookup (default: empty-env)
+;;;
+;;; Option formats (both equivalent):
+;;;   Alist: '((initial-estimate . 500) (confidence . 3.0))
+;;;   Plist: '(initial-estimate 500 confidence 3.0)
 ;;;
 ;;; Returns:
 ;;;   (values results stats)
 ;;;   where stats is an alist with efficiency metrics
+;;;
+;;; Note: For Scheme-native functions, use adaptive-map-native instead.
 (define (adaptive-map f xs . opts)
-  (let* ([opts (if (null? opts) '() (car opts))]
+  (let* ([opts (normalize-opts (if (null? opts) '() (car opts)))]
          [initial-estimate (get-opt opts 'initial-estimate 100)]
          [confidence (get-opt opts 'confidence 2.0)]
          [Q (get-opt opts 'process-noise 0.1)]
          [R (get-opt opts 'measurement-noise 0.5)]
          [max-retries (get-opt opts 'max-retries 10)]
+         [env (get-opt opts 'env empty-env)]
          [alloc (make-adaptive-allocator initial-estimate Q R confidence)])
         
-        ;; Build the call expression for f applied to an element
-        ;; We'll quote the element and apply f
+        ;; Build the call expression for f applied to an element.
+        ;; f is passed directly (not quoted) so it can be:
+        ;;   - A lambda expr: (fn (x) body) → evaluated to closure
+        ;;   - A variable: my-func → looked up in env
+        ;; The element is quoted since it's a runtime value.
         (define (make-call elem)
-          `(call (quote ,f) (quote ,elem)))
+          `(call ,f (quote ,elem)))
         
         (let loop ([remaining xs]
                    [results '()]
@@ -101,7 +152,7 @@
                       (let-values ([(result alloc*)
                                     (adaptive-eval-element alloc
                                                            (make-call elem)
-                                                           empty-env
+                                                           env
                                                            max-retries)])
                                   (case (car result)
                                         [(ok)
@@ -119,12 +170,18 @@
 ;;; Adaptive Map (Scheme-native functions)
 ;;; ============================================================
 
-;;; adaptive-map-native : (α → β) × List[α] × Alist → (Values List[β] Alist)
+;;; adaptive-map-native : (α → β) × List[α] × Options → (Values List[β] Alist)
 ;;; Map with adaptive fuel allocation for native Scheme functions.
 ;;; This version applies the function directly, measuring wall time as "cost".
 ;;; Useful when function isn't in Core DSL.
+;;;
+;;; Options (as alist or plist):
+;;;   initial-estimate - starting cost estimate (default: 100)
+;;;   confidence - sigmas for safety margin (default: 2.0)
+;;;   process-noise - Q parameter (default: 0.1)
+;;;   measurement-noise - R parameter (default: 0.5)
 (define (adaptive-map-native f xs . opts)
-  (let* ([opts (if (null? opts) '() (car opts))]
+  (let* ([opts (normalize-opts (if (null? opts) '() (car opts)))]
          [initial-estimate (get-opt opts 'initial-estimate 100)]
          [confidence (get-opt opts 'confidence 2.0)]
          [Q (get-opt opts 'process-noise 0.1)]
@@ -179,20 +236,33 @@
 ;;; Adaptive Fold
 ;;; ============================================================
 
-;;; adaptive-fold-left : (β × α → β) × β × List[α] × Alist → (Values β Alist)
+;;; adaptive-fold-left : Expr × β × List[α] × Options → (Values β Alist)
 ;;; Left fold with adaptive fuel allocation.
+;;;
+;;; The function f should be a Core DSL expression taking (acc, elem).
+;;;
+;;; Options (as alist or plist):
+;;;   initial-estimate - starting cost estimate (default: 100)
+;;;   confidence - sigmas for safety margin (default: 2.0)
+;;;   process-noise - Q parameter (default: 0.1)
+;;;   measurement-noise - R parameter (default: 0.5)
+;;;   max-retries - per-element retry limit (default: 10)
+;;;   env - environment for variable lookup (default: empty-env)
 (define (adaptive-fold-left f init xs . opts)
-  (let* ([opts (if (null? opts) '() (car opts))]
+  (let* ([opts (normalize-opts (if (null? opts) '() (car opts)))]
          [initial-estimate (get-opt opts 'initial-estimate 100)]
          [confidence (get-opt opts 'confidence 2.0)]
          [Q (get-opt opts 'process-noise 0.1)]
          [R (get-opt opts 'measurement-noise 0.5)]
          [max-retries (get-opt opts 'max-retries 10)]
+         [env (get-opt opts 'env empty-env)]
          [alloc (make-adaptive-allocator initial-estimate Q R confidence)])
         
-        ;; Build call expression for f applied to accumulator and element
+        ;; Build call expression for f applied to accumulator and element.
+        ;; f is passed directly (not quoted) for proper closure handling.
+        ;; acc and elem are quoted since they're runtime values.
         (define (make-call acc elem)
-          `(call (quote ,f) (quote ,acc) (quote ,elem)))
+          `(call ,f (quote ,acc) (quote ,elem)))
         
         (let loop ([remaining xs]
                    [acc init]
@@ -203,7 +273,7 @@
                       (let-values ([(result alloc*)
                                     (adaptive-eval-element alloc
                                                            (make-call acc elem)
-                                                           empty-env
+                                                           env
                                                            max-retries)])
                                   (case (car result)
                                         [(ok)
@@ -216,10 +286,16 @@
                                                    (remaining . ,(length remaining)))
                                                  (allocator-summary alloc*))])))))))
 
-;;; adaptive-fold-left-native : (β × α → β) × β × List[α] × Alist → (Values β Alist)
+;;; adaptive-fold-left-native : (β × α → β) × β × List[α] × Options → (Values β Alist)
 ;;; Left fold with native Scheme functions.
+;;;
+;;; Options (as alist or plist):
+;;;   initial-estimate - starting cost estimate (default: 100)
+;;;   confidence - sigmas for safety margin (default: 2.0)
+;;;   process-noise - Q parameter (default: 0.1)
+;;;   measurement-noise - R parameter (default: 0.5)
 (define (adaptive-fold-left-native f init xs . opts)
-  (let* ([opts (if (null? opts) '() (car opts))]
+  (let* ([opts (normalize-opts (if (null? opts) '() (car opts)))]
          [initial-estimate (get-opt opts 'initial-estimate 100)]
          [confidence (get-opt opts 'confidence 2.0)]
          [Q (get-opt opts 'process-noise 0.1)]
