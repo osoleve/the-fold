@@ -1,1 +1,153 @@
+# The Fold
 
+A content-addressable homoiconic universe built on Chez Scheme.
+
+---
+
+## The Insight
+
+Everything in The Fold is identified by its cryptographic hash. This single decision has profound consequences:
+
+- **Identity is content.** Two expressions with the same semantics produce the same hash, regardless of how they're written. Variable names are presentation, not semantics.
+- **Deduplication is automatic.** The same computation stored twice is stored once.
+- **Verification is inherent.** If you have the hash, you can verify the content.
+- **Composition is natural.** References are hashes. Dependencies are immutable.
+
+The Fold achieves this through **alpha-normalization**: before hashing, expressions are converted to use de Bruijn indices, erasing variable names entirely. `(lambda (x) (+ x 1))` and `(lambda (y) (+ y 1))` hash identically because they *are* identical.
+
+---
+
+## The Block Machine
+
+Everything is a **Block**—the universal primitive:
+
+```
+Block = { tag: Symbol, payload: Bytes, refs: [Hash] }
+```
+
+| Field | Purpose |
+|-------|---------|
+| `tag` | Type identifier (lambda, if, cons, vec, ...) |
+| `payload` | Literal data or encoded S-expression |
+| `refs` | Ordered list of hashes pointing to other blocks |
+
+Code is blocks. Data is blocks. Documentation is blocks. The entire system is a directed acyclic graph of content-addressed S-expressions, introspectable at every level.
+
+---
+
+## Architecture
+
+The Fold separates concerns into three layers with a strict purity boundary:
+
+```
++---------------------------------------+
+|   user/      Applications             |
++---------------------------------------+
+|   shell/     IO, validation           |  <- Impure
++=======================================+
+|   lattice/   Verified skill DAG       |  <- Pure
++---------------------------------------+
+|   core/      Language kernel          |  <- Pure
++---------------------------------------+
+```
+
+| Layer | Directory | Purity | Role |
+|-------|-----------|--------|------|
+| Core | `core/` | Pure | Minimal, axiomatic language kernel |
+| Lattice | `lattice/` | Pure | Verified library DAG (~1400 exports) |
+| Shell | `shell/` | Impure | IO boundary, validation, capabilities |
+| User | `user/` | Mixed | Applications and experiments |
+
+**The key invariant:** Core and Lattice assume perfect input. Shell provides all defensive logic, validation, and error handling. This separation keeps the pure layers simple and verifiable.
+
+---
+
+## Core Principles
+
+**Content-addressed universality.** The hash is the identity. Same semantics, same hash, everywhere, forever.
+
+**Homoiconicity.** Everything is an S-expression—code, data, configuration, logs, documentation. The system can introspect everything.
+
+**Purity separation.** The pure layers (core, lattice) contain no IO, no mutation, no defensive code. The impure layer (shell) handles the messy world.
+
+**Fuel-based totality.** All core functions take a fuel parameter—a cost budget that ensures termination. Functions are total: they always return, either with a result or with fuel exhaustion.
+
+**No external dependencies.** The entire system is built in-house. The substrate is Chez Scheme and nothing else.
+
+---
+
+## The Optimization Philosophy
+
+The Fold optimizes for **cognitive efficiency of representation**—abstractions that make problem spaces tractable for bounded reasoners.
+
+This is validated empirically: if a small model can solve problems more effectively with an abstraction than without it, that abstraction captures genuine structure. If not, the abstraction is wrong, no matter how elegant it appears.
+
+Speed optimizations happen underneath; semantics stay stable above. The content-addressed foundation means that *what* something computes never changes—only *how fast* it computes can improve.
+
+---
+
+## Quick Start
+
+```bash
+# Start the persistent REPL daemon (required)
+./daemon.sh start
+
+# Evaluate an expression
+./fold-agent.py "(+ 1 2)"
+
+# Run the test suite
+scheme --script test-all.ss
+
+# Explore the lattice
+./fold-agent.py "(load \"lattice/meta/meta.ss\") (lattice-init!) (lf \"matrix\")"
+```
+
+---
+
+## Project Structure
+
+| Directory | Purpose |
+|-----------|---------|
+| `core/` | Language kernel: types, blocks, evaluation, normalization |
+| `lattice/` | Skill DAG: verified libraries organized by tier and domain |
+| `shell/` | IO boundary: REPL, storage, diagnostics, tooling |
+| `user/` | Applications, experiments, demos |
+| `agents/` | Multi-agent ecosystem |
+| `docs/` | Extended documentation |
+| `ops/` | Deployment and operations |
+
+---
+
+## The Lattice
+
+The lattice is The Fold's standard library, organized as a dependency DAG with tiers:
+
+**Tier 0 (Foundational):** `linalg`, `data`, `algebra`, `random`—no lattice dependencies.
+
+**Tier 1 (Intermediate):** `numeric`, `geometry`, `autodiff`, `fp`, `query`, `info`—build on tier 0.
+
+**Tier 2+ (Advanced):** `physics/diff`, `tiles`, `sim`, `automata`, `pipeline`—multiple dependencies.
+
+Each skill has a `manifest.sexp` declaring its purity, fuel bounds, dependencies, and exports. The `lattice/meta/` subsystem provides search and navigation:
+
+```scheme
+(lf "matrix decomposition")   ; Full-text search
+(li 'linalg)                  ; Skill description
+(ld 'physics/diff)            ; What does this depend on?
+(lattice-hubs)                ; Most-depended-on skills
+```
+
+---
+
+## Status
+
+The Fold is a production system, actively developed and deployed. The first production instance runs on `debian-8gb-ash-1`.
+
+---
+
+## Further Reading
+
+- [CLAUDE.md](./CLAUDE.md) — Operational guide for working with The Fold
+- [docs/language-reference.md](./docs/language-reference.md) — Type system, parallel evaluation, rank-N polymorphism
+- [lattice/meta/](./lattice/meta/) — Skill navigation and search
+- [TAXONOMY.sexp](./TAXONOMY.sexp) — Machine-readable module taxonomy
