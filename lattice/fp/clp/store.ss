@@ -99,15 +99,23 @@
 
 ;;; cstore-set-domain : CStore × LVar × Domain → (Maybe CStore)
 ;;; Set the domain of a variable. Returns #f if domain is empty.
-;;; Adds variable to pending queue for propagation.
+;;; Only adds variable to pending queue if domain actually changed.
 (define (cstore-set-domain cs var dom)
   (if (domain-empty? dom)
       #f  ; Failure - empty domain
       (let* ([id (lvar-id var)]
              [domains (cstore-domains cs)]
-             [new-domains (alist-update id dom domains)]
+             [old-dom (let ([binding (assoc id domains)])
+                           (if binding (cdr binding) #f))]
+             ;; Only update pending if domain changed
+             [changed? (or (not old-dom) (not (domain=? old-dom dom)))]
+             [new-domains (if changed?
+                              (alist-update id dom domains)
+                              domains)]
              [pending (cstore-pending cs)]
-             [new-pending (if (member id pending) pending (cons id pending))])
+             [new-pending (if (and changed? (not (member id pending)))
+                              (cons id pending)
+                              pending)])
             (list 'cstore
                   (cstore-subst cs)
                   new-domains

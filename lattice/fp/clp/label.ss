@@ -166,8 +166,8 @@
       (let* ([val (val-select dom)]
              [cs1 (try-value cs var val)]
              [remaining-dom (domain-subtract-value dom val)])
-            ;; Interleave: try this value, then try remaining values
-            (stream-interleave
+            ;; Append: try this value, then try remaining values
+            (stream-append
              (if cs1
                  (label-with var-order val-select cs1 vars)
                  stream-nil)

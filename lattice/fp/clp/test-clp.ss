@@ -219,10 +219,9 @@
                      [solutions (goal cs)])
                     (assert-false (stream-nil? solutions))
                     ;; Verify the solution
-                    (let* ([sol (stream-head solutions)]
-                           [s (cstore-get-value sol (car (cstore-domains sol)))])
-                          ;; Just check we got a solution
-                          (assert-true (cstore? sol)))))
+                    (let ([sol (stream-head solutions)])
+                         ;; Just check we got a valid solution
+                         (assert-true (cstore? sol)))))
             )
 
 ;;; ============================================================

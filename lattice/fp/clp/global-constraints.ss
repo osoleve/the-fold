@@ -182,22 +182,29 @@
 (define (sum-fd-propagate cs vars result)
   (let* ([bounds (map (lambda (v) (fd-bounds cs v)) vars)]
          [result-bounds (fd-bounds cs result)])
-        ;; Check all have domains
-        (if (or (any not bounds) (not result-bounds))
+        ;; Check all vars have domains
+        (if (any not bounds)
             cs
             (let* ([sum-lo (apply + (map car bounds))]
-                   [sum-hi (apply + (map cdr bounds))]
-                   [res-lo (car result-bounds)]
-                   [res-hi (cdr result-bounds)]
-                   ;; Narrow result
-                   [new-res-lo (max res-lo sum-lo)]
-                   [new-res-hi (min res-hi sum-hi)])
-                  (if (> new-res-lo new-res-hi)
-                      #f
-                      (let ([cs1 (fd-narrow-bounds cs result new-res-lo new-res-hi)])
-                           (and cs1
-                                ;; Narrow each variable
-                                (sum-fd-narrow-vars cs1 vars result))))))))
+                   [sum-hi (apply + (map cdr bounds))])
+                  ;; If result has no bounds, create them from sum
+                  (if (not result-bounds)
+                      (if (lvar? result)
+                          (cstore-set-domain cs result (make-domain sum-lo sum-hi))
+                          (if (and (>= result sum-lo) (<= result sum-hi))
+                              cs  ; constant result in range
+                              #f)) ; constant result out of range
+                      (let* ([res-lo (car result-bounds)]
+                             [res-hi (cdr result-bounds)]
+                             ;; Narrow result
+                             [new-res-lo (max res-lo sum-lo)]
+                             [new-res-hi (min res-hi sum-hi)])
+                            (if (> new-res-lo new-res-hi)
+                                #f
+                                (let ([cs1 (fd-narrow-bounds cs result new-res-lo new-res-hi)])
+                                     (and cs1
+                                          ;; Narrow each variable
+                                          (sum-fd-narrow-vars cs1 vars result))))))))))
 
 ;;; sum-fd-narrow-vars : CStore × (List LVar) × (LVar | Int) → (Maybe CStore)
 ;;; Narrow each variable based on sum constraint.
@@ -206,16 +213,18 @@
        (if (not result-bounds)
            cs
            (let ([res-lo (car result-bounds)]
-                 [res-hi (cdr result-bounds)])
-                (let loop ([vars vars] [cs cs])
-                     (if (null? vars)
+                 [res-hi (cdr result-bounds)]
+                 [all-vars vars])  ; Capture original list for computing "others"
+                (let loop ([remaining vars] [cs cs])
+                     (if (null? remaining)
                          cs
-                         (let* ([var (car vars)]
-                                [others (filter (lambda (v) (not (eq? v var))) vars)]
+                         (let* ([var (car remaining)]
+                                ;; Use all-vars, not remaining, to get other summands
+                                [others (filter (lambda (v) (not (eq? v var))) all-vars)]
                                 [var-bounds (fd-bounds cs var)]
                                 [other-bounds (map (lambda (v) (fd-bounds cs v)) others)])
                                (if (or (not var-bounds) (any not other-bounds))
-                                   (loop (cdr vars) cs)
+                                   (loop (cdr remaining) cs)
                                    (let* ([others-lo (apply + (map car other-bounds))]
                                           [others-hi (apply + (map cdr other-bounds))]
                                           ;; var = result - sum(others)
@@ -227,7 +236,7 @@
                                              #f
                                              (let ([cs1 (fd-narrow-bounds cs var new-lo new-hi)])
                                                   (if cs1
-                                                      (loop (cdr vars) cs1)
+                                                      (loop (cdr remaining) cs1)
                                                       #f))))))))))))
 
 ;;; post-sum-fd : CStore × (List LVar) × (LVar | Int) → (Maybe CStore)
