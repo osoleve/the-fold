@@ -270,3 +270,235 @@ shell/ffi/
 3. **QA review catches real bugs** - external review is worth the time
 4. **Benchmark before and after** - optimization without measurement is guessing
 5. **Ordered traversal matters** - simple algorithm changes can double performance
+
+---
+
+# Phase 2: Raymarcher Supernode (2026-01-10)
+
+## Executive Summary
+
+Extended the BVH acceleration to include complete mesh raymarching. Moved the entire sphere tracing loop into Rust as a single FFI call, achieving **162-257x speedup** over pure Scheme.
+
+---
+
+## Critical Bug: Dynamic Traversal Indexing
+
+### The Problem
+
+We needed to return the triangle index (for texturing/materials) when a ray hits the mesh. Initial approach used a counter during BVH traversal:
+
+```rust
+// BROKEN: Counter-based indexing
+fn traverse(..., tri_counter: &mut u32) {
+    match node {
+        BVHNode::Internal { left, right, .. } => {
+            if left_dist <= right_dist {
+                traverse(left, ..., tri_counter);
+                traverse(right, ..., tri_counter);
+            } else {
+                // RIGHT visited first - counter increments in wrong order!
+                traverse(right, ..., tri_counter);
+                traverse(left, ..., tri_counter);
+            }
+        }
+        BVHNode::Leaf { triangles, .. } => {
+            for (i, tri) in triangles.iter().enumerate() {
+                if hit { return base_index + i; }  // Index depends on visit order
+            }
+            *tri_counter += triangles.len();
+        }
+    }
+}
+```
+
+The `get_triangle_by_index` function assumed static left-then-right order, but traversal is dynamic (visits closer child first). Same triangle gets different indices depending on query point location!
+
+### The Solution
+
+**Embed the triangle's original index in the Triangle struct itself:**
+
+```rust
+pub struct Triangle {
+    pub p1: Vec3,
+    pub p2: Vec3,
+    pub p3: Vec3,
+    pub id: u32,  // Stable index assigned during BVH construction
+}
+
+// In bvh_from_bytes:
+for i in 0..num_tris {
+    triangles.push(parse_triangle(&data[offset..], i as u32));
+}
+```
+
+Now `hit.triangle.id` is stable regardless of traversal order.
+
+### Lesson
+
+**Don't track state that depends on traversal order.** If you need to identify which element was found, embed the identity in the element itself.
+
+---
+
+## Memory Safety: dynamic-wind for FFI Cleanup
+
+### The Problem
+
+FFI calls allocate memory that must be freed. If an exception occurs between allocation and `foreign-free`, memory leaks:
+
+```scheme
+;; LEAK RISK: exception before foreign-free
+(let* ([result-ptr (make-ftype-pointer ... (foreign-alloc ...))])
+  (rust-call ... result-ptr)
+  (let ([data (ftype-ref ... result-ptr)])  ; Exception here?
+    (foreign-free (ftype-pointer-address result-ptr))
+    data))
+```
+
+### The Solution
+
+Use `dynamic-wind` to guarantee cleanup:
+
+```scheme
+(let* ([result-ptr (make-ftype-pointer ... (foreign-alloc ...))])
+  (dynamic-wind
+   (lambda () #f)  ; before
+   (lambda ()      ; body
+     (rust-call ... result-ptr)
+     (extract-result result-ptr))
+   (lambda ()      ; after - ALWAYS runs
+     (foreign-free (ftype-pointer-address result-ptr)))))
+```
+
+### Lesson
+
+**Always use `dynamic-wind` for FFI memory management.** It's the Scheme equivalent of RAII or try-finally.
+
+---
+
+## Performance: Explicit Stack vs Recursion
+
+### The Problem
+
+Recursive BVH traversal uses the call stack, which can overflow on very deep/unbalanced trees (common in "folded" geometry).
+
+### The Solution
+
+Use an explicit stack:
+
+```rust
+// BEFORE: Recursive (stack overflow risk)
+fn traverse(node: &BVHNode, ...) -> bool {
+    match node {
+        BVHNode::Internal { left, right, .. } => {
+            traverse(left, ...) && traverse(right, ...)
+        }
+        ...
+    }
+}
+
+// AFTER: Explicit stack (no overflow, faster!)
+let mut stack: Vec<&BVHNode> = Vec::with_capacity(64);
+stack.push(&handle.root);
+
+while let Some(node) = stack.pop() {
+    match node {
+        BVHNode::Internal { left, right, .. } => {
+            // Push in reverse order for correct traversal
+            if left_dist <= right_dist {
+                stack.push(right);
+                stack.push(left);
+            } else {
+                stack.push(left);
+                stack.push(right);
+            }
+        }
+        ...
+    }
+}
+```
+
+### Performance Impact
+
+| Mesh | Recursive | Explicit Stack |
+|------|-----------|----------------|
+| Small (12 tris) | 105x | 162x |
+| Medium (80 tris) | 213x | 257x |
+| Large (320 tris) | 163x | 188x |
+
+**50-60% faster** due to reduced function call overhead.
+
+### Lesson
+
+**Prefer explicit stacks over recursion for tree traversal in hot paths.** It's safer AND faster.
+
+---
+
+## Sign Convention Matters
+
+### The Issue
+
+Scheme's `mesh-sdf.ss` used inverted sign convention:
+- `dot >= 0` (outside) → **negative** distance
+- `dot < 0` (inside) → **positive** distance
+
+Standard SDF convention is opposite:
+- Outside → **positive**
+- Inside → **negative**
+
+### Resolution
+
+Documented in code. Rust uses standard convention. The raymarcher uses `abs(dist)` anyway so the sign only affects rendering normals.
+
+### Lesson
+
+**Document sign conventions explicitly.** When two systems interact, mismatched conventions cause subtle bugs.
+
+---
+
+## Final Performance Summary
+
+| Mesh Size | Triangles | Scheme (ms) | Rust (ms) | Speedup |
+|-----------|-----------|-------------|-----------|---------|
+| Small | 12 | 190 | 1.2 | **162x** |
+| Medium | 80 | 499 | 1.9 | **257x** |
+| Large | 320 | 470 | 2.5 | **188x** |
+
+*64 rays per frame, 3-5 iterations each*
+
+---
+
+## Updated File Organization
+
+```
+shell/ffi/
+├── ffi-core.ss          # Library loading, basic FFI
+├── serialize.ss         # Scheme → bytevector
+├── bvh-ffi.ss          # BVH-specific FFI bindings
+├── bvh-cache.ss        # Content-hash cache + Guardians
+├── raymarch-ffi.ss     # Raymarcher FFI bindings (NEW)
+├── bench-bvh.ss        # BVH baseline benchmark
+├── bench-bvh-accel.ss  # BVH comparison benchmark
+├── bench-raymarch.ss   # Raymarcher benchmark (NEW)
+└── rust-accel/
+    └── src/
+        ├── lib.rs
+        ├── bvh.rs
+        ├── raymarch.rs  # Raymarcher acceleration (NEW)
+        ├── triangle.rs  # Now includes id field
+        └── ...
+
+lattice/geometry/
+├── raymarch.ss         # Pure Scheme raymarcher
+├── raymarch-accel.ss   # Transparent wrapper (NEW)
+└── ...
+```
+
+---
+
+## Phase 2 Key Takeaways
+
+1. **Embed identity in data** - Don't rely on traversal order for indexing
+2. **dynamic-wind for FFI** - Guarantee cleanup even on exceptions
+3. **Explicit stacks are faster** - AND safer for deep trees
+4. **Document conventions** - Sign conventions, coordinate systems, etc.
+5. **QA review twice** - Gemini caught the indexing bug before deployment

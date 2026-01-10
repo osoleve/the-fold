@@ -107,38 +107,42 @@
          [dy (inexact (vec3-y direction))]
          [dz (inexact (vec3-z direction))])
         
-        ;; Call Rust function
-        (rust-raymarch-mesh ptr
-                            ox oy oz
-                            dx dy dz
-                            max-steps
-                            (inexact max-distance)
-                            (inexact threshold)
-                            fuel
-                            result-ptr)
-        
-        ;; Extract results
-        (let ([status (ftype-ref raymarch-result-t (status) result-ptr)]
-              [px (ftype-ref raymarch-result-t (px) result-ptr)]
-              [py (ftype-ref raymarch-result-t (py) result-ptr)]
-              [pz (ftype-ref raymarch-result-t (pz) result-ptr)]
-              [nx (ftype-ref raymarch-result-t (nx) result-ptr)]
-              [ny (ftype-ref raymarch-result-t (ny) result-ptr)]
-              [nz (ftype-ref raymarch-result-t (nz) result-ptr)]
-              [t (ftype-ref raymarch-result-t (t) result-ptr)]
-              [steps (ftype-ref raymarch-result-t (steps) result-ptr)]
-              [tri-idx (ftype-ref raymarch-result-t (triangle-idx) result-ptr)]
-              [fuel-out (ftype-ref raymarch-result-t (fuel) result-ptr)])
-             
-             ;; Free allocated memory
-             (foreign-free (ftype-pointer-address result-ptr))
-             
-             ;; Return appropriate result
-             (case status
-                   [(0) `(miss ,steps ,fuel-out)]
-                   [(1) `(ok (,(vec3 px py pz) ,(vec3 nx ny nz) ,t ,steps ,tri-idx) ,fuel-out)]
-                   [(2) `(out-of-fuel ,steps)]
-                   [else `(error unknown-status ,status)]))))
+        ;; Use dynamic-wind to ensure cleanup even if exception occurs
+        (dynamic-wind
+         (lambda () #f)
+         (lambda ()
+                 ;; Call Rust function
+                 (rust-raymarch-mesh ptr
+                                     ox oy oz
+                                     dx dy dz
+                                     max-steps
+                                     (inexact max-distance)
+                                     (inexact threshold)
+                                     fuel
+                                     result-ptr)
+                 
+                 ;; Extract results
+                 (let ([status (ftype-ref raymarch-result-t (status) result-ptr)]
+                       [px (ftype-ref raymarch-result-t (px) result-ptr)]
+                       [py (ftype-ref raymarch-result-t (py) result-ptr)]
+                       [pz (ftype-ref raymarch-result-t (pz) result-ptr)]
+                       [nx (ftype-ref raymarch-result-t (nx) result-ptr)]
+                       [ny (ftype-ref raymarch-result-t (ny) result-ptr)]
+                       [nz (ftype-ref raymarch-result-t (nz) result-ptr)]
+                       [t (ftype-ref raymarch-result-t (t) result-ptr)]
+                       [steps (ftype-ref raymarch-result-t (steps) result-ptr)]
+                       [tri-idx (ftype-ref raymarch-result-t (triangle-idx) result-ptr)]
+                       [fuel-out (ftype-ref raymarch-result-t (fuel) result-ptr)])
+                      
+                      ;; Return appropriate result
+                      (case status
+                            [(0) `(miss ,steps ,fuel-out)]
+                            [(1) `(ok (,(vec3 px py pz) ,(vec3 nx ny nz) ,t ,steps ,tri-idx) ,fuel-out)]
+                            [(2) `(out-of-fuel ,steps)]
+                            [else `(error unknown-status ,status)])))
+         (lambda ()
+                 ;; Cleanup - always runs even on exception
+                 (foreign-free (ftype-pointer-address result-ptr))))))
 
 ;;; rust-mesh-sdf-normal/raw : RustBVHHandle × Vec3 × Nat → Result
 ;;; Compute mesh SDF normal at a point
@@ -157,24 +161,28 @@
          [py (inexact (vec3-y point))]
          [pz (inexact (vec3-z point))])
         
-        ;; Call Rust function
-        (rust-mesh-sdf-normal ptr px py pz fuel result-ptr)
-        
-        ;; Extract results
-        (let ([status (ftype-ref normal-result-t (status) result-ptr)]
-              [nx (ftype-ref normal-result-t (nx) result-ptr)]
-              [ny (ftype-ref normal-result-t (ny) result-ptr)]
-              [nz (ftype-ref normal-result-t (nz) result-ptr)]
-              [fuel-out (ftype-ref normal-result-t (fuel) result-ptr)])
-             
-             ;; Free allocated memory
-             (foreign-free (ftype-pointer-address result-ptr))
-             
-             ;; Return appropriate result
-             (case status
-                   [(1) `(ok ,(vec3 nx ny nz) ,fuel-out)]
-                   [(2) '(out-of-fuel)]
-                   [else `(error unknown-status ,status)]))))
+        ;; Use dynamic-wind to ensure cleanup even if exception occurs
+        (dynamic-wind
+         (lambda () #f)
+         (lambda ()
+                 ;; Call Rust function
+                 (rust-mesh-sdf-normal ptr px py pz fuel result-ptr)
+                 
+                 ;; Extract results
+                 (let ([status (ftype-ref normal-result-t (status) result-ptr)]
+                       [nx (ftype-ref normal-result-t (nx) result-ptr)]
+                       [ny (ftype-ref normal-result-t (ny) result-ptr)]
+                       [nz (ftype-ref normal-result-t (nz) result-ptr)]
+                       [fuel-out (ftype-ref normal-result-t (fuel) result-ptr)])
+                      
+                      ;; Return appropriate result
+                      (case status
+                            [(1) `(ok ,(vec3 nx ny nz) ,fuel-out)]
+                            [(2) '(out-of-fuel)]
+                            [else `(error unknown-status ,status)])))
+         (lambda ()
+                 ;; Cleanup - always runs even on exception
+                 (foreign-free (ftype-pointer-address result-ptr))))))
 
 ;;; ============================================================
 ;;; Convenience Wrappers

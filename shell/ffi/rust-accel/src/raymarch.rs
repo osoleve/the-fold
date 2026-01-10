@@ -87,7 +87,7 @@ pub struct ClosestPointWithTri {
 }
 
 /// Find closest point on BVH surface with triangle
-/// Simplified: triangle carries its own stable id, no counter needed
+/// Uses explicit stack instead of recursion to prevent stack overflow on deep BVHs
 fn bvh_closest_point_with_index(
     handle: &BVHHandle,
     point: Vec3,
@@ -100,27 +100,26 @@ fn bvh_closest_point_with_index(
 
     let mut best: Option<ClosestPointWithTri> = None;
 
-    fn traverse(
-        node: &BVHNode,
-        point: Vec3,
-        best: &mut Option<ClosestPointWithTri>,
-        fuel: &mut u64,
-    ) -> bool {
+    // Explicit stack for iterative traversal (prevents stack overflow on deep BVHs)
+    let mut stack: Vec<&BVHNode> = Vec::with_capacity(64);
+    stack.push(&handle.root);
+
+    while let Some(node) = stack.pop() {
         // Cost to visit this node
         if !fuel::deduct(fuel, costs::NODE_VISIT) {
-            return false;
+            return FuelResult::OutOfFuel;
         }
 
         // Cost to test AABB
         if !fuel::deduct(fuel, costs::AABB_TEST) {
-            return false;
+            return FuelResult::OutOfFuel;
         }
 
         // Early exit if AABB can't improve result
         let dist_to_box = node.bbox().distance_to_point(point);
         if let Some(ref best_hit) = best {
             if dist_to_box >= best_hit.distance {
-                return true; // Skip this subtree
+                continue; // Skip this subtree
             }
         }
 
@@ -128,7 +127,7 @@ fn bvh_closest_point_with_index(
             BVHNode::Leaf { triangles, .. } => {
                 for tri in triangles.iter() {
                     if !fuel::deduct(fuel, costs::TRIANGLE_TEST) {
-                        return false;
+                        return FuelResult::OutOfFuel;
                     }
 
                     let (closest, dist) = tri.closest_point(point);
@@ -138,40 +137,35 @@ fn bvh_closest_point_with_index(
                     };
 
                     if should_update {
-                        *best = Some(ClosestPointWithTri {
+                        best = Some(ClosestPointWithTri {
                             point: closest,
                             distance: dist,
-                            triangle: *tri,  // Triangle carries its own id
+                            triangle: *tri, // Triangle carries its own id
                         });
                     }
                 }
-                true
             }
             BVHNode::Internal { left, right, .. } => {
-                // Traverse closer child first for better pruning
+                // Push children in reverse order so closer child is processed first
                 let left_dist = left.bbox().distance_to_point(point);
                 let right_dist = right.bbox().distance_to_point(point);
 
                 if left_dist <= right_dist {
-                    traverse(left, point, best, fuel)
-                        && traverse(right, point, best, fuel)
+                    // Process left first, so push right first (LIFO)
+                    stack.push(right);
+                    stack.push(left);
                 } else {
-                    traverse(right, point, best, fuel)
-                        && traverse(left, point, best, fuel)
+                    // Process right first, so push left first (LIFO)
+                    stack.push(left);
+                    stack.push(right);
                 }
             }
         }
     }
 
-    let completed = traverse(&handle.root, point, &mut best, fuel);
-
-    if !completed {
-        FuelResult::OutOfFuel
-    } else {
-        match best {
-            Some(hit) => FuelResult::Ok(hit, *fuel),
-            None => FuelResult::Miss(*fuel),
-        }
+    match best {
+        Some(hit) => FuelResult::Ok(hit, *fuel),
+        None => FuelResult::Miss(*fuel),
     }
 }
 
