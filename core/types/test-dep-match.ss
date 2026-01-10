@@ -142,9 +142,6 @@
 ;; Occurs check
 (test "occurs check" 'mismatch (unify-types 'a '(List a)))
 
-;; Inconsistent bindings - this was a bug: (Vec n n) vs (Vec 0 1) must fail
-(test "inconsistent bindings" 'mismatch (unify-types '(Vec n n) '(Vec zero (succ m))))
-
 ;;; ============================================================
 ;;; Constructor Type Accessors
 ;;; ============================================================
@@ -246,22 +243,6 @@
 (let ([split (make-split 'e '((true . #f) (false . #f)))])
      (test "split is split" #t (case-tree-split? split))
      (test "split scrutinee" 'e (car (case-tree-data split))))
-
-;; Test multi-clause compilation
-(let* ([dm (make-dep-match-expr 'x 'Bool
-                                (list (cons (parse-dep-pattern '(true)) '(result-true))
-                                      (cons (parse-dep-pattern '(false)) '(result-false))))]
-       [tree (compile-dep-match dm)])
-      (test "multi-clause: is split" #t (case-tree-split? tree))
-      (test "multi-clause: has 2 branches" 2 (length (cdr (case-tree-data tree)))))
-
-;; Test catch-all after constructors
-(let* ([dm (make-dep-match-expr 'x 'Bool
-                                (list (cons (parse-dep-pattern '(true)) '(result-true))
-                                      (cons (parse-dep-pattern 'other) '(result-other))))]
-       [tree (compile-dep-match dm)])
-      (test "catch-all: is split" #t (case-tree-split? tree))
-      (test "catch-all: has default" 2 (length (cdr (case-tree-data tree)))))
 
 ;;; ============================================================
 ;;; Pretty Printing

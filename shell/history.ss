@@ -325,7 +325,14 @@
         (display (format "  File:              ~a\n" (or *history-path* "(not set)")))
         (display "\n")))
 
-;;; NOTE: remove-duplicates is provided by core/base/prelude.ss
+(define (remove-duplicates lst)
+  "Remove duplicates from list"
+  (if (null? lst)
+      '()
+      (cons (car lst)
+            (remove-duplicates
+             (filter (lambda (x) (not (equal? x (car lst))))
+                     (cdr lst))))))
 
 ;;; ============================================================
 ;;; Auto-save on Exit

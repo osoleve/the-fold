@@ -24,7 +24,7 @@
 ;;;   (refactor-undo!)                                 ; Undo last refactor
 ;;;
 ;;; Dependencies:
-;;;   shell/tools/index.ss (symbol index)
+;;;   core/lang/index.ss (symbol index)
 ;;;   shell/lens/navigator.ss (call graph)
 ;;;   shell/tools/refactor.ss (core transforms)
 
@@ -33,7 +33,6 @@
 ;;; ============================================================
 
 (load "core/base/prelude.ss")
-(load "shell/tools/string-utils.ss")
 
 ;;; ============================================================
 ;;; State Management
@@ -223,9 +222,19 @@
                         [else
                          (loop rest results)]))))))
 
-;;; NOTE: string-split-lines provided by shell/tools/string-utils.ss
-;;;       Alias for backward compatibility
-(define string-split-lines-simple string-split-lines)
+;;; string-split-lines-simple : String -> (List String)
+(define (string-split-lines-simple str)
+  (let ([len (string-length str)])
+       (let loop ([i 0] [start 0] [lines '()])
+            (cond
+             [(>= i len)
+              (reverse (if (< start len)
+                           (cons (substring str start len) lines)
+                           lines))]
+             [(char=? (string-ref str i) #\newline)
+              (loop (+ i 1) (+ i 1) (cons (substring str start i) lines))]
+             [else
+              (loop (+ i 1) start lines)]))))
 
 ;;; string-contains-word? : String × String -> Boolean
 ;;; Check if str contains word as a whole symbol (not substring).
@@ -595,9 +604,18 @@
              [(char=? (string-ref str i) ch) i]
              [else (loop (+ i 1))]))))
 
-;;; NOTE: string-trim provided by core/base/prelude.ss
-;;;       Alias for backward compatibility
-(define string-trim-simple string-trim)
+;;; string-trim-simple : String -> String
+(define (string-trim-simple str)
+  (let* ([len (string-length str)]
+         [start (let loop ([i 0])
+                     (if (and (< i len) (char-whitespace? (string-ref str i)))
+                         (loop (+ i 1))
+                         i))]
+         [end (let loop ([i len])
+                   (if (and (> i start) (char-whitespace? (string-ref str (- i 1))))
+                       (loop (- i 1))
+                       i))])
+        (substring str start end)))
 
 ;;; ============================================================
 ;;; Apply Changes

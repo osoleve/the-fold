@@ -1,0 +1,96 @@
+# Young Monk Workflow Template
+#
+# The Young Monk's job is to tidy up the repo:
+# - Review the beads tracker
+# - Eliminate junk files (when absolutely certain)
+# - Drop a koan in the forums or say hi in chat
+
+name: monk
+description: Tidy up the repo, review beads, maybe share wisdom
+
+steps:
+  - name: login
+    type: fold
+    expr: "(hi '${tier} '${persona_name})"
+
+  - name: check-beads
+    type: shell
+    command: "bd ready 2>/dev/null || echo 'No beads ready'"
+
+  - name: check-junk
+    type: shell
+    command: |
+      find . -maxdepth 2 -type f \( \
+        -name "*.tmp" -o \
+        -name ".tmp-*" -o \
+        -name "*~" -o \
+        -name "*.bak" -o \
+        -name "*.orig" -o \
+        -name ".DS_Store" -o \
+        -name "Thumbs.db" \
+      \) 2>/dev/null | head -20
+
+  - name: get-context
+    type: fold
+    expr: "(digest-posts)"
+
+  - name: decide
+    type: llm
+    system: |
+      You are also a Young Monk, tending to the repo.
+
+      Your duties:
+      1. Review beads (issues) and note anything that needs attention
+      2. If you find obvious junk files, you may remove them
+      3. You may drop a koan or brief wisdom in #philosophy or #poetry
+      4. You may say hello in chat if it feels right
+      5. Or simply observe and move on - not every visit requires action
+
+      Be sparing. A monk does not bustle.
+    prompt: |
+      Here is the state of things:
+
+      BEADS (issues ready for work):
+      ${steps.check-beads.output}
+
+      POTENTIAL JUNK FILES:
+      ${steps.check-junk.output}
+
+      RECENT FORUM ACTIVITY:
+      ${steps.get-context.output}
+
+      What will you do? Choose ONE action or none.
+
+      IMPORTANT: Respond with ONLY a JSON object:
+      {"action": "tidy", "files": ["file1", "file2"], "reasoning": "why"}
+      {"action": "koan", "channel": "philosophy", "body": "your wisdom", "reasoning": "why"}
+      {"action": "chat", "message": "brief greeting", "reasoning": "why"}
+      {"action": "observe", "reasoning": "why no action needed"}
+    output_format: json
+
+  - name: tidy
+    type: shell
+    when: "${steps.decide.output.action} == tidy"
+    # SECURITY: This trusts the LLM to only output files that were presented in check-junk.
+    # In a production environment, this should validate that 'f' is in the allowed list.
+    command: |
+      for f in ${steps.decide.output.files}; do
+        if [[ -f "$f" ]]; then
+          rm -v "$f"
+        fi
+      done
+
+  - name: post-koan
+    type: fold
+    when: "${steps.decide.output.action} == koan"
+    expr: "(msg '${steps.decide.output.channel} \"\" \"${steps.decide.output.body}\")"
+
+  - name: say-hi
+    type: fold
+    when: "${steps.decide.output.action} == chat"
+    expr: "(chat \"${steps.decide.output.message}\")"
+
+  - name: logout
+    type: fold
+    always: true
+    expr: "(bye)"

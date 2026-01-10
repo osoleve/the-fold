@@ -63,22 +63,16 @@
 ;;; *module-search-dirs* : (List String)
 ;;; Directories to search when resolving module names
 (define *module-search-dirs*
-  '(;; Core directories (language kernel)
-    "core/base" "core/blocks" "core/lang" "core/types" "core/util"
-    ;; Lattice directories (skill tree)
-    "lattice/linalg" "lattice/data" "lattice/algebra" "lattice/random"
-    "lattice/numeric" "lattice/geometry" "lattice/autodiff"
-    "lattice/query" "lattice/dsl" "lattice/info"
-    "lattice/physics/diff" "lattice/physics/diff3d"
-    "lattice/physics/classical" "lattice/physics/classical3d"
-    "lattice/sim" "lattice/automata" "lattice/number-theory" "lattice/pipeline"
+  '(;; Core directories
+    "core/base" "core/blocks" "core/lang" "core/types" "core/data"
+    "core/query" "core/util" "core/linalg" "core/numeric" "core/autodiff"
+    "core/random" "core/pipeline" "core/info-theory"
     ;; FP subdirectories
-    "lattice/fp" "lattice/fp/control" "lattice/fp/numeric" "lattice/fp/parsing"
-    "lattice/fp/meta" "lattice/fp/data" "lattice/fp/game" "lattice/fp/symbolic"
-    "lattice/fp/measure" "lattice/fp/control-systems" "lattice/fp/rewrite"
-    "lattice/fp/analysis"
+    "core/fp" "core/fp/control" "core/fp/numeric" "core/fp/parsing"
+    "core/fp/meta" "core/fp/data" "core/fp/game" "core/fp/symbolic"
+    "core/fp/measure" "core/fp/control-systems"
     ;; Shell directories
-    "shell" "shell/tests" "shell/lsp"))
+    "shell" "shell/tests"))
 
 ;;; *header-scan-limit* : Nat
 ;;; Number of lines to scan for header annotations
@@ -121,30 +115,30 @@
  (register-module-path! 'dep-types "core/types/dep-types.ss")
  
  ;; Query layer
- (register-module-path! 'query "lattice/query/query.ss")
- (register-module-path! 'query-dsl "lattice/query/query-dsl.ss")
+ (register-module-path! 'query "core/query/query.ss")
+ (register-module-path! 'query-dsl "core/query/query-dsl.ss")
  
  ;; Data layer
- (register-module-path! 'data-structures "lattice/data/data-structures.ss")
- (register-module-path! 'collection-utils "lattice/data/collection-utils.ss")
- (register-module-path! 'graph-algorithms "lattice/data/graph-algorithms.ss")
+ (register-module-path! 'data-structures "core/data/data-structures.ss")
+ (register-module-path! 'collection-utils "core/data/collection-utils.ss")
+ (register-module-path! 'graph-algorithms "core/data/graph-algorithms.ss")
  
  ;; Linalg layer
- (register-module-path! 'vec "lattice/linalg/vec.ss")
- (register-module-path! 'matrix "lattice/linalg/matrix.ss")
- (register-module-path! 'matrix-decomp "lattice/linalg/matrix-decomp.ss")
- (register-module-path! 'matrix-solvers "lattice/linalg/matrix-solvers.ss")
- (register-module-path! 'sparse "lattice/linalg/sparse.ss")
+ (register-module-path! 'vec "core/linalg/vec.ss")
+ (register-module-path! 'matrix "core/linalg/matrix.ss")
+ (register-module-path! 'matrix-decomp "core/linalg/matrix-decomp.ss")
+ (register-module-path! 'matrix-solvers "core/linalg/matrix-solvers.ss")
+ (register-module-path! 'sparse "core/linalg/sparse.ss")
  
  ;; Numeric layer
- (register-module-path! 'complex "lattice/numeric/complex.ss")
- (register-module-path! 'dft "lattice/numeric/dft.ss")
- (register-module-path! 'convolution "lattice/numeric/convolution.ss")
+ (register-module-path! 'complex "core/numeric/complex.ss")
+ (register-module-path! 'dft "core/numeric/dft.ss")
+ (register-module-path! 'convolution "core/numeric/convolution.ss")
  
  ;; FP layers
- (register-module-path! 'transcendental "lattice/fp/numeric/transcendental.ss")
- (register-module-path! 'monad "lattice/fp/control/monad.ss")
- (register-module-path! 'parser-combinators "lattice/fp/parsing/parser-combinators.ss"))
+ (register-module-path! 'transcendental "core/fp/numeric/transcendental.ss")
+ (register-module-path! 'monad "core/fp/control/monad.ss")
+ (register-module-path! 'parser-combinators "core/fp/parsing/parser-combinators.ss"))
 
 ;;; clear-module-caches! : → Void
 ;;; Clear header cache (useful after file modifications).
@@ -499,16 +493,16 @@
    [(string-starts-with? path "core/blocks/") "BLOCKS"]
    [(string-starts-with? path "core/lang/") "LANG"]
    [(string-starts-with? path "core/types/") "TYPES"]
-   [(string-starts-with? path "lattice/query/") "QUERY"]
-   [(string-starts-with? path "lattice/data/") "DATA"]
-   [(string-starts-with? path "lattice/linalg/") "LINALG"]
-   [(string-starts-with? path "lattice/numeric/") "NUMERIC"]
-   [(string-starts-with? path "lattice/autodiff/") "AUTODIFF"]
-   [(string-starts-with? path "lattice/random/") "RANDOM"]
-   [(string-starts-with? path "lattice/pipeline/") "PIPELINE"]
-   [(string-starts-with? path "lattice/info/") "INFO-THEORY"]
+   [(string-starts-with? path "core/query/") "QUERY"]
+   [(string-starts-with? path "core/data/") "DATA"]
+   [(string-starts-with? path "core/linalg/") "LINALG"]
+   [(string-starts-with? path "core/numeric/") "NUMERIC"]
+   [(string-starts-with? path "core/autodiff/") "AUTODIFF"]
+   [(string-starts-with? path "core/random/") "RANDOM"]
+   [(string-starts-with? path "core/pipeline/") "PIPELINE"]
+   [(string-starts-with? path "core/info-theory/") "INFO-THEORY"]
    [(string-starts-with? path "core/util/") "UTIL"]
-   [(string-starts-with? path "lattice/fp/") "FP"]
+   [(string-starts-with? path "core/fp/") "FP"]
    [(string-starts-with? path "shell/") "SHELL"]
    [else "OTHER"]))
 

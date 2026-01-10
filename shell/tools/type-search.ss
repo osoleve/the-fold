@@ -22,7 +22,7 @@
 ;;;   (type-search-help)                     - Show help
 ;;;
 ;;; Dependencies:
-;;;   shell/tools/index.ss (symbol index)
+;;;   core/lang/index.ss (symbol index)
 ;;;   core/types/sig-parser.ss (signature parsing)
 
 ;;; ============================================================
@@ -30,7 +30,6 @@
 ;;; ============================================================
 
 (load "core/base/prelude.ss")
-(load "shell/tools/string-utils.ss")
 
 ;;; ============================================================
 ;;; Typed Index (Pre-parsed Signatures)
@@ -243,17 +242,25 @@
 
 ;;; string-split-arrow : String -> (List String)
 ;;; Split string on " -> " delimiter.
-;;; NOTE: Uses string-split-flex from shell/tools/string-utils.ss
 (define (string-split-arrow str)
-  (map string-trim (string-split-flex str " -> ")))
+  (let loop ([remaining str] [parts '()])
+       (let ([pos (string-find-substring remaining " -> ")])
+            (if pos
+                (loop (substring remaining (+ pos 4) (string-length remaining))
+                      (cons (string-trim (substring remaining 0 pos)) parts))
+                (reverse (cons (string-trim remaining) parts))))))
 
-;;; NOTE: string-find-substring can use string-index-of from prelude.ss
-;;;       Keeping local alias for clarity in this module.
-(define string-find-substring string-index-of)
+;;; string-find-substring : String × String -> Nat | #f
+(define (string-find-substring haystack needle)
+  (let ([h-len (string-length haystack)]
+        [n-len (string-length needle)])
+       (let loop ([i 0])
+            (cond
+             [(> (+ i n-len) h-len) #f]
+             [(string-prefix-at? haystack needle i) i]
+             [else (loop (+ i 1))]))))
 
 ;;; string-prefix-at? : String × String × Nat -> Bool
-;;; NOTE: This is a specialized function - checks prefix at a specific position.
-;;;       Not a duplicate of string-starts-with? which always checks from position 0.
 (define (string-prefix-at? str prefix pos)
   (let ([p-len (string-length prefix)])
        (let loop ([i 0])

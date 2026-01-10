@@ -10,7 +10,7 @@
 ;;; This is the flex. The absurd demo. The "yes we actually did this" moment.
 
 (load "shell/ui/layout.ss")
-(load "lattice/fp/symbolic/integrate-autodiff.ss")
+(load "core/fp/symbolic/integrate-autodiff.ss")
 
 ;;; ============================================================
 ;;; Constants

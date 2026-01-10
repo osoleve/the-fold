@@ -35,7 +35,7 @@
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")
 (load "core/lang/prim.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/reverse-diff.ss")
 
 ;;; ============================================================
 ;;; Fuel
@@ -226,73 +226,43 @@
 ;;; Par/Pseq Evaluation
 ;;; ============================================================
 ;;;
-;;; SEMANTICS:
+;;; NOTE ON CURRENT IMPLEMENTATION:
+;;; eval-par and eval-pseq currently have identical implementations —
+;;; both evaluate a then b sequentially. This is intentional.
+;;;
+;;; These forms are SEMANTIC HINTS for future parallel execution:
 ;;;   - (par a b)  = "a and b can run in parallel; return b"
 ;;;   - (pseq a b) = "force a to complete before starting b; return b"
 ;;;
-;;; IMPLEMENTATION:
-;;;   - par: Uses fork-thread for parallel execution when available,
-;;;          falls back to sequential evaluation otherwise.
-;;;   - pseq: Always sequential (intentionally — enforces ordering).
+;;; In the current sequential evaluator, both behave identically.
+;;; In a future parallel runtime:
+;;;   - par would enable speculative/concurrent evaluation of a
+;;;   - pseq would enforce strict ordering (useful when a has effects
+;;;     that b depends on, or for controlling evaluation order)
 ;;;
-;;; FUEL SEMANTICS IN PARALLEL MODE:
-;;;   When fork-thread is available, each branch receives its own
-;;;   independent fuel allocation (the full initial fuel value).
-;;;   This differs from sequential mode where branches share fuel.
-;;;
-;;;   Rationale: The fuel system guarantees TOTALITY (termination),
-;;;   not a specific computation budget. In parallel execution:
-;;;     - Each branch must independently terminate
-;;;     - The total "wall-clock fuel" is max(fuel-a, fuel-b)
-;;;     - Both branches are guaranteed total if each terminates
-;;;
-;;;   In sequential mode, fuel is threaded: a consumes some, b gets
-;;;   the remainder. In parallel mode, this threading is impossible
-;;;   since both run concurrently — so each gets full allocation.
-;;;
-;;; MEMORY MODEL:
-;;;   Relies on Chez Scheme's cooperative threading model where
-;;;   thread-join provides a synchronization point. After join,
-;;;   the box written by the forked thread is visible to the
-;;;   joining thread. If Chez moves to OS threads with weak
-;;;   memory ordering, this would need explicit barriers.
+;;; The distinction matters for:
+;;;   1. Documenting programmer intent about parallelizability
+;;;   2. Future optimization passes that could parallelize par
+;;;   3. Reasoning about evaluation order in a parallel context
 ;;;
 ;;; ============================================================
 
 ;;; eval-par : Expr × Expr × Env × Fuel → (Result Value Error)
 ;;; Parallel evaluation hint: (par a b)
 ;;; Evaluate both a and b, return b.
-;;; Attempts parallel execution if the runtime supports it (fork-thread).
-;;; Otherwise falls back to sequential evaluation.
+;;; Currently evaluates sequentially, but provides a hint for
+;;; future parallel execution strategies.
 (define (eval-par a-expr b-expr env fuel)
-  (if (top-level-bound? 'fork-thread)
-      ;; Parallel Strategy: Fork-Join
-      ;; 1. Spawn thread for a
-      ;; 2. Evaluate b in current thread
-      ;; 3. Join a and check for errors
-      (let* ([a-box (box #f)]
-             [t (fork-thread
-                 (lambda ()
-                         (set-box! a-box (eval-expr a-expr env fuel))))]
-             [b-result (eval-expr b-expr env fuel)])
-            (thread-join t)
-            (let ([a-result (unbox a-box)])
-                 (case (car a-result)
-                       [(ok) b-result]         ;; A succeeded, return B's result
-                       [(suspended) a-result]  ;; A suspended, propagate suspension
-                       [(error) a-result]      ;; A failed, propagate error
-                       [else `(error internal-par-error ,a-result)])))
-      
-      ;; Sequential Strategy (Fallback)
-      (let ([a-result (eval-expr a-expr env fuel)])
-           (case (car a-result)
-                 [(ok)
-                  (let ([a-value (cadr a-result)]
-                        [fuel-after-a (caddr a-result)])
-                       ;; Now evaluate b with remaining fuel
-                       (eval-expr b-expr env fuel-after-a))]
-                 [(suspended) a-result]  ; Forward suspension
-                 [(error) a-result]))))  ; Forward error
+  ;; Evaluate a (for side-effect of forcing computation)
+  (let ([a-result (eval-expr a-expr env fuel)])
+       (case (car a-result)
+             [(ok)
+              (let ([a-value (cadr a-result)]
+                    [fuel-after-a (caddr a-result)])
+                   ;; Now evaluate b with remaining fuel
+                   (eval-expr b-expr env fuel-after-a))]
+             [(suspended) a-result]  ; Forward suspension
+             [(error) a-result])))   ; Forward error
 
 ;;; eval-pseq : Expr × Expr × Env × Fuel → (Result Value Error)
 ;;; Sequential evaluation: (pseq a b)

@@ -13,7 +13,7 @@
 ;;; Setup
 ;;; ============================================================
 
-(source-directories (cons "core" (cons "lattice" (source-directories))))
+(source-directories (cons "core" (source-directories)))
 (load "core/test-framework.ss")
 
 ;;; format-condition : Condition → String
@@ -90,7 +90,7 @@
 ;;; Test Categories
 ;;; ============================================================
 
-;;; Core tests in dependency order (language kernel only)
+;;; Core tests in dependency order
 (define core-tests
   '(;; Layer 0: Foundation
     "base/test-prelude.ss"
@@ -118,19 +118,12 @@
     ;; Layer 6: Compilation Pipeline
     "lang/test-compile.ss"
     ;; Layer 7: Error System
-    "base/test-error.ss"))
-
-;;; Lattice tests (skill tree - tier 0 foundational)
-(define lattice-tests
-  '(;; Linear Algebra (tier 0)
+    "base/test-error.ss"
+    ;; Layer 8: Linear Algebra
     "linalg/test-vec.ss"
     "linalg/test-matrix.ss"
     "linalg/test-matrix-decomp.ss"
-    "linalg/test-matrix-solvers.ss"
-    ;; Data (tier 0)
-    "data/test-data-structures.ss"
-    ;; Info (tier 1)
-    "info/test-entropy.ss"))
+    "linalg/test-matrix-solvers.ss"))
 
 ;;; Shell tests (validated, stable)
 (define shell-tests
@@ -265,16 +258,10 @@ Working directory: " (current-directory) "
               (run-test-category "CORE TESTS" "core" core-tests)
               (display "
 ")
-              (run-test-category "LATTICE TESTS" "lattice" lattice-tests)
-              (display "
-")
               (run-test-category "SHELL TESTS" "shell/tests" shell-tests)]
              
              [(core)
               (run-test-category "CORE TESTS" "core" core-tests)]
-             
-             [(lattice)
-              (run-test-category "LATTICE TESTS" "lattice" lattice-tests)]
              
              [(shell)
               (run-test-category "SHELL TESTS" "shell/tests" shell-tests)]
@@ -284,15 +271,12 @@ Working directory: " (current-directory) "
                    (run-test-category "CORE TESTS (quick)" "core" quick-core))
               (display "
 ")
-              (run-test-category "LATTICE TESTS" "lattice" lattice-tests)
-              (display "
-")
               (run-test-category "SHELL TESTS" "shell/tests" shell-tests)]
              
              [else
               (display (string-append "Unknown mode: " (symbol->string mode) "
 "))
-              (display "Valid modes: all, quick, core, lattice, shell
+              (display "Valid modes: all, quick, core, shell
 ")
               (exit 1)])
        

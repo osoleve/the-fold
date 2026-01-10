@@ -11,7 +11,7 @@
 ;;;   (jump-location 'sym)       - Get structured location data
 ;;;
 ;;; Dependencies:
-;;;   shell/tools/index.ss (symbol index)
+;;;   core/lang/index.ss (symbol index)
 
 ;;; ============================================================
 ;;; Location Types

@@ -288,7 +288,7 @@ Docgen Tests
             
             (define-test full-pipeline-on-interval
               ;; Run full docgen on interval.ss which has known documentation
-              (let* ([doc (docgen-file "lattice/fp/numeric/interval.ss")]
+              (let* ([doc (docgen-file "core/fp/numeric/interval.ss")]
                      [exports (cdr (assq 'exports doc))]
                      [export-summary-from-doc (cdr (assq 'export-summary doc))])
                     ;; Should have exports
@@ -298,7 +298,7 @@ Docgen Tests
             
             (define-test full-pipeline-on-numeric
               ;; Test on numeric.ss with full type class hierarchy
-              (let* ([doc (docgen-file "lattice/fp/numeric/numeric.ss")]
+              (let* ([doc (docgen-file "core/fp/numeric/numeric.ss")]
                      [exports (cdr (assq 'exports doc))])
                     ;; numeric.ss has many exports
                     (assert-true (> (length exports) 5)))))

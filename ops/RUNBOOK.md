@@ -418,8 +418,7 @@ If the server is lost or corrupted:
 
 3. **Install Chez Scheme**
    ```bash
-   sudo apt install chezscheme
-   ./daemon.sh start
+   ./start.sh  # Auto-installs if needed
    ```
 
 4. **Restore .store from backup**

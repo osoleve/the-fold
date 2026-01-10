@@ -120,9 +120,8 @@
 ;;; Is this a dependent type construct?
 (define (dep-type? t)
   (or (pi-type? t) (sigma-type? t) (universe-type? t)
-      (vec-type? t) (matrix-type? t) (equality-type? t) (heq-type? t)
-      (refinement-type? t) (data-type? t) (sig-type? t)
-      (diff-type? t) (grad-type? t)))
+      (vec-type? t) (matrix-type? t) (equality-type? t)
+      (refinement-type? t) (data-type? t) (sig-type? t)))
 
 ;;; ============================================================
 ;;; Pi Type Operations
@@ -257,73 +256,6 @@
       #f))
 
 ;;; ============================================================
-;;; Heterogeneous Equality Operations
-;;; ============================================================
-;;;
-;;; Heterogeneous equality (HEq) relates terms of potentially different types.
-;;; Syntax: (HEq A B a b)
-;;;   - A is the type of a
-;;;   - B is the type of b
-;;;   - a is the left term
-;;;   - b is the right term
-;;;
-;;; When A ≡ B, we have (HEq A B a b) ≡ (= A a b).
-;;;
-;;; This is needed for dependent congruence:
-;;;   For f : Π(x:A).B(x) and p : x ≡ y : A,
-;;;   (cong f p) : HEq B(x) B(y) (f x) (f y)
-;;;
-;;; In HoTT, this corresponds to PathOver or dependent paths.
-
-;;; heq-type? : Type → Boolean
-;;; Check if this is a heterogeneous equality type: (HEq A B a b)
-(define (heq-type? t)
-  (and (pair? t) (eq? (car t) 'HEq)))
-
-;;; heq-type-well-formed? : SExpr → Boolean
-;;; Check if a heterogeneous equality type expression is well-formed
-(define (heq-type-well-formed? t)
-  (and (pair? t)
-       (eq? (car t) 'HEq)
-       (= (length t) 5)))
-
-;;; heq-left-type : Type → Type
-;;; Get the left type A from (HEq A B a b)
-(define (heq-left-type t)
-  (if (heq-type? t)
-      (cadr t)
-      'Void))
-
-;;; heq-right-type : Type → Type
-;;; Get the right type B from (HEq A B a b)
-(define (heq-right-type t)
-  (if (heq-type? t)
-      (caddr t)
-      'Void))
-
-;;; heq-lhs : Type → Expr
-;;; Get the left term a from (HEq A B a b)
-(define (heq-lhs t)
-  (if (heq-type? t)
-      (cadddr t)
-      #f))
-
-;;; heq-rhs : Type → Expr
-;;; Get the right term b from (HEq A B a b)
-(define (heq-rhs t)
-  (if (heq-type? t)
-      (car (cddddr t))
-      #f))
-
-;;; make-heq-type : Type × Type × Expr × Expr → Type
-;;; Construct a heterogeneous equality type (HEq A B a b)
-;;; If A and B are definitionally equal, returns homogeneous equality instead.
-(define (make-heq-type A B a b)
-  (if (equal? A B)
-      `(= ,A ,a ,b)  ; Reduce to homogeneous when types match
-      `(HEq ,A ,B ,a ,b)))
-
-;;; ============================================================
 ;;; Refinement Type Operations
 ;;; ============================================================
 ;;;
@@ -384,220 +316,6 @@
   (if (refinement-type? t)
       (caddr t)
       #f))
-
-;;; ============================================================
-;;; Differentiable Type Operations
-;;; ============================================================
-;;;
-;;; The Diff type constructor represents differentiable functions with
-;;; dependent dimension tracking for automatic differentiation.
-;;;
-;;; Syntax: (Diff A B)
-;;;   - A is the domain type (input type)
-;;;   - B is the codomain type (output type)
-;;;   - Both A and B should be numeric types (scalars, Vec, Matrix)
-;;;
-;;; Examples:
-;;;   (Diff Float Float)                     ; R → R differentiable function
-;;;   (Diff (Vec n Float) Float)             ; R^n → R (gradient computable)
-;;;   (Diff (Vec n Float) (Vec m Float))     ; R^n → R^m (Jacobian computable)
-;;;
-;;; The type system uses Diff to:
-;;;   1. Track which functions support automatic differentiation
-;;;   2. Verify dimension compatibility of gradient operations
-;;;   3. Enable type-directed mode selection (forward vs reverse AD)
-;;;
-;;; Type rules:
-;;;   Γ ⊢ A : Type    Γ ⊢ B : Type    Num A    Num B
-;;;   ───────────────────────────────────────────────
-;;;              Γ ⊢ (Diff A B) : Type
-;;;
-;;; Related operations have types:
-;;;   grad     : (Diff (Vec n α) α) → (Vec n α) → (Vec n α)
-;;;   jacobian : (Diff (Vec n α) (Vec m α)) → (Vec n α) → (Matrix m n α)
-;;;   hessian  : (Diff (Vec n α) α) → (Vec n α) → (Matrix n n α)
-;;;   compose  : (Diff B C) → (Diff A B) → (Diff A C)
-;;;   lift     : A → (Diff A A)  ; lift constant to differentiable
-;;;   primal   : (Diff A B) → (A → B)  ; extract the underlying function
-;;;
-;;; The Grad type represents gradient values (same shape as domain):
-;;;   (Grad A) ≅ A  ; for scalars
-;;;   (Grad (Vec n α)) ≅ (Vec n α)  ; gradient of n-input function
-;;;   (Grad (Matrix m n α)) ≅ (Matrix m n α)  ; gradient of matrix-input
-
-;;; diff-type? : Type → Boolean
-;;; Check if this is a differentiable function type: (Diff A B)
-(define (diff-type? t)
-  (and (pair? t) (eq? (car t) 'Diff)))
-
-;;; diff-type-well-formed? : SExpr → Boolean
-;;; Check if a Diff type expression is well-formed: (Diff Domain Codomain)
-(define (diff-type-well-formed? t)
-  (and (pair? t)
-       (eq? (car t) 'Diff)
-       (= (length t) 3)))
-
-;;; diff-domain : Type → Type
-;;; Get the domain type A from (Diff A B)
-(define (diff-domain t)
-  (if (diff-type? t)
-      (cadr t)
-      'Void))
-
-;;; diff-codomain : Type → Type
-;;; Get the codomain type B from (Diff A B)
-(define (diff-codomain t)
-  (if (diff-type? t)
-      (caddr t)
-      'Void))
-
-;;; make-diff-type : Type × Type → Type
-;;; Construct a differentiable function type (Diff A B)
-(define (make-diff-type domain codomain)
-  `(Diff ,domain ,codomain))
-
-;;; grad-type? : Type → Boolean
-;;; Check if this is a gradient type: (Grad T)
-(define (grad-type? t)
-  (and (pair? t) (eq? (car t) 'Grad)))
-
-;;; grad-type-well-formed? : SExpr → Boolean
-;;; Check if a Grad type expression is well-formed: (Grad T)
-(define (grad-type-well-formed? t)
-  (and (pair? t)
-       (eq? (car t) 'Grad)
-       (= (length t) 2)))
-
-;;; grad-inner-type : Type → Type
-;;; Get the inner type T from (Grad T)
-(define (grad-inner-type t)
-  (if (grad-type? t)
-      (cadr t)
-      'Void))
-
-;;; make-grad-type : Type → Type
-;;; Construct a gradient type (Grad T)
-(define (make-grad-type inner)
-  `(Grad ,inner))
-
-;;; ============================================================
-;;; Differentiable Type Utilities
-;;; ============================================================
-
-;;; numeric-type? : Type → Boolean
-;;; Check if a type is numeric (supports differentiation).
-;;; Numeric types are: Nat, Int, Float, (Vec n T), (Matrix m n T) where T is numeric.
-(define (numeric-type? t)
-  (cond
-   [(symbol? t) (if (memq t '(Nat Int Float Real Number)) #t #f)]
-   [(not (pair? t)) #f]
-   [(eq? (car t) 'Vec) (and (>= (length t) 2)
-                            (if (>= (length t) 3)
-                                (numeric-type? (caddr t))
-                                #t))]  ; (Vec n) without element type defaults to numeric
-   [(eq? (car t) 'Matrix) (and (>= (length t) 3)
-                               (if (>= (length t) 4)
-                                   (numeric-type? (cadddr t))
-                                   #t))]  ; (Matrix m n) without element type defaults to numeric
-   [else #f]))
-
-;;; scalar-type? : Type → Boolean
-;;; Check if a type is a scalar numeric type.
-(define (scalar-type? t)
-  (and (symbol? t) (if (memq t '(Nat Int Float Real Number)) #t #f)))
-
-;;; diff-composable? : Type × Type → Boolean
-;;; Check if two Diff types can be composed: (Diff B C) ∘ (Diff A B)
-(define (diff-composable? diff1 diff2)
-  (and (diff-type? diff1)
-       (diff-type? diff2)
-       ;; diff1 domain must match diff2 codomain
-       (equal? (diff-domain diff1) (diff-codomain diff2))))
-
-;;; ============================================================
-;;; Dimension Extraction for Autodiff
-;;; ============================================================
-
-;;; diff-input-dim : Type → Nat | 'scalar | #f
-;;; Extract the input dimension from a Diff type.
-;;; Returns 'scalar for scalar input, n for (Vec n _), or #f if unknown.
-(define (diff-input-dim t)
-  (if (not (diff-type? t))
-      #f
-      (let ([domain (diff-domain t)])
-           (cond
-            [(scalar-type? domain) 'scalar]
-            [(and (pair? domain) (eq? (car domain) 'Vec) (>= (length domain) 2))
-             (cadr domain)]  ; Returns n from (Vec n _)
-            [else #f]))))
-
-;;; diff-output-dim : Type → Nat | 'scalar | #f
-;;; Extract the output dimension from a Diff type.
-;;; Returns 'scalar for scalar output, m for (Vec m _), or #f if unknown.
-(define (diff-output-dim t)
-  (if (not (diff-type? t))
-      #f
-      (let ([codomain (diff-codomain t)])
-           (cond
-            [(scalar-type? codomain) 'scalar]
-            [(and (pair? codomain) (eq? (car codomain) 'Vec) (>= (length codomain) 2))
-             (cadr codomain)]  ; Returns m from (Vec m _)
-            [else #f]))))
-
-;;; diff-grad-type : Type → Type
-;;; Compute the gradient type for a (Diff A B) type.
-;;; For R^n → R, gradient is R^n.
-;;; For R^n → R^m, gradient per component is R^n, Jacobian is Matrix m n.
-(define (diff-grad-type t)
-  (if (not (diff-type? t))
-      'Void
-      (let ([domain (diff-domain t)])
-           (make-grad-type domain))))
-
-;;; diff-jacobian-type : Type → Type
-;;; Compute the Jacobian type for a (Diff A B) type.
-;;; For (Diff (Vec n α) (Vec m α)), returns (Matrix m n α).
-(define (diff-jacobian-type t)
-  (if (not (diff-type? t))
-      'Void
-      (let ([domain (diff-domain t)]
-            [codomain (diff-codomain t)])
-           (cond
-            ;; (Diff (Vec n α) (Vec m α)) → (Matrix m n α)
-            [(and (pair? domain) (eq? (car domain) 'Vec)
-                  (pair? codomain) (eq? (car codomain) 'Vec))
-             (let ([n (cadr domain)]
-                   [m (cadr codomain)]
-                   [elem-type (if (>= (length domain) 3) (caddr domain) 'Float)])
-                  `(Matrix ,m ,n ,elem-type))]
-            ;; (Diff (Vec n α) α) → (Vec n α) (same as gradient)
-            [(and (pair? domain) (eq? (car domain) 'Vec)
-                  (scalar-type? codomain))
-             domain]
-            ;; Scalar → Scalar: Jacobian is just the derivative (scalar)
-            [(and (scalar-type? domain) (scalar-type? codomain))
-             domain]
-            [else 'Void]))))
-
-;;; diff-hessian-type : Type → Type
-;;; Compute the Hessian type for a (Diff A B) type.
-;;; For (Diff (Vec n α) α), returns (Matrix n n α).
-(define (diff-hessian-type t)
-  (if (not (diff-type? t))
-      'Void
-      (let ([domain (diff-domain t)]
-            [codomain (diff-codomain t)])
-           (cond
-            ;; (Diff (Vec n α) α) → (Matrix n n α)
-            [(and (pair? domain) (eq? (car domain) 'Vec)
-                  (scalar-type? codomain))
-             (let ([n (cadr domain)]
-                   [elem-type (if (>= (length domain) 3) (caddr domain) 'Float)])
-                  `(Matrix ,n ,n ,elem-type))]
-            ;; Scalar → Scalar: Hessian is just scalar
-            [(and (scalar-type? domain) (scalar-type? codomain))
-             domain]
-            [else 'Void]))))
 
 ;;; ============================================================
 ;;; Inductive Type Operations
@@ -1567,18 +1285,6 @@
                         (format "~a" pred)
                         "}"))]
    
-   ;; Diff type (Diff A B)
-   [(diff-type? t)
-    (string-append "Diff("
-                   (dep-type->string (diff-domain t))
-                   " → "
-                   (dep-type->string (diff-codomain t))
-                   ")")]
-   
-   ;; Grad type (Grad T)
-   [(grad-type? t)
-    (string-append "∇(" (dep-type->string (grad-inner-type t)) ")")]
-   
    ;; Inductive type (data (Name params...) [ctor : type] ...)
    [(data-type? t)
     (let ([name (data-name t)]
@@ -1678,8 +1384,6 @@
    [(eq? (car t) 'refine) (refinement-type-well-formed? t)]
    [(eq? (car t) 'data) (data-type-well-formed? t)]
    [(eq? (car t) 'sig) (sig-well-formed? t)]
-   [(eq? (car t) 'Diff) (diff-type-well-formed? t)]
-   [(eq? (car t) 'Grad) (grad-type-well-formed? t)]
    
    ;; Delegate to base type? for other forms
    [else (type? t)]))

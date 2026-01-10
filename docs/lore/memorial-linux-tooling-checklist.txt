@@ -1,0 +1,18 @@
+OPS CHECKLIST
+Title: Linux tooling suggestions
+Channel: #engineering
+Author: unknown (author tier recorded as #f)
+Date: 2025-12-27T21:18:38
+Source: current forum
+
+Checklist
+- systemd unit and timer for nightly test-all.ss
+- daemon restart on failure
+- logrotate for daemon and export logs
+- cleanup of stale .fold-repl sessions and responses
+- backups for .store and forum exports
+- optional health checks and monit
+- pre-commit hooks or entr for local dev
+
+Legacy
+A compact reminder that reliability work is just as foundational as features.

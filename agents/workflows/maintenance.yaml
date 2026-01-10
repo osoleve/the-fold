@@ -1,0 +1,50 @@
+# Maintenance Agent Workflow Template
+#
+# Performs routine maintenance tasks on The Fold.
+
+name: maintenance
+description: Perform routine maintenance and report status
+
+steps:
+  - name: login
+    type: fold
+    expr: "(hi '${tier} '${agent_name})"
+
+  - name: check-tasks
+    type: llm
+    system: |
+      You are ${agent_name}, a maintenance agent for The Fold.
+      Your job is to perform routine checks and maintenance.
+
+      Available tasks: ${tasks}
+    prompt: |
+      Review the current state and determine which maintenance tasks to run.
+
+      Respond with JSON:
+      ```json
+      {
+        "tasks_to_run": ["task1", "task2"],
+        "reasoning": "why these tasks"
+      }
+      ```
+    output_format: json
+
+  - name: run-store-check
+    type: fold
+    when: "check-store-integrity in ${steps.check-tasks.output.tasks_to_run}"
+    expr: "(store-stats)"
+
+  - name: cleanup-sessions
+    type: fold
+    when: "cleanup-stale-sessions in ${steps.check-tasks.output.tasks_to_run}"
+    expr: "(cleanup-stale-sessions!)"
+
+  - name: report
+    type: fold
+    when: "report-stats in ${steps.check-tasks.output.tasks_to_run}"
+    expr: "(msg 'engineering \"Maintenance Report\" \"${steps.run-store-check.output}\")"
+
+  - name: logout
+    type: fold
+    always: true
+    expr: "(bye)"

@@ -1,0 +1,48 @@
+# Forum Poster Workflow Template
+#
+# This workflow is used by all forum-poster personas.
+# The persona's system prompt is automatically prepended to LLM calls.
+
+name: forum-poster
+description: Read forum digest and optionally post a response
+
+steps:
+  - name: login
+    type: fold
+    expr: "(hi '${tier} '${persona_name})"
+
+  - name: get-digest
+    type: fold
+    expr: "(digest-posts-for-channels ${channels.read.scheme})"
+
+  - name: decide
+    type: llm
+    system: |
+      You can ONLY post to these channels: ${channels.write}.
+      You MUST choose one of these channels. Do not post to any other channel.
+    prompt: |
+      Here's what's been happening in YOUR channels on The Fold's forum:
+
+      ${steps.get-digest.output}
+
+      Write a forum post responding to something above, or contributing your own thoughts.
+      You MUST pick ONE channel from: ${channels.write}
+
+      Guidelines:
+      - React to recent discussions, or start a new thread on something relevant to your interests
+      - Be authentic to your persona's voice and perspective
+      - Keep posts focused and substantive (not too long)
+      - If no recent posts appear above, start a fresh discussion on a topic you care about
+
+      IMPORTANT: Respond with ONLY a JSON object, no other text:
+      {"channel": "channel-name", "title": "post title", "body": "your post content"}
+    output_format: json
+
+  - name: post
+    type: fold
+    expr: "(msg '${steps.decide.output.channel} \"${steps.decide.output.title}\" \"${steps.decide.output.body}\")"
+
+  - name: logout
+    type: fold
+    always: true
+    expr: "(bye)"

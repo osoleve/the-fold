@@ -1,0 +1,65 @@
+# Typos configuration for The Fold
+# https://github.com/crate-ci/typos
+
+[default.extend-identifiers]
+# Test data strings that look like typos but are intentional
+abd = "abd"     # String comparison test
+helo = "helo"   # Edit distance test
+hel = "hel"     # Parser test
+vrsion = "vrsion"  # Command test
+strng = "strng"  # Help system typo suggestion test
+ba = "ba"       # Regex test (not matching "ab")
+numer = "numer" # Mathematical abbreviation for numerator
+strat = "strat" # Abbreviation for strategy (evaluation strategies)
+strats = "strats" # Plural of strat
+
+[default.extend-words]
+# Mathematical terms
+numer = "numer"  # Abbreviation for numerator (as in rational numbers)
+denom = "denom"  # Abbreviation for denominator
+
+# Ordinal suffixes
+nd = "nd"  # Ordinal suffix (2nd)
+
+# Fold-specific terminology
+REPL = "REPL"
+sexp = "sexp"
+sexpr = "sexpr"
+homoiconic = "homoiconic"
+arity = "arity"
+thunk = "thunk"
+
+# Scheme/Lisp terminology
+gensym = "gensym"
+alist = "alist"
+plist = "plist"
+caddr = "caddr"
+cadr = "cadr"
+caar = "caar"
+cddr = "cddr"
+
+# Functional programming terms
+juxt = "juxt"  # Juxtaposition - apply multiple functions to same argument
+
+# Technical terms
+memoization = "memoization"
+memoize = "memoize"
+deserialize = "deserialize"
+serializer = "serializer"
+deserializer = "deserializer"
+
+# Names and references
+Chez = "Chez"  # Chez Scheme
+Guile = "Guile"
+
+[files]
+# Don't check generated or vendored files
+extend-exclude = [
+  ".fold-sessions/",
+  ".fold-repl/",
+  ".store/",
+  "target/",
+  "node_modules/",
+  "*.lock",
+  "*.lcov",
+]

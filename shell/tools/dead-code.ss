@@ -19,7 +19,7 @@
 ;;;   (dead-code-stats)                - Show statistics
 ;;;
 ;;; Dependencies:
-;;;   shell/tools/index.ss (symbol index)
+;;;   core/lang/index.ss (symbol index)
 ;;;   shell/lens/call-graph.ss (call graph)
 
 ;;; ============================================================

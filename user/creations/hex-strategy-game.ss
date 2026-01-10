@@ -3,7 +3,7 @@
 ;;; A territory control game where players place units on a hexagonal board
 ;;; and try to control the most territory by the end of the game.
 
-(load "lattice/tiles/boardcraft.ss")
+(load "user/boardcraft/boardcraft.ss")
 
 ;;; ============================================================
 ;;; Game Configuration

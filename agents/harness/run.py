@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+"""
+agents/harness/run.py — Run an agent with full observability
+
+Usage:
+    python -m agents.harness.run "Your goal here"
+    python -m agents.harness.run --steps 5 "Simple goal"
+    python -m agents.harness.run -p gemini -m gemini-3-pro-preview "Complex goal"
+    python -m agents.harness.run -p groq -m llama-3.3-70b-versatile "Goal"
+    python -m agents.harness.run --verify "34" "How many posts in #art?"
+
+Providers:
+    gemini  - Google Gemini (via gemini CLI)
+    groq    - Groq API (requires GROQ_API_KEY env var)
+"""
+
+import argparse
+import json
+import subprocess
+import sys
+import os
+import urllib.request
+import urllib.error
+
+# Add parent to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from agents.harness import (
+    AgentContext,
+    LoopConfig,
+    run_observed,
+)
+from agents.harness.step import fold_evaluator
+
+
+def init_answer_slot(session: str):
+    """Initialize the *answer* variable in the session."""
+    fold_evaluator(session, '(define *answer* #f)', timeout_ms=10000)
+
+
+def read_answer(session: str) -> str:
+    """Read the *answer* variable from the session."""
+    result = fold_evaluator(session, '*answer*', timeout_ms=10000)
+    return result.value if result.success else ""
+
+
+def create_gemini_client(model: str = "gemini-3-flash-preview"):
+    """Create a Gemini API client."""
+    def client(prompt: str) -> str:
+        # The status prompt already contains full instructions.
+        # Just add a minimal system prefix for the model.
+        augmented = """You are an autonomous Scheme agent playing in The Fold.
+
+CRITICAL: Respond with ONLY a single S-expression. No prose, no explanation.
+
+The status prompt below explains your available commands:
+- Free actions: (think ...), (note ...), (env ...)
+- Registers: (set! *register* value) - use *answer* when you have the final answer
+
+""" + prompt
+
+        # Pass prompt via stdin to avoid ARG_MAX limits on large contexts
+        result = subprocess.run(
+            ["gemini", "-m", model],
+            input=augmented,
+            capture_output=True,
+            text=True,
+            timeout=90,
+            cwd="/home/oso/the-fold"
+        )
+
+        if result.returncode != 0:
+            raise Exception(f"Gemini error: {result.stderr}")
+
+        return result.stdout.strip()
+
+    return client
+
+
+def create_groq_client(model: str = "llama-3.3-70b-versatile"):
+    """Create a Groq API client using raw HTTP."""
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY environment variable not set")
+
+    def client(prompt: str) -> str:
+        system_msg = """Respond with ONE S-expression only. No prose.
+
+Commands:
+- (env EXPR) - evaluate EXPR, see result
+- (set! *answer* VALUE) - submit final answer, ends task
+
+Examples:
+Q: What is 3+4? -> (env (+ 3 4)) -> 7 -> (set! *answer* "7")
+Q: Posts in #art? -> (env (channels)) -> "#art: 34 posts" -> (set! *answer* "34")
+
+After seeing a result, use it to set *answer*. Don't repeat (env ...) endlessly."""
+
+        # Few-shot examples as actual turns
+        messages = [
+            {"role": "system", "content": system_msg},
+            # Example 1: extraction from output
+            {"role": "user", "content": "GOAL: Count posts in #bugs\n<workspace>\n→ (channels)\n  #bugs: 5 posts\n</workspace>"},
+            {"role": "assistant", "content": '(set! *answer* "5")'},
+            # Example 2: compute then answer
+            {"role": "user", "content": "GOAL: What is 6*7?\n<workspace>\n→ (env (* 6 7))\n  42\n</workspace>"},
+            {"role": "assistant", "content": '(set! *answer* "42")'},
+            # Actual prompt
+            {"role": "user", "content": prompt}
+        ]
+
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0,
+            "max_tokens": 1024,
+        }
+
+        req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "fold-agent/1.0",
+            },
+            method="POST"
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+                return result["choices"][0]["message"]["content"].strip()
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8") if e.fp else ""
+            raise Exception(f"Groq API error {e.code}: {error_body}")
+
+    return client
+
+
+# Available providers and their default models
+PROVIDERS = {
+    "gemini": ("gemini-3-flash-preview", create_gemini_client),
+    "groq": ("llama-3.3-70b-versatile", create_groq_client),
+}
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Run an agent with observability")
+    parser.add_argument("goal", help="The goal for the agent")
+    parser.add_argument("--steps", type=int, default=15, help="Maximum steps (default: 15)")
+    parser.add_argument("--provider", "-p", choices=list(PROVIDERS.keys()), default="gemini",
+                        help="LLM provider (default: gemini)")
+    parser.add_argument("--model", "-m", default=None, help="Model name (provider-specific default if not set)")
+    parser.add_argument("--session", default="observed-run", help="Session ID")
+    parser.add_argument("--no-transcript", action="store_true", help="Don't save transcript")
+    parser.add_argument("--quiet", action="store_true", help="Minimal output")
+    parser.add_argument("--verify", metavar="EXPECTED", help="Verify answer against expected value")
+
+    args = parser.parse_args()
+
+    os.chdir("/home/oso/the-fold")
+
+    # Initialize the answer slot in the Fold session
+    init_answer_slot(args.session)
+
+    # Create context
+    context = AgentContext(
+        session_id=args.session,
+        main_goal=args.goal,
+        current_subgoal=None,
+        recent_actions=[],
+        environment_notes=[
+            "You are an autonomous agent exploring The Fold",
+            "Set subgoals to break down your task",
+            "Write your final answer to *answer* with (set! *answer* \"...\") then call (done)",
+        ]
+    )
+
+    # Create config
+    config = LoopConfig(
+        max_steps=args.steps,
+        stop_on_done=True,
+        detect_loops=True,
+    )
+
+    # Create API client
+    default_model, client_factory = PROVIDERS[args.provider]
+    model = args.model or default_model
+    api_client = client_factory(model)
+
+    if not args.quiet:
+        print(f"Using {args.provider} with model {model}")
+
+    # Debug: log prompts
+    if os.environ.get("DEBUG_PROMPTS"):
+        original_client = api_client
+        def debug_client(prompt):
+            print("=== PROMPT TO MODEL ===")
+            print(prompt[-1000:])  # Last 1000 chars
+            print("=== END PROMPT ===")
+            return original_client(prompt)
+        api_client = debug_client
+
+    # Run with observability
+    loop_result, observer = run_observed(
+        context=context,
+        api_client=api_client,
+        config=config,
+        verbose=not args.quiet,
+        save_transcript=not args.no_transcript
+    )
+
+    # Print summary
+    if not args.quiet:
+        observer.print_summary()
+
+    # Read the final answer from Fold
+    final_answer = read_answer(args.session)
+
+    print("=" * 50)
+    print(f"FINAL ANSWER: {final_answer}")
+    print("=" * 50)
+
+    # Verify if requested
+    if args.verify:
+        expected = args.verify
+        # Normalize for comparison (strip quotes if present)
+        actual = final_answer.strip().strip('"')
+        expected = expected.strip().strip('"')
+
+        if actual == expected:
+            print(f"✓ VERIFIED: Answer matches expected value")
+            return 0
+        else:
+            print(f"✗ MISMATCH: Expected '{expected}', got '{actual}'")
+            return 1
+
+    # Exit code based on completion
+    if loop_result and loop_result.finish_reason == "done":
+        return 0
+    else:
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

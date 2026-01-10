@@ -301,9 +301,7 @@
 ;;; NOTE: string-contains? provided by core/prelude.ss
 
 ;;; string-split-at : String x String -> (List String)
-;;; Split string at FIRST occurrence of delimiter.
-;;; Returns 2-element list (before, after) or 1-element list if not found.
-;;; NOTE: This differs from string-split-flex which splits on ALL occurrences.
+;;; Split string at delimiter (simple version).
 (define (string-split-at str delim)
   (let ([str-len (string-length str)]
         [delim-len (string-length delim)])
@@ -552,8 +550,14 @@
 
 ;;; unique-rels : (List Relationship) -> (List Relationship)
 ;;; Remove duplicate relationships.
-;;; Alias for prelude's unique (uses equal? for deep comparison).
-(define unique-rels unique)
+(define (unique-rels rels)
+  (let loop ([rels rels] [seen '()] [acc '()])
+       (if (null? rels)
+           (reverse acc)
+           (let ([rel (car rels)])
+                (if (member rel seen)
+                    (loop (cdr rels) seen acc)
+                    (loop (cdr rels) (cons rel seen) (cons rel acc)))))))
 
 ;;; ============================================================
 ;;; Convenience Functions

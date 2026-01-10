@@ -488,11 +488,15 @@
   '((description . ("Playground description" . "A new creation"))
     (type . ("Type (game/tool/experiment)" . "game")))
   '(((path . "user/templates/{{NAME}}.ss")
-     (content . ";;; user/templates/{{NAME}}.ss — {{DESCRIPTION}}
+     (content . ";;; playpen/templates/{{NAME}}.ss — {{DESCRIPTION}}
 ;;;
-;;; This is a template for user creations.
+;;; This is a playpen template: Sonnet builds, Haiku plays.
 ;;;
 ;;; Type: {{TYPE}}
+;;;
+;;; Dependencies (loaded via repl.ss):
+;;;   forum/chat.ss (for session, posting)
+;;;   forum/tools.ss (for storing data)
 ;;;
 ;;; Created: {{TIMESTAMP}}
 ;;; Author: {{AUTHOR}}
@@ -506,10 +510,12 @@
   (guard (exc [else #f])  ; Silently skip if already loaded
     (load path)))
 
-(load-if-needed \"core/blocks/block.ss\")
-(load-if-needed \"core/base/sha256.ss\")
+(load-if-needed \"core/block.ss\")
+(load-if-needed \"core/sha256.ss\")
 (load-if-needed \"shell/fs.ss\")
-(load-if-needed \"shell/ui/text.ss\")
+(load-if-needed \"shell/text.ss\")
+(load-if-needed \"forum/tools.ss\")
+(load-if-needed \"forum/chat.ss\")
 
 ;;; ============================================================
 ;;; State
@@ -520,7 +526,8 @@
 ;;; make-{{NAME}}-state : → Alist
 (define (make-{{NAME}}-state)
   '((mode . active)
-    (score . 0)))
+    (score . 0)
+    (timestamp . ,(current-timestamp))))
 
 ;;; ============================================================
 ;;; Main Interface
@@ -542,6 +549,28 @@
   (display \"  ({{NAME}}-start)  Start the {{TYPE}}\\n\")
   (display \"  ({{NAME}}-help)   Show this help\\n\")
   (display \"\\n\"))
+"))))
+
+;;; Forum Post Template
+(define-template
+  'forum-post
+  "Generate a forum post structure"
+  '((channel . ("Channel name" . "engineering"))
+    (title . ("Post title" . "New Topic"))
+    (body . ("Post body" . "Post content here")))
+  '(((path . "forum/drafts/{{NAME}}.ss")
+     (content . ";;; Forum Post Draft: {{TITLE}}
+;;; Channel: {{CHANNEL}}
+;;; Created: {{TIMESTAMP}}
+;;; Author: {{AUTHOR}}
+
+;;; To post this, use:
+;;;   (let ([body (read-text-file (fs) \"forum/drafts/{{NAME}}.ss\")])
+;;;     (msg '{{CHANNEL}} \"{{TITLE}}\" body))
+
+{{BODY}}
+
+;;; --- End of post ---
 "))))
 
 ;;; ============================================================

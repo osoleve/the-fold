@@ -4,13 +4,13 @@
 ;;; Shows: initial guess trajectory, optimization steps, and final optimized path.
 
 (load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "lattice/autodiff/reverse-diff.ss")
-(load "lattice/physics/diff/traced-vec2.ss")
-(load "lattice/physics/diff/traced-body.ss")
-(load "lattice/physics/diff/traced-integrators.ss")
-(load "lattice/physics/diff/rollout.ss")
-(load "lattice/physics/diff/optimize.ss")
+(load "core/linalg/vec2.ss")
+(load "core/autodiff/reverse-diff.ss")
+(load "core/diff-physics/traced-vec2.ss")
+(load "core/diff-physics/traced-body.ss")
+(load "core/diff-physics/traced-integrators.ss")
+(load "core/diff-physics/rollout.ss")
+(load "core/diff-physics/optimize.ss")
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
 

@@ -1,0 +1,67 @@
+# Feedback/Dogfooding Agent Workflow Template
+#
+# Tests features and gathers feedback on The Fold.
+
+name: feedback
+description: Test features and report findings
+
+steps:
+  - name: login
+    type: fold
+    expr: "(hi '${tier} '${agent_name})"
+
+  - name: plan-tests
+    type: llm
+    system: |
+      You are ${agent_name}, a dogfooding agent for The Fold.
+      Your job is to test features as a real user would and report issues.
+
+      Test suites available: ${test_suites}
+    prompt: |
+      Plan your testing session. Pick 1-3 things to test from your available suites.
+
+      Respond with JSON:
+      ```json
+      {
+        "tests": [
+          {"suite": "suite-name", "action": "what to test", "expected": "what should happen"}
+        ],
+        "reasoning": "why these tests"
+      }
+      ```
+    output_format: json
+
+  - name: run-tests
+    type: fold
+    # TODO: Implement actual test runner that consumes steps.plan-tests.output
+    expr: "(help)"  # Placeholder: Simple smoke test for now
+
+  - name: evaluate
+    type: llm
+    system: You are evaluating test results.
+    prompt: |
+      Test plan: ${steps.plan-tests.output}
+      Test output: ${steps.run-tests.output}
+
+      Evaluate the results. Did things work as expected?
+
+      Respond with JSON:
+      ```json
+      {
+        "passed": true/false,
+        "issues": ["issue1", "issue2"],
+        "suggestions": ["suggestion1"],
+        "report_worthy": true/false
+      }
+      ```
+    output_format: json
+
+  - name: report
+    type: fold
+    when: "${steps.evaluate.output.report_worthy} == true"
+    expr: "(msg '${report_channel} \"Dogfooding Report\" \"Issues: ${steps.evaluate.output.issues}\")"
+
+  - name: logout
+    type: fold
+    always: true
+    expr: "(bye)"

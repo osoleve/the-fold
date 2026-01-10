@@ -11,7 +11,7 @@
 ;;;   (list-all-tests)                  - List all test files
 ;;;
 ;;; Dependencies:
-;;;   shell/tools/index.ss (symbol index)
+;;;   core/lang/index.ss (symbol index)
 
 ;;; ============================================================
 ;;; Test Discovery

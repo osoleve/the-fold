@@ -284,19 +284,7 @@
     (Bytes   . ,K*)
     (Unit    . ,K*)
     (Void    . ,K*)
-    (Hash    . ,K*)
-    ;; Type system constructs (for annotations in dep-types.ss, dep-infer.ss)
-    (DataType . ,K*)
-    (Signature . ,K*)
-    (Decl    . ,K*)
-    (DataDecl . ,K*)
-    (Constructor-Declaration . ,K*)
-    (GADTDecl . ,K*)
-    (Clause  . ,K*)
-    (Context . ,K*)
-    (Binding . ,K*)
-    (A       . ,K*)   ; Type variable placeholder in annotations
-    (Error   . ,K*))) ; Error type in Result
+    (Hash    . ,K*)))
 
 ;;; lookup-kind : Symbol → Kind | #f
 (define (lookup-kind name)

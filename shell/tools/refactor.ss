@@ -345,7 +345,15 @@
    [else
     (apply append (map (lambda (sub) (free-vars-helper sub bound)) expr))]))
 
-;;; NOTE: unique is provided by core/base/prelude.ss
+;;; Remove duplicates from a list
+(define (unique lst)
+  (let loop ([lst lst] [seen '()] [result '()])
+       (cond
+        [(null? lst) (reverse result)]
+        [(member (car lst) seen)
+         (loop (cdr lst) seen result)]
+        [else
+         (loop (cdr lst) (cons (car lst) seen) (cons (car lst) result))])))
 
 ;;; ============================================================
 ;;; File Operations

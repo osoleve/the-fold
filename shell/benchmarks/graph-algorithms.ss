@@ -21,7 +21,7 @@
 (load "core/base/sha256.ss")
 (load "shell/fs.ss")
 (load "shell/store-api.ss")
-(load "lattice/data/graph-algorithms.ss")
+(load "core/data/graph-algorithms.ss")
 (load "shell/tools/benchmark.ss")
 
 ;;; ============================================================

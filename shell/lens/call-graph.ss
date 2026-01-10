@@ -12,7 +12,7 @@
 ;;;   (call-graph-stats)          - Show call graph statistics
 ;;;
 ;;; Dependencies:
-;;;   shell/tools/index.ss (symbol index)
+;;;   core/lang/index.ss (symbol index)
 ;;;   shell/xref.ss (cross-reference utilities)
 
 ;;; ============================================================
@@ -121,12 +121,10 @@
                     (walk (car expr))
                     (walk (cdr expr))]))])
         (walk expr)
-        (remove-duplicates-eq calls))))
+        (remove-duplicates calls))))
 
-;;; remove-duplicates-eq : (List Symbol) -> (List Symbol)
-;;; Uses eq-hashtable for O(n) symbol deduplication.
-;;; Faster than prelude's remove-duplicates for symbol-only lists.
-(define (remove-duplicates-eq lst)
+;;; remove-duplicates : (List α) -> (List α)
+(define (remove-duplicates lst)
   (let ([seen (make-eq-hashtable)])
        (filter
         (lambda (x)

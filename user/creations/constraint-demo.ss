@@ -9,7 +9,7 @@
 
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
-(load "lattice/physics/classical/world.ss")
+(load "user/physics/world.ss")
 
 ;;; ============================================================
 ;;; Configuration

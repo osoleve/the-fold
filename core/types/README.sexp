@@ -2,16 +2,13 @@
  (purpose "Type system implementation")
  (description "Complete type system for The Fold including base types,
 higher-kinded types, dependent types (Pi and Sigma), type classes with
-functional dependencies, full Rank-N polymorphism with impredicativity,
-and bidirectional type inference.")
+functional dependencies, and bidirectional type inference.")
  (modules
   ((types.ss "Base and compound types (Int, Bool, ->, x, +, List)")
    (kinds.ss "Higher-kinded types, type classes, functional dependencies")
    (dep-types.ss "Dependent types: Pi (forall), Sigma (exists), Vec, Matrix")
-   (infer.ss "Bidirectional type inference (Hindley-Milner)")
+   (infer.ss "Bidirectional type inference")
    (dep-infer.ss "Dependent type inference")
-   (rank-n.ss "Rank-N polymorphism: subsumption, skolemization, impredicative unification")
-   (rank-n-infer.ss "Full Rank-N inference with Quick Look guided instantiation")
    (resolve.ss "Type class resolution")
    (annotate.ss "AST type annotation")))
  (dependencies (base))
@@ -19,10 +16,7 @@ and bidirectional type inference.")
   ((bidirectional "Types flow both up (inference) and down (checking)")
    (dependent-types "Types that depend on values (e.g., Vec n a)")
    (universes "Type : Type1 : Type2 : ... hierarchy")
-   (type-classes "Ad-hoc polymorphism via dictionary passing")
-   (rank-n-polymorphism "First-class polymorphic functions, runST-style types")
-   (impredicativity "Type variables can unify with polymorphic types")
-   (quick-look "Guided instantiation based on argument structure")))
+   (type-classes "Ad-hoc polymorphism via dictionary passing")))
  (type-classes
   ((single-param
     "Standard type classes with one type parameter"

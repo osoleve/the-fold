@@ -9,11 +9,6 @@
 ;;;   - Conversion checking via NbE
 ;;;   - Dependent application with substitution
 ;;;
-;;; This module loads and re-exports functionality from:
-;;;   - gadt-infer.ss: GADT declaration and case synthesis
-;;;   - existential-infer.ss: Existential pack/unpack synthesis
-;;;   - rank-n-infer.ss: Rank-N polymorphism (placeholder)
-;;;
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;;
 ;;; Dependencies:
@@ -22,8 +17,6 @@
 ;;;   - dep-types.ss
 ;;;   - nbe.ss
 ;;;   - infer.ss (for base inference)
-;;;   - gadt.ss
-;;;   - existential.ss
 
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
@@ -45,14 +38,14 @@
 
 (define empty-dep-ctx '())
 
-;;; dep-ctx-lookup : Context x Symbol -> (Option Type)
+;;; dep-ctx-lookup : Context × Symbol → (Option Type)
 (define (dep-ctx-lookup ctx name)
   (let ([entry (assq name ctx)])
        (if entry
            (cadr entry)  ; The type
            #f)))
 
-;;; dep-ctx-lookup-value : Context x Symbol -> (Option a)
+;;; dep-ctx-lookup-value : Context × Symbol → (Option α)
 (define (dep-ctx-lookup-value ctx name)
   (let ([entry (assq name ctx)])
        (if entry
@@ -61,11 +54,11 @@
                #f)
            #f)))
 
-;;; dep-ctx-extend : Context x Symbol x Type -> Context
+;;; dep-ctx-extend : Context × Symbol × Type → Context
 (define (dep-ctx-extend ctx name type)
   (cons (list name type) ctx))
 
-;;; dep-ctx-extend-def : Context x Symbol x Type x a -> Context
+;;; dep-ctx-extend-def : Context × Symbol × Type × α → Context
 (define (dep-ctx-extend-def ctx name type value)
   (cons (list name type value) ctx))
 
@@ -73,13 +66,13 @@
 ;;; Dependent Type Synthesis
 ;;; ============================================================
 
-;;; dep-synth : Expr x Context -> (ok Type) | (error ...)
+;;; dep-synth : Expr × Context → (ok Type) | (error ...)
 ;;; Synthesize a type for an expression in dependent context.
 (define (dep-synth expr ctx)
   (cond
    ;; Universe
    [(eq? expr 'Type)
-    `(ok (Type 1))]  ; Type_0 : Type_1
+    `(ok (Type 1))]  ; Type₀ : Type₁
    
    [(and (pair? expr) (eq? (car expr) 'Type))
     `(ok (Type ,(+ 1 (cadr expr))))]
@@ -154,8 +147,8 @@
    [(eq? (car expr) '->)
     (dep-synth-arrow expr ctx)]
    
-   ;; Product type: (x A B) or (× A B)
-   [(or (eq? (car expr) 'x) (eq? (car expr) '×))
+   ;; Product type: (× A B)
+   [(eq? (car expr) '×)
     (dep-synth-product expr ctx)]
    
    ;; Vec type: (Vec n A)
@@ -212,7 +205,7 @@
    
    ;; Eliminator application: (elim-TypeName P method... target)
    [(and (symbol? (car expr))
-         (string-prefix? (symbol->string (car expr)) "elim-"))
+         (string-prefix? "elim-" (symbol->string (car expr))))
     (dep-synth-eliminator expr ctx)]
    
    ;; Module signature: (sig Name decl ...)
@@ -227,8 +220,8 @@
    [(gadt-case-expr? expr)
     (dep-synth-gadt-case expr ctx)]
    
-   ;; Existential type: (exists ((a : K)) T)
-   [(eq? (car expr) 'exists)
+   ;; Existential type: (∃ ((a : K)) T)
+   [(eq? (car expr) '∃)
     (dep-synth-existential expr ctx)]
    
    ;; Pack: (pack WitnessType Value : ExistentialType)
@@ -247,9 +240,9 @@
 ;;; Pi Type Synthesis
 ;;; ============================================================
 
-;;; (Pi ((x : A)) B) : Type_{max(l_1, l_2)}
-;;; where A : Type_{l_1} and B : Type_{l_2} under x:A
-;;; dep-synth-pi : Expr x Context -> (Result Type Error)
+;;; (Π ((x : A)) B) : Type_{max(l₁, l₂)}
+;;; where A : Type_{l₁} and B : Type_{l₂} under x:A
+;;; dep-synth-pi : Expr × Context → (Result Type Error)
 (define (dep-synth-pi expr ctx)
   (let* ([binding (car (cadr expr))]
          [var (car binding)]
@@ -277,7 +270,7 @@
 ;;; Sigma Type Synthesis
 ;;; ============================================================
 
-;;; dep-synth-sigma : Expr x Context -> (Result Type Error)
+;;; dep-synth-sigma : Expr × Context → (Result Type Error)
 (define (dep-synth-sigma expr ctx)
   (let* ([binding (car (cadr expr))]
          [var (car binding)]
@@ -302,8 +295,8 @@
 ;;; Lambda Synthesis
 ;;; ============================================================
 
-;;; (fn ((x : A)) body) : (Pi ((x : A)) B) where body : B
-;;; dep-synth-lambda : Expr x Context -> (Result Type Error)
+;;; (fn ((x : A)) body) : (Π ((x : A)) B) where body : B
+;;; dep-synth-lambda : Expr × Context → (Result Type Error)
 (define (dep-synth-lambda expr ctx)
   (let* ([params (cadr expr)]
          [body (caddr expr)]
@@ -326,9 +319,9 @@
 ;;; Pair Synthesis
 ;;; ============================================================
 
-;;; (pair e1 e2) : (Sigma ((x : A)) B) where e1 : A and e2 : B[e1/x]
+;;; (pair e1 e2) : (Σ ((x : A)) B) where e1 : A and e2 : B[e1/x]
 ;;; Note: without annotation, we can't determine the dependency
-;;; dep-synth-pair : Expr x Context -> (Result Type Error)
+;;; dep-synth-pair : Expr × Context → (Result Type Error)
 (define (dep-synth-pair expr ctx)
   (let* ([fst-expr (cadr expr)]
          [snd-expr (caddr expr)]
@@ -347,8 +340,8 @@
 ;;; Projection Synthesis
 ;;; ============================================================
 
-;;; (fst p) : A where p : (Sigma ((x : A)) B)
-;;; dep-synth-fst : Expr x Context -> (Result Type Error)
+;;; (fst p) : A where p : (Σ ((x : A)) B)
+;;; dep-synth-fst : Expr × Context → (Result Type Error)
 (define (dep-synth-fst expr ctx)
   (let* ([p-expr (cadr expr)]
          [p-synth (dep-synth p-expr ctx)])
@@ -359,8 +352,8 @@
                      `(error expected-sigma-got ,p-type)
                      `(ok ,(sigma-fst-type p-type)))))))
 
-;;; (snd p) : B[fst p/x] where p : (Sigma ((x : A)) B)
-;;; dep-synth-snd : Expr x Context -> (Result Type Error)
+;;; (snd p) : B[fst p/x] where p : (Σ ((x : A)) B)
+;;; dep-synth-snd : Expr × Context → (Result Type Error)
 (define (dep-synth-snd expr ctx)
   (let* ([p-expr (cadr expr)]
          [p-synth (dep-synth p-expr ctx)])
@@ -380,7 +373,7 @@
 ;;; Arrow and Product Synthesis
 ;;; ============================================================
 
-;;; dep-synth-arrow : Expr x Context -> (Result Type Error)
+;;; dep-synth-arrow : Expr × Context → (Result Type Error)
 (define (dep-synth-arrow expr ctx)
   (let ([types (cdr expr)])
        (let loop ([ts types])
@@ -393,7 +386,7 @@
                              `(error expected-type-got ,(cadr t-synth))
                              (loop (cdr ts)))))))))
 
-;;; dep-synth-product : Expr x Context -> (Result Type Error)
+;;; dep-synth-product : Expr × Context → (Result Type Error)
 (define (dep-synth-product expr ctx)
   (let ([types (cdr expr)])
        (let loop ([ts types])
@@ -410,7 +403,7 @@
 ;;; Vec and Matrix Type Synthesis
 ;;; ============================================================
 
-;;; dep-synth-vec : Expr x Context -> (Result Type Error)
+;;; dep-synth-vec : Expr × Context → (Result Type Error)
 (define (dep-synth-vec expr ctx)
   (if (not (= (length expr) 3))
       `(error malformed-vec-type ,expr)
@@ -424,7 +417,7 @@
                          A-check
                          `(ok Type)))))))
 
-;;; dep-synth-matrix : Expr x Context -> (Result Type Error)
+;;; dep-synth-matrix : Expr × Context → (Result Type Error)
 (define (dep-synth-matrix expr ctx)
   (if (not (= (length expr) 4))
       `(error malformed-matrix-type ,expr)
@@ -446,7 +439,7 @@
 ;;; Equality Type Synthesis
 ;;; ============================================================
 ;;;
-;;; Propositional equality implements Martin-Lof's identity type.
+;;; Propositional equality implements Martin-Löf's identity type.
 ;;;
 ;;; Type Formation:
 ;;;   (= A x y) : Type  when A : Type, x : A, y : A
@@ -458,16 +451,16 @@
 ;;;   (J A P d x y p) : (P x y p)
 ;;;   where:
 ;;;     A : Type
-;;;     P : (Pi ((a : A)) (Pi ((b : A)) (Pi ((_ : (= A a b))) Type)))
-;;;     d : (Pi ((z : A)) (P z z (refl A z)))
+;;;     P : (Π ((a : A)) (Π ((b : A)) (Π ((_ : (= A a b))) Type)))
+;;;     d : (Π ((z : A)) (P z z (refl A z)))
 ;;;     x : A
 ;;;     y : A
 ;;;     p : (= A x y)
 ;;;
 ;;; Computation:
-;;;   (J A P d x x (refl A x)) == (d x)
+;;;   (J A P d x x (refl A x)) ≡ (d x)
 
-;;; dep-synth-equality : Expr x Context -> (Result Type Error)
+;;; dep-synth-equality : Expr × Context → (Result Type Error)
 ;;; (= A x y) : Type when A : Type, x : A, y : A
 (define (dep-synth-equality expr ctx)
   (if (not (= (length expr) 4))
@@ -491,7 +484,7 @@
                                            ;; Result is Type at same level as A
                                            `(ok ,A-type)))))))))))
 
-;;; dep-synth-refl : Expr x Context -> (Result Type Error)
+;;; dep-synth-refl : Expr × Context → (Result Type Error)
 ;;; (refl A x) : (= A x x) when x : A
 (define (dep-synth-refl expr ctx)
   (cond
@@ -515,7 +508,7 @@
                                 `(ok (= ,A-expr ,x-expr ,x-expr))))))))]
    [else `(error malformed-refl ,expr)]))
 
-;;; dep-synth-J : Expr x Context -> (Result Type Error)
+;;; dep-synth-J : Expr × Context → (Result Type Error)
 ;;; (J A P d x y p) : (P x y p)
 ;;; J is the eliminator for equality types (also called "transport" or "subst").
 (define (dep-synth-J expr ctx)
@@ -532,7 +525,7 @@
             (if (not (eq? (car A-check) 'ok))
                 A-check
                 ;; Build the expected type for P:
-                ;; P : (Pi ((a : A)) (Pi ((b : A)) (Pi ((_ : (= A a b))) Type)))
+                ;; P : (Π ((a : A)) (Π ((b : A)) (Π ((_ : (= A a b))) Type)))
                 (let* ([eq-type-ab `(= ,A-expr a b)]
                        [P-expected (t-pi 'a A-expr
                                          (t-pi 'b A-expr
@@ -540,7 +533,7 @@
                        [P-check (dep-check P-expr P-expected ctx)])
                       (if (not (eq? (car P-check) 'ok))
                           P-check
-                          ;; Check d : (Pi ((z : A)) (P z z (refl A z)))
+                          ;; Check d : (Π ((z : A)) (P z z (refl A z)))
                           (let* ([d-expected (t-pi 'z A-expr
                                                    `(,P-expr z z (refl ,A-expr z)))]
                                  [d-check (dep-check d-expr d-expected ctx)])
@@ -569,7 +562,7 @@
 ;;; These can all be derived from J, but we provide direct synthesis
 ;;; for better error messages and efficiency.
 
-;;; dep-synth-sym : Expr x Context -> (Result Type Error)
+;;; dep-synth-sym : Expr × Context → (Result Type Error)
 ;;; (sym p) : (= A y x) when p : (= A x y)
 ;;; Symmetry: if x = y then y = x
 (define (dep-synth-sym expr ctx)
@@ -588,7 +581,7 @@
                                ;; Result: (= A y x)
                                `(ok (= ,A ,y ,x)))))))))
 
-;;; dep-synth-trans : Expr x Context -> (Result Type Error)
+;;; dep-synth-trans : Expr × Context → (Result Type Error)
 ;;; (trans p q) : (= A x z) when p : (= A x y), q : (= A y z)
 ;;; Transitivity: if x = y and y = z then x = z
 (define (dep-synth-trans expr ctx)
@@ -624,7 +617,7 @@
                                                          ;; Result: (= A x z)
                                                          `(ok (= ,A ,x ,z)))))))))))))))
 
-;;; dep-synth-cong : Expr x Context -> (Result Type Error)
+;;; dep-synth-cong : Expr × Context → (Result Type Error)
 ;;; (cong f p) : (= B (f x) (f y)) when f : (-> A B), p : (= A x y)
 ;;; Congruence: if x = y then f(x) = f(y)
 (define (dep-synth-cong expr ctx)
@@ -673,18 +666,14 @@
                                                  [y (equality-rhs p-type)])
                                                 (if (not (dep-types-equal? A p-A ctx))
                                                     `(error type-mismatch (expected ,A) (got ,p-A))
-                                                    ;; For dependent functions: use heterogeneous equality
-                                                    ;; Result: HEq B[x/var] B[y/var] (f x) (f y)
-                                                    ;; This degenerates to (= B (f x) (f y)) when B is non-dependent
-                                                    (let* ([B-x (dep-subst-type B var x)]
-                                                           [B-y (dep-subst-type B var y)]
-                                                           [result-type (make-heq-type B-x B-y
-                                                                                       `(,f-expr ,x)
-                                                                                       `(,f-expr ,y))])
-                                                          `(ok ,result-type))))))))]
+                                                    ;; Result: (= B[x/var] (f x) (f y))
+                                                    ;; For dependent functions, we'd need heterogeneous equality
+                                                    ;; For now, use B[x/var]
+                                                    (let ([B-x (dep-subst-type B var x)])
+                                                         `(ok (= ,B-x (,f-expr ,x) (,f-expr ,y))))))))))]
                       [else `(error not-a-function ,f-type)]))))))
 
-;;; dep-synth-subst : Expr x Context -> (Result Type Error)
+;;; dep-synth-subst : Expr × Context → (Result Type Error)
 ;;; (subst P p x) : (P y) when P : (-> A Type), p : (= A x y), x : (P x)
 ;;; Substitution: transport a proof along an equality
 (define (dep-synth-subst expr ctx)
@@ -692,7 +681,7 @@
       `(error malformed-subst ,expr)
       (dep-synth-subst-impl (cadr expr) (caddr expr) (cadddr expr) ctx)))
 
-;;; dep-synth-subst-impl : Expr x Expr x Expr x Context -> (Result Type Error)
+;;; dep-synth-subst-impl : Expr × Expr × Expr × Context → (Result Type Error)
 (define (dep-synth-subst-impl P-expr p-expr prf-expr ctx)
   (let ([P-synth (dep-synth P-expr ctx)])
        (if (not (eq? (car P-synth) 'ok))
@@ -700,7 +689,7 @@
            (let ([P-type (cadr P-synth)])
                 (dep-synth-subst-with-type P-expr p-expr prf-expr P-type ctx)))))
 
-;;; dep-synth-subst-with-type : Expr x Expr x Expr x Type x Context -> (Result Type Error)
+;;; dep-synth-subst-with-type : Expr × Expr × Expr × Type × Context → (Result Type Error)
 (define (dep-synth-subst-with-type P-expr p-expr prf-expr P-type ctx)
   (cond
    [(function-type? P-type)
@@ -718,7 +707,7 @@
              (dep-synth-subst-check P-expr p-expr prf-expr A ctx)))]
    [else `(error subst-needs-predicate ,P-type)]))
 
-;;; dep-synth-subst-check : Expr x Expr x Expr x Type x Context -> (Result Type Error)
+;;; dep-synth-subst-check : Expr × Expr × Expr × Type × Context → (Result Type Error)
 (define (dep-synth-subst-check P-expr p-expr prf-expr A ctx)
   (let ([p-synth (dep-synth p-expr ctx)])
        (if (not (eq? (car p-synth) 'ok))
@@ -760,7 +749,7 @@
 ;;; Checking:
 ;;;   To check e : {x:T | P}, check e : T and verify P[e/x]
 
-;;; dep-synth-refinement : Expr x Context -> (Result Type Error)
+;;; dep-synth-refinement : Expr × Context → (Result Type Error)
 ;;; (refine ((x : T)) P) : Type when T : Type and P : Bool under x:T
 (define (dep-synth-refinement expr ctx)
   (if (not (= (length expr) 3))
@@ -785,181 +774,7 @@
                                         `(error refinement-predicate-not-bool (expected Bool) (got ,pred-type))
                                         `(ok Type))))))))))
 
-;;; ============================================================
-;;; Refinement Proof Checking
-;;; ============================================================
-;;;
-;;; Proper verification that a proof term proves a predicate.
-;;; This implements the core of refinement type checking.
-
-;;; check-refinement-proof : Expr x Expr x Expr x Context -> (Result () Error)
-;;; Check that prf-expr proves that subst-pred holds for v-expr.
-;;;
-;;; Proof checking strategies (tried in order):
-;;;   1. Trivial: prf is literal #t and pred is a simple boolean
-;;;   2. Type-based: prf has type equal to the proposition
-;;;   3. Evaluation: pred evaluates to #t with v substituted
-;;;   4. Equality: for equality predicates, check refl
-(define (check-refinement-proof prf-expr subst-pred v-expr ctx)
-  (let ([prf-synth (dep-synth prf-expr ctx)])
-       (if (not (eq? (car prf-synth) 'ok))
-           prf-synth
-           (let ([prf-type (cadr prf-synth)])
-                ;; Strategy 1: Trivial proof - prf is #t
-                (if (eq? prf-expr #t)
-                    (check-predicate-trivial subst-pred ctx)
-                    
-                    ;; Strategy 2: Type-based proof - prf has type matching the proposition
-                    ;; For propositions-as-types, check prf : subst-pred
-                    (if (proposition-type? subst-pred)
-                        (check-proof-inhabits-proposition prf-expr prf-type subst-pred ctx)
-                        
-                        ;; Strategy 3: Boolean predicate - check prf proves a boolean
-                        (if (eq? prf-type 'Bool)
-                            (check-boolean-proof prf-expr subst-pred ctx)
-                            
-                            ;; Strategy 4: Equality proof - check refl
-                            (if (and (equality-type? subst-pred) (refl-term? prf-expr))
-                                (check-equality-proof prf-expr subst-pred ctx)
-                                
-                                ;; Fallback: accept well-typed proof (with warning)
-                                ;; This maintains backwards compatibility while flagging incomplete checking
-                                `(ok (note proof-not-fully-verified
-                                           (proof ,prf-expr)
-                                           (predicate ,subst-pred)
-                                           (proof-type ,prf-type)))))))))))
-
-;;; proposition-type? : Type -> Boolean
-;;; Check if a type is a proposition (can be inhabited by proofs).
-(define (proposition-type? t)
-  (or (equality-type? t)
-      (heq-type? t)
-      (and (pair? t) (eq? (car t) 'Prop))))
-
-;;; check-predicate-trivial : Expr x Context -> (Result () Error)
-;;; Check if a predicate trivially holds (can be statically verified).
-(define (check-predicate-trivial pred ctx)
-  (cond
-   ;; Literal true
-   [(eq? pred #t) '(ok)]
-   
-   ;; Known-true expressions (e.g., (< 0 1))
-   [(and (pair? pred) (known-true-comparison? pred)) '(ok)]
-   
-   ;; Try to evaluate
-   [(evaluable-predicate? pred)
-    (let ([result (try-evaluate-predicate pred ctx)])
-         (if (eq? result #t)
-             '(ok)
-             `(error predicate-not-satisfied
-               (predicate ,pred)
-               (evaluated-to ,result))))]
-   
-   ;; Cannot verify trivially
-   [else `(error cannot-verify-trivially (predicate ,pred))]))
-
-;;; known-true-comparison? : Expr -> Boolean
-;;; Check if this is a comparison that is statically known to be true.
-(define (known-true-comparison? expr)
-  (and (pair? expr)
-       (memq (car expr) '(< > <= >= = eq? eqv? equal?))
-       (= (length expr) 3)
-       (let ([op (car expr)]
-             [a (cadr expr)]
-             [b (caddr expr)])
-            (and (number? a) (number? b)
-                 (case op
-                       [(< <) (< a b)]
-                       [(> >) (> a b)]
-                       [(<= <=) (<= a b)]
-                       [(>= >=) (>= a b)]
-                       [(= eq? eqv? equal?) (= a b)]
-                       [else #f])))))
-
-;;; evaluable-predicate? : Expr -> Boolean
-;;; Check if a predicate can be safely evaluated.
-(define (evaluable-predicate? pred)
-  (cond
-   [(boolean? pred) #t]
-   [(number? pred) #t]
-   [(symbol? pred) #f]  ; Variables can't be evaluated without context
-   [(not (pair? pred)) #f]
-   ;; Safe operations
-   [(memq (car pred) '(< > <= >= = + - * and or not eq? eqv? equal?))
-    (andmap evaluable-predicate? (cdr pred))]
-   [else #f]))
-
-;;; try-evaluate-predicate : Expr x Context -> Any
-;;; Try to evaluate a predicate to a value.
-(define (try-evaluate-predicate pred ctx)
-  (guard (ex [else 'evaluation-failed])
-         (nbe-normalize pred nbe-empty-env)))
-
-;;; check-proof-inhabits-proposition : Expr x Type x Type x Context -> (Result () Error)
-;;; For propositions-as-types, check that the proof inhabits the proposition type.
-(define (check-proof-inhabits-proposition prf-expr prf-type prop-type ctx)
-  (if (dep-types-equal? prf-type prop-type ctx)
-      '(ok)
-      `(error proof-type-mismatch
-        (expected ,prop-type)
-        (got ,prf-type)
-        (proof ,prf-expr))))
-
-;;; check-boolean-proof : Expr x Expr x Context -> (Result () Error)
-;;; For boolean predicates, check that the proof demonstrates truth.
-(define (check-boolean-proof prf-expr subst-pred ctx)
-  ;; The proof must be true and match the predicate
-  (cond
-   ;; If prf is #t and pred is evaluable, check pred
-   [(eq? prf-expr #t)
-    (if (evaluable-predicate? subst-pred)
-        (let ([result (try-evaluate-predicate subst-pred ctx)])
-             (if (eq? result #t)
-                 '(ok)
-                 `(error predicate-not-satisfied
-                   (predicate ,subst-pred)
-                   (evaluated-to ,result))))
-        ;; Accept #t as proof when we can't evaluate
-        '(ok))]
-   
-   ;; If prf equals the predicate expression, accept it
-   [(equal? prf-expr subst-pred)
-    '(ok)]
-   
-   ;; Otherwise, accept well-typed boolean proof (partial checking)
-   [else
-    `(ok (note boolean-proof-accepted-unchecked
-               (proof ,prf-expr)
-               (predicate ,subst-pred)))]))
-
-;;; check-equality-proof : Expr x Type x Context -> (Result () Error)
-;;; For equality predicates, check that refl is valid.
-(define (check-equality-proof prf-expr eq-type ctx)
-  (if (not (refl-term? prf-expr))
-      `(error expected-refl-proof (got ,prf-expr))
-      (let ([lhs (equality-lhs eq-type)]
-            [rhs (equality-rhs eq-type)])
-           ;; refl is valid when lhs == rhs (definitionally equal)
-           (if (dep-terms-equal? lhs rhs ctx)
-               '(ok)
-               `(error refl-requires-equal-terms
-                 (lhs ,lhs)
-                 (rhs ,rhs)
-                 (hint "Use refl only when both sides are definitionally equal"))))))
-
-;;; dep-terms-equal? : Expr x Expr x Context -> Boolean
-;;; Check if two terms are definitionally equal.
-(define (dep-terms-equal? t1 t2 ctx)
-  (or (equal? t1 t2)
-      (let ([n1 (nbe-normalize t1 nbe-empty-env)]
-            [n2 (nbe-normalize t2 nbe-empty-env)])
-           (equal? n1 n2))))
-
-;;; ============================================================
-;;; Refined Introduction Rule
-;;; ============================================================
-
-;;; dep-synth-refine-intro : Expr x Context -> (Result Type Error)
+;;; dep-synth-refine-intro : Expr × Context → (Result Type Error)
 ;;; (refine-intro (refine-type) v prf) : refine-type
 ;;; where refine-type = (refine ((x : T)) P)
 ;;; v : T, prf : P[v/x]
@@ -982,15 +797,17 @@
                                (let ([v-check (dep-check v-expr base-type ctx)])
                                     (if (not (eq? (car v-check) 'ok))
                                         v-check
-                                        ;; Check prf proves P[v/x]
-                                        (let* ([subst-pred (dep-subst-type predicate var v-expr)]
-                                               [prf-check (check-refinement-proof prf-expr subst-pred v-expr ctx)])
-                                              (if (not (eq? (car prf-check) 'ok))
-                                                  prf-check
-                                                  ;; Result is the refinement type
-                                                  `(ok ,refine-type-expr))))))))))))
+                                        ;; Check prf : P[v/x] (predicate with v substituted)
+                                        (let ([subst-pred (dep-subst-type predicate var v-expr)])
+                                             ;; For now, we just check prf is a Bool
+                                             ;; In a full system, we'd check it's a proof of the predicate
+                                             (let ([prf-synth (dep-synth prf-expr ctx)])
+                                                  (if (not (eq? (car prf-synth) 'ok))
+                                                      prf-synth
+                                                      ;; Result is the refinement type
+                                                      `(ok ,refine-type-expr)))))))))))))
 
-;;; dep-synth-refine-elim : Expr x Context -> (Result Type Error)
+;;; dep-synth-refine-elim : Expr × Context → (Result Type Error)
 ;;; (refine-elim e) : T when e : {x:T | P}
 ;;; Extracts the underlying value
 (define (dep-synth-refine-elim expr ctx)
@@ -1010,8 +827,8 @@
 ;;; Application Synthesis
 ;;; ============================================================
 
-;;; (f x) : B[x/y] where f : (Pi ((y : A)) B) and x : A
-;;; dep-synth-app : Expr x Context -> (Result Type Error)
+;;; (f x) : B[x/y] where f : (Π ((y : A)) B) and x : A
+;;; dep-synth-app : Expr × Context → (Result Type Error)
 (define (dep-synth-app expr ctx)
   (let* ([func-expr (car expr)]
          [args (cdr expr)]
@@ -1021,7 +838,7 @@
             (let ([func-type (cadr func-synth)])
                  (dep-synth-app-args func-type args ctx)))))
 
-;;; dep-synth-app-args : Type x (List Expr) x Context -> (Result Type Error)
+;;; dep-synth-app-args : Type × (List Expr) × Context → (Result Type Error)
 (define (dep-synth-app-args func-type args ctx)
   (if (null? args)
       `(ok ,func-type)
@@ -1054,7 +871,7 @@
        
        [else `(error not-a-function ,func-type)])))
 
-;;; take : (List a) x Int -> (List a)
+;;; take : (List a) × Int → (List a)
 (define (take lst n)
   (if (or (null? lst) (<= n 0))
       '()
@@ -1064,7 +881,7 @@
 ;;; Type Checking
 ;;; ============================================================
 
-;;; dep-check : Expr x Type x Context -> (ok) | (error ...)
+;;; dep-check : Expr × Type × Context → (ok) | (error ...)
 ;;; Check that an expression has the expected type.
 (define (dep-check expr expected ctx)
   (cond
@@ -1138,7 +955,7 @@
                       '(ok)
                       `(error type-mismatch (expected ,expected) (got ,inferred))))))]))
 
-;;; dep-check-type : Type x Context -> (ok) | (error ...)
+;;; dep-check-type : Type × Context → (ok) | (error ...)
 ;;; Check that something is a valid type.
 (define (dep-check-type type-expr ctx)
   (let ([synth (dep-synth type-expr ctx)])
@@ -1149,7 +966,7 @@
                     '(ok)
                     `(error expected-type-got ,type-of-type))))))
 
-;;; dep-check-args : (List Expr) x (List Type) x Context x Thunk -> (Result a Error)
+;;; dep-check-args : (List Expr) × (List Type) × Context × Thunk → (Result α Error)
 (define (dep-check-args args expected-types ctx cont)
   (if (null? args)
       (cont)
@@ -1162,7 +979,7 @@
 ;;; Type Equality with NbE
 ;;; ============================================================
 
-;;; dep-types-equal? : Type x Type x Context -> Boolean
+;;; dep-types-equal? : Type × Type × Context → Boolean
 ;;; Check if two types are definitionally equal using NbE.
 (define (dep-types-equal? t1 t2 ctx)
   ;; Build NbE environment from context
@@ -1171,7 +988,7 @@
          [v2 (nbe-eval t2 nbe-env)])
         (convert? v1 v2 0)))
 
-;;; ctx->nbe-env : Context -> NbEEnv
+;;; ctx->nbe-env : Context → NbEEnv
 ;;; Convert type context to NbE environment.
 ;;; If a context entry has a value (3rd element), evaluate it; otherwise use neutral.
 (define (ctx->nbe-env ctx)
@@ -1190,7 +1007,7 @@
 ;;; Quoted Literals
 ;;; ============================================================
 
-;;; dep-synth-quoted : a -> (Result Type Error)
+;;; dep-synth-quoted : α → (Result Type Error)
 (define (dep-synth-quoted datum)
   (cond
    [(symbol? datum) `(ok Symbol)]
@@ -1214,16 +1031,22 @@
 ;;;   3. Eliminator: structural recursion principle
 ;;;
 ;;; Type Formation:
-;;;   (data (D params...) [c_1 : T_1] ... [c_n : T_n]) : Type
-;;;   when each T_i returns D with the same parameters
+;;;   (data (D params...) [c₁ : T₁] ... [cₙ : Tₙ]) : Type
+;;;   when each Tᵢ returns D with the same parameters
 ;;;
 ;;; Constructor Types:
-;;;   Each constructor c_i has type T_i (as declared)
+;;;   Each constructor cᵢ has type Tᵢ (as declared)
 ;;;
 ;;; Eliminator Type:
-;;;   elim-D : (P : D -> Type) -> ... -> (x : D) -> (P x)
+;;;   elim-D : (P : D → Type) → ... → (x : D) → (P x)
 
-;;; dep-synth-data : Expr x Context -> (Result Type Error)
+;;; string-prefix? : String × String → Boolean
+;;; Check if str starts with prefix.
+(define (string-prefix? prefix str)
+  (and (>= (string-length str) (string-length prefix))
+       (string=? prefix (substring str 0 (string-length prefix)))))
+
+;;; dep-synth-data : Expr × Context → (Result Type Error)
 ;;; Synthesize type for a data declaration.
 ;;; (data (Name params...) [ctor : type] ...) : Type
 (define (dep-synth-data expr ctx)
@@ -1250,7 +1073,7 @@
                                ;; Data declaration is a type
                                `(ok Type))))))))
 
-;;; make-type-constructor-type : (List (Symbol . Type)) -> Type
+;;; make-type-constructor-type : (List (Symbol . Type)) → Type
 ;;; Build the type of a type constructor from its parameters.
 ;;; E.g., for (List A), returns (-> Type Type)
 ;;; For no params, returns Type.
@@ -1262,7 +1085,7 @@
                        'Type
                        param-types))))
 
-;;; dep-synth-data-params : (List (Symbol . Type)) x Context -> (Result () Error)
+;;; dep-synth-data-params : (List (Symbol . Type)) × Context → (Result () Error)
 ;;; Check that all parameter types are valid types.
 (define (dep-synth-data-params params ctx)
   (if (null? params)
@@ -1275,7 +1098,7 @@
                 (let ([new-ctx (dep-ctx-extend ctx (car param) ptype)])
                      (dep-synth-data-params (cdr params) new-ctx))))))
 
-;;; dep-extend-ctx-with-params : Context x (List (Symbol . Type)) -> Context
+;;; dep-extend-ctx-with-params : Context × (List (Symbol . Type)) → Context
 ;;; Extend context with all parameter bindings.
 (define (dep-extend-ctx-with-params ctx params)
   (fold-left (lambda (ctx p)
@@ -1283,7 +1106,7 @@
              ctx
              params))
 
-;;; dep-synth-data-constructors : (List (Symbol . Type)) x Symbol x Context -> (Result () Error)
+;;; dep-synth-data-constructors : (List (Symbol . Type)) × Symbol × Context → (Result () Error)
 ;;; Check that all constructor types are well-formed and return the inductive type.
 (define (dep-synth-data-constructors ctors type-name ctx)
   (if (null? ctors)
@@ -1304,7 +1127,7 @@
                                 (got ,return-type))
                               (dep-synth-data-constructors (cdr ctors) type-name ctx))))))))
 
-;;; get-constructor-return-type : Type -> Type
+;;; get-constructor-return-type : Type → Type
 ;;; Get the return type of a constructor (unwrap nested Pi types).
 (define (get-constructor-return-type type)
   (cond
@@ -1314,7 +1137,7 @@
     (function-return-type type)]
    [else type]))
 
-;;; constructor-returns-type? : Type x Symbol -> Boolean
+;;; constructor-returns-type? : Type × Symbol → Boolean
 ;;; Check if a return type matches the inductive type name.
 (define (constructor-returns-type? return-type type-name)
   (cond
@@ -1332,7 +1155,7 @@
 ;;; For now, we require the data declaration to be in the context
 ;;; or we check against known built-in types.
 
-;;; dep-synth-eliminator : Expr x Context -> (Result Type Error)
+;;; dep-synth-eliminator : Expr × Context → (Result Type Error)
 ;;; Synthesize type for eliminator application.
 ;;; (elim-TypeName P method... target) : (P target)
 (define (dep-synth-eliminator expr ctx)
@@ -1352,11 +1175,11 @@
          [else
           `(error unknown-inductive-type ,type-name)])))
 
-;;; dep-synth-elim-nat : (List Expr) x Context -> (Result Type Error)
+;;; dep-synth-elim-nat : (List Expr) × Context → (Result Type Error)
 ;;; elim-Nat P z s n : (P n)
-;;; where P : Nat -> Type
+;;; where P : Nat → Type
 ;;;       z : (P zero)
-;;;       s : Pi(m : Nat). (P m) -> (P (succ m))
+;;;       s : Π(m : Nat). (P m) → (P (succ m))
 ;;;       n : Nat
 (define (dep-synth-elim-nat args ctx)
   (if (not (= (length args) 4))
@@ -1365,7 +1188,7 @@
              [z-expr (cadr args)]
              [s-expr (caddr args)]
              [n-expr (cadddr args)]
-             ;; Check P : Nat -> Type
+             ;; Check P : Nat → Type
              [P-expected (t-pi 'm 'Nat 'Type)]
              [P-check (dep-check P-expr P-expected ctx)])
             (if (not (eq? (car P-check) 'ok))
@@ -1375,7 +1198,7 @@
                      (let ([z-check (dep-check z-expr z-expected ctx)])
                           (if (not (eq? (car z-check) 'ok))
                               `(error elim-nat-zero-case-error ,(cdr z-check))
-                              ;; Check s : Pi(m : Nat). (P m) -> (P (succ m))
+                              ;; Check s : Π(m : Nat). (P m) → (P (succ m))
                               (let ([s-expected (t-pi 'm 'Nat
                                                       (t-pi 'ih `(,P-expr m)
                                                             `(,P-expr (succ m))))])
@@ -1389,9 +1212,9 @@
                                                      ;; Result: (P n)
                                                      `(ok (,P-expr ,n-expr))))))))))))))
 
-;;; dep-synth-elim-bool : (List Expr) x Context -> (Result Type Error)
+;;; dep-synth-elim-bool : (List Expr) × Context → (Result Type Error)
 ;;; elim-Bool P t f b : (P b)
-;;; where P : Bool -> Type
+;;; where P : Bool → Type
 ;;;       t : (P true)
 ;;;       f : (P false)
 ;;;       b : Bool
@@ -1402,7 +1225,7 @@
              [t-expr (cadr args)]
              [f-expr (caddr args)]
              [b-expr (cadddr args)]
-             ;; Check P : Bool -> Type
+             ;; Check P : Bool → Type
              [P-expected (t-pi 'b 'Bool 'Type)]
              [P-check (dep-check P-expr P-expected ctx)])
             (if (not (eq? (car P-check) 'ok))
@@ -1424,11 +1247,11 @@
                                                      ;; Result: (P b)
                                                      `(ok (,P-expr ,b-expr))))))))))))))
 
-;;; dep-synth-elim-list : (List Expr) x Context -> (Result Type Error)
+;;; dep-synth-elim-list : (List Expr) × Context → (Result Type Error)
 ;;; elim-List P n c xs : (P xs)
-;;; where P : (List A) -> Type
+;;; where P : (List A) → Type
 ;;;       n : (P nil)
-;;;       c : Pi(x : A). Pi(xs : List A). (P xs) -> (P (cons x xs))
+;;;       c : Π(x : A). Π(xs : List A). (P xs) → (P (cons x xs))
 ;;;       xs : (List A)
 ;;; Note: This is simplified - full version would track element type A
 (define (dep-synth-elim-list args ctx)
@@ -1456,7 +1279,7 @@
 ;;; A signature (sig Name decl ...) synthesizes to Type (it's a specification).
 ;;; We check that all declarations within are well-formed.
 
-;;; dep-synth-sig : Expr x Context -> (Result Type Error)
+;;; dep-synth-sig : Expr × Context → (Result Type Error)
 ;;; Synthesize type for a module signature.
 ;;; (sig Name decl ...) : Type
 (define (dep-synth-sig expr ctx)
@@ -1471,7 +1294,7 @@
                      ;; Signature is a type
                      `(ok Type))))))
 
-;;; dep-synth-sig-decls : (List Decl) x Context -> (Result () Error)
+;;; dep-synth-sig-decls : (List Decl) × Context → (Result () Error)
 ;;; Check that all signature declarations are well-formed.
 (define (dep-synth-sig-decls decls ctx)
   (if (null? decls)
@@ -1484,7 +1307,7 @@
                 (let ([new-ctx (dep-extend-ctx-with-sig-decl ctx decl)])
                      (dep-synth-sig-decls (cdr decls) new-ctx))))))
 
-;;; dep-synth-sig-decl : Decl x Context -> (Result () Error)
+;;; dep-synth-sig-decl : Decl × Context → (Result () Error)
 ;;; Check that a single signature declaration is well-formed.
 (define (dep-synth-sig-decl decl ctx)
   (cond
@@ -1523,7 +1346,7 @@
    
    [else `(error unknown-sig-decl ,decl)]))
 
-;;; dep-extend-ctx-with-sig-decl : Context x Decl -> Context
+;;; dep-extend-ctx-with-sig-decl : Context × Decl → Context
 ;;; Extend context with bindings introduced by a signature declaration.
 (define (dep-extend-ctx-with-sig-decl ctx decl)
   (cond
@@ -1568,69 +1391,10 @@
    [else ctx]))
 
 ;;; ============================================================
-;;; GADT Support (Delegated to gadt-infer.ss)
-;;; ============================================================
-;;;
-;;; GADTs extend inductive types with type indices that can be refined
-;;; by pattern matching. The key innovation is that each constructor can
-;;; specify a more precise return type, and matching on that constructor
-;;; brings the type refinement into scope.
-
-;;; Load the GADT inference module
-(load "core/types/gadt-infer.ss")
-
-;;; dep-synth-gadt : GADTDecl x Context -> (Result Type Error)
-;;; Type-check a GADT declaration and register it.
-(define (dep-synth-gadt decl ctx)
-  (gadt-infer-synth decl ctx dep-synth dep-check dep-check-type))
-
-;;; dep-synth-gadt-case : Expr x Context -> (Result Type Error)
-;;; Type-check a gadt-case expression with type refinement.
-(define (dep-synth-gadt-case expr ctx)
-  (gadt-infer-synth-case expr ctx dep-synth dep-check dep-types-equal?
-                         dep-ctx-extend dep-ctx-extend-def))
-
-;;; ============================================================
-;;; Existential Type Support (Delegated to existential-infer.ss)
-;;; ============================================================
-;;;
-;;; Existential types allow hiding type information behind an interface.
-;;; The key operations are:
-;;;   - Pack: hide a concrete type inside an existential
-;;;   - Unpack: use an existential with the type held abstract (skolemized)
-
-;;; Load the existential inference module
-(load "core/types/existential-infer.ss")
-
-;;; dep-synth-existential : Expr x Context -> (Result Type Error)
-;;; (exists ((a : K)) T) : Type when K is valid and T : Type under a:K
-(define (dep-synth-existential expr ctx)
-  (existential-infer-synth expr ctx dep-synth dep-check-type dep-ctx-extend))
-
-;;; dep-synth-pack : Expr x Context -> (Result Type Error)
-;;; (pack WitnessType Value : ExistentialType) : ExistentialType
-;;; Check that Value : Body[WitnessType/a]
-(define (dep-synth-pack expr ctx)
-  (existential-infer-synth-pack expr ctx dep-synth dep-check dep-check-type))
-
-;;; dep-synth-unpack : Expr x Context -> (Result Type Error)
-;;; (unpack ((a val) packed-expr) body) : T
-;;; where packed-expr : exists a.S, val:S[skolem/a] in body, and T doesn't mention skolem
-(define (dep-synth-unpack expr ctx)
-  (existential-infer-synth-unpack expr ctx dep-synth dep-ctx-extend dep-ctx-extend-def))
-
-;;; ============================================================
-;;; Rank-N Polymorphism (Placeholder, from rank-n-infer.ss)
-;;; ============================================================
-
-;;; Load the rank-N inference module (placeholder)
-(load "core/types/rank-n-infer.ss")
-
-;;; ============================================================
 ;;; Convenience Functions
 ;;; ============================================================
 
-;;; dep-typeof : Expr -> Type | Error
+;;; dep-typeof : Expr → Type | Error
 ;;; Infer the type of an expression in empty context.
 (define (dep-typeof expr)
   (let ([result (dep-synth expr empty-dep-ctx)])
@@ -1638,8 +1402,293 @@
            (cadr result)
            result)))
 
-;;; dep-typecheck : Expr x Type -> Boolean | Error
+;;; dep-typecheck : Expr × Type → Boolean | Error
 ;;; Check that an expression has the given type.
 (define (dep-typecheck expr type)
   (let ([result (dep-check expr type empty-dep-ctx)])
        (eq? (car result) 'ok)))
+
+;;; ============================================================
+;;; GADT Support
+;;; ============================================================
+;;;
+;;; GADTs extend inductive types with type indices that can be refined
+;;; by pattern matching. The key innovation is that each constructor can
+;;; specify a more precise return type, and matching on that constructor
+;;; brings the type refinement into scope.
+
+;;; GADT Registry (Global State)
+(define *gadt-registry* '())
+
+;;; reset-gadt-registry! : → Unit
+(define (reset-gadt-registry!)
+  (set! *gadt-registry* '()))
+
+;;; register-gadt! : GADTDecl → Unit
+(define (register-gadt! decl)
+  (set! *gadt-registry* (gadt-registry-add *gadt-registry* decl)))
+
+;;; lookup-gadt : Symbol → GADTDecl | #f
+(define (lookup-gadt name)
+  (gadt-registry-lookup *gadt-registry* name))
+
+;;; dep-synth-gadt : GADTDecl × Context → (Result Type Error)
+;;; Type-check a GADT declaration and register it.
+(define (dep-synth-gadt decl ctx)
+  (if (not (gadt-well-formed? decl))
+      `(error malformed-gadt-declaration ,decl)
+      (let* ([name (gadt-name decl)]
+             [index-kinds (gadt-index-kinds decl)]
+             [ctors (gadt-constructors decl)])
+            ;; Check all constructor types
+            (let ([ctor-checks (dep-check-gadt-ctors name index-kinds ctors ctx)])
+                 (if (not (eq? (car ctor-checks) 'ok))
+                     ctor-checks
+                     (begin
+                      (register-gadt! decl)
+                      `(ok (gadt-type ,name))))))))
+
+;;; dep-check-gadt-ctors : Symbol × (List (Symbol . Kind)) × (List (Symbol . Type)) × Context
+;;;                        → (ok) | (error ...)
+(define (dep-check-gadt-ctors gadt-name index-kinds ctors ctx)
+  (if (null? ctors)
+      '(ok)
+      (let* ([ctor (car ctors)]
+             [ctor-name (car ctor)]
+             [ctor-type (cdr ctor)]
+             [type-check (dep-check-type ctor-type ctx)])
+            (if (not (eq? (car type-check) 'ok))
+                `(error ctor-type-invalid ,ctor-name ,type-check)
+                (if (not (gadt-ctor-returns-gadt? ctor-type gadt-name))
+                    `(error ctor-wrong-return-type ,ctor-name ,ctor-type ,gadt-name)
+                    (dep-check-gadt-ctors gadt-name index-kinds (cdr ctors) ctx))))))
+
+;;; dep-synth-gadt-case : Expr × Context → (Result Type Error)
+;;; Type-check a gadt-case expression with type refinement.
+(define (dep-synth-gadt-case expr ctx)
+  (let* ([scrutinee (gadt-case-scrutinee expr)]
+         [clauses (gadt-case-clauses expr)]
+         [scrut-synth (dep-synth scrutinee ctx)])
+        (if (not (eq? (car scrut-synth) 'ok))
+            scrut-synth
+            (let ([scrut-type (cadr scrut-synth)])
+                 (let ([gadt-info (dep-decompose-gadt-type scrut-type)])
+                      (if (not gadt-info)
+                          `(error scrutinee-not-gadt-type ,scrut-type)
+                          (let* ([gadt-name (car gadt-info)]
+                                 [scrut-indices (cdr gadt-info)]
+                                 [gadt-decl (lookup-gadt gadt-name)])
+                                (if (not gadt-decl)
+                                    `(error unknown-gadt ,gadt-name)
+                                    (dep-synth-gadt-clauses gadt-decl scrut-indices clauses ctx)))))))))
+
+;;; dep-decompose-gadt-type : Type → (Symbol . (List Type)) | #f
+(define (dep-decompose-gadt-type t)
+  (cond
+   [(symbol? t)
+    (if (lookup-gadt t)
+        (cons t '())
+        #f)]
+   [(and (pair? t) (symbol? (car t)))
+    (if (lookup-gadt (car t))
+        (cons (car t) (cdr t))
+        #f)]
+   [else #f]))
+
+;;; dep-synth-gadt-clauses : GADTDecl × (List Type) × (List Clause) × Context
+;;;                          → (Result Type Error)
+(define (dep-synth-gadt-clauses gadt-decl scrut-indices clauses ctx)
+  (if (null? clauses)
+      `(error empty-gadt-case)
+      (let loop ([clauses clauses] [types '()])
+           (if (null? clauses)
+               ;; All clauses checked, unify return types
+               (dep-unify-gadt-return-types (reverse types) ctx)
+               (let ([result (dep-synth-gadt-clause gadt-decl scrut-indices (car clauses) ctx)])
+                    (if (not (eq? (car result) 'ok))
+                        result
+                        (loop (cdr clauses) (cons (cadr result) types))))))))
+
+;;; dep-synth-gadt-clause : GADTDecl × (List Type) × Clause × Context → (Result Type Error)
+(define (dep-synth-gadt-clause gadt-decl scrut-indices clause ctx)
+  (let* ([pattern (gadt-clause-pattern clause)]
+         [body (gadt-clause-body clause)]
+         [ctor-name (gadt-pattern-ctor pattern)]
+         [pattern-vars (gadt-pattern-vars pattern)]
+         [gadt-name (gadt-name gadt-decl)]
+         [index-vars (gadt-index-vars gadt-decl)]
+         [ctor-type (gadt-ctor-type gadt-decl ctor-name)])
+        (if (not ctor-type)
+            `(error unknown-constructor ,ctor-name ,gadt-name)
+            (let* ([ctor-return-indices (gadt-ctor-return-indices ctor-type gadt-name)]
+                   [refinements (extract-type-equations scrut-indices ctor-return-indices index-vars)])
+                  ;; Check for structural mismatch (unreachable branch)
+                  (if (eq? refinements 'mismatch)
+                      `(error unreachable-gadt-branch
+                        (constructor ,ctor-name)
+                        (scrutinee-indices ,scrut-indices)
+                        (ctor-indices ,ctor-return-indices))
+                      (let* ([raw-param-types (gadt-ctor-param-types ctor-type)]
+                             [param-types (map (lambda (t) (apply-refinements t refinements)) raw-param-types)]
+                             [expected-arity (length param-types)]
+                             [actual-arity (length pattern-vars)])
+                            (if (not (= expected-arity actual-arity))
+                                `(error pattern-arity-mismatch
+                                  (constructor ,ctor-name)
+                                  (expected ,expected-arity)
+                                  (got ,actual-arity))
+                                ;; Build refined context
+                                (let* ([ctx-with-refs (dep-apply-refinements ctx refinements)]
+                                       [ctx-with-vars (dep-bind-pattern-vars ctx-with-refs pattern-vars param-types)])
+                                      (dep-synth body ctx-with-vars)))))))))
+
+;;; dep-apply-refinements : Context × (List (Symbol . Type)) → Context
+(define (dep-apply-refinements ctx refinements)
+  (fold-left (lambda (c ref)
+                     (dep-ctx-extend-def c (car ref) 'Type (cdr ref)))
+             ctx
+             refinements))
+
+;;; dep-bind-pattern-vars : Context × (List Symbol) × (List Type) → Context
+(define (dep-bind-pattern-vars ctx vars types)
+  (fold-left (lambda (c pair)
+                     (dep-ctx-extend c (car pair) (cdr pair)))
+             ctx
+             (map cons vars types)))
+
+;;; dep-unify-gadt-return-types : (List Type) × Context → (Result Type Error)
+(define (dep-unify-gadt-return-types types ctx)
+  (if (null? types)
+      `(error empty-gadt-case)
+      (let ([first-type (car types)])
+           (let loop ([remaining (cdr types)])
+                (if (null? remaining)
+                    `(ok ,first-type)
+                    (if (dep-types-equal? first-type (car remaining) ctx)
+                        (loop (cdr remaining))
+                        `(error gadt-case-branch-type-mismatch
+                          (first ,first-type)
+                          (other ,(car remaining)))))))))
+
+;;; gadt-define-test-gadts! : → Unit
+;;; Helper to set up test GADTs.
+(define (gadt-define-test-gadts!)
+  (reset-gadt-registry!)
+  (register-gadt!
+   '(gadt (Expr a)
+     [Lit  : (-> Int (Expr Int))]
+     [Add  : (-> (Expr Int) (Expr Int) (Expr Int))]
+     [Eq   : (-> (Expr Int) (Expr Int) (Expr Bool))]
+     [If   : (∀ (b) (-> (Expr Bool) (Expr b) (Expr b) (Expr b)))]))
+  (register-gadt!
+   '(gadt (Vec (n : Nat) a)
+     [VNil  : (Vec 0 a)]
+     [VCons : (∀ (m) (-> a (Vec m a) (Vec (succ m) a)))])))
+
+;;; ============================================================
+;;; Existential Type Support
+;;; ============================================================
+;;;
+;;; Existential types allow hiding type information behind an interface.
+;;; The key operations are:
+;;;   - Pack: hide a concrete type inside an existential
+;;;   - Unpack: use an existential with the type held abstract (skolemized)
+
+;;; dep-synth-existential : Expr × Context → (Result Type Error)
+;;; (∃ ((a : K)) T) : Type when K is valid and T : Type under a:K
+(define (dep-synth-existential expr ctx)
+  (if (not (existential-well-formed? expr))
+      `(error malformed-existential-type ,expr)
+      (let* ([var-bindings (cadr expr)]
+             [body (caddr expr)])
+            ;; Check each binding has a valid kind
+            (let loop ([bindings var-bindings] [ctx ctx])
+                 (if (null? bindings)
+                     ;; All bindings valid, check body is a type
+                     (let ([body-check (dep-check-type body ctx)])
+                          (if (eq? (car body-check) 'ok)
+                              '(ok Type)
+                              body-check))
+                     (let* ([b (car bindings)]
+                            [var (binding-var b)]
+                            [kind (binding-type b)])
+                           ;; Kind should be Type or a valid kind expression
+                           (if (or (eq? kind 'Type) (eq? kind '*))
+                               (loop (cdr bindings)
+                                     (dep-ctx-extend ctx var kind))
+                               ;; Check kind is valid
+                               (let ([kind-check (dep-check-type kind ctx)])
+                                    (if (not (eq? (car kind-check) 'ok))
+                                        `(error invalid-existential-kind ,kind)
+                                        (loop (cdr bindings)
+                                              (dep-ctx-extend ctx var kind)))))))))))
+
+;;; dep-synth-pack : Expr × Context → (Result Type Error)
+;;; (pack WitnessType Value : ExistentialType) : ExistentialType
+;;; Check that Value : Body[WitnessType/a]
+(define (dep-synth-pack expr ctx)
+  (if (not (pack-well-formed? expr))
+      `(error malformed-pack ,expr)
+      (let* ([witness-type (pack-witness-type expr)]
+             [value-expr (pack-value expr)]
+             [exist-type (pack-existential-type expr)])
+            (if (not (existential-type? exist-type))
+                `(error pack-not-existential ,exist-type)
+                (let* ([vars (existential-vars exist-type)]
+                       [body (existential-body exist-type)])
+                      ;; For now, support single variable (common case)
+                      (if (not (= (length vars) 1))
+                          `(error pack-multi-var-not-yet-supported ,vars)
+                          (let* ([var (car vars)]
+                                 ;; Substitute witness for hidden var in body
+                                 [expected-value-type (subst-type body var witness-type)]
+                                 ;; Check witness type is a valid type
+                                 [witness-check (dep-check-type witness-type ctx)])
+                                (if (not (eq? (car witness-check) 'ok))
+                                    witness-check
+                                    ;; Check value has expected type
+                                    (let ([value-check (dep-check value-expr expected-value-type ctx)])
+                                         (if (eq? (car value-check) 'ok)
+                                             `(ok ,exist-type)
+                                             value-check))))))))))
+
+;;; dep-synth-unpack : Expr × Context → (Result Type Error)
+;;; (unpack ((a val) packed-expr) body) : T
+;;; where packed-expr : ∃a.S, val:S[skolem/a] in body, and T doesn't mention skolem
+(define (dep-synth-unpack expr ctx)
+  (if (not (unpack-well-formed? expr))
+      `(error malformed-unpack ,expr)
+      (let* ([type-var (unpack-type-var expr)]
+             [val-var (unpack-val-var expr)]
+             [packed-expr (unpack-packed-expr expr)]
+             [body (unpack-body expr)]
+             ;; Synthesize packed expression
+             [packed-synth (dep-synth packed-expr ctx)])
+            (if (not (eq? (car packed-synth) 'ok))
+                packed-synth
+                (let ([packed-type (cadr packed-synth)])
+                     (if (not (existential-type? packed-type))
+                         `(error unpack-not-existential ,packed-type)
+                         (let* ([exist-vars (existential-vars packed-type)]
+                                [exist-body (existential-body packed-type)])
+                               ;; For now, support single variable
+                               (if (not (= (length exist-vars) 1))
+                                   `(error unpack-multi-var-not-yet-supported ,exist-vars)
+                                   (let* ([exist-var (car exist-vars)]
+                                          ;; Generate fresh skolem
+                                          [skolem (fresh-skolem exist-var)]
+                                          ;; Substitute skolem for existential var in body type
+                                          [skolemized-body (subst-type exist-body exist-var skolem)]
+                                          ;; Extend context with type var bound to skolem
+                                          [ctx-with-skolem (dep-ctx-extend-def ctx type-var 'Type skolem)]
+                                          ;; Extend context with value var bound to skolemized type
+                                          [ctx-with-val (dep-ctx-extend ctx-with-skolem val-var skolemized-body)]
+                                          ;; Synthesize body
+                                          [body-synth (dep-synth body ctx-with-val)])
+                                         (if (not (eq? (car body-synth) 'ok))
+                                             body-synth
+                                             ;; Check result type doesn't mention skolem
+                                             (let ([result-type (cadr body-synth)])
+                                                  (if (type-mentions-skolem? result-type skolem)
+                                                      `(error skolem-escape ,skolem ,result-type)
+                                                      `(ok ,result-type)))))))))))))

@@ -16,21 +16,21 @@
 ;;;   - core/pipeline/stage.ss
 ;;;   - core/pipeline/effects.ss
 ;;;   - core/pipeline/context.ss
-;;;   - shell/pipeline/effects/*.ss (effect handlers)
-;;;   - shell/pipeline/checkpoint.ss
+;;;   - shell/fs.ss (for file operations)
+;;;
+;;; NOTE: Standard string utilities provided by core/prelude.ss.
+;;;       string-rindex is unique to this module.
 
-(load "lattice/pipeline/stage.ss")
-(load "lattice/pipeline/effects.ss")
-(load "lattice/pipeline/context.ss")
+(load "core/pipeline/stage.ss")
+(load "core/pipeline/effects.ss")
+(load "core/pipeline/context.ss")
 
-;;; Load effect handlers
-(load "shell/pipeline/effects/llm.ss")
-(load "shell/pipeline/effects/shell.ss")
-(load "shell/pipeline/effects/http.ss")
-(load "shell/pipeline/effects/fold.ss")
-(load "shell/pipeline/effects/discord.ss")
-(load "shell/pipeline/effects/misc.ss")
-(load "shell/pipeline/checkpoint.ss")
+;;; ============================================================
+;;; Interpreter State
+;;; ============================================================
+
+;;; Current session for Fold IPC
+(define *pipeline-session* (make-parameter "pipeline"))
 
 ;;; ============================================================
 ;;; Main Interpreter Entry Point
@@ -86,7 +86,7 @@
           state)]))
 
 ;;; ============================================================
-;;; Effect Interpretation Dispatcher
+;;; Effect Interpretation
 ;;; ============================================================
 
 ;;; interpret-effect : Effect -> Context -> State -> (Result . State)
@@ -111,6 +111,379 @@
               (cons (stage-err 'unknown-effect
                                (format "Unknown effect type: ~a" type)
                                effect)
+                    state)])))
+
+;;; ============================================================
+;;; LLM Effect Interpretation
+;;; ============================================================
+
+;;; interpret-llm-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-llm-effect payload ctx state input)
+  (let ([op (car payload)]
+        [model (cadr payload)]
+        [prompt-template (caddr payload)])
+       (case op
+             [(call)
+              (let* ([prompt (expand-template-with-ctx prompt-template ctx input)]
+                     [system-prompt (get-system-prompt ctx)]
+                     [response (call-llm-api model system-prompt prompt)])
+                    (if (llm-response-ok? response)
+                        (let ([new-state (state-add-log state
+                                                        (make-log-entry 'debug
+                                                                        (format "LLM ~a called" model)
+                                                                        '()))])
+                             (cons (stage-ok (llm-response-text response)) new-state))
+                        (cons (stage-err 'llm-error
+                                         (llm-response-error response)
+                                         response)
+                              state)))]
+             [(call-with-system)
+              (let* ([system-prompt (caddr payload)]
+                     [user-prompt (cadddr payload)]
+                     [expanded-user (expand-template-with-ctx user-prompt ctx input)]
+                     [response (call-llm-api model system-prompt expanded-user)])
+                    (if (llm-response-ok? response)
+                        (cons (stage-ok (llm-response-text response)) state)
+                        (cons (stage-err 'llm-error
+                                         (llm-response-error response)
+                                         response)
+                              state)))]
+             [(call-json)
+              (let* ([prompt (expand-template-with-ctx prompt-template ctx input)]
+                     [system-prompt (string-append (get-system-prompt ctx)
+                                                   "\n\nRespond with valid JSON only.")]
+                     [response (call-llm-api model system-prompt prompt)])
+                    (if (llm-response-ok? response)
+                        (let ([parsed (parse-json-string (llm-response-text response))])
+                             (if parsed
+                                 (cons (stage-ok parsed) state)
+                                 (cons (stage-err 'json-parse-error
+                                                  "Failed to parse LLM response as JSON"
+                                                  (llm-response-text response))
+                                       state)))
+                        (cons (stage-err 'llm-error
+                                         (llm-response-error response)
+                                         response)
+                              state)))]
+             [else
+              (cons (stage-err 'unknown-llm-op
+                               (format "Unknown LLM operation: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Fold Effect Interpretation
+;;; ============================================================
+
+;;; interpret-fold-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-fold-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(eval)
+              (let* ([expr-template (cadr payload)]
+                     [expr (expand-template-with-ctx expr-template ctx input)]
+                     [result (fold-ipc-eval expr)])
+                    (if (fold-result-ok? result)
+                        (cons (stage-ok (fold-result-value result)) state)
+                        (cons (stage-err 'fold-error
+                                         (fold-result-error result)
+                                         result)
+                              state)))]
+             [(call)
+              (let* ([fn-name (cadr payload)]
+                     [args (caddr payload)]
+                     [expr (format "(~a ~a)" fn-name
+                                   (apply string-append
+                                          (map (lambda (a) (format " ~s" a)) args)))]
+                     [result (fold-ipc-eval expr)])
+                    (if (fold-result-ok? result)
+                        (cons (stage-ok (fold-result-value result)) state)
+                        (cons (stage-err 'fold-error
+                                         (fold-result-error result)
+                                         result)
+                              state)))]
+             [(load)
+              (let* ([path (cadr payload)]
+                     [result (fold-ipc-eval (format "(load ~s)" path))])
+                    (if (fold-result-ok? result)
+                        (cons (stage-ok '()) state)
+                        (cons (stage-err 'fold-load-error
+                                         (fold-result-error result)
+                                         result)
+                              state)))]
+             [(forum-post)
+              (let* ([channel (cadr payload)]
+                     [title (caddr payload)]
+                     [body (cadddr payload)]
+                     [expr (format "(msg '~a ~s ~s)" channel title body)]
+                     [result (fold-ipc-eval expr)])
+                    (if (fold-result-ok? result)
+                        (cons (stage-ok (fold-result-value result)) state)
+                        (cons (stage-err 'forum-error
+                                         (fold-result-error result)
+                                         result)
+                              state)))]
+             [else
+              (cons (stage-err 'unknown-fold-op
+                               (format "Unknown Fold operation: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Shell Effect Interpretation
+;;; ============================================================
+
+;;; interpret-shell-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-shell-effect payload ctx state input)
+  (let ([op (car payload)]
+        [cmd-template (cadr payload)])
+       (case op
+             [(run)
+              (let* ([cmd (expand-template-with-ctx cmd-template ctx input)]
+                     [result (shell-exec cmd)])
+                    (if (shell-result-ok? result)
+                        (let ([new-state (state-add-log state
+                                                        (make-log-entry 'debug
+                                                                        (format "Shell: ~a" cmd)
+                                                                        '()))])
+                             (cons (stage-ok (shell-result-stdout result)) new-state))
+                        (cons (stage-err 'shell-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(run-stdin)
+              (let* ([cmd (expand-template-with-ctx cmd-template ctx input)]
+                     [result (shell-exec-with-stdin cmd input)])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok (shell-result-stdout result)) state)
+                        (cons (stage-err 'shell-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(run-env)
+              (let* ([env-vars (cadr payload)]
+                     [cmd (expand-template-with-ctx (caddr payload) ctx input)]
+                     [result (shell-exec-with-env env-vars cmd)])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok (shell-result-stdout result)) state)
+                        (cons (stage-err 'shell-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [else
+              (cons (stage-err 'unknown-shell-op
+                               (format "Unknown shell operation: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Log Effect Interpretation
+;;; ============================================================
+
+;;; interpret-log-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-log-effect payload ctx state input)
+  (let ([level (car payload)]
+        [message (cadr payload)])
+       (let* ([expanded (expand-template-with-ctx message ctx input)]
+              [entry (make-log-entry level expanded input)]
+              [new-state (state-add-log state entry)])
+             ;; Also write to pipeline log file
+             (write-pipeline-log entry)
+             (cons (stage-ok input) new-state))))
+
+;;; ============================================================
+;;; Checkpoint Effect Interpretation
+;;; ============================================================
+
+;;; interpret-checkpoint-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-checkpoint-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(save)
+              (let* ([name (cadr payload)]
+                     [new-state (state-set-checkpoint state name input)]
+                     [run-id (ctx-run-id ctx)])
+                    ;; Persist to CAS
+                    (when run-id
+                          (persist-checkpoint run-id name input))
+                    (cons (stage-ok input) new-state))]
+             [(save-value)
+              (let* ([name (cadr payload)]
+                     [value (caddr payload)]
+                     [new-state (state-set-checkpoint state name value)])
+                    (cons (stage-ok input) new-state))]
+             [(restore)
+              (let* ([name (cadr payload)]
+                     [value (state-get-checkpoint state name)])
+                    (if value
+                        (cons (stage-ok value) state)
+                        ;; Try loading from CAS
+                        (let ([run-id (ctx-run-id ctx)])
+                             (if run-id
+                                 (let ([persisted (load-checkpoint run-id name)])
+                                      (if persisted
+                                          (cons (stage-ok persisted) state)
+                                          (cons (stage-err 'checkpoint-not-found
+                                                           (format "No checkpoint: ~a" name)
+                                                           name)
+                                                state)))
+                                 (cons (stage-err 'checkpoint-not-found
+                                                  (format "No checkpoint: ~a" name)
+                                                  name)
+                                       state)))))]
+             [(exists)
+              (let* ([name (cadr payload)]
+                     [value (state-get-checkpoint state name)])
+                    (cons (stage-ok (if value #t #f)) state))]
+             [(clear)
+              (let* ([name (cadr payload)]
+                     [new-state (state-set-checkpoint state name #f)])
+                    (cons (stage-ok '()) new-state))]
+             [else
+              (cons (stage-err 'unknown-checkpoint-op
+                               (format "Unknown checkpoint op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; HTTP Effect Interpretation
+;;; ============================================================
+
+;;; interpret-http-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-http-effect payload ctx state input)
+  (let ([op (car payload)]
+        [url-template (cadr payload)])
+       (case op
+             [(get)
+              (let* ([url (expand-template-with-ctx url-template ctx input)]
+                     [result (http-fetch-get url)])
+                    (if (http-result-ok? result)
+                        (cons (stage-ok (http-result-body result)) state)
+                        (cons (stage-err 'http-error
+                                         (http-result-error result)
+                                         result)
+                              state)))]
+             [(get-json)
+              (let* ([url (expand-template-with-ctx url-template ctx input)]
+                     [result (http-fetch-get url)])
+                    (if (http-result-ok? result)
+                        (let ([parsed (parse-json-string (http-result-body result))])
+                             (if parsed
+                                 (cons (stage-ok parsed) state)
+                                 (cons (stage-err 'json-parse-error
+                                                  "Failed to parse HTTP response as JSON"
+                                                  (http-result-body result))
+                                       state)))
+                        (cons (stage-err 'http-error
+                                         (http-result-error result)
+                                         result)
+                              state)))]
+             [else
+              (cons (stage-err 'unknown-http-op
+                               (format "Unknown HTTP op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Beads Effect Interpretation
+;;; ============================================================
+
+;;; interpret-beads-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-beads-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(create)
+              (let* ([title (cadr payload)]
+                     [result (shell-exec (format "bd create ~s" title))])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok (shell-result-stdout result)) state)
+                        (cons (stage-err 'beads-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(create-full)
+              (let* ([title (cadr payload)]
+                     [description (caddr payload)]
+                     [type (cadddr payload)]
+                     [priority (list-ref payload 4)]
+                     [cmd (format "bd create ~s -d ~s -t ~a -p ~a"
+                                  title description type priority)]
+                     [result (shell-exec cmd)])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok (shell-result-stdout result)) state)
+                        (cons (stage-err 'beads-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(close)
+              (let* ([id (cadr payload)]
+                     [result (shell-exec (format "bd close ~a" id))])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok '()) state)
+                        (cons (stage-err 'beads-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(ready)
+              (let ([result (shell-exec "bd ready --json")])
+                   (if (shell-result-ok? result)
+                       (let ([parsed (parse-json-string (shell-result-stdout result))])
+                            (cons (stage-ok (or parsed '())) state))
+                       (cons (stage-err 'beads-error
+                                        (shell-result-stderr result)
+                                        result)
+                             state)))]
+             [else
+              (cons (stage-err 'unknown-beads-op
+                               (format "Unknown beads op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Git Effect Interpretation
+;;; ============================================================
+
+;;; interpret-git-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-git-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(status)
+              (let ([result (shell-exec "git status --porcelain")])
+                   (if (shell-result-ok? result)
+                       (cons (stage-ok (shell-result-stdout result)) state)
+                       (cons (stage-err 'git-error
+                                        (shell-result-stderr result)
+                                        result)
+                             state)))]
+             [(diff)
+              (let ([result (shell-exec "git diff")])
+                   (if (shell-result-ok? result)
+                       (cons (stage-ok (shell-result-stdout result)) state)
+                       (cons (stage-err 'git-error
+                                        (shell-result-stderr result)
+                                        result)
+                             state)))]
+             [(commit)
+              (let* ([message (cadr payload)]
+                     [result (shell-exec (format "git add -A && git commit -m ~s" message))])
+                    (if (shell-result-ok? result)
+                        (cons (stage-ok (shell-result-stdout result)) state)
+                        (cons (stage-err 'git-error
+                                         (shell-result-stderr result)
+                                         result)
+                              state)))]
+             [(push)
+              (let ([result (shell-exec "git push")])
+                   (if (shell-result-ok? result)
+                       (cons (stage-ok '()) state)
+                       (cons (stage-err 'git-error
+                                        (shell-result-stderr result)
+                                        result)
+                             state)))]
+             [else
+              (cons (stage-err 'unknown-git-op
+                               (format "Unknown git op: ~a" op)
+                               payload)
                     state)])))
 
 ;;; ============================================================
@@ -295,21 +668,22 @@
   (run-sequential-council config topic ctx state))
 
 ;;; ============================================================
-;;; Race Effect Interpretation
-;;; ============================================================
-
-;;; interpret-race-effect : RaceEffect -> Context -> State -> (Result . State)
-(define (interpret-race-effect effect ctx state)
-  (let ([stages (list-ref effect 1)]
-        [input (list-ref effect 2)])
-       ;; For now, just run first stage
-       (if (null? stages)
-           (cons (stage-err 'race-empty "No stages to race" '()) state)
-           (interpret-pipeline (car stages) ctx state input))))
-
-;;; ============================================================
 ;;; Helper Functions
 ;;; ============================================================
+
+;;; expand-template-with-ctx : String -> Context -> Input -> String
+(define (expand-template-with-ctx template ctx input)
+  (let ([bindings (append (list (cons "input" input))
+                          (map (lambda (p) (cons (symbol->string (car p)) (cdr p)))
+                               (ctx-env ctx)))])
+       (expand-template template bindings)))
+
+;;; get-system-prompt : Context -> String
+(define (get-system-prompt ctx)
+  (let ([persona (ctx-persona ctx)])
+       (if persona
+           (persona-system-prompt persona)
+           "")))
 
 ;;; build-context-from-config : Alist -> PipelineContext
 (define (build-context-from-config config)
@@ -353,6 +727,71 @@
 (define (generate-job-id)
   (format "job-~a" (random 1000000)))
 
+;;; ============================================================
+;;; External API Stubs (to be implemented)
+;;; ============================================================
+
+;;; call-llm-api : Symbol -> String -> String -> LLMResponse
+(define (call-llm-api model system-prompt user-prompt)
+  ;; TODO: Integrate with actual LLM API
+  (list 'llm-response #t "Mock response" #f))
+
+(define (llm-response-ok? r) (list-ref r 1))
+(define (llm-response-text r) (list-ref r 2))
+(define (llm-response-error r) (list-ref r 3))
+
+;;; fold-ipc-eval : String -> FoldResult
+(define (fold-ipc-eval expr)
+  ;; TODO: Use actual Fold IPC
+  (list 'fold-result #t "mock-value" #f))
+
+(define (fold-result-ok? r) (list-ref r 1))
+(define (fold-result-value r) (list-ref r 2))
+(define (fold-result-error r) (list-ref r 3))
+
+;;; shell-exec : String -> ShellResult
+(define (shell-exec cmd)
+  ;; TODO: Implement actual shell execution
+  (list 'shell-result #t "" ""))
+
+(define (shell-exec-with-stdin cmd stdin)
+  (list 'shell-result #t "" ""))
+
+(define (shell-exec-with-env env cmd)
+  (list 'shell-result #t "" ""))
+
+(define (shell-result-ok? r) (list-ref r 1))
+(define (shell-result-stdout r) (list-ref r 2))
+(define (shell-result-stderr r) (list-ref r 3))
+
+;;; http-fetch-get : String -> HTTPResult
+(define (http-fetch-get url)
+  (list 'http-result #t "" #f))
+
+(define (http-result-ok? r) (list-ref r 1))
+(define (http-result-body r) (list-ref r 2))
+(define (http-result-error r) (list-ref r 3))
+
+;;; parse-json-string : String -> Any
+(define (parse-json-string s)
+  ;; TODO: Implement JSON parsing
+  '())
+
+;;; write-pipeline-log : LogEntry -> ()
+(define (write-pipeline-log entry)
+  ;; TODO: Write to log file
+  (void))
+
+;;; persist-checkpoint : RunId -> Name -> Value -> ()
+(define (persist-checkpoint run-id name value)
+  ;; TODO: Persist to CAS
+  (void))
+
+;;; load-checkpoint : RunId -> Name -> Any
+(define (load-checkpoint run-id name)
+  ;; TODO: Load from CAS
+  #f)
+
 ;;; queue-pipeline-job : JobId -> Pipeline -> Context -> Input -> ()
 (define (queue-pipeline-job job-id pipeline ctx input)
   ;; TODO: Queue for background execution
@@ -362,3 +801,350 @@
 (define (await-pipeline-job job-id)
   ;; TODO: Wait for job completion
   #f)
+
+;;; interpret-await-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-await-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(timeout)
+              ;; Just pause execution
+              (let ([ms (cadr payload)])
+                   ;; TODO: Actually sleep
+                   (cons (stage-ok '()) state))]
+             [(forum-tag)
+              ;; TODO: Poll forum for tag
+              (cons (stage-await (cadr payload)) state)]
+             [(file)
+              ;; TODO: Wait for file
+              (cons (stage-await (list 'file (cadr payload))) state)]
+             [(signal)
+              (cons (stage-await (list 'signal (cadr payload))) state)]
+             ;; Discord await operations
+             [(discord-mention)
+              ;; Wait for @agent mention in Discord
+              ;; The daemon polls for trigger files written by bot.js
+              (let* ([agent-name (cadr payload)]
+                     [trigger-pattern (format "~a-discord-trigger" agent-name)])
+                    ;; Return await result for daemon to poll
+                    (cons (stage-await (list 'discord-mention agent-name)) state))]
+             [(discord-reaction)
+              ;; Wait for specific reaction on a message
+              (let ([message-id (cadr payload)]
+                    [emoji (caddr payload)])
+                   (cons (stage-await (list 'discord-reaction message-id emoji)) state))]
+             [(discord-reply)
+              ;; Wait for reply to a message
+              (let ([message-id (cadr payload)])
+                   (cons (stage-await (list 'discord-reply message-id)) state))]
+             [else
+              (cons (stage-err 'unknown-await-op
+                               (format "Unknown await op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; interpret-store-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-store-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(put)
+              ;; TODO: Store in CAS
+              (cons (stage-ok "mock-hash") state)]
+             [(get)
+              (let ([hash (cadr payload)])
+                   ;; TODO: Fetch from CAS
+                   (cons (stage-ok '()) state))]
+             [(has)
+              (let ([hash (cadr payload)])
+                   ;; TODO: Check CAS
+                   (cons (stage-ok #f) state))]
+             [(pin)
+              (cons (stage-ok '()) state)]
+             [else
+              (cons (stage-err 'unknown-store-op
+                               (format "Unknown store op: ~a" op)
+                               payload)
+                    state)])))
+
+;;; interpret-race-effect : RaceEffect -> Context -> State -> (Result . State)
+(define (interpret-race-effect effect ctx state)
+  (let ([stages (list-ref effect 1)]
+        [input (list-ref effect 2)])
+       ;; For now, just run first stage
+       (if (null? stages)
+           (cons (stage-err 'race-empty "No stages to race" '()) state)
+           (interpret-pipeline (car stages) ctx state input))))
+
+;;; ============================================================
+;;; Discord Effect Interpretation
+;;; ============================================================
+;;;
+;;; Discord effects write to the outbox directory where bridge.js watches.
+;;; The outbox path is: .fold-repl/discord-outbox/*.json
+;;;
+;;; Each file contains a JSON object with:
+;;;   - channel: Fold channel name ('engineering, 'philosophy, etc.)
+;;;   - title: Optional post title (null for chat)
+;;;   - body: Message content
+;;;   - author: Agent/user name
+;;;   - tier: Fold tier (shepherd, builder, player)
+;;;   - timestamp: ISO timestamp
+;;;   - discord_message_id: Optional, for replies
+;;;   - embed: Optional embed spec
+
+;;; Discord outbox path relative to project root
+(define *discord-outbox-dir* ".fold-repl/discord-outbox")
+
+;;; interpret-discord-effect : Payload -> Context -> State -> Input -> (Result . State)
+(define (interpret-discord-effect payload ctx state input)
+  (let ([op (car payload)])
+       (case op
+             [(post)
+              (let* ([channel (cadr payload)]
+                     [title (caddr payload)]
+                     [body (cadddr payload)]
+                     [expanded-body (expand-template-with-ctx body ctx input)])
+                    (discord-queue-post channel
+                                        title
+                                        expanded-body
+                                        ctx)
+                    (cons (stage-ok '()) state))]
+             [(post-embed)
+              (let* ([channel (cadr payload)]
+                     [embed-spec (caddr payload)])
+                    (discord-queue-embed channel embed-spec ctx)
+                    (cons (stage-ok '()) state))]
+             [(chat)
+              (let* ([channel (cadr payload)]
+                     [body (if (string? input)
+                               input
+                               (format "~a" input))])
+                    (discord-queue-post channel #f body ctx)
+                    (cons (stage-ok '()) state))]
+             [(reply)
+              (let* ([message-id (cadr payload)]
+                     [body (if (string? input)
+                               input
+                               (format "~a" input))])
+                    (discord-queue-reply message-id body ctx)
+                    (cons (stage-ok '()) state))]
+             [(react)
+              (let* ([message-id (cadr payload)]
+                     [emoji (caddr payload)])
+                    (discord-queue-react message-id emoji ctx)
+                    (cons (stage-ok '()) state))]
+             [(thread)
+              (let* ([message-id (cadr payload)]
+                     [thread-name (caddr payload)]
+                     [body (if (string? input)
+                               input
+                               (format "~a" input))])
+                    (discord-queue-thread message-id thread-name body ctx)
+                    ;; Thread creation returns thread-id (mock for now)
+                    (cons (stage-ok (format "thread-~a" message-id)) state))]
+             [(dm)
+              (let* ([user-id (cadr payload)]
+                     [body (if (string? input)
+                               input
+                               (format "~a" input))])
+                    (discord-queue-dm user-id body ctx)
+                    (cons (stage-ok '()) state))]
+             [else
+              (cons (stage-err 'unknown-discord-op
+                               (format "Unknown Discord operation: ~a" op)
+                               payload)
+                    state)])))
+
+;;; ============================================================
+;;; Discord Queue Helpers
+;;; ============================================================
+;;; These write JSON files to the outbox for bridge.js to pick up.
+
+;;; discord-queue-post : Symbol -> Maybe String -> String -> Context -> ()
+;;; Queue a post (titled or chat) for Discord.
+(define (discord-queue-post channel title body ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [author (get-agent-name ctx)]
+         [tier (get-agent-tier ctx)]
+         [post-data `((channel . ,(symbol->string channel))
+                      (title . ,title)
+                      (body . ,body)
+                      (author . ,author)
+                      (tier . ,tier)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; discord-queue-embed : Symbol -> Alist -> Context -> ()
+;;; Queue an embed post for Discord.
+(define (discord-queue-embed channel embed-spec ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [author (get-agent-name ctx)]
+         [tier (get-agent-tier ctx)]
+         [post-data `((channel . ,(symbol->string channel))
+                      (embed . ,embed-spec)
+                      (author . ,author)
+                      (tier . ,tier)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; discord-queue-reply : String -> String -> Context -> ()
+;;; Queue a reply to a Discord message.
+(define (discord-queue-reply message-id body ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [author (get-agent-name ctx)]
+         [post-data `((reply_to . ,message-id)
+                      (body . ,body)
+                      (author . ,author)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; discord-queue-react : String -> String -> Context -> ()
+;;; Queue a reaction to a Discord message.
+(define (discord-queue-react message-id emoji ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [post-data `((react_to . ,message-id)
+                      (emoji . ,emoji)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; discord-queue-thread : String -> String -> String -> Context -> ()
+;;; Queue thread creation from a message.
+(define (discord-queue-thread message-id thread-name body ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [author (get-agent-name ctx)]
+         [post-data `((create_thread_from . ,message-id)
+                      (thread_name . ,thread-name)
+                      (body . ,body)
+                      (author . ,author)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; discord-queue-dm : String -> String -> Context -> ()
+;;; Queue a direct message.
+(define (discord-queue-dm user-id body ctx)
+  (let* ([outbox-file (make-outbox-filename)]
+         [author (get-agent-name ctx)]
+         [post-data `((dm_to . ,user-id)
+                      (body . ,body)
+                      (author . ,author)
+                      (timestamp . ,(current-iso-timestamp)))])
+        (write-outbox-json outbox-file post-data)))
+
+;;; make-outbox-filename : -> String
+;;; Generate unique filename for outbox JSON.
+(define (make-outbox-filename)
+  (let ([timestamp (current-milliseconds)]
+        [random-suffix (random 100000)])
+       (format "~a/~a-~a.json" *discord-outbox-dir* timestamp random-suffix)))
+
+;;; write-outbox-json : String -> Alist -> ()
+;;; Write alist as JSON to outbox file.
+(define (write-outbox-json path data)
+  ;; Ensure outbox directory exists
+  (let ([dir (path-directory path)])
+       (unless (file-exists? dir)
+               (make-directories dir)))
+  ;; Write JSON
+  (with-output-to-file path
+                       (lambda ()
+                               (display (alist->json data)))))
+
+;;; alist->json : Alist -> String
+;;; Convert alist to JSON string (simple implementation).
+(define (alist->json alist)
+  (string-append
+   "{\n"
+   (apply string-append
+          (intersperse
+           ",\n"
+           (map (lambda (pair)
+                        (format "  ~s: ~a"
+                                (symbol->string (car pair))
+                                (json-value (cdr pair))))
+                alist)))
+   "\n}"))
+
+;;; json-value : Any -> String
+;;; Convert value to JSON representation.
+(define (json-value v)
+  (cond
+   [(string? v) (format "~s" v)]
+   [(number? v) (format "~a" v)]
+   [(boolean? v) (if v "true" "false")]
+   [(null? v) "null"]
+   [(symbol? v) (format "~s" (symbol->string v))]
+   [(pair? v)
+    (if (and (pair? (car v)) (symbol? (caar v)))
+        ;; Nested alist
+        (alist->json v)
+        ;; List/array
+        (string-append
+         "["
+         (apply string-append
+                (intersperse ", " (map json-value v)))
+         "]"))]
+   [else (format "~s" (format "~a" v))]))
+
+;;; intersperse : String -> List String -> List String
+(define (intersperse sep lst)
+  (cond
+   [(null? lst) '()]
+   [(null? (cdr lst)) lst]
+   [else (cons (car lst)
+               (cons sep (intersperse sep (cdr lst))))]))
+
+;;; get-agent-name : Context -> String
+;;; Get agent name from context.
+(define (get-agent-name ctx)
+  (let ([persona (ctx-persona ctx)])
+       (if persona
+           (persona-name persona)
+           "pipeline")))
+
+;;; get-agent-tier : Context -> String
+;;; Get agent tier from context.
+(define (get-agent-tier ctx)
+  (let ([persona (ctx-persona ctx)])
+       (if persona
+           (symbol->string (persona-tier persona))
+           "builder")))
+
+;;; current-iso-timestamp : -> String
+;;; Get current time in ISO format.
+(define (current-iso-timestamp)
+  ;; TODO: Real implementation
+  "2025-12-31T00:00:00Z")
+
+;;; current-milliseconds : -> Integer
+;;; Get current time in milliseconds.
+(define (current-milliseconds)
+  ;; TODO: Real implementation
+  (random 1000000000))
+
+;;; path-directory : String -> String
+;;; Get directory portion of path.
+(define (path-directory path)
+  (let ([idx (string-rindex path #\/)])
+       (if idx
+           (substring path 0 idx)
+           ".")))
+
+;;; string-rindex : String -> Char -> Maybe Integer
+;;; Find last occurrence of char in string.
+(define (string-rindex str ch)
+  (let loop ([i (- (string-length str) 1)])
+       (cond
+        [(< i 0) #f]
+        [(char=? (string-ref str i) ch) i]
+        [else (loop (- i 1))])))
+
+;;; make-directories : String -> ()
+;;; Create directory and parents (stub).
+(define (make-directories path)
+  ;; TODO: Real implementation using shell
+  (void))
+
+;;; file-exists? : String -> Boolean
+;;; Check if file/directory exists (stub).
+(define (file-exists? path)
+  ;; TODO: Real implementation
+  #t)

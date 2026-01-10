@@ -1,8 +1,7 @@
-;;; shell/repl-quiet.ss — Forwarding stub
+;;; shell/repl-quiet.ss — Quiet REPL loader
 ;;;
-;;; The module has moved to shell/repl/repl-quiet.ss
-;;; This stub exists for backwards compatibility.
-;;;
-;;; NOTE: New scripts should use shell/repl/repl-quiet.ss directly.
+;;; Loads the REPL without the startup banner.
+;;; Usage: (load "shell/repl-quiet.ss")
 
-(load "shell/repl/repl-quiet.ss")
+(define *quiet* #t)
+(load "shell/repl.ss")
