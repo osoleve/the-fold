@@ -1,6 +1,16 @@
 # The Fold
 
-A content-addressable homoiconic universe built on Chez Scheme.
+The Fold is an experimental, content-addressable, homoiconic toolbox for agentic AI, written in Chez Scheme.
+
+The Fold is an ever-growing, dynamic *skill tree for AI* with guaranteed totality and strategic Rust acceleration.
+
+The Fold is an infinite data generator with curriculums that are natively complexity-sorted.
+
+The Fold is a substrate for identifying failure modes in continual learning research.
+
+---
+
+**Welcome to The Fold.**
 
 ---
 
