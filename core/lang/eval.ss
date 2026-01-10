@@ -101,21 +101,48 @@
   (append alist env))
 
 ;;; ============================================================
-;;; The Evaluator
+;;; Evaluation Context (for unified traced/untraced evaluation)
 ;;; ============================================================
-
-;;; eval-expr : Expr × Env × Fuel → (ok Value Fuel) | (suspended Expr Env) | (error ...)
 ;;;
-;;; Returns:
-;;;   (ok value remaining-fuel) — evaluation complete
-;;;   (suspended expr env)      — ran out of fuel
-;;;   (error tag info)          — evaluation error
+;;; The evaluation context encapsulates mode-specific state:
+;;;   - Untraced: ctx is #f
+;;;   - Traced: ctx is the autodiff tape
+;;;
+;;; All internal evaluator functions take ctx as final parameter.
+;;; Public API functions (eval-expr, eval-expr-traced) wrap these.
 
-(define (eval-expr expr env fuel)
+(define (ctx-traced? ctx) (not (eq? ctx #f)))
+
+;;; Result constructors that include context
+(define (make-ok value fuel ctx)
+  `(ok ,value ,fuel ,ctx))
+
+(define (make-suspended expr env fuel ctx)
+  `(suspended ,expr ,env ,fuel ,ctx))
+
+;;; Result accessors
+(define (result-ok? r) (eq? (car r) 'ok))
+(define (result-suspended? r) (eq? (car r) 'suspended))
+(define (result-error? r) (eq? (car r) 'error))
+(define (result-value r) (cadr r))
+(define (result-fuel r) (caddr r))
+(define (result-ctx r) (cadddr r))
+(define (result-expr r) (cadr r))   ; for suspended
+(define (result-env r) (caddr r))   ; for suspended
+
+;;; ============================================================
+;;; The Evaluator (Unified Core)
+;;; ============================================================
+;;;
+;;; eval-core : Expr × Env × Fuel × Ctx → (ok Value Fuel Ctx) | (suspended Expr Env Fuel Ctx) | (error ...)
+;;;
+;;; Internal unified evaluator. Use eval-expr or eval-expr-traced for public API.
+
+(define (eval-core expr env fuel ctx)
   (cond
    ;; Out of fuel — suspend
    [(out-of-fuel? fuel)
-    `(suspended ,expr ,env)]
+    (make-suspended expr env fuel ctx)]
    
    [else
     ;; Consume fuel for this eval call.
@@ -123,13 +150,13 @@
          (cond
           ;; Already a value
           [(value? expr)
-           `(ok ,expr ,remaining)]
+           (make-ok expr remaining ctx)]
           
           ;; Variable reference
           [(symbol? expr)
            (let ([result (env-lookup env expr)])
                 (if (eq? (car result) 'ok)
-                    `(ok ,(cadr result) ,remaining)
+                    (make-ok (cadr result) remaining ctx)
                     result))]
           
           ;; Must be a compound form
@@ -141,52 +168,78 @@
                 (cond
                  ;; Quote — return datum as-is
                  [(eq? head 'quote)
-                  `(ok ,(cadr expr) ,remaining)]
+                  (make-ok (cadr expr) remaining ctx)]
                  
                  ;; Lambda — create closure
                  [(eq? head 'fn)
                   (let ([params (cadr expr)]
                         [body (caddr expr)])
-                       `(ok ,(make-closure params body env) ,remaining))]
+                       (make-ok (make-closure params body env) remaining ctx))]
                  
                  ;; Let — evaluate bindings, extend env, evaluate body
                  [(eq? head 'let)
-                  (eval-let (cadr expr) (caddr expr) env remaining)]
+                  (eval-let* (cadr expr) (caddr expr) env remaining ctx)]
                  
                  ;; Fix — recursive binding
                  [(eq? head 'fix)
-                  (eval-fix (cadr expr) (caddr expr) env remaining)]
+                  (eval-fix* (cadr expr) (caddr expr) env remaining ctx)]
                  
                  ;; If — conditional
                  [(eq? head 'if)
-                  (eval-if (cadr expr) (caddr expr) (cadddr expr) env remaining)]
+                  (eval-if* (cadr expr) (caddr expr) (cadddr expr) env remaining ctx)]
                  
                  ;; Case — pattern match on block tag
                  [(eq? head 'case)
-                  (eval-case (cadr expr) (cddr expr) env remaining)]
+                  (eval-case* (cadr expr) (cddr expr) env remaining ctx)]
                  
                  ;; Prim — pure primitive
                  [(eq? head 'prim)
-                  (eval-prim (cadr expr) (cddr expr) env remaining)]
+                  (eval-prim* (cadr expr) (cddr expr) env remaining ctx)]
                  
                  ;; Par — parallel evaluation hint
                  [(eq? head 'par)
-                  (eval-par (cadr expr) (caddr expr) env remaining)]
+                  (eval-par* (cadr expr) (caddr expr) env remaining ctx)]
                  
                  ;; Pseq — sequential evaluation
                  [(eq? head 'pseq)
-                  (eval-pseq (cadr expr) (caddr expr) env remaining)]
+                  (eval-pseq* (cadr expr) (caddr expr) env remaining ctx)]
                  
                  ;; Call — explicit application
                  [(eq? head 'call)
-                  (eval-call (cadr expr) (cddr expr) env remaining)]
+                  (eval-call* (cadr expr) (cddr expr) env remaining ctx)]
                  
                  ;; Implicit application — (f args...)
                  [else
-                  (eval-call (car expr) (cdr expr) env remaining)]))]))]))
+                  (eval-call* (car expr) (cdr expr) env remaining ctx)]))]))]))
 
 ;;; ============================================================
-;;; Par/Pseq Evaluation
+;;; Public API (backward-compatible wrappers)
+;;; ============================================================
+
+;;; eval-expr : Expr × Env × Fuel → (ok Value Fuel) | (suspended Expr Env) | (error ...)
+;;; Standard evaluation without tracing.
+(define (eval-expr expr env fuel)
+  (let ([result (eval-core expr env fuel #f)])
+       (cond
+        [(result-ok? result)
+         `(ok ,(result-value result) ,(result-fuel result))]
+        [(result-suspended? result)
+         `(suspended ,(result-expr result) ,(result-env result))]
+        [else result])))
+
+;;; eval-expr-traced : Expr × Env × Fuel × Tape → (ok Value Fuel Tape) | (suspended Expr Env Fuel Tape) | (error ...)
+;;; Traced evaluation for automatic differentiation.
+(define (eval-expr-traced expr env fuel tape)
+  (let ([result (eval-core expr env fuel tape)])
+       (cond
+        [(result-ok? result)
+         `(ok ,(result-value result) ,(result-fuel result) ,(result-ctx result))]
+        [(result-suspended? result)
+         `(suspended ,(result-expr result) ,(result-env result) ,(result-fuel result) ,(result-ctx result))]
+        [else result])))
+
+;;; ============================================================
+;;; Par/Pseq Evaluation (Unified)
 ;;; ============================================================
 ;;;
 ;;; NOTE ON CURRENT IMPLEMENTATION:
@@ -210,74 +263,70 @@
 ;;;
 ;;; ============================================================
 
-;;; eval-par : Expr × Expr × Env × Fuel → Result
+;;; eval-par* : Expr × Expr × Env × Fuel × Ctx → Result
 ;;; Parallel evaluation hint: (par a b)
 ;;; Evaluate both a and b, return b.
 ;;; Currently evaluates sequentially, but provides a hint for
 ;;; future parallel execution strategies.
-(define (eval-par a-expr b-expr env fuel)
+(define (eval-par* a-expr b-expr env fuel ctx)
   ;; Evaluate a (for side-effect of forcing computation)
-  (let ([a-result (eval-expr a-expr env fuel)])
-       (case (car a-result)
-             [(ok)
-              (let ([a-value (cadr a-result)]
-                    [fuel-after-a (caddr a-result)])
-                   ;; Now evaluate b with remaining fuel
-                   (eval-expr b-expr env fuel-after-a))]
-             [(suspended) a-result]  ; Forward suspension
-             [(error) a-result])))   ; Forward error
+  (let ([a-result (eval-core a-expr env fuel ctx)])
+       (cond
+        [(result-ok? a-result)
+         ;; Now evaluate b with remaining fuel and updated ctx
+         (eval-core b-expr env (result-fuel a-result) (result-ctx a-result))]
+        [else a-result])))  ; Forward suspension or error
 
-;;; eval-pseq : Expr × Expr × Env × Fuel → Result
+;;; eval-pseq* : Expr × Expr × Env × Fuel × Ctx → Result
 ;;; Sequential evaluation: (pseq a b)
 ;;; Force evaluation of a, then evaluate b, return b.
 ;;; Ensures a is strictly evaluated before b.
-(define (eval-pseq a-expr b-expr env fuel)
+(define (eval-pseq* a-expr b-expr env fuel ctx)
   ;; Evaluate a first (strict evaluation)
-  (let ([a-result (eval-expr a-expr env fuel)])
-       (case (car a-result)
-             [(ok)
-              (let ([a-value (cadr a-result)]
-                    [fuel-after-a (caddr a-result)])
-                   ;; a is fully evaluated, now evaluate b
-                   (eval-expr b-expr env fuel-after-a))]
-             [(suspended) a-result]  ; Forward suspension
-             [(error) a-result])))   ; Forward error
+  (let ([a-result (eval-core a-expr env fuel ctx)])
+       (cond
+        [(result-ok? a-result)
+         ;; a is fully evaluated, now evaluate b
+         (eval-core b-expr env (result-fuel a-result) (result-ctx a-result))]
+        [else a-result])))  ; Forward suspension or error
 
 ;;; ============================================================
-;;; Let Evaluation
+;;; Let Evaluation (Unified)
 ;;; ============================================================
 
-(define (eval-let bindings body env fuel)
+(define (eval-let* bindings body env fuel ctx)
   (if (out-of-fuel? fuel)
-      `(suspended (let ,bindings ,body) ,env)
-      (eval-let-bindings bindings body env '() fuel)))
+      (make-suspended `(let ,bindings ,body) env fuel ctx)
+      (eval-let-bindings* bindings body env '() fuel ctx)))
 
-(define (eval-let-bindings bindings body env acc fuel)
+(define (eval-let-bindings* bindings body env acc fuel ctx)
   (if (null? bindings)
       ;; All bindings evaluated — evaluate body in extended env
-      (eval-expr body (env-extend-alist env (reverse acc)) fuel)
+      (eval-core body (env-extend-alist env (reverse acc)) fuel ctx)
       ;; Evaluate next binding
       (let* ([binding (car bindings)]
              [name (car binding)]
              [expr (cadr binding)]
-             [result (eval-expr expr env fuel)])
+             [result (eval-core expr env fuel ctx)])
             (cond
-             [(eq? (car result) 'ok)
-              (eval-let-bindings
+             [(result-ok? result)
+              (eval-let-bindings*
                (cdr bindings) body env
-               (cons (cons name (cadr result)) acc)
-               (caddr result))]
-             [(eq? (car result) 'suspended)
+               (cons (cons name (result-value result)) acc)
+               (result-fuel result)
+               (result-ctx result))]
+             [(result-suspended? result)
               ;; Preserve context: rebuild let with evaluated bindings quoted
               (let* ([evaluated-bindings (map (lambda (p)
                                                       (list (car p) (list 'quote (cdr p))))
                                               (reverse acc))]
-                     [suspended-binding (list name (cadr result))]
+                     [suspended-binding (list name (result-expr result))]
                      [remaining-bindings (cdr bindings)]
                      [new-bindings (append evaluated-bindings
                                            (list suspended-binding)
                                            remaining-bindings)])
-                    `(suspended (let ,new-bindings ,body) ,(caddr result)))]
+                    (make-suspended `(let ,new-bindings ,body) (result-env result)
+                                    (result-fuel result) (result-ctx result)))]
              [else result]))))
 
 ;;; ============================================================
@@ -308,7 +357,7 @@
 ;;; See forum/engineering/0011-adr-002-eval-mutation-exception.sexp
 ;;; ============================================================
 
-(define (eval-fix name fn-expr env fuel)
+(define (eval-fix* name fn-expr env fuel ctx)
   ;; fn-expr should be (fn (params...) body)
   (if (and (pair? fn-expr) (eq? (car fn-expr) 'fn))
       (let* ([params (cadr fn-expr)]
@@ -318,31 +367,38 @@
              [closure (make-closure params body rec-env)])
             ;; MUTATION: Tie the knot - see rationale above
             (set-cdr! (car rec-env) closure)
-            `(ok ,closure ,fuel))
+            (make-ok closure fuel ctx))
       `(error fix-requires-fn ,fn-expr)))
 
 ;;; ============================================================
-;;; If Evaluation
+;;; If Evaluation (Unified)
 ;;; ============================================================
 
-(define (eval-if test-expr then-expr else-expr env fuel)
+(define (eval-if* test-expr then-expr else-expr env fuel ctx)
   (if (out-of-fuel? fuel)
-      `(suspended (if ,test-expr ,then-expr ,else-expr) ,env)
-      (let ([test-result (eval-expr test-expr env fuel)])
+      (make-suspended `(if ,test-expr ,then-expr ,else-expr) env fuel ctx)
+      (let ([test-result (eval-core test-expr env fuel ctx)])
            (cond
-            [(eq? (car test-result) 'ok)
-             (let ([test-val (cadr test-result)]
-                   [remaining (caddr test-result)])
-                  (if test-val
-                      (eval-expr then-expr env remaining)
-                      (eval-expr else-expr env remaining)))]
-            [(eq? (car test-result) 'suspended)
-             `(suspended (if ,(cadr test-result) ,then-expr ,else-expr)
-               ,(caddr test-result))]
+            [(result-ok? test-result)
+             (let* ([test-val (result-value test-result)]
+                    [remaining (result-fuel test-result)]
+                    [ctx* (result-ctx test-result)]
+                    ;; Extract primal value from traced values for condition
+                    [test-bool (if (and (ctx-traced? ctx*) (traced? test-val))
+                                   (traced-value test-val)
+                                   test-val)])
+                   (if test-bool
+                       (eval-core then-expr env remaining ctx*)
+                       (eval-core else-expr env remaining ctx*)))]
+            [(result-suspended? test-result)
+             (make-suspended `(if ,(result-expr test-result) ,then-expr ,else-expr)
+                             (result-env test-result)
+                             (result-fuel test-result)
+                             (result-ctx test-result))]
             [else test-result]))))
 
 ;;; ============================================================
-;;; Case Evaluation (Pattern Matching)
+;;; Case Evaluation (Pattern Matching) (Unified)
 ;;; ============================================================
 
 ;;; (case expr
@@ -352,23 +408,26 @@
 ;;;
 ;;; Matches on block tag, binds payload/refs to variables.
 
-(define (eval-case scrutinee clauses env fuel)
+(define (eval-case* scrutinee clauses env fuel ctx)
   (if (out-of-fuel? fuel)
-      `(suspended (case ,scrutinee ,@clauses) ,env)
-      (let ([scrut-result (eval-expr scrutinee env fuel)])
+      (make-suspended `(case ,scrutinee ,@clauses) env fuel ctx)
+      (let ([scrut-result (eval-core scrutinee env fuel ctx)])
            (cond
-            [(eq? (car scrut-result) 'ok)
-             (let ([val (cadr scrut-result)]
-                   [remaining (caddr scrut-result)])
+            [(result-ok? scrut-result)
+             (let ([val (result-value scrut-result)]
+                   [remaining (result-fuel scrut-result)]
+                   [ctx* (result-ctx scrut-result)])
                   (if (block? val)
-                      (match-clauses val clauses env remaining)
+                      (match-clauses* val clauses env remaining ctx*)
                       `(error case-requires-block ,val)))]
-            [(eq? (car scrut-result) 'suspended)
-             `(suspended (case ,(cadr scrut-result) ,@clauses)
-               ,(caddr scrut-result))]
+            [(result-suspended? scrut-result)
+             (make-suspended `(case ,(result-expr scrut-result) ,@clauses)
+                             (result-env scrut-result)
+                             (result-fuel scrut-result)
+                             (result-ctx scrut-result))]
             [else scrut-result]))))
 
-(define (match-clauses block clauses env fuel)
+(define (match-clauses* block clauses env fuel ctx)
   (if (null? clauses)
       `(error no-matching-clause ,(block-tag block))
       (let* ([clause (car clauses)]
@@ -380,10 +439,10 @@
                 ;; Match! Bind refs to vars
                 (let ([refs (block-refs-list block)])
                      (if (= (length vars) (length refs))
-                         (eval-expr body (env-extend* env vars refs) fuel)
+                         (eval-core body (env-extend* env vars refs) fuel ctx)
                          `(error pattern-arity-mismatch ,tag)))
                 ;; No match, try next clause
-                (match-clauses block (cdr clauses) env fuel)))))
+                (match-clauses* block (cdr clauses) env fuel ctx)))))
 
 ;;; Helper: get refs as a list
 (define (block-refs-list blk)
@@ -394,64 +453,139 @@
                 (loop (+ i 1) (cons (vector-ref refs i) acc))))))
 
 ;;; ============================================================
-;;; Primitive Evaluation
+;;; Primitive Evaluation (Unified)
 ;;; ============================================================
 
 ;;; Primitives consume no fuel themselves; only argument evaluation costs fuel.
+;;; In traced mode, differentiable primitives use traced-* operations.
 
-(define (eval-prim op args env fuel)
+(define (eval-prim* op args env fuel ctx)
   (if (and (out-of-fuel? fuel) (pair? args))
-      `(suspended (prim ,op ,@args) ,env)
-      (eval-prim-args op args env '() fuel)))
+      (make-suspended `(prim ,op ,@args) env fuel ctx)
+      (eval-prim-args* op args env '() fuel ctx)))
 
-(define (eval-prim-args op remaining env acc fuel)
+(define (eval-prim-args* op remaining env acc fuel ctx)
   (if (null? remaining)
-      ;; All args evaluated — call the primitive
+      ;; All args evaluated — apply primitive (traced or normal based on ctx)
       (let* ([op-sym (if (and (pair? op) (eq? (car op) 'quote))
                          (cadr op)
                          op)]
              [arg-vals (reverse acc)])
-            `(ok ,(apply prim (cons op-sym arg-vals)) ,fuel))
+            (apply-prim* op-sym arg-vals fuel ctx))
       ;; Evaluate next arg
-      (let ([result (eval-expr (car remaining) env fuel)])
+      (let ([result (eval-core (car remaining) env fuel ctx)])
            (cond
-            [(eq? (car result) 'ok)
-             (eval-prim-args op (cdr remaining) env
-                             (cons (cadr result) acc)
-                             (caddr result))]
-            [(eq? (car result) 'suspended)
+            [(result-ok? result)
+             (eval-prim-args* op (cdr remaining) env
+                              (cons (result-value result) acc)
+                              (result-fuel result)
+                              (result-ctx result))]
+            [(result-suspended? result)
              ;; Preserve context: quote evaluated args
              (let* ([evaluated-args (map (lambda (v) (list 'quote v))
                                          (reverse acc))]
-                    [suspended-arg (cadr result)]
+                    [suspended-arg (result-expr result)]
                     [remaining-args (cdr remaining)]
                     [new-args (append evaluated-args
                                       (list suspended-arg)
                                       remaining-args)])
-                   `(suspended (prim ,op ,@new-args) ,(caddr result)))]
+                   (make-suspended `(prim ,op ,@new-args) (result-env result)
+                                   (result-fuel result) (result-ctx result)))]
             [else result]))))
 
+;;; apply-prim* : Symbol × Values × Fuel × Ctx → Result
+;;; Apply a primitive. In traced mode, use traced-* for differentiable ops.
+(define (apply-prim* op args fuel ctx)
+  (if (ctx-traced? ctx)
+      (apply-prim-traced* op args fuel ctx)
+      ;; Untraced: just apply the primitive
+      (make-ok (apply prim (cons op args)) fuel ctx)))
+
+;;; apply-prim-traced* : Symbol × Values × Fuel × Tape → Result
+;;; Apply a primitive with tracing for autodiff.
+(define (apply-prim-traced* op args fuel tape)
+  (case op
+        ;; Differentiable Arithmetic
+        [(add)
+         (if (>= (length args) 2)
+             (make-ok (traced-add (car args) (cadr args)) fuel tape)
+             `(error prim-arity ,op))]
+        [(sub)
+         (if (>= (length args) 2)
+             (make-ok (traced-sub (car args) (cadr args)) fuel tape)
+             `(error prim-arity ,op))]
+        [(mul)
+         (if (>= (length args) 2)
+             (make-ok (traced-mul (car args) (cadr args)) fuel tape)
+             `(error prim-arity ,op))]
+        [(div)
+         (if (>= (length args) 2)
+             (let ([y (cadr args)])
+                  (let ([y-val (if (traced? y) (traced-value y) y)])
+                       (if (zero? y-val)
+                           `(error div-by-zero)
+                           (make-ok (traced-div (car args) y) fuel tape))))
+             `(error prim-arity ,op))]
+        [(neg)
+         (if (= (length args) 1)
+             (make-ok (traced-neg (car args)) fuel tape)
+             `(error prim-arity ,op))]
+        ;; Differentiable Transcendentals
+        [(sqrt)
+         (if (= (length args) 1)
+             (make-ok (traced-sqrt (car args)) fuel tape)
+             `(error prim-arity ,op))]
+        [(exp)
+         (if (= (length args) 1)
+             (make-ok (traced-exp (car args)) fuel tape)
+             `(error prim-arity ,op))]
+        [(log)
+         (if (= (length args) 1)
+             (make-ok (traced-log (car args)) fuel tape)
+             `(error prim-arity ,op))]
+        [(sin)
+         (if (= (length args) 1)
+             (make-ok (traced-sin (car args)) fuel tape)
+             `(error prim-arity ,op))]
+        [(cos)
+         (if (= (length args) 1)
+             (make-ok (traced-cos (car args)) fuel tape)
+             `(error prim-arity ,op))]
+        ;; Non-differentiable: extract primal values, apply normally
+        [else
+         (let* ([primal-args (map (lambda (v)
+                                          (if (traced? v)
+                                              (traced-value v)
+                                              v))
+                                  args)]
+                [result (apply prim (cons op primal-args))])
+               (make-ok result fuel tape))]))
+
 ;;; ============================================================
-;;; Call Evaluation (Application)
+;;; Call Evaluation (Application) (Unified)
 ;;; ============================================================
 
-(define (eval-call fn-expr arg-exprs env fuel)
+(define (eval-call* fn-expr arg-exprs env fuel ctx)
   (if (out-of-fuel? fuel)
-      `(suspended (call ,fn-expr ,@arg-exprs) ,env)
+      (make-suspended `(call ,fn-expr ,@arg-exprs) env fuel ctx)
       ;; Evaluate the function
-      (let ([fn-result (eval-expr fn-expr env fuel)])
+      (let ([fn-result (eval-core fn-expr env fuel ctx)])
            (cond
-            [(eq? (car fn-result) 'ok)
-             (let ([fn-val (cadr fn-result)]
-                   [remaining (caddr fn-result)])
+            [(result-ok? fn-result)
+             (let ([fn-val (result-value fn-result)]
+                   [remaining (result-fuel fn-result)]
+                   [ctx* (result-ctx fn-result)])
                   (if (closure? fn-val)
-                      (eval-call-args fn-val arg-exprs env '() remaining)
+                      (eval-call-args* fn-val arg-exprs env '() remaining ctx*)
                       `(error not-a-function ,fn-val)))]
-            [(eq? (car fn-result) 'suspended)
-             `(suspended (call ,(cadr fn-result) ,@arg-exprs) ,(caddr fn-result))]
+            [(result-suspended? fn-result)
+             (make-suspended `(call ,(result-expr fn-result) ,@arg-exprs)
+                             (result-env fn-result)
+                             (result-fuel fn-result)
+                             (result-ctx fn-result))]
             [else fn-result]))))
 
-(define (eval-call-args closure remaining env acc fuel)
+(define (eval-call-args* closure remaining env acc fuel ctx)
   (if (null? remaining)
       ;; All args evaluated — apply the closure
       (let* ([params (closure-params closure)]
@@ -459,25 +593,29 @@
              [closure-env (closure-env closure)]
              [arg-vals (reverse acc)])
             (if (= (length params) (length arg-vals))
-                (eval-expr body (env-extend* closure-env params arg-vals) fuel)
+                (eval-core body (env-extend* closure-env params arg-vals) fuel ctx)
                 `(error arity-mismatch (expected ,(length params)) (got ,(length arg-vals)))))
       ;; Evaluate next arg
-      (let ([result (eval-expr (car remaining) env fuel)])
+      (let ([result (eval-core (car remaining) env fuel ctx)])
            (cond
-            [(eq? (car result) 'ok)
-             (eval-call-args closure (cdr remaining) env
-                             (cons (cadr result) acc)
-                             (caddr result))]
-            [(eq? (car result) 'suspended)
+            [(result-ok? result)
+             (eval-call-args* closure (cdr remaining) env
+                              (cons (result-value result) acc)
+                              (result-fuel result)
+                              (result-ctx result))]
+            [(result-suspended? result)
              ;; Preserve context: quote closure and evaluated args
              (let* ([evaluated-args (map (lambda (v) (list 'quote v))
                                          (reverse acc))]
-                    [suspended-arg (cadr result)]
+                    [suspended-arg (result-expr result)]
                     [remaining-args (cdr remaining)]
                     [new-args (append evaluated-args
                                       (list suspended-arg)
                                       remaining-args)])
-                   `(suspended (call (quote ,closure) ,@new-args) ,(caddr result)))]
+                   (make-suspended `(call (quote ,closure) ,@new-args)
+                                   (result-env result)
+                                   (result-fuel result)
+                                   (result-ctx result)))]
             [else result]))))
 
 ;;; ============================================================
@@ -495,21 +633,26 @@
          `(suspended ,(cadr result))]
         [else result])))
 
-;;; run-to-completion : Expr × MaxFuel → (ok Value) | (error ...)
+;;; run-to-completion : Expr × MaxFuel [× MaxRetries] → (ok Value) | (error ...)
 ;;; Keep running until completion or error (not suspension).
-;;; Uses max-fuel for each resumption attempt, with a retry limit.
-(define (run-to-completion expr max-fuel)
-  (let loop ([expr expr] [retries 100])  ; Limit retries to prevent infinite loops
-       (if (zero? retries)
-           `(error retry-limit-exceeded ,expr)
-           (let ([result (eval-expr expr empty-env max-fuel)])
-                (cond
-                 [(eq? (car result) 'ok)
-                  `(ok ,(cadr result))]
-                 [(eq? (car result) 'suspended)
-                  ;; Give fresh fuel budget for resumption
-                  (loop (cadr result) (- retries 1))]
-                 [else result])))))
+;;; Uses max-fuel for each resumption attempt, with configurable retry limit.
+;;; Default max-retries is 10000; use #f for unlimited (trusted code only).
+(define run-to-completion
+  (case-lambda
+   [(expr max-fuel)
+    (run-to-completion expr max-fuel 10000)]
+   [(expr max-fuel max-retries)
+    (let loop ([expr expr] [retries max-retries])
+         (if (and retries (zero? retries))
+             `(error retry-limit-exceeded ,expr)
+             (let ([result (eval-expr expr empty-env max-fuel)])
+                  (cond
+                   [(eq? (car result) 'ok)
+                    `(ok ,(cadr result))]
+                   [(eq? (car result) 'suspended)
+                    ;; Give fresh fuel budget for resumption
+                    (loop (cadr result) (and retries (- retries 1)))]
+                   [else result]))))]))
 
 ;;; eval-with-env : Expr × Env × Fuel → Result
 ;;; Evaluate with a given environment.
@@ -970,449 +1113,15 @@
        (eval-expr expr prelude-env fuel)))
 
 ;;; ============================================================
-;;; Traced Evaluation (Automatic Differentiation)
-;;; ============================================================
-;;;
-;;; eval-traced mirrors the structure of eval-expr, but builds a
-;;; computational graph during evaluation for automatic differentiation.
-;;;
-;;; Key differences from eval-expr:
-;;;   1. Takes a tape parameter for gradient tracking
-;;;   2. Numeric primitives use traced-* operations
-;;;   3. Returns traced values for numeric results
-;;;   4. Suspension includes tape for resumption
-;;;   5. Fuel costs are higher (differentiation overhead)
-;;;
-;;; Returns:
-;;;   (ok value remaining-fuel tape) — evaluation complete
-;;;   (suspended expr env fuel tape) — ran out of fuel
-;;;   (error tag info)                — evaluation error
-
-;;; eval-expr-traced : Expr × Env × Fuel × Tape → Result
-;;; Evaluate with automatic differentiation enabled.
-(define (eval-expr-traced expr env fuel tape)
-  (cond
-   ;; Out of fuel — suspend
-   [(out-of-fuel? fuel)
-    `(suspended ,expr ,env ,fuel ,tape)]
-   
-   [else
-    ;; Consume fuel for this eval call.
-    (let ([remaining (- fuel 1)])
-         (cond
-          ;; Already a value
-          [(value? expr)
-           ;; Values are returned as-is (traced operations handle constants)
-           `(ok ,expr ,remaining ,tape)]
-          
-          ;; Variable reference
-          [(symbol? expr)
-           (let ([result (env-lookup env expr)])
-                (if (eq? (car result) 'ok)
-                    `(ok ,(cadr result) ,remaining ,tape)
-                    result))]
-          
-          ;; Must be a compound form
-          [(not (pair? expr))
-           `(error invalid-expression ,expr)]
-          
-          [else
-           (let ([head (car expr)])
-                (cond
-                 ;; Quote — return datum as-is
-                 [(eq? head 'quote)
-                  `(ok ,(cadr expr) ,remaining ,tape)]
-                 
-                 ;; Lambda — create closure
-                 [(eq? head 'fn)
-                  (let ([params (cadr expr)]
-                        [body (caddr expr)])
-                       `(ok ,(make-closure params body env) ,remaining ,tape))]
-                 
-                 ;; Let — evaluate bindings, extend env, evaluate body
-                 [(eq? head 'let)
-                  (eval-let-traced (cadr expr) (caddr expr) env remaining tape)]
-                 
-                 ;; Fix — recursive binding
-                 [(eq? head 'fix)
-                  (eval-fix-traced (cadr expr) (caddr expr) env remaining tape)]
-                 
-                 ;; If — conditional
-                 [(eq? head 'if)
-                  (eval-if-traced (cadr expr) (caddr expr) (cadddr expr) env remaining tape)]
-                 
-                 ;; Case — pattern match on block tag
-                 [(eq? head 'case)
-                  (eval-case-traced (cadr expr) (cddr expr) env remaining tape)]
-                 
-                 ;; Prim — pure primitive (use traced operations for diff primitives)
-                 [(eq? head 'prim)
-                  (eval-prim-traced (cadr expr) (cddr expr) env remaining tape)]
-                 
-                 ;; Par — parallel evaluation hint
-                 [(eq? head 'par)
-                  (eval-par-traced (cadr expr) (caddr expr) env remaining tape)]
-                 
-                 ;; Pseq — sequential evaluation
-                 [(eq? head 'pseq)
-                  (eval-pseq-traced (cadr expr) (caddr expr) env remaining tape)]
-                 
-                 ;; Call — explicit application
-                 [(eq? head 'call)
-                  (eval-call-traced (cadr expr) (cddr expr) env remaining tape)]
-                 
-                 ;; Implicit application — (f args...)
-                 [else
-                  (eval-call-traced (car expr) (cdr expr) env remaining tape)]))]))]))
-
-;;; ============================================================
-;;; Traced Par/Pseq Evaluation
-;;; ============================================================
-
-(define (eval-par-traced a-expr b-expr env fuel tape)
-  (let ([a-result (eval-expr-traced a-expr env fuel tape)])
-       (case (car a-result)
-             [(ok)
-              (let ([a-value (cadr a-result)]
-                    [fuel-after-a (caddr a-result)]
-                    [tape-after-a (cadddr a-result)])
-                   (eval-expr-traced b-expr env fuel-after-a tape-after-a))]
-             [(suspended) a-result]
-             [(error) a-result])))
-
-(define (eval-pseq-traced a-expr b-expr env fuel tape)
-  (let ([a-result (eval-expr-traced a-expr env fuel tape)])
-       (case (car a-result)
-             [(ok)
-              (let ([a-value (cadr a-result)]
-                    [fuel-after-a (caddr a-result)]
-                    [tape-after-a (cadddr a-result)])
-                   (eval-expr-traced b-expr env fuel-after-a tape-after-a))]
-             [(suspended) a-result]
-             [(error) a-result])))
-
-;;; ============================================================
-;;; Traced Let Evaluation
-;;; ============================================================
-
-(define (eval-let-traced bindings body env fuel tape)
-  (if (out-of-fuel? fuel)
-      `(suspended (let ,bindings ,body) ,env ,fuel ,tape)
-      (eval-let-bindings-traced bindings body env '() fuel tape)))
-
-(define (eval-let-bindings-traced bindings body env acc fuel tape)
-  (if (null? bindings)
-      ;; All bindings evaluated — evaluate body in extended env
-      (eval-expr-traced body (env-extend-alist env (reverse acc)) fuel tape)
-      ;; Evaluate next binding
-      (let* ([binding (car bindings)]
-             [name (car binding)]
-             [expr (cadr binding)]
-             [result (eval-expr-traced expr env fuel tape)])
-            (cond
-             [(eq? (car result) 'ok)
-              (eval-let-bindings-traced
-               (cdr bindings) body env
-               (cons (cons name (cadr result)) acc)
-               (caddr result)
-               (cadddr result))]
-             [(eq? (car result) 'suspended)
-              `(suspended (let ,(cons binding (cdr bindings)) ,body) ,env
-                ,(caddr result) ,(cadddr result))]
-             [else result]))))
-
-;;; ============================================================
-;;; Traced Fix Evaluation
-;;; ============================================================
-
-(define (eval-fix-traced name fn-expr env fuel tape)
-  (if (and (pair? fn-expr) (eq? (car fn-expr) 'fn))
-      (let* ([params (cadr fn-expr)]
-             [body (caddr fn-expr)]
-             [rec-env (env-extend env name 'placeholder)]
-             [closure (make-closure params body rec-env)])
-            (set-cdr! (car rec-env) closure)
-            `(ok ,closure ,fuel ,tape))
-      `(error fix-requires-fn ,fn-expr)))
-
-;;; ============================================================
-;;; Traced If Evaluation
-;;; ============================================================
-
-(define (eval-if-traced test-expr then-expr else-expr env fuel tape)
-  (if (out-of-fuel? fuel)
-      `(suspended (if ,test-expr ,then-expr ,else-expr) ,env ,fuel ,tape)
-      (let ([test-result (eval-expr-traced test-expr env fuel tape)])
-           (cond
-            [(eq? (car test-result) 'ok)
-             (let ([test-val (cadr test-result)]
-                   [remaining (caddr test-result)]
-                   [tape* (cadddr test-result)])
-                  ;; Extract primal value from traced values for condition
-                  (let ([test-bool (if (traced? test-val)
-                                       (traced-value test-val)
-                                       test-val)])
-                       (if test-bool
-                           (eval-expr-traced then-expr env remaining tape*)
-                           (eval-expr-traced else-expr env remaining tape*))))]
-            [(eq? (car test-result) 'suspended)
-             `(suspended (if ,(cadr test-result) ,then-expr ,else-expr)
-               ,(caddr test-result) ,(cadddr test-result) ,(car (cddddr test-result)))]
-            [else test-result]))))
-
-;;; ============================================================
-;;; Traced Case Evaluation
-;;; ============================================================
-
-(define (eval-case-traced scrutinee clauses env fuel tape)
-  (if (out-of-fuel? fuel)
-      `(suspended (case ,scrutinee ,@clauses) ,env ,fuel ,tape)
-      (let ([scrut-result (eval-expr-traced scrutinee env fuel tape)])
-           (cond
-            [(eq? (car scrut-result) 'ok)
-             (let ([val (cadr scrut-result)]
-                   [remaining (caddr scrut-result)]
-                   [tape* (cadddr scrut-result)])
-                  (if (block? val)
-                      (match-clauses-traced val clauses env remaining tape*)
-                      `(error case-requires-block ,val)))]
-            [(eq? (car scrut-result) 'suspended)
-             `(suspended (case ,(cadr scrut-result) ,@clauses)
-               ,(caddr scrut-result) ,(cadddr scrut-result) ,(car (cddddr scrut-result)))]
-            [else scrut-result]))))
-
-(define (match-clauses-traced block clauses env fuel tape)
-  (if (null? clauses)
-      `(error no-matching-clause ,(block-tag block))
-      (let* ([clause (car clauses)]
-             [pattern (car clause)]
-             [body (cadr clause)]
-             [tag (car pattern)]
-             [vars (cdr pattern)])
-            (if (eq? tag (block-tag block))
-                (let ([refs (block-refs-list block)])
-                     (if (= (length vars) (length refs))
-                         (eval-expr-traced body (env-extend* env vars refs) fuel tape)
-                         `(error pattern-arity-mismatch ,tag)))
-                (match-clauses-traced block (cdr clauses) env fuel tape)))))
-
-;;; ============================================================
-;;; Traced Primitive Evaluation
-;;; ============================================================
-;;;
-;;; For differentiable primitives, use traced operations.
-;;; For non-differentiable primitives, extract primal values and use normal operations.
-
-(define (eval-prim-traced op args env fuel tape)
-  (if (and (out-of-fuel? fuel) (pair? args))
-      `(suspended (prim ,op ,@args) ,env ,fuel ,tape)
-      (eval-prim-args-traced op args env '() fuel tape)))
-
-(define (eval-prim-args-traced op remaining env acc fuel tape)
-  (if (null? remaining)
-      ;; All args evaluated — apply the primitive (traced or normal)
-      (let* ([op-sym (if (and (pair? op) (eq? (car op) 'quote))
-                         (cadr op)
-                         op)]
-             [arg-vals (reverse acc)])
-            (apply-prim-traced op-sym arg-vals fuel tape))
-      ;; Evaluate next arg
-      (let ([result (eval-expr-traced (car remaining) env fuel tape)])
-           (cond
-            [(eq? (car result) 'ok)
-             (eval-prim-args-traced op (cdr remaining) env
-                                    (cons (cadr result) acc)
-                                    (caddr result)
-                                    (cadddr result))]
-            [(eq? (car result) 'suspended)
-             `(suspended (prim ,op ,@(reverse acc) ,(cadr result) ,@(cdr remaining))
-               ,(caddr result) ,(cadddr result) ,(car (cddddr result)))]
-            [else result]))))
-
-;;; apply-prim-traced : Symbol × Values × Fuel × Tape → Result
-;;; Apply a primitive with traced operations for differentiable ops.
-(define (apply-prim-traced op args fuel tape)
-  (case op
-        ;; --------------------------------------------------------
-        ;; Differentiable Arithmetic (traced operations)
-        ;; --------------------------------------------------------
-        [(add)
-         (if (>= (length args) 2)
-             (let ([x (car args)]
-                   [y (cadr args)]
-                   [fuel-cost 3])  ; base 2 + tracing 1
-                  (if (< fuel fuel-cost)
-                      `(suspended (prim 'add ,x ,y) empty-env ,fuel ,tape)
-                      `(ok ,(traced-add x y) ,(- fuel fuel-cost) ,tape)))
-             `(error prim-arity ,op))]
-        
-        [(sub)
-         (if (>= (length args) 2)
-             (let ([x (car args)]
-                   [y (cadr args)]
-                   [fuel-cost 3])
-                  (if (< fuel fuel-cost)
-                      `(suspended (prim 'sub ,x ,y) empty-env ,fuel ,tape)
-                      `(ok ,(traced-sub x y) ,(- fuel fuel-cost) ,tape)))
-             `(error prim-arity ,op))]
-        
-        [(mul)
-         (if (>= (length args) 2)
-             (let ([x (car args)]
-                   [y (cadr args)]
-                   [fuel-cost 3])
-                  (if (< fuel fuel-cost)
-                      `(suspended (prim 'mul ,x ,y) empty-env ,fuel ,tape)
-                      `(ok ,(traced-mul x y) ,(- fuel fuel-cost) ,tape)))
-             `(error prim-arity ,op))]
-        
-        [(div)
-         (if (>= (length args) 2)
-             (let ([x (car args)]
-                   [y (cadr args)]
-                   [fuel-cost 3])
-                  (if (< fuel fuel-cost)
-                      `(suspended (prim 'div ,x ,y) empty-env ,fuel ,tape)
-                      ;; Check for division by zero
-                      (let ([y-val (if (traced? y) (traced-value y) y)])
-                           (if (zero? y-val)
-                               `(error div-by-zero)
-                               `(ok ,(traced-div x y) ,(- fuel fuel-cost) ,tape)))))
-             `(error prim-arity ,op))]
-        
-        [(neg)
-         (if (= (length args) 1)
-             (let ([x (car args)]
-                   [fuel-cost 3])
-                  (if (< fuel fuel-cost)
-                      `(suspended (prim 'neg ,x) empty-env ,fuel ,tape)
-                      `(ok ,(traced-neg x) ,(- fuel fuel-cost) ,tape)))
-             `(error prim-arity ,op))]
-        
-        ;; --------------------------------------------------------
-        ;; Differentiable Transcendental Functions
-        ;; --------------------------------------------------------
-        [(sqrt)
-         (if (= (length args) 1)
-             (let ([x (car args)]
-                   [fuel-cost 6])  ; base 4 + tracing 2
-                  (if (< fuel fuel-cost)
-                      `(suspended (prim 'sqrt ,x) empty-env ,fuel ,tape)
-                      `(ok ,(traced-sqrt x) ,(- fuel fuel-cost) ,tape)))
-             `(error prim-arity ,op))]
-        
-        [(exp)
-         (if (= (length args) 1)
-             (let ([x (car args)]
-                   [fuel-cost 7])  ; base 5 + tracing 2
-                  (if (< fuel fuel-cost)
-                      `(suspended (prim 'exp ,x) empty-env ,fuel ,tape)
-                      `(ok ,(traced-exp x) ,(- fuel fuel-cost) ,tape)))
-             `(error prim-arity ,op))]
-        
-        [(log)
-         (if (= (length args) 1)
-             (let ([x (car args)]
-                   [fuel-cost 7])
-                  (if (< fuel fuel-cost)
-                      `(suspended (prim 'log ,x) empty-env ,fuel ,tape)
-                      `(ok ,(traced-log x) ,(- fuel fuel-cost) ,tape)))
-             `(error prim-arity ,op))]
-        
-        [(sin)
-         (if (= (length args) 1)
-             (let ([x (car args)]
-                   [fuel-cost 7])
-                  (if (< fuel fuel-cost)
-                      `(suspended (prim 'sin ,x) empty-env ,fuel ,tape)
-                      `(ok ,(traced-sin x) ,(- fuel fuel-cost) ,tape)))
-             `(error prim-arity ,op))]
-        
-        [(cos)
-         (if (= (length args) 1)
-             (let ([x (car args)]
-                   [fuel-cost 7])
-                  (if (< fuel fuel-cost)
-                      `(suspended (prim 'cos ,x) empty-env ,fuel ,tape)
-                      `(ok ,(traced-cos x) ,(- fuel fuel-cost) ,tape)))
-             `(error prim-arity ,op))]
-        
-        ;; --------------------------------------------------------
-        ;; Non-differentiable Operations (extract primal, apply normally)
-        ;; --------------------------------------------------------
-        [else
-         ;; Extract primal values from traced args
-         (let* ([primal-args (map (lambda (v)
-                                          (if (traced? v)
-                                              (traced-value v)
-                                              v))
-                                  args)]
-                ;; Apply normal primitive
-                [result (apply prim (cons op primal-args))])
-               ;; Return result as-is (constants are handled by traced ops)
-               `(ok ,result ,fuel ,tape))]))
-
-;;; ensure-traced : Value → TracedValue
-;;; Ensure a value is traced (wrap constants in traced-const).
-(define (ensure-traced v)
-  (if (traced? v)
-      v
-      (make-traced-const v)))
-
-;;; ============================================================
-;;; Traced Call Evaluation
-;;; ============================================================
-
-(define (eval-call-traced fn-expr arg-exprs env fuel tape)
-  (if (out-of-fuel? fuel)
-      `(suspended (call ,fn-expr ,@arg-exprs) ,env ,fuel ,tape)
-      (let ([fn-result (eval-expr-traced fn-expr env fuel tape)])
-           (cond
-            [(eq? (car fn-result) 'ok)
-             (let ([fn-val (cadr fn-result)]
-                   [remaining (caddr fn-result)]
-                   [tape* (cadddr fn-result)])
-                  (if (closure? fn-val)
-                      (eval-call-args-traced fn-val arg-exprs env '() remaining tape*)
-                      `(error not-a-function ,fn-val)))]
-            [(eq? (car fn-result) 'suspended)
-             `(suspended (call ,(cadr fn-result) ,@arg-exprs)
-               ,(caddr fn-result) ,(cadddr fn-result) ,(car (cddddr fn-result)))]
-            [else fn-result]))))
-
-(define (eval-call-args-traced closure remaining env acc fuel tape)
-  (if (null? remaining)
-      ;; All args evaluated — apply the closure
-      (let* ([params (closure-params closure)]
-             [body (closure-body closure)]
-             [closure-env (closure-env closure)]
-             [arg-vals (reverse acc)])
-            (if (= (length params) (length arg-vals))
-                (eval-expr-traced body (env-extend* closure-env params arg-vals) fuel tape)
-                `(error arity-mismatch (expected ,(length params)) (got ,(length arg-vals)))))
-      ;; Evaluate next arg
-      (let ([result (eval-expr-traced (car remaining) env fuel tape)])
-           (cond
-            [(eq? (car result) 'ok)
-             (eval-call-args-traced closure (cdr remaining) env
-                                    (cons (cadr result) acc)
-                                    (caddr result)
-                                    (cadddr result))]
-            [(eq? (car result) 'suspended)
-             `(suspended (call ,closure ,@(reverse acc) ,(cadr result) ,@(cdr remaining))
-               ,(caddr result) ,(cadddr result) ,(car (cddddr result)))]
-            [else result]))))
-
-;;; ============================================================
 ;;; High-Level Traced Evaluation API
 ;;; ============================================================
 
 ;;; eval-and-grad : Expr × Env × VarNames × Values × Fuel → (Value, Gradients)
 ;;; Evaluate expression and compute gradients w.r.t. named variables.
-(define (eval-and-grad expr env var-names values fuel)
+(define (eval-and-grad expr env var-names var-values fuel)
   (let* ([tape (make-reverse-tape)]
          ;; Create pairs of (name . value)
-         [pairs (let loop ([names var-names] [vals values])
+         [pairs (let loop ([names var-names] [vals var-values])
                      (if (null? names)
                          '()
                          (cons (cons (car names) (car vals))
