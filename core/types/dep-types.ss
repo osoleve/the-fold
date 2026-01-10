@@ -74,6 +74,17 @@
 ;;;     [val empty : (Π ((A : Type)) (Stack A))]     ; Polymorphic empty
 ;;;     [val push : (Π ((A : Type)) (Π ((x : A)) (Π ((s : (Stack A))) (Stack A))))]
 ;;;     [val pop : (Π ((A : Type)) (Π ((s : (Stack A))) (Stack A)))])
+;;;
+;;; Quick API Reference (constructors defined below):
+;;;
+;;;   (t-pi 'n 'Nat '(Vec Int n))         → (Π ((n : Nat)) (Vec Int n))
+;;;   (t-sigma 'x 'Int '(> x 0))          → (Σ ((x : Int)) (> x 0))
+;;;   (t-type 1)                          → (Type 1)
+;;;   (t-eq 'Nat 'x 'y)                   → (= Nat x y)
+;;;   (t-refine 'n 'Nat '(> n 0))         → (refine ((n : Nat)) (> n 0))
+;;;
+;;; Predicates: pi-type?, sigma-type?, universe-type?, equality-type?,
+;;;             refinement-type?, data-type?, sig-type?, dep-type?
 
 ;;; ============================================================
 ;;; Dependent Type Predicates

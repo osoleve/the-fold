@@ -24,6 +24,32 @@
 ;;; Note: resolve.ss must be loaded before using constraint-solving
 ;;; functions (solve-constraints, typeof-constrained). The base
 ;;; inference functions work without resolve.ss.
+;;;
+;;; Quick API Reference:
+;;;
+;;;   Environment:
+;;;     empty-tenv                       ; Empty type environment
+;;;     (tenv-lookup env 'x)            → Type | #f
+;;;     (tenv-extend env 'x type)       → Extended env
+;;;     (tenv-extend* env '((x . Int))) → Extended env (multiple)
+;;;
+;;;   Fresh variables:
+;;;     (fresh-tvar)                    → τ1, τ2, ... (fresh type var)
+;;;     (fresh-tvar-named "arg")        → arg1, arg2, ...
+;;;     (reset-fresh!)                  ; Reset counter
+;;;
+;;;   Synthesis (↑): expr → type
+;;;     (infer-synth '42 env)           → (ok Int)
+;;;     (infer-synth 'x env)            → (ok <type of x>) | (error ...)
+;;;     (infer-synth '(f x) env)        → (ok <return type>)
+;;;
+;;;   Checking (↓): expr × type → ok/error
+;;;     (infer-check '(fn (x) x) '(-> Int Int) env) → (ok)
+;;;     (infer-check expr expected env) → (ok) | (error ...)
+;;;
+;;;   Unification:
+;;;     (unify t1 t2)                   → Substitution | #f
+;;;     (apply-subst subst type)        → Type with vars replaced
 
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")

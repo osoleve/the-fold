@@ -33,6 +33,27 @@
 ;;;          | (κ∀ (KVar ...) Kind) ; Kind polymorphism
 ;;;
 ;;; Notation: We use ⇒ for kind arrows to distinguish from → (type arrows)
+;;;
+;;; Quick API Reference:
+;;;
+;;;   Constants:
+;;;     K*            → *             ; Kind of ordinary types
+;;;     K-constraint  → Constraint    ; Kind of type class constraints
+;;;     K-row         → Row           ; Kind of extensible records
+;;;
+;;;   Constructors:
+;;;     (K=> K* K*)              → (⇒ * *)        ; Unary type constructor kind
+;;;     (K=>* K* K* K*)          → (⇒ * (⇒ * *)) ; Binary (right-assoc)
+;;;     (K-forall '(a) 'a)       → (κ∀ (a) a)    ; Kind polymorphism
+;;;     (K-pi 'n 'Nat K*)        → (Πκ ((n : Nat)) *)  ; Dependent kind
+;;;     (K-sort)                 → □             ; Sort (kind of kinds)
+;;;
+;;;   Examples:
+;;;     List  : K*→K*                                       ; * → *
+;;;     Either: (K=>* K* K* K*)                             ; * → * → *
+;;;     Fix   : (K=> (K=> K* K*) K*)                        ; (* → *) → *
+;;;     Functor: (K=> (K=> K* K*) K-constraint)             ; (* → *) → Constraint
+;;;     Vec   : (K-pi 'n 'Nat (K=> K* K*))                  ; Πn:Nat. * → *
 
 ;;; ============================================================
 ;;; Kind Representation

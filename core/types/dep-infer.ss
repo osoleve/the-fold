@@ -14,6 +14,26 @@
 ;;;   - existential-infer.ss: Existential pack/unpack synthesis
 ;;;   - rank-n-infer.ss: Rank-N polymorphism (placeholder)
 ;;;
+;;; Quick API Reference:
+;;;
+;;;   Synthesis (expression → type):
+;;;     (dep-synth 'Type ctx)                    → (ok (Type 1))
+;;;     (dep-synth '42 ctx)                      → (ok Int)
+;;;     (dep-synth 'x ctx)                       → (ok <type of x>)
+;;;     (dep-synth '(Π ((n : Nat)) (Vec n Int)) ctx) → (ok Type)
+;;;
+;;;   Checking (expression × type → ok/error):
+;;;     (dep-check '(fn ((x : Int)) x) '(Π ((x : Int)) Int) ctx) → (ok)
+;;;     (dep-check '(pair 1 2) '(Σ ((x : Int)) Int) ctx) → (ok)
+;;;
+;;;   Type checking (is type well-formed?):
+;;;     (dep-check-type '(Π ((n : Nat)) (Vec n Int)) ctx) → (ok Type)
+;;;
+;;;   Context management:
+;;;     (dep-ctx-extend ctx 'x 'Int)             ; Add x : Int
+;;;     (dep-ctx-extend-def ctx 'n 'Nat '(succ zero)) ; Add n : Nat = succ zero
+;;;     (dep-ctx-lookup ctx 'x)                  → Int (or #f)
+;;;
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;;
 ;;; Dependencies:
@@ -227,8 +247,8 @@
    [(gadt-case-expr? expr)
     (dep-synth-gadt-case expr ctx)]
    
-   ;; Existential type: (exists ((a : K)) T)
-   [(eq? (car expr) 'exists)
+   ;; Existential type: (∃ ((a : K)) T) or (exists ((a : K)) T)
+   [(existential-type? expr)
     (dep-synth-existential expr ctx)]
    
    ;; Pack: (pack WitnessType Value : ExistentialType)
@@ -1575,9 +1595,9 @@
 ;;; by pattern matching. The key innovation is that each constructor can
 ;;; specify a more precise return type, and matching on that constructor
 ;;; brings the type refinement into scope.
-
-;;; Load the GADT inference module
-(load "core/types/gadt-infer.ss")
+;;;
+;;; Note: GADT inference functions (gadt-infer-synth, gadt-infer-synth-case, etc.)
+;;; are now in gadt.ss, loaded at the top of this file.
 
 ;;; dep-synth-gadt : GADTDecl x Context -> (Result Type Error)
 ;;; Type-check a GADT declaration and register it.
@@ -1591,16 +1611,16 @@
                          dep-ctx-extend dep-ctx-extend-def))
 
 ;;; ============================================================
-;;; Existential Type Support (Delegated to existential-infer.ss)
+;;; Existential Type Support
 ;;; ============================================================
 ;;;
 ;;; Existential types allow hiding type information behind an interface.
 ;;; The key operations are:
 ;;;   - Pack: hide a concrete type inside an existential
 ;;;   - Unpack: use an existential with the type held abstract (skolemized)
-
-;;; Load the existential inference module
-(load "core/types/existential-infer.ss")
+;;;
+;;; Note: Existential inference functions (existential-infer-synth, existential-infer-synth-pack, etc.)
+;;; are now in existential.ss, loaded at the top of this file.
 
 ;;; dep-synth-existential : Expr x Context -> (Result Type Error)
 ;;; (exists ((a : K)) T) : Type when K is valid and T : Type under a:K

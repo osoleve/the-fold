@@ -180,17 +180,13 @@
   (display "--- Existential Type Synthesis ---
 ")
   
-  ;; NOTE: Standalone existential type synthesis is blocked by fold-xy6f
-  ;; (exists vs ∃ mismatch). Pack/unpack tests verify the inference algorithms.
-  ;; The tests below are commented out until that bug is fixed.
-  
-  ;; TODO(fold-xy6f): Uncomment these tests after fixing exists/∃ mismatch
-  ;; (test-ok-type "simple existential (∃ ((a : Type)) a) : Type"
-  ;;               (synth-empty '(∃ ((a : Type)) a))
-  ;;               'Type)
-  ;; (test-ok-type "existential with arrow body"
-  ;;               (synth-empty '(∃ ((a : Type)) (-> a a)))
-  ;;               'Type)
+  ;; Simple existential types synthesize to Type
+  (test-ok-type "simple existential (∃ ((a : Type)) a) : Type"
+                (synth-empty '(∃ ((a : Type)) a))
+                'Type)
+  (test-ok-type "existential with arrow body"
+                (synth-empty '(∃ ((a : Type)) (-> a a)))
+                'Type)
   
   ;; Malformed existential - empty bindings (uses ∃ directly to test predicate)
   (test-any-error "malformed existential: empty bindings"
@@ -319,9 +315,9 @@
                    #t))
                 'Bool)
   
-  ;; TODO(fold-xy6f): Test existential in function type after fixing exists/∃ mismatch
-  ;; (test-ok "existential in function type"
-  ;;          (synth-empty '(-> (∃ ((a : Type)) a) Int)))
+  ;; Existential type in function parameter position
+  (test-ok "existential in function type"
+           (synth-empty '(-> (∃ ((a : Type)) a) Int)))
   
   ;; --------------------------------------------------------
   ;; Summary

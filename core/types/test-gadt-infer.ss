@@ -328,7 +328,7 @@
 --- Integration Tests ---
 ")
   
-  ;; TODO: Nested GADT case blocked by Maybe variable resolution issue
+  ;; Nested GADT: scrutinee is Maybe (Maybe Int), result is Maybe Int
   (let ([ctx (make-test-ctx 'mx '(Maybe (Maybe Int))
                             'default '(Maybe Int))])
        (let ([case-expr '(gadt-case mx
