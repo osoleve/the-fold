@@ -250,19 +250,37 @@
 ;;; eval-par : Expr × Expr × Env × Fuel → (Result Value Error)
 ;;; Parallel evaluation hint: (par a b)
 ;;; Evaluate both a and b, return b.
-;;; Currently evaluates sequentially, but provides a hint for
-;;; future parallel execution strategies.
+;;; Attempts parallel execution if the runtime supports it (fork-thread).
+;;; Otherwise falls back to sequential evaluation.
 (define (eval-par a-expr b-expr env fuel)
-  ;; Evaluate a (for side-effect of forcing computation)
-  (let ([a-result (eval-expr a-expr env fuel)])
-       (case (car a-result)
-             [(ok)
-              (let ([a-value (cadr a-result)]
-                    [fuel-after-a (caddr a-result)])
-                   ;; Now evaluate b with remaining fuel
-                   (eval-expr b-expr env fuel-after-a))]
-             [(suspended) a-result]  ; Forward suspension
-             [(error) a-result])))   ; Forward error
+  (if (top-level-bound? 'fork-thread)
+      ;; Parallel Strategy: Fork-Join
+      ;; 1. Spawn thread for a
+      ;; 2. Evaluate b in current thread
+      ;; 3. Join a and check for errors
+      (let* ([a-box (box #f)]
+             [t (fork-thread
+                 (lambda ()
+                         (set-box! a-box (eval-expr a-expr env fuel))))]
+             [b-result (eval-expr b-expr env fuel)])
+            (thread-join t)
+            (let ([a-result (unbox a-box)])
+                 (case (car a-result)
+                       [(ok) b-result]         ;; A succeeded, return B's result
+                       [(suspended) a-result]  ;; A suspended, propagate suspension
+                       [(error) a-result]      ;; A failed, propagate error
+                       [else `(error internal-par-error ,a-result)])))
+      
+      ;; Sequential Strategy (Fallback)
+      (let ([a-result (eval-expr a-expr env fuel)])
+           (case (car a-result)
+                 [(ok)
+                  (let ([a-value (cadr a-result)]
+                        [fuel-after-a (caddr a-result)])
+                       ;; Now evaluate b with remaining fuel
+                       (eval-expr b-expr env fuel-after-a))]
+                 [(suspended) a-result]  ; Forward suspension
+                 [(error) a-result]))))  ; Forward error
 
 ;;; eval-pseq : Expr × Expr × Env × Fuel → (Result Value Error)
 ;;; Sequential evaluation: (pseq a b)

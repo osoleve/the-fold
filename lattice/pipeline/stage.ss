@@ -264,57 +264,72 @@
 ;;; *** : Stage ctx a b -> Stage ctx c d -> Stage ctx (a . c) (b . d)
 (define stage-*** stage-split)
 
+;;; combine-fanout-results : StageResult a -> StageResult b -> Any -> StageResult (a . b)
+;;; Combine results from two parallel stages.
+(define (combine-fanout-results r1 r2 input)
+  (cond
+   ;; Both pure values: pair them
+   [(and (stage-ok? r1) (stage-ok? r2))
+    (stage-ok (cons (stage-result-value r1)
+                    (stage-result-value r2)))]
+   ;; Error propagation (errors take priority)
+   [(stage-err? r1) r1]
+   [(stage-err? r2) r2]
+   ;; Halt propagation
+   [(stage-halt? r1) r1]
+   [(stage-halt? r2) r2]
+   ;; Both effects: combine into fanout-effect
+   [(and (stage-effect? r1) (stage-effect? r2))
+    (list 'stage-effect 'fanout
+          (cons r1 r2)  ; payload is pair of effects
+          input)]
+   ;; One effect, one ok: wrap in fanout-effect with value
+   [(and (stage-effect? r1) (stage-ok? r2))
+    (list 'stage-effect 'fanout
+          (cons r1 (stage-result-value r2))
+          input)]
+   [(and (stage-ok? r1) (stage-effect? r2))
+    (list 'stage-effect 'fanout
+          (cons (stage-result-value r1) r2)
+          input)]
+   ;; Effect with skip: effect takes priority
+   [(and (stage-effect? r1) (stage-skip? r2))
+    (list 'stage-effect 'fanout
+          (cons r1 '())
+          input)]
+   [(and (stage-skip? r1) (stage-effect? r2))
+    (list 'stage-effect 'fanout
+          (cons '() r2)
+          input)]
+   ;; If one skips, still return the other
+   [(and (stage-skip? r1) (stage-ok? r2))
+    (stage-ok (cons '() (stage-result-value r2)))]
+   [(and (stage-ok? r1) (stage-skip? r2))
+    (stage-ok (cons (stage-result-value r1) '()))]
+   [else
+    (stage-err 'fanout-failed
+               "Parallel stages produced incompatible results"
+               (list r1 r2))]))
+
 ;;; stage-fanout : Stage ctx a b -> Stage ctx a c -> Stage ctx a (b . c)
 ;;; Apply two stages to same input, pair results (&&&).
-;;; Handles effects: if branches return effects, produces a combined fanout-effect.
+;;; Handles parallel execution if runtime supports it.
 (define (stage-fanout s1 s2)
   (make-stage 'fanout
               (lambda (ctx input)
-                      (let ([r1 (run-stage s1 ctx input)]
-                            [r2 (run-stage s2 ctx input)])
-                           (cond
-                            ;; Both pure values: pair them
-                            [(and (stage-ok? r1) (stage-ok? r2))
-                             (stage-ok (cons (stage-result-value r1)
-                                             (stage-result-value r2)))]
-                            ;; Error propagation (errors take priority)
-                            [(stage-err? r1) r1]
-                            [(stage-err? r2) r2]
-                            ;; Halt propagation
-                            [(stage-halt? r1) r1]
-                            [(stage-halt? r2) r2]
-                            ;; Both effects: combine into fanout-effect
-                            [(and (stage-effect? r1) (stage-effect? r2))
-                             (list 'stage-effect 'fanout
-                                   (cons r1 r2)  ; payload is pair of effects
-                                   input)]
-                            ;; One effect, one ok: wrap in fanout-effect with value
-                            [(and (stage-effect? r1) (stage-ok? r2))
-                             (list 'stage-effect 'fanout
-                                   (cons r1 (stage-result-value r2))
-                                   input)]
-                            [(and (stage-ok? r1) (stage-effect? r2))
-                             (list 'stage-effect 'fanout
-                                   (cons (stage-result-value r1) r2)
-                                   input)]
-                            ;; Effect with skip: effect takes priority
-                            [(and (stage-effect? r1) (stage-skip? r2))
-                             (list 'stage-effect 'fanout
-                                   (cons r1 '())
-                                   input)]
-                            [(and (stage-skip? r1) (stage-effect? r2))
-                             (list 'stage-effect 'fanout
-                                   (cons '() r2)
-                                   input)]
-                            ;; If one skips, still return the other
-                            [(and (stage-skip? r1) (stage-ok? r2))
-                             (stage-ok (cons '() (stage-result-value r2)))]
-                            [(and (stage-ok? r1) (stage-skip? r2))
-                             (stage-ok (cons (stage-result-value r1) '()))]
-                            [else
-                             (stage-err 'fanout-failed
-                                        "Parallel stages produced incompatible results"
-                                        (list r1 r2))])))))
+                      (if (top-level-bound? 'fork-thread)
+                          ;; Parallel Execution
+                          (let* ([box-r1 (box #f)]
+                                 [t (fork-thread
+                                     (lambda ()
+                                             (set-box! box-r1 (run-stage s1 ctx input))))]
+                                 [r2 (run-stage s2 ctx input)])
+                                (thread-join t)
+                                (combine-fanout-results (unbox box-r1) r2 input))
+                          ;; Sequential Execution
+                          (let ([r1 (run-stage s1 ctx input)]
+                                [r2 (run-stage s2 ctx input)])
+                               (combine-fanout-results r1 r2 input))))))
 
 ;;; &&& : Stage ctx a b -> Stage ctx a c -> Stage ctx a (b . c)
 (define stage-&&& stage-fanout)
