@@ -257,37 +257,73 @@
        (not (term-ctor? t))))
 
 ;;; unify-types : Type × Type → (List (Symbol . Type)) | 'mismatch
-;;; Simple unification for computing refinements.
+;;; Robinson-style unification with proper substitution propagation.
+;;; Returns a most-general unifier (MGU) or 'mismatch if types are incompatible.
 (define (unify-types t1 t2)
+  (unify-with-subst t1 t2 '()))
+
+;;; unify-with-subst : Type × Type × Subst → Subst | 'mismatch
+;;; Unify two types under an existing substitution.
+;;; The substitution is applied to both types before comparison.
+(define (unify-with-subst t1 t2 subst)
+  (let ([t1* (apply-subst-to-type subst t1)]
+        [t2* (apply-subst-to-type subst t2)])
+       (cond
+        ;; Same type after substitution
+        [(equal? t1* t2*) subst]
+        
+        ;; Type variable on left
+        [(unifiable-var? t1*)
+         (if (occurs-in? t1* t2*)
+             'mismatch
+             (extend-subst t1* t2* subst))]
+        
+        ;; Type variable on right
+        [(unifiable-var? t2*)
+         (if (occurs-in? t2* t1*)
+             'mismatch
+             (extend-subst t2* t1* subst))]
+        
+        ;; Both compound, same head and arity
+        [(and (pair? t1*) (pair? t2*)
+              (eq? (car t1*) (car t2*))
+              (= (length t1*) (length t2*)))
+         (unify-list (cdr t1*) (cdr t2*) subst)]
+        
+        [else 'mismatch])))
+
+;;; unify-list : (List Type) × (List Type) × Subst → Subst | 'mismatch
+;;; Unify corresponding elements of two lists, threading substitution.
+(define (unify-list ts1 ts2 subst)
   (cond
-   ;; Same type
-   [(equal? t1 t2) '()]
-   
-   ;; Type variable on left (but not a term constructor)
-   [(unifiable-var? t1)
-    (if (occurs-in? t1 t2)
-        'mismatch
-        (list (cons t1 t2)))]
-   
-   ;; Type variable on right (but not a term constructor)
-   [(unifiable-var? t2)
-    (if (occurs-in? t2 t1)
-        'mismatch
-        (list (cons t2 t1)))]
-   
-   ;; Both compound, same head
-   [(and (pair? t1) (pair? t2)
-         (eq? (car t1) (car t2))
-         (= (length t1) (length t2)))
-    (let loop ([ts1 (cdr t1)] [ts2 (cdr t2)] [acc '()])
-         (if (null? ts1)
-             acc
-             (let ([eqs (unify-types (car ts1) (car ts2))])
-                  (if (eq? eqs 'mismatch)
-                      'mismatch
-                      (loop (cdr ts1) (cdr ts2) (append eqs acc))))))]
-   
-   [else 'mismatch]))
+   [(null? ts1) subst]
+   [(eq? subst 'mismatch) 'mismatch]
+   [else
+    (let ([new-subst (unify-with-subst (car ts1) (car ts2) subst)])
+         (if (eq? new-subst 'mismatch)
+             'mismatch
+             (unify-list (cdr ts1) (cdr ts2) new-subst)))]))
+
+;;; apply-subst-to-type : Subst × Type → Type
+;;; Apply a substitution to a type, replacing bound variables.
+(define (apply-subst-to-type subst type)
+  (cond
+   [(and (symbol? type) (assq type subst))
+    => (lambda (binding) (apply-subst-to-type subst (cdr binding)))]
+   [(pair? type)
+    (cons (car type)
+          (map (lambda (t) (apply-subst-to-type subst t)) (cdr type)))]
+   [else type]))
+
+;;; extend-subst : Symbol × Type × Subst → Subst
+;;; Add a new binding to the substitution.
+;;; The new binding is composed with existing bindings.
+(define (extend-subst var type subst)
+  (cons (cons var type)
+        (map (lambda (binding)
+                     (cons (car binding)
+                           (apply-subst-to-type (list (cons var type)) (cdr binding))))
+             subst)))
 
 ;;; occurs-in? : Symbol × Type → Boolean
 (define (occurs-in? var type)
@@ -496,22 +532,97 @@
 
 ;;; compile-dep-match : Any → Any
 ;;; Compile dependent match to efficient case tree.
-;;; For now, a simple translation.
+;;; Groups clauses by constructor and builds a decision tree.
 (define (compile-dep-match dm)
-  (let ([clauses (dep-match-expr-clauses dm)])
-       (if (null? clauses)
-           (make-leaf '(error no-patterns))
-           ;; Simple: first pattern wins
-           (let* ([first-clause (car clauses)]
-                  [pat (car first-clause)]
-                  [body (cdr first-clause)])
+  (let ([clauses (dep-match-expr-clauses dm)]
+        [scrutinee (dep-match-expr-scrutinee dm)])
+       (compile-clauses scrutinee clauses)))
+
+;;; compile-clauses : Expr × (List (Any × Expr)) → Any
+;;; Compile a list of clauses into a case tree.
+(define (compile-clauses scrutinee clauses)
+  (cond
+   [(null? clauses)
+    (make-leaf '(error no-matching-pattern))]
+   
+   ;; Check if first clause is a catch-all (var or wildcard)
+   [(let ([pat (car (car clauses))])
+         (or (dep-pattern-var? pat) (dep-pattern-wildcard? pat)))
+    ;; Catch-all pattern - just return its body
+    (make-leaf (cdr (car clauses)))]
+   
+   ;; First clause is a constructor pattern - group by constructor
+   [(dep-pattern-ctor? (car (car clauses)))
+    (let* ([grouped (group-clauses-by-ctor clauses)]
+           [ctor-cases (map (lambda (group)
+                                    (let ([ctor-name (car group)]
+                                          [ctor-clauses (cdr group)])
+                                         (cons ctor-name
+                                               (compile-ctor-clauses ctor-clauses))))
+                            grouped)]
+           ;; Check if there's a default case (var/wildcard after constructors)
+           [default-clauses (filter-default-clauses clauses)]
+           [default-tree (if (null? default-clauses)
+                             #f
+                             (compile-clauses scrutinee default-clauses))])
+          (make-split scrutinee (if default-tree
+                                    (append ctor-cases (list (cons '_ default-tree)))
+                                    ctor-cases)))]
+   
+   ;; Dot pattern - treat as specific value match
+   [(dep-pattern-dot? (car (car clauses)))
+    ;; For dot patterns, we need runtime equality check
+    (let ([expected (dep-pattern-data (car (car clauses)))]
+          [body (cdr (car clauses))]
+          [rest (cdr clauses)])
+         (make-split scrutinee
+                     (list (cons expected (make-leaf body))
+                           (cons '_ (compile-clauses scrutinee rest)))))]
+   
+   [else
+    (make-leaf '(error invalid-pattern))]))
+
+;;; group-clauses-by-ctor : (List (Any × Expr)) → (List (Symbol . (List (Any × Expr))))
+;;; Group constructor clauses by their constructor name.
+(define (group-clauses-by-ctor clauses)
+  (let loop ([cls clauses] [groups '()])
+       (if (null? cls)
+           (reverse (map (lambda (g) (cons (car g) (reverse (cdr g)))) groups))
+           (let* ([clause (car cls)]
+                  [pat (car clause)])
                  (if (dep-pattern-ctor? pat)
-                     ;; Split on constructor
-                     (make-split 'scrut
-                                 (list (cons (dep-pattern-ctor-name pat)
-                                             (make-leaf body))))
-                     ;; Variable or wildcard: just return body
-                     (make-leaf body))))))
+                     (let* ([ctor-name (dep-pattern-ctor-name pat)]
+                            [existing (assq ctor-name groups)])
+                           (if existing
+                               (loop (cdr cls)
+                                     (map (lambda (g)
+                                                  (if (eq? (car g) ctor-name)
+                                                      (cons (car g) (cons clause (cdr g)))
+                                                      g))
+                                          groups))
+                               (loop (cdr cls)
+                                     (cons (list ctor-name clause) groups))))
+                     ;; Non-constructor pattern, skip for grouping
+                     (loop (cdr cls) groups))))))
+
+;;; filter-default-clauses : (List (Any × Expr)) → (List (Any × Expr))
+;;; Extract clauses with var or wildcard patterns (default cases).
+(define (filter-default-clauses clauses)
+  (filter (lambda (clause)
+                  (let ([pat (car clause)])
+                       (or (dep-pattern-var? pat) (dep-pattern-wildcard? pat))))
+          clauses))
+
+;;; compile-ctor-clauses : (List (Any × Expr)) → Any
+;;; Compile clauses for a specific constructor.
+;;; All clauses have the same top-level constructor.
+(define (compile-ctor-clauses clauses)
+  (if (= (length clauses) 1)
+      ;; Single clause - just return its body
+      (make-leaf (cdr (car clauses)))
+      ;; Multiple clauses with same constructor - would need to match subpatterns
+      ;; For now, use first match (could extend to recurse on subpatterns)
+      (make-leaf (cdr (car clauses)))))
 
 ;;; ============================================================
 ;;; With-Abstraction (Future Extension)

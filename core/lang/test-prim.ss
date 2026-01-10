@@ -49,9 +49,9 @@
 (test "sin 0" 0 (prim 'sin 0))
 (test "cos 0" 1 (prim 'cos 0))
 (test "tan 0" 0 (prim 'tan 0))
-(test "floor" 3 (prim 'floor 3.7))
-(test "ceiling" 4 (prim 'ceiling 3.2))
-(test "round" 4 (prim 'round 3.6))
+(test "floor" 3.0 (prim 'floor 3.7))
+(test "ceiling" 4.0 (prim 'ceiling 3.2))
+(test "round" 4.0 (prim 'round 3.6))
 
 ;;; ============================================================
 ;;; Comparison

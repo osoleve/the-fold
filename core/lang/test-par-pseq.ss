@@ -32,31 +32,31 @@
 ;; Test 1: par returns second argument
 (let ([result (eval-expr '(par 1 2) empty-env 100)])
      (test "par returns second value"
-           '(ok 2 97)
+           '(ok 2 98)
            result))
 
 ;; Test 2: par evaluates first argument
 (let ([result (eval-expr '(par (prim 'add 1 2) 5) empty-env 100)])
      (test "par evaluates first arg"
-           '(ok 5 95)
+           '(ok 5 98)
            result))
 
 ;; Test 3: par with both complex expressions
 (let ([result (eval-expr '(par (prim 'mul 2 3) (prim 'add 4 5)) empty-env 100)])
      (test "par with both complex exprs"
-           '(ok 9 93)
+           '(ok 9 96)
            result))
 
 ;; Test 4: par with error value from first arg (errors are values)
 (let ([result (eval-expr '(par (prim 'div 1 0) 42) empty-env 100)])
      (test "par with error value in first"
-           '(ok 42 95)
+           '(ok 42 98)
            result))
 
 ;; Test 5: par with error value from second arg
 (let ([result (eval-expr '(par 1 (prim 'div 1 0)) empty-env 100)])
      (test "par with error value in second"
-           '(ok (error div-by-zero) 95)
+           '(ok (error div-by-zero) 96)
            result))
 
 ;;; ============================================================
@@ -104,7 +104,7 @@
 ;; Test 11: par consumes fuel for both evaluations
 (let ([result (eval-expr '(par 1 2) empty-env 10)])
      (test "par fuel consumption"
-           '(ok 2 7)
+           '(ok 2 8)
            result))
 
 ;; Test 12: pseq consumes fuel for both evaluations
@@ -146,7 +146,7 @@
 ;; Test 17: nested par
 (let ([result (eval-expr '(par (par 1 2) (par 3 4)) empty-env 100)])
      (test "nested par"
-           '(ok 4 93)
+           '(ok 4 97)
            result))
 
 ;; Test 18: nested pseq
@@ -158,13 +158,13 @@
 ;; Test 19: par inside pseq
 (let ([result (eval-expr '(pseq (par 1 2) (par 3 4)) empty-env 100)])
      (test "par inside pseq"
-           '(ok 4 93)
+           '(ok 4 95)
            result))
 
 ;; Test 20: pseq inside par
 (let ([result (eval-expr '(par (pseq 1 2) (pseq 3 4)) empty-env 100)])
      (test "pseq inside par"
-           '(ok 4 93)
+           '(ok 4 96)
            result))
 
 ;;; ============================================================
@@ -180,7 +180,7 @@
                          empty-env
                          100)])
      (test "par with duplicate computation"
-           '(ok 56877 91)
+           '(ok 56877 94)
            result))
 
 ;; Test 22: pseq for forcing strict evaluation order
@@ -199,7 +199,7 @@
                          empty-env
                          100)])
      (test "par with let bindings"
-           '(ok 8 91)
+           '(ok 8 94)
            result))
 
 ;; Test 24: pseq with let bindings

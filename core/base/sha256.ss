@@ -6,6 +6,7 @@
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
 ;;; The implementation follows FIPS 180-4 exactly.
+;;; Optimized for Chez Scheme using fixnum operations and fxvectors.
 ;;;
 ;;; Dependencies: NONE (self-contained cryptographic primitive)
 ;;;
@@ -17,7 +18,6 @@
 
 ;;; iota : Nat → (List Nat)
 ;;; Generate list [0, 1, ..., n-1].
-;;; Inlined here to keep this module dependency-free.
 (define (iota n)
   (let loop ([i 0] [acc '()])
        (if (= i n)
@@ -25,30 +25,37 @@
            (loop (+ i 1) (cons i acc)))))
 
 ;;; ============================================================
-;;; 32-bit Arithmetic (mod 2^32)
+;;; 32-bit Arithmetic (mod 2^32) using Fixnums
 ;;; ============================================================
 
 ;;; u32 : Nat → Nat
 ;;; Mask to 32-bit unsigned integer.
-(define (u32 x)
-  (bitwise-and x #xFFFFFFFF))
+(define-syntax u32
+  (syntax-rules ()
+    [(_ x) (fxand x #xFFFFFFFF)]))
 
 ;;; u32+ : Nat* → Nat
 ;;; Add multiple values with 32-bit overflow.
-(define (u32+ . args)
-  (u32 (apply + args)))
+(define-syntax u32+
+  (syntax-rules ()
+    [(_ . args) (fxand (fx+ . args) #xFFFFFFFF)]))
 
 ;;; rotr32 : Nat × Nat → Nat
 ;;; 32-bit right rotation.
-(define (rotr32 x n)
-  (u32 (bitwise-ior
-        (bitwise-arithmetic-shift-right x n)
-        (bitwise-arithmetic-shift-left x (- 32 n)))))
+;;; Implemented as (x >> n) | ((x & mask) << (32 - n))
+;;; to avoid fixnum overflow on the left shift.
+(define-syntax rotr32
+  (syntax-rules ()
+    [(_ x n)
+     (fxior (fxarithmetic-shift-right x n)
+            (fxarithmetic-shift-left (fxand x (fx- (fxarithmetic-shift-left 1 n) 1))
+                                     (fx- 32 n)))]))
 
 ;;; shr : Nat × Nat → Nat
 ;;; Right shift.
-(define (shr x n)
-  (bitwise-arithmetic-shift-right x n))
+(define-syntax shr
+  (syntax-rules ()
+    [(_ x n) (fxarithmetic-shift-right x n)]))
 
 ;;; ============================================================
 ;;; SHA-256 Functions
@@ -56,44 +63,50 @@
 
 ;;; Ch : Nat × Nat × Nat → Nat
 ;;; SHA-256 Ch function: choose bits from y or z based on x.
-(define (Ch x y z)
-  (bitwise-xor (bitwise-and x y)
-               (bitwise-and (bitwise-not x) z)))
+(define-syntax Ch
+  (syntax-rules ()
+    [(_ x y z) (fxxor (fxand x y)
+                      (fxand (fxnot x) z))]))
 
 ;;; Maj : Nat × Nat × Nat → Nat
 ;;; SHA-256 Maj function: majority of three bits.
-(define (Maj x y z)
-  (bitwise-xor (bitwise-and x y)
-               (bitwise-xor (bitwise-and x z)
-                            (bitwise-and y z))))
+(define-syntax Maj
+  (syntax-rules ()
+    [(_ x y z) (fxxor (fxand x y)
+                      (fxxor (fxand x z)
+                             (fxand y z)))]))
 
 ;;; Sigma0 : Nat → Nat
 ;;; SHA-256 big sigma 0 function.
-(define (Sigma0 x)
-  (bitwise-xor (rotr32 x 2)
-               (bitwise-xor (rotr32 x 13)
-                            (rotr32 x 22))))
+(define-syntax Sigma0
+  (syntax-rules ()
+    [(_ x) (fxxor (rotr32 x 2)
+                  (fxxor (rotr32 x 13)
+                         (rotr32 x 22)))]))
 
 ;;; Sigma1 : Nat → Nat
 ;;; SHA-256 big sigma 1 function.
-(define (Sigma1 x)
-  (bitwise-xor (rotr32 x 6)
-               (bitwise-xor (rotr32 x 11)
-                            (rotr32 x 25))))
+(define-syntax Sigma1
+  (syntax-rules ()
+    [(_ x) (fxxor (rotr32 x 6)
+                  (fxxor (rotr32 x 11)
+                         (rotr32 x 25)))]))
 
 ;;; sigma0 : Nat → Nat
 ;;; SHA-256 small sigma 0 function.
-(define (sigma0 x)
-  (bitwise-xor (rotr32 x 7)
-               (bitwise-xor (rotr32 x 18)
-                            (shr x 3))))
+(define-syntax sigma0
+  (syntax-rules ()
+    [(_ x) (fxxor (rotr32 x 7)
+                  (fxxor (rotr32 x 18)
+                         (shr x 3)))]))
 
 ;;; sigma1 : Nat → Nat
 ;;; SHA-256 small sigma 1 function.
-(define (sigma1 x)
-  (bitwise-xor (rotr32 x 17)
-               (bitwise-xor (rotr32 x 19)
-                            (shr x 10))))
+(define-syntax sigma1
+  (syntax-rules ()
+    [(_ x) (fxxor (rotr32 x 17)
+                  (fxxor (rotr32 x 19)
+                         (shr x 10)))]))
 
 ;;; ============================================================
 ;;; Constants
@@ -102,28 +115,28 @@
 ;;; Initial hash values (first 32 bits of fractional parts of
 ;;; square roots of first 8 primes)
 (define H-init
-  (vector #x6a09e667 #xbb67ae85 #x3c6ef372 #xa54ff53a
-          #x510e527f #x9b05688c #x1f83d9ab #x5be0cd19))
+  (fxvector #x6a09e667 #xbb67ae85 #x3c6ef372 #xa54ff53a
+            #x510e527f #x9b05688c #x1f83d9ab #x5be0cd19))
 
 ;;; Round constants (first 32 bits of fractional parts of
 ;;; cube roots of first 64 primes)
 (define K
-  (vector #x428a2f98 #x71374491 #xb5c0fbcf #xe9b5dba5
-          #x3956c25b #x59f111f1 #x923f82a4 #xab1c5ed5
-          #xd807aa98 #x12835b01 #x243185be #x550c7dc3
-          #x72be5d74 #x80deb1fe #x9bdc06a7 #xc19bf174
-          #xe49b69c1 #xefbe4786 #x0fc19dc6 #x240ca1cc
-          #x2de92c6f #x4a7484aa #x5cb0a9dc #x76f988da
-          #x983e5152 #xa831c66d #xb00327c8 #xbf597fc7
-          #xc6e00bf3 #xd5a79147 #x06ca6351 #x14292967
-          #x27b70a85 #x2e1b2138 #x4d2c6dfc #x53380d13
-          #x650a7354 #x766a0abb #x81c2c92e #x92722c85
-          #xa2bfe8a1 #xa81a664b #xc24b8b70 #xc76c51a3
-          #xd192e819 #xd6990624 #xf40e3585 #x106aa070
-          #x19a4c116 #x1e376c08 #x2748774c #x34b0bcb5
-          #x391c0cb3 #x4ed8aa4a #x5b9cca4f #x682e6ff3
-          #x748f82ee #x78a5636f #x84c87814 #x8cc70208
-          #x90befffa #xa4506ceb #xbef9a3f7 #xc67178f2))
+  (fxvector #x428a2f98 #x71374491 #xb5c0fbcf #xe9b5dba5
+            #x3956c25b #x59f111f1 #x923f82a4 #xab1c5ed5
+            #xd807aa98 #x12835b01 #x243185be #x550c7dc3
+            #x72be5d74 #x80deb1fe #x9bdc06a7 #xc19bf174
+            #xe49b69c1 #xefbe4786 #x0fc19dc6 #x240ca1cc
+            #x2de92c6f #x4a7484aa #x5cb0a9dc #x76f988da
+            #x983e5152 #xa831c66d #xb00327c8 #xbf597fc7
+            #xc6e00bf3 #xd5a79147 #x06ca6351 #x14292967
+            #x27b70a85 #x2e1b2138 #x4d2c6dfc #x53380d13
+            #x650a7354 #x766a0abb #x81c2c92e #x92722c85
+            #xa2bfe8a1 #xa81a664b #xc24b8b70 #xc76c51a3
+            #xd192e819 #xd6990624 #xf40e3585 #x106aa070
+            #x19a4c116 #x1e376c08 #x2748774c #x34b0bcb5
+            #x391c0cb3 #x4ed8aa4a #x5b9cca4f #x682e6ff3
+            #x748f82ee #x78a5636f #x84c87814 #x8cc70208
+            #x90befffa #xa4506ceb #xbef9a3f7 #xc67178f2))
 
 ;;; ============================================================
 ;;; Message Padding
@@ -154,44 +167,44 @@
 ;;; Message Schedule
 ;;; ============================================================
 
-;;; make-schedule : Bytevector × Nat → (Vector Nat)
+;;; make-schedule : Bytevector × Nat → (FxVector Nat)
 ;;; Create 64-word message schedule from 64-byte block at offset.
 (define (make-schedule msg offset)
-  (let ([W (make-vector 64)])
+  (let ([W (make-fxvector 64)])
        ;; W[0..15]: 16 32-bit words from block (big-endian)
-       (do ([i 0 (+ i 1)])
-           ((= i 16))
-           (vector-set! W i (bytevector-u32-ref msg (+ offset (* i 4)) 'big)))
+       (do ([i 0 (fx+ i 1)])
+           ((fx= i 16))
+           (fxvector-set! W i (bytevector-u32-ref msg (fx+ offset (fx* i 4)) 'big)))
        ;; W[16..63]: extended schedule
-       (do ([i 16 (+ i 1)])
-           ((= i 64))
-           (vector-set! W i
-                        (u32+ (sigma1 (vector-ref W (- i 2)))
-                              (vector-ref W (- i 7))
-                              (sigma0 (vector-ref W (- i 15)))
-                              (vector-ref W (- i 16)))))
+       (do ([i 16 (fx+ i 1)])
+           ((fx= i 64))
+           (fxvector-set! W i
+                        (u32+ (sigma1 (fxvector-ref W (fx- i 2)))
+                              (fxvector-ref W (fx- i 7))
+                              (sigma0 (fxvector-ref W (fx- i 15)))
+                              (fxvector-ref W (fx- i 16)))))
        W))
 
 ;;; ============================================================
 ;;; Compression
 ;;; ============================================================
 
-;;; compress : (Vector Nat) × (Vector Nat) → (Vector Nat)
+;;; compress : (FxVector Nat) × (FxVector Nat) → (FxVector Nat)
 ;;; One round of compression (H, W) → H'
 (define (compress H W)
-  (let ([a (vector-ref H 0)]
-        [b (vector-ref H 1)]
-        [c (vector-ref H 2)]
-        [d (vector-ref H 3)]
-        [e (vector-ref H 4)]
-        [f (vector-ref H 5)]
-        [g (vector-ref H 6)]
-        [h (vector-ref H 7)])
+  (let ([a (fxvector-ref H 0)]
+        [b (fxvector-ref H 1)]
+        [c (fxvector-ref H 2)]
+        [d (fxvector-ref H 3)]
+        [e (fxvector-ref H 4)]
+        [f (fxvector-ref H 5)]
+        [g (fxvector-ref H 6)]
+        [h (fxvector-ref H 7)])
        ;; 64 rounds
-       (do ([i 0 (+ i 1)])
-           ((= i 64))
+       (do ([i 0 (fx+ i 1)])
+           ((fx= i 64))
            (let* ([T1 (u32+ h (Sigma1 e) (Ch e f g)
-                            (vector-ref K i) (vector-ref W i))]
+                            (fxvector-ref K i) (fxvector-ref W i))]
                   [T2 (u32+ (Sigma0 a) (Maj a b c))])
                  (set! h g)
                  (set! g f)
@@ -202,14 +215,14 @@
                  (set! b a)
                  (set! a (u32+ T1 T2))))
        ;; Add to hash state
-       (vector (u32+ (vector-ref H 0) a)
-               (u32+ (vector-ref H 1) b)
-               (u32+ (vector-ref H 2) c)
-               (u32+ (vector-ref H 3) d)
-               (u32+ (vector-ref H 4) e)
-               (u32+ (vector-ref H 5) f)
-               (u32+ (vector-ref H 6) g)
-               (u32+ (vector-ref H 7) h))))
+       (fxvector (u32+ (fxvector-ref H 0) a)
+                 (u32+ (fxvector-ref H 1) b)
+                 (u32+ (fxvector-ref H 2) c)
+                 (u32+ (fxvector-ref H 3) d)
+                 (u32+ (fxvector-ref H 4) e)
+                 (u32+ (fxvector-ref H 5) f)
+                 (u32+ (fxvector-ref H 6) g)
+                 (u32+ (fxvector-ref H 7) h))))
 
 ;;; ============================================================
 ;;; Main Entry Point
@@ -220,17 +233,17 @@
 (define (sha256 msg)
   (let* ([padded (pad-message msg)]
          [num-blocks (quotient (bytevector-length padded) 64)]
-         [H (vector-copy H-init)])
+         [H (fxvector-copy H-init)])
         ;; Process each 64-byte block
-        (do ([i 0 (+ i 1)])
-            ((= i num-blocks))
-            (let ([W (make-schedule padded (* i 64))])
+        (do ([i 0 (fx+ i 1)])
+            ((fx= i num-blocks))
+            (let ([W (make-schedule padded (fx* i 64))])
                  (set! H (compress H W))))
         ;; Convert final hash to bytevector
         (let ([result (make-bytevector 32)])
-             (do ([i 0 (+ i 1)])
-                 ((= i 8))
-                 (bytevector-u32-set! result (* i 4) (vector-ref H i) 'big))
+             (do ([i 0 (fx+ i 1)])
+                 ((fx= i 8))
+                 (bytevector-u32-set! result (fx* i 4) (fxvector-ref H i) 'big))
              result)))
 
 ;;; sha256-hex : Bytevector → String

@@ -371,9 +371,18 @@
     (Moore . Hash)
     (Mealy . Hash)
     (JsonValue . Hash)
+    (JsonObject . Hash)
+    (JsonArray . Hash)
     (SExp . Hash)
     (AST . Hash)
     (INI . Hash)
+    ;; LSP types (treated as kind *)
+    (Document . Hash)
+    (Position . Hash)
+    (Range . Hash)
+    (Id . Hash)
+    (Diagnostic . Hash)
+    (FoldError . Hash)
     ;; Lang types (treated as kind *)
     (ModuleEnv . Hash)
     (Binding . Hash)
@@ -447,7 +456,45 @@
     (SuiteResult . Hash)
     ;; Additional performance types (treated as kind *)
     (Baseline . Hash)
-    (CostTracker . Hash)))
+    (CostTracker . Hash)
+    ;; Proof tactics types (treated as kind *)
+    (Goal . Hash)
+    (Tactic . Hash)
+    (TacticResult . Hash)
+    (ProofState . Hash)
+    (ProofTerm . Hash)
+    (TacticScript . Hash)
+    (Builder . Hash)
+    ;; Termination checking types (treated as kind *)
+    (DataType . Hash)
+    (FunctionDef . Hash)
+    (TypeExpr . Hash)
+    (Violation . Hash)
+    (Bindings . Hash)
+    (Pattern . Hash)
+    (Term . Hash)
+    (Idx . Hash)
+    (Parent . Hash)
+    (Relation . Hash)
+    ;; Rewrite system types (treated as kind *)
+    (Rule . Hash)
+    (Trace . Hash)
+    (Step . Hash)
+    (Template . Hash)
+    (Strategy . Hash)
+    (Law . Hash)
+    (EquivResult . Hash)
+    (Certificate . Hash)
+    (Position . Hash)
+    (Opts . Hash)
+    ;; Proof sketch types (treated as kind *)
+    (Sketch . Hash)
+    (Registry . Hash)
+    (Tactic . Hash)
+    ;; Analysis opportunity types (treated as kind *)
+    (FusionOpportunity . Hash)
+    (ParallelOpportunity . Hash)
+    (DependencyGraph . Hash)))
 
 ;;; Greek letters used as type variables
 (define greek-type-var-names
@@ -605,10 +652,10 @@
     "core/types/kinds.ss"
     "core/types/infer.ss"
     "core/types/annotate.ss"
-    "core/data/data-structures.ss"
-    "core/data/graph-algorithms.ss"
-    "core/linalg/vec.ss"
-    "core/linalg/matrix.ss"))
+    "lattice/data/data-structures.ss"
+    "lattice/data/graph-algorithms.ss"
+    "lattice/linalg/vec.ss"
+    "lattice/linalg/matrix.ss"))
 
 ;;; ============================================================
 ;;; Reporting

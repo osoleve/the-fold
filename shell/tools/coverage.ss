@@ -260,14 +260,7 @@
 (define (count-covered-functions fn-list)
   (length (filter function-coverage-executed? fn-list)))
 
-;;; remove-duplicates : (List α) → (List α)
-(define (remove-duplicates lst)
-  (if (null? lst)
-      '()
-      (cons (car lst)
-            (remove-duplicates
-             (filter (lambda (x) (not (equal? x (car lst))))
-                     (cdr lst))))))
+;;; NOTE: remove-duplicates is provided by core/base/prelude.ss
 
 ;;; ============================================================
 ;;; Report Display

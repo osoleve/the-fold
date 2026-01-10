@@ -7,8 +7,8 @@
 ;;; "Know the equation AND crunch the numbers!"
 
 (load "core/base/prelude.ss")
-(load "core/linalg/vec2.ss")
-(load "core/fp/symbolic/integrate-autodiff.ss")
+(load "lattice/linalg/vec2.ss")
+(load "lattice/fp/symbolic/integrate-autodiff.ss")
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
 

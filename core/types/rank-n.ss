@@ -32,6 +32,17 @@
 (load "core/types/types.ss")
 
 ;;; ============================================================
+;;; Forall Type Predicates
+;;; ============================================================
+
+;;; forall-type? : Type -> Boolean
+;;; Check if this is a universally quantified type.
+(define (forall-type? t)
+  (and (pair? t)
+       (or (eq? (car t) 'forall)
+           (eq? (car t) (string->symbol (string (integer->char 8704))))))) ; Unicode forall
+
+;;; ============================================================
 ;;; Type Rank Calculation
 ;;; ============================================================
 
@@ -266,7 +277,9 @@
    [else `(error type-mismatch ,t1 ,t2)]))
 
 ;;; apply-subst-rankn : Subst × Type → Type
-;;; Apply substitution for rank-n types, handling nested quantifiers.
+;;; Apply substitution for rank-n types with capture-avoiding renaming.
+;;; When substituting into a quantified type, renames bound variables
+;;; if they would capture free variables in the substitution range.
 (define (apply-subst-rankn s type)
   (cond
    [(type-var? type)
@@ -277,23 +290,73 @@
    [(or (base-type? type) (hole? type)) type]
    [(not (pair? type)) type]
    
-   ;; Don't substitute bound variables
+   ;; Capture-avoiding substitution for ∀
    [(eq? (car type) '∀)
     (let* ([vars (forall-vars type)]
            [body (caddr type)]
+           ;; Find free variables in substitution range that could be captured
+           [subst-free-vars (subst-range-free-vars s)]
+           ;; Identify bound vars that would capture
+           [capturing-vars (filter (lambda (v) (memq v subst-free-vars)) vars)]
+           ;; Rename capturing variables to fresh names
+           [rename-subst (map (lambda (v) (cons v (fresh-rename-var v))) capturing-vars)]
+           [renamed-vars (map (lambda (v)
+                                      (let ([r (assq v rename-subst)])
+                                           (if r (cdr r) v)))
+                              vars)]
+           [body-with-renames (apply-subst-rankn rename-subst body)]
            ;; Remove bound vars from substitution
-           [s* (filter (lambda (p) (not (memq (car p) vars))) s)])
-          `(∀ ,(cadr type) ,(apply-subst-rankn s* body)))]
+           [s* (filter (lambda (p) (not (memq (car p) renamed-vars))) s)])
+          `(∀ ,renamed-vars ,(apply-subst-rankn s* body-with-renames)))]
    
+   ;; Capture-avoiding substitution for μ
    [(eq? (car type) 'μ)
-    (let ([var (cadr type)]
-          [body (caddr type)])
-         (let ([s* (filter (lambda (p) (not (eq? (car p) var))) s)])
-              `(μ ,var ,(apply-subst-rankn s* body))))]
+    (let* ([var (cadr type)]
+           [body (caddr type)]
+           [subst-free-vars (subst-range-free-vars s)]
+           ;; Check if var would capture
+           [new-var (if (memq var subst-free-vars)
+                        (fresh-rename-var var)
+                        var)]
+           [body* (if (eq? var new-var)
+                      body
+                      (apply-subst-rankn (list (cons var new-var)) body))]
+           [s* (filter (lambda (p) (not (eq? (car p) new-var))) s)])
+          `(μ ,new-var ,(apply-subst-rankn s* body*)))]
    
    [else
     (cons (car type)
           (map (lambda (t) (apply-subst-rankn s t)) (cdr type)))]))
+
+;;; subst-range-free-vars : Subst → (List Symbol)
+;;; Collect all free type variables from the range of a substitution.
+(define (subst-range-free-vars s)
+  (apply append (map (lambda (p) (type-free-vars (cdr p))) s)))
+
+;;; type-free-vars : Type → (List Symbol)
+;;; Collect free type variables in a type.
+(define (type-free-vars type)
+  (cond
+   [(type-var? type) (list type)]
+   [(or (base-type? type) (hole? type) (not (pair? type))) '()]
+   [(eq? (car type) '∀)
+    (let ([vars (forall-vars type)]
+          [body (caddr type)])
+         (filter (lambda (v) (not (memq v vars))) (type-free-vars body)))]
+   [(eq? (car type) 'μ)
+    (let ([var (cadr type)]
+          [body (caddr type)])
+         (filter (lambda (v) (not (eq? v var))) (type-free-vars body)))]
+   [else
+    (apply append (map type-free-vars (cdr type)))]))
+
+;;; fresh-rename-var : Symbol → Symbol
+;;; Generate a fresh variable name based on the original.
+(define fresh-rename-counter 0)
+(define (fresh-rename-var var)
+  (set! fresh-rename-counter (+ 1 fresh-rename-counter))
+  (string->symbol
+   (string-append (symbol->string var) "$" (number->string fresh-rename-counter))))
 
 ;;; ============================================================
 ;;; Deep Instantiation
@@ -401,7 +464,7 @@
 ;;; check-against-forall : Expr × Type × TEnv → (Result Subst Error)
 ;;; Check an expression against a universally quantified type.
 (define (check-against-forall expr type env)
-  (if (and (pair? type) (eq? (car type) '∀))
+  (if (forall-type? type)
       (let* ([vars (forall-vars type)]
              [body (caddr type)]
              ;; Introduce skolems for bound variables
@@ -437,7 +500,16 @@
    [(and (pair? type) (eq? (car type) '∀))
     (check-against-forall expr type env)]
    
-   ;; Otherwise, could extend to full bidirectional system
+   ;; Lambda against non-function type is an error
+   ;; A lambda can only have a function type, not a bare type variable or skolem
+   [(and (pair? expr) (eq? (car expr) 'fn))
+    `(error type-mismatch
+      (expression lambda)
+      (expected ,type)
+      (reason "lambda requires function type"))]
+   
+   ;; Otherwise, synthesis fallback with skolem checking
+   ;; This handles variables, applications, etc.
    [else '(ok ())]))
 
 ;;; tenv-extend* : TEnv × (List (× Symbol Type)) → TEnv

@@ -50,6 +50,19 @@
           intensity-palette-dots
           get-intensity-char
           
+          ;; Pattern fills
+          make-pattern
+          pattern-fill
+          pattern-fill-circle
+          pattern-ref
+          pattern-width
+          pattern-height
+          pattern-checker
+          pattern-dots
+          pattern-diagonal
+          pattern-cross
+          pattern-hatch
+          
           ;; Styling system
           make-style
           style-fill
@@ -355,6 +368,84 @@
                                          [ch (get-intensity-char palette intensity)])
                                         (canvas-set! canvas x y ch)
                                         (loop-x (+ x 1)))))))))
+
+         ;;; ============================================================
+         ;;; Pattern Fills
+         ;;; ============================================================
+         
+         ;;; Built-in patterns (2x2 tiles)
+         (define pattern-checker '((#\█ #\space) (#\space #\█)))
+         (define pattern-dots '((#\· #\space) (#\space #\·)))
+         (define pattern-diagonal '((#\/ #\space) (#\space #\/)))
+         (define pattern-cross '((#\+ #\space) (#\space #\+)))
+         (define pattern-hatch '((#\# #\-) (#\| #\#)))
+
+         ;;; make-pattern : (List (List Char)) → Pattern
+         ;;; Create a pattern from a 2D list of characters.
+         ;;; Pattern is a list of rows, each row is a list of chars.
+         (define (make-pattern rows)
+           rows)
+
+         ;;; pattern-width : Pattern → Nat
+         (define (pattern-width pattern)
+           (if (null? pattern)
+               0
+               (length (car pattern))))
+
+         ;;; pattern-height : Pattern → Nat
+         (define (pattern-height pattern)
+           (length pattern))
+
+         ;;; pattern-ref : Pattern × Nat × Nat → Char
+         ;;; Get character at (x, y) in pattern, with wrapping.
+         ;;; Returns space for empty patterns.
+         (define (pattern-ref pattern x y)
+           (let* ([h (pattern-height pattern)]
+                  [w (pattern-width pattern)])
+                 (if (or (<= h 0) (<= w 0))
+                     #\space
+                     (let ([row (list-ref pattern (modulo y h))])
+                          (list-ref row (modulo x w))))))
+
+         ;;; pattern-fill : Canvas × Rect × Pattern → Canvas
+         ;;; Fill a rectangular region with a tiled pattern.
+         (define (pattern-fill canvas rect pattern)
+           (let ([ox (point-x (rect-origin rect))]
+                 [oy (point-y (rect-origin rect))]
+                 [w (rect-width rect)]
+                 [h (rect-height rect)])
+                (let loop-y ([y 0])
+                     (if (>= y h)
+                         canvas
+                         (let loop-x ([x 0])
+                              (if (>= x w)
+                                  (loop-y (+ y 1))
+                                  (let ([ch (pattern-ref pattern x y)])
+                                       (unless (char=? ch #\space)
+                                               (canvas-set! canvas (+ ox x) (+ oy y) ch))
+                                       (loop-x (+ x 1)))))))))
+
+         ;;; pattern-fill-circle : Canvas × Point × Nat × Pattern → Canvas
+         ;;; Fill a circular region with a tiled pattern.
+         ;;; Pattern coordinates are local to the circle's bounding box for
+         ;;; consistent alignment with pattern-fill.
+         (define (pattern-fill-circle canvas center radius pattern)
+           (let ([cx (point-x center)]
+                 [cy (point-y center)]
+                 [r2 (* radius radius)])
+                (let loop-y ([y (- radius)])
+                     (if (> y radius)
+                         canvas
+                         (let loop-x ([x (- radius)])
+                              (if (> x radius)
+                                  (loop-y (+ y 1))
+                                  (let ([dist2 (+ (* x x) (* y y))])
+                                       (when (<= dist2 r2)
+                                             ;; Use local coords (offset from top-left of bounding box)
+                                             (let ([ch (pattern-ref pattern (+ x radius) (+ y radius))])
+                                                  (unless (char=? ch #\space)
+                                                          (canvas-set! canvas (+ cx x) (+ cy y) ch))))
+                                       (loop-x (+ x 1)))))))))
 
          ;;; ============================================================
          ;;; Styling System

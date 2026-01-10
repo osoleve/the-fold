@@ -78,7 +78,7 @@ Everything in fabric/ is:
       "  run-tests.ss   - Core test runner"
       "  bench-core.ss  - Core benchmarks"
       "  bench-prim.ss  - Primitive benchmarks")))
-   ((name . "core/fp/")
+   ((name . "lattice/fp/")
     (purpose . "Functional programming abstractions and type classes")
     (description . "Comprehensive FP toolkit implementing Haskell-style type classes
                     and functional abstractions. All code is pure and follows

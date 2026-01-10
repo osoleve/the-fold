@@ -6,7 +6,7 @@
 ;;;   - Chain dynamics
 ;;;   - Velocity vectors
 
-(load "user/physics/ascii-renderer.ss")
+(load "lattice/physics/classical/ascii-renderer.ss")
 (load "user/creations/ascii-video-export.ss")
 
 ;;; ============================================================

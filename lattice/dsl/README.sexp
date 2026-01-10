@@ -1,0 +1,34 @@
+((name "dsl")
+ (purpose "Domain-specific language infrastructure")
+ (description "Tools for building and embedding domain-specific languages
+in The Fold. Provides quasiquotation for syntax templates, multi-stage
+programming for compile-time code generation, reader extensions for
+custom notation, pattern matching compilation for efficient DSL execution,
+the Tagless Final pattern for extensible DSL interpreters, and modular
+composition strategies for combining independent DSLs.")
+ (modules
+  ((quasi.ss "Quasiquotation and syntax templates (`expr, ,expr, ,@expr)")
+   (staging.ss "Multi-stage programming (<expr>, ~expr, !expr) for compile-time code generation")
+   (partial-eval.ss "Partial evaluation: specialize code given partial inputs, BTA, online/offline PE")
+   (reader.ss "Reader extensions and custom notation (#v[], #m[], #r//, etc.)")
+   (match.ss "Pattern matching compilation to decision trees")
+   (tagless.ss "Tagless Final DSL pattern for embedded languages")
+   (compose.ss "Modular DSL composition: Data Types à la Carte, effect composition, tagless composition")))
+ (dependencies (base fp/control types/pattern-check))
+ (key-concepts
+  ((quasiquotation "Pattern-based code generation with holes")
+   (multi-stage-programming "Compile-time code generation with staging annotations")
+   (partial-evaluation "Specialize programs given partial inputs")
+   (binding-time-analysis "Classify expressions as static or dynamic")
+   (futamura-projections "Interpreter + program → specialized code")
+   (reader-macros "Domain-specific syntax via readtable extensions")
+   (decision-trees "Efficient pattern match compilation minimizing tests")
+   (tagless-final "DSL as type class - programs parameterized by algebra")
+   (dictionary-passing "Interpreters are algebra dictionaries")
+   (data-types-a-la-carte "Combine functors via coproduct for modular DSLs")
+   (effect-composition "Stack and compose effect handlers")
+   (functor-rows "Type-safe injection into coproducts")
+   (interface-constraints "Verify dictionaries satisfy required operations")
+   (active-patterns "Custom matching logic for extensible pattern matching")
+   (view-patterns "Transform values before pattern matching")
+   (cross-stage-persistence "Share values across compilation stages"))))

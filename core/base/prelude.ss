@@ -35,15 +35,53 @@
 ;;; List Utilities
 ;;; ============================================================
 
-;;; unique : (List α) → (List α)
-;;; Remove duplicates, preserving first occurrence order.
-;;; Uses eq? for comparison.
-(define (unique lst)
+;;; ============================================================
+;;; Duplicate Removal
+;;; ============================================================
+;;;
+;;; Three variants for different use cases:
+;;;   - unique-simple: O(n^2) with memq - works on any list, symbols preferred
+;;;   - unique-fast: O(n) with hashtable - best for large lists
+;;;   - unique: Alias for unique-fast (recommended default)
+;;;
+;;; For custom equality, use distinct-by with a key function.
+
+;;; unique-simple : (List α) → (List α)
+;;; Remove duplicates using linear search. O(n^2) complexity.
+;;; Uses eq? for comparison - best for symbols and small lists.
+;;; Preserves first occurrence order.
+(define (unique-simple lst)
   (let loop ([lst lst] [seen '()] [acc '()])
        (cond
         [(null? lst) (reverse acc)]
         [(memq (car lst) seen) (loop (cdr lst) seen acc)]
         [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
+
+;;; unique-fast : (List α) → (List α)
+;;; Remove duplicates using hash table. O(n) complexity.
+;;; Uses equal? for comparison via equal-hash.
+;;; Preserves first occurrence order.
+(define (unique-fast lst)
+  (let ([seen (make-hashtable equal-hash equal?)])
+       (let loop ([items lst] [acc '()])
+            (if (null? items)
+                (reverse acc)
+                (let ([x (car items)])
+                     (if (hashtable-contains? seen x)
+                         (loop (cdr items) acc)
+                         (begin
+                          (hashtable-set! seen x #t)
+                          (loop (cdr items) (cons x acc)))))))))
+
+;;; unique : (List α) → (List α)
+;;; Remove duplicates, preserving first occurrence order.
+;;; Alias for unique-fast (O(n) with hashtable).
+;;; Use unique-simple if you need eq? semantics or very small lists.
+(define unique unique-fast)
+
+;;; remove-duplicates : (List α) → (List α)
+;;; Alias for unique (common naming convention).
+(define remove-duplicates unique)
 
 ;;; filter : (α → Bool) × (List α) → (List α)
 ;;; Keep only elements satisfying predicate.
@@ -358,6 +396,10 @@
         [pre-len (string-length prefix)])
        (and (<= pre-len str-len)
             (string=? (substring str 0 pre-len) prefix))))
+
+;;; string-prefix? : String × String → Boolean
+;;; Alias for string-starts-with? (common naming convention).
+(define string-prefix? string-starts-with?)
 
 ;;; string-ends-with? : String × String → Boolean
 ;;; Check if string ends with suffix.

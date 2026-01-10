@@ -1,0 +1,11 @@
+# Generated artifacts - can be regenerated from .ss source
+*.gif
+*.svg
+*.png
+*.jpg
+*.jpeg
+
+# Python animator scripts (one-time generation tools)
+*-animator.py
+*-animator-fixed.py
+capture-*.sh
