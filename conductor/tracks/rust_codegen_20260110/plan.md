@@ -2,7 +2,7 @@
 
 ## Phase 1: Design and Mapping
 - [x] Task: Define Type Mapping (Scheme to Rust) d24ef66
-- [ ] Task: Design Codegen Architecture (AST Transformation)
+- [x] Task: Design Codegen Architecture (AST Transformation) 780a0e4
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Design and Mapping' (Protocol in workflow.md)
 
 ## Phase 2: Core Codegen Implementation
