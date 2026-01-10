@@ -237,11 +237,16 @@
                    (synth-empty pack-expr)
                    'pack-not-existential))
   
-  ;; Multi-variable pack (not yet supported)
+  ;; Multi-variable pack
   (let ([pack-expr '(pack (Int Bool) (pair 42 #t) : (∃ ((a : Type) (b : Type)) (× a b)))])
-       (test-error "multi-var pack not yet supported"
+       (test-ok "multi-var pack synthesizes"
+                (synth-empty pack-expr)))
+  
+  ;; Multi-var pack with wrong witness count
+  (let ([pack-expr '(pack Int (pair 42 #t) : (∃ ((a : Type) (b : Type)) (× a b)))])
+       (test-error "multi-var pack witness count mismatch"
                    (synth-empty pack-expr)
-                   'pack-multi-var-not-yet-supported))
+                   'pack-witness-count-mismatch))
   
   ;; --------------------------------------------------------
   ;; Unpack Expression Synthesis (existential-infer-synth-unpack)
@@ -283,15 +288,22 @@
                          (synth-with-ctx unpack-expr ctx)
                          'unpack-not-existential)))
   
-  ;; Multi-variable unpack (not yet supported)
-  ;; Note: The syntax is still (unpack ((type-var val-var) expr) body)
-  ;; The error occurs when the existential type has multiple variables
+  ;; Multi-variable unpack - returns concrete type
+  ;; Syntax: (unpack (((t1 t2) val) expr) body)
   (let* ([multi-exist '(∃ ((a : Type) (b : Type)) (× a b))]
          [ctx (make-test-ctx 'multi multi-exist)])
-        (let ([unpack-expr '(unpack ((a val) multi) 42)])
-             (test-error "multi-var unpack not yet supported"
+        (let ([unpack-expr '(unpack (((a b) val) multi) 42)])
+             (test-ok-type "multi-var unpack returns Int"
+                           (synth-with-ctx unpack-expr ctx)
+                           'Int)))
+  
+  ;; Multi-var unpack with type var count mismatch
+  (let* ([multi-exist '(∃ ((a : Type) (b : Type)) (× a b))]
+         [ctx (make-test-ctx 'multi multi-exist)])
+        (let ([unpack-expr '(unpack ((a val) multi) 42)])  ; Only one type var, but need two
+             (test-error "multi-var unpack type var count mismatch"
                          (synth-with-ctx unpack-expr ctx)
-                         'unpack-multi-var-not-yet-supported)))
+                         'unpack-type-var-count-mismatch)))
   
   ;; --------------------------------------------------------
   ;; Integration Tests

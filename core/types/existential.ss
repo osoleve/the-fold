@@ -131,13 +131,26 @@
 
 ;;; pack-well-formed? : SExpr → Boolean
 ;;; Check if a pack expression is well-formed.
+;;; Form: (pack Witness Value : ExistentialType)
+;;; where Witness is either a single type or (Type1 Type2 ...) for multi-var
 (define (pack-well-formed? e)
   (and (pack-expr? e)
        (= (length e) 5)
        (eq? (cadddr e) ':)))
 
+;;; pack-witness-types : SExpr → (List Type)
+;;; Get the witness types as a list (for both single and multi-var).
+(define (pack-witness-types e)
+  (if (pack-well-formed? e)
+      (let ([w (cadr e)])
+           (if (and (pair? w) (not (eq? (car w) '->)))
+               w  ; Already a list of types
+               (list w)))  ; Single type, wrap in list
+      '()))
+
 ;;; pack-witness-type : SExpr → Type
-;;; Get the witness type (the concrete type being hidden).
+;;; Get the witness type (for single-var pack, returns single type).
+;;; DEPRECATED: Use pack-witness-types for multi-var support.
 (define (pack-witness-type e)
   (if (pack-well-formed? e)
       (cadr e)
@@ -169,16 +182,29 @@
 
 ;;; unpack-well-formed? : SExpr → Boolean
 ;;; Check if an unpack expression is well-formed.
+;;; Single-var: (unpack ((type-var val-var) packed-expr) body)
+;;; Multi-var:  (unpack (((t1 t2 ...) val-var) packed-expr) body)
 (define (unpack-well-formed? e)
   (and (unpack-expr? e)
        (= (length e) 3)
        (pair? (cadr e))
        (= (length (cadr e)) 2)
        (pair? (caadr e))
-       (= (length (caadr e)) 2)))
+       (>= (length (caadr e)) 2)))
+
+;;; unpack-type-vars : SExpr → (List Symbol)
+;;; Get the type variable names as a list (for both single and multi-var).
+(define (unpack-type-vars e)
+  (if (unpack-well-formed? e)
+      (let ([binding (caadr e)])
+           (if (and (pair? (car binding)) (not (symbol? (car binding))))
+               (car binding)  ; Multi-var: ((a b ...) val) -> (a b ...)
+               (list (car binding))))  ; Single-var: (a val) -> (a)
+      '()))
 
 ;;; unpack-type-var : SExpr → Symbol
-;;; Get the type variable name.
+;;; Get the type variable name (for single-var unpack).
+;;; DEPRECATED: Use unpack-type-vars for multi-var support.
 (define (unpack-type-var e)
   (if (unpack-well-formed? e)
       (car (caadr e))
@@ -188,7 +214,10 @@
 ;;; Get the value variable name.
 (define (unpack-val-var e)
   (if (unpack-well-formed? e)
-      (cadr (caadr e))
+      (let ([binding (caadr e)])
+           (if (and (pair? (car binding)) (not (symbol? (car binding))))
+               (cadr binding)  ; Multi-var: ((a b ...) val) -> val
+               (cadr binding)))  ; Single-var: (a val) -> val
       #f))
 
 ;;; unpack-packed-expr : SExpr → SExpr
