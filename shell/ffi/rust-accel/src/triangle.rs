@@ -7,19 +7,27 @@ use crate::vec3::Vec3;
 
 /// Triangle with 3 vertices
 /// Matches Scheme's (triangle3 p1 p2 p3)
+/// Includes id for stable indexing during BVH traversal
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct Triangle {
     pub p1: Vec3,
     pub p2: Vec3,
     pub p3: Vec3,
+    pub id: u32,  // Original index in mesh, stable across traversal orders
 }
 
 impl Triangle {
-    /// Create a new triangle
+    /// Create a new triangle with default id (0)
     #[inline]
     pub const fn new(p1: Vec3, p2: Vec3, p3: Vec3) -> Self {
-        Self { p1, p2, p3 }
+        Self { p1, p2, p3, id: 0 }
+    }
+
+    /// Create a new triangle with explicit id
+    #[inline]
+    pub const fn new_indexed(p1: Vec3, p2: Vec3, p3: Vec3, id: u32) -> Self {
+        Self { p1, p2, p3, id }
     }
 
     /// Compute centroid (center of mass)

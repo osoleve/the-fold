@@ -58,9 +58,10 @@ pub struct RayIntersectResult {
     pub fuel_out: u64,
 }
 
-/// Opaque BVH handle for FFI
+/// BVH handle for FFI
+/// Root is public for internal use by raymarch module
 pub struct BVHHandle {
-    root: BVHNode,
+    pub root: BVHNode,
 }
 
 /// Build BVH from serialized data
@@ -86,14 +87,14 @@ pub fn bvh_from_bytes(data: &[u8]) -> Option<BVHHandle> {
     let nodes_start = header_size;
     let tris_start = nodes_start + num_nodes * node_size;
 
-    // Parse triangles first
+    // Parse triangles first, assigning stable indices
     let mut triangles = Vec::with_capacity(num_tris);
     for i in 0..num_tris {
         let offset = tris_start + i * tri_size;
         if offset + tri_size > data.len() {
             return None;
         }
-        triangles.push(parse_triangle(&data[offset..offset + tri_size]));
+        triangles.push(parse_triangle(&data[offset..offset + tri_size], i as u32));
     }
 
     // Parse nodes recursively starting from root (index 0)
@@ -102,7 +103,7 @@ pub fn bvh_from_bytes(data: &[u8]) -> Option<BVHHandle> {
     Some(BVHHandle { root })
 }
 
-fn parse_triangle(data: &[u8]) -> Triangle {
+fn parse_triangle(data: &[u8], id: u32) -> Triangle {
     let p1 = Vec3::new(
         f64::from_ne_bytes(data[0..8].try_into().unwrap()),
         f64::from_ne_bytes(data[8..16].try_into().unwrap()),
@@ -118,7 +119,7 @@ fn parse_triangle(data: &[u8]) -> Triangle {
         f64::from_ne_bytes(data[56..64].try_into().unwrap()),
         f64::from_ne_bytes(data[64..72].try_into().unwrap()),
     );
-    Triangle::new(p1, p2, p3)
+    Triangle::new_indexed(p1, p2, p3, id)
 }
 
 fn parse_aabb(data: &[u8]) -> AABB {

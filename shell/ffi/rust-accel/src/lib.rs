@@ -11,11 +11,13 @@ pub mod triangle;
 pub mod aabb;
 pub mod fuel;
 pub mod bvh;
+pub mod raymarch;
 
 pub use vec3::Vec3;
 pub use triangle::Triangle;
 pub use aabb::AABB;
-pub use bvh::{BVHHandle, ClosestPointResult, RayIntersectResult};
+pub use bvh::{BVHHandle, BVHNode, ClosestPointResult, RayIntersectResult};
+pub use raymarch::{RaymarchResult, NormalResult};
 
 /// Result struct for closest point query (Phase 1 test version)
 /// Uses out-pointer pattern: Scheme allocates, Rust writes
