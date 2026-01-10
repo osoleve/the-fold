@@ -1,9 +1,9 @@
 # Plan: Rust Codegen for Primitives and Layer 1
 
-## Phase 1: Design and Mapping
+## Phase 1: Design and Mapping [checkpoint: 69c2594]
 - [x] Task: Define Type Mapping (Scheme to Rust) d24ef66
 - [x] Task: Design Codegen Architecture (AST Transformation) 780a0e4
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Design and Mapping' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Design and Mapping' (Protocol in workflow.md)
 
 ## Phase 2: Core Codegen Implementation
 - [ ] Task: Implement Basic Block-to-Rust Serializer
