@@ -51,8 +51,9 @@
 
 ;;; existential-type? : SExpr → Boolean
 ;;; Check if this is an existential type.
+;;; Accepts both ∃ and exists as valid syntax.
 (define (existential-type? t)
-  (and (pair? t) (eq? (car t) '∃)))
+  (and (pair? t) (or (eq? (car t) '∃) (eq? (car t) 'exists))))
 
 ;;; existential-well-formed? : SExpr → Boolean
 ;;; Check if an existential type is well-formed.
@@ -67,14 +68,14 @@
 ;;; Existential Type Accessors
 ;;; ============================================================
 
-;;; existential-vars : ExistentialType → (List Symbol)
+;;; existential-vars : SExpr → (List Symbol)
 ;;; Get the hidden type variable names.
 (define (existential-vars t)
   (if (existential-type? t)
       (map binding-var (cadr t))
       '()))
 
-;;; existential-var-kinds : ExistentialType → (List (Symbol . Kind))
+;;; existential-var-kinds : SExpr → (List (Symbol . Kind))
 ;;; Get the hidden type variables with their kinds.
 (define (existential-var-kinds t)
   (if (existential-type? t)
@@ -82,7 +83,7 @@
            (cadr t))
       '()))
 
-;;; existential-body : ExistentialType → Type
+;;; existential-body : SExpr → Type
 ;;; Get the body type (may reference hidden vars).
 (define (existential-body t)
   (if (existential-type? t)
@@ -107,13 +108,13 @@
 ;;; Existential Type Construction
 ;;; ============================================================
 
-;;; t-exists : (List (Symbol . Kind)) × Type → ExistentialType
+;;; t-exists : (List (Symbol . Kind)) × Type → SExpr
 ;;; Construct an existential type from bindings and body.
 (define (t-exists var-kinds body)
   `(∃ ,(map (lambda (vk) `(,(car vk) : ,(cdr vk))) var-kinds)
     ,body))
 
-;;; t-exists-simple : Symbol × Type → ExistentialType
+;;; t-exists-simple : Symbol × Type → SExpr
 ;;; Single type variable with kind Type.
 (define (t-exists-simple var body)
   (t-exists `((,var . Type)) body))
@@ -135,21 +136,21 @@
        (= (length e) 5)
        (eq? (cadddr e) ':)))
 
-;;; pack-witness-type : PackExpr → Type
+;;; pack-witness-type : SExpr → Type
 ;;; Get the witness type (the concrete type being hidden).
 (define (pack-witness-type e)
   (if (pack-well-formed? e)
       (cadr e)
       #f))
 
-;;; pack-value : PackExpr → Expr
+;;; pack-value : SExpr → SExpr
 ;;; Get the value being packed.
 (define (pack-value e)
   (if (pack-well-formed? e)
       (caddr e)
       #f))
 
-;;; pack-existential-type : PackExpr → ExistentialType
+;;; pack-existential-type : SExpr → SExpr
 ;;; Get the target existential type.
 (define (pack-existential-type e)
   (if (pack-well-formed? e)
@@ -176,28 +177,28 @@
        (pair? (caadr e))
        (= (length (caadr e)) 2)))
 
-;;; unpack-type-var : UnpackExpr → Symbol
+;;; unpack-type-var : SExpr → Symbol
 ;;; Get the type variable name.
 (define (unpack-type-var e)
   (if (unpack-well-formed? e)
       (car (caadr e))
       #f))
 
-;;; unpack-val-var : UnpackExpr → Symbol
+;;; unpack-val-var : SExpr → Symbol
 ;;; Get the value variable name.
 (define (unpack-val-var e)
   (if (unpack-well-formed? e)
       (cadr (caadr e))
       #f))
 
-;;; unpack-packed-expr : UnpackExpr → Expr
+;;; unpack-packed-expr : SExpr → SExpr
 ;;; Get the packed expression.
 (define (unpack-packed-expr e)
   (if (unpack-well-formed? e)
       (cadadr e)
       #f))
 
-;;; unpack-body : UnpackExpr → Expr
+;;; unpack-body : SExpr → SExpr
 ;;; Get the body expression.
 (define (unpack-body e)
   (if (unpack-well-formed? e)
@@ -278,7 +279,7 @@
 ;;; Existential Type Substitution
 ;;; ============================================================
 
-;;; existential-subst : ExistentialType × Symbol × Type → Type
+;;; existential-subst : SExpr × Symbol × Type → Type
 ;;; Substitute witness type for hidden variable in existential body.
 (define (existential-subst exist-type var witness)
   (let ([body (existential-body exist-type)])
@@ -288,7 +289,7 @@
 ;;; Free Variables in Existentials
 ;;; ============================================================
 
-;;; existential-free-vars : ExistentialType → (List Symbol)
+;;; existential-free-vars : SExpr → (List Symbol)
 ;;; Get free type variables in an existential type.
 ;;; The hidden variables are bound, not free.
 (define (existential-free-vars t)
@@ -302,7 +303,7 @@
 ;;; Existential Type Display
 ;;; ============================================================
 
-;;; existential->string : ExistentialType → String
+;;; existential->string : SExpr → String
 (define (existential->string t)
   (if (existential-type? t)
       (string-append "∃"

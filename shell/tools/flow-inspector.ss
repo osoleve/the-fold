@@ -17,7 +17,7 @@
 (load "core/base/prelude.ss")
 (load "shell/tools/effect-lint.ss")
 (load "shell/lens/call-graph.ss")
-(load "core/lang/index.ss")
+(load "shell/tools/index.ss")
 
 ;;; ============================================================
 ;;; Data Structures

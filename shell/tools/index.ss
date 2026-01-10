@@ -1,4 +1,4 @@
-;;; fabric/stitches/index.ss — Symbol Index and Module Registry
+;;; shell/tools/index.ss — Symbol Index and Module Registry
 ;;;
 ;;; Provides discovery and navigation for The Fold codebase:
 ;;;   (index-refresh!)           - Scan codebase and rebuild index
@@ -10,7 +10,7 @@
 ;;;   (index-dependents "path")  - Get modules that depend on this one
 ;;;   (index-stats)              - Show index statistics
 ;;;
-;;; This is Shell code: performs I/O to scan files.
+;;; Shell code: performs I/O to scan files.
 ;;;
 ;;; Dependencies:
 ;;;   - prelude.ss (list utilities)

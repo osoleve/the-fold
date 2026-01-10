@@ -12,7 +12,7 @@
 ;;;   (call-graph-stats)          - Show call graph statistics
 ;;;
 ;;; Dependencies:
-;;;   core/lang/index.ss (symbol index)
+;;;   shell/tools/index.ss (symbol index)
 ;;;   shell/xref.ss (cross-reference utilities)
 
 ;;; ============================================================

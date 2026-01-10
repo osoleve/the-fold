@@ -22,7 +22,7 @@
 ;;;   (type-search-help)                     - Show help
 ;;;
 ;;; Dependencies:
-;;;   core/lang/index.ss (symbol index)
+;;;   shell/tools/index.ss (symbol index)
 ;;;   core/types/sig-parser.ss (signature parsing)
 
 ;;; ============================================================

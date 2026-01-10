@@ -24,7 +24,7 @@
 ;;;   (refactor-undo!)                                 ; Undo last refactor
 ;;;
 ;;; Dependencies:
-;;;   core/lang/index.ss (symbol index)
+;;;   shell/tools/index.ss (symbol index)
 ;;;   shell/lens/navigator.ss (call graph)
 ;;;   shell/tools/refactor.ss (core transforms)
 

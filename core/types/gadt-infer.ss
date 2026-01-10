@@ -56,6 +56,23 @@
   (gadt-registry-lookup *gadt-registry* name))
 
 ;;; ============================================================
+;;; GADT Type Constructor Kind
+;;; ============================================================
+
+;;; gadt-type-constructor-kind : (List (Symbol . Kind)) -> Kind
+;;; Build the kind of a GADT type constructor from its index kinds.
+;;; E.g., for (gadt (Maybe a) ...), returns (-> Type Type)
+;;; For (gadt (Vec (n : Nat) a) ...), returns (-> Nat Type Type)
+;;; For no indices, returns Type.
+(define (gadt-type-constructor-kind index-kinds)
+  (if (null? index-kinds)
+      'Type
+      (let ([param-kinds (map cdr index-kinds)])
+           (fold-right (lambda (k acc) `(-> ,k ,acc))
+                       'Type
+                       param-kinds))))
+
+;;; ============================================================
 ;;; GADT Declaration Synthesis
 ;;; ============================================================
 
@@ -68,9 +85,19 @@
       `(error malformed-gadt-declaration ,decl)
       (let* ([name (gadt-name decl)]
              [index-kinds (gadt-index-kinds decl)]
-             [ctors (gadt-constructors decl)])
-            ;; Check all constructor types
-            (let ([ctor-checks (gadt-infer-check-ctors name index-kinds ctors ctx dep-check-type)])
+             [ctors (gadt-constructors decl)]
+             ;; Build the GADT type constructor's kind (e.g., Type -> Type for Maybe a)
+             ;; and add it to context BEFORE checking constructor types
+             [gadt-kind (gadt-type-constructor-kind index-kinds)]
+             ;; Add type parameters (e.g., 'a : Type) to context
+             [ctx-with-params (fold-left (lambda (c ik)
+                                                 (cons (list (car ik) (cdr ik)) c))
+                                         ctx
+                                         index-kinds)]
+             ;; Add the GADT type constructor itself
+             [ctx-with-gadt (cons (list name gadt-kind) ctx-with-params)])
+            ;; Check all constructor types in the extended context
+            (let ([ctor-checks (gadt-infer-check-ctors name index-kinds ctors ctx-with-gadt dep-check-type)])
                  (if (not (eq? (car ctor-checks) 'ok))
                      ctor-checks
                      (begin

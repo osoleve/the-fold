@@ -28,7 +28,7 @@
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/infer.ss")
-(load "core/lang/index.ss")
+(load "shell/tools/index.ss")
 
 ;;; ============================================================
 ;;; Hole Detection

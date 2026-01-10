@@ -9,7 +9,7 @@
 ;;;   - Document symbols
 ;;;
 ;;; Integrates with:
-;;;   - core/lang/index.ss (symbol index)
+;;;   - shell/tools/index.ss (symbol index)
 ;;;   - core/types/infer.ss (type inference)
 ;;;   - shell/lens/ (navigation)
 ;;;
@@ -33,7 +33,7 @@
 ;;; Try to load the symbol index
 (define *index-available* #f)
 (guard (e [else (set! *index-available* #f)])
-       (load "core/lang/index.ss")
+       (load "shell/tools/index.ss")
        (set! *index-available* #t))
 
 ;;; lookup-symbol-info : String → (Alist Symbol Any) | #f
