@@ -239,45 +239,121 @@
         [else result])))
 
 ;;; ============================================================
-;;; Par/Pseq Evaluation (Unified)
+;;; Par/Pseq Evaluation (Parallel with Fallback)
 ;;; ============================================================
 ;;;
-;;; NOTE ON CURRENT IMPLEMENTATION:
-;;; eval-par and eval-pseq currently have identical implementations —
-;;; both evaluate a then b sequentially. This is intentional.
+;;; (par a b) evaluates a and b, returning b's result.
+;;; If threading is available, a runs in a background thread.
+;;; If threading fails or times out, falls back to sequential.
 ;;;
-;;; These forms are SEMANTIC HINTS for future parallel execution:
-;;;   - (par a b)  = "a and b can run in parallel; return b"
-;;;   - (pseq a b) = "force a to complete before starting b; return b"
-;;;
-;;; In the current sequential evaluator, both behave identically.
-;;; In a future parallel runtime:
-;;;   - par would enable speculative/concurrent evaluation of a
-;;;   - pseq would enforce strict ordering (useful when a has effects
-;;;     that b depends on, or for controlling evaluation order)
-;;;
-;;; The distinction matters for:
-;;;   1. Documenting programmer intent about parallelizability
-;;;   2. Future optimization passes that could parallelize par
-;;;   3. Reasoning about evaluation order in a parallel context
+;;; (pseq a b) always evaluates sequentially: a then b.
 ;;;
 ;;; ============================================================
 
-;;; eval-par* : Expr × Expr × Env × Fuel × Ctx → Result
-;;; Parallel evaluation hint: (par a b)
-;;; Evaluate both a and b, return b.
-;;; Currently evaluates sequentially, but provides a hint for
-;;; future parallel execution strategies.
+;;; Default timeout for parallel evaluation (milliseconds)
+(define *par-timeout-ms* 30000)  ; 30 seconds
+
+;;; Check if threading primitives are available
+(define (threading-available?)
+  (and (top-level-bound? 'fork-thread)
+       (top-level-bound? 'thread-join)
+       (top-level-bound? 'make-mutex)
+       (top-level-bound? 'make-condition)))
+
+;;; Thread-join with timeout using condition variable.
+;;; Returns (ok result) on success, (timeout) on timeout, (error msg) on failure.
+(define (thread-join-with-timeout thread result-box timeout-ms)
+  (let ([m (make-mutex)]
+        [c (make-condition)]
+        [done-box (box #f)])
+       ;; Watchdog thread: waits for completion or timeout
+       (guard (e [else `(error ,(format "watchdog error: ~a" e))])
+              ;; Signal when thread completes
+              (fork-thread
+               (lambda ()
+                       (guard (e [else #f])
+                              (thread-join thread)
+                              (with-mutex m
+                                          (set-box! done-box #t)
+                                          (condition-signal c)))))
+              ;; Wait with timeout
+              ;; make-time: nanoseconds must be < 1e9, so split into seconds + ns
+              (let* ([timeout-ns (* timeout-ms 1000000)]
+                     [timeout-secs (quotient timeout-ns 1000000000)]
+                     [timeout-ns-remainder (remainder timeout-ns 1000000000)]
+                     [timeout-time (make-time 'time-duration timeout-ns-remainder timeout-secs)])
+                    (with-mutex m
+                                (let ([signaled (condition-wait c m timeout-time)])
+                                     (if (unbox done-box)
+                                         `(ok ,(unbox result-box))
+                                         '(timeout))))))))
+
+;;; eval-par* : Expr × Expr × Env × Fuel × Ctx → (ok Value Fuel Ctx) | (suspended ...) | (error ...)
+;;; Parallel evaluation: (par a b)
+;;; Evaluates a in background thread, b in main thread, returns b.
+;;; Falls back to sequential if threading unavailable or fails.
 (define (eval-par* a-expr b-expr env fuel ctx)
-  ;; Evaluate a (for side-effect of forcing computation)
+  (if (and (threading-available?) (not (ctx-traced? ctx)))
+      ;; Parallel mode: fork a, evaluate b, join
+      (eval-par-parallel a-expr b-expr env fuel ctx)
+      ;; Sequential fallback (also used when tracing, to preserve tape)
+      (eval-par-sequential a-expr b-expr env fuel ctx)))
+
+;;; Sequential fallback for par
+(define (eval-par-sequential a-expr b-expr env fuel ctx)
   (let ([a-result (eval-core a-expr env fuel ctx)])
        (cond
         [(result-ok? a-result)
-         ;; Now evaluate b with remaining fuel and updated ctx
          (eval-core b-expr env (result-fuel a-result) (result-ctx a-result))]
-        [else a-result])))  ; Forward suspension or error
+        [else a-result])))
 
-;;; eval-pseq* : Expr × Expr × Env × Fuel × Ctx → Result
+;;; Parallel implementation with error handling and timeout
+(define (eval-par-parallel a-expr b-expr env fuel ctx)
+  (let ([a-result-box (box #f)])
+       ;; Try to fork thread for a
+       (guard (fork-err
+               [else
+                ;; Fork failed — fall back to sequential
+                (eval-par-sequential a-expr b-expr env fuel ctx)])
+              (let ([a-thread (fork-thread
+                               (lambda ()
+                                       ;; Each thread gets its own fuel budget (parallel time)
+                                       (set-box! a-result-box
+                                                 (guard (eval-err
+                                                         [else `(error thread-eval-error
+                                                                 ,(format "~a" eval-err))])
+                                                        (eval-core a-expr env fuel #f)))))])
+                   ;; Evaluate b in main thread while a runs
+                   (let ([b-result (eval-core b-expr env fuel ctx)])
+                        ;; Wait for a with timeout
+                        (let ([join-result (thread-join-with-timeout
+                                            a-thread a-result-box *par-timeout-ms*)])
+                             (cond
+                              ;; Timeout: a didn't complete in time
+                              [(eq? (car join-result) 'timeout)
+                               `(error par-timeout
+                                 "Background expression in (par a b) timed out"
+                                 ,a-expr)]
+                              ;; Join error
+                              [(eq? (car join-result) 'error)
+                               `(error par-thread-error ,(cadr join-result))]
+                              ;; Success: check a's result
+                              [else
+                               (let ([a-result (cadr join-result)])
+                                    (cond
+                                     ;; a failed — propagate its error
+                                     [(and (pair? a-result) (result-error? a-result))
+                                      a-result]
+                                     ;; a suspended — treat as error in parallel context
+                                     [(and (pair? a-result) (result-suspended? a-result))
+                                      `(error par-suspended
+                                        "Background expression suspended (out of fuel)"
+                                        ,a-expr)]
+                                     ;; Both succeeded — return b's result
+                                     [else b-result]))])))))))
+
+
+;;; eval-pseq* : Expr × Expr × Env × Fuel × Ctx → (ok Value Fuel Ctx) | (suspended ...) | (error ...)
 ;;; Sequential evaluation: (pseq a b)
 ;;; Force evaluation of a, then evaluate b, return b.
 ;;; Ensures a is strictly evaluated before b.
@@ -493,7 +569,7 @@
                                    (result-fuel result) (result-ctx result)))]
             [else result]))))
 
-;;; apply-prim* : Symbol × Values × Fuel × Ctx → Result
+;;; apply-prim* : Symbol × Values × Fuel × Ctx → (ok Value Fuel Ctx) | (error ...)
 ;;; Apply a primitive. In traced mode, use traced-* for differentiable ops.
 (define (apply-prim* op args fuel ctx)
   (if (ctx-traced? ctx)
@@ -501,7 +577,7 @@
       ;; Untraced: just apply the primitive
       (make-ok (apply prim (cons op args)) fuel ctx)))
 
-;;; apply-prim-traced* : Symbol × Values × Fuel × Tape → Result
+;;; apply-prim-traced* : Symbol × Values × Fuel × Tape → (ok Value Fuel Tape) | (error ...)
 ;;; Apply a primitive with tracing for autodiff.
 (define (apply-prim-traced* op args fuel tape)
   (case op
@@ -654,7 +730,7 @@
                     (loop (cadr result) (and retries (- retries 1)))]
                    [else result]))))]))
 
-;;; eval-with-env : Expr × Env × Fuel → Result
+;;; eval-with-env : Expr × Env × Fuel → (ok Value Fuel) | (suspended Expr Env) | (error ...)
 ;;; Evaluate with a given environment.
 (define (eval-with-env expr env fuel)
   (eval-expr expr env fuel))
@@ -1106,7 +1182,7 @@
                            (caddr result))
                      env)))))
 
-;;; run-prelude : Expr × Fuel → Result
+;;; run-prelude : Expr × Fuel → (ok Value Fuel) | (suspended Expr Env) | (error ...)
 ;;; Evaluate with the standard prelude.
 (define (run-prelude expr fuel)
   (let ([prelude-env (build-prelude-env 1000)])

@@ -578,6 +578,7 @@
     (Value . Hash)
     (Values . Hash)
     (Tape . Hash)
+    (Ctx . Hash)  ; Evaluation context (tracing or #f)
     ;; Expand/normalize types (treated as kind *)
     (Supply . Hash)
     ;; Parser types (treated as kind *)
