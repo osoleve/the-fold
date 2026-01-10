@@ -226,24 +226,36 @@
 ;;; Par/Pseq Evaluation
 ;;; ============================================================
 ;;;
-;;; NOTE ON CURRENT IMPLEMENTATION:
-;;; eval-par and eval-pseq currently have identical implementations —
-;;; both evaluate a then b sequentially. This is intentional.
-;;;
-;;; These forms are SEMANTIC HINTS for future parallel execution:
+;;; SEMANTICS:
 ;;;   - (par a b)  = "a and b can run in parallel; return b"
 ;;;   - (pseq a b) = "force a to complete before starting b; return b"
 ;;;
-;;; In the current sequential evaluator, both behave identically.
-;;; In a future parallel runtime:
-;;;   - par would enable speculative/concurrent evaluation of a
-;;;   - pseq would enforce strict ordering (useful when a has effects
-;;;     that b depends on, or for controlling evaluation order)
+;;; IMPLEMENTATION:
+;;;   - par: Uses fork-thread for parallel execution when available,
+;;;          falls back to sequential evaluation otherwise.
+;;;   - pseq: Always sequential (intentionally — enforces ordering).
 ;;;
-;;; The distinction matters for:
-;;;   1. Documenting programmer intent about parallelizability
-;;;   2. Future optimization passes that could parallelize par
-;;;   3. Reasoning about evaluation order in a parallel context
+;;; FUEL SEMANTICS IN PARALLEL MODE:
+;;;   When fork-thread is available, each branch receives its own
+;;;   independent fuel allocation (the full initial fuel value).
+;;;   This differs from sequential mode where branches share fuel.
+;;;
+;;;   Rationale: The fuel system guarantees TOTALITY (termination),
+;;;   not a specific computation budget. In parallel execution:
+;;;     - Each branch must independently terminate
+;;;     - The total "wall-clock fuel" is max(fuel-a, fuel-b)
+;;;     - Both branches are guaranteed total if each terminates
+;;;
+;;;   In sequential mode, fuel is threaded: a consumes some, b gets
+;;;   the remainder. In parallel mode, this threading is impossible
+;;;   since both run concurrently — so each gets full allocation.
+;;;
+;;; MEMORY MODEL:
+;;;   Relies on Chez Scheme's cooperative threading model where
+;;;   thread-join provides a synchronization point. After join,
+;;;   the box written by the forked thread is visible to the
+;;;   joining thread. If Chez moves to OS threads with weak
+;;;   memory ordering, this would need explicit barriers.
 ;;;
 ;;; ============================================================
 
