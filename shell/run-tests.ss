@@ -23,6 +23,20 @@
 (define pass-count 0)
 (define fail-count 0)
 
+;;; format-condition : Condition → String
+;;; Format a Chez Scheme condition with its irritants properly filled in.
+(define (format-condition e)
+  (if (condition? e)
+      (guard (e2 [else (condition-message e)])
+             (let ([template (condition-message e)]
+                   [irritants (if (irritants-condition? e)
+                                  (condition-irritants e)
+                                  '())])
+                  (if (null? irritants)
+                      template
+                      (apply format template irritants))))
+      (format "~a" e)))
+
 (define (run-test-file filename)
   (display (string-append "
 === Running " filename " ===
@@ -50,10 +64,13 @@
 "))
 
 ;;; Validation
-(run-test-file "test-validate.ss")
+(run-test-file "tests/test-validate.ss")
 
 ;;; Indexing
-(run-test-file "test-block-index.ss")
+(run-test-file "tests/test-block-index.ss")
+
+;;; Autodoc
+(run-test-file "tests/test-autodoc.ss")
 
 ;;; Note: Additional tests excluded from automated run:
 ;;;   - test-block-navigator.ss (memory-intensive)

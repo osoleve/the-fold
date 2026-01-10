@@ -1,4 +1,4 @@
-;;; core/util/autodoc.ss — Auto-Documentation Extractor
+;;; shell/autodoc.ss — Auto-Documentation Extractor
 ;;; @module autodoc
 ;;; @requires prelude
 ;;;
@@ -20,9 +20,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Data Structures
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; Doc entry structure:
 ;;;   ((name        . Symbol)
@@ -44,9 +44,9 @@
 ;;;    (label    . String | #f)
 ;;;    (from     . String))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Global State
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; *autodoc-registry* : Hashtable Symbol → Doc-Entry
 (define *autodoc-registry* (make-eq-hashtable))
@@ -60,9 +60,9 @@
 ;;; *autodoc-initialized* : Boolean
 (define *autodoc-initialized* #f)
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Path Utilities
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; derive-category : String → Symbol
 ;;; Derive category from file path.
@@ -119,9 +119,9 @@
            'private
            'public)))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; File Reading Utilities
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; read-file-lines : String → (List String)
 (define (autodoc-read-file-lines path)
@@ -146,9 +146,9 @@
                                                      (reverse exprs)
                                                      (loop (cons expr exprs)))))))))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Docstring Parsing
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; parse-docstring-block : (List String) Int → (values String String (List Symbol))
 ;;; Parse docstring comments above a definition.
@@ -185,7 +185,7 @@
                            (parse-see-also see-also-line)
                            '())]
              [description (string-join
-                           (filter (lambda (p)
+                           (filter (lambda (p) 
                                            (not (string-starts-with? p "See also:")))
                                    rest)
                            "\n\n")])
@@ -241,9 +241,9 @@
                  (map (lambda (p) (string->symbol (string-trim p)))
                       (filter (lambda (p) (not (string=? (string-trim p) ""))) parts))))))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Signature Extraction
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; extract-signature : (List String) Int → String | #f
 ;;; Extract signature from ;;; name : type comment above definition.
@@ -271,9 +271,9 @@
              [(char=? (string-ref str i) ch) i]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Definition Extraction
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; scan-definitions : String → (List Doc-Entry)
 ;;; Scan a source file and extract all definitions.
@@ -307,7 +307,7 @@
        (cond
         ;; (define (name ...) ...)
         [(and (> (string-length rest) 0)
-              (char=? (string-ref rest 0) #\())
+              (char=? (string-ref rest 0) (integer->char 40)))
          (let ([name-end (find-name-end rest 1)])
               (and name-end
                    (let* ([name-str (substring rest 1 name-end)]
@@ -372,7 +372,7 @@
                                   (examples . ())
                                   (see-also . ,see-also)
                                   (usage . ,(extract-usage-pattern lines line-num))
-                                  (module . ,module-name)))))))))
+                                  (module . ,module-name))))))))) 
 
 ;;; extract-usage-pattern : (List String) Int → String | #f
 ;;; Extract usage pattern from comments for macros.
@@ -435,9 +435,9 @@
                               #f))
                     (loop (+ i 1)))))))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Example Extraction (AST-based)
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; extract-examples-from-file : String → (List Example)
 ;;; Use (read) to parse test file and extract examples.
@@ -504,9 +504,9 @@
    [(pair? (car expr)) (extract-target-function (car expr))]
    [else #f]))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Index Building
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; scan-directory : String String → (List String)
 ;;; Find all .ss files in directory recursively.
@@ -517,7 +517,7 @@
                   results
                   (let ([current (car pending)])
                        (if (file-directory? current)
-                           (let ([entries (map (lambda (e)
+                           (let ([entries (map (lambda (e) 
                                                        (string-append current "/" e))
                                                (directory-list current))])
                                 (loop (append (cdr pending) entries) results))
@@ -538,7 +538,8 @@
   ;; Scan source files for definitions
   (let ([source-files (append
                        (scan-directory "core" ".ss")
-                       (scan-directory "shell" ".ss"))])
+                       (scan-directory "shell" ".ss")
+                       (scan-directory "lattice" ".ss"))])
        (display (format "  Scanning ~a source files...\n" (length source-files)))
        (for-each
         (lambda (path)
@@ -554,7 +555,7 @@
                                            ;; Register in category index
                                            (let ([existing (hashtable-ref *autodoc-categories* cat '())])
                                                 (hashtable-set! *autodoc-categories* cat
-                                                                (cons name existing)))))
+                                                                (cons name existing))))) 
                               entries))))
         source-files))
   
@@ -562,7 +563,8 @@
   (let ([test-files (filter (lambda (p) (string-contains? p "/test-"))
                             (append
                              (scan-directory "core" ".ss")
-                             (scan-directory "shell" ".ss")))])
+                             (scan-directory "shell" ".ss")
+                             (scan-directory "lattice" ".ss")))])
        (display (format "  Scanning ~a test files for examples...\n" (length test-files)))
        (for-each
         (lambda (path)
@@ -574,11 +576,11 @@
                                     (if entry
                                         ;; Add example to existing entry
                                         (let* ([current-examples (cdr (assq 'examples entry))]
-                                               [updated-entry (update-alist entry 'examples
+                                               [updated-entry (update-alist entry 'examples 
                                                                             (cons ex current-examples))])
                                               (hashtable-set! *autodoc-registry* target updated-entry))
                                         ;; Orphaned example
-                                        (set! *orphan-examples* (cons ex *orphan-examples*)))))
+                                        (set! *orphan-examples* (cons ex *orphan-examples*))))) 
                       examples)))
         test-files))
   
@@ -594,9 +596,9 @@
                    pair))
        alist))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Display Functions
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; display-doc-entry : Doc-Entry → void
 (define (display-doc-entry entry)
@@ -664,9 +666,9 @@
       '()
       (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; REPL Commands
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; doc : Symbol → void
 ;;; Show documentation for a symbol.
@@ -683,7 +685,7 @@
                          (display "  Did you mean one of:\n")
                          (for-each (lambda (s) (printf "    ~a\n" s))
                                    (take-up-to 5 suggestions))
-                         (display "\n")))))))
+                         (display "\n"))))))) 
 
 ;;; doc-search : String → (List Symbol)
 ;;; Search for symbols matching pattern.
@@ -784,11 +786,11 @@
         (printf  "    Public:               ~a\n" public)
         (printf  "    Private/Internal:     ~a\n" private)
         (display "\n")
-        (printf  "  With signatures:        ~a / ~a (~a%)\n"
+        (printf  "  With signatures:        ~a / ~a (~a%%)\n" 
                 with-sig total (if (> total 0) (quotient (* 100 with-sig) total) 0))
-        (printf  "  With docstrings:        ~a / ~a (~a%)\n"
+        (printf  "  With docstrings:        ~a / ~a (~a%%)\n" 
                 with-doc total (if (> total 0) (quotient (* 100 with-doc) total) 0))
-        (printf  "  With examples:          ~a / ~a (~a%)\n"
+        (printf  "  With examples:          ~a / ~a (~a%%)\n" 
                 with-examples total (if (> total 0) (quotient (* 100 with-examples) total) 0))
         (display "\n")
         (printf  "  Orphaned examples:      ~a\n" (length *orphan-examples*))
@@ -814,7 +816,7 @@
                         (car pair)
                         (make-string (max 1 (- 25 (string-length (symbol->string (car pair))))) #\space)
                         (cdr pair)))
-        (sort (lambda (a b) (string<? (symbol->string (car a))
+        (sort (lambda (a b) (string<? (symbol->string (car a)) 
                                       (symbol->string (car b))))
               cats))
        (display "\n")))
@@ -831,9 +833,9 @@
                      (string<? (symbol->string a) (symbol->string b)))
              syms))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Help System Integration
-;;; ============================================================
+;;; ============================================================ 
 
 ;;; autodoc-lookup : Symbol → Entry | #f
 ;;; Check if symbol exists in autodoc (for help integration).
@@ -849,9 +851,9 @@
       (set! *autodoc-lookup* autodoc-lookup)
       (set! *autodoc-search-handler* doc-search))
 
-;;; ============================================================
+;;; ============================================================ 
 ;;; Initialization Message
-;;; ============================================================
+;;; ============================================================ 
 
 (display "\nAutodoc system loaded.\n")
 (display "Commands: (doc 'name), (doc-search \"pattern\"), (doc-category 'cat)\n")

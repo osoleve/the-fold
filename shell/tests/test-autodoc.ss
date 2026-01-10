@@ -1,9 +1,9 @@
-;;; core/util/test-autodoc.ss — Tests for autodoc.ss
+;;; shell/tests/test-autodoc.ss — Tests for autodoc.ss
 ;;;
 ;;; Dependencies:
 ;;;   - autodoc.ss
 
-(load "core/util/autodoc.ss")
+(load "shell/autodoc.ss")
 
 (define tests-passed 0)
 (define tests-failed 0)
