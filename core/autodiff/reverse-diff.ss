@@ -16,7 +16,7 @@
 ;;;   - autodiff/comp-graph.ss (for tape infrastructure)
 
 (load "core/base/prelude.ss")
-(load "lattice/autodiff/comp-graph.ss")
+(load "core/autodiff/comp-graph.ss")
 
 ;;; ============================================================
 ;;; Traced Values

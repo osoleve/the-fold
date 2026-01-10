@@ -25,8 +25,8 @@
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/sparse.ss")
-(load "lattice/autodiff/comp-graph.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/comp-graph.ss")
+(load "core/autodiff/reverse-diff.ss")
 (load "lattice/autodiff/higher-order-diff.ss")
 
 ;;; ============================================================

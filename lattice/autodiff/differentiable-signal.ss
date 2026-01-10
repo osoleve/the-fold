@@ -46,7 +46,7 @@
 (load "lattice/numeric/complex.ss")
 (load "lattice/numeric/dft.ss")
 (load "lattice/numeric/convolution.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/reverse-diff.ss")
 
 ;;; ============================================================
 ;;; Vector Utilities for Traced Values

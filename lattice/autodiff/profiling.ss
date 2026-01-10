@@ -14,8 +14,8 @@
 ;;;   - autodiff/reverse-diff.ss
 
 (load "core/base/prelude.ss")
-(load "lattice/autodiff/comp-graph.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/comp-graph.ss")
+(load "core/autodiff/reverse-diff.ss")
 
 ;;; ============================================================
 ;;; Tape Statistics

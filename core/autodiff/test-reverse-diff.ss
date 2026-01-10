@@ -1,7 +1,7 @@
 ;;; core/autodiff/test-reverse-diff.ss --- Tests for Reverse Mode Autodiff
 
 (load "core/test-framework.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/reverse-diff.ss")
 
 ;;; Local helper for numeric comparison with tolerance
 (define (assert-= actual expected tolerance)

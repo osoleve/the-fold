@@ -58,7 +58,6 @@ Everything in fabric/ is:
       "Automatic Differentiation:"
       "  comp-graph.ss      - Computational graph for autodiff"
       "  reverse-diff.ss    - Reverse-mode AD (backpropagation)"
-      "  higher-order-diff.ss - Higher-order derivatives"
       ""
       "Complex Numbers & Signal Processing:"
       "  complex.ss     - Complex number arithmetic (56 tests)"

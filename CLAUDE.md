@@ -49,6 +49,22 @@ Returns JSON output with status, result, output, and any errors.
 (push!)                          ; Git push
 ```
 
+### Debugging
+
+The time-travel debugger lives in `shell/debug/debug-repl.ss`:
+
+```scheme
+(load "shell/debug/debug-repl.ss")
+(debug expr)                     ; Start debugging
+(step)                           ; Single step
+(next)                           ; Step over
+(continue)                       ; Run to breakpoint/completion
+(break 'fn)                      ; Set breakpoint
+(inspect)                        ; Show environment
+(fuel)                           ; Show fuel status
+(trace)                          ; Show call stack
+```
+
 ---
 
 ## Running Tests
@@ -72,6 +88,26 @@ scheme --script shell/tests/test-string-utils.ss
 
 Test framework: `core/testing/test-framework.ss` provides unified API across all tests.
 Tests are co-located with their modules (e.g., `test-vec.ss` next to `vec.ss`).
+
+### Writing Tests
+
+```scheme
+(load "core/testing/test-framework.ss")
+
+(define-test "descriptive name"
+  (assert-equal expected actual)
+  (assert-true expr)
+  (assert-false expr)
+  (assert-error expr)            ; Verify expr throws
+  (assert-ok expr))              ; Verify (ok ...) result
+
+(test-group "group name"
+  (define-test "test 1" ...)
+  (define-test "test 2" ...))
+
+(run-all-tests)                  ; Run all registered tests
+(run-tests 'group-name)          ; Run specific group
+```
 
 ---
 
@@ -305,6 +341,18 @@ S-expressions are α-normalized (de Bruijn indices) before hashing:
 
 Everything is built in-house. Exceptions require approval from Andy.
 
+### Naming Conventions
+
+**Files:** Hyphenated lowercase (`block-navigator.ss`, `fuel-profile.ss`)
+**Tests:** Prefixed with `test-` (`test-block.ss`, `test-eval.ss`)
+**Documentation:** Use `README.sexp` for machine-readable directory docs
+
+**Functions:**
+- `type-operation` — Type-specific ops (`maybe-bind`, `matrix-multiply`)
+- `make-type` — Constructors (`make-block`, `make-functor`)
+- `type?` — Predicates (`block?`, `valid-hash?`)
+- `type-field` — Accessors (`block-tag`, `functor-fmap`)
+
 ---
 
 ## Issue Tracking with Beads
@@ -404,6 +452,25 @@ git push                # Push to remote
 | `.beads/` | Issue tracking database |
 | `archives/` | Historical exports (e.g., forum archive) |
 | `TAXONOMY.sexp` | Machine-readable project taxonomy |
+
+---
+
+## Troubleshooting
+
+**Daemon won't start:**
+```bash
+./daemon.sh stop     # Clear stale state
+./daemon.sh cleanup  # Kill orphan workers
+./daemon.sh start
+```
+
+**Session state corruption:**
+```bash
+rm -rf .fold-repl/   # Nuclear option
+./daemon.sh start
+```
+
+**Tests hanging:** Check fuel consumption. Infinite loops exhaust fuel and return `out-of-fuel` error.
 
 ---
 

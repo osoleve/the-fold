@@ -76,6 +76,10 @@
 (run-test-file "core" "blocks" "test-normalize.ss")
 (run-test-file "core" "blocks" "test-expand.ss")
 
+;;; Layer 1.5: Autodiff Foundation (core/autodiff/)
+(run-test-file "core" "autodiff" "test-comp-graph.ss")
+(run-test-file "core" "autodiff" "test-reverse-diff.ss")
+
 ;;; Layer 2: Language Core (core/lang/)
 (run-test-file "core" "lang" "test-prim.ss")
 (run-test-file "core" "lang" "test-parse.ss")
@@ -105,8 +109,6 @@
 (run-test-file "lattice" "numeric" "test-convolution.ss")
 
 ;;; Layer 6: Automatic Differentiation (lattice/autodiff/)
-(run-test-file "lattice" "autodiff" "test-comp-graph.ss")
-(run-test-file "lattice" "autodiff" "test-reverse-diff.ss")
 (run-test-file "lattice" "autodiff" "test-differentiable.ss")
 (run-test-file "lattice" "autodiff" "test-higher-order-diff.ss")
 

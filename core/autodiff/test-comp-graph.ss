@@ -1,7 +1,7 @@
 ;;; core/autodiff/test-comp-graph.ss --- Tests for Computational Graph
 
 (load "core/test-framework.ss")
-(load "lattice/autodiff/comp-graph.ss")
+(load "core/autodiff/comp-graph.ss")
 
 ;;; Local helper for numeric comparison with tolerance
 (define (assert-= actual expected tolerance)

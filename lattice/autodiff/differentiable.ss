@@ -18,8 +18,8 @@
 (load "core/types/kinds.ss")
 (load "core/types/infer.ss")     ; For unify, needed by resolve
 (load "core/types/resolve.ss")
-(load "lattice/autodiff/comp-graph.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/comp-graph.ss")
+(load "core/autodiff/reverse-diff.ss")
 
 ;;; ============================================================
 ;;; Differentiable Type Class

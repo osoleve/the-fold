@@ -23,8 +23,8 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
-(load "lattice/autodiff/comp-graph.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/comp-graph.ss")
+(load "core/autodiff/reverse-diff.ss")
 
 ;;; ============================================================
 ;;; Jacobian Computation

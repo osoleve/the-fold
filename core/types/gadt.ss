@@ -256,6 +256,9 @@
                ;; If scrutinee index is a type variable (lowercase symbol), refine it
                [(and (symbol? s) (type-variable? s))
                 (loop (cdr scrut) (cdr ctor) (cons (cons s c) eqns))]
+               ;; If constructor index is a type variable, unify it with scrutinee index
+               [(and (symbol? c) (type-variable? c))
+                (loop (cdr scrut) (cdr ctor) (cons (cons c s) eqns))]
                ;; If they're structurally equal, no equation needed
                [(equal? s c)
                 (loop (cdr scrut) (cdr ctor) eqns)]

@@ -329,9 +329,14 @@
 ")
   
   ;; TODO: Nested GADT case blocked by Maybe variable resolution issue
-  ;; (let ([ctx (make-test-ctx 'mx '(Maybe (Maybe Int)))])
-  ;;      (let ([case-expr '(gadt-case mx ...)])
-  ;;           (test-ok-type "nested GADT case" ...)))
+  (let ([ctx (make-test-ctx 'mx '(Maybe (Maybe Int))
+                            'default '(Maybe Int))])
+       (let ([case-expr '(gadt-case mx
+                          ((Nothing) default)
+                          ((Just x) x))])
+            (test-ok-type "nested GADT case"
+                          (synth-with-ctx case-expr ctx)
+                          '(Maybe Int))))
   
   ;; --------------------------------------------------------
   ;; Summary
