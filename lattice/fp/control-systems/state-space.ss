@@ -139,7 +139,7 @@
         (let loop ([k 1] [term term] [result result] [factorial 1])
              (if (>= k fuel)
                  result
-                 (let* ([new-term (matrix-scale (matrix-mul term A) (/ 1 (* factorial k)))]
+                 (let* ([new-term (matrix-scale (/ 1 (* factorial k)) (matrix-mul term A))]
                         [new-factorial (* factorial k)])
                        (loop (+ k 1)
                              (matrix-mul term A)
@@ -150,7 +150,7 @@
 ;;; Compute the state transition matrix Φ(t) = e^(A*t)
 ;;; using Taylor series with given number of terms.
 (define (ss-transition-matrix sys t terms)
-  (matrix-exp-taylor (matrix-scale (ss-A sys) t) terms))
+  (matrix-exp-taylor (matrix-scale t (ss-A sys)) terms))
 
 ;;; ============================================================
 ;;; Controllability
