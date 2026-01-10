@@ -6,9 +6,9 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Design and Mapping' (Protocol in workflow.md)
 
 ## Phase 2: Core Codegen Implementation
-- [ ] Task: Implement Basic Block-to-Rust Serializer
-    - [ ] Write Tests (Scheme-side verification of emitted strings)
-    - [ ] Implement Serializer
+- [x] Task: Implement Basic Block-to-Rust Serializer cddbbb3
+    - [x] Write Tests (Scheme-side verification of emitted strings)
+    - [x] Implement Serializer
 - [ ] Task: Implement Function/Lambda Codegen
     - [ ] Write Tests
     - [ ] Implement
