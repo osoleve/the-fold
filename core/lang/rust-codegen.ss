@@ -41,7 +41,7 @@
         [(sub -) "-"]
         [(mul *) "*"]
         [(div /) "/"]
-        [(mod) "%"]
+        [(mod remainder %) "%"]
         ;; Comparison (infix)
         [(lt? <) "<"]
         [(le? <=) "<="]
@@ -62,7 +62,7 @@
 ;;; scheme-op-method? : Symbol → Boolean
 ;;; True if operator should be emitted as method call syntax.
 (define (scheme-op-method? op)
-  (memq op '(abs sqrt sin cos tan asin acos atan sinh cosh tanh log exp floor ceiling round)))
+  (memq op '(abs sqrt sin cos tan asin acos atan sinh cosh tanh log exp floor ceiling round truncate)))
 
 ;;; scheme-op->rust-method : Symbol → String
 ;;; Get the Rust method name for method-style ops.
@@ -84,6 +84,7 @@
         [(floor) "floor"]
         [(ceiling) "ceil"]  ; Rust uses ceil()
         [(round) "round"]
+        [(truncate) "trunc"]  ; Rust uses trunc()
         [else #f]))
 
 ;;; ============================================================
@@ -142,10 +143,28 @@
            (string-append "(" (rust-serialize (car args))
                           "." (scheme-op->rust-method op) "())")]
           
-          ;; expt -> powf (binary method)
-          [(and (eq? op 'expt) (= (length args) 2))
+          ;; expt/pow -> powf (binary method)
+          [(and (memq op '(expt pow)) (= (length args) 2))
            (string-append "(" (rust-serialize (car args))
                           ".powf(" (rust-serialize (cadr args)) "))")]
+          
+          ;; atan2 -> atan2 (binary method)
+          [(and (eq? op 'atan2) (= (length args) 2))
+           (string-append "(" (rust-serialize (car args))
+                          ".atan2(" (rust-serialize (cadr args)) "))")]
+          
+          ;; hypot -> hypot (binary method)
+          [(and (eq? op 'hypot) (= (length args) 2))
+           (string-append "(" (rust-serialize (car args))
+                          ".hypot(" (rust-serialize (cadr args)) "))")]
+          
+          ;; min/max -> method calls (binary)
+          [(and (eq? op 'min) (= (length args) 2))
+           (string-append "(" (rust-serialize (car args))
+                          ".min(" (rust-serialize (cadr args)) "))")]
+          [(and (eq? op 'max) (= (length args) 2))
+           (string-append "(" (rust-serialize (car args))
+                          ".max(" (rust-serialize (cadr args)) "))")]
           
           ;; Default function call
           [else
@@ -260,9 +279,11 @@
         ;; Arithmetic - basic ops cost 1
         [(add sub mul + - *) 1]
         ;; Division/modulo cost 2 (more expensive)
-        [(div mod / %) 2]
+        [(div mod remainder / %) 2]
         ;; Comparison - cheap
-        [(lt? le? gt? ge? eq? < <= > >= ==) 1]
+        [(lt? le? gt? ge? eq? < <= > >= == zero? positive? negative?) 1]
+        ;; Min/max - cheap
+        [(min max) 1]
         ;; Logical - cheap
         [(and or not) 1]
         ;; Bitwise - cheap
@@ -272,10 +293,10 @@
         ;; Math methods - transcendentals are expensive
         [(sqrt) 2]
         [(sq) 1]                                       ; square is just mul
-        [(sin cos tan asin acos atan) 3]
+        [(sin cos tan asin acos atan atan2) 3]
         [(sinh cosh tanh) 3]
-        [(log exp) 3]
-        [(floor ceiling round) 1]
+        [(log exp hypot) 3]
+        [(floor ceiling round truncate) 1]
         [(expt pow) 3]
         ;; Default
         [else 1]))
@@ -371,6 +392,16 @@
         [(asin)   '((/ 1 (sqrt (- 1 (* a a)))))]       ; d(asin a)/da = 1/√(1-a²)
         [(acos)   '((/ -1 (sqrt (- 1 (* a a)))))]      ; d(acos a)/da = -1/√(1-a²)
         [(atan)   '((/ 1 (+ 1 (* a a))))]              ; d(atan a)/da = 1/(1+a²)
+        [(atan2)  '((/ b (+ (* a a) (* b b)))          ; d(atan2(a,b))/da = b/(a²+b²)
+                    (/ (- a) (+ (* a a) (* b b))))]    ; d(atan2(a,b))/db = -a/(a²+b²)
+        
+        ;; Binary math functions
+        [(hypot)  '((/ a (hypot a b))                  ; d(hypot(a,b))/da = a/hypot(a,b)
+                    (/ b (hypot a b)))]                ; d(hypot(a,b))/db = b/hypot(a,b)
+        [(min)    '((if (<= a b) 1 0)                  ; d(min(a,b))/da = 1 if a≤b else 0
+                    (if (<= a b) 0 1))]                ; d(min(a,b))/db = 0 if a≤b else 1
+        [(max)    '((if (>= a b) 1 0)                  ; d(max(a,b))/da = 1 if a≥b else 0
+                    (if (>= a b) 0 1))]                ; d(max(a,b))/db = 0 if a≥b else 1
         
         ;; Hyperbolic functions
         [(sinh)   '((cosh a))]                         ; d(sinh a)/da = cosh(a)
@@ -378,7 +409,7 @@
         [(tanh)   '((/ 1 (* (cosh a) (cosh a))))]      ; d(tanh a)/da = sech²(a) = 1/cosh²(a)
         
         ;; Rounding (non-differentiable, gradient = 0)
-        [(floor ceiling round) '(0)]
+        [(floor ceiling round truncate) '(0)]
         
         ;; Comparison/logical (non-differentiable)
         [(lt? le? gt? ge? eq? and or not) #f]
