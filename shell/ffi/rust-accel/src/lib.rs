@@ -31,6 +31,62 @@ pub struct TestResult {
     pub fuel_out: u64,
 }
 
+// ============================================================
+// Type-Safe Result Structs (Milestone 1: fold-4s4q)
+// ============================================================
+//
+// These structs enable type-safe FFI without lossy casts.
+// Each Rust return type has its own result struct:
+// - I64Result: for integer operations
+// - F64Result: for floating-point operations
+// - BoolResult: for comparison/logical operations
+// - U64Result: for unsigned integer operations
+
+/// Result struct for i64 return values
+#[repr(C)]
+pub struct I64Result {
+    /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
+    pub status: u8,
+    /// Result value (i64)
+    pub value: i64,
+    /// Remaining fuel
+    pub fuel_out: u64,
+}
+
+/// Result struct for f64 return values
+#[repr(C)]
+pub struct F64Result {
+    /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
+    pub status: u8,
+    /// Result value (f64)
+    pub value: f64,
+    /// Remaining fuel
+    pub fuel_out: u64,
+}
+
+/// Result struct for bool return values
+/// Note: bool is represented as u8 for C FFI compatibility (0=false, 1=true)
+#[repr(C)]
+pub struct BoolResult {
+    /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
+    pub status: u8,
+    /// Result value (0=false, 1=true)
+    pub value: u8,
+    /// Remaining fuel
+    pub fuel_out: u64,
+}
+
+/// Result struct for u64 return values
+#[repr(C)]
+pub struct U64Result {
+    /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
+    pub status: u8,
+    /// Result value (u64)
+    pub value: u64,
+    /// Remaining fuel
+    pub fuel_out: u64,
+}
+
 /// Simple test function to verify FFI round-trip
 /// Takes three doubles and fuel, writes result to out-pointer
 /// Returns the sum of inputs (doubled) if fuel permits

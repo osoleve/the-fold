@@ -93,6 +93,10 @@
 
 ;;; rust-serialize : (List α) → String
 ;;; Convert Rust IR to a string fragment.
+;;;
+;;; R-Literal format:
+;;;   (R-Literal value)        - untyped, uses heuristics
+;;;   (R-Literal value type)   - typed, uses explicit suffix
 
 (define (rust-serialize ir)
   
@@ -101,18 +105,43 @@
    [(not (pair? ir)) (format "/* Invalid IR: ~s */" ir)]
    
    [(eq? (car ir) 'R-Literal)
-    
-    (let ([val (cadr ir)])
-         
-         (cond
-          
-          [(number? val) (number->string val)]
-          
-          [(boolean? val) (if val "true" "false")]
-          
-          [(string? val) (format "\"~a\"" val)]
-          
-          [else (format "/* ~s */" val)]))]
+    (let* ([val (cadr ir)]
+           [has-type? (and (pair? (cddr ir)) (not (null? (cddr ir))))]
+           [type (if has-type? (caddr ir) #f)])
+          (cond
+           ;; Boolean literals - no suffix needed
+           [(boolean? val) (if val "true" "false")]
+           
+           ;; String literals
+           [(string? val) (format "\"~a\"" val)]
+           
+           ;; Numeric literals with explicit type
+           [(and (number? val) type)
+            (case type
+                  [(i64) (format "~ai64" (inexact->exact (truncate val)))]
+                  [(f64) (if (integer? val)
+                             (format "~a.0_f64" (inexact->exact (truncate val)))
+                             (format "~a_f64" val))]
+                  [(u64) (format "~au64" (inexact->exact (truncate val)))]
+                  [(i32) (format "~ai32" (inexact->exact (truncate val)))]
+                  [(f32) (if (integer? val)
+                             (format "~a.0_f32" (inexact->exact (truncate val)))
+                             (format "~a_f32" val))]
+                  [else (number->string val)])]
+           
+           ;; Numeric literals without type - use heuristics
+           [(number? val)
+            (cond
+             ;; Flonum (has decimal or is inexact) - add suffix for safety
+             [(and (inexact? val) (not (integer? val)))
+              (format "~a_f64" val)]
+             ;; Exact integer - leave as-is for Rust type inference
+             [(integer? val)
+              (number->string (inexact->exact (truncate val)))]
+             ;; Default
+             [else (number->string val)])]
+           
+           [else (format "/* ~s */" val)]))]
    
    [(eq? (car ir) 'R-Var) (symbol->string (cadr ir))]
    
@@ -430,6 +459,35 @@
 ;;; Code Emission
 ;;; ============================================================
 
+;;; ret-type->result-struct : Symbol → String
+;;; Map a return type to its corresponding result struct name.
+(define (ret-type->result-struct ret-type)
+  (case ret-type
+        [(i64) "I64Result"]
+        [(f64) "F64Result"]
+        [(bool) "BoolResult"]
+        [(u64) "U64Result"]
+        [else "TestResult"]))  ; Fallback for backwards compatibility
+
+;;; ret-type->result-struct-def : Symbol → String
+;;; Generate the inline struct definition for standalone compilation.
+(define (ret-type->result-struct-def ret-type)
+  (case ret-type
+        [(i64) "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }"]
+        [(f64) "#[repr(C)] pub struct F64Result { pub status: u8, pub value: f64, pub fuel_out: u64 }"]
+        [(bool) "#[repr(C)] pub struct BoolResult { pub status: u8, pub value: u8, pub fuel_out: u64 }"]
+        [(u64) "#[repr(C)] pub struct U64Result { pub status: u8, pub value: u64, pub fuel_out: u64 }"]
+        [else "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }"]))
+
+;;; ret-type->value-assignment : Symbol → String
+;;; Generate the value assignment line based on return type.
+;;; bool needs special handling (convert to u8), others assign directly.
+(define (ret-type->value-assignment ret-type)
+  (case ret-type
+        [(bool) "    result.value = if val { 1 } else { 0 };\n"]
+        [(i64 f64 u64) "    result.value = val;\n"]
+        [else "    result.value = val as f64;\n"]))  ; Fallback for backwards compat
+
 ;;; rust-emit : (List α) [× Nat] → String
 ;;; Emit a full Rust function with FFI boilerplate and fuel tracking.
 ;;; Cost is computed automatically from the IR body unless explicitly provided.
@@ -448,15 +506,18 @@
              [ret-type (cadddr ir)]
              [body (car (cddddr ir))]
              [cost (or explicit-cost (ir-fuel-cost body))]
-             [rust-params (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
+             [rust-params (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)]
+             [result-struct (ret-type->result-struct ret-type)]
+             [struct-def (ret-type->result-struct-def ret-type)]
+             [value-assign (ret-type->value-assignment ret-type)])
             (string-append
-             ;; TestResult struct - compact for standalone compilation
-             ;; In crate context, use: use fold_accel::TestResult;
-             "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n"
+             ;; Result struct - compact for standalone compilation
+             ;; In crate context, use: use fold_accel::{I64Result, F64Result, ...};
+             struct-def "\n\n"
              "#[no_mangle]\n"
-             (format "pub extern \"C\" fn ~a(~a, fuel_in: u64, out: *mut TestResult) {\n"
-                     name (string-join rust-params ", "))
-             "    if (out as *const TestResult).is_null() { return; }\n"
+             (format "pub extern \"C\" fn ~a(~a, fuel_in: u64, out: *mut ~a) {\n"
+                     name (string-join rust-params ", ") result-struct)
+             (format "    if (out as *const ~a).is_null() { return; }\n" result-struct)
              "    let result = unsafe { &mut *out };\n"
              (format "    const COST: u64 = ~a;\n" cost)
              "    if fuel_in < COST {\n"
@@ -466,6 +527,6 @@
              "    }\n"
              (format "    let val = ~a;\n" (rust-serialize body))
              "    result.status = 1;\n"
-             "    result.value = val as f64;\n"
+             value-assign
              "    result.fuel_out = fuel_in - COST;\n"
              "}"))))

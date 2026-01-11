@@ -38,8 +38,8 @@
       (rust-serialize '(R-If (R-Literal #t) (R-Literal 1) (R-Literal 0))))
 
 (test-section "Rust IR Serialization - Functions")
-(test "Simple function"
-      "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn add_one(x: i64, fuel_in: u64, out: *mut TestResult) {\n    if (out as *const TestResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + 1);\n    result.status = 1;\n    result.value = val as f64;\n    result.fuel_out = fuel_in - COST;\n}"
+(test "Simple function (i64)"
+      "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn add_one(x: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + 1);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
       (rust-emit '(R-Fn add_one ((x i64)) i64 (R-Call + (R-Var x) (R-Literal 1))) 1))
 
 (test-section "Rust IR Serialization - Comparison Operators")
@@ -207,17 +207,59 @@
 (test "Differentiable: lt?" #f (op-differentiable? 'lt?))
 
 (test-section "Rust Emit with Auto-Computed Cost")
-(test "Auto-computed cost (simple add)"
-      "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn auto_add(x: i64, y: i64, fuel_in: u64, out: *mut TestResult) {\n    if (out as *const TestResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + y);\n    result.status = 1;\n    result.value = val as f64;\n    result.fuel_out = fuel_in - COST;\n}"
+(test "Auto-computed cost (i64 add)"
+      "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn auto_add(x: i64, y: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
       (rust-emit '(R-Fn auto_add ((x i64) (y i64)) i64 (R-Call + (R-Var x) (R-Var y)))))
 
-(test "Auto-computed cost (nested ops)"
+(test "Auto-computed cost (f64 nested ops)"
       ;; Cost should be: 1 (outer +) + 1 (inner *) = 2
-      "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn nested_ops(x: f64, y: f64, z: f64, fuel_in: u64, out: *mut TestResult) {\n    if (out as *const TestResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = ((x * y) + z);\n    result.status = 1;\n    result.value = val as f64;\n    result.fuel_out = fuel_in - COST;\n}"
+      "#[repr(C)] pub struct F64Result { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn nested_ops(x: f64, y: f64, z: f64, fuel_in: u64, out: *mut F64Result) {\n    if (out as *const F64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = ((x * y) + z);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
       (rust-emit '(R-Fn nested_ops ((x f64) (y f64) (z f64)) f64 (R-Call + (R-Call * (R-Var x) (R-Var y)) (R-Var z)))))
 
 (test "Explicit cost override still works"
-      "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn override_cost(x: i64, fuel_in: u64, out: *mut TestResult) {\n    if (out as *const TestResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 999;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + 1);\n    result.status = 1;\n    result.value = val as f64;\n    result.fuel_out = fuel_in - COST;\n}"
+      "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn override_cost(x: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 999;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + 1);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
       (rust-emit '(R-Fn override_cost ((x i64)) i64 (R-Call + (R-Var x) (R-Literal 1))) 999))
+
+(test-section "Type-Safe Code Generation (M1: fold-4s4q)")
+
+;; Bool-returning functions use BoolResult with proper value assignment
+(test "Bool function uses BoolResult"
+      "#[repr(C)] pub struct BoolResult { pub status: u8, pub value: u8, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn is_positive(x: i64, fuel_in: u64, out: *mut BoolResult) {\n    if (out as *const BoolResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x > 0);\n    result.status = 1;\n    result.value = if val { 1 } else { 0 };\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn is_positive ((x i64)) bool (R-Call gt? (R-Var x) (R-Literal 0)))))
+
+;; u64-returning functions use U64Result
+(test "U64 function uses U64Result"
+      "#[repr(C)] pub struct U64Result { pub status: u8, pub value: u64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn double_unsigned(x: u64, fuel_in: u64, out: *mut U64Result) {\n    if (out as *const U64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x * 2);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn double_unsigned ((x u64)) u64 (R-Call * (R-Var x) (R-Literal 2)))))
+
+;; Typed literals serialize with proper suffixes
+(test-section "Typed Literals (M1: fold-4s4q)")
+
+(test "Typed i64 literal" "42i64" (rust-serialize '(R-Literal 42 i64)))
+(test "Typed f64 literal (int)" "42.0_f64" (rust-serialize '(R-Literal 42 f64)))
+(test "Typed f64 literal (float)" "3.14_f64" (rust-serialize '(R-Literal 3.14 f64)))
+(test "Typed u64 literal" "100u64" (rust-serialize '(R-Literal 100 u64)))
+(test "Typed i32 literal" "10i32" (rust-serialize '(R-Literal 10 i32)))
+(test "Typed f32 literal" "2.5_f32" (rust-serialize '(R-Literal 2.5 f32)))
+
+;; Untyped literals use heuristics
+(test "Untyped int literal" "42" (rust-serialize '(R-Literal 42)))
+(test "Untyped float literal" "3.14_f64" (rust-serialize '(R-Literal 3.14)))
+(test "Untyped bool true" "true" (rust-serialize '(R-Literal #t)))
+(test "Untyped bool false" "false" (rust-serialize '(R-Literal #f)))
+
+;; Ret-type helper functions
+(test-section "Type Mapping Helpers (M1: fold-4s4q)")
+
+(test "ret-type->result-struct i64" "I64Result" (ret-type->result-struct 'i64))
+(test "ret-type->result-struct f64" "F64Result" (ret-type->result-struct 'f64))
+(test "ret-type->result-struct bool" "BoolResult" (ret-type->result-struct 'bool))
+(test "ret-type->result-struct u64" "U64Result" (ret-type->result-struct 'u64))
+(test "ret-type->result-struct unknown" "TestResult" (ret-type->result-struct 'unknown))
+
+(test "ret-type->value-assignment i64" "    result.value = val;\n" (ret-type->value-assignment 'i64))
+(test "ret-type->value-assignment f64" "    result.value = val;\n" (ret-type->value-assignment 'f64))
+(test "ret-type->value-assignment bool" "    result.value = if val { 1 } else { 0 };\n" (ret-type->value-assignment 'bool))
+(test "ret-type->value-assignment unknown" "    result.value = val as f64;\n" (ret-type->value-assignment 'unknown))
 
 (newline)
