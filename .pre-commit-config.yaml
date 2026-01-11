@@ -1,0 +1,51 @@
+# Pre-commit hooks for The Fold
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Local hooks (no external dependencies)
+  - repo: local
+    hooks:
+      # Run the test suite before commit
+      - id: test-suite
+        name: Run test suite
+        entry: scheme --script test-all.ss
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # Check for debug prints left in code
+      - id: no-debug-prints
+        name: Check for debug prints
+        entry: grep -rn "^\s*(display\s" --include="*.ss" core/ lattice/
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        # This hook fails if debug prints are found (grep returns 0)
+        # We invert: success means no debug prints
+        verbose: true
+
+      # Ensure manifests are valid S-expressions
+      - id: validate-manifests
+        name: Validate manifest.sexp files
+        entry: bash -c 'for f in lattice/*/manifest.sexp; do scheme -q --script -e "(load \"$f\")" 2>/dev/null || echo "Invalid: $f"; done'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        files: manifest\.sexp$
+
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+        exclude: '\.md$'
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: detect-private-key

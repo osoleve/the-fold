@@ -1,5 +1,7 @@
 # The Fold
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 The Fold is an experimental, content-addressable, homoiconic toolbox for agentic AI, written in Chez Scheme.
 
 The Fold is an ever-growing, dynamic *skill tree for AI* with guaranteed totality and strategic Rust acceleration.
@@ -155,9 +157,34 @@ The Fold is a production system, actively developed and deployed. The first prod
 
 ---
 
+## Contributing
+
+```bash
+# Clone and setup
+git clone https://github.com/osoleve/the-fold.git
+cd the-fold
+
+# Install git hooks (runs tests before commit)
+./setup-hooks.sh
+
+# Or with pre-commit framework
+pip install pre-commit && pre-commit install
+```
+
+See [CLAUDE.md](./CLAUDE.md) for development guidelines.
+
+---
+
 ## Further Reading
 
-- [CLAUDE.md](./CLAUDE.md) — Operational guide for working with The Fold
+- [docs/technical-report.md](./docs/technical-report.md) — Comprehensive technical report (academic style)
 - [docs/language-reference.md](./docs/language-reference.md) — Type system, parallel evaluation, rank-N polymorphism
+- [CLAUDE.md](./CLAUDE.md) — Operational guide for working with The Fold
 - [lattice/meta/](./lattice/meta/) — Skill navigation and search
 - [TAXONOMY.sexp](./TAXONOMY.sexp) — Machine-readable module taxonomy
+
+---
+
+## License
+
+Apache 2.0 — See [LICENSE](./LICENSE) for details.
