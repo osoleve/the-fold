@@ -177,6 +177,7 @@ See [CLAUDE.md](./CLAUDE.md) for development guidelines.
 
 ## Further Reading
 
+- [docs/technical-overview.md](./docs/technical-overview.md) — 2-page technical overview (start here)
 - [docs/technical-report.md](./docs/technical-report.md) — Comprehensive technical report (academic style)
 - [docs/language-reference.md](./docs/language-reference.md) — Type system, parallel evaluation, rank-N polymorphism
 - [CLAUDE.md](./CLAUDE.md) — Operational guide for working with The Fold
