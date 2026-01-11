@@ -2,15 +2,27 @@
 ;;; @module rust-codegen
 ;;; @requires prelude rust-mapping
 ;;;
-;;; Serializes Rust IR into valid Rust source code.
+;;; Serializes Rust IR into valid Rust source code and translates
+;;; Scheme expressions to Rust IR for compilation via FFI.
 ;;;
-;;; Rust IR:
-;;;   (R-Literal value)
-;;;   (R-Var symbol)
-;;;   (R-Call op arg...)
-;;;   (R-Let symbol value)
-;;;   (R-If cond then else)
-;;;   (R-Fn name (param...) ret body)
+;;; Status: Layer 1 primitives complete (arithmetic, comparison,
+;;;         logical, bitwise, math methods). See README.sexp for
+;;;         remaining work tracked in beads issues.
+;;;
+;;; Rust IR nodes:
+;;;   (R-Literal value)        - Constants (number, bool, string)
+;;;   (R-Var symbol)           - Variable reference
+;;;   (R-Call op arg...)       - Operation/function call
+;;;   (R-Let symbol value)     - Let binding
+;;;   (R-If cond then else)    - Conditional expression
+;;;   (R-Block stmt... expr)   - Statement block with final expr
+;;;   (R-Fn name params ret body) - Function definition
+;;;
+;;; Key lessons from implementation:
+;;;   1. Verify against spec (prim.ss) before marking complete
+;;;   2. Test full pipeline, not just components
+;;;   3. Check prelude for existing helpers before implementing
+;;;   4. Every extracted value should be used (ret-type was ignored)
 
 (load "core/base/prelude.ss")
 (load "core/lang/rust-mapping.ss")

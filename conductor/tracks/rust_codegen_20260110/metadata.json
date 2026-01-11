@@ -1,8 +1,0 @@
-{
-  "track_id": "rust_codegen_20260110",
-  "type": "feature",
-  "status": "new",
-  "created_at": "2026-01-10T00:00:00Z",
-  "updated_at": "2026-01-10T00:00:00Z",
-  "description": "Plan out a basic rust codegen for the primitives and layer 1"
-}
