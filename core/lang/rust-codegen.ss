@@ -176,6 +176,153 @@
         [else #f]))
 
 ;;; ============================================================
+;;; Fuel Threading for Recursive Functions (fold-vt79)
+;;; ============================================================
+
+;;; rust-serialize-with-fuel : IR × Symbol → String
+;;; Serialize IR, adding __fuel argument to calls of the named function.
+;;; Used to transform recursive function bodies.
+(define (rust-serialize-with-fuel ir rec-name)
+  (cond
+   [(not (pair? ir)) (format "/* Invalid IR: ~s */" ir)]
+
+   ;; R-Call: if calling rec-name, add __fuel argument
+   [(eq? (car ir) 'R-Call)
+    (let ([op (cadr ir)]
+          [args (cddr ir)])
+         (if (eq? op rec-name)
+             ;; Recursive call - add __fuel
+             (let ([serialized-args (map (lambda (a) (rust-serialize-with-fuel a rec-name)) args)])
+                  (format "~a(~a, __fuel)"
+                          rec-name
+                          (string-join serialized-args ", ")))
+             ;; Non-recursive call - serialize normally but recurse into args
+             (let ([op-str (if (symbol? op)
+                               (let ([rust-op (scheme-op->rust op)])
+                                    (if rust-op
+                                        ;; Infix op
+                                        (rust-serialize-infix-with-fuel rust-op args rec-name)
+                                        ;; Function call
+                                        (format "~a(~a)"
+                                                (symbol->string op)
+                                                (string-join (map (lambda (a) (rust-serialize-with-fuel a rec-name)) args) ", "))))
+                               ;; Non-symbol op (e.g., R-Var)
+                               (format "~a(~a)"
+                                       (rust-serialize-with-fuel op rec-name)
+                                       (string-join (map (lambda (a) (rust-serialize-with-fuel a rec-name)) args) ", ")))])
+                  op-str)))]
+
+   ;; R-If: recurse into branches
+   [(eq? (car ir) 'R-If)
+    (format "if ~a { ~a } else { ~a }"
+            (rust-serialize-with-fuel (cadr ir) rec-name)
+            (rust-serialize-with-fuel (caddr ir) rec-name)
+            (rust-serialize-with-fuel (cadddr ir) rec-name))]
+
+   ;; R-Block: recurse into parts
+   [(eq? (car ir) 'R-Block)
+    (let ([parts (cdr ir)])
+         (if (null? parts)
+             "{}"
+             (let ([stmts (init parts)]
+                   [final (last parts)])
+                  (string-append "{ "
+                                 (string-join (map (lambda (p) (rust-serialize-with-fuel p rec-name)) stmts) " ")
+                                 (if (null? stmts) "" " ")
+                                 (rust-serialize-with-fuel final rec-name) " }"))))]
+
+   ;; R-Let: recurse into value
+   [(eq? (car ir) 'R-Let)
+    (format "let ~a = ~a;" (cadr ir) (rust-serialize-with-fuel (caddr ir) rec-name))]
+
+   ;; Other nodes: use regular serialization
+   [else (rust-serialize ir)]))
+
+;;; rust-serialize-infix-with-fuel : String × Args × Symbol → String
+;;; Helper for infix operators with fuel threading in args.
+(define (rust-serialize-infix-with-fuel rust-op args rec-name)
+  (if (= (length args) 2)
+      (format "(~a ~a ~a)"
+              (rust-serialize-with-fuel (car args) rec-name)
+              rust-op
+              (rust-serialize-with-fuel (cadr args) rec-name))
+      (string-join (map (lambda (a) (rust-serialize-with-fuel a rec-name)) args)
+                   (format " ~a " rust-op))))
+
+;;; rust-serialize-call-with-fuel : IR × Symbol → String
+;;; Serialize the in-expr of a letrec, initializing __fuel for the call.
+;;; Wraps calls to rec-name with fuel initialization.
+(define (rust-serialize-call-with-fuel ir rec-name)
+  (cond
+   [(not (pair? ir)) (format "/* Invalid IR: ~s */" ir)]
+
+   ;; R-Call to rec-name: wrap with fuel init
+   [(and (eq? (car ir) 'R-Call)
+         (eq? (cadr ir) rec-name))
+    (let ([args (cddr ir)])
+         (format "{ let mut __remaining = __fuel_budget; ~a(~a, &mut __remaining) }"
+                 rec-name
+                 (string-join (map rust-serialize args) ", ")))]
+
+   ;; R-Var of rec-name: just the function reference (for returning as value)
+   [(and (eq? (car ir) 'R-Var)
+         (eq? (cadr ir) rec-name))
+    ;; Note: Returning a recursive fn as a value requires closure, which is complex
+    ;; For now, just emit a warning comment
+    (format "/* Warning: returning recursive fn ~a as value not fully supported */ ~a"
+            rec-name rec-name)]
+
+   ;; Other: regular serialization
+   [else (rust-serialize ir)]))
+
+;;; ir-contains-letrec? : IR → Boolean
+;;; Check if an IR tree contains R-Letrec nodes.
+(define (ir-contains-letrec? ir)
+  (cond
+   [(not (pair? ir)) #f]
+   [(eq? (car ir) 'R-Letrec) #t]
+   [(eq? (car ir) 'R-Call)
+    (any ir-contains-letrec? (cddr ir))]
+   [(eq? (car ir) 'R-If)
+    (or (ir-contains-letrec? (cadr ir))
+        (ir-contains-letrec? (caddr ir))
+        (ir-contains-letrec? (cadddr ir)))]
+   [(eq? (car ir) 'R-Block)
+    (any ir-contains-letrec? (cdr ir))]
+   [(eq? (car ir) 'R-Let)
+    (ir-contains-letrec? (caddr ir))]
+   [(eq? (car ir) 'R-Lambda)
+    (ir-contains-letrec? (cadddr ir))]
+   [else #f]))
+
+;;; emit-fueled-body : IR × Type → String
+;;; Emit body code wrapped in catch_unwind for fuel-bounded recursion.
+;;; Panics from fuel exhaustion are caught and converted to status=2.
+(define (emit-fueled-body body ret-type)
+  (let ([default-val (type->default-value ret-type)])
+       (string-append
+        "    let val = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n"
+        (format "        ~a\n" (rust-serialize body))
+        "    })) {\n"
+        "        Ok(v) => v,\n"
+        "        Err(_) => {\n"
+        "            result.status = 2;\n"
+        "            result.fuel_out = 0;\n"
+        "            return;\n"
+        "        }\n"
+        "    };\n")))
+
+;;; type->default-value : Type → String
+;;; Return the default value for a Rust type (used as fallback).
+(define (type->default-value ret-type)
+  (case ret-type
+        [(i64 i32) "0"]
+        [(u64 u32) "0"]
+        [(f64 f32) "0.0"]
+        [(bool) "false"]
+        [else "Default::default()"]))
+
+;;; ============================================================
 ;;; IR Serialization
 ;;; ============================================================
 
@@ -366,22 +513,29 @@
                   ret-type
                   (rust-serialize body)))]
 
-   ;; R-Letrec: Recursive function binding
+   ;; R-Letrec: Recursive function binding with fuel threading
    ;; Format: (R-Letrec name ((param type) ...) ret-type body in-expr)
-   ;; Emits: { fn name(params) -> ret { body } in-expr }
+   ;; Emits fuel-aware version: fn takes __fuel param, panics on exhaustion
+   ;; The panic is caught by rust-emit's catch_unwind wrapper
    [(eq? (car ir) 'R-Letrec)
     (let* ([name (cadr ir)]
            [params (caddr ir)]
            [ret-type (cadddr ir)]
            [body (car (cddddr ir))]
            [in-expr (cadr (cddddr ir))]
-           [param-strs (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
-          (format "{ fn ~a(~a) -> ~a { ~a } ~a }"
+           [param-strs (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)]
+           ;; Add __fuel parameter to the function
+           [params-with-fuel (if (null? param-strs)
+                                 "__fuel: &mut u64"
+                                 (string-append (string-join param-strs ", ") ", __fuel: &mut u64"))]
+           ;; Transform recursive calls in body to pass __fuel
+           [body-with-fuel (rust-serialize-with-fuel body name)])
+          (format "{ fn ~a(~a) -> ~a { if *__fuel == 0 { panic!(\"fuel\"); } *__fuel -= 1; ~a } ~a }"
                   name
-                  (string-join param-strs ", ")
+                  params-with-fuel
                   ret-type
-                  (rust-serialize body)
-                  (rust-serialize in-expr)))]
+                  body-with-fuel
+                  (rust-serialize-call-with-fuel in-expr name)))]
 
    [else (format "/* Unknown IR: ~s */" ir)]))
 
@@ -918,7 +1072,13 @@
              [value-assign (ret-type->value-assignment ret-type)]
              ;; M2: Collect divisors and generate guards
              [divisors (ir-collect-divisors body)]
-             [div-guards (emit-divisor-guards divisors params)])
+             [div-guards (emit-divisor-guards divisors params)]
+             ;; fold-vt79: Check if body contains recursion
+             [has-letrec (ir-contains-letrec? body)]
+             ;; Generate body code - with fuel wrapping if needed
+             [body-code (if has-letrec
+                            (emit-fueled-body body ret-type)
+                            (format "    let val = ~a;\n" (rust-serialize body)))])
             (string-append
              ;; Result struct - compact for standalone compilation
              ;; In crate context, use: use fold_accel::{I64Result, F64Result, ...};
@@ -934,9 +1094,13 @@
              "        result.fuel_out = 0;\n"
              "        return;\n"
              "    }\n"
+             ;; fold-vt79: Initialize fuel budget for recursive functions
+             (if has-letrec
+                 "    let __fuel_budget = fuel_in - COST;\n"
+                 "")
              ;; M2: Insert division-by-zero guards before computation
              div-guards
-             (format "    let val = ~a;\n" (rust-serialize body))
+             body-code
              "    result.status = 1;\n"
              value-assign
              "    result.fuel_out = fuel_in - COST;\n"
@@ -966,7 +1130,13 @@
              [value-assign (ret-type->value-assignment ret-type)]
              ;; M2: Collect divisors and generate guards
              [divisors (ir-collect-divisors body)]
-             [div-guards (emit-divisor-guards divisors params)])
+             [div-guards (emit-divisor-guards divisors params)]
+             ;; fold-vt79: Check if body contains recursion
+             [has-letrec (ir-contains-letrec? body)]
+             ;; Generate body code - with fuel wrapping if needed
+             [body-code (if has-letrec
+                            (emit-fueled-body body ret-type)
+                            (format "    let val = ~a;\n" (rust-serialize body)))])
             (string-append
              ;; Module header with crate imports
              "//! Auto-generated by The Fold codegen - do not edit manually\n"
@@ -983,9 +1153,13 @@
              "        result.fuel_out = 0;\n"
              "        return;\n"
              "    }\n"
+             ;; fold-vt79: Initialize fuel budget for recursive functions
+             (if has-letrec
+                 "    let __fuel_budget = fuel_in - COST;\n"
+                 "")
              ;; M2: Insert division-by-zero guards before computation
              div-guards
-             (format "    let val = ~a;\n" (rust-serialize body))
+             body-code
              "    result.status = 1;\n"
              value-assign
              "    result.fuel_out = fuel_in - COST;\n"

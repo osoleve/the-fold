@@ -711,26 +711,33 @@
                           (R-Var a)
                           (R-Var b)))))
 
-(test-section "R-Letrec Serialization")
+(test-section "R-Letrec Serialization (with fuel threading)")
 
-;; Simple recursive function (factorial pattern)
+;; Simple recursive function (factorial pattern) - now with fuel
 (test "Letrec simple recursion"
-      "{ fn fact(n: i64) -> i64 { if (n <= 1) { 1 } else { (n * fact((n - 1))) } } fact }"
-      (rust-serialize '(R-Letrec fact ((n i64)) i64
-                        (R-If (R-Call <= (R-Var n) (R-Literal 1))
-                          (R-Literal 1)
-                          (R-Call * (R-Var n) (R-Call fact (R-Call - (R-Var n) (R-Literal 1)))))
-                        (R-Var fact))))
+      #t
+      ;; Check key parts of fuel-aware output
+      (let ([code (rust-serialize '(R-Letrec fact ((n i64)) i64
+                                    (R-If (R-Call <= (R-Var n) (R-Literal 1))
+                                      (R-Literal 1)
+                                      (R-Call * (R-Var n) (R-Call fact (R-Call - (R-Var n) (R-Literal 1)))))
+                                    (R-Var fact)))])
+           (and (string-contains code "fn fact(n: i64, __fuel: &mut u64)")
+                (string-contains code "if *__fuel == 0 { panic!")
+                (string-contains code "*__fuel -= 1")
+                (string-contains code "fact((n - 1), __fuel)"))))
 
-;; Recursive function with two params (fibonacci-style)
+;; Recursive function with two params (fibonacci-style) - now with fuel
 (test "Letrec with two params"
-      "{ fn fib(n: i64, acc: i64) -> i64 { if (n <= 0) { acc } else { fib((n - 1), (acc + n)) } } fib }"
-      (rust-serialize '(R-Letrec fib ((n i64) (acc i64)) i64
-                        (R-If (R-Call <= (R-Var n) (R-Literal 0))
-                          (R-Var acc)
-                          (R-Call fib (R-Call - (R-Var n) (R-Literal 1))
-                                      (R-Call + (R-Var acc) (R-Var n))))
-                        (R-Var fib))))
+      #t
+      (let ([code (rust-serialize '(R-Letrec fib ((n i64) (acc i64)) i64
+                                    (R-If (R-Call <= (R-Var n) (R-Literal 0))
+                                      (R-Var acc)
+                                      (R-Call fib (R-Call - (R-Var n) (R-Literal 1))
+                                                  (R-Call + (R-Var acc) (R-Var n))))
+                                    (R-Var fib)))])
+           (and (string-contains code "fn fib(n: i64, acc: i64, __fuel: &mut u64)")
+                (string-contains code "fib((n - 1), (acc + n), __fuel)"))))
 
 (test-section "Scheme->IR for fn and fix")
 
@@ -818,8 +825,11 @@
       (rust-serialize '(R-Lambda () i64 (R-Literal 42))))
 
 (test "Letrec with empty params (thunk)"
-      "{ fn get_value() -> i64 { 42 } get_value }"
-      (rust-serialize '(R-Letrec get_value () i64 (R-Literal 42) (R-Var get_value))))
+      #t
+      ;; Even 0-arity recursive fns get __fuel param
+      (let ([code (rust-serialize '(R-Letrec get_value () i64 (R-Literal 42) (R-Var get_value)))])
+           (and (string-contains code "fn get_value(__fuel: &mut u64)")
+                (string-contains code "if *__fuel == 0"))))
 
 ;; Scheme->IR with empty params
 (test "Scheme->IR empty param lambda"
@@ -845,7 +855,7 @@
            (and (string-contains code "|x: f64|")
                 (string-contains code "-> f64"))))
 
-;; Test that R-Letrec produces valid local fn syntax
+;; Test that R-Letrec produces valid local fn syntax with fuel
 (test "Letrec serialization syntax valid"
       #t
       (let ([code (rust-serialize '(R-Letrec sum ((n i64)) i64
@@ -853,8 +863,8 @@
                                       (R-Literal 0)
                                       (R-Call + (R-Var n) (R-Call sum (R-Call - (R-Var n) (R-Literal 1)))))
                                     (R-Call sum (R-Literal 10))))])
-           (and (string-contains code "fn sum(n: i64) -> i64")
-                (string-contains code "sum(10)"))))
+           (and (string-contains code "fn sum(n: i64, __fuel: &mut u64)")
+                (string-contains code "sum(10, &mut __remaining)"))))
 
 ;; Compile a function that uses letrec internally (factorial)
 (display "  Compiling factorial with letrec... ")
@@ -877,5 +887,46 @@
 
 ;; Note: Lambda as first-class values (passed to/returned from functions)
 ;; requires function pointer types in FFI, which is future work
+
+(test-section "Fuel Threading (fold-vt79)")
+
+;; Test that ir-contains-letrec? detects R-Letrec
+(test "ir-contains-letrec? positive"
+      #t
+      (ir-contains-letrec?
+       '(R-Block
+         (R-Let x (R-Literal 1))
+         (R-Letrec f ((n i64)) i64 (R-Var n) (R-Call f (R-Literal 5))))))
+
+(test "ir-contains-letrec? negative"
+      #f
+      (ir-contains-letrec?
+       '(R-Block
+         (R-Let x (R-Literal 1))
+         (R-Lambda ((n i64)) i64 (R-Var n)))))
+
+;; Test that letrec bodies have fuel check
+(test "R-Letrec generates fuel check"
+      #t
+      (let ([code (rust-serialize '(R-Letrec loop ((x i64)) i64
+                                    (R-Call loop (R-Var x))
+                                    (R-Call loop (R-Literal 0))))])
+           (and (string-contains code "if *__fuel == 0 { panic!")
+                (string-contains code "*__fuel -= 1"))))
+
+;; Test that recursive calls pass __fuel
+(test "Recursive calls pass __fuel"
+      #t
+      (let ([code (rust-serialize '(R-Letrec rec ((a i64) (b i64)) i64
+                                    (R-Call + (R-Var a) (R-Call rec (R-Var b) (R-Literal 0)))
+                                    (R-Call rec (R-Literal 1) (R-Literal 2))))])
+           (string-contains code "rec(b, 0, __fuel)")))
+
+;; Test emit-fueled-body generates catch_unwind
+(test "emit-fueled-body wraps in catch_unwind"
+      #t
+      (let ([code (emit-fueled-body '(R-Literal 42) 'i64)])
+           (and (string-contains code "std::panic::catch_unwind")
+                (string-contains code "result.status = 2"))))
 
 (newline)
