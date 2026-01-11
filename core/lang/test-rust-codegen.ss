@@ -255,11 +255,24 @@
 (test "ret-type->result-struct f64" "F64Result" (ret-type->result-struct 'f64))
 (test "ret-type->result-struct bool" "BoolResult" (ret-type->result-struct 'bool))
 (test "ret-type->result-struct u64" "U64Result" (ret-type->result-struct 'u64))
+(test "ret-type->result-struct i32" "I32Result" (ret-type->result-struct 'i32))
+(test "ret-type->result-struct f32" "F32Result" (ret-type->result-struct 'f32))
 (test "ret-type->result-struct unknown" "TestResult" (ret-type->result-struct 'unknown))
 
 (test "ret-type->value-assignment i64" "    result.value = val;\n" (ret-type->value-assignment 'i64))
 (test "ret-type->value-assignment f64" "    result.value = val;\n" (ret-type->value-assignment 'f64))
 (test "ret-type->value-assignment bool" "    result.value = if val { 1 } else { 0 };\n" (ret-type->value-assignment 'bool))
+(test "ret-type->value-assignment i32" "    result.value = val;\n" (ret-type->value-assignment 'i32))
+(test "ret-type->value-assignment f32" "    result.value = val;\n" (ret-type->value-assignment 'f32))
 (test "ret-type->value-assignment unknown" "    result.value = val as f64;\n" (ret-type->value-assignment 'unknown))
+
+;; i32/f32 function emit tests
+(test "I32 function uses I32Result"
+      "#[repr(C)] pub struct I32Result { pub status: u8, pub value: i32, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn add_small(x: i32, y: i32, fuel_in: u64, out: *mut I32Result) {\n    if (out as *const I32Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn add_small ((x i32) (y i32)) i32 (R-Call + (R-Var x) (R-Var y)))))
+
+(test "F32 function uses F32Result"
+      "#[repr(C)] pub struct F32Result { pub status: u8, pub value: f32, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn mul_float(x: f32, y: f32, fuel_in: u64, out: *mut F32Result) {\n    if (out as *const F32Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x * y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn mul_float ((x f32) (y f32)) f32 (R-Call * (R-Var x) (R-Var y)))))
 
 (newline)

@@ -87,6 +87,28 @@ pub struct U64Result {
     pub fuel_out: u64,
 }
 
+/// Result struct for i32 return values
+#[repr(C)]
+pub struct I32Result {
+    /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
+    pub status: u8,
+    /// Result value (i32)
+    pub value: i32,
+    /// Remaining fuel
+    pub fuel_out: u64,
+}
+
+/// Result struct for f32 return values
+#[repr(C)]
+pub struct F32Result {
+    /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
+    pub status: u8,
+    /// Result value (f32)
+    pub value: f32,
+    /// Remaining fuel
+    pub fuel_out: u64,
+}
+
 /// Simple test function to verify FFI round-trip
 /// Takes three doubles and fuel, writes result to out-pointer
 /// Returns the sum of inputs (doubled) if fuel permits

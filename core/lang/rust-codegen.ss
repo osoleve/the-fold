@@ -9,8 +9,17 @@
 ;;;         logical, bitwise, math methods). See README.sexp for
 ;;;         remaining work tracked in beads issues.
 ;;;
+;;; Supported FFI return types:
+;;;   i64  → I64Result   (64-bit signed integer)
+;;;   f64  → F64Result   (64-bit float)
+;;;   bool → BoolResult  (boolean as u8: 0/1)
+;;;   u64  → U64Result   (64-bit unsigned integer)
+;;;   i32  → I32Result   (32-bit signed integer)
+;;;   f32  → F32Result   (32-bit float)
+;;;   *    → TestResult  (fallback, casts to f64)
+;;;
 ;;; Rust IR nodes:
-;;;   (R-Literal value)        - Constants (number, bool, string)
+;;;   (R-Literal value [type]) - Constants (number, bool, string)
 ;;;   (R-Var symbol)           - Variable reference
 ;;;   (R-Call op arg...)       - Operation/function call
 ;;;   (R-Let symbol value)     - Let binding
@@ -461,12 +470,15 @@
 
 ;;; ret-type->result-struct : Symbol → String
 ;;; Map a return type to its corresponding result struct name.
+;;; Supported types: i64, f64, bool, u64, i32, f32
 (define (ret-type->result-struct ret-type)
   (case ret-type
         [(i64) "I64Result"]
         [(f64) "F64Result"]
         [(bool) "BoolResult"]
         [(u64) "U64Result"]
+        [(i32) "I32Result"]
+        [(f32) "F32Result"]
         [else "TestResult"]))  ; Fallback for backwards compatibility
 
 ;;; ret-type->result-struct-def : Symbol → String
@@ -477,6 +489,8 @@
         [(f64) "#[repr(C)] pub struct F64Result { pub status: u8, pub value: f64, pub fuel_out: u64 }"]
         [(bool) "#[repr(C)] pub struct BoolResult { pub status: u8, pub value: u8, pub fuel_out: u64 }"]
         [(u64) "#[repr(C)] pub struct U64Result { pub status: u8, pub value: u64, pub fuel_out: u64 }"]
+        [(i32) "#[repr(C)] pub struct I32Result { pub status: u8, pub value: i32, pub fuel_out: u64 }"]
+        [(f32) "#[repr(C)] pub struct F32Result { pub status: u8, pub value: f32, pub fuel_out: u64 }"]
         [else "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }"]))
 
 ;;; ret-type->value-assignment : Symbol → String
@@ -485,7 +499,7 @@
 (define (ret-type->value-assignment ret-type)
   (case ret-type
         [(bool) "    result.value = if val { 1 } else { 0 };\n"]
-        [(i64 f64 u64) "    result.value = val;\n"]
+        [(i64 f64 u64 i32 f32) "    result.value = val;\n"]
         [else "    result.value = val as f64;\n"]))  ; Fallback for backwards compat
 
 ;;; rust-emit : (List α) [× Nat] → String
