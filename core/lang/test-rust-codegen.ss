@@ -1085,4 +1085,19 @@
                    'rec)])
            (string-contains code "callback(x, fuel_remaining)")))
 
+;; Test scheme->rust-ir with explicit (call ...) form
+;; Note: (call f x) is required for function pointer invocation
+;; Bare (f x) falls through to R-Call (for primitives)
+(test "scheme->rust-ir: (call f x) emits R-FnCall"
+      'R-FnCall
+      (car (scheme->rust-ir '(call f x))))
+
+(test "scheme->rust-ir: (call f x y) emits R-FnCall with args"
+      #t
+      (let ([ir (scheme->rust-ir '(call g a b))])
+           (and (eq? (car ir) 'R-FnCall)
+                (equal? (cadr ir) '(R-Var g))
+                (equal? (caddr ir) '(R-Var a))
+                (equal? (cadddr ir) '(R-Var b)))))
+
 (newline)

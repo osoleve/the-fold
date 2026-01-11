@@ -31,6 +31,15 @@
 ;;;   (R-Letrec name params ret body in-expr) - Recursive binding
 ;;;   (R-FnCall fn-ir arg-ir...)  - Call function pointer (fold-s2w6)
 ;;;
+;;; Function pointer calling convention (fold-s2w6):
+;;;   - Use (call f args...) in source to invoke function pointers
+;;;   - Bare (f x) emits R-Call (for primitives), NOT R-FnCall
+;;;   - Function pointers use direct return: extern "C" fn(args, fuel) -> R
+;;;   - Fold-compiled functions use Result structs (different ABI)
+;;;   - Callbacks receive fuel by value; remaining fuel NOT returned
+;;;   - Suitable for: Scheme callbacks via make-callback, C functions
+;;;   - NOT for: passing Fold-compiled functions as callbacks (ABI mismatch)
+;;;
 ;;; Closure support (M5: fold-49ht):
 ;;;   - R-Lambda: Non-capturing closures compile to Rust closures |x| body
 ;;;   - R-Letrec: Recursive functions compile to local fn definitions
@@ -844,11 +853,11 @@
                               `(R-Literal ,(format "/* untyped fix not supported: ~s */" expr))))
                      `(R-Literal ,(format "/* fix requires fn: ~s */" expr))))]
 
-          ;; (call f args...) - explicit function application
+          ;; (call f args...) - explicit function pointer invocation (fold-s2w6)
           [(eq? head 'call)
            (let ([f (cadr expr)]
                  [args (cddr expr)])
-                `(R-Call ,(scheme->rust-ir f) ,@(map scheme->rust-ir args)))]
+                `(R-FnCall ,(scheme->rust-ir f) ,@(map scheme->rust-ir args)))]
 
           ;; Function application (fallback)
           [else
