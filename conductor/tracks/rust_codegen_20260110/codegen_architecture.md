@@ -11,8 +11,14 @@ The codegen is implemented as a new phase in the compilation pipeline:
 
 ### 1. AST Transformation (Scheme)
 - **Input:** Type-annotated S-expressions (after `infer` phase).
-- **Transformation:** Mapping Scheme constructs to a simplified Rust AST representation.
-- **Handling Effects:** Ensuring fuel consumption is explicitly tracked in the generated AST.
+- **Transformation:** `scheme->rust-ir` translates Scheme to Rust IR.
+- **Handling Effects:** Fuel consumption explicitly tracked in generated code.
+
+Implemented in `core/lang/rust-codegen.ss`:
+```scheme
+(scheme->rust-ir '(prim 'lt? (abs x) (abs y)))
+;; => (R-Call lt? (R-Call abs (R-Var x)) (R-Call abs (R-Var y)))
+```
 
 ### 2. Rust AST (Intermediate Representation)
 A simplified representation of Rust constructs:
@@ -21,6 +27,8 @@ A simplified representation of Rust constructs:
 - `R-If`: Conditional expressions.
 - `R-Call`: Function calls (including primitive operations).
 - `R-Literal`: Base types (integers, booleans, etc.).
+- `R-Var`: Variable references.
+- `R-Block`: Statement sequences with final expression.
 
 ### 3. Code Emission (Scheme)
 - **Input:** Rust AST.
@@ -34,14 +42,41 @@ A simplified representation of Rust constructs:
 
 ## Mapping Strategy
 
+### Constructs
+
 | Scheme Construct | Rust Equivalent | Notes |
 |------------------|-----------------|-------|
-| `(fn (x) body)` | `move |x| { body }` | Closures may require lifting to top-level functions for FFI. |
+| `(fn (x) body)` | `extern "C" fn(x, fuel) -> Result` | Top-level FFI functions. |
 | `(if c t e)` | `if c { t } else { e }` | Rust `if` is an expression. |
-| `(let ((x v)) b)`| `let x = v; b` | |
-| `(prim 'add a b)`| `a + b` | |
+| `(let ((x v)) b)`| `{ let x = v; b }` | Block with binding. |
+| `(prim 'add a b)`| `(a + b)` | Binary infix. |
+
+### Types
+
+| Fold Type | Rust Type | Notes |
+|-----------|-----------|-------|
 | `Nat` | `u64` | |
 | `Int` | `i64` | |
+| `Bool` | `bool` | Requires conversion for f64 result |
+| `Char` | `char` | |
+| `String` | `String` | FFI uses `*const c_char` |
+| `Bytes` | `Vec<u8>` | |
+| `Hash` | `[u8; 33]` | Versioned block address |
+
+### Layer 1 Operators (Implemented)
+
+| Category | Scheme | Rust | Style |
+|----------|--------|------|-------|
+| Arithmetic | `add`, `sub`, `mul`, `div`, `mod` | `+`, `-`, `*`, `/`, `%` | Binary infix |
+| Comparison | `lt?`, `le?`, `gt?`, `ge?`, `eq?` | `<`, `<=`, `>`, `>=`, `==` | Binary infix |
+| Logical | `and`, `or` | `&&`, `\|\|` | Binary infix |
+| Logical | `not` | `!` | Unary prefix |
+| Bitwise | `bitand`, `bitor`, `bitxor` | `&`, `\|`, `^` | Binary infix |
+| Bitwise | `shl`, `shr` | `<<`, `>>` | Binary infix |
+| Math | `abs`, `sqrt`, `sin`, `cos`, `tan` | `.abs()`, `.sqrt()`, etc. | Method call |
+| Math | `log`, `floor`, `ceiling`, `round` | `.ln()`, `.floor()`, `.ceil()`, `.round()` | Method call |
+| Unary | `neg` | `-x` | Unary prefix |
+| Binary | `expt` | `.powf(y)` | Method call |
 
 ## Performance Considerations
 - **Zero-cost abstractions:** Use Rust's ownership and typing to avoid overhead.
