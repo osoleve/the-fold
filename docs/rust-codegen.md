@@ -366,10 +366,186 @@ if divisor == 0 {
 - Manual compilation workflow (no JIT)
 
 ### Future Work (v2.0+)
-- Layer 2: Bytevectors, strings
+- Layer 2 codegen: Fixed-size matrix operations, batched transforms
 - Layer 3: Crypto primitives
 - Automatic hot-path compilation
 - Rust-native autodiff
+
+## Performance Layers
+
+Understanding when Rust FFI wins vs native Scheme is critical for deciding what to accelerate.
+
+### Layer 1: Primitives (FFI Loses)
+
+Single arithmetic operations like `(+ a b)`, `(* x y)`, `(sqrt z)`:
+
+| Implementation | Time/call | Why |
+|----------------|-----------|-----|
+| Chez Scheme native | ~2-5ns | Direct CPU operation |
+| Rust FFI | ~200-500ns | Marshal, call, unmarshal |
+| **Ratio** | **100-250x slower** | FFI overhead dominates |
+
+Layer 1 codegen is useful for:
+- Testing the codegen pipeline
+- Foundation for Layer 2
+- NOT for performance
+
+### Layer 2: Single Complex Ops (Depends on Approach)
+
+Operations like mat4×4 multiply (112 ops):
+
+**With element-by-element copying (old approach):**
+
+| Implementation | Time/call | Why |
+|----------------|-----------|-----|
+| Scheme unrolled | ~800-900ns | 112 native ops |
+| Rust FFI (copy) | ~2000ns | Marshal 32 doubles, call, unmarshal 16 |
+| **Ratio** | **2-3x slower** | Marshaling overhead > computation |
+
+**With bytevector pass-through (new approach):**
+
+| Implementation | Time/call | Why |
+|----------------|-----------|-----|
+| Scheme unrolled | ~800-900ns | 112 native ops |
+| Rust FFI (bytevector) | **~30ns** | Zero-copy pass, pure compute |
+| **Ratio** | **26x faster!** | No marshaling overhead |
+
+The difference: bytevectors passed as `u8*` pointers avoid copying entirely.
+
+### Layer 2: Batched with Fresh Data (Break-Even)
+
+1000-point batch transform with per-call allocation:
+
+| Implementation | Time/point | Why |
+|----------------|------------|-----|
+| Scheme batch | ~165-200ns | Iterate list, 16 MADs |
+| Rust batch | ~210-220ns | Marshal 4000 doubles per call |
+| **Ratio** | **~1:1** | Marshaling ≈ computation |
+
+### Layer 2: Batched with Cached Buffers (FFI Wins!)
+
+1000-point batch with pre-allocated Rust memory:
+
+| Implementation | Time/point | Why |
+|----------------|------------|-----|
+| Scheme batch | ~165-200ns | Same as above |
+| Rust (cached) | **~3ns** | Pure SIMD computation |
+| **Ratio** | **50-60x faster** | Computation >> overhead |
+
+### When to Use Rust FFI
+
+The pattern for Rust FFI wins:
+
+1. **Allocate once, reuse many times** (like BVH handles)
+2. **Batch operations** (100+ items per call)
+3. **Keep data in Rust memory** (avoid Scheme↔Rust copying)
+4. **Algorithms with internal iteration** (raymarching, BVH traversal)
+
+Examples that work well:
+- BVH queries: **112-328x speedup** (single alloc, many queries)
+- Raymarching: **162-257x speedup** (64+ rays per call)
+- Batch transforms: **50x speedup** (with cached buffers)
+
+Examples that don't work:
+- Single arithmetic ops: 100x slower
+- Single mat4 multiply: 2x slower
+- Per-call allocated batches: break-even
+
+### The Bytevector Solution (Zero-Copy FFI)
+
+The key breakthrough: **Chez Scheme bytevectors can be passed directly as `u8*` pointers**.
+
+```scheme
+;; Load bytevector FFI helpers
+(load "shell/ffi/bytevector-ffi.ss")
+
+;; Create bytevectors for matrices
+(define mat-a (make-mat4-bytevector))
+(define mat-b (make-mat4-bytevector))
+
+;; Fill with data using indexed accessors
+(f64-bv-set! mat-a 0 1.0)  ; mat[0][0] = 1.0
+(f64-bv-set! mat-a 5 1.0)  ; mat[1][1] = 1.0
+;; ...
+
+;; Pass directly to Rust - NO COPYING!
+(define rust-mat4-mul
+  (foreign-procedure "fold_mat4_mul" (u8* u8* unsigned-64 void*) void))
+
+(rust-mat4-mul mat-a mat-b fuel result-ptr)
+;; Total time: ~30ns (vs ~2000ns with element copying)
+```
+
+**Benchmark Results:**
+
+| Approach | Time | Notes |
+|----------|------|-------|
+| Element copy (foreign-set! loop) | 1914ns | 64 copies per matrix |
+| Bytevector direct (u8*) | **30ns** | Zero copy |
+| **Improvement** | **64x** | |
+
+### Bytevector FFI API
+
+The `bytevector-ffi.ss` module provides:
+
+```scheme
+;; Typed bytevector constructors
+(make-f64-bytevector 16)    ; → 128-byte bytevector for 16 doubles
+(make-i64-bytevector 100)   ; → 800-byte bytevector for 100 i64s
+(make-mat4-bytevector)      ; → 4x4 matrix (16 f64s)
+(make-points-bytevector n)  ; → n points (4 f64s each)
+
+;; Indexed accessors (element index, not byte offset)
+(f64-bv-ref bv 5)           ; → 6th double
+(f64-bv-set! bv 5 3.14)     ; Set 6th double
+
+;; Conversions
+(vector->f64-bytevector vec)      ; → bytevector
+(f64-bytevector->vector bv)       ; → vector
+(list->f64-bytevector lst)        ; → bytevector
+
+;; Safety for long-running ops
+(with-locked-bytevector bv thunk)      ; Lock during GC-unsafe ops
+(with-locked-bytevectors bvs thunk)    ; Lock multiple
+```
+
+### Type Mapping for Bytevectors
+
+The `rust-loader.ss` now supports bytevector types:
+
+| Scheme Type | Chez FFI Type | Use Case |
+|-------------|---------------|----------|
+| `bv`, `bytevector`, `u8*` | `u8*` | Generic bytevector |
+| `f64*`, `f64-bv` | `u8*` | f64 array bytevector |
+| `i64*`, `i64-bv` | `u8*` | i64 array bytevector |
+| `ptr`, `void*` | `void*` | Foreign-allocated memory |
+
+### Recommended Architecture
+
+For Layer 2+ acceleration with bytevectors:
+
+```scheme
+(load "shell/ffi/bytevector-ffi.ss")
+
+;; Allocate bytevectors ONCE (reuse across many calls)
+(define mat (make-mat4-bytevector))
+(define points-in (make-points-bytevector 1000))
+(define points-out (make-points-bytevector 1000))
+
+;; Fill matrix
+(mat4-identity! mat)  ; or load from data
+
+;; Fill points
+(do ([i 0 (+ i 1)]) ((= i 1000))
+  (points-bv-set! points-in i x y z 1.0))
+
+;; Transform - ZERO COPY, reuse buffers
+(rust-mat4-transform-bv mat points-in 1000 points-out fuel ...)
+;; Time: ~3ns per point (vs ~200ns with fresh allocation)
+
+;; Read results from points-out bytevector
+(f64-bv-ref points-out 0)  ; → transformed x₀
+```
 
 ## Examples
 

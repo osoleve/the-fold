@@ -52,12 +52,26 @@
 ;;; ============================================================
 
 ;;; Scheme type symbol → Chez ftype for parameters
+;;;
+;;; Bytevector types (bv, f64*, etc.) use u8* which allows passing
+;;; Scheme bytevectors directly without copying. This is the key to
+;;; zero-copy FFI performance.
 (define (scheme-type->ftype type)
   (case type
+        ;; Scalar types
         [(i64 int integer) 'integer-64]
         [(f64 float double real) 'double]
         [(bool boolean) 'unsigned-8]  ; passed as u8
         [(u64 unsigned) 'unsigned-64]
+        [(i32) 'integer-32]
+        [(f32) 'single-float]
+        ;; Bytevector types - u8* accepts bytevectors directly (zero-copy!)
+        [(bv bytevector u8* bytes) 'u8*]
+        [(f64* f64-bv) 'u8*]   ; f64 bytevector (caller ensures alignment)
+        [(f32* f32-bv) 'u8*]   ; f32 bytevector
+        [(i64* i64-bv) 'u8*]   ; i64 bytevector
+        ;; Raw pointer (for pre-allocated foreign memory)
+        [(ptr void* pointer) 'void*]
         [else (error 'scheme-type->ftype "Unknown type" type)]))
 
 ;;; Scheme type symbol → result ftype
