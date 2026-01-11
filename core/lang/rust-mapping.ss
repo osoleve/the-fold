@@ -44,7 +44,7 @@
 ;;; Convert a Fold type to its Rust string representation.
 (define (scheme-type->rust t)
   (cond
-   ;; Base Types
+   ;; Base Types (capitalized - The Fold type system)
    [(eq? t 'Nat) "u64"]
    [(eq? t 'Int) "i64"]
    [(eq? t 'Bool) "bool"]
@@ -55,7 +55,17 @@
    ; but for internal codegen we use String.
    [(eq? t 'Bytes) "Vec<u8>"]
    [(eq? t 'Hash) "[u8; 33]"]
-   
+
+   ;; Rust primitive types (lowercase - used in codegen IR)
+   ;; fold-s2w6: Support lowercase type names for function pointer recursion
+   [(eq? t 'i64) "i64"]
+   [(eq? t 'i32) "i32"]
+   [(eq? t 'u64) "u64"]
+   [(eq? t 'u32) "u32"]
+   [(eq? t 'f64) "f64"]
+   [(eq? t 'f32) "f32"]
+   [(eq? t 'bool) "bool"]
+
    ;; Function Types
    [(and (pair? t) (eq? (car t) '->))
     (let* ([params (function-param-types t)]
@@ -67,6 +77,6 @@
                          (join-strings ", " params-with-fuel)
                          ") -> "
                          (scheme-type->rust ret)))]
-   
+
    ;; Fallback
    [else (format "/* Unknown type: ~s */" t)]))

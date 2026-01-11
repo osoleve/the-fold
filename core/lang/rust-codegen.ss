@@ -29,6 +29,7 @@
 ;;;   (R-Lambda params ret body)  - Anonymous function (non-capturing)
 ;;;   (R-Closure captures params ret body) - Capturing closure (move semantics)
 ;;;   (R-Letrec name params ret body in-expr) - Recursive binding
+;;;   (R-FnCall fn-ir arg-ir...)  - Call function pointer (fold-s2w6)
 ;;;
 ;;; Closure support (M5: fold-49ht):
 ;;;   - R-Lambda: Non-capturing closures compile to Rust closures |x| body
@@ -111,6 +112,25 @@
         [(and) "true"]
         [(or) "false"]
         [else #f]))
+
+;;; ============================================================
+;;; Parameter Type Serialization (fold-s2w6)
+;;; ============================================================
+
+;;; param-type->rust : Type → String
+;;; Convert a parameter type to its Rust string representation.
+;;; Handles function pointer types via scheme-type->rust from rust-mapping.
+;;; Simple types (i64, f64, bool, etc.) are converted directly.
+(define (param-type->rust type)
+  (cond
+   ;; Function type: (-> A... R) → extern "C" fn(A..., u64) -> R
+   [(and (pair? type) (eq? (car type) '->))
+    (scheme-type->rust type)]
+   ;; Simple scalar types
+   [(symbol? type)
+    (symbol->string type)]
+   ;; Fallback
+   [else (format "/* Unknown param type: ~s */" type)]))
 
 ;;; ============================================================
 ;;; Rust Identifier Sanitization
@@ -259,6 +279,17 @@
                   ret-type
                   (rust-serialize-with-fuel body rec-name)))]
 
+   ;; R-FnCall: recurse into args for fuel threading
+   [(eq? (car ir) 'R-FnCall)
+    (let ([fn-ir (cadr ir)]
+          [args (cddr ir)])
+         (if (null? args)
+             (format "~a(fuel_remaining)"
+                     (rust-serialize-with-fuel fn-ir rec-name))
+             (format "~a(~a, fuel_remaining)"
+                     (rust-serialize-with-fuel fn-ir rec-name)
+                     (string-join (map (lambda (a) (rust-serialize-with-fuel a rec-name)) args) ", "))))]
+
    ;; Other nodes: use regular serialization
    [else (rust-serialize ir)]))
 
@@ -319,6 +350,32 @@
     (ir-contains-letrec? (cadddr ir))]
    [(eq? (car ir) 'R-Closure)
     (ir-contains-letrec? (car (cddddr ir)))]  ; body
+   [else #f]))
+
+;;; ir-contains-fn-call? : IR → Boolean
+;;; Check if an IR tree contains R-FnCall nodes (function pointer calls).
+;;; Used to determine if fuel_remaining variable needs to be emitted.
+(define (ir-contains-fn-call? ir)
+  (cond
+   [(not (pair? ir)) #f]
+   [(eq? (car ir) 'R-FnCall) #t]
+   [(eq? (car ir) 'R-Call)
+    (any ir-contains-fn-call? (cddr ir))]
+   [(eq? (car ir) 'R-If)
+    (or (ir-contains-fn-call? (cadr ir))
+        (ir-contains-fn-call? (caddr ir))
+        (ir-contains-fn-call? (cadddr ir)))]
+   [(eq? (car ir) 'R-Block)
+    (any ir-contains-fn-call? (cdr ir))]
+   [(eq? (car ir) 'R-Let)
+    (ir-contains-fn-call? (caddr ir))]
+   [(eq? (car ir) 'R-Lambda)
+    (ir-contains-fn-call? (cadddr ir))]
+   [(eq? (car ir) 'R-Closure)
+    (ir-contains-fn-call? (car (cddddr ir)))]  ; body
+   [(eq? (car ir) 'R-Letrec)
+    (or (ir-contains-fn-call? (car (cddddr ir)))   ; body
+        (ir-contains-fn-call? (cadr (cddddr ir))))] ; in-expr
    [else #f]))
 
 ;;; emit-fueled-body : IR × Type → String
@@ -648,6 +705,20 @@
                   ret-type
                   body-with-fuel
                   (rust-serialize-call-with-fuel in-expr name)))]
+
+   ;; R-FnCall: Call a function pointer parameter (fold-s2w6)
+   ;; Format: (R-FnCall fn-ir arg-ir...)
+   ;; Emits: fn(args..., fuel_remaining)
+   ;; The fuel_remaining variable must be defined in the enclosing scope
+   [(eq? (car ir) 'R-FnCall)
+    (let ([fn-ir (cadr ir)]
+          [args (cddr ir)])
+         (if (null? args)
+             (format "~a(fuel_remaining)"
+                     (rust-serialize fn-ir))
+             (format "~a(~a, fuel_remaining)"
+                     (rust-serialize fn-ir)
+                     (string-join (map rust-serialize args) ", "))))]
 
    [else (format "/* Unknown IR: ~s */" ir)]))
 
@@ -1201,7 +1272,7 @@
              [ret-type (cadddr ir)]
              [body (car (cddddr ir))]
              [cost (or explicit-cost (ir-fuel-cost body))]
-             [rust-params (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)]
+             [rust-params (map (lambda (p) (format "~a: ~a" (car p) (param-type->rust (cadr p)))) params)]
              [result-struct (ret-type->result-struct ret-type)]
              [struct-def (ret-type->result-struct-def ret-type)]
              [value-assign (ret-type->value-assignment ret-type)]
@@ -1210,6 +1281,8 @@
              [div-guards (emit-divisor-guards divisors params)]
              ;; fold-vt79: Check if body contains recursion
              [has-letrec (ir-contains-letrec? body)]
+             ;; fold-s2w6: Check if body contains function pointer calls
+             [has-fn-call (ir-contains-fn-call? body)]
              ;; Generate body code - with fuel wrapping if needed
              [body-code (if has-letrec
                             (emit-fueled-body body ret-type)
@@ -1232,6 +1305,10 @@
              ;; fold-vt79: Initialize fuel budget for recursive functions
              (if has-letrec
                  "    let __fuel_budget = fuel_in - COST;\n"
+                 "")
+             ;; fold-s2w6: Initialize fuel_remaining for function pointer calls
+             (if has-fn-call
+                 "    let fuel_remaining = fuel_in - COST;\n"
                  "")
              ;; M2: Insert division-by-zero guards before computation
              div-guards
@@ -1260,7 +1337,7 @@
              [ret-type (cadddr ir)]
              [body (car (cddddr ir))]
              [cost (or explicit-cost (ir-fuel-cost body))]
-             [rust-params (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)]
+             [rust-params (map (lambda (p) (format "~a: ~a" (car p) (param-type->rust (cadr p)))) params)]
              [result-struct (ret-type->result-struct ret-type)]
              [value-assign (ret-type->value-assignment ret-type)]
              ;; M2: Collect divisors and generate guards
@@ -1268,6 +1345,8 @@
              [div-guards (emit-divisor-guards divisors params)]
              ;; fold-vt79: Check if body contains recursion
              [has-letrec (ir-contains-letrec? body)]
+             ;; fold-s2w6: Check if body contains function pointer calls
+             [has-fn-call (ir-contains-fn-call? body)]
              ;; Generate body code - with fuel wrapping if needed
              [body-code (if has-letrec
                             (emit-fueled-body body ret-type)
@@ -1291,6 +1370,10 @@
              ;; fold-vt79: Initialize fuel budget for recursive functions
              (if has-letrec
                  "    let __fuel_budget = fuel_in - COST;\n"
+                 "")
+             ;; fold-s2w6: Initialize fuel_remaining for function pointer calls
+             (if has-fn-call
+                 "    let fuel_remaining = fuel_in - COST;\n"
                  "")
              ;; M2: Insert division-by-zero guards before computation
              div-guards

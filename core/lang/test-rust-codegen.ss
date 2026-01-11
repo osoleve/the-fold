@@ -1016,4 +1016,73 @@
            (and (eq? (car outer) 'R-Lambda)
                 (eq? (car (cadddr outer)) 'R-Closure))))
 
+(test-section "Function Pointer Parameters (fold-s2w6)")
+
+;; Test R-FnCall serialization
+(test "R-FnCall simple"
+      "f(x, fuel_remaining)"
+      (rust-serialize '(R-FnCall (R-Var f) (R-Var x))))
+
+(test "R-FnCall two args"
+      "g(a, b, fuel_remaining)"
+      (rust-serialize '(R-FnCall (R-Var g) (R-Var a) (R-Var b))))
+
+(test "R-FnCall no args"
+      "h(fuel_remaining)"
+      (rust-serialize '(R-FnCall (R-Var h))))
+
+;; Test param-type->rust for function types
+(test "param-type->rust: simple scalar"
+      "i64"
+      (param-type->rust 'i64))
+
+(test "param-type->rust: function type"
+      "extern \"C\" fn(i64, u64) -> i64"
+      (param-type->rust '(-> i64 i64)))
+
+(test "param-type->rust: multi-param function"
+      "extern \"C\" fn(i64, f64, u64) -> bool"
+      (param-type->rust '(-> i64 f64 bool)))
+
+;; Test ir-contains-fn-call?
+(test "ir-contains-fn-call?: R-FnCall"
+      #t
+      (ir-contains-fn-call? '(R-FnCall (R-Var f) (R-Var x))))
+
+(test "ir-contains-fn-call?: nested in R-Call"
+      #t
+      (ir-contains-fn-call? '(R-Call + (R-FnCall (R-Var f) (R-Var x)) (R-Literal 1))))
+
+(test "ir-contains-fn-call?: no fn call"
+      #f
+      (ir-contains-fn-call? '(R-Call + (R-Var x) (R-Var y))))
+
+(test "ir-contains-fn-call?: in R-If branch"
+      #t
+      (ir-contains-fn-call? '(R-If (R-Var cond)
+                               (R-FnCall (R-Var f) (R-Var x))
+                               (R-Literal 0))))
+
+;; Test rust-emit with callback param
+(test "rust-emit with fn pointer param emits fuel_remaining"
+      #t
+      (let ([code (rust-emit '(R-Fn apply_fn ((f (-> i64 i64)) (x i64)) i64
+                               (R-FnCall (R-Var f) (R-Var x))))])
+           (and (string-contains code "let fuel_remaining = fuel_in - COST")
+                (string-contains code "f(x, fuel_remaining)"))))
+
+(test "rust-emit fn pointer param type correct"
+      #t
+      (let ([code (rust-emit '(R-Fn apply_fn ((f (-> i64 i64)) (x i64)) i64
+                               (R-FnCall (R-Var f) (R-Var x))))])
+           (string-contains code "f: extern \"C\" fn(i64, u64) -> i64")))
+
+;; Test R-FnCall in rust-serialize-with-fuel (fuel threading)
+(test "R-FnCall in recursive context"
+      #t
+      (let ([code (rust-serialize-with-fuel
+                   '(R-FnCall (R-Var callback) (R-Var x))
+                   'rec)])
+           (string-contains code "callback(x, fuel_remaining)")))
+
 (newline)

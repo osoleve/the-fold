@@ -56,23 +56,39 @@
 ;;; Bytevector types (bv, f64*, etc.) use u8* which allows passing
 ;;; Scheme bytevectors directly without copying. This is the key to
 ;;; zero-copy FFI performance.
+;;;
+;;; Function pointer types (fold-s2w6):
+;;; (-> A B) maps to (* (function (A-ftype u64) B-ftype))
+;;; The u64 is the fuel parameter added by The Fold calling convention.
 (define (scheme-type->ftype type)
-  (case type
-        ;; Scalar types
-        [(i64 int integer) 'integer-64]
-        [(f64 float double real) 'double]
-        [(bool boolean) 'unsigned-8]  ; passed as u8
-        [(u64 unsigned) 'unsigned-64]
-        [(i32) 'integer-32]
-        [(f32) 'single-float]
-        ;; Bytevector types - u8* accepts bytevectors directly (zero-copy!)
-        [(bv bytevector u8* bytes) 'u8*]
-        [(f64* f64-bv) 'u8*]   ; f64 bytevector (caller ensures alignment)
-        [(f32* f32-bv) 'u8*]   ; f32 bytevector
-        [(i64* i64-bv) 'u8*]   ; i64 bytevector
-        ;; Raw pointer (for pre-allocated foreign memory)
-        [(ptr void* pointer) 'void*]
-        [else (error 'scheme-type->ftype "Unknown type" type)]))
+  (cond
+   ;; Function pointer types: (-> A... R) → (* (function (A... u64) R))
+   ;; fold-s2w6: Enable passing function pointers through FFI
+   [(and (pair? type) (eq? (car type) '->))
+    (let* ([type-args (cdr type)]       ; (A... R)
+           [params (init type-args)]     ; A...
+           [ret (last type-args)]        ; R
+           [param-ftypes (map scheme-type->ftype params)]
+           ;; Add fuel (u64) as last parameter per Fold calling convention
+           [params-with-fuel (append param-ftypes '(unsigned-64))]
+           [ret-ftype (scheme-type->ftype ret)])
+      ;; Chez ftype for function pointer: (* (function (params...) ret))
+      `(* (function ,params-with-fuel ,ret-ftype)))]
+   ;; Scalar types
+   [(memq type '(i64 int integer)) 'integer-64]
+   [(memq type '(f64 float double real)) 'double]
+   [(memq type '(bool boolean)) 'unsigned-8]  ; passed as u8
+   [(memq type '(u64 unsigned)) 'unsigned-64]
+   [(eq? type 'i32) 'integer-32]
+   [(eq? type 'f32) 'single-float]
+   ;; Bytevector types - u8* accepts bytevectors directly (zero-copy!)
+   [(memq type '(bv bytevector u8* bytes)) 'u8*]
+   [(memq type '(f64* f64-bv)) 'u8*]   ; f64 bytevector (caller ensures alignment)
+   [(memq type '(f32* f32-bv)) 'u8*]   ; f32 bytevector
+   [(memq type '(i64* i64-bv)) 'u8*]   ; i64 bytevector
+   ;; Raw pointer (for pre-allocated foreign memory)
+   [(memq type '(ptr void* pointer)) 'void*]
+   [else (error 'scheme-type->ftype "Unknown type" type)]))
 
 ;;; Scheme type symbol → result ftype
 (define (scheme-type->result-ftype type)
@@ -352,3 +368,63 @@
     (library-path . ,(accel-library-path))
     (registered-functions . ,(hashtable-size *rust-fn-registry*))
     (function-names . ,(list-rust-fns))))
+
+;;; ============================================================
+;;; Callback Support (fold-s2w6)
+;;; ============================================================
+;;;
+;;; These functions enable passing Scheme procedures as callbacks to Rust.
+;;; The Scheme procedure is wrapped via foreign-callable to produce a
+;;; C-compatible function pointer that Rust can call.
+;;;
+;;; Usage:
+;;; (define double-fn (lambda (x fuel) (* x 2)))
+;;; (define cb (make-callback double-fn '(i64) 'i64))
+;;; ;; Pass cb to a Rust function expecting extern "C" fn(i64, u64) -> i64
+
+;;; *callback-registry* : Hashtable
+;;; Tracks live callbacks to prevent GC from collecting them.
+;;; Keys are callback addresses (integers), values are the code objects.
+(define *callback-registry* (make-eq-hashtable))
+
+;;; make-callback : Procedure × (List Type) × Type → Integer
+;;; Create a C-callable function pointer from a Scheme procedure.
+;;;
+;;; The Scheme procedure should have signature: (arg1 arg2 ... fuel) → result
+;;; where fuel is u64 (remaining computation budget).
+;;;
+;;; Returns an integer representing the C function pointer address.
+;;; This can be passed directly to Rust functions expecting fn pointers.
+;;;
+;;; IMPORTANT: The callback is registered to prevent GC. Call free-callback
+;;; when the callback is no longer needed.
+(define (make-callback proc param-types ret-type)
+  (let* ([param-ftypes (map scheme-type->ftype param-types)]
+         ;; Add fuel as last parameter (Fold calling convention)
+         [params-with-fuel (append param-ftypes '(unsigned-64))]
+         [ret-ftype (scheme-type->ftype ret-type)]
+         ;; Create the foreign-callable code object
+         [code (foreign-callable proc params-with-fuel ret-ftype)]
+         ;; Get the entry point (C function pointer)
+         [addr (foreign-callable-entry-point code)])
+    ;; Lock the code object to prevent GC
+    (lock-object code)
+    ;; Register for later cleanup
+    (eq-hashtable-set! *callback-registry* addr code)
+    ;; Return the address as an integer
+    addr))
+
+;;; free-callback : Integer → Void
+;;; Release a callback created with make-callback.
+;;; This unlocks the code object and removes it from the registry.
+(define (free-callback addr)
+  (let ([code (eq-hashtable-ref *callback-registry* addr #f)])
+    (when code
+      (unlock-object code)
+      (eq-hashtable-delete! *callback-registry* addr))))
+
+;;; list-callbacks : → (List Integer)
+;;; List all registered callback addresses.
+(define (list-callbacks)
+  (let-values ([(keys vals) (hashtable-entries *callback-registry*)])
+    (vector->list keys)))
