@@ -62,7 +62,7 @@
 ;;; scheme-op-method? : Symbol → Boolean
 ;;; True if operator should be emitted as method call syntax.
 (define (scheme-op-method? op)
-  (memq op '(abs sqrt sin cos tan log floor ceiling round)))
+  (memq op '(abs sqrt sin cos tan asin acos atan sinh cosh tanh log exp floor ceiling round)))
 
 ;;; scheme-op->rust-method : Symbol → String
 ;;; Get the Rust method name for method-style ops.
@@ -73,7 +73,14 @@
         [(sin) "sin"]
         [(cos) "cos"]
         [(tan) "tan"]
+        [(asin) "asin"]
+        [(acos) "acos"]
+        [(atan) "atan"]
+        [(sinh) "sinh"]
+        [(cosh) "cosh"]
+        [(tanh) "tanh"]
         [(log) "ln"]        ; Rust uses ln() for natural log
+        [(exp) "exp"]
         [(floor) "floor"]
         [(ceiling) "ceil"]  ; Rust uses ceil()
         [(round) "round"]
@@ -126,7 +133,11 @@
           [(and (eq? op 'neg) (= (length args) 1))
            (string-append "(-" (rust-serialize (car args)) ")")]
           
-          ;; Method calls: abs, sqrt, sin, cos, tan, log, floor, ceiling, round
+          ;; Square: x.powi(2) - integer power is more efficient
+          [(and (eq? op 'sq) (= (length args) 1))
+           (string-append "(" (rust-serialize (car args)) ".powi(2))")]
+          
+          ;; Method calls: abs, sqrt, trig, hyperbolic, log, exp, floor, ceiling, round
           [(and (scheme-op-method? op) (= (length args) 1))
            (string-append "(" (rust-serialize (car args))
                           "." (scheme-op->rust-method op) "())")]
@@ -260,10 +271,12 @@
         [(neg abs) 1]
         ;; Math methods - transcendentals are expensive
         [(sqrt) 2]
-        [(sin cos tan) 3]
+        [(sq) 1]                                       ; square is just mul
+        [(sin cos tan asin acos atan) 3]
+        [(sinh cosh tanh) 3]
         [(log exp) 3]
         [(floor ceiling round) 1]
-        [(expt) 3]
+        [(expt pow) 3]
         ;; Default
         [else 1]))
 
