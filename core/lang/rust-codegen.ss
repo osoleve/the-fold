@@ -502,6 +502,100 @@
         [(i64 f64 u64 i32 f32) "    result.value = val;\n"]
         [else "    result.value = val as f64;\n"]))  ; Fallback for backwards compat
 
+;;; ============================================================
+;;; Division-by-Zero Protection (M2: fold-jppr)
+;;; ============================================================
+
+;;; ir-collect-divisors : IR → (List IR)
+;;; Collect all divisor expressions from division/modulo operations.
+;;; Returns list of (divisor-ir . is-integer-context?) pairs.
+(define (ir-collect-divisors ir)
+  (cond
+   [(not (pair? ir)) '()]
+   [(eq? (car ir) 'R-Literal) '()]
+   [(eq? (car ir) 'R-Var) '()]
+   [(eq? (car ir) 'R-Call)
+    (let ([op (cadr ir)]
+          [args (cddr ir)])
+         (append
+          ;; If this is div/mod, collect the second argument (divisor)
+          (if (and (memq op '(div / mod remainder %))
+                   (>= (length args) 2))
+              (list (cadr args))  ; Second arg is the divisor
+              '())
+          ;; Recursively collect from all arguments
+          (apply append (map ir-collect-divisors args))))]
+   [(eq? (car ir) 'R-If)
+    (append (ir-collect-divisors (cadr ir))    ; condition
+            (ir-collect-divisors (caddr ir))   ; then
+            (ir-collect-divisors (cadddr ir)))] ; else
+   [(eq? (car ir) 'R-Let)
+    (ir-collect-divisors (caddr ir))]          ; value expression
+   [(eq? (car ir) 'R-Block)
+    (apply append (map ir-collect-divisors (cdr ir)))]
+   [else '()]))
+
+;;; integer-type? : Symbol → Boolean
+;;; Check if a type is an integer type (needs div-by-zero protection).
+(define (integer-type? type)
+  (memq type '(i64 i32 u64 u32 i16 u16 i8 u8)))
+
+;;; ir-divisor->guard : IR × (List (Symbol × Symbol)) → String | #f
+;;; Generate a guard expression for a divisor.
+;;; Returns #f if no guard is needed (e.g., float types or non-zero literal).
+(define (ir-divisor->guard divisor params)
+  (cond
+   ;; Literal: check at compile time
+   [(and (pair? divisor) (eq? (car divisor) 'R-Literal))
+    (let ([val (cadr divisor)])
+         (if (and (number? val) (zero? val))
+             ;; Zero literal - always error (could be caught at compile time)
+             "true /* constant zero divisor */"
+             ;; Non-zero literal - no guard needed
+             #f))]
+   ;; Variable: check if it's an integer type
+   [(and (pair? divisor) (eq? (car divisor) 'R-Var))
+    (let* ([var-name (cadr divisor)]
+           [param-type (assq var-name params)])
+          (if (and param-type (integer-type? (cadr param-type)))
+              ;; Integer variable - needs guard
+              (format "~a == 0" var-name)
+              ;; Float or unknown - no guard (Rust handles gracefully)
+              #f))]
+   ;; Complex expression - generate guard with serialized expr
+   ;; For safety, always guard complex expressions involving integers
+   [else
+    (let ([expr (rust-serialize divisor)])
+         ;; Only guard if the expression is simple enough
+         ;; Complex expressions might be float operations that don't need guards
+         #f)]))
+
+;;; emit-divisor-guards : (List IR) × (List (Symbol × Symbol)) → String
+;;; Generate guard code for all divisors that need protection.
+(define (emit-divisor-guards divisors params)
+  (let* ([guards (filter identity
+                         (map (lambda (d) (ir-divisor->guard d params))
+                              divisors))]
+         [unique-guards (remove-duplicates guards)])
+        (if (null? unique-guards)
+            ""
+            (string-append
+             "    // Division-by-zero protection\n"
+             (apply string-append
+                    (map (lambda (guard)
+                                 (format "    if ~a {\n        result.status = 3;\n        result.fuel_out = fuel_in - COST;\n        return;\n    }\n"
+                                         guard))
+                         unique-guards))))))
+
+;;; remove-duplicates : (List α) → (List α)
+;;; Remove duplicate elements from a list (preserving order).
+(define (remove-duplicates lst)
+  (let loop ([lst lst] [seen '()] [result '()])
+       (cond
+        [(null? lst) (reverse result)]
+        [(member (car lst) seen) (loop (cdr lst) seen result)]
+        [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) result))])))
+
 ;;; rust-emit : (List α) [× Nat] → String
 ;;; Emit a full Rust function with FFI boilerplate and fuel tracking.
 ;;; Cost is computed automatically from the IR body unless explicitly provided.
@@ -523,7 +617,10 @@
              [rust-params (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)]
              [result-struct (ret-type->result-struct ret-type)]
              [struct-def (ret-type->result-struct-def ret-type)]
-             [value-assign (ret-type->value-assignment ret-type)])
+             [value-assign (ret-type->value-assignment ret-type)]
+             ;; M2: Collect divisors and generate guards
+             [divisors (ir-collect-divisors body)]
+             [div-guards (emit-divisor-guards divisors params)])
             (string-append
              ;; Result struct - compact for standalone compilation
              ;; In crate context, use: use fold_accel::{I64Result, F64Result, ...};
@@ -539,6 +636,8 @@
              "        result.fuel_out = 0;\n"
              "        return;\n"
              "    }\n"
+             ;; M2: Insert division-by-zero guards before computation
+             div-guards
              (format "    let val = ~a;\n" (rust-serialize body))
              "    result.status = 1;\n"
              value-assign

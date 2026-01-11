@@ -7,7 +7,7 @@
 ;;; Design principles:
 ;;; - Never return scheme-object from Rust (GC safety)
 ;;; - Use #[repr(C)] structs with out-pointers
-;;; - Explicit status codes (0=miss, 1=hit, 2=out-of-fuel)
+;;; - Explicit status codes (0=miss, 1=hit, 2=out-of-fuel, 3=runtime-error)
 ;;;
 ;;; This is Shell code: impure, handles dynamic loading.
 
@@ -82,7 +82,7 @@
 ;;; Matches Rust's #[repr(C)] TestResult
 (define-ftype test-result-t
   (struct
-   [status unsigned-8]     ; 0=miss, 1=hit, 2=out-of-fuel
+   [status unsigned-8]     ; 0=miss, 1=hit, 2=out-of-fuel, 3=runtime-error
    [value  double]         ; result value
    [fuel   unsigned-64]))  ; remaining fuel
 
@@ -149,6 +149,7 @@
                    [(0) '(miss)]
                    [(1) `(ok ,value ,fuel-out)]
                    [(2) '(out-of-fuel)]
+                   [(3) '(error div-by-zero)]
                    [else `(error unknown-status ,status)]))))
 
 ;;; ============================================================

@@ -25,10 +25,12 @@ pub mod costs {
 pub mod status {
     /// No intersection found (miss)
     pub const MISS: u8 = 0;
-    /// Intersection found (hit)
+    /// Intersection found (hit) / success
     pub const HIT: u8 = 1;
     /// Ran out of fuel before completion
     pub const OUT_OF_FUEL: u8 = 2;
+    /// Runtime error (division by zero, etc.)
+    pub const RUNTIME_ERROR: u8 = 3;
 }
 
 /// Check if we have enough fuel, deduct if so

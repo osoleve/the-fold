@@ -275,4 +275,72 @@
       "#[repr(C)] pub struct F32Result { pub status: u8, pub value: f32, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn mul_float(x: f32, y: f32, fuel_in: u64, out: *mut F32Result) {\n    if (out as *const F32Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x * y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
       (rust-emit '(R-Fn mul_float ((x f32) (y f32)) f32 (R-Call * (R-Var x) (R-Var y)))))
 
+(test-section "Division-by-Zero Protection (M2: fold-jppr)")
+
+;; Test ir-collect-divisors
+(test "Collect divisors: simple div"
+      '((R-Var y))
+      (ir-collect-divisors '(R-Call / (R-Var x) (R-Var y))))
+
+(test "Collect divisors: simple mod"
+      '((R-Var y))
+      (ir-collect-divisors '(R-Call mod (R-Var x) (R-Var y))))
+
+(test "Collect divisors: nested"
+      '((R-Var b) (R-Var d))
+      (ir-collect-divisors '(R-Call + (R-Call / (R-Var a) (R-Var b))
+                             (R-Call % (R-Var c) (R-Var d)))))
+
+(test "Collect divisors: no division"
+      '()
+      (ir-collect-divisors '(R-Call + (R-Var x) (R-Var y))))
+
+(test "Collect divisors: literal divisor"
+      '((R-Literal 2))
+      (ir-collect-divisors '(R-Call / (R-Var x) (R-Literal 2))))
+
+;; Test integer-type?
+(test "integer-type? i64" #t (and (integer-type? 'i64) #t))
+(test "integer-type? i32" #t (and (integer-type? 'i32) #t))
+(test "integer-type? u64" #t (and (integer-type? 'u64) #t))
+(test "integer-type? f64" #f (integer-type? 'f64))
+(test "integer-type? f32" #f (integer-type? 'f32))
+(test "integer-type? bool" #f (integer-type? 'bool))
+
+;; Test ir-divisor->guard
+(test "Guard for i64 divisor var"
+      "y == 0"
+      (ir-divisor->guard '(R-Var y) '((x i64) (y i64))))
+
+(test "No guard for f64 divisor var"
+      #f
+      (ir-divisor->guard '(R-Var y) '((x f64) (y f64))))
+
+(test "Guard for zero literal"
+      "true /* constant zero divisor */"
+      (ir-divisor->guard '(R-Literal 0) '()))
+
+(test "No guard for non-zero literal"
+      #f
+      (ir-divisor->guard '(R-Literal 5) '()))
+
+;; Test emit-divisor-guards
+(test "Guards for i64 division"
+      "    // Division-by-zero protection\n    if y == 0 {\n        result.status = 3;\n        result.fuel_out = fuel_in - COST;\n        return;\n    }\n"
+      (emit-divisor-guards '((R-Var y)) '((x i64) (y i64))))
+
+(test "No guards for f64 division"
+      ""
+      (emit-divisor-guards '((R-Var y)) '((x f64) (y f64))))
+
+;; Test full function with i64 division
+(test "I64 division emits guard"
+      "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn safe_div(x: i64, y: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    // Division-by-zero protection\n    if y == 0 {\n        result.status = 3;\n        result.fuel_out = fuel_in - COST;\n        return;\n    }\n    let val = (x / y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn safe_div ((x i64) (y i64)) i64 (R-Call / (R-Var x) (R-Var y)))))
+
+;; Test f64 division has no guard (Rust handles gracefully)
+(test "F64 division no guard (Inf/NaN)"
+      "#[repr(C)] pub struct F64Result { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn float_div(x: f64, y: f64, fuel_in: u64, out: *mut F64Result) {\n    if (out as *const F64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x / y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn float_div ((x f64) (y f64)) f64 (R-Call / (R-Var x) (R-Var y)))))
+
 (newline)
