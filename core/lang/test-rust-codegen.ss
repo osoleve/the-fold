@@ -371,4 +371,103 @@
       (rust-emit '(R-Fn div_by_sum ((x i64) (y i64) (z i64)) i64
                    (R-Call / (R-Var x) (R-Call + (R-Var y) (R-Var z))))))
 
+;;; ============================================================
+;;; M3: Variadic Primitives Tests
+;;; ============================================================
+
+;; Test variadic infix serialization
+(test "Variadic add (3 args)"
+      "((a + b) + c)"
+      (rust-serialize '(R-Call + (R-Var a) (R-Var b) (R-Var c))))
+
+(test "Variadic add (4 args)"
+      "(((a + b) + c) + d)"
+      (rust-serialize '(R-Call + (R-Var a) (R-Var b) (R-Var c) (R-Var d))))
+
+(test "Variadic add (5 args)"
+      "((((a + b) + c) + d) + e)"
+      (rust-serialize '(R-Call + (R-Var a) (R-Var b) (R-Var c) (R-Var d) (R-Var e))))
+
+(test "Variadic mul (3 args)"
+      "((x * y) * z)"
+      (rust-serialize '(R-Call * (R-Var x) (R-Var y) (R-Var z))))
+
+(test "Variadic and (3 args)"
+      "((a && b) && c)"
+      (rust-serialize '(R-Call and (R-Var a) (R-Var b) (R-Var c))))
+
+(test "Variadic or (4 args)"
+      "(((a || b) || c) || d)"
+      (rust-serialize '(R-Call or (R-Var a) (R-Var b) (R-Var c) (R-Var d))))
+
+(test "Variadic bitand (3 args)"
+      "((a & b) & c)"
+      (rust-serialize '(R-Call bitand (R-Var a) (R-Var b) (R-Var c))))
+
+(test "Variadic bitor (3 args)"
+      "((a | b) | c)"
+      (rust-serialize '(R-Call bitor (R-Var a) (R-Var b) (R-Var c))))
+
+(test "Variadic bitxor (3 args)"
+      "((a ^ b) ^ c)"
+      (rust-serialize '(R-Call bitxor (R-Var a) (R-Var b) (R-Var c))))
+
+;; Test variadic min/max
+(test "Variadic min (3 args)"
+      "(a.min(b).min(c))"
+      (rust-serialize '(R-Call min (R-Var a) (R-Var b) (R-Var c))))
+
+(test "Variadic min (4 args)"
+      "(a.min(b).min(c).min(d))"
+      (rust-serialize '(R-Call min (R-Var a) (R-Var b) (R-Var c) (R-Var d))))
+
+(test "Variadic max (3 args)"
+      "(a.max(b).max(c))"
+      (rust-serialize '(R-Call max (R-Var a) (R-Var b) (R-Var c))))
+
+(test "Variadic max (4 args)"
+      "(a.max(b).max(c).max(d))"
+      (rust-serialize '(R-Call max (R-Var a) (R-Var b) (R-Var c) (R-Var d))))
+
+;; Test variadic with literals
+(test "Variadic add with literals"
+      "((1 + 2) + 3)"
+      (rust-serialize '(R-Call + (R-Literal 1) (R-Literal 2) (R-Literal 3))))
+
+(test "Variadic mul with typed literals"
+      "((1i64 * 2i64) * 3i64)"
+      (rust-serialize '(R-Call * (R-Literal 1 i64) (R-Literal 2 i64) (R-Literal 3 i64))))
+
+;; Test fuel cost for variadic ops
+(test "Fuel cost: binary add (2 args)"
+      1
+      (ir-fuel-cost '(R-Call + (R-Var a) (R-Var b))))
+
+(test "Fuel cost: variadic add (3 args)"
+      2
+      (ir-fuel-cost '(R-Call + (R-Var a) (R-Var b) (R-Var c))))
+
+(test "Fuel cost: variadic add (5 args)"
+      4
+      (ir-fuel-cost '(R-Call + (R-Var a) (R-Var b) (R-Var c) (R-Var d) (R-Var e))))
+
+(test "Fuel cost: variadic min (4 args)"
+      3
+      (ir-fuel-cost '(R-Call min (R-Var a) (R-Var b) (R-Var c) (R-Var d))))
+
+;; Test scheme->rust-ir preserves variadic
+(test "Scheme->IR variadic add"
+      '(R-Call + (R-Literal 1) (R-Literal 2) (R-Literal 3) (R-Literal 4) (R-Literal 5))
+      (scheme->rust-ir '(+ 1 2 3 4 5)))
+
+(test "Scheme->IR variadic mul"
+      '(R-Call * (R-Var a) (R-Var b) (R-Var c))
+      (scheme->rust-ir '(* a b c)))
+
+;; Test full function with variadic op
+(test "Full variadic add function"
+      "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn sum5(a: i64, b: i64, c: i64, d: i64, e: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 4;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = ((((a + b) + c) + d) + e);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn sum5 ((a i64) (b i64) (c i64) (d i64) (e i64)) i64
+                   (R-Call + (R-Var a) (R-Var b) (R-Var c) (R-Var d) (R-Var e)))))
+
 (newline)

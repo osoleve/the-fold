@@ -169,6 +169,20 @@
     (let ([op (cadr ir)]
           [args (cddr ir)])
          (cond
+          ;; Variadic infix operators (n > 2): chain as left-associative binary ops
+          ;; (+ a b c d) → ((((a) + (b)) + (c)) + (d))
+          [(and (scheme-op->rust op) (> (length args) 2))
+           (let loop ([acc (string-append "(" (rust-serialize (car args))
+                                          " " (scheme-op->rust op) " "
+                                          (rust-serialize (cadr args)) ")")]
+                      [rest (cddr args)])
+                (if (null? rest)
+                    acc
+                    (loop (string-append "(" acc
+                                         " " (scheme-op->rust op) " "
+                                         (rust-serialize (car rest)) ")")
+                          (cdr rest))))]
+          
           ;; Binary infix operators (+, -, *, /, <, <=, >, >=, ==, &&, ||, &, |, ^, <<, >>)
           [(and (scheme-op->rust op) (= (length args) 2))
            (string-append "(" (rust-serialize (car args))
@@ -214,6 +228,22 @@
           [(and (eq? op 'max) (= (length args) 2))
            (string-append "(" (rust-serialize (car args))
                           ".max(" (rust-serialize (cadr args)) "))")]
+          
+          ;; min/max -> variadic method chains: (min a b c d) → a.min(b).min(c).min(d)
+          [(and (eq? op 'min) (> (length args) 2))
+           (let loop ([acc (rust-serialize (car args))]
+                      [rest (cdr args)])
+                (if (null? rest)
+                    (string-append "(" acc ")")
+                    (loop (string-append acc ".min(" (rust-serialize (car rest)) ")")
+                          (cdr rest))))]
+          [(and (eq? op 'max) (> (length args) 2))
+           (let loop ([acc (rust-serialize (car args))]
+                      [rest (cdr args)])
+                (if (null? rest)
+                    (string-append "(" acc ")")
+                    (loop (string-append acc ".max(" (rust-serialize (car rest)) ")")
+                          (cdr rest))))]
           
           ;; Default function call
           [else
@@ -365,11 +395,18 @@
    [(eq? (car ir) 'R-Var) 0]
    
    ;; Calls: op cost + arg costs
+   ;; For variadic ops (n > 2 args), charge (n-1) × op-cost (chained binary ops)
    [(eq? (car ir) 'R-Call)
-    (let ([op (cadr ir)]
-          [args (cddr ir)])
-         (+ (op-fuel-cost op)
-            (apply + (map ir-fuel-cost args))))]
+    (let* ([op (cadr ir)]
+           [args (cddr ir)]
+           [n-args (length args)]
+           [op-multiplier (if (and (> n-args 2)
+                                   (or (scheme-op->rust op)
+                                       (memq op '(min max))))
+                              (- n-args 1)  ; n-1 binary ops for n args
+                              1)])          ; single op for binary/unary
+          (+ (* op-multiplier (op-fuel-cost op))
+             (apply + (map ir-fuel-cost args))))]
    
    ;; If: branch cost + condition + max(then, else)
    [(eq? (car ir) 'R-If)
