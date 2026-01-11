@@ -12,6 +12,7 @@ pub mod aabb;
 pub mod fuel;
 pub mod bvh;
 pub mod raymarch;
+pub mod generated;
 
 pub use vec3::Vec3;
 pub use triangle::Triangle;
