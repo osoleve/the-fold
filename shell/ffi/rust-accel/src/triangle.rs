@@ -14,7 +14,7 @@ pub struct Triangle {
     pub p1: Vec3,
     pub p2: Vec3,
     pub p3: Vec3,
-    pub id: u32,  // Original index in mesh, stable across traversal orders
+    pub id: u32, // Original index in mesh, stable across traversal orders
 }
 
 impl Triangle {

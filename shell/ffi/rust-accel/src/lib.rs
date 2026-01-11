@@ -6,20 +6,20 @@
 //! - Fuel tracking for totality preservation
 //! - No panics - all errors return status codes
 
-pub mod vec3;
-pub mod triangle;
 pub mod aabb;
-pub mod fuel;
 pub mod bvh;
-pub mod raymarch;
-pub mod mat4;
+pub mod fuel;
 pub mod generated;
+pub mod mat4;
+pub mod raymarch;
+pub mod triangle;
+pub mod vec3;
 
-pub use vec3::Vec3;
-pub use triangle::Triangle;
 pub use aabb::AABB;
 pub use bvh::{BVHHandle, BVHNode, ClosestPointResult, RayIntersectResult};
-pub use raymarch::{RaymarchResult, NormalResult};
+pub use raymarch::{NormalResult, RaymarchResult};
+pub use triangle::Triangle;
+pub use vec3::Vec3;
 
 /// Result struct for closest point query (Phase 1 test version)
 /// Uses out-pointer pattern: Scheme allocates, Rust writes
@@ -115,13 +115,7 @@ pub struct F32Result {
 /// Takes three doubles and fuel, writes result to out-pointer
 /// Returns the sum of inputs (doubled) if fuel permits
 #[no_mangle]
-pub extern "C" fn fold_test_roundtrip(
-    a: f64,
-    b: f64,
-    c: f64,
-    fuel_in: u64,
-    out: *mut TestResult,
-) {
+pub extern "C" fn fold_test_roundtrip(a: f64, b: f64, c: f64, fuel_in: u64, out: *mut TestResult) {
     // Safety: caller must provide valid pointer
     if out.is_null() {
         return;

@@ -3,8 +3,8 @@
 //! Uses #[repr(C)] for FFI safety.
 //! Provides intersection tests for ray traversal.
 
-use crate::vec3::Vec3;
 use crate::triangle::Triangle;
+use crate::vec3::Vec3;
 
 /// Axis-Aligned Bounding Box
 /// Matches Scheme's (aabb min max)
@@ -91,9 +91,12 @@ impl AABB {
     /// Check if point is inside AABB
     #[inline]
     pub fn contains(&self, p: Vec3) -> bool {
-        p.x >= self.min.x && p.x <= self.max.x &&
-        p.y >= self.min.y && p.y <= self.max.y &&
-        p.z >= self.min.z && p.z <= self.max.z
+        p.x >= self.min.x
+            && p.x <= self.max.x
+            && p.y >= self.min.y
+            && p.y <= self.max.y
+            && p.z >= self.min.z
+            && p.z <= self.max.z
     }
 
     /// Closest point on AABB surface to given point
@@ -117,9 +120,21 @@ impl AABB {
     /// Returns (tmin, tmax) if intersects, None otherwise
     pub fn intersect_ray(&self, origin: Vec3, direction: Vec3) -> Option<(f64, f64)> {
         let inv_dir = Vec3::new(
-            if direction.x.abs() > 1e-10 { 1.0 / direction.x } else { f64::INFINITY },
-            if direction.y.abs() > 1e-10 { 1.0 / direction.y } else { f64::INFINITY },
-            if direction.z.abs() > 1e-10 { 1.0 / direction.z } else { f64::INFINITY },
+            if direction.x.abs() > 1e-10 {
+                1.0 / direction.x
+            } else {
+                f64::INFINITY
+            },
+            if direction.y.abs() > 1e-10 {
+                1.0 / direction.y
+            } else {
+                f64::INFINITY
+            },
+            if direction.z.abs() > 1e-10 {
+                1.0 / direction.z
+            } else {
+                f64::INFINITY
+            },
         );
 
         let t1 = (self.min.x - origin.x) * inv_dir.x;

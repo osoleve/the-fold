@@ -17,3 +17,35 @@ opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
+
+# Clippy configuration
+[lints.rust]
+unsafe_code = "allow"  # FFI requires unsafe
+missing_docs = "allow" # Generated code lacks docs
+
+[lints.clippy]
+# Correctness - these are real bugs
+correctness = { level = "deny", priority = -1 }
+
+# Style & clarity - warn but don't block
+style = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+
+# Pedantic - too strict for generated FFI code
+pedantic = { level = "allow", priority = -1 }
+
+# Nursery - experimental, allow
+nursery = { level = "allow", priority = -1 }
+
+# Specific lints we care about
+unwrap_used = "warn"
+expect_used = "warn"
+todo = "warn"
+unimplemented = "warn"
+
+# Allow these in FFI code
+not_unsafe_ptr_arg_deref = "allow"
+missing_safety_doc = "allow"
+borrow_as_ptr = "allow"  # Common in FFI
+float_cmp = "allow"  # Tests use exact comparisons

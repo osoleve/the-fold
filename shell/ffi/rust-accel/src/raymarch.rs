@@ -83,7 +83,7 @@ impl Default for NormalResult {
 pub struct ClosestPointWithTri {
     pub point: Vec3,
     pub distance: f64,
-    pub triangle: Triangle,  // Store full triangle with embedded id
+    pub triangle: Triangle, // Store full triangle with embedded id
 }
 
 /// Find closest point on BVH surface with triangle
@@ -225,7 +225,6 @@ pub fn raymarch_mesh(
         // Query SDF (deducts fuel internally)
         match mesh_sdf(handle, point, &mut fuel) {
             FuelResult::Ok((dist, tri_idx), _) => {
-
                 // Use abs(dist) to handle rays starting inside mesh
                 let step = dist.abs();
 
@@ -328,11 +327,7 @@ fn compute_normal(handle: &BVHHandle, point: Vec3, fuel: &mut u64) -> Option<Vec
 }
 
 /// Compute mesh SDF normal at a point (standalone function)
-pub fn mesh_sdf_normal(
-    handle: &BVHHandle,
-    point: Vec3,
-    mut fuel: u64,
-) -> (NormalResult, u64) {
+pub fn mesh_sdf_normal(handle: &BVHHandle, point: Vec3, mut fuel: u64) -> (NormalResult, u64) {
     let mut result = NormalResult::default();
 
     match compute_normal(handle, point, &mut fuel) {

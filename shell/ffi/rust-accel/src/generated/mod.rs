@@ -21,3 +21,5 @@ pub mod distance;
 pub mod is_positive;
 
 pub mod sum5;
+
+pub mod sum_formula;

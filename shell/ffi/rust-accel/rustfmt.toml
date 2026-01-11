@@ -1,0 +1,9 @@
+# Rustfmt configuration for fold-accel
+# https://rust-lang.github.io/rustfmt/
+# Using only stable features
+
+edition = "2021"
+max_width = 100
+tab_spaces = 4
+use_small_heuristics = "Default"
+reorder_imports = true

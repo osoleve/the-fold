@@ -3,7 +3,7 @@
 //! Uses #[repr(C)] for FFI safety.
 //! All operations are pure and inlined for performance.
 
-use std::ops::{Add, Sub, Mul, Neg};
+use std::ops::{Add, Mul, Neg, Sub};
 
 /// 3D vector with f64 components
 /// Matches Scheme's (vec3 x y z)
@@ -25,7 +25,11 @@ impl Vec3 {
     /// Zero vector
     #[inline]
     pub const fn zero() -> Self {
-        Self { x: 0.0, y: 0.0, z: 0.0 }
+        Self {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }
     }
 
     /// Dot product

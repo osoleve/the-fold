@@ -51,10 +51,10 @@ pub struct ClosestPointResult {
 #[repr(C)]
 pub struct RayIntersectResult {
     pub status: u8,
-    pub t: f64,       // distance along ray
-    pub nx: f64,      // normal x
-    pub ny: f64,      // normal y
-    pub nz: f64,      // normal z
+    pub t: f64,  // distance along ray
+    pub nx: f64, // normal x
+    pub ny: f64, // normal y
+    pub nz: f64, // normal z
     pub fuel_out: u64,
 }
 
@@ -191,7 +191,11 @@ fn parse_node(
 }
 
 /// Find closest point on BVH surface to given point
-pub fn bvh_closest_point(handle: &BVHHandle, point: Vec3, mut fuel: u64) -> FuelResult<(Vec3, f64)> {
+pub fn bvh_closest_point(
+    handle: &BVHHandle,
+    point: Vec3,
+    mut fuel: u64,
+) -> FuelResult<(Vec3, f64)> {
     // Base cost for query
     if !fuel::deduct(&mut fuel, costs::BASE_QUERY) {
         return FuelResult::OutOfFuel;
@@ -286,9 +290,21 @@ pub fn bvh_intersect_ray(
 
     let dir_norm = direction.normalize();
     let inv_dir = Vec3::new(
-        if dir_norm.x.abs() > 1e-10 { 1.0 / dir_norm.x } else { f64::INFINITY },
-        if dir_norm.y.abs() > 1e-10 { 1.0 / dir_norm.y } else { f64::INFINITY },
-        if dir_norm.z.abs() > 1e-10 { 1.0 / dir_norm.z } else { f64::INFINITY },
+        if dir_norm.x.abs() > 1e-10 {
+            1.0 / dir_norm.x
+        } else {
+            f64::INFINITY
+        },
+        if dir_norm.y.abs() > 1e-10 {
+            1.0 / dir_norm.y
+        } else {
+            f64::INFINITY
+        },
+        if dir_norm.z.abs() > 1e-10 {
+            1.0 / dir_norm.z
+        } else {
+            f64::INFINITY
+        },
     );
 
     let mut best: Option<(f64, Triangle)> = None;
@@ -367,7 +383,14 @@ pub fn bvh_intersect_ray(
         }
     }
 
-    let completed = traverse(&handle.root, origin, dir_norm, inv_dir, &mut best, &mut fuel);
+    let completed = traverse(
+        &handle.root,
+        origin,
+        dir_norm,
+        inv_dir,
+        &mut best,
+        &mut fuel,
+    );
 
     if !completed {
         FuelResult::OutOfFuel
