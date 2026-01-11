@@ -41,7 +41,23 @@
 
 (test-section "Rust IR Serialization - Functions")
 (test "Simple function"
-      "#[no_mangle]\npub extern \"C\" fn add_one(x: i64, fuel_in: u64, out: *mut TestResult) {\n    if out.is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + 1);\n    result.status = 1;\n    result.value = val as f64;\n    result.fuel_out = fuel_in - COST;\n}"
+      "#[repr(C)]\npub struct TestResult {\n    pub status: u8,\n    pub value: f64,\n    pub fuel_out: u64,\n}\n\n#[no_mangle]\npub extern \"C\" fn add_one(x: i64, fuel_in: u64, out: *mut TestResult) {\n    if (out as *const TestResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + 1);\n    result.status = 1;\n    result.value = val as f64;\n    result.fuel_out = fuel_in - COST;\n}"
       (rust-emit '(R-Fn add_one ((x i64)) i64 (R-Call + (R-Var x) (R-Literal 1))) 1))
+
+(test-section "End-to-End Compilation")
+(load "core/lang/rust-compile.ss")
+
+(display "  Compiling generated Rust... ")
+(let ([res (compile-rust-lib "test_codegen"
+                             '(R-Fn add_one ((x i64)) i64 (R-Call + (R-Var x) (R-Literal 1)))
+                             1)])
+     (if (eq? (car res) 'ok)
+         (begin
+          (display "✓\n")
+          (cleanup-rust-lib "test_codegen"))
+         (begin
+          (display "✗\n")
+          (display res)
+          (newline))))
 
 (newline)

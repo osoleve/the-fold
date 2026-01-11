@@ -87,30 +87,130 @@
 
 ;;; rust-emit : (List α) × Nat → String
 
+
+
 ;;; Emit a full Rust function with FFI boilerplate and fuel tracking.
 
+
+
 (define (rust-emit ir cost)
+  
+  
+  
   (if (not (eq? (car ir) 'R-Fn))
+      
+      
+      
       (error 'rust-emit "Expected R-Fn IR" ir)
+      
+      
+      
       (let* ([name (cadr ir)]
+             
+             
+             
              [params (caddr ir)]
+             
+             
+             
              [ret-type (cadddr ir)]
+             
+             
+             
              [body (car (cddddr ir))]
+             
+             
+             
              [rust-params (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
+            
+            
+            
             (string-append
+             
+             
+             
+             "#[repr(C)]\n"
+             
+             
+             
+             "pub struct TestResult {\n"
+             
+             
+             
+             "    pub status: u8,\n"
+             
+             
+             
+             "    pub value: f64,\n"
+             
+             
+             
+             "    pub fuel_out: u64,\n"
+             
+             
+             
+             "}\n\n"
+             
+             
+             
              "#[no_mangle]\n"
+             
+             
+             
              (format "pub extern \"C\" fn ~a(~a, fuel_in: u64, out: *mut TestResult) {\n"
+                     
+                     
+                     
                      name (string-join rust-params ", "))
-             "    if out.is_null() { return; }\n"
+             
+             
+             
+             "    if (out as *const TestResult).is_null() { return; }\n"
+             
+             
+             
              "    let result = unsafe { &mut *out };\n"
+             
+             
+             
              (format "    const COST: u64 = ~a;\n" cost)
+             
+             
+             
              "    if fuel_in < COST {\n"
+             
+             
+             
              "        result.status = 2;\n"
+             
+             
+             
              "        result.fuel_out = 0;\n"
+             
+             
+             
              "        return;\n"
+             
+             
+             
              "    }\n"
+             
+             
+             
              (format "    let val = ~a;\n" (rust-serialize body))
+             
+             
+             
              "    result.status = 1;\n"
+             
+             
+             
              "    result.value = val as f64;\n"
+             
+             
+             
              "    result.fuel_out = fuel_in - COST;\n"
+             
+             
+             
              "}"))))
