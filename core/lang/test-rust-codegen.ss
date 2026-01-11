@@ -687,4 +687,161 @@
        (rust-emit-module '(R-Fn fn ((x i64)) i64 (R-Var x)))
        "fn fold_m_fn"))
 
+;;; ============================================================
+;;; M5: Closure and Recursion Support (fold-49ht)
+;;; ============================================================
+
+(test-section "R-Lambda Serialization")
+
+;; Simple lambda with one parameter
+(test "Simple lambda"
+      "|x: i64| -> i64 { x }"
+      (rust-serialize '(R-Lambda ((x i64)) i64 (R-Var x))))
+
+;; Lambda with multiple parameters
+(test "Lambda with two params"
+      "|x: f64, y: f64| -> f64 { (x + y) }"
+      (rust-serialize '(R-Lambda ((x f64) (y f64)) f64 (R-Call + (R-Var x) (R-Var y)))))
+
+;; Lambda with complex body
+(test "Lambda with complex body"
+      "|a: f64, b: f64| -> f64 { if (a > b) { a } else { b } }"
+      (rust-serialize '(R-Lambda ((a f64) (b f64)) f64
+                        (R-If (R-Call > (R-Var a) (R-Var b))
+                          (R-Var a)
+                          (R-Var b)))))
+
+(test-section "R-Letrec Serialization")
+
+;; Simple recursive function (factorial pattern)
+(test "Letrec simple recursion"
+      "{ fn fact(n: i64) -> i64 { if (n <= 1) { 1 } else { (n * fact((n - 1))) } } fact }"
+      (rust-serialize '(R-Letrec fact ((n i64)) i64
+                        (R-If (R-Call <= (R-Var n) (R-Literal 1))
+                          (R-Literal 1)
+                          (R-Call * (R-Var n) (R-Call fact (R-Call - (R-Var n) (R-Literal 1)))))
+                        (R-Var fact))))
+
+;; Recursive function with two params (fibonacci-style)
+(test "Letrec with two params"
+      "{ fn fib(n: i64, acc: i64) -> i64 { if (n <= 0) { acc } else { fib((n - 1), (acc + n)) } } fib }"
+      (rust-serialize '(R-Letrec fib ((n i64) (acc i64)) i64
+                        (R-If (R-Call <= (R-Var n) (R-Literal 0))
+                          (R-Var acc)
+                          (R-Call fib (R-Call - (R-Var n) (R-Literal 1))
+                                      (R-Call + (R-Var acc) (R-Var n))))
+                        (R-Var fib))))
+
+(test-section "Scheme->IR for fn and fix")
+
+;; Typed lambda translation
+(test "Scheme->IR typed lambda"
+      '(R-Lambda ((x i64) (y i64)) i64 (R-Call + (R-Var x) (R-Var y)))
+      (scheme->rust-ir '(fn ((x i64) (y i64)) i64 (+ x y))))
+
+;; Untyped lambda should produce error comment (R-Literal with string)
+(test "Scheme->IR untyped lambda"
+      #t
+      (let ([result (scheme->rust-ir '(fn (x) (+ x 1)))])
+           (and (eq? (car result) 'R-Literal)
+                (string? (cadr result))
+                (string-contains (cadr result) "untyped lambda"))))
+
+;; Typed fix translation
+(test "Scheme->IR typed fix"
+      '(R-Letrec fact ((n i64)) i64
+        (R-If (R-Call <= (R-Var n) (R-Literal 1))
+          (R-Literal 1)
+          (R-Call * (R-Var n) (R-Call fact (R-Call - (R-Var n) (R-Literal 1)))))
+        (R-Var fact))
+      (scheme->rust-ir '(fix fact (fn ((n i64)) i64
+                          (if (<= n 1) 1 (* n (fact (- n 1))))))))
+
+(test-section "Fuel Cost for Closures/Recursion")
+
+;; Lambda cost = 1 (creation) + body cost
+(test "Fuel cost: simple lambda"
+      2  ; 1 (closure) + 1 (add op)
+      (ir-fuel-cost '(R-Lambda ((x i64) (y i64)) i64 (R-Call + (R-Var x) (R-Var y)))))
+
+;; Letrec cost = 1 (def) + body cost + in-expr cost
+(test "Fuel cost: letrec"
+      5  ; 1 (def) + 3 (body: 1 if + 0 lit + max(0, 2)) + 1 (in-expr: just var = 0, but call = 1)
+      (ir-fuel-cost '(R-Letrec fact ((n i64)) i64
+                      (R-If (R-Call <= (R-Var n) (R-Literal 1))
+                        (R-Literal 1)
+                        (R-Call * (R-Var n) (R-Var acc)))
+                      (R-Call fact (R-Literal 5)))))
+
+(test-section "Division-by-Zero in Closures")
+
+;; Collect divisors from lambda body
+(test "Collect divisors in lambda"
+      '((R-Var y))
+      (ir-collect-divisors '(R-Lambda ((x i64) (y i64)) i64 (R-Call / (R-Var x) (R-Var y)))))
+
+;; Collect divisors from letrec
+(test "Collect divisors in letrec"
+      '((R-Var n))
+      (ir-collect-divisors '(R-Letrec div_acc ((n i64)) i64
+                             (R-Call / (R-Literal 100) (R-Var n))
+                             (R-Call div_acc (R-Literal 5)))))
+
+;; Integer var check in lambda
+(test "Contains int var in lambda body"
+      #t
+      (ir-contains-integer-var?
+       '(R-Lambda ((x i64)) i64 (R-Call + (R-Var x) (R-Literal 1)))
+       '()))
+
+;; Float lambda - no int vars
+(test "No int vars in float lambda"
+      #f
+      (ir-contains-integer-var?
+       '(R-Lambda ((x f64)) f64 (R-Call + (R-Var x) (R-Literal 1)))
+       '()))
+
+(test-section "End-to-End Closure/Recursion Tests")
+
+;; Test that R-Lambda serialization produces valid Rust closure syntax
+(test "Lambda serialization syntax valid"
+      #t
+      ;; Verify it produces |x| -> T { ... } pattern
+      (let ([code (rust-serialize '(R-Lambda ((x f64)) f64 (R-Call * (R-Var x) (R-Var x))))])
+           (and (string-contains code "|x: f64|")
+                (string-contains code "-> f64"))))
+
+;; Test that R-Letrec produces valid local fn syntax
+(test "Letrec serialization syntax valid"
+      #t
+      (let ([code (rust-serialize '(R-Letrec sum ((n i64)) i64
+                                    (R-If (R-Call <= (R-Var n) (R-Literal 0))
+                                      (R-Literal 0)
+                                      (R-Call + (R-Var n) (R-Call sum (R-Call - (R-Var n) (R-Literal 1)))))
+                                    (R-Call sum (R-Literal 10))))])
+           (and (string-contains code "fn sum(n: i64) -> i64")
+                (string-contains code "sum(10)"))))
+
+;; Compile a function that uses letrec internally (factorial)
+(display "  Compiling factorial with letrec... ")
+(let ([factorial-ir
+       '(R-Fn factorial ((n i64)) i64
+         (R-Letrec fact ((x i64)) i64
+           (R-If (R-Call <= (R-Var x) (R-Literal 1))
+             (R-Literal 1)
+             (R-Call * (R-Var x) (R-Call fact (R-Call - (R-Var x) (R-Literal 1)))))
+           (R-Call fact (R-Var n))))])
+     (let ([res (compile-rust-lib "test_factorial" factorial-ir)])
+          (if (eq? (car res) 'ok)
+              (begin
+               (display "✓\n")
+               (cleanup-rust-lib "test_factorial"))
+              (begin
+               (display "✗\n")
+               (display res)
+               (newline)))))
+
+;; Note: Lambda as first-class values (passed to/returned from functions)
+;; requires function pointer types in FFI, which is future work
+
 (newline)

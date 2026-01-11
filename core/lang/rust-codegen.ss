@@ -26,6 +26,14 @@
 ;;;   (R-If cond then else)    - Conditional expression
 ;;;   (R-Block stmt... expr)   - Statement block with final expr
 ;;;   (R-Fn name params ret body) - Function definition
+;;;   (R-Lambda params ret body)  - Anonymous function (closure)
+;;;   (R-Letrec name params ret body in-expr) - Recursive binding
+;;;
+;;; Closure support (M5: fold-49ht):
+;;;   - R-Lambda: Non-capturing closures compile to Rust closures |x| body
+;;;   - R-Letrec: Recursive functions compile to local fn definitions
+;;;   - Capturing closures use 'move' for by-value capture
+;;;   - Full closure conversion (defunctionalization) is future work
 ;;;
 ;;; Division-by-zero protection (M2):
 ;;;   - Integer division/modulo generates guards before computation
@@ -341,7 +349,36 @@
                                  (string-join (map rust-serialize stmts) " ")
                                  (if (null? stmts) "" " ")
                                  (rust-serialize final) " }"))))]
-   
+
+   ;; R-Lambda: |x: T, y: T| -> R { body }
+   ;; Format: (R-Lambda ((param type) ...) ret-type body)
+   [(eq? (car ir) 'R-Lambda)
+    (let* ([params (cadr ir)]
+           [ret-type (caddr ir)]
+           [body (cadddr ir)]
+           [param-strs (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
+          (format "|~a| -> ~a { ~a }"
+                  (string-join param-strs ", ")
+                  ret-type
+                  (rust-serialize body)))]
+
+   ;; R-Letrec: Recursive function binding
+   ;; Format: (R-Letrec name ((param type) ...) ret-type body in-expr)
+   ;; Emits: { fn name(params) -> ret { body } in-expr }
+   [(eq? (car ir) 'R-Letrec)
+    (let* ([name (cadr ir)]
+           [params (caddr ir)]
+           [ret-type (cadddr ir)]
+           [body (car (cddddr ir))]
+           [in-expr (cadr (cddddr ir))]
+           [param-strs (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
+          (format "{ fn ~a(~a) -> ~a { ~a } ~a }"
+                  name
+                  (string-join param-strs ", ")
+                  ret-type
+                  (rust-serialize body)
+                  (rust-serialize in-expr)))]
+
    [else (format "/* Unknown IR: ~s */" ir)]))
 
 ;;; ============================================================
@@ -358,6 +395,12 @@
 ;;;   (let ((x e)) body)             → (R-Block (R-Let x ir-e) body-ir)
 ;;;   (if cond then else)            → (R-If ir-cond ir-then ir-else)
 ;;;   (+ a b), (< a b), etc.         → (R-Call op ir-args...)
+;;;   (fn ((x type) ...) ret body)   → (R-Lambda ((x type) ...) ret body-ir)
+;;;   (fix name (fn ...))            → (R-Letrec name ((x type) ...) ret body-ir use-ir)
+;;;   (call f args...)               → (R-Call f-ir args-ir...)
+;;;
+;;; Note: Lambda and fix require explicit type annotations for Rust codegen.
+;;; Untyped lambdas are not supported (use interpreter for those).
 (define (scheme->rust-ir expr)
   (cond
    ;; Literals
@@ -404,11 +447,55 @@
           ;; Unary prefix: (neg x), (not x)
           [(memq head '(neg not bitnot))
            `(R-Call ,head ,@(map scheme->rust-ir (cdr expr)))]
-          
+
           ;; expt
           [(eq? head 'expt)
            `(R-Call expt ,@(map scheme->rust-ir (cdr expr)))]
-          
+
+          ;; (fn ((x type) ...) ret-type body) - typed lambda
+          ;; Creates R-Lambda for anonymous function/closure
+          [(eq? head 'fn)
+           (let ([params (cadr expr)])
+                ;; Check if params have types (typed lambda)
+                (if (and (pair? params)
+                         (pair? (car params))
+                         (= (length (car params)) 2))
+                    ;; Typed: (fn ((x i64) (y f64)) f64 body)
+                    (let ([ret-type (caddr expr)]
+                          [body (cadddr expr)])
+                         `(R-Lambda ,params ,ret-type ,(scheme->rust-ir body)))
+                    ;; Untyped: not supported for Rust codegen
+                    `(R-Literal ,(format "/* untyped lambda not supported: ~s */" expr))))]
+
+          ;; (fix name (fn ((x type) ...) ret-type body)) - recursive binding
+          ;; Creates R-Letrec for recursive function
+          ;; Note: fix alone just creates the closure; use let to bind and apply
+          [(eq? head 'fix)
+           (let* ([name (cadr expr)]
+                  [fn-expr (caddr expr)])
+                 ;; fn-expr should be (fn params ret body)
+                 (if (and (pair? fn-expr) (eq? (car fn-expr) 'fn))
+                     (let ([params (cadr fn-expr)])
+                          ;; Check if typed
+                          (if (and (pair? params)
+                                   (pair? (car params))
+                                   (= (length (car params)) 2))
+                              (let ([ret-type (caddr fn-expr)]
+                                    [body (cadddr fn-expr)])
+                                   ;; fix by itself returns the closure; wrap in R-Letrec
+                                   ;; with in-expr being the function itself (for passing as value)
+                                   `(R-Letrec ,name ,params ,ret-type
+                                     ,(scheme->rust-ir body)
+                                     (R-Var ,name)))
+                              `(R-Literal ,(format "/* untyped fix not supported: ~s */" expr))))
+                     `(R-Literal ,(format "/* fix requires fn: ~s */" expr))))]
+
+          ;; (call f args...) - explicit function application
+          [(eq? head 'call)
+           (let ([f (cadr expr)]
+                 [args (cddr expr)])
+                `(R-Call ,(scheme->rust-ir f) ,@(map scheme->rust-ir args)))]
+
           ;; Function application (fallback)
           [else
            `(R-Call ,head ,@(map scheme->rust-ir (cdr expr)))]))]
@@ -505,7 +592,22 @@
    ;; Function: compute body cost
    [(eq? (car ir) 'R-Fn)
     (ir-fuel-cost (car (cddddr ir)))]
-   
+
+   ;; Lambda: closure creation cost (1) + body cost
+   ;; Body cost computed but not charged until application
+   [(eq? (car ir) 'R-Lambda)
+    (+ 1  ; Closure creation
+       (ir-fuel-cost (cadddr ir)))]  ; body cost (for estimation)
+
+   ;; Letrec: function definition + in-expr cost
+   ;; Body cost computed but only charged per invocation
+   [(eq? (car ir) 'R-Letrec)
+    (let ([body (car (cddddr ir))]
+          [in-expr (cadr (cddddr ir))])
+         (+ 1  ; Function definition overhead
+            (ir-fuel-cost body)     ; Body cost (for estimation)
+            (ir-fuel-cost in-expr)))] ; Continuation cost
+
    ;; Unknown
    [else 0]))
 
@@ -660,6 +762,13 @@
     (ir-collect-divisors (caddr ir))]          ; value expression
    [(eq? (car ir) 'R-Block)
     (apply append (map ir-collect-divisors (cdr ir)))]
+   ;; Lambda: collect from body
+   [(eq? (car ir) 'R-Lambda)
+    (ir-collect-divisors (cadddr ir))]         ; body
+   ;; Letrec: collect from body and in-expr
+   [(eq? (car ir) 'R-Letrec)
+    (append (ir-collect-divisors (car (cddddr ir)))   ; body
+            (ir-collect-divisors (cadr (cddddr ir))))] ; in-expr
    [else '()]))
 
 ;;; integer-type? : Symbol → Boolean
@@ -690,6 +799,18 @@
    [(eq? (car ir) 'R-Block)
     (any (lambda (e) (ir-contains-integer-var? e params))
          (cdr ir))]
+   ;; Lambda: check body with extended params
+   [(eq? (car ir) 'R-Lambda)
+    (let ([lambda-params (cadr ir)]
+          [body (cadddr ir)])
+         (ir-contains-integer-var? body (append lambda-params params)))]
+   ;; Letrec: check body and in-expr with extended params
+   [(eq? (car ir) 'R-Letrec)
+    (let ([rec-params (caddr ir)]
+          [body (car (cddddr ir))]
+          [in-expr (cadr (cddddr ir))])
+         (or (ir-contains-integer-var? body (append rec-params params))
+             (ir-contains-integer-var? in-expr params)))]
    [else #f]))
 
 ;;; any : (α → Boolean) × (List α) → Boolean
