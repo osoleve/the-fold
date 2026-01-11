@@ -13,3 +13,11 @@
 // Example: pub mod my_function;
 
 pub mod add_test;
+
+pub mod multiply_add;
+
+pub mod distance;
+
+pub mod is_positive;
+
+pub mod sum5;

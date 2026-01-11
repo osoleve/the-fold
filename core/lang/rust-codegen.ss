@@ -63,11 +63,12 @@
         [(div /) "/"]
         [(mod remainder %) "%"]
         ;; Comparison (infix)
-        [(lt? <) "<"]
-        [(le? <=) "<="]
-        [(gt? >) ">"]
-        [(ge? >=) ">="]
-        [(eq?) "=="]
+        [(lt lt? <) "<"]
+        [(le le? <=) "<="]
+        [(gt gt? >) ">"]
+        [(ge ge? >=) ">="]
+        [(eq eq? == =) "=="]
+        [(ne ne? != <>) "!="]
         ;; Logical (infix)
         [(and) "&&"]
         [(or) "||"]
