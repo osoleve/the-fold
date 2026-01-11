@@ -190,22 +190,27 @@
                     1.0))
 
 ;; Bytevector batch transform
+;; Lock bytevectors during FFI call for GC safety (best practice)
 (define bv-batch-ns
   (time-it "   Rust bytevector batch" batch-iterations
            (lambda ()
-                   (rust-mat4-transform-bv
-                    mat-a-bv
-                    points-in-bv
-                    batch-size
-                    points-out-bv
-                    1000000
-                    fuel-out-ptr
-                    status-ptr))))
+                   (with-locked-bytevectors
+                    (list mat-a-bv points-in-bv points-out-bv)
+                    (lambda ()
+                            (rust-mat4-transform-bv
+                             mat-a-bv
+                             points-in-bv
+                             batch-size
+                             points-out-bv
+                             1000000
+                             fuel-out-ptr
+                             status-ptr))))))
 
 (printf "   Per-point: ~,1fns\n" (/ bv-batch-ns batch-size))
 
 ;; Compare to Scheme
-(define (scheme-batch-transform mat points-in n)
+;; NOTE: Must write results for fair comparison with Rust!
+(define (scheme-batch-transform mat points-in points-out n)
   (do ([i 0 (+ i 1)])
       ((= i n))
       (let* ([base (* i 4)]
@@ -213,14 +218,27 @@
              [y (f64-bv-ref points-in (+ base 1))]
              [z (f64-bv-ref points-in (+ base 2))]
              [w (f64-bv-ref points-in (+ base 3))])
-            ;; Just compute, don't store (fair comparison)
-            (+ (* (f64-bv-ref mat 0) x) (* (f64-bv-ref mat 1) y)
-               (* (f64-bv-ref mat 2) z) (* (f64-bv-ref mat 3) w)))))
+            ;; Write all 4 components to output (same work as Rust)
+            (f64-bv-set! points-out base
+                         (+ (* (f64-bv-ref mat 0) x) (* (f64-bv-ref mat 1) y)
+                            (* (f64-bv-ref mat 2) z) (* (f64-bv-ref mat 3) w)))
+            (f64-bv-set! points-out (+ base 1)
+                         (+ (* (f64-bv-ref mat 4) x) (* (f64-bv-ref mat 5) y)
+                            (* (f64-bv-ref mat 6) z) (* (f64-bv-ref mat 7) w)))
+            (f64-bv-set! points-out (+ base 2)
+                         (+ (* (f64-bv-ref mat 8) x) (* (f64-bv-ref mat 9) y)
+                            (* (f64-bv-ref mat 10) z) (* (f64-bv-ref mat 11) w)))
+            (f64-bv-set! points-out (+ base 3)
+                         (+ (* (f64-bv-ref mat 12) x) (* (f64-bv-ref mat 13) y)
+                            (* (f64-bv-ref mat 14) z) (* (f64-bv-ref mat 15) w))))))
+
+;; Allocate Scheme output buffer for fair comparison
+(define scheme-points-out-bv (make-points-bytevector batch-size))
 
 (define scheme-batch-ns
   (time-it "   Scheme bytevector loop" batch-iterations
            (lambda ()
-                   (scheme-batch-transform mat-a-bv points-in-bv batch-size))))
+                   (scheme-batch-transform mat-a-bv points-in-bv scheme-points-out-bv batch-size))))
 
 (printf "   Per-point: ~,1fns\n\n" (/ scheme-batch-ns batch-size))
 (printf "   Speedup: ~,2fx\n" (/ scheme-batch-ns bv-batch-ns))

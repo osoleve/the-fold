@@ -476,13 +476,19 @@ The key breakthrough: **Chez Scheme bytevectors can be passed directly as `u8*` 
 ;; Total time: ~30ns (vs ~2000ns with element copying)
 ```
 
-**Benchmark Results:**
+**Benchmark Results (fair comparison, both write results):**
 
 | Approach | Time | Notes |
 |----------|------|-------|
-| Element copy (foreign-set! loop) | 1914ns | 64 copies per matrix |
-| Bytevector direct (u8*) | **30ns** | Zero copy |
-| **Improvement** | **64x** | |
+| Element copy (foreign-set! loop) | 1790ns | 64 copies per matrix |
+| Bytevector direct (u8*) | **39ns** | Zero copy |
+| **Improvement** | **46x** | |
+
+| Batch 1000 points | Time | Per-point |
+|-------------------|------|-----------|
+| Rust (bytevector) | 3.8μs | 3.8ns |
+| Scheme (bytevector) | 237μs | 237ns |
+| **Speedup** | | **63x** |
 
 ### Bytevector FFI API
 

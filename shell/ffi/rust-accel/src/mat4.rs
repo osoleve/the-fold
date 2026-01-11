@@ -148,7 +148,19 @@ pub extern "C" fn fold_mat4_transform_points(
         return;
     }
 
-    let total_cost = cost::MAT4_VEC_MUL * n;
+    // Check for overflow in fuel calculation
+    let total_cost = match cost::MAT4_VEC_MUL.checked_mul(n) {
+        Some(c) => c,
+        None => {
+            // Overflow - return runtime error
+            unsafe {
+                *status = 3;
+                *fuel_out = 0;
+            }
+            return;
+        }
+    };
+
     if fuel_in < total_cost {
         unsafe {
             *status = 2;
@@ -157,13 +169,25 @@ pub extern "C" fn fold_mat4_transform_points(
         return;
     }
 
+    // Check that n fits in usize (for 32-bit platforms)
+    let n_usize = match usize::try_from(n) {
+        Ok(n) => n,
+        Err(_) => {
+            // n too large for this platform
+            unsafe {
+                *status = 3;
+                *fuel_out = 0;
+            }
+            return;
+        }
+    };
+
     let m = unsafe { std::slice::from_raw_parts(m, 16) };
-    let n = n as usize;
-    let points_in = unsafe { std::slice::from_raw_parts(points_in, 4 * n) };
-    let points_out = unsafe { std::slice::from_raw_parts_mut(points_out, 4 * n) };
+    let points_in = unsafe { std::slice::from_raw_parts(points_in, 4 * n_usize) };
+    let points_out = unsafe { std::slice::from_raw_parts_mut(points_out, 4 * n_usize) };
 
     // Process all points
-    for i in 0..n {
+    for i in 0..n_usize {
         let base = i * 4;
         let v0 = points_in[base];
         let v1 = points_in[base + 1];
