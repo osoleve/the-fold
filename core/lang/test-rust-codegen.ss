@@ -801,6 +801,40 @@
        '(R-Lambda ((x f64)) f64 (R-Call + (R-Var x) (R-Literal 1)))
        '()))
 
+(test-section "QA Edge Cases (Gemini Review)")
+
+;; Higher-order function calls - R-Call with non-symbol operator
+(test "R-Call with R-Var operator"
+      "f(x, y)"
+      (rust-serialize '(R-Call (R-Var f) (R-Var x) (R-Var y))))
+
+(test "R-Call with nested R-Var"
+      "callback(1, 2)"
+      (rust-serialize '(R-Call (R-Var callback) (R-Literal 1) (R-Literal 2))))
+
+;; Empty parameter lists
+(test "Lambda with empty params"
+      "|| -> i64 { 42 }"
+      (rust-serialize '(R-Lambda () i64 (R-Literal 42))))
+
+(test "Letrec with empty params (thunk)"
+      "{ fn get_value() -> i64 { 42 } get_value }"
+      (rust-serialize '(R-Letrec get_value () i64 (R-Literal 42) (R-Var get_value))))
+
+;; Scheme->IR with empty params
+(test "Scheme->IR empty param lambda"
+      '(R-Lambda () i64 (R-Literal 42))
+      (scheme->rust-ir '(fn () i64 42)))
+
+(test "Scheme->IR empty param fix"
+      '(R-Letrec counter () i64 (R-Literal 0) (R-Var counter))
+      (scheme->rust-ir '(fix counter (fn () i64 0))))
+
+;; Single parameter (edge case)
+(test "Lambda with single param"
+      "|x: i64| -> i64 { (x + 1) }"
+      (rust-serialize '(R-Lambda ((x i64)) i64 (R-Call + (R-Var x) (R-Literal 1)))))
+
 (test-section "End-to-End Closure/Recursion Tests")
 
 ;; Test that R-Lambda serialization produces valid Rust closure syntax

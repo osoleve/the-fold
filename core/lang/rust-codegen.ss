@@ -324,9 +324,13 @@
                           (cdr rest))))]
           
           ;; Default function call
+          ;; Handle both symbol operators and IR nodes (for higher-order calls)
           [else
-           (string-append (symbol->string op) "("
-                          (string-join (map rust-serialize args) ", ") ")")]))]
+           (let ([op-str (if (symbol? op)
+                             (symbol->string op)
+                             (rust-serialize op))])  ; Handle (R-Var f) etc.
+                (string-append op-str "("
+                               (string-join (map rust-serialize args) ", ") ")"))]))]
    
    [(eq? (car ir) 'R-Let)
     
@@ -454,13 +458,17 @@
 
           ;; (fn ((x type) ...) ret-type body) - typed lambda
           ;; Creates R-Lambda for anonymous function/closure
+          ;; Also handles (fn () ret-type body) for 0-arity functions
           [(eq? head 'fn)
            (let ([params (cadr expr)])
                 ;; Check if params have types (typed lambda)
-                (if (and (pair? params)
-                         (pair? (car params))
-                         (= (length (car params)) 2))
-                    ;; Typed: (fn ((x i64) (y f64)) f64 body)
+                ;; Empty params () is valid (0-arity typed function)
+                ;; Non-empty params must be ((name type) ...) format
+                (if (or (null? params)  ; Empty params = valid typed
+                        (and (pair? params)
+                             (pair? (car params))
+                             (= (length (car params)) 2)))
+                    ;; Typed: (fn ((x i64) (y f64)) f64 body) or (fn () i64 body)
                     (let ([ret-type (caddr expr)]
                           [body (cadddr expr)])
                          `(R-Lambda ,params ,ret-type ,(scheme->rust-ir body)))
@@ -470,16 +478,18 @@
           ;; (fix name (fn ((x type) ...) ret-type body)) - recursive binding
           ;; Creates R-Letrec for recursive function
           ;; Note: fix alone just creates the closure; use let to bind and apply
+          ;; Also handles (fix name (fn () ret-type body)) for 0-arity recursive functions
           [(eq? head 'fix)
            (let* ([name (cadr expr)]
                   [fn-expr (caddr expr)])
                  ;; fn-expr should be (fn params ret body)
                  (if (and (pair? fn-expr) (eq? (car fn-expr) 'fn))
                      (let ([params (cadr fn-expr)])
-                          ;; Check if typed
-                          (if (and (pair? params)
-                                   (pair? (car params))
-                                   (= (length (car params)) 2))
+                          ;; Check if typed (empty params or ((name type) ...) format)
+                          (if (or (null? params)  ; Empty params = valid typed
+                                  (and (pair? params)
+                                       (pair? (car params))
+                                       (= (length (car params)) 2)))
                               (let ([ret-type (caddr fn-expr)]
                                     [body (cadddr fn-expr)])
                                    ;; fix by itself returns the closure; wrap in R-Letrec
