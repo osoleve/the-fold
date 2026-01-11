@@ -26,7 +26,8 @@
 ;;;   (R-If cond then else)    - Conditional expression
 ;;;   (R-Block stmt... expr)   - Statement block with final expr
 ;;;   (R-Fn name params ret body) - Function definition
-;;;   (R-Lambda params ret body)  - Anonymous function (closure)
+;;;   (R-Lambda params ret body)  - Anonymous function (non-capturing)
+;;;   (R-Closure captures params ret body) - Capturing closure (move semantics)
 ;;;   (R-Letrec name params ret body in-expr) - Recursive binding
 ;;;
 ;;; Closure support (M5: fold-49ht):
@@ -235,6 +236,29 @@
    [(eq? (car ir) 'R-Let)
     (format "let ~a = ~a;" (cadr ir) (rust-serialize-with-fuel (caddr ir) rec-name))]
 
+   ;; R-Lambda: recurse into body (closure may call the recursive function)
+   [(eq? (car ir) 'R-Lambda)
+    (let* ([params (cadr ir)]
+           [ret-type (caddr ir)]
+           [body (cadddr ir)]
+           [param-strs (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
+          (format "|~a| -> ~a { ~a }"
+                  (string-join param-strs ", ")
+                  ret-type
+                  (rust-serialize-with-fuel body rec-name)))]
+
+   ;; R-Closure: recurse into body with move semantics
+   [(eq? (car ir) 'R-Closure)
+    (let* ([captures (cadr ir)]
+           [params (caddr ir)]
+           [ret-type (cadddr ir)]
+           [body (car (cddddr ir))]
+           [param-strs (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
+          (format "move |~a| -> ~a { ~a }"
+                  (string-join param-strs ", ")
+                  ret-type
+                  (rust-serialize-with-fuel body rec-name)))]
+
    ;; Other nodes: use regular serialization
    [else (rust-serialize ir)]))
 
@@ -293,6 +317,8 @@
     (ir-contains-letrec? (caddr ir))]
    [(eq? (car ir) 'R-Lambda)
     (ir-contains-letrec? (cadddr ir))]
+   [(eq? (car ir) 'R-Closure)
+    (ir-contains-letrec? (car (cddddr ir)))]  ; body
    [else #f]))
 
 ;;; emit-fueled-body : IR × Type → String
@@ -321,6 +347,74 @@
         [(f64 f32) "0.0"]
         [(bool) "false"]
         [else "Default::default()"]))
+
+;;; ============================================================
+;;; Free Variable Analysis (fold-13td: Capturing Closures)
+;;; ============================================================
+
+;;; free-vars : Expr × (Set Symbol) → (Set Symbol)
+;;; Compute free variables in a Scheme expression.
+;;; Takes a set of bound variables, returns free variable names.
+;;; Uses list-based sets for simplicity.
+(define (free-vars expr bound)
+  (cond
+   ;; Literals have no free variables
+   [(number? expr) '()]
+   [(boolean? expr) '()]
+   [(string? expr) '()]
+
+   ;; Symbol: free if not bound
+   [(symbol? expr)
+    (if (memq expr bound) '() (list expr))]
+
+   ;; Compound forms
+   [(pair? expr)
+    (let ([head (car expr)])
+         (cond
+          ;; (quote x) - no free vars
+          [(eq? head 'quote) '()]
+
+          ;; (if cond then else)
+          [(eq? head 'if)
+           (set-union (free-vars (cadr expr) bound)
+                      (set-union (free-vars (caddr expr) bound)
+                                 (free-vars (cadddr expr) bound)))]
+
+          ;; (let ((x e)) body) - x bound in body
+          [(eq? head 'let)
+           (let* ([binding (car (cadr expr))]
+                  [name (car binding)]
+                  [val (cadr binding)]
+                  [body (caddr expr)])
+                 (set-union (free-vars val bound)
+                            (free-vars body (cons name bound))))]
+
+          ;; (fn ((x type) ...) ret body) - params bound in body
+          [(eq? head 'fn)
+           (let* ([params (cadr expr)]
+                  [param-names (map car params)]
+                  [body (cadddr expr)])
+                 (free-vars body (append param-names bound)))]
+
+          ;; (fix name (fn ...)) - name bound in fn body
+          [(eq? head 'fix)
+           (let ([name (cadr expr)]
+                 [fn-expr (caddr expr)])
+                (free-vars fn-expr (cons name bound)))]
+
+          ;; Application: free vars in all subforms
+          [else
+           (foldl set-union '()
+                  (map (lambda (e) (free-vars e bound))
+                       (cdr expr)))]))]
+
+   [else '()]))
+
+;;; set-union : (List α) × (List α) → (List α)
+;;; Union of two sets (represented as lists).
+(define (set-union a b)
+  (foldl (lambda (acc x) (if (memq x acc) acc (cons x acc)))
+         a b))
 
 ;;; ============================================================
 ;;; IR Serialization
@@ -503,12 +597,30 @@
 
    ;; R-Lambda: |x: T, y: T| -> R { body }
    ;; Format: (R-Lambda ((param type) ...) ret-type body)
+   ;; For non-capturing closures
    [(eq? (car ir) 'R-Lambda)
     (let* ([params (cadr ir)]
            [ret-type (caddr ir)]
            [body (cadddr ir)]
            [param-strs (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
           (format "|~a| -> ~a { ~a }"
+                  (string-join param-strs ", ")
+                  ret-type
+                  (rust-serialize body)))]
+
+   ;; R-Closure: move |x: T, y: T| -> R { body }
+   ;; Format: (R-Closure (cap-name ...) ((param type) ...) ret-type body)
+   ;; For capturing closures - uses 'move' for by-value capture
+   ;; Captured variable types are inferred by Rust from context
+   [(eq? (car ir) 'R-Closure)
+    (let* ([captures (cadr ir)]      ; List of captured variable names
+           [params (caddr ir)]
+           [ret-type (cadddr ir)]
+           [body (car (cddddr ir))]
+           [param-strs (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
+          ;; Emit 'move' closure - Rust infers captured variable types
+          ;; The 'move' keyword ensures by-value capture for all referenced vars
+          (format "move |~a| -> ~a { ~a }"
                   (string-join param-strs ", ")
                   ret-type
                   (rust-serialize body)))]
@@ -611,7 +723,7 @@
            `(R-Call expt ,@(map scheme->rust-ir (cdr expr)))]
 
           ;; (fn ((x type) ...) ret-type body) - typed lambda
-          ;; Creates R-Lambda for anonymous function/closure
+          ;; Creates R-Lambda for non-capturing, R-Closure for capturing
           ;; Also handles (fn () ret-type body) for 0-arity functions
           [(eq? head 'fn)
            (let ([params (cadr expr)])
@@ -623,9 +735,16 @@
                              (pair? (car params))
                              (= (length (car params)) 2)))
                     ;; Typed: (fn ((x i64) (y f64)) f64 body) or (fn () i64 body)
-                    (let ([ret-type (caddr expr)]
-                          [body (cadddr expr)])
-                         `(R-Lambda ,params ,ret-type ,(scheme->rust-ir body)))
+                    (let* ([ret-type (caddr expr)]
+                           [body (cadddr expr)]
+                           [param-names (map car params)]
+                           ;; Compute free variables in body (excluding params)
+                           [captures (free-vars body param-names)])
+                          (if (null? captures)
+                              ;; No captures - emit R-Lambda
+                              `(R-Lambda ,params ,ret-type ,(scheme->rust-ir body))
+                              ;; Has captures - emit R-Closure with move semantics
+                              `(R-Closure ,captures ,params ,ret-type ,(scheme->rust-ir body))))
                     ;; Untyped: not supported for Rust codegen
                     `(R-Literal ,(format "/* untyped lambda not supported: ~s */" expr))))]
 
@@ -762,6 +881,15 @@
    [(eq? (car ir) 'R-Lambda)
     (+ 1  ; Closure creation
        (ir-fuel-cost (cadddr ir)))]  ; body cost (for estimation)
+
+   ;; Closure: capturing closure cost (1 per capture + 1 for closure) + body cost
+   ;; Each capture involves a move/clone operation
+   [(eq? (car ir) 'R-Closure)
+    (let ([captures (cadr ir)]
+          [body (car (cddddr ir))])
+         (+ 1                          ; Closure creation
+            (length captures)          ; Cost per captured variable
+            (ir-fuel-cost body)))]     ; body cost (for estimation)
 
    ;; Letrec: function definition + in-expr cost
    ;; Body cost computed but only charged per invocation
@@ -929,6 +1057,9 @@
    ;; Lambda: collect from body
    [(eq? (car ir) 'R-Lambda)
     (ir-collect-divisors (cadddr ir))]         ; body
+   ;; Closure: collect from body (captures don't contain division)
+   [(eq? (car ir) 'R-Closure)
+    (ir-collect-divisors (car (cddddr ir)))]   ; body
    ;; Letrec: collect from body and in-expr
    [(eq? (car ir) 'R-Letrec)
     (append (ir-collect-divisors (car (cddddr ir)))   ; body
@@ -968,6 +1099,11 @@
     (let ([lambda-params (cadr ir)]
           [body (cadddr ir)])
          (ir-contains-integer-var? body (append lambda-params params)))]
+   ;; Closure: check body with extended params (captures don't add types to params)
+   [(eq? (car ir) 'R-Closure)
+    (let ([closure-params (caddr ir)]
+          [body (car (cddddr ir))])
+         (ir-contains-integer-var? body (append closure-params params)))]
    ;; Letrec: check body and in-expr with extended params
    [(eq? (car ir) 'R-Letrec)
     (let ([rec-params (caddr ir)]

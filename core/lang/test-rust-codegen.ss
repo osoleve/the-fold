@@ -929,4 +929,82 @@
            (and (string-contains code "std::panic::catch_unwind")
                 (string-contains code "result.status = 2"))))
 
+(test-section "Capturing Closures (fold-13td)")
+
+;; Test free-vars analysis
+(test "free-vars: literal" '() (free-vars 42 '()))
+(test "free-vars: bound var" '() (free-vars 'x '(x)))
+(test "free-vars: free var" '(x) (free-vars 'x '()))
+(test "free-vars: mixed"
+      #t  ; Check contains y but not x (x is bound)
+      (let ([fv (free-vars '(+ x y) '(x))])
+           (and (memq 'y fv) (not (memq 'x fv)))))
+(test "free-vars: fn binds params"
+      '()  ; x is bound by the fn params
+      (free-vars '(fn ((x i64)) i64 x) '()))
+(test "free-vars: fn with capture"
+      #t  ; y is free in the fn body
+      (let ([fv (free-vars '(fn ((x i64)) i64 (+ x y)) '())])
+           (and (memq 'y fv) #t)))
+
+;; Test scheme->rust-ir emits R-Lambda for non-capturing
+(test "scheme->rust-ir: non-capturing emits R-Lambda"
+      'R-Lambda
+      (car (scheme->rust-ir '(fn ((x i64)) i64 x))))
+
+;; Test scheme->rust-ir emits R-Closure for capturing
+(test "scheme->rust-ir: capturing emits R-Closure"
+      'R-Closure
+      (car (scheme->rust-ir '(fn ((x i64)) i64 (+ x y)))))
+
+(test "scheme->rust-ir: R-Closure captures correct vars"
+      #t
+      (let ([ir (scheme->rust-ir '(fn ((x i64)) i64 (+ x y)))])
+           (and (eq? (car ir) 'R-Closure)
+                (memq 'y (cadr ir))     ; y should be in captures list
+                #t)))
+
+;; Test R-Closure serialization produces 'move'
+(test "R-Closure serializes with move"
+      #t
+      (let ([code (rust-serialize '(R-Closure (y) ((x i64)) i64 (R-Call + (R-Var x) (R-Var y))))])
+           (string-contains code "move |x: i64|")))
+
+;; Test R-Closure fuel cost includes capture count
+(test "R-Closure fuel cost includes captures"
+      3  ; 1 (closure) + 2 (captures) + 0 (body = just literal)
+      (ir-fuel-cost '(R-Closure (a b) ((x i64)) i64 (R-Literal 0))))
+
+;; Test R-Closure handles division guards
+(test "R-Closure in ir-collect-divisors"
+      #t
+      (let ([divs (ir-collect-divisors '(R-Closure (a) ((x i64)) i64 (R-Call / (R-Var a) (R-Var x))))])
+           (not (null? divs))))
+
+;; End-to-end: capturing closure in a top-level function
+(test "Capturing closure in R-Fn"
+      #t
+      (let ([code (rust-emit '(R-Fn make_adder ((n i64)) i64
+                               (R-Closure (n) ((x i64)) i64 (R-Call + (R-Var n) (R-Var x)))))])
+           (and (string-contains code "move |x: i64|")
+                (string-contains code "fn make_adder"))))
+
+;; Multiple captures
+(test "R-Closure with multiple captures"
+      #t
+      (let ([code (rust-serialize '(R-Closure (a b c) ((x i64)) i64
+                                    (R-Call + (R-Var a) (R-Call + (R-Var b) (R-Call + (R-Var c) (R-Var x))))))])
+           (and (string-contains code "move")
+                (string-contains code "(a + (b + (c + x)))"))))
+
+;; Nested closures
+(test "Nested closures both capture"
+      #t
+      (let ([outer (scheme->rust-ir '(fn ((x i64)) i64
+                                       (fn ((y i64)) i64 (+ x y))))])
+           ;; Outer captures nothing (x is param)
+           ;; Inner captures x (y is param)
+           (and (eq? (car outer) 'R-Lambda)
+                (eq? (car (cadddr outer)) 'R-Closure))))
+
 (newline)
