@@ -10,7 +10,7 @@ We present **The Fold**, a programming system built on a content-addressable hom
 
 The Fold implements a *gradual dependent type system* combining bidirectional type checking (following Dunfield & Krishnaswami), dependent function and pair types (Π, Σ), higher-kinded types, type classes via dictionary-passing, and GADTs with pattern refinement. Gradual typing through holes enables incremental specification without sacrificing soundness where types are known.
 
-The system organizes verified code into a *module DAG* (internally called the "skill lattice")—a tiered directed acyclic graph where modules declare dependencies, purity guarantees, and complexity bounds. This structure enables compositional verification: if dependencies are verified and a module is verified against those dependencies, the module is verified. A BM25-powered semantic search engine enables discovery across ~1,400 exports.
+The system organizes verified code into a *module DAG* (internally called the "skill lattice")—a tiered directed acyclic graph where modules declare dependencies, purity guarantees, and complexity bounds. Functions are bounded rather than structurally total—fuel limits guarantee termination of any execution, though this is weaker than type-theoretic totality. This structure enables compositional verification: if dependencies are verified and a module is verified against those dependencies, the module is verified. A BM25-powered semantic search engine enables discovery across ~1,400 exports.
 
 Key contributions: (1) a block calculus formalizing content-addressed computation with α-equivalence, (2) a dependent type system integrated with gradual typing, (3) a compositional module system with fuel-bounded complexity guarantees. The implementation, built entirely in Chez Scheme with no third-party dependencies, demonstrates that reproducible, verifiable computation can emerge from simple foundations.
 
@@ -88,14 +88,15 @@ This enables *compositional verification*: verifying a module requires only veri
 
 - **Section 2**: System architecture—the three-layer model and its rationale
 - **Section 3**: The block machine—content addressing, normalization, storage
-- **Section 4**: The block calculus—syntax, operational semantics, homoiconicity
-- **Section 5**: The type theory—dependent types, bidirectional checking, advanced features
+- **Section 4**: The block calculus—syntax, operational semantics, shell implementation, metaprogramming
+- **Section 5**: The type theory—dependent types, bidirectional checking, gradual typing
 - **Section 6**: The module system—DAG structure, verification, discovery
-- **Section 7**: Implementation—technology choices and design decisions
+- **Section 7**: Implementation—technology choices, performance, developer experience
 - **Section 8**: Evaluation—benchmarks and case study
 - **Section 9**: Related work—comparison to Unison, IPFS, dependent type systems
-- **Section 10**: Future work
-- **Section 11**: Conclusion
+- **Section 10**: Limitations and non-goals—honest scoping of what The Fold does not provide
+- **Section 11**: Future work
+- **Section 12**: Conclusion
 
 ---
 
@@ -122,7 +123,16 @@ The Core is the mathematical heart of The Fold. Code in Core satisfies three pro
 
 **Purity**: No side effects. Functions depend only on their arguments and produce only their return values. This enables equational reasoning—if `f(x) = y`, then `f(x)` can always be replaced with `y`.
 
-**Totality**: Every function terminates. This is enforced via *fuel-bounded execution*: every computation receives a fuel budget that decrements with each reduction step. Exhausting fuel yields an `out-of-fuel` error rather than infinite looping.
+**Bounded Computation**: Every computation terminates within a declared resource bound. This is enforced via *fuel-bounded execution*: every computation receives a fuel budget that decrements with each reduction step. Exhausting fuel yields an `out-of-fuel` error rather than infinite looping.
+
+**Important distinction**: This is *not* totality in the type-theoretic sense. True totality (as in Agda or Idris) proves termination for all inputs via structural recursion checks or sized types—a property of the function itself. Fuel bounds instead guarantee that any particular execution completes—a property of the runtime. A function that exhausts fuel has *failed*, not *terminated normally*.
+
+We choose bounded computation over structural totality for pragmatic reasons:
+- Structural totality rejects useful programs (e.g., interpreters, fixpoint iterations)
+- Fuel bounds are simple to implement and reason about
+- The bound is explicit in module manifests, enabling composition
+
+The tradeoff: Core functions cannot be safely evaluated during type checking (since they might exhaust fuel), limiting dependent type expressiveness compared to systems with true totality.
 
 **Trust**: Core assumes *perfect input*. It performs no validation, no defensive checks, no error recovery. If you pass malformed data to Core, behavior is undefined. This simplicity enables formal verification.
 
@@ -601,6 +611,273 @@ Core is *effect-free*. The Shell provides effects through a capability-based sys
 
 This keeps Core pure while enabling practical programs.
 
+### 4.6 Shell Implementation Details
+
+The Shell ("thimble") is the verification boundary—code below is trusted, code above is verified. This section details Shell's invariants and implementation.
+
+#### 4.6.1 Shell Invariants
+
+The Shell maintains these invariants before invoking Core:
+
+**I1. Well-formed S-expressions**: All input is syntactically valid. Malformed UTF-8, unbalanced parentheses, and invalid tokens are rejected before reaching Core.
+
+```scheme
+;; Shell validation pipeline
+(define (validate-input raw-bytes)
+  (let ([utf8-result (validate-utf8 raw-bytes)])
+    (if (err? utf8-result)
+        (error 'invalid-utf8 (err-msg utf8-result))
+        (let ([sexpr-result (try-read (utf8->string raw-bytes))])
+          (if (err? sexpr-result)
+              (error 'malformed-sexpr (err-msg sexpr-result))
+              (ok-val sexpr-result))))))
+```
+
+**I2. Type-compatible arguments**: Values passed to typed Core functions satisfy their declared types. Shell performs runtime type checks at the boundary.
+
+```scheme
+;; Boundary check before Core call
+(define (call-core-function f args expected-types)
+  (for-each
+    (lambda (arg type)
+      (unless (runtime-type-check arg type)
+        (error 'type-mismatch arg type)))
+    args expected-types)
+  (apply f args))
+```
+
+**I3. Capability presence**: Effectful operations receive valid capability tokens. No capability = no effect.
+
+**I4. Fuel budget**: Every Core invocation receives a finite fuel budget. Shell chooses the budget based on operation type and user configuration.
+
+#### 4.6.2 Capability Implementation
+
+Capabilities are unforgeable tokens authorizing specific effects. Implementation:
+
+```scheme
+;; Capability is a record with a unique, unguessable ID
+(define-record-type capability
+  (fields
+    id          ; Cryptographically random 128-bit identifier
+    kind        ; Symbol: 'filesystem, 'network, 'time, etc.
+    scope       ; Restrictions: paths, hosts, etc.
+    revoked?))  ; Mutable: can be revoked
+
+;; Capability minting (Shell only)
+(define (mint-capability kind scope)
+  (make-capability
+    (crypto-random-bytes 16)
+    kind
+    scope
+    #f))
+
+;; Capability checking
+(define (check-capability cap required-kind operation)
+  (cond
+    [(capability-revoked? cap)
+     (error 'revoked-capability cap)]
+    [(not (eq? (capability-kind cap) required-kind))
+     (error 'wrong-capability-kind required-kind (capability-kind cap))]
+    [(not (scope-permits? (capability-scope cap) operation))
+     (error 'scope-violation operation (capability-scope cap))]
+    [else #t]))
+
+;; Usage in Shell
+(define (read-file cap path)
+  (check-capability cap 'filesystem `(read ,path))
+  (call-with-input-file path get-string-all))
+```
+
+**Capability hierarchy**:
+```
+(Cap-Root)                    ; Superuser, mints other capabilities
+├── (Cap-FS scope)            ; Filesystem (scope: paths)
+├── (Cap-Net scope)           ; Network (scope: hosts/ports)
+├── (Cap-Time)                ; Current time, sleep
+├── (Cap-Random)              ; Cryptographic randomness
+└── (Cap-Subprocess scope)    ; Spawn processes (scope: allowed commands)
+```
+
+**Capability attenuation**: Capabilities can be narrowed but not widened:
+
+```scheme
+;; Attenuate filesystem cap to single directory
+(define (attenuate-fs-cap cap allowed-path)
+  (unless (path-prefix? allowed-path (capability-scope cap))
+    (error 'cannot-widen-capability))
+  (make-capability
+    (crypto-random-bytes 16)  ; New ID
+    'filesystem
+    allowed-path              ; Narrower scope
+    #f))
+```
+
+#### 4.6.3 Error Handling
+
+Shell catches all errors from Core and presents them to users:
+
+```scheme
+(define (shell-eval expr fuel)
+  (guard (exn
+          [(out-of-fuel? exn)
+           (format-error "Computation exceeded fuel budget (~a)"
+                        (out-of-fuel-consumed exn))]
+          [(type-error? exn)
+           (format-type-error exn)]
+          [(eval-error? exn)
+           (format-eval-error exn)]
+          [else
+           (format-error "Internal error: ~a" exn)])
+    (core-eval expr fuel)))
+```
+
+**Error categories**:
+
+| Category | Source | User Message |
+|----------|--------|--------------|
+| `parse-error` | Shell | "Syntax error at line N: ..." |
+| `type-error` | Core | "Type mismatch: expected T₁, got T₂" |
+| `out-of-fuel` | Core | "Computation exceeded budget" |
+| `unbound-var` | Core | "Undefined variable: x" |
+| `capability-error` | Shell | "Operation requires capability C" |
+| `io-error` | Shell | "Cannot read file: ..." |
+
+#### 4.6.4 Shell/Core Protocol
+
+Communication follows a strict protocol:
+
+```
+Shell                           Core
+  │                               │
+  ├─── validate(input) ──────────►│
+  │                               │
+  │◄── ok | parse-error ──────────┤
+  │                               │
+  ├─── infer-type(expr) ─────────►│
+  │                               │
+  │◄── type | type-error ─────────┤
+  │                               │
+  ├─── eval(expr, fuel, caps) ───►│
+  │                               │
+  │◄── value | error ─────────────┤
+  │                               │
+```
+
+Core never initiates communication. Core never performs IO directly. All external interaction flows through Shell.
+
+### 4.7 Metaprogramming and the Type System
+
+The homoiconic mechanism (`quote`/`eval`) operates outside the type system. This section clarifies the interaction.
+
+#### 4.7.1 Quotation is Untyped
+
+`quote` produces an S-expression value, not a typed term:
+
+```scheme
+(quote (+ 1 2))        ; → '(+ 1 2), type: Sexpr
+(quote (lambda (x) x)) ; → '(lambda (x) x), type: Sexpr
+```
+
+The type of `quote` is:
+```
+quote : (→ <syntax> Sexpr)
+```
+
+Where `<syntax>` is the syntactic category of expressions, not a type. This is a *macro* operation, not a function.
+
+#### 4.7.2 Evaluation is Dynamically Typed
+
+`eval` interprets an S-expression as code:
+
+```scheme
+(eval '(+ 1 2))        ; → 3
+(eval '(lambda (x) x)) ; → <procedure>
+```
+
+The type of `eval`:
+```
+eval : (→ Sexpr ?)
+```
+
+The result type is unknown statically. `eval` may:
+- Return any type
+- Fail with a type error at runtime
+- Fail with a syntax error
+
+#### 4.7.3 Safe Metaprogramming Patterns
+
+**Pattern 1: Generate, then type-check**
+
+```scheme
+;; Generate code
+(define generated-code
+  `(define (add-n n)
+     (lambda (x) (+ x ,n))))
+
+;; Type-check before use
+(define checked-code
+  (type-check-sexpr generated-code))
+
+;; Only use if well-typed
+(when (ok? checked-code)
+  (eval generated-code))
+```
+
+**Pattern 2: Typed wrappers**
+
+```scheme
+;; Wrap eval with expected type
+(define (eval-expecting type sexpr)
+  (let ([result (eval sexpr)])
+    (if (runtime-type-check result type)
+        (ok result)
+        (err 'type-mismatch type result))))
+
+;; Usage
+(eval-expecting '(→ Int Int) '(lambda (x) (+ x 1)))
+```
+
+**Pattern 3: Quasiquotation with typed holes**
+
+```scheme
+;; Typed value spliced into untyped template
+(define (make-adder [n : Int])
+  (eval `(lambda (x) (+ x ,n))))
+;; n is type-checked; the template is not
+```
+
+#### 4.7.4 Why Not Typed Quotation?
+
+Typed quotation (as in MetaML) would give:
+```
+quote : (∀ (A) (→ A (Code A)))
+eval  : (∀ (A) (→ (Code A) A))
+```
+
+Where `Code A` represents code that, when evaluated, produces type `A`.
+
+We don't implement this because:
+1. **Complexity**: Requires staging levels, environment classifiers
+2. **Homoiconicity tension**: S-expressions don't carry types
+3. **Practical sufficiency**: Untyped metaprogramming + runtime checks works for our use cases
+
+**Future direction**: A typed quotation sublanguage for specific patterns (e.g., SQL query generation) may be added.
+
+#### 4.7.5 Content Addressing of Generated Code
+
+Generated code participates in content addressing:
+
+```scheme
+;; Two generators produce the same code
+(define code1 (generate-identity 'x))  ; '(lambda (x) x)
+(define code2 (generate-identity 'y))  ; '(lambda (y) y)
+
+;; After normalization, same hash
+(equal? (hash-sexpr code1) (hash-sexpr code2))  ; → #t
+```
+
+Even metaprogrammed code benefits from semantic identity.
+
 ---
 
 ## 5. The Type Theory
@@ -940,12 +1217,62 @@ Holes (`?`) enable partial type specifications:
 (define (transform [x : (? input)]) : (? output) ...)
 ```
 
-**Semantics**: Holes unify with any type during inference. The system is *sound where types are known*—type errors are caught at typed boundaries, while untyped regions are unchecked.
+**Semantics**: Holes unify with any type during inference. The system is *sound where types are known*—type errors are caught at typed boundaries, while untyped regions defer checking to runtime.
 
-**Interaction with Dependent Types**: This combination requires care. We follow a conservative approach:
-- Holes cannot appear in type indices
-- Dependent elimination requires fully-specified types
-- Gradual regions are isolated from dependent regions
+#### 5.9.1 Interaction with Dependent Types
+
+Combining gradual and dependent types is a known hard problem (Eremondi et al., 2019). The core difficulty: in `(Π ((x : A)) B)`, the type `B` may mention `x`. If `A` is a hole, what is `x`? If we don't know `x`'s type, we cannot normalize `B`.
+
+**Example of the problem:**
+```scheme
+;; What does this mean?
+(Π ((x : ?)) (Vec x Int))
+
+;; If x : Nat, this is a length-indexed vector
+;; If x : String, this is nonsense
+;; With x : ?, we cannot evaluate (Vec x Int)
+```
+
+**The Fold's approach: Strict separation**
+
+Rather than approximate normalization (Eremondi et al.) or elaborate runtime checks, we enforce separation:
+
+1. **Holes cannot appear in dependent positions**:
+   ```scheme
+   ;; Allowed: hole in simple function type
+   (→ ? Int)
+
+   ;; Rejected: hole as Pi domain when codomain depends on it
+   (Π ((x : ?)) (Vec x Int))  ; ERROR: x used dependently
+
+   ;; Allowed: hole in Pi domain when codomain is independent
+   (Π ((x : ?)) Int)  ; OK: degenerates to (→ ? Int)
+   ```
+
+2. **Dependent elimination requires concrete types**:
+   ```scheme
+   ;; Pattern matching on (Vec n A) requires n to be concrete
+   (match vec
+     [(vnil) ...]
+     [(vcons x xs) ...])  ; n must be known to refine types
+   ```
+
+3. **Gradual and dependent regions don't mix**:
+   - A module is either "dependently typed" (no holes in signatures) or "gradually typed" (holes allowed, no dependent types)
+   - Cross-boundary calls insert runtime checks
+
+**What we sacrifice:**
+- Cannot incrementally add dependent types to untyped code
+- Cannot have "partially dependent" functions
+- Less flexibility than full gradual dependent types
+
+**What we gain:**
+- Simple, predictable semantics
+- No approximate normalization complexity
+- Clear separation of concerns
+- Type checking remains decidable
+
+**Future direction**: We may explore restricted approximate normalization for specific patterns (e.g., length-indexed vectors with unknown but bounded length).
 
 ---
 
@@ -1022,20 +1349,67 @@ Each module declares metadata in `manifest.sexp`:
 
 ### 6.3 Compositional Verification
 
-The tiered structure enables compositional verification:
+The tiered structure enables compositional verification—verifying a module requires only its direct dependencies, not the transitive closure.
 
-**Verification Theorem**:
+#### 6.3.1 What "Verified" Means
+
+We define `verified(M)` as the conjunction of three properties:
+
+1. **Type-safe**: All exports type-check against their declared signatures. Internal functions type-check. No ill-typed terms exist in M.
+
+2. **Fuel-bounded**: Every exported function terminates within its declared fuel bound for all well-typed inputs. If `manifest.sexp` declares `(fuel-bound "O(n²)")`, then for input of size n, the function consumes at most c·n² fuel for some constant c.
+
+3. **Purity-respecting**: If the manifest declares `(purity total)`, the module performs no effects. If `(purity partial)`, it may diverge but performs no effects. Only `(purity effect)` modules may perform IO.
+
+Formally:
 ```
-∀ module M with deps D₁, ..., Dₙ:
-  verified(D₁) ∧ ... ∧ verified(Dₙ) ∧ verified(M | D₁...Dₙ)
+verified(M) ≜ type-safe(M) ∧ fuel-bounded(M) ∧ purity-respecting(M)
+```
+
+#### 6.3.2 Compositional Verification Theorem
+
+**Theorem** (Compositional Verification):
+```
+∀ module M with declared dependencies D₁, ..., Dₙ:
+  verified(D₁) ∧ ... ∧ verified(Dₙ) ∧ locally-verified(M, {D₁...Dₙ})
   ⟹ verified(M)
 ```
 
-In other words: if dependencies are verified and M is verified *assuming* those dependencies, then M is verified.
+Where `locally-verified(M, Deps)` means:
+- M type-checks assuming Deps provide their declared signatures
+- M's fuel consumption, measured with Deps as black boxes at their declared bounds, satisfies M's declared bound
+- M's purity, assuming Deps respect their purity declarations, satisfies M's declared purity
 
-**Fuel Bounds Compose**:
+**Proof sketch**:
+- *Type safety*: By compositionality of typing judgments. If Γ_deps ⊢ M : τ and each D_i provides Γ_deps(D_i), then the combined context is sound.
+- *Fuel bounds*: By composition of O-notation. If M calls f ∈ D_i with bound O(g), and M makes at most h calls, M's contribution is O(h · g). The manifest bound must dominate this.
+- *Purity*: By monotonicity. Pure code calling pure code is pure. Effect code may call anything.
 
-If module A has bound O(f_A) and module B has bound O(f_B), a program using both has bound O(max(f_A, f_B)) for sequential composition, O(f_A + f_B) for nested calls.
+**Practical implication**: To verify a new module, you need only:
+1. Verify it type-checks against dependency signatures
+2. Verify its fuel bound (by inspection or testing)
+3. Verify its purity claim
+
+You do NOT need to re-verify dependencies or examine their implementations.
+
+#### 6.3.3 Fuel Bound Composition
+
+If module A has bound O(f_A) and module B has bound O(f_B):
+
+| Composition | Resulting Bound |
+|-------------|-----------------|
+| Sequential (A then B) | O(f_A + f_B) |
+| Nested (A calls B once) | O(f_A + f_B) |
+| Nested (A calls B n times) | O(f_A + n · f_B) |
+| Independent (max) | O(max(f_A, f_B)) |
+
+**Example**:
+```scheme
+;; linalg declares O(n³) for matrix-mul
+;; autodiff calls matrix-mul in backward pass
+;; If backward pass is O(k) operations, each O(n³):
+;; autodiff declares O(k · n³)
+```
 
 **Type Safety at Boundaries**:
 
@@ -1186,6 +1560,134 @@ Separation enables verification:
 - Avalanche: 1-bit input change → ~50% output change
 - Preimage resistance: Cannot reverse hash
 
+### 7.4 Developer Experience
+
+This section addresses practical concerns for developers using The Fold.
+
+#### 7.4.1 Error Messages
+
+Type errors include source locations and contextual information:
+
+```
+Type error at vec.ss:45:12
+
+  (vec+ v1 v2)
+        ^^
+  Expected: (Vec n Num)
+  Got:      (List Num)
+
+  In the expression:
+    (define (combine v1 v2)
+      (vec+ v1 v2))
+
+  Hint: vec+ requires vectors, not lists.
+        Use (list->vec v1) to convert.
+```
+
+**Error message principles**:
+1. **Location**: File, line, column, with source excerpt
+2. **Expected vs. actual**: Clear type comparison
+3. **Context**: Enclosing expression for clarity
+4. **Hints**: Actionable suggestions where possible
+
+#### 7.4.2 Incremental Development with Holes
+
+Holes enable incremental typing without sacrificing safety:
+
+**Workflow**:
+
+1. **Start untyped**: Use `?` everywhere
+   ```scheme
+   (define (process x) : ?
+     (complex-operation x))
+   ```
+
+2. **Add types incrementally**: Specify what you know
+   ```scheme
+   (define (process [x : InputData]) : ?
+     (complex-operation x))
+   ```
+
+3. **Let inference propagate**: Type checker fills in constraints
+   ```scheme
+   ;; Checker reports: return type is (Result OutputData Error)
+   ```
+
+4. **Finalize**: Replace holes with concrete types
+   ```scheme
+   (define (process [x : InputData]) : (Result OutputData Error)
+     (complex-operation x))
+   ```
+
+**Named holes for documentation**:
+```scheme
+(define (transform [x : (? input-format)]) : (? output-format)
+  ...)
+;; IDE shows: input-format = JSON, output-format = XML
+```
+
+**Hole reports**: Query what the checker inferred for each hole:
+```scheme
+(hole-report 'my-function)
+; → ((? input-format) . JSON)
+;   ((? output-format) . XML)
+```
+
+#### 7.4.3 REPL-Driven Development
+
+The persistent REPL daemon supports interactive development:
+
+```scheme
+;; Load module under development
+> (load "my-module.ss")
+
+;; Test incrementally
+> (my-function test-input)
+#(result ...)
+
+;; Check types interactively
+> (type-of 'my-function)
+(→ InputType OutputType)
+
+;; Explore inferred types
+> (infer '(lambda (x) (+ x 1)))
+(→ Num Num)
+
+;; Reload after edits
+> (reload "my-module.ss")
+```
+
+**Session persistence**: State survives across invocations. Define a function, close the terminal, return later—it's still there.
+
+#### 7.4.4 Tooling Integration
+
+**Lattice search**: Find relevant functions without memorizing names:
+```scheme
+> (lf "matrix inverse")
+((matrix-inverse 0.92 export (linalg matrix))
+ (solve-linear 0.78 export (linalg solvers))
+ ...)
+```
+
+**Dependency exploration**:
+```scheme
+> (ld 'physics/diff)        ; What does this need?
+(autodiff linalg data)
+
+> (lu 'linalg)              ; What uses this?
+(autodiff geometry physics/diff physics/diff3d ...)
+```
+
+**Type inspection**:
+```scheme
+> (describe 'matrix-mul)
+matrix-mul : (∀ (m n p) (→ (Matrix m n) (→ (Matrix n p) (Matrix m p))))
+
+Multiplies two matrices. Requires inner dimensions to match.
+Complexity: O(m·n·p)
+Module: linalg/matrix
+```
+
 ---
 
 ## 8. Evaluation
@@ -1328,7 +1830,92 @@ The Fold's de Bruijn approach provides stronger α-equivalence guarantees. Uniso
 
 ---
 
-## 10. Future Work
+## 10. Limitations and Non-Goals
+
+Honest acknowledgment of what The Fold does NOT provide.
+
+### 10.1 Not True Totality
+
+The Fold guarantees *bounded execution*, not *totality*. The difference:
+
+| Property | Totality | Bounded Execution |
+|----------|----------|-------------------|
+| Guarantee | Function terminates on all inputs | Execution stops within fuel limit |
+| Mechanism | Structural recursion / sized types | Fuel counter |
+| On failure | Rejected at compile time | Runtime `out-of-fuel` error |
+| For type checking | Safe to evaluate during checking | Unsafe (might exhaust fuel) |
+
+**Implication**: We cannot safely evaluate arbitrary Core functions during type checking. This limits dependent type expressiveness compared to Agda or Idris.
+
+### 10.2 Limited Gradual + Dependent Integration
+
+The Fold does NOT support:
+- Holes in dependent positions (`(Π ((x : ?)) (Vec x A))`)
+- Incremental addition of dependent types to untyped code
+- Approximate normalization for gradual dependent terms
+
+This is a deliberate simplification. Full gradual dependent types (Eremondi et al., 2019) require sophisticated runtime checks and approximate normalization. We chose separation over complexity.
+
+### 10.3 No Proof Tactics
+
+Unlike Agda, Idris, or Lean, The Fold provides no:
+- Tactic language for proof construction
+- Proof search or automation
+- Holes with goal display
+- Interactive proof development
+
+Dependent types are for specification, not theorem proving. Use external proof assistants for serious verification.
+
+### 10.4 Shell is Unverified
+
+The Shell is *trusted but unverified*. We believe it maintains its invariants, but we have not mechanically verified this. The verification boundary is:
+
+```
+   ┌─────────────────────────┐
+   │   Shell (trusted)       │  ← May have bugs
+   ├─────────────────────────┤
+   │   Core (verified*)      │  ← *Type-safe by construction
+   └─────────────────────────┘
+```
+
+Core is verified in the sense that well-typed programs don't go wrong (within fuel bounds). Shell correctness is assured by testing and code review.
+
+### 10.5 Single-Node Only
+
+The current implementation is single-node:
+- No distributed CAS
+- No peer-to-peer code sharing
+- No remote capability delegation
+
+Distributed operation is future work (§11).
+
+### 10.6 No IDE Integration
+
+Currently no:
+- Language Server Protocol (LSP) implementation
+- Editor plugins (VS Code, Emacs, etc.)
+- Jump-to-definition, find-references
+- Inline type display
+
+The REPL and command-line tools are the primary interface.
+
+### 10.7 Metaprogramming Type Interactions
+
+The `quote`/`eval` mechanism has limited type integration:
+
+```scheme
+;; quote produces an untyped S-expression
+(quote (+ 1 2))  ; type: Sexpr (not (Expr Int))
+
+;; eval has type (→ Sexpr ?)
+;; We cannot statically know the result type
+```
+
+Typed quotation (as in MetaML or Typed Template Haskell) is not implemented. Metaprogramming operates at the untyped level.
+
+---
+
+## 11. Future Work
 
 **Distributed CAS**: Extend the CAS to peer-to-peer networks, enabling decentralized code sharing with content verification.
 
@@ -1344,7 +1931,7 @@ The Fold's de Bruijn approach provides stronger α-equivalence guarantees. Uniso
 
 ---
 
-## 11. Conclusion
+## 12. Conclusion
 
 The Fold demonstrates that content-addressed homoiconic computation is practical. By combining:
 
