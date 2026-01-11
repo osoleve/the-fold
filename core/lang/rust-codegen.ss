@@ -102,6 +102,47 @@
         [(or) "false"]
         [else #f]))
 
+;;; ============================================================
+;;; Rust Identifier Sanitization
+;;; ============================================================
+
+;;; rust-reserved-keywords : (List String)
+;;; Rust keywords that cannot be used as identifiers.
+(define rust-reserved-keywords
+  '("as" "async" "await" "break" "const" "continue" "crate" "dyn"
+    "else" "enum" "extern" "false" "fn" "for" "if" "impl" "in"
+    "let" "loop" "match" "mod" "move" "mut" "pub" "ref" "return"
+    "self" "Self" "static" "struct" "super" "trait" "true" "type"
+    "unsafe" "use" "where" "while"
+    ;; Reserved for future use
+    "abstract" "become" "box" "do" "final" "macro" "override"
+    "priv" "try" "typeof" "unsized" "virtual" "yield"))
+
+;;; sanitize-rust-ident : String → String
+;;; Convert a string to a valid Rust identifier.
+;;; - Replaces non-alphanumeric chars with underscore
+;;; - Prefixes with 'm_' if starts with number or is a keyword
+;;; - Returns "unnamed" for empty strings
+(define (sanitize-rust-ident str)
+  (if (or (not (string? str)) (= (string-length str) 0))
+      "unnamed"
+      (let* ([chars (string->list str)]
+             [sanitized (list->string
+                         (map (lambda (c)
+                                      (cond
+                                       [(char-alphabetic? c) (char-downcase c)]
+                                       [(char-numeric? c) c]
+                                       [else #\_]))
+                              chars))]
+             ;; Prefix if starts with number
+             [prefixed (if (char-numeric? (string-ref sanitized 0))
+                           (string-append "m_" sanitized)
+                           sanitized)])
+            ;; Prefix if reserved keyword
+            (if (member prefixed rust-reserved-keywords)
+                (string-append "m_" prefixed)
+                prefixed))))
+
 ;;; scheme-op->rust-method : Symbol → String
 ;;; Get the Rust method name for method-style ops.
 (define (scheme-op->rust-method op)
@@ -783,6 +824,7 @@
   (if (not (eq? (car ir) 'R-Fn))
       (error 'rust-emit-module "Expected R-Fn IR" ir)
       (let* ([name (cadr ir)]
+             [safe-name (sanitize-rust-ident (symbol->string name))]  ; M4 QA: sanitize fn name
              [params (caddr ir)]
              [ret-type (cadddr ir)]
              [body (car (cddddr ir))]
@@ -800,7 +842,7 @@
              "use crate::{" result-struct "};\n\n"
              "#[no_mangle]\n"
              (format "pub extern \"C\" fn fold_~a(~a, fuel_in: u64, out: *mut ~a) {\n"
-                     name (string-join rust-params ", ") result-struct)
+                     safe-name (string-join rust-params ", ") result-struct)
              (format "    if (out as *const ~a).is_null() { return; }\n" result-struct)
              "    let result = unsafe { &mut *out };\n"
              (format "    const COST: u64 = ~a;\n" cost)

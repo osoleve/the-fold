@@ -57,7 +57,7 @@
 ;;; Returns the path to the generated .rs file.
 (define (compile-to-crate name ir . rest)
   (let* ([cost (if (null? rest) #f (car rest))]
-         [module-name (string->safe-rust-ident name)]
+         [module-name (sanitize-rust-ident name)]  ; Use robust sanitization from rust-codegen
          [source-file (string-append *rust-generated-path* "/" module-name ".rs")]
          [code (if cost (rust-emit-module ir cost) (rust-emit-module ir))])
         
@@ -70,17 +70,6 @@
         (update-generated-mod-rs! module-name)
         
         `(ok ,source-file)))
-
-;;; string->safe-rust-ident : String → String
-;;; Convert a string to a valid Rust identifier (snake_case).
-(define (string->safe-rust-ident str)
-  (list->string
-   (map (lambda (c)
-                (cond
-                 [(char-alphabetic? c) (char-downcase c)]
-                 [(char-numeric? c) c]
-                 [else #\_]))
-        (string->list str))))
 
 ;;; update-generated-mod-rs! : String → Void
 ;;; Add a module declaration to generated/mod.rs if not already present.
@@ -125,6 +114,43 @@
                            (string-suffix? ";" trimmed)
                            (substring trimmed 8 (- (string-length trimmed) 1)))))
          lines)))
+
+;;; remove-from-crate : String → (Result #t Error)
+;;; Remove a generated module from the crate.
+;;; Deletes the .rs file and removes from mod.rs.
+(define (remove-from-crate name)
+  (let* ([module-name (sanitize-rust-ident name)]
+         [source-file (string-append *rust-generated-path* "/" module-name ".rs")]
+         [mod-decl (format "pub mod ~a;" module-name)])
+        
+        ;; Remove from mod.rs
+        (let* ([mod-rs-path (string-append *rust-generated-path* "/mod.rs")]
+               [content (call-with-input-file mod-rs-path
+                                              (lambda (p) (get-string-all p)))]
+               [lines (string-split content #\newline)]
+               [filtered (filter (lambda (line)
+                                         (not (string=? (string-trim line) mod-decl)))
+                                 lines)]
+               [new-content (string-join-lines filtered)])
+              (with-output-to-file mod-rs-path
+                                   (lambda () (display new-content))
+                                   '(replace)))
+        
+        ;; Delete the .rs file
+        (when (file-exists? source-file)
+              (delete-file source-file))
+        
+        '(ok #t)))
+
+;;; string-join-lines : (List String) → String
+;;; Join lines with newlines.
+(define (string-join-lines lines)
+  (if (null? lines)
+      ""
+      (let loop ([rest (cdr lines)] [acc (car lines)])
+           (if (null? rest)
+               acc
+               (loop (cdr rest) (string-append acc "\n" (car rest)))))))
 
 ;;; string-prefix? : String × String → Boolean
 (define (string-prefix? prefix str)

@@ -618,4 +618,73 @@
               [(string=? (substring haystack i (+ i n-len)) needle) #t]
               [else (loop (+ i 1))]))))
 
+;;; ============================================================
+;;; M4 QA: Identifier Sanitization Tests
+;;; ============================================================
+
+;; Test sanitize-rust-ident basic functionality
+(test "sanitize: normal name"
+      "my_func"
+      (sanitize-rust-ident "my_func"))
+
+(test "sanitize: hyphenated name"
+      "foo_bar"
+      (sanitize-rust-ident "foo-bar"))
+
+(test "sanitize: special chars"
+      "set_"
+      (sanitize-rust-ident "set!"))
+
+(test "sanitize: uppercase to lower"
+      "myclass"
+      (sanitize-rust-ident "MyClass"))
+
+;; Test leading number handling
+(test "sanitize: leading number"
+      "m_123test"
+      (sanitize-rust-ident "123test"))
+
+(test "sanitize: all numbers"
+      "m_42"
+      (sanitize-rust-ident "42"))
+
+;; Test empty string handling
+(test "sanitize: empty string"
+      "unnamed"
+      (sanitize-rust-ident ""))
+
+;; Test Rust keyword handling
+(test "sanitize: keyword fn"
+      "m_fn"
+      (sanitize-rust-ident "fn"))
+
+(test "sanitize: keyword let"
+      "m_let"
+      (sanitize-rust-ident "let"))
+
+(test "sanitize: keyword if"
+      "m_if"
+      (sanitize-rust-ident "if"))
+
+(test "sanitize: keyword struct"
+      "m_struct"
+      (sanitize-rust-ident "struct"))
+
+(test "sanitize: keyword impl"
+      "m_impl"
+      (sanitize-rust-ident "impl"))
+
+;; Test rust-emit-module uses sanitized names
+(test "rust-emit-module sanitizes hyphenated name"
+      #t
+      (string-contains
+       (rust-emit-module '(R-Fn foo-bar ((x i64)) i64 (R-Var x)))
+       "fn fold_foo_bar"))
+
+(test "rust-emit-module sanitizes keyword name"
+      #t
+      (string-contains
+       (rust-emit-module '(R-Fn fn ((x i64)) i64 (R-Var x)))
+       "fn fold_m_fn"))
+
 (newline)
