@@ -169,7 +169,7 @@
 ;;; Scheme to Rust IR Translation
 ;;; ============================================================
 
-;;; scheme->rust-ir : Expr → R-IR
+;;; scheme->rust-ir : α → (List α)
 ;;; Translate a Scheme expression to Rust IR.
 ;;;
 ;;; Supported forms:
@@ -238,18 +238,172 @@
 
 
 ;;; ============================================================
+;;; Fuel Cost Computation
+;;; ============================================================
+
+;;; op-fuel-cost : Symbol → Nat
+;;; Return the fuel cost of a primitive operation.
+;;; Matches weighted-cost-model from cost-model.ss.
+(define (op-fuel-cost op)
+  (case op
+        ;; Arithmetic - basic ops cost 1
+        [(add sub mul + - *) 1]
+        ;; Division/modulo cost 2 (more expensive)
+        [(div mod / %) 2]
+        ;; Comparison - cheap
+        [(lt? le? gt? ge? eq? < <= > >= ==) 1]
+        ;; Logical - cheap
+        [(and or not) 1]
+        ;; Bitwise - cheap
+        [(bitand bitor bitxor bitnot shl shr) 1]
+        ;; Unary
+        [(neg abs) 1]
+        ;; Math methods - transcendentals are expensive
+        [(sqrt) 2]
+        [(sin cos tan) 3]
+        [(log exp) 3]
+        [(floor ceiling round) 1]
+        [(expt) 3]
+        ;; Default
+        [else 1]))
+
+;;; ir-fuel-cost : (List α) → Nat
+;;; Compute the total fuel cost of an IR expression.
+;;; Uses static analysis: conditionals take max(then, else).
+(define (ir-fuel-cost ir)
+  (cond
+   ;; Invalid IR
+   [(not (pair? ir)) 0]
+   
+   ;; Literals cost nothing
+   [(eq? (car ir) 'R-Literal) 0]
+   
+   ;; Variables cost nothing
+   [(eq? (car ir) 'R-Var) 0]
+   
+   ;; Calls: op cost + arg costs
+   [(eq? (car ir) 'R-Call)
+    (let ([op (cadr ir)]
+          [args (cddr ir)])
+         (+ (op-fuel-cost op)
+            (apply + (map ir-fuel-cost args))))]
+   
+   ;; If: branch cost + condition + max(then, else)
+   [(eq? (car ir) 'R-If)
+    (+ 1  ; Branch instruction cost
+       (ir-fuel-cost (cadr ir))    ; condition
+       (max (ir-fuel-cost (caddr ir))     ; then branch
+            (ir-fuel-cost (cadddr ir))))] ; else branch
+   
+   ;; Let: value cost only (binding itself is free)
+   [(eq? (car ir) 'R-Let)
+    (ir-fuel-cost (caddr ir))]
+   
+   ;; Block: sum of all parts
+   [(eq? (car ir) 'R-Block)
+    (apply + (map ir-fuel-cost (cdr ir)))]
+   
+   ;; Function: compute body cost
+   [(eq? (car ir) 'R-Fn)
+    (ir-fuel-cost (car (cddddr ir)))]
+   
+   ;; Unknown
+   [else 0]))
+
+
+;;; ============================================================
+;;; Autodiff Gradient Formulas
+;;; ============================================================
+;;;
+;;; These formulas enable future Rust-native autodiff codegen.
+;;; They are designed to be 1:1 with reverse-diff.ss traced ops.
+;;;
+;;; Format: (op-local-gradient op) → list of gradient formulas
+;;; Each formula is either:
+;;;   - A number (constant gradient)
+;;;   - A symbol referencing an input ('a, 'b)
+;;;   - An S-expression for computed gradient
+
+;;; op-local-gradient : Symbol → (or (List α) #f)
+;;; Return the local gradient formulas for each input of an operation.
+;;; Used for future Rust autodiff codegen (dual numbers or tape).
+(define (op-local-gradient op)
+  (case op
+        ;; Binary arithmetic
+        [(add +)  '(1 1)]                              ; d(a+b)/da=1, d(a+b)/db=1
+        [(sub -)  '(1 -1)]                             ; d(a-b)/da=1, d(a-b)/db=-1
+        [(mul *)  '(b a)]                              ; d(a*b)/da=b, d(a*b)/db=a
+        [(div /)  '((/ 1 b) (/ (- a) (* b b)))]        ; d(a/b)/da=1/b, d(a/b)/db=-a/b²
+        
+        ;; Unary operations
+        [(neg)    '(-1)]                               ; d(-a)/da=-1
+        [(abs)    '((if (>= a 0) 1 -1))]               ; d|a|/da = sign(a)
+        [(sq)     '((* 2 a))]                          ; d(a²)/da = 2a
+        
+        ;; Powers and roots
+        [(sqrt)   '((/ 1 (* 2 (sqrt a))))]             ; d(√a)/da = 1/(2√a)
+        [(expt pow) '((* b (expt a (- b 1)))           ; d(a^b)/da = b*a^(b-1)
+                      (* (expt a b) (log a)))]         ; d(a^b)/db = a^b*ln(a)
+        
+        ;; Exponential and logarithm
+        [(exp)    '((exp a))]                          ; d(e^a)/da = e^a
+        [(log)    '((/ 1 a))]                          ; d(ln a)/da = 1/a
+        
+        ;; Trigonometric
+        [(sin)    '((cos a))]                          ; d(sin a)/da = cos(a)
+        [(cos)    '((- (sin a)))]                      ; d(cos a)/da = -sin(a)
+        [(tan)    '((/ 1 (* (cos a) (cos a))))]        ; d(tan a)/da = sec²(a)
+        
+        ;; Inverse trigonometric
+        [(asin)   '((/ 1 (sqrt (- 1 (* a a)))))]       ; d(asin a)/da = 1/√(1-a²)
+        [(acos)   '((/ -1 (sqrt (- 1 (* a a)))))]      ; d(acos a)/da = -1/√(1-a²)
+        [(atan)   '((/ 1 (+ 1 (* a a))))]              ; d(atan a)/da = 1/(1+a²)
+        
+        ;; Hyperbolic functions
+        [(sinh)   '((cosh a))]                         ; d(sinh a)/da = cosh(a)
+        [(cosh)   '((sinh a))]                         ; d(cosh a)/da = sinh(a)
+        [(tanh)   '((/ 1 (* (cosh a) (cosh a))))]      ; d(tanh a)/da = sech²(a) = 1/cosh²(a)
+        
+        ;; Rounding (non-differentiable, gradient = 0)
+        [(floor ceiling round) '(0)]
+        
+        ;; Comparison/logical (non-differentiable)
+        [(lt? le? gt? ge? eq? and or not) #f]
+        
+        ;; Bitwise (non-differentiable)
+        [(bitand bitor bitxor bitnot shl shr) #f]
+        
+        ;; Unknown operation
+        [else #f]))
+
+;;; op-differentiable? : Symbol → Boolean
+;;; Return #t if the operation has a defined gradient.
+(define (op-differentiable? op)
+  (and (op-local-gradient op) #t))
+
+
+;;; ============================================================
 ;;; Code Emission
 ;;; ============================================================
 
-;;; rust-emit : (List α) × Nat → String
+;;; rust-emit : (List α) [× Nat] → String
 ;;; Emit a full Rust function with FFI boilerplate and fuel tracking.
-(define (rust-emit ir cost)
+;;; Cost is computed automatically from the IR body unless explicitly provided.
+(define rust-emit
+  (case-lambda
+   [(ir) (rust-emit-impl ir #f)]
+   [(ir cost) (rust-emit-impl ir cost)]))
+
+;;; rust-emit-impl : (List α) × (or Nat #f) → String
+;;; Internal implementation of rust-emit.
+(define (rust-emit-impl ir explicit-cost)
   (if (not (eq? (car ir) 'R-Fn))
       (error 'rust-emit "Expected R-Fn IR" ir)
       (let* ([name (cadr ir)]
              [params (caddr ir)]
              [ret-type (cadddr ir)]
              [body (car (cddddr ir))]
+             [cost (or explicit-cost (ir-fuel-cost body))]
              [rust-params (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
             (string-append
              ;; TestResult struct - compact for standalone compilation

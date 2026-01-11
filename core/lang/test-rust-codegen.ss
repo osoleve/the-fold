@@ -137,4 +137,58 @@
           (display res)
           (newline))))
 
+(test-section "Fuel Cost Computation")
+(test "Literal cost" 0 (ir-fuel-cost '(R-Literal 42)))
+(test "Variable cost" 0 (ir-fuel-cost '(R-Var x)))
+(test "Simple add cost" 1 (ir-fuel-cost '(R-Call + (R-Literal 1) (R-Literal 2))))
+(test "Add with vars cost" 1 (ir-fuel-cost '(R-Call + (R-Var x) (R-Var y))))
+(test "Division cost" 2 (ir-fuel-cost '(R-Call / (R-Var x) (R-Var y))))
+(test "Nested ops cost" 2 (ir-fuel-cost '(R-Call + (R-Call * (R-Var x) (R-Var y)) (R-Var z))))  ; 1 (add) + 1 (mul) = 2
+(test "If expression cost" 1 (ir-fuel-cost '(R-If (R-Var p) (R-Literal 1) (R-Literal 0))))  ; 1 (if) + 0 (var) + max(0,0) = 1
+(test "If with branches cost (max)" 4  ; 1 (if) + 1 (cond:lt) + max(2, 1) = 4
+      (ir-fuel-cost '(R-If (R-Call lt? (R-Var x) (R-Var y))
+                      (R-Call / (R-Var a) (R-Var b))
+                      (R-Literal 0))))
+(test "Block cost" 1 (ir-fuel-cost '(R-Block (R-Let x (R-Call * (R-Var a) (R-Var b))) (R-Var x))))  ; 1 (mul in let) + 0 (var) = 1
+(test "Trig function cost" 3 (ir-fuel-cost '(R-Call sin (R-Var x))))
+(test "Sqrt cost" 2 (ir-fuel-cost '(R-Call sqrt (R-Var x))))
+(test "Op-fuel-cost: add" 1 (op-fuel-cost 'add))
+(test "Op-fuel-cost: div" 2 (op-fuel-cost 'div))
+(test "Op-fuel-cost: sin" 3 (op-fuel-cost 'sin))
+(test "Op-fuel-cost: unknown" 1 (op-fuel-cost 'unknown-op))
+
+(test-section "Autodiff Gradient Formulas")
+(test "Gradient: add" '(1 1) (op-local-gradient 'add))
+(test "Gradient: sub" '(1 -1) (op-local-gradient 'sub))
+(test "Gradient: mul" '(b a) (op-local-gradient 'mul))
+(test "Gradient: div" '((/ 1 b) (/ (- a) (* b b))) (op-local-gradient 'div))
+(test "Gradient: neg" '(-1) (op-local-gradient 'neg))
+(test "Gradient: sqrt" '((/ 1 (* 2 (sqrt a)))) (op-local-gradient 'sqrt))
+(test "Gradient: sin" '((cos a)) (op-local-gradient 'sin))
+(test "Gradient: cos" '((- (sin a))) (op-local-gradient 'cos))
+(test "Gradient: exp" '((exp a)) (op-local-gradient 'exp))
+(test "Gradient: log" '((/ 1 a)) (op-local-gradient 'log))
+(test "Gradient: sq" '((* 2 a)) (op-local-gradient 'sq))
+(test "Gradient: sinh" '((cosh a)) (op-local-gradient 'sinh))
+(test "Gradient: cosh" '((sinh a)) (op-local-gradient 'cosh))
+(test "Gradient: tanh" '((/ 1 (* (cosh a) (cosh a)))) (op-local-gradient 'tanh))
+(test "Gradient: non-diff lt?" #f (op-local-gradient 'lt?))
+(test "Gradient: non-diff bitand" #f (op-local-gradient 'bitand))
+(test "Differentiable: add" #t (op-differentiable? 'add))
+(test "Differentiable: lt?" #f (op-differentiable? 'lt?))
+
+(test-section "Rust Emit with Auto-Computed Cost")
+(test "Auto-computed cost (simple add)"
+      "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn auto_add(x: i64, y: i64, fuel_in: u64, out: *mut TestResult) {\n    if (out as *const TestResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + y);\n    result.status = 1;\n    result.value = val as f64;\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn auto_add ((x i64) (y i64)) i64 (R-Call + (R-Var x) (R-Var y)))))
+
+(test "Auto-computed cost (nested ops)"
+      ;; Cost should be: 1 (outer +) + 1 (inner *) = 2
+      "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn nested_ops(x: f64, y: f64, z: f64, fuel_in: u64, out: *mut TestResult) {\n    if (out as *const TestResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = ((x * y) + z);\n    result.status = 1;\n    result.value = val as f64;\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn nested_ops ((x f64) (y f64) (z f64)) f64 (R-Call + (R-Call * (R-Var x) (R-Var y)) (R-Var z)))))
+
+(test "Explicit cost override still works"
+      "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn override_cost(x: i64, fuel_in: u64, out: *mut TestResult) {\n    if (out as *const TestResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 999;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + 1);\n    result.status = 1;\n    result.value = val as f64;\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn override_cost ((x i64)) i64 (R-Call + (R-Var x) (R-Literal 1))) 999))
+
 (newline)
