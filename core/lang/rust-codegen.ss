@@ -1054,16 +1054,15 @@
     (ir-collect-divisors (caddr ir))]          ; value expression
    [(eq? (car ir) 'R-Block)
     (apply append (map ir-collect-divisors (cdr ir)))]
-   ;; Lambda: collect from body
-   [(eq? (car ir) 'R-Lambda)
-    (ir-collect-divisors (cadddr ir))]         ; body
-   ;; Closure: collect from body (captures don't contain division)
-   [(eq? (car ir) 'R-Closure)
-    (ir-collect-divisors (car (cddddr ir)))]   ; body
-   ;; Letrec: collect from body and in-expr
+   ;; Lambda/Closure/Letrec: DO NOT recurse into nested function bodies
+   ;; Guards for inner scopes would need inner scope params, which we don't have.
+   ;; This is a known limitation: nested functions need their own guard generation.
+   ;; See future-work: scoped-guards in README.sexp
+   [(eq? (car ir) 'R-Lambda) '()]
+   [(eq? (car ir) 'R-Closure) '()]
+   ;; Letrec: only collect from in-expr (the call site), not the body
    [(eq? (car ir) 'R-Letrec)
-    (append (ir-collect-divisors (car (cddddr ir)))   ; body
-            (ir-collect-divisors (cadr (cddddr ir))))] ; in-expr
+    (ir-collect-divisors (cadr (cddddr ir)))]  ; in-expr only
    [else '()]))
 
 ;;; integer-type? : Symbol → Boolean

@@ -782,17 +782,26 @@
 
 (test-section "Division-by-Zero in Closures")
 
-;; Collect divisors from lambda body
-(test "Collect divisors in lambda"
-      '((R-Var y))
+;; Lambda bodies are NOT collected - guards would need inner scope params
+;; This is intentional: nested functions need scoped guards (future work)
+(test "Lambda body NOT collected (scoping fix)"
+      '()
       (ir-collect-divisors '(R-Lambda ((x i64) (y i64)) i64 (R-Call / (R-Var x) (R-Var y)))))
 
-;; Collect divisors from letrec
-(test "Collect divisors in letrec"
-      '((R-Var n))
+;; Letrec: only collect from in-expr (call site), not body
+;; Body divisors can't be guarded with outer params
+(test "Letrec body NOT collected (scoping fix)"
+      '()
       (ir-collect-divisors '(R-Letrec div_acc ((n i64)) i64
                              (R-Call / (R-Literal 100) (R-Var n))
                              (R-Call div_acc (R-Literal 5)))))
+
+;; But division in the in-expr IS collected
+(test "Letrec in-expr IS collected"
+      '((R-Var x))
+      (ir-collect-divisors '(R-Letrec f ((n i64)) i64
+                             (R-Var n)
+                             (R-Call / (R-Literal 10) (R-Var x)))))
 
 ;; Integer var check in lambda
 (test "Contains int var in lambda body"
@@ -975,11 +984,11 @@
       3  ; 1 (closure) + 2 (captures) + 0 (body = just literal)
       (ir-fuel-cost '(R-Closure (a b) ((x i64)) i64 (R-Literal 0))))
 
-;; Test R-Closure handles division guards
-(test "R-Closure in ir-collect-divisors"
-      #t
-      (let ([divs (ir-collect-divisors '(R-Closure (a) ((x i64)) i64 (R-Call / (R-Var a) (R-Var x))))])
-           (not (null? divs))))
+;; R-Closure body NOT collected for divisors (scoping fix)
+;; Guards for closure body would need closure params, not outer params
+(test "R-Closure body NOT collected (scoping fix)"
+      '()
+      (ir-collect-divisors '(R-Closure (a) ((x i64)) i64 (R-Call / (R-Var a) (R-Var x)))))
 
 ;; End-to-end: capturing closure in a top-level function
 (test "Capturing closure in R-Fn"
