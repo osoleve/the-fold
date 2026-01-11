@@ -27,6 +27,17 @@
 ;;;   (R-Block stmt... expr)   - Statement block with final expr
 ;;;   (R-Fn name params ret body) - Function definition
 ;;;
+;;; Division-by-zero protection (M2):
+;;;   - Integer division/modulo generates guards before computation
+;;;   - Float division returns Inf/NaN per IEEE 754 (no guard needed)
+;;;   - Complex expressions containing integers are guarded conservatively
+;;;
+;;; Known limitations:
+;;;   - Guards are hoisted to function start (may break manual checks)
+;;;   - Let-bound variables not tracked (only function parameters)
+;;;   - Complex expressions evaluated twice (guard + actual division)
+;;;   - Future: inline guards, type environment for locals
+;;;
 ;;; Key lessons from implementation:
 ;;;   1. Verify against spec (prim.ss) before marking complete
 ;;;   2. Test full pipeline, not just components
@@ -506,7 +517,7 @@
 ;;; Division-by-Zero Protection (M2: fold-jppr)
 ;;; ============================================================
 
-;;; ir-collect-divisors : IR → (List IR)
+;;; ir-collect-divisors : (List α) → (List (List α))
 ;;; Collect all divisor expressions from division/modulo operations.
 ;;; Returns list of (divisor-ir . is-integer-context?) pairs.
 (define (ir-collect-divisors ir)
@@ -538,11 +549,49 @@
 ;;; integer-type? : Symbol → Boolean
 ;;; Check if a type is an integer type (needs div-by-zero protection).
 (define (integer-type? type)
-  (memq type '(i64 i32 u64 u32 i16 u16 i8 u8)))
+  (and (memq type '(i64 i32 u64 u32 i16 u16 i8 u8)) #t))
 
-;;; ir-divisor->guard : IR × (List (Symbol × Symbol)) → String | #f
+;;; ir-contains-integer-var? : (List α) × (List (Symbol × Symbol)) → Boolean
+;;; Check if an IR expression contains any integer-typed variable references.
+;;; Used to conservatively guard complex expressions that might be integers.
+(define (ir-contains-integer-var? ir params)
+  (cond
+   [(not (pair? ir)) #f]
+   [(eq? (car ir) 'R-Literal) #f]
+   [(eq? (car ir) 'R-Var)
+    (let* ([var-name (cadr ir)]
+           [param-type (assq var-name params)])
+          (and param-type (integer-type? (cadr param-type))))]
+   [(eq? (car ir) 'R-Call)
+    (any (lambda (arg) (ir-contains-integer-var? arg params))
+         (cddr ir))]
+   [(eq? (car ir) 'R-If)
+    (or (ir-contains-integer-var? (cadr ir) params)
+        (ir-contains-integer-var? (caddr ir) params)
+        (ir-contains-integer-var? (cadddr ir) params))]
+   [(eq? (car ir) 'R-Let)
+    (ir-contains-integer-var? (caddr ir) params)]
+   [(eq? (car ir) 'R-Block)
+    (any (lambda (e) (ir-contains-integer-var? e params))
+         (cdr ir))]
+   [else #f]))
+
+;;; any : (α → Boolean) × (List α) → Boolean
+;;; Return #t if predicate is true for any element.
+(define (any pred lst)
+  (cond
+   [(null? lst) #f]
+   [(pred (car lst)) #t]
+   [else (any pred (cdr lst))]))
+
+;;; ir-divisor->guard : (List α) × (List (Symbol × Symbol)) → (or String #f)
 ;;; Generate a guard expression for a divisor.
 ;;; Returns #f if no guard is needed (e.g., float types or non-zero literal).
+;;;
+;;; Known limitations (documented for future work):
+;;; - Guards are hoisted to function start, not inline with division
+;;; - Let-bound variables not tracked (only function parameters)
+;;; - Complex expressions evaluated twice (once in guard, once in division)
 (define (ir-divisor->guard divisor params)
   (cond
    ;; Literal: check at compile time
@@ -562,15 +611,17 @@
               (format "~a == 0" var-name)
               ;; Float or unknown - no guard (Rust handles gracefully)
               #f))]
-   ;; Complex expression - generate guard with serialized expr
-   ;; For safety, always guard complex expressions involving integers
+   ;; Complex expression - guard if it contains any integer variables
+   ;; Note: This evaluates the expression twice. Future optimization:
+   ;; use let binding in generated Rust to cache the result.
    [else
-    (let ([expr (rust-serialize divisor)])
-         ;; Only guard if the expression is simple enough
-         ;; Complex expressions might be float operations that don't need guards
-         #f)]))
+    (if (ir-contains-integer-var? divisor params)
+        ;; Contains integers - needs guard (conservative)
+        (format "~a == 0" (rust-serialize divisor))
+        ;; Pure floats - no guard needed
+        #f)]))
 
-;;; emit-divisor-guards : (List IR) × (List (Symbol × Symbol)) → String
+;;; emit-divisor-guards : (List (List α)) × (List (Symbol × Symbol)) → String
 ;;; Generate guard code for all divisors that need protection.
 (define (emit-divisor-guards divisors params)
   (let* ([guards (filter identity

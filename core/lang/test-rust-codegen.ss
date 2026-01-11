@@ -343,4 +343,32 @@
       "#[repr(C)] pub struct F64Result { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn float_div(x: f64, y: f64, fuel_in: u64, out: *mut F64Result) {\n    if (out as *const F64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x / y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
       (rust-emit '(R-Fn float_div ((x f64) (y f64)) f64 (R-Call / (R-Var x) (R-Var y)))))
 
+;; Test ir-contains-integer-var? (QA fix)
+(test "Contains int var: simple" #t
+      (ir-contains-integer-var? '(R-Var x) '((x i64))))
+(test "Contains int var: float" #f
+      (ir-contains-integer-var? '(R-Var x) '((x f64))))
+(test "Contains int var: in call" #t
+      (ir-contains-integer-var? '(R-Call + (R-Var x) (R-Var y)) '((x i64) (y i64))))
+(test "Contains int var: mixed" #t
+      (ir-contains-integer-var? '(R-Call + (R-Var x) (R-Var y)) '((x i64) (y f64))))
+(test "Contains int var: all float" #f
+      (ir-contains-integer-var? '(R-Call + (R-Var x) (R-Var y)) '((x f64) (y f64))))
+(test "Contains int var: literal only" #f
+      (ir-contains-integer-var? '(R-Literal 5) '()))
+
+;; Test complex divisor expressions get guarded (QA fix)
+(test "Guard for complex int expression"
+      "(y + z) == 0"
+      (ir-divisor->guard '(R-Call + (R-Var y) (R-Var z)) '((x i64) (y i64) (z i64))))
+(test "No guard for complex float expression"
+      #f
+      (ir-divisor->guard '(R-Call + (R-Var y) (R-Var z)) '((x f64) (y f64) (z f64))))
+
+;; Test full function with complex integer divisor
+(test "Complex i64 divisor emits guard"
+      "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn div_by_sum(x: i64, y: i64, z: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 3;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    // Division-by-zero protection\n    if (y + z) == 0 {\n        result.status = 3;\n        result.fuel_out = fuel_in - COST;\n        return;\n    }\n    let val = (x / (y + z));\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+      (rust-emit '(R-Fn div_by_sum ((x i64) (y i64) (z i64)) i64
+                   (R-Call / (R-Var x) (R-Call + (R-Var y) (R-Var z))))))
+
 (newline)
