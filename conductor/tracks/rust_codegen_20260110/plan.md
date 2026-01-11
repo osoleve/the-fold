@@ -17,8 +17,8 @@
     - [x] Implement
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Core Codegen Implementation' (Protocol in workflow.md)
 
-## Phase 3: Integration and Verification
+## Phase 3: Integration and Verification [checkpoint: 58548da]
 - [x] Task: Integrate with `fold-accel` Crate Structure e6605c7
 - [x] Task: End-to-End Generation and Compilation Test 17d0b81
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Integration and Verification' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Integration and Verification' (Protocol in workflow.md)
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Integration and Verification' (Protocol in workflow.md)
