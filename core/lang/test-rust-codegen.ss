@@ -470,4 +470,100 @@
       (rust-emit '(R-Fn sum5 ((a i64) (b i64) (c i64) (d i64) (e i64)) i64
                    (R-Call + (R-Var a) (R-Var b) (R-Var c) (R-Var d) (R-Var e)))))
 
+;;; ============================================================
+;;; M3 QA: Edge Cases and Safety Tests
+;;; ============================================================
+
+;; Test 0-arg identity values
+(test "0-arg add identity"
+      "0"
+      (rust-serialize '(R-Call +)))
+
+(test "0-arg mul identity"
+      "1"
+      (rust-serialize '(R-Call *)))
+
+(test "0-arg and identity"
+      "true"
+      (rust-serialize '(R-Call and)))
+
+(test "0-arg or identity"
+      "false"
+      (rust-serialize '(R-Call or)))
+
+;; Test 1-arg pass-through
+(test "1-arg add pass-through"
+      "x"
+      (rust-serialize '(R-Call + (R-Var x))))
+
+(test "1-arg mul pass-through"
+      "42"
+      (rust-serialize '(R-Call * (R-Literal 42))))
+
+(test "1-arg and pass-through"
+      "flag"
+      (rust-serialize '(R-Call and (R-Var flag))))
+
+(test "1-arg or pass-through"
+      "cond"
+      (rust-serialize '(R-Call or (R-Var cond))))
+
+(test "1-arg bitand pass-through"
+      "bits"
+      (rust-serialize '(R-Call bitand (R-Var bits))))
+
+;; Test comparisons are NOT variadic (fall through to default)
+;; These produce invalid Rust but that's intentional - comparisons shouldn't be variadic
+(test "Comparison < stays binary"
+      "(a < b)"
+      (rust-serialize '(R-Call < (R-Var a) (R-Var b))))
+
+;; 3-arg comparison falls through to default (function call syntax)
+;; This is expected - variadic comparisons are not supported
+(test "Comparison < 3-arg fallback"
+      "<(a, b, c)"
+      (rust-serialize '(R-Call < (R-Var a) (R-Var b) (R-Var c))))
+
+;; Test shifts are NOT variadic (binary only)
+(test "Shift << stays binary"
+      "(a << b)"
+      (rust-serialize '(R-Call shl (R-Var a) (R-Var b))))
+
+;; Test sub/div are NOT variadic (binary only)
+(test "Sub - stays binary"
+      "(a - b)"
+      (rust-serialize '(R-Call - (R-Var a) (R-Var b))))
+
+(test "Div / stays binary"
+      "(a / b)"
+      (rust-serialize '(R-Call / (R-Var a) (R-Var b))))
+
+;; Test fuel cost for edge cases
+(test "Fuel cost: 0-arg add"
+      0
+      (ir-fuel-cost '(R-Call +)))
+
+(test "Fuel cost: 1-arg mul"
+      0
+      (ir-fuel-cost '(R-Call * (R-Var x))))
+
+(test "Fuel cost: 1-arg sqrt (not variadic-safe)"
+      2
+      (ir-fuel-cost '(R-Call sqrt (R-Var x))))
+
+(test "Fuel cost: 1-arg sin (not variadic-safe)"
+      3
+      (ir-fuel-cost '(R-Call sin (R-Var x))))
+
+;; Test variadic-safe-op? helper
+(test "variadic-safe: add" #t (and (variadic-safe-op? '+) #t))
+(test "variadic-safe: mul" #t (and (variadic-safe-op? '*) #t))
+(test "variadic-safe: and" #t (and (variadic-safe-op? 'and) #t))
+(test "variadic-safe: or" #t (and (variadic-safe-op? 'or) #t))
+(test "variadic-safe: sub (not)" #f (variadic-safe-op? '-))
+(test "variadic-safe: div (not)" #f (variadic-safe-op? '/))
+(test "variadic-safe: lt (not)" #f (variadic-safe-op? '<))
+(test "variadic-safe: eq (not)" #f (variadic-safe-op? 'eq?))
+(test "variadic-safe: shl (not)" #f (variadic-safe-op? 'shl))
+
 (newline)

@@ -84,6 +84,24 @@
 (define (scheme-op-method? op)
   (memq op '(abs sqrt sin cos tan asin acos atan sinh cosh tanh log exp floor ceiling round truncate)))
 
+;;; variadic-safe-op? : Symbol → Boolean
+;;; True if operator is associative and safe for variadic folding.
+;;; Excludes: comparisons (<, <=, >, >=, ==), shifts (<<, >>), sub (-), div (/), mod (%).
+;;; These are either non-associative or have special semantics.
+(define (variadic-safe-op? op)
+  (memq op '(add + mul * and or bitand bitor bitxor)))
+
+;;; variadic-identity : Symbol → (or String #f)
+;;; Return the identity value for a variadic operator, or #f if none.
+;;; Used for 0-arg cases: (+) → 0, (*) → 1
+(define (variadic-identity op)
+  (case op
+        [(add +) "0"]
+        [(mul *) "1"]
+        [(and) "true"]
+        [(or) "false"]
+        [else #f]))
+
 ;;; scheme-op->rust-method : Symbol → String
 ;;; Get the Rust method name for method-style ops.
 (define (scheme-op->rust-method op)
@@ -169,9 +187,19 @@
     (let ([op (cadr ir)]
           [args (cddr ir)])
          (cond
+          ;; 0-arg identity values: (+) → 0, (*) → 1, (and) → true, (or) → false
+          [(and (null? args) (variadic-identity op))
+           (variadic-identity op)]
+          
+          ;; 1-arg pass-through for associative ops: (+ x) → x, (* x) → x
+          [(and (= (length args) 1) (variadic-safe-op? op))
+           (rust-serialize (car args))]
+          
           ;; Variadic infix operators (n > 2): chain as left-associative binary ops
+          ;; Only for associative ops: +, *, and, or, bitand, bitor, bitxor
           ;; (+ a b c d) → ((((a) + (b)) + (c)) + (d))
-          [(and (scheme-op->rust op) (> (length args) 2))
+          ;; Excludes: comparisons, shifts, sub, div, mod (non-associative)
+          [(and (variadic-safe-op? op) (> (length args) 2))
            (let loop ([acc (string-append "(" (rust-serialize (car args))
                                           " " (scheme-op->rust op) " "
                                           (rust-serialize (cadr args)) ")")]
@@ -396,15 +424,24 @@
    
    ;; Calls: op cost + arg costs
    ;; For variadic ops (n > 2 args), charge (n-1) × op-cost (chained binary ops)
+   ;; 0-arg identity cases cost nothing (just return constant) - only for variadic-safe ops
+   ;; 1-arg pass-through cases cost nothing (just return the arg) - only for variadic-safe ops
    [(eq? (car ir) 'R-Call)
     (let* ([op (cadr ir)]
            [args (cddr ir)]
            [n-args (length args)]
-           [op-multiplier (if (and (> n-args 2)
-                                   (or (scheme-op->rust op)
-                                       (memq op '(min max))))
-                              (- n-args 1)  ; n-1 binary ops for n args
-                              1)])          ; single op for binary/unary
+           [is-variadic-safe (or (variadic-safe-op? op) (memq op '(min max)))]
+           [op-multiplier (cond
+                           ;; 0-arg or 1-arg for variadic-safe ops: no op cost (identity/pass-through)
+                           [(and (< n-args 2) is-variadic-safe) 0]
+                           ;; 0-arg or 1-arg for other ops: still 1 op (e.g., sqrt, sin)
+                           [(< n-args 2) 1]
+                           ;; 2-arg: single op
+                           [(= n-args 2) 1]
+                           ;; n > 2 for variadic-safe ops: (n-1) ops
+                           [is-variadic-safe (- n-args 1)]
+                           ;; Non-variadic ops with >2 args: treat as error (1 op)
+                           [else 1])])
           (+ (* op-multiplier (op-fuel-cost op))
              (apply + (map ir-fuel-cost args))))]
    
