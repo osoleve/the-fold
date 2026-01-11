@@ -355,6 +355,18 @@ Everything is built in-house. Exceptions require approval from Andy.
 
 ---
 
+## Agent Operations
+
+For agents operating within The Fold, see [`docs/agent-operating-manual.md`](docs/agent-operating-manual.md) — algorithmic procedures for:
+
+- **Capability discovery** — Lattice search (`lf`, `li`, `le`) and shell capability scanning
+- **Trust/verification** — Capability audits, static analysis, mint-only-in-shell rule
+- **Fuel prediction** — Cost estimation, budgeting, parallel hazards
+- **Shell boundary** — Request/response protocol, validation checklist
+- **Provenance** — Normalization, hashing, storing with refs, pinning
+
+---
+
 ## Issue Tracking with Beads
 
 This project uses **bd** (beads) for dependency-aware issue tracking.
