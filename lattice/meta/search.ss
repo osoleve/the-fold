@@ -17,6 +17,7 @@
 
 (load "lattice/meta/kg.ss")
 (load "lattice/meta/bm25.ss")
+(load "lattice/meta/docstrings.ss")
 
 ;;; ============================================================
 ;;; Search Index State
@@ -43,7 +44,10 @@
   (set! *module-index* (bm25-create))
   (set! *export-index* (bm25-create))
   (set! *module-cache* '())
-  
+
+  ;; Build docstring cache for enhanced export search
+  (build-docstring-cache!)
+
   ;; Index all skills
   (for-each
    (lambda (skill-name)
@@ -53,7 +57,7 @@
                            (set! *skill-index*
                                  (bm25-add-doc *skill-index* skill-name terms manifest-data))))))
    (kg-skills))
-  
+
   ;; Index all modules and build module cache
   (for-each
    (lambda (skill-name)
@@ -72,17 +76,21 @@
                                            (bm25-add-doc *module-index* mod-key terms mod-data)))))
                  modules)))
    (kg-skills))
-  
-  ;; Index all exports
+
+  ;; Index all exports (with docstrings)
   (for-each
    (lambda (export-entry)
            (let* ([export-name (car export-entry)]
-                  [terms (export->terms export-name)]
-                  [data `((name . ,export-name))])
+                  [name-terms (export->terms export-name)]
+                  [doc-terms (docstring-terms export-name)]
+                  [all-terms (append name-terms doc-terms)]
+                  [docstring (get-docstring export-name)]
+                  [data `((name . ,export-name)
+                          ,@(if docstring `((docstring . ,docstring)) '()))])
                  (set! *export-index*
-                       (bm25-add-doc *export-index* export-name terms data))))
+                       (bm25-add-doc *export-index* export-name all-terms data))))
    (kg-exports))
-  
+
   (set! *search-ready* #t)
   (printf "Search indices built:\n")
   (printf "  Skills:  ~a\n" (cdr (assq 'documents (bm25-stats *skill-index*))))
@@ -342,10 +350,16 @@
                      [type (caddr result)]
                      [data (cadddr result)])
                     (printf "~a [~a] (score: ~a)\n" id type (round-to score 3))
-                    (when (and data (assq 'description data))
-                          (let ([desc (cdr (assq 'description data))])
-                               (when (and (string? desc) (> (string-length desc) 0))
-                                     (printf "  ~a\n" (truncate-string desc 70)))))))
+                    ;; Show description (for skills) or docstring (for exports)
+                    (cond
+                     [(and data (assq 'description data))
+                      (let ([desc (cdr (assq 'description data))])
+                           (when (and (string? desc) (> (string-length desc) 0))
+                                 (printf "  ~a\n" (truncate-string desc 70))))]
+                     [(and data (assq 'docstring data))
+                      (let ([doc (cdr (assq 'docstring data))])
+                           (when (and (string? doc) (> (string-length doc) 0))
+                                 (printf "  ~a\n" (truncate-string doc 70))))])))
        results)))
 
 ;;; round-to : Number Int -> Number
