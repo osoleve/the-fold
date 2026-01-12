@@ -6,7 +6,7 @@ Provides building blocks for higher-level abstractions.")
   ((data-structures.ss "Persistent data structures: Stack, Queue, Set, Dict")
    (collection-utils.ss "Block collection manipulation utilities")
    (graph-algorithms.ss "Graph traversal, pathfinding, and analysis")
-   (pagerank.ss "PageRank and graph centrality measures")
+   (pagerank.ss "PageRank importance scoring")
    (graph-matrix.ss "Adjacency matrix representation and distance algorithms:
      - Edge list to matrix conversion (dense and sparse)
      - Graph generators: complete, cycle, path, star, bipartite
@@ -25,9 +25,17 @@ Provides building blocks for higher-level abstractions.")
        * graph-eccentricity: Max distance from a node
        * graph-diameter: Longest shortest path
        * graph-radius: Smallest eccentricity
-       * graph-center: Nodes with eccentricity = radius")))
+       * graph-center: Nodes with eccentricity = radius")
+   (centrality.ss "Matrix-based graph centrality measures:
+     - eigenvector-centrality: Dominant eigenvector of adjacency matrix
+     - katz-centrality: Attenuated walk counts with baseline
+     - closeness-centrality: Inverse of average distance to all nodes
+     - betweenness-centrality: Brandes' algorithm for path betweenness
+     - Utility functions: rank-by-centrality, top-k-central, centrality-correlation")))
  (tests
   ((test-data-structures.ss "Tests for Stack, Queue, Set, Dict")
    (test-collection-utils.ss "Tests for collection utilities")
-   (test-graph-algorithms.ss "Tests for graph algorithms")))
+   (test-graph-algorithms.ss "Tests for graph algorithms")
+   (test-pagerank.ss "Tests for PageRank")
+   (test-centrality.ss "Tests for centrality measures")))
  (dependencies (base block sha256)))

@@ -15,15 +15,18 @@
 
   (keywords (data-structure graph heap tree hash-table queue stack
              bfs dfs shortest-path pagerank collection adjacency-matrix
-             floyd-warshall dijkstra transitive-closure graph-distance))
+             floyd-warshall dijkstra transitive-closure graph-distance
+             eigenvector-centrality katz-centrality closeness-centrality
+             betweenness-centrality))
   (aliases (ds structures collections))
 
   (exports
-   (data-structures graph-algorithms collection-utils pagerank graph-matrix))
+   (data-structures graph-algorithms collection-utils pagerank graph-matrix centrality))
 
   (modules
    (data-structures "data-structures.ss" "Core data structure implementations")
    (graph-algorithms "graph-algorithms.ss" "BFS, DFS, shortest paths, spanning trees")
    (collection-utils "collection-utils.ss" "Higher-order collection operations")
-   (pagerank "pagerank.ss" "PageRank and graph centrality measures")
-   (graph-matrix "graph-matrix.ss" "Adjacency matrices, distance algorithms, graph metrics")))
+   (pagerank "pagerank.ss" "PageRank importance scoring")
+   (graph-matrix "graph-matrix.ss" "Adjacency matrices, distance algorithms, graph metrics")
+   (centrality "centrality.ss" "Eigenvector, Katz, closeness, betweenness centrality")))
