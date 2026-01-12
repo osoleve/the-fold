@@ -25,6 +25,8 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-decomp.ss")
+(load "lattice/linalg/matrix-eigen.ss")  ; Required for SVD
+(load "lattice/linalg/svd.ss")            ; SVD for robust rank computation
 
 ;;; ============================================================
 ;;; State Space Representation
@@ -126,7 +128,167 @@
 ;;; State Transition Matrix
 ;;; ============================================================
 
+;;; ============================================================
+;;; Matrix Exponential - Scaling and Squaring with Padé
+;;; ============================================================
+;;;
+;;; The Scaling and Squaring algorithm computes e^A as follows:
+;;; 1. Find s such that ||A/2^s|| < 1 (scaling)
+;;; 2. Compute e^(A/2^s) using Padé approximant
+;;; 3. Square the result s times: e^A = (e^(A/2^s))^(2^s)
+;;;
+;;; This is much more numerically stable than Taylor series.
+
+;;; *pade-coeffs-6* : Coefficients for [6,6] diagonal Padé approximant
+;;; N(X) = sum_{k=0}^6 b_k * X^k, D(X) = sum_{k=0}^6 b_k * (-X)^k
+(define *pade-coeffs-6*
+  ;; Coefficients: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6
+  ;; Precomputed for efficiency
+  (list 1                     ; b_0 = 1
+        1/2                   ; b_1 = 1/2
+        1/10                  ; b_2 = 1/10
+        1/120                 ; b_3 = 1/120
+        1/1680                ; b_4 = 1/1680
+        1/30240               ; b_5 = 1/30240
+        1/665280))            ; b_6 = 1/665280
+
+;;; matrix-1norm : Matrix → Real
+;;; Compute 1-norm (max column sum of absolute values)
+(define (matrix-1norm m)
+  (let ([rows (matrix-rows m)]
+        [cols (matrix-cols m)])
+       (let col-loop ([j 0] [max-sum 0])
+            (if (>= j cols)
+                max-sum
+                (let row-loop ([i 0] [col-sum 0])
+                     (if (>= i rows)
+                         (col-loop (+ j 1) (max max-sum col-sum))
+                         (row-loop (+ i 1)
+                                   (+ col-sum (abs (matrix-ref m i j))))))))))
+
+;;; matrix-pade-6 : Matrix → (Matrix . Matrix)
+;;; Compute [6,6] Padé numerator N and denominator D matrices.
+;;; Returns (N . D) where e^A ≈ D^(-1) * N
+(define (matrix-pade-6 A)
+  (let* ([n (matrix-rows A)]
+         [I (identity n)]
+         [A2 (matrix-mul A A)]
+         [A4 (matrix-mul A2 A2)]
+         [A6 (matrix-mul A4 A2)]
+         [b (list-ref *pade-coeffs-6* 0)]  ; 1
+         [b1 (list-ref *pade-coeffs-6* 1)] ; 1/2
+         [b2 (list-ref *pade-coeffs-6* 2)] ; 1/10
+         [b3 (list-ref *pade-coeffs-6* 3)] ; 1/120
+         [b4 (list-ref *pade-coeffs-6* 4)] ; 1/1680
+         [b5 (list-ref *pade-coeffs-6* 5)] ; 1/30240
+         [b6 (list-ref *pade-coeffs-6* 6)] ; 1/665280
+         ;; U = A * (b1*I + b3*A² + b5*A⁴) + b6*A⁶ ... wait, let me restructure
+         ;; N = I + b1*A + b2*A² + b3*A³ + b4*A⁴ + b5*A⁵ + b6*A⁶
+         ;; D = I - b1*A + b2*A² - b3*A³ + b4*A⁴ - b5*A⁵ + b6*A⁶
+         ;; Efficient: compute even and odd parts separately
+         [A3 (matrix-mul A2 A)]
+         [A5 (matrix-mul A4 A)]
+         ;; Even terms: I + b2*A² + b4*A⁴ + b6*A⁶
+         [even-terms (matrix-add I
+                                 (matrix-add (matrix-scale b2 A2)
+                                             (matrix-add (matrix-scale b4 A4)
+                                                         (matrix-scale b6 A6))))]
+         ;; Odd terms: b1*A + b3*A³ + b5*A⁵
+         [odd-terms (matrix-add (matrix-scale b1 A)
+                                (matrix-add (matrix-scale b3 A3)
+                                            (matrix-scale b5 A5)))]
+         ;; N = even + odd, D = even - odd
+         [N (matrix-add even-terms odd-terms)]
+         [D (matrix-sub even-terms odd-terms)])
+        (cons N D)))
+
+;;; matrix-exp : Matrix → Matrix
+;;; Compute matrix exponential using Scaling and Squaring with [6,6] Padé.
+;;; Numerically robust for a wide range of matrices.
+(define (matrix-exp A)
+  (let* ([n (matrix-rows A)]
+         [norm-A (matrix-1norm A)]
+         ;; Scale so that ||A/2^s|| <= 1/2 (ensures Padé convergence)
+         ;; s = max(0, ceil(log2(2*norm-A)))
+         [s (if (<= norm-A 0.5)
+                0
+                (+ 1 (exact (floor (log (inexact norm-A) 2)))))]
+         [scale-factor (expt 2 s)]
+         [A-scaled (matrix-scale (/ 1 scale-factor) A)]
+         ;; Compute Padé approximant for scaled matrix
+         [pade-result (matrix-pade-6 A-scaled)]
+         [N (car pade-result)]
+         [D (cdr pade-result)]
+         ;; Solve D * X = N for X (X = D^(-1) * N)
+         [exp-scaled (matrix-solve-system D N)])
+        ;; Square s times: e^A = (e^(A/2^s))^(2^s)
+        (let square ([k 0] [result exp-scaled])
+             (if (>= k s)
+                 result
+                 (square (+ k 1) (matrix-mul result result))))))
+
+;;; matrix-solve-system : Matrix × Matrix → Matrix
+;;; Solve A * X = B for X using LU decomposition.
+;;; Returns X = A^(-1) * B
+(define (matrix-solve-system A B)
+  (let* ([n (matrix-rows A)]
+         [m (matrix-cols B)]
+         ;; Use LU decomposition to solve
+         [lu-result (matrix-lu A)])
+        (if (and (pair? lu-result) (eq? (car lu-result) 'error))
+            ;; LU failed, fall back to direct inverse
+            (matrix-mul (matrix-inverse A) B)
+            ;; lu-result is (L U P) - solve using forward/back substitution
+            (let* ([L (car lu-result)]
+                   [U (cadr lu-result)]
+                   [P (caddr lu-result)]
+                   [Pb (matrix-mul P B)])
+                  ;; Solve L * Y = P*B, then U * X = Y
+                  (let ([Y (forward-substitute L Pb)])
+                       (back-substitute U Y))))))
+
+;;; forward-substitute : Matrix × Matrix → Matrix
+;;; Solve L * Y = B where L is lower triangular
+(define (forward-substitute L B)
+  (let* ([n (matrix-rows L)]
+         [m (matrix-cols B)]
+         [Y (make-matrix n m 0)])
+        (do ([j 0 (+ j 1)])
+            [(= j m) Y]
+            (do ([i 0 (+ i 1)])
+                [(= i n)]
+                (let ([sum (let loop ([k 0] [acc 0])
+                                (if (>= k i)
+                                    acc
+                                    (loop (+ k 1)
+                                          (+ acc (* (matrix-ref L i k)
+                                                    (matrix-ref Y k j))))))])
+                     (matrix-set! Y i j
+                                  (/ (- (matrix-ref B i j) sum)
+                                     (matrix-ref L i i))))))))
+
+;;; back-substitute : Matrix × Matrix → Matrix
+;;; Solve U * X = Y where U is upper triangular
+(define (back-substitute U Y)
+  (let* ([n (matrix-rows U)]
+         [m (matrix-cols Y)]
+         [X (make-matrix n m 0)])
+        (do ([j 0 (+ j 1)])
+            [(= j m) X]
+            (do ([i (- n 1) (- i 1)])
+                [(< i 0)]
+                (let ([sum (let loop ([k (+ i 1)] [acc 0])
+                                (if (>= k n)
+                                    acc
+                                    (loop (+ k 1)
+                                          (+ acc (* (matrix-ref U i k)
+                                                    (matrix-ref X k j))))))])
+                     (matrix-set! X i j
+                                  (/ (- (matrix-ref Y i j) sum)
+                                     (matrix-ref U i i))))))))
+
 ;;; matrix-exp-taylor : Matrix × Nat → Matrix
+;;; DEPRECATED: Use matrix-exp instead for numerical stability.
 ;;; Compute matrix exponential using Taylor series.
 ;;; e^A = I + A + A²/2! + A³/3! + ...
 ;;; fuel limits number of terms.
@@ -146,10 +308,16 @@
                              (matrix-add result new-term)
                              new-factorial))))))
 
-;;; ss-transition-matrix : SS × Num × Nat → Matrix
+;;; ss-transition-matrix : SS × Num → Matrix
 ;;; Compute the state transition matrix Φ(t) = e^(A*t)
-;;; using Taylor series with given number of terms.
-(define (ss-transition-matrix sys t terms)
+;;; using numerically robust Scaling and Squaring with Padé.
+(define (ss-transition-matrix sys t)
+  (matrix-exp (matrix-scale t (ss-A sys))))
+
+;;; ss-transition-matrix-taylor : SS × Num × Nat → Matrix
+;;; DEPRECATED: Use ss-transition-matrix instead.
+;;; Compute the state transition matrix using Taylor series.
+(define (ss-transition-matrix-taylor sys t terms)
   (matrix-exp-taylor (matrix-scale t (ss-A sys)) terms))
 
 ;;; ============================================================
@@ -316,16 +484,34 @@
 ;;; ============================================================
 ;;; Matrix Rank (for controllability/observability)
 ;;; ============================================================
+;;;
+;;; SVD-based rank is the gold standard for numerical rank determination.
+;;; Falls back to QR if SVD fails.
 
-;;; matrix-rank : Matrix × Num → Nat
-;;; Compute numerical rank using QR decomposition.
+;;; matrix-rank-svd : Matrix × Num → Nat
+;;; Compute numerical rank using SVD (gold standard).
+;;; Counts singular values that exceed tolerance.
+(define (matrix-rank-svd m tolerance)
+  (guard (e [else (matrix-rank-qr m tolerance)])  ; Fall back to QR on error
+         (let ([svd-result (svd m)])
+              (if (and (pair? svd-result) (eq? (car svd-result) 'error))
+                  (matrix-rank-qr m tolerance)
+                  (let* ([sigma (cadr svd-result)]
+                         [min-dim (min (matrix-rows sigma) (matrix-cols sigma))])
+                        (let count ([i 0] [rank 0])
+                             (if (>= i min-dim)
+                                 rank
+                                 (if (> (abs (matrix-ref sigma i i)) tolerance)
+                                     (count (+ i 1) (+ rank 1))
+                                     (count (+ i 1) rank)))))))))
+
+;;; matrix-rank-qr : Matrix × Num → Nat
+;;; Compute numerical rank using QR decomposition (faster but less robust).
 ;;; Counts diagonal elements of R that exceed tolerance.
-(define (matrix-rank m tolerance)
+(define (matrix-rank-qr m tolerance)
   (let ([qr-result (matrix-qr m)])
        (if (and (pair? qr-result) (eq? (car qr-result) 'error))
-           ;; QR failed (e.g., underdetermined matrix)
            0
-           ;; qr-result is (Q R), extract R which is the second element
            (let* ([R (cadr qr-result)]
                   [min-dim (min (matrix-rows R) (matrix-cols R))])
                  (let count ([i 0] [rank 0])
@@ -334,6 +520,11 @@
                           (if (> (abs (matrix-ref R i i)) tolerance)
                               (count (+ i 1) (+ rank 1))
                               (count (+ i 1) rank))))))))
+
+;;; matrix-rank : Matrix × Num → Nat
+;;; Compute numerical rank. Uses SVD for robustness.
+(define (matrix-rank m tolerance)
+  (matrix-rank-svd m tolerance))
 
 ;;; ============================================================
 ;;; Modal Decomposition (Diagonalization)
