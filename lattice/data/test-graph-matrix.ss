@@ -348,6 +348,48 @@
       (test "path-center" '(1 2) (graph-center dist)))
 
 ;;; ============================================================
+;;; Dijkstra's Algorithm
+;;; ============================================================
+
+(printf "~n--- Dijkstra's Algorithm ---~n")
+
+;; Weighted graph:
+;;   0 --3-- 1
+;;   |       |
+;;   5       2
+;;   |       |
+;;   3 --1-- 2
+(let* ([adj (make-adjacency-matrix 4)])
+      (adjacency-matrix-add-edge! adj 0 1 3)
+      (adjacency-matrix-add-edge! adj 0 3 5)
+      (adjacency-matrix-add-edge! adj 1 2 2)
+      (adjacency-matrix-add-edge! adj 2 3 1)
+      ;; Make undirected
+      (adjacency-matrix-add-edge! adj 1 0 3)
+      (adjacency-matrix-add-edge! adj 3 0 5)
+      (adjacency-matrix-add-edge! adj 2 1 2)
+      (adjacency-matrix-add-edge! adj 3 2 1)
+
+      ;; Test distances from node 0
+      (let* ([result (dijkstra adj 0)]
+             [dist (car result)])
+            (test "dijkstra: 0->0" 0 (vector-ref dist 0))
+            (test "dijkstra: 0->1" 3 (vector-ref dist 1))
+            (test "dijkstra: 0->2" 5 (vector-ref dist 2))  ; 0->1->2
+            (test "dijkstra: 0->3" 5 (vector-ref dist 3))) ; min(5, 3+2+1)=5
+
+      ;; Test path reconstruction
+      (test "dijkstra-path: 0->2" '(0 1 2) (dijkstra-path adj 0 2))
+      (test "dijkstra-distance: 0->3" 5 (dijkstra-distance adj 0 3)))
+
+;; Disconnected graph
+(let* ([adj (make-adjacency-matrix 3)])
+      (adjacency-matrix-add-edge! adj 0 1 1)
+      (let ([dist (car (dijkstra adj 0))])
+           (test "dijkstra: unreachable" *infinity* (vector-ref dist 2)))
+      (test "dijkstra-path: unreachable" #f (dijkstra-path adj 0 2)))
+
+;;; ============================================================
 ;;; Edge Cases
 ;;; ============================================================
 

@@ -15,7 +15,7 @@
 
   (keywords (data-structure graph heap tree hash-table queue stack
              bfs dfs shortest-path pagerank collection adjacency-matrix
-             floyd-warshall transitive-closure graph-distance))
+             floyd-warshall dijkstra transitive-closure graph-distance))
   (aliases (ds structures collections))
 
   (exports

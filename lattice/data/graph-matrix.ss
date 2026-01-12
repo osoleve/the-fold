@@ -541,6 +541,84 @@
                   [(< (matrix-ref dist i i) 0) #t]
                   [else (loop (+ i 1))]))))
 
+;;; ============================================================
+;;; Dijkstra's Algorithm (Single-Source Shortest Paths)
+;;; ============================================================
+
+;;; dijkstra : Matrix × Nat → (Vector Distance) × (Vector Predecessor)
+;;; Compute shortest paths from source to all other nodes.
+;;; Returns (distances . predecessors) where:
+;;;   - distances[i] = shortest distance from source to i
+;;;   - predecessors[i] = previous node on shortest path, or -1 if unreachable
+;;;
+;;; Time complexity: O(n²) with linear search for min
+;;; For weighted graphs with non-negative weights.
+;;;
+;;; Example:
+;;;   (dijkstra adj 0) => (#(0 3 5 7) . #(-1 0 1 2))
+(define (dijkstra adj source)
+  (let* ([n (matrix-rows adj)]
+         [dist (make-vector n *infinity*)]
+         [pred (make-vector n -1)]
+         [visited (make-vector n #f)])
+        ;; Initialize source
+        (vector-set! dist source 0)
+        ;; Main loop: find min unvisited, relax neighbors
+        (do ([iter 0 (+ iter 1)])
+            ((= iter n))
+            ;; Find unvisited node with minimum distance
+            (let ([u (dijkstra-find-min dist visited n)])
+                 (when (and u (< (vector-ref dist u) *infinity*))
+                       (vector-set! visited u #t)
+                       ;; Relax all neighbors
+                       (do ([v 0 (+ v 1)])
+                           ((= v n))
+                           (let ([w (matrix-ref adj u v)])
+                                (when (and (> w 0)
+                                           (not (vector-ref visited v)))
+                                      (let ([alt (+ (vector-ref dist u) w)])
+                                           (when (< alt (vector-ref dist v))
+                                                 (vector-set! dist v alt)
+                                                 (vector-set! pred v u)))))))))
+        (cons dist pred)))
+
+;;; dijkstra-find-min : Vector × Vector × Nat → Nat | #f
+;;; Find unvisited node with minimum distance.
+(define (dijkstra-find-min dist visited n)
+  (let loop ([i 0] [min-idx #f] [min-val *infinity*])
+       (if (= i n)
+           min-idx
+           (if (and (not (vector-ref visited i))
+                    (< (vector-ref dist i) min-val))
+               (loop (+ i 1) i (vector-ref dist i))
+               (loop (+ i 1) min-idx min-val)))))
+
+;;; dijkstra-path : Matrix × Nat × Nat → (List Nat) | #f
+;;; Find shortest path from source to target using Dijkstra.
+;;; Returns list of node indices, or #f if unreachable.
+;;;
+;;; Example:
+;;;   (dijkstra-path adj 0 3) => (0 1 2 3)
+(define (dijkstra-path adj source target)
+  (let* ([result (dijkstra adj source)]
+         [dist (car result)]
+         [pred (cdr result)])
+        (if (= (vector-ref dist target) *infinity*)
+            #f  ; Unreachable
+            ;; Reconstruct path from predecessors
+            (let loop ([node target] [path '()])
+                 (if (= node source)
+                     (cons source path)
+                     (loop (vector-ref pred node)
+                           (cons node path)))))))
+
+;;; dijkstra-distance : Matrix × Nat × Nat → Nat | Infinity
+;;; Get shortest distance from source to target.
+(define (dijkstra-distance adj source target)
+  (let* ([result (dijkstra adj source)]
+         [dist (car result)])
+        (vector-ref dist target)))
+
 ;;; distance-matrix-unweighted : Matrix → Matrix
 ;;; Compute all-pairs shortest paths for unweighted graph.
 ;;; Uses BFS from each node. Complexity: O(n²) for sparse, O(n³) for dense.
