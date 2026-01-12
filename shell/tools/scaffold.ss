@@ -83,7 +83,11 @@
                      (if (not end)
                          str  ; Malformed template, return as-is
                          (let* ([var-name (substring str (+ start 2) end)]
-                                [value (cdr (assoc var-name bindings))]
+                                [binding (assoc var-name bindings)]
+                                ;; BUGFIX: Handle missing template variable gracefully
+                                [value (if binding
+                                           (cdr binding)
+                                           (string-append "{{" var-name "}}"))]
                                 [before (substring str 0 start)]
                                 [after (substring str (+ end 2) (string-length str))])
                                (loop (string-append before value after)))))))))
@@ -112,8 +116,12 @@
                  ("TIMESTAMP" . ,(current-timestamp))
                  ("YEAR" . ,(timestamp-year (current-timestamp))))]
          [from-session (if (session-exists?)
-                           (let ([session (read-session)])
-                                `(("AUTHOR" . ,(symbol->string (cdr (assq 'name session))))))
+                           (let* ([session (read-session)]
+                                  [name-entry (assq 'name session)])
+                                 ;; BUGFIX: Handle missing name in session gracefully
+                                 (if name-entry
+                                     `(("AUTHOR" . ,(symbol->string (cdr name-entry))))
+                                     '()))
                            '())]
          [from-options (map (lambda (opt)
                                     (cons (string-upcase (symbol->string (car opt)))

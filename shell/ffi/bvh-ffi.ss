@@ -101,37 +101,41 @@
           (error 'rust-bvh-closest-point/raw "Acceleration library not loaded"))
   (unless (rust-bvh-handle? handle)
           (error 'rust-bvh-closest-point/raw "Invalid handle"))
-  
+
   ;; Allocate result struct
-  (let* ([result-ptr (make-ftype-pointer closest-point-result-t
-                                         (foreign-alloc (ftype-sizeof closest-point-result-t)))]
+  ;; BUGFIX: Use dynamic-wind to ensure cleanup on exception
+  (let* ([result-addr (foreign-alloc (ftype-sizeof closest-point-result-t))]
+         [result-ptr (make-ftype-pointer closest-point-result-t result-addr)]
          [ptr (rust-bvh-handle-ptr handle)])
-        
-        ;; Call Rust function
-        (rust-bvh-closest-point ptr
-                                (vec3-x point)
-                                (vec3-y point)
-                                (vec3-z point)
-                                fuel
-                                result-ptr)
-        
-        ;; Extract results
-        (let ([status (ftype-ref closest-point-result-t (status) result-ptr)]
-              [px (ftype-ref closest-point-result-t (px) result-ptr)]
-              [py (ftype-ref closest-point-result-t (py) result-ptr)]
-              [pz (ftype-ref closest-point-result-t (pz) result-ptr)]
-              [dist (ftype-ref closest-point-result-t (distance) result-ptr)]
-              [fuel-out (ftype-ref closest-point-result-t (fuel) result-ptr)])
-             
-             ;; Free allocated memory
-             (foreign-free (ftype-pointer-address result-ptr))
-             
-             ;; Return appropriate result
-             (case status
-                   [(0) `(miss ,fuel-out)]
-                   [(1) `(ok (,(vec3 px py pz) ,dist) ,fuel-out)]
-                   [(2) '(out-of-fuel)]
-                   [else `(error unknown-status ,status)]))))
+
+        (dynamic-wind
+         (lambda () #f)  ; no setup needed
+         (lambda ()
+           ;; Call Rust function
+           (rust-bvh-closest-point ptr
+                                   (vec3-x point)
+                                   (vec3-y point)
+                                   (vec3-z point)
+                                   fuel
+                                   result-ptr)
+
+           ;; Extract results
+           (let ([status (ftype-ref closest-point-result-t (status) result-ptr)]
+                 [px (ftype-ref closest-point-result-t (px) result-ptr)]
+                 [py (ftype-ref closest-point-result-t (py) result-ptr)]
+                 [pz (ftype-ref closest-point-result-t (pz) result-ptr)]
+                 [dist (ftype-ref closest-point-result-t (distance) result-ptr)]
+                 [fuel-out (ftype-ref closest-point-result-t (fuel) result-ptr)])
+
+                ;; Return appropriate result
+                (case status
+                      [(0) `(miss ,fuel-out)]
+                      [(1) `(ok (,(vec3 px py pz) ,dist) ,fuel-out)]
+                      [(2) '(out-of-fuel)]
+                      [else `(error unknown-status ,status)])))
+         (lambda ()
+           ;; Always free allocated memory
+           (foreign-free result-addr)))))
 
 ;;; rust-bvh-intersect-ray/raw : RustBVHHandle × Vec3 × Vec3 × Nat → Result
 ;;; Query ray intersection using Rust acceleration
@@ -141,10 +145,11 @@
           (error 'rust-bvh-intersect-ray/raw "Acceleration library not loaded"))
   (unless (rust-bvh-handle? handle)
           (error 'rust-bvh-intersect-ray/raw "Invalid handle"))
-  
+
   ;; Allocate result struct
-  (let* ([result-ptr (make-ftype-pointer ray-intersect-result-t
-                                         (foreign-alloc (ftype-sizeof ray-intersect-result-t)))]
+  ;; BUGFIX: Use dynamic-wind to ensure cleanup on exception
+  (let* ([result-addr (foreign-alloc (ftype-sizeof ray-intersect-result-t))]
+         [result-ptr (make-ftype-pointer ray-intersect-result-t result-addr)]
          [ptr (rust-bvh-handle-ptr handle)]
          [ox (inexact (vec3-x origin))]
          [oy (inexact (vec3-y origin))]
@@ -152,27 +157,30 @@
          [dx (inexact (vec3-x direction))]
          [dy (inexact (vec3-y direction))]
          [dz (inexact (vec3-z direction))])
-        
-        ;; Call Rust function
-        (rust-bvh-intersect-ray ptr ox oy oz dx dy dz fuel result-ptr)
-        
-        ;; Extract results
-        (let ([status (ftype-ref ray-intersect-result-t (status) result-ptr)]
-              [t (ftype-ref ray-intersect-result-t (t) result-ptr)]
-              [nx (ftype-ref ray-intersect-result-t (nx) result-ptr)]
-              [ny (ftype-ref ray-intersect-result-t (ny) result-ptr)]
-              [nz (ftype-ref ray-intersect-result-t (nz) result-ptr)]
-              [fuel-out (ftype-ref ray-intersect-result-t (fuel) result-ptr)])
-             
-             ;; Free allocated memory
-             (foreign-free (ftype-pointer-address result-ptr))
-             
-             ;; Return appropriate result
-             (case status
-                   [(0) `(miss ,fuel-out)]
-                   [(1) `(ok (,t ,(vec3 nx ny nz)) ,fuel-out)]
-                   [(2) '(out-of-fuel)]
-                   [else `(error unknown-status ,status)]))))
+
+        (dynamic-wind
+         (lambda () #f)  ; no setup needed
+         (lambda ()
+           ;; Call Rust function
+           (rust-bvh-intersect-ray ptr ox oy oz dx dy dz fuel result-ptr)
+
+           ;; Extract results
+           (let ([status (ftype-ref ray-intersect-result-t (status) result-ptr)]
+                 [t (ftype-ref ray-intersect-result-t (t) result-ptr)]
+                 [nx (ftype-ref ray-intersect-result-t (nx) result-ptr)]
+                 [ny (ftype-ref ray-intersect-result-t (ny) result-ptr)]
+                 [nz (ftype-ref ray-intersect-result-t (nz) result-ptr)]
+                 [fuel-out (ftype-ref ray-intersect-result-t (fuel) result-ptr)])
+
+                ;; Return appropriate result
+                (case status
+                      [(0) `(miss ,fuel-out)]
+                      [(1) `(ok (,t ,(vec3 nx ny nz)) ,fuel-out)]
+                      [(2) '(out-of-fuel)]
+                      [else `(error unknown-status ,status)])))
+         (lambda ()
+           ;; Always free allocated memory
+           (foreign-free result-addr)))))
 
 ;;; ============================================================
 ;;; Convenience: Build from Scheme BVH

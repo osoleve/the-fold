@@ -112,10 +112,13 @@
 (define (json-write-number n)
   (if (integer? n)
       (number->string n)
-      ;; Floats: avoid exponential notation for small numbers
+      ;; Floats: ensure valid JSON representation
       (let ([s (number->string (inexact n))])
-           ;; Ensure we have a decimal point
-           (if (string-contains? s ".")
+           ;; Ensure we have a decimal point OR scientific notation
+           ;; Scientific notation (e.g., "1e+20") is valid JSON without decimal
+           (if (or (string-contains? s ".")
+                   (string-contains? s "e")
+                   (string-contains? s "E"))
                s
                (string-append s ".0")))))
 

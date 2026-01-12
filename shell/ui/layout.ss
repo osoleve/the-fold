@@ -79,6 +79,8 @@
 ;;; canvas-set : Canvas × Nat × Nat × Char → Canvas
 ;;; Set character at (x, y). Returns new canvas.
 ;;; Out-of-bounds coordinates are ignored (no-op).
+;;; NOTE: This is O(N) per call due to vector-copy. For bulk updates,
+;;; use canvas-set! with a copy, or canvas-set-many for batching.
 (define (canvas-set c x y ch)
   (let ([w (canvas-width c)]
         [h (canvas-height c)])
@@ -88,6 +90,27 @@
                  [idx (+ (* y w) x)])
                 (vector-set! cells idx ch)
                 (make-canvas% w h cells)))))
+
+;;; canvas-set-many : Canvas × (List (x y char)) → Canvas
+;;; Set multiple characters in a single copy operation.
+;;; PERFORMANCE: Use this instead of repeated canvas-set calls.
+;;; Each update is (x y char) triple. Out-of-bounds updates are ignored.
+(define (canvas-set-many c updates)
+  (if (null? updates)
+      c
+      (let* ([w (canvas-width c)]
+             [h (canvas-height c)]
+             [cells (vector-copy (canvas-cells c))])
+            ;; Apply all updates to the copied vector
+            (for-each
+             (lambda (update)
+                     (let ([x (car update)]
+                           [y (cadr update)]
+                           [ch (caddr update)])
+                          (unless (or (< x 0) (< y 0) (>= x w) (>= y h))
+                                  (vector-set! cells (+ (* y w) x) ch))))
+             updates)
+            (make-canvas% w h cells))))
 
 ;;; canvas-set! : Canvas × Nat × Nat × Char → void
 ;;; Set character at (x, y). Mutates canvas in-place (imperative).

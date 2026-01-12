@@ -171,9 +171,10 @@
                 (cond
                  [(not (file-exists? current))
                   (loop rest result)]
-                 [(and (file-exists? current)
+                 ;; BUGFIX: directory? should be called on path, not directory-list result
+                [(and (file-exists? current)
                        (guard (e [else #f])
-                              (directory? (directory-list current))))
+                              (directory? current)))
                   ;; It's a directory - add its contents
                   (let ([entries (guard (e [else '()])
                                         (directory-list current))])

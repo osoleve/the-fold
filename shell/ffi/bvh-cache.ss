@@ -12,8 +12,16 @@
 ;;; Cache Data Structures
 ;;; ============================================================
 
+;;; Maximum cache size to prevent unbounded memory growth.
+;;; BUGFIX: Strong hashtable was preventing GC, causing memory leak.
+;;; Now we evict old entries when cache exceeds this size.
+(define *bvh-cache-max-size* 100)
+
 ;;; Global cache: content-hash → rust-bvh-handle
 (define *rust-bvh-cache* (make-hashtable equal-hash equal?))
+
+;;; LRU tracking: list of hashes in access order (most recent first)
+(define *cache-access-order* '())
 
 ;;; Guardian for tracking BVH handles that need cleanup
 (define *bvh-guardian* (make-guardian))
@@ -33,18 +41,44 @@
        ;; Use SHA-256 from core
        (sha256 bv)))
 
+;;; update-access-order! : Bytevector → void
+;;; Move hash to front of access order (most recently used)
+(define (update-access-order! hash)
+  (set! *cache-access-order*
+        (cons hash (filter (lambda (h) (not (equal? h hash)))
+                           *cache-access-order*))))
+
+;;; evict-oldest! : → void
+;;; Remove least recently used entry from cache
+(define (evict-oldest!)
+  (unless (null? *cache-access-order*)
+          (let ([oldest (car (reverse *cache-access-order*))])
+               ;; Remove from access order
+               (set! *cache-access-order*
+                     (reverse (cdr (reverse *cache-access-order*))))
+               ;; Remove from cache (guardian will free handle)
+               (hashtable-delete! *rust-bvh-cache* oldest))))
+
 ;;; get-cached-rust-handle : Bytevector (hash) → RustBVHHandle | #f
 ;;; Look up cached handle by content hash
 (define (get-cached-rust-handle hash)
   (let ([cached (hashtable-ref *rust-bvh-cache* hash #f)])
+       (when cached
+             ;; BUGFIX: Track access for LRU eviction
+             (update-access-order! hash))
        (and cached (cached-bvh-handle cached))))
 
 ;;; cache-rust-handle! : Bytevector (hash) × RustBVHHandle → CachedBVH
 ;;; Store handle in cache and register with guardian
 (define (cache-rust-handle! hash handle)
+  ;; BUGFIX: Evict old entries if cache is full
+  (when (>= (hashtable-size *rust-bvh-cache*) *bvh-cache-max-size*)
+        (evict-oldest!))
   (let ([cached (make-cached-bvh hash handle)])
        ;; Store in cache
        (hashtable-set! *rust-bvh-cache* hash cached)
+       ;; Track access order
+       (update-access-order! hash)
        ;; Register with guardian for cleanup
        (*bvh-guardian* cached)
        cached))
@@ -52,7 +86,35 @@
 ;;; remove-from-cache! : Bytevector (hash) → void
 ;;; Remove entry from cache (does NOT free handle - guardian does that)
 (define (remove-from-cache! hash)
+  ;; Also remove from access order tracking
+  (set! *cache-access-order*
+        (filter (lambda (h) (not (equal? h hash)))
+                *cache-access-order*))
   (hashtable-delete! *rust-bvh-cache* hash))
+
+;;; clear-bvh-cache! : → Nat
+;;; Clear entire cache and return count of evicted entries.
+;;; Call this to free memory when BVH cache is no longer needed.
+(define (clear-bvh-cache!)
+  (let ([count (hashtable-size *rust-bvh-cache*)])
+       (hashtable-clear! *rust-bvh-cache*)
+       (set! *cache-access-order* '())
+       count))
+
+;;; bvh-cache-size : → Nat
+;;; Return current number of cached entries.
+(define (bvh-cache-size)
+  (hashtable-size *rust-bvh-cache*))
+
+;;; set-bvh-cache-max-size! : Nat → void
+;;; Set maximum cache size (evicts excess entries).
+(define (set-bvh-cache-max-size! n)
+  (set! *bvh-cache-max-size* n)
+  ;; Evict excess entries
+  (let loop ()
+       (when (> (hashtable-size *rust-bvh-cache*) *bvh-cache-max-size*)
+             (evict-oldest!)
+             (loop))))
 
 ;;; ============================================================
 ;;; High-Level API

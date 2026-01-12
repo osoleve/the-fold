@@ -78,6 +78,8 @@
 
 ;;; canvas-set-cell : Canvas × Nat × Nat × Cell → Canvas
 ;;; Set cell at (x, y). Returns new canvas.
+;;; NOTE: This is O(N) per call due to vector-copy. For bulk updates,
+;;; use canvas-set-cells for batching.
 (define (canvas-set-cell c x y cell)
   (let ([w (canvas-width c)]
         [h (canvas-height c)])
@@ -87,6 +89,27 @@
                  [idx (+ (* y w) x)])
                 (vector-set! cells idx cell)
                 (make-canvas% w h cells)))))
+
+;;; canvas-set-cells : Canvas × (List (x y cell)) → Canvas
+;;; Set multiple cells in a single copy operation.
+;;; PERFORMANCE: Use this instead of repeated canvas-set-cell calls.
+;;; Each update is (x y cell) triple. Out-of-bounds updates are ignored.
+(define (canvas-set-cells c updates)
+  (if (null? updates)
+      c
+      (let* ([w (canvas-width c)]
+             [h (canvas-height c)]
+             [cells (vector-copy (canvas-cells c))])
+            ;; Apply all updates to the copied vector
+            (for-each
+             (lambda (update)
+                     (let ([x (car update)]
+                           [y (cadr update)]
+                           [cell (caddr update)])
+                          (unless (or (< x 0) (< y 0) (>= x w) (>= y h))
+                                  (vector-set! cells (+ (* y w) x) cell))))
+             updates)
+            (make-canvas% w h cells))))
 
 ;;; ============================================================
 ;;; Drawing Primitives

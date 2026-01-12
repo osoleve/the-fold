@@ -170,11 +170,28 @@
 ;;; Report Generation
 ;;; ============================================================
 
+;;; group-entries-by-file : (List CoverageEntry) → Hashtable[Path → (List CoverageEntry)]
+;;; BUGFIX: Pre-group entries by file for O(1) lookup instead of O(N) filter per file.
+(define (group-entries-by-file entries)
+  (let ([ht (make-hashtable string-hash string=?)])
+       (for-each
+        (lambda (e)
+                (let* ([file (coverage-entry-file e)]
+                       [existing (hashtable-ref ht file '())])
+                      (hashtable-set! ht file (cons e existing))))
+        entries)
+       ht))
+
 ;;; generate-coverage-report : → CoverageReport
 (define (generate-coverage-report)
   (let* ([entries (coverage-data->entries)]
          [files (collect-files-from-entries entries)]
-         [file-reports (map (lambda (f) (generate-file-coverage f entries)) files)]
+         ;; BUGFIX: Pre-group entries O(E) instead of O(F*E) filtering
+         [entries-by-file (group-entries-by-file entries)]
+         [file-reports (map (lambda (f)
+                                    (generate-file-coverage f
+                                                            (hashtable-ref entries-by-file f '())))
+                            files)]
          [total-lines (apply + (map file-coverage-total-lines file-reports))]
          [covered-lines (apply + (map file-coverage-covered-lines file-reports))]
          [fn-list (function-coverage->list)]
@@ -198,11 +215,9 @@
    (map coverage-entry-file entries)))
 
 ;;; generate-file-coverage : Path × (List CoverageEntry) → FileCoverage
-(define (generate-file-coverage file entries)
-  (let* ([file-entries (filter (lambda (e)
-                                       (string=? file (coverage-entry-file e)))
-                               entries)]
-         [covered (length file-entries)]
+;;; NOTE: Expects entries already filtered to this file (pre-grouped for performance).
+(define (generate-file-coverage file file-entries)
+  (let* ([covered (length file-entries)]
          [total (count-executable-lines file)]
          [uncovered (find-uncovered-lines file file-entries)]
          [pct (if (= total 0) 0 (quotient (* covered 100) total))])

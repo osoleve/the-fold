@@ -119,19 +119,23 @@
 
 ;;; walk-for-refs : S-expr × String -> void
 ;;; Walk expression tree and record all symbol references with source file.
+;;; Entry format: (count . files-hashtable) for O(1) file membership check.
 (define (walk-for-refs expr file)
   (cond
    [(symbol? expr)
     (let ([existing (hashtable-ref *all-references* expr #f)])
          (if existing
              ;; Update count and add file if not already there
+             ;; BUGFIX: Use hashtable for files to avoid O(N) member check
              (let ([count (car existing)]
-                   [files (cdr existing)])
+                   [files-ht (cdr existing)])
+                  (hashtable-set! files-ht file #t)
                   (hashtable-set! *all-references* expr
-                                  (cons (+ count 1)
-                                        (if (member file files) files (cons file files)))))
-             ;; New entry
-             (hashtable-set! *all-references* expr (cons 1 (list file)))))]
+                                  (cons (+ count 1) files-ht)))
+             ;; New entry - use hashtable for files
+             (let ([files-ht (make-hashtable string-hash string=?)])
+                  (hashtable-set! files-ht file #t)
+                  (hashtable-set! *all-references* expr (cons 1 files-ht)))))]
    [(pair? expr)
     (walk-for-refs (car expr) file)
     (walk-for-refs (cdr expr) file)]
@@ -147,7 +151,10 @@
 ;;; Get files that reference a symbol.
 (define (get-ref-files sym)
   (let ([entry (hashtable-ref *all-references* sym #f)])
-       (if entry (cdr entry) '())))
+       (if entry
+           ;; Convert hashtable keys (vector) to list
+           (vector->list (hashtable-keys (cdr entry)))
+           '())))
 
 ;;; ============================================================
 ;;; Confidence Level Classification

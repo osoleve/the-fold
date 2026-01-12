@@ -78,9 +78,11 @@
 (define (truncate-expr expr max-len)
   (let* ([str (format "~a" expr)]
          [len (string-length str)])
-        (if (> len max-len)
-            (string-append (substring str 0 (- max-len 3)) "...")
-            str)))
+        (cond
+         ;; BUGFIX: Handle max-len too small to truncate meaningfully
+         [(<= max-len 3) (if (> len max-len) "..." (substring str 0 (min len max-len)))]
+         [(> len max-len) (string-append (substring str 0 (- max-len 3)) "...")]
+         [else str])))
 
 ;;; goal-status-symbol : Symbol -> String
 (define (goal-status-symbol status)
