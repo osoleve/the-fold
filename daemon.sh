@@ -94,7 +94,7 @@ case "$1" in
             exit 1
         }
         export FOLD_SCHEME_CMD="$SCHEME_CMD"
-        "$SCHEME_CMD" --script thimble/cleanup-workers.ss
+        "$SCHEME_CMD" --script shell/cleanup-workers.ss
         ;;
 
     status)

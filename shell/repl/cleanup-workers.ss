@@ -5,4 +5,5 @@
 (load "shell/repl-daemon-mcp.ss")
 
 (cleanup-stale-workers!)
+(cleanup-idle-workers!)
 (display "Worker cleanup complete.\n")

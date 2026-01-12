@@ -32,6 +32,7 @@
 (define *worker-timeout* 60)           ; seconds without heartbeat
 (define *starting-timeout* 30)         ; seconds to wait for worker startup
 (define *cleanup-interval* 300)        ; 5 minutes in seconds
+(define *idle-timeout* 600)            ; 10 minutes without request - kill idle workers
 (define *last-cleanup* (time-second (current-time)))
 
 ;;; ============================================================
@@ -118,6 +119,9 @@
 (define (log-path session-id)
   (string-append *workers-dir* "/" session-id ".log"))
 
+(define (lastreq-path session-id)
+  (string-append *workers-dir* "/" session-id ".lastreq"))
+
 (define (read-number-file path)
   (guard (e [else #f])
          (and (file-exists? path)
@@ -200,7 +204,20 @@
 ;;; Cleanup
 ;;; ============================================================
 
+(define (cleanup-worker-files! session-id)
+  "Remove all worker metadata files for a session."
+  (for-each
+   (lambda (path)
+           (when (file-exists? path)
+                 (delete-file path)))
+   (list (pid-path session-id)
+         (ready-path session-id)
+         (heartbeat-path session-id)
+         (lastreq-path session-id)
+         (starting-path session-id))))
+
 (define (cleanup-stale-workers!)
+  "Kill workers with stale heartbeats (process died without cleanup)."
   (when (file-exists? *workers-dir*)
         (let ([files (directory-list *workers-dir*)])
              (for-each
@@ -216,14 +233,28 @@
                                    [now (time-second (current-time))])
                                   (when (and hb (>= (- now hb) *worker-timeout*))
                                         (terminate-worker! session-id)
-                                        (for-each
-                                         (lambda (path)
-                                                 (when (file-exists? path)
-                                                       (delete-file path)))
-                                         (list (pid-path session-id)
-                                               (ready-path session-id)
-                                               (heartbeat-path session-id)
-                                               (starting-path session-id)))))))
+                                        (cleanup-worker-files! session-id)))))
+              files))))
+
+(define (cleanup-idle-workers!)
+  "Kill workers that haven't processed a request in *idle-timeout* seconds.
+   This prevents memory accumulation from abandoned sessions."
+  (when (file-exists? *workers-dir*)
+        (let ([files (directory-list *workers-dir*)])
+             (for-each
+              (lambda (filename)
+                      (when (and (string? filename)
+                                 (> (string-length filename) 8)
+                                 (string=? (substring filename
+                                                      (- (string-length filename) 8)
+                                                      (string-length filename))
+                                           ".lastreq"))
+                            (let* ([session-id (substring filename 0 (- (string-length filename) 8))]
+                                   [lastreq (read-number-file (lastreq-path session-id))]
+                                   [now (time-second (current-time))])
+                                  (when (and lastreq (>= (- now lastreq) *idle-timeout*))
+                                        (terminate-worker! session-id)
+                                        (cleanup-worker-files! session-id)))))
               files))))
 
 ;;; ============================================================
@@ -257,7 +288,8 @@
 (define (periodic-cleanup!)
   (let ([now (time-second (current-time))])
        (when (> (- now *last-cleanup*) *cleanup-interval*)
-             (cleanup-stale-workers!)
+             (cleanup-stale-workers!)  ; Dead processes (no heartbeat)
+             (cleanup-idle-workers!)   ; Idle workers (no recent requests)
              (set! *last-cleanup* now))))
 
 (define (daemon-loop)

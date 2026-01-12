@@ -239,6 +239,74 @@ Key design principles:
     log-kalman-mean log-kalman-predict-cost log-kalman-confidence-interval
     log-kalman-summary
 
+    ;; discrete-control.ss — Continuous-to-discrete conversion
+    make-dss dss? dss-Ts dss-A dss-B dss-C dss-D dss-order
+    c2d-zoh c2d-tustin c2d-tustin-prewarp d2c-tustin
+    dss-step dss-output dss-simulate
+    dss-impulse-response dss-step-response dss-stable?
+    recommend-sample-rate
+
+    ;; stability.ss — Stability analysis
+    ss-poles ss-stable? tf-stable? ss-marginally-stable? discrete-stable?
+    routh-array routh-hurwitz-stable? routh-hurwitz-count-rhp
+    lyapunov-solve-continuous lyapunov-solve-discrete lyapunov-stable?
+    matrix-positive-definite? matrix-frobenius-norm
+    root-locus-points root-locus-breakaway root-locus-asymptotes
+    nyquist-plot-points nyquist-stable?
+    gain-margin phase-margin stability-margins
+    bibo-stable? bibo-stable-discrete?
+    controllability-matrix controllable? observability-matrix observable?
+    stability-report
+
+    ;; z-transform.ss — Discrete transfer functions
+    dtf? make-dtf dtf-from-coeffs dtf-from-lists
+    dtf-num dtf-den dtf-Ts dtf-order
+    dtf-relative-degree dtf-proper?
+    dtf-poles dtf-zeros dtf-gain dtf-from-poles-zeros
+    dtf-eval dtf-eval-real
+    dtf-freq-response dtf-magnitude dtf-magnitude-db
+    dtf-phase dtf-phase-deg
+    dtf-series dtf-parallel dtf-feedback dtf-unity-feedback
+    dtf-stable? dtf-pole-magnitudes
+    dss->dtf dtf->dss dtf->string
+
+    ;; transfer-function.ss — Continuous transfer functions
+    tf? make-tf tf-from-coeffs tf-from-lists
+    tf-num tf-den tf-order
+    tf-relative-degree tf-proper? tf-strictly-proper?
+    tf-poles tf-zeros tf-gain tf-from-poles-zeros
+    tf-eval tf-eval-real tf-dc-gain
+    tf-freq-response tf-magnitude tf-magnitude-db
+    tf-phase tf-phase-deg tf-bode-data
+    tf-series tf-parallel tf-feedback tf-unity-feedback
+    tf-stable? tf-pole-real-parts tf->string
+
+    ;; controller-design.ss — Controller synthesis
+    pid-tf
+    pid-design-zn-open-loop pid-design-zn-closed-loop
+    pid-design-imc pid-design-lambda
+    pole-placement-ackermann pole-placement-bass-gura
+    observer-design-ackermann observer-design-place
+    lqr dlqr solve-care solve-dare lqg
+    hinf-norm hinf-bounded?
+    closed-loop-tf sensitivity-tf complementary-sensitivity-tf
+    lead-compensator lag-compensator lead-lag-compensator
+    controller-info
+
+    ;; digital-pid.ss — Discrete PID controllers
+    make-digital-pid digital-pid?
+    pid-Kp pid-Ki pid-Kd pid-Ts
+    make-pid-state pid-state? pid-integral pid-prev-error pid-prev-output
+    pid-step pid-step-antiwindup clamp
+    make-filtered-pid-state filtered-pid-state? pid-step-filtered
+    pid-reset pid-reset-to
+    ziegler-nichols-tune tyreus-luyben-tune cohen-coon-tune
+    make-velocity-pid-state velocity-pid-state? pid-step-velocity
+    pid-simulate pid-simulate-antiwindup pid->string
+
+    ;; tf-convert.ss — State-space/transfer function conversion
+    ss->tf ss->tf-leverrier tf->ss
+
     ;; analysis/ — Cost Analysis
     ;; cost-analysis.ss
     estimate-work work-analysis
@@ -341,8 +409,15 @@ Key design principles:
     ((subdir "control-systems")
      (description "Control theory and dynamical systems")
      (files (
-       "state-space.ss"   ; LTI state space models, controllability
-       "kalman.ss")))     ; Kalman filter for state estimation
+       "state-space.ss"       ; LTI state space models, controllability
+       "kalman.ss"            ; Kalman filter for state estimation
+       "discrete-control.ss"  ; Continuous-to-discrete conversion (c2d-zoh, c2d-tustin)
+       "stability.ss"         ; Stability analysis (Routh-Hurwitz, Lyapunov, Nyquist)
+       "z-transform.ss"       ; Discrete transfer functions (Z-domain)
+       "transfer-function.ss" ; Continuous transfer functions (S-domain)
+       "controller-design.ss" ; Controller synthesis (LQR, pole placement, PID tuning)
+       "digital-pid.ss"       ; Discrete PID with anti-windup and tuning rules
+       "tf-convert.ss")))     ; State-space <-> transfer function conversion
 
     ((subdir "analysis")
      (description "Cost analysis and parallelization heuristics")

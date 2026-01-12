@@ -114,6 +114,9 @@
 (define (starting-path session-id)
   (string-append *workers-dir* "/" session-id ".starting"))
 
+(define (lastreq-path session-id)
+  (string-append *workers-dir* "/" session-id ".lastreq"))
+
 ;;; ============================================================
 ;;; Request Parsing
 ;;; ============================================================
@@ -278,6 +281,13 @@
                                  (display (time-second (current-time)) p))
                          'replace))
 
+(define (write-lastreq! session-id)
+  "Write the last-request timestamp. Used by daemon to detect idle workers."
+  (call-with-output-file (lastreq-path session-id)
+                         (lambda (p)
+                                 (display (time-second (current-time)) p))
+                         'replace))
+
 (define (clear-starting! session-id)
   (let ([path (starting-path session-id)])
        (when (file-exists? path)
@@ -286,7 +296,8 @@
 (define (cleanup-worker! session-id)
   (let ([paths (list (pid-path session-id)
                      (ready-path session-id)
-                     (heartbeat-path session-id))])
+                     (heartbeat-path session-id)
+                     (lastreq-path session-id))])
        (for-each
         (lambda (path)
                 (when (file-exists? path)
@@ -296,6 +307,7 @@
 (define (process-request! session-id)
   (let ([path (request-path session-id)])
        (when (file-exists? path)
+             (write-lastreq! session-id)  ; Track last request time for idle detection
              (let* ([content (call-with-input-file path get-string-all)]
                     [request (parse-session-request content)]
                     [expr (if request
@@ -345,6 +357,7 @@
        (load "shell/repl.ss")
        (write-ready! session-id)
        (write-heartbeat! session-id)
+       (write-lastreq! session-id)  ; Initialize last-request timestamp
        (clear-starting! session-id)
        (worker-loop session-id)))
 
