@@ -229,9 +229,14 @@
 ;;; JSON Parser
 ;;; ============================================================
 
+;;; Maximum nesting depth to prevent stack overflow DoS attacks.
+;;; RFC 8259 doesn't specify a limit, but 100 levels is reasonable.
+(define *json-max-depth* 100)
+
 ;;; json-read : String → (ok Value) | (error String)
+;;; SECURITY: Uses depth-limited parsing to prevent stack overflow.
 (define (json-read str)
-  (let ([result (parse-value (skip-whitespace (make-pstate str)))])
+  (let ([result (parse-value-with-depth (skip-whitespace (make-pstate str)) 0)])
        (if (pair? result)
            (let ([val (car result)]
                  [rest (skip-whitespace (cdr result))])
@@ -242,7 +247,13 @@
            `(error ,result))))
 
 ;;; parse-value : State → (Value . State) | ErrorString
+;;; NOTE: This is the legacy interface. Use parse-value-with-depth for security.
 (define (parse-value s)
+  (parse-value-with-depth s 0))
+
+;;; parse-value-with-depth : State × Int → (Value . State) | ErrorString
+;;; SECURITY: Tracks nesting depth to prevent stack overflow DoS.
+(define (parse-value-with-depth s depth)
   (if (pstate-empty? s)
       "Unexpected end of input"
       (let ([c (pstate-peek s)])
@@ -251,8 +262,8 @@
             [(char=? c #\t) (parse-true s)]
             [(char=? c #\f) (parse-false s)]
             [(char=? c #\") (parse-string s)]
-            [(char=? c #\[) (parse-array s)]
-            [(char=? c #\{) (parse-object s)]
+            [(char=? c #\[) (parse-array-with-depth s depth)]
+            [(char=? c #\{) (parse-object-with-depth s depth)]
             [(or (char=? c #\-) (char-numeric? c)) (parse-number s)]
             [else (string-append "Unexpected character: " (string c))]))))
 
@@ -427,64 +438,81 @@
 
 ;;; parse-array : State → (JsonArray . State) | ErrorString
 (define (parse-array s)
-  (if (not (char=? (pstate-peek s) #\[))
-      "Expected '['"
-      (let ([s (skip-whitespace (pstate-advance s))])
-           (if (and (not (pstate-empty? s)) (char=? (pstate-peek s) #\]))
-               (cons (cons 'json-array '()) (pstate-advance s))
-               (let loop ([s s] [elems '()])
-                    (let ([result (parse-value s)])
-                         (if (string? result)
-                             result
-                             (let* ([val (car result)]
-                                    [rest (skip-whitespace (cdr result))])
-                                   (if (pstate-empty? rest)
-                                       "Unterminated array"
-                                       (let ([c (pstate-peek rest)])
-                                            (cond
-                                             [(char=? c #\])
-                                              (cons (cons 'json-array (reverse (cons val elems)))
-                                                    (pstate-advance rest))]
-                                             [(char=? c #\,)
-                                              (loop (skip-whitespace (pstate-advance rest))
-                                                    (cons val elems))]
-                                             [else "Expected ',' or ']' in array"])))))))))))
+  (parse-array-with-depth s 0))
+
+;;; parse-array-with-depth : State Int → (JsonArray . State) | ErrorString
+;;; SECURITY: Checks nesting depth to prevent stack overflow DoS.
+(define (parse-array-with-depth s depth)
+  (if (>= depth *json-max-depth*)
+      (string-append "JSON nesting too deep (max " (number->string *json-max-depth*) " levels)")
+      (if (not (char=? (pstate-peek s) #\[))
+          "Expected '['"
+          (let ([s (skip-whitespace (pstate-advance s))]
+                [new-depth (+ depth 1)])
+               (if (and (not (pstate-empty? s)) (char=? (pstate-peek s) #\]))
+                   (cons (cons 'json-array '()) (pstate-advance s))
+                   (let loop ([s s] [elems '()])
+                        (let ([result (parse-value-with-depth s new-depth)])
+                             (if (string? result)
+                                 result
+                                 (let* ([val (car result)]
+                                        [rest (skip-whitespace (cdr result))])
+                                       (if (pstate-empty? rest)
+                                           "Unterminated array"
+                                           (let ([c (pstate-peek rest)])
+                                                (cond
+                                                 [(char=? c #\])
+                                                  (cons (cons 'json-array (reverse (cons val elems)))
+                                                        (pstate-advance rest))]
+                                                 [(char=? c #\,)
+                                                  (loop (skip-whitespace (pstate-advance rest))
+                                                        (cons val elems))]
+                                                 [else "Expected ',' or ']' in array"]))))))))))))
 
 ;;; parse-object : State → (JsonObject . State) | ErrorString
 (define (parse-object s)
-  (if (not (char=? (pstate-peek s) #\{))
-      "Expected '{'"
-      (let ([s (skip-whitespace (pstate-advance s))])
-           (if (and (not (pstate-empty? s)) (char=? (pstate-peek s) #\}))
-               (cons (cons 'json-object '()) (pstate-advance s))
-               (let loop ([s s] [entries '()])
-                    (let ([key-result (parse-string s)])
-                         (if (string? key-result)
-                             (string-append "Expected string key: " key-result)
-                             (let* ([key (car key-result)]
-                                    [rest (skip-whitespace (cdr key-result))])
-                                   (if (or (pstate-empty? rest)
-                                           (not (char=? (pstate-peek rest) #\:)))
-                                       "Expected ':' after object key"
-                                       (let ([val-result (parse-value
-                                                          (skip-whitespace (pstate-advance rest)))])
-                                            (if (string? val-result)
-                                                val-result
-                                                (let* ([val (car val-result)]
-                                                       [entry (cons key val)]
-                                                       [rest2 (skip-whitespace (cdr val-result))])
-                                                      (if (pstate-empty? rest2)
-                                                          "Unterminated object"
-                                                          (let ([c (pstate-peek rest2)])
-                                                               (cond
-                                                                [(char=? c #\})
-                                                                 (cons (cons 'json-object
-                                                                             (reverse (cons entry entries)))
-                                                                       (pstate-advance rest2))]
-                                                                [(char=? c #\,)
-                                                                 (loop (skip-whitespace (pstate-advance rest2))
-                                                                       (cons entry entries))]
-                                                                [else "Expected ',' or '}' in object"])))))))))))))))
+  (parse-object-with-depth s 0))
+
+;;; parse-object-with-depth : State Int → (JsonObject . State) | ErrorString
+;;; SECURITY: Checks nesting depth to prevent stack overflow DoS.
+(define (parse-object-with-depth s depth)
+  (if (>= depth *json-max-depth*)
+      (string-append "JSON nesting too deep (max " (number->string *json-max-depth*) " levels)")
+      (if (not (char=? (pstate-peek s) #\{))
+          "Expected '{'"
+          (let ([s (skip-whitespace (pstate-advance s))]
+                [new-depth (+ depth 1)])
+               (if (and (not (pstate-empty? s)) (char=? (pstate-peek s) #\}))
+                   (cons (cons 'json-object '()) (pstate-advance s))
+                   (let loop ([s s] [entries '()])
+                        (let ([key-result (parse-string s)])
+                             (if (string? key-result)
+                                 (string-append "Expected string key: " key-result)
+                                 (let* ([key (car key-result)]
+                                        [rest (skip-whitespace (cdr key-result))])
+                                       (if (or (pstate-empty? rest)
+                                               (not (char=? (pstate-peek rest) #\:)))
+                                           "Expected ':' after object key"
+                                           (let ([val-result (parse-value-with-depth
+                                                              (skip-whitespace (pstate-advance rest))
+                                                              new-depth)])
+                                                (if (string? val-result)
+                                                    val-result
+                                                    (let* ([val (car val-result)]
+                                                           [entry (cons key val)]
+                                                           [rest2 (skip-whitespace (cdr val-result))])
+                                                          (if (pstate-empty? rest2)
+                                                              "Unterminated object"
+                                                              (let ([c (pstate-peek rest2)])
+                                                                   (cond
+                                                                    [(char=? c #\})
+                                                                     (cons (cons 'json-object
+                                                                                 (reverse (cons entry entries)))
+                                                                           (pstate-advance rest2))]
+                                                                    [(char=? c #\,)
+                                                                     (loop (skip-whitespace (pstate-advance rest2))
+                                                                           (cons entry entries))]
+                                                                    [else "Expected ',' or '}' in object"]))))))))))))))))
 
 ;;; ============================================================
 ;;; Tests (run with test-framework)

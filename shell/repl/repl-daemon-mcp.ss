@@ -35,6 +35,35 @@
 (define *last-cleanup* (time-second (current-time)))
 
 ;;; ============================================================
+;;; Input Validation
+;;; ============================================================
+
+;;; valid-session-id? : String → Boolean
+;;; Session IDs must contain only alphanumeric characters and hyphens.
+;;; This prevents command injection when session-id is used in shell commands.
+(define (valid-session-id? s)
+  (let ([len (string-length s)])
+       (and (> len 0)
+            (<= len 128)  ; Reasonable max length
+            (let loop ([i 0])
+                 (if (>= i len)
+                     #t
+                     (let ([c (string-ref s i)])
+                          (if (or (char-alphabetic? c)
+                                  (char-numeric? c)
+                                  (char=? c #\-)
+                                  (char=? c #\_))
+                              (loop (+ i 1))
+                              #f)))))))
+
+;;; sanitize-session-id : String → String | #f
+;;; Return session-id if valid, #f otherwise.
+(define (sanitize-session-id s)
+  (if (valid-session-id? s)
+      s
+      #f))
+
+;;; ============================================================
 ;;; Utilities
 ;;; ============================================================
 
@@ -97,9 +126,12 @@
                                             (string->number (get-line p)))))))
 
 (define (process-alive? pid)
-  (if (windows?)
+  ;; SECURITY: pid must be a positive integer
+  (if (or (not (integer? pid)) (<= pid 0))
       #f
-      (zero? (system (format "kill -0 ~a 2>/dev/null" pid)))))
+      (if (windows?)
+          #f
+          (zero? (system (format "kill -0 ~a 2>/dev/null" pid))))))
 
 (define (worker-alive? session-id)
   (let* ([now (time-second (current-time))]
@@ -111,8 +143,11 @@
          [else #f])))
 
 (define (terminate-worker! session-id)
+  ;; SECURITY: Validate session-id (path construction) and pid (shell command)
+  (unless (valid-session-id? session-id)
+          (error 'terminate-worker! "Invalid session-id" session-id))
   (let ([pid (read-number-file (pid-path session-id))])
-       (when pid
+       (when (and pid (integer? pid) (> pid 0))
              (if (windows?)
                  (system (format "taskkill /PID ~a /F >nul 2>nul" pid))
                  (begin
@@ -139,6 +174,10 @@
   (or (getenv "FOLD_SCHEME_CMD") "scheme"))
 
 (define (spawn-worker! session-id)
+  ;; SECURITY: Validate session-id to prevent command injection
+  (unless (valid-session-id? session-id)
+          (display (format "WARNING: Invalid session-id rejected: ~s\n" session-id))
+          (error 'spawn-worker! "Invalid session-id" session-id))
   (let* ([scheme (scheme-command)]
          [script *worker-script*]
          [log (log-path session-id)]
@@ -209,7 +248,10 @@
                                                       (- (string-length filename) 3)
                                                       (string-length filename))
                                            ".ss"))
-                            (ensure-worker! (extract-session-id-from-filename filename))))
+                            (let ([session-id (extract-session-id-from-filename filename)])
+                                 ;; SECURITY: Skip invalid session IDs
+                                 (when (valid-session-id? session-id)
+                                       (ensure-worker! session-id)))))
               files))))
 
 (define (periodic-cleanup!)

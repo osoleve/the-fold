@@ -29,6 +29,56 @@
 (load "core/base/prelude.ss")
 
 ;;; ============================================================
+;;; Input Validation (SECURITY)
+;;; ============================================================
+
+;;; valid-project-name? : String → Boolean
+;;; Project names must be safe for use in shell commands and file paths.
+;;; Only alphanumeric characters, hyphens, and underscores allowed.
+(define (valid-project-name? name)
+  (let ([len (string-length name)])
+       (and (> len 0)
+            (<= len 64)  ; Reasonable max length
+            ;; Must start with letter
+            (char-alphabetic? (string-ref name 0))
+            ;; Only safe characters allowed
+            (let loop ([i 0])
+                 (if (>= i len)
+                     #t
+                     (let ([c (string-ref name i)])
+                          (if (or (char-alphabetic? c)
+                                  (char-numeric? c)
+                                  (char=? c #\-)
+                                  (char=? c #\_))
+                              (loop (+ i 1))
+                              #f)))))))
+
+;;; valid-path-segment? : String → Boolean
+;;; Path segments must not contain shell metacharacters or path traversal.
+(define (valid-path-segment? s)
+  (let ([len (string-length s)])
+       (and (> len 0)
+            (<= len 256)
+            ;; No dangerous characters
+            (not (string-contains? s ";"))
+            (not (string-contains? s "&"))
+            (not (string-contains? s "|"))
+            (not (string-contains? s "$"))
+            (not (string-contains? s "`"))
+            (not (string-contains? s "\""))
+            (not (string-contains? s "'"))
+            (not (string-contains? s "\\"))
+            (not (string-contains? s ".."))
+            ;; No newlines or control characters
+            (let loop ([i 0])
+                 (if (>= i len)
+                     #t
+                     (let ([c (string-ref s i)])
+                          (if (< (char->integer c) 32)
+                              #f
+                              (loop (+ i 1)))))))))
+
+;;; ============================================================
 ;;; Configuration
 ;;; ============================================================
 
@@ -45,20 +95,34 @@
 
 ;;; init-project : String → Bool
 ;;; Initialize new project with defaults.
+;;; SECURITY: Validates project name to prevent command injection.
 (define (init-project name)
+  ;; SECURITY: Validate project name
+  (unless (valid-project-name? name)
+          (display (format "ERROR: Invalid project name: ~a\n" name))
+          (display "Project names must start with a letter and contain only\n")
+          (display "letters, numbers, hyphens, and underscores.\n")
+          (error 'init-project "Invalid project name" name))
   (let ([config (make-default-config name)])
        (create-project config)))
 
 ;;; init-project-interactive : → Bool
 ;;; Interactive wizard for project setup.
+;;; SECURITY: Validates project name to prevent command injection.
 (define (init-project-interactive)
   (display "\n")
   (display "╔══════════════════════════════════════════════════════════════╗\n")
   (display "║              THE FOLD PROJECT INITIALIZATION                 ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n")
   (display "\n")
-  
+
   (let* ([name (prompt "Project name")]
+         ;; SECURITY: Validate name immediately
+         [_ (unless (valid-project-name? name)
+                    (display "\nERROR: Invalid project name.\n")
+                    (display "Names must start with a letter and contain only\n")
+                    (display "letters, numbers, hyphens, and underscores.\n")
+                    (error 'init-project-interactive "Invalid project name" name))]
          [type (prompt-choice "Project type" (map car *project-types*))]
          [description (prompt "Description")]
          [author (prompt "Author")]
@@ -317,8 +381,12 @@
 ;;; ============================================================
 
 ;;; init-git : Alist → void
+;;; SECURITY: Project name is validated at init-project entry point.
 (define (init-git config)
   (let ([name (assoc-ref config 'name)])
+       ;; SECURITY: Double-check name is valid before shell use
+       (unless (valid-project-name? name)
+               (error 'init-git "Invalid project name" name))
        (display "Initializing git repository...\n")
        (system (format "cd ~a && git init" name))
        (system (format "cd ~a && git add ." name))
@@ -403,7 +471,11 @@
 ;;; NOTE: string-join provided by core/prelude.ss
 
 ;;; make-directory : Path → void
+;;; SECURITY: Validates path to prevent command injection.
 (define (make-directory path)
+  ;; SECURITY: Validate path before shell use
+  (unless (valid-path-segment? path)
+          (error 'make-directory "Invalid path" path))
   (guard (e [else (void)])
          (system (format "mkdir -p ~a" path))))
 

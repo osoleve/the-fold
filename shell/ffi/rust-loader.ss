@@ -143,6 +143,31 @@
   (hashtable-clear! *rust-fn-registry*))
 
 ;;; ============================================================
+;;; Input Validation
+;;; ============================================================
+
+;;; valid-c-identifier? : String → Boolean
+;;; Validate that a name is a valid C identifier (letters, numbers, underscore).
+;;; This prevents code injection via eval in build-foreign-proc.
+(define (valid-c-identifier? s)
+  (let ([len (string-length s)])
+       (and (> len 0)
+            (<= len 256)  ; Reasonable max length
+            ;; First char must be letter or underscore
+            (let ([c0 (string-ref s 0)])
+                 (or (char-alphabetic? c0) (char=? c0 #\_)))
+            ;; Rest must be alphanumeric or underscore
+            (let loop ([i 1])
+                 (if (>= i len)
+                     #t
+                     (let ([c (string-ref s i)])
+                          (if (or (char-alphabetic? c)
+                                  (char-numeric? c)
+                                  (char=? c #\_))
+                              (loop (+ i 1))
+                              #f)))))))
+
+;;; ============================================================
 ;;; Dynamic Binding
 ;;; ============================================================
 
@@ -152,7 +177,11 @@
 ;;;
 ;;; Note: foreign-procedure is a special form requiring literal types.
 ;;; We use eval to construct the binding dynamically.
+;;; SECURITY: name is validated to be a valid C identifier to prevent code injection.
 (define (build-foreign-proc name param-types ret-type)
+  ;; SECURITY: Validate function name before using in eval
+  (unless (and (string? name) (valid-c-identifier? name))
+          (error 'build-foreign-proc "Invalid function name (must be valid C identifier)" name))
   (let* ([param-ftypes (map scheme-type->ftype param-types)]
          [result-ftype-sym (scheme-type->result-ftype ret-type)]
          ;; Full signature: params + fuel + out-pointer
@@ -192,11 +221,15 @@
 ;;; Example:
 ;;; (rust-load-fn! "fold_add_test" '(i64 i64) 'i64)
 (define (rust-load-fn! name param-types ret-type)
+  ;; SECURITY: Validate function name at entry point
+  (unless (and (string? name) (valid-c-identifier? name))
+          (error 'rust-load-fn! "Invalid function name (must be valid C identifier)" name))
+
   ;; Ensure library is loaded
   (unless (accel-available?)
           (unless (accel-load!)
                   (error 'rust-load-fn! "Cannot load acceleration library")))
-  
+
   ;; Register the function
   (rust-register-fn! name param-types ret-type)
   

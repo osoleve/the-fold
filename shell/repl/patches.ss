@@ -67,12 +67,47 @@
                     (loop (cdr lst) acc))))))
 
 ;;; ============================================================
+;;; Input Validation
+;;; ============================================================
+
+;;; valid-patch-name? : Symbol → Boolean
+;;; Patch names must contain only safe characters (no path separators or ..).
+;;; This prevents path traversal attacks in read-manifest.
+(define (valid-patch-name? name)
+  (let* ([s (symbol->string name)]
+         [len (string-length s)])
+        (and (> len 0)
+             (<= len 64)  ; Reasonable max length
+             ;; No path separators or parent directory references
+             (not (string-contains? s "/"))
+             (not (string-contains? s "\\"))
+             (not (string-contains? s ".."))
+             ;; Must start with letter
+             (char-alphabetic? (string-ref s 0))
+             ;; Only alphanumeric, hyphen, underscore allowed
+             (let loop ([i 0])
+                  (if (>= i len)
+                      #t
+                      (let ([c (string-ref s i)])
+                           (if (or (char-alphabetic? c)
+                                   (char-numeric? c)
+                                   (char=? c #\-)
+                                   (char=? c #\_))
+                               (loop (+ i 1))
+                               #f)))))))
+
+;;; ============================================================
 ;;; Manifest Handling
 ;;; ============================================================
 
 ;;; read-manifest : Symbol -> Alist | #f
 ;;; Read a patch manifest from the patches directory.
+;;; SECURITY: Validates patch name to prevent path traversal.
 (define (read-manifest name)
+  ;; SECURITY: Validate patch name before constructing path
+  (unless (valid-patch-name? name)
+          (display (format "  WARNING: Invalid patch name rejected: ~s\n" name))
+          (error 'read-manifest "Invalid patch name" name))
   (let ([path (string-append *patches-dir* "/" (symbol->string name) ".ss")])
        (if (file-exists? path)
            (guard (e [else #f])
@@ -97,8 +132,14 @@
 
 ;;; apply-patch : Symbol -> Bool
 ;;; Load a patch by name. Returns #t on success.
+;;; SECURITY: Validates patch name to prevent path traversal.
 (define (apply-patch name)
   (cond
+   ;; SECURITY: Validate patch name early
+   [(not (valid-patch-name? name))
+    (display (format "  ERROR: Invalid patch name: ~a\n" name))
+    (display "  Patch names must be alphanumeric with hyphens/underscores only.\n")
+    #f]
    [(patch-applied? name)
     (display (format "  Patch '~a' is already applied.\n" name))
     #t]
