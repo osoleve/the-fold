@@ -1,10 +1,15 @@
-;;; lattice/fp/control-systems/kalman.ss — Kalman Filter
+;;; lattice/fp/control-systems/kalman.ss — Scalar Kalman Filter
 ;;;
-;;; Scalar and log-space Kalman filters for state estimation.
-;;; Used by adaptive fuel allocation to refine cost estimates at runtime.
+;;; SCALAR Kalman filter for online estimation of a single hidden variable.
+;;; NOT the full matrix Kalman filter used in state-space control systems.
 ;;;
-;;; The Kalman filter maintains a belief (mean, variance) about a hidden state
-;;; and updates it as observations arrive. For fuel estimation:
+;;; For matrix-based Kalman filtering in control applications, see:
+;;;   - lqg in controller-design.ss (LQR + Kalman observer design)
+;;;   - solve-care for algebraic Riccati equations
+;;;
+;;; This scalar filter is used by adaptive fuel allocation to refine cost
+;;; estimates at runtime. It maintains a belief (mean, variance) about a
+;;; hidden scalar state and updates it as observations arrive:
 ;;;   - State: expected cost per element
 ;;;   - Observations: actual measured costs
 ;;;   - Process noise (Q): cost variability between elements

@@ -634,7 +634,10 @@
 ;;; LQG - Linear Quadratic Gaussian
 ;;; ============================================================
 
-;;; LQG combines LQR state feedback with Kalman filter state estimation.
+;;; LQG combines LQR state feedback with matrix Kalman filter state estimation.
+;;; This is the full MATRIX Kalman filter for state-space control systems.
+;;; (For scalar Kalman filtering, see kalman.ss)
+;;;
 ;;; Controller: u = -K*x_hat
 ;;; Estimator: x_hat' = A*x_hat + B*u + L*(y - C*x_hat)
 ;;;
@@ -643,7 +646,7 @@
 ;;; 2. Design Kalman filter gain L using Qn (process noise), Rn (measurement noise)
 
 ;;; lqg : SS × Matrix × Matrix × Matrix × Matrix → (K L) | Error
-;;; Design LQG controller.
+;;; Design LQG controller with optimal state estimation.
 ;;; Parameters:
 ;;;   sys = state space system
 ;;;   Q, R = LQR weights (state and control)
