@@ -1,0 +1,62 @@
+[
+  {
+    "severity": "high",
+    "file": "shell/lzr.ss",
+    "line": 35,
+    "description": "Shadowing of 'detect-at-depth' causes stale binding issues. Saving 'detect-fusion-static' into '*lzr-fusion-detect*' does not prevent its internal calls from using the redefined version of 'detect-at-depth' from 'parallel-detect.ss' because Scheme top-level definitions are late-bound.",
+    "code_snippet": "(load \"lattice/fp/analysis/fusion-detect.ss\")\n(define *lzr-fusion-detect* detect-fusion-static)\n(load \"lattice/fp/analysis/parallel-detect.ss\")",
+    "suggested_fix": "Use a module system to encapsulate dependencies or rename internal functions to ensure uniqueness. If using 'load', ensure that internal helpers like 'detect-at-depth' are not redefined by subsequent loads.",
+    "confidence": 0.95,
+    "category": "correctness"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/lzr.ss",
+    "line": 232,
+    "description": "'worth-optimizing?' lacks guards for non-pair expressions, unlike other API functions such as 'analyze-fusion' and 'suggest-parallel'. Passing a symbol or null to this function will likely cause a crash in the underlying detection functions.",
+    "code_snippet": "(define (worth-optimizing? expr)\n  (or (> (length (*lzr-fusion-detect* expr)) 0)\n      (> (length (detect-parallel-regions expr)) 0)))",
+    "suggested_fix": "(define (worth-optimizing? expr)\n  (if (or (null? expr) (not (pair? expr)))\n      #f\n      (or (> (length (*lzr-fusion-detect* expr)) 0)\n          (> (length (detect-parallel-regions expr)) 0))))",
+    "confidence": 0.9,
+    "category": "correctness"
+  },
+  {
+    "severity": "low",
+    "file": "shell/lzr.ss",
+    "line": 95,
+    "description": "'lzr-report' performs redundant optimization work by calling both 'optimize' and 'optimize-with-stats', both of which execute the same fusion simplification logic.",
+    "code_snippet": "(define (lzr-report expr)\n  (let* ([analysis (analyze-all expr)]\n         [optimized (optimize expr)]\n         [stats (optimize-with-stats expr)])",
+    "suggested_fix": "Extract the 'result' from the 'stats' alist (returned by 'optimize-with-stats') instead of calling 'optimize' separately.",
+    "confidence": 0.9,
+    "category": "performance"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/lzr.ss",
+    "line": 133,
+    "description": "'format-speedup' and 'percent-reduction' calculations can result in exact rationals (e.g., 3/2 or 100/3), which display as fractions in user reports when using 'format ~a'.",
+    "code_snippet": "(define (format-speedup s)\n  (let ([rounded (/ (round (* s 10)) 10)])\n       (format \"~a\" rounded)))",
+    "suggested_fix": "Use 'exact->inexact' or 'format \"~f\"' to ensure numeric outputs are displayed as decimals in the report.",
+    "confidence": 0.85,
+    "category": "style"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/lzr.ss",
+    "line": 111,
+    "description": "'truncate-expr' generates a full string representation of an expression via 'format ~s' before truncating. For large nested expressions, this can cause significant performance hits and memory pressure.",
+    "code_snippet": "(define (truncate-expr expr)\n  (let* ([s (format \"~s\" expr)]\n         [len (string-length s)])\n        (if (> len 60)",
+    "suggested_fix": "Use a bounded printer or check the depth/complexity of the expression before stringification to avoid processing massive trees.",
+    "confidence": 0.85,
+    "category": "performance"
+  },
+  {
+    "severity": "low",
+    "file": "shell/lzr.ss",
+    "line": 86,
+    "description": "'analyze-all' computes summary statistics ('fusion-sum' and 'parallel-sum') that are never utilized by 'lzr-report' or the display logic, resulting in unnecessary computation.",
+    "code_snippet": "         [fusion-sum (if (null? fusion-opps)\n                         '((total . 0) (safe . 0))\n                         (fusion-summary fusion-opps))]\n         [parallel-sum (if (null? parallel-opps)\n                           '((total . 0) (high-value . 0))\n                           (parallel-summary parallel-opps))])",
+    "suggested_fix": "Remove the unused summary calculations or integrate them into the final report output.",
+    "confidence": 0.9,
+    "category": "performance"
+  }
+]

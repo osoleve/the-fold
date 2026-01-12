@@ -1,0 +1,72 @@
+[
+  {
+    "severity": "high",
+    "file": "lattice/fp/analysis/parallel-detect.ss",
+    "line": 105,
+    "description": "Critical bug in free variable analysis: misses free variables in zero-argument functions and empty binding forms. The (pair? (cadr expr)) check incorrectly skips forms like (lambda () body) and (let () body), returning an empty list of free variables and potentially leading to unsafe parallelization suggestions.",
+    "code_snippet": "[(or (eq? (car expr) 'fn)\n     (eq? (car expr) 'lambda))\n (if (and (pair? (cdr expr)) (pair? (cadr expr)))\n     (let* ([params (cadr expr)]",
+    "suggested_fix": "Change (pair? (cadr expr)) to (list? (cadr expr)) or simply check (pair? (cdr expr)) to allow empty parameter/binding lists. Ensure the logic handles the empty case correctly by still recursing into the body.",
+    "confidence": 0.98,
+    "category": "correctness"
+  },
+  {
+    "severity": "high",
+    "file": "lattice/fp/analysis/parallel-detect.ss",
+    "line": 114,
+    "description": "Named let forms are not supported in free-vars-env. When (car expr) is 'let and (cadr expr) is a symbol (the loop name), the (pair? (cadr expr)) check fails, and the form returns an empty free variable list. This causes the analyzer to miss all free variables in the bindings and body of named loops.",
+    "code_snippet": "[(eq? (car expr) 'let)\n (if (and (pair? (cdr expr)) (pair? (cadr expr)))\n     (let* ([bindings (cadr expr)]",
+    "suggested_fix": "Add a branch to handle named let: (and (symbol? (cadr expr)) (pair? (cddr expr))). Extract bindings from (caddr expr) and body from (cdddr expr).",
+    "confidence": 0.95,
+    "category": "correctness"
+  },
+  {
+    "severity": "high",
+    "file": "lattice/fp/rewrite/verify.ss",
+    "line": 158,
+    "description": "Namespace pollution: verify.ss defines a broken and incomplete version of free-vars that shadows the more comprehensive one in parallel-detect.ss. Since verify.ss is loaded later in shell/lzr.ss, the parallelization analysis ends up using this restricted version which only supports single-argument 'fn' forms and basic 'let'.",
+    "code_snippet": "(define (free-vars expr)\n  (free-vars-helper expr '()))\n\n(define (free-vars-helper expr bound)",
+    "suggested_fix": "Rename this local version to verify-free-vars or move both to a shared module. In a non-module system, use a prefix to avoid collisions between analysis and verification passes.",
+    "confidence": 0.92,
+    "category": "correctness"
+  },
+  {
+    "severity": "medium",
+    "file": "lattice/fp/analysis/parallel-detect.ss",
+    "line": 235,
+    "description": "Incomplete independence check in detect-independent-maps: it only analyzes the free variables of the data (the third argument to map), completely ignoring the mapping function (the second argument). If two maps use independent data but share a stateful or effectful function, they will be incorrectly marked as safe for parallelization.",
+    "code_snippet": "(let* ([map-fvs (map (lambda (m) (free-vars (caddr m))) map-exprs)]\n       [independent-pairs (find-independent-pairs map-fvs)])",
+    "suggested_fix": "Include the function expression in the free variable analysis: (map (lambda (m) (append (free-vars (cadr m)) (free-vars (caddr m)))) map-exprs).",
+    "confidence": 0.9,
+    "category": "correctness"
+  },
+  {
+    "severity": "medium",
+    "file": "lattice/fp/rewrite/verify.ss",
+    "line": 185,
+    "description": "Bug in substitute: the shadowing check only looks at the first parameter of a function. In a multi-argument function (fn (x y) body), if 'y' is the variable being substituted, it will incorrectly substitute inside the body even though 'y' is shadowed by the parameter list.",
+    "code_snippet": "[(and (eq? (car expr) 'fn)\n      (pair? (cdr expr))\n      (pair? (cadr expr))\n      (eq? (caadr expr) var))",
+    "suggested_fix": "Use (memq var (cadr expr)) instead of (eq? (caadr expr) var) to check for shadowing in the entire parameter list.",
+    "confidence": 0.95,
+    "category": "correctness"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/lzr.ss",
+    "line": 182,
+    "description": "verify-rewrite and test-with-samples in shell/lzr.ss are likely to produce false negatives because verify-equivalence only checks for alpha-equivalence. Since fusion and parallelization optimizations naturally change the structure of the expression, they will rarely be alpha-equivalent to the original, making the verification pass almost always fail.",
+    "code_snippet": "(let ([result (verify-equivalence before after)])\n     (cond\n      [(and (equiv-ok? result) (equiv-result result))",
+    "suggested_fix": "The verification should involve symbolic evaluation or NbE (Normalization by Evaluation) as hinted in verify.ss comments, or test-with-samples should actually evaluate the expressions with the provided inputs and compare results.",
+    "confidence": 0.85,
+    "category": "correctness"
+  },
+  {
+    "severity": "low",
+    "file": "lattice/fp/analysis/fusion-detect.ss",
+    "line": 272,
+    "description": "Performance bottleneck in fusion-detect-at-depth: uses (append acc child-opps) inside a loop. This results in O(N^2) complexity relative to the number of detected opportunities, which can be slow for very large expressions or deeply nested ASTs.",
+    "code_snippet": "(let loop ([items expr] [i 0] [acc '()])\n     (if (or (null? items) (not (pair? items)))\n         acc\n         (let ([child-opps (fusion-detect-at-depth ...)])\n              (loop (cdr items) (+ i 1) (append acc child-opps)))))",
+    "suggested_fix": "Accumulate results in a flat list using a single pass or use a more efficient data structure (like a difference list or simple consing followed by a single reverse).",
+    "confidence": 0.8,
+    "category": "performance"
+  }
+]

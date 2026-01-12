@@ -1,0 +1,72 @@
+[
+  {
+    "severity": "high",
+    "file": "shell/pipeline/effects/shell.ss",
+    "line": 72,
+    "description": "Command injection vulnerability in shell-exec. The command is wrapped in double quotes and passed to /bin/sh -c. Scheme's ~s (write) does not escape shell metacharacters like $, `, and \\ inside strings, allowing an attacker to execute arbitrary commands using command substitution (e.g., $(reboot)).",
+    "code_snippet": "(let* ([wrapped-cmd (format \"/bin/sh -c ~s'; echo \\\"\\\\n__EXIT_CODE__$?\\\"'\" cmd)])\n               (let-values ([(to-stdin from-stdout from-stderr process-id)\n                             (open-process-ports wrapped-cmd\n                                                 (buffer-mode block)\n                                                 (native-transcoder))])",
+    "suggested_fix": "Use single quotes for the command argument and escape any single quotes within the command string, or better, avoid shell execution and use a list of arguments with a direct process execution function if available.",
+    "confidence": 0.95,
+    "category": "security"
+  },
+  {
+    "severity": "high",
+    "file": "shell/pipeline/effects/misc.ss",
+    "line": 147,
+    "description": "Command injection in beads effect handler. The 'type' and 'priority' fields are inserted into a shell command string using ~a (display), which performs no escaping. This allows an attacker who controls these values to execute arbitrary shell commands.",
+    "code_snippet": "(let* ([title (cadr payload)]\n                     [description (caddr payload)]\n                     [type (cadddr payload)]\n                     [priority (list-ref payload 4)]\n                     [cmd (format \"bd create ~s -d ~s -t ~a -p ~a\"\n                                  title description type priority)]\n                     [result (shell-exec cmd)])",
+    "suggested_fix": "Use ~s for all parameters and ensure shell-exec properly handles escaping of shell metacharacters.",
+    "confidence": 0.95,
+    "category": "security"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/pipeline/effects/fold.ss",
+    "line": 91,
+    "description": "Path traversal vulnerability in fold-ipc-eval. The session-id is used directly to construct file paths for IPC. If session-id is user-controllable, an attacker can use '..' sequences to write or delete files outside the intended directories.",
+    "code_snippet": "(let ([req-path (string-append req-dir \"/\" session-id \".ss\")]\n                    [resp-path (string-append resp-dir \"/\" session-id \".txt\")])\n                   ;; Clear any stale response\n                   (when (file-exists? resp-path)\n                         (delete-file resp-path))",
+    "suggested_fix": "Sanitize session-id to ensure it only contains alphanumeric characters and no path separators or '..' sequences.",
+    "confidence": 0.85,
+    "category": "security"
+  },
+  {
+    "severity": "high",
+    "file": "shell/pipeline/effects/http.ss",
+    "line": 66,
+    "description": "Server-Side Request Forgery (SSRF) vulnerability. The http-fetch-get function passes a user-provided URL directly to curl without validation, allowing access to internal network services or local files via the file:// protocol.",
+    "code_snippet": "(define (http-fetch-get url)\n  ...\n         (let ([result (shell-exec (format \"curl -sS -f ~s\" url))])",
+    "suggested_fix": "Validate the URL against an allowlist of permitted protocols (e.g., http, https) and domains, and block access to private/internal IP ranges.",
+    "confidence": 0.9,
+    "category": "security"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/pipeline/checkpoint.ss",
+    "line": 70,
+    "description": "Path traversal in checkpoint persistence. The run-id and name are used to construct file paths for checkpoint storage. If these are user-controlled, an attacker can write arbitrary S-expression files to any location on the filesystem.",
+    "code_snippet": "(define (persist-checkpoint run-id name value)\n  (guard (ex [else (void)])\n         (let ([run-dir (string-append *checkpoint-dir* \"/\" run-id)])\n              (ensure-directory! run-dir)\n              (let ([checkpoint-file (string-append run-dir \"/\" (symbol->string name) \".sexp\")])",
+    "suggested_fix": "Sanitize run-id and name to prevent path traversal sequences and ensure they remain within the *checkpoint-dir*.",
+    "confidence": 0.85,
+    "category": "security"
+  },
+  {
+    "severity": "high",
+    "file": "shell/pipeline/effects/fold.ss",
+    "line": 61,
+    "description": "Scheme injection in forum-post effect. The channel parameter is inserted into a Scheme expression using ~a, allowing an attacker to break out of the quoted symbol and execute arbitrary Scheme code in the Fold REPL.",
+    "code_snippet": "[(forum-post)\n              (let* ([channel (cadr payload)]\n                     [title (caddr payload)]\n                     [body (cadddr payload)]\n                     [expr (format \"(msg '~a ~s ~s)\" channel title body)]",
+    "suggested_fix": "Use ~s for the channel or validate that it is a valid symbol string containing no Scheme metacharacters like spaces or parentheses.",
+    "confidence": 0.9,
+    "category": "security"
+  },
+  {
+    "severity": "high",
+    "file": "shell/pipeline/effects/shell.ss",
+    "line": 159,
+    "description": "Command injection in shell-exec-with-env. Environment variable values are inserted using ~s into a string that is then executed by /bin/sh -c. Since ~s does not escape shell metacharacters like $ within double quotes, an attacker can execute commands via variable expansion.",
+    "code_snippet": "(let* ([env-exports (apply string-append\n                                    (map (lambda (pair)\n                                                 ;; Use ~s (write) to get proper shell escaping\n                                                 (format \"export ~a=~s; \" (car pair) (cdr pair)))\n                                         env))]\n                [full-cmd (string-append env-exports cmd \"; echo \\\"\\\\n__EXIT_CODE__$?\\\"\")])",
+    "suggested_fix": "Use a safer method for setting environment variables, such as passing them directly to the process creation function, or use single quotes for the export values and escape any internal single quotes.",
+    "confidence": 0.95,
+    "category": "security"
+  }
+]

@@ -1,0 +1,52 @@
+[
+  {
+    "severity": "high",
+    "file": "shell/lzr.ss",
+    "line": 269,
+    "description": "test-with-samples performs structural comparison using verify-equivalence after substitution but does not evaluate the expressions. This causes it to fail for semantically equivalent but structurally different expressions (e.g., fused vs. unfused forms), making it ineffective for verifying rewrites with sample data.",
+    "code_snippet": "(define (test-with-samples before after sample-inputs)\n  (let* ([before-sub (substitute-all before sample-inputs)]\n         [after-sub (substitute-all after sample-inputs)]\n         [result (verify-equivalence before-sub after-sub)])",
+    "suggested_fix": "Use an evaluator (e.g., eval) to compare the resulting values of the expressions after substitution instead of using structural/alpha equivalence.",
+    "confidence": 0.95,
+    "category": "correctness"
+  },
+  {
+    "severity": "high",
+    "file": "shell/lzr.ss",
+    "line": 286,
+    "description": "substitute-all implements sequential substitution instead of simultaneous substitution. This produces incorrect results when substitution values contain variables that are also being replaced (e.g., swapping variables 'x' and 'y' will result in both becoming the same value).",
+    "code_snippet": "(define (substitute-all expr bindings)\n  (if (null? bindings)\n      expr\n      (substitute-all (substitute expr (caar bindings) (cdar bindings))\n                      (cdr bindings))))",
+    "suggested_fix": "Implement a simultaneous substitution function that determines all replacements before applying them to the expression.",
+    "confidence": 0.9,
+    "category": "correctness"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/lzr.ss",
+    "line": 133,
+    "description": "format-speedup can produce exact rational fractions (e.g., '33/10') instead of decimal strings in many Scheme implementations (like R5RS/Chez). This affects the professional formatting and readability of the analysis reports.",
+    "code_snippet": "(define (format-speedup s)\n  (let ([rounded (/ (round (* s 10)) 10)])\n       (format \"~a\" rounded)))",
+    "suggested_fix": "Coerce the value to an inexact number using (exact->inexact) or multiply by 1.0 before formatting to ensure decimal output (e.g., (/ (round (* (exact->inexact s) 10)) 10)).",
+    "confidence": 0.9,
+    "category": "style"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/lzr.ss",
+    "line": 78,
+    "description": "The percent-reduction calculation in optimize-with-stats can result in an exact rational fraction (e.g., 100/3), which will be displayed as a fraction in the final report instead of a formatted percentage.",
+    "code_snippet": "[percent-reduction (if (zero? before-count)\n                        0\n                        (* 100 (/ savings before-count)))]",
+    "suggested_fix": "Ensure the division result is inexact by using (exact->inexact) or 100.0 to produce a decimal percentage.",
+    "confidence": 0.9,
+    "category": "style"
+  },
+  {
+    "severity": "low",
+    "file": "shell/lzr.ss",
+    "line": 113,
+    "description": "truncate-expr converts the entire expression to a string before truncating it. For very large ASTs, this is inefficient and may consume excessive memory during string materialization.",
+    "code_snippet": "(define (truncate-expr expr)\n  (let* ([s (format \"~s\" expr)]\n         [len (string-length s)])\n        (if (> len 60)\n            (string-append (substring s 0 57) \"...\")",
+    "suggested_fix": "Use a depth-limited traversal to generate a truncated string representation directly without materializing the full string first.",
+    "confidence": 0.8,
+    "category": "performance"
+  }
+]

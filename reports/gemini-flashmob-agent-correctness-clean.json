@@ -1,0 +1,62 @@
+[
+  {
+    "severity": "high",
+    "file": "shell/pipeline/effects/shell.ss",
+    "line": 79,
+    "description": "The wrapped command for shell execution contains unmatched single quotes and potential double-wrapping issues. The format string \"/bin/sh -c ~s'; echo \\\"\\\\n__EXIT_CODE__$?\\\"'\" will produce a command like `/bin/sh -c \"ls\"'; echo ...'`, which is syntactically invalid for the shell due to the unmatched single quote after the double-quoted command.",
+    "code_snippet": "(let* ([wrapped-cmd (format \"/bin/sh -c ~s'; echo \\\"\\\\n__EXIT_CODE__$?\\\"'\" cmd)])\n       (let-values ([(to-stdin from-stdout from-stderr process-id)\n                     (open-process-ports wrapped-cmd\n                                         (buffer-mode block)\n                                         (native-transcoder))])",
+    "suggested_fix": "Change the format string to correctly wrap the command or rely on Chez Scheme's built-in shell invocation: (format \"~a; echo \\\"\\\\n__EXIT_CODE__$?\\\"\" cmd). Also ensure that ~s is used only if single-level shell invocation is intended.",
+    "confidence": 0.95,
+    "category": "correctness"
+  },
+  {
+    "severity": "high",
+    "file": "shell/pipeline/effects/misc.ss",
+    "line": 258,
+    "description": "In Chez Scheme, the `make-time` function requires the `nanoseconds` argument to be less than 1,000,000,000. The `interpret-await-effect` calculates `ns` as `ms * 1,000,000`. If `ms` is 1000 or greater (i.e., a timeout of 1 second or more), `ns` will be >= 1e9, causing the application to crash.",
+    "code_snippet": "[(timeout)\n ;; Pause execution for specified milliseconds\n (let* ([ms (cadr payload)]\n        [ns (* ms 1000000)])  ; Convert ms to nanoseconds\n       (sleep (make-time 'time-duration ns 0))",
+    "suggested_fix": "Normalize the time duration: (make-time 'time-duration (remainder ns 1000000000) (quotient ns 1000000000))",
+    "confidence": 0.98,
+    "category": "correctness"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/pipeline/effects/llm.ss",
+    "line": 286,
+    "description": "The `shell-exec-with-env-stdin` function determines success solely by checking if `stderr` is empty. This is unreliable as many commands (like `curl`) might output warnings or progress to `stderr` even on success, and some failures might not produce `stderr` output. This also contradicts the exit-code-based success logic used in other effect handlers.",
+    "code_snippet": "(let ([stdout-str (if (eof-object? stdout-all) \"\" stdout-all)]\n      [stderr-str (if (eof-object? stderr-all) \"\" stderr-all)])\n     (list 'shell-result\n           (string=? stderr-str \"\")\n           stdout-str\n           stderr-str))",
+    "suggested_fix": "Use the exit code marker trick used in shell/pipeline/effects/shell.ss or use process-status to check the actual exit code of the subprocess.",
+    "confidence": 0.9,
+    "category": "correctness"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/pipeline/interpreter.ss",
+    "line": 169,
+    "description": "The `run-sequential-council` and `run-parallel-council` functions do not check if `round-prompts` is empty before calling `list-ref` or `car`. If a council is configured with rounds but no prompts, the interpreter will crash with a 'pair expected' or 'index out of range' error.",
+    "code_snippet": "(let ([round-prompt (if (< round (length round-prompts))\n                        (list-ref round-prompts (- round 1))\n                        (car (reverse round-prompts)))])",
+    "suggested_fix": "Add a check for empty `round-prompts` and either provide a default prompt or return an error stage.",
+    "confidence": 0.85,
+    "category": "correctness"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/pipeline/checkpoint.ss",
+    "line": 39,
+    "description": "The `restore` operation incorrectly falls through to disk loading when a checkpoint exists in memory but is set to `#f` (e.g., after a `clear` operation). Since `(if value ...)` treats `#f` as false, it will attempt to load a potentially stale persisted value from a previous save or run, violating the expected 'cleared' state.",
+    "code_snippet": "[(restore)\n (let* ([name (cadr payload)]\n        [value (state-get-checkpoint state name)])\n       (if value\n           (cons (stage-ok value) state)\n           ;; Try loading from CAS",
+    "suggested_fix": "Distinguish between a missing checkpoint and one explicitly set to `#f` by using `assq` or a unique 'not-found' token, and only fall through to disk loading if the key is truly absent from the state.",
+    "confidence": 0.92,
+    "category": "correctness"
+  },
+  {
+    "severity": "low",
+    "file": "shell/assistants/duckie-persist.ss",
+    "line": 131,
+    "description": "The `recall` function uses `take` on the list of memories without checking if `n` exceeds the list length. In most Scheme implementations (including SRFI-1), `take` will error if the list is shorter than `n`.",
+    "code_snippet": "(define (recall n)\n  (if *current-duckie*\n      (let* ([mem-hashes (take n (duckie-memories *current-duckie*))]\n             [memories (filter (lambda (x) x) (map fetch mem-hashes))])",
+    "suggested_fix": "(take n (duckie-memories *current-duckie*)) -> (let ([mems (duckie-memories *current-duckie*)]) (take (min n (length mems)) mems))",
+    "confidence": 0.85,
+    "category": "correctness"
+  }
+]

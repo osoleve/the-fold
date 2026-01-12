@@ -1,0 +1,62 @@
+[
+  {
+    "severity": "high",
+    "file": "shell/pipeline/effects/shell.ss",
+    "line": 95,
+    "description": "O(N*M) allocations in string-rindex due to substring in a loop. For large stdout, this creates thousands of temporary strings, causing significant GC pressure.",
+    "code_snippet": "(let loop ([i (- hlen nlen)])\n            (cond\n             [(< i 0) #f]\n             [(string=? (substring haystack i (+ i nlen)) needle) i]\n             [else (loop (- i 1))]))",
+    "suggested_fix": "Use a character-by-character comparison or a native string search function (like string-contains or string-index) to avoid O(N) allocations in the search loop.",
+    "confidence": 0.9,
+    "category": "performance"
+  },
+  {
+    "severity": "high",
+    "file": "shell/pipeline/effects/llm.ss",
+    "line": 169,
+    "description": "O(N*M) allocations in string-search due to substring in a loop. LLM responses can be large, making this a significant bottleneck during response parsing.",
+    "code_snippet": "(let loop ([i 0])\n            (cond\n             [(> (+ i nlen) hlen) #f]\n             [(string=? (substring haystack i (+ i nlen)) needle) i]\n             [else (loop (+ i 1))]))",
+    "suggested_fix": "Implement string searching using character indices and char=? instead of allocating new substrings for every comparison.",
+    "confidence": 0.9,
+    "category": "performance"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/pipeline/interpreter.ss",
+    "line": 154,
+    "description": "Sequential execution of models in run-parallel-council. Despite being named 'parallel', it calls LLMs one by one, multiplying latency by the number of models.",
+    "code_snippet": ";;; Get all responses in parallel (sequentially for now)\n       (let loop ([remaining models]\n                  [responses '()])",
+    "suggested_fix": "Implement true parallel execution using threads or async tasks if the Scheme environment supports it, allowing multiple LLM requests to be in flight simultaneously.",
+    "confidence": 0.95,
+    "category": "performance"
+  },
+  {
+    "severity": "high",
+    "file": "shell/assistants/duckie-loop.ss",
+    "line": 140,
+    "description": "Blocking input handling in a UI/animation loop. The call to get-line blocks the entire heartbeat, preventing animations and particle updates from occurring unless the user is typing.",
+    "code_snippet": "(define (read-input)\n  (display \"> \")\n  (flush-output-port (current-output-port))\n  (let ([line (get-line (current-input-port))])",
+    "suggested_fix": "Use non-blocking IO (char-ready?) or a separate thread for input to allow the animation loop to tick and render independently of user interaction.",
+    "confidence": 0.9,
+    "category": "performance"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/assistants/duckie-persist.ss",
+    "line": 52,
+    "description": "Redundant O(N) pinning operation in save-duckie!. Every state update (like petting) re-pins all existing memories, which likely involves disk IO or database updates.",
+    "code_snippet": "(define (save-duckie! d)\n  (let* ([blk (duckie->block d)]\n         [hash (store! blk)])\n        (pin! hash)\n        ;; Also pin all memory hashes\n        (for-each pin! (duckie-memories d))\n        hash))",
+    "suggested_fix": "Only pin the new DUCKIE state hash. Memories should be pinned once when they are created (in remember!) rather than repeatedly during every soul update.",
+    "confidence": 0.85,
+    "category": "performance"
+  },
+  {
+    "severity": "medium",
+    "file": "shell/pipeline/interpreter.ss",
+    "line": 235,
+    "description": "O(N^2) total complexity in state merging due to list appends. As pipelines grow or nest, repeatedly appending log and artifact lists becomes increasingly expensive.",
+    "code_snippet": "(define (merge-states parent child)\n  (make-pipeline-state\n   (append (state-log child) (state-log parent))\n   (append (state-artifacts child) (state-artifacts parent))",
+    "suggested_fix": "Use a more efficient structure for logs/artifacts, such as a nested list (dlist) or a trie, and only flatten/linearize the results at the end of the pipeline execution.",
+    "confidence": 0.75,
+    "category": "performance"
+  }
+]
