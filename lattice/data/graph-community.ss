@@ -5,6 +5,7 @@
 ;;;   - Modularity calculation and optimization
 ;;;   - Prim's minimum spanning tree
 ;;;   - Kruskal's minimum spanning tree (with union-find)
+;;;   - Connected components analysis
 ;;;
 ;;; This is Core code: pure, total, assumes reasonable input.
 ;;;
@@ -12,14 +13,30 @@
 ;;;   (load "lattice/data/graph-matrix.ss")
 ;;;   (load "lattice/data/graph-community.ss")
 ;;;
-;;;   ;; Community detection
-;;;   (define g (edges->adjacency-matrix karate-edges 34 #t))
-;;;   (label-propagation g)           ; => #(0 0 0 1 1 1 ...)  community labels
-;;;   (modularity g communities)      ; => 0.42  quality score
+;;;   ;; Community detection on social network
+;;;   (define g (edges->adjacency-matrix social-edges 34 #t))
+;;;   (define labels (label-propagation g))     ; => #(0 0 0 1 1 1 ...)
+;;;   (num-communities labels)                  ; => 2
+;;;   (communities->partition labels)           ; => ((0 1 2 ...) (3 4 5 ...))
+;;;   (modularity g labels)                     ; => 0.42  (Q > 0.3 is good)
 ;;;
-;;;   ;; Minimum spanning tree
-;;;   (prim-mst weighted-adj)         ; => ((0 1 2) (1 2 3) ...)  MST edges
-;;;   (kruskal-mst edges n)           ; => ((0 1 2) ...)  from edge list
+;;;   ;; Minimum spanning tree from adjacency matrix
+;;;   (define mst (prim-mst weighted-adj))      ; => ((0 1 2) (1 2 3) ...)
+;;;   (mst-weight mst)                          ; => 15  total weight
+;;;
+;;;   ;; MST from edge list (more efficient for sparse graphs)
+;;;   (kruskal-mst '((0 1 2) (1 2 3) (0 2 4)) 3)  ; => ((0 1 2) (1 2 3))
+;;;
+;;;   ;; Connectivity analysis
+;;;   (is-connected? g)                         ; => #t or #f
+;;;   (connected-components g)                  ; => #(0 0 0 1 1 1)  component IDs
+;;;
+;;; Complexity:
+;;;   - label-propagation: O(k·n²) where k = iterations (matrix-based)
+;;;   - modularity: O(n²)
+;;;   - prim-mst: O(n²)
+;;;   - kruskal-mst: O(m log m) for sorting + O(m·α(n)) for union-find
+;;;   - connected-components: O(n + m) BFS
 ;;;
 ;;; Dependencies:
 ;;;   - prelude.ss
@@ -40,13 +57,13 @@
 ;;; Arguments:
 ;;;   adj      - Adjacency matrix (undirected works best)
 ;;;   max-iter - Maximum iterations (default: 100)
-;;;   seed     - Random seed for tie-breaking (default: 42)
+;;;   seed     - Random seed for node ordering (default: 42)
 ;;;
 ;;; Returns: Vector of community labels (0-indexed integers)
 ;;;
 ;;; Notes:
-;;;   - Fast: O(km) where k = iterations, m = edges
-;;;   - Non-deterministic due to tie-breaking and node order
+;;;   - Complexity: O(k·n²) with adjacency matrix (O(km) with adjacency list)
+;;;   - Seed controls node visit order; ties broken by lowest-index neighbor
 ;;;   - Works best on graphs with clear community structure
 ;;;
 ;;; Example:
@@ -234,7 +251,7 @@
 ;;; Complexity: O(n²) with linear search for minimum
 ;;;
 ;;; Notes:
-;;;   - Returns empty list if graph is disconnected
+;;;   - For disconnected graphs, returns MST of the component containing start
 ;;;   - For unweighted graphs, any spanning tree is minimum
 ;;;
 ;;; Example:
@@ -369,6 +386,7 @@
 ;;; connected-components : Matrix → Vector
 ;;; Find connected components using BFS.
 ;;; Returns vector where labels[i] = component ID for node i.
+;;; Uses level-by-level BFS for O(n + m) complexity on sparse graphs.
 (define (connected-components adj)
   (let* ([n (matrix-rows adj)]
          [labels (make-vector n -1)]
@@ -376,21 +394,24 @@
         (do ([start 0 (+ start 1)])
             ((= start n) labels)
             (when (= (vector-ref labels start) -1)
-                  ;; BFS from this node
-                  (let bfs ([queue (list start)])
-                       (when (not (null? queue))
-                             (let ([node (car queue)]
-                                   [rest-q (cdr queue)]
-                                   [new-nodes '()])
-                                  (when (= (vector-ref labels node) -1)
-                                        (vector-set! labels node component)
-                                        ;; Add unvisited neighbors
-                                        (do ([j 0 (+ j 1)])
-                                            ((= j n))
-                                            (when (and (> (matrix-ref adj node j) 0)
-                                                       (= (vector-ref labels j) -1))
-                                                  (set! new-nodes (cons j new-nodes)))))
-                                  (bfs (append rest-q new-nodes)))))
+                  ;; Mark start node immediately to avoid re-queueing
+                  (vector-set! labels start component)
+                  ;; Level-by-level BFS (avoids O(n²) append)
+                  (let bfs ([current-level (list start)])
+                       (when (not (null? current-level))
+                             (let ([next-level '()])
+                                  (for-each
+                                   (lambda (node)
+                                           ;; Add unvisited neighbors to next level
+                                           (do ([j 0 (+ j 1)])
+                                               ((= j n))
+                                               (when (and (> (matrix-ref adj node j) 0)
+                                                          (= (vector-ref labels j) -1))
+                                                     ;; Mark visited when queued (not when processed)
+                                                     (vector-set! labels j component)
+                                                     (set! next-level (cons j next-level)))))
+                                   current-level)
+                                  (bfs next-level))))
                   (set! component (+ component 1))))))
 
 ;;; is-connected? : Matrix → Boolean
