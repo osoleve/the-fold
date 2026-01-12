@@ -462,6 +462,8 @@
                                      (lambda (neighbor)
                                              (dfs neighbor new-path new-path-set))
                                      (get-outgoing-hashes fs current))
+                                    ;; Backtrack: remove current from path-set after processing children
+                                    (hashtable-delete! path-set current)
                                     (set! global-visited (visited-add global-visited current)))]))))
         all-hashes)
        ;; Remove duplicate cycles (same cycle may be found from different starts)

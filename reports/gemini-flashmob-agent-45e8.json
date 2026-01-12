@@ -1,0 +1,42 @@
+[
+  {
+    "severity": "high",
+    "file": "lattice/fp/symbolic/integrate.ss",
+    "line": 348,
+    "description": "Incorrect partial fraction coefficients in integrate-linear-factors. For 1/((ax+b)(cx+d)), the coefficients A and B are swapped or incorrectly derived. Based on the expansion A/(ax+b) + B/(cx+d) = 1, and det = bc-ad, the correct values should be A = -a/det and B = c/det. The code uses A = c/det and B = -a/det, which leads to incorrect integration results.",
+    "code_snippet": "(let ([det (simplify (difference (product b c) (product a d)))])\n             (if (and (num? det) (= (num-val det) 0))\n                 #f  ;; Degenerate case\n                 (let ([A (quotient c det)]\n                       [B (quotient (make-neg a) det)])",
+    "suggested_fix": "Swap the numerators for A and B. It should be: (let ([A (quotient (make-neg a) det)] [B (quotient c det)]) ...)",
+    "confidence": 1.0,
+    "category": "correctness"
+  },
+  {
+    "severity": "high",
+    "file": "lattice/fp/rewrite/proof-tactics.ss",
+    "line": 331,
+    "description": "The build-combined-proof function naively splits the list of proofs among inner builders by assuming each builder consumes an equal quotient of the proofs. This is incorrect if the subgoals produced by different tactics have varying branching factors (e.g., one builder expects 1 proof while another expects 3).",
+    "code_snippet": "(let* ([num-builders (length inner-builders)]\n         [proofs-per (if (zero? num-builders) 0 (quotient (length proofs) num-builders))]\n         [inner-proofs\n          (let loop ([bs inner-builders] [ps proofs] [acc '()])",
+    "suggested_fix": "Builders should return the number of subgoals they expect, or the proof collection should be done dynamically by having each builder consume its required number of proofs from the list and returning the remainder.",
+    "confidence": 0.95,
+    "category": "correctness"
+  },
+  {
+    "severity": "medium",
+    "file": "lattice/fp/control-systems/controller-design.ss",
+    "line": 204,
+    "description": "The iterative Lyapunov solver used in solve-care (Newton iteration for Riccati equations) is likely to be inaccurate or divergent. It uses a fixed small step size (dt=0.01) and a very low iteration limit (100) regardless of the system dynamics or eigenvalues. Newton's method for CARE requires highly accurate solutions to the Lyapunov step to maintain convergence.",
+    "code_snippet": "(let* ([A-mod (matrix-sub A (matrix-mul BRinvBt P))]\n                                  [dP (lyapunov-solve-simple A-mod residual 100)]\n                                  [P-new (matrix-add P dP)])",
+    "suggested_fix": "Replace lyapunov-solve-simple with a more robust solver like the Bartels-Stewart algorithm or increase max-iter significantly and use an adaptive step size for the current iterative approach.",
+    "confidence": 0.9,
+    "category": "performance"
+  },
+  {
+    "severity": "medium",
+    "file": "lattice/fp/rewrite/proof-tactics.ss",
+    "line": 249,
+    "description": "In tactic-repeat, builders are accumulated in a list where the most recent step is at the head. fold-proofs processes this list such that builders are applied in the reverse order of the proof flow. If builders are not simple thunks but functions of sub-proofs, the composition order will be incorrect, breaking proof construction for multi-step tactics.",
+    "code_snippet": "(let ([builder (tactic-builder result)])\n                                   (if (null? subgoals)\n                                       ;; Goal fully solved\n                                       (tactic-success\n                                        '()\n                                        (lambda ()\n                                                (fold-proofs (cons builder proof-steps) '())))",
+    "suggested_fix": "Reverse the list of proof-steps before calling fold-proofs, or accumulate builders at the end of the list instead of the front.",
+    "confidence": 0.85,
+    "category": "correctness"
+  }
+]

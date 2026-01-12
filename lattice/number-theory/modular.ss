@@ -46,7 +46,7 @@
              [e exp]
              [result 1])
        (cond
-        [(= e 0) result]
+        [(= e 0) (modulo result m)]  ; Handle m=1 case: n^0 mod 1 = 0
         [(odd? e)
          (loop (modulo (* b b) m)
                (quotient e 2)

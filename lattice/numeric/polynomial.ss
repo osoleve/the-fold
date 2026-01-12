@@ -144,13 +144,12 @@
              (let* ([a (complex-real r)]
                     [b (complex-imag r)]
                     [quad (make-poly (vector 1 (* -2 a) (+ (* a a) (* b b))))]
-                    ;; Skip conjugate if next
-                    [next-rest (if (and (pair? rest)
-                                        (complex? (car rest))
-                                        (< (abs (- a (complex-real (car rest)))) 1e-10)
-                                        (< (abs (+ b (complex-imag (car rest)))) 1e-10))
-                                   (cdr rest)
-                                   rest)])
+                    ;; Remove conjugate from entire remaining list (not just next)
+                    [is-conjugate? (lambda (c)
+                                           (and (complex? c)
+                                                (< (abs (- a (complex-real c))) 1e-10)
+                                                (< (abs (+ b (complex-imag c))) 1e-10)))]
+                    [next-rest (filter (lambda (c) (not (is-conjugate? c))) rest)])
                    (poly-mul quad (poly-from-roots-helper next-rest)))]
             [else
              (poly-from-roots-helper rest)]))))

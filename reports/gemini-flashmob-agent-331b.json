@@ -1,0 +1,82 @@
+[
+  {
+    "severity": "high",
+    "file": "lattice/dsl/partial-eval.ss",
+    "line": 482,
+    "description": "pe-online for lambda and let does not handle shadowing of static variables. If a parameter or let-binding shadows a variable already in the static store, the body will still see the old static value instead of the new dynamic one, leading to incorrect specialization.",
+    "code_snippet": "           ;; Extend store with fresh params (as residual references)\n           [body-store store]  ; Don't add anything - params are dynamic\n           [body-result (pe-online body body-store new-state)]",
+    "suggested_fix": "In pe-online for lambda, body-store should be the current store with params removed (or marked as dynamic) to ensure they shadow any outer static bindings. Similarly for let, if a binding is dynamic, its variable must be removed from the store passed to the body.",
+    "confidence": 1.0,
+    "category": "correctness"
+  },
+  {
+    "severity": "high",
+    "file": "lattice/dsl/partial-eval.ss",
+    "line": 425,
+    "description": "pe-online is missing implementation for core Scheme constructs like cond, letrec, and case. These will fall through to the general application case, leading to incorrect specialization of programs using these constructs (e.g., the interpreter-source example).",
+    "code_snippet": "(define (pe-online expr store state)\n  (cond\n   ;; Self-evaluating literals\n   [(or (number? expr) (boolean? expr) (string? expr))\n    (cons expr state)]",
+    "suggested_fix": "Add explicit cases for cond, letrec, and case in the pe-online dispatcher, similar to how if and let are handled.",
+    "confidence": 1.0,
+    "category": "correctness"
+  },
+  {
+    "severity": "medium",
+    "file": "lattice/fp/control/free.ss",
+    "line": 133,
+    "description": "free-bind uses append to add to the continuation queue, leading to O(N^2) performance for N left-associative binds. This defeats the purpose of the Codensity-based optimization which is intended to provide O(1) bind complexity.",
+    "code_snippet": "   [(free-queue? fr)\n    (make-free-queue (free-queue-base fr)\n                     (free-queue-fmap fr)\n                     (append (free-queue-conts fr) (list f)))]",
+    "suggested_fix": "Use a data structure that supports O(1) append-to-back (like a difference list or a tree) instead of standard list append for the continuation queue.",
+    "confidence": 0.9,
+    "category": "performance"
+  },
+  {
+    "severity": "medium",
+    "file": "lattice/query/sql/lexer.ss",
+    "line": 105,
+    "description": "string-ci-parser uses substring to create the remaining input state on every token. In Scheme, substring usually copies the string, resulting in O(N^2) time and memory overhead for a file with N tokens.",
+    "code_snippet": "                              (if (string-ci-equal? prefix str)\n                                  (let* ([rest (substring input len (string-length input))]\n                                         [new-pos (fold-left ...)]\n                                         [new-state (make-state rest new-pos)])",
+    "suggested_fix": "Use a state representation that tracks the current index into the original input string instead of repeatedly creating new substrings.",
+    "confidence": 0.9,
+    "category": "performance"
+  },
+  {
+    "severity": "medium",
+    "file": "lattice/dsl/partial-eval.ss",
+    "line": 645,
+    "description": "pe-apply-primitive for division only checks the first divisor for zero. If any subsequent argument in a multi-argument division is zero (e.g., (/ 10 2 0)), the specializer will crash with a division-by-zero error.",
+    "code_snippet": "[(/) (if (zero? (cadr args)) `(/ ,@args) (apply / args))]",
+    "suggested_fix": "Check all arguments after the first one for zero before applying the division operator.",
+    "confidence": 1.0,
+    "category": "correctness"
+  },
+  {
+    "severity": "low",
+    "file": "lattice/query/sql/lexer.ss",
+    "line": 195,
+    "description": "sql-decimal does not support numeric literals starting with a decimal point (e.g., '.45'), which are valid in most SQL dialects.",
+    "code_snippet": "(define sql-decimal\n  (sql-lexeme\n   (parser-bind (optional (one-of \"+-\") #\\+)\n                (lambda (sign)\n                        (parser-bind (some digit)\n                                     (lambda (int-part)",
+    "suggested_fix": "Modify the decimal parser to allow an optional integer part if a fractional part is present, or vice-versa, ensuring at least one digit exists.",
+    "confidence": 0.9,
+    "category": "correctness"
+  },
+  {
+    "severity": "low",
+    "file": "lattice/dsl/partial-eval.ss",
+    "line": 472,
+    "description": "pe-online for lambda contains dead code to generate fresh parameter names (fresh-params). These are never used to update the store or the resulting lambda expression, which is inconsistent with their intended purpose for alpha-renaming.",
+    "code_snippet": "           [fresh-result (fold-left (lambda (acc p) ...)]\n           [fresh-params (reverse (car fresh-result))]\n           [new-state (cdr fresh-result)]",
+    "suggested_fix": "Either remove the unused fresh-params generation or correctly implement alpha-renaming using these fresh names in the body-store and the residual lambda header.",
+    "confidence": 0.9,
+    "category": "style"
+  },
+  {
+    "severity": "low",
+    "file": "lattice/tiles/examples/units-demo.ss",
+    "line": 150,
+    "description": "Inconsistent display logic in visibility test: the code displays 'YES (wall blocks)' when visibility is successful, which is semantically confusing as the parenthetical text implies a failure that didn't occur.",
+    "code_snippet": "(display (if (game-units-can-see-each-other game 'a1 'e1 square-line)\n             \"YES (wall blocks)\" \"NO\"))",
+    "suggested_fix": "Swap or clarify the display strings, e.g., 'YES' and 'NO (wall blocks)'.",
+    "confidence": 1.0,
+    "category": "style"
+  }
+]
