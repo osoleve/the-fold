@@ -1,0 +1,247 @@
+🎆 flashmob v4 - Specialized QA Swarm
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 Directories: shell/alloc-tracker.ss shell/autodoc.ss shell/block-diff.ss shell/block-explorer.ss shell/block-index.ss shell/block-navigator.ss shell/block-query-advanced.ss shell/block-query.ss shell/capability-lens.ss shell/cas-persist.ss shell/cleanup-workers.ss shell/commands.ss shell/concept-map.ss shell/create-art.ss shell/debug-repl.ss shell/duckie-interact.ss shell/duckie-loop.ss shell/duckie-persist.ss shell/edit.ss shell/error-fmt.ss shell/error-improvements.ss shell/eval-repl.ss shell/exploration-error-handler.ss shell/fold-client.ss shell/fs.ss shell/fuel-analysis.ss shell/fuel-profile.ss shell/graph-export.ss shell/graph-viz.ss shell/history.ss shell/identity.ss shell/interactive-tutorial.ss shell/json.ss shell/login-help.ss shell/lzr.ss shell/meta.ss shell/music-gen.ss shell/paren-check.ss shell/patches.ss shell/perf-monitor.ss shell/profile-analysis.ss shell/profile-call-graph.ss shell/profile-persist.ss shell/profile-repl.ss shell/profiler-unified.ss shell/project-status.ss shell/repl-daemon-mcp.ss shell/repl-daemon.ss shell/repl-quiet.ss shell/repl.ss shell/repl-worker.ss shell/run-tests.ss shell/session-debugger.ss shell/session-debug.ss shell/session-manager.ss shell/store-analyze.ss shell/store-api.ss shell/task-tracker.ss shell/tdd.ss shell/tier-info.ss shell/toolkit.ss shell/tutorial-commands.ss shell/tutorial-rewards.ss shell/tutorial.ss shell/type-inspect.ss shell/universe-dump.ss shell/universe-serialize.ss shell/verify-commands.ss shell/watch-INDEX.ss shell/watch.ss shell/wave-synth.ss shell/xref.ss
+📄 Found 72 candidate files
+🤖 Agents: security + performance + correctness
+🎯 Mode: coverage
+🔍 Triage: true
+📋 Beads: enabled (threshold: high)
+
+📋 File Assignments:
+   agent-security: 72 files (security focus)
+      shell/universe-serialize.ss
+      shell/eval-repl.ss
+      shell/type-inspect.ss
+      shell/tier-info.ss
+      shell/repl-worker.ss
+      shell/perf-monitor.ss
+      shell/session-manager.ss
+      shell/cleanup-workers.ss
+      shell/repl-daemon-mcp.ss
+      shell/json.ss
+      shell/duckie-interact.ss
+      shell/store-analyze.ss
+      shell/music-gen.ss
+      shell/block-index.ss
+      shell/tutorial-commands.ss
+      shell/patches.ss
+      shell/meta.ss
+      shell/repl.ss
+      shell/edit.ss
+      shell/xref.ss
+      shell/commands.ss
+      shell/toolkit.ss
+      shell/capability-lens.ss
+      shell/tdd.ss
+      shell/exploration-error-handler.ss
+      shell/debug-repl.ss
+      shell/watch-INDEX.ss
+      shell/profiler-unified.ss
+      shell/paren-check.ss
+      shell/block-navigator.ss
+      shell/store-api.ss
+      shell/session-debug.ss
+      shell/identity.ss
+      shell/profile-persist.ss
+      shell/repl-quiet.ss
+      shell/block-query-advanced.ss
+      shell/profile-call-graph.ss
+      shell/block-diff.ss
+      shell/block-query.ss
+      shell/create-art.ss
+      shell/profile-repl.ss
+      shell/watch.ss
+      shell/task-tracker.ss
+      shell/fuel-profile.ss
+      shell/verify-commands.ss
+      shell/wave-synth.ss
+      shell/profile-analysis.ss
+      shell/duckie-loop.ss
+      shell/cas-persist.ss
+      shell/graph-export.ss
+      shell/block-explorer.ss
+      shell/universe-dump.ss
+      shell/login-help.ss
+      shell/error-fmt.ss
+      shell/tutorial-rewards.ss
+      shell/project-status.ss
+      shell/session-debugger.ss
+      shell/concept-map.ss
+      shell/autodoc.ss
+      shell/error-improvements.ss
+      shell/graph-viz.ss
+      shell/fuel-analysis.ss
+      shell/interactive-tutorial.ss
+      shell/repl-daemon.ss
+      shell/history.ss
+      shell/alloc-tracker.ss
+      shell/duckie-persist.ss
+      shell/tutorial.ss
+      shell/fs.ss
+      shell/run-tests.ss
+      shell/lzr.ss
+      shell/fold-client.ss
+   agent-performance: 72 files (performance focus)
+      shell/universe-serialize.ss
+      shell/eval-repl.ss
+      shell/type-inspect.ss
+      shell/tier-info.ss
+      shell/repl-worker.ss
+      shell/perf-monitor.ss
+      shell/session-manager.ss
+      shell/cleanup-workers.ss
+      shell/repl-daemon-mcp.ss
+      shell/json.ss
+      shell/duckie-interact.ss
+      shell/store-analyze.ss
+      shell/music-gen.ss
+      shell/block-index.ss
+      shell/tutorial-commands.ss
+      shell/patches.ss
+      shell/meta.ss
+      shell/repl.ss
+      shell/edit.ss
+      shell/xref.ss
+      shell/commands.ss
+      shell/toolkit.ss
+      shell/capability-lens.ss
+      shell/tdd.ss
+      shell/exploration-error-handler.ss
+      shell/debug-repl.ss
+      shell/watch-INDEX.ss
+      shell/profiler-unified.ss
+      shell/paren-check.ss
+      shell/block-navigator.ss
+      shell/store-api.ss
+      shell/session-debug.ss
+      shell/identity.ss
+      shell/profile-persist.ss
+      shell/repl-quiet.ss
+      shell/block-query-advanced.ss
+      shell/profile-call-graph.ss
+      shell/block-diff.ss
+      shell/block-query.ss
+      shell/create-art.ss
+      shell/profile-repl.ss
+      shell/watch.ss
+      shell/task-tracker.ss
+      shell/fuel-profile.ss
+      shell/verify-commands.ss
+      shell/wave-synth.ss
+      shell/profile-analysis.ss
+      shell/duckie-loop.ss
+      shell/cas-persist.ss
+      shell/graph-export.ss
+      shell/block-explorer.ss
+      shell/universe-dump.ss
+      shell/login-help.ss
+      shell/error-fmt.ss
+      shell/tutorial-rewards.ss
+      shell/project-status.ss
+      shell/session-debugger.ss
+      shell/concept-map.ss
+      shell/autodoc.ss
+      shell/error-improvements.ss
+      shell/graph-viz.ss
+      shell/fuel-analysis.ss
+      shell/interactive-tutorial.ss
+      shell/repl-daemon.ss
+      shell/history.ss
+      shell/alloc-tracker.ss
+      shell/duckie-persist.ss
+      shell/tutorial.ss
+      shell/fs.ss
+      shell/run-tests.ss
+      shell/lzr.ss
+      shell/fold-client.ss
+   agent-correctness: 72 files (correctness focus)
+      shell/universe-serialize.ss
+      shell/eval-repl.ss
+      shell/type-inspect.ss
+      shell/tier-info.ss
+      shell/repl-worker.ss
+      shell/perf-monitor.ss
+      shell/session-manager.ss
+      shell/cleanup-workers.ss
+      shell/repl-daemon-mcp.ss
+      shell/json.ss
+      shell/duckie-interact.ss
+      shell/store-analyze.ss
+      shell/music-gen.ss
+      shell/block-index.ss
+      shell/tutorial-commands.ss
+      shell/patches.ss
+      shell/meta.ss
+      shell/repl.ss
+      shell/edit.ss
+      shell/xref.ss
+      shell/commands.ss
+      shell/toolkit.ss
+      shell/capability-lens.ss
+      shell/tdd.ss
+      shell/exploration-error-handler.ss
+      shell/debug-repl.ss
+      shell/watch-INDEX.ss
+      shell/profiler-unified.ss
+      shell/paren-check.ss
+      shell/block-navigator.ss
+      shell/store-api.ss
+      shell/session-debug.ss
+      shell/identity.ss
+      shell/profile-persist.ss
+      shell/repl-quiet.ss
+      shell/block-query-advanced.ss
+      shell/profile-call-graph.ss
+      shell/block-diff.ss
+      shell/block-query.ss
+      shell/create-art.ss
+      shell/profile-repl.ss
+      shell/watch.ss
+      shell/task-tracker.ss
+      shell/fuel-profile.ss
+      shell/verify-commands.ss
+      shell/wave-synth.ss
+      shell/profile-analysis.ss
+      shell/duckie-loop.ss
+      shell/cas-persist.ss
+      shell/graph-export.ss
+      shell/block-explorer.ss
+      shell/universe-dump.ss
+      shell/login-help.ss
+      shell/error-fmt.ss
+      shell/tutorial-rewards.ss
+      shell/project-status.ss
+      shell/session-debugger.ss
+      shell/concept-map.ss
+      shell/autodoc.ss
+      shell/error-improvements.ss
+      shell/graph-viz.ss
+      shell/fuel-analysis.ss
+      shell/interactive-tutorial.ss
+      shell/repl-daemon.ss
+      shell/history.ss
+      shell/alloc-tracker.ss
+      shell/duckie-persist.ss
+      shell/tutorial.ss
+      shell/fs.ss
+      shell/run-tests.ss
+      shell/lzr.ss
+      shell/fold-client.ss
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📝 PHASE 1: QA Review
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Starting QA agents (streaming mode)...
+
+✓ gemini-flashmob-agent-correctness.json complete
+  Issues found: ?
+
+✓ gemini-flashmob-agent-performance.json complete
+  Issues found: ?
+
+✓ gemini-flashmob-agent-security.json complete
+  Issues found: ?
+
+✓ gemini-flashmob-consolidated.json complete
+  Issues found: ?
