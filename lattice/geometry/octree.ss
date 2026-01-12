@@ -88,11 +88,14 @@
                                          (build-recursive tri-set oct-center half-size (+ depth 1))))
                             octants
                             tri-sets)])
-            (if (all-children-leaves? children)
-                ;; If all children are leaves, might as well stay a leaf
-                (octree-leaf ctr sz tris)
-                ;; Otherwise create internal node
-                (octree-node ctr sz (list->vector children))))]))
+            ;; FIX (fold-lcme): Only collapse if partitioning was ineffective
+            ;; Previous logic collapsed when children were leaves, losing benefit
+            (let ([total (apply + (map (lambda (c) (length (octree-primitives c))) children))])
+                 ;; Collapse only if every triangle in every octant (no benefit)
+                 (if (>= total (* 8 (length tris)))
+                     (octree-leaf ctr sz tris)
+                     ;; Keep internal node - partitioning reduced search space
+                     (octree-node ctr sz (list->vector children)))))]])
   
   (build-recursive triangles center size 0))
 

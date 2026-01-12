@@ -234,6 +234,8 @@
 
 ;;; matrix-mul : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Matrix multiplication: A(m×n) * B(n×p) = C(m×p)
+;;; FIX: Use i-k-j loop order for better cache locality (fold-2iv0)
+;;; Inner j loop now accesses M2 and C sequentially (row-major)
 (define (matrix-mul m1 m2)
   (let ([r1 (matrix-rows m1)] [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)] [c2 (matrix-cols m2)])
@@ -242,15 +244,21 @@
            (let* ([data1 (matrix-data m1)]
                   [data2 (matrix-data m2)]
                   [result (make-vector (* r1 c2) 0)])
+                 ;; i-k-j order: inner loop over j for sequential M2/C access
                  (do ([i 0 (+ i 1)])
                      ((= i r1))
-                     (do ([j 0 (+ j 1)])
-                         ((= j c2))
-                         (do ([k 0 (+ k 1)]
-                              [sum 0 (+ sum (* (vector-ref data1 (+ (* i c1) k))
-                                               (vector-ref data2 (+ (* k c2) j))))])
-                             ((= k c1)
-                              (vector-set! result (+ (* i c2) j) sum)))))
+                     (do ([k 0 (+ k 1)])
+                         ((= k c1))
+                         (let ([a-ik (vector-ref data1 (+ (* i c1) k))]
+                               [b-row-k (* k c2)]
+                               [c-row-i (* i c2)])
+                              ;; Inner loop: sequential access to row k of B and row i of C
+                              (do ([j 0 (+ j 1)])
+                                  ((= j c2))
+                                  (let ([idx (+ c-row-i j)])
+                                       (vector-set! result idx
+                                                    (+ (vector-ref result idx)
+                                                       (* a-ik (vector-ref data2 (+ b-row-k j))))))))))
                  (list 'matrix r1 c2 result)))))
 
 ;;; matrix-vec-mul : Matrix Num × Vec Num → Vec Num | Error

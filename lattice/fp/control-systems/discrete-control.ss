@@ -172,10 +172,13 @@
 ;;; Tustin transform with frequency prewarping.
 ;;; Matches continuous frequency response exactly at frequency wc.
 ;;;   wc: critical frequency in rad/s
+;;;
+;;; The prewarped equivalent sample time ensures the discrete frequency
+;;; wc maps exactly to the continuous frequency wc.
+;;; FIX: Corrected prewarping formula: Ts_mod = (2/wc) * tan(wc * Ts / 2)
 (define (c2d-tustin-prewarp sys Ts wc)
-  (let* ([wd (* wc (tan (* wc Ts 0.5)))]
-         ;; Modified Ts to achieve prewarping
-         [Ts-mod (/ 2 wd)])
+  (let* ([;; Prewarped sample time: Ts_mod = (2/wc) * tan(wc * Ts / 2)
+          Ts-mod (* (/ 2 wc) (tan (* wc Ts 0.5)))])
         (c2d-tustin sys Ts-mod)))
 
 ;;; ============================================================

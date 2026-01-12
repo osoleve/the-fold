@@ -117,15 +117,20 @@
             ((> s log2n) a)
             (let* ([m (expt 2 s)]
                    [m/2 (quotient m 2)]
-                   [theta (/ (* -1 two-pi) m)])
+                   [theta (/ (* -1 two-pi) m)]
+                   ;; FIX: Precompute twiddle factors for this stage (fold-tg01)
+                   ;; Twiddles only depend on j, not k, so cache them per stage
+                   [twiddles (let ([tw (make-vector m/2)])
+                                  (do ([j 0 (+ j 1)])
+                                      ((= j m/2) tw)
+                                      (vector-set! tw j (make-polar 1 (* theta j)))))])
                   ;; Process all groups for this stage
                   (do ([k 0 (+ k m)])
                       ((>= k n))
                       ;; Process butterfly operations within group
                       (do ([j 0 (+ j 1)])
                           ((= j m/2))
-                          (let* ([angle (* theta j)]
-                                 [w (make-polar 1 angle)]
+                          (let* ([w (vector-ref twiddles j)]
                                  [t-idx (+ k j m/2)]
                                  [u-idx (+ k j)]
                                  [t (complex-mul w (vector-ref a t-idx))]

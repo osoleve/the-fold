@@ -152,9 +152,11 @@
                                        (cons new-k new-g)))))))
           ;; Rejection method for large rate (more efficient)
           ;; Using normal approximation with correction
+          ;; FIX: Use floor(rate) for mode - Poisson mode is floor(λ) for non-integer λ
           (let* ([sqrt-rate (sqrt rate)]
                  [log-rate (log-num rate)]
-                 [c (- (* rate log-rate) (log-gamma (+ rate 1)))])
+                 [mode (inexact->exact (floor rate))]
+                 [c (- (* mode log-rate) (log-gamma (+ mode 1)))])
                 (make-state
                  (lambda (gen)
                          (let loop ([g gen])

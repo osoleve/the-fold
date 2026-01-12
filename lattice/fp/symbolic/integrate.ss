@@ -521,12 +521,13 @@
          [c2 (linear-coefficients f2 var-sym)]
          [a (car c1)] [b (cadr c1)]
          [c (car c2)] [d (cadr c2)])
-        ;; A = c / (bc - ad), B = -a / (bc - ad)
+        ;; A = -a / (bc - ad), B = c / (bc - ad)
         (let ([det (simplify (difference (product b c) (product a d)))])
              (if (and (num? det) (= (num-val det) 0))
                  #f  ;; Degenerate case
-                 (let ([A (quotient c det)]
-                       [B (quotient (make-neg a) det)])
+                 ;; FIX: Coefficients were swapped - A = -a/det, B = c/det
+                 (let ([A (quotient (make-neg a) det)]
+                       [B (quotient c det)])
                       (sum (quotient (product A (sym-log (make-app 'abs f1))) a)
                            (quotient (product B (sym-log (make-app 'abs f2))) c)))))))
 

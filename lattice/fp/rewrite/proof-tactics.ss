@@ -371,13 +371,16 @@
           (let loop ([bs inner-builders] [ps proofs] [acc '()])
                (if (null? bs)
                    (reverse acc)
-                   (let ([b (car bs)]
-                         [these (if (<= (length ps) proofs-per)
-                                    ps
-                                    (take-n ps proofs-per))]
-                         [rest (if (<= (length ps) proofs-per)
-                                   '()
-                                   (drop-n ps proofs-per))])
+                   ;; FIX (fold-ntfv): Last builder takes all remaining proofs
+                   ;; Previous code used quotient which drops remainder
+                   (let* ([b (car bs)]
+                          [last-builder? (null? (cdr bs))]
+                          [these (if (or last-builder? (<= (length ps) proofs-per))
+                                     ps
+                                     (take-n ps proofs-per))]
+                          [rest (if (or last-builder? (<= (length ps) proofs-per))
+                                    '()
+                                    (drop-n ps proofs-per))])
                         (loop (cdr bs) rest
                               (cons (if (procedure? b) (b these) '(refl)) acc)))))])
         (if (procedure? outer-builder)

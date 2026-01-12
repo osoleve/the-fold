@@ -245,13 +245,24 @@
   (cons (cons var val) store))
 
 ;;; static-store-lookup : StaticStore × Symbol → (Maybe Value)
+;;; FIX (fold-7h48): Return nothing if variable is shadowed by dynamic binding
 (define (static-store-lookup store var)
   (let ([entry (assq var store)])
-       (if entry (just (cdr entry)) nothing)))
+       (if entry
+           (if (eq? (cdr entry) '*dynamic-binding*)
+               nothing  ;; Variable is shadowed as dynamic
+               (just (cdr entry)))
+           nothing)))
 
 ;;; static-store-has? : StaticStore × Symbol → Boolean
 (define (static-store-has? store var)
   (just? (static-store-lookup store var)))
+
+;;; FIX (fold-7h48): Shadow a variable as dynamic (prevents finding outer static binding)
+;;; static-store-shadow : StaticStore × Symbol → StaticStore
+(define (static-store-shadow store var)
+  ;; Use a unique sentinel to mark as "dynamic" - lookup will find this instead of outer binding
+  (cons (cons var '*dynamic-binding*) store))
 
 ;;; ============================================================
 ;;; Specialization State
@@ -448,12 +459,97 @@
                                    (static-store-extend store var spec-val)
                                    new-state)
                              ;; Dynamic value: residualize
+                             ;; FIX (fold-7h48): Shadow variable to prevent finding outer static binding
                              (loop (cdr bindings)
                                    static-bindings
                                    (cons (list var spec-val) residual-bindings)
-                                   store
+                                   (static-store-shadow store var)
                                    new-state))))))]
    
+   ;; FIX (fold-wivx): Handle cond expression
+   [(and (pair? expr) (eq? (car expr) 'cond))
+    (let loop ([clauses (cdr expr)] [state state])
+         (cond
+          [(null? clauses)
+           ;; No clause matched, result is void
+           (cons '(void) state)]
+          [else
+           (let* ([clause (car clauses)]
+                  [test (if (eq? (car clause) 'else) #t (car clause))]
+                  [test-result (if (eq? test #t)
+                                   (cons #t state)
+                                   (pe-online test store state))]
+                  [test-val (car test-result)]
+                  [state1 (cdr test-result)])
+                 (cond
+                  ;; Static true: evaluate this clause's body
+                  [(and (boolean? test-val) test-val)
+                   (let ([body (if (null? (cdr clause)) test-val (cadr clause))])
+                        (pe-online body store state1))]
+                  ;; Static false: try next clause
+                  [(and (boolean? test-val) (not test-val))
+                   (loop (cdr clauses) state1)]
+                  ;; Dynamic: residualize remaining clauses
+                  [else
+                   (let residualize ([cls (cons clause (cdr clauses))]
+                                     [state state1]
+                                     [residual-clauses '()])
+                        (if (null? cls)
+                            (cons `(cond ,@(reverse residual-clauses)) state)
+                            (let* ([c (car cls)]
+                                   [t (if (eq? (car c) 'else) 'else (car c))]
+                                   [t-result (if (eq? t 'else)
+                                                 (cons 'else state)
+                                                 (pe-online t store state))]
+                                   [body-result (pe-online (if (null? (cdr c)) (car c) (cadr c))
+                                                           store (cdr t-result))]
+                                   [new-clause (list (car t-result) (car body-result))])
+                                  (residualize (cdr cls) (cdr body-result)
+                                               (cons new-clause residual-clauses)))))]))]))]
+
+   ;; FIX (fold-wivx): Handle case expression
+   [(and (pair? expr) (eq? (car expr) 'case))
+    (let* ([key-expr (cadr expr)]
+           [key-result (pe-online key-expr store state)]
+           [key-val (car key-result)]
+           [state1 (cdr key-result)]
+           [clauses (cddr expr)])
+          (if (pe-static-value? key-val)
+              ;; Static key: find matching clause
+              (let find-clause ([cls clauses])
+                   (cond
+                    [(null? cls) (cons '(void) state1)]
+                    [(eq? (caar cls) 'else)
+                     (pe-online (cadar cls) store state1)]
+                    [(memv key-val (caar cls))
+                     (pe-online (cadar cls) store state1)]
+                    [else (find-clause (cdr cls))]))
+              ;; Dynamic key: residualize
+              (let residualize ([cls clauses] [state state1] [res-cls '()])
+                   (if (null? cls)
+                       (cons `(case ,key-val ,@(reverse res-cls)) state)
+                       (let* ([c (car cls)]
+                              [body-result (pe-online (cadr c) store state)]
+                              [new-clause (list (car c) (car body-result))])
+                             (residualize (cdr cls) (cdr body-result)
+                                          (cons new-clause res-cls)))))))]
+
+   ;; FIX (fold-wivx): Handle letrec expression
+   [(and (pair? expr) (eq? (car expr) 'letrec))
+    (let* ([bindings (cadr expr)]
+           [body (caddr expr)]
+           ;; For letrec, all bindings are potentially recursive
+           ;; Residualize bindings but specialize the body with dynamic refs
+           [result (pe-online-list (map cadr bindings) store state)]
+           [spec-vals (car result)]
+           [state1 (cdr result)]
+           [new-bindings (map (lambda (b v) (list (car b) v))
+                              bindings spec-vals)]
+           [body-result (pe-online body store state1)]
+           [spec-body (car body-result)]
+           [final-state (cdr body-result)])
+          (cons `(letrec ,new-bindings ,spec-body) final-state))]
+
    ;; Primitive operations: try to evaluate if all args are static
    [(and (pair? expr) (pe-primitive? (car expr)))
     (let* ([op (car expr)]

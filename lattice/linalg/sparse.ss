@@ -677,8 +677,9 @@
                    (let row-loop ([i 0] [triplets '()])
                         (if (= i ma)
                             triplets
-                            ;; Use sparse hash table accumulator for row i (keyed by column index)
-                            (let ([row-acc (make-eq-hashtable)]
+                            ;; FIX: Use equal-hash/equal? for column indices (fold-n5lm)
+                            ;; make-eq-hashtable uses eq? which fails for large integers
+                            (let ([row-acc (make-hashtable equal-hash equal?)]
                                   [a-start (vector-ref a-row-ptrs i)]
                                   [a-end (vector-ref a-row-ptrs (+ i 1))])
                                  ;; For each non-zero A[i,k]

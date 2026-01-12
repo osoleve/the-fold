@@ -509,7 +509,8 @@
                                     (lambda (_)
                                             (parser-bind sql-table-ref
                                                          (lambda (right)
-                                                                 (parser-bind (if (eq? jtype 'cross)
+                                                                 ;; FIX: NATURAL JOINs also don't use ON clause
+                                                                 (parser-bind (if (memq jtype '(cross natural))
                                                                                   (parser-pure #f)
                                                                                   (parser-then (sql-keyword "ON") lazy-sql-expr))
                                                                               (lambda (condition)

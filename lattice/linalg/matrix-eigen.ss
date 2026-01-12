@@ -303,14 +303,14 @@
                         (loop (+ i 1)))))]))))
 
 ;;; wilkinson-shift : Matrix × Nat → Num
-;;; Compute Wilkinson shift from bottom 2x2 block for faster convergence.
-;;; Takes active-size (size of active trailing block) and uses absolute indices.
+;;; Compute Wilkinson shift from bottom 2x2 of the active block for faster convergence.
+;;; Takes active-size (size of active portion still being reduced).
 (define (wilkinson-shift a active-size)
   (if (< active-size 2)
       0
-      (let* ([full-n (matrix-rows a)]
-             [i (- full-n 1)]  ;; Last row (absolute)
-             [j (- full-n 2)]  ;; Second-to-last row (absolute)
+      ;; FIX: Use active-size for indices, not full matrix size
+      (let* ([i (- active-size 1)]  ;; Last row of active block
+             [j (- active-size 2)]  ;; Second-to-last row of active block
              [a-jj (matrix-ref a j j)]
              [a-ii (matrix-ref a i i)]
              [a-ji (matrix-ref a i j)]
