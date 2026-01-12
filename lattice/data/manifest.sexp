@@ -17,11 +17,12 @@
              bfs dfs shortest-path pagerank collection adjacency-matrix
              floyd-warshall dijkstra transitive-closure graph-distance
              eigenvector-centrality katz-centrality closeness-centrality
-             betweenness-centrality))
+             betweenness-centrality community-detection label-propagation
+             modularity minimum-spanning-tree mst prim kruskal union-find))
   (aliases (ds structures collections))
 
   (exports
-   (data-structures graph-algorithms collection-utils pagerank graph-matrix centrality))
+   (data-structures graph-algorithms collection-utils pagerank graph-matrix centrality graph-community))
 
   (modules
    (data-structures "data-structures.ss" "Core data structure implementations")
@@ -29,4 +30,5 @@
    (collection-utils "collection-utils.ss" "Higher-order collection operations")
    (pagerank "pagerank.ss" "PageRank importance scoring")
    (graph-matrix "graph-matrix.ss" "Adjacency matrices, distance algorithms, graph metrics")
-   (centrality "centrality.ss" "Eigenvector, Katz, closeness, betweenness centrality")))
+   (centrality "centrality.ss" "Eigenvector, Katz, closeness, betweenness centrality")
+   (graph-community "graph-community.ss" "Community detection and minimum spanning trees")))

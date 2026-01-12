@@ -31,11 +31,19 @@ Provides building blocks for higher-level abstractions.")
      - katz-centrality: Attenuated walk counts with baseline
      - closeness-centrality: Inverse of average distance to all nodes
      - betweenness-centrality: Brandes' algorithm for path betweenness
-     - Utility functions: rank-by-centrality, top-k-central, centrality-correlation")))
+     - Utility functions: rank-by-centrality, top-k-central, centrality-correlation")
+   (graph-community.ss "Community detection and spanning tree algorithms:
+     - label-propagation: Fast community detection via neighbor label voting
+     - modularity: Quality metric for community partitions
+     - prim-mst: O(n^2) minimum spanning tree from adjacency matrix
+     - kruskal-mst: O(m log m) MST from edge list with union-find
+     - connected-components: BFS-based component labeling
+     - is-connected?: Test graph connectivity")))
  (tests
   ((test-data-structures.ss "Tests for Stack, Queue, Set, Dict")
    (test-collection-utils.ss "Tests for collection utilities")
    (test-graph-algorithms.ss "Tests for graph algorithms")
    (test-pagerank.ss "Tests for PageRank")
-   (test-centrality.ss "Tests for centrality measures")))
+   (test-centrality.ss "Tests for centrality measures")
+   (test-graph-community.ss "Tests for community detection and MST")))
  (dependencies (base block sha256)))
