@@ -8,13 +8,30 @@
 ;;;
 ;;; This is Core code: pure, total, assumes reasonable input.
 ;;;
+;;; Quick Start:
+;;;   (load "lattice/data/graph-matrix.ss")  ; Also loads matrix deps
+;;;   (load "lattice/data/centrality.ss")
+;;;
+;;;   ;; Create a graph
+;;;   (define g (star-graph 5))  ; Star with center 0, leaves 1-4
+;;;
+;;;   ;; Compute centralities
+;;;   (eigenvector-centrality g)  ; => #(0.33 0.17 0.17 0.17 0.17)
+;;;   (katz-centrality g)         ; => All positive, center highest
+;;;   (closeness-centrality (floyd-warshall g))  ; From distance matrix
+;;;   (betweenness-centrality g)  ; => Center has highest betweenness
+;;;
+;;;   ;; Compare and rank
+;;;   (rank-by-centrality (eigenvector-centrality g))  ; Sorted by score
+;;;   (top-k-central (katz-centrality g) 3)            ; Top 3 nodes
+;;;   (centrality-correlation evc katz)                ; Pearson r
+;;;   (all-centralities g)                             ; All four measures
+;;;
 ;;; Dependencies (must be loaded by client in correct order):
 ;;;   - prelude.ss
 ;;;   - vec.ss
 ;;;   - matrix.ss
-;;;   - matrix-decomp.ss
-;;;   - matrix-eigen.ss
-;;;   - graph-matrix.ss
+;;;   - graph-matrix.ss (provides floyd-warshall, star-graph, etc.)
 
 ;;; ============================================================
 ;;; Constants
@@ -272,12 +289,15 @@
 ;;; Returns: Vector of closeness centrality scores
 ;;;
 ;;; Notes:
-;;;   - Standard closeness is undefined for disconnected graphs
-;;;   - Harmonic closeness: H(v) = Σ 1/d(v,u) handles disconnected graphs
+;;;   - Standard closeness can give misleading results for disconnected graphs:
+;;;     nodes in small isolated components may get inflated scores because they
+;;;     have short paths to their few reachable neighbors. Use harmonic=true.
+;;;   - Harmonic closeness: H(v) = Σ 1/d(v,u) handles disconnected graphs well
 ;;;   - Higher score = more central
 ;;;
 ;;; Example:
-;;;   (closeness-centrality (floyd-warshall adj)) => center has highest score
+;;;   (closeness-centrality (floyd-warshall adj))         ; Connected graph
+;;;   (closeness-centrality (floyd-warshall adj) #t)      ; Harmonic for disconnected
 (define (closeness-centrality dist . opts)
   (let* ([n (matrix-rows dist)]
          [harmonic (if (pair? opts) (car opts) #f)]
@@ -350,11 +370,15 @@
 ;;;       σ_st(v) = number of those paths passing through v
 ;;;
 ;;; Arguments:
-;;;   adj - Adjacency matrix (weighted or unweighted)
+;;;   adj - Adjacency matrix (UNWEIGHTED: non-zero = edge exists)
+;;;         Edge weights are ignored; all edges treated as distance 1.
 ;;;
-;;; Returns: Vector of betweenness centrality scores (normalized by (n-1)(n-2)/2)
+;;; Returns: Vector of betweenness centrality scores (normalized to [0, 0.5])
 ;;;
-;;; Complexity: O(nm) for unweighted, O(nm + n² log n) for weighted
+;;; Complexity: O(nm) where m = edges, n = nodes
+;;;
+;;; Note: For weighted shortest-path betweenness, use Dijkstra-based variant
+;;;       (not yet implemented).
 ;;;
 ;;; Example:
 ;;;   (betweenness-centrality (path-graph 5)) => middle node has highest score
@@ -375,6 +399,7 @@
 
 ;;; betweenness-from-source : Matrix × Nat × Vec × Nat → Void
 ;;; Brandes' algorithm: BFS from source, then accumulate dependencies.
+;;; Uses level-by-level BFS with O(n) queue operations (not O(n²) append).
 (define (betweenness-from-source adj s cb n)
   (let* ([dist (make-vector n -1)]        ; Distance from s (-1 = unvisited)
          [sigma (make-vector n 0)]        ; Number of shortest paths
@@ -384,30 +409,32 @@
         ;; Initialize source
         (vector-set! dist s 0)
         (vector-set! sigma s 1)
-        ;; BFS
-        (let ([queue (list s)])
-             (let bfs ([q queue])
-                  (when (not (null? q))
-                        (let ([v (car q)]
-                              [rest-q (cdr q)])
-                             (set! stack (cons v stack))
-                             ;; Explore neighbors
-                             (do ([w 0 (+ w 1)])
-                                 ((= w n))
-                                 (when (> (matrix-ref adj v w) 0)
-                                       (cond
-                                        ;; First visit to w
-                                        [(= (vector-ref dist w) -1)
-                                         (vector-set! dist w (+ (vector-ref dist v) 1))
-                                         (set! rest-q (append rest-q (list w)))
-                                         (vector-set! sigma w (vector-ref sigma v))
-                                         (vector-set! pred w (list v))]
-                                        ;; Another shortest path to w
-                                        [(= (vector-ref dist w) (+ (vector-ref dist v) 1))
-                                         (vector-set! sigma w (+ (vector-ref sigma w)
-                                                                 (vector-ref sigma v)))
-                                         (vector-set! pred w (cons v (vector-ref pred w)))])))
-                             (bfs rest-q)))))
+        ;; BFS level-by-level (avoids O(n²) append)
+        (let bfs ([current-level (list s)])
+             (when (not (null? current-level))
+                   (let ([next-level '()])
+                        ;; Process all nodes at current level
+                        (for-each
+                         (lambda (v)
+                                 (set! stack (cons v stack))
+                                 ;; Explore neighbors
+                                 (do ([w 0 (+ w 1)])
+                                     ((= w n))
+                                     (when (> (matrix-ref adj v w) 0)
+                                           (cond
+                                            ;; First visit to w
+                                            [(= (vector-ref dist w) -1)
+                                             (vector-set! dist w (+ (vector-ref dist v) 1))
+                                             (set! next-level (cons w next-level))
+                                             (vector-set! sigma w (vector-ref sigma v))
+                                             (vector-set! pred w (list v))]
+                                            ;; Another shortest path to w
+                                            [(= (vector-ref dist w) (+ (vector-ref dist v) 1))
+                                             (vector-set! sigma w (+ (vector-ref sigma w)
+                                                                     (vector-ref sigma v)))
+                                             (vector-set! pred w (cons v (vector-ref pred w)))]))))
+                         current-level)
+                        (bfs next-level))))
         ;; Accumulate dependencies (back-propagation)
         (for-each
          (lambda (w)
