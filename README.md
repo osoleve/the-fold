@@ -124,7 +124,6 @@ scheme --script test-all.ss
 | `lattice/` | Skill DAG: verified libraries organized by tier and domain |
 | `shell/` | IO boundary: REPL, storage, diagnostics, tooling |
 | `user/` | Applications, experiments, demos |
-| `agents/` | Multi-agent ecosystem |
 | `docs/` | Extended documentation |
 | `ops/` | Deployment and operations |
 
@@ -153,7 +152,7 @@ Each skill has a `manifest.sexp` declaring its purity, fuel bounds, dependencies
 
 ## Status
 
-The Fold is a production system, actively developed and deployed. The first production instance runs on `debian-8gb-ash-1`.
+The Fold is a production system, actively developed and deployed.
 
 ---
 
