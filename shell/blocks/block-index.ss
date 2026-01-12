@@ -90,7 +90,8 @@
                   ;; (This is a simple approach; shell can optimize)
                   (let ([len (string-length content)])
                        (do ([i 0 (+ i 1)])
-                           ((>= (+ i 3) len))
+                           ;; FIX: Changed >= to > to include last valid fragment
+                           ((> (+ i 3) len))
                            (let ([fragment (substring content i (+ i 3))])
                                 (let ([existing (hashtable-ref content-table fragment '())])
                                      (hashtable-set! content-table fragment (cons hash existing))))))))))

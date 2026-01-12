@@ -16,6 +16,31 @@
 (define *pipeline-session* (make-parameter "pipeline"))
 
 ;;; ============================================================
+;;; Security Utilities
+;;; ============================================================
+
+;;; safe-symbol-name? : String → Boolean
+;;; SECURITY: Check if a string is a valid Scheme symbol identifier.
+;;; Prevents injection via channel names in forum-post.
+(define (safe-symbol-name? name)
+  (and (string? name)
+       (> (string-length name) 0)
+       (<= (string-length name) 64)
+       ;; Must start with a letter
+       (char-alphabetic? (string-ref name 0))
+       ;; Can only contain letters, digits, and hyphens
+       (let loop ([i 0])
+            (if (>= i (string-length name))
+                #t
+                (let ([c (string-ref name i)])
+                     (if (or (char-alphabetic? c)
+                             (char-numeric? c)
+                             (char=? c #\-)
+                             (char=? c #\_))
+                         (loop (+ i 1))
+                         #f))))))
+
+;;; ============================================================
 ;;; Fold Effect Interpretation
 ;;; ============================================================
 
@@ -56,17 +81,27 @@
                                          result)
                               state)))]
              [(forum-post)
-              (let* ([channel (cadr payload)]
+              ;; SECURITY: Validate channel name to prevent Scheme injection
+              (let* ([channel-raw (cadr payload)]
+                     [channel (if (symbol? channel-raw)
+                                  (symbol->string channel-raw)
+                                  channel-raw)]
                      [title (caddr payload)]
-                     [body (cadddr payload)]
-                     [expr (format "(msg '~a ~s ~s)" channel title body)]
-                     [result (fold-ipc-eval expr)])
-                    (if (fold-result-ok? result)
-                        (cons (stage-ok (fold-result-value result)) state)
+                     [body (cadddr payload)])
+                    (if (not (safe-symbol-name? channel))
                         (cons (stage-err 'forum-error
-                                         (fold-result-error result)
-                                         result)
-                              state)))]
+                                         (format "Invalid channel name: ~a" channel)
+                                         payload)
+                              state)
+                        ;; Channel is validated, safe to use in expression
+                        (let* ([expr (format "(msg '~a ~s ~s)" channel title body)]
+                               [result (fold-ipc-eval expr)])
+                              (if (fold-result-ok? result)
+                                  (cons (stage-ok (fold-result-value result)) state)
+                                  (cons (stage-err 'forum-error
+                                                   (fold-result-error result)
+                                                   result)
+                                        state)))))]
              [else
               (cons (stage-err 'unknown-fold-op
                                (format "Unknown Fold operation: ~a" op)

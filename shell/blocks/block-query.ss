@@ -125,14 +125,15 @@
          ;;;
          ;;; Note: This requires access to the store, which is in core/cas.ss
          ;;; In practice, this would need to be called with store access
+         ;;; FIX: Filters out #f results from fetch to prevent crashes
          (define (query-blocks pattern)
-           ;; This is a placeholder - actual implementation would need
-           ;; to iterate over the store
            ;; Assuming we have access to (store-hashes) and (fetch)
            (let ([all-hashes (store-hashes)])
                 (filter
                  (lambda (hash-block-pair)
-                         (pattern (cdr hash-block-pair)))
+                         ;; FIX: Check if block is not #f before applying pattern
+                         (let ([blk (cdr hash-block-pair)])
+                              (and blk (pattern blk))))
                  (map (lambda (hash)
                               (cons hash (fetch hash)))
                       all-hashes))))

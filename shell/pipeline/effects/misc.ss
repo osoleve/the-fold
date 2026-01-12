@@ -319,9 +319,13 @@
        (case op
              [(timeout)
               ;; Pause execution for specified milliseconds
+              ;; FIX: Split into seconds and nanoseconds to avoid overflow
+              ;; (make-time requires nanoseconds < 1e9)
               (let* ([ms (cadr payload)]
-                     [ns (* ms 1000000)])  ; Convert ms to nanoseconds
-                    (sleep (make-time 'time-duration ns 0))
+                     [total-ns (* ms 1000000)]
+                     [seconds (quotient total-ns 1000000000)]
+                     [ns (remainder total-ns 1000000000)])
+                    (sleep (make-time 'time-duration ns seconds))
                     (cons (stage-ok input) state))]
              [(forum-tag)
               ;; TODO: Poll forum for tag

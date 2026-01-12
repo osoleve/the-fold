@@ -48,9 +48,43 @@
   (unless (file-exists? *identity-heads-dir*)
           (mkdir *identity-heads-dir*)))
 
+;;; safe-username? : String → Boolean
+;;; SECURITY: Check if username is safe for use in file paths.
+;;; Rejects path traversal attempts (../, /, etc.) and control characters.
+(define (safe-username? name-str)
+  (and (string? name-str)
+       (> (string-length name-str) 0)
+       (<= (string-length name-str) 64)  ; Reasonable length limit
+       (not (string-contains? name-str ".."))
+       (not (string-contains? name-str "/"))
+       (not (string-contains? name-str "\\"))
+       (not (string-contains? name-str "\x00"))
+       ;; Must start with alphanumeric or underscore
+       (let ([c (string-ref name-str 0)])
+            (or (char-alphabetic? c)
+                (char-numeric? c)
+                (char=? c #\_)))))
+
+;;; string-contains? : String → String → Boolean
+;;; Check if haystack contains needle.
+(define (string-contains? haystack needle)
+  (let ([hlen (string-length haystack)]
+        [nlen (string-length needle)])
+       (let loop ([i 0])
+            (cond
+             [(> (+ i nlen) hlen) #f]
+             [(string=? (substring haystack i (+ i nlen)) needle) #t]
+             [else (loop (+ i 1))]))))
+
 ;;; identity-head-path : Symbol → String
+;;; SECURITY: Validates username before constructing path.
 (define (identity-head-path username)
-  (string-append *identity-heads-dir* "/" (symbol->string username)))
+  (let ([name-str (symbol->string username)])
+       (unless (safe-username? name-str)
+               (error 'identity-head-path
+                      "Invalid username (path traversal attempt or invalid characters)"
+                      username))
+       (string-append *identity-heads-dir* "/" name-str)))
 
 ;;; read-identity-head : Symbol → Bytevector | #f
 ;;; Get the current head hash for a username.
