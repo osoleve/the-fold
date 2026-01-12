@@ -234,13 +234,16 @@
          [dir (if (null? opts) "." (car opts))]
          [files (find-all-scheme-files fs dir)]
          [all-refs '()])
-        
+
         ;; Collect all references
+        ;; BUGFIX: Use cons instead of append to avoid O(N^2)
         (for-each
          (lambda (file)
                  (let ([refs (search-file-for-symbol fs file symbol)])
-                      (set! all-refs (append all-refs refs))))
+                      (set! all-refs (append refs all-refs))))
          files)
+        ;; Reverse to restore original order
+        (set! all-refs (reverse all-refs))
         
         ;; Display results
         (display (format "\nCross-reference for '~a' in ~a:\n" symbol dir))

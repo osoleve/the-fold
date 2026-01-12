@@ -78,20 +78,31 @@
          (define (compute-depth blk fetch-fn)
            (let ([memo (make-eq-hashtable)])
                 (let depth ([b blk] [visited '()])
-                     (let ([refs (block-refs b)])
-                          (if (= (vector-length refs) 0)
-                              0
-                              (let loop ([i 0] [max-depth 0])
-                                   (if (= i (vector-length refs))
-                                       (+ 1 max-depth)
-                                       (let* ([ref-hash (vector-ref refs i)]
-                                              [ref-hash-key (bytevector->integer ref-hash)])
-                                             ;; Check for cycles
-                                             (if (member ref-hash-key visited)
-                                                 (loop (+ i 1) max-depth)
-                                                 (let* ([ref-block (fetch-fn ref-hash)]
-                                                        [ref-depth (depth ref-block (cons ref-hash-key visited))])
-                                                       (loop (+ i 1) (max max-depth ref-depth))))))))))))
+                     (let* ([refs (block-refs b)]
+                            [block-key (if (block? b)
+                                           (bytevector->integer (block-hash b))
+                                           0)])
+                           ;; Check memo first (BUGFIX: actually use memoization)
+                           (cond
+                            [(hashtable-ref memo block-key #f)
+                             => (lambda (cached) cached)]
+                            [(= (vector-length refs) 0)
+                             (hashtable-set! memo block-key 0)
+                             0]
+                            [else
+                             (let loop ([i 0] [max-depth 0])
+                                  (if (= i (vector-length refs))
+                                      (let ([result (+ 1 max-depth)])
+                                           (hashtable-set! memo block-key result)
+                                           result)
+                                      (let* ([ref-hash (vector-ref refs i)]
+                                             [ref-hash-key (bytevector->integer ref-hash)])
+                                            ;; Check for cycles
+                                            (if (member ref-hash-key visited)
+                                                (loop (+ i 1) max-depth)
+                                                (let* ([ref-block (fetch-fn ref-hash)]
+                                                       [ref-depth (depth ref-block (cons ref-hash-key visited))])
+                                                      (loop (+ i 1) (max max-depth ref-depth)))))))])))))
          
          ;;; Helper: bytevector->integer
          ;;; Convert first 8 bytes of bytevector to integer for hashing

@@ -82,10 +82,12 @@
 
 ;;; store-find-by-payload-contains : FSCap String → (List Block)
 ;;; Find all blocks whose payload (as UTF-8 string) contains substring.
+;;; BUGFIX: Guard against invalid UTF-8 in binary payloads
 (define (store-find-by-payload-contains fs substring)
   (store-filter fs (lambda (b)
-                           (let ([payload-str (utf8->string (block-payload b))])
-                                (string-contains? payload-str substring)))))
+                           (guard (e [else #f])  ; Return #f if payload isn't valid UTF-8
+                                  (let ([payload-str (utf8->string (block-payload b))])
+                                       (string-contains? payload-str substring))))))
 
 
 ;;; store-find-by-ref : FSCap Hash → (List Block)

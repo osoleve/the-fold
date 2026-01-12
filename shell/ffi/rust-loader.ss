@@ -293,55 +293,71 @@
 ;;; ============================================================
 
 ;;; rust-call-i64 : Proc × Args × Fuel → Result
+;;; BUGFIX: Use dynamic-wind to ensure foreign memory is freed on exception
 (define (rust-call-i64 proc args fuel)
-  (let* ([result-ptr (make-ftype-pointer i64-result-t
-                                         (foreign-alloc (ftype-sizeof i64-result-t)))])
-        ;; Call: (proc arg1 arg2 ... fuel result-ptr)
-        (apply proc (append args (list fuel result-ptr)))
-        
-        ;; Extract and return
-        (let ([status (ftype-ref i64-result-t (status) result-ptr)]
-              [value (ftype-ref i64-result-t (value) result-ptr)]
-              [fuel-out (ftype-ref i64-result-t (fuel) result-ptr)])
-             (foreign-free (ftype-pointer-address result-ptr))
-             (status->result status value fuel-out))))
+  (let* ([result-addr (foreign-alloc (ftype-sizeof i64-result-t))]
+         [result-ptr (make-ftype-pointer i64-result-t result-addr)])
+        (dynamic-wind
+         (lambda () #f)
+         (lambda ()
+           ;; Call: (proc arg1 arg2 ... fuel result-ptr)
+           (apply proc (append args (list fuel result-ptr)))
+           ;; Extract and return
+           (let ([status (ftype-ref i64-result-t (status) result-ptr)]
+                 [value (ftype-ref i64-result-t (value) result-ptr)]
+                 [fuel-out (ftype-ref i64-result-t (fuel) result-ptr)])
+                (status->result status value fuel-out)))
+         (lambda ()
+           (foreign-free result-addr)))))
 
 ;;; rust-call-f64 : Proc × Args × Fuel → Result
+;;; BUGFIX: Use dynamic-wind to ensure foreign memory is freed on exception
 (define (rust-call-f64 proc args fuel)
-  (let* ([result-ptr (make-ftype-pointer f64-result-t
-                                         (foreign-alloc (ftype-sizeof f64-result-t)))])
-        (apply proc (append args (list fuel result-ptr)))
-        
-        (let ([status (ftype-ref f64-result-t (status) result-ptr)]
-              [value (ftype-ref f64-result-t (value) result-ptr)]
-              [fuel-out (ftype-ref f64-result-t (fuel) result-ptr)])
-             (foreign-free (ftype-pointer-address result-ptr))
-             (status->result status value fuel-out))))
+  (let* ([result-addr (foreign-alloc (ftype-sizeof f64-result-t))]
+         [result-ptr (make-ftype-pointer f64-result-t result-addr)])
+        (dynamic-wind
+         (lambda () #f)
+         (lambda ()
+           (apply proc (append args (list fuel result-ptr)))
+           (let ([status (ftype-ref f64-result-t (status) result-ptr)]
+                 [value (ftype-ref f64-result-t (value) result-ptr)]
+                 [fuel-out (ftype-ref f64-result-t (fuel) result-ptr)])
+                (status->result status value fuel-out)))
+         (lambda ()
+           (foreign-free result-addr)))))
 
 ;;; rust-call-bool : Proc × Args × Fuel → Result
+;;; BUGFIX: Use dynamic-wind to ensure foreign memory is freed on exception
 (define (rust-call-bool proc args fuel)
-  (let* ([result-ptr (make-ftype-pointer bool-result-t
-                                         (foreign-alloc (ftype-sizeof bool-result-t)))])
-        (apply proc (append args (list fuel result-ptr)))
-        
-        (let ([status (ftype-ref bool-result-t (status) result-ptr)]
-              [value (ftype-ref bool-result-t (value) result-ptr)]
-              [fuel-out (ftype-ref bool-result-t (fuel) result-ptr)])
-             (foreign-free (ftype-pointer-address result-ptr))
-             ;; Convert u8 to boolean
-             (status->result status (not (= value 0)) fuel-out))))
+  (let* ([result-addr (foreign-alloc (ftype-sizeof bool-result-t))]
+         [result-ptr (make-ftype-pointer bool-result-t result-addr)])
+        (dynamic-wind
+         (lambda () #f)
+         (lambda ()
+           (apply proc (append args (list fuel result-ptr)))
+           (let ([status (ftype-ref bool-result-t (status) result-ptr)]
+                 [value (ftype-ref bool-result-t (value) result-ptr)]
+                 [fuel-out (ftype-ref bool-result-t (fuel) result-ptr)])
+                ;; Convert u8 to boolean
+                (status->result status (not (= value 0)) fuel-out)))
+         (lambda ()
+           (foreign-free result-addr)))))
 
 ;;; rust-call-u64 : Proc × Args × Fuel → Result
+;;; BUGFIX: Use dynamic-wind to ensure foreign memory is freed on exception
 (define (rust-call-u64 proc args fuel)
-  (let* ([result-ptr (make-ftype-pointer u64-result-t
-                                         (foreign-alloc (ftype-sizeof u64-result-t)))])
-        (apply proc (append args (list fuel result-ptr)))
-        
-        (let ([status (ftype-ref u64-result-t (status) result-ptr)]
-              [value (ftype-ref u64-result-t (value) result-ptr)]
-              [fuel-out (ftype-ref u64-result-t (fuel) result-ptr)])
-             (foreign-free (ftype-pointer-address result-ptr))
-             (status->result status value fuel-out))))
+  (let* ([result-addr (foreign-alloc (ftype-sizeof u64-result-t))]
+         [result-ptr (make-ftype-pointer u64-result-t result-addr)])
+        (dynamic-wind
+         (lambda () #f)
+         (lambda ()
+           (apply proc (append args (list fuel result-ptr)))
+           (let ([status (ftype-ref u64-result-t (status) result-ptr)]
+                 [value (ftype-ref u64-result-t (value) result-ptr)]
+                 [fuel-out (ftype-ref u64-result-t (fuel) result-ptr)])
+                (status->result status value fuel-out)))
+         (lambda ()
+           (foreign-free result-addr)))))
 
 ;;; status->result : Status × Value × Fuel → Result
 ;;; Convert status code to Scheme result.

@@ -50,14 +50,19 @@
 
 ;;; evict-oldest! : → void
 ;;; Remove least recently used entry from cache
+;;; BUGFIX: Directly free Rust handle instead of relying on guardian
 (define (evict-oldest!)
   (unless (null? *cache-access-order*)
-          (let ([oldest (car (reverse *cache-access-order*))])
-               ;; Remove from access order
-               (set! *cache-access-order*
-                     (reverse (cdr (reverse *cache-access-order*))))
-               ;; Remove from cache (guardian will free handle)
-               (hashtable-delete! *rust-bvh-cache* oldest))))
+          (let* ([oldest (car (reverse *cache-access-order*))]
+                 [cached (hashtable-ref *rust-bvh-cache* oldest #f)])
+                ;; Remove from access order
+                (set! *cache-access-order*
+                      (reverse (cdr (reverse *cache-access-order*))))
+                ;; Free Rust memory directly (don't wait for guardian)
+                (when cached
+                      (free-rust-bvh! (cached-bvh-handle cached)))
+                ;; Remove from cache
+                (hashtable-delete! *rust-bvh-cache* oldest))))
 
 ;;; get-cached-rust-handle : Bytevector (hash) → RustBVHHandle | #f
 ;;; Look up cached handle by content hash
@@ -95,8 +100,13 @@
 ;;; clear-bvh-cache! : → Nat
 ;;; Clear entire cache and return count of evicted entries.
 ;;; Call this to free memory when BVH cache is no longer needed.
+;;; BUGFIX: Free all Rust handles directly instead of relying on guardian
 (define (clear-bvh-cache!)
   (let ([count (hashtable-size *rust-bvh-cache*)])
+       ;; Free all Rust handles before clearing
+       (hashtable-walk *rust-bvh-cache*
+                       (lambda (hash cached)
+                               (free-rust-bvh! (cached-bvh-handle cached))))
        (hashtable-clear! *rust-bvh-cache*)
        (set! *cache-access-order* '())
        count))

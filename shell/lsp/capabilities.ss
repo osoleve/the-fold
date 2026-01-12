@@ -1506,6 +1506,7 @@
 ;;; encode-tokens : (List Token) → (List Int)
 ;;; Encode tokens into delta format.
 ;;; Each token becomes 5 integers: deltaLine, deltaStartChar, length, tokenType, modifiers
+;;; BUGFIX: Use cons instead of append to avoid O(N^2) complexity
 (define (encode-tokens tokens)
   (let loop ([toks tokens] [prev-line 0] [prev-col 0] [acc '()])
        (if (null? toks)
@@ -1520,4 +1521,5 @@
                   [delta-col (if (= delta-line 0) (- col prev-col) col)])
                  (loop (cdr toks)
                        line col
-                       (append (list mods type len delta-col delta-line) acc))))))
+                       ;; Use multiple cons calls - O(1) instead of O(N) append
+                       (cons mods (cons type (cons len (cons delta-col (cons delta-line acc))))))))))
