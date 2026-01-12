@@ -162,6 +162,76 @@
                (list (car mod-entry) 1.0 'module `((name . ,(car mod-entry)))))]
    [else #f]))
 
+;;; lattice-find-prefix : Symbol [Int] -> (List SearchResult)
+;;; Find all exports/skills/modules whose names start with prefix
+(define (lattice-find-prefix prefix-sym . options)
+  (ensure-indexed!)
+  (let* ([k (if (pair? options) (car options) 20)]
+         [prefix-str (string-downcase (symbol->string prefix-sym))]
+         [prefix-len (string-length prefix-str)])
+        (let* ([export-matches
+                (filter-map
+                 (lambda (export-entry)
+                         (let* ([export-name (car export-entry)]
+                                [name-str (string-downcase (symbol->string export-name))])
+                               (if (and (>= (string-length name-str) prefix-len)
+                                        (string=? (substring name-str 0 prefix-len) prefix-str))
+                                   (list export-name 0.9 'export `((name . ,export-name)))
+                                   #f)))
+                 (kg-exports))]
+               [skill-matches
+                (filter-map
+                 (lambda (skill-name)
+                         (let ([name-str (string-downcase (symbol->string skill-name))])
+                              (if (and (>= (string-length name-str) prefix-len)
+                                       (string=? (substring name-str 0 prefix-len) prefix-str))
+                                  (list skill-name 0.95 'skill (kg-skill-data skill-name))
+                                  #f)))
+                 (kg-skills))]
+               [all-matches (append skill-matches export-matches)]
+               [sorted (sort (lambda (a b) (> (cadr a) (cadr b))) all-matches)])
+              (take-at-most k sorted))))
+
+;;; lattice-find-substring : Symbol [Int] -> (List SearchResult)
+;;; Find all exports/skills whose names contain the substring
+(define (lattice-find-substring substr-sym . options)
+  (ensure-indexed!)
+  (let* ([k (if (pair? options) (car options) 20)]
+         [substr-str (string-downcase (symbol->string substr-sym))])
+        (let* ([export-matches
+                (filter-map
+                 (lambda (export-entry)
+                         (let* ([export-name (car export-entry)]
+                                [name-str (string-downcase (symbol->string export-name))])
+                               (if (string-contains? name-str substr-str)
+                                   (list export-name 0.8 'export `((name . ,export-name)))
+                                   #f)))
+                 (kg-exports))]
+               [skill-matches
+                (filter-map
+                 (lambda (skill-name)
+                         (let ([name-str (string-downcase (symbol->string skill-name))])
+                              (if (string-contains? name-str substr-str)
+                                  (list skill-name 0.85 'skill (kg-skill-data skill-name))
+                                  #f)))
+                 (kg-skills))]
+               [all-matches (append skill-matches export-matches)]
+               [sorted (sort (lambda (a b) (> (cadr a) (cadr b))) all-matches)])
+              (take-at-most k sorted))))
+
+;;; string-contains? : String String -> Bool
+;;; Check if haystack contains needle
+(define (string-contains? haystack needle)
+  (let ([h-len (string-length haystack)]
+        [n-len (string-length needle)])
+       (if (> n-len h-len)
+           #f
+           (let loop ([i 0])
+                (cond
+                 [(> (+ i n-len) h-len) #f]
+                 [(string=? (substring haystack i (+ i n-len)) needle) #t]
+                 [else (loop (+ i 1))])))))
+
 ;;; find-module-by-name : Symbol -> (Key . Block) | #f
 ;;; Uses pre-computed *module-cache* for O(N) lookup instead of O(S×M)
 (define (find-module-by-name name)
@@ -300,11 +370,34 @@
 
 ;;; lfe : Symbol -> void
 ;;; Quick exact search with pretty output
+;;; Falls back to substring search if no exact match found
 (define (lfe sym)
   (let ([result (lattice-find-exact sym)])
        (if result
            (print-results (list result))
-           (printf "Not found: ~a\n" sym))))
+           ;; Fallback to substring search
+           (let ([substring-results (lattice-find-substring sym 10)])
+                (if (null? substring-results)
+                    (printf "Not found: ~a\n" sym)
+                    (begin
+                      (printf "No exact match for ~a. Showing substring matches:\n\n" sym)
+                      (print-results substring-results)))))))
+
+;;; lfp : Symbol -> void
+;;; Quick prefix search with pretty output
+(define (lfp prefix)
+  (let ([results (lattice-find-prefix prefix 15)])
+       (if (null? results)
+           (printf "No matches for prefix: ~a\n" prefix)
+           (print-results results))))
+
+;;; lfs : Symbol -> void
+;;; Quick substring search with pretty output
+(define (lfs substr)
+  (let ([results (lattice-find-substring substr 15)])
+       (if (null? results)
+           (printf "No matches containing: ~a\n" substr)
+           (print-results results))))
 
 ;;; ============================================================
 ;;; REPL Interface
@@ -317,3 +410,5 @@
 (printf "  (lattice-complete \"prefix\")    - Autocomplete\n")
 (printf "  (lf \"query\")                   - Quick search\n")
 (printf "  (lfe 'symbol)                  - Quick exact search\n")
+(printf "  (lfp 'prefix)                  - Prefix search\n")
+(printf "  (lfs 'substr)                  - Substring search\n")

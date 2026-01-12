@@ -1,0 +1,307 @@
+;;; lattice/meta/audit.ss — Manifest Audit Tool
+;;;
+;;; Detects gaps between source code definitions and manifest exports.
+;;; Helps maintain manifest accuracy by finding:
+;;; - Functions defined in source but missing from exports
+;;; - Files in skill directories not listed in manifest modules
+;;;
+;;; Usage:
+;;;   (audit-skill 'fp)              ; Audit single skill
+;;;   (audit-skill-pretty 'fp)       ; Pretty-print audit
+;;;   (audit-file "path/to/file.ss") ; Audit single file
+;;;   (suggest-exports 'fp)          ; Generate exports for missing
+;;;
+
+;;; ============================================================
+;;; Source File Analysis
+;;; ============================================================
+
+;;; read-file-as-string : Path -> String
+(define (read-file-as-string filepath)
+  (if (file-exists? filepath)
+      (call-with-input-file filepath
+        (lambda (port)
+          (let loop ([chars '()])
+               (let ([c (read-char port)])
+                    (if (eof-object? c)
+                        (list->string (reverse chars))
+                        (loop (cons c chars)))))))
+      ""))
+
+;;; extract-defines : String -> (List Symbol)
+;;; Extract all top-level (define (name ...)) from a source file
+(define (extract-defines filepath)
+  (let* ([content (read-file-as-string filepath)]
+         [lines (string-split content #\newline)])
+        (filter-map extract-define-from-line lines)))
+
+;;; extract-define-from-line : String -> Symbol | #f
+;;; Parse a line to extract define name
+(define (extract-define-from-line line)
+  (let ([trimmed (string-trim line)])
+       (if (and (> (string-length trimmed) 9)
+                (string=? (substring trimmed 0 9) "(define ("))
+           (let ([rest (substring trimmed 9 (string-length trimmed))])
+                (extract-symbol-name rest))
+           #f)))
+
+;;; extract-symbol-name : String -> Symbol | #f
+;;; Extract symbol name from start of string
+(define (extract-symbol-name str)
+  (let loop ([chars (string->list str)]
+             [acc '()])
+       (cond
+        [(null? chars) #f]
+        [(or (char=? (car chars) #\space)
+             (char=? (car chars) #\)))
+         (if (null? acc)
+             #f
+             (string->symbol (list->string (reverse acc))))]
+        [(valid-symbol-char? (car chars))
+         (loop (cdr chars) (cons (car chars) acc))]
+        [else #f])))
+
+;;; valid-symbol-char? : Char -> Bool
+(define (valid-symbol-char? c)
+  (or (char-alphabetic? c)
+      (char-numeric? c)
+      (memv c '(#\- #\_ #\? #\! #\< #\> #\= #\+ #\* #\/))))
+
+;;; string-split : String Char -> (List String)
+(define (string-split str delim)
+  (let loop ([chars (string->list str)]
+             [current '()]
+             [result '()])
+       (cond
+        [(null? chars)
+         (reverse (if (null? current)
+                      result
+                      (cons (list->string (reverse current)) result)))]
+        [(char=? (car chars) delim)
+         (loop (cdr chars)
+               '()
+               (if (null? current)
+                   result
+                   (cons (list->string (reverse current)) result)))]
+        [else
+         (loop (cdr chars) (cons (car chars) current) result)])))
+
+;;; string-trim : String -> String
+(define (string-trim str)
+  (let* ([chars (string->list str)]
+         [trimmed-front (drop-while char-whitespace? chars)]
+         [trimmed-back (reverse (drop-while char-whitespace? (reverse trimmed-front)))])
+        (list->string trimmed-back)))
+
+;;; drop-while : (A -> Bool) List<A> -> List<A>
+(define (drop-while pred lst)
+  (cond
+   [(null? lst) '()]
+   [(pred (car lst)) (drop-while pred (cdr lst))]
+   [else lst]))
+
+;;; ============================================================
+;;; Manifest Analysis
+;;; ============================================================
+
+;;; parse-manifest-exports : Path -> (List Symbol)
+;;; Extract exports list from a manifest file
+(define (parse-manifest-exports manifest-path)
+  (if (file-exists? manifest-path)
+      (let ([manifest (read-manifest manifest-path)])
+           (if manifest
+               (extract-exports-from-manifest manifest)
+               '()))
+      '()))
+
+;;; read-manifest : Path -> Sexp | #f
+(define (read-manifest path)
+  (guard (e [else #f])
+    (with-input-from-file path read)))
+
+;;; extract-exports-from-manifest : Sexp -> (List Symbol)
+;;; Manifest is (skill name clause1 clause2 ...) where clauses are (keyword value)
+(define (extract-exports-from-manifest manifest)
+  (let ([clauses (cddr manifest)])  ; Skip 'skill and name
+       (let ([exports-clause (assq 'exports clauses)])
+            (if exports-clause
+                (flatten-symbols (cdr exports-clause))
+                '()))))
+
+;;; flatten-symbols : Sexp -> (List Symbol)
+;;; Flatten nested structure to list of symbols
+(define (flatten-symbols x)
+  (cond
+   [(symbol? x) (list x)]
+   [(pair? x) (append (flatten-symbols (car x))
+                      (flatten-symbols (cdr x)))]
+   [else '()]))
+
+;;; ============================================================
+;;; File Discovery (using shell)
+;;; ============================================================
+
+;;; find-source-files : Path -> (List Path)
+;;; Find all .ss files (excluding tests) using shell
+(define (find-source-files dir)
+  (let* ([cmd (format "find ~a -name '*.ss' -type f ! -name 'test-*' 2>/dev/null" dir)]
+         [result (shell-command cmd)])
+        (if (and result (string? result) (> (string-length result) 0))
+            (filter (lambda (s) (> (string-length s) 0))
+                    (string-split result #\newline))
+            '())))
+
+;;; shell-command : String -> String | #f
+;;; Execute shell command and return stdout
+(define (shell-command cmd)
+  (let ([tmp-file (format "/tmp/audit-~a.txt" (random 1000000))])
+       (system (format "~a > ~a" cmd tmp-file))
+       (if (file-exists? tmp-file)
+           (let ([result (read-file-as-string tmp-file)])
+                (delete-file tmp-file)
+                result)
+           #f)))
+
+;;; ============================================================
+;;; Audit Functions
+;;; ============================================================
+
+;;; audit-file : String -> AuditResult
+;;; Audit a single source file
+(define (audit-file filepath)
+  (let ([defines (extract-defines filepath)])
+       `((file . ,filepath)
+         (defines . ,defines)
+         (count . ,(length defines)))))
+
+;;; audit-skill : Symbol -> AuditReport
+;;; Audit a skill by comparing source definitions to manifest exports
+(define (audit-skill skill-name)
+  (let* ([skill-path (string-append "lattice/" (symbol->string skill-name))]
+         [manifest-path (string-append skill-path "/manifest.sexp")]
+         [manifest-exports (parse-manifest-exports manifest-path)]
+         [source-files (find-source-files skill-path)]
+         [all-defines (collect-all-defines source-files)]
+         [public-defines (filter public-export? all-defines)]
+         [missing (set-difference public-defines manifest-exports)]
+         [extra (set-difference manifest-exports all-defines)])
+        `((skill . ,skill-name)
+          (manifest-exports . ,(length manifest-exports))
+          (source-defines . ,(length all-defines))
+          (public-defines . ,(length public-defines))
+          (missing-from-manifest . ,missing)
+          (missing-count . ,(length missing))
+          (in-manifest-but-not-source . ,extra)
+          (extra-count . ,(length extra)))))
+
+;;; collect-all-defines : (List Path) -> (List Symbol)
+(define (collect-all-defines files)
+  (apply append (map extract-defines files)))
+
+;;; public-export? : Symbol -> Bool
+;;; Heuristic: public exports don't start with % or contain internal markers
+(define (public-export? sym)
+  (let ([name (symbol->string sym)])
+       (and (> (string-length name) 0)
+            (not (char=? (string-ref name 0) #\%))
+            (not (string-contains? name "-internal"))
+            (not (string-contains? name "-helper"))
+            (not (string-contains? name "-impl")))))
+
+;;; set-difference : (List A) (List A) -> (List A)
+(define (set-difference xs ys)
+  (filter (lambda (x) (not (memq x ys))) xs))
+
+;;; string-contains? : String String -> Bool
+(define (string-contains? haystack needle)
+  (let ([h-len (string-length haystack)]
+        [n-len (string-length needle)])
+       (if (> n-len h-len)
+           #f
+           (let loop ([i 0])
+                (cond
+                 [(> (+ i n-len) h-len) #f]
+                 [(string=? (substring haystack i (+ i n-len)) needle) #t]
+                 [else (loop (+ i 1))])))))
+
+;;; ============================================================
+;;; Pretty Printing
+;;; ============================================================
+
+;;; audit-skill-pretty : Symbol -> void
+(define (audit-skill-pretty skill-name)
+  (let ([report (audit-skill skill-name)])
+       (printf "\n============================================================\n")
+       (printf "Audit Report: ~a\n" skill-name)
+       (printf "============================================================\n\n")
+       (printf "Manifest exports: ~a\n" (cdr (assq 'manifest-exports report)))
+       (printf "Source defines:   ~a\n" (cdr (assq 'source-defines report)))
+       (printf "Public defines:   ~a\n" (cdr (assq 'public-defines report)))
+       (printf "\n")
+       (let ([missing (cdr (assq 'missing-from-manifest report))]
+             [extra (cdr (assq 'in-manifest-but-not-source report))])
+            (if (null? missing)
+                (printf "No missing exports.\n")
+                (begin
+                  (printf "Missing from manifest (~a):\n" (length missing))
+                  (for-each (lambda (sym) (printf "  - ~a\n" sym))
+                            (take-at-most 50 missing))
+                  (when (> (length missing) 50)
+                        (printf "  ... and ~a more\n" (- (length missing) 50)))))
+            (printf "\n")
+            (if (null? extra)
+                (printf "No phantom exports.\n")
+                (begin
+                  (printf "In manifest but not found in source (~a):\n" (length extra))
+                  (for-each (lambda (sym) (printf "  - ~a\n" sym))
+                            (take-at-most 20 extra)))))))
+
+;;; take-at-most : Int (List A) -> (List A)
+(define (take-at-most n lst)
+  (if (or (<= n 0) (null? lst))
+      '()
+      (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
+
+;;; ============================================================
+;;; Export Suggestion Generator
+;;; ============================================================
+
+;;; suggest-exports : Symbol -> Sexp
+;;; Generate suggested exports clause for a skill
+(define (suggest-exports skill-name)
+  (let* ([skill-path (string-append "lattice/" (symbol->string skill-name))]
+         [source-files (find-source-files skill-path)]
+         [all-defines (collect-all-defines source-files)]
+         [public-defines (filter public-export? all-defines)])
+        `(exports ,public-defines)))
+
+;;; suggest-missing : Symbol -> (List Symbol)
+;;; Get just the missing exports for a skill
+(define (suggest-missing skill-name)
+  (let ([report (audit-skill skill-name)])
+       (cdr (assq 'missing-from-manifest report))))
+
+;;; ============================================================
+;;; Helpers
+;;; ============================================================
+
+;;; filter-map helper
+(define (filter-map f lst)
+  (let loop ([lst lst] [acc '()])
+       (if (null? lst)
+           (reverse acc)
+           (let ([result (f (car lst))])
+                (if result
+                    (loop (cdr lst) (cons result acc))
+                    (loop (cdr lst) acc))))))
+
+;;; ============================================================
+;;; REPL Interface
+;;; ============================================================
+
+(printf "audit.ss loaded.\n")
+(printf "  (audit-skill 'skill)           - Audit single skill\n")
+(printf "  (audit-skill-pretty 'skill)    - Pretty-print audit\n")
+(printf "  (audit-file \"path\")            - Audit single file\n")
+(printf "  (suggest-exports 'skill)       - Generate exports clause\n")
+(printf "  (suggest-missing 'skill)       - List missing exports\n")

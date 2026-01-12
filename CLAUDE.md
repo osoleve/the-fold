@@ -234,16 +234,18 @@ Each lattice skill has a `manifest.sexp` declaring metadata:
 
 **Meta-Tooling (`lattice/meta/`):**
 
-Agent-facing navigation and introspection for the skill lattice. Builds a CAS-backed knowledge graph from manifests with BM25 search ranking.
+Agent-facing navigation and introspection for the skill lattice. Builds a CAS-backed knowledge graph from manifests with BM25 search ranking. Uses persistent caching for fast initialization.
 
 ```scheme
-;; Initialize (required once per session)
+;; Initialize (required once per session — uses cache if manifests unchanged)
 (load "lattice/meta/meta.ss")
-(lattice-init!)                    ; Build KG + search indices (~1400 exports)
+(lattice-init!)                    ; Build KG + search indices (~2000 exports)
 
 ;; Search — BM25 ranked results
 (lf "matrix decomposition")        ; Full-text search
-(lfe 'vec3)                        ; Exact symbol lookup
+(lfe 'vec3)                        ; Exact lookup (falls back to substring)
+(lfp 'matrix)                      ; Prefix search (matrix*, matrix-*)
+(lfs 'c2d)                         ; Substring search (finds c2d-zoh, etc.)
 (lattice-complete "mat")           ; Autocomplete suggestions
 
 ;; DAG Navigation
@@ -266,16 +268,31 @@ Agent-facing navigation and introspection for the skill lattice. Builds a CAS-ba
 (lh)                               ; Health check (missing deps, cycles)
 (lattice-coverage-pretty)          ; Metadata coverage report
 (lattice-graph)                    ; Print full DAG structure
+
+;; Manifest Auditing
+(load "lattice/meta/audit.ss")
+(audit-skill-pretty 'fp)           ; Find missing exports, phantom exports
+(suggest-missing 'fp)              ; List exports to add to manifest
 ```
+
+**Search Best Practices:**
+
+- **Start broad, then narrow**: Use `(lf "concept")` first, then `(lfe 'symbol)` for exact matches
+- **Use substring for partial names**: If you know part of a name (like `c2d`), use `(lfs 'c2d)` to find all matches
+- **Try multiple query variations**: Function might be named differently than expected (e.g., `c2d-zoh` vs `ss-c2d`)
+- **Check skill exports**: Use `(le 'skill-name)` to see what a skill actually exports
+- **Not all functions are exported**: Use `(audit-skill 'name)` to find functions defined in source but missing from manifests
 
 | Module | Purpose |
 |--------|---------|
 | `kg.ss` | Knowledge graph builder from manifests |
 | `bm25.ss` | BM25 search engine with TF-IDF ranking |
-| `search.ss` | Unified search API, autocomplete |
+| `search.ss` | Unified search API, autocomplete, prefix/substring |
 | `dag.ss` | DAG traversal, paths, tiers, hubs |
 | `analytics.ss` | Stats, health, coverage, purity |
 | `inspect.ss` | Skill descriptions, exports, sources |
+| `persist.ss` | Cache KG to disk for fast init |
+| `audit.ss` | Find gaps between source and manifests |
 | `meta.ss` | Unified entry point + `lattice-help` |
 
 ### Shell Subsystems

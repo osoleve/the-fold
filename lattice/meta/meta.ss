@@ -16,6 +16,7 @@
 (load "lattice/meta/search.ss")
 (load "lattice/meta/analytics.ss")
 (load "lattice/meta/inspect.ss")
+(load "lattice/meta/persist.ss")
 
 ;;; ============================================================
 ;;; Initialization
@@ -23,10 +24,30 @@
 
 ;;; lattice-init! : -> void
 ;;; Initialize the lattice tooling (build KG and search indices)
+;;; Uses cache if valid, otherwise rebuilds and caches
 (define (lattice-init!)
+  (if (lattice-load-cache!)
+      ;; Cache loaded successfully, just build search indices
+      (begin
+        (lattice-index!)
+        (printf "\nLattice tooling initialized (from cache)!\n"))
+      ;; No valid cache, full rebuild
+      (begin
+        (kg-build!)
+        (lattice-index!)
+        (lattice-save-cache!)))
+  (printf "  Use (lf \"query\") to search\n")
+  (printf "  Use (li 'skill) to inspect a skill\n")
+  (printf "  Use (ls) for statistics\n")
+  (printf "  Use (lh) for health check\n"))
+
+;;; lattice-init-fresh! : -> void
+;;; Force full rebuild, ignoring cache
+(define (lattice-init-fresh!)
   (kg-build!)
   (lattice-index!)
-  (printf "\nLattice tooling initialized!\n")
+  (lattice-save-cache!)
+  (printf "\nLattice tooling initialized (fresh build)!\n")
   (printf "  Use (lf \"query\") to search\n")
   (printf "  Use (li 'skill) to inspect a skill\n")
   (printf "  Use (ls) for statistics\n")
@@ -40,10 +61,13 @@
   (printf "\nLattice Meta-Tooling Quick Reference\n")
   (printf "=====================================\n\n")
   (printf "INITIALIZATION:\n")
-  (printf "  (lattice-init!)           - Build KG and indices (run first!)\n\n")
+  (printf "  (lattice-init!)           - Init with caching (fast if unchanged)\n")
+  (printf "  (lattice-init-fresh!)     - Force full rebuild\n\n")
   (printf "SEARCH:\n")
   (printf "  (lf \"query\")              - Full-text search\n")
-  (printf "  (lfe 'symbol)             - Exact symbol lookup\n")
+  (printf "  (lfe 'symbol)             - Exact lookup (falls back to substring)\n")
+  (printf "  (lfp 'prefix)             - Prefix search\n")
+  (printf "  (lfs 'substr)             - Substring search\n")
   (printf "  (lattice-complete \"pre\")  - Autocomplete\n\n")
   (printf "DEPENDENCIES:\n")
   (printf "  (ld 'skill)               - Show what skill depends on\n")
