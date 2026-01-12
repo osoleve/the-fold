@@ -100,7 +100,31 @@ The codebase is ~50,000 lines of Scheme across:
 - `lattice/`: Standard library (~25k lines, ~1,400 exports)
 - `shell/`: IO and tooling (~10k lines)
 
-Performance-critical paths have optional Rust acceleration via FFI.
+### Rust Acceleration Layer
+
+Performance-critical paths have optional Rust acceleration via FFI (`shell/ffi/rust-accel/`). The Rust layer provides:
+
+**Spatial Acceleration (BVH)**:
+- Bounding Volume Hierarchy construction and traversal
+- Closest-point queries on mesh surfaces
+- Ray intersection with automatic pruning
+
+**Raymarching**:
+- Sphere tracing for mesh SDFs
+- Gradient-based normal computation
+- Complete march loop in Rust (eliminates per-step FFI overhead)
+
+**Linear Algebra**:
+- 4x4 matrix multiplication (unrolled, ~112 ops)
+- Matrix-vector multiplication
+- Batch point transformation
+- Matrix transpose and determinant
+
+**Design Principles**:
+- All functions use `#[repr(C)]` structs for FFI safety
+- Fuel tracking mirrors Scheme's system for totality preservation
+- Out-pointers for results, never return Scheme objects
+- No panics—all errors return status codes
 
 ---
 
