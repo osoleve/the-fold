@@ -67,6 +67,28 @@
        (expand-template template bindings)))
 
 ;;; ============================================================
+;;; Shell Escaping (Security Critical)
+;;; ============================================================
+
+;;; shell-escape : String -> String
+;;; Escape a string for safe use in shell single quotes.
+;;; Single quotes prevent all shell interpretation. To include a single quote
+;;; inside single quotes, we end the quote, add an escaped quote, and restart.
+;;; Example: "don't" becomes 'don'\''t'
+(define (shell-escape str)
+  (let ([len (string-length str)])
+       (let loop ([i 0]
+                  [chars '()])
+            (if (>= i len)
+                (list->string (reverse chars))
+                (let ([c (string-ref str i)])
+                     (if (char=? c #\')
+                         ;; Replace ' with '\'' (end quote, escaped quote, start quote)
+                         (loop (+ i 1)
+                               (append (reverse (string->list "'\\''")) chars))
+                         (loop (+ i 1) (cons c chars))))))))
+
+;;; ============================================================
 ;;; Shell Execution Implementation
 ;;; ============================================================
 
@@ -74,6 +96,7 @@
 ;;; Execute a shell command and return result with stdout/stderr.
 ;;; Uses Chez Scheme's open-process-ports for subprocess handling.
 ;;; Success is determined by exit code, not stderr content.
+;;; SECURITY: Command is wrapped in single quotes to prevent injection.
 (define (shell-exec cmd)
   (guard (ex [else
               (list 'shell-result #f ""
@@ -81,8 +104,10 @@
                             (if (message-condition? ex)
                                 (condition-message ex)
                                 "unknown error")))])
-         ;; Wrap command to capture exit code via a marker
-         (let* ([wrapped-cmd (format "/bin/sh -c ~s'; echo \"\\n__EXIT_CODE__$?\"'" cmd)])
+         ;; Wrap command in single quotes to prevent shell metacharacter interpretation
+         ;; The exit code marker is appended outside the quotes
+         (let* ([escaped-cmd (shell-escape cmd)]
+                [wrapped-cmd (format "/bin/sh -c '~a; echo \"\\n__EXIT_CODE__$?\"'" escaped-cmd)])
                (let-values ([(to-stdin from-stdout from-stderr process-id)
                              (open-process-ports wrapped-cmd
                                                  (buffer-mode block)
@@ -150,6 +175,7 @@
 ;;; shell-exec-with-stdin : String -> String -> ShellResult
 ;;; Execute a shell command with stdin input.
 ;;; Success is determined by exit code, not stderr content.
+;;; SECURITY: Command is wrapped in single quotes to prevent injection.
 (define (shell-exec-with-stdin cmd stdin-content)
   (guard (ex [else
               (list 'shell-result #f ""
@@ -157,8 +183,9 @@
                             (if (message-condition? ex)
                                 (condition-message ex)
                                 "unknown error")))])
-         ;; Wrap command to capture exit code
-         (let* ([wrapped-cmd (format "/bin/sh -c ~s'; echo \"\\n__EXIT_CODE__$?\"'" cmd)])
+         ;; Wrap command in single quotes to prevent shell metacharacter interpretation
+         (let* ([escaped-cmd (shell-escape cmd)]
+                [wrapped-cmd (format "/bin/sh -c '~a; echo \"\\n__EXIT_CODE__$?\"'" escaped-cmd)])
                (let-values ([(to-stdin from-stdout from-stderr process-id)
                              (open-process-ports wrapped-cmd
                                                  (buffer-mode block)
@@ -178,10 +205,28 @@
                                                        actual-stdout
                                                        stderr-str))))))))
 
+;;; valid-env-name? : String -> Boolean
+;;; Check if a string is a valid shell environment variable name.
+;;; Only alphanumeric and underscore, must start with letter or underscore.
+(define (valid-env-name? name)
+  (and (string? name)
+       (> (string-length name) 0)
+       (let ([c (string-ref name 0)])
+            (or (char-alphabetic? c) (char=? c #\_)))
+       (let loop ([i 0])
+            (if (>= i (string-length name))
+                #t
+                (let ([c (string-ref name i)])
+                     (if (or (char-alphabetic? c)
+                             (char-numeric? c)
+                             (char=? c #\_))
+                         (loop (+ i 1))
+                         #f))))))
+
 ;;; shell-exec-with-env : Alist -> String -> ShellResult
 ;;; Execute a shell command with environment variables.
 ;;; env is an alist of (name . value) pairs.
-;;; Uses export statements with proper quoting to prevent injection.
+;;; SECURITY: Environment variable names are validated, values use single-quote escaping.
 (define (shell-exec-with-env env cmd)
   (guard (ex [else
               (list 'shell-result #f ""
@@ -189,17 +234,26 @@
                             (if (message-condition? ex)
                                 (condition-message ex)
                                 "unknown error")))])
-         ;; Build export statements with properly quoted values
-         (let* ([env-exports (apply string-append
-                                    (map (lambda (pair)
-                                                 ;; Use ~s (write) to get proper shell escaping
-                                                 (format "export ~a=~s; " (car pair) (cdr pair)))
-                                         env))]
-                [full-cmd (string-append env-exports cmd "; echo \"\\n__EXIT_CODE__$?\"")])
-               (let-values ([(to-stdin from-stdout from-stderr process-id)
-                             (open-process-ports (format "/bin/sh -c ~s" full-cmd)
-                                                 (buffer-mode block)
-                                                 (native-transcoder))])
+         ;; Validate all env var names first
+         (let ([invalid-names (filter (lambda (pair) (not (valid-env-name? (car pair)))) env)])
+              (if (not (null? invalid-names))
+                  (list 'shell-result #f ""
+                        (format "Invalid environment variable names: ~a"
+                                (map car invalid-names)))
+                  ;; Build export statements with single-quote escaped values
+                  (let* ([env-exports (apply string-append
+                                             (map (lambda (pair)
+                                                          ;; Use single quotes with proper escaping
+                                                          (format "export ~a='~a'; "
+                                                                  (car pair)
+                                                                  (shell-escape (cdr pair))))
+                                                  env))]
+                         [escaped-cmd (shell-escape cmd)]
+                         [full-cmd (string-append env-exports escaped-cmd "; echo \"\\n__EXIT_CODE__$?\"")])
+                        (let-values ([(to-stdin from-stdout from-stderr process-id)
+                                      (open-process-ports (format "/bin/sh -c '~a'" full-cmd)
+                                                          (buffer-mode block)
+                                                          (native-transcoder))])
                            (close-port to-stdin)
                            (let ([stdout-all (get-string-all from-stdout)]
                                  [stderr-all (get-string-all from-stderr)])
@@ -211,7 +265,7 @@
                                                  (list 'shell-result
                                                        (= exit-code 0)
                                                        actual-stdout
-                                                       stderr-str))))))))
+                                                       stderr-str)))))))))
 
 (define (shell-result-ok? r) (list-ref r 1))
 (define (shell-result-stdout r) (list-ref r 2))

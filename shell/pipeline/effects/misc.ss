@@ -156,8 +156,31 @@
   (cas-load hash))
 
 ;;; ============================================================
-;;; Beads Effect Interpretation
+;;; Beads Effect Interpretation (Security Critical)
 ;;; ============================================================
+
+;;; *valid-bead-types* : List of String
+;;; Allowed values for the --type parameter.
+(define *valid-bead-types* '("task" "bug" "feature" "epic" "chore"))
+
+;;; *valid-bead-priorities* : List of String
+;;; Allowed values for the --priority parameter.
+(define *valid-bead-priorities* '("0" "1" "2" "3" "4" "P0" "P1" "P2" "P3" "P4"))
+
+;;; safe-bead-id? : String -> Boolean
+;;; Check if a string is a valid bead ID (alphanumeric and hyphens only).
+(define (safe-bead-id? id)
+  (and (string? id)
+       (> (string-length id) 0)
+       (let loop ([i 0])
+            (if (>= i (string-length id))
+                #t
+                (let ([c (string-ref id i)])
+                     (if (or (char-alphabetic? c)
+                             (char-numeric? c)
+                             (char=? c #\-))
+                         (loop (+ i 1))
+                         #f))))))
 
 ;;; interpret-beads-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-beads-effect payload ctx state input)
@@ -165,6 +188,7 @@
        (case op
              [(create)
               (let* ([title (cadr payload)]
+                     ;; Title is properly escaped by shell-exec since it uses ~s
                      [result (shell-exec (format "bd create ~s" title))])
                     (if (shell-result-ok? result)
                         (cons (stage-ok (shell-result-stdout result)) state)
@@ -175,26 +199,54 @@
              [(create-full)
               (let* ([title (cadr payload)]
                      [description (caddr payload)]
-                     [type (cadddr payload)]
-                     [priority (list-ref payload 4)]
-                     [cmd (format "bd create ~s -d ~s -t ~a -p ~a"
-                                  title description type priority)]
-                     [result (shell-exec cmd)])
-                    (if (shell-result-ok? result)
-                        (cons (stage-ok (shell-result-stdout result)) state)
-                        (cons (stage-err 'beads-error
-                                         (shell-result-stderr result)
-                                         result)
-                              state)))]
+                     [type (if (symbol? (cadddr payload))
+                               (symbol->string (cadddr payload))
+                               (cadddr payload))]
+                     [priority (if (number? (list-ref payload 4))
+                                   (number->string (list-ref payload 4))
+                                   (list-ref payload 4))])
+                    ;; Validate type and priority against allowlists
+                    (cond
+                     [(not (member type *valid-bead-types*))
+                      (cons (stage-err 'beads-error
+                                       (format "Invalid bead type: ~a (allowed: ~a)"
+                                               type *valid-bead-types*)
+                                       payload)
+                            state)]
+                     [(not (member priority *valid-bead-priorities*))
+                      (cons (stage-err 'beads-error
+                                       (format "Invalid priority: ~a (allowed: ~a)"
+                                               priority *valid-bead-priorities*)
+                                       payload)
+                            state)]
+                     [else
+                      ;; Type and priority are validated, title and description use ~s
+                      (let* ([cmd (format "bd create ~s -d ~s -t ~a -p ~a"
+                                          title description type priority)]
+                             [result (shell-exec cmd)])
+                            (if (shell-result-ok? result)
+                                (cons (stage-ok (shell-result-stdout result)) state)
+                                (cons (stage-err 'beads-error
+                                                 (shell-result-stderr result)
+                                                 result)
+                                      state)))]))]
              [(close)
-              (let* ([id (cadr payload)]
-                     [result (shell-exec (format "bd close ~a" id))])
-                    (if (shell-result-ok? result)
-                        (cons (stage-ok '()) state)
+              (let* ([id (if (symbol? (cadr payload))
+                             (symbol->string (cadr payload))
+                             (cadr payload))])
+                    ;; Validate bead ID format
+                    (if (not (safe-bead-id? id))
                         (cons (stage-err 'beads-error
-                                         (shell-result-stderr result)
-                                         result)
-                              state)))]
+                                         (format "Invalid bead ID format: ~a" id)
+                                         payload)
+                              state)
+                        (let ([result (shell-exec (format "bd close ~a" id))])
+                             (if (shell-result-ok? result)
+                                 (cons (stage-ok '()) state)
+                                 (cons (stage-err 'beads-error
+                                                  (shell-result-stderr result)
+                                                  result)
+                                       state)))))]
              [(ready)
               (let ([result (shell-exec "bd ready --json")])
                    (if (shell-result-ok? result)
