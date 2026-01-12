@@ -42,6 +42,53 @@ cache efficiency. Sparse matrices support COO, CSR, and CSC formats.")
 
  (dependencies (base))
 
+ (usage-examples
+  ((solving-linear-systems
+    "Solve Ax = b using LU decomposition"
+    "(load \"lattice/linalg/matrix.ss\")
+     (load \"lattice/linalg/matrix-solvers.ss\")
+
+     (define A (list->matrix '((4 3) (6 3)) 2 2))
+     (define b (make-vec '(10 12)))
+     (solve-linear-system A b)  ; => #(1 2)")
+
+   (eigenvalue-computation
+    "Find eigenvalues and eigenvectors"
+    "(load \"lattice/linalg/matrix-eigen.ss\")
+
+     (define M (list->matrix '((2 1) (1 2)) 2 2))
+     (matrix-eigenvalues M)     ; => (3.0 1.0)
+     (matrix-eigenvectors M)    ; => matrix of eigenvectors")
+
+   (svd-decomposition
+    "Singular value decomposition for data analysis"
+    "(load \"lattice/linalg/svd.ss\")
+
+     (define A (list->matrix '((1 2) (3 4) (5 6)) 3 2))
+     (svd A)  ; => (U S Vt) where A = U * diag(S) * Vt")
+
+   (sparse-matrices
+    "Efficient sparse matrix operations"
+    "(load \"lattice/linalg/sparse.ss\")
+
+     (define edges '((0 1 1.0) (1 2 2.0) (2 0 3.0)))
+     (define sp (dense->sparse-csr (edges->adjacency-matrix edges 3)))
+     (sparse-csr-mv sp v)  ; matrix-vector multiply")
+
+   (quaternion-rotations
+    "3D rotations using quaternions"
+    "(load \"lattice/linalg/quaternion.ss\")
+
+     (define q (quat-from-axis-angle (make-vec3 0 1 0) (/ pi 2)))
+     (quat-rotate q (make-vec3 1 0 0))  ; rotate 90° around Y axis")))
+
+ (performance-notes
+  "Dense matrices use row-major flat vectors for cache efficiency.
+   Matrix operations are O(n³) for most decompositions.
+   Use sparse formats (CSR/CSC) for matrices with >90% zeros.
+   Iterative solvers (CG, GMRES) are preferred for large sparse systems.
+   Eigenvalue computation uses QR iteration with Householder transforms.")
+
  (representation
   (vec "Scheme vector: #(element ...)")
   (vec2 "Tagged list: (vec2 x y)")

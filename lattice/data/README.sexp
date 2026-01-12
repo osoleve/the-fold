@@ -11,12 +11,16 @@ Provides building blocks for higher-level abstractions.")
      - Edge list to matrix conversion (dense and sparse)
      - Graph generators: complete, cycle, path, star, bipartite
      - Degree matrices and graph transformations
-     - Matrix-based distance algorithms:
-       * matrix-power-fast: O(log k) binary exponentiation for A^k
-       * transitive-closure: Warshall's algorithm for reachability
-       * floyd-warshall: All-pairs shortest paths (weighted)
+     - Single-source shortest paths:
+       * dijkstra: O(n²) weighted shortest paths from source
+       * dijkstra-path: Reconstruct path from source to target
+       * dijkstra-distance: Get distance between two nodes
+     - All-pairs shortest paths:
+       * floyd-warshall: O(n³) all-pairs weighted shortest paths
        * has-negative-cycle?: Detect negative cycles
        * distance-matrix-unweighted: BFS-style distances via matrix powers
+       * transitive-closure: Warshall's algorithm for reachability
+       * matrix-power-fast: O(log k) binary exponentiation for A^k
      - Graph metrics from distance matrix:
        * graph-eccentricity: Max distance from a node
        * graph-diameter: Longest shortest path

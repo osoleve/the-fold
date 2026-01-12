@@ -29,7 +29,7 @@
 (define *ready-file* ".fold-repl/ready")
 (define *worker-script* "shell/repl-worker.ss")
 (define *poll-interval-ns* 100000000)  ; 100ms in nanoseconds
-(define *worker-timeout* 60)           ; seconds without heartbeat
+(define *worker-timeout* 600)          ; seconds without heartbeat (10 min - allows long jobs)
 (define *starting-timeout* 30)         ; seconds to wait for worker startup
 (define *cleanup-interval* 300)        ; 5 minutes in seconds
 (define *idle-timeout* 600)            ; 10 minutes without request - kill idle workers
