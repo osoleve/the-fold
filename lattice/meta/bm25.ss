@@ -92,16 +92,65 @@
 
 ;;; tokenize : String -> (List Symbol)
 ;;; Tokenize a string into lowercase word symbols
+;;; Hyphenated symbols are split into parts: c2d-zoh -> [c2d-zoh, c2d, zoh]
 (define (tokenize str)
   (if (not (string? str))
       '()
-      (let ([words (string-split-words (string-downcase str))])
-           (filter-map
-            (lambda (w)
-                    (if (> (string-length w) 1)  ; Skip single chars
-                        (string->symbol w)
-                        #f))
-            words))))
+      (let* ([words (string-split-words (string-downcase str))]
+             [base-tokens (filter-map
+                           (lambda (w)
+                                   (if (> (string-length w) 1)
+                                       (string->symbol w)
+                                       #f))
+                           words)]
+             ;; Also split hyphenated tokens into parts
+             [split-tokens (apply append
+                                  (map (lambda (sym)
+                                               (split-hyphenated sym))
+                                       base-tokens))])
+            (remove-duplicates (append base-tokens split-tokens)))))
+
+;;; split-hyphenated : Symbol -> (List Symbol)
+;;; Split a hyphenated symbol into its parts
+;;; c2d-zoh -> [c2d, zoh], lqr -> []
+(define (split-hyphenated sym)
+  (let* ([str (symbol->string sym)]
+         [parts (string-split-on-char str #\-)])
+        (if (> (length parts) 1)
+            (filter-map
+             (lambda (p)
+                     (if (> (string-length p) 1)
+                         (string->symbol p)
+                         #f))
+             parts)
+            '())))
+
+;;; string-split-on-char : String Char -> (List String)
+(define (string-split-on-char str ch)
+  (let loop ([chars (string->list str)]
+             [current '()]
+             [parts '()])
+       (cond
+        [(null? chars)
+         (if (null? current)
+             (reverse parts)
+             (reverse (cons (list->string (reverse current)) parts)))]
+        [(char=? (car chars) ch)
+         (if (null? current)
+             (loop (cdr chars) '() parts)
+             (loop (cdr chars) '() (cons (list->string (reverse current)) parts)))]
+        [else
+         (loop (cdr chars) (cons (car chars) current) parts)])))
+
+;;; remove-duplicates : (List Symbol) -> (List Symbol)
+(define (remove-duplicates lst)
+  (let loop ([lst lst] [seen '()] [result '()])
+       (if (null? lst)
+           (reverse result)
+           (let ([item (car lst)])
+                (if (memq item seen)
+                    (loop (cdr lst) seen result)
+                    (loop (cdr lst) (cons item seen) (cons item result)))))))
 
 ;;; string-split-words : String -> (List String)
 ;;; Split string on whitespace and punctuation
