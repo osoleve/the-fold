@@ -51,6 +51,15 @@
 ;;; parallel binding reordering before de Bruijn conversion.
 (define address-version-algebraic #x01)
 
+;;; address-version-v2 : Byte
+;;; Version 0x02: enhanced normalization (v2).
+;;; Applies all v0x01 transformations PLUS:
+;;;   - η-reduction for function canonicalization
+;;;   - Identity/absorbing element elimination
+;;;   - Polynomial canonicalization for arithmetic expressions
+;;;   - Hash-consing for structural deduplication
+(define address-version-v2 #x02)
+
 ;;; ============================================================
 ;;; Hashing Functions
 ;;; ============================================================
@@ -99,15 +108,43 @@
     (bytevector-copy! hash 0 address 1 hash-size)
     address))
 
+;;; hash-sexpr-v2 : Symbol × S-expr → Bytevector
+;;; Hash an S-expression with version 2 normalization (version 0x02).
+;;; This applies the most aggressive canonicalization:
+;;;   - η-reduction: (fn (x) (f x)) → f
+;;;   - Identity elimination: (+ x 0) → x, (* x 1) → x
+;;;   - Absorbing elimination: (* x 0) → 0
+;;;   - Polynomial canonicalization: (+ (* a b) (* b a)) → (* 2 a b)
+;;;   - Algebraic canonicalization (commutative sorting, etc.)
+;;;   - α-normalization (de Bruijn indices)
+;;;   - Hash-consing (structural deduplication)
+;;;
+;;; Use this for maximum semantic equivalence detection.
+;;; Version byte 0x02 distinguishes from 0x00 and 0x01 hashes.
+(define (hash-sexpr-v2 tag sexpr)
+  (let* ([normalized (normalize-v2 sexpr)]
+         [payload (string->utf8 (format "~s" normalized))]
+         [blk (make-block tag payload empty-refs)]
+         [hash (sha256 (block->bytes blk))]
+         [address (make-bytevector address-size)])
+    (bytevector-u8-set! address 0 address-version-v2)
+    (bytevector-copy! hash 0 address 1 hash-size)
+    address))
+
 ;;; address-version : Bytevector → Byte
 ;;; Extract the version byte from an address.
 (define (address-version-byte addr)
   (bytevector-u8-ref addr 0))
 
 ;;; address-algebraic? : Bytevector → Boolean
-;;; Check if an address was computed with algebraic normalization.
+;;; Check if an address was computed with algebraic normalization (v0x01).
 (define (address-algebraic? addr)
   (= (address-version-byte addr) address-version-algebraic))
+
+;;; address-v2? : Bytevector → Boolean
+;;; Check if an address was computed with v2 normalization (v0x02).
+(define (address-v2? addr)
+  (= (address-version-byte addr) address-version-v2))
 
 ;;; hash->hex : Bytevector → String
 ;;; Convert address bytes to hexadecimal string (for display).

@@ -121,3 +121,67 @@
 ;;; Is the operation known to be pure?
 (define (op-pure? op)
   (if (memq op *pure-ops*) #t #f))
+
+;;; ============================================================
+;;; Identity and Absorbing Elements
+;;; ============================================================
+;;;
+;;; Identity element: (op x identity) = x
+;;; Absorbing element: (op x absorbing) = absorbing
+;;;
+;;; These enable simplifications during normalization:
+;;;   (+ x 0)   → x
+;;;   (* x 1)   → x
+;;;   (* x 0)   → 0
+;;;   (append x '()) → x
+
+;;; *op-identities* : Alist (Symbol -> Value)
+;;; Maps operations to their identity elements.
+(define *op-identities*
+  `((+ . 0)
+    (* . 1)
+    (- . 0)                 ; Right identity only: (- x 0) = x
+    (min . +inf.0)
+    (max . -inf.0)
+    (gcd . 0)               ; (gcd x 0) = x
+    (lcm . 1)               ; (lcm x 1) = x
+    (bitwise-and . -1)      ; All bits set
+    (bitwise-ior . 0)
+    (bitwise-xor . 0)
+    (append . ())
+    (string-append . "")
+    (set-union . ())        ; Empty set
+    (set-intersection . #f) ; Universal set (no finite representation)
+    (compose . identity)))  ; Identity function
+
+;;; *op-absorbing* : Alist (Symbol -> Value)
+;;; Maps operations to their absorbing elements.
+(define *op-absorbing*
+  `((* . 0)
+    (bitwise-and . 0)       ; All bits clear
+    (set-intersection . ()) ; Empty set absorbs
+    (gcd . 1)))             ; (gcd x 1) = 1 (when x > 0)
+
+;;; op-identity : Symbol → Value | #f
+;;; Return the identity element for an operation, or #f if none.
+(define (op-identity op)
+  (let ([entry (assq op *op-identities*)])
+    (if entry (cdr entry) #f)))
+
+;;; op-absorbing : Symbol → Value | #f
+;;; Return the absorbing element for an operation, or #f if none.
+(define (op-absorbing op)
+  (let ([entry (assq op *op-absorbing*)])
+    (if entry (cdr entry) #f)))
+
+;;; identity-element? : Symbol × Value → Bool
+;;; Is this value the identity element for this operation?
+(define (identity-element? op val)
+  (let ([id (op-identity op)])
+    (and id (equal? id val))))
+
+;;; absorbing-element? : Symbol × Value → Bool
+;;; Is this value an absorbing element for this operation?
+(define (absorbing-element? op val)
+  (let ([abs (op-absorbing op)])
+    (and abs (equal? abs val))))

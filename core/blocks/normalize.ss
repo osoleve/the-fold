@@ -366,3 +366,216 @@
 ;;; Use this for version 1 content-addressed hashing.
 (define (normalize-full expr)
   (normalize (normalize-algebraic expr)))
+
+;;; ============================================================
+;;; Version 2 Normalization Pipeline
+;;; ============================================================
+;;;
+;;; Version 2 adds:
+;;;   - Hash-consing for structural deduplication
+;;;   - Identity/absorbing element elimination
+;;;   - η-reduction for function canonicalization
+;;;   - (Future: polynomial canonicalization)
+;;;
+;;; Order of operations (CRITICAL - order matters!):
+;;;   1. η-reduction (while named variables exist)
+;;;   2. Identity/absorbing elimination
+;;;   3. Algebraic canonicalization (commutative sorting, etc.)
+;;;   4. α-normalization (de Bruijn indices)
+;;;   5. Hash-consing (structural deduplication)
+
+(load "core/blocks/hash-cons.ss")
+(load "core/blocks/poly-canon.ss")
+
+;;; ============================================================
+;;; η-Reduction
+;;; ============================================================
+
+;;; eta-reduce : S-expr → S-expr
+;;; Transform (fn (x) (f x)) → f when x does not occur free in f.
+;;; This canonicalizes point-free style wrappers.
+(define (eta-reduce expr)
+  (cond
+    ;; Atoms pass through
+    [(not (pair? expr)) expr]
+
+    ;; Quoted data unchanged
+    [(eq? (car expr) 'quote) expr]
+
+    ;; (fn (x) (f x)) where x not free in f → f
+    [(and (eq? (car expr) 'fn)
+          (pair? (cdr expr))
+          (pair? (cadr expr))
+          (symbol? (caadr expr))
+          (pair? (cddr expr))
+          (let ([var (caadr expr)]
+                [body (caddr expr)])
+            (and (pair? body)              ; body is an application
+                 (not (eq? (car body) 'fn)) ; not a nested lambda
+                 (not (eq? (car body) 'let))
+                 (not (eq? (car body) 'fix))
+                 (not (eq? (car body) 'quote))
+                 (>= (length body) 2)       ; at least (f x)
+                 (eq? (car (reverse body)) var)  ; last arg is the bound var
+                 (not (memq var (free-vars (reverse (cdr (reverse body))))))))) ; var not free in f or other args
+     (let* ([var (caadr expr)]
+            [body (caddr expr)]
+            [func-and-args (reverse (cdr (reverse body)))])  ; all but last arg
+       (if (= (length func-and-args) 1)
+           (eta-reduce (car func-and-args))  ; just f
+           (eta-reduce func-and-args)))]     ; (f arg1 ... argN-1)
+
+    ;; Recurse into fn body
+    [(eq? (car expr) 'fn)
+     `(fn ,(cadr expr) ,(eta-reduce (caddr expr)))]
+
+    ;; Recurse into let
+    [(eq? (car expr) 'let)
+     (let* ([binding (caadr expr)]
+            [var (car binding)]
+            [val (cadr binding)]
+            [body (caddr expr)])
+       `(let ((,var ,(eta-reduce val)))
+          ,(eta-reduce body)))]
+
+    ;; Recurse into fix
+    [(eq? (car expr) 'fix)
+     `(fix ,(cadr expr) ,(eta-reduce (caddr expr)))]
+
+    ;; General list: recurse
+    [else (map eta-reduce expr)]))
+
+;;; ============================================================
+;;; Identity/Absorbing Element Elimination
+;;; ============================================================
+
+;;; eliminate-identities : S-expr → S-expr
+;;; Remove identity elements from operations and simplify absorbing cases.
+;;; Recursively processes the entire expression tree.
+(define (eliminate-identities expr)
+  (cond
+    ;; Atoms pass through
+    [(not (pair? expr)) expr]
+
+    ;; Quoted data unchanged
+    [(eq? (car expr) 'quote) expr]
+
+    ;; Recurse into fn body
+    [(eq? (car expr) 'fn)
+     `(fn ,(cadr expr) ,(eliminate-identities (caddr expr)))]
+
+    ;; Recurse into let
+    [(eq? (car expr) 'let)
+     (let* ([binding (caadr expr)]
+            [var (car binding)]
+            [val (cadr binding)]
+            [body (caddr expr)])
+       `(let ((,var ,(eliminate-identities val)))
+          ,(eliminate-identities body)))]
+
+    ;; Recurse into fix
+    [(eq? (car expr) 'fix)
+     `(fix ,(cadr expr) ,(eliminate-identities (caddr expr)))]
+
+    ;; Operation with known identity/absorbing elements
+    [(symbol? (car expr))
+     (let* ([op (car expr)]
+            [args (map eliminate-identities (cdr expr))]
+            [identity (op-identity op)]
+            [absorbing (op-absorbing op)])
+       (cond
+         ;; Check for absorbing element first
+         [(and absorbing (any (lambda (a) (equal? a absorbing)) args))
+          absorbing]
+
+         ;; Remove identity elements
+         [identity
+          (let ([filtered (filter (lambda (a) (not (equal? a identity))) args)])
+            (cond
+              ;; All were identity → return identity
+              [(null? filtered) identity]
+              ;; Single element → return it
+              [(null? (cdr filtered)) (car filtered)]
+              ;; Multiple → reconstruct
+              [else (cons op filtered)]))]
+
+         ;; No identity/absorbing → reconstruct with recursed args
+         [else (cons op args)]))]
+
+    ;; General list: recurse
+    [else (map eliminate-identities expr)]))
+
+;;; any : (a → Bool) × (List a) → Bool
+;;; Returns #t if predicate is true for any element.
+(define (any pred lst)
+  (cond
+    [(null? lst) #f]
+    [(pred (car lst)) #t]
+    [else (any pred (cdr lst))]))
+
+;;; ============================================================
+;;; Version 2 Algebraic Normalization
+;;; ============================================================
+
+;;; normalize-algebraic-v2 : S-expr → S-expr
+;;; Enhanced algebraic canonicalization with:
+;;;   - η-reduction
+;;;   - Identity/absorbing element elimination
+;;;   - Polynomial canonicalization for arithmetic subtrees
+;;;   - Standard algebraic canonicalization (commutative sorting, etc.)
+(define (normalize-algebraic-v2 expr)
+  (let* ([eta-reduced (eta-reduce expr)]
+         [poly-canonicalized (poly-canonicalize-recursive eta-reduced)]
+         [algebraically-sorted (normalize-algebraic poly-canonicalized)]
+         [identities-eliminated (eliminate-identities algebraically-sorted)])
+    identities-eliminated))
+
+;;; poly-canonicalize-recursive : S-expr → S-expr
+;;; Apply polynomial canonicalization recursively to all arithmetic subtrees.
+(define (poly-canonicalize-recursive expr)
+  (cond
+    ;; Atoms pass through
+    [(not (pair? expr)) expr]
+
+    ;; Quoted data unchanged
+    [(eq? (car expr) 'quote) expr]
+
+    ;; Try polynomial canonicalization first
+    [(arithmetic-expr? expr)
+     (try-poly-canonicalize expr)]
+
+    ;; Recurse into fn body
+    [(eq? (car expr) 'fn)
+     `(fn ,(cadr expr) ,(poly-canonicalize-recursive (caddr expr)))]
+
+    ;; Recurse into let
+    [(eq? (car expr) 'let)
+     (let* ([binding (caadr expr)]
+            [var (car binding)]
+            [val (cadr binding)]
+            [body (caddr expr)])
+       `(let ((,var ,(poly-canonicalize-recursive val)))
+          ,(poly-canonicalize-recursive body)))]
+
+    ;; Recurse into fix
+    [(eq? (car expr) 'fix)
+     `(fix ,(cadr expr) ,(poly-canonicalize-recursive (caddr expr)))]
+
+    ;; General list: recurse
+    [else (map poly-canonicalize-recursive expr)]))
+
+;;; ============================================================
+;;; Version 2 Combined Normalization
+;;; ============================================================
+
+;;; normalize-v2 : S-expr → S-expr
+;;; Full version 2 normalization pipeline:
+;;;   η-reduction → identity elimination → algebraic → α-normalization → hash-cons
+;;; Use this for version 2 content-addressed hashing.
+(define (normalize-v2 expr)
+  (hash-cons (normalize (normalize-algebraic-v2 expr))))
+
+;;; normalize-v2-no-hashcons : S-expr → S-expr
+;;; Version 2 without hash-consing (for testing/comparison).
+(define (normalize-v2-no-hashcons expr)
+  (normalize (normalize-algebraic-v2 expr)))

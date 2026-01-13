@@ -233,6 +233,155 @@ Test 19: Commutative expressions same algebraic hash
       [h2 (hash-sexpr-algebraic 'expr '(+ a (+ b c)))])
   (test "associative same hash" h1 h2))
 
+;;; ============================================================
+;;; Version 2 Normalization Tests
+;;; ============================================================
+
+(display "
+Test 20: η-reduction
+")
+;; Simple eta reduction: (fn (x) (f x)) → f
+(let ([reduced (eta-reduce '(fn (x) (f x)))])
+  (test "eta-reduce (fn (x) (f x))" 'f reduced))
+
+;; No reduction when x appears multiple times
+(let ([reduced (eta-reduce '(fn (x) (g x x)))])
+  (test "no eta when x appears twice" '(fn (x) (g x x)) reduced))
+
+;; No reduction when x appears in function position
+(let ([reduced (eta-reduce '(fn (x) (x y)))])
+  (test "no eta when x is operator" '(fn (x) (x y)) reduced))
+
+;; Nested eta reduction
+(let ([reduced (eta-reduce '(fn (y) (fn (x) (f x))))])
+  (test "nested eta" '(fn (y) f) reduced))
+
+(display "
+Test 21: Identity element elimination
+")
+(test "plus zero identity"
+      'x
+      (eliminate-identities '(+ x 0)))
+
+(test "times one identity"
+      'x
+      (eliminate-identities '(* x 1)))
+
+(test "multiple zeros"
+      '(+ a b)
+      (eliminate-identities '(+ a 0 b 0)))
+
+(test "all zeros"
+      0
+      (eliminate-identities '(+ 0 0 0)))
+
+(display "
+Test 22: Absorbing element elimination
+")
+(test "times zero absorbs"
+      0
+      (eliminate-identities '(* x 0 y)))
+
+;; Note: (+ (* a 0) b) first reduces (* a 0) → 0, then (+ 0 b) → b
+;; This is correct: + has no absorbing element, only identity
+(test "nested with inner absorb"
+      'b
+      (eliminate-identities '(+ (* a 0) b)))
+
+(test "all terms absorb"
+      0
+      (eliminate-identities '(+ (* a 0) (* b 0))))
+
+(display "
+Test 23: Polynomial canonicalization
+")
+;; Same polynomial, different order
+(let ([p1 (poly-canonicalize '(+ (* a b) (* c d)))]
+      [p2 (poly-canonicalize '(+ (* d c) (* b a)))])
+  (test "poly same regardless of order" p1 p2))
+
+;; Collect like terms: (+ x x) → (* 2 x)
+(let ([result (poly-canonicalize '(+ x x))])
+  (test "collect like terms" '(* 2 x) result))
+
+;; Simple addition stays simple
+(let ([result (poly-canonicalize '(+ a b))])
+  (test "simple addition canonical" '(+ a b) result))
+
+;; Multiplication stays canonical
+(let ([result (poly-canonicalize '(* a b c))])
+  (test "multiplication canonical" '(* a b c) result))
+
+;; Constant folding
+(let ([result (poly-canonicalize '(+ 1 2 3))])
+  (test "constant folding" 6 result))
+
+(display "
+Test 24: Combined v2 normalization
+")
+;; Test normalize-v2 combines η-reduction with identity elimination
+;; Note: η-reduction requires body to be exactly (f x), not (+ 0 (f x))
+(let ([result (normalize-v2-no-hashcons '(fn (x) (f x)))])
+  (test "v2 applies eta" 'f result))
+
+;; Test identity elimination in v2
+(let ([result (normalize-v2-no-hashcons '(+ 0 (f x)))])
+  (test "v2 eliminates identity" '(f x) result))
+
+;; Test algebraic + α + identity
+(let ([e1 (normalize-v2-no-hashcons '(+ a 0 b))]
+      [e2 (normalize-v2-no-hashcons '(+ b a))])
+  (test "v2 identity + commutative" e1 e2))
+
+(display "
+Test 25: Hash-consing
+")
+;; Reset stats
+(hash-cons-reset!)
+
+;; Hash-cons some expressions
+(let* ([e1 (hash-cons '(+ a b))]
+       [e2 (hash-cons '(+ a b))]
+       [e3 (hash-cons '(+ a b))])
+  ;; They should be eq? (same pointer)
+  (test "hash-cons deduplicates" #t (eq? e1 e2))
+  (test "hash-cons consistent" #t (eq? e2 e3)))
+
+;; Check stats show hits
+(let ([stats (hash-cons-stats)])
+  (test "hash-cons has hits" #t (> (car stats) 0)))
+
+(display "
+Test 26: Version 0x02 hashing
+")
+(let ([h1 (hash-sexpr-v2 'test '(+ 1 2))]
+      [h2 (hash-sexpr-algebraic 'test '(+ 1 2))]
+      [h3 (hash-sexpr 'test '(+ 1 2))])
+  (test "v2 hash version 0x02" #x02 (address-version-byte h1))
+  (test "v2 different from v1" #f (equal? h1 h2))
+  (test "v2 different from v0" #f (equal? h1 h3)))
+
+;; Test v2 semantic equivalence
+(let ([h1 (hash-sexpr-v2 'expr '(+ x 0))]
+      [h2 (hash-sexpr-v2 'expr 'x)])
+  ;; With identity elimination, these should hash the same
+  (test "v2 identity equivalence" h1 h2))
+
+(let ([h1 (hash-sexpr-v2 'expr '(+ x x))]
+      [h2 (hash-sexpr-v2 'expr '(* 2 x))])
+  ;; With polynomial canonicalization, these should hash the same
+  (test "v2 polynomial equivalence" h1 h2))
+
+(display "
+Test 27: Float handling in poly-canon
+")
+;; Floats should NOT be canonicalized (precision issues)
+(let ([result (arithmetic-expr? '(+ 1.5 x))])
+  (test "floats excluded from poly-canon" #f result))
+
+(let ([result (arithmetic-expr? '(+ 1 x))])
+  (test "integers included in poly-canon" #t result))
+
 (display "
 ✓ All tests complete.
 ")
