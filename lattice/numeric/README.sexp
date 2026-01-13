@@ -14,10 +14,14 @@ and scientific computing.")
    (wavelet.ss "Haar, Daubechies wavelet transforms")
    (spectral-analysis.ss "STFT, spectrogram, Welch PSD")
    (signal-poly.ss "Filter polynomial algebra - stability, simplification, cascade")
-   (interpolate.ss "Interpolation, splines, Bezier, curve fitting - 69 tests")))
+   (interpolate.ss "Interpolation, splines, Bezier, curve fitting - 75 tests")))
  (dependencies (base linalg))
  (exports
   ;; === interpolate.ss ===
+  ;; Utilities
+  (binary-search-segment "O(log n) segment lookup in sorted list")
+  (thomas-algorithm "O(n) tridiagonal system solver (TDMA)")
+
   ;; Linear interpolation
   (lerp "Linear interpolation: a + t*(b-a)")
   (lerp-inverse "Inverse lerp: find t given value")

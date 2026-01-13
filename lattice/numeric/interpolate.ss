@@ -433,6 +433,11 @@
 ;;; polyfit : (List Num) × (List Num) × Int → Poly
 ;;; Fit polynomial of degree n to data points using least squares.
 ;;; Returns polynomial in descending power order.
+;;;
+;;; WARNING: Uses normal equations (A^T A)c = A^T b which can be numerically
+;;; unstable for high-degree polynomials (degree > 5-7). The condition number
+;;; of the Vandermonde-like matrix grows exponentially. For high-degree fits,
+;;; consider Chebyshev approximation or orthogonal polynomial bases instead.
 (define (polyfit xs ys degree)
   (let* ([n (length xs)]
          [m (+ degree 1)]

@@ -96,6 +96,8 @@
                                        0  ; Isolated node
                                        (/ 1.0 (sqrt deg))))))
              ;; L_sym[i,j] = I[i,j] - d[i]^(-1/2) * A[i,j] * d[j]^(-1/2)
+             ;; For isolated nodes (degree 0), set diagonal to 0 so they
+             ;; contribute eigenvalue 0 (each component should have one 0 eigenvalue)
              (do ([i 0 (+ i 1)])
                  ((= i n) result)
                  (do ([j 0 (+ j 1)])
@@ -104,7 +106,9 @@
                             [d-j (vector-ref d-inv-sqrt j)]
                             [a-ij (matrix-ref a i j)]
                             [term (if (= i j)
-                                      (- 1 (* d-i a-ij d-j))
+                                      (if (= d-i 0)
+                                          0.0  ; Isolated node
+                                          (- 1 (* d-i a-ij d-j)))
                                       (- (* d-i a-ij d-j)))])
                            (matrix-set! result i j term)))))))
 
@@ -141,6 +145,7 @@
                                        0  ; Isolated node
                                        (/ 1.0 deg)))))
              ;; L_rw[i,j] = I[i,j] - d[i]^(-1) * A[i,j]
+             ;; For isolated nodes (degree 0), set diagonal to 0
              (do ([i 0 (+ i 1)])
                  ((= i n) result)
                  (let ([di (vector-ref d-inv i)])
@@ -148,7 +153,9 @@
                           ((= j n))
                           (let* ([a-ij (matrix-ref a i j)]
                                  [term (if (= i j)
-                                           (- 1 (* di a-ij))
+                                           (if (= di 0)
+                                               0.0  ; Isolated node
+                                               (- 1 (* di a-ij)))
                                            (- (* di a-ij)))])
                                 (matrix-set! result i j term))))))))
 
@@ -742,6 +749,7 @@
 
 ;;; recompute-centroids : Matrix × Vector × Nat × Nat × Nat → Matrix
 ;;; Recompute centroids as mean of assigned points.
+;;; Empty clusters are reinitialized to the point furthest from all centroids.
 (define (recompute-centroids points labels k d n)
   (let ([centroids (make-matrix k d 0)]
         [counts (make-vector k 0)])
@@ -754,14 +762,43 @@
             ((= j d))
           (matrix-set! centroids c j
                        (+ (matrix-ref centroids c j) (matrix-ref points i j))))))
-    ;; Divide by count
+    ;; Divide by count (handle empty clusters)
     (do ([c 0 (+ c 1)])
-        ((= c k) centroids)
+        ((= c k))
       (let ([cnt (vector-ref counts c)])
-        (when (> cnt 0)
-          (do ([j 0 (+ j 1)])
-              ((= j d))
-            (matrix-set! centroids c j (/ (matrix-ref centroids c j) cnt))))))))
+        (if (> cnt 0)
+            ;; Normal case: compute mean
+            (do ([j 0 (+ j 1)])
+                ((= j d))
+              (matrix-set! centroids c j (/ (matrix-ref centroids c j) cnt)))
+            ;; Empty cluster: reinitialize to furthest point
+            (let ([furthest-idx (find-furthest-point points centroids c k d n)])
+              (do ([j 0 (+ j 1)])
+                  ((= j d))
+                (matrix-set! centroids c j (matrix-ref points furthest-idx j)))))))
+    centroids))
+
+;;; find-furthest-point : Matrix × Matrix × Nat × Nat × Nat × Nat → Nat
+;;; Find point index with maximum distance from all current centroids.
+(define (find-furthest-point points centroids skip-c k d n)
+  (let loop ([i 0] [max-idx 0] [max-dist 0])
+    (if (= i n)
+        max-idx
+        (let ([min-dist-to-any +inf.0])
+          ;; Find minimum distance to any centroid
+          (do ([c 0 (+ c 1)])
+              ((= c k))
+            (when (not (= c skip-c))
+              (let ([dist (let loop2 ([j 0] [sum 0])
+                            (if (= j d)
+                                sum
+                                (let ([diff (- (matrix-ref points i j)
+                                              (matrix-ref centroids c j))])
+                                  (loop2 (+ j 1) (+ sum (* diff diff))))))])
+                (set! min-dist-to-any (min min-dist-to-any dist)))))
+          (if (> min-dist-to-any max-dist)
+              (loop (+ i 1) i min-dist-to-any)
+              (loop (+ i 1) max-idx max-dist))))))
 
 ;;; centroids-converged? : Matrix × Matrix × Nat × Nat × Real → Boolean
 ;;; Check if centroids have converged (total movement < tolerance).

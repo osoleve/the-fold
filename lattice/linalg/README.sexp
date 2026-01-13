@@ -37,10 +37,39 @@ cache efficiency. Sparse matrices support COO, CSR, and CSC formats.")
    (sparse.ss "Sparse matrix formats (COO, CSR, CSC) - 119 tests")
    (iterative-solvers.ss "CG, GMRES iterative methods")
    (iteration.ss "Iteration macros for vectors/matrices")
-   (graph-laplacian.ss "Graph Laplacian operations")
+   (graph-laplacian.ss "Graph Laplacian, spectral clustering, k-means - 49 tests")
    (dep-linalg.ss "Dependent-typed linear algebra")))
 
  (dependencies (base))
+
+ (graph-laplacian
+  (overview "Spectral graph theory tools for graph analysis and clustering.")
+
+  (laplacian-types
+   ((unnormalized "L = D - A, eigenvalues in [0, 2*d_max]")
+    (normalized "L_sym = I - D^(-1/2) A D^(-1/2), eigenvalues in [0, 2]")
+    (random-walk "L_rw = I - D^(-1) A, related to Markov chains")))
+
+  (spectral-clustering
+   "Partition graphs into communities using eigenvector embedding.
+    - spectral-clustering: Normalized (Ng-Jordan-Weiss algorithm)
+    - spectral-clustering-unnorm: Unnormalized variant
+    - spectral-partition-k: Recursive bisection for k partitions")
+
+  (clustering-algorithms
+   ((kmeans-cluster "K-means with k-means++ initialization")
+    (label-propagation "In graph-community.ss for comparison")))
+
+  (quality-metrics
+   ((conductance "cut(S,S̄) / min(vol(S), vol(S̄)) - lower is better")
+    (ratio-cut "cut/|S| + cut/|S̄| - balanced partition objective")
+    (normalized-cut "cut/vol(S) + cut/vol(S̄) - spectral clustering objective")
+    (modularity "Q score in graph-community.ss")))
+
+  (spectral-properties
+   ((algebraic-connectivity "λ₂ - measures graph connectivity")
+    (fiedler-vector "Eigenvector of λ₂ for graph partitioning")
+    (effective-resistance "Network distance between nodes"))))
 
  (usage-examples
   ((solving-linear-systems
@@ -80,7 +109,24 @@ cache efficiency. Sparse matrices support COO, CSR, and CSC formats.")
     "(load \"lattice/linalg/quaternion.ss\")
 
      (define q (quat-from-axis-angle (make-vec3 0 1 0) (/ pi 2)))
-     (quat-rotate q (make-vec3 1 0 0))  ; rotate 90° around Y axis")))
+     (quat-rotate q (make-vec3 1 0 0))  ; rotate 90° around Y axis")
+
+   (spectral-clustering
+    "Community detection using spectral methods"
+    "(load \"lattice/data/graph-matrix.ss\")
+     (load \"lattice/linalg/graph-laplacian.ss\")
+
+     ;; Build adjacency matrix for social network
+     (define adj (edges->adjacency-matrix edges n #t))
+
+     ;; Spectral clustering into k communities
+     (define labels (spectral-clustering adj k))
+
+     ;; Evaluate partition quality
+     (define cluster-0 (filter (lambda (i) (= (vector-ref labels i) 0))
+                               (iota n)))
+     (conductance adj cluster-0)     ; lower is better
+     (normalized-cut adj cluster-0)  ; spectral objective")))
 
  (performance-notes
   "Dense matrices use row-major flat vectors for cache efficiency.
@@ -98,4 +144,4 @@ cache efficiency. Sparse matrices support COO, CSR, and CSC formats.")
   (sparse-csr "(sparse-csr rows cols row-ptrs col-idx values)")
   (sparse-csc "(sparse-csc rows cols col-ptrs row-idx values)"))
 
- (total-tests 331))
+ (total-tests 337))
