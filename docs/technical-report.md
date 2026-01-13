@@ -1737,9 +1737,9 @@ Pure functional BM25 implementation for ranked retrieval:
 - Free monads: Syntax/semantics separation
 
 **Data** (`fp/data/`):
-- Lazy streams: Infinite sequences
-- Finger trees: Efficient sequences with concatenation
-- Zippers: Cursor-based navigation
+- **Lazy streams**: Infinite sequences with demand-driven evaluation. Functor, Applicative, and Monad instances enable stream comprehensions. Classic sequences (Fibonacci, primes) defined co-recursively.
+- **List zippers**: O(1) cursor navigation and modification. The `(left, focus, right)` representation with reversed left context enables efficient movement. Comonad instance supports contextual computations like moving averages.
+- **Tree zippers**: Rose tree (n-ary tree) navigation via Huet's zipper. Crumb-based path tracking enables reconstruction after deep modifications. Preorder traversal iterators.
 
 **Parsing** (`fp/parsing/`):
 - Parser combinators with packrat memoization
@@ -1750,6 +1750,12 @@ Pure functional BM25 implementation for ranked retrieval:
 - Term rewriting systems
 - Strategic rewriting (innermost, outermost)
 - Fusion rules for optimization
+
+**Type Classes** (dictionary-passing style):
+- **Functor**: `fmap` for structure-preserving transformations
+- **Applicative**: `pure` and `<*>` for effectful computations
+- **Monad**: `return` and `>>=` for sequencing effects
+- **Comonad**: `extract` and `extend` for contextual computations—the dual of Monad. Where Monad builds up context, Comonad tears it down. Zippers are the canonical Comonad: `extract` gets the focus, `extend f` applies `f` at every position with full context available.
 
 All implemented via dictionary-passing, maintaining Core purity.
 
