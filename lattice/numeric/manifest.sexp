@@ -4,7 +4,7 @@
   (path "lattice/numeric")
   (purity total)
   (stability stable)
-  (fuel-bound "O(n log n) for FFT, O(n) for FIR filters, O(n³) for spline, O(n²) for Lagrange")
+  (fuel-bound "O(n log n) for FFT, O(n) for FIR/spline, O(log n) for spline-eval, O(n²) for Lagrange")
   (deps (linalg))
 
   (description
@@ -95,6 +95,8 @@
     sig-poly->string filter->string)
 
    (interpolate
+    ;; Utilities
+    binary-search-segment thomas-algorithm
     ;; Linear interpolation
     lerp lerp-inverse interp-linear
     ;; Polynomial interpolation
