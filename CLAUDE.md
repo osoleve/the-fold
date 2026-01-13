@@ -326,14 +326,35 @@ Root-level files like `commands.ss` and `validate.ss` remain for shared infrastr
 
 Grammar-driven code construction for building S-expressions without tracking parentheses.
 
+**Batch Mode (Recommended):** Chain multiple complete definitions with `---`:
+
 ```scheme
 (load "shell/tools/template-parser.ss")
 
-;; Linear syntax - each line is a production
+;; Build quicksort with helper - all in one command
+(tp-batch "
+  define qs $params $body
+  --- $params := lst
+  --- $body := if $cond $then $else
+  --- $cond := null? lst
+  --- $then := '()
+  --- $else := append (qs (filter $pred (cdr lst))) (cons (car lst) (qs (filter $pred2 (cdr lst))))
+  --- $pred := lambda (x) (< x (car lst))
+  --- $pred2 := lambda (x) (>= x (car lst))
+")
+;; → (define (qs lst)
+;;     (if (null? lst)
+;;         '()
+;;         (append (qs (filter (lambda (x) (< x (car lst))) (cdr lst)))
+;;                 (cons (car lst)
+;;                       (qs (filter (lambda (x) (>= x (car lst))) (cdr lst)))))))
+```
+
+**Interactive Mode:** Build incrementally with hole propagation:
+
+```scheme
 (tp-parse "define $sig $body")           ; Start template
-(tp-parse "$sig := $name $args")         ; Fill hole (implicit parens)
-(tp-parse "$name := factorial")
-(tp-parse "$args := n")
+(tp-parse "$sig := factorial n")         ; Fill hole (implicit parens)
 (tp-parse "$body := if $cond $then $else")
 (tp-parse "$cond := = n 0")              ; Implicit parens: (= n 0)
 (tp-parse "$then := 1")
@@ -344,7 +365,8 @@ Grammar-driven code construction for building S-expressions without tracking par
 
 **Key concepts:**
 - Holes (`$name`) are non-terminals that get filled incrementally
-- Multi-token statements get implicit parentheses
+- Multi-token statements get implicit parentheses (no outer `()` needed)
+- Batch mode: `tp-batch` chains definitions/fills separated by `---`
 - Filling a hole with a value containing holes propagates those holes
 - Session manager provides undo support
 

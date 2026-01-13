@@ -16,13 +16,27 @@
      $cond := = n 0    → (= n 0)")
 
  (usage
-  (example "Factorial function"
-   "(load \"shell/tools/template-parser.ss\")
+  (example "Batch Mode (Recommended)"
+   "Chain template + fills in one command with ---:
+
+    (tp-batch \"
+      define qs $params $body
+      --- $params := lst
+      --- $body := if $cond $then $else
+      --- $cond := null? lst
+      --- $then := '()
+      --- $else := append (qs (filter $pred (cdr lst)))
+                          (cons (car lst) (qs (filter $pred2 (cdr lst))))
+      --- $pred := lambda (x) (< x (car lst))
+      --- $pred2 := lambda (x) (>= x (car lst))
+    \")
+    ;; → (define (qs lst) (if (null? lst) '() (append ...)))")
+
+  (example "Interactive Mode"
+   "Build incrementally with hole propagation:
 
     (tp-parse \"define $sig $body\")
-    (tp-parse \"$sig := $name $args\")
-    (tp-parse \"$name := factorial\")
-    (tp-parse \"$args := n\")
+    (tp-parse \"$sig := factorial n\")
     (tp-parse \"$body := if $cond $then $else\")
     (tp-parse \"$cond := = n 0\")
     (tp-parse \"$then := 1\")
@@ -76,11 +90,19 @@
    (fn "ts-status" "→ String" "Get status string"))
 
   (section "Parser (shell/tools/template-parser.ss)"
+   (fn "tp-batch" "String → Expr"
+       "Parse chained definitions separated by ---. Recommended for AI use.")
    (fn "tp-parse" "String → Unit"
        "Parse line and execute template operation")
    (fn "tp-repl" "→ Unit" "Interactive REPL for template construction")))
 
  (design-notes
+  (note "Batch Chaining"
+   "Use tp-batch with --- separators for best AI workflow.
+    Each section is a complete definition or $hole := fill.
+    The batch parses all sections and returns a begin block.
+    Example: 'define f $b --- $b := + 1 2' → (define f (+ 1 2))")
+
   (note "Implicit Parens Rule"
    "Every multi-token statement gets wrapped in parentheses.
     Single tokens stay as-is. This eliminates outer parentheses
