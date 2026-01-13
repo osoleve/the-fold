@@ -1,22 +1,24 @@
 (skill numeric
-  (version "0.1.0")
+  (version "0.2.0")
   (tier 0)
   (path "lattice/numeric")
   (purity total)
   (stability stable)
-  (fuel-bound "O(n log n) for FFT, O(n) for FIR filters, O(n*m) for 2D convolution")
-  (deps ())
+  (fuel-bound "O(n log n) for FFT, O(n) for FIR filters, O(n³) for spline, O(n²) for Lagrange")
+  (deps (linalg))
 
   (description
-   "Numerical computing and signal processing library. Provides complex number
-    arithmetic, discrete Fourier transform (naive and radix-2 FFT), digital
-    filters (FIR, IIR, Butterworth, Chebyshev), convolution and correlation,
-    wavelet transforms (Haar, Daubechies), spectral analysis (STFT, spectrogram,
-    Welch PSD), and window functions.")
+   "Numerical computing, signal processing, and interpolation library. Provides
+    complex number arithmetic, discrete Fourier transform (naive and radix-2 FFT),
+    digital filters (FIR, IIR, Butterworth, Chebyshev), convolution and correlation,
+    wavelet transforms (Haar, Daubechies), spectral analysis (STFT, spectrogram),
+    interpolation (linear, polynomial, spline, Hermite), Bezier curves, curve
+    fitting (least squares, polynomial), and Chebyshev approximation.")
 
   (keywords (numerics signal-processing fft dft complex-numbers digital-filters
-             wavelets convolution spectral-analysis iir fir butterworth))
-  (aliases (signal dsp))
+             wavelets convolution spectral-analysis iir fir butterworth
+             interpolation spline bezier curve-fitting regression chebyshev))
+  (aliases (signal dsp interp))
 
   (exports
    (complex
@@ -90,7 +92,28 @@
     deconvolve deconvolve-exact?
     numeric->signal-poly signal->numeric-poly
     sig-poly-degree sig-poly-coeffs sig-poly-gcd
-    sig-poly->string filter->string))
+    sig-poly->string filter->string)
+
+   (interpolate
+    ;; Linear interpolation
+    lerp lerp-inverse interp-linear
+    ;; Polynomial interpolation
+    lagrange-basis interp-lagrange
+    divided-differences interp-newton
+    ;; Hermite interpolation
+    interp-hermite hermite-tangent-estimate
+    ;; Cubic splines
+    cubic-spline-natural spline-eval interp-cubic-spline
+    ;; Bezier curves
+    bezier-linear bezier-quadratic bezier-cubic
+    bezier-general bezier-derivative
+    ;; Least squares and fitting
+    polyfit linreg linreg-r2
+    ;; Chebyshev approximation
+    chebyshev-nodes chebyshev-nodes-interval
+    chebyshev-t chebyshev-coeffs chebyshev-eval
+    ;; B-splines
+    bspline-basis bspline-curve))
 
   (modules
    (complex "complex.ss"
@@ -117,4 +140,10 @@
    (signal-poly "signal-poly.ss"
     "Polynomial algebra integration for signal processing. Filter stability analysis
      via Jury criterion. Filter simplification, cascade/parallel combination,
-     deconvolution as polynomial division.")))
+     deconvolution as polynomial division.")
+   (interpolate "interpolate.ss"
+    "Numerical interpolation and curve fitting. Linear, Lagrange, and Newton
+     polynomial interpolation. Hermite and natural cubic spline interpolation.
+     Bezier curves (linear, quadratic, cubic, arbitrary degree). Least squares
+     polynomial fitting, linear regression. Chebyshev approximation and nodes.
+     B-spline basis functions and curves.")))
