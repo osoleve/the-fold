@@ -88,16 +88,16 @@ This enables incremental refinement of structure.
 
 ## Usage Patterns
 
-### Pattern 1: Batch Mode (Recommended)
+### Pattern 1: Batch Mode with Hole-Filling (Recommended)
 
 Chain template + fills in one command using `---` separators:
 
 ```scheme
 (load "shell/tools/template-parser.ss")
 
+;; Template has holes → Mode 1 (hole-filling)
 (tp-batch "
-  define qs $params $body
-  --- $params := lst
+  define (qs lst) $body
   --- $body := if $cond $then $else
   --- $cond := null? lst
   --- $then := '()
@@ -106,13 +106,17 @@ Chain template + fills in one command using `---` separators:
   --- $pred := lambda (x) (< x (car lst))
   --- $pred2 := lambda (x) (>= x (car lst))
 ")
+;; → (define (qs lst) (if (null? lst) '() (append ...)))
 ```
 
-Returns a `begin` block with all definitions.
+When the first section contains holes, `tp-batch` enters **Mode 1**:
+- First section becomes the template
+- Subsequent `$hole := value` sections fill holes
+- Returns compiled expression when complete
 
-### Pattern 2: Complete Definitions
+### Pattern 2: Complete Definitions (Mode 2)
 
-Use `tp-batch` to chain complete expressions without holes:
+When the first section has no holes, `tp-batch` enters **Mode 2** — chaining complete expressions:
 
 ```scheme
 (tp-batch "
@@ -237,6 +241,24 @@ Convenience functions for common patterns:
 (apply-implicit-parens toks) ; (List Sexpr) → Sexpr
 ```
 
+### Shorthand Aliases
+
+For quick REPL use:
+
+```scheme
+(t> expr)   ; Alias for ts-start
+(t!)        ; Alias for ts-compile
+(t?)        ; Show template + status (ts-show + ts-show-status)
+```
+
+Example:
+```scheme
+(t> '(if $c $t $e))   ; Start
+(ts-fill '$c #t)      ; Fill
+(t?)                  ; Check status
+(t!)                  ; Compile
+```
+
 ## Integration with fold-agent.py
 
 The Python agent client also applies implicit parentheses:
@@ -291,7 +313,7 @@ By auto-wrapping multi-token statements, we eliminate the boilerplate while pres
 
 2. **No validation** — The DSL doesn't verify that filled values make semantic sense, only that they're syntactically valid S-expressions.
 
-3. **Batch mode doesn't do hole-filling** — `tp-batch` treats each `---` section as complete. You can't start a template in section 1 and fill holes in section 2. Each section must be self-contained.
+3. **Batch mode is auto-detected** — `tp-batch` checks if the first section has holes. If yes, it uses hole-filling mode. If no, it chains complete definitions. You cannot mix both in one call.
 
 4. **Complex algorithms still need parens** — For deeply nested conditionals or complex recursion, you still write Scheme. The DSL helps most with structural boilerplate.
 

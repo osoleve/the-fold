@@ -20,8 +20,7 @@
    "Chain template + fills in one command with ---:
 
     (tp-batch \"
-      define qs $params $body
-      --- $params := lst
+      define (qs lst) $body
       --- $body := if $cond $then $else
       --- $cond := null? lst
       --- $then := '()

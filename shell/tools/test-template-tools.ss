@@ -159,17 +159,25 @@
 
 (test-group batch-mode
 
-  (define-test "tp-batch single definition"
+  (define-test "tp-batch single definition (mode 2)"
     (let ([result (tp-batch "define (f x) (+ x 1)")])
       (assert-equal '(define (f x) (+ x 1)) result)))
 
-  (define-test "tp-batch multiple definitions"
+  (define-test "tp-batch multiple definitions (mode 2)"
     (let ([result (tp-batch "define (f x) (+ x 1) --- define (g x) (f x)")])
       (assert-equal '(begin (define (f x) (+ x 1)) (define (g x) (f x))) result)))
 
-  (define-test "tp-batch with whitespace"
+  (define-test "tp-batch with whitespace (mode 2)"
     (let ([result (tp-batch "  + 1 2  ---  * 3 4  ")])
-      (assert-equal '(begin (+ 1 2) (* 3 4)) result))))
+      (assert-equal '(begin (+ 1 2) (* 3 4)) result)))
+
+  (define-test "tp-batch template + fills (mode 1)"
+    (let ([result (tp-batch "define (factorial n) $body --- $body := if $c $t $e --- $c := = n 0 --- $t := 1 --- $e := * n (factorial (- n 1))")])
+      (assert-equal '(define (factorial n) (if (= n 0) 1 (* n (factorial (- n 1))))) result)))
+
+  (define-test "tp-batch nested fills (mode 1)"
+    (let ([result (tp-batch "if $cond $then $else --- $cond := = x 0 --- $then := 1 --- $else := 2")])
+      (assert-equal '(if (= x 0) 1 2) result))))
 
 ;;; ============================================================
 ;;; Run All Tests

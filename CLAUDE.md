@@ -326,15 +326,14 @@ Root-level files like `commands.ss` and `validate.ss` remain for shared infrastr
 
 Grammar-driven code construction for building S-expressions without tracking parentheses.
 
-**Batch Mode (Recommended):** Chain multiple complete definitions with `---`:
+**Batch Mode (Recommended):** Chain template + fills with `---`:
 
 ```scheme
 (load "shell/tools/template-parser.ss")
 
-;; Build quicksort with helper - all in one command
+;; Build quicksort - template with holes, then fill them
 (tp-batch "
-  define qs $params $body
-  --- $params := lst
+  define (qs lst) $body
   --- $body := if $cond $then $else
   --- $cond := null? lst
   --- $then := '()

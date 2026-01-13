@@ -114,16 +114,44 @@
       [else (tp-parse line) #f])))
 
 ;;; tp-batch : String → Expr
-;;; Parse multiple complete definitions separated by ---.
-;;; Each section uses implicit parens and must be hole-free.
-;;; Example: "define (f x) (+ x 1) --- define (g x) (f x)"
+;;; Parse template + fills or multiple definitions, separated by ---.
+;;;
+;;; Two modes:
+;;;   1. Hole-filling: First section is template, rest are $hole := value fills
+;;;      "define $sig $body --- $sig := foo x --- $body := + x 1"
+;;;      → (define (foo x) (+ x 1))
+;;;
+;;;   2. Complete definitions: All sections are hole-free expressions
+;;;      "define (f x) (+ x 1) --- define (g x) (f x)"
+;;;      → (begin (define (f x) (+ x 1)) (define (g x) (f x)))
+;;;
+;;; Detection: If first section has holes, use mode 1. Otherwise mode 2.
 (define (tp-batch input)
-  (let* ([sections (string-split input "---")]
-         [exprs (map (lambda (s)
-                       (apply-implicit-parens (tokenize (string-trim s))))
-                     sections)])
-    (ts-reset)
-    (ts-defs exprs)))
+  (let* ([sections (map string-trim (string-split input "---"))]
+         [first-section (car sections)]
+         [first-expr (apply-implicit-parens (tokenize first-section))]
+         [first-holes (find-holes first-expr)])
+    (if (null? first-holes)
+        ;; Mode 2: Complete definitions (no holes in first section)
+        (let ([exprs (map (lambda (s)
+                            (apply-implicit-parens (tokenize s)))
+                          sections)])
+          (ts-reset)
+          (ts-defs exprs))
+        ;; Mode 1: Template + fills
+        (begin
+          (ts-reset)
+          (ts-start first-expr)
+          (for-each
+            (lambda (section)
+              (let ([tokens (tokenize section)])
+                (when (and (>= (length tokens) 3)
+                           (hole? (car tokens))
+                           (eq? (cadr tokens) ':=))
+                  (ts-fill (car tokens)
+                           (apply-implicit-parens (cddr tokens))))))
+            (cdr sections))
+          (ts-compile)))))
 
 ;;; string-split : String × String → (List String)
 ;;; Split string by delimiter.
