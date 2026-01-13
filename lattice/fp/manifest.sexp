@@ -168,6 +168,32 @@ Key design principles:
     ;; Memoized streams
     make-memo-stream memo-stream-ref
 
+    ;; zipper.ss — Functional Zippers
+    zipper? zipper-empty zipper-empty? zipper-singleton
+    list->zipper zipper->list zipper-from-position
+    ;; Navigation
+    zipper-has-focus? zipper-can-go-left? zipper-can-go-right?
+    zipper-left! zipper-right! zipper-start zipper-end
+    zipper-goto zipper-position zipper-length
+    ;; Focus operations
+    zipper-focus zipper-focus-maybe zipper-focus-or
+    zipper-set zipper-modify
+    ;; Insertion and deletion
+    zipper-insert-left zipper-insert-right zipper-insert-focus
+    zipper-delete zipper-delete-left zipper-delete-right
+    ;; Bulk operations
+    zipper-map zipper-filter zipper-fold-left zipper-fold-right
+    zipper-find zipper-find-index
+    ;; Context operations
+    zipper-context zipper-window zipper-split
+    zipper-append zipper-prepend
+    zipper-take-left zipper-take-right
+    ;; Type class instances
+    zipper-functor zipper-fmap
+    zipper-extract zipper-extend zipper-duplicate zipper-comonad
+    ;; Equality and display
+    zipper-equal? zipper->string
+
     ;; game/ — Game Theory
     ;; normal-form.ss
     make-game game? game-players game-strategies game-payoff-fn
