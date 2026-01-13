@@ -30,21 +30,84 @@
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
+(load "core/blocks/normalize.ss")
 
 ;;; ============================================================
 ;;; Hashing (Pure)
 ;;; ============================================================
 
+;;; ============================================================
+;;; Address Version Constants
+;;; ============================================================
+
+;;; address-version-alpha : Byte
+;;; Version 0x00: α-normalization only (de Bruijn indices).
+;;; This is the original hashing mode, preserved for compatibility.
+(define address-version-alpha #x00)
+
+;;; address-version-algebraic : Byte
+;;; Version 0x01: algebraic + α-normalization.
+;;; Applies commutative sorting, associative flattening, and
+;;; parallel binding reordering before de Bruijn conversion.
+(define address-version-algebraic #x01)
+
+;;; ============================================================
+;;; Hashing Functions
+;;; ============================================================
+
 ;;; hash-block : Block → Bytevector
-;;; Compute the versioned address of a block.
+;;; Compute the versioned address of a block (version 0x00).
 ;;; The SHA-256 hash is computed over the canonical serialization,
 ;;; then prefixed with a version byte.
+;;; NOTE: Does NOT apply normalization to payload. For raw bytes/tags.
 (define (hash-block blk)
   (let* ([hash (sha256 (block->bytes blk))]
          [address (make-bytevector address-size)])
         (bytevector-u8-set! address 0 address-version)
         (bytevector-copy! hash 0 address 1 hash-size)
         address))
+
+;;; hash-sexpr : Symbol × S-expr → Bytevector
+;;; Hash an S-expression with α-normalization only (version 0x00).
+;;; This applies de Bruijn conversion to ensure α-equivalent
+;;; expressions get the same hash.
+(define (hash-sexpr tag sexpr)
+  (let* ([normalized (normalize sexpr)]
+         [payload (string->utf8 (format "~s" normalized))]
+         [blk (make-block tag payload empty-refs)])
+    (hash-block blk)))
+
+;;; hash-sexpr-algebraic : Symbol × S-expr → Bytevector
+;;; Hash an S-expression with full normalization (version 0x01).
+;;; Applies algebraic canonicalization (commutative sorting,
+;;; associative flattening, parallel binding reordering) BEFORE
+;;; α-normalization.
+;;;
+;;; This produces hashes where semantically equivalent expressions
+;;; (up to argument order in commutative operations, etc.) get
+;;; the same hash.
+;;;
+;;; IMPORTANT: The version byte is 0x01, distinct from version 0x00
+;;; hashes. This ensures no collision between the two modes.
+(define (hash-sexpr-algebraic tag sexpr)
+  (let* ([normalized (normalize-full sexpr)]
+         [payload (string->utf8 (format "~s" normalized))]
+         [blk (make-block tag payload empty-refs)]
+         [hash (sha256 (block->bytes blk))]
+         [address (make-bytevector address-size)])
+    (bytevector-u8-set! address 0 address-version-algebraic)
+    (bytevector-copy! hash 0 address 1 hash-size)
+    address))
+
+;;; address-version : Bytevector → Byte
+;;; Extract the version byte from an address.
+(define (address-version-byte addr)
+  (bytevector-u8-ref addr 0))
+
+;;; address-algebraic? : Bytevector → Boolean
+;;; Check if an address was computed with algebraic normalization.
+(define (address-algebraic? addr)
+  (= (address-version-byte addr) address-version-algebraic))
 
 ;;; hash->hex : Bytevector → String
 ;;; Convert address bytes to hexadecimal string (for display).

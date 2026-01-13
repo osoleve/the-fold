@@ -150,3 +150,219 @@
     (apply append (map (lambda (e) (free-vars-with-env e env)) expr))]))
 
 ;;; Note: unique is provided by prelude.ss
+
+;;; ============================================================
+;;; Algebraic Normalization (Phase 1 - before α-normalization)
+;;; ============================================================
+;;;
+;;; Algebraic normalization canonicalizes expressions by exploiting
+;;; mathematical properties of operations:
+;;;   - Commutative: (+ a b) = (+ b a) → sort arguments
+;;;   - Associative: (+ (+ a b) c) = (+ a b c) → flatten
+;;;   - Parallel bindings: reorder independent let* bindings
+;;;   - Pure sequences: reorder independent pure expressions in begin
+;;;
+;;; CRITICAL: Must be applied BEFORE α-normalization (de Bruijn conversion).
+;;; Reordering bindings after de Bruijn conversion corrupts indices.
+
+(load "core/blocks/op-properties.ss")
+(load "core/blocks/canonical-order.ss")
+
+;;; normalize-algebraic : S-expr → S-expr
+;;; Algebraic canonicalization of an expression.
+;;; Call this BEFORE normalize (α-normalization).
+(define (normalize-algebraic expr)
+  (cond
+    ;; Atoms pass through unchanged
+    [(not (pair? expr)) expr]
+
+    ;; Quoted data: don't touch
+    [(eq? (car expr) 'quote) expr]
+
+    ;; Commutative + associative: flatten then sort
+    [(and (op-commutative? (car expr))
+          (op-associative? (car expr)))
+     (let* ([op (car expr)]
+            [args (cdr expr)]
+            [flat (flatten-associative op args)]
+            [norm-args (map normalize-algebraic flat)]
+            [sorted (canonical-sort norm-args)])
+       (cons op sorted))]
+
+    ;; Commutative only: sort arguments (no flattening)
+    [(op-commutative? (car expr))
+     (let* ([norm-args (map normalize-algebraic (cdr expr))]
+            [sorted (canonical-sort norm-args)])
+       (cons (car expr) sorted))]
+
+    ;; Associative only: flatten (preserve order)
+    [(op-associative? (car expr))
+     (let* ([flat (flatten-associative (car expr) (cdr expr))]
+            [norm-args (map normalize-algebraic flat)])
+       (cons (car expr) norm-args))]
+
+    ;; Parallel let*: sort independent bindings
+    [(eq? (car expr) 'let*)
+     (normalize-parallel-let expr)]
+
+    ;; Begin: sort if all expressions are pure
+    [(eq? (car expr) 'begin)
+     (normalize-begin expr)]
+
+    ;; Function: recurse into body
+    [(eq? (car expr) 'fn)
+     `(fn ,(cadr expr) ,(normalize-algebraic (caddr expr)))]
+
+    ;; Single let: recurse
+    [(eq? (car expr) 'let)
+     (let* ([binding (caadr expr)]
+            [var (car binding)]
+            [val (cadr binding)]
+            [body (caddr expr)])
+       `(let ((,var ,(normalize-algebraic val)))
+          ,(normalize-algebraic body)))]
+
+    ;; Fix: recurse into body
+    [(eq? (car expr) 'fix)
+     `(fix ,(cadr expr) ,(normalize-algebraic (caddr expr)))]
+
+    ;; General list: recurse into each element
+    [else
+     (map normalize-algebraic expr)]))
+
+;;; flatten-associative : Symbol × (List S-expr) → (List S-expr)
+;;; Flatten nested applications of an associative operator.
+;;; (+ (+ a b) c (+ d e)) → (a b c d e)
+(define (flatten-associative op args)
+  (apply append
+         (map (lambda (arg)
+                (if (and (pair? arg) (eq? (car arg) op))
+                    (flatten-associative op (cdr arg))
+                    (list arg)))
+              args)))
+
+;;; ============================================================
+;;; Parallel Binding Canonicalization
+;;; ============================================================
+
+;;; normalize-parallel-let : S-expr → S-expr
+;;; Reorder let* bindings that don't depend on each other.
+;;; Bindings are sorted topologically (dependencies first),
+;;; with a stable tiebreaker for independent bindings.
+(define (normalize-parallel-let expr)
+  (let* ([bindings (cadr expr)]
+         [body (caddr expr)]
+         [sorted (sort-bindings-by-deps bindings)]
+         [norm-bindings (map (lambda (b)
+                               (list (car b) (normalize-algebraic (cadr b))))
+                             sorted)]
+         [norm-body (normalize-algebraic body)])
+    `(let* ,norm-bindings ,norm-body)))
+
+;;; sort-bindings-by-deps : (List Binding) → (List Binding)
+;;; Topologically sort bindings, respecting dependencies.
+;;; Bindings without dependencies between them are sorted alphabetically.
+(define (sort-bindings-by-deps bindings)
+  (let* ([bound-vars (map car bindings)]
+         [deps-map (map (lambda (b)
+                          (let* ([var (car b)]
+                                 [val (cadr b)]
+                                 [used (free-vars val)]
+                                 [deps (filter (lambda (v) (memq v bound-vars)) used)])
+                            (cons var deps)))
+                        bindings)])
+    (topo-sort-stable bindings deps-map)))
+
+;;; topo-sort-stable : (List Binding) × (List (Var . Deps)) → (List Binding)
+;;; Topological sort with stable tiebreaker (alphabetical by var name).
+(define (topo-sort-stable bindings deps-map)
+  (define (lookup-deps var)
+    (let ([entry (assq var deps-map)])
+      (if entry (cdr entry) '())))
+
+  (define (remove-var var deps-map)
+    (map (lambda (entry)
+           (cons (car entry)
+                 (filter (lambda (d) (not (eq? d var))) (cdr entry))))
+         (filter (lambda (entry) (not (eq? (car entry) var))) deps-map)))
+
+  (define (find-ready deps-map)
+    ;; Find bindings with no remaining dependencies
+    (filter (lambda (entry) (null? (cdr entry))) deps-map))
+
+  (let loop ([remaining bindings]
+             [deps deps-map]
+             [result '()])
+    (if (null? remaining)
+        (reverse result)
+        (let* ([ready (find-ready deps)]
+               ;; Sort ready bindings alphabetically for stability
+               [ready-sorted (list-sort (lambda (a b)
+                                          (symbol<? (car a) (car b)))
+                                        ready)])
+          (if (null? ready-sorted)
+              ;; Cycle detected or no ready bindings - just return remaining
+              ;; (This shouldn't happen with valid let* bindings)
+              (append (reverse result) remaining)
+              (let* ([next-var (caar ready-sorted)]
+                     [next-binding (assq next-var remaining)]
+                     [new-remaining (filter (lambda (b) (not (eq? (car b) next-var)))
+                                            remaining)]
+                     [new-deps (remove-var next-var deps)])
+                (loop new-remaining new-deps (cons next-binding result))))))))
+
+;;; ============================================================
+;;; Sequence Canonicalization
+;;; ============================================================
+
+;;; normalize-begin : S-expr → S-expr
+;;; Sort begin expressions if all subexpressions are provably pure.
+;;; If any expression might have side effects, preserve original order.
+(define (normalize-begin expr)
+  (let* ([exprs (cdr expr)]
+         [norm-exprs (map normalize-algebraic exprs)])
+    (if (andmap expr-pure? norm-exprs)
+        (cons 'begin (canonical-sort norm-exprs))
+        (cons 'begin norm-exprs))))
+
+;;; expr-pure? : S-expr → Bool
+;;; Conservative purity check. Returns #t only for expressions
+;;; that are DEFINITELY pure. Unknown expressions default to impure.
+(define (expr-pure? expr)
+  (cond
+    ;; Literals are always pure
+    [(or (number? expr) (boolean? expr) (string? expr) (char? expr)) #t]
+
+    ;; Quoted data is pure
+    [(and (pair? expr) (eq? (car expr) 'quote)) #t]
+
+    ;; Lambda creation is pure (application might not be)
+    [(and (pair? expr) (eq? (car expr) 'fn)) #t]
+
+    ;; De Bruijn variable reference is pure
+    [(and (pair? expr) (eq? (car expr) 'dv)) #t]
+
+    ;; Known pure primitives (whitelist approach)
+    [(and (pair? expr)
+          (symbol? (car expr))
+          (op-pure? (car expr)))
+     (andmap expr-pure? (cdr expr))]
+
+    ;; Unknown function calls: DEFAULT TO IMPURE
+    ;; This is critical - (my-logger "msg") must not be reordered
+    [(pair? expr) #f]
+
+    ;; Symbols (free variables): conservative - might be effectful thunk
+    [(symbol? expr) #f]
+
+    [else #f]))
+
+;;; ============================================================
+;;; Combined Normalization
+;;; ============================================================
+
+;;; normalize-full : S-expr → S-expr
+;;; Full normalization: algebraic canonicalization followed by α-normalization.
+;;; Use this for version 1 content-addressed hashing.
+(define (normalize-full expr)
+  (normalize (normalize-algebraic expr)))
