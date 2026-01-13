@@ -49,7 +49,15 @@
            [back (numeric->algebra num-poly)]
            [orig-deg (alg-degree original)]
            [back-deg (alg-degree back)])
-      (assert-equal orig-deg back-deg))))
+      (assert-equal orig-deg back-deg)))
+
+  (define-test "zero polynomial conversion"
+    ;; Zero polynomial: critical edge case
+    (let* ([z-num (poly-from-list '(0))]
+           [z-alg (numeric->algebra z-num)]
+           [z-back (algebra->numeric z-alg)])
+      (assert-equal (alg-coeffs z-alg) '(0))
+      (assert-equal (vector->list (num-poly-vec z-back)) '(0)))))
 
 ;;; ============================================================
 ;;; Test: Prefixed Operations
@@ -130,7 +138,18 @@
   (define-test "bridge-coprime? detects non-coprime polynomials"
     (let* ([p1 (poly-from-list '(1 0 -1))]     ; x^2 - 1
            [p2 (poly-from-list '(1 -1))])       ; x - 1
-      (assert-false (bridge-coprime? p1 p2)))))
+      (assert-false (bridge-coprime? p1 p2))))
+
+  (define-test "bridge-simplify preserves coprime polynomials"
+    ;; x and (x+1) are coprime - should remain unchanged
+    (let* ([num (poly-from-list '(1 0))]        ; x
+           [den (poly-from-list '(1 1))]         ; x + 1
+           [simplified (bridge-simplify num den)]
+           [num-simp (car simplified)]
+           [den-simp (cdr simplified)])
+      ;; Degrees should remain the same (degree 1 each)
+      (assert-equal (- (vector-length (num-poly-vec num-simp)) 1) 1)
+      (assert-equal (- (vector-length (num-poly-vec den-simp)) 1) 1))))
 
 ;;; ============================================================
 ;;; Test: Factory Functions

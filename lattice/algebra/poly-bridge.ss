@@ -86,7 +86,7 @@
 (define (numeric->algebra-with-field p field)
   (let* ([coeffs-vec (cond
                        [(vector? p) p]                    ; Raw vector
-                       [(and (pair? p) (eq? (car p) 'poly))
+                       [(and (pair? p) (eq? (car p) 'poly) (vector? (cadr p)))
                         (cadr p)]                         ; Tagged (poly #(...))
                        [(and (pair? p) (vector? (cdr p)))
                         (cdr p)]                          ; (tag . #(...))
@@ -246,6 +246,8 @@
 ;;; make-numeric-from-roots : (List Number) → NumericPoly
 ;;; Create numeric polynomial from its roots.
 ;;; p(x) = (x - r_1)(x - r_2)...(x - r_n)
+;;; NOTE: Does not handle complex conjugate pairs. For complex roots that produce
+;;; real coefficients, use numeric/polynomial.ss:poly-from-roots instead.
 (define (make-numeric-from-roots roots)
   (algebra->numeric (alg-poly-from-roots Q-field roots)))
 
