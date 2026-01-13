@@ -51,24 +51,11 @@
 ;;;
 ;;; The system is stationary if all roots are outside the unit circle.
 
-;;; ar-char-poly : Vec → AlgebraPoly
-;;; Create AR characteristic polynomial from AR coefficients.
-;;; Input: phi = #(phi_1 phi_2 ... phi_p)
-;;; Output: Polynomial 1 - phi_1*z - phi_2*z^2 - ... - phi_p*z^p (ascending order)
-(define (ar-char-poly phi)
-  (let* ([p (vector-length phi)]
-         [coeffs (make-list (+ p 1) 0)])
-    ;; Set coefficients: a_0 = 1, a_k = -phi_k for k > 0
-    (let loop ([k 0] [cs coeffs])
-      (if (null? cs)
-          (make-polynomial Q-field-ts coeffs)
-          (if (= k 0)
-              (loop 1 (cdr (set-car! cs 1)))  ; Won't work - use different approach
-              (loop (+ k 1) (cdr cs)))))))
-
 ;;; ar-char-poly-vec : Vec → AlgebraPoly
 ;;; Create AR characteristic polynomial from coefficient vector.
 ;;; Uses proper list construction.
+;;; Input: phi = #(phi_1 phi_2 ... phi_p)
+;;; Output: Polynomial 1 - phi_1*z - phi_2*z^2 - ... - phi_p*z^p (ascending order)
 (define (ar-char-poly-vec phi)
   (let* ([p (vector-length phi)]
          ;; Build coefficients in ascending order: [1, -phi_1, -phi_2, ..., -phi_p]
@@ -80,6 +67,10 @@
                            (loop (+ k 1)
                                  (cons (- (vector-ref phi (- k 1))) acc)))))])
     (make-polynomial Q-field-ts coeffs)))
+
+;;; ar-char-poly : Vec → AlgebraPoly
+;;; Alias for ar-char-poly-vec (legacy name).
+(define ar-char-poly ar-char-poly-vec)
 
 ;;; ar-companion-poly : Vec → AlgebraPoly
 ;;; Create AR companion polynomial: z^p - phi_1*z^{p-1} - ... - phi_p

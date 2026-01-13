@@ -52,6 +52,9 @@
                  log-transform box-cox)
    (acf-pacf acf pacf ljung-box-test box-pierce-test ccf)
    (ar ar-fit ar-forecast ar-select-order ar-aic ar-bic)
+   (ar-poly ar-char-poly-vec ma-char-poly ar-companion-poly
+            arma-common-factors arma-reducible?
+            ar-stable-simple? ma-invertible-simple? ar-forecast-weights)
    (ma ma-fit ma-forecast moving-average weighted-moving-average
        exponential-moving-average arma-fit-simple)
    (exponential simple-exponential-smooth holt-smooth holt-winters
@@ -87,6 +90,7 @@
    (differencing "timeseries/differencing.ss" "Differencing and integration")
    (acf-pacf "timeseries/acf-pacf.ss" "ACF, PACF, Ljung-Box test")
    (ar "timeseries/ar.ss" "Autoregressive models via Yule-Walker")
+   (ar-poly "timeseries/ar-poly.ss" "Polynomial analysis for AR/MA models")
    (ma "timeseries/ma.ss" "Moving average models via innovations")
    (exponential "timeseries/exponential.ss" "Holt-Winters exponential smoothing")
    (forecast "timeseries/forecast.ss" "Forecast accuracy and utilities")))

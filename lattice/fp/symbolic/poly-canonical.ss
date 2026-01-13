@@ -280,16 +280,21 @@
 ;;; poly-divide-expr : Expr × Expr × Symbol → (Expr . Expr)
 ;;; Polynomial division: numer = quotient * denom + remainder.
 ;;; Returns (quotient . remainder) as symbolic expressions.
+;;; Returns (#f . #f) if inputs are not polynomials or denominator is zero.
 (define (poly-divide-expr numer-expr denom-expr var-sym)
   (let* ([numer-poly (expr->polynomial numer-expr var-sym Q-field-sym)]
          [denom-poly (expr->polynomial denom-expr var-sym Q-field-sym)])
-    (if (or (not numer-poly) (not denom-poly))
-        (cons #f #f)  ; Not polynomials
-        (let* ([qr (poly-divmod numer-poly denom-poly)]
-               [quot-poly (car qr)]
-               [rem-poly (cdr qr)])
-          (cons (polynomial->expr quot-poly var-sym)
-                (polynomial->expr rem-poly var-sym))))))
+    (cond
+      [(or (not numer-poly) (not denom-poly))
+       (cons #f #f)]  ; Not polynomials
+      [(poly-zero? denom-poly)
+       (cons #f #f)]  ; Division by zero
+      [else
+       (let* ([qr (poly-divmod numer-poly denom-poly)]
+              [quot-poly (car qr)]
+              [rem-poly (cdr qr)])
+         (cons (polynomial->expr quot-poly var-sym)
+               (polynomial->expr rem-poly var-sym)))])))
 
 ;;; ============================================================
 ;;; Polynomial Canonical Form

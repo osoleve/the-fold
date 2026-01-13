@@ -430,8 +430,13 @@
             (reverse rows)
             (let* ([a (car prev-prev-row)]
                    [b (car prev-row)]
-                   ;; Handle zero pivot with exact arithmetic
-                   [b-safe (if (= b 0) 1/1000000 b)]  ; Epsilon for exact
+                   ;; Handle zero pivot: use small rational epsilon for limit behavior.
+                   ;; NOTE: This is a simplification. For rigorous handling of zero pivots,
+                   ;; the auxiliary polynomial method should be used (derivative of the
+                   ;; polynomial formed by the row above the zero row). This epsilon
+                   ;; approach gives correct stability determination for most cases.
+                   ;; TODO: Implement proper auxiliary polynomial method for zero rows.
+                   [b-safe (if (= b 0) 1/1000000 b)]
                    [new-row (make-routh-new-row prev-prev-row prev-row b-safe len)])
               ;; If new row is empty, stop iteration
               (if (null? new-row)

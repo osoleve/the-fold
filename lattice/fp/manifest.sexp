@@ -195,6 +195,9 @@ Key design principles:
     expr->string string->expr
     ;; Simplification
     simplify-expr collect-like-terms
+    ;; poly-canonical.ss — Polynomial canonical forms
+    expr->polynomial polynomial->expr simplify-rational
+    expr-poly-gcd expr-degree polynomial-expr?
 
     ;; measure/ — Units of Measure
     ;; units.ss
@@ -292,6 +295,10 @@ Key design principles:
     closed-loop-tf sensitivity-tf complementary-sensitivity-tf
     lead-compensator lag-compensator lead-lag-compensator
     controller-info
+
+    ;; poly-algebra.ss — Polynomial algebra for transfer functions
+    tf-simplify tf-coprime? routh-hurwitz-exact
+    tf-char-poly tf-bezout alg-poly-degree alg-poly-gcd
 
     ;; digital-pid.ss — Discrete PID controllers
     make-digital-pid digital-pid?
@@ -399,7 +406,8 @@ Key design principles:
     ((subdir "symbolic")
      (description "Symbolic computation and computer algebra")
      (files (
-       "expr.ss")))        ; Symbolic expression representation
+       "expr.ss"           ; Symbolic expression representation
+       "poly-canonical.ss"))) ; Polynomial canonical form conversion
 
     ((subdir "measure")
      (description "Units of measure with dimensional analysis")
@@ -417,7 +425,8 @@ Key design principles:
        "transfer-function.ss" ; Continuous transfer functions (S-domain)
        "controller-design.ss" ; Controller synthesis (LQR, pole placement, PID tuning)
        "digital-pid.ss"       ; Discrete PID with anti-windup and tuning rules
-       "tf-convert.ss")))     ; State-space <-> transfer function conversion
+       "tf-convert.ss"        ; State-space <-> transfer function conversion
+       "poly-algebra.ss")))   ; Polynomial algebra (GCD, simplification, coprimality)
 
     ((subdir "analysis")
      (description "Cost analysis and parallelization heuristics")
