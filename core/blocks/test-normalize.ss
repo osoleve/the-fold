@@ -383,5 +383,37 @@ Test 27: Float handling in poly-canon
   (test "integers included in poly-canon" #t result))
 
 (display "
+Test 28: Poly-canon limit enforcement
+")
+;; Test that depth limit is respected
+(let ([deep-expr (let loop ([n 15] [acc 'x])
+                   (if (= n 0) acc (loop (- n 1) `(+ ,acc 1))))])
+  ;; Expression deeper than *poly-canon-max-depth* (10) should NOT be canonicalized
+  (test "deep expression bypasses poly-canon"
+        #f
+        (arithmetic-expr? deep-expr)))
+
+;; Non-arithmetic expressions should be untouched by poly-canon
+(let ([result (poly-canonicalize '(f x y))])
+  (test "non-arithmetic untouched" '(f x y) result))
+
+(let ([result (poly-canonicalize '(if (> x 0) x (- x)))])
+  (test "if-expression untouched" '(if (> x 0) x (- x)) result))
+
+(display "
+Test 29: Hash-cons memory management
+")
+;; Test reset clears the table
+(hash-cons-reset!)
+(let ([stats1 (hash-cons-stats)])
+  (hash-cons '(+ a b))
+  (hash-cons '(+ a b))
+  (let ([stats2 (hash-cons-stats)])
+    (test "hash-cons tracks hits" #t (> (car stats2) 0)))
+  (hash-cons-reset!)
+  (let ([stats3 (hash-cons-stats)])
+    (test "reset clears hits" 0 (car stats3))))
+
+(display "
 ✓ All tests complete.
 ")

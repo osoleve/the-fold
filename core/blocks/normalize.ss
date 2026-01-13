@@ -570,7 +570,9 @@
 
 ;;; normalize-v2 : S-expr → S-expr
 ;;; Full version 2 normalization pipeline:
-;;;   η-reduction → identity elimination → algebraic → α-normalization → hash-cons
+;;;   η-reduction → poly-canon → algebraic → identity elimination → α → hash-cons
+;;; Identity elimination is applied LAST in the algebraic phase because
+;;; flattening may expose new identity opportunities (e.g., (+ (+ a 0) b)).
 ;;; Use this for version 2 content-addressed hashing.
 (define (normalize-v2 expr)
   (hash-cons (normalize (normalize-algebraic-v2 expr))))

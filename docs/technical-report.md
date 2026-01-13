@@ -244,10 +244,13 @@ Address = [ version : 1 byte ][ hash : 32 bytes ]
 |---------|------|-------------|
 | `0x00` | α-only | De Bruijn indices only (original mode) |
 | `0x01` | Algebraic + α | Full algebraic canonicalization before de Bruijn |
+| `0x02` | Enhanced (v2) | η-reduction, identity elimination, polynomial canonicalization, hash-consing |
 
 Version `0x00` provides α-equivalence: `(λ x. x)` and `(λ y. y)` hash identically.
 
 Version `0x01` provides extended equivalence: `(+ a b)` and `(+ b a)` also hash identically, as do `(+ (+ a b) c)` and `(+ a b c)`.
+
+Version `0x02` provides maximum semantic equivalence detection: `(+ x 0)` and `x` hash identically, `(+ x x)` and `(* 2 x)` hash identically, and `(fn (x) (f x))` and `f` hash identically (when x is not free in f).
 
 The version byte ensures no collision between modes—a block hashed with algebraic normalization is distinct from the same block hashed without it.
 
@@ -507,8 +510,96 @@ The full normalization function applies both phases:
 | None | Syntactic identity only |
 | α-only (v0x00) | + Variable renaming |
 | Algebraic + α (v0x01) | + Commutative, associative, parallel bindings |
+| Enhanced v2 (v0x02) | + η-equivalence, identity elements, polynomial equivalence |
 
 **Implementation**: `core/blocks/normalize.ss`, `core/blocks/op-properties.ss`, `core/blocks/canonical-order.ss`
+
+#### 3.4.4 Enhanced Normalization (Version 2)
+
+Version 0x02 introduces four additional canonicalization passes that significantly expand semantic equivalence detection. These are applied in a specific order before α-normalization.
+
+**η-Reduction**
+
+Functions of the form `(fn (x) (f x))` where `x` does not appear free in `f` are equivalent to `f`. This eliminates trivial wrapper functions:
+
+```scheme
+(fn (x) (f x))           → f          ; η-reduced
+(fn (x) (g x x))         → unchanged  ; x appears twice
+(fn (x) (x y))           → unchanged  ; x in operator position
+(fn (y) (fn (x) (f x)))  → (fn (y) f) ; Nested η-reduction
+```
+
+**Identity Element Elimination**
+
+Operations with identity elements are simplified by removing those elements:
+
+```scheme
+(+ x 0)       → x         ; 0 is identity for +
+(* x 1)       → x         ; 1 is identity for *
+(+ a 0 b 0)   → (+ a b)   ; Multiple identities removed
+(+ 0 0 0)     → 0         ; All identities → identity itself
+```
+
+**Absorbing Element Elimination**
+
+Operations with absorbing elements short-circuit to the absorbing value:
+
+```scheme
+(* x 0 y)     → 0         ; 0 absorbs for *
+(* a 0)       → 0         ; Any multiplication with 0
+```
+
+**Polynomial Canonicalization**
+
+Arithmetic expressions are lifted to polynomial representation and lowered to sum-of-products canonical form:
+
+```scheme
+(+ x x)               → (* 2 x)           ; Like terms collected
+(+ (* a b) (* b a))   → (* 2 a b)         ; After sorting, same term
+(+ 1 2 3)             → 6                 ; Constant folding
+(+ a b)               → (+ a b)           ; Already canonical
+```
+
+**Constraints**:
+- Only applies to exact numbers (integers, rationals)—floats remain opaque to avoid precision issues
+- Depth limit (`*poly-canon-max-depth*` = 10) prevents deep recursion
+- Term limit (`*poly-canon-max-terms*` = 100) prevents exponential blowup
+
+**Hash-Consing**
+
+All normalized structures pass through a global canonicalization table that ensures structural sharing. Two equivalent subexpressions are represented by the same object (pointer equality):
+
+```scheme
+(hash-cons '(+ a b))  ; Returns canonical representative
+(hash-cons '(+ a b))  ; Returns SAME object (eq? = #t)
+```
+
+This provides:
+- Memory efficiency through deduplication
+- Fast equality checking via pointer comparison
+- Foundation for memoized normalization
+
+**Combined v2 Pipeline**:
+
+```
+Input Expression
+    ↓
+η-Reduction
+    ↓
+Polynomial Canonicalization (recursive)
+    ↓
+Algebraic Canonicalization (commutative sorting, associative flattening)
+    ↓
+Identity/Absorbing Element Elimination
+    ↓
+α-Normalization (de Bruijn indices)
+    ↓
+Hash-Consing
+    ↓
+SHA-256 → Address (version 0x02)
+```
+
+**Implementation**: `core/blocks/normalize.ss` (v2 pipeline), `core/blocks/poly-canon.ss` (polynomial operations), `core/blocks/hash-cons.ss` (structural sharing), `core/blocks/op-properties.ss` (identity/absorbing elements)
 
 ### 3.5 Content-Addressed Store (CAS)
 
