@@ -18,7 +18,8 @@
   (keywords (statistics regression linear-model glm logistic regularized
              ridge lasso elastic-net time-series ar ma exponential-smoothing
              hypothesis-testing t-test f-test chi-squared anova forecast
-             diagnostics cook-distance leverage residuals))
+             diagnostics cook-distance leverage residuals
+             orthogonal-polynomials legendre chebyshev hermite laguerre))
 
   (aliases (stats stat regression models))
 
@@ -28,7 +29,10 @@
                  ANOVAResult ForecastResult)
    (summary-stats vec-mean vec-variance vec-std-dev vec-median vec-quantile
                   vec-covariance vec-correlation)
-   (design-matrix add-intercept standardize-columns dummy-encode polynomial-features)
+   (design-matrix add-intercept standardize-columns dummy-encode polynomial-features
+                  legendre-p chebyshev-t hermite-h laguerre-l
+                  legendre-features chebyshev-features hermite-features laguerre-features
+                  orthogonal-features)
    (diagnostics hat-matrix-diagonal cooks-distance residuals-studentized vif)
 
    ;; Regression
@@ -69,7 +73,7 @@
    ;; Core modules
    (result-types "core/result-types.ss" "Statistical model result structures")
    (summary-stats "core/summary-stats.ss" "Descriptive statistics")
-   (design-matrix "core/design-matrix.ss" "Design matrix construction")
+   (design-matrix "core/design-matrix.ss" "Design matrix, orthogonal polynomial bases")
    (diagnostics "core/diagnostics.ss" "Model diagnostics (leverage, Cook's D)")
 
    ;; Regression modules

@@ -289,3 +289,217 @@
                      [(= j n)]
                      (vector-set! data (+ (* (+ m1 i) n) j) (matrix-ref X2 i j))))
              (list 'matrix m n data)))))
+
+;;; ============================================================
+;;; Orthogonal Polynomial Bases
+;;; ============================================================
+;;;
+;;; Orthogonal polynomials provide better numerical stability than
+;;; standard polynomial bases (1, x, x², ...) because they avoid
+;;; the ill-conditioning of Vandermonde matrices.
+;;;
+;;; Each family is orthogonal with respect to a specific weight function:
+;;;   - Legendre: w(x) = 1 on [-1, 1]
+;;;   - Chebyshev: w(x) = 1/sqrt(1-x²) on [-1, 1]
+;;;   - Hermite: w(x) = e^(-x²) on (-∞, ∞)
+;;;   - Laguerre: w(x) = e^(-x) on [0, ∞)
+
+;;; legendre-p : Nat × Num → Num
+;;; Evaluate Legendre polynomial P_n(x) using recurrence relation.
+;;; P_0(x) = 1, P_1(x) = x
+;;; P_n(x) = ((2n-1)·x·P_{n-1}(x) - (n-1)·P_{n-2}(x)) / n
+(define (legendre-p n x)
+  (cond
+   [(= n 0) 1]
+   [(= n 1) x]
+   [else
+    (let loop ([k 2] [p-2 1] [p-1 x])
+      (if (> k n)
+          p-1
+          (let ([p-k (/ (- (* (- (* 2 k) 1) x p-1)
+                           (* (- k 1) p-2))
+                        k)])
+            (loop (+ k 1) p-1 p-k))))]))
+
+;;; chebyshev-t : Nat × Num → Num
+;;; Evaluate Chebyshev polynomial T_n(x) of first kind.
+;;; T_0(x) = 1, T_1(x) = x
+;;; T_n(x) = 2x·T_{n-1}(x) - T_{n-2}(x)
+(define (chebyshev-t n x)
+  (cond
+   [(= n 0) 1]
+   [(= n 1) x]
+   [else
+    (let loop ([k 2] [t-2 1] [t-1 x])
+      (if (> k n)
+          t-1
+          (let ([t-k (- (* 2 x t-1) t-2)])
+            (loop (+ k 1) t-1 t-k))))]))
+
+;;; hermite-h : Nat × Num → Num
+;;; Evaluate (probabilist's) Hermite polynomial He_n(x).
+;;; He_0(x) = 1, He_1(x) = x
+;;; He_n(x) = x·He_{n-1}(x) - (n-1)·He_{n-2}(x)
+;;; Note: Uses probabilist's convention, not physicist's.
+(define (hermite-h n x)
+  (cond
+   [(= n 0) 1]
+   [(= n 1) x]
+   [else
+    (let loop ([k 2] [h-2 1] [h-1 x])
+      (if (> k n)
+          h-1
+          (let ([h-k (- (* x h-1) (* (- k 1) h-2))])
+            (loop (+ k 1) h-1 h-k))))]))
+
+;;; laguerre-l : Nat × Num → Num
+;;; Evaluate Laguerre polynomial L_n(x).
+;;; L_0(x) = 1, L_1(x) = 1 - x
+;;; L_n(x) = ((2n-1-x)·L_{n-1}(x) - (n-1)·L_{n-2}(x)) / n
+(define (laguerre-l n x)
+  (cond
+   [(= n 0) 1]
+   [(= n 1) (- 1 x)]
+   [else
+    (let loop ([k 2] [l-2 1] [l-1 (- 1 x)])
+      (if (> k n)
+          l-1
+          (let ([l-k (/ (- (* (- (- (* 2 k) 1) x) l-1)
+                           (* (- k 1) l-2))
+                        k)])
+            (loop (+ k 1) l-1 l-k))))]))
+
+;;; ============================================================
+;;; Orthogonal Polynomial Design Matrices
+;;; ============================================================
+
+;;; legendre-features : (Vector Num) × Nat → Matrix
+;;; Create design matrix with Legendre polynomial basis.
+;;; Maps input to [-1, 1] before evaluation for numerical stability.
+;;; Columns: [P_0(x), P_1(x), ..., P_degree(x)]
+(define (legendre-features xs degree)
+  (let* ([n (vector-length xs)]
+         [ncols (+ degree 1)]
+         ;; Map to [-1, 1]
+         [x-min (vec-min xs)]
+         [x-max (vec-max xs)]
+         [x-range (- x-max x-min)]
+         [scale (lambda (x)
+                  (if (= x-range 0)
+                      0
+                      (- (* 2 (/ (- x x-min) x-range)) 1)))]
+         [data (make-vector (* n ncols))])
+    (do ([i 0 (+ i 1)])
+        ((= i n) (list 'matrix n ncols data))
+      (let ([xi (scale (vector-ref xs i))])
+        (do ([d 0 (+ d 1)])
+            ((> d degree))
+          (vector-set! data (+ (* i ncols) d) (legendre-p d xi)))))))
+
+;;; chebyshev-features : (Vector Num) × Nat → Matrix
+;;; Create design matrix with Chebyshev polynomial basis.
+;;; Maps input to [-1, 1] before evaluation.
+;;; Columns: [T_0(x), T_1(x), ..., T_degree(x)]
+(define (chebyshev-features xs degree)
+  (let* ([n (vector-length xs)]
+         [ncols (+ degree 1)]
+         [x-min (vec-min xs)]
+         [x-max (vec-max xs)]
+         [x-range (- x-max x-min)]
+         [scale (lambda (x)
+                  (if (= x-range 0)
+                      0
+                      (- (* 2 (/ (- x x-min) x-range)) 1)))]
+         [data (make-vector (* n ncols))])
+    (do ([i 0 (+ i 1)])
+        ((= i n) (list 'matrix n ncols data))
+      (let ([xi (scale (vector-ref xs i))])
+        (do ([d 0 (+ d 1)])
+            ((> d degree))
+          (vector-set! data (+ (* i ncols) d) (chebyshev-t d xi)))))))
+
+;;; hermite-features : (Vector Num) × Nat → Matrix
+;;; Create design matrix with Hermite polynomial basis.
+;;; Standardizes input (z-score) before evaluation.
+;;; Columns: [He_0(x), He_1(x), ..., He_degree(x)]
+(define (hermite-features xs degree)
+  (let* ([n (vector-length xs)]
+         [ncols (+ degree 1)]
+         ;; Standardize for Hermite (Gaussian weighting)
+         [mu (vec-mean xs)]
+         [sigma (vec-std xs)]
+         [scale (lambda (x)
+                  (if (= sigma 0)
+                      0
+                      (/ (- x mu) sigma)))]
+         [data (make-vector (* n ncols))])
+    (do ([i 0 (+ i 1)])
+        ((= i n) (list 'matrix n ncols data))
+      (let ([xi (scale (vector-ref xs i))])
+        (do ([d 0 (+ d 1)])
+            ((> d degree))
+          (vector-set! data (+ (* i ncols) d) (hermite-h d xi)))))))
+
+;;; laguerre-features : (Vector Num) × Nat → Matrix
+;;; Create design matrix with Laguerre polynomial basis.
+;;; Shifts input so minimum is 0 (for [0, ∞) domain).
+;;; Columns: [L_0(x), L_1(x), ..., L_degree(x)]
+(define (laguerre-features xs degree)
+  (let* ([n (vector-length xs)]
+         [ncols (+ degree 1)]
+         ;; Shift to [0, ∞)
+         [x-min (vec-min xs)]
+         [scale (lambda (x) (- x x-min))]
+         [data (make-vector (* n ncols))])
+    (do ([i 0 (+ i 1)])
+        ((= i n) (list 'matrix n ncols data))
+      (let ([xi (scale (vector-ref xs i))])
+        (do ([d 0 (+ d 1)])
+            ((> d degree))
+          (vector-set! data (+ (* i ncols) d) (laguerre-l d xi)))))))
+
+;;; orthogonal-features : (Vector Num) × Nat × Symbol → Matrix
+;;; Create design matrix with specified orthogonal polynomial basis.
+;;; basis: 'legendre, 'chebyshev, 'hermite, or 'laguerre
+(define (orthogonal-features xs degree basis)
+  (case basis
+    [(legendre) (legendre-features xs degree)]
+    [(chebyshev) (chebyshev-features xs degree)]
+    [(hermite) (hermite-features xs degree)]
+    [(laguerre) (laguerre-features xs degree)]
+    [else (error 'orthogonal-features
+                 "unknown basis (use legendre, chebyshev, hermite, or laguerre)"
+                 basis)]))
+
+;;; vec-min : Vector → Num
+(define (vec-min v)
+  (let ([n (vector-length v)])
+    (if (= n 0)
+        +inf.0
+        (let loop ([i 1] [m (vector-ref v 0)])
+          (if (= i n)
+              m
+              (loop (+ i 1) (min m (vector-ref v i))))))))
+
+;;; vec-max : Vector → Num
+(define (vec-max v)
+  (let ([n (vector-length v)])
+    (if (= n 0)
+        -inf.0
+        (let loop ([i 1] [m (vector-ref v 0)])
+          (if (= i n)
+              m
+              (loop (+ i 1) (max m (vector-ref v i))))))))
+
+;;; vec-std : Vector → Num
+(define (vec-std v)
+  (let* ([n (vector-length v)]
+         [mu (vec-mean v)])
+    (if (<= n 1)
+        0
+        (let ([ss (let loop ([i 0] [s 0])
+                    (if (= i n)
+                        s
+                        (loop (+ i 1)
+                              (+ s (expt (- (vector-ref v i) mu) 2)))))])
+          (sqrt (/ ss (- n 1)))))))

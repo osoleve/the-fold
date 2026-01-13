@@ -198,6 +198,134 @@
                     (assert-true (> p-value 0.05)))))
 
 ;;; ============================================================
+;;; Design Matrix Tests (Orthogonal Polynomials)
+;;; ============================================================
+
+(load "lattice/statistics/core/design-matrix.ss")
+
+(test-group "orthogonal-polynomials"
+
+            ;; Legendre polynomial tests
+            (define-test "legendre-p base cases"
+              (assert-equal 1 (legendre-p 0 0.5))
+              (assert-equal 0.5 (legendre-p 1 0.5)))
+
+            (define-test "legendre-p P_2(x) = (3x² - 1)/2"
+              (let* ([x 0.6]
+                     [expected (/ (- (* 3 x x) 1) 2)]
+                     [actual (legendre-p 2 x)])
+                    (assert-true (< (abs (- actual expected)) 1e-10))))
+
+            (define-test "legendre-p P_3(x) = (5x³ - 3x)/2"
+              (let* ([x 0.4]
+                     [expected (/ (- (* 5 x x x) (* 3 x)) 2)]
+                     [actual (legendre-p 3 x)])
+                    (assert-true (< (abs (- actual expected)) 1e-10))))
+
+            ;; Chebyshev polynomial tests
+            (define-test "chebyshev-t base cases"
+              (assert-equal 1 (chebyshev-t 0 0.5))
+              (assert-equal 0.5 (chebyshev-t 1 0.5)))
+
+            (define-test "chebyshev-t T_2(x) = 2x² - 1"
+              (let* ([x 0.7]
+                     [expected (- (* 2 x x) 1)]
+                     [actual (chebyshev-t 2 x)])
+                    (assert-true (< (abs (- actual expected)) 1e-10))))
+
+            (define-test "chebyshev-t T_3(x) = 4x³ - 3x"
+              (let* ([x 0.3]
+                     [expected (- (* 4 x x x) (* 3 x))]
+                     [actual (chebyshev-t 3 x)])
+                    (assert-true (< (abs (- actual expected)) 1e-10))))
+
+            ;; Hermite polynomial tests (probabilist's)
+            (define-test "hermite-h base cases"
+              (assert-equal 1 (hermite-h 0 1.5))
+              (assert-equal 1.5 (hermite-h 1 1.5)))
+
+            (define-test "hermite-h He_2(x) = x² - 1"
+              (let* ([x 2.0]
+                     [expected (- (* x x) 1)]
+                     [actual (hermite-h 2 x)])
+                    (assert-true (< (abs (- actual expected)) 1e-10))))
+
+            (define-test "hermite-h He_3(x) = x³ - 3x"
+              (let* ([x 1.5]
+                     [expected (- (* x x x) (* 3 x))]
+                     [actual (hermite-h 3 x)])
+                    (assert-true (< (abs (- actual expected)) 1e-10))))
+
+            ;; Laguerre polynomial tests
+            (define-test "laguerre-l base cases"
+              (assert-equal 1 (laguerre-l 0 2.0))
+              (assert-equal -1.0 (laguerre-l 1 2.0)))  ; 1 - 2 = -1
+
+            (define-test "laguerre-l L_2(x) = (x² - 4x + 2)/2"
+              (let* ([x 3.0]
+                     [expected (/ (+ (- (* x x) (* 4 x)) 2) 2)]
+                     [actual (laguerre-l 2 x)])
+                    (assert-true (< (abs (- actual expected)) 1e-10))))
+
+            (define-test "laguerre-l L_3(x) = (-x³ + 9x² - 18x + 6)/6"
+              (let* ([x 2.0]
+                     [expected (/ (+ (- (- (* x x x)) (* 9 x x)) (* 18 x) (- 6)) 6)]
+                     [actual (laguerre-l 3 x)])
+                    ;; L_3(2) = (-8 + 36 - 36 + 6)/6 = -2/6 = -1/3
+                    (assert-true (< (abs (- actual (/ -1 3))) 1e-10)))))
+
+(test-group "orthogonal-features"
+
+            (define-test "legendre-features creates correct matrix dimensions"
+              (let* ([xs (vector 0.0 1.0 2.0 3.0)]
+                     [result (legendre-features xs 3)])
+                    (assert-equal 4 (matrix-rows result))
+                    (assert-equal 4 (matrix-cols result))))  ; degree 3 = 4 columns
+
+            (define-test "legendre-features first column is all 1s (P_0)"
+              (let* ([xs (vector 1.0 2.0 3.0 4.0 5.0)]
+                     [result (legendre-features xs 2)])
+                    (assert-equal 1 (matrix-ref result 0 0))
+                    (assert-equal 1 (matrix-ref result 2 0))
+                    (assert-equal 1 (matrix-ref result 4 0))))
+
+            (define-test "chebyshev-features creates correct matrix dimensions"
+              (let* ([xs (vector 0.0 0.5 1.0)]
+                     [result (chebyshev-features xs 4)])
+                    (assert-equal 3 (matrix-rows result))
+                    (assert-equal 5 (matrix-cols result))))  ; degree 4 = 5 columns
+
+            (define-test "hermite-features creates correct matrix dimensions"
+              (let* ([xs (vector -1.0 0.0 1.0 2.0)]
+                     [result (hermite-features xs 2)])
+                    (assert-equal 4 (matrix-rows result))
+                    (assert-equal 3 (matrix-cols result))))
+
+            (define-test "laguerre-features creates correct matrix dimensions"
+              (let* ([xs (vector 1.0 2.0 3.0)]
+                     [result (laguerre-features xs 3)])
+                    (assert-equal 3 (matrix-rows result))
+                    (assert-equal 4 (matrix-cols result))))
+
+            (define-test "orthogonal-features dispatches to correct basis"
+              (let* ([xs (vector 0.0 1.0 2.0)]
+                     [leg (orthogonal-features xs 2 'legendre)]
+                     [cheb (orthogonal-features xs 2 'chebyshev)])
+                    ;; Both should have same dimensions
+                    (assert-equal 3 (matrix-rows leg))
+                    (assert-equal 3 (matrix-cols leg))
+                    (assert-equal 3 (matrix-rows cheb))
+                    (assert-equal 3 (matrix-cols cheb))))
+
+            (define-test "orthogonal-features with constant input handles edge case"
+              ;; All same values => zero range
+              (let* ([xs (vector 5.0 5.0 5.0)]
+                     [result (legendre-features xs 2)])
+                    ;; Should not crash, first column still 1s
+                    (assert-equal 3 (matrix-rows result))
+                    (assert-equal 1 (matrix-ref result 0 0)))))
+
+;;; ============================================================
 ;;; Regularized Regression Tests
 ;;; ============================================================
 
