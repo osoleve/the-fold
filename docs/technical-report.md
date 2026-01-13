@@ -3,8 +3,8 @@
 **Technical Report**
 
 ---
-
 ## Abstract
+
 
 We present **The Fold**, a programming system built on a content-addressable homoiconic foundation. At its core lies a *block machine* where every computational unit—code, data, and types—is represented as a cryptographically-addressed immutable structure. Through a two-phase normalization process—α-normalization via de Bruijn indices and algebraic canonicalization (commutative sorting, associative flattening)—semantically equivalent expressions produce identical hashes, achieving true *semantic identity*: two functions that behave identically are the same function, regardless of variable naming or argument order in commutative operations.
 
@@ -15,8 +15,8 @@ The system organizes verified code into a *module DAG* (internally called the "s
 Key contributions: (1) a block calculus formalizing content-addressed computation with α-equivalence, (2) a dependent type system integrated with gradual typing, (3) a compositional module system with fuel-bounded complexity guarantees. The implementation, built entirely in Chez Scheme with no third-party dependencies, demonstrates that reproducible, verifiable computation can emerge from simple foundations.
 
 ---
-
 ## 1. Introduction
+
 
 ### 1.1 The Problem with File-Based Programming
 
@@ -106,8 +106,8 @@ This enables *compositional verification*: verifying a module requires only veri
 - **Section 12**: Conclusion
 
 ---
-
 ## 2. System Architecture
+
 
 The Fold employs a *three-layer architecture* separating pure computation from effectful boundaries:
 
@@ -189,8 +189,8 @@ Effectful code cannot enjoy these properties unconditionally. Rather than compro
 The Shell is not a "second-class citizen"—it is essential for any useful system. But by separating it from Core, we preserve Core's mathematical properties while providing practical functionality.
 
 ---
-
 ## 3. The Block Machine
+
 
 ### 3.1 Block Structure
 
@@ -715,8 +715,8 @@ Consider the expression `(+ (square 3) 1)` where `square` is defined as `(lambda
 Each block's address is the SHA-256 hash of its serialization. The structure forms a Merkle DAG—any change to any block changes its hash and propagates upward.
 
 ---
-
 ## 4. The Block Calculus
+
 
 This section formalizes the computational model underlying The Fold.
 
@@ -1149,8 +1149,8 @@ Generated code participates in content addressing:
 Even metaprogrammed code benefits from semantic identity.
 
 ---
-
 ## 5. The Type Theory
+
 
 The Fold implements a gradual dependent type system combining multiple features into a coherent whole.
 
@@ -1545,8 +1545,8 @@ Rather than approximate normalization (Eremondi et al.) or elaborate runtime che
 **Future direction**: We may explore restricted approximate normalization for specific patterns (e.g., length-indexed vectors with unknown but bounded length).
 
 ---
-
 ## 6. The Module System
+
 
 The Fold organizes verified code into a *Module DAG*—a directed acyclic graph of modules with declared dependencies.
 
@@ -1754,8 +1754,8 @@ Pure functional BM25 implementation for ranked retrieval:
 All implemented via dictionary-passing, maintaining Core purity.
 
 ---
-
 ## 7. Implementation
+
 
 ### 7.1 Technology Stack
 
@@ -2068,8 +2068,8 @@ Module: linalg/matrix
 ```
 
 ---
-
 ## 8. Evaluation
+
 
 ### 8.1 Storage Efficiency
 
@@ -2166,8 +2166,8 @@ dot  : (∀ (n) (→ (Vec n Num) (→ (Vec n Num) Num)))
 4. `autodiff` is now verified
 
 ---
-
 ## 9. Related Work
+
 
 ### 9.1 Content-Addressed Systems
 
@@ -2208,8 +2208,8 @@ The Fold's de Bruijn approach provides stronger α-equivalence guarantees. Uniso
 **Backpack**: Mixin modules for Haskell. Similar goals of flexible composition; different mechanisms.
 
 ---
-
 ## 10. Limitations and Non-Goals
+
 
 Honest acknowledgment of what The Fold does NOT provide.
 
@@ -2310,8 +2310,8 @@ The `quote`/`eval` mechanism has limited type integration:
 Typed quotation (as in MetaML or Typed Template Haskell) is not implemented. Metaprogramming operates at the untyped level.
 
 ---
-
 ## 11. Future Work
+
 
 **Distributed CAS**: Extend the CAS to peer-to-peer networks, enabling decentralized code sharing with content verification.
 
@@ -2326,8 +2326,8 @@ Typed quotation (as in MetaML or Typed Template Haskell) is not implemented. Met
 **Formal Verification**: Mechanize the Core semantics in a proof assistant, proving type soundness and other properties.
 
 ---
-
 ## 12. Conclusion
+
 
 The Fold demonstrates that content-addressed homoiconic computation is practical. By combining:
 
@@ -2348,8 +2348,8 @@ This is not merely theoretical elegance. Practical benefits include:
 The Fold is computation as it should be: *content-addressed, type-safe, and eternal*.
 
 ---
-
 ## Appendix A: Block Calculus Formal Syntax
+
 
 ```
 e ::= x                                  ; Variable
@@ -2409,8 +2409,8 @@ v ::= (λ x : τ . e)                      ; Abstraction value
 ```
 
 ---
-
 ## Appendix B: Type Grammar
+
 
 ```bnf
 <type>       ::= <base-type>
@@ -2451,8 +2451,8 @@ v ::= (λ x : τ . e)                      ; Abstraction value
 ```
 
 ---
-
 ## Appendix C: Kind Grammar
+
 
 ```bnf
 <kind>       ::= "*"                           ; Type kind
@@ -2470,8 +2470,8 @@ v ::= (λ x : τ . e)                      ; Abstraction value
 ```
 
 ---
-
 ## Appendix D: Manifest Schema
+
 
 ```scheme
 ;; Complete manifest schema
@@ -2509,8 +2509,8 @@ v ::= (λ x : τ . e)                      ; Abstraction value
 ```
 
 ---
-
 ## Appendix E: Comparison with Unison
+
 
 | Feature | The Fold | Unison |
 |---------|----------|--------|
@@ -2541,8 +2541,8 @@ v ::= (λ x : τ . e)                      ; Abstraction value
 4. **Metaprogramming**: The Fold's homoiconicity enables full quote/eval. Unison's approach is more restricted.
 
 ---
-
 ## References
+
 
 1. de Bruijn, N. G. (1972). "Lambda calculus notation with nameless dummies, a tool for automatic formula manipulation, with application to the Church-Rosser theorem." *Indagationes Mathematicae*, 75(5), 381-392.
 

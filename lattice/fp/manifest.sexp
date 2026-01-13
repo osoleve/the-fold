@@ -194,6 +194,40 @@ Key design principles:
     ;; Equality and display
     zipper-equal? zipper->string
 
+    ;; tree-zipper.ss — Tree Zipper for Rose Trees
+    ;; Rose tree type
+    tree? tree-value tree-children tree-leaf tree-leaf? tree-node
+    make-tree tree-size tree-depth tree-map tree-fold tree-flatten
+    ;; Tree zipper type
+    tree-zipper? tree->zipper zipper->tree
+    tree-zipper-at-root? tree-zipper-at-leaf? tree-zipper-depth
+    ;; Navigation
+    tree-zipper-up tree-zipper-down tree-zipper-down-left tree-zipper-down-right
+    tree-zipper-left tree-zipper-right
+    tree-zipper-leftmost tree-zipper-rightmost tree-zipper-root
+    tree-zipper-nth-child
+    ;; Navigation predicates
+    tree-zipper-can-go-up? tree-zipper-can-go-down?
+    tree-zipper-can-go-left? tree-zipper-can-go-right?
+    ;; Focus operations
+    tree-zipper-get tree-zipper-set tree-zipper-modify
+    tree-zipper-set-tree tree-zipper-modify-tree
+    tree-zipper-focus tree-zipper-crumbs tree-zipper-children-count
+    ;; Insertion
+    tree-zipper-insert-child tree-zipper-insert-child-left tree-zipper-insert-child-right
+    tree-zipper-insert-left tree-zipper-insert-right
+    ;; Deletion
+    tree-zipper-delete tree-zipper-delete-children
+    ;; Traversal
+    tree-zipper-next-preorder tree-zipper-prev-preorder tree-zipper-preorder
+    ;; Path operations
+    tree-zipper-path tree-zipper-sibling-index
+    ;; Functor and Comonad
+    tree-zipper-map tree-zipper-functor
+    tree-zipper-extract tree-zipper-extend tree-zipper-duplicate tree-zipper-comonad
+    ;; Equality and display
+    tree-equal? tree-zipper-equal? tree->string tree-zipper->string
+
     ;; game/ — Game Theory
     ;; normal-form.ss
     make-game game? game-players game-strategies game-payoff-fn
@@ -422,7 +456,8 @@ Key design principles:
        "nonempty.ss"     ; Non-empty lists
        "ring-buffer.ss"  ; Circular buffers
        "rope.ss"         ; Efficient string manipulation
-       "zipper.ss")))    ; Functional cursor/zipper
+       "zipper.ss"       ; Functional cursor/zipper (lists)
+       "tree-zipper.ss"))) ; Rose tree zipper with navigation
 
     ((subdir "game")
      (description "Game theory utilities")
