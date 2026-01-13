@@ -87,9 +87,10 @@
 (define (ar-companion-poly phi)
   (let* ([p (vector-length phi)]
          ;; Build coefficients in ascending order: [-phi_p, ..., -phi_1, 1]
+         ;; Loop builds in reverse, so reverse at end
          [coeffs (let loop ([k 0] [acc '()])
                    (if (> k p)
-                       acc
+                       (reverse acc)  ; Reverse to get ascending order
                        (if (= k p)
                            (loop (+ k 1) (cons 1 acc))
                            (loop (+ k 1)
@@ -281,9 +282,11 @@
               (let ([psi-j (let inner ([k 1] [sum 0])
                             (if (> k (min j p))
                                 sum
+                                ;; psi is in reverse order: [psi_{j-1}, psi_{j-2}, ...]
+                                ;; To get psi_{j-k}, access index (k-1)
                                 (inner (+ k 1)
                                        (+ sum (* (vector-ref phi (- k 1))
-                                                 (list-ref psi (- (length psi) k)))))))])
+                                                 (list-ref psi (- k 1)))))))])
                 (loop (+ j 1) (cons psi-j psi))))))))
 
 ;;; ar-impulse-response : Vec × Nat → AlgebraPoly

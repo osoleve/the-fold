@@ -424,13 +424,19 @@
       (reverse rows)
       (let* ([prev-row (car rows)]
              [prev-prev-row (cadr rows)]
-             [len (length prev-row)]
-             [a (car prev-prev-row)]
-             [b (car prev-row)]
-             ;; Handle zero pivot with exact arithmetic
-             [b-safe (if (= b 0) 1/1000000 b)]  ; Epsilon for exact
-             [new-row (make-routh-new-row prev-prev-row prev-row b-safe len)])
-        (routh-array-exact-iter (cons new-row rows) (- remaining 1)))))
+             [len (length prev-row)])
+        ;; Handle edge case: if rows are too short, stop iteration
+        (if (or (null? prev-row) (null? prev-prev-row))
+            (reverse rows)
+            (let* ([a (car prev-prev-row)]
+                   [b (car prev-row)]
+                   ;; Handle zero pivot with exact arithmetic
+                   [b-safe (if (= b 0) 1/1000000 b)]  ; Epsilon for exact
+                   [new-row (make-routh-new-row prev-prev-row prev-row b-safe len)])
+              ;; If new row is empty, stop iteration
+              (if (null? new-row)
+                  (reverse rows)
+                  (routh-array-exact-iter (cons new-row rows) (- remaining 1))))))))
 
 ;;; make-routh-new-row : (List Coeff) × (List Coeff) × Coeff × Nat → (List Coeff)
 (define (make-routh-new-row prev-prev-row prev-row b len)

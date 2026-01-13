@@ -123,7 +123,7 @@
            [result (tf-bezout tf1 tf2)]
            [gcd-poly (car result)])
       ;; GCD of (s+2) and (s+3) should be constant (degree 0)
-      (assert-equal (poly-degree gcd-poly) 0))))
+      (assert-equal (alg-poly-degree gcd-poly) 0))))
 
 ;;; ============================================================
 ;;; Test: Display Functions
