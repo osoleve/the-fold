@@ -86,6 +86,7 @@
    [(memq type '(f64 float double real)) 'double]
    [(memq type '(bool boolean)) 'unsigned-8]  ; passed as u8
    [(memq type '(u64 unsigned)) 'unsigned-64]
+   [(memq type '(u8 byte)) 'unsigned-8]       ; single byte
    [(eq? type 'i32) 'integer-32]
    [(eq? type 'f32) 'single-float]
    ;; Bytevector types - u8* accepts bytevectors directly (zero-copy!)

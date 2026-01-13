@@ -273,6 +273,7 @@ Get loader status summary.
 | Float | `f64`, `float`, `real` | `f64` | `F64Result` |
 | Boolean | `bool`, `boolean` | `bool` | `BoolResult` |
 | Unsigned | `u64`, `unsigned` | `u64` | `U64Result` |
+| Buffer | `buffer` | writes to `*mut u8` | `BufferResult` |
 
 ### Result Structs
 
@@ -330,10 +331,13 @@ core/lang/
 shell/ffi/
 ├── ffi-core.ss          # Base FFI infrastructure
 ├── rust-loader.ss       # Dynamic function loading
+├── bytevector-ffi.ss    # Zero-copy bytevector FFI + Layer 2 wrappers
 ├── test-rust-loader.ss  # 19 loader tests
 └── rust-accel/
     ├── src/
     │   ├── lib.rs       # Result structs, version
+    │   ├── bytes.rs     # Layer 2: bytevector operations
+    │   ├── string.rs    # Layer 2: string operations
     │   └── generated/   # Auto-generated modules
     │       ├── mod.rs
     │       └── *.rs
@@ -366,10 +370,11 @@ if divisor == 0 {
 - Manual compilation workflow (no JIT)
 
 ### Future Work (v2.0+)
-- Layer 2 codegen: Fixed-size matrix operations, batched transforms
-- Layer 3: Crypto primitives
+- Layer 2 codegen extensions: Slice type expansion in IR (`ByteSlice`, `StrSlice`)
+- Layer 3: Crypto primitives (SHA-256, HMAC via ring crate)
 - Automatic hot-path compilation
 - Rust-native autodiff
+- SIMD string search (memmem, Boyer-Moore)
 
 ## Performance Layers
 
@@ -389,6 +394,44 @@ Layer 1 codegen is useful for:
 - Testing the codegen pipeline
 - Foundation for Layer 2
 - NOT for performance
+
+### Layer 2: Bytevector & String Operations
+
+The `bytevector-ffi.ss` module now includes Rust-accelerated bytevector and string operations with fuel tracking:
+
+**Bytevector Operations** (zero-copy FFI):
+```scheme
+(rust-bv-hash bv fuel)           ; → (ok hash fuel-remaining)
+(rust-bv-compare bv1 bv2 fuel)   ; → (ok -1|0|1 fuel-remaining)
+(rust-bv-equal? bv1 bv2 fuel)    ; → (ok #t|#f fuel-remaining)
+(rust-bv-copy! src dst n fuel)   ; → (ok bytes-written fuel-remaining)
+(rust-bv-fill! bv val fuel)      ; → (ok bytes-written fuel-remaining)
+```
+
+**String Operations** (involves UTF-8 conversion):
+```scheme
+(rust-levenshtein s1 s2 fuel)       ; → (ok distance fuel-remaining)
+(rust-str-contains? haystack needle fuel)  ; → (ok #t|#f fuel-remaining)
+(rust-str-index-of haystack needle fuel)   ; → (ok index|-1 fuel-remaining)
+(rust-str-starts-with? s prefix fuel)      ; → (ok #t|#f fuel-remaining)
+(rust-str-ends-with? s suffix fuel)        ; → (ok #t|#f fuel-remaining)
+(rust-str-upcase s fuel)                   ; → (ok "RESULT" fuel-remaining)
+(rust-str-downcase s fuel)                 ; → (ok "result" fuel-remaining)
+```
+
+**Note**: String operations use `string->utf8` internally, which allocates a bytevector. Bytevector operations are true zero-copy. Case conversion is ASCII-only (non-ASCII characters preserved unchanged).
+
+**Result Types**:
+- Scalar results use existing `U64Result`, `I64Result`, `BoolResult`
+- Operations writing to buffers use new `BufferResult`:
+  ```rust
+  #[repr(C)]
+  pub struct BufferResult {
+      pub status: u8,           // 1=success, 2=out-of-fuel, 3=error, 4=buffer-overflow
+      pub bytes_written: usize,
+      pub fuel_out: u64,
+  }
+  ```
 
 ### Layer 2: Single Complex Ops (Depends on Approach)
 
