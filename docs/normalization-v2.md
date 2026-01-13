@@ -34,49 +34,51 @@ The version byte is the first byte of every 33-byte address. Hashes from differe
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Input S-expression                        │
+│                    Input S-expression                │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      η-Reduction                             │
-│         (fn (x) (f x)) → f  when x ∉ FV(f)                  │
+│                      η-Reduction                     │
+│         (fn (x) (f x)) → f  when x ∉ FV(f)           │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              Polynomial Canonicalization                     │
-│    Lift arithmetic to polynomial form, lower to sum-of-products │
+│              Polynomial Canonicalization             │
+│           Lift arithmetic to polynomial form,        |
+|               lower to sum-of-products               │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              Algebraic Canonicalization                      │
-│    Commutative sorting, associative flattening, binding sort │
+│              Algebraic Canonicalization              │
+│    Commutative sorting, associative flattening,      |
+|                      binding sort                    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│           Identity/Absorbing Elimination                     │
-│         (+ x 0) → x,  (* x 0) → 0                           │
+│           Identity/Absorbing Elimination             │
+│         (+ x 0) → x,  (* x 0) → 0                    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│               α-Normalization                                │
-│           Named variables → de Bruijn indices                │
+│               α-Normalization                        │
+│           Named variables → de Bruijn indices        │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    Hash-Consing                              │
-│         Structural deduplication via global table            │
+│                    Hash-Consing                      │
+│         Structural deduplication via global table    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              SHA-256 + Version Byte (0x02)                   │
-│                    33-byte Address                           │
+│              SHA-256 + Version Byte (0x02)           │
+│                    33-byte Address                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
