@@ -8,10 +8,12 @@
 
 pub mod aabb;
 pub mod bvh;
+pub mod bytes;
 pub mod fuel;
 pub mod generated;
 pub mod mat4;
 pub mod raymarch;
+pub mod string;
 pub mod triangle;
 pub mod vec3;
 
@@ -107,6 +109,22 @@ pub struct F32Result {
     pub status: u8,
     /// Result value (f32)
     pub value: f32,
+    /// Remaining fuel
+    pub fuel_out: u64,
+}
+
+// ============================================================
+// Layer 2 Result Structs (fold-gu3t: Bytevector/String Types)
+// ============================================================
+
+/// Result struct for operations that write to an output buffer
+/// Used for bytevector copy, string case conversion, etc.
+#[repr(C)]
+pub struct BufferResult {
+    /// Status: 1=success, 2=out-of-fuel, 3=runtime-error, 4=buffer-overflow
+    pub status: u8,
+    /// Number of bytes written to output buffer
+    pub bytes_written: usize,
     /// Remaining fuel
     pub fuel_out: u64,
 }

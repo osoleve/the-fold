@@ -186,3 +186,207 @@
        (f64-bv-set! bv (+ base 1) y)
        (f64-bv-set! bv (+ base 2) z)
        (f64-bv-set! bv (+ base 3) w)))
+
+;;; ============================================================
+;;; Layer 2 Rust-Accelerated Bytevector Operations (fold-gu3t)
+;;; ============================================================
+;;;
+;;; These functions call into Rust for accelerated operations.
+;;; Requires the rust-accel library to be loaded.
+
+(load "shell/ffi/rust-loader.ss")
+
+;;; Registry flags for lazy loading
+(define *bv-ffi-loaded* #f)
+(define *str-ffi-loaded* #f)
+
+;;; ensure-bv-ffi! : → Void
+;;; Load bytevector FFI functions on first use.
+(define (ensure-bv-ffi!)
+  (unless *bv-ffi-loaded*
+          (rust-load-fn! "fold_bv_hash" '(u8* u64) 'u64)
+          (rust-load-fn! "fold_bv_compare" '(u8* u64 u8* u64) 'i64)
+          (rust-load-fn! "fold_bv_copy" '(u8* u64 u8* u64 u64) 'buffer)
+          (rust-load-fn! "fold_bv_fill" '(u8* u64 u8) 'buffer)
+          (rust-load-fn! "fold_bv_equal" '(u8* u64 u8* u64) 'bool)
+          (set! *bv-ffi-loaded* #t)))
+
+;;; ensure-str-ffi! : → Void
+;;; Load string FFI functions on first use.
+(define (ensure-str-ffi!)
+  (unless *str-ffi-loaded*
+          (rust-load-fn! "fold_levenshtein" '(u8* u64 u8* u64) 'u64)
+          (rust-load-fn! "fold_str_contains" '(u8* u64 u8* u64) 'bool)
+          (rust-load-fn! "fold_str_index_of" '(u8* u64 u8* u64) 'i64)
+          (rust-load-fn! "fold_str_last_index_of" '(u8* u64 u8* u64) 'i64)
+          (rust-load-fn! "fold_str_upcase" '(u8* u64 u8* u64) 'buffer)
+          (rust-load-fn! "fold_str_downcase" '(u8* u64 u8* u64) 'buffer)
+          (rust-load-fn! "fold_str_starts_with" '(u8* u64 u8* u64) 'bool)
+          (rust-load-fn! "fold_str_ends_with" '(u8* u64 u8* u64) 'bool)
+          (set! *str-ffi-loaded* #t)))
+
+;;; ============================================================
+;;; Bytevector Operations
+;;; ============================================================
+
+;;; rust-bv-hash : Bytevector × Fuel → Result
+;;; FNV-1a hash of bytevector contents.
+;;; Returns (ok hash fuel-remaining) on success.
+(define (rust-bv-hash bv fuel)
+  (ensure-bv-ffi!)
+  (rust-call "fold_bv_hash" bv (bytevector-length bv) fuel))
+
+;;; rust-bv-compare : Bytevector × Bytevector × Fuel → Result
+;;; Lexicographic comparison of two bytevectors.
+;;; Returns (ok -1|0|1 fuel-remaining) on success.
+(define (rust-bv-compare bv1 bv2 fuel)
+  (ensure-bv-ffi!)
+  (rust-call "fold_bv_compare"
+             bv1 (bytevector-length bv1)
+             bv2 (bytevector-length bv2)
+             fuel))
+
+;;; rust-bv-equal? : Bytevector × Bytevector × Fuel → Result
+;;; Test if two bytevectors are equal.
+;;; Returns (ok #t|#f fuel-remaining) on success.
+(define (rust-bv-equal? bv1 bv2 fuel)
+  (ensure-bv-ffi!)
+  (rust-call "fold_bv_equal"
+             bv1 (bytevector-length bv1)
+             bv2 (bytevector-length bv2)
+             fuel))
+
+;;; rust-bv-copy! : Bytevector × Bytevector × Nat × Fuel → Result
+;;; Copy n bytes from src to dst.
+;;; Returns (ok bytes-written fuel-remaining) on success.
+(define (rust-bv-copy! src dst n fuel)
+  (ensure-bv-ffi!)
+  (rust-call "fold_bv_copy"
+             src (bytevector-length src)
+             dst (bytevector-length dst)
+             n
+             fuel))
+
+;;; rust-bv-fill! : Bytevector × Byte × Fuel → Result
+;;; Fill bytevector with a value.
+;;; Returns (ok bytes-written fuel-remaining) on success.
+(define (rust-bv-fill! bv val fuel)
+  (ensure-bv-ffi!)
+  (rust-call "fold_bv_fill"
+             bv (bytevector-length bv)
+             val
+             fuel))
+
+;;; ============================================================
+;;; String Operations (Pre-validated UTF-8)
+;;; ============================================================
+;;;
+;;; These functions accept Scheme strings and convert them to UTF-8
+;;; bytevectors for processing in Rust. The UTF-8 is pre-validated
+;;; by Scheme's string->utf8.
+
+;;; rust-levenshtein : String × String × Fuel → Result
+;;; Compute Levenshtein edit distance between two strings.
+;;; Returns (ok distance fuel-remaining) on success.
+(define (rust-levenshtein s1 s2 fuel)
+  (ensure-str-ffi!)
+  (let ([bv1 (string->utf8 s1)]
+        [bv2 (string->utf8 s2)])
+       (rust-call "fold_levenshtein"
+                  bv1 (bytevector-length bv1)
+                  bv2 (bytevector-length bv2)
+                  fuel)))
+
+;;; rust-str-contains? : String × String × Fuel → Result
+;;; Check if haystack contains needle.
+;;; Returns (ok #t|#f fuel-remaining) on success.
+(define (rust-str-contains? haystack needle fuel)
+  (ensure-str-ffi!)
+  (let ([bv-h (string->utf8 haystack)]
+        [bv-n (string->utf8 needle)])
+       (rust-call "fold_str_contains"
+                  bv-h (bytevector-length bv-h)
+                  bv-n (bytevector-length bv-n)
+                  fuel)))
+
+;;; rust-str-index-of : String × String × Fuel → Result
+;;; Find first occurrence of needle in haystack.
+;;; Returns (ok index fuel-remaining) where index is -1 if not found.
+(define (rust-str-index-of haystack needle fuel)
+  (ensure-str-ffi!)
+  (let ([bv-h (string->utf8 haystack)]
+        [bv-n (string->utf8 needle)])
+       (rust-call "fold_str_index_of"
+                  bv-h (bytevector-length bv-h)
+                  bv-n (bytevector-length bv-n)
+                  fuel)))
+
+;;; rust-str-last-index-of : String × String × Fuel → Result
+;;; Find last occurrence of needle in haystack.
+;;; Returns (ok index fuel-remaining) where index is -1 if not found.
+(define (rust-str-last-index-of haystack needle fuel)
+  (ensure-str-ffi!)
+  (let ([bv-h (string->utf8 haystack)]
+        [bv-n (string->utf8 needle)])
+       (rust-call "fold_str_last_index_of"
+                  bv-h (bytevector-length bv-h)
+                  bv-n (bytevector-length bv-n)
+                  fuel)))
+
+;;; rust-str-starts-with? : String × String × Fuel → Result
+;;; Check if string starts with prefix.
+;;; Returns (ok #t|#f fuel-remaining) on success.
+(define (rust-str-starts-with? s prefix fuel)
+  (ensure-str-ffi!)
+  (let ([bv-s (string->utf8 s)]
+        [bv-p (string->utf8 prefix)])
+       (rust-call "fold_str_starts_with"
+                  bv-s (bytevector-length bv-s)
+                  bv-p (bytevector-length bv-p)
+                  fuel)))
+
+;;; rust-str-ends-with? : String × String × Fuel → Result
+;;; Check if string ends with suffix.
+;;; Returns (ok #t|#f fuel-remaining) on success.
+(define (rust-str-ends-with? s suffix fuel)
+  (ensure-str-ffi!)
+  (let ([bv-s (string->utf8 s)]
+        [bv-suf (string->utf8 suffix)])
+       (rust-call "fold_str_ends_with"
+                  bv-s (bytevector-length bv-s)
+                  bv-suf (bytevector-length bv-suf)
+                  fuel)))
+
+;;; rust-str-upcase : String × Fuel → Result
+;;; Convert string to uppercase (ASCII only).
+;;; Returns (ok result-string fuel-remaining) on success.
+(define (rust-str-upcase s fuel)
+  (ensure-str-ffi!)
+  (let* ([bv-src (string->utf8 s)]
+         [len (bytevector-length bv-src)]
+         [bv-dst (make-bytevector len)])
+        (let ([result (rust-call "fold_str_upcase"
+                                 bv-src len
+                                 bv-dst len
+                                 fuel)])
+             (if (and (pair? result) (eq? (car result) 'ok))
+                 ;; Convert result back to string
+                 `(ok ,(utf8->string bv-dst) ,(caddr result))
+                 result))))
+
+;;; rust-str-downcase : String × Fuel → Result
+;;; Convert string to lowercase (ASCII only).
+;;; Returns (ok result-string fuel-remaining) on success.
+(define (rust-str-downcase s fuel)
+  (ensure-str-ffi!)
+  (let* ([bv-src (string->utf8 s)]
+         [len (bytevector-length bv-src)]
+         [bv-dst (make-bytevector len)])
+        (let ([result (rust-call "fold_str_downcase"
+                                 bv-src len
+                                 bv-dst len
+                                 fuel)])
+             (if (and (pair? result) (eq? (car result) 'ok))
+                 ;; Convert result back to string
+                 `(ok ,(utf8->string bv-dst) ,(caddr result))
+                 result))))

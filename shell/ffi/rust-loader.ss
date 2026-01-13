@@ -47,6 +47,13 @@
    [value  unsigned-64]
    [fuel   unsigned-64]))
 
+;;; Layer 2: Buffer result type for operations that write to output buffers
+(define-ftype buffer-result-t
+  (struct
+   [status unsigned-8]          ; 1=success, 2=out-of-fuel, 3=error, 4=buffer-overflow
+   [bytes-written unsigned-64]  ; number of bytes written (usize)
+   [fuel   unsigned-64]))
+
 ;;; ============================================================
 ;;; Type Mappings
 ;;; ============================================================
@@ -97,6 +104,7 @@
         [(f64 float double real) 'f64-result-t]
         [(bool boolean) 'bool-result-t]
         [(u64 unsigned) 'u64-result-t]
+        [(buffer) 'buffer-result-t]
         [else (error 'scheme-type->result-ftype "Unknown type" type)]))
 
 ;;; Scheme type symbol → result struct size
@@ -106,6 +114,7 @@
         [(f64 float double real) (ftype-sizeof f64-result-t)]
         [(bool boolean) (ftype-sizeof bool-result-t)]
         [(u64 unsigned) (ftype-sizeof u64-result-t)]
+        [(buffer) (ftype-sizeof buffer-result-t)]
         [else (error 'result-ftype-sizeof "Unknown type" type)]))
 
 ;;; ============================================================
@@ -286,6 +295,7 @@
         [(f64 float double real) (rust-call-f64 proc args fuel)]
         [(bool boolean) (rust-call-bool proc args fuel)]
         [(u64 unsigned) (rust-call-u64 proc args fuel)]
+        [(buffer) (rust-call-buffer proc args fuel)]
         [else (error 'rust-call-with-result "Unknown return type" ret-type)]))
 
 ;;; ============================================================
@@ -359,6 +369,23 @@
          (lambda ()
            (foreign-free result-addr)))))
 
+;;; rust-call-buffer : Proc × Args × Fuel → Result
+;;; Call procedure that returns BufferResult (for operations that write to output buffers).
+;;; Returns (ok bytes-written fuel-out) on success.
+(define (rust-call-buffer proc args fuel)
+  (let* ([result-addr (foreign-alloc (ftype-sizeof buffer-result-t))]
+         [result-ptr (make-ftype-pointer buffer-result-t result-addr)])
+        (dynamic-wind
+         (lambda () #f)
+         (lambda ()
+           (apply proc (append args (list fuel result-ptr)))
+           (let ([status (ftype-ref buffer-result-t (status) result-ptr)]
+                 [bytes-written (ftype-ref buffer-result-t (bytes-written) result-ptr)]
+                 [fuel-out (ftype-ref buffer-result-t (fuel) result-ptr)])
+                (status->result status bytes-written fuel-out)))
+         (lambda ()
+           (foreign-free result-addr)))))
+
 ;;; status->result : Status × Value × Fuel → Result
 ;;; Convert status code to Scheme result.
 (define (status->result status value fuel-out)
@@ -366,6 +393,7 @@
         [(1) `(ok ,value ,fuel-out)]
         [(2) '(out-of-fuel)]
         [(3) '(error runtime-error)]
+        [(4) '(error buffer-overflow)]
         [else `(error unknown-status ,status)]))
 
 ;;; ============================================================
@@ -447,13 +475,16 @@
 ;;;
 ;;; IMPORTANT: The callback is registered to prevent GC. Call free-callback
 ;;; when the callback is no longer needed.
+;;;
+;;; Note: foreign-callable is a special form requiring literal types.
+;;; We use eval to construct the callable dynamically.
 (define (make-callback proc param-types ret-type)
   (let* ([param-ftypes (map scheme-type->ftype param-types)]
          ;; Add fuel as last parameter (Fold calling convention)
          [params-with-fuel (append param-ftypes '(unsigned-64))]
          [ret-ftype (scheme-type->ftype ret-type)]
-         ;; Create the foreign-callable code object
-         [code (foreign-callable proc params-with-fuel ret-ftype)]
+         ;; Create the foreign-callable code object using eval
+         [code (eval `(foreign-callable ,proc ',params-with-fuel ',ret-ftype))]
          ;; Get the entry point (C function pointer)
          [addr (foreign-callable-entry-point code)])
     ;; Lock the code object to prevent GC
