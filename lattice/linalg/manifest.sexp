@@ -33,7 +33,7 @@
    (matrix-eigen "matrix-eigen.ss" "Eigenvalue computation")
    (iterative-solvers "iterative-solvers.ss" "CG, GMRES, BiCGSTAB")
    (sparse "sparse.ss" "Sparse matrix formats")
-   (graph-laplacian "graph-laplacian.ss" "Graph Laplacian construction")
+   (graph-laplacian "graph-laplacian.ss" "Graph Laplacian, spectral clustering, k-means")
    (svd "svd.ss" "Singular value decomposition")
    (iteration "iteration.ss" "Iterative method utilities")
    (numeric-instances "numeric-instances.ss" "Numeric type class instances")

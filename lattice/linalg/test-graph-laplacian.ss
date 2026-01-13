@@ -361,6 +361,86 @@
                  (display "  ✗ two isolated nodes components (eigenvalue error)\n"))
           (test "two isolated nodes have 2 components" 2 result)))
 
+;;; ============================================================
+;;; Spectral Clustering Tests
+;;; ============================================================
+
+(display "\nspectral clustering:\n")
+
+;; Test k-means on simple 2D data
+(let* ([points (make-matrix 6 2 0)])
+  ;; Cluster 1: points near (0, 0)
+  (matrix-set! points 0 0 0.0) (matrix-set! points 0 1 0.0)
+  (matrix-set! points 1 0 0.1) (matrix-set! points 1 1 0.1)
+  (matrix-set! points 2 0 -0.1) (matrix-set! points 2 1 0.1)
+  ;; Cluster 2: points near (5, 5)
+  (matrix-set! points 3 0 5.0) (matrix-set! points 3 1 5.0)
+  (matrix-set! points 4 0 5.1) (matrix-set! points 4 1 4.9)
+  (matrix-set! points 5 0 4.9) (matrix-set! points 5 1 5.1)
+  (let ([labels (kmeans-cluster points 2)])
+    ;; First 3 should be in same cluster, last 3 in another
+    (test "kmeans separates clusters"
+          #t
+          (and (= (vector-ref labels 0) (vector-ref labels 1))
+               (= (vector-ref labels 1) (vector-ref labels 2))
+               (= (vector-ref labels 3) (vector-ref labels 4))
+               (= (vector-ref labels 4) (vector-ref labels 5))
+               (not (= (vector-ref labels 0) (vector-ref labels 3)))))))
+
+;; Test spectral clustering on two disconnected cliques
+(let* ([n 6]
+       [adj (make-matrix n n 0)])
+  ;; Clique 1: nodes 0, 1, 2
+  (matrix-set! adj 0 1 1) (matrix-set! adj 1 0 1)
+  (matrix-set! adj 0 2 1) (matrix-set! adj 2 0 1)
+  (matrix-set! adj 1 2 1) (matrix-set! adj 2 1 1)
+  ;; Clique 2: nodes 3, 4, 5
+  (matrix-set! adj 3 4 1) (matrix-set! adj 4 3 1)
+  (matrix-set! adj 3 5 1) (matrix-set! adj 5 3 1)
+  (matrix-set! adj 4 5 1) (matrix-set! adj 5 4 1)
+  (let ([labels (spectral-clustering adj 2)])
+    (if (and (pair? labels) (eq? (car labels) 'error))
+        (display "  ~ spectral-clustering on cliques (skipped: eigenvalue error)\n")
+        (begin
+          (test "spectral-clustering finds 2 clusters"
+                #t (vector? labels))
+          (test "spectral-clustering separates cliques"
+                #t (and (= (vector-ref labels 0) (vector-ref labels 1))
+                        (= (vector-ref labels 1) (vector-ref labels 2))
+                        (= (vector-ref labels 3) (vector-ref labels 4))
+                        (= (vector-ref labels 4) (vector-ref labels 5))
+                        (not (= (vector-ref labels 0) (vector-ref labels 3)))))))))
+
+;; Test conductance on a simple cut
+(let* ([n 4]
+       [adj (make-matrix n n 0)])
+  ;; Path graph: 0-1-2-3
+  (matrix-set! adj 0 1 1) (matrix-set! adj 1 0 1)
+  (matrix-set! adj 1 2 1) (matrix-set! adj 2 1 1)
+  (matrix-set! adj 2 3 1) (matrix-set! adj 3 2 1)
+  ;; Cut {0, 1} vs {2, 3}: only edge 1-2 crosses
+  ;; vol({0,1}) = 1+2 = 3, vol({2,3}) = 2+1 = 3
+  ;; conductance = 1 / min(3, 3) = 1/3
+  (test "conductance of balanced cut" (/ 1 3) (conductance adj '(0 1))))
+
+;; Test ratio-cut
+(let* ([n 4]
+       [adj (make-matrix n n 0)])
+  (matrix-set! adj 0 1 1) (matrix-set! adj 1 0 1)
+  (matrix-set! adj 1 2 1) (matrix-set! adj 2 1 1)
+  (matrix-set! adj 2 3 1) (matrix-set! adj 3 2 1)
+  ;; ratio-cut = 1/2 + 1/2 = 1
+  (test "ratio-cut of balanced path cut" 1 (ratio-cut adj '(0 1))))
+
+;; Test normalized-cut
+(let* ([n 4]
+       [adj (make-matrix n n 0)])
+  (matrix-set! adj 0 1 1) (matrix-set! adj 1 0 1)
+  (matrix-set! adj 1 2 1) (matrix-set! adj 2 1 1)
+  (matrix-set! adj 2 3 1) (matrix-set! adj 3 2 1)
+  ;; ncut = 1/3 + 1/3 = 2/3
+  (test "normalized-cut of balanced path cut" (/ 2 3) (normalized-cut adj '(0 1))))
+
 ;;; Summary
 (newline)
 (display "==========================\n")

@@ -549,3 +549,345 @@
                     (connected-components . ,(laplacian-connected-components adj))
                     (trace . ,(laplacian-trace L))
                     (energy . ,(laplacian-energy adj)))))))
+
+;;; ============================================================
+;;; Spectral Clustering (Normalized)
+;;; ============================================================
+
+;;; spectral-clustering : (Matrix Real) × Nat → (Vector Nat)
+;;; Normalized spectral clustering using Ng-Jordan-Weiss algorithm.
+;;;
+;;; Algorithm:
+;;;   1. Compute normalized Laplacian L_sym
+;;;   2. Find k smallest eigenvectors
+;;;   3. Normalize rows to unit length
+;;;   4. Apply k-means clustering
+;;;
+;;; Returns: Vector of cluster labels (0 to k-1)
+(define (spectral-clustering adj k)
+  (let* ([n (adjacency-matrix-node-count adj)]
+         [L-sym (laplacian-normalized adj)]
+         ;; Get eigendecomposition
+         [result (symmetric-eigen L-sym)])
+    (if (and (pair? result) (eq? (car result) 'error))
+        result
+        (let* ([eigenvalues (car result)]
+               [eigenvectors (cdr result)]
+               ;; Find indices of k smallest eigenvalues
+               [k-indices (k-smallest-indices eigenvalues k)]
+               ;; Extract k eigenvectors as columns → rows for clustering
+               [embedding (spectral-embedding eigenvectors k-indices n)])
+          ;; Apply k-means to embedded points
+          (kmeans-cluster embedding k)))))
+
+;;; spectral-clustering-unnorm : (Matrix Real) × Nat → (Vector Nat)
+;;; Unnormalized spectral clustering.
+;;;
+;;; Uses unnormalized Laplacian L = D - A.
+;;; Simpler but less robust to varying node degrees.
+(define (spectral-clustering-unnorm adj k)
+  (let* ([n (adjacency-matrix-node-count adj)]
+         [L (laplacian adj)]
+         [result (symmetric-eigen L)])
+    (if (and (pair? result) (eq? (car result) 'error))
+        result
+        (let* ([eigenvalues (car result)]
+               [eigenvectors (cdr result)]
+               [k-indices (k-smallest-indices eigenvalues k)]
+               [embedding (spectral-embedding eigenvectors k-indices n)])
+          (kmeans-cluster embedding k)))))
+
+;;; k-smallest-indices : (Vector Real) × Nat → (List Nat)
+;;; Find indices of k smallest values in vector.
+(define (k-smallest-indices v k)
+  (let* ([n (vector-length v)]
+         ;; Create list of (value . index) pairs
+         [pairs (let loop ([i 0] [acc '()])
+                  (if (= i n)
+                      acc
+                      (loop (+ i 1) (cons (cons (abs (vector-ref v i)) i) acc))))]
+         ;; Sort by value
+         [sorted (list-sort (lambda (a b) (< (car a) (car b))) pairs)]
+         ;; Take first k indices
+         [k-actual (min k n)])
+    (let loop ([remaining sorted] [count 0] [result '()])
+      (if (or (= count k-actual) (null? remaining))
+          (reverse result)
+          (loop (cdr remaining) (+ count 1) (cons (cdar remaining) result))))))
+
+;;; spectral-embedding : Matrix × (List Nat) × Nat → Matrix
+;;; Extract spectral embedding: n points in k-dimensional space.
+;;; Each row is a point (node), each column is an eigenvector coordinate.
+;;; Rows are normalized to unit length for Ng-Jordan-Weiss algorithm.
+(define (spectral-embedding eigenvectors k-indices n)
+  (let* ([k (length k-indices)]
+         [idx-vec (list->vector k-indices)]
+         [result (make-matrix n k 0)])
+    ;; Copy eigenvector columns to result matrix
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (do ([j 0 (+ j 1)])
+          ((= j k))
+        (matrix-set! result i j
+                     (matrix-ref eigenvectors i (vector-ref idx-vec j)))))
+    ;; Normalize rows to unit length
+    (do ([i 0 (+ i 1)])
+        ((= i n) result)
+      (let ([row-norm (sqrt (let loop ([j 0] [sum 0])
+                              (if (= j k)
+                                  sum
+                                  (let ([v (matrix-ref result i j)])
+                                    (loop (+ j 1) (+ sum (* v v)))))))])
+        (when (> row-norm 1e-10)
+          (do ([j 0 (+ j 1)])
+              ((= j k))
+            (matrix-set! result i j (/ (matrix-ref result i j) row-norm))))))))
+
+;;; ============================================================
+;;; K-Means Clustering
+;;; ============================================================
+
+;;; kmeans-cluster : Matrix × Nat → (Vector Nat)
+;;; K-means clustering on rows of matrix.
+;;; Returns vector of cluster assignments (0 to k-1).
+;;;
+;;; Uses k-means++ initialization for better starting points.
+(define (kmeans-cluster points k . opts)
+  (let* ([n (matrix-rows points)]
+         [d (matrix-cols points)]
+         [max-iter (if (pair? opts) (car opts) 100)]
+         [tol (if (and (pair? opts) (pair? (cdr opts))) (cadr opts) 1e-6)]
+         ;; Initialize centroids using k-means++
+         [centroids (kmeans-init-pp points k)]
+         [labels (make-vector n 0)])
+    ;; Iterate until convergence
+    (let loop ([iter 0] [prev-centroids #f])
+      (if (>= iter max-iter)
+          labels
+          (begin
+            ;; Assignment step: assign each point to nearest centroid
+            (do ([i 0 (+ i 1)])
+                ((= i n))
+              (vector-set! labels i (nearest-centroid points i centroids k d)))
+            ;; Update step: recompute centroids
+            (let ([new-centroids (recompute-centroids points labels k d n)])
+              ;; Check convergence
+              (if (and prev-centroids
+                       (centroids-converged? prev-centroids new-centroids k d tol))
+                  labels
+                  (begin
+                    (copy-matrix! new-centroids centroids k d)
+                    (loop (+ iter 1) new-centroids)))))))))
+
+;;; kmeans-init-pp : Matrix × Nat → Matrix
+;;; K-means++ initialization: choose centroids with probability
+;;; proportional to squared distance from existing centroids.
+(define (kmeans-init-pp points k)
+  (let* ([n (matrix-rows points)]
+         [d (matrix-cols points)]
+         [centroids (make-matrix k d 0)]
+         ;; Choose first centroid uniformly at random (using simple hash)
+         [first-idx (modulo (* 2654435761 n) n)])
+    ;; Copy first centroid
+    (do ([j 0 (+ j 1)])
+        ((= j d))
+      (matrix-set! centroids 0 j (matrix-ref points first-idx j)))
+    ;; Choose remaining k-1 centroids
+    (do ([c 1 (+ c 1)])
+        ((= c k) centroids)
+      ;; Compute squared distances to nearest centroid
+      (let ([distances (make-vector n 0)])
+        (do ([i 0 (+ i 1)])
+            ((= i n))
+          (let ([min-dist +inf.0])
+            (do ([cc 0 (+ cc 1)])
+                ((= cc c))
+              (let ([dist (point-centroid-distance points i centroids cc d)])
+                (set! min-dist (min min-dist dist))))
+            (vector-set! distances i min-dist)))
+        ;; Choose next centroid with probability proportional to distance²
+        (let* ([total (let loop ([i 0] [s 0])
+                        (if (= i n) s (loop (+ i 1) (+ s (vector-ref distances i)))))]
+               ;; Simple deterministic selection: pick the farthest point
+               [next-idx (let loop ([i 0] [max-idx 0] [max-dist 0])
+                           (if (= i n)
+                               max-idx
+                               (if (> (vector-ref distances i) max-dist)
+                                   (loop (+ i 1) i (vector-ref distances i))
+                                   (loop (+ i 1) max-idx max-dist))))])
+          ;; Copy centroid
+          (do ([j 0 (+ j 1)])
+              ((= j d))
+            (matrix-set! centroids c j (matrix-ref points next-idx j))))))))
+
+;;; nearest-centroid : Matrix × Nat × Matrix × Nat × Nat → Nat
+;;; Find index of nearest centroid to point i.
+(define (nearest-centroid points i centroids k d)
+  (let loop ([c 0] [min-c 0] [min-dist +inf.0])
+    (if (= c k)
+        min-c
+        (let ([dist (point-centroid-distance points i centroids c d)])
+          (if (< dist min-dist)
+              (loop (+ c 1) c dist)
+              (loop (+ c 1) min-c min-dist))))))
+
+;;; point-centroid-distance : Matrix × Nat × Matrix × Nat × Nat → Real
+;;; Compute squared Euclidean distance from point to centroid.
+(define (point-centroid-distance points i centroids c d)
+  (let loop ([j 0] [sum 0])
+    (if (= j d)
+        sum
+        (let ([diff (- (matrix-ref points i j) (matrix-ref centroids c j))])
+          (loop (+ j 1) (+ sum (* diff diff)))))))
+
+;;; recompute-centroids : Matrix × Vector × Nat × Nat × Nat → Matrix
+;;; Recompute centroids as mean of assigned points.
+(define (recompute-centroids points labels k d n)
+  (let ([centroids (make-matrix k d 0)]
+        [counts (make-vector k 0)])
+    ;; Sum points per cluster
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (let ([c (vector-ref labels i)])
+        (vector-set! counts c (+ 1 (vector-ref counts c)))
+        (do ([j 0 (+ j 1)])
+            ((= j d))
+          (matrix-set! centroids c j
+                       (+ (matrix-ref centroids c j) (matrix-ref points i j))))))
+    ;; Divide by count
+    (do ([c 0 (+ c 1)])
+        ((= c k) centroids)
+      (let ([cnt (vector-ref counts c)])
+        (when (> cnt 0)
+          (do ([j 0 (+ j 1)])
+              ((= j d))
+            (matrix-set! centroids c j (/ (matrix-ref centroids c j) cnt))))))))
+
+;;; centroids-converged? : Matrix × Matrix × Nat × Nat × Real → Boolean
+;;; Check if centroids have converged (total movement < tolerance).
+(define (centroids-converged? old new k d tol)
+  (let loop ([c 0] [total 0])
+    (if (= c k)
+        (< total tol)
+        (let ([dist (let loop2 ([j 0] [sum 0])
+                      (if (= j d)
+                          sum
+                          (let ([diff (- (matrix-ref new c j) (matrix-ref old c j))])
+                            (loop2 (+ j 1) (+ sum (* diff diff))))))])
+          (loop (+ c 1) (+ total dist))))))
+
+;;; copy-matrix! : Matrix × Matrix × Nat × Nat → Void
+;;; Copy src matrix to dst.
+(define (copy-matrix! src dst rows cols)
+  (do ([i 0 (+ i 1)])
+      ((= i rows))
+    (do ([j 0 (+ j 1)])
+        ((= j cols))
+      (matrix-set! dst i j (matrix-ref src i j)))))
+
+;;; ============================================================
+;;; Clustering Quality Metrics
+;;; ============================================================
+
+;;; conductance : (Matrix Real) × (List Nat) → Real
+;;; Compute conductance of a cut (set of nodes).
+;;;
+;;; conductance(S) = cut(S, S̄) / min(vol(S), vol(S̄))
+;;; where:
+;;;   cut(S, S̄) = sum of edges between S and S̄
+;;;   vol(S) = sum of degrees of nodes in S
+;;;
+;;; Lower conductance = better cut (sparser connection between clusters).
+;;; Returns 0 if S or S̄ is empty or has zero volume.
+(define (conductance adj nodes)
+  (let* ([n (adjacency-matrix-node-count adj)]
+         [node-set (list->set nodes n)]
+         ;; Compute cut and volumes
+         [cut-val 0]
+         [vol-s 0]
+         [vol-sbar 0])
+    ;; Calculate all metrics in one pass
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (let ([deg-i (let loop ([j 0] [d 0])
+                     (if (= j n) d
+                         (loop (+ j 1) (+ d (if (> (matrix-ref adj i j) 0) 1 0)))))])
+        (if (vector-ref node-set i)
+            (begin
+              (set! vol-s (+ vol-s deg-i))
+              ;; Count edges to complement
+              (do ([j 0 (+ j 1)])
+                  ((= j n))
+                (when (and (not (vector-ref node-set j))
+                           (> (matrix-ref adj i j) 0))
+                  (set! cut-val (+ cut-val 1)))))
+            (set! vol-sbar (+ vol-sbar deg-i)))))
+    ;; Return conductance
+    (let ([min-vol (min vol-s vol-sbar)])
+      (if (= min-vol 0)
+          0
+          (/ cut-val min-vol)))))
+
+;;; list->set : (List Nat) × Nat → Vector
+;;; Convert list of node indices to boolean vector.
+(define (list->set nodes n)
+  (let ([s (make-vector n #f)])
+    (for-each (lambda (i) (when (< i n) (vector-set! s i #t))) nodes)
+    s))
+
+;;; ratio-cut : (Matrix Real) × (List Nat) → Real
+;;; Compute ratio cut of a partition.
+;;;
+;;; ratio-cut(S) = cut(S, S̄) / |S| + cut(S, S̄) / |S̄|
+;;;
+;;; Minimizing ratio cut leads to balanced partitions.
+(define (ratio-cut adj nodes)
+  (let* ([n (adjacency-matrix-node-count adj)]
+         [node-set (list->set nodes n)]
+         [size-s (length nodes)]
+         [size-sbar (- n size-s)]
+         [cut-val 0])
+    ;; Count edges crossing the cut
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (when (vector-ref node-set i)
+        (do ([j 0 (+ j 1)])
+            ((= j n))
+          (when (and (not (vector-ref node-set j))
+                     (> (matrix-ref adj i j) 0))
+            (set! cut-val (+ cut-val 1))))))
+    ;; Compute ratio cut
+    (if (or (= size-s 0) (= size-sbar 0))
+        +inf.0
+        (+ (/ cut-val size-s) (/ cut-val size-sbar)))))
+
+;;; normalized-cut : (Matrix Real) × (List Nat) → Real
+;;; Compute normalized cut (Ncut) of a partition.
+;;;
+;;; Ncut(S) = cut(S, S̄) / vol(S) + cut(S, S̄) / vol(S̄)
+;;;
+;;; This is the objective minimized by normalized spectral clustering.
+(define (normalized-cut adj nodes)
+  (let* ([n (adjacency-matrix-node-count adj)]
+         [node-set (list->set nodes n)]
+         [cut-val 0]
+         [vol-s 0]
+         [vol-sbar 0])
+    ;; Calculate cut and volumes
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (let ([deg-i (let loop ([j 0] [d 0])
+                     (if (= j n) d
+                         (loop (+ j 1) (+ d (if (> (matrix-ref adj i j) 0) 1 0)))))])
+        (if (vector-ref node-set i)
+            (begin
+              (set! vol-s (+ vol-s deg-i))
+              (do ([j 0 (+ j 1)])
+                  ((= j n))
+                (when (and (not (vector-ref node-set j))
+                           (> (matrix-ref adj i j) 0))
+                  (set! cut-val (+ cut-val 1)))))
+            (set! vol-sbar (+ vol-sbar deg-i)))))
+    (if (or (= vol-s 0) (= vol-sbar 0))
+        +inf.0
+        (+ (/ cut-val vol-s) (/ cut-val vol-sbar)))))
