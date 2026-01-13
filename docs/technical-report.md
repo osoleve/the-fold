@@ -6,7 +6,7 @@
 
 ## Abstract
 
-We present **The Fold**, a programming system built on a content-addressable homoiconic foundation. At its core lies a *block machine* where every computational unit—code, data, and types—is represented as a cryptographically-addressed immutable structure. Through α-normalization via de Bruijn indices, semantically equivalent expressions produce identical hashes, achieving true *semantic identity*: two functions that behave identically are the same function, regardless of variable naming.
+We present **The Fold**, a programming system built on a content-addressable homoiconic foundation. At its core lies a *block machine* where every computational unit—code, data, and types—is represented as a cryptographically-addressed immutable structure. Through a two-phase normalization process—α-normalization via de Bruijn indices and algebraic canonicalization (commutative sorting, associative flattening)—semantically equivalent expressions produce identical hashes, achieving true *semantic identity*: two functions that behave identically are the same function, regardless of variable naming or argument order in commutative operations.
 
 The Fold implements a *gradual dependent type system* combining bidirectional type checking (following Dunfield & Krishnaswami), dependent function and pair types (Π, Σ), higher-kinded types, type classes via dictionary-passing, and GADTs with pattern refinement. Gradual typing through holes enables incremental specification without sacrificing soundness where types are known.
 
@@ -55,12 +55,19 @@ The result is a system where *semantic identity replaces syntactic identity*. Fu
 
 This report presents three primary contributions:
 
-**Contribution 1: Block Calculus with α-Normalization**
+**Contribution 1: Block Calculus with Multi-Phase Normalization**
 
-We formalize a calculus where computation operates over content-addressed blocks. The key innovation is integrating de Bruijn normalization with cryptographic hashing, yielding:
+We formalize a calculus where computation operates over content-addressed blocks. The key innovation is integrating a two-phase normalization pipeline with cryptographic hashing:
+
+1. **Algebraic canonicalization**: Sort arguments of commutative operations, flatten associative operations, reorder independent bindings
+2. **α-normalization**: Convert to de Bruijn indices, eliminating variable naming
+
+This yields the semantic identity property:
 
 ```
 α-equiv(e₁, e₂) ⟹ hash(normalize(e₁)) = hash(normalize(e₂))
+(+ a b) ≡_hash (+ b a)           ; Commutative equivalence
+(+ (+ a b) c) ≡_hash (+ a b c)   ; Associative equivalence
 ```
 
 This provides semantic identity at the language level, not as an afterthought.
@@ -228,8 +235,21 @@ An **address** is a 33-byte value:
 Address = [ version : 1 byte ][ hash : 32 bytes ]
 ```
 
-- **version**: Protocol version (currently 0), enabling future evolution
-- **hash**: SHA-256 digest of the block's canonical serialization
+- **version**: Normalization mode indicator
+- **hash**: SHA-256 digest of the normalized, canonical serialization
+
+**Version Bytes**:
+
+| Version | Mode | Description |
+|---------|------|-------------|
+| `0x00` | α-only | De Bruijn indices only (original mode) |
+| `0x01` | Algebraic + α | Full algebraic canonicalization before de Bruijn |
+
+Version `0x00` provides α-equivalence: `(λ x. x)` and `(λ y. y)` hash identically.
+
+Version `0x01` provides extended equivalence: `(+ a b)` and `(+ b a)` also hash identically, as do `(+ (+ a b) c)` and `(+ a b c)`.
+
+The version byte ensures no collision between modes—a block hashed with algebraic normalization is distinct from the same block hashed without it.
 
 The address is computed by:
 
@@ -271,7 +291,40 @@ Blocks serialize to bytes in a canonical format:
 - *UTF-8 NFC*: Unicode normalization ensures consistent string representation
 - *Fixed-size addresses*: 33 bytes allows version evolution while maintaining alignment
 
-### 3.4 α-Normalization via De Bruijn Indices
+### 3.4 Two-Phase Normalization
+
+The Fold uses a two-phase normalization pipeline to maximize semantic equivalence detection. The phases must be applied in a specific order:
+
+```
+Phase 1: Algebraic Canonicalization (while names exist)
+    ├── Commutative sorting: (+ b a) → (+ a b)
+    ├── Associative flattening: (+ (+ a b) c) → (+ a b c)
+    ├── Parallel binding reordering: independent let* bindings sorted
+    └── Pure sequence reordering: independent pure expressions in begin
+    ↓
+Phase 2: α-Normalization (de Bruijn indices)
+    └── Named variables → positional indices
+    ↓
+Canonical Form → SHA-256 → Address
+```
+
+**Critical: Phase Order Matters**
+
+Algebraic canonicalization *must* happen before α-normalization. Consider what happens if we reverse the order:
+
+```scheme
+;; Original
+(let* ((a 1) (b 2)) (+ a b))
+
+;; After α-normalization (wrong order)
+(let* (1) (let* (2) (+ (dv 1) (dv 0))))
+
+;; If we now try to reorder bindings, indices are corrupted!
+```
+
+The de Bruijn index `(dv 1)` refers to the binding 1 level up. Reordering bindings after conversion breaks this correspondence. By performing algebraic canonicalization while variable names are still present, we avoid this corruption.
+
+#### 3.4.1 α-Normalization via De Bruijn Indices
 
 Named variables break content identity. Consider:
 
@@ -330,6 +383,132 @@ The normalization function:
 ```
 
 The `fix` binder contributes to the index count like any other binder.
+
+#### 3.4.2 Algebraic Canonicalization
+
+α-normalization handles variable naming, but other syntactic variations can produce different hashes for semantically equivalent expressions:
+
+```scheme
+(+ a b) ≠_hash (+ b a)           ; Commutative but different
+(+ (+ a b) c) ≠_hash (+ a b c)   ; Associative but different
+```
+
+**Solution**: Apply algebraic canonicalization before α-normalization.
+
+**Commutative Sorting**
+
+For commutative operations (addition, multiplication, set operations), arguments are sorted in canonical order:
+
+```scheme
+(+ b a)     → (+ a b)       ; Alphabetically sorted
+(* z x y)   → (* x y z)     ; Multi-argument sorted
+(+ 1 x)     → (+ 1 x)       ; Numbers before symbols
+```
+
+**CRITICAL**: Short-circuit operators (`and`, `or`) are NOT commutative—they have evaluation-order semantics:
+
+```scheme
+;; NOT equivalent - different evaluation semantics
+(and (check-auth) (delete-db))  ≠  (and (delete-db) (check-auth))
+```
+
+The operation property registry explicitly excludes these operators.
+
+**Associative Flattening**
+
+For associative operations, nested applications are flattened:
+
+```scheme
+(+ (+ a b) c)   → (+ a b c)
+(* x (* y z))   → (* x y z)
+(append (append xs ys) zs) → (append xs ys zs)
+```
+
+Combined with commutative sorting:
+
+```scheme
+(+ (+ c a) b)   → (+ a b c)   ; Flatten then sort
+```
+
+**Parallel Binding Reordering**
+
+Independent `let*` bindings can be reordered without changing semantics. The system uses dependency analysis:
+
+```scheme
+;; Independent bindings - can be reordered
+(let* ((b 2) (a 1)) (+ a b))
+→ (let* ((a 1) (b 2)) (+ a b))   ; Alphabetically sorted
+
+;; Dependent bindings - order preserved
+(let* ((a 1) (b (+ a 1))) (+ a b))
+→ (let* ((a 1) (b (+ a 1))) (+ a b))   ; a must come before b
+```
+
+The algorithm:
+1. Compute dependency graph (which bindings use which variables)
+2. Topological sort respecting dependencies
+3. Alphabetical tiebreaker for independent bindings
+
+**Pure Sequence Reordering**
+
+Independent pure expressions in `begin` blocks can be reordered:
+
+```scheme
+;; Pure expressions - can be reordered
+(begin (+ 1 2) (+ 0 1))
+→ (begin (+ 0 1) (+ 1 2))   ; Canonically sorted
+
+;; Impure expressions - order preserved
+(begin (set! x 1) (set! y 2))
+→ (begin (set! x 1) (set! y 2))   ; Original order
+```
+
+**Purity Analysis**
+
+The system uses conservative purity analysis—expressions are assumed impure unless proven pure:
+
+```scheme
+;; Known pure: literals, lambda creation, pure primitives
+(expr-pure? 42)           → #t
+(expr-pure? '(fn (x) x))  → #t
+(expr-pure? '(+ 1 2))     → #t
+
+;; Known impure: mutation, I/O, unknown functions
+(expr-pure? '(set! x 1))  → #f
+(expr-pure? '(display x)) → #f
+(expr-pure? '(my-fn x))   → #f   ; Unknown defaults to impure
+```
+
+This conservative approach prevents unsafe reordering of effectful code.
+
+**Canonical Ordering**
+
+A total order over expressions enables deterministic sorting:
+
+```
+Priority: numbers < booleans < chars < strings < symbols < de Bruijn < compounds
+```
+
+Within each class, type-specific comparison applies (numeric order, alphabetic order, structural order for compounds).
+
+#### 3.4.3 Combined Normalization
+
+The full normalization function applies both phases:
+
+```scheme
+(define (normalize-full expr)
+  (normalize (normalize-algebraic expr)))  ; Algebraic FIRST, then α
+```
+
+**Equivalence Classes**:
+
+| Normalization Mode | Equivalences Detected |
+|-------------------|----------------------|
+| None | Syntactic identity only |
+| α-only (v0x00) | + Variable renaming |
+| Algebraic + α (v0x01) | + Commutative, associative, parallel bindings |
+
+**Implementation**: `core/blocks/normalize.ss`, `core/blocks/op-properties.ss`, `core/blocks/canonical-order.ss`
 
 ### 3.5 Content-Addressed Store (CAS)
 
@@ -1527,6 +1706,21 @@ De Bruijn indices eliminate naming from identity:
 - Canonical representation enables structural comparison
 - Proven technique from proof assistants
 
+**Why Algebraic Canonicalization?**
+
+De Bruijn alone misses semantic equivalences:
+- `(+ a b)` and `(+ b a)` are mathematically equal but hash differently
+- Independent bindings in different orders are semantically equivalent
+- Associativity allows multiple valid parenthesizations
+
+Algebraic canonicalization extends semantic identity:
+- Commutative operations sorted: same hash regardless of argument order
+- Associative operations flattened: same hash regardless of nesting
+- Independent bindings sorted: same hash regardless of declaration order
+- Conservative purity analysis prevents unsafe reordering
+
+The version byte (0x01) distinguishes algebraically-normalized hashes from α-only hashes (0x00), ensuring backwards compatibility.
+
 **Why Pure Core + Impure Shell?**
 
 Separation enables verification:
@@ -1551,7 +1745,9 @@ Separation enables verification:
 |-----------|------|
 | `hash-block` | O(payload size) |
 | `store!` / `fetch` | O(1) average |
-| `normalize` | O(expression size) |
+| `normalize` (α-only) | O(expression size) |
+| `normalize-algebraic` | O(n log n) for sorting |
+| `normalize-full` | O(n log n) |
 | `gc!` | O(stored blocks) |
 | BM25 search | O(n log n) |
 
@@ -1991,7 +2187,24 @@ Currently no:
 
 The REPL and command-line tools are the primary interface.
 
-### 10.7 Metaprogramming Type Interactions
+### 10.7 Floating-Point Algebraic Properties
+
+Algebraic normalization assumes mathematical properties that don't hold perfectly for floating-point arithmetic:
+
+```scheme
+;; Mathematically: (+ (+ 1e20 1.0) -1e20) = (+ 1e20 (+ 1.0 -1e20))
+;; IEEE 754: (+ (+ 1e20 1.0) -1e20) → 0.0
+;;           (+ 1e20 (+ 1.0 -1e20)) → 1.0
+```
+
+**Current approach**: We apply associative flattening anyway, accepting that:
+1. For exact numbers, the normalization is semantically correct
+2. For floating-point, the normalization may change computed results
+3. Hash identity implies mathematical equivalence, not IEEE 754 bit-identical results
+
+**Future consideration**: Restrict algebraic canonicalization to exact arithmetic only, or provide an opt-out for numeric-sensitive code.
+
+### 10.8 Metaprogramming Type Interactions
 
 The `quote`/`eval` mechanism has limited type integration:
 
@@ -2033,7 +2246,7 @@ The Fold demonstrates that content-addressed homoiconic computation is practical
 
 ...we achieve a system where code is mathematics: immutable, uniquely identified, and composable.
 
-The key insight is that *identity should follow semantics*. Functions that compute the same thing should be the same function. Dependencies that provide the same interface should be interchangeable. By making the hash—the cryptographic identity—follow from normalized content, The Fold aligns system identity with mathematical identity.
+The key insight is that *identity should follow semantics*. Functions that compute the same thing should be the same function. Dependencies that provide the same interface should be interchangeable. By making the hash—the cryptographic identity—follow from normalized content through a two-phase pipeline (algebraic canonicalization, then α-normalization), The Fold aligns system identity with mathematical identity. Commutative operations, associatively restructured expressions, and independently reorderable bindings all receive the same hash—because they compute the same thing.
 
 This is not merely theoretical elegance. Practical benefits include:
 - Automatic deduplication (same code stored once)
