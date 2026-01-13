@@ -208,6 +208,10 @@
               (state-substates s) (state-transitions s)
               (state-parent s) (state-data s)))
 
+;;; Load zipper-based navigation (after state types are defined)
+;;; This provides efficient O(depth) ancestor/LCA operations.
+(load "lattice/automata/statechart-zipper.ss")
+
 ;;; ============================================================
 ;;; Transition Types
 ;;; ============================================================
@@ -508,39 +512,30 @@
       nothing))
 
 ;;; get-ancestors : State × Symbol → (List State)
-;;; Get all ancestor states from child to root.
+;;; Get all ancestor states from root down to immediate parent (outermost first).
+;;; Uses zipper for O(depth) performance via crumbs.
 (define (get-ancestors root child-id)
-  (define (find-path state target acc)
-    (cond
-     [(eq? (state-id state) target) (just (reverse acc))]
-     [(or (composite-state? state) (parallel-state? state))
-      (find-path-in-substates (state-substates state) target (cons state acc))]
-     [else nothing]))
-  (define (find-path-in-substates substates target acc)
-    (if (null? substates)
-        nothing
-        (let ([found (find-path (car substates) target acc)])
-             (if (just? found)
-                 found
-                 (find-path-in-substates (cdr substates) target acc)))))
-  (from-just-or (find-path root child-id '()) '()))
+  (let* ([sz (state->zipper root)]
+         [found (state-zipper-find sz child-id)])
+    (if (nothing? found)
+        '()
+        ;; state-zipper-ancestors returns parent-to-root (innermost first)
+        ;; But original API was root-to-parent (outermost first), so reverse
+        (reverse (state-zipper-ancestors (from-just found))))))
 
 ;;; lca : State × Symbol × Symbol → (Option State)
 ;;; Find the Lowest Common Ancestor of two states.
+;;; Uses zipper for efficient path extraction and comparison.
 (define (lca root id1 id2)
-  (let ([ancestors1 (map state-id (get-ancestors root id1))]
-        [ancestors2 (map state-id (get-ancestors root id2))])
-       (let loop ([a1 ancestors1])
-            (if (null? a1)
-                nothing
-                (if (member (car a1) ancestors2)
-                    (find-state root (car a1))
-                    (loop (cdr a1)))))))
+  (let ([sz (state->zipper root)])
+    (state-zipper-lca sz id1 id2)))
 
 ;;; is-descendant? : State × Symbol × Symbol → Boolean
 ;;; Check if child-id is a descendant of parent-id.
+;;; Uses zipper for efficient ancestor lookup.
 (define (is-descendant? root parent-id child-id)
-  (member parent-id (map state-id (get-ancestors root child-id))))
+  (let ([sz (state->zipper root)])
+    (state-zipper-is-descendant? sz parent-id child-id)))
 
 ;;; ============================================================
 ;;; Configuration (Active State Set)

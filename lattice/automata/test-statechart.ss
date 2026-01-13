@@ -2,8 +2,15 @@
 ;;;
 ;;; Comprehensive tests for hierarchical state machines.
 
-(load "core/test-framework.ss")
+;; Load order matters: statechart.ss defines current-context which conflicts
+;; with test-framework.ss's parameter. Load statechart first, save its version,
+;; then load test-framework which will override it.
 (load "lattice/automata/statechart.ss")
+
+;; Save statechart's current-context before test-framework overwrites it
+(define statechart-current-context current-context)
+
+(load "core/test-framework.ss")
 
 (display "\n")
 (display "==============================================================\n")
@@ -301,11 +308,11 @@
                      [root (composite 'counter (list (initial 'idle) idle))]
                      [sc (statechart-ctx 'counter root 0)]
                      [interp (make-interpreter sc)])
-                    (assert-equal 0 (current-context interp))
+                    (assert-equal 0 (statechart-current-context interp))
                     (let ([interp1 (send-event interp 'inc)])
-                         (assert-equal 1 (current-context interp1))
+                         (assert-equal 1 (statechart-current-context interp1))
                          (let ([interp2 (send-event interp1 'inc)])
-                              (assert-equal 2 (current-context interp2))))))
+                              (assert-equal 2 (statechart-current-context interp2))))))
             
             (define-test entry-action-test
               (let* ([entry-fn (lambda (ctx) (cons 'entered ctx))]
@@ -315,10 +322,10 @@
                      [root (composite 'machine (list (initial 'idle) idle-trans active))]
                      [sc (statechart-ctx 'machine root '())]
                      [interp (make-interpreter sc)])
-                    (assert-equal '() (current-context interp))
+                    (assert-equal '() (statechart-current-context interp))
                     (let ([interp1 (send-event interp 'go)])
                          (assert-true (in-state? interp1 'active))
-                         (assert-equal '(entered) (current-context interp1)))))
+                         (assert-equal '(entered) (statechart-current-context interp1)))))
             
             (define-test exit-action-test
               (let* ([exit-fn (lambda (ctx) (cons 'exited ctx))]
@@ -330,7 +337,7 @@
                      [interp (make-interpreter sc)])
                     (let ([interp1 (send-event interp 'go)])
                          (assert-true (in-state? interp1 'active))
-                         (assert-equal '(exited) (current-context interp1))))))
+                         (assert-equal '(exited) (statechart-current-context interp1))))))
 
 ;;; ============================================================
 ;;; History State Tests

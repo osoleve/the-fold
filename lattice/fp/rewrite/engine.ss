@@ -26,6 +26,7 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/rewrite/rule.ss")
 (load "lattice/fp/rewrite/trace.ss")
+(load "lattice/fp/rewrite/sexp-zipper.ss")
 
 ;;; ============================================================
 ;;; Constraint Checking
@@ -148,32 +149,20 @@
 ;;; '() means root
 ;;; '(0) means first element of list
 ;;; '(1 2) means second element's third element
+;;;
+;;; These functions now use sexp-zipper internally for efficiency.
 
 ;;; expr-at : Expr × Position → Expr
 ;;; Get the subexpression at a position.
+;;; Uses sexp-zipper for efficient navigation.
 (define (expr-at expr pos)
-  (if (null? pos)
-      expr
-      (if (pair? expr)
-          (expr-at (list-ref expr (car pos)) (cdr pos))
-          (error 'expr-at "Invalid position"))))
+  (sexp-at expr pos))
 
 ;;; expr-set-at : Expr × Position × Expr → Expr
 ;;; Replace the subexpression at a position.
+;;; Uses sexp-zipper for efficient modification.
 (define (expr-set-at expr pos new-subexpr)
-  (if (null? pos)
-      new-subexpr
-      (if (pair? expr)
-          (let ([idx (car pos)])
-               (let loop ([lst expr] [i 0])
-                    (cond
-                     [(null? lst) '()]
-                     [(= i idx)
-                      (cons (expr-set-at (car lst) (cdr pos) new-subexpr)
-                            (cdr lst))]
-                     [else
-                      (cons (car lst) (loop (cdr lst) (+ i 1)))])))
-          (error 'expr-set-at "Invalid position"))))
+  (sexp-set-at expr pos new-subexpr))
 
 ;;; apply-rule-at : Rule × Expr × Position → Expr | #f
 ;;; Apply a rule at a specific position.
@@ -190,17 +179,9 @@
 
 ;;; find-all-positions : Expr → (List Position)
 ;;; Get all positions in an expression tree.
+;;; Uses sexp-zipper for efficient enumeration.
 (define (find-all-positions expr)
-  (define (helper expr path)
-    (cons path
-          (if (pair? expr)
-              (let loop ([lst expr] [i 0])
-                   (if (null? lst)
-                       '()
-                       (append (helper (car lst) (append path (list i)))
-                               (loop (cdr lst) (+ i 1)))))
-              '())))
-  (helper expr '()))
+  (sexp-all-positions expr))
 
 ;;; apply-rule-anywhere : Rule × Expr → (List (Expr × Position × Bindings))
 ;;; Find all positions where a rule can apply.
