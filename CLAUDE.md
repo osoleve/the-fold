@@ -173,7 +173,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 |-----------|---------|
 | `linalg/` | Vectors, matrices, decomposition, solvers |
 | `data/` | Data structures, graphs, collections |
-| `algebra/` | Groups, rings, fields |
+| `algebra/` | Groups, rings, polynomial algebra, Gröbner bases |
 | `random/` | PRNG, distributions |
 
 **Tier 1 — Intermediate:**

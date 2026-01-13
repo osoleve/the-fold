@@ -7,6 +7,12 @@
 ;;; - Factorization (square-free decomposition)
 ;;; - Interpolation (Lagrange, Newton)
 ;;;
+;;; LIMITATION: Division operations use native Scheme `/` for coefficient
+;;; division, which requires coefficients to be native Scheme numbers.
+;;; For true generic ring support, the Ring structure would need a `div`
+;;; operation. Currently, this works for Q (rationals) and R (reals)
+;;; but not for custom coefficient types like finite fields or Z_n.
+;;;
 ;;; This is Core code: pure, total, assumes reasonable input.
 ;;;
 ;;; Dependencies:
@@ -509,22 +515,27 @@
             (outer-loop (+ j 1) (cons (vector-ref table j) coeffs)))))))
 
 ;;; poly-newton-form : Ring × (List Coeff) × (List Coeff) → Polynomial
-;;; Build polynomial from Newton form: sum c_i * prod_{j<i} (x - x_j)
+;;; Build polynomial from Newton form using Horner's method:
+;;; p(x) = c_0 + (x-x_0)*(c_1 + (x-x_1)*(c_2 + (x-x_2)*c_3 + ...))
+;;; We work from inside out: start with c_{n-1}, work back to c_0.
 (define (poly-newton-form R xs coeffs)
   (if (null? coeffs)
       (poly-zero-over R)
-      (let loop ([cs (reverse (cdr coeffs))]
-                 [acc (poly-constant R (car coeffs))]
-                 [k (- (length coeffs) 2)])
-        (if (null? cs)
-            acc
-            (let* ([xk (list-ref xs k)]
-                   [ck (car cs)]
-                   ;; acc = c_k + (x - x_k) * old_acc
-                   [factor (make-polynomial R (list (- xk) (ring-one R)))]
-                   [new-acc (poly-add (poly-constant R ck)
-                                      (poly-mul factor acc))])
-              (loop (cdr cs) new-acc (- k 1)))))))
+      (let* ([n (length coeffs)]
+             [rev-coeffs (reverse coeffs)])  ; [c_{n-1}, ..., c_1, c_0]
+        ;; Start with last coefficient
+        (let loop ([cs (cdr rev-coeffs)]          ; [c_{n-2}, ..., c_0]
+                   [acc (poly-constant R (car rev-coeffs))]  ; c_{n-1}
+                   [k (- n 2)])                   ; index for x_k
+          (if (null? cs)
+              acc
+              (let* ([xk (list-ref xs k)]
+                     [ck (car cs)]
+                     ;; acc = c_k + (x - x_k) * old_acc
+                     [factor (make-polynomial R (list (- xk) (ring-one R)))]
+                     [new-acc (poly-add (poly-constant R ck)
+                                        (poly-mul factor acc))])
+                (loop (cdr cs) new-acc (- k 1))))))))
 
 ;;; ============================================================
 ;;; Polynomial Ring as Ring
