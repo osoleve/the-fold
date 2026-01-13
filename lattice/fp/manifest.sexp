@@ -228,6 +228,31 @@ Key design principles:
     ;; Equality and display
     tree-equal? tree-zipper-equal? tree->string tree-zipper->string
 
+    ;; generic-zipper.ss — Type-Theoretic Zipper Derivation
+    ;; Type constructors
+    type-zero type-one type-zero? type-one?
+    type-var type-var? type-var-name
+    type-sum type-sum? type-sum-components
+    type-prod type-prod? type-prod-components
+    type-rec type-rec? type-rec-var type-rec-body
+    ;; Common type patterns
+    type-list type-maybe type-pair type-either
+    type-rose-tree type-binary-tree
+    ;; Type derivative (core algorithm)
+    type-deriv type-subst type-simplify
+    ;; Zipper type construction
+    make-zipper-type context-type
+    ;; Generic zipper runtime
+    make-generic-zipper generic-zipper?
+    generic-zipper-focus generic-zipper-contexts
+    generic-zipper-at-root? generic-zipper-depth
+    generic-zipper-set generic-zipper-modify
+    ;; Context frames
+    make-context-frame context-frame?
+    context-frame-kind context-frame-position context-frame-siblings
+    ;; Display
+    type->string
+
     ;; game/ — Game Theory
     ;; normal-form.ss
     make-game game? game-players game-strategies game-payoff-fn
@@ -456,8 +481,9 @@ Key design principles:
        "nonempty.ss"     ; Non-empty lists
        "ring-buffer.ss"  ; Circular buffers
        "rope.ss"         ; Efficient string manipulation
-       "zipper.ss"       ; Functional cursor/zipper (lists)
-       "tree-zipper.ss"))) ; Rose tree zipper with navigation
+       "zipper.ss"        ; Functional cursor/zipper (lists)
+       "tree-zipper.ss"   ; Rose tree zipper with navigation
+       "generic-zipper.ss"))) ; Type-theoretic zipper derivation
 
     ((subdir "game")
      (description "Game theory utilities")

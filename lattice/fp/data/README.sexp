@@ -83,7 +83,42 @@
           (zipper-focus zz)
           (zipper-focus-or (from-just (zipper-right! zz)) 0)))
      (zipper->list (zipper-extend local-sum z))
-     ;; => (3 6 9 12 9)  ; sum of neighbors at each position")))
+     ;; => (3 6 9 12 9)  ; sum of neighbors at each position"))
+
+  ((file "generic-zipper.ss")
+   (purpose "Type-theoretic zipper derivation via calculus of data types")
+   (exports
+    (type-zero "Empty type constant")
+    (type-one "Unit type constant")
+    (type-var "Create type variable")
+    (type-sum "Create sum type (A + B)")
+    (type-prod "Create product type (A × B)")
+    (type-rec "Create recursive type (μX. F[X])")
+    (type-list "List type constructor (μL. 1 + a × L)")
+    (type-maybe "Maybe type constructor (1 + a)")
+    (type-binary-tree "Binary tree type (μT. 1 + a × T × T)")
+    (type-deriv "Compute type derivative")
+    (type-simplify "Simplify type expressions")
+    (context-type "Get context type (derivative) for zipper")
+    (make-zipper-type "Construct full zipper type")
+    (type->string "Pretty-print type expression"))
+   (example
+    ";; The derivative of List a with respect to a is List × List
+     ;; This matches the (left, right) context of list zipper!
+     (type->string
+       (type-simplify
+         (type-deriv (type-list (type-var 'a)) 'a)))
+     ;; => \"(μL.(1 + (a × L)) × μL.(1 + (a × L)))\"
+
+     ;; The derivative of (a × b) with respect to a is just b
+     (type->string
+       (context-type (type-prod (type-var 'a) (type-var 'b)) 'a))
+     ;; => \"b\"
+
+     ;; For (a × a), derivative is (a + a) - two positions
+     (type->string
+       (context-type (type-prod (type-var 'a) (type-var 'a)) 'a))
+     ;; => \"(a + a)\"")))
 
  (dependencies
   ("core/base/prelude.ss" "Base utilities")
@@ -99,9 +134,20 @@
    reversed for efficient movement. ListZipper forms a Comonad, enabling
    contextual computations like moving averages or cellular automata.
 
+   Type Derivatives: The generic-zipper module implements the 'calculus
+   of data types' from McBride's work. The key insight is that the
+   derivative of a type T with respect to a type variable 'a' gives
+   the type of 'one-hole contexts' - structures with exactly one hole
+   where an 'a' used to be. This explains WHY zippers have the shape
+   they do:
+   - d(List a)/da = List × List (left and right contexts)
+   - d(a × b)/da = b (just the sibling value)
+   - d(Tree a)/da = List(Context) × (subtree info)
+
    Key patterns:
    - stream-iterate for sequences defined by x, f(x), f(f(x)), ...
    - stream-unfold for stateful generation
    - stream-interleave for fair enumeration of two infinite streams
    - zipper-extend for applying a local computation at every position
-   - Co-recursive definitions where a stream references itself"))
+   - Co-recursive definitions where a stream references itself
+   - type-deriv to understand why zipper contexts have their structure"))
