@@ -1,22 +1,8 @@
-(define *quiet* #t)
-(load "shell/repl.ss")
+;;; shell/verify-commands.ss — Forwarding stub
+;;;
+;;; The module has moved to shell/tools/verify-commands.ss
+;;; This stub exists for backwards compatibility.
+;;;
+;;; NOTE: New scripts should use shell/tools/verify-commands.ss directly.
 
-(display "\n╔═══════════════════════════════════════════════════════════════╗\n")
-(display "║     COMMAND SYSTEM VERIFICATION                               ║\n")
-(display "╚═══════════════════════════════════════════════════════════════╝\n\n")
-
-(display "✓ Command system loaded successfully\n\n")
-
-(display (format "Commands registered: ~a\n" (length (list-command-names))))
-(display (format "Available commands: ~a\n\n" (list-command-names)))
-
-(display "Quick test:\n")
-(display "  (cmd 'version) => ")
-(let ([result (cmd 'version)])
-     (display (if (eq? (car result) 'ok) "✓ OK\n" "✗ FAILED\n")))
-
-(display "  (cmd 'typo) => ")
-(let ([result (cmd 'typo)])
-     (display (if (eq? (car result) 'error) "✓ OK (error as expected)\n" "✗ FAILED\n")))
-
-(display "\n✓ All verification checks passed\n\n")
+(load "shell/tools/verify-commands.ss")
