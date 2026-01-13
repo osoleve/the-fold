@@ -83,7 +83,26 @@
              buchberger reduce-basis mpoly-make-monic
              minimize-basis interreduce
              ideal-membership? solve-system normal-form
-             is-groebner-basis? groebner->string))
+             is-groebner-basis? groebner->string)
+   (poly-bridge
+    ;; Conversion functions
+    numeric->algebra numeric->algebra-with-field algebra->numeric
+    ;; Prefixed algebra operations (safe alongside numeric/polynomial.ss)
+    alg-make alg-coeffs alg-degree alg-field alg-zero? alg-leading
+    alg-add alg-sub alg-mul alg-scale alg-divmod alg-div alg-mod
+    alg-gcd alg-extended-gcd alg-derivative alg-eval alg-monic
+    alg-poly-from-roots
+    ;; Bridge operations (work on numeric polynomials via algebra)
+    bridge-gcd bridge-divmod bridge-simplify bridge-coprime?
+    ;; Factory functions
+    make-numeric-from-roots make-numeric-from-ascending make-algebra-from-descending
+    ;; String conversion
+    alg->string numeric->string
+    ;; Compatibility aliases (match sig-* from signal-poly.ss)
+    sig-make-polynomial sig-poly-field sig-poly-coeffs sig-poly-degree
+    sig-poly-zero? sig-poly-leading sig-poly-add sig-poly-sub
+    sig-poly-mul sig-poly-scale sig-poly-div sig-poly-mod
+    sig-poly-gcd sig-poly-divmod))
 
   (modules
    (group "group.ss" "Group theory: cyclic, symmetric, dihedral groups and homomorphisms")
@@ -91,4 +110,5 @@
    (field "field.ss" "Field theory: fields with division, Q, R, and Z_p fields")
    (polynomial "polynomial.ss" "Univariate polynomial rings over fields: arithmetic, division, GCD, factorization")
    (multivariate "multivariate.ss" "Multivariate polynomials over fields: sparse representation, orderings, division")
-   (groebner "groebner.ss" "Gröbner bases: Buchberger's algorithm, ideal membership, reduction")))
+   (groebner "groebner.ss" "Gröbner bases: Buchberger's algorithm, ideal membership, reduction")
+   (poly-bridge "poly-bridge.ss" "Bridge between numeric (descending) and algebra (ascending) polynomial representations")))
