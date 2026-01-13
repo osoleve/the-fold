@@ -54,14 +54,14 @@
   ((file "polynomial-algebra.ss")
    (topic "Polynomial Algebra")
    (demonstrates
-    ("Univariate polynomial arithmetic"
-     "Polynomial division and GCD"
-     "Extended Euclidean algorithm"
+    ("Field-based polynomial arithmetic (Q-field for rationals)"
+     "Univariate polynomial division and GCD"
+     "Extended Euclidean algorithm with Bezout coefficients"
      "Lagrange and Newton interpolation"
      "Square-free factorization"
-     "Multivariate polynomials"
+     "Multivariate polynomials with sparse representation"
      "Monomial orderings (lex, grlex, grevlex)"
-     "Gröbner bases and ideal membership"))
+     "Gröbner bases and ideal membership testing"))
    (run "scheme --script docs/examples/scientific-computing/polynomial-algebra.ss")))
 
  (autodiff-modules-used
@@ -75,6 +75,12 @@
   ("lattice/fp/symbolic/simplify.ss" . "Algebraic simplification")
   ("lattice/fp/symbolic/integrate.ss" . "Symbolic integration"))
 
+ (algebra-modules-used
+  ("lattice/algebra/field.ss" . "Field structure with division (Q-field, R-field, Z_p)")
+  ("lattice/algebra/polynomial.ss" . "Univariate polynomials over fields")
+  ("lattice/algebra/multivariate.ss" . "Multivariate polynomials, monomial orderings")
+  ("lattice/algebra/groebner.ss" . "Gröbner bases, Buchberger's algorithm"))
+
  (key-concepts
   ((gradient "Vector of partial derivatives, points uphill")
    (hessian "Matrix of second derivatives, measures curvature")
@@ -83,7 +89,11 @@
    (forward-mode "Efficient for few inputs, many outputs")
    (symbolic-differentiation "Exact derivatives via algebraic manipulation")
    (symbolic-integration "Antiderivatives via pattern matching and rules")
-   (algebraic-simplification "Canonicalizing expressions to simplest form")))
+   (algebraic-simplification "Canonicalizing expressions to simplest form")
+   (field "Algebraic structure with division (extends ring)")
+   (polynomial-gcd "Greatest common divisor via Euclidean algorithm")
+   (monomial-ordering "Total order on monomials for canonical form")
+   (groebner-basis "Canonical generating set for polynomial ideals")))
 
  (see-also
   ("lattice/autodiff/test-*.ss" . "Autodiff test files for more usage examples")
