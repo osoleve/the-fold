@@ -6,7 +6,7 @@
   (path "lattice/linalg")
   (purity total)
   (stability stable)
-  (fuel-bound "O(n³) for matrix operations, O(n) for vectors")
+  (fuel-bound "O(n³) for general matrices, O(n²) for Toeplitz systems, O(n) for vectors")
   (deps ())  ; Tier 0 - no lattice dependencies
 
   (description
@@ -14,7 +14,8 @@
     decompositions, solvers, and quaternions.")
 
   (keywords (linear-algebra matrix vector quaternion decomposition
-             lu qr cholesky eigenvalue svd sparse solver numerical))
+             lu qr cholesky eigenvalue svd sparse solver numerical
+             toeplitz levinson-durbin spectral-clustering))
   (aliases (la lin-alg linear matrix-math))
 
   (exports
@@ -29,7 +30,7 @@
    (quaternion "quaternion.ss" "Quaternion algebra for rotations")
    (matrix "matrix.ss" "Dense matrix operations")
    (matrix-decomp "matrix-decomp.ss" "LU, QR, Cholesky decomposition")
-   (matrix-solvers "matrix-solvers.ss" "Direct linear system solvers")
+   (matrix-solvers "matrix-solvers.ss" "Direct solvers, Levinson-Durbin for Toeplitz")
    (matrix-eigen "matrix-eigen.ss" "Eigenvalue computation")
    (iterative-solvers "iterative-solvers.ss" "CG, GMRES, BiCGSTAB")
    (sparse "sparse.ss" "Sparse matrix formats")

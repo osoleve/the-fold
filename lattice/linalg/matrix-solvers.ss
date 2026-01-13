@@ -210,3 +210,142 @@
        (if (and (pair? inv) (eq? (car inv) 'error))
            inv
            (* (frobenius-norm a) (frobenius-norm inv)))))
+
+;;; ============================================================
+;;; Toeplitz Solvers
+;;; ============================================================
+
+;;; levinson-durbin : Vec → Vec
+;;; Solve the Yule-Walker equations using Levinson-Durbin recursion.
+;;;
+;;; Input:  r = [r_0, r_1, ..., r_p] autocorrelations (r_0 = 1 for normalized ACF)
+;;; Output: phi = [phi_1, ..., phi_p] the AR coefficients
+;;;
+;;; Solves: R * phi = [r_1, ..., r_p]
+;;; where R is the p×p Toeplitz matrix with R[i,j] = r_{|i-j|}
+;;;
+;;; O(p²) time, O(p) space - much faster than O(p³) LU decomposition.
+;;;
+;;; Returns (error singular k) if the matrix is singular at step k.
+(define (levinson-durbin r)
+  (let* ([n (- (vector-length r) 1)]  ; p = n
+         [phi (make-vector n 0.0)]
+         [phi-tmp (make-vector n 0.0)]
+         [e (vector-ref r 0)])        ; prediction error variance
+    (if (= n 0)
+        (make-vector 0)
+        (let loop ([m 1])
+          (if (> m n)
+              phi
+              ;; Compute reflection coefficient lambda_m
+              (let ([lambda-num
+                     (- (vector-ref r m)
+                        (let inner ([k 1] [sum 0.0])
+                          (if (>= k m)
+                              sum
+                              (inner (+ k 1)
+                                     (+ sum (* (vector-ref phi (- k 1))
+                                               (vector-ref r (- m k))))))))])
+                (if (< (abs e) 1e-15)
+                    ;; Matrix is singular
+                    (list 'error 'singular m)
+                    (let ([lambda-m (/ lambda-num e)])
+                      ;; Update AR coefficients using order-update recursion
+                      ;; phi^(m)_k = phi^(m-1)_k - lambda_m * phi^(m-1)_{m-k}
+                      (do ([k 1 (+ k 1)])
+                          [(>= k m)]
+                        (vector-set! phi-tmp (- k 1)
+                                     (- (vector-ref phi (- k 1))
+                                        (* lambda-m (vector-ref phi (- m k 1))))))
+                      ;; phi^(m)_m = lambda_m
+                      (vector-set! phi-tmp (- m 1) lambda-m)
+                      ;; Copy tmp back to phi
+                      (do ([k 0 (+ k 1)])
+                          [(= k m)]
+                        (vector-set! phi k (vector-ref phi-tmp k)))
+                      ;; Update error variance: E_m = E_{m-1} * (1 - lambda_m^2)
+                      (set! e (* e (- 1 (* lambda-m lambda-m))))
+                      (loop (+ m 1))))))))))
+
+;;; levinson-durbin-general : Vec × Vec → Vec
+;;; Solve Tx = b where T is a symmetric Toeplitz matrix.
+;;;
+;;; Input:  r = [r_0, r_1, ..., r_{n-1}] defining T where T[i,j] = r_{|i-j|}
+;;;         b = [b_0, ..., b_{n-1}] right-hand side
+;;; Output: x = [x_0, ..., x_{n-1}] solution
+;;;
+;;; Uses generalized Levinson recursion: O(n²) time.
+;;;
+;;; Note: For Yule-Walker equations (AR fitting), use levinson-durbin instead
+;;; as it's optimized for that specific structure.
+(define (levinson-durbin-general r b)
+  (let* ([n (vector-length r)]
+         [x (make-vector n 0.0)]
+         [x-tmp (make-vector n 0.0)]
+         [a (make-vector n 0.0)]       ; auxiliary vector for reflection coeffs
+         [a-tmp (make-vector n 0.0)]
+         [r0 (vector-ref r 0)])
+    (if (= n 0)
+        x
+        (if (< (abs r0) 1e-15)
+            (list 'error 'singular 0)
+            ;; Initialize: x^(0) = b_0/r_0, a^(0) = -r_1/r_0
+            (begin
+              (vector-set! x 0 (/ (vector-ref b 0) r0))
+              (if (= n 1)
+                  x
+                  (let ([e r0])  ; error term
+                    (vector-set! a 0 (- (/ (vector-ref r 1) r0)))
+                    (set! e (* e (- 1 (expt (vector-ref a 0) 2))))
+                    (let loop ([m 1])
+                      (if (= m n)
+                          x
+                          (if (< (abs e) 1e-15)
+                              (list 'error 'singular m)
+                              ;; Compute delta for x update
+                              (let* ([delta
+                                      (- (vector-ref b m)
+                                         (let inner ([k 0] [sum 0.0])
+                                           (if (= k m)
+                                               sum
+                                               (inner (+ k 1)
+                                                      (+ sum (* (vector-ref x k)
+                                                                (vector-ref r (- m k))))))))]
+                                     ;; Update x
+                                     [delta-e (/ delta e)])
+                                ;; x^(m)_k = x^(m-1)_k + delta/e * a^(m-1)_{m-1-k}
+                                (do ([k 0 (+ k 1)])
+                                    [(= k m)]
+                                  (vector-set! x-tmp k
+                                               (+ (vector-ref x k)
+                                                  (* delta-e (vector-ref a (- m 1 k))))))
+                                (vector-set! x-tmp m delta-e)
+                                ;; Copy x-tmp to x
+                                (do ([k 0 (+ k 1)])
+                                    [(= k (+ m 1))]
+                                  (vector-set! x k (vector-ref x-tmp k)))
+                                ;; Update auxiliary vector a if not done
+                                (if (< m (- n 1))
+                                    (let* ([lambda-num
+                                            (let inner ([k 0] [sum (vector-ref r (+ m 1))])
+                                              (if (= k m)
+                                                  sum
+                                                  (inner (+ k 1)
+                                                         (+ sum (* (vector-ref a k)
+                                                                   (vector-ref r (- m k)))))))]
+                                           [lambda-m (- (/ lambda-num e))])
+                                      ;; a^(m)_k = a^(m-1)_k + lambda * a^(m-1)_{m-1-k}
+                                      (do ([k 0 (+ k 1)])
+                                          [(= k m)]
+                                        (vector-set! a-tmp k
+                                                     (+ (vector-ref a k)
+                                                        (* lambda-m (vector-ref a (- m 1 k))))))
+                                      (vector-set! a-tmp m lambda-m)
+                                      ;; Copy a-tmp to a
+                                      (do ([k 0 (+ k 1)])
+                                          [(= k (+ m 1))]
+                                        (vector-set! a k (vector-ref a-tmp k)))
+                                      ;; Update error
+                                      (set! e (* e (- 1 (* lambda-m lambda-m))))
+                                      (loop (+ m 1)))
+                                    (loop (+ m 1))))))))))))))

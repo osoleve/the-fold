@@ -20,6 +20,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
+(load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-solvers.ss")
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/core/summary-stats.ss")
@@ -37,6 +38,8 @@
 ;;; The Yule-Walker equations relate autocorrelations to AR coefficients:
 ;;; R * phi = r
 ;;; where R is the Toeplitz matrix of autocorrelations and r = [rho_1, ..., rho_p]'.
+;;;
+;;; Uses Levinson-Durbin algorithm for O(p²) performance instead of O(p³).
 (define (ar-fit xs p)
   (let* ([n (vector-length xs)]
          [mean (vec-mean xs)])
@@ -46,15 +49,8 @@
                    [centered (center-series xs mean)]
                    ;; Compute ACF
                    [acf-vals (acf centered p)]
-                   ;; Build Toeplitz matrix R
-                   [R (make-toeplitz-matrix acf-vals p)]
-                   ;; Build r vector
-                   [r (make-vector p)]
-                   [_ (do ([k 0 (+ k 1)])
-                          [(= k p)]
-                          (vector-set! r k (vector-ref acf-vals (+ k 1))))]
-                   ;; Solve R * phi = r
-                   [phi (matrix-solve R r)])
+                   ;; Solve Yule-Walker equations using Levinson-Durbin O(p²)
+                   [phi (levinson-durbin acf-vals)])
                   (if (and (pair? phi) (eq? (car phi) 'error))
                       phi
                       ;; Compute residuals and diagnostics

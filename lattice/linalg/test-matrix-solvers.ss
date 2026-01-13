@@ -188,6 +188,91 @@
                (test "Condition number > 1" #t (> (matrix-condition-number a) 1)))
 
           ;;; ============================================================
+          ;;; Levinson-Durbin Tests
+          ;;; ============================================================
+
+          (printf "\n--- Levinson-Durbin (Toeplitz Solver) ---\n")
+
+          ;; Test 1: Simple AR(1) case
+          ;; r = [1, 0.5] means autocorrelations rho_0 = 1, rho_1 = 0.5
+          ;; Solve R * phi = [rho_1] where R = [rho_0] = [1]
+          ;; phi_1 = rho_1 / rho_0 = 0.5 / 1 = 0.5
+          (let* ([r '#(1.0 0.5)]
+                 [phi (levinson-durbin r)])
+                (if (vector? phi)
+                    (begin
+                      (test "Levinson-Durbin AR(1): length" 1 (vector-length phi))
+                      (test-approx "Levinson-Durbin AR(1): phi_1" 0.5 (vector-ref phi 0) 1e-10))
+                    (test "Levinson-Durbin AR(1) succeeds" #t #f)))
+
+          ;; Test 2: AR(2) case
+          ;; r = [1, 0.7, 0.4]
+          ;; Toeplitz matrix R = [[1, 0.7], [0.7, 1]]
+          ;; RHS = [0.7, 0.4]
+          ;; Direct solve: phi_1 = (r_0*r_1 - r_2*r_1) / (r_0^2 - r_1^2)
+          ;;                     = (1*0.7 - 0.4*0.7) / (1 - 0.49)
+          ;;                     = (0.7 - 0.28) / 0.51 = 0.42 / 0.51 ≈ 0.8235
+          ;;             phi_2 = (r_2*r_0 - r_1^2) / (r_0^2 - r_1^2)
+          ;;                   = (0.4*1 - 0.49) / 0.51 = -0.09 / 0.51 ≈ -0.1765
+          (let* ([r '#(1.0 0.7 0.4)]
+                 [phi (levinson-durbin r)])
+                (if (vector? phi)
+                    (begin
+                      (test "Levinson-Durbin AR(2): length" 2 (vector-length phi))
+                      (test-approx "Levinson-Durbin AR(2): phi_1" 0.8235294117647058 (vector-ref phi 0) 1e-10)
+                      (test-approx "Levinson-Durbin AR(2): phi_2" -0.17647058823529413 (vector-ref phi 1) 1e-10))
+                    (test "Levinson-Durbin AR(2) succeeds" #t #f)))
+
+          ;; Test 3: Compare with direct matrix solve
+          (let* ([r '#(1.0 0.8 0.5 0.2)]
+                 [phi (levinson-durbin r)]
+                 ;; Build Toeplitz matrix manually
+                 [toeplitz (matrix-from-lists '((1.0 0.8 0.5)
+                                                (0.8 1.0 0.8)
+                                                (0.5 0.8 1.0)))]
+                 [rhs '#(0.8 0.5 0.2)]
+                 [phi-direct (matrix-solve toeplitz rhs)])
+                (if (and (vector? phi) (vector? phi-direct))
+                    (begin
+                      (test "Levinson-Durbin AR(3): length" 3 (vector-length phi))
+                      (test-approx "Levinson-Durbin vs matrix-solve: phi_1" (vector-ref phi-direct 0) (vector-ref phi 0) 1e-10)
+                      (test-approx "Levinson-Durbin vs matrix-solve: phi_2" (vector-ref phi-direct 1) (vector-ref phi 1) 1e-10)
+                      (test-approx "Levinson-Durbin vs matrix-solve: phi_3" (vector-ref phi-direct 2) (vector-ref phi 2) 1e-10))
+                    (test "Levinson-Durbin AR(3) succeeds" #t #f)))
+
+          ;; Test 4: General Toeplitz solver with arbitrary RHS
+          (let* ([r '#(4.0 1.0 0.5)]  ; Toeplitz defining vector
+                 [b '#(3.0 2.0 1.0)]  ; Arbitrary RHS
+                 [x (levinson-durbin-general r b)]
+                 ;; Build Toeplitz matrix manually and solve directly
+                 [toeplitz (matrix-from-lists '((4.0 1.0 0.5)
+                                                (1.0 4.0 1.0)
+                                                (0.5 1.0 4.0)))]
+                 [x-direct (matrix-solve toeplitz b)])
+                (if (and (vector? x) (vector? x-direct))
+                    (begin
+                      (test "Levinson-Durbin-General: length" 3 (vector-length x))
+                      (test-approx "Levinson-Durbin-General vs matrix-solve: x_0" (vector-ref x-direct 0) (vector-ref x 0) 1e-10)
+                      (test-approx "Levinson-Durbin-General vs matrix-solve: x_1" (vector-ref x-direct 1) (vector-ref x 1) 1e-10)
+                      (test-approx "Levinson-Durbin-General vs matrix-solve: x_2" (vector-ref x-direct 2) (vector-ref x 2) 1e-10))
+                    (test "Levinson-Durbin-General succeeds" #t #f)))
+
+          ;; Test 5: Edge case - single element
+          (let* ([r '#(2.0)]
+                 [b '#(4.0)]
+                 [x (levinson-durbin-general r b)])
+                (if (vector? x)
+                    (test-approx "Levinson-Durbin-General n=1" 2.0 (vector-ref x 0) 1e-10)
+                    (test "Levinson-Durbin-General n=1 succeeds" #t #f)))
+
+          ;; Test 6: Empty case
+          (let* ([r '#(1.0)]
+                 [phi (levinson-durbin r)])
+                (if (vector? phi)
+                    (test "Levinson-Durbin p=0: empty result" 0 (vector-length phi))
+                    (test "Levinson-Durbin p=0 succeeds" #t #f)))
+
+          ;;; ============================================================
           ;;; Results
           ;;; ============================================================
           (printf "\n================================================================\n")

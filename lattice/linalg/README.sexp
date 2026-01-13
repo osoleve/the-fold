@@ -32,7 +32,7 @@ cache efficiency. Sparse matrices support COO, CSR, and CSC formats.")
    (quaternion.ss "Quaternion rotations (uses vec3) - 34 tests")
    (matrix.ss "Matrix operations - 50 tests")
    (matrix-decomp.ss "LU, QR, Cholesky decompositions - 27 tests")
-   (matrix-solvers.ss "Linear equation solvers - 22 tests")
+   (matrix-solvers.ss "Linear equation solvers, Levinson-Durbin - 37 tests")
    (matrix-eigen.ss "Eigenvalue/eigenvector computation - 31 tests")
    (sparse.ss "Sparse matrix formats (COO, CSR, CSC) - 119 tests")
    (iterative-solvers.ss "CG, GMRES iterative methods")
@@ -128,9 +128,25 @@ cache efficiency. Sparse matrices support COO, CSR, and CSC formats.")
      (conductance adj cluster-0)     ; lower is better
      (normalized-cut adj cluster-0)  ; spectral objective")))
 
+ (toeplitz-solvers
+  (overview "Specialized solvers for Toeplitz systems (constant diagonals).")
+
+  (levinson-durbin
+   "Solve Yule-Walker equations for AR model fitting.
+    Input: r = [r_0, r_1, ..., r_p] autocorrelations
+    Output: phi = [phi_1, ..., phi_p] AR coefficients
+    Complexity: O(p²) vs O(p³) for general LU decomposition.")
+
+  (levinson-durbin-general
+   "Solve Tx = b for any symmetric positive definite Toeplitz matrix T.
+    Input: r = [r_0, ..., r_{n-1}] defining T where T[i,j] = r_{|i-j|}
+           b = right-hand side vector
+    Output: solution vector x"))
+
  (performance-notes
   "Dense matrices use row-major flat vectors for cache efficiency.
    Matrix operations are O(n³) for most decompositions.
+   Toeplitz systems use Levinson-Durbin at O(n²).
    Use sparse formats (CSR/CSC) for matrices with >90% zeros.
    Iterative solvers (CG, GMRES) are preferred for large sparse systems.
    Eigenvalue computation uses QR iteration with Householder transforms.")
@@ -144,4 +160,4 @@ cache efficiency. Sparse matrices support COO, CSR, and CSC formats.")
   (sparse-csr "(sparse-csr rows cols row-ptrs col-idx values)")
   (sparse-csc "(sparse-csc rows cols col-ptrs row-idx values)"))
 
- (total-tests 337))
+ (total-tests 352))
