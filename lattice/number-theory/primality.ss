@@ -222,18 +222,54 @@
 
 ;;; pollard-rho-single : Int × Int → Int
 ;;; Single run of Pollard's rho with polynomial f(x) = x² + c.
+;;; Uses batched GCD computation: accumulates |x-y| products and computes
+;;; GCD every 128 iterations, reducing GCD operations by ~128x.
 (define (pollard-rho-single n c)
+  (let ([f (lambda (x) (modulo (+ (* x x) c) n))]
+        [batch-size 128])
+    (let outer-loop ([x 2] [y 2] [iter 0])
+      (if (> iter 1000000)
+          n  ; Give up
+          ;; Batch phase: accumulate products for batch-size iterations
+          (let inner-loop ([x x] [y y] [prod 1] [batch-count 0]
+                          [xs-history '()] [ys-history '()])
+            (if (= batch-count batch-size)
+                ;; Compute GCD for this batch
+                (let ([d (gcd prod n)])
+                  (cond
+                   [(= d 1)
+                    ;; No factor yet, continue with next batch
+                    (outer-loop x y (+ iter batch-size))]
+                   [(and (> d 1) (< d n))
+                    ;; Found non-trivial factor
+                    d]
+                   [else
+                    ;; d = n, need to backtrack and find exact step
+                    (pollard-rho-backtrack n c (reverse xs-history) (reverse ys-history))]))
+                ;; Continue accumulating
+                (let* ([x-new (f x)]
+                       [y-new (f (f y))]
+                       [diff (abs (- x-new y-new))]
+                       [prod-new (modulo (* prod diff) n)])
+                  (inner-loop x-new y-new prod-new (+ batch-count 1)
+                             (cons x xs-history) (cons y ys-history)))))))))
+
+;;; pollard-rho-backtrack : Int × Int × (List Int) × (List Int) → Int
+;;; When batch GCD returns n, backtrack to find exact factor.
+(define (pollard-rho-backtrack n c xs-history ys-history)
   (let ([f (lambda (x) (modulo (+ (* x x) c) n))])
-    (let loop ([x 2] [y 2] [d 1] [iter 0])
-      (cond
-       [(> iter 1000000) n]  ; Give up after many iterations
-       [(and (> d 1) (< d n)) d]
-       [(= d n) n]  ; Failure
-       [else
-        (let* ([x-new (f x)]
-               [y-new (f (f y))]
-               [d-new (gcd (abs (- x-new y-new)) n)])
-          (loop x-new y-new d-new (+ iter 1)))]))))
+    (let loop ([xs xs-history] [ys ys-history] [x (if (null? xs-history) 2 (car xs-history))]
+               [y (if (null? ys-history) 2 (car ys-history))])
+      (if (null? xs)
+          n  ; Shouldn't happen, but return n as failure
+          (let* ([x-new (f x)]
+                 [y-new (f (f y))]
+                 [d (gcd (abs (- x-new y-new)) n)])
+            (cond
+             [(= d 1)
+              (loop (cdr xs) (cdr ys) x-new y-new)]
+             [(and (> d 1) (< d n)) d]
+             [else n]))))))
 
 ;;; ============================================================
 ;;; Factor Representation

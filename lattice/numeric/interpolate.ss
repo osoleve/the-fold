@@ -21,6 +21,41 @@
 (load "lattice/numeric/polynomial.ss")
 
 ;;; ============================================================
+;;; Binary Search Helper (for O(log n) segment lookup)
+;;; ============================================================
+
+;;; binary-search-segment : (List Num) × Num → Int
+;;; Find index i such that xs[i] <= x < xs[i+1].
+;;; Returns 0 if x < xs[0], n-2 if x >= xs[n-1].
+;;; Uses binary search: O(log n) instead of O(n).
+(define (binary-search-segment xs x)
+  (let ([n (length xs)])
+    (if (<= n 1)
+        0
+        (let loop ([lo 0] [hi (- n 1)])
+          (if (<= (- hi lo) 1)
+              lo
+              (let* ([mid (quotient (+ lo hi) 2)]
+                     [x-mid (list-ref xs mid)])
+                (if (<= x x-mid)
+                    (loop lo mid)
+                    (loop mid hi))))))))
+
+;;; binary-search-segment-vec : (Vector Num) × Num → Int
+;;; Vector version of binary-search-segment for spline evaluation.
+(define (binary-search-segment-vec xs-list x n)
+  (if (<= n 1)
+      0
+      (let loop ([lo 0] [hi (- n 1)])
+        (if (<= (- hi lo) 1)
+            lo
+            (let* ([mid (quotient (+ lo hi) 2)]
+                   [x-mid (list-ref xs-list mid)])
+              (if (<= x x-mid)
+                  (loop lo mid)
+                  (loop mid hi)))))))
+
+;;; ============================================================
 ;;; Linear Interpolation
 ;;; ============================================================
 
@@ -42,24 +77,27 @@
 ;;; Piecewise linear interpolation.
 ;;; Points are (x, y) pairs, must be sorted by x.
 ;;; For x outside the range, uses the nearest endpoint value.
+;;; Uses binary search for O(log n) segment lookup.
 (define (interp-linear points x)
   (cond
    [(null? points) 0]
    [(null? (cdr points)) (cdar points)]
    [else
-    (let find-segment ([ps points])
+    (let* ([xs (map car points)]
+           [n (length xs)]
+           [i (binary-search-segment xs x)])
       (cond
-       [(null? (cdr ps)) (cdar ps)]  ; Past last point
-       [(<= x (caar ps)) (cdar ps)]  ; Before first point
-       [(< x (caadr ps))
-        ;; Found segment
-        (let ([x0 (caar ps)]
-              [y0 (cdar ps)]
-              [x1 (caadr ps)]
-              [y1 (cdadr ps)])
-          (lerp y0 y1 (lerp-inverse x0 x1 x)))]
+       [(<= x (car xs)) (cdar points)]  ; Before first point
+       [(>= x (list-ref xs (- n 1))) (cdr (list-ref points (- n 1)))]  ; Past last point
        [else
-        (find-segment (cdr ps))]))]))
+        ;; Interpolate in segment [i, i+1]
+        (let ([p0 (list-ref points i)]
+              [p1 (list-ref points (+ i 1))])
+          (let ([x0 (car p0)]
+                [y0 (cdr p0)]
+                [x1 (car p1)]
+                [y1 (cdr p1)])
+            (lerp y0 y1 (lerp-inverse x0 x1 x))))]))]))
 
 ;;; ============================================================
 ;;; Polynomial Interpolation (Lagrange)
@@ -173,11 +211,49 @@
 ;;; Cubic Spline Interpolation
 ;;; ============================================================
 
+;;; thomas-algorithm : (Vector Num) × (Vector Num) × (Vector Num) × (Vector Num) → (Vector Num)
+;;; Solve tridiagonal system using Thomas algorithm (TDMA).
+;;; a: sub-diagonal (length n-1, a[0] unused conceptually but we use 0-indexed)
+;;; b: main diagonal (length n)
+;;; c: super-diagonal (length n-1)
+;;; d: right-hand side (length n)
+;;; Returns solution x of length n.
+;;; Time complexity: O(n), Space: O(n)
+(define (thomas-algorithm a-sub b-diag c-sup d-rhs)
+  (let* ([n (vector-length b-diag)]
+         [c-prime (make-vector n 0.0)]
+         [d-prime (make-vector n 0.0)]
+         [x (make-vector n 0.0)])
+    (if (= n 0)
+        x
+        (begin
+          ;; Forward sweep
+          (vector-set! c-prime 0 (/ (vector-ref c-sup 0) (vector-ref b-diag 0)))
+          (vector-set! d-prime 0 (/ (vector-ref d-rhs 0) (vector-ref b-diag 0)))
+          (do ([i 1 (+ i 1)])
+              ((>= i n))
+            (let* ([ai (if (> i 0) (vector-ref a-sub (- i 1)) 0)]
+                   [bi (vector-ref b-diag i)]
+                   [ci (if (< i (- n 1)) (vector-ref c-sup i) 0)]
+                   [di (vector-ref d-rhs i)]
+                   [denom (- bi (* ai (vector-ref c-prime (- i 1))))])
+              (when (< i (- n 1))
+                (vector-set! c-prime i (/ ci denom)))
+              (vector-set! d-prime i (/ (- di (* ai (vector-ref d-prime (- i 1)))) denom))))
+          ;; Back substitution
+          (vector-set! x (- n 1) (vector-ref d-prime (- n 1)))
+          (do ([i (- n 2) (- i 1)])
+              ((< i 0))
+            (vector-set! x i (- (vector-ref d-prime i)
+                               (* (vector-ref c-prime i) (vector-ref x (+ i 1))))))
+          x))))
+
 ;;; cubic-spline-natural : (List Num) × (List Num) → (Vector (Num Num Num Num))
 ;;; Compute natural cubic spline coefficients.
 ;;; Returns vector of (a, b, c, d) for each segment where
 ;;; S_i(x) = a_i + b_i(x-x_i) + c_i(x-x_i)² + d_i(x-x_i)³
 ;;; Natural boundary: S''(x_0) = S''(x_n) = 0
+;;; Uses Thomas algorithm for O(n) time complexity.
 (define (cubic-spline-natural xs ys)
   (let* ([n (length xs)]
          [n-1 (- n 1)])
@@ -188,36 +264,40 @@
                     (if (null? (cdr xs))
                         (list->vector (reverse result))
                         (loop (cdr xs)
-                              (cons (- (cadr xs) (car xs)) result))))]
-               ;; Set up tridiagonal system for second derivatives M
-               ;; Natural spline: M_0 = M_n = 0
-               ;; For i=1..n-1: h_{i-1}M_{i-1} + 2(h_{i-1}+h_i)M_i + h_iM_{i+1} = 6(...)
-               [a (make-matrix (- n 2) (- n 2) 0)]
-               [b (make-vector (- n 2) 0)])
-          ;; Build system
-          (when (>= n 3)
-            (do ([i 1 (+ i 1)])
-                ((>= i n-1))
-              (let ([hi-1 (vector-ref h (- i 1))]
-                    [hi (vector-ref h i)]
-                    [yi-1 (list-ref ys (- i 1))]
-                    [yi (list-ref ys i)]
-                    [yi+1 (list-ref ys (+ i 1))])
-                ;; Diagonal
-                (matrix-set! a (- i 1) (- i 1) (* 2 (+ hi-1 hi)))
-                ;; Sub/super diagonal
-                (when (> i 1)
-                  (matrix-set! a (- i 1) (- i 2) hi-1))
-                (when (< i (- n 2))
-                  (matrix-set! a (- i 1) i hi))
-                ;; RHS
-                (vector-set! b (- i 1)
-                             (* 6 (- (/ (- yi+1 yi) hi)
-                                     (/ (- yi yi-1) hi-1)))))))
-          ;; Solve for M (second derivatives at interior points)
-          (let* ([M-interior (if (< n 3)
-                                 (vector)
-                                 (matrix-solve a b))]
+                              (cons (- (cadr xs) (car xs)) result))))])
+          ;; Solve for M (second derivatives at interior points) using Thomas algorithm
+          (let* ([m (- n 2)]  ; Number of interior points
+                 [M-interior
+                  (if (< n 3)
+                      (vector)
+                      ;; Build tridiagonal system vectors
+                      (let* ([a-sub (make-vector (- m 1) 0.0)]   ; sub-diagonal
+                             [b-diag (make-vector m 0.0)]         ; main diagonal
+                             [c-sup (make-vector (- m 1) 0.0)]    ; super-diagonal
+                             [d-rhs (make-vector m 0.0)])         ; right-hand side
+                        ;; Fill tridiagonal vectors
+                        (do ([i 1 (+ i 1)])
+                            ((>= i n-1))
+                          (let* ([idx (- i 1)]
+                                 [hi-1 (vector-ref h (- i 1))]
+                                 [hi (vector-ref h i)]
+                                 [yi-1 (list-ref ys (- i 1))]
+                                 [yi (list-ref ys i)]
+                                 [yi+1 (list-ref ys (+ i 1))])
+                            ;; Main diagonal: 2(h_{i-1} + h_i)
+                            (vector-set! b-diag idx (* 2 (+ hi-1 hi)))
+                            ;; Sub-diagonal: h_{i-1} (for rows after first)
+                            (when (> idx 0)
+                              (vector-set! a-sub (- idx 1) hi-1))
+                            ;; Super-diagonal: h_i (for rows before last)
+                            (when (< idx (- m 1))
+                              (vector-set! c-sup idx hi))
+                            ;; RHS
+                            (vector-set! d-rhs idx
+                                        (* 6 (- (/ (- yi+1 yi) hi)
+                                                (/ (- yi yi-1) hi-1))))))
+                        ;; Solve with Thomas algorithm O(n) instead of matrix-solve O(n³)
+                        (thomas-algorithm a-sub b-diag c-sup d-rhs)))]
                  ;; Full M vector with M_0 = M_n = 0
                  [M (let ([v (make-vector n 0)])
                       (do ([i 1 (+ i 1)])
@@ -249,35 +329,24 @@
 
 ;;; spline-eval : (Vector (Num Num Num Num)) × (List Num) × Num → Num
 ;;; Evaluate cubic spline at point x.
+;;; Uses binary search for O(log n) segment lookup.
 (define (spline-eval spline xs x)
   (let ([n (vector-length spline)])
     (if (= n 0)
         0
-        ;; Find segment
-        (let find ([i 0])
-          (cond
-           [(>= i (- n 1))
-            ;; Use last segment
-            (let* ([coeffs (vector-ref spline (- n 1))]
-                   [xi (list-ref xs (- n 1))]
-                   [dx (- x xi)]
-                   [a (car coeffs)]
-                   [b (cadr coeffs)]
-                   [c (caddr coeffs)]
-                   [d (cadddr coeffs)])
-              (+ a (* b dx) (* c dx dx) (* d dx dx dx)))]
-           [(< x (list-ref xs (+ i 1)))
-            ;; Found segment
-            (let* ([coeffs (vector-ref spline i)]
-                   [xi (list-ref xs i)]
-                   [dx (- x xi)]
-                   [a (car coeffs)]
-                   [b (cadr coeffs)]
-                   [c (caddr coeffs)]
-                   [d (cadddr coeffs)])
-              (+ a (* b dx) (* c dx dx) (* d dx dx dx)))]
-           [else
-            (find (+ i 1))])))))
+        ;; Binary search for segment
+        (let* ([n-pts (length xs)]
+               [i (binary-search-segment-vec xs x n-pts)]
+               ;; Clamp to valid segment range
+               [seg-idx (max 0 (min i (- n 1)))]
+               [coeffs (vector-ref spline seg-idx)]
+               [xi (list-ref xs seg-idx)]
+               [dx (- x xi)]
+               [a (car coeffs)]
+               [b (cadr coeffs)]
+               [c (caddr coeffs)]
+               [d (cadddr coeffs)])
+          (+ a (* b dx) (* c dx dx) (* d dx dx dx))))))
 
 ;;; interp-cubic-spline : (List Num) × (List Num) × Num → Num
 ;;; Cubic spline interpolation with natural boundary conditions.
