@@ -403,6 +403,9 @@
     [(eq? (car expr) 'quote) expr]
 
     ;; (fn (x) (f x)) where x not free in f → f
+    ;; NOTE: Only applies to exact two-element applications (f x).
+    ;; Multi-argument forms like (+ 0 y) are NOT η-reducible in Scheme
+    ;; because (+ 0 y) is not the same as ((+ 0) y).
     [(and (eq? (car expr) 'fn)
           (pair? (cdr expr))
           (pair? (cadr expr))
@@ -411,19 +414,14 @@
           (let ([var (caadr expr)]
                 [body (caddr expr)])
             (and (pair? body)              ; body is an application
+                 (= (length body) 2)        ; exactly (f x), not (f x y ...)
                  (not (eq? (car body) 'fn)) ; not a nested lambda
                  (not (eq? (car body) 'let))
                  (not (eq? (car body) 'fix))
                  (not (eq? (car body) 'quote))
-                 (>= (length body) 2)       ; at least (f x)
-                 (eq? (car (reverse body)) var)  ; last arg is the bound var
-                 (not (memq var (free-vars (reverse (cdr (reverse body))))))))) ; var not free in f or other args
-     (let* ([var (caadr expr)]
-            [body (caddr expr)]
-            [func-and-args (reverse (cdr (reverse body)))])  ; all but last arg
-       (if (= (length func-and-args) 1)
-           (eta-reduce (car func-and-args))  ; just f
-           (eta-reduce func-and-args)))]     ; (f arg1 ... argN-1)
+                 (eq? (cadr body) var)      ; argument is the bound var
+                 (not (memq var (free-vars (car body))))))) ; var not free in f
+     (eta-reduce (car (caddr expr)))]       ; return f
 
     ;; Recurse into fn body
     [(eq? (car expr) 'fn)
