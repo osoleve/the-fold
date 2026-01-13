@@ -20,8 +20,12 @@
 ;;; Session State
 ;;; ============================================================
 
-;;; Current session state: #(template undo-stack)
+;;; Current session state: #(template undo-stack completed-defs)
+;;; completed-defs accumulates finished definitions for multi-def sessions
 (define *template-session* (make-parameter #f))
+
+;;; Completed definitions accumulator (for multi-definition sessions)
+(define *completed-defs* (make-parameter '()))
 
 ;;; session-template : → Template | #f
 (define (session-template)
@@ -151,7 +155,107 @@
 ;;; Clear the current session.
 (define (ts-reset)
   (*template-session* #f)
+  (*completed-defs* '())
   (display "Session cleared.\n"))
+
+;;; ============================================================
+;;; Multi-Definition Support
+;;; ============================================================
+
+;;; ts-next : Expr → Unit
+;;; Compile current template (must be complete), save it, start new one.
+(define (ts-next expr)
+  (let ([t (session-template)])
+    (when t
+      (if (template-complete? t)
+          (begin
+            (*completed-defs* (cons (compile-template t) (*completed-defs*)))
+            (display "Definition saved. ")
+            (display (length (*completed-defs*)))
+            (display " definition(s) accumulated.\n"))
+          (begin
+            (display "Cannot save - ")
+            (display (template-status t))
+            (newline)
+            (error 'ts-next "Current template incomplete")))))
+  (ts-start expr))
+
+;;; ts-emit : → Unit
+;;; Compile and save current template, clear for next (no new template).
+(define (ts-emit)
+  (let ([t (session-template)])
+    (unless t
+      (error 'ts-emit "No active session"))
+    (if (template-complete? t)
+        (begin
+          (*completed-defs* (cons (compile-template t) (*completed-defs*)))
+          (*template-session* #f)
+          (display "Emitted. ")
+          (display (length (*completed-defs*)))
+          (display " definition(s) total.\n"))
+        (begin
+          (display "Cannot emit - ")
+          (display (template-status t))
+          (newline)))))
+
+;;; ts-all : → Expr
+;;; Get all accumulated definitions as a begin block.
+(define (ts-all)
+  (let ([defs (reverse (*completed-defs*))])
+    (if (null? defs)
+        (begin
+          (display "No definitions accumulated.\n")
+          #f)
+        (let ([result (if (null? (cdr defs))
+                          (car defs)
+                          (cons 'begin defs))])
+          (display "All definitions:\n")
+          (pretty-print result)
+          (newline)
+          result))))
+
+;;; ts-count : → Nat
+;;; Get count of accumulated definitions.
+(define (ts-count)
+  (length (*completed-defs*)))
+
+;;; ============================================================
+;;; Quick Templates (Common Patterns)
+;;; ============================================================
+
+;;; ts-fn : Symbol × (List Symbol) → Unit
+;;; Quick function definition: (ts-fn 'foo '(x y)) → (define (foo x y) $body)
+(define (ts-fn name args)
+  (ts-start `(define (,name ,@args) $body)))
+
+;;; ts-let : (List (Symbol Expr)) → Unit
+;;; Quick let: (ts-let '((x 1) (y 2))) → (let ((x 1) (y 2)) $body)
+(define (ts-let bindings)
+  (ts-start `(let ,bindings $body)))
+
+;;; ts-lambda : (List Symbol) → Unit
+;;; Quick lambda: (ts-lambda '(x y)) → (lambda (x y) $body)
+(define (ts-lambda args)
+  (ts-start `(lambda ,args $body)))
+
+;;; ts-if : → Unit
+;;; Quick if template
+(define (ts-if)
+  (ts-start '(if $cond $then $else)))
+
+;;; ts-cond : Nat → Unit
+;;; Quick cond with n clauses
+(define (ts-cond n)
+  (let ([clauses (let loop ([i 1] [acc '()])
+                   (if (> i n)
+                       (reverse acc)
+                       (loop (+ i 1)
+                             (cons (list (string->symbol
+                                           (string-append "$cond" (number->string i)))
+                                         (string->symbol
+                                           (string-append "$body" (number->string i))))
+                                   acc))))])
+    (ts-start `(cond ,@clauses))))
 
 ;;; ============================================================
 ;;; Pretty Print Helper

@@ -3,9 +3,10 @@
 fold-agent.py — JSON-based REPL client for LLM Agents.
 
 Usage:
-  ./fold-agent.py "(+ 1 2)"
-  ./fold-agent.py --session my-session "(define x 10)"
-  echo '{"code": "(+ 1 2)", "session": "my-session"}' | ./fold-agent.py --json
+  ./fold-agent.py "+ 1 2"                              # Implicit parens: (+ 1 2)
+  ./fold-agent.py "(+ 1 2)"                            # Explicit parens work too
+  ./fold-agent.py --session my-session "define x 10"  # Becomes (define x 10)
+  echo '{"code": "+ 1 2", "session": "my-session"}' | ./fold-agent.py --json
 
 Output (JSON):
   {
@@ -15,6 +16,9 @@ Output (JSON):
     "session": "my-session",
     "error": null
   }
+
+Note: If code doesn't start with '(', it's automatically wrapped in parens.
+      Single tokens stay unwrapped (e.g., "x" stays "x", not "(x)").
 """
 
 import os
@@ -35,6 +39,21 @@ DEFAULT_TIMEOUT = 30
 def ensure_dirs():
     os.makedirs(REQUESTS_DIR, exist_ok=True)
     os.makedirs(RESPONSES_DIR, exist_ok=True)
+
+def apply_implicit_parens(code):
+    """Wrap code in parens if it doesn't start with '(' and has multiple tokens."""
+    code = code.strip()
+    if not code:
+        return code
+    # Already parenthesized
+    if code.startswith('('):
+        return code
+    # Single token (no spaces outside of strings) - leave as-is
+    # Simple heuristic: if no whitespace, it's a single token
+    if ' ' not in code and '\t' not in code and '\n' not in code:
+        return code
+    # Multiple tokens - wrap in parens
+    return f"({code})"
 
 def is_daemon_running():
     return os.path.exists(READY_FILE)
@@ -134,6 +153,9 @@ def main():
     if not code:
         print(json.dumps({"status": "error", "error": "No code provided"}))
         return
+
+    # Implicit parenthesization: wrap code in parens if needed
+    code = apply_implicit_parens(code)
 
     if not session_id:
         session_id = generate_session_id()
