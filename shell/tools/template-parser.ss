@@ -113,9 +113,44 @@
       [(string=? trimmed "!") (ts-compile)]
       [else (tp-parse line) #f])))
 
+;;; tp-batch : String → Expr
+;;; Parse multiple complete definitions separated by ---.
+;;; Each section uses implicit parens and must be hole-free.
+;;; Example: "define (f x) (+ x 1) --- define (g x) (f x)"
+(define (tp-batch input)
+  (let* ([sections (string-split input "---")]
+         [exprs (map (lambda (s)
+                       (apply-implicit-parens (tokenize (string-trim s))))
+                     sections)])
+    (ts-reset)
+    (ts-defs exprs)))
+
+;;; string-split : String × String → (List String)
+;;; Split string by delimiter.
+(define (string-split str delim)
+  (let ([delim-len (string-length delim)]
+        [str-len (string-length str)])
+    (let loop ([start 0] [acc '()])
+      (let ([pos (string-find str delim start)])
+        (if pos
+            (loop (+ pos delim-len)
+                  (cons (substring str start pos) acc))
+            (reverse (cons (substring str start str-len) acc)))))))
+
 ;;; ============================================================
 ;;; String Utilities
 ;;; ============================================================
+
+;;; string-find : String × String × Nat → Nat | #f
+;;; Find first occurrence of needle in haystack starting at pos.
+(define (string-find haystack needle start)
+  (let ([hay-len (string-length haystack)]
+        [needle-len (string-length needle)])
+    (let loop ([i start])
+      (cond
+        [(> (+ i needle-len) hay-len) #f]
+        [(string=? (substring haystack i (+ i needle-len)) needle) i]
+        [else (loop (+ i 1))]))))
 
 ;;; string-trim : String → String
 ;;; Remove leading/trailing whitespace.

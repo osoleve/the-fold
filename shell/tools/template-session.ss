@@ -219,6 +219,23 @@
 (define (ts-count)
   (length (*completed-defs*)))
 
+;;; ts-defs : (List Expr) → Expr
+;;; Define multiple complete expressions at once. Returns begin block.
+;;; Example: (ts-defs '((define (f x) (+ x 1)) (define (g x) (f (f x)))))
+(define (ts-defs exprs)
+  (for-each (lambda (e) (*completed-defs* (cons e (*completed-defs*)))) exprs)
+  (display (length exprs))
+  (display " definition(s) added.\n")
+  (ts-all))
+
+;;; ts-chain : Expr ... → Expr
+;;; Syntactic sugar: (ts-chain (define ...) (define ...))
+;;; Adds all expressions to accumulator, returns begin block.
+(define-syntax ts-chain
+  (syntax-rules ()
+    [(_ expr ...)
+     (ts-defs (list 'expr ...))]))
+
 ;;; ============================================================
 ;;; Quick Templates (Common Patterns)
 ;;; ============================================================

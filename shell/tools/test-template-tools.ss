@@ -130,6 +130,48 @@
       (assert-equal '(if (= x 0) 1 2) result))))
 
 ;;; ============================================================
+;;; String Utilities Tests
+;;; ============================================================
+
+(test-group string-utils
+
+  (define-test "string-find finds needle"
+    (assert-equal 4 (string-find "hello world" "o" 0)))
+
+  (define-test "string-find respects start position"
+    (assert-equal 7 (string-find "hello world" "o" 5)))
+
+  (define-test "string-find returns #f when not found"
+    (assert-false (string-find "hello" "z" 0)))
+
+  (define-test "string-split basic"
+    (assert-equal '("a" "b" "c") (string-split "a---b---c" "---")))
+
+  (define-test "string-split no delimiter"
+    (assert-equal '("abc") (string-split "abc" "---")))
+
+  (define-test "string-trim removes whitespace"
+    (assert-equal "hello" (string-trim "  hello  "))))
+
+;;; ============================================================
+;;; Batch Mode Tests
+;;; ============================================================
+
+(test-group batch-mode
+
+  (define-test "tp-batch single definition"
+    (let ([result (tp-batch "define (f x) (+ x 1)")])
+      (assert-equal '(define (f x) (+ x 1)) result)))
+
+  (define-test "tp-batch multiple definitions"
+    (let ([result (tp-batch "define (f x) (+ x 1) --- define (g x) (f x)")])
+      (assert-equal '(begin (define (f x) (+ x 1)) (define (g x) (f x))) result)))
+
+  (define-test "tp-batch with whitespace"
+    (let ([result (tp-batch "  + 1 2  ---  * 3 4  ")])
+      (assert-equal '(begin (+ 1 2) (* 3 4)) result))))
+
+;;; ============================================================
 ;;; Run All Tests
 ;;; ============================================================
 
