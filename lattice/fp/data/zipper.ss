@@ -504,16 +504,29 @@
 ;;; zipper-extend : ((ListZipper α) → β) × (ListZipper α) → (ListZipper β)
 ;;; Extend a contextual function to all positions.
 ;;; For each position, applies f to the zipper focused at that position.
+;;; Optimized O(N) implementation: traverses once, then reconstructs.
 (define (zipper-extend f z)
   (if (zipper-empty? z)
       zipper-empty
-      (let* ([lst (zipper->list z)]
-             [len (length lst)]
-             [results (map (lambda (i)
-                            (f (zipper-from-position lst i)))
-                          (iota len))]
-             [current-pos (zipper-position z)])
+      (let* ([current-pos (zipper-position z)]
+             [start (zipper-start z)]
+             ;; Collect results by traversing from start to end: O(N)
+             [results (zipper-extend-collect f start)])
+        ;; Reconstruct at original position: O(N)
         (zipper-from-position results current-pos))))
+
+;;; zipper-extend-collect : ((ListZipper α) → β) × (ListZipper α) → (List β)
+;;; Helper: traverse zipper collecting f(z) at each focused position.
+(define (zipper-extend-collect f z)
+  (let loop ([current z] [acc '()])
+    (if (not (zipper-has-focus? current))
+        (reverse acc)
+        (let* ([result (f current)]
+               [new-acc (cons result acc)]
+               [next (zipper-right! current)])
+          (if (nothing? next)
+              (reverse new-acc)
+              (loop (from-just next) new-acc))))))
 
 ;;; zipper-duplicate : (ListZipper α) → (ListZipper (ListZipper α))
 ;;; Duplicate: zipper of all possible focuses.
