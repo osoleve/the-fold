@@ -7,15 +7,16 @@
 ;;; - Reduced Gröbner bases
 ;;; - Ideal membership testing
 ;;;
+;;; NOTE: Requires polynomial coefficients from a Field (not just Ring)
+;;; because multivariate polynomial division requires coefficient division.
+;;;
 ;;; This is Core code: pure, total, assumes reasonable input.
 ;;;
 ;;; Dependencies:
 ;;;   - core/base/prelude.ss
-;;;   - lattice/algebra/ring.ss
-;;;   - lattice/algebra/multivariate.ss
+;;;   - lattice/algebra/multivariate.ss (which loads field.ss)
 
 (load "core/base/prelude.ss")
-(load "lattice/algebra/ring.ss")
 (load "lattice/algebra/multivariate.ss")
 
 ;;; ============================================================
@@ -31,7 +32,7 @@
 ;;; s-polynomial : MPoly × MPoly → MPoly
 ;;; Compute the S-polynomial of f and g.
 (define (s-polynomial f g)
-  (let* ([R (mpoly-ring f)]
+  (let* ([F (mpoly-field f)]
          [vars (mpoly-vars f)]
          [ordering (mpoly-ordering f)]
          ;; Leading terms
@@ -83,17 +84,17 @@
 (define (buchberger F)
   (if (null? F)
       '()
-      (let ([R (mpoly-ring (car F))]
+      (let ([Fld (mpoly-field (car F))]
             [vars (mpoly-vars (car F))]
             [ordering (mpoly-ordering (car F))])
         ;; Initialize with non-zero input polynomials
         (let ([G (filter (lambda (f) (not (mpoly-zero? f))) F)])
           (if (null? G)
-              (list (mpoly-zero R vars ordering))
-              (buchberger-loop G (all-pairs (length G)) R vars ordering))))))
+              (list (mpoly-zero Fld vars ordering))
+              (buchberger-loop G (all-pairs (length G)) Fld vars ordering))))))
 
 ;;; buchberger-loop : main loop of Buchberger's algorithm
-(define (buchberger-loop G pairs R vars ordering)
+(define (buchberger-loop G pairs Fld vars ordering)
   (if (null? pairs)
       G
       (let* ([pair (car pairs)]
@@ -104,13 +105,13 @@
         ;; Check Buchberger criteria for pair elimination
         (if (buchberger-criterion-1? fi fj)
             ;; Skip this pair (leading monomials coprime)
-            (buchberger-loop G (cdr pairs) R vars ordering)
+            (buchberger-loop G (cdr pairs) Fld vars ordering)
             ;; Compute S-polynomial and reduce
             (let* ([s (s-polynomial fi fj)]
                    [r (reduce-poly s G)])
               (if (mpoly-zero? r)
                   ;; S-poly reduces to zero, continue
-                  (buchberger-loop G (cdr pairs) R vars ordering)
+                  (buchberger-loop G (cdr pairs) Fld vars ordering)
                   ;; Non-zero remainder: add to basis
                   (let* ([new-idx (length G)]
                          [new-G (append G (list r))]
@@ -118,7 +119,7 @@
                          [new-pairs (append (cdr pairs)
                                            (map (lambda (k) (cons k new-idx))
                                                 (range 0 new-idx)))])
-                    (buchberger-loop new-G new-pairs R vars ordering))))))))
+                    (buchberger-loop new-G new-pairs Fld vars ordering))))))))
 
 ;;; buchberger-criterion-1? : MPoly × MPoly → Boolean
 ;;; First Buchberger criterion: if LM(f) and LM(g) are coprime,
@@ -160,22 +161,23 @@
 (define (reduce-basis G)
   (if (null? G)
       '()
-      (let* ([R (mpoly-ring (car G))]
+      (let* ([Fld (mpoly-field (car G))]
              ;; Make all polynomials monic
-             [monic-G (map mpoly-make-monic G)]
+             [monic-G (map (lambda (p) (mpoly-make-monic p Fld)) G)]
              ;; Remove redundant elements
              [minimal (minimize-basis monic-G)]
              ;; Interreduce
-             [reduced (interreduce minimal)])
+             [reduced (interreduce minimal Fld)])
         reduced)))
 
-;;; mpoly-make-monic : MPoly → MPoly
+;;; mpoly-make-monic : MPoly × Field → MPoly
 ;;; Scale polynomial so leading coefficient is 1.
-(define (mpoly-make-monic p)
+(define (mpoly-make-monic p F)
   (if (mpoly-zero? p)
       p
-      (let ([lc (mpoly-leading-coeff p)])
-        (mpoly-scale p (/ 1 lc)))))
+      (let* ([lc (mpoly-leading-coeff p)]
+             [inv-lc (field-inv F lc)])
+        (mpoly-scale p inv-lc))))
 
 ;;; minimize-basis : (List MPoly) → (List MPoly)
 ;;; Remove elements whose leading monomials are divisible by others.
@@ -192,9 +194,9 @@
            (mono-divides? (mpoly-leading-mono g) lm-p))
          G)))
 
-;;; interreduce : (List MPoly) → (List MPoly)
+;;; interreduce : (List MPoly) × Field → (List MPoly)
 ;;; Reduce each polynomial modulo the others.
-(define (interreduce G)
+(define (interreduce G Fld)
   (let loop ([remaining G] [done '()])
     (if (null? remaining)
         (reverse done)
@@ -204,7 +206,7 @@
                            p
                            (reduce-poly-full p others))])
           (loop (cdr remaining)
-                (cons (mpoly-make-monic reduced) done))))))
+                (cons (mpoly-make-monic reduced Fld) done))))))
 
 ;;; remove-equal : α × (List α) × (α×α→Bool) → (List α)
 (define (remove-equal x lst eq-fn)

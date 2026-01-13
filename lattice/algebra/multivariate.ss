@@ -3,18 +3,20 @@
 ;;; Pure, functional implementation of multivariate polynomials:
 ;;; - Sparse representation with monomial orderings
 ;;; - Lexicographic, graded lex, graded reverse lex orderings
-;;; - Polynomial arithmetic over arbitrary coefficient rings
+;;; - Polynomial arithmetic over arbitrary coefficient fields
 ;;; - Multivariate division algorithm
+;;;
+;;; NOTE: Division operations require a Field (not just a Ring) because
+;;; multivariate polynomial division requires coefficient division.
 ;;;
 ;;; This is Core code: pure, total, assumes reasonable input.
 ;;;
 ;;; Dependencies:
 ;;;   - core/base/prelude.ss
-;;;   - lattice/algebra/ring.ss
-;;;   - lattice/algebra/polynomial.ss
+;;;   - lattice/algebra/field.ss
 
 (load "core/base/prelude.ss")
-(load "lattice/algebra/ring.ss")
+(load "lattice/algebra/field.ss")
 
 ;;; ============================================================
 ;;; Monomial Representation
@@ -256,23 +258,25 @@
 ;;; ============================================================
 
 ;;; A multivariate polynomial is represented as:
-;;;   (mpoly R vars ordering terms)
+;;;   (mpoly F vars ordering terms)
 ;;; where:
-;;;   R = coefficient ring
+;;;   F = coefficient field
 ;;;   vars = list of variable symbols (defines ordering context)
 ;;;   ordering = comparison function for monomials
 ;;;   terms = list of (coefficient . monomial) pairs, sorted by ordering (descending)
 
-;;; make-mpoly : Ring × (List Symbol) × (M×M→Int) × (List (Coeff × Monomial)) → MPoly
-(define (make-mpoly R vars ordering terms)
-  (list 'mpoly R vars ordering (mpoly-normalize R ordering terms)))
+;;; make-mpoly : Field × (List Symbol) × (M×M→Int) × (List (Coeff × Monomial)) → MPoly
+(define (make-mpoly F vars ordering terms)
+  (list 'mpoly F vars ordering (mpoly-normalize F ordering terms)))
 
 ;;; mpoly? : Any → Boolean
 (define (mpoly? p)
   (and (pair? p) (eq? (car p) 'mpoly)))
 
-;;; mpoly-ring : MPoly → Ring
-(define (mpoly-ring p) (list-ref p 1))
+;;; mpoly-field : MPoly → Field
+(define (mpoly-field p) (list-ref p 1))
+;;; Backward compatibility alias
+(define mpoly-ring mpoly-field)
 
 ;;; mpoly-vars : MPoly → (List Symbol)
 (define (mpoly-vars p) (list-ref p 2))
@@ -283,12 +287,12 @@
 ;;; mpoly-terms : MPoly → (List (Coeff × Monomial))
 (define (mpoly-terms p) (list-ref p 4))
 
-;;; mpoly-normalize : Ring × (M×M→Int) × (List (Coeff × Monomial)) → (List ...)
+;;; mpoly-normalize : Field × (M×M→Int) × (List (Coeff × Monomial)) → (List ...)
 ;;; Combine like terms, remove zeros, sort by ordering (descending).
-(define (mpoly-normalize R ordering terms)
-  (let* ([zero (ring-zero R)]
-         [eq-fn (ring-equal-fn R)]
-         [add (ring-add-op R)]
+(define (mpoly-normalize F ordering terms)
+  (let* ([zero (field-zero F)]
+         [eq-fn (field-equal-fn F)]
+         [add (field-add-op F)]
          ;; Combine like terms
          [combined (mpoly-combine-terms terms add eq-fn zero)]
          ;; Remove zero coefficients
@@ -337,28 +341,28 @@
 ;;; MPoly Construction
 ;;; ============================================================
 
-;;; mpoly-zero : Ring × (List Symbol) × (M×M→Int) → MPoly
-(define (mpoly-zero R vars ordering)
-  (make-mpoly R vars ordering (list (cons (ring-zero R) (mono-one)))))
+;;; mpoly-zero : Field × (List Symbol) × (M×M→Int) → MPoly
+(define (mpoly-zero F vars ordering)
+  (make-mpoly F vars ordering (list (cons (field-zero F) (mono-one)))))
 
-;;; mpoly-one : Ring × (List Symbol) × (M×M→Int) → MPoly
-(define (mpoly-one R vars ordering)
-  (make-mpoly R vars ordering (list (cons (ring-one R) (mono-one)))))
+;;; mpoly-one : Field × (List Symbol) × (M×M→Int) → MPoly
+(define (mpoly-one F vars ordering)
+  (make-mpoly F vars ordering (list (cons (field-one F) (mono-one)))))
 
-;;; mpoly-constant : Ring × (List Symbol) × (M×M→Int) × Coeff → MPoly
-(define (mpoly-constant R vars ordering c)
-  (make-mpoly R vars ordering (list (cons c (mono-one)))))
+;;; mpoly-constant : Field × (List Symbol) × (M×M→Int) × Coeff → MPoly
+(define (mpoly-constant F vars ordering c)
+  (make-mpoly F vars ordering (list (cons c (mono-one)))))
 
-;;; mpoly-var : Ring × (List Symbol) × (M×M→Int) × Symbol → MPoly
+;;; mpoly-var : Field × (List Symbol) × (M×M→Int) × Symbol → MPoly
 ;;; Create polynomial for single variable.
-(define (mpoly-var R vars ordering v)
-  (make-mpoly R vars ordering (list (cons (ring-one R) (mono-var v)))))
+(define (mpoly-var F vars ordering v)
+  (make-mpoly F vars ordering (list (cons (field-one F) (mono-var v)))))
 
-;;; mpoly-from-terms : Ring × (List Symbol) × Symbol × (List (Coeff × Monomial)) → MPoly
+;;; mpoly-from-terms : Field × (List Symbol) × Symbol × (List (Coeff × Monomial)) → MPoly
 ;;; Convenience: create mpoly with specified ordering type.
-(define (mpoly-from-terms R vars ordering-type terms)
+(define (mpoly-from-terms F vars ordering-type terms)
   (let ([ordering (make-ordering ordering-type vars)])
-    (make-mpoly R vars ordering terms)))
+    (make-mpoly F vars ordering terms)))
 
 ;;; ============================================================
 ;;; MPoly Properties
@@ -366,10 +370,10 @@
 
 ;;; mpoly-zero? : MPoly → Boolean
 (define (mpoly-zero? p)
-  (let* ([R (mpoly-ring p)]
+  (let* ([F (mpoly-field p)]
          [terms (mpoly-terms p)]
-         [eq-fn (ring-equal-fn R)]
-         [zero (ring-zero R)])
+         [eq-fn (field-equal-fn F)]
+         [zero (field-zero F)])
     (and (= (length terms) 1)
          (null? (cdar terms))  ; Constant monomial
          (eq-fn (caar terms) zero))))
@@ -403,17 +407,17 @@
 
 ;;; mpoly-add : MPoly × MPoly → MPoly
 (define (mpoly-add p1 p2)
-  (let ([R (mpoly-ring p1)]
+  (let ([F (mpoly-field p1)]
         [vars (mpoly-vars p1)]
         [ordering (mpoly-ordering p1)])
-    (make-mpoly R vars ordering
+    (make-mpoly F vars ordering
                 (append (mpoly-terms p1) (mpoly-terms p2)))))
 
 ;;; mpoly-neg : MPoly → MPoly
 (define (mpoly-neg p)
-  (let* ([R (mpoly-ring p)]
-         [neg (ring-neg-fn R)])
-    (make-mpoly (mpoly-ring p)
+  (let* ([F (mpoly-field p)]
+         [neg (field-neg-fn F)])
+    (make-mpoly (mpoly-field p)
                 (mpoly-vars p)
                 (mpoly-ordering p)
                 (map (lambda (t) (cons (neg (car t)) (cdr t)))
@@ -425,9 +429,9 @@
 
 ;;; mpoly-scale : MPoly × Coeff → MPoly
 (define (mpoly-scale p c)
-  (let ([R (mpoly-ring p)]
-        [mul (ring-mul-op (mpoly-ring p))])
-    (make-mpoly (mpoly-ring p)
+  (let ([F (mpoly-field p)]
+        [mul (field-mul-op (mpoly-field p))])
+    (make-mpoly (mpoly-field p)
                 (mpoly-vars p)
                 (mpoly-ordering p)
                 (map (lambda (t) (cons (mul c (car t)) (cdr t)))
@@ -436,11 +440,11 @@
 ;;; mpoly-mul-term : MPoly × (Coeff × Monomial) → MPoly
 ;;; Multiply polynomial by single term.
 (define (mpoly-mul-term p term)
-  (let* ([R (mpoly-ring p)]
-         [mul (ring-mul-op R)]
+  (let* ([F (mpoly-field p)]
+         [mul (field-mul-op F)]
          [c (car term)]
          [m (cdr term)])
-    (make-mpoly R
+    (make-mpoly F
                 (mpoly-vars p)
                 (mpoly-ordering p)
                 (map (lambda (t)
@@ -451,11 +455,11 @@
 ;;; mpoly-mul : MPoly × MPoly → MPoly
 ;;; Multiply polynomials (distribute).
 (define (mpoly-mul p1 p2)
-  (let ([R (mpoly-ring p1)]
+  (let ([F (mpoly-field p1)]
         [vars (mpoly-vars p1)]
         [ordering (mpoly-ordering p1)])
     (let loop ([terms1 (mpoly-terms p1)]
-               [acc (mpoly-zero R vars ordering)])
+               [acc (mpoly-zero F vars ordering)])
       (if (null? terms1)
           acc
           (loop (cdr terms1)
@@ -464,7 +468,7 @@
 ;;; mpoly-power : MPoly × Nat → MPoly
 (define (mpoly-power p n)
   (cond
-    [(= n 0) (mpoly-one (mpoly-ring p) (mpoly-vars p) (mpoly-ordering p))]
+    [(= n 0) (mpoly-one (mpoly-field p) (mpoly-vars p) (mpoly-ordering p))]
     [(= n 1) p]
     [(even? n)
      (let ([half (mpoly-power p (/ n 2))])
@@ -478,8 +482,8 @@
 
 ;;; mpoly-equal? : MPoly × MPoly → Boolean
 (define (mpoly-equal? p1 p2)
-  (let* ([R (mpoly-ring p1)]
-         [eq-fn (ring-equal-fn R)]
+  (let* ([F (mpoly-field p1)]
+         [eq-fn (field-equal-fn F)]
          [t1 (mpoly-terms p1)]
          [t2 (mpoly-terms p2)])
     (and (= (length t1) (length t2))
@@ -498,38 +502,38 @@
 ;;; Returns (list-of-quotients . remainder).
 ;;; The remainder has no term divisible by any leading term of g_i.
 (define (mpoly-divmod f gs)
-  (let* ([R (mpoly-ring f)]
+  (let* ([F (mpoly-field f)]
          [vars (mpoly-vars f)]
          [ordering (mpoly-ordering f)]
-         [zero (mpoly-zero R vars ordering)]
+         [zero (mpoly-zero F vars ordering)]
          [s (length gs)]
          [qs (make-list s zero)])
-    (mpoly-div-loop f gs qs zero R vars ordering)))
+    (mpoly-div-loop f gs qs zero F vars ordering)))
 
 ;;; mpoly-div-loop : main division loop
-(define (mpoly-div-loop p gs qs r R vars ordering)
+(define (mpoly-div-loop p gs qs r F vars ordering)
   (if (mpoly-zero? p)
       (cons qs r)
       (let ([lt-p (mpoly-leading-term p)])
         (let try-divisors ([i 0] [gs-remaining gs] [qs qs])
           (if (null? gs-remaining)
               ;; No divisor found, add leading term to remainder
-              (let* ([term-poly (make-mpoly R vars ordering (list lt-p))]
+              (let* ([term-poly (make-mpoly F vars ordering (list lt-p))]
                      [new-r (mpoly-add r term-poly)]
                      [new-p (mpoly-sub p term-poly)])
-                (mpoly-div-loop new-p gs qs new-r R vars ordering))
+                (mpoly-div-loop new-p gs qs new-r F vars ordering))
               (let* ([g (car gs-remaining)]
                      [lt-g (mpoly-leading-term g)])
                 (if (mono-divides? (cdr lt-g) (cdr lt-p))
-                    ;; Divisible: compute quotient term
-                    (let* ([q-coeff (/ (car lt-p) (car lt-g))]
+                    ;; Divisible: compute quotient term using field division
+                    (let* ([q-coeff (field-div F (car lt-p) (car lt-g))]
                            [q-mono (mono-div (cdr lt-p) (cdr lt-g))]
                            [q-term (cons q-coeff q-mono)]
-                           [q-poly (make-mpoly R vars ordering (list q-term))]
+                           [q-poly (make-mpoly F vars ordering (list q-term))]
                            [new-qi (mpoly-add (list-ref qs i) q-poly)]
                            [new-qs (list-set qs i new-qi)]
                            [new-p (mpoly-sub p (mpoly-mul-term g q-term))])
-                      (mpoly-div-loop new-p gs new-qs r R vars ordering))
+                      (mpoly-div-loop new-p gs new-qs r F vars ordering))
                     ;; Not divisible by this g, try next
                     (try-divisors (+ i 1) (cdr gs-remaining) qs))))))))
 
@@ -546,17 +550,17 @@
 ;;; mpoly-eval : MPoly × (List (Symbol × Coeff)) → Coeff
 ;;; Evaluate polynomial at given point (variable → value mapping).
 (define (mpoly-eval p env)
-  (let* ([R (mpoly-ring p)]
-         [add (ring-add-op R)]
-         [mul (ring-mul-op R)]
-         [zero (ring-zero R)])
+  (let* ([F (mpoly-field p)]
+         [add (field-add-op F)]
+         [mul (field-mul-op F)]
+         [zero (field-zero F)])
     (let loop ([terms (mpoly-terms p)] [acc zero])
       (if (null? terms)
           acc
           (let* ([term (car terms)]
                  [coeff (car term)]
                  [mono (cdr term)]
-                 [term-val (mpoly-eval-term mul mono env (ring-one R))])
+                 [term-val (mpoly-eval-term mul mono env (field-one F))])
             (loop (cdr terms) (add acc (mul coeff term-val))))))))
 
 ;;; mpoly-eval-term : evaluate single monomial
@@ -587,10 +591,10 @@
 
 ;;; mpoly->string : MPoly → String
 (define (mpoly->string p)
-  (let* ([R (mpoly-ring p)]
+  (let* ([F (mpoly-field p)]
          [terms (mpoly-terms p)]
-         [zero (ring-zero R)]
-         [eq-fn (ring-equal-fn R)])
+         [zero (field-zero F)]
+         [eq-fn (field-equal-fn F)])
     (if (and (= (length terms) 1)
              (null? (cdar terms))
              (eq-fn (caar terms) zero))
@@ -598,18 +602,18 @@
         (let loop ([ts terms] [first? #t] [result ""])
           (if (null? ts)
               result
-              (let ([str (mpoly-term->string (car ts) first? R)])
+              (let ([str (mpoly-term->string (car ts) first? F)])
                 (loop (cdr ts)
                       (and first? (string=? str ""))
                       (string-append result str))))))))
 
-;;; mpoly-term->string : (Coeff × Monomial) × Boolean × Ring → String
-(define (mpoly-term->string term first? R)
+;;; mpoly-term->string : (Coeff × Monomial) × Boolean × Field → String
+(define (mpoly-term->string term first? F)
   (let* ([coeff (car term)]
          [mono (cdr term)]
-         [zero (ring-zero R)]
-         [one (ring-one R)]
-         [eq-fn (ring-equal-fn R)]
+         [zero (field-zero F)]
+         [one (field-one F)]
+         [eq-fn (field-equal-fn F)]
          [mono-str (mono->string mono)])
     (cond
       [(eq-fn coeff zero) ""]

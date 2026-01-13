@@ -8,19 +8,10 @@
 (load "lattice/algebra/groebner.ss")
 
 ;;; ============================================================
-;;; Test Helpers: Rational Ring
+;;; Test Helpers: Use Q-field from field.ss
 ;;; ============================================================
 
-;;; Simple rational ring for testing (using Scheme numbers as rationals)
-(define Q-ring
-  (make-ring
-   '()        ; Elements not enumerable
-   +          ; Addition
-   *          ; Multiplication
-   0          ; Zero
-   1          ; One
-   -          ; Negation
-   =))        ; Equality
+;;; Q-field is defined in field.ss and exported via polynomial.ss
 
 ;;; ============================================================
 ;;; Univariate Polynomial Tests
@@ -29,25 +20,25 @@
 (test-group "polynomial-construction"
 
   (define-test "zero-polynomial"
-    (let ([p (poly-zero-over Q-ring)])
+    (let ([p (poly-zero-over Q-field)])
       (assert-true (poly-zero? p))
       (assert-equal 0 (poly-degree p))))
 
   (define-test "constant-polynomial"
-    (let ([p (poly-constant Q-ring 5)])
+    (let ([p (poly-constant Q-field 5)])
       (assert-false (poly-zero? p))
       (assert-equal 0 (poly-degree p))
       (assert-equal 5 (poly-leading-coeff p))))
 
   (define-test "monomial-creation"
-    (let ([p (poly-monomial Q-ring 3 4)])  ; 3x^4
+    (let ([p (poly-monomial Q-field 3 4)])  ; 3x^4
       (assert-equal 4 (poly-degree p))
       (assert-equal 3 (poly-leading-coeff p))
       (assert-equal 3 (poly-coeff-at p 4))
       (assert-equal 0 (poly-coeff-at p 3))))
 
   (define-test "polynomial-x"
-    (let ([x (poly-x Q-ring)])
+    (let ([x (poly-x Q-field)])
       (assert-equal 1 (poly-degree x))
       (assert-equal 1 (poly-leading-coeff x)))))
 
@@ -55,8 +46,8 @@
 
   (define-test "poly-add"
     ;; (1 + 2x) + (3 + x^2) = 4 + 2x + x^2
-    (let* ([p1 (make-polynomial Q-ring '(1 2))]      ; 1 + 2x
-           [p2 (make-polynomial Q-ring '(3 0 1))]    ; 3 + x^2
+    (let* ([p1 (make-polynomial Q-field '(1 2))]      ; 1 + 2x
+           [p2 (make-polynomial Q-field '(3 0 1))]    ; 3 + x^2
            [sum (poly-add p1 p2)])
       (assert-equal 2 (poly-degree sum))
       (assert-equal 4 (poly-coeff-at sum 0))
@@ -65,8 +56,8 @@
 
   (define-test "poly-sub"
     ;; (3 + x^2) - (1 + 2x) = 2 - 2x + x^2
-    (let* ([p1 (make-polynomial Q-ring '(3 0 1))]
-           [p2 (make-polynomial Q-ring '(1 2))]
+    (let* ([p1 (make-polynomial Q-field '(3 0 1))]
+           [p2 (make-polynomial Q-field '(1 2))]
            [diff (poly-sub p1 p2)])
       (assert-equal 2 (poly-degree diff))
       (assert-equal 2 (poly-coeff-at diff 0))
@@ -74,8 +65,8 @@
 
   (define-test "poly-mul"
     ;; (1 + x) * (1 - x) = 1 - x^2
-    (let* ([p1 (make-polynomial Q-ring '(1 1))]    ; 1 + x
-           [p2 (make-polynomial Q-ring '(1 -1))]  ; 1 - x
+    (let* ([p1 (make-polynomial Q-field '(1 1))]    ; 1 + x
+           [p2 (make-polynomial Q-field '(1 -1))]  ; 1 - x
            [prod (poly-mul p1 p2)])
       (assert-equal 2 (poly-degree prod))
       (assert-equal 1 (poly-coeff-at prod 0))
@@ -84,14 +75,14 @@
 
   (define-test "poly-scale"
     ;; 3 * (1 + 2x) = 3 + 6x
-    (let* ([p (make-polynomial Q-ring '(1 2))]
+    (let* ([p (make-polynomial Q-field '(1 2))]
            [scaled (poly-scale p 3)])
       (assert-equal 3 (poly-coeff-at scaled 0))
       (assert-equal 6 (poly-coeff-at scaled 1))))
 
   (define-test "poly-power"
     ;; (1 + x)^3 = 1 + 3x + 3x^2 + x^3
-    (let* ([p (make-polynomial Q-ring '(1 1))]
+    (let* ([p (make-polynomial Q-field '(1 1))]
            [cubed (poly-power p 3)])
       (assert-equal 3 (poly-degree cubed))
       (assert-equal 1 (poly-coeff-at cubed 0))
@@ -103,20 +94,20 @@
 
   (define-test "poly-eval-linear"
     ;; p(x) = 2 + 3x evaluated at x=4 is 2 + 12 = 14
-    (let ([p (make-polynomial Q-ring '(2 3))])
+    (let ([p (make-polynomial Q-field '(2 3))])
       (assert-equal 14 (poly-eval p 4))))
 
   (define-test "poly-eval-quadratic"
     ;; p(x) = 1 + x + x^2 at x=2 is 1 + 2 + 4 = 7
-    (let ([p (make-polynomial Q-ring '(1 1 1))])
+    (let ([p (make-polynomial Q-field '(1 1 1))])
       (assert-equal 7 (poly-eval p 2)))))
 
 (test-group "polynomial-division"
 
   (define-test "poly-divmod-exact"
     ;; x^2 - 1 = (x + 1)(x - 1), so (x^2-1)/(x-1) = x+1
-    (let* ([dividend (make-polynomial Q-ring '(-1 0 1))]  ; -1 + x^2
-           [divisor (make-polynomial Q-ring '(-1 1))]     ; -1 + x
+    (let* ([dividend (make-polynomial Q-field '(-1 0 1))]  ; -1 + x^2
+           [divisor (make-polynomial Q-field '(-1 1))]     ; -1 + x
            [result (poly-divmod dividend divisor)]
            [quotient (car result)]
            [remainder (cdr result)])
@@ -128,8 +119,8 @@
   (define-test "poly-divmod-with-remainder"
     ;; x^2 / x = x remainder 0
     ;; (x^2 + 1) / x = x remainder 1
-    (let* ([dividend (make-polynomial Q-ring '(1 0 1))]  ; 1 + x^2
-           [divisor (make-polynomial Q-ring '(0 1))]     ; x
+    (let* ([dividend (make-polynomial Q-field '(1 0 1))]  ; 1 + x^2
+           [divisor (make-polynomial Q-field '(0 1))]     ; x
            [result (poly-divmod dividend divisor)]
            [quotient (car result)]
            [remainder (cdr result)])
@@ -141,15 +132,15 @@
 
   (define-test "poly-gcd-coprime"
     ;; GCD(x+1, x-1) = 1 (coprime)
-    (let* ([p1 (make-polynomial Q-ring '(1 1))]   ; 1 + x
-           [p2 (make-polynomial Q-ring '(-1 1))]  ; -1 + x
+    (let* ([p1 (make-polynomial Q-field '(1 1))]   ; 1 + x
+           [p2 (make-polynomial Q-field '(-1 1))]  ; -1 + x
            [g (poly-gcd p1 p2)])
       (assert-equal 0 (poly-degree g))))
 
   (define-test "poly-gcd-common-factor"
     ;; GCD((x+1)^2, (x+1)(x-1)) = x+1
-    (let* ([xp1 (make-polynomial Q-ring '(1 1))]   ; x + 1
-           [xm1 (make-polynomial Q-ring '(-1 1))]  ; x - 1
+    (let* ([xp1 (make-polynomial Q-field '(1 1))]   ; x + 1
+           [xm1 (make-polynomial Q-field '(-1 1))]  ; x - 1
            [p1 (poly-mul xp1 xp1)]                 ; (x+1)^2
            [p2 (poly-mul xp1 xm1)]                 ; (x+1)(x-1)
            [g (poly-gcd p1 p2)])
@@ -159,8 +150,8 @@
 
   (define-test "poly-extended-gcd"
     ;; Extended GCD gives Bezout coefficients
-    (let* ([p1 (make-polynomial Q-ring '(1 1))]   ; x + 1
-           [p2 (make-polynomial Q-ring '(-1 1))]  ; x - 1
+    (let* ([p1 (make-polynomial Q-field '(1 1))]   ; x + 1
+           [p2 (make-polynomial Q-field '(-1 1))]  ; x - 1
            [result (poly-extended-gcd p1 p2)]
            [g (car result)]
            [s (cadr result)]
@@ -175,7 +166,7 @@
 
   (define-test "derivative-polynomial"
     ;; d/dx (x^3 + 2x^2 + x) = 3x^2 + 4x + 1
-    (let* ([p (make-polynomial Q-ring '(0 1 2 1))]  ; x + 2x^2 + x^3
+    (let* ([p (make-polynomial Q-field '(0 1 2 1))]  ; x + 2x^2 + x^3
            [dp (poly-derivative p)])
       (assert-equal 2 (poly-degree dp))
       (assert-equal 1 (poly-coeff-at dp 0))
@@ -183,7 +174,7 @@
       (assert-equal 3 (poly-coeff-at dp 2))))
 
   (define-test "derivative-constant"
-    (let* ([p (poly-constant Q-ring 5)]
+    (let* ([p (poly-constant Q-field 5)]
            [dp (poly-derivative p)])
       (assert-true (poly-zero? dp)))))
 
@@ -192,8 +183,8 @@
   (define-test "square-free"
     ;; (x+1)^2 * (x-1) has square factor (x+1)
     ;; square-free part is (x+1)(x-1) = x^2-1
-    (let* ([xp1 (make-polynomial Q-ring '(1 1))]
-           [xm1 (make-polynomial Q-ring '(-1 1))]
+    (let* ([xp1 (make-polynomial Q-field '(1 1))]
+           [xm1 (make-polynomial Q-field '(-1 1))]
            [p (poly-mul (poly-mul xp1 xp1) xm1)]  ; (x+1)^2(x-1)
            [sf (poly-square-free p)])
       ;; Degree should be 2 (one copy of each factor)
@@ -206,7 +197,7 @@
     ;; Actually: p(x) such that p(0)=1, p(1)=2, p(2)=5
     ;; This is 1 + x^2 (verify: f(0)=1, f(1)=2, f(2)=5)
     (let* ([points '((0 . 1) (1 . 2) (2 . 5))]
-           [p (poly-lagrange-interpolate Q-ring points)])
+           [p (poly-lagrange-interpolate Q-field points)])
       (assert-equal 1 (poly-eval p 0))
       (assert-equal 2 (poly-eval p 1))
       (assert-equal 5 (poly-eval p 2))))
@@ -214,7 +205,7 @@
   (define-test "newton-interpolation"
     ;; Same test with Newton's method
     (let* ([points '((0 . 1) (1 . 2) (2 . 5))]
-           [p (poly-newton-interpolate Q-ring points)])
+           [p (poly-newton-interpolate Q-field points)])
       (assert-equal 1 (poly-eval p 0))
       (assert-equal 2 (poly-eval p 1))
       (assert-equal 5 (poly-eval p 2)))))
@@ -228,14 +219,14 @@
   (define-test "mpoly-zero"
     (let* ([vars '(x y)]
            [ord (make-ordering 'grlex vars)]
-           [p (mpoly-zero Q-ring vars ord)])
+           [p (mpoly-zero Q-field vars ord)])
       (assert-true (mpoly-zero? p))))
 
   (define-test "mpoly-variable"
     (let* ([vars '(x y)]
            [ord (make-ordering 'grlex vars)]
-           [px (mpoly-var Q-ring vars ord 'x)]
-           [py (mpoly-var Q-ring vars ord 'y)])
+           [px (mpoly-var Q-field vars ord 'x)]
+           [py (mpoly-var Q-field vars ord 'y)])
       (assert-equal 1 (mpoly-degree px))
       (assert-equal 1 (mpoly-degree-in px 'x))
       (assert-equal 0 (mpoly-degree-in px 'y))))
@@ -246,7 +237,7 @@
            [terms (list (cons 2 (make-monomial '((x . 1) (y . 1))))   ; 2xy
                         (cons 3 (make-monomial '((x . 2))))           ; 3x^2
                         (cons 1 (mono-one)))]                         ; 1
-           [p (mpoly-from-terms Q-ring vars 'grlex terms)])
+           [p (mpoly-from-terms Q-field vars 'grlex terms)])
       (assert-equal 2 (mpoly-degree p)))))
 
 (test-group "multivariate-arithmetic"
@@ -255,8 +246,8 @@
     ;; (x + y) + (x - y) = 2x
     (let* ([vars '(x y)]
            [ord (make-ordering 'grlex vars)]
-           [x (mpoly-var Q-ring vars ord 'x)]
-           [y (mpoly-var Q-ring vars ord 'y)]
+           [x (mpoly-var Q-field vars ord 'x)]
+           [y (mpoly-var Q-field vars ord 'y)]
            [p1 (mpoly-add x y)]
            [p2 (mpoly-sub x y)]
            [sum (mpoly-add p1 p2)])
@@ -268,8 +259,8 @@
     ;; (x + y) * (x - y) = x^2 - y^2
     (let* ([vars '(x y)]
            [ord (make-ordering 'grlex vars)]
-           [x (mpoly-var Q-ring vars ord 'x)]
-           [y (mpoly-var Q-ring vars ord 'y)]
+           [x (mpoly-var Q-field vars ord 'x)]
+           [y (mpoly-var Q-field vars ord 'y)]
            [xpy (mpoly-add x y)]
            [xmy (mpoly-sub x y)]
            [prod (mpoly-mul xpy xmy)])
@@ -313,8 +304,8 @@
     ;; f = x^2 + xy + y at (x=2, y=3) = 4 + 6 + 3 = 13
     (let* ([vars '(x y)]
            [ord (make-ordering 'grlex vars)]
-           [x (mpoly-var Q-ring vars ord 'x)]
-           [y (mpoly-var Q-ring vars ord 'y)]
+           [x (mpoly-var Q-field vars ord 'x)]
+           [y (mpoly-var Q-field vars ord 'y)]
            [f (mpoly-add (mpoly-add (mpoly-power x 2)
                                     (mpoly-mul x y))
                         y)]
@@ -333,12 +324,12 @@
     ;; S(f,g) = y*f - x*g = y(x^2-y) - x(xy-1) = x^2y - y^2 - x^2y + x = x - y^2
     (let* ([vars '(x y)]
            [ord (make-ordering 'grlex vars)]
-           [x (mpoly-var Q-ring vars ord 'x)]
-           [y (mpoly-var Q-ring vars ord 'y)]
+           [x (mpoly-var Q-field vars ord 'x)]
+           [y (mpoly-var Q-field vars ord 'y)]
            ;; f = x^2 - y
            [f (mpoly-sub (mpoly-power x 2) y)]
            ;; g = xy - 1
-           [one (mpoly-one Q-ring vars ord)]
+           [one (mpoly-one Q-field vars ord)]
            [g (mpoly-sub (mpoly-mul x y) one)]
            [s (s-polynomial f g)])
       ;; Result should be x - y^2
@@ -351,8 +342,8 @@
     ;; because x^2-1 = (x-1)(x+1)
     (let* ([vars '(x)]
            [ord (make-ordering 'grlex vars)]
-           [x (mpoly-var Q-ring vars ord 'x)]
-           [one (mpoly-one Q-ring vars ord)]
+           [x (mpoly-var Q-field vars ord 'x)]
+           [one (mpoly-one Q-field vars ord)]
            ;; x^2 - 1
            [f1 (mpoly-sub (mpoly-power x 2) one)]
            ;; x - 1
@@ -365,8 +356,8 @@
     ;; If G is a Gröbner basis, all S-polynomials reduce to 0
     (let* ([vars '(x y)]
            [ord (make-ordering 'grlex vars)]
-           [x (mpoly-var Q-ring vars ord 'x)]
-           [y (mpoly-var Q-ring vars ord 'y)]
+           [x (mpoly-var Q-field vars ord 'x)]
+           [y (mpoly-var Q-field vars ord 'y)]
            ;; Simple system: x, y
            [G (buchberger (list x y))])
       (assert-true (is-groebner-basis? G))))
@@ -375,8 +366,8 @@
     ;; x^2 - 1 is in <x-1, x+1> because x^2-1 = (x-1)(x+1)
     (let* ([vars '(x)]
            [ord (make-ordering 'grlex vars)]
-           [x (mpoly-var Q-ring vars ord 'x)]
-           [one (mpoly-one Q-ring vars ord)]
+           [x (mpoly-var Q-field vars ord 'x)]
+           [one (mpoly-one Q-field vars ord)]
            ;; Generators: x-1 and x+1
            [f1 (mpoly-sub x one)]
            [f2 (mpoly-add x one)]
@@ -390,10 +381,10 @@
   (define-test "reduce-makes-monic"
     (let* ([vars '(x)]
            [ord (make-ordering 'grlex vars)]
-           [x (mpoly-var Q-ring vars ord 'x)]
+           [x (mpoly-var Q-field vars ord 'x)]
            ;; 2x + 2
-           [f (mpoly-scale (mpoly-add x (mpoly-one Q-ring vars ord)) 2)]
-           [monic (mpoly-make-monic f)])
+           [f (mpoly-scale (mpoly-add x (mpoly-one Q-field vars ord)) 2)]
+           [monic (mpoly-make-monic f Q-field)])
       (assert-equal 1 (mpoly-leading-coeff monic)))))
 
 ;;; ============================================================

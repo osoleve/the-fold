@@ -11,9 +11,7 @@
 
 (display "=== Polynomial Algebra Examples ===\n\n")
 
-;;; Define the rational coefficient ring (using Scheme numbers)
-(define Q-ring
-  (make-ring '() + * 0 1 - =))
+;;; Q-field is defined in field.ss (loaded via polynomial.ss)
 
 ;;; ============================================================
 ;;; Example 1: Univariate Polynomial Basics
@@ -23,11 +21,11 @@
 
 ;; Create polynomials: coefficients in ascending power order [a0, a1, a2, ...]
 ;; x^2 + 2x + 1 = (x + 1)^2
-(define p1 (make-polynomial Q-ring '(1 2 1)))
+(define p1 (make-polynomial Q-field '(1 2 1)))
 (display (format "p1 = ~a\n" (poly->string p1)))
 
 ;; x^2 - 1 = (x + 1)(x - 1)
-(define p2 (make-polynomial Q-ring '(-1 0 1)))
+(define p2 (make-polynomial Q-field '(-1 0 1)))
 (display (format "p2 = ~a\n" (poly->string p2)))
 
 ;; Arithmetic
@@ -89,10 +87,10 @@
 (for-each (lambda (p) (display (format "(~a,~a) " (car p) (cdr p)))) points)
 (newline)
 
-(define interp-lagrange (poly-lagrange-interpolate Q-ring points))
+(define interp-lagrange (poly-lagrange-interpolate Q-field points))
 (display (format "Lagrange interpolation: ~a\n" (poly->string interp-lagrange)))
 
-(define interp-newton (poly-newton-interpolate Q-ring points))
+(define interp-newton (poly-newton-interpolate Q-field points))
 (display (format "Newton interpolation:   ~a\n" (poly->string interp-newton)))
 
 ;; Verify at interpolation points
@@ -110,7 +108,7 @@
 (display "--- Example 4: Derivatives and Factorization ---\n\n")
 
 ;; (x + 1)^3 = x^3 + 3x^2 + 3x + 1
-(define p-cubed (poly-power (make-polynomial Q-ring '(1 1)) 3))
+(define p-cubed (poly-power (make-polynomial Q-field '(1 1)) 3))
 (display (format "(x+1)^3 = ~a\n" (poly->string p-cubed)))
 
 ;; Derivative: 3x^2 + 6x + 3 = 3(x+1)^2
@@ -133,9 +131,9 @@
 (define ord (make-ordering 'grlex vars))
 
 ;; Create variables
-(define x (mpoly-var Q-ring vars ord 'x))
-(define y (mpoly-var Q-ring vars ord 'y))
-(define one (mpoly-one Q-ring vars ord))
+(define x (mpoly-var Q-field vars ord 'x))
+(define y (mpoly-var Q-field vars ord 'y))
+(define one (mpoly-one Q-field vars ord))
 
 ;; Build x^2 + xy + y^2
 (define f (mpoly-add (mpoly-add (mpoly-power x 2)
@@ -191,9 +189,9 @@
 ;; These define the intersection of a parabola and hyperbola
 (define vars2 '(x y))
 (define ord2 (make-ordering 'grlex vars2))
-(define x2 (mpoly-var Q-ring vars2 ord2 'x))
-(define y2 (mpoly-var Q-ring vars2 ord2 'y))
-(define one2 (mpoly-one Q-ring vars2 ord2))
+(define x2 (mpoly-var Q-field vars2 ord2 'x))
+(define y2 (mpoly-var Q-field vars2 ord2 'y))
+(define one2 (mpoly-one Q-field vars2 ord2))
 
 ;; f1 = x^2 - y
 (define f1 (mpoly-sub (mpoly-power x2 2) y2))

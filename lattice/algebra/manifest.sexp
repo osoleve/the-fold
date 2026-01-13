@@ -1,7 +1,7 @@
 ;;; lattice/algebra/manifest.sexp — Abstract Algebra Skill Manifest
 
 (skill algebra
-  (version "0.2.0")
+  (version "0.3.0")
   (tier 0)
   (path "lattice/algebra")
   (purity total)
@@ -10,11 +10,12 @@
   (deps ())  ; Tier 0 - no lattice dependencies
 
   (description
-   "Pure functional abstract algebra library implementing groups, rings,
+   "Pure functional abstract algebra library implementing groups, rings, fields,
     polynomial rings, and their associated structures. Provides algebraic
     operations, axiom verification, homomorphisms, ideals, polynomial
     arithmetic, GCD, factorization, interpolation, multivariate polynomials,
-    and Gröbner basis computation.")
+    and Gröbner basis computation. Polynomials require Field coefficients
+    to enable exact division operations.")
 
   (keywords (algebra group ring field ideal homomorphism
              cyclic-group symmetric-group dihedral-group
@@ -51,7 +52,12 @@
          make-ideal ideal? ideal-ring ideal-elements is-valid-ideal?
          make-principal-ideal ideal-sum ideal-product
          is-prime-ideal? is-maximal-ideal?)
-   (polynomial make-polynomial polynomial? poly-ring poly-coeffs
+   (field make-field field? field-elements field-add-op field-mul-op
+          field-zero field-one field-neg-fn field-div-fn field-equal-fn
+          field-add field-mul field-neg field-sub field-div field-inv
+          field-equal? field-power field->ring
+          Q-field R-field make-field-zp mod-inverse)
+   (polynomial make-polynomial polynomial? poly-field poly-ring poly-coeffs
                poly-degree poly-leading-coeff poly-coeff-at poly-zero?
                poly-zero-over poly-one-over poly-constant poly-monomial poly-x
                poly-add poly-neg poly-sub poly-scale poly-mul poly-power
@@ -66,7 +72,7 @@
                  mono-mul mono-divides? mono-div mono-lcm mono-gcd mono-equal?
                  mono-compare-lex mono-compare-grlex mono-compare-grevlex
                  make-ordering
-                 make-mpoly mpoly? mpoly-ring mpoly-vars mpoly-ordering mpoly-terms
+                 make-mpoly mpoly? mpoly-field mpoly-ring mpoly-vars mpoly-ordering mpoly-terms
                  mpoly-zero mpoly-one mpoly-constant mpoly-var mpoly-from-terms
                  mpoly-zero? mpoly-degree mpoly-degree-in
                  mpoly-leading-term mpoly-leading-coeff mpoly-leading-mono
@@ -82,6 +88,7 @@
   (modules
    (group "group.ss" "Group theory: cyclic, symmetric, dihedral groups and homomorphisms")
    (ring "ring.ss" "Ring theory: rings, ideals, homomorphisms, and standard rings")
-   (polynomial "polynomial.ss" "Univariate polynomial rings: arithmetic, division, GCD, factorization, interpolation")
-   (multivariate "multivariate.ss" "Multivariate polynomials: sparse representation, monomial orderings, division")
+   (field "field.ss" "Field theory: fields with division, Q, R, and Z_p fields")
+   (polynomial "polynomial.ss" "Univariate polynomial rings over fields: arithmetic, division, GCD, factorization")
+   (multivariate "multivariate.ss" "Multivariate polynomials over fields: sparse representation, orderings, division")
    (groebner "groebner.ss" "Gröbner bases: Buchberger's algorithm, ideal membership, reduction")))
