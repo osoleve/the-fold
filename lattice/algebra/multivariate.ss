@@ -1,0 +1,673 @@
+;;; lattice/algebra/multivariate.ss — Multivariate Polynomial Algebra
+;;;
+;;; Pure, functional implementation of multivariate polynomials:
+;;; - Sparse representation with monomial orderings
+;;; - Lexicographic, graded lex, graded reverse lex orderings
+;;; - Polynomial arithmetic over arbitrary coefficient rings
+;;; - Multivariate division algorithm
+;;;
+;;; This is Core code: pure, total, assumes reasonable input.
+;;;
+;;; Dependencies:
+;;;   - core/base/prelude.ss
+;;;   - lattice/algebra/ring.ss
+;;;   - lattice/algebra/polynomial.ss
+
+(load "core/base/prelude.ss")
+(load "lattice/algebra/ring.ss")
+
+;;; ============================================================
+;;; Monomial Representation
+;;; ============================================================
+
+;;; A monomial is represented as an association list of (variable . exponent)
+;;; pairs, sorted by variable name. Only non-zero exponents are stored.
+;;;
+;;; Example: x^2 * y * z^3 is ((x . 2) (y . 1) (z . 3))
+;;; The constant monomial 1 is ()
+
+;;; make-monomial : (List (Symbol × Nat)) → Monomial
+;;; Create a monomial from variable-exponent pairs.
+;;; Normalizes by removing zero exponents and sorting by variable.
+(define (make-monomial pairs)
+  (let ([filtered (filter (lambda (p) (> (cdr p) 0)) pairs)])
+    (sort-by-var filtered)))
+
+;;; sort-by-var : (List (Symbol × Nat)) → (List (Symbol × Nat))
+(define (sort-by-var pairs)
+  (list-sort (lambda (a b) (symbol<? (car a) (car b))) pairs))
+
+;;; symbol<? : Symbol × Symbol → Boolean
+(define (symbol<? a b)
+  (string<? (symbol->string a) (symbol->string b)))
+
+;;; mono-one : → Monomial
+;;; The constant monomial 1.
+(define (mono-one) '())
+
+;;; mono-var : Symbol → Monomial
+;;; Single variable: x^1
+(define (mono-var v)
+  (list (cons v 1)))
+
+;;; mono-power : Symbol × Nat → Monomial
+;;; Single variable power: x^n
+(define (mono-power v n)
+  (if (= n 0)
+      '()
+      (list (cons v n))))
+
+;;; mono-degree : Monomial → Nat
+;;; Total degree of monomial (sum of exponents).
+(define (mono-degree m)
+  (apply + (map cdr m)))
+
+;;; mono-degree-in : Monomial × Symbol → Nat
+;;; Degree in specific variable.
+(define (mono-degree-in m v)
+  (let ([pair (assq v m)])
+    (if pair (cdr pair) 0)))
+
+;;; mono-vars : Monomial → (List Symbol)
+;;; Variables appearing in monomial.
+(define (mono-vars m)
+  (map car m))
+
+;;; mono-mul : Monomial × Monomial → Monomial
+;;; Multiply monomials (add exponents).
+(define (mono-mul m1 m2)
+  (mono-merge m1 m2))
+
+;;; mono-merge : merge two sorted alists, adding exponents
+(define (mono-merge m1 m2)
+  (cond
+    [(null? m1) m2]
+    [(null? m2) m1]
+    [else
+     (let ([v1 (caar m1)] [e1 (cdar m1)]
+           [v2 (caar m2)] [e2 (cdar m2)])
+       (cond
+         [(symbol<? v1 v2)
+          (cons (car m1) (mono-merge (cdr m1) m2))]
+         [(symbol<? v2 v1)
+          (cons (car m2) (mono-merge m1 (cdr m2)))]
+         [else  ; Same variable
+          (let ([sum (+ e1 e2)])
+            (if (= sum 0)
+                (mono-merge (cdr m1) (cdr m2))
+                (cons (cons v1 sum) (mono-merge (cdr m1) (cdr m2)))))]))]))
+
+;;; mono-divides? : Monomial × Monomial → Boolean
+;;; Does m1 divide m2? (all exponents of m1 ≤ corresponding in m2)
+(define (mono-divides? m1 m2)
+  (let loop ([m1 m1] [m2 m2])
+    (cond
+      [(null? m1) #t]
+      [(null? m2) #f]
+      [else
+       (let ([v1 (caar m1)] [e1 (cdar m1)]
+             [v2 (caar m2)] [e2 (cdar m2)])
+         (cond
+           [(symbol<? v1 v2) #f]  ; v1 not in m2
+           [(symbol<? v2 v1)      ; v2 not in m1, skip
+            (loop m1 (cdr m2))]
+           [else                  ; Same variable
+            (and (<= e1 e2) (loop (cdr m1) (cdr m2)))]))])))
+
+;;; mono-div : Monomial × Monomial → Monomial
+;;; Divide m1 by m2 (subtract exponents). Assumes m2 divides m1.
+(define (mono-div m1 m2)
+  (mono-div-helper m1 m2))
+
+(define (mono-div-helper m1 m2)
+  (cond
+    [(null? m2) m1]
+    [(null? m1) '()]  ; Should not happen if m2 divides m1
+    [else
+     (let ([v1 (caar m1)] [e1 (cdar m1)]
+           [v2 (caar m2)] [e2 (cdar m2)])
+       (cond
+         [(symbol<? v1 v2)
+          (cons (car m1) (mono-div-helper (cdr m1) m2))]
+         [(symbol<? v2 v1)
+          ;; v2 in m2 but not m1 - subtract from nothing (error case)
+          (mono-div-helper m1 (cdr m2))]
+         [else
+          (let ([diff (- e1 e2)])
+            (if (<= diff 0)
+                (mono-div-helper (cdr m1) (cdr m2))
+                (cons (cons v1 diff) (mono-div-helper (cdr m1) (cdr m2)))))]))]))
+
+;;; mono-lcm : Monomial × Monomial → Monomial
+;;; Least common multiple (max of each exponent).
+(define (mono-lcm m1 m2)
+  (mono-lcm-helper m1 m2))
+
+(define (mono-lcm-helper m1 m2)
+  (cond
+    [(null? m1) m2]
+    [(null? m2) m1]
+    [else
+     (let ([v1 (caar m1)] [e1 (cdar m1)]
+           [v2 (caar m2)] [e2 (cdar m2)])
+       (cond
+         [(symbol<? v1 v2)
+          (cons (car m1) (mono-lcm-helper (cdr m1) m2))]
+         [(symbol<? v2 v1)
+          (cons (car m2) (mono-lcm-helper m1 (cdr m2)))]
+         [else
+          (cons (cons v1 (max e1 e2))
+                (mono-lcm-helper (cdr m1) (cdr m2)))]))]))
+
+;;; mono-gcd : Monomial × Monomial → Monomial
+;;; Greatest common divisor (min of each exponent).
+(define (mono-gcd m1 m2)
+  (mono-gcd-helper m1 m2))
+
+(define (mono-gcd-helper m1 m2)
+  (cond
+    [(null? m1) '()]
+    [(null? m2) '()]
+    [else
+     (let ([v1 (caar m1)] [e1 (cdar m1)]
+           [v2 (caar m2)] [e2 (cdar m2)])
+       (cond
+         [(symbol<? v1 v2)
+          (mono-gcd-helper (cdr m1) m2)]
+         [(symbol<? v2 v1)
+          (mono-gcd-helper m1 (cdr m2))]
+         [else
+          (let ([m (min e1 e2)])
+            (if (= m 0)
+                (mono-gcd-helper (cdr m1) (cdr m2))
+                (cons (cons v1 m)
+                      (mono-gcd-helper (cdr m1) (cdr m2)))))]))]))
+
+;;; mono-equal? : Monomial × Monomial → Boolean
+(define (mono-equal? m1 m2)
+  (equal? m1 m2))
+
+;;; ============================================================
+;;; Monomial Orderings
+;;; ============================================================
+
+;;; A monomial ordering is a total order on monomials that is:
+;;; 1. A well-ordering (every non-empty set has a minimum)
+;;; 2. Compatible with multiplication: m1 < m2 implies m1*n < m2*n
+
+;;; mono-compare-lex : Monomial × Monomial × (List Symbol) → Integer
+;;; Lexicographic order with given variable ordering.
+;;; Returns -1 if m1 < m2, 0 if m1 = m2, +1 if m1 > m2.
+(define (mono-compare-lex m1 m2 vars)
+  (let loop ([vs vars])
+    (if (null? vs)
+        0
+        (let ([v (car vs)])
+          (let ([e1 (mono-degree-in m1 v)]
+                [e2 (mono-degree-in m2 v)])
+            (cond
+              [(> e1 e2) 1]
+              [(< e1 e2) -1]
+              [else (loop (cdr vs))]))))))
+
+;;; mono-compare-grlex : Monomial × Monomial × (List Symbol) → Integer
+;;; Graded lexicographic order (degree first, then lex).
+(define (mono-compare-grlex m1 m2 vars)
+  (let ([d1 (mono-degree m1)]
+        [d2 (mono-degree m2)])
+    (cond
+      [(> d1 d2) 1]
+      [(< d1 d2) -1]
+      [else (mono-compare-lex m1 m2 vars)])))
+
+;;; mono-compare-grevlex : Monomial × Monomial × (List Symbol) → Integer
+;;; Graded reverse lexicographic order.
+;;; Compare by degree first, then by REVERSE lex on NEGATIVE exponents.
+(define (mono-compare-grevlex m1 m2 vars)
+  (let ([d1 (mono-degree m1)]
+        [d2 (mono-degree m2)])
+    (cond
+      [(> d1 d2) 1]
+      [(< d1 d2) -1]
+      [else
+       ;; Reverse lex: compare from last variable, SMALLER exponent wins
+       (let loop ([vs (reverse vars)])
+         (if (null? vs)
+             0
+             (let ([v (car vs)])
+               (let ([e1 (mono-degree-in m1 v)]
+                     [e2 (mono-degree-in m2 v)])
+                 (cond
+                   [(< e1 e2) 1]   ; Smaller exponent is LARGER in grevlex
+                   [(> e1 e2) -1]
+                   [else (loop (cdr vs))])))))])))
+
+;;; make-ordering : Symbol × (List Symbol) → (Monomial × Monomial → Integer)
+;;; Create a monomial comparison function.
+(define (make-ordering type vars)
+  (case type
+    [(lex) (lambda (m1 m2) (mono-compare-lex m1 m2 vars))]
+    [(grlex deglex) (lambda (m1 m2) (mono-compare-grlex m1 m2 vars))]
+    [(grevlex degrevlex) (lambda (m1 m2) (mono-compare-grevlex m1 m2 vars))]
+    [else (error 'make-ordering "unknown ordering type" type)]))
+
+;;; ============================================================
+;;; Multivariate Polynomial Representation
+;;; ============================================================
+
+;;; A multivariate polynomial is represented as:
+;;;   (mpoly R vars ordering terms)
+;;; where:
+;;;   R = coefficient ring
+;;;   vars = list of variable symbols (defines ordering context)
+;;;   ordering = comparison function for monomials
+;;;   terms = list of (coefficient . monomial) pairs, sorted by ordering (descending)
+
+;;; make-mpoly : Ring × (List Symbol) × (M×M→Int) × (List (Coeff × Monomial)) → MPoly
+(define (make-mpoly R vars ordering terms)
+  (list 'mpoly R vars ordering (mpoly-normalize R ordering terms)))
+
+;;; mpoly? : Any → Boolean
+(define (mpoly? p)
+  (and (pair? p) (eq? (car p) 'mpoly)))
+
+;;; mpoly-ring : MPoly → Ring
+(define (mpoly-ring p) (list-ref p 1))
+
+;;; mpoly-vars : MPoly → (List Symbol)
+(define (mpoly-vars p) (list-ref p 2))
+
+;;; mpoly-ordering : MPoly → (M×M→Int)
+(define (mpoly-ordering p) (list-ref p 3))
+
+;;; mpoly-terms : MPoly → (List (Coeff × Monomial))
+(define (mpoly-terms p) (list-ref p 4))
+
+;;; mpoly-normalize : Ring × (M×M→Int) × (List (Coeff × Monomial)) → (List ...)
+;;; Combine like terms, remove zeros, sort by ordering (descending).
+(define (mpoly-normalize R ordering terms)
+  (let* ([zero (ring-zero R)]
+         [eq-fn (ring-equal-fn R)]
+         [add (ring-add-op R)]
+         ;; Combine like terms
+         [combined (mpoly-combine-terms terms add eq-fn zero)]
+         ;; Remove zero coefficients
+         [nonzero (filter (lambda (t) (not (eq-fn (car t) zero))) combined)]
+         ;; Sort by monomial (descending = largest first)
+         [sorted (list-sort
+                  (lambda (t1 t2) (> (ordering (cdr t1) (cdr t2)) 0))
+                  nonzero)])
+    (if (null? sorted)
+        (list (cons zero (mono-one)))
+        sorted)))
+
+;;; mpoly-combine-terms : combine terms with same monomial
+(define (mpoly-combine-terms terms add eq-fn zero)
+  (if (null? terms)
+      '()
+      (let loop ([ts terms] [acc '()])
+        (if (null? ts)
+            acc
+            (let* ([term (car ts)]
+                   [coeff (car term)]
+                   [mono (cdr term)]
+                   [existing (assoc-mono mono acc)])
+              (if existing
+                  (loop (cdr ts)
+                        (update-assoc-mono mono (add (car existing) coeff) acc))
+                  (loop (cdr ts)
+                        (cons term acc))))))))
+
+;;; assoc-mono : Monomial × (List (Coeff × Monomial)) → (Coeff × Monomial) | #f
+(define (assoc-mono mono terms)
+  (cond
+    [(null? terms) #f]
+    [(mono-equal? mono (cdar terms)) (car terms)]
+    [else (assoc-mono mono (cdr terms))]))
+
+;;; update-assoc-mono : Monomial × Coeff × (List ...) → (List ...)
+(define (update-assoc-mono mono new-coeff terms)
+  (map (lambda (t)
+         (if (mono-equal? mono (cdr t))
+             (cons new-coeff mono)
+             t))
+       terms))
+
+;;; ============================================================
+;;; MPoly Construction
+;;; ============================================================
+
+;;; mpoly-zero : Ring × (List Symbol) × (M×M→Int) → MPoly
+(define (mpoly-zero R vars ordering)
+  (make-mpoly R vars ordering (list (cons (ring-zero R) (mono-one)))))
+
+;;; mpoly-one : Ring × (List Symbol) × (M×M→Int) → MPoly
+(define (mpoly-one R vars ordering)
+  (make-mpoly R vars ordering (list (cons (ring-one R) (mono-one)))))
+
+;;; mpoly-constant : Ring × (List Symbol) × (M×M→Int) × Coeff → MPoly
+(define (mpoly-constant R vars ordering c)
+  (make-mpoly R vars ordering (list (cons c (mono-one)))))
+
+;;; mpoly-var : Ring × (List Symbol) × (M×M→Int) × Symbol → MPoly
+;;; Create polynomial for single variable.
+(define (mpoly-var R vars ordering v)
+  (make-mpoly R vars ordering (list (cons (ring-one R) (mono-var v)))))
+
+;;; mpoly-from-terms : Ring × (List Symbol) × Symbol × (List (Coeff × Monomial)) → MPoly
+;;; Convenience: create mpoly with specified ordering type.
+(define (mpoly-from-terms R vars ordering-type terms)
+  (let ([ordering (make-ordering ordering-type vars)])
+    (make-mpoly R vars ordering terms)))
+
+;;; ============================================================
+;;; MPoly Properties
+;;; ============================================================
+
+;;; mpoly-zero? : MPoly → Boolean
+(define (mpoly-zero? p)
+  (let* ([R (mpoly-ring p)]
+         [terms (mpoly-terms p)]
+         [eq-fn (ring-equal-fn R)]
+         [zero (ring-zero R)])
+    (and (= (length terms) 1)
+         (null? (cdar terms))  ; Constant monomial
+         (eq-fn (caar terms) zero))))
+
+;;; mpoly-degree : MPoly → Nat
+;;; Total degree (maximum degree of any term).
+(define (mpoly-degree p)
+  (apply max (map (lambda (t) (mono-degree (cdr t))) (mpoly-terms p))))
+
+;;; mpoly-degree-in : MPoly × Symbol → Nat
+;;; Degree in specific variable.
+(define (mpoly-degree-in p v)
+  (apply max (map (lambda (t) (mono-degree-in (cdr t) v)) (mpoly-terms p))))
+
+;;; mpoly-leading-term : MPoly → (Coeff × Monomial)
+;;; Leading term (largest monomial according to ordering).
+(define (mpoly-leading-term p)
+  (car (mpoly-terms p)))
+
+;;; mpoly-leading-coeff : MPoly → Coeff
+(define (mpoly-leading-coeff p)
+  (car (mpoly-leading-term p)))
+
+;;; mpoly-leading-mono : MPoly → Monomial
+(define (mpoly-leading-mono p)
+  (cdr (mpoly-leading-term p)))
+
+;;; ============================================================
+;;; MPoly Arithmetic
+;;; ============================================================
+
+;;; mpoly-add : MPoly × MPoly → MPoly
+(define (mpoly-add p1 p2)
+  (let ([R (mpoly-ring p1)]
+        [vars (mpoly-vars p1)]
+        [ordering (mpoly-ordering p1)])
+    (make-mpoly R vars ordering
+                (append (mpoly-terms p1) (mpoly-terms p2)))))
+
+;;; mpoly-neg : MPoly → MPoly
+(define (mpoly-neg p)
+  (let* ([R (mpoly-ring p)]
+         [neg (ring-neg-fn R)])
+    (make-mpoly (mpoly-ring p)
+                (mpoly-vars p)
+                (mpoly-ordering p)
+                (map (lambda (t) (cons (neg (car t)) (cdr t)))
+                     (mpoly-terms p)))))
+
+;;; mpoly-sub : MPoly × MPoly → MPoly
+(define (mpoly-sub p1 p2)
+  (mpoly-add p1 (mpoly-neg p2)))
+
+;;; mpoly-scale : MPoly × Coeff → MPoly
+(define (mpoly-scale p c)
+  (let ([R (mpoly-ring p)]
+        [mul (ring-mul-op (mpoly-ring p))])
+    (make-mpoly (mpoly-ring p)
+                (mpoly-vars p)
+                (mpoly-ordering p)
+                (map (lambda (t) (cons (mul c (car t)) (cdr t)))
+                     (mpoly-terms p)))))
+
+;;; mpoly-mul-term : MPoly × (Coeff × Monomial) → MPoly
+;;; Multiply polynomial by single term.
+(define (mpoly-mul-term p term)
+  (let* ([R (mpoly-ring p)]
+         [mul (ring-mul-op R)]
+         [c (car term)]
+         [m (cdr term)])
+    (make-mpoly R
+                (mpoly-vars p)
+                (mpoly-ordering p)
+                (map (lambda (t)
+                       (cons (mul c (car t))
+                             (mono-mul m (cdr t))))
+                     (mpoly-terms p)))))
+
+;;; mpoly-mul : MPoly × MPoly → MPoly
+;;; Multiply polynomials (distribute).
+(define (mpoly-mul p1 p2)
+  (let ([R (mpoly-ring p1)]
+        [vars (mpoly-vars p1)]
+        [ordering (mpoly-ordering p1)])
+    (let loop ([terms1 (mpoly-terms p1)]
+               [acc (mpoly-zero R vars ordering)])
+      (if (null? terms1)
+          acc
+          (loop (cdr terms1)
+                (mpoly-add acc (mpoly-mul-term p2 (car terms1))))))))
+
+;;; mpoly-power : MPoly × Nat → MPoly
+(define (mpoly-power p n)
+  (cond
+    [(= n 0) (mpoly-one (mpoly-ring p) (mpoly-vars p) (mpoly-ordering p))]
+    [(= n 1) p]
+    [(even? n)
+     (let ([half (mpoly-power p (/ n 2))])
+       (mpoly-mul half half))]
+    [else
+     (mpoly-mul p (mpoly-power p (- n 1)))]))
+
+;;; ============================================================
+;;; MPoly Equality
+;;; ============================================================
+
+;;; mpoly-equal? : MPoly × MPoly → Boolean
+(define (mpoly-equal? p1 p2)
+  (let* ([R (mpoly-ring p1)]
+         [eq-fn (ring-equal-fn R)]
+         [t1 (mpoly-terms p1)]
+         [t2 (mpoly-terms p2)])
+    (and (= (length t1) (length t2))
+         (let loop ([l1 t1] [l2 t2])
+           (or (null? l1)
+               (and (eq-fn (caar l1) (caar l2))
+                    (mono-equal? (cdar l1) (cdar l2))
+                    (loop (cdr l1) (cdr l2))))))))
+
+;;; ============================================================
+;;; Multivariate Division Algorithm
+;;; ============================================================
+
+;;; mpoly-divmod : MPoly × (List MPoly) → ((List MPoly) × MPoly)
+;;; Multivariate division: f = q_1*g_1 + ... + q_s*g_s + r
+;;; Returns (list-of-quotients . remainder).
+;;; The remainder has no term divisible by any leading term of g_i.
+(define (mpoly-divmod f gs)
+  (let* ([R (mpoly-ring f)]
+         [vars (mpoly-vars f)]
+         [ordering (mpoly-ordering f)]
+         [zero (mpoly-zero R vars ordering)]
+         [s (length gs)]
+         [qs (make-list s zero)])
+    (mpoly-div-loop f gs qs zero R vars ordering)))
+
+;;; mpoly-div-loop : main division loop
+(define (mpoly-div-loop p gs qs r R vars ordering)
+  (if (mpoly-zero? p)
+      (cons qs r)
+      (let ([lt-p (mpoly-leading-term p)])
+        (let try-divisors ([i 0] [gs-remaining gs] [qs qs])
+          (if (null? gs-remaining)
+              ;; No divisor found, add leading term to remainder
+              (let* ([term-poly (make-mpoly R vars ordering (list lt-p))]
+                     [new-r (mpoly-add r term-poly)]
+                     [new-p (mpoly-sub p term-poly)])
+                (mpoly-div-loop new-p gs qs new-r R vars ordering))
+              (let* ([g (car gs-remaining)]
+                     [lt-g (mpoly-leading-term g)])
+                (if (mono-divides? (cdr lt-g) (cdr lt-p))
+                    ;; Divisible: compute quotient term
+                    (let* ([q-coeff (/ (car lt-p) (car lt-g))]
+                           [q-mono (mono-div (cdr lt-p) (cdr lt-g))]
+                           [q-term (cons q-coeff q-mono)]
+                           [q-poly (make-mpoly R vars ordering (list q-term))]
+                           [new-qi (mpoly-add (list-ref qs i) q-poly)]
+                           [new-qs (list-set qs i new-qi)]
+                           [new-p (mpoly-sub p (mpoly-mul-term g q-term))])
+                      (mpoly-div-loop new-p gs new-qs r R vars ordering))
+                    ;; Not divisible by this g, try next
+                    (try-divisors (+ i 1) (cdr gs-remaining) qs))))))))
+
+;;; list-set : (List α) × Nat × α → (List α)
+(define (list-set lst idx val)
+  (if (= idx 0)
+      (cons val (cdr lst))
+      (cons (car lst) (list-set (cdr lst) (- idx 1) val))))
+
+;;; ============================================================
+;;; MPoly Evaluation
+;;; ============================================================
+
+;;; mpoly-eval : MPoly × (List (Symbol × Coeff)) → Coeff
+;;; Evaluate polynomial at given point (variable → value mapping).
+(define (mpoly-eval p env)
+  (let* ([R (mpoly-ring p)]
+         [add (ring-add-op R)]
+         [mul (ring-mul-op R)]
+         [zero (ring-zero R)])
+    (let loop ([terms (mpoly-terms p)] [acc zero])
+      (if (null? terms)
+          acc
+          (let* ([term (car terms)]
+                 [coeff (car term)]
+                 [mono (cdr term)]
+                 [term-val (mpoly-eval-term mul mono env (ring-one R))])
+            (loop (cdr terms) (add acc (mul coeff term-val))))))))
+
+;;; mpoly-eval-term : evaluate single monomial
+(define (mpoly-eval-term mul mono env one)
+  (let loop ([m mono] [acc one])
+    (if (null? m)
+        acc
+        (let* ([v (caar m)]
+               [e (cdar m)]
+               [val (cdr (assq v env))]
+               [power (expt-int val e mul one)])
+          (loop (cdr m) (mul acc power))))))
+
+;;; expt-int : α × Nat × (α×α→α) × α → α
+;;; Integer exponentiation using multiplication.
+(define (expt-int base n mul one)
+  (cond
+    [(= n 0) one]
+    [(= n 1) base]
+    [(even? n)
+     (let ([half (expt-int base (/ n 2) mul one)])
+       (mul half half))]
+    [else (mul base (expt-int base (- n 1) mul one))]))
+
+;;; ============================================================
+;;; Display
+;;; ============================================================
+
+;;; mpoly->string : MPoly → String
+(define (mpoly->string p)
+  (let* ([R (mpoly-ring p)]
+         [terms (mpoly-terms p)]
+         [zero (ring-zero R)]
+         [eq-fn (ring-equal-fn R)])
+    (if (and (= (length terms) 1)
+             (null? (cdar terms))
+             (eq-fn (caar terms) zero))
+        "0"
+        (let loop ([ts terms] [first? #t] [result ""])
+          (if (null? ts)
+              result
+              (let ([str (mpoly-term->string (car ts) first? R)])
+                (loop (cdr ts)
+                      (and first? (string=? str ""))
+                      (string-append result str))))))))
+
+;;; mpoly-term->string : (Coeff × Monomial) × Boolean × Ring → String
+(define (mpoly-term->string term first? R)
+  (let* ([coeff (car term)]
+         [mono (cdr term)]
+         [zero (ring-zero R)]
+         [one (ring-one R)]
+         [eq-fn (ring-equal-fn R)]
+         [mono-str (mono->string mono)])
+    (cond
+      [(eq-fn coeff zero) ""]
+      [(string=? mono-str "1")  ; Constant term
+       (if first?
+           (coeff->display-string coeff)
+           (if (and (number? coeff) (< coeff 0))
+               (string-append " - " (coeff->display-string (- coeff)))
+               (string-append " + " (coeff->display-string coeff))))]
+      [(eq-fn coeff one)
+       (if first? mono-str (string-append " + " mono-str))]
+      [(and (number? coeff) (= coeff -1))
+       (if first?
+           (string-append "-" mono-str)
+           (string-append " - " mono-str))]
+      [else
+       (if first?
+           (string-append (coeff->display-string coeff) "*" mono-str)
+           (if (and (number? coeff) (< coeff 0))
+               (string-append " - " (coeff->display-string (- coeff)) "*" mono-str)
+               (string-append " + " (coeff->display-string coeff) "*" mono-str)))])))
+
+;;; mono->string : Monomial → String
+(define (mono->string m)
+  (if (null? m)
+      "1"
+      (string-join
+       (map (lambda (pair)
+              (let ([v (car pair)]
+                    [e (cdr pair)])
+                (if (= e 1)
+                    (symbol->string v)
+                    (string-append (symbol->string v) "^" (number->string e)))))
+            m)
+       "*")))
+
+;;; coeff->display-string : Coeff → String
+(define (coeff->display-string c)
+  (cond
+    [(number? c) (number->string c)]
+    [(symbol? c) (symbol->string c)]
+    [else (format "~a" c)]))
+
+;;; string-join : (List String) × String → String
+(define (string-join strs sep)
+  (if (null? strs)
+      ""
+      (let loop ([ss (cdr strs)] [acc (car strs)])
+        (if (null? ss)
+            acc
+            (loop (cdr ss) (string-append acc sep (car ss)))))))
+
+;;; ============================================================
+;;; Utility
+;;; ============================================================
+
+;;; make-list defined in polynomial.ss, redefined here for standalone
+(define (make-list n fill)
+  (if (<= n 0)
+      '()
+      (cons fill (make-list (- n 1) fill))))
