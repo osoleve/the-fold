@@ -318,22 +318,7 @@
 ;;; euler-totient : Int → Int
 ;;; Euler's totient function φ(n).
 ;;; Returns count of integers in [1,n] coprime to n.
-(define (euler-totient n)
-  (if (< n 1)
-      0
-      (let ([pf (prime-factorization n)])
-        (fold-left
-         (lambda (acc pe)
-           (let ([p (car pe)])
-             (* acc (- p 1) (quotient n p)
-                (let loop ([k (cdr pe)] [pw p])
-                  (if (= k 1)
-                      1
-                      (loop (- k 1) (* pw p)))))))
-         1
-         pf))))
-
-;;; Actually compute totient correctly:
+;;; φ(n) = n × ∏(1 - 1/p) for all prime factors p
 (define (euler-totient n)
   (if (< n 1)
       0
@@ -494,7 +479,7 @@
 (define (is-perfect-power? n)
   (if (< n 2)
       #f
-      (let* ([max-exp (+ 1 (floor (log n 2)))])
+      (let* ([max-exp (+ 1 (inexact->exact (floor (/ (log n) (log 2)))))])
         (let loop-exp ([b 2])
           (if (> b max-exp)
               #f

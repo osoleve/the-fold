@@ -298,6 +298,31 @@
                     (<= (apply max nodes) 1))))
 
   ;;; ============================================================
+  ;;; B-Splines
+  ;;; ============================================================
+
+  (display "\n--- B-Splines ---\n")
+
+  ;; Uniform knot vector for degree 2 B-spline
+  (let ([knots (vector 0 1 2 3 4 5)])
+    ;; B-spline basis functions (degree 0 are step functions)
+    (test-approx "bspline-basis p=0 in interval" 1.0 (bspline-basis knots 2 0 2.5) 1e-10)
+    (test-approx "bspline-basis p=0 outside" 0.0 (bspline-basis knots 2 0 1.5) 1e-10)
+
+    ;; Degree 1 B-spline basis N_{2,1}(x) on [2,4), peaks at x=3
+    (test-approx "bspline-basis p=1 at peak" 1.0 (bspline-basis knots 2 1 3.0) 1e-10)
+    (test-approx "bspline-basis p=1 rising" 0.5 (bspline-basis knots 2 1 2.5) 1e-10))
+
+  ;; B-spline curve
+  (let ([knots (vector 0 0 0 1 1 1)]  ; Clamped cubic-like
+        [ctrl '((0 . 0) (1 . 2) (2 . 0))])
+    ;; Endpoints should be at control points for clamped splines
+    (let ([start (bspline-curve knots ctrl 2 0)]
+          [end (bspline-curve knots ctrl 2 0.999)])
+      (test-approx "bspline-curve start x" 0 (car start) 0.1)
+      (test-approx "bspline-curve end x" 2 (car end) 0.1)))
+
+  ;;; ============================================================
   ;;; Summary
   ;;; ============================================================
 
