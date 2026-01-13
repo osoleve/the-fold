@@ -39,6 +39,11 @@
 ;;;
 ;;; Empty zipper has focus = nothing, left = (), right = ()
 ;;;
+;;; Design note: Navigation allows moving "past-end" (focus=nothing after last
+;;; element) but not "before-start". This asymmetry supports append semantics
+;;; where you can navigate past the end and insert. The past-end state is useful
+;;; for building lists incrementally. There is no symmetric before-start state.
+;;;
 ;;; ListZipper α = {left: (List α), focus: (Maybe α), right: (List α)}
 
 ;;; zipper-tag : Symbol
@@ -291,7 +296,9 @@
 
 ;;; zipper-insert-right : (ListZipper α) × α → (ListZipper α)
 ;;; Insert element to the right of focus.
-;;; If no focus, element becomes new focus.
+;;; Design: If past-end (no focus), element becomes new focus. This provides
+;;; convenient append semantics where the newly inserted element is focused.
+;;; Contrast with zipper-insert-left which preserves focus state.
 (define (zipper-insert-right z x)
   (let ([focus (zipper-focus-maybe z)])
     (if (nothing? focus)
