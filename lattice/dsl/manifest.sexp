@@ -52,7 +52,11 @@
             code-combine code-lift code-unlift code-well-staged?
             stage-add stage-mul stage-if stage-let stage-lambda stage-app
             power-staged power-specialized compile-staged run-staged
-            stage-match stage-fix infer-staged-type inline-staged))
+            stage-match stage-fix infer-staged-type inline-staged)
+   (template hole? hole-name find-holes new-template template?
+             template-expr template-holes template-complete? template-hole-count
+             fill-hole fill-holes compile-template try-compile-template
+             template->string template-status holes->string wrap-if-multiple))
 
   (modules
    (tagless "tagless.ss" "Tagless final style interpreter/compiler composition")
@@ -61,4 +65,5 @@
    (compose "compose.ss" "Functor row composition and effect handling")
    (reader "reader.ss" "Extensible reader macros and readtables")
    (quasi "quasi.ss" "Quasiquotation expansion and syntax objects")
-   (staging "staging.ss" "Multi-stage programming with typed code")))
+   (staging "staging.ss" "Multi-stage programming with typed code")
+   (template "template/template.ss" "Grammar-driven code construction with holes")))

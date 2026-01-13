@@ -13,7 +13,7 @@
 ;;; Rules:
 ;;;   1. Line starting with "$name :=" is a fill operation
 ;;;   2. Otherwise, line is a new template definition
-;;;   3. Tokenize: split on whitespace, preserve parenthesized groups
+;;;   3. Uses Scheme's `read` for proper parsing of strings, booleans, etc.
 ;;;   4. Implicit parens: if >1 token, wrap in ()
 ;;;   5. Single token stays as-is
 ;;;
@@ -22,77 +22,32 @@
 (load "shell/tools/template-session.ss")
 
 ;;; ============================================================
-;;; Tokenizer
+;;; Tokenizer (Read-based)
 ;;; ============================================================
 
-;;; tokenize : String → (List Token)
-;;; Split string into tokens, preserving parenthesized groups.
-;;; Tokens are either atoms (strings) or nested lists (parenthesized groups).
+;;; tokenize : String → (List Sexpr)
+;;; Parse string into a list of S-expressions using Scheme's reader.
+;;; Handles strings, booleans, quoted forms, etc. correctly.
 (define (tokenize str)
-  (let ([chars (string->list str)]
-        [tokens '()]
-        [current '()])
-    (define (flush-current!)
-      (when (pair? current)
-        (set! tokens (cons (list->string (reverse current)) tokens))
-        (set! current '())))
-    (define (read-paren chars depth acc)
-      ;; Read until matching close paren
-      (cond
-        [(null? chars)
-         (error 'tokenize "Unmatched open parenthesis")]
-        [(char=? (car chars) #\()
-         (read-paren (cdr chars) (+ depth 1) (cons #\( acc))]
-        [(char=? (car chars) #\))
-         (if (= depth 1)
-             (values (cdr chars) (list->string (reverse (cons #\) acc))))
-             (read-paren (cdr chars) (- depth 1) (cons #\) acc)))]
-        [else
-         (read-paren (cdr chars) depth (cons (car chars) acc))]))
-    (let loop ([chars chars])
-      (cond
-        [(null? chars)
-         (flush-current!)
-         (reverse tokens)]
-        [(char-whitespace? (car chars))
-         (flush-current!)
-         (loop (cdr chars))]
-        [(char=? (car chars) #\()
-         (flush-current!)
-         (let-values ([(rest paren-str) (read-paren (cdr chars) 1 '(#\())])
-           (set! tokens (cons paren-str tokens))
-           (loop rest))]
-        [else
-         (set! current (cons (car chars) current))
-         (loop (cdr chars))]))))
+  (let ([port (open-input-string str)])
+    (let loop ([acc '()])
+      (let ([datum (read port)])
+        (if (eof-object? datum)
+            (reverse acc)
+            (loop (cons datum acc)))))))
 
 ;;; ============================================================
-;;; Token to S-expression Conversion
+;;; Implicit Parens
 ;;; ============================================================
 
-;;; token->sexpr : String → Sexpr
-;;; Convert a token string to an S-expression.
-;;; Handles atoms, numbers, and parenthesized expressions.
-(define (token->sexpr token)
+;;; apply-implicit-parens : (List Sexpr) → Sexpr
+;;; If list has >1 element, wrap in parens (make a list).
+;;; Single element stays as-is.
+(define (apply-implicit-parens tokens)
   (cond
-    [(string=? token "") #f]
-    [(char=? (string-ref token 0) #\()
-     ;; Parenthesized - parse as S-expression
-     (read (open-input-string token))]
-    [(string->number token)
-     => (lambda (n) n)]
-    [else
-     ;; Bare atom - convert to symbol
-     (string->symbol token)]))
-
-;;; tokens->sexpr : (List String) → Sexpr
-;;; Convert tokens to S-expression, applying implicit parens rule.
-(define (tokens->sexpr tokens)
-  (let ([sexprs (map token->sexpr tokens)])
-    (cond
-      [(null? sexprs) '()]
-      [(null? (cdr sexprs)) (car sexprs)]  ; Single token
-      [else sexprs])))  ; Multiple tokens → list (implicit parens)
+    [(null? tokens) '()]
+    [(null? (cdr tokens)) (car tokens)]  ; Single token
+    [else tokens]))  ; Multiple tokens → list (implicit parens)
 
 ;;; ============================================================
 ;;; Line Parsing
@@ -106,17 +61,17 @@
     (and (>= (length tokens) 3)
          (let ([first (car tokens)]
                [second (cadr tokens)])
-           (and (> (string-length first) 0)
-                (char=? (string-ref first 0) #\$)
-                (string=? second ":=")
-                (let ([hole-sym (string->symbol first)]
+           (and (symbol? first)
+                (hole? first)  ; Check if it's a $-prefixed symbol
+                (eq? second ':=)
+                (let ([hole-sym first]
                       [value-tokens (cddr tokens)])
-                  (values hole-sym (tokens->sexpr value-tokens))))))))
+                  (values hole-sym (apply-implicit-parens value-tokens))))))))
 
 ;;; parse-template-line : String → Sexpr
 ;;; Parse a line as a template definition.
 (define (parse-template-line line)
-  (tokens->sexpr (tokenize line)))
+  (apply-implicit-parens (tokenize line)))
 
 ;;; ============================================================
 ;;; Main Parser Interface
@@ -133,16 +88,22 @@
       [(string=? trimmed "undo") (ts-undo)]  ; Undo command
       [(string=? trimmed "reset") (ts-reset)]  ; Reset command
       [else
-       (call-with-values
-        (lambda () (parse-assignment trimmed))
-        (lambda results
-          (if (and (pair? results) (car results))
-              ;; It's an assignment: $name := value
-              (ts-fill (car results) (cadr results))
-              ;; It's a template definition
-              (if (ts-active?)
-                  (display "Session already active. Use 'reset' to start over.\n")
-                  (ts-start (parse-template-line trimmed))))))])))
+       (guard (exn [else
+                    (display "Parse error: ")
+                    (display (if (condition? exn)
+                                 (condition-message exn)
+                                 exn))
+                    (newline)])
+         (call-with-values
+          (lambda () (parse-assignment trimmed))
+          (lambda results
+            (if (and (pair? results) (car results))
+                ;; It's an assignment: $name := value
+                (ts-fill (car results) (cadr results))
+                ;; It's a template definition
+                (if (ts-active?)
+                    (display "Session already active. Use 'reset' to start over.\n")
+                    (ts-start (parse-template-line trimmed)))))))])))
 
 ;;; tp-eval : String → Sexpr | #f
 ;;; Parse and evaluate a line, returning the result if compile.

@@ -184,7 +184,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `autodiff/` | Reverse-mode AD, computational graphs |
 | `fp/` | Monads, parsers, streams, rewriting |
 | `query/` | Query DSL, SQL parser, patterns |
-| `dsl/` | Tagless final, chronicle, staging |
+| `dsl/` | Tagless final, chronicle, staging, template DSL |
 | `info/` | Entropy, coding, information theory |
 | `number-theory/` | Primes, modular arithmetic |
 | `meta/` | Lattice navigation, search, introspection |
@@ -316,11 +316,39 @@ Shell is organized into functional subdirectories (with backwards-compatible stu
 | `lens/` | Optics & lenses | capability-lens.ss |
 | `introspect/` | System introspection | type-inspect.ss, xref.ss |
 | `pipeline/` | Agent pipelines | workflow integration |
-| `tools/` | Utility tools | Various shell utilities |
+| `tools/` | Utility tools | template-session.ss, template-parser.ss |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
 | `tests/` | Shell test suite | test-*.ss files |
 
 Root-level files like `commands.ss` and `validate.ss` remain for shared infrastructure.
+
+### Template DSL (AI Code Generation)
+
+Grammar-driven code construction for building S-expressions without tracking parentheses.
+
+```scheme
+(load "shell/tools/template-parser.ss")
+
+;; Linear syntax - each line is a production
+(tp-parse "define $sig $body")           ; Start template
+(tp-parse "$sig := $name $args")         ; Fill hole (implicit parens)
+(tp-parse "$name := factorial")
+(tp-parse "$args := n")
+(tp-parse "$body := if $cond $then $else")
+(tp-parse "$cond := = n 0")              ; Implicit parens: (= n 0)
+(tp-parse "$then := 1")
+(tp-parse "$else := * n (factorial (- n 1))")
+(ts-compile)
+;; → (define (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))
+```
+
+**Key concepts:**
+- Holes (`$name`) are non-terminals that get filled incrementally
+- Multi-token statements get implicit parentheses
+- Filling a hole with a value containing holes propagates those holes
+- Session manager provides undo support
+
+**Files:** `lattice/dsl/template/template.ss` (core), `shell/tools/template-session.ss` (session), `shell/tools/template-parser.ss` (parser)
 
 ---
 
