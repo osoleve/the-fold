@@ -82,7 +82,15 @@
     spectrogram power-spectrogram log-spectrogram
     periodogram welch-psd
     spectrogram-frequencies spectrogram-times
-    spectral-centroid spectral-bandwidth spectral-rolloff))
+    spectral-centroid spectral-bandwidth spectral-rolloff)
+
+   (signal-poly
+    filter-num-poly filter-den-poly filter-coprime? filter-simplify
+    filter-stable? filter-cascade filter-parallel
+    deconvolve deconvolve-exact?
+    numeric->signal-poly signal->numeric-poly
+    sig-poly-degree sig-poly-coeffs sig-poly-gcd
+    sig-poly->string filter->string))
 
   (modules
    (complex "complex.ss"
@@ -105,4 +113,8 @@
      Multi-level decomposition and reconstruction. Denoising via thresholding.")
    (spectral-analysis "spectral-analysis.ss"
     "Short-time Fourier transform and spectrogram computation. Welch power
-     spectral density estimation. Spectral features: centroid, bandwidth, rolloff.")))
+     spectral density estimation. Spectral features: centroid, bandwidth, rolloff.")
+   (signal-poly "signal-poly.ss"
+    "Polynomial algebra integration for signal processing. Filter stability analysis
+     via Jury criterion. Filter simplification, cascade/parallel combination,
+     deconvolution as polynomial division.")))
