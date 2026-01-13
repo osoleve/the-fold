@@ -129,11 +129,28 @@
 
 ;;; tree-flatten : (Tree a) -> (List a)
 ;;; Flatten tree to list via pre-order traversal.
+;;; Uses accumulator-passing to avoid (apply append ...) which can hit
+;;; argument limits for wide trees.
 (define (tree-flatten t)
   (if (not (tree? t))
       '()
+      (tree-flatten-acc t '())))
+
+;;; tree-flatten-acc : (Tree a) x (List a) -> (List a)
+;;; Helper using accumulator for efficient flattening.
+(define (tree-flatten-acc t acc)
+  (if (not (tree? t))
+      acc
       (cons (tree-value t)
-            (apply append (map tree-flatten (tree-children t))))))
+            (tree-flatten-children (tree-children t) acc))))
+
+;;; tree-flatten-children : (List (Tree a)) x (List a) -> (List a)
+;;; Flatten a list of trees, right-to-left for correct order.
+(define (tree-flatten-children children acc)
+  (if (null? children)
+      acc
+      (tree-flatten-acc (car children)
+                        (tree-flatten-children (cdr children) acc))))
 
 ;;; ============================================================
 ;;; Tree Zipper Type
@@ -598,6 +615,16 @@
         nothing
         (just (length (crumb-left (car crumbs)))))))
 
+;;; tree-zipper-index-path : (TreeZipper a) -> (List Nat)
+;;; Get path from root to focus as list of child indices.
+;;; Each index represents which child to descend into at each level.
+;;; Empty list means we're at root.
+(define (tree-zipper-index-path z)
+  (let ([crumbs (tree-zipper-crumbs z)])
+    (reverse (map (lambda (crumb)
+                    (length (crumb-left crumb)))
+                  crumbs))))
+
 ;;; ============================================================
 ;;; Functor Instance
 ;;; ============================================================
@@ -636,14 +663,20 @@
 ;;; tree-zipper-extend : ((TreeZipper a) -> b) x (TreeZipper a) -> (TreeZipper b)
 ;;; Extend a contextual function to all positions.
 ;;; For each position, applies f to the zipper focused at that position.
+;;;
+;;; Comonad law: extend extract = id
+;;; This implementation satisfies the law by using index-based navigation,
+;;; which correctly handles trees with duplicate values among siblings.
 (define (tree-zipper-extend f z)
-  ;; We need to apply f at every position in the tree
-  ;; Navigate to root first, then build the result tree
-  (let ([root-z (tree-zipper-root z)])
-    (let ([result-tree (extend-tree f root-z)])
-      ;; Now navigate to the same position in the result
-      ;; We use the path to reconstruct position
-      (navigate-to-position result-tree (tree-zipper-path z)))))
+  ;; Capture the index path BEFORE navigating to root
+  ;; This is the structural position we need to return to
+  (let ([index-path (tree-zipper-index-path z)])
+    ;; Navigate to root, then build the result tree
+    (let ([root-z (tree-zipper-root z)])
+      (let ([result-tree (extend-tree f root-z)])
+        ;; Navigate to the same structural position in the result
+        ;; Uses indices, not values, ensuring correctness with duplicates
+        (navigate-to-indices result-tree index-path)))))
 
 ;;; extend-tree : ((TreeZipper a) -> b) x (TreeZipper a) -> (Tree b)
 ;;; Build a tree by applying f at each position.
@@ -660,8 +693,26 @@
                    (+ idx 1)
                    (cons (extend-tree f cz) acc))))))))
 
+;;; navigate-to-indices : (Tree a) x (List Nat) -> (TreeZipper a)
+;;; Navigate from root following child indices.
+;;; This is the correct implementation for Comonad - uses structural position,
+;;; not value matching, ensuring correct behavior with duplicate values.
+(define (navigate-to-indices tree indices)
+  (let ([z (tree->zipper tree)])
+    (if (null? indices)
+        z
+        (let navigate ([z z] [remaining indices])
+          (if (null? remaining)
+              z
+              ;; Go to nth child
+              (let ([child-z (tree-zipper-nth-child z (car remaining))])
+                (if (nothing? child-z)
+                    z  ; Index out of bounds, return current
+                    (navigate (from-just child-z) (cdr remaining)))))))))
+
 ;;; navigate-to-position : (Tree a) x (List a) -> (TreeZipper a)
 ;;; Navigate from root following path values (heuristic - matches by value).
+;;; DEPRECATED: Use navigate-to-indices for Comonad operations.
 ;;; Note: This is a simplified implementation that works when values are unique.
 (define (navigate-to-position tree path)
   (let ([z (tree->zipper tree)])

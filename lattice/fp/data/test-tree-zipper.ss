@@ -489,7 +489,56 @@
     (let* ([z (tree->zipper tree-simple)]
            [f (lambda (zz) (+ 1 (tree-zipper-get zz)))]
            [extended (tree-zipper-extend f z)])
-      (assert-equal (f z) (tree-zipper-extract extended)))))
+      (assert-equal (f z) (tree-zipper-extract extended))))
+
+  ;; Test that fixes the bug identified by Gemini QA:
+  ;; Trees with duplicate sibling values must preserve correct focus.
+  (define-test "comonad law: extend extract = id (with duplicate values)"
+    ;; Tree with duplicate sibling values: (parent (A) (A) (A))
+    ;; The old value-based navigation would always return to the first A.
+    (let* ([tree-with-dupes (tree-node 'parent
+                                       (tree-leaf 'A)
+                                       (tree-leaf 'A)
+                                       (tree-leaf 'A))]
+           [z (tree->zipper tree-with-dupes)]
+           ;; Navigate to the SECOND 'A child (index 1)
+           [z-second (from-just (tree-zipper-nth-child z 1))]
+           ;; Apply extend extract - this should be identity
+           [z-result (tree-zipper-extend tree-zipper-extract z-second)])
+      ;; Verify we're still focused on the SECOND sibling (index 1)
+      (assert-equal 1 (from-just (tree-zipper-sibling-index z-result)))
+      ;; And the trees are equal
+      (assert-true (tree-zipper-equal? z-second z-result))))
+
+  (define-test "comonad law: extend extract = id (with duplicate values - third sibling)"
+    ;; Same test but for the third sibling
+    (let* ([tree-with-dupes (tree-node 'parent
+                                       (tree-leaf 'A)
+                                       (tree-leaf 'A)
+                                       (tree-leaf 'A))]
+           [z (tree->zipper tree-with-dupes)]
+           ;; Navigate to the THIRD 'A child (index 2)
+           [z-third (from-just (tree-zipper-nth-child z 2))]
+           ;; Apply extend extract - this should be identity
+           [z-result (tree-zipper-extend tree-zipper-extract z-third)])
+      ;; Verify we're still focused on the THIRD sibling (index 2)
+      (assert-equal 2 (from-just (tree-zipper-sibling-index z-result)))
+      ;; And the trees are equal
+      (assert-true (tree-zipper-equal? z-third z-result))))
+
+  (define-test "tree-zipper-index-path returns correct indices"
+    (let* ([z (tree->zipper tree-deep)]
+           [z-down (from-just (tree-zipper-down z))]
+           [z-right (from-just (tree-zipper-right z-down))]
+           [z-deep (from-just (tree-zipper-down z-right))])
+      ;; Path to root is empty
+      (assert-equal '() (tree-zipper-index-path z))
+      ;; Path to first child is (0)
+      (assert-equal '(0) (tree-zipper-index-path z-down))
+      ;; Path to second child is (1)
+      (assert-equal '(1) (tree-zipper-index-path z-right))
+      ;; Path to first child of second child is (1 0)
+      (assert-equal '(1 0) (tree-zipper-index-path z-deep)))))
 
 ;;; ============================================================
 ;;; Equality and Display Tests
