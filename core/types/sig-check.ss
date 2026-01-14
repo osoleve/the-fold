@@ -1129,7 +1129,10 @@
     "core/types/kinds.ss"
     "core/types/infer.ss"
     "core/types/annotate.ss"
-    "lattice/data/data-structures.ss"
+    "lattice/data/stack.ss"
+    "lattice/data/queue.ss"
+    "lattice/data/set.ss"
+    "lattice/data/dict.ss"
     "lattice/data/graph-algorithms.ss"
     "lattice/linalg/vec.ss"
     "lattice/linalg/matrix.ss"))

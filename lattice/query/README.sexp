@@ -17,11 +17,11 @@ multi-pattern string matching via Aho-Corasick, and inline metadata parsing.")
    (patterns-parse.ss "Inline @-tag parsing for metadata extraction"
     (exports extract-tags has-tag? get-tag safe-extract-tags))
    (aho-corasick.ss "Multi-pattern string matching algorithm"
-    (dependencies "lattice/data/data-structures.ss")
+    (dependencies "lattice/data/queue.ss" "lattice/data/set.ss" "lattice/data/dict.ss")
     (exports make-automaton search))))
  (tests
   ((test-query-dsl.ss "100+ tests for query-dsl.ss")
    (test-query-patterns.ss "~30 tests for query-patterns.ss")
    (test-patterns-parse.ss "~30 tests for patterns-parse.ss")
    (test-aho-corasick.ss "~20 tests for aho-corasick.ss")))
- (dependencies (base data-structures)))
+ (dependencies (base queue set dict)))
