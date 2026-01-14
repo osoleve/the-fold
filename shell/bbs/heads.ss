@@ -56,9 +56,11 @@
                                (string=? (substring trimmed 0 2) "0x"))
                           (substring trimmed 2 (string-length trimmed))
                           trimmed)])
-            (if (= (string-length hex) 64)
-                (hex->hash hex)
-                #f))
+            ;; Accept 64-char (32-byte hash) or 66-char (33-byte CAS address)
+            (let ([len (string-length hex)])
+              (if (or (= len 64) (= len 66))
+                  (hex->hash hex)
+                  #f)))
           #f))))
 
 ;;; bbs-write-head! : String Bytevector -> Void
