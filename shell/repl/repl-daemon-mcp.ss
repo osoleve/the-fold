@@ -122,6 +122,9 @@
 (define (lastreq-path session-id)
   (string-append *workers-dir* "/" session-id ".lastreq"))
 
+(define (expires-path session-id)
+  (string-append *workers-dir* "/" session-id ".expires"))
+
 (define (read-number-file path)
   (guard (e [else #f])
          (and (file-exists? path)
@@ -214,6 +217,7 @@
          (ready-path session-id)
          (heartbeat-path session-id)
          (lastreq-path session-id)
+         (expires-path session-id)
          (starting-path session-id))))
 
 (define (cleanup-stale-workers!)
@@ -236,9 +240,31 @@
                                         (cleanup-worker-files! session-id)))))
               files))))
 
+(define (cleanup-expired-workers!)
+  "Kill workers whose expiration time has passed.
+   Uses decay-based expiration: active sessions extend their lifetime,
+   but with diminishing returns as expiration gets further out."
+  (when (file-exists? *workers-dir*)
+        (let ([files (directory-list *workers-dir*)])
+             (for-each
+              (lambda (filename)
+                      (when (and (string? filename)
+                                 (> (string-length filename) 8)
+                                 (string=? (substring filename
+                                                      (- (string-length filename) 8)
+                                                      (string-length filename))
+                                           ".expires"))
+                            (let* ([session-id (substring filename 0 (- (string-length filename) 8))]
+                                   [expires (read-number-file (expires-path session-id))]
+                                   [now (time-second (current-time))])
+                                  (when (and expires (>= now expires))
+                                        (terminate-worker! session-id)
+                                        (cleanup-worker-files! session-id)))))
+              files))))
+
 (define (cleanup-idle-workers!)
   "Kill workers that haven't processed a request in *idle-timeout* seconds.
-   This prevents memory accumulation from abandoned sessions."
+   Fallback for workers without expiration files (legacy compatibility)."
   (when (file-exists? *workers-dir*)
         (let ([files (directory-list *workers-dir*)])
              (for-each
@@ -250,11 +276,14 @@
                                                       (string-length filename))
                                            ".lastreq"))
                             (let* ([session-id (substring filename 0 (- (string-length filename) 8))]
-                                   [lastreq (read-number-file (lastreq-path session-id))]
-                                   [now (time-second (current-time))])
-                                  (when (and lastreq (>= (- now lastreq) *idle-timeout*))
-                                        (terminate-worker! session-id)
-                                        (cleanup-worker-files! session-id)))))
+                                   [has-expires (file-exists? (expires-path session-id))])
+                                  ;; Only use idle-timeout for sessions without expiration
+                                  (unless has-expires
+                                    (let ([lastreq (read-number-file (lastreq-path session-id))]
+                                          [now (time-second (current-time))])
+                                         (when (and lastreq (>= (- now lastreq) *idle-timeout*))
+                                               (terminate-worker! session-id)
+                                               (cleanup-worker-files! session-id)))))))
               files))))
 
 ;;; ====
@@ -288,8 +317,9 @@
 (define (periodic-cleanup!)
   (let ([now (time-second (current-time))])
        (when (> (- now *last-cleanup*) *cleanup-interval*)
-             (cleanup-stale-workers!)  ; Dead processes (no heartbeat)
-             (cleanup-idle-workers!)   ; Idle workers (no recent requests)
+             (cleanup-stale-workers!)    ; Dead processes (no heartbeat)
+             (cleanup-expired-workers!)  ; Expired workers (decay-based)
+             (cleanup-idle-workers!)     ; Legacy: idle workers without expiration
              (set! *last-cleanup* now))))
 
 (define (daemon-loop)

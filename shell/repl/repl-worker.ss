@@ -22,6 +22,11 @@
 (define *poll-interval-ns* 100000000)  ; 100ms
 (define *heartbeat-interval* 5)        ; seconds
 
+;;; Expiration with decay parameters
+(define *base-extension* 600)     ; Base extension: 10 minutes
+(define *max-horizon* 3600)       ; Maximum horizon: 1 hour
+(define *min-decay-factor* 0.1)   ; Minimum extension factor (10%)
+
 ;; Suppress REPL startup chatter in worker logs.
 (define *quiet* #t)
 
@@ -116,6 +121,9 @@
 
 (define (lastreq-path session-id)
   (string-append *workers-dir* "/" session-id ".lastreq"))
+
+(define (expires-path session-id)
+  (string-append *workers-dir* "/" session-id ".expires"))
 
 ;;; ====
 ;;; Request Parsing
@@ -288,6 +296,43 @@
                                  (display (time-second (current-time)) p))
                          'replace))
 
+;;; read-expires : String -> Int
+;;; Read current expiration timestamp, or 0 if not set.
+(define (read-expires session-id)
+  (guard (e [else 0])
+         (let ([path (expires-path session-id)])
+              (if (file-exists? path)
+                  (call-with-input-file path
+                                        (lambda (p)
+                                                (let ([line (get-line p)])
+                                                     (or (string->number line) 0))))
+                  0))))
+
+;;; compute-new-expiration : Int -> Int
+;;; Compute new expiration with decay based on remaining time.
+;;; Sessions with lots of time left get smaller extensions (diminishing returns).
+(define (compute-new-expiration current-expires)
+  (let* ([now (time-second (current-time))]
+         [time-remaining (max 0 (- current-expires now))]
+         ;; Decay factor: 1.0 when about to expire, min-decay-factor when at max horizon
+         [decay-factor (max *min-decay-factor*
+                            (- 1.0 (/ (exact->inexact time-remaining)
+                                      (exact->inexact *max-horizon*))))]
+         [extension (inexact->exact (floor (* *base-extension* decay-factor)))]
+         ;; Ensure at least base extension from now
+         [new-expires (+ now (max extension *base-extension*))])
+    new-expires))
+
+;;; write-expires! : String -> Void
+;;; Update expiration with decay-based extension.
+(define (write-expires! session-id)
+  (let* ([current (read-expires session-id)]
+         [new-exp (compute-new-expiration current)])
+    (call-with-output-file (expires-path session-id)
+                           (lambda (p)
+                                   (display new-exp p))
+                           'replace)))
+
 (define (clear-starting! session-id)
   (let ([path (starting-path session-id)])
        (when (file-exists? path)
@@ -297,7 +342,8 @@
   (let ([paths (list (pid-path session-id)
                      (ready-path session-id)
                      (heartbeat-path session-id)
-                     (lastreq-path session-id))])
+                     (lastreq-path session-id)
+                     (expires-path session-id))])
        (for-each
         (lambda (path)
                 (when (file-exists? path)
@@ -307,7 +353,8 @@
 (define (process-request! session-id)
   (let ([path (request-path session-id)])
        (when (file-exists? path)
-             (write-lastreq! session-id)  ; Track last request time for idle detection
+             (write-lastreq! session-id)  ; Track last request time (legacy)
+             (write-expires! session-id)  ; Extend expiration with decay
              (let* ([content (call-with-input-file path get-string-all)]
                     [request (parse-session-request content)]
                     [expr (if request
@@ -357,7 +404,8 @@
        (load "shell/repl.ss")
        (write-ready! session-id)
        (write-heartbeat! session-id)
-       (write-lastreq! session-id)  ; Initialize last-request timestamp
+       (write-lastreq! session-id)  ; Initialize last-request timestamp (legacy)
+       (write-expires! session-id)  ; Initialize expiration with base extension
        (clear-starting! session-id)
        (worker-loop session-id)))
 

@@ -46,7 +46,7 @@ REQUESTS_DIR = os.path.join(REPL_DIR, "requests")
 RESPONSES_DIR = os.path.join(REPL_DIR, "responses")
 READY_FILE = os.path.join(REPL_DIR, "ready")
 SESSION_FILE = ".fold-session"  # Persisted session file
-DEFAULT_TIMEOUT = 30
+DEFAULT_TIMEOUT = 120  # 2 minutes - allows for heavy operations like BBS indexing
 
 def get_session_from_env():
     """Get session from FOLD_SESSION environment variable."""
