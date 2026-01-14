@@ -31,7 +31,7 @@
             shell shell-with-stdin store-put store-get store-has
             log-info log-warn log-error checkpoint restore
             http-get http-post http-json git-status git-diff git-commit git-push
-            beads-create beads-update beads-close beads-ready
+            bbs-create bbs-create-full bbs-update bbs-close bbs-ready bbs-show
             discord-post discord-chat discord-reply await-discord-mention)
    (council make-council-config council-sequential council-parallel
             council-vote council-debate council-consensus

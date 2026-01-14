@@ -424,59 +424,67 @@
                                    (stage-effect-payload result))))))
 
 ;;; ============================================================
-;;; Beads Effects
+;;; BBS (Issue Tracker) Effects
 ;;; ============================================================
 
-(run-tests "Beads Effects"
+(run-tests "BBS Effects"
            (lambda ()
-                   ;; Test beads-create
-                   (let ([eff (beads-create "New issue title")])
+                   ;; Test bbs-create
+                   (let ([eff (bbs-create "New issue title")])
                         (let ([result (run-stage eff test-ctx "input")])
-                             (test-pred "beads-create produces effect"
+                             (test-pred "bbs-create produces effect"
                                         stage-effect?
                                         result)
-                             
-                             (test "beads-create effect type is beads"
-                                   'beads
+
+                             (test "bbs-create effect type is bbs"
+                                   'bbs
                                    (stage-effect-type result))
-                             
-                             (test "beads-create has create payload"
+
+                             (test "bbs-create has create payload"
                                    (list 'create "New issue title")
                                    (stage-effect-payload result))))
-                   
-                   ;; Test beads-create-full
-                   (let ([eff (beads-create-full "Title" "Description" 'task 2)])
+
+                   ;; Test bbs-create-full
+                   (let ([eff (bbs-create-full "Title" "Description" 'task 2)])
                         (let ([result (run-stage eff test-ctx "input")])
-                             (test "beads-create-full has create-full payload"
+                             (test "bbs-create-full has create-full payload"
                                    (list 'create-full "Title" "Description" 'task 2)
                                    (stage-effect-payload result))))
-                   
-                   ;; Test beads-update
-                   (let ([eff (beads-update "fold-abc" '((status . in_progress)))])
+
+                   ;; Test bbs-update
+                   (let ([eff (bbs-update "fold-abc" '((status . in_progress)))])
                         (let ([result (run-stage eff test-ctx "input")])
-                             (test "beads-update has update payload"
+                             (test "bbs-update has update payload"
                                    (list 'update "fold-abc" '((status . in_progress)))
                                    (stage-effect-payload result))))
-                   
-                   ;; Test beads-close
-                   (let ([eff (beads-close "fold-xyz")])
+
+                   ;; Test bbs-close
+                   (let ([eff (bbs-close "fold-xyz")])
                         (let ([result (run-stage eff test-ctx "input")])
-                             (test "beads-close has close payload"
+                             (test "bbs-close has close payload"
                                    (list 'close "fold-xyz")
                                    (stage-effect-payload result))))
-                   
-                   ;; Test beads-ready
-                   (let ([result (run-stage beads-ready test-ctx "input")])
-                        (test "beads-ready has ready payload"
+
+                   ;; Test bbs-ready
+                   (let ([result (run-stage bbs-ready test-ctx "input")])
+                        (test "bbs-ready has ready payload"
                               (list 'ready)
                               (stage-effect-payload result)))
-                   
-                   ;; Test beads-show
-                   (let ([eff (beads-show "fold-123")])
+
+                   ;; Test bbs-show
+                   (let ([eff (bbs-show "fold-123")])
                         (let ([result (run-stage eff test-ctx "input")])
-                             (test "beads-show has show payload"
+                             (test "bbs-show has show payload"
                                    (list 'show "fold-123")
-                                   (stage-effect-payload result))))))
+                                   (stage-effect-payload result))))
+
+                   ;; Test backwards compatibility aliases
+                   (test-pred "beads-create alias works"
+                              stage-effect?
+                              (run-stage (beads-create "test") test-ctx "input"))
+                   (test-pred "beads-ready alias works"
+                              stage-effect?
+                              (run-stage beads-ready test-ctx "input"))))
 
 ;;; ============================================================
 ;;; Git Effects
@@ -665,7 +673,7 @@
                          [checkpoint-eff (run-stage (checkpoint 'cp) test-ctx "in")]
                          [http-eff (run-stage (http-get "url") test-ctx "in")]
                          [await-eff (run-stage (await-signal 's) test-ctx "in")]
-                         [beads-eff (run-stage beads-ready test-ctx "in")]
+                         [bbs-eff (run-stage bbs-ready test-ctx "in")]
                          [git-eff (run-stage git-status test-ctx "in")]
                          [pipeline-eff (run-stage (invoke-pipeline 'p) test-ctx "in")]
                          [discord-eff (run-stage (discord-chat 'ch) test-ctx "in")])
@@ -700,11 +708,13 @@
                         
                         ;; Test await-effect?
                         (test-pred "await-effect? true for await" await-effect? await-eff)
-                        (test "await-effect? false for beads" #f (await-effect? beads-eff))
-                        
-                        ;; Test beads-effect?
-                        (test-pred "beads-effect? true for beads" beads-effect? beads-eff)
-                        (test "beads-effect? false for git" #f (beads-effect? git-eff))
+                        (test "await-effect? false for bbs" #f (await-effect? bbs-eff))
+
+                        ;; Test bbs-effect?
+                        (test-pred "bbs-effect? true for bbs" bbs-effect? bbs-eff)
+                        (test "bbs-effect? false for git" #f (bbs-effect? git-eff))
+                        ;; Test backwards compat alias
+                        (test-pred "beads-effect? alias works" beads-effect? bbs-eff)
                         
                         ;; Test git-effect?
                         (test-pred "git-effect? true for git" git-effect? git-eff)

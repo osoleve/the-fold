@@ -22,7 +22,7 @@ fi
 SCHEME_FILES=$(find . -name "*.ss" -o -name "*.scm" | \
     grep -v "/\\.git/" | \
     grep -v "/node_modules/" | \
-    grep -v "/\\.beads/" | \
+    grep -v "/\\.bbs/" | \
     grep -v "/\\.store/" | \
     sort)
 

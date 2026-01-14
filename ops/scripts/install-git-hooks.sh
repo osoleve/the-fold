@@ -2,7 +2,6 @@
 # Install custom git hooks for The Fold
 #
 # This script installs git hooks that enforce code quality:
-# - bd sync (beads integration)
 # - scmindent (Scheme indentation, auto-fixing)
 # - kind-check (kind system validation)
 # - type-annotation-check (type signature validation)
@@ -23,29 +22,14 @@ echo "Installing git pre-commit hook..."
 
 cat > "$HOOK_FILE" << 'EOF'
 #!/bin/sh
-# bd-shim v1 + Scheme + Rust formatting + clippy linting + kind checking
-# bd-hooks-version: 0.39.2
-#
-# bd (beads) pre-commit hook + code quality checks
+# The Fold pre-commit hook
 #
 # This hook:
-# 1. Delegates to 'bd hooks run pre-commit' for bd sync
-# 2. Checks Scheme indentation (scmindent)
-# 3. Validates kind system (kind-check.ss)
+# 1. Checks Scheme indentation (scmindent)
+# 2. Validates kind system (kind-check.ss)
+# 3. Validates type annotations (type-annotation-check.ss)
 # 4. Runs cargo fmt --check (Rust formatting)
 # 5. Runs clippy (Rust linting)
-
-# Check if bd is available and run bd hooks
-if command -v bd >/dev/null 2>&1; then
-    bd hooks run pre-commit "$@"
-    BD_EXIT=$?
-    if [ $BD_EXIT -ne 0 ]; then
-        echo "bd pre-commit hook failed" >&2
-        exit $BD_EXIT
-    fi
-else
-    echo "Warning: bd command not found in PATH, skipping bd sync" >&2
-fi
 
 # Check Scheme formatting on staged .ss and .scm files
 STAGED_SCHEME=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ss|scm)$' || true)
@@ -166,12 +150,11 @@ chmod +x "$HOOK_FILE"
 echo "✓ Git hooks installed successfully"
 echo ""
 echo "The pre-commit hook will now:"
-echo "  1. Sync beads (bd) changes"
-echo "  2. Check/fix Scheme indentation (scmindent)"
-echo "  3. Validate kind system (kind-check.ss) for core/types changes"
-echo "  4. Validate type annotations (type-annotation-check.ss) for core changes"
-echo "  5. Check Rust formatting (cargo fmt --check)"
-echo "  6. Run Rust linting (cargo clippy)"
+echo "  1. Check/fix Scheme indentation (scmindent)"
+echo "  2. Validate kind system (kind-check.ss) for core/types changes"
+echo "  3. Validate type annotations (type-annotation-check.ss) for core changes"
+echo "  4. Check Rust formatting (cargo fmt --check)"
+echo "  5. Run Rust linting (cargo clippy)"
 echo ""
 echo "Note: Install additional tools if needed:"
 echo "  scmindent: sudo npm install -g scmindent"

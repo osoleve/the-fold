@@ -280,44 +280,52 @@
           (list 'signal name)))
 
 ;;; ============================================================
-;;; Beads Integration Effects
+;;; BBS (Issue Tracker) Effects
 ;;; ============================================================
 
-;;; beads-create : String -> Stage ctx i String
-;;; Create a bead issue, return ID.
-(define (beads-create title)
-  (effect 'beads
+;;; bbs-create : String -> Stage ctx i String
+;;; Create an issue, return ID.
+(define (bbs-create title)
+  (effect 'bbs
           (list 'create title)))
 
-;;; beads-create-full : String -> String -> Symbol -> Nat -> Stage ctx i String
-;;; Create bead with full details.
-(define (beads-create-full title description type priority)
-  (effect 'beads
+;;; bbs-create-full : String -> String -> Symbol -> Nat -> Stage ctx i String
+;;; Create issue with full details.
+(define (bbs-create-full title description type priority)
+  (effect 'bbs
           (list 'create-full title description type priority)))
 
-;;; beads-update : String -> Alist -> Stage ctx i ()
-;;; Update a bead by ID.
-(define (beads-update id updates)
-  (effect 'beads
+;;; bbs-update : String -> Alist -> Stage ctx i ()
+;;; Update an issue by ID.
+(define (bbs-update id updates)
+  (effect 'bbs
           (list 'update id updates)))
 
-;;; beads-close : String -> Stage ctx i ()
-;;; Close a bead.
-(define (beads-close id)
-  (effect 'beads
+;;; bbs-close : String -> Stage ctx i ()
+;;; Close an issue.
+(define (bbs-close id)
+  (effect 'bbs
           (list 'close id)))
 
-;;; beads-ready : Stage ctx i (List Bead)
-;;; Get ready (unblocked) beads.
-(define beads-ready
-  (effect 'beads
+;;; bbs-ready : Stage ctx i (List Issue)
+;;; Get ready (unblocked) issues.
+(define bbs-ready
+  (effect 'bbs
           (list 'ready)))
 
-;;; beads-show : String -> Stage ctx i Bead
-;;; Get bead details.
-(define (beads-show id)
-  (effect 'beads
+;;; bbs-show : String -> Stage ctx i Issue
+;;; Get issue details.
+(define (bbs-show id)
+  (effect 'bbs
           (list 'show id)))
+
+;;; Backwards compatibility aliases
+(define beads-create bbs-create)
+(define beads-create-full bbs-create-full)
+(define beads-update bbs-update)
+(define beads-close bbs-close)
+(define beads-ready bbs-ready)
+(define beads-show bbs-show)
 
 ;;; ============================================================
 ;;; Git Effects
@@ -461,10 +469,14 @@
   (and (stage-effect? e)
        (eq? (stage-effect-type e) 'await)))
 
-;;; beads-effect? : Effect -> Boolean
-(define (beads-effect? e)
+;;; bbs-effect? : Effect -> Boolean
+(define (bbs-effect? e)
   (and (stage-effect? e)
-       (eq? (stage-effect-type e) 'beads)))
+       (or (eq? (stage-effect-type e) 'bbs)
+           (eq? (stage-effect-type e) 'beads))))  ; backwards compat
+
+;;; Backwards compatibility alias
+(define beads-effect? bbs-effect?)
 
 ;;; git-effect? : Effect -> Boolean
 (define (git-effect? e)

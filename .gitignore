@@ -36,7 +36,7 @@ nul
 # Archives
 archive/
 
-# bv (beads viewer) local config and caches
+# bv (legacy beads viewer) local config and caches
 .bv/
 
 # Gateway runtime state

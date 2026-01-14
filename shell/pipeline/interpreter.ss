@@ -103,7 +103,7 @@
              [(checkpoint) (interpret-checkpoint-effect payload ctx state input)]
              [(http) (interpret-http-effect payload ctx state input)]
              [(await) (interpret-await-effect payload ctx state input)]
-             [(beads) (interpret-beads-effect payload ctx state input)]
+             [(bbs beads) (interpret-bbs-effect payload ctx state input)]
              [(git) (interpret-git-effect payload ctx state input)]
              [(pipeline) (interpret-pipeline-effect payload ctx state input)]
              [(discord) (interpret-discord-effect payload ctx state input)]

@@ -37,7 +37,7 @@
   ((name "misc.ss")
    (lines 476)
    (description "Miscellaneous effect handlers")
-   (effects (log store beads git await))))
+   (effects (log store bbs git await))))
 
  (parent-module "shell/pipeline/interpreter.ss")
  (refactored-from "Monolithic interpreter.ss (1675 lines)")

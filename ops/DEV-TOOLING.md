@@ -12,7 +12,6 @@ This document catalogs all development quality-of-life tools for The Fold, inclu
 | cargo-llvm-cov | Rust | Test coverage reporting | Manual (`./ops/scripts/coverage.sh`) | ✅ |
 | cargo-audit | Rust | Security vulnerability scanning | Manual (`./ops/scripts/audit.sh`) | ✅ |
 | cargo-watch | Rust | Auto-rebuild on file changes | Manual (`./ops/scripts/watch.sh`) | ✅ |
-| bd (beads) | All | Issue tracking & git integration | Pre-commit hook | ✅ |
 
 **Usage:**
 - Pre-commit hook: Automatically runs on `git commit` (install: `./ops/scripts/install-git-hooks.sh`)
@@ -183,7 +182,7 @@ cargo install cargo-nextest            # Modern test runner
 
 ```bash
 # Integrated tools (run automatically)
-git commit                                      # Triggers: bd sync, typos, scmindent, cargo fmt, clippy
+git commit                                      # Triggers: typos, scmindent, cargo fmt, clippy
 
 # Testing
 ./ops/scripts/nextest.sh                        # Run tests with nextest (faster)

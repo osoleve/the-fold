@@ -66,7 +66,7 @@ Effects are interpreted by the shell layer.")
    (checkpoint . "Save/restore state")
    (http . "HTTP requests")
    (await . "Wait for external signals")
-   (beads . "Issue tracker integration")
+   (bbs . "Issue tracker (BBS) integration")
    (git . "Git operations")
    (pipeline . "Invoke sub-pipelines")))
 
