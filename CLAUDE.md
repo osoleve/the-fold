@@ -178,9 +178,55 @@ Core defines what The Fold IS — minimal, axiomatic, changes are breaking:
 | `blocks/` | Block system & CAS | block.ss, cas.ss, normalize.ss |
 | `types/` | Type system | types.ss, dep-types.ss, infer.ss, kinds.ss |
 | `lang/` | Evaluation & compilation | eval.ss, compile.ss, module.ss, nbe.ss |
-| `util/` | Core utilities | debug.ss, pretty.ss, cost-model.ss |
+| `util/` | Core utilities | debug.ss, pretty.ss, pretty-class.ss, cost-model.ss |
 | `testing/` | Test infrastructure | test-framework.ss |
 | `benchmarks/` | Performance benchmarks | bench-core.ss, bench-prim.ss |
+
+**Type Classes (`core/types/kinds.ss`, `core/types/resolve.ss`):**
+
+The type class system provides ad-hoc polymorphism. Key classes:
+
+| Class | Kind | Methods | Purpose |
+|-------|------|---------|---------|
+| `Eq` | `* → Constraint` | `==`, `/=` | Equality comparison |
+| `Ord` | `* → Constraint` | `<`, `<=`, `>`, `>=`, `compare` | Ordering |
+| `Show` | `* → Constraint` | `show : a → String` | String conversion |
+| `Pretty` | `* → Constraint` | `pretty : a → Doc`, `pretty-prec : Int → a → Doc` | Width-aware pretty-printing |
+| `Functor` | `(* → *) → Constraint` | `fmap` | Mappable containers |
+| `Monad` | `(* → *) → Constraint` | `>>=`, `return` | Sequencing with context |
+
+**Pretty Type Class** (`core/util/pretty-class.ss`):
+
+Unlike `Show` (returns flat `String`), `Pretty` returns `Doc` for composable, width-aware layout using the Wadler-Lindig algorithm.
+
+```scheme
+(load "core/util/pretty-class.ss")
+
+;; Render Doc to string
+(pretty-render (nat-pretty 42))           ; => "42"
+(pretty-render-width 40 doc)              ; Custom width
+
+;; Precedence-aware expression printing
+(parens-if (> outer-prec inner-prec) doc) ; Add parens when needed
+(pretty-binop prec op-prec left "+" right) ; Binary operators
+
+;; Precedence levels (higher = tighter binding)
+prec-atom  ; 10 - atoms (tightest)
+prec-mul   ; 7  - multiplication
+prec-add   ; 6  - addition
+prec-top   ; 0  - top level (loosest)
+```
+
+Lattice extensions (`lattice/fp/pretty-instances.ss`):
+
+```scheme
+(load "lattice/fp/pretty-instances.ss")
+
+(pretty-render (vec2-pretty '(vec2 3 4)))       ; => "[3, 4]"
+(pretty-render (complex-pretty '(complex 3 4))) ; => "3 + 4i"
+(pretty-render (expr-pretty '(+ (num 2) (* (num 3) (var x)))))
+                                                ; => "2 + 3 * x"
+```
 
 ### Lattice (Skill DAG)
 
@@ -231,6 +277,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 - `control-systems/` — Control theory, state space models
 - `analysis/` — Numerical analysis
 - `rewrite/` — Term rewriting systems
+- `pretty-instances.ss` — Pretty instances for Vec2, Matrix, Complex, Polynomial, Expr
 
 Each lattice skill has a `manifest.sexp` declaring metadata:
 
