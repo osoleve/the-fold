@@ -134,6 +134,8 @@
 ;;; bytes->block : Bytevector → Block
 ;;; Deserialize a block from its canonical byte representation.
 ;;; Validates bounds to prevent malformed input from causing errors.
+;;; Supports both 32-byte (legacy) and 33-byte (versioned) ref sizes
+;;; for backwards compatibility with older block formats.
 (define (bytes->block bv)
   (let ([bv-len (bytevector-length bv)])
        ;; Ensure minimum size for tag length field
@@ -166,18 +168,27 @@
                        (error 'bytes->block "bytevector too short for refs count" pos bv-len))]
               [refs-count (bytes-le->u32 bv pos)]
               [_ (set! pos (+ pos 4))]
-              ;; Validate refs total size
-              [refs-total-size (* refs-count address-size)]
-              [_ (when (> (+ pos refs-total-size) bv-len)
-                       (error 'bytes->block "refs exceed bytevector bounds" refs-count bv-len))]
+              ;; Detect actual ref size from remaining bytes (backwards compat)
+              ;; Supports 32-byte (legacy SHA-256) and 33-byte (versioned) refs
+              [remaining (- bv-len pos)]
+              [actual-ref-size (if (= refs-count 0)
+                                   address-size  ; Default if no refs
+                                   (quotient remaining refs-count))]
+              ;; Validate ref size is either 32 (legacy) or 33 (versioned)
+              [_ (unless (or (= actual-ref-size 32) (= actual-ref-size 33) (= refs-count 0))
+                         (error 'bytes->block "invalid ref size" actual-ref-size))]
+              ;; Validate total refs fit exactly
+              [_ (when (and (> refs-count 0)
+                            (not (= (* refs-count actual-ref-size) remaining)))
+                       (error 'bytes->block "refs don't fill remaining bytes" refs-count remaining))]
               [refs (make-vector refs-count)])
              ;; Read each ref
              (do ([i 0 (+ i 1)])
                  ((= i refs-count))
-                 (let ([ref (make-bytevector address-size)])
-                      (bytevector-copy! bv pos ref 0 address-size)
+                 (let ([ref (make-bytevector actual-ref-size)])
+                      (bytevector-copy! bv pos ref 0 actual-ref-size)
                       (vector-set! refs i ref)
-                      (set! pos (+ pos address-size))))
+                      (set! pos (+ pos actual-ref-size))))
              (make-block tag payload refs))))
 
 ;;; ====
