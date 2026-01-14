@@ -19,21 +19,11 @@
 (load "core/util/pretty-class.ss")
 
 ;;; ====
-;;; Generic Vector Pretty (Scheme vectors)
+;;; Vec2 Pretty (tagged list: (vec2 x y))
 ;;; ====
-
-;;; vec-pretty : Vec a → Doc
-;;; Pretty-print a generic vector as [a, b, c, ...]
-(define (vec-pretty v)
-  (let ([elems (vector->list v)])
-    (brackets
-     (group
-      (hsep (punctuate (text ",")
-                       (map (lambda (x) (text (number->string x))) elems)))))))
-
-;;; ====
-;;; Vec2 Pretty
-;;; ====
+;;;
+;;; Note: Scheme vectors use scheme-vec-pretty from core/util/pretty-class.ss
+;;; Vec2/Vec3 are tagged lists like (vec2 x y), not Scheme vectors.
 
 ;;; vec2-pretty : Vec2 → Doc
 ;;; Pretty-print a 2D vector as [x, y]
@@ -223,10 +213,15 @@
       (<> (expr-pretty-prec prec-exp (cadr e))
           (<> (text "^")
               (expr-pretty-prec prec-exp (caddr e)))))]
-   ;; Function application
+   ;; Function application (handles multi-arg: (fn arg1 arg2 ...))
    [(and (pair? e) (symbol? (car e)))
-    (<> (text (symbol->string (car e)))
-        (parens (expr-pretty-prec prec-top (cadr e))))]
+    (let ([args (cdr e)])
+      (<> (text (symbol->string (car e)))
+          (parens
+           (if (null? args)
+               empty
+               (hsep (punctuate (text ",")
+                                (map (lambda (a) (expr-pretty-prec prec-top a)) args)))))))]
    ;; Fallback
    [else (text "?")]))
 
@@ -260,6 +255,45 @@
   (block-pretty b))
 
 ;;; ====
+;;; Pretty Dispatch Registration
+;;; ====
+;;;
+;;; Register the lattice-aware dispatch function so list-pretty and
+;;; scheme-vec-pretty can use Pretty instances for lattice types.
+
+;;; lattice-pretty-dispatch : Any → Doc
+;;; Dispatch to appropriate Pretty instance based on value type.
+(define (lattice-pretty-dispatch x)
+  (cond
+   ;; Primitives (from core)
+   [(number? x) (text (number->string x))]
+   [(boolean? x) (bool-pretty x)]
+   [(char? x) (char-pretty x)]
+   [(string? x) (string-pretty x)]
+   [(symbol? x) (symbol-pretty x)]
+   ;; Tagged lattice types
+   [(and (pair? x) (symbol? (car x)))
+    (case (car x)
+      [(vec2) (vec2-pretty x)]
+      [(vec3) (vec3-pretty x)]
+      [(matrix) (matrix-pretty x)]
+      [(complex) (complex-pretty x)]
+      [(polynomial) (polynomial-pretty x)]
+      [(num var) (expr-pretty x)]
+      [(+ * - / ^) (expr-pretty x)]
+      [(block) (block-pretty x)]
+      [else (sexp->doc x)])]
+   ;; Scheme vectors
+   [(vector? x) (scheme-vec-pretty x)]
+   ;; Nested lists
+   [(list? x) (list-pretty x)]
+   ;; Fallback
+   [else (sexp->doc x)]))
+
+;; Register the dispatch function
+(set-pretty-dispatch! lattice-pretty-dispatch)
+
+;;; ====
 ;;; Module Loading Message
 ;;; ====
 
@@ -267,3 +301,4 @@
 (display "  Pretty instances for Vec2, Vec3, Matrix, Complex, Polynomial, Expr, Block.\n")
 (display "  Use (vec2-pretty v), (matrix-pretty m), (complex-pretty c), etc.\n")
 (display "  Use (expr-pretty e) for symbolic expressions with minimal parens.\n")
+(display "  Dispatch registered: list-pretty now uses lattice Pretty instances.\n")

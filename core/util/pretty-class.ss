@@ -78,21 +78,64 @@
 ;;; List Pretty Implementation
 ;;; ====
 
-;;; list-pretty : (a → Doc) → (List a) → Doc
+;;; list-pretty-with : (a → Doc) → (List a) → Doc
 ;;; Pretty-print a list using element pretty-printer.
 (define (list-pretty-with elem-pretty lst)
   (if (null? lst)
       (text "()")
       (parens (sep (map elem-pretty lst)))))
 
+;;; *pretty-dispatch* : (Any → Doc) | #f
+;;; Hook for lattice modules to register a dispatch function.
+;;; When set, list-pretty uses this to infer element Pretty instances.
+;;; Lattice code sets this via (set-pretty-dispatch! fn).
+(define *pretty-dispatch* #f)
+
+;;; set-pretty-dispatch! : (Any → Doc) → Void
+;;; Register a dispatch function for Pretty instance inference.
+(define (set-pretty-dispatch! fn)
+  (set! *pretty-dispatch* fn))
+
+;;; core-elem-pretty : Any → Doc
+;;; Core-only element pretty-printer (primitives only).
+(define (core-elem-pretty x)
+  (cond
+   [(number? x) (text (number->string x))]
+   [(boolean? x) (bool-pretty x)]
+   [(char? x) (char-pretty x)]
+   [(string? x) (string-pretty x)]
+   [(symbol? x) (symbol-pretty x)]
+   [(vector? x) (scheme-vec-pretty x)]
+   [(list? x) (list-pretty x)]
+   [else (sexp->doc x)]))
+
+;;; infer-elem-pretty : Any → Doc
+;;; Infer the appropriate pretty-printer for a value.
+;;; Uses *pretty-dispatch* if set (by lattice), otherwise core-only.
+(define (infer-elem-pretty x)
+  (if *pretty-dispatch*
+      (*pretty-dispatch* x)
+      (core-elem-pretty x)))
+
 ;;; list-pretty : (List a) → Doc
-;;; Default implementation using generic sexp->doc fallback.
+;;; Pretty-print a list, inferring element Pretty instances.
 (define (list-pretty lst)
-  (list-pretty-with sexp->doc lst))
+  (if (null? lst)
+      (text "()")
+      (parens (sep (map infer-elem-pretty lst)))))
 
 ;;; list-pretty-prec : Int → (List a) → Doc
 (define (list-pretty-prec prec lst)
   (list-pretty lst))
+
+;;; scheme-vec-pretty : Vector → Doc
+;;; Pretty-print a Scheme vector as [a, b, c, ...]
+(define (scheme-vec-pretty v)
+  (let ([elems (vector->list v)])
+    (brackets
+     (group
+      (hsep (punctuate (text ",")
+                       (map infer-elem-pretty elems)))))))
 
 ;;; ====
 ;;; Precedence Helpers (for expressions)

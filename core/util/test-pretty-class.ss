@@ -103,6 +103,49 @@
         (assert-false (string-contains? result "\n"))))))
 
 ;;; ====
+;;; Scheme Vector Tests
+;;; ====
+
+(test-group scheme-vec-tests
+  (define-test scheme-vec-empty
+    (assert-equal "[]" (pretty-render (scheme-vec-pretty (vector)))))
+
+  (define-test scheme-vec-numbers
+    (assert-equal "[1, 2, 3]" (pretty-render (scheme-vec-pretty (vector 1 2 3)))))
+
+  (define-test scheme-vec-mixed
+    ;; Should handle mixed types via infer-elem-pretty
+    (assert-equal "[1, #t, \"hi\"]" (pretty-render (scheme-vec-pretty (vector 1 #t "hi"))))))
+
+;;; ====
+;;; Dispatch Hook Tests
+;;; ====
+
+(test-group dispatch-tests
+  (define-test dispatch-default-uses-core
+    ;; Without custom dispatch, uses core-elem-pretty
+    (set-pretty-dispatch! #f)
+    (assert-equal "(1 2 3)" (pretty-render (list-pretty '(1 2 3)))))
+
+  (define-test dispatch-custom-hook
+    ;; Custom dispatch can override behavior
+    (set-pretty-dispatch! (lambda (x)
+                            (if (and (number? x) (= x 42))
+                                (text "THE-ANSWER")
+                                (core-elem-pretty x))))
+    (assert-equal "(THE-ANSWER 1 2)" (pretty-render (list-pretty '(42 1 2))))
+    ;; Cleanup
+    (set-pretty-dispatch! #f))
+
+  (define-test infer-elem-numbers
+    (set-pretty-dispatch! #f)
+    (assert-equal "42" (pretty-render (infer-elem-pretty 42))))
+
+  (define-test infer-elem-nested-list
+    (set-pretty-dispatch! #f)
+    (assert-equal "((1 2) (3 4))" (pretty-render (list-pretty '((1 2) (3 4)))))))
+
+;;; ====
 ;;; Run Tests
 ;;; ====
 
