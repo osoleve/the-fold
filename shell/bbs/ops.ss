@@ -71,7 +71,8 @@
 ;;;   'labels - New labels
 ;;;   'expect-hash - Expected current hash (for OCC)
 (define (bbs-update id . args)
-  (let* ([current-hash (bbs-issue-hash id)]
+  (let* ([id-str (if (symbol? id) (symbol->string id) id)]
+         [current-hash (bbs-issue-hash id-str)]
          [expect-hash (get-keyword-arg args 'expect-hash #f)]
          [blk (bbs-fetch current-hash)]
          [data (issue-block-data blk)])
@@ -79,7 +80,7 @@
     ;; OCC check if expect-hash provided
     (when (and expect-hash
                (not (bytevector=? current-hash expect-hash)))
-      (error 'bbs-update "Concurrent modification detected" id))
+      (error 'bbs-update "Concurrent modification detected" id-str))
 
     (let* ([old-status (cdr (assq 'status data))]
            [old-priority (cdr (assq 'priority data))]
@@ -89,7 +90,7 @@
            [new-description (get-keyword-arg args 'description (cdr (assq 'description data)))]
            [new-labels (get-keyword-arg args 'labels (cdr (assq 'labels data)))]
            [version (+ (cdr (assq 'version data)) 1)]
-           [new-blk (make-issue-block id new-title new-description new-status
+           [new-blk (make-issue-block id-str new-title new-description new-status
                                       new-priority (cdr (assq 'type data)) new-labels
                                       (cdr (assq 'created-at data))
                                       (cdr (assq 'created-by data))
@@ -97,10 +98,10 @@
            [new-hash (bbs-store! new-blk)])
 
       ;; Update head
-      (bbs-write-head! id new-hash)
+      (bbs-write-head! id-str new-hash)
 
       ;; Update index
-      (bbs-index-update! id new-hash old-status new-status old-priority new-priority)
+      (bbs-index-update! id-str new-hash old-status new-status old-priority new-priority)
 
       new-hash)))
 
@@ -126,22 +127,26 @@
 ;;; Dependencies
 ;;; ============================================================
 
-;;; bbs-dep : String String -> Void
+;;; bbs-dep : String|Symbol String|Symbol -> Void
 ;;; Add a dependency: blocker blocks blocked.
 (define (bbs-dep blocker blocked)
-  (let ([blocker-hash (bbs-issue-hash blocker)]
-        [blocked-hash (bbs-issue-hash blocked)])
+  (let* ([blocker-str (if (symbol? blocker) (symbol->string blocker) blocker)]
+         [blocked-str (if (symbol? blocked) (symbol->string blocked) blocked)]
+         [blocker-hash (bbs-issue-hash blocker-str)]
+         [blocked-hash (bbs-issue-hash blocked-str)])
     (when (and blocker-hash blocked-hash)
       ;; Create and store dep block
       (let* ([dep-blk (make-dep-block blocker-hash blocked-hash)]
              [dep-hash (bbs-store! dep-blk)])
         ;; Add to index
-        (bbs-add-dep! blocker blocked)))))
+        (bbs-add-dep! blocker-str blocked-str)))))
 
-;;; bbs-undep : String String -> Void
+;;; bbs-undep : String|Symbol String|Symbol -> Void
 ;;; Remove a dependency.
 (define (bbs-undep blocker blocked)
-  (bbs-remove-dep! blocker blocked))
+  (let ([blocker-str (if (symbol? blocker) (symbol->string blocker) blocker)]
+        [blocked-str (if (symbol? blocked) (symbol->string blocked) blocked)])
+    (bbs-remove-dep! blocker-str blocked-str)))
 
 ;;; ============================================================
 ;;; Comments

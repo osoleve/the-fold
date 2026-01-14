@@ -160,12 +160,14 @@
 ;;; bbs-issue-exists? : String -> Boolean
 ;;; Check if an issue exists in the index.
 (define (bbs-issue-exists? id)
-  (assoc id *bbs-issues*))
+  (let ([id-str (if (symbol? id) (symbol->string id) id)])
+    (assoc id-str *bbs-issues*)))
 
-;;; bbs-issue-hash : String -> Bytevector | #f
+;;; bbs-issue-hash : String|Symbol -> Bytevector | #f
 ;;; Get the current hash for an issue ID.
 (define (bbs-issue-hash id)
-  (let ([entry (assoc id *bbs-issues*)])
+  (let* ([id-str (if (symbol? id) (symbol->string id) id)]
+         [entry (assoc id-str *bbs-issues*)])
     (if entry (cdr entry) #f)))
 
 ;;; ============================================================
