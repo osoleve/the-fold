@@ -338,8 +338,12 @@
 ;;; Pretty Printing
 ;;; ============================================================
 
+;;; *show-scores* : Bool
+;;; Whether to show BM25 scores in output (default: #f)
+(define *show-scores* #f)
+
 ;;; print-results : (List SearchResult) -> void
-;;; Pretty print search results
+;;; Pretty print search results with clean formatting
 (define (print-results results)
   (if (null? results)
       (printf "No results found.\n")
@@ -349,18 +353,36 @@
                      [score (cadr result)]
                      [type (caddr result)]
                      [data (cadddr result)])
-                    (printf "~a [~a] (score: ~a)\n" id type (round-to score 3))
-                    ;; Show description (for skills) or docstring (for exports)
-                    (cond
-                     [(and data (assq 'description data))
-                      (let ([desc (cdr (assq 'description data))])
-                           (when (and (string? desc) (> (string-length desc) 0))
-                                 (printf "  ~a\n" (truncate-string desc 70))))]
-                     [(and data (assq 'docstring data))
-                      (let ([doc (cdr (assq 'docstring data))])
-                           (when (and (string? doc) (> (string-length doc) 0))
-                                 (printf "  ~a\n" (truncate-string doc 70))))])))
+                    ;; Format: name [type] (score: N.N) - only show score if enabled
+                    (if *show-scores*
+                        (printf "~a [~a] (score: ~a)\n" id type (round-to score 3))
+                        (printf "~a [~a]\n" id type))
+                    ;; Show description/docstring
+                    (print-result-detail type id data)))
        results)))
+
+;;; print-result-detail : Symbol × Symbol × Alist -> void
+;;; Print details for a search result based on its type
+(define (print-result-detail type id data)
+  (case type
+    [(skill)
+     ;; For skills, show description
+     (when data
+           (let ([desc (assq 'description data)])
+                (when (and desc (string? (cdr desc)) (> (string-length (cdr desc)) 0))
+                      (printf "  ~a\n" (truncate-string (cdr desc) 70)))))]
+    [(export)
+     ;; For exports, show docstring (first line only)
+     (when data
+           (let ([doc (assq 'docstring data)])
+                (when (and doc (string? (cdr doc)) (> (string-length (cdr doc)) 0))
+                      (printf "  ~a\n" (truncate-string (cdr doc) 70)))))]
+    [(module)
+     ;; For modules, show the module info
+     (when data
+           (let ([skill (assq 'skill data)])
+                (when skill
+                      (printf "  Part of: ~a\n" (cdr skill)))))]))
 
 ;;; round-to : Number Int -> Number
 (define (round-to n places)
@@ -412,6 +434,12 @@
        (if (null? results)
            (printf "No matches containing: ~a\n" substr)
            (print-results results))))
+
+;;; search-scores : Bool -> void
+;;; Toggle display of BM25 scores in search results
+(define (search-scores show?)
+  (set! *show-scores* show?)
+  (printf "Score display: ~a\n" (if show? "on" "off")))
 
 ;;; ============================================================
 ;;; REPL Interface
